@@ -30,7 +30,8 @@ Software de cálculo y verificación normativa de la tornamesa hidráulica TT300
 | H1 | W = 300 tf = 2942 kN; e ≤ 150 mm; φd = 1,10 solo en resistencias | Traspaso §3 |
 | H2 | Normas base: AISC 360-22 (ASD), ASME BTH-1 **Categoría de diseño B (Nd = 3,0)**, por analogía, para elementos mecánicos de la cadena de empuje; AWS D1.1/D1.1M:2020. El traspaso usaba Cat. A (Nd = 2,0) | Decisión del usuario, 30-10-2026 |
 | H2b | Soldadura de las barras 4f: tipo (filete, PJP o CJP) y ubicación (caras exteriores, interiores o ambas) son **parámetros de entrada**; el software verifica según AWS D1.1 y AISC 360-22 J2 y reporta el tipo mínimo que cumple FU ≤ 0,90. Valor por defecto: apoyo en caras exteriores (luz 160 mm), por ser lo habitual en barras pasantes de cajón cerrado. Supuesto a confirmar con el taller | Decisión del usuario, 30-10-2026 |
-| H2c | Cilindro: lo define el cálculo (fuerza de calado y presión) y debe existir comercialmente; el software lo selecciona de un catálogo cargado como dato, sin cifras inventadas | Decisión del usuario, 30-10-2026 |
+| H2c | Accionamiento **paramétrico**: número de cilindros (n), capacidad nominal, área del émbolo, diámetro del vástago, presión de alivio y carrera son entradas. Caso base: **2 cilindros de 50 t (445,3 kN a 700 bar)**. El software reporta presión, FS y μ_max para cualquier n y capacidad, y el `selector-comercial` filtra un catálogo cargado como dato, sin cifras inventadas | Decisión del usuario, 30-10-2026 |
+| H2d | Carga máxima de servicio W (tf) es parámetro: casos de estudio 250 y 300 tf. TT300-B se mantiene en 300 tf hasta que el cliente defina otra cosa | Decisión del usuario, 30-10-2026 |
 | H3 | μ estático de diseño 0,20; r_ef 0,80 m (a revisar por M1) | Traspaso §3 |
 | H4 | La cadena de empuje se verifica a la fuerza de calado (A·p_alivio = 445,3 kN) | Traspaso §3, H9 |
 | H5 | Unidades SI; resultados con 2–3 cifras significativas | Preferencias del usuario |
@@ -47,6 +48,18 @@ Software de cálculo y verificación normativa de la tornamesa hidráulica TT300
 | Pasador, corte doble | 57,9 | 188 | 0,31 | 125 | 0,46 |
 
 Con Cat. B el trinquete y el pasador **no cumplen** con la geometría actual. Estimación preliminar para FU ≤ 0,90, escalando la tensión con la geometría actual (indicativa, se recalcula en el núcleo): pasador Ø70 → ≈ Ø80; ancho del trinquete 85 → ≈ 95–102 mm. Este rediseño entra al backlog en prioridad 1.
+
+**Verificación de la capacidad de cilindros (f. calado = área × 700 bar; K = 1,240; a = 936,4 mm; 2 cilindros):**
+
+| Carga | Cilindros | Nominal μ 0,15, r 0,672 | Diseño μ 0,20, r 0,80 | Contaminado μ 0,25, r 0,80 |
+|---|---|---|---|---|
+| 250 tf | 2 × 20 t (177,9 kN) | FS 1,07 | **FS 0,68** | FS 0,54 |
+| 250 tf | 2 × 50 t (445,3 kN) | FS 2,68 | FS 1,69 | FS 1,36 |
+| 300 tf | 2 × 20 t | FS 0,89 | **FS 0,56** | FS 0,45 |
+| 300 tf | 2 × 50 t | FS 2,24 | FS 1,41 | FS 1,13 |
+| 300 tf | 2 × 55 t (489,3 kN) | FS 2,46 | FS 1,55 | FS 1,24 |
+
+Con 250 tf y 2 × 20 t el caso nominal pasa con FS 1,07, pero el criterio de diseño (μ 0,20) no. La capacidad mínima por cilindro para 250 tf con FS 1,41 al diseño es ≈ 42 t (371 kN), es decir, 50 t como tamaño estándar. La referencia de proveedores (2 × 55 t para 500 t) es consistente con este modelo: 2 × 55 t vencen μ ≈ 0,22 con r_u = 0,672 (μ·r ≈ 0,15 m), pero con FS ≈ 0,94 frente al criterio de diseño μ·r = 0,16 m. La diferencia es de criterio (fricción nominal sin factor de seguridad frente a μ límite superior con r_ef = 0,80), no de física.
 
 ## 4. Línea base verificada
 
