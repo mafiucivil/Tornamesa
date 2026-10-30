@@ -1,0 +1,260 @@
+<meta charset="utf-8">
+<title>Tornamesa TT500 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: banda de título, visor 3D dominante a la izquierda y lista de piezas a la derecha; en teléfono se apila. */
+:root{
+  --bg:#ECEFF1; --panel:#F8F9FA; --fg:#15191C; --muted:#56626B; --line:#C6CDD2;
+  --accent:#D99A06; --accent-ink:#3A2A00; --view:#DDE2E5; --sel:#FFF3CF;
+  --f-disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101417; --panel:#171D21; --fg:#E6EAED; --muted:#93A0A9; --line:#2C363D;
+  --accent:#F2B42A; --accent-ink:#1C1400; --view:#1B2328; --sel:#3A2F12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101417; --panel:#171D21; --fg:#E6EAED; --muted:#93A0A9; --line:#2C363D;
+  --accent:#F2B42A; --accent-ink:#1C1400; --view:#1B2328; --sel:#3A2F12; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 28px}
+.wrap{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--fg);padding-bottom:10px}
+h1{font-family:var(--f-disp);font-weight:700;font-size:clamp(28px,4.2vw,44px);line-height:1;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 small{display:block;font-family:var(--f-mono);font-weight:400;font-size:12px;letter-spacing:.06em;color:var(--muted);margin-top:6px;text-transform:uppercase}
+.seg{display:inline-flex;border:1px solid var(--fg);border-radius:3px;overflow:hidden}
+.seg button{font:600 13px/1 var(--f-body);padding:10px 14px;border:0;background:transparent;color:var(--fg);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible,.ctrl button:focus-visible,li:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.viewer{position:relative;background:var(--view);border:1px solid var(--line);aspect-ratio:16/10;max-height:74vh;width:100%;min-width:0}
+.viewer canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:10px;font:500 11px/1.4 var(--f-mono);color:var(--muted);background:color-mix(in srgb,var(--panel) 82%,transparent);padding:6px 8px;border:1px solid var(--line);pointer-events:none}
+.hud b{color:var(--fg);font-weight:500}
+.loading{position:absolute;inset:0;display:grid;place-items:center;font:500 13px var(--f-mono);color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--panel);border:1px solid var(--line);padding:10px 12px}
+.ctrl label{font:600 12px var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;gap:8px}
+.ctrl input[type=range]{width:min(220px,46vw);accent-color:var(--accent)}
+.ctrl button{font:500 13px var(--f-body);padding:7px 11px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:3px;cursor:pointer}
+.ctrl button[aria-pressed="true"]{border-color:var(--fg);background:var(--fg);color:var(--bg)}
+aside{background:var(--panel);border:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
+aside h2{font-family:var(--f-disp);font-weight:600;font-size:20px;letter-spacing:.02em;margin:0;padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+aside h2 span{font:400 12px var(--f-mono);color:var(--muted)}
+ul{list-style:none;margin:0;padding:0;max-height:min(62vh,620px);overflow:auto}
+li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 8px;padding:7px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+li:hover{background:color-mix(in srgb,var(--sel) 60%,transparent)}
+li.on{background:var(--sel)}
+li .p{font:600 13px var(--f-mono);color:var(--fg)}
+li .d{font-size:13px;line-height:1.3}
+li .m{grid-column:2/4;font:400 11.5px var(--f-mono);color:var(--muted)}
+li .q{font:500 12px var(--f-mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+li.na .d{color:var(--muted)}
+.specs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);background:var(--panel)}
+.specs div{padding:10px 12px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.specs dt{font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.specs dd{margin:2px 0 0;font:500 15px var(--f-mono);font-variant-numeric:tabular-nums}
+@media (max-width:700px){.specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.note{color:var(--muted);font-size:12.5px;max-width:90ch;margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Tornamesa hidráulica 500 tf<small id="sub">Modelo 3D de ensamble · TT500</small></h1>
+    <div class="seg" role="group" aria-label="Solución">
+      <button id="bA" type="button" aria-pressed="true">A · UHMW / inox</button>
+      <button id="bB" type="button" aria-pressed="false">B · Acero + grafito</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div class="viewer" id="viewer">
+        <div class="loading" id="loading">Cargando modelo…</div>
+        <div class="hud" id="hud">Arrastrar: girar · Rueda o pellizco: zoom · Clic derecho: desplazar</div>
+      </div>
+      <div class="ctrl">
+        <label for="exp">Explosión <input id="exp" type="range" min="0" max="100" value="0"></label>
+        <button id="cut" type="button" aria-pressed="false">Corte por el eje</button>
+        <button id="iso" type="button" aria-pressed="false">Aislar selección</button>
+        <button id="reset" type="button">Vista inicial</button>
+      </div>
+    </div>
+    <aside>
+      <h2>Lista de piezas <span id="mass"></span></h2>
+      <ul id="list"></ul>
+    </aside>
+  </div>
+
+  <dl class="specs" id="specs"></dl>
+  <p class="note">Modelo de conjunto para revisión, generado desde los mismos parámetros que los planos TT500-A/B láminas 1 a 4. Los cilindros (pos 9) son representaciones genéricas del equipo comercial. Las piezas sin geometría (pernos M8, resortes, clips, tapones, cáncamos, película de grafito) aparecen en gris en la lista.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const DATA = /*DATA*/null;
+const EXP = /*EXP*/null;
+const files = {"TT500-A":"TT500-A.json","TT500-B":"TT500-B.json"};
+const el = id => document.getElementById(id);
+const viewer = el("viewer");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+viewer.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35,1.6,0.01,1000);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x5a6168,0.95));
+const sun = new THREE.DirectionalLight(0xffffff,0.85); sun.position.set(3,6,4); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff,0.35); fill.position.set(-4,2,-3); scene.add(fill);
+const clip = new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+
+let current=null, cache={}, parts={}, size=1, center=new THREE.Vector3(), selected=null, isolate=false, cutOn=false;
+
+function setBg(){ scene.background = new THREE.Color(css("--view")||"#DDE2E5"); }
+setBg();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",setBg);
+new MutationObserver(setBg).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+function resize(){
+  const r = viewer.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width/Math.max(r.height,1); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(viewer);
+
+function posOf(o){ for(let n=o;n;n=n.parent){ const m=/^P(\d\d)_/.exec(n.name||""); if(m) return +m[1]; } return null; }
+
+function load(code){
+  el("loading").hidden=false;
+  if(cache[code]) return Promise.resolve(cache[code]);
+  return new Promise((res,rej)=>new THREE.GLTFLoader().load(files[code], g=>{cache[code]=g.scene;res(g.scene)}, undefined, rej));
+}
+
+function show(code){
+  el("bA").setAttribute("aria-pressed", code==="TT500-A");
+  el("bB").setAttribute("aria-pressed", code==="TT500-B");
+  try{ localStorage.setItem("tt500-variant",code) }catch(e){}
+  selected=null; buildList(code);
+  load(code).then(root=>{
+    if(current) scene.remove(current);
+    current=root; scene.add(root);
+    parts={};
+    root.traverse(o=>{
+      if(o.isMesh){
+        o.material = o.material.clone();
+        o.material.side = THREE.DoubleSide;
+        o.material.clippingPlanes = cutOn?[clip]:[];
+        o.material.metalness = Math.min(o.material.metalness??0,.35);
+        o.material.roughness = Math.max(o.material.roughness??.6,.45);
+        o.userData.baseColor = o.material.color.clone();
+      }
+      const m=/^P(\d\d)_/.exec(o.name||"");
+      if(m && !parts[+m[1]]){ parts[+m[1]]={node:o,orig:o.position.clone()}; }
+    });
+    root.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(root);
+    box.getCenter(center); size=box.getSize(new THREE.Vector3()).length();
+    for(const k in parts){
+      const p=parts[k]; const q=new THREE.Quaternion(); p.node.parent.getWorldQuaternion(q);
+      p.up=new THREE.Vector3(0,1,0).applyQuaternion(q.invert());
+    }
+    clip.constant = center.z;
+    el("loading").hidden=true;
+    applyExplode(); applySel();
+    if(!controls.userData) { resetView(); controls.userData=1; }
+  }).catch(()=>{ el("loading").textContent="No se pudo cargar el modelo 3D."; });
+  const d=DATA[code];
+  el("sub").textContent = d.title;
+  el("mass").textContent = "≈ "+d.mass.toLocaleString("es-CL")+" kg";
+  const specs=[["Capacidad nominal","500 tf (4 903 kN)"],["Altura sup. disco",d.zt+" mm"],["Interfaz de giro",d.iface],
+    ["Presión media",d.pmed],["Presión máx. e = 150 mm",d.pmax],["Fricción de diseño accionamiento",d.mu],["Cilindros","2 × 445 kN, 700 bar"],["Giro por ciclo","10° · 36 barras Ø70 en R940"]];
+  el("specs").innerHTML = specs.map(([a,b])=>`<div><dt>${a}</dt><dd>${b}</dd></div>`).join("");
+}
+
+function resetView(){
+  const s=size||3;
+  camera.position.set(center.x+s*0.78, center.y+s*0.62, center.z+s*0.92);
+  camera.near=s/500; camera.far=s*20; camera.updateProjectionMatrix();
+  controls.target.copy(center); controls.update();
+}
+
+function applyExplode(){
+  const f = +el("exp").value/100;
+  const unit = size/3200*260; // ~420 mm al 100 %
+  for(const k in parts){
+    const p=parts[k]; const e=(EXP[k]??0)*unit*f*1.0;
+    p.node.position.copy(p.orig).addScaledVector(p.up, e);
+  }
+}
+
+function applySel(){
+  if(!current) return;
+  current.traverse(o=>{
+    if(!o.isMesh) return;
+    const pos=posOf(o);
+    const on = selected===null || pos===selected;
+    o.visible = !(isolate && selected!==null && !on);
+    o.material.color.copy(o.userData.baseColor);
+    if(selected!==null && on){ o.material.emissive = new THREE.Color(css("--accent")||"#D99A06"); o.material.emissiveIntensity=.35; }
+    else { o.material.emissive = new THREE.Color(0x000000); }
+    o.material.transparent = selected!==null && !on && !isolate;
+    o.material.opacity = (selected!==null && !on && !isolate) ? .28 : 1;
+  });
+  document.querySelectorAll("#list li").forEach(li=>li.classList.toggle("on", +li.dataset.pos===selected));
+}
+
+function buildList(code){
+  const rows = DATA[code].rows;
+  const ul=el("list"); ul.innerHTML="";
+  const geo = new Set([1,2,3,4,5,6,7,8,9,10,11,12,14,15,22].concat(code==="TT500-A"?[19,20,21]:[]));
+  rows.forEach(r=>{
+    const li=document.createElement("li"); li.tabIndex=0; li.dataset.pos=r.pos;
+    if(!geo.has(r.pos)) li.classList.add("na");
+    li.innerHTML=`<span class="p">${r.pos}</span><span class="d">${r.desc}</span><span class="q">${r.qty}</span><span class="m">${r.mat}${r.kg?` · ${r.kg.toLocaleString("es-CL")} kg/u`:""}</span>`;
+    const pick=()=>{ if(!geo.has(r.pos)) return; selected = selected===r.pos?null:r.pos; applySel(); };
+    li.addEventListener("click",pick);
+    li.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pick(); } });
+    ul.appendChild(li);
+  });
+}
+
+// selección en el visor
+const ray=new THREE.Raycaster(), mouse=new THREE.Vector2(); let downAt=null;
+renderer.domElement.addEventListener("pointerdown",e=>downAt=[e.clientX,e.clientY]);
+renderer.domElement.addEventListener("pointerup",e=>{
+  if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>5||!current) return;
+  const r=renderer.domElement.getBoundingClientRect();
+  mouse.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObject(current,true).filter(h=>h.object.visible && (!cutOn || clip.distanceToPoint(h.point)>=0));
+  const pos = hits.length? posOf(hits[0].object):null;
+  selected = (pos===selected)?null:pos; applySel();
+  if(pos!==null){ const li=document.querySelector(`#list li[data-pos="${pos}"]`); li&&li.scrollIntoView({block:"nearest"}); }
+});
+
+el("exp").addEventListener("input",applyExplode);
+el("cut").addEventListener("click",()=>{ cutOn=!cutOn; el("cut").setAttribute("aria-pressed",cutOn);
+  current&&current.traverse(o=>{ if(o.isMesh) o.material.clippingPlanes = cutOn?[clip]:[]; }); });
+el("iso").addEventListener("click",()=>{ isolate=!isolate; el("iso").setAttribute("aria-pressed",isolate); applySel(); });
+el("reset").addEventListener("click",()=>{ el("exp").value=0; applyExplode(); selected=null; isolate=false; el("iso").setAttribute("aria-pressed",false); applySel(); resetView(); });
+el("bA").addEventListener("click",()=>show("TT500-A"));
+el("bB").addEventListener("click",()=>show("TT500-B"));
+
+let start="TT500-A";
+try{ const s=localStorage.getItem("tt500-variant"); if(s&&DATA[s]) start=s; }catch(e){}
+if(location.hash==="#B") start="TT500-B";
+resize(); show(start);
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera); })();
+</script>

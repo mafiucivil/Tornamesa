@@ -1,0 +1,275 @@
+<title>Tornamesa TT300-B</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Concepto: hoja de taller – panel de parámetros a la izquierda como "cuadro de datos", resultados a la derecha en pestañas. */
+:root{
+  --bg:#f3f4f1; --panel:#fbfbf9; --ink:#1c2228; --mute:#5c6870; --line:#cfd5d1; --grid:#e4e8e5;
+  --accent:#2453c4; --accent-ink:#ffffff; --force:#b3361f; --react:#0d776a;
+  --good:#2e7a33; --warn:#a8700f; --bad:#c22a2a;
+  --fill:#e6eae7; --fill2:#d5dcd8; --cyl:#c8d2e6; --shoe:#ead9bf; --pawl:#efc77f; --band:#2453c414; --chip:#e8ece9;
+  --f-display:"Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#111518; --panel:#181e22; --ink:#e2e7e9; --mute:#98a4ab; --line:#2d363c; --grid:#222a2f;
+  --accent:#7ba4ff; --accent-ink:#0b1220; --force:#ff7d5c; --react:#3cc7b1; --good:#62c766; --warn:#e3a63e; --bad:#ff6b6b;
+  --fill:#20282d; --fill2:#2a343a; --cyl:#283753; --shoe:#4b3f2b; --pawl:#6d5525; --band:#7ba4ff1c; --chip:#222a2f; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#111518; --panel:#181e22; --ink:#e2e7e9; --mute:#98a4ab; --line:#2d363c; --grid:#222a2f;
+  --accent:#7ba4ff; --accent-ink:#0b1220; --force:#ff7d5c; --react:#3cc7b1; --good:#62c766; --warn:#e3a63e; --bad:#ff6b6b;
+  --fill:#20282d; --fill2:#2a343a; --cyl:#283753; --shoe:#4b3f2b; --pawl:#6d5525; --band:#7ba4ff1c; --chip:#222a2f; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;margin:0;overflow:hidden}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0;max-width:1600px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+header.top{flex:none;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;padding-block:12px 10px;border-bottom:2px solid var(--ink)}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:28px;letter-spacing:.01em;margin:0;line-height:1;text-wrap:balance}
+.brand p{margin:4px 0 0;color:var(--mute);font-size:13px}
+.code{font-family:var(--f-mono);font-size:12px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.chip b{font-family:var(--f-mono);font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mute);flex:none}
+.ok .dot{background:var(--good)} .wa .dot{background:var(--warn)} .no .dot{background:var(--bad)}
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:330px minmax(0,1fr);gap:20px;padding-top:12px}
+aside.params{background:var(--panel);border:1px solid var(--line);border-radius:6px 6px 0 0;overflow-y:auto;overscroll-behavior:contain;min-height:0}
+main.res{overflow-y:auto;overscroll-behavior:contain;min-height:0;min-width:0;padding-bottom:28px;padding-right:4px}
+.tabs{position:sticky;top:0;z-index:4;background:var(--bg)}
+@media (max-width:980px){html,body{height:auto}body{overflow:auto}.wrap{height:auto;display:block}.layout{grid-template-columns:minmax(0,1fr)}aside.params,main.res{overflow:visible;min-height:auto}}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:2}
+.ph h2{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0;letter-spacing:.02em}
+details.grp{border-bottom:1px solid var(--line)}
+details.grp summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);list-style:none;display:flex;justify-content:space-between}
+details.grp summary::after{content:"+";font-family:var(--f-mono)} details.grp[open] summary::after{content:"−"}
+details.grp summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px;align-items:center;padding:3px 14px}
+.prow label{font-size:12.5px;line-height:1.25}
+.prow label small{display:block;color:var(--mute);font-family:var(--f-mono);font-size:10.5px}
+.prow input{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);text-align:right}
+.prow input.txt{text-align:left}
+.prow input:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.prow.chg input{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.grp-body{padding-bottom:8px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:5px;padding:7px 12px;font-size:13px;font-weight:500}
+.btn:hover{border-color:var(--accent)} .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 9px;font-size:12px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:none;border-bottom:3px solid transparent;padding:9px 14px;font-family:var(--f-display);font-size:18px;font-weight:600;color:var(--mute);letter-spacing:.02em;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.panel{padding-top:16px;display:grid;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0 0 8px;letter-spacing:.02em}
+.card h4{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);margin:12px 0 6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--panel);display:grid;gap:2px;align-content:start}
+.kpi .l{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.nt{text-transform:none;letter-spacing:0}
+.kpi .v{font-family:var(--f-mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--mute)}
+.kpi.ok{box-shadow:inset 0 3px 0 var(--good)} .kpi.wa{box-shadow:inset 0 3px 0 var(--warn)} .kpi.no{box-shadow:inset 0 3px 0 var(--bad)}
+.verdict{border:2px solid var(--good);border-radius:6px;padding:12px 16px;display:grid;gap:4px;background:var(--panel)}
+.verdict.no{border-color:var(--bad)} .verdict.wa{border-color:var(--warn)}
+.verdict strong{font-family:var(--f-display);font-size:22px;letter-spacing:.02em}
+.tw{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink);white-space:nowrap}
+table.t td{padding:5px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+table.t td.n,table.t th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.hl td{background:var(--band)}
+table.t td.f{font-family:var(--f-mono);font-size:11.5px;color:var(--mute)}
+.fu{display:flex;align-items:center;gap:8px;min-width:130px}
+.fu .bar{flex:1;height:8px;background:var(--grid);border-radius:4px;position:relative;overflow:hidden}
+.fu .bar i{position:absolute;inset:0 auto 0 0;border-radius:4px}
+.fu .bar::after{content:"";position:absolute;left:90%;top:-2px;bottom:-2px;width:1px;background:var(--ink);opacity:.5}
+.st{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.st.ok{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.st.wa{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.st.no{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.dgw{overflow-x:auto} .dgw svg{width:100%;height:auto;display:block;margin:0 auto}
+.eq{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:10px 12px;display:grid;gap:3px;overflow-x:auto}
+.eq span{white-space:nowrap}
+.note{font-size:12.5px;color:var(--mute)}
+ul.hyp{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{border:none;background:var(--panel);color:var(--mute);padding:5px 10px;font-size:12.5px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+canvas{max-width:100%;height:auto;display:block;border-radius:4px}
+.legend{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11.5px;color:var(--mute);margin-top:6px}
+.legend .ramp{flex:1;height:10px;border-radius:3px;border:1px solid var(--line)}
+.readout{font-family:var(--f-mono);font-size:12px;color:var(--mute);min-height:18px;margin-top:4px}
+.dl{display:grid;gap:10px}
+.dlrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sheetprev{border:1px solid var(--line);border-radius:4px;overflow:auto;background:#fff}
+.sheetprev svg{width:100%;height:auto;min-width:640px;display:block}
+.geohead{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between}
+.edit{font-size:12.5px;color:var(--mute)} .edit b{color:var(--accent)}
+.geo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;margin-top:10px;align-items:start}
+.g3d{border:1px solid var(--line);border-radius:4px;overflow:hidden;min-height:280px;touch-action:none}
+.g3d canvas{width:100%!important;height:auto!important;display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.busy{opacity:.55;transition:opacity .15s}
+.warnbox{border-left:3px solid var(--warn);padding:6px 10px;background:color-mix(in srgb,var(--warn) 10%,transparent);font-size:12.5px;border-radius:0 4px 4px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="code">TT300-B · Rev. P · Verificación paramétrica</div>
+      <h1>Tornamesa hidráulica 300 tf – acero/acero con grasa grafitada</h1>
+      <p>Disco cajón Ø2000 con barras de empuje · 2 cilindros 50 t en par · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</p>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="params" aria-label="Parámetros de diseño">
+      <div class="ph"><h2>Parámetros</h2><button class="btn sm" id="reset" type="button">Valores Rev. 0</button></div>
+      <form id="pform" autocomplete="off"></form>
+      <p class="note" style="padding:10px 14px;margin:0">Los campos marcados difieren del diseño emitido. Todo se recalcula al editar (FEA incluido).</p>
+    </aside>
+
+    <main class="res">
+      <nav class="tabs" role="tablist" aria-label="Secciones">
+        <button class="tab" role="tab" data-t="modelo" aria-selected="true">Modelo</button>
+        <button class="tab" role="tab" data-t="resumen" aria-selected="false">Resumen</button>
+        <button class="tab" role="tab" data-t="actuador" aria-selected="false">Cilindros</button>
+        <button class="tab" role="tab" data-t="diagramas" aria-selected="false">Diagramas</button>
+        <button class="tab" role="tab" data-t="verificaciones" aria-selected="false">Verificaciones</button>
+        <button class="tab" role="tab" data-t="fea" aria-selected="false">FEA</button>
+        <button class="tab" role="tab" data-t="planos" aria-selected="false">Planos</button>
+      </nav>
+
+      <section class="panel" data-p="modelo">
+        <div class="card">
+          <div class="geohead"><h3>Esquema de la geometría</h3><span class="edit" id="editing">Seleccione un parámetro para resaltar el elemento que controla.</span></div>
+          <div class="geo-grid">
+            <div class="g3wrap">
+              <div class="ctl">
+                <div class="seg" role="group" aria-label="Vista 3D"><button type="button" data-v3="iso" aria-pressed="true">Iso</button><button type="button" data-v3="top" aria-pressed="false">Planta</button><button type="button" data-v3="front" aria-pressed="false">Frente</button><button type="button" data-v3="side" aria-pressed="false">Lateral</button></div>
+                <div class="seg" role="group" aria-label="Plancha superior"><button type="button" data-top="trans" aria-pressed="true">4a transparente</button><button type="button" data-top="solid" aria-pressed="false">Sólida</button><button type="button" data-top="hide" aria-pressed="false">Oculta</button></div>
+              </div>
+              <div id="g3d" class="g3d"></div>
+              <p class="note" id="g3note">Arrastre para rotar, rueda para acercar, botón derecho para desplazar.</p>
+            </div>
+            <div class="dgw" id="gPlan"></div>
+          </div>
+          <div class="geo-grid">
+            <div class="dgw" id="gElev"></div>
+            <div class="dgw" id="gEdge"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="resumen" hidden>
+        <div id="verdict" class="verdict"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="card"><h3>Casos de fricción</h3><div class="tw" id="casesT"></div><p class="note" id="mumaxT"></p></div>
+        <div class="grid2">
+          <div class="card"><h3>Desarrollo del caso de diseño</h3><div class="eq" id="eqs"></div></div>
+          <div class="card"><h3>Hipótesis de cálculo</h3><ul class="hyp" id="hyps"></ul></div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="actuador" hidden>
+        <div class="card"><h3>Fuerzas sobre el disco, carros y ménsulas</h3><div class="dgw" id="dgPlan"></div></div>
+        <div class="card"><h3>Carga en cada pistón</h3><div class="tw" id="pistonT"></div><p class="note">θ es la posición angular de la barra durante la carrera útil. El brazo a = R·cos θ es mínimo al tomar y al soltar la barra, donde la fuerza es máxima.</p></div>
+        <div class="grid2">
+          <div class="card"><div class="dgw" id="dgStroke"></div></div>
+          <div class="card"><div class="dgw" id="dgMu"></div></div>
+        </div>
+        <div class="card"><div class="dgw" id="dgBreak"></div></div>
+      </section>
+
+      <section class="panel" data-p="diagramas" hidden>
+        <div class="grid2">
+          <div class="card"><h3>Carro de empuje</h3><div class="dgw" id="dgShoe"></div></div>
+          <div class="card"><h3>Barra 4f</h3><div class="dgw" id="dgBar"></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Pasador de ménsula</h3><div class="dgw" id="dgPin"></div></div>
+          <div class="card"><h3>Camino de carga y reacciones</h3><div class="tw" id="pathT"></div></div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="verificaciones" hidden>
+        <div class="card"><h3>Verificación de elementos</h3>
+          <p class="note">Cadena de empuje a la fuerza de calado (alivio). Clasificación: FU ≤ 0,90 aceptable · 0,90–1,00 monitoreo · &gt; 1,00 no cumple.</p>
+          <div class="tw" id="verT"></div></div>
+      </section>
+
+      <section class="panel" data-p="fea" hidden>
+        <div class="grid2">
+          <div class="card"><h3>Disco cajón – placas 4a / 4b</h3>
+            <div class="ctl">
+              <div class="seg" role="group" aria-label="Plancha"><button type="button" data-plate="bot" aria-pressed="true">Inferior 4b</button><button type="button" data-plate="top" aria-pressed="false">Superior 4a</button></div>
+              <div class="seg" role="group" aria-label="Campo"><button type="button" data-field="vm" aria-pressed="true">σ von Mises</button><button type="button" data-field="w" aria-pressed="false">Flecha w</button></div>
+            </div>
+            <canvas id="cvDisc" width="900" height="900" aria-label="Mapa de tensiones del disco"></canvas>
+            <div class="legend"><span id="lgMin"></span><span class="ramp" id="ramp1"></span><span id="lgMax"></span></div>
+            <div class="readout" id="roDisc">Mueva el cursor sobre el disco para leer valores.</div>
+            <div class="tw" id="feaDiscT"></div>
+            <p class="note" id="feaDiscN"></p>
+          </div>
+          <div class="card"><h3>Trinquete pos 11 – tensión plana</h3>
+            <div class="ctl"><div class="seg" role="group" aria-label="Deformada"><button type="button" data-def="0" aria-pressed="true">Sin deformada</button><button type="button" data-def="1" aria-pressed="false">Deformada amplificada</button></div></div>
+            <canvas id="cvPawl" width="1000" height="560" aria-label="Mapa de tensiones del trinquete"></canvas>
+            <div class="legend"><span id="lgMin2"></span><span class="ramp" id="ramp2"></span><span id="lgMax2"></span></div>
+            <div class="readout" id="roPawl"></div>
+            <div class="tw" id="feaPawlT"></div>
+            <p class="note" id="feaPawlN"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="planos" hidden>
+        <div class="grid2">
+          <div class="card dl"><h3>Planos emitidos Rev. 0</h3>
+            <p class="note">Juegos completos de diseño (D-01 a D-03) y fabricación (F-01 a F-03) con los valores de diseño; DXF de cada lámina y modelo STEP en un ZIP.</p>
+            <div class="dlrow">
+              <button class="btn" type="button" data-file="planos/TT300-B_Tornamesa300_Planos_Diseno.pdf">Diseño · PDF</button>
+              <button class="btn" type="button" data-file="planos/TT300-B_Tornamesa300_Planos_Fabricacion.pdf">Fabricación · PDF</button>
+              <button class="btn" type="button" id="bIssuedZip">DXF + STEP · ZIP</button>
+            </div>
+            <div class="warnbox" id="issuedWarn" hidden></div>
+          </div>
+          <div class="card dl"><h3>Con los parámetros actuales</h3>
+            <p class="note">Plano de verificación A1 (planta, corte, detalles acotados, parámetros, fuerzas y FU) y memoria A4 con diagramas y resultados FEA. Texto en negro.</p>
+            <div class="dlrow">
+              <button class="btn pri" type="button" id="bSheetPdf">Plano paramétrico · PDF</button>
+              <button class="btn" type="button" id="bSheetDxf">Plano paramétrico · DXF (ZIP)</button>
+              <button class="btn" type="button" id="bMemo">Memoria de verificación · PDF</button>
+            </div>
+          </div>
+        </div>
+        <div class="card"><h3>Vista previa del plano paramétrico</h3><div class="sheetprev" id="sheetPrev"></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+/*@@FEA@@*/
+/*@@CALC@@*/
+/*@@DIAG@@*/
+/*@@EXPORT@@*/
+/*@@GEO@@*/
+/*@@UI@@*/
+</script>

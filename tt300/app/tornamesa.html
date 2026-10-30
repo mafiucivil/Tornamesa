@@ -1,0 +1,2116 @@
+<title>Tornamesa TT300-B</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Concepto: hoja de taller – panel de parámetros a la izquierda como "cuadro de datos", resultados a la derecha en pestañas. */
+:root{
+  --bg:#f3f4f1; --panel:#fbfbf9; --ink:#1c2228; --mute:#5c6870; --line:#cfd5d1; --grid:#e4e8e5;
+  --accent:#2453c4; --accent-ink:#ffffff; --force:#b3361f; --react:#0d776a;
+  --good:#2e7a33; --warn:#a8700f; --bad:#c22a2a;
+  --fill:#e6eae7; --fill2:#d5dcd8; --cyl:#c8d2e6; --shoe:#ead9bf; --pawl:#efc77f; --band:#2453c414; --chip:#e8ece9;
+  --f-display:"Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#111518; --panel:#181e22; --ink:#e2e7e9; --mute:#98a4ab; --line:#2d363c; --grid:#222a2f;
+  --accent:#7ba4ff; --accent-ink:#0b1220; --force:#ff7d5c; --react:#3cc7b1; --good:#62c766; --warn:#e3a63e; --bad:#ff6b6b;
+  --fill:#20282d; --fill2:#2a343a; --cyl:#283753; --shoe:#4b3f2b; --pawl:#6d5525; --band:#7ba4ff1c; --chip:#222a2f; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#111518; --panel:#181e22; --ink:#e2e7e9; --mute:#98a4ab; --line:#2d363c; --grid:#222a2f;
+  --accent:#7ba4ff; --accent-ink:#0b1220; --force:#ff7d5c; --react:#3cc7b1; --good:#62c766; --warn:#e3a63e; --bad:#ff6b6b;
+  --fill:#20282d; --fill2:#2a343a; --cyl:#283753; --shoe:#4b3f2b; --pawl:#6d5525; --band:#7ba4ff1c; --chip:#222a2f; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;margin:0;overflow:hidden}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0;max-width:1600px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+header.top{flex:none;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;padding-block:12px 10px;border-bottom:2px solid var(--ink)}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:28px;letter-spacing:.01em;margin:0;line-height:1;text-wrap:balance}
+.brand p{margin:4px 0 0;color:var(--mute);font-size:13px}
+.code{font-family:var(--f-mono);font-size:12px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.chip b{font-family:var(--f-mono);font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mute);flex:none}
+.ok .dot{background:var(--good)} .wa .dot{background:var(--warn)} .no .dot{background:var(--bad)}
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:330px minmax(0,1fr);gap:20px;padding-top:12px}
+aside.params{background:var(--panel);border:1px solid var(--line);border-radius:6px 6px 0 0;overflow-y:auto;overscroll-behavior:contain;min-height:0}
+main.res{overflow-y:auto;overscroll-behavior:contain;min-height:0;min-width:0;padding-bottom:28px;padding-right:4px}
+.tabs{position:sticky;top:0;z-index:4;background:var(--bg)}
+@media (max-width:980px){html,body{height:auto}body{overflow:auto}.wrap{height:auto;display:block}.layout{grid-template-columns:minmax(0,1fr)}aside.params,main.res{overflow:visible;min-height:auto}}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:2}
+.ph h2{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0;letter-spacing:.02em}
+details.grp{border-bottom:1px solid var(--line)}
+details.grp summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);list-style:none;display:flex;justify-content:space-between}
+details.grp summary::after{content:"+";font-family:var(--f-mono)} details.grp[open] summary::after{content:"−"}
+details.grp summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px;align-items:center;padding:3px 14px}
+.prow label{font-size:12.5px;line-height:1.25}
+.prow label small{display:block;color:var(--mute);font-family:var(--f-mono);font-size:10.5px}
+.prow input{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);text-align:right}
+.prow input.txt{text-align:left}
+.prow input:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.prow.chg input{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.grp-body{padding-bottom:8px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:5px;padding:7px 12px;font-size:13px;font-weight:500}
+.btn:hover{border-color:var(--accent)} .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 9px;font-size:12px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:none;border-bottom:3px solid transparent;padding:9px 14px;font-family:var(--f-display);font-size:18px;font-weight:600;color:var(--mute);letter-spacing:.02em;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.panel{padding-top:16px;display:grid;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0 0 8px;letter-spacing:.02em}
+.card h4{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);margin:12px 0 6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--panel);display:grid;gap:2px;align-content:start}
+.kpi .l{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.nt{text-transform:none;letter-spacing:0}
+.kpi .v{font-family:var(--f-mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--mute)}
+.kpi.ok{box-shadow:inset 0 3px 0 var(--good)} .kpi.wa{box-shadow:inset 0 3px 0 var(--warn)} .kpi.no{box-shadow:inset 0 3px 0 var(--bad)}
+.verdict{border:2px solid var(--good);border-radius:6px;padding:12px 16px;display:grid;gap:4px;background:var(--panel)}
+.verdict.no{border-color:var(--bad)} .verdict.wa{border-color:var(--warn)}
+.verdict strong{font-family:var(--f-display);font-size:22px;letter-spacing:.02em}
+.tw{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink);white-space:nowrap}
+table.t td{padding:5px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+table.t td.n,table.t th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.hl td{background:var(--band)}
+table.t td.f{font-family:var(--f-mono);font-size:11.5px;color:var(--mute)}
+.fu{display:flex;align-items:center;gap:8px;min-width:130px}
+.fu .bar{flex:1;height:8px;background:var(--grid);border-radius:4px;position:relative;overflow:hidden}
+.fu .bar i{position:absolute;inset:0 auto 0 0;border-radius:4px}
+.fu .bar::after{content:"";position:absolute;left:90%;top:-2px;bottom:-2px;width:1px;background:var(--ink);opacity:.5}
+.st{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.st.ok{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.st.wa{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.st.no{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.dgw{overflow-x:auto} .dgw svg{width:100%;height:auto;display:block;margin:0 auto}
+.eq{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:10px 12px;display:grid;gap:3px;overflow-x:auto}
+.eq span{white-space:nowrap}
+.note{font-size:12.5px;color:var(--mute)}
+ul.hyp{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{border:none;background:var(--panel);color:var(--mute);padding:5px 10px;font-size:12.5px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+canvas{max-width:100%;height:auto;display:block;border-radius:4px}
+.legend{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11.5px;color:var(--mute);margin-top:6px}
+.legend .ramp{flex:1;height:10px;border-radius:3px;border:1px solid var(--line)}
+.readout{font-family:var(--f-mono);font-size:12px;color:var(--mute);min-height:18px;margin-top:4px}
+.dl{display:grid;gap:10px}
+.dlrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sheetprev{border:1px solid var(--line);border-radius:4px;overflow:auto;background:#fff}
+.sheetprev svg{width:100%;height:auto;min-width:640px;display:block}
+.geohead{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between}
+.edit{font-size:12.5px;color:var(--mute)} .edit b{color:var(--accent)}
+.geo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;margin-top:10px;align-items:start}
+.g3d{border:1px solid var(--line);border-radius:4px;overflow:hidden;min-height:280px;touch-action:none}
+.g3d canvas{width:100%!important;height:auto!important;display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.busy{opacity:.55;transition:opacity .15s}
+.warnbox{border-left:3px solid var(--warn);padding:6px 10px;background:color-mix(in srgb,var(--warn) 10%,transparent);font-size:12.5px;border-radius:0 4px 4px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="code">TT300-B · Rev. P · Verificación paramétrica</div>
+      <h1>Tornamesa hidráulica 300 tf – acero/acero con grasa grafitada</h1>
+      <p>Disco cajón Ø2000 con barras de empuje · 2 cilindros 50 t en par · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</p>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="params" aria-label="Parámetros de diseño">
+      <div class="ph"><h2>Parámetros</h2><button class="btn sm" id="reset" type="button">Valores Rev. 0</button></div>
+      <form id="pform" autocomplete="off"></form>
+      <p class="note" style="padding:10px 14px;margin:0">Los campos marcados difieren del diseño emitido. Todo se recalcula al editar (FEA incluido).</p>
+    </aside>
+
+    <main class="res">
+      <nav class="tabs" role="tablist" aria-label="Secciones">
+        <button class="tab" role="tab" data-t="modelo" aria-selected="true">Modelo</button>
+        <button class="tab" role="tab" data-t="resumen" aria-selected="false">Resumen</button>
+        <button class="tab" role="tab" data-t="actuador" aria-selected="false">Cilindros</button>
+        <button class="tab" role="tab" data-t="diagramas" aria-selected="false">Diagramas</button>
+        <button class="tab" role="tab" data-t="verificaciones" aria-selected="false">Verificaciones</button>
+        <button class="tab" role="tab" data-t="fea" aria-selected="false">FEA</button>
+        <button class="tab" role="tab" data-t="planos" aria-selected="false">Planos</button>
+      </nav>
+
+      <section class="panel" data-p="modelo">
+        <div class="card">
+          <div class="geohead"><h3>Esquema de la geometría</h3><span class="edit" id="editing">Seleccione un parámetro para resaltar el elemento que controla.</span></div>
+          <div class="geo-grid">
+            <div class="g3wrap">
+              <div class="ctl">
+                <div class="seg" role="group" aria-label="Vista 3D"><button type="button" data-v3="iso" aria-pressed="true">Iso</button><button type="button" data-v3="top" aria-pressed="false">Planta</button><button type="button" data-v3="front" aria-pressed="false">Frente</button><button type="button" data-v3="side" aria-pressed="false">Lateral</button></div>
+                <div class="seg" role="group" aria-label="Plancha superior"><button type="button" data-top="trans" aria-pressed="true">4a transparente</button><button type="button" data-top="solid" aria-pressed="false">Sólida</button><button type="button" data-top="hide" aria-pressed="false">Oculta</button></div>
+              </div>
+              <div id="g3d" class="g3d"></div>
+              <p class="note" id="g3note">Arrastre para rotar, rueda para acercar, botón derecho para desplazar.</p>
+            </div>
+            <div class="dgw" id="gPlan"></div>
+          </div>
+          <div class="geo-grid">
+            <div class="dgw" id="gElev"></div>
+            <div class="dgw" id="gEdge"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="resumen" hidden>
+        <div id="verdict" class="verdict"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="card"><h3>Casos de fricción</h3><div class="tw" id="casesT"></div><p class="note" id="mumaxT"></p></div>
+        <div class="grid2">
+          <div class="card"><h3>Desarrollo del caso de diseño</h3><div class="eq" id="eqs"></div></div>
+          <div class="card"><h3>Hipótesis de cálculo</h3><ul class="hyp" id="hyps"></ul></div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="actuador" hidden>
+        <div class="card"><h3>Fuerzas sobre el disco, carros y ménsulas</h3><div class="dgw" id="dgPlan"></div></div>
+        <div class="card"><h3>Carga en cada pistón</h3><div class="tw" id="pistonT"></div><p class="note">θ es la posición angular de la barra durante la carrera útil. El brazo a = R·cos θ es mínimo al tomar y al soltar la barra, donde la fuerza es máxima.</p></div>
+        <div class="grid2">
+          <div class="card"><div class="dgw" id="dgStroke"></div></div>
+          <div class="card"><div class="dgw" id="dgMu"></div></div>
+        </div>
+        <div class="card"><div class="dgw" id="dgBreak"></div></div>
+      </section>
+
+      <section class="panel" data-p="diagramas" hidden>
+        <div class="grid2">
+          <div class="card"><h3>Carro de empuje</h3><div class="dgw" id="dgShoe"></div></div>
+          <div class="card"><h3>Barra 4f</h3><div class="dgw" id="dgBar"></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Pasador de ménsula</h3><div class="dgw" id="dgPin"></div></div>
+          <div class="card"><h3>Camino de carga y reacciones</h3><div class="tw" id="pathT"></div></div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="verificaciones" hidden>
+        <div class="card"><h3>Verificación de elementos</h3>
+          <p class="note">Cadena de empuje a la fuerza de calado (alivio). Clasificación: FU ≤ 0,90 aceptable · 0,90–1,00 monitoreo · &gt; 1,00 no cumple.</p>
+          <div class="tw" id="verT"></div></div>
+      </section>
+
+      <section class="panel" data-p="fea" hidden>
+        <div class="grid2">
+          <div class="card"><h3>Disco cajón – placas 4a / 4b</h3>
+            <div class="ctl">
+              <div class="seg" role="group" aria-label="Plancha"><button type="button" data-plate="bot" aria-pressed="true">Inferior 4b</button><button type="button" data-plate="top" aria-pressed="false">Superior 4a</button></div>
+              <div class="seg" role="group" aria-label="Campo"><button type="button" data-field="vm" aria-pressed="true">σ von Mises</button><button type="button" data-field="w" aria-pressed="false">Flecha w</button></div>
+            </div>
+            <canvas id="cvDisc" width="900" height="900" aria-label="Mapa de tensiones del disco"></canvas>
+            <div class="legend"><span id="lgMin"></span><span class="ramp" id="ramp1"></span><span id="lgMax"></span></div>
+            <div class="readout" id="roDisc">Mueva el cursor sobre el disco para leer valores.</div>
+            <div class="tw" id="feaDiscT"></div>
+            <p class="note" id="feaDiscN"></p>
+          </div>
+          <div class="card"><h3>Trinquete pos 11 – tensión plana</h3>
+            <div class="ctl"><div class="seg" role="group" aria-label="Deformada"><button type="button" data-def="0" aria-pressed="true">Sin deformada</button><button type="button" data-def="1" aria-pressed="false">Deformada amplificada</button></div></div>
+            <canvas id="cvPawl" width="1000" height="560" aria-label="Mapa de tensiones del trinquete"></canvas>
+            <div class="legend"><span id="lgMin2"></span><span class="ramp" id="ramp2"></span><span id="lgMax2"></span></div>
+            <div class="readout" id="roPawl"></div>
+            <div class="tw" id="feaPawlT"></div>
+            <p class="note" id="feaPawlN"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-p="planos" hidden>
+        <div class="grid2">
+          <div class="card dl"><h3>Planos emitidos Rev. 0</h3>
+            <p class="note">Juegos completos de diseño (D-01 a D-03) y fabricación (F-01 a F-03) con los valores de diseño; DXF de cada lámina y modelo STEP en un ZIP.</p>
+            <div class="dlrow">
+              <button class="btn" type="button" data-file="planos/TT300-B_Tornamesa300_Planos_Diseno.pdf">Diseño · PDF</button>
+              <button class="btn" type="button" data-file="planos/TT300-B_Tornamesa300_Planos_Fabricacion.pdf">Fabricación · PDF</button>
+              <button class="btn" type="button" id="bIssuedZip">DXF + STEP · ZIP</button>
+            </div>
+            <div class="warnbox" id="issuedWarn" hidden></div>
+          </div>
+          <div class="card dl"><h3>Con los parámetros actuales</h3>
+            <p class="note">Plano de verificación A1 (planta, corte, detalles acotados, parámetros, fuerzas y FU) y memoria A4 con diagramas y resultados FEA. Texto en negro.</p>
+            <div class="dlrow">
+              <button class="btn pri" type="button" id="bSheetPdf">Plano paramétrico · PDF</button>
+              <button class="btn" type="button" id="bSheetDxf">Plano paramétrico · DXF (ZIP)</button>
+              <button class="btn" type="button" id="bMemo">Memoria de verificación · PDF</button>
+            </div>
+          </div>
+        </div>
+        <div class="card"><h3>Vista previa del plano paramétrico</h3><div class="sheetprev" id="sheetPrev"></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+/* FEA engine: banded Cholesky, Mindlin plate MITC4, plane-stress Q4. Units N, mm, MPa. */
+const FEA = (() => {
+  const GP = [-1 / Math.sqrt(3), 1 / Math.sqrt(3)];
+  const XI = [-1, 1, 1, -1], ETA = [-1, -1, 1, 1];
+
+  function Band(n, bw) { this.n = n; this.bw = bw; this.W = bw + 1; this.a = new Float64Array(n * (bw + 1)); }
+  Band.prototype.add = function (i, j, v) {
+    if (j < i) { const t = i; i = j; j = t; }
+    const d = j - i;
+    if (d > this.bw) throw new Error("bandwidth " + d + ">" + this.bw);
+    this.a[i * this.W + d] += v;
+  };
+  Band.prototype.diag = function (i) { return this.a[i * this.W]; };
+
+  function cholSolve(B, f) {
+    const n = B.n, w = B.bw, W = B.W, a = B.a;
+    for (let i = 0; i < n; i++) {
+      let s = a[i * W];
+      for (let k = Math.max(0, i - w); k < i; k++) { const u = a[k * W + (i - k)]; s -= u * u; }
+      if (!(s > 0)) throw new Error("Matriz no definida positiva en GDL " + i + " (modelo inestable)");
+      const d = Math.sqrt(s); a[i * W] = d;
+      const jmax = Math.min(n - 1, i + w);
+      for (let j = i + 1; j <= jmax; j++) {
+        let t = a[i * W + (j - i)];
+        for (let k = Math.max(0, j - w); k < i; k++) t -= a[k * W + (i - k)] * a[k * W + (j - k)];
+        a[i * W + (j - i)] = t / d;
+      }
+    }
+    const y = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = f[i];
+      for (let k = Math.max(0, i - w); k < i; k++) s -= a[k * W + (i - k)] * y[k];
+      y[i] = s / a[i * W];
+    }
+    const x = new Float64Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+      let s = y[i];
+      const jmax = Math.min(n - 1, i + w);
+      for (let j = i + 1; j <= jmax; j++) s -= a[i * W + (j - i)] * x[j];
+      x[i] = s / a[i * W];
+    }
+    return x;
+  }
+
+  function shape(xi, eta) {
+    const N = [], dxi = [], deta = [];
+    for (let i = 0; i < 4; i++) {
+      N.push(0.25 * (1 + xi * XI[i]) * (1 + eta * ETA[i]));
+      dxi.push(0.25 * XI[i] * (1 + eta * ETA[i]));
+      deta.push(0.25 * ETA[i] * (1 + xi * XI[i]));
+    }
+    return { N, dxi, deta };
+  }
+  function jac(X, Y, s) {
+    let xx = 0, xy = 0, yx = 0, yy = 0;
+    for (let i = 0; i < 4; i++) { xx += s.dxi[i] * X[i]; xy += s.dxi[i] * Y[i]; yx += s.deta[i] * X[i]; yy += s.deta[i] * Y[i]; }
+    const det = xx * yy - xy * yx;
+    const inv = [[yy / det, -xy / det], [-yx / det, xx / det]];
+    const dx = [], dy = [];
+    for (let i = 0; i < 4; i++) { dx.push(inv[0][0] * s.dxi[i] + inv[0][1] * s.deta[i]); dy.push(inv[1][0] * s.dxi[i] + inv[1][1] * s.deta[i]); }
+    return { det, inv, dx, dy, J: [[xx, xy], [yx, yy]] };
+  }
+  function addBtDB(K, B, D, f, nd) {
+    const nr = B.length;
+    const DB = [];
+    for (let r = 0; r < nr; r++) { DB.push(new Float64Array(nd)); for (let c = 0; c < nd; c++) { let s = 0; for (let k = 0; k < nr; k++) s += D[r][k] * B[k][c]; DB[r][c] = s; } }
+    for (let i = 0; i < nd; i++) for (let j = 0; j < nd; j++) { let s = 0; for (let r = 0; r < nr; r++) s += B[r][i] * DB[r][j]; K[i][j] += s * f; }
+  }
+  const zeros = (n) => Array.from({ length: n }, () => new Float64Array(n));
+
+  /* ---------------- Mindlin plate (MITC4). DOF/node: w, bx, by ---------------- */
+  function plateDb(t, E, nu) {
+    const D = E * t ** 3 / (12 * (1 - nu * nu));
+    return [[D, nu * D, 0], [nu * D, D, 0], [0, 0, D * (1 - nu) / 2]];
+  }
+  function plateBb(jj) {
+    const B = [new Float64Array(12), new Float64Array(12), new Float64Array(12)];
+    for (let i = 0; i < 4; i++) {
+      B[0][3 * i + 1] = jj.dx[i];
+      B[1][3 * i + 2] = jj.dy[i];
+      B[2][3 * i + 1] = jj.dy[i]; B[2][3 * i + 2] = jj.dx[i];
+    }
+    return B;
+  }
+  function plateKe(X, Y, t, E, nu) {
+    const Db = plateDb(t, E, nu);
+    const ks = 5 / 6 * E / (2 * (1 + nu)) * t;
+    const K = zeros(12);
+    for (const xi of GP) for (const eta of GP) {
+      const s = shape(xi, eta), jj = jac(X, Y, s);
+      addBtDB(K, plateBb(jj), Db, jj.det, 12);
+    }
+    const row = (xi, eta, dir) => {
+      const s = shape(xi, eta);
+      const d = dir === 0 ? s.dxi : s.deta;
+      let tx = 0, ty = 0;
+      for (let i = 0; i < 4; i++) { tx += d[i] * X[i]; ty += d[i] * Y[i]; }
+      const r = new Float64Array(12);
+      for (let i = 0; i < 4; i++) { r[3 * i] = d[i]; r[3 * i + 1] = s.N[i] * tx; r[3 * i + 2] = s.N[i] * ty; }
+      return r;
+    };
+    const rA = row(0, 1, 0), rC = row(0, -1, 0), rB = row(-1, 0, 1), rD = row(1, 0, 1);
+    const Ds = [[ks, 0], [0, ks]];
+    for (const xi of GP) for (const eta of GP) {
+      const s = shape(xi, eta), jj = jac(X, Y, s);
+      const gx = new Float64Array(12), ge = new Float64Array(12);
+      for (let c = 0; c < 12; c++) {
+        gx[c] = 0.5 * (1 + eta) * rA[c] + 0.5 * (1 - eta) * rC[c];
+        ge[c] = 0.5 * (1 + xi) * rD[c] + 0.5 * (1 - xi) * rB[c];
+      }
+      const Bs = [new Float64Array(12), new Float64Array(12)];
+      for (let c = 0; c < 12; c++) {
+        Bs[0][c] = jj.inv[0][0] * gx[c] + jj.inv[0][1] * ge[c];
+        Bs[1][c] = jj.inv[1][0] * gx[c] + jj.inv[1][1] * ge[c];
+      }
+      addBtDB(K, Bs, Ds, jj.det, 12);
+    }
+    return K;
+  }
+
+  function bandwidth(elems, ndof) {
+    let bw = 0;
+    for (const e of elems) { const mn = Math.min(...e), mx = Math.max(...e); bw = Math.max(bw, (mx - mn + 1) * ndof - 1); }
+    return bw;
+  }
+
+  /* model: {nodes:[[x,y]], elems:[[n1..n4]], t,E,nu, q:Float64Array per elem (MPa, +z),
+     wFix:[node], clamp:[node], betaN:[[node,nx,ny]]} */
+  function plate(m) {
+    const nn = m.nodes.length, n = 3 * nn;
+    const bw = bandwidth(m.elems, 3);
+    const K = new Band(n, bw), f = new Float64Array(n);
+    let maxd = 0;
+    for (let e = 0; e < m.elems.length; e++) {
+      const en = m.elems[e];
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ke = plateKe(X, Y, m.t, m.E, m.nu);
+      const dofs = [];
+      for (const k of en) dofs.push(3 * k, 3 * k + 1, 3 * k + 2);
+      for (let i = 0; i < 12; i++) for (let j = i; j < 12; j++) {
+        const gi = dofs[i], gj = dofs[j];
+        if (gi === gj) K.add(gi, gj, ke[i][j]);
+        else if (gi < gj) K.add(gi, gj, ke[i][j]);
+        else K.add(gj, gi, ke[i][j]);
+        if (i === j) maxd = Math.max(maxd, ke[i][i]);
+      }
+      const q = m.q[e];
+      if (q) for (const xi of GP) for (const eta of GP) {
+        const s = shape(xi, eta), jj = jac(X, Y, s);
+        for (let i = 0; i < 4; i++) f[3 * en[i]] += s.N[i] * q * jj.det;
+      }
+    }
+    // symmetric fill: ensure lower duplicates added only once (handled by i<=j loop with symmetric storage)
+    const kp = maxd * 1e6;
+    const used = new Uint8Array(nn);
+    for (const en of m.elems) for (const k of en) used[k] = 1;
+    for (let k = 0; k < nn; k++) if (!used[k]) { K.add(3 * k, 3 * k, 1); K.add(3 * k + 1, 3 * k + 1, 1); K.add(3 * k + 2, 3 * k + 2, 1); }
+    for (const k of m.wFix) K.add(3 * k, 3 * k, kp);
+    for (const k of (m.clamp || [])) { K.add(3 * k, 3 * k, kp); K.add(3 * k + 1, 3 * k + 1, kp); K.add(3 * k + 2, 3 * k + 2, kp); }
+    for (const [k, nx, ny] of (m.betaN || [])) {
+      K.add(3 * k + 1, 3 * k + 1, kp * nx * nx); K.add(3 * k + 2, 3 * k + 2, kp * ny * ny); K.add(3 * k + 1, 3 * k + 2, kp * nx * ny);
+    }
+    const u = cholSolve(K, f);
+    const w = new Float64Array(nn);
+    for (let k = 0; k < nn; k++) w[k] = u[3 * k];
+    const reac = new Float64Array(nn);
+    const fixed = new Set([...m.wFix, ...(m.clamp || [])]);
+    for (const k of fixed) reac[k] = -kp * u[3 * k];
+    const Db = plateDb(m.t, m.E, m.nu);
+    const el = [];
+    const pts = [[0, 0]].concat(GP.flatMap((a) => GP.map((b) => [a, b])));
+    for (let e = 0; e < m.elems.length; e++) {
+      const en = m.elems[e];
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ue = []; for (const k of en) ue.push(u[3 * k], u[3 * k + 1], u[3 * k + 2]);
+      let vmc = 0, vmx = 0, Mc = null;
+      for (let p = 0; p < pts.length; p++) {
+        const s = shape(pts[p][0], pts[p][1]), jj = jac(X, Y, s), B = plateBb(jj);
+        const kap = [0, 0, 0];
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 12; c++) kap[r] += B[r][c] * ue[c];
+        const M = [0, 0, 0];
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) M[r] += Db[r][c] * kap[c];
+        const k6 = 6 / (m.t * m.t);
+        const sx = M[0] * k6, sy = M[1] * k6, txy = M[2] * k6;
+        const vm = Math.sqrt(sx * sx - sx * sy + sy * sy + 3 * txy * txy);
+        if (p === 0) { vmc = vm; Mc = M; } else vmx = Math.max(vmx, vm);
+      }
+      el.push({ vm: vmc, vmGauss: vmx, M: Mc });
+    }
+    let F = 0; for (let k = 0; k < nn; k++) F += f[3 * k];
+    let R = 0; for (const k of fixed) R += reac[k];
+    return { w, reac, el, Fapplied: F, Rsum: R, ndof: n, bw };
+  }
+
+  /* ---------------- Plane stress Q4. DOF/node: ux, uy ---------------- */
+  function psD(E, nu) { const c = E / (1 - nu * nu); return [[c, c * nu, 0], [c * nu, c, 0], [0, 0, c * (1 - nu) / 2]]; }
+  function psB(jj) {
+    const B = [new Float64Array(8), new Float64Array(8), new Float64Array(8)];
+    for (let i = 0; i < 4; i++) { B[0][2 * i] = jj.dx[i]; B[1][2 * i + 1] = jj.dy[i]; B[2][2 * i] = jj.dy[i]; B[2][2 * i + 1] = jj.dx[i]; }
+    return B;
+  }
+  /* m: {nodes, elems, t, E, nu, fix:[[node,dof]], loads:[[node,fx,fy]]} */
+  function planeStress(m) {
+    const nn = m.nodes.length, n = 2 * nn, bw = bandwidth(m.elems, 2);
+    const K = new Band(n, bw), f = new Float64Array(n), D = psD(m.E, m.nu);
+    let maxd = 0;
+    for (const en of m.elems) {
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ke = zeros(8);
+      for (const xi of GP) for (const eta of GP) { const s = shape(xi, eta), jj = jac(X, Y, s); addBtDB(ke, psB(jj), D, jj.det * m.t, 8); }
+      const dofs = []; for (const k of en) dofs.push(2 * k, 2 * k + 1);
+      for (let i = 0; i < 8; i++) for (let j = i; j < 8; j++) K.add(dofs[i], dofs[j], ke[i][j]);
+      for (let i = 0; i < 8; i++) maxd = Math.max(maxd, ke[i][i]);
+    }
+    const used = new Uint8Array(nn);
+    for (const en of m.elems) for (const k of en) used[k] = 1;
+    for (let k = 0; k < nn; k++) if (!used[k]) { K.add(2 * k, 2 * k, 1); K.add(2 * k + 1, 2 * k + 1, 1); }
+    const kp = maxd * 1e6;
+    for (const [k, d] of m.fix) K.add(2 * k + d, 2 * k + d, kp);
+    for (const [k, fx, fy] of m.loads) { f[2 * k] += fx; f[2 * k + 1] += fy; }
+    const u = cholSolve(K, f);
+    const el = [];
+    for (const en of m.elems) {
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ue = []; for (const k of en) ue.push(u[2 * k], u[2 * k + 1]);
+      const s = shape(0, 0), jj = jac(X, Y, s), B = psB(jj);
+      const eps = [0, 0, 0];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) eps[r] += B[r][c] * ue[c];
+      const sg = [0, 0, 0];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) sg[r] += D[r][c] * eps[c];
+      const vm = Math.sqrt(sg[0] ** 2 - sg[0] * sg[1] + sg[1] ** 2 + 3 * sg[2] ** 2);
+      el.push({ sx: sg[0], sy: sg[1], txy: sg[2], vm });
+    }
+    const reac = [];
+    for (const [k, d] of m.fix) reac.push([k, d, -kp * u[2 * k + d]]);
+    return { u, el, reac, ndof: n, bw };
+  }
+
+  return { plate, planeStress, cholSolve, Band };
+})();
+if (false) module.exports = FEA;
+
+/* Modelo paramétrico TT300-B: parámetros, cálculo del accionamiento, verificaciones y modelos FEA. */
+const G = 9.80665, RHO = 7.85e-6;
+
+const PARAM_GROUPS = [
+  { id: "carga", t: "Carga", items: [
+    ["W_tf", "Capacidad nominal W", "tf", 300, 10],
+    ["e", "Excentricidad del CG", "mm", 150, 10],
+    ["phi_d", "Factor dinámico φd", "–", 1.10, 0.05],
+    ["D_load", "Zona de carga (parrilla)", "mm Ø", 1600, 50],
+  ]},
+  { id: "disco", t: "Disco cajón", items: [
+    ["D_disc", "Diámetro del disco", "mm", 2000, 50],
+    ["t_top", "Plancha superior 4a", "mm", 30, 2],
+    ["t_bot", "Plancha inferior 4b", "mm", 30, 2],
+    ["gap", "Separación entre planchas", "mm", 100, 5],
+    ["D_hub", "Cubo 4c, Ø exterior", "mm", 300, 10],
+    ["D_bore", "Buje / contacto interior Ø", "mm", 190, 5],
+    ["rings", "Almas 4d, radios (coma)", "mm", "300, 550, 735", null],
+    ["t_ring", "Espesor almas 4d", "mm", 25, 1],
+    ["N_rib", "N° nervios radiales 4e", "un", 12, 1],
+    ["t_rib", "Espesor nervios 4e", "mm", 20, 1],
+    ["R_rib", "Radio final nervios", "mm", 880, 10],
+  ]},
+  { id: "barras", t: "Barras de empuje 4f", items: [
+    ["R_bar", "Radio de barras", "mm", 940, 5],
+    ["D_bar", "Diámetro barra", "mm", 70, 2],
+    ["N_bar", "N° de barras", "un", 36, 1],
+    ["D_hole", "Agujero en planchas Ø", "mm", 71, 1],
+    ["weld_S", "Bisel soldadura barra S", "mm", 15, 1],
+  ]},
+  { id: "friccion", t: "Interfaz de giro", items: [
+    ["mu", "μ estático de diseño", "–", 0.20, 0.01],
+    ["r_eff", "Radio efectivo de diseño", "m", 0.80, 0.01],
+    ["mu_nom", "μ nominal (grasa limpia)", "–", 0.15, 0.01],
+    ["mu_cont", "μ contaminado", "–", 0.25, 0.01],
+    ["mu_dry", "μ acero seco", "–", 0.50, 0.05],
+    ["q_lim", "Presión admisible contacto", "MPa", 10, 0.5],
+  ]},
+  { id: "act", t: "Accionamiento", items: [
+    ["D_piston", "Ø émbolo (área efectiva)", "mm", 90, 1],
+    ["D_rod", "Ø vástago (pandeo)", "mm", 63, 1],
+    ["p_relief", "Presión de alivio", "bar", 700, 10],
+    ["p_alarm", "Presión de alarma", "bar", 600, 10],
+    ["stroke", "Carrera cilindro", "mm", 200, 5],
+    ["free", "Recorrido libre", "mm", 36, 1],
+    ["L0", "L0 entre ojales (retraído)", "mm", 450, 5],
+    ["eye_off", "Barra → ojal vástago", "mm", 250, 5],
+    ["X_cyl", "Eje cilindro / guía (x)", "mm", 1085, 5],
+    ["Lg", "Separación reacciones guía", "mm", 250, 5],
+    ["mu_g", "μ carro/guía", "–", 0.15, 0.01],
+    ["eta_c", "Rendimiento sellos ηc", "–", 0.95, 0.01],
+    ["mu_piv", "μ buje pivote", "–", 0.20, 0.01],
+    ["H_frac", "Fuerza lateral pivote / W", "–", 0.05, 0.005],
+  ]},
+  { id: "trinq", t: "Trinquete y carro", items: [
+    ["pawl_tip", "Punta trinquete (x)", "mm", 905, 5],
+    ["pawl_L", "Largo trinquete", "mm", 245, 5],
+    ["pawl_b", "Ancho trinquete (flexión)", "mm", 85, 1],
+    ["pawl_h", "Alto trinquete", "mm", 90, 1],
+    ["seat_R", "Radio asiento", "mm", 36, 1],
+    ["shoe_x0", "Boca del carro (x)", "mm", 1020, 5],
+    ["Fy_pawl", "Fy trinquete (34CrNiMo6+QT)", "MPa", 800, 10],
+  ]},
+  { id: "pasador", t: "Pasador, ménsula y guía", items: [
+    ["D_pin", "Ø pasador", "mm", 70, 1],
+    ["t_cheek", "Espesor mejilla", "mm", 40, 1],
+    ["gap_cheek", "Luz entre mejillas", "mm", 80, 1],
+    ["w_eye", "Ancho ojal", "mm", 70, 1],
+    ["L_cheek", "Largo mejilla", "mm", 280, 5],
+    ["h_axis", "Altura eje sobre base", "mm", 80, 1],
+    ["Fy_pin", "Fy pasador/pivote (42CrMo4+QT)", "MPa", 650, 10],
+    ["rail_w", "Ancho guía", "mm", 40, 1],
+    ["rail_embed", "Empotramiento guía en ranura", "mm", 10, 1],
+    ["rail_h", "Altura libre guía", "mm", 30, 1],
+    ["L_brg", "Largo de apoyo por reacción", "mm", 150, 5],
+  ]},
+  { id: "pivote", t: "Pivote, buje y base", items: [
+    ["D_piv", "Ø pivote", "mm", 150, 5],
+    ["L_bush", "Largo buje", "mm", 100, 5],
+    ["p_bush", "Presión admisible buje", "MPa", 30, 1],
+    ["H_bush", "Fuerza lateral buje / W", "–", 0.055, 0.005],
+    ["lev_piv", "Brazo flexión pivote", "mm", 50, 5],
+    ["BX", "Placa base X", "mm", 2400, 50],
+    ["BY", "Placa base Y", "mm", 2000, 50],
+    ["t_base", "Espesor placa base", "mm", 80, 5],
+  ]},
+  { id: "mat", t: "Materiales y factores", items: [
+    ["Fy", "Fy planchas (A572 Gr.50)", "MPa", 345, 5],
+    ["FEXX", "FEXX electrodo", "MPa", 490, 10],
+    ["E", "Módulo E", "MPa", 200000, 1000],
+    ["nu", "Poisson ν", "–", 0.3, 0.01],
+    ["Nd", "Factor Nd (ASME BTH-1)", "–", 2.0, 0.1],
+  ]},
+];
+
+function defaults() {
+  const P = {};
+  for (const g of PARAM_GROUPS) for (const it of g.items) P[it[0]] = it[3];
+  return P;
+}
+function parseRings(s) {
+  return String(s).split(/[,; ]+/).map(Number).filter((x) => isFinite(x) && x > 0).sort((a, b) => a - b);
+}
+
+function discMass(P) {
+  const TD = P.t_top + P.t_bot + P.gap, Rd = P.D_disc / 2, rh = P.D_hub / 2;
+  const rings = parseRings(P.rings);
+  const plateA = Math.PI * (Rd * Rd - rh * rh) - P.N_bar * Math.PI * (P.D_hole / 2) ** 2;
+  const m = {};
+  m.top = plateA * P.t_top * RHO;
+  m.bot = plateA * P.t_bot * RHO;
+  m.hub = RHO * Math.PI / 4 * (P.D_hub ** 2 * TD - P.D_bore ** 2 * P.L_bush - 160 ** 2 * Math.max(0, TD - P.L_bush) - (260 ** 2 - 160 ** 2) * 25);
+  m.rings = rings.reduce((s, r) => s + 2 * Math.PI * r * P.t_ring * P.gap * RHO, 0);
+  const crossed = rings.filter((r) => r < P.R_rib).length * P.t_ring;
+  m.ribs = P.N_rib * P.t_rib * P.gap * Math.max(0, P.R_rib - rh - crossed) * RHO;
+  m.bars = P.N_bar * Math.PI * P.D_bar ** 2 / 4 * TD * RHO;
+  m.bush = 8.1;
+  m.total = m.top + m.bot + m.hub + m.rings + m.ribs + m.bars + m.bush;
+  return m;
+}
+
+function compute(P) {
+  const R = { P };
+  R.W = P.W_tf * G;                                   // kN
+  R.TD = P.t_top + P.t_bot + P.gap;
+  R.mass = discMass(P);
+  R.Wd = R.mass.total * G / 1000;
+  R.N = R.W + R.Wd;
+  R.ND = P.phi_d * R.W + R.Wd;
+  const Rc = P.D_disc / 2, Ri = P.D_bore / 2;
+  R.Ac = Math.PI * (Rc * Rc - Ri * Ri);
+  R.r_u = 2 / 3 * (Rc ** 3 - Ri ** 3) / (Rc ** 2 - Ri ** 2) / 1000;
+  R.r_max = P.R_bar / 1000;
+  R.r_eff = P.r_eff;
+  R.th = Math.PI / P.N_bar;                           // media separación angular (rad)
+  R.a = P.R_bar * Math.cos(R.th);                     // mm, brazo mínimo
+  R.useful = 2 * P.R_bar * Math.sin(R.th);
+  R.strokeReq = P.free + R.useful;
+  R.Delta = P.X_cyl - R.a;
+  R.Kguide = 1 + 2 * P.mu_g * R.Delta / P.Lg;
+  R.K = R.Kguide / P.eta_c;
+  R.A = Math.PI * P.D_piston ** 2 / 4;                 // mm²
+  R.Fmax = R.A * P.p_relief / 10 / 1000;               // kN
+  R.Falarm = R.A * P.p_alarm / 10 / 1000;
+  R.Tpiv = P.mu_piv * P.H_frac * R.W * (P.D_piv / 2 / 1000);
+  R.Ybrk = P.R_bar * Math.sin(R.th) + P.eye_off + P.L0 + P.free;
+  const cs = (mu, r) => {
+    const Tf = mu * R.N * r, T = Tf + R.Tpiv, Fb = T / (2 * R.a / 1000), Fc = R.K * Fb;
+    const p = Fc * 1e3 / R.A * 10;
+    return { mu, r, Tf, T, Fb, Fc, p, FS: R.Fmax / Fc, tf: Fc / G };
+  };
+  R.cs = cs;
+  R.cases = [
+    Object.assign(cs(P.mu_nom, R.r_u), { name: "Nominal – grasa grafitada limpia", key: "nom" }),
+    Object.assign(cs(P.mu, R.r_eff), { name: "DISEÑO – μ límite sup., carga al borde", key: "dis" }),
+    Object.assign(cs(P.mu_cont, R.r_eff), { name: "Contaminado – arena / película degradada", key: "con" }),
+    Object.assign(cs(P.mu_dry, R.r_u), { name: "Sin lubricación (acero seco)", key: "dry" }),
+  ];
+  R.d = R.cases[1];
+  R.muMax = (r, p) => ((R.A * p / 10 / 1000) / R.K * (2 * R.a / 1000) - R.Tpiv) / (R.N * r);
+  // curva por carrera
+  R.stroke = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = -R.th + 2 * R.th * i / 40;
+    const at = P.R_bar * Math.cos(t), Dt = P.X_cyl - at, Kt = (1 + 2 * P.mu_g * Dt / P.Lg) / P.eta_c;
+    const s = P.free + P.R_bar * (Math.sin(t) + Math.sin(R.th));
+    const row = { t: t * 180 / Math.PI, s };
+    for (const c of R.cases.slice(0, 3)) { const Fb = c.T / (2 * at / 1000); row[c.key] = Kt * Fb; }
+    R.stroke.push(row);
+  }
+  // desglose de la fuerza de diseño
+  const d = R.d, a2 = 2 * R.a / 1000;
+  R.breakdown = [
+    ["Fricción interfaz μ·N·r", d.Tf / a2],
+    ["Buje del pivote", R.Tpiv / a2],
+    ["Fricción carro/guía", d.Fb * (R.Kguide - 1)],
+    ["Sellos del cilindro", d.Fc - d.Fb * R.Kguide],
+  ];
+  // contacto
+  R.q_avg = R.ND * 1e3 / R.Ac;
+  R.q_max = R.q_avg * (1 + 4 * P.e * Rc / (Rc * Rc + Ri * Ri));
+  R.q_top = P.phi_d * R.W * 1e3 / (Math.PI * (P.D_load / 2) ** 2);
+  // suelo
+  R.Wtot = R.W + (R.mass.total + 3070) * G / 1000;   // + base y accesorios ≈ 3,07 t
+  R.g_avg = R.Wtot * 1e3 / (P.BX * P.BY);
+  R.g_max = R.g_avg * (1 + 6 * P.e / P.BY);
+  return R;
+}
+
+/* ---------- verificaciones (requieren resultados FEA opcionales) ---------- */
+function verifs(R, fea) {
+  const P = R.P, F = R.Fmax, Fy = P.Fy, rows = [];
+  const add = (grp, el, dem, cap, unit, ref, formula, note) => rows.push({ grp, el, dem, cap, unit, fu: dem / cap, ref, formula, note });
+  // accionamiento
+  add("Accionamiento", "Fuerza de diseño vs capacidad del cilindro", R.d.Fc, R.Fmax, "kN", "Ec. (5) / 700 bar", "F_cil = K·T/(2a)  ≤  A·p_alivio");
+  add("Accionamiento", "Presión de diseño vs alarma", R.d.p, P.p_alarm, "bar", "Criterio operación", "p = F_cil / A  ≤  p_alarma");
+  rows[rows.length - 1].kind = "pass";
+  add("Accionamiento", "Carrera requerida (libre + útil)", R.strokeReq, P.stroke, "mm", "Cinemática", "s = libre + 2·R_b·sin(180°/N_b)");
+  rows[rows.length - 1].kind = "pass";
+  // interfaz
+  add("Interfaz", "Presión de contacto máx. (e)", R.q_max, P.q_lim, "MPa", "Criterio acero/acero lubricado", "q = N_D/A·(1 + 4eR/(R²+r²))");
+  // disco (FEA)
+  if (fea && fea.bot) {
+    add("Disco (FEA)", "Plancha inf. 4b – σvm máx. (contacto q_max)", fea.bot.vmMax, 0.6 * Fy, "MPa", "AISC 360-22 F11 (elástico 0,6Fy)", "FEA Mindlin MITC4, sector 360°/N_nerv");
+    add("Disco (FEA)", "Plancha sup. 4a – σvm máx. (carga en parrilla)", fea.top.vmMax, 0.6 * Fy, "MPa", "AISC 360-22 F11 (elástico 0,6Fy)", "FEA Mindlin MITC4, q = φd·W/A_parrilla");
+    const rw = Math.max(fea.bot.ringMax, fea.top.ringMax);
+    add("Disco (FEA)", "Almas 4d – compresión por reacción de línea", rw / P.t_ring, 0.6 * Fy, "MPa", "AISC 360-22 J10.2 / E3", "σ = r_línea / t_alma");
+    const rb = Math.max(fea.bot.barMax, fea.top.barMax) * 1e3;
+    add("Disco (FEA)", "Barra 4f – compresión axial (columna)", rb / (Math.PI * P.D_bar ** 2 / 4), 0.6 * Fy, "MPa", "AISC 360-22 E3", "σ = R_barra / A_barra");
+  }
+  // flexión global del cajón: anillo exterior fuera de la zona de carga
+  const ov = Math.max(0, P.D_disc / 2 - P.D_load / 2), lever = R.TD - (P.t_top + P.t_bot) / 2;
+  const Mov = R.q_max * ov * ov / 2, Sov = Math.min(P.t_top, P.t_bot) * lever;
+  add("Disco", "Flexión global del cajón en el anillo exterior (voladizo)", Mov / Sov, 0.6 * Fy, "MPa", "AISC 360-22 F11 (elástico)", "M = q_max·(R − R_carga)²/2; S = t·(TD − t)");
+  // barra 4f
+  const L = P.gap, c = Math.min(P.pawl_h, P.gap), d = P.D_bar;
+  const Mss = F / 4 * (L - c / 2) / 1e3, Mfe = F * (3 * L * L - c * c) / (24 * L) / 1e3;
+  const Mn = Fy * d ** 3 / 6 / 1.67 / 1e6;
+  add("Barra 4f", "Flexión (rotulada, F calado)", Mss, Mn, "kN·m", "AISC 360-22 F11.1, Ω = 1,67", "M = F/4·(L − c/2); Mn = Fy·d³/6");
+  const tau = 4 * (F / 2) * 1e3 / (3 * Math.PI * d * d / 4);
+  add("Barra 4f", "Corte", tau, 0.6 * Fy / 1.5, "MPa", "AISC 360-22 G1, Ω = 1,50", "τ = 4V/(3A), V = F/2");
+  const Ew = P.weld_S - 3, tv = (F / 2) * 1e3 / (Math.PI * d * Ew), tm = Mfe * 1e6 / (Math.PI * (d / 2) ** 2 * Ew);
+  add("Barra 4f", `Soldadura bisel ${P.weld_S} (E = ${Ew})`, Math.hypot(tv, tm), 0.6 * P.FEXX / 2, "MPa", "AISC 360-22 J2.5, Ω = 2,0", "√(τV² + τM²); M empotrada = F(3L²−c²)/(24L)");
+  add("Barra 4f", "Aplastamiento en agujero de plancha", (F / 2) * 1e3 / (Math.min(P.t_top, P.t_bot) * d), 0.9 * Fy, "MPa", "AISC 360-22 J7, Ω = 2,0", "σ = (F/2)/(t·d)");
+  // trinquete
+  const lev = P.shoe_x0 - R.a;
+  const sp = F * lev * 1e3 / (P.pawl_h * P.pawl_b ** 2 / 6);
+  add("Trinquete", "Flexión en boca del carro (teoría de vigas)", sp, P.Fy_pawl / P.Nd, "MPa", "ASME BTH-1 (Fy/Nd)", "σ = F·(x_boca − a)/(h·b²/6)");
+  if (fea && fea.pawl) add("Trinquete", "Flexión en boca (FEA tensión plana)", fea.pawl.vmMouth, P.Fy_pawl / P.Nd, "MPa", "ASME BTH-1 (Fy/Nd)", "FEA Q4, h_malla 2,5 mm");
+  // guía
+  const Rg = F * R.Delta / P.Lg;
+  add("Guía 22", "Aplastamiento en ranura", Rg * 1e3 / (P.rail_embed * P.L_brg), 0.9 * Fy, "MPa", "AISC 360-22 J7, Ω = 2,0", "R = F·Δ/Lg; σ = R/(e·L)");
+  const Mg = Rg * P.rail_h / 2 / 1e3, Mng = Fy * P.L_brg * P.rail_w ** 2 / 4 / 1.67 / 1e6;
+  add("Guía 22", "Flexión en raíz", Mg, Mng, "kN·m", "AISC 360-22 F11.1, Ω = 1,67", "M = R·h/2");
+  // ménsula y pasador
+  add("Ménsula 2", "Flexión de mejillas en la base", F * P.h_axis * 1e3 / (2 * P.t_cheek * P.L_cheek ** 2 / 6), 0.6 * Fy, "MPa", "AISC 360-22 F11 / CJP J2", "σ = F·h/(2·t·L²/6)");
+  const Mpin = F / 2 * (P.t_cheek / 2 + (P.gap_cheek - P.w_eye) / 2 + P.w_eye / 4) / 1e3;
+  add("Pasador 12", "Flexión (horquilla)", Mpin * 1e6 / (Math.PI * P.D_pin ** 3 / 32), P.Fy_pin / P.Nd, "MPa", "ASME BTH-1 (Fy/Nd)", "M = F/2·(t/2 + g + b/4)");
+  add("Pasador 12", "Corte doble", (F / 2) * 1e3 / (Math.PI * P.D_pin ** 2 / 4), P.Fy_pin / (P.Nd * Math.sqrt(3)), "MPa", "ASME BTH-1 3-2.2", "τ = (F/2)/A ≤ Fy/(Nd·√3)");
+  // pivote
+  const H = P.H_bush * R.W;
+  add("Pivote", "Presión en buje (H)", H * 1e3 / (P.D_piv * P.L_bush), P.p_bush, "MPa", "Fabricante bronce-grafito", "p = H/(D·L)");
+  add("Pivote", "Flexión del pivote", H * P.lev_piv * 1e3 / (Math.PI * P.D_piv ** 3 / 32), P.Fy_pin / P.Nd, "MPa", "Fy/Nd", "σ = H·e/(πD³/32)");
+  // vástago
+  const I = Math.PI * P.D_rod ** 4 / 64, Lc = P.L0 + P.stroke, Pcr = Math.PI ** 2 * P.E * I / Lc ** 2 / 1e3;
+  add("Cilindro", "Pandeo del vástago (rótulas)", F, Pcr / 3, "kN", "Euler, FS = 3", "Pcr = π²EI/L², L = L0 + carrera");
+  // suelo
+  add("Apoyo", "Presión bajo placa base (máx.)", R.g_max, 1.0, "MPa", "Referencial – verificar losa", "σ = N/A·(1 + 6e/B)", "Capacidad referencial");
+  rows[rows.length - 1].kind = "pass";
+  R.extra = { Mss, Mfe, lev, Rg, Mpin, H, Pcr, Ew, tv, tm };
+  return rows;
+}
+
+/* ---------- FEA del disco: sector entre nervios ---------- */
+function linspaceKeys(keys, h) {
+  const out = [keys[0]];
+  for (let i = 1; i < keys.length; i++) {
+    const a = keys[i - 1], b = keys[i], n = Math.max(1, Math.ceil((b - a) / h));
+    for (let k = 1; k <= n; k++) out.push(a + (b - a) * k / n);
+  }
+  return out;
+}
+function uniqSorted(arr, tol) {
+  const s = arr.slice().sort((a, b) => a - b), o = [];
+  for (const v of s) if (!o.length || v - o[o.length - 1] > tol) o.push(v);
+  return o;
+}
+function discModel(P, which, hr) {
+  const alpha = 2 * Math.PI / P.N_rib, r0 = P.D_hub / 2, Rd = P.D_disc / 2;
+  hr = hr || Math.max(20, (Rd - r0) / 45);
+  const rings = parseRings(P.rings).filter((r) => r > r0 && r < Rd);
+  const keyR = uniqSorted([r0, ...rings, P.R_rib, P.R_bar - P.D_bar / 2, P.R_bar, P.R_bar + P.D_bar / 2, Rd, which === "top" ? P.D_load / 2 : r0]
+    .filter((r) => r >= r0 && r <= Rd), 2);
+  const rs = linspaceKeys(keyR, hr);
+  const barAng = [];
+  for (let k = 0; k < P.N_bar; k++) {
+    let a = Math.PI / P.N_bar + 2 * Math.PI * k / P.N_bar;
+    if (a >= -1e-9 && a <= alpha + 1e-9) barAng.push(a);
+  }
+  const db = (P.D_bar / 2) / P.R_bar;
+  const keyT = uniqSorted([0, alpha, ...barAng, ...barAng.map((a) => a - db), ...barAng.map((a) => a + db)].filter((a) => a >= 0 && a <= alpha), 1e-4);
+  const ts = linspaceKeys(keyT, Math.max(1.25 * Math.PI / 180, alpha / 36));
+  const nT = ts.length, nodes = [], elems = [], pol = [];
+  for (let i = 0; i < rs.length; i++) for (let j = 0; j < nT; j++) { nodes.push([rs[i] * Math.cos(ts[j]), rs[i] * Math.sin(ts[j])]); pol.push([rs[i], ts[j]]); }
+  const id = (i, j) => i * nT + j;
+  const q = [], t = which === "top" ? P.t_top : P.t_bot;
+  const R = compute(P);
+  for (let i = 0; i < rs.length - 1; i++) for (let j = 0; j < nT - 1; j++) {
+    elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]);
+    const rc = (rs[i] + rs[i + 1]) / 2;
+    q.push(which === "top" ? (rc <= P.D_load / 2 ? R.q_top : 0) : R.q_max);
+  }
+  const wFix = new Set(), clamp = [], betaN = [], groups = { ring: rings.map(() => []), rib: [], bar: barAng.map(() => []), hub: [] };
+  const near = (a, b, tol) => Math.abs(a - b) < tol;
+  for (let i = 0; i < rs.length; i++) for (let j = 0; j < nT; j++) {
+    const k = id(i, j), r = rs[i], th = ts[j];
+    if (i === 0) { clamp.push(k); groups.hub.push(k); continue; }
+    rings.forEach((rr, ri) => { if (near(r, rr, 0.5)) { wFix.add(k); groups.ring[ri].push(k); } });
+    if ((j === 0 || j === nT - 1) && r <= P.R_rib + 0.5) { if (!wFix.has(k)) groups.rib.push(k); wFix.add(k); }
+    barAng.forEach((ba, bi) => {
+      const x = r * Math.cos(th) - P.R_bar * Math.cos(ba), y = r * Math.sin(th) - P.R_bar * Math.sin(ba);
+      if (Math.hypot(x, y) <= P.D_bar / 2 + 0.5) { if (!wFix.has(k)) groups.bar[bi].push(k); wFix.add(k); }
+    });
+    if (j === 0) betaN.push([k, 0, 1]);
+    if (j === nT - 1) betaN.push([k, -Math.sin(alpha), Math.cos(alpha)]);
+  }
+  return { nodes, pol, elems, q: Float64Array.from(q), t, E: P.E, nu: P.nu, wFix: [...wFix], clamp, betaN, groups, rings, barAng, alpha, rs, ts, which };
+}
+function runDisc(P, which) {
+  const m = discModel(P, which);
+  const t0 = performance.now();
+  const r = FEA.plate(m);
+  const ms = performance.now() - t0;
+  let vmMax = 0, vmC = 0, imax = 0;
+  r.el.forEach((e, i) => { if (e.vmGauss > vmMax) { vmMax = e.vmGauss; imax = i; } vmC = Math.max(vmC, e.vm); });
+  let wMax = 0; for (const w of r.w) wMax = Math.max(wMax, Math.abs(w));
+  const sumR = (arr) => arr.reduce((s, k) => s + Math.abs(r.reac[k]), 0);
+  const ringLine = m.rings.map((rr, i) => sumR(m.groups.ring[i]) / (rr * m.alpha));   // N/mm
+  const barF = m.groups.bar.map((g) => sumR(g) / 1e3);                                 // kN
+  const ribF = sumR(m.groups.rib) / 1e3, hubF = sumR(m.groups.hub) / 1e3;
+  const ec = m.elems[imax].map((k) => m.nodes[k]);
+  const cx = ec.reduce((s, p) => s + p[0], 0) / 4, cy = ec.reduce((s, p) => s + p[1], 0) / 4;
+  return {
+    model: m, res: r, ms, vmMax, vmC, wMax, ringLine, barF, ribF, hubF,
+    ringMax: Math.max(0, ...ringLine), barMax: Math.max(0, ...barF),
+    Fapp: r.Fapplied / 1e3, Rsum: Math.abs(r.Rsum) / 1e3, maxAt: [Math.hypot(cx, cy), Math.atan2(cy, cx) * 180 / Math.PI],
+  };
+}
+
+/* ---------- FEA del trinquete: tensión plana ---------- */
+function runPawl(P, R) {
+  const h = 2.5, L = P.pawl_L, b = P.pawl_b;
+  const nx = Math.round(L / h), ny = Math.round(b / h), hx = L / nx, hy = b / ny;
+  const Xs = R.a - P.pawl_tip, Ys = b, Rs = P.seat_R, Xm = P.shoe_x0 - P.pawl_tip;
+  const nodes = [], elems = [], cent = [];
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= ny; j++) nodes.push([i * hx, j * hy]);
+  const id = (i, j) => i * (ny + 1) + j;
+  const wx = 60 * (b / 85), wy = 36 * (b / 85);
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+    const cx = (i + 0.5) * hx, cy = (j + 0.5) * hy;
+    if (Math.hypot(cx - Xs, cy - Ys) < Rs) continue;
+    if (cx / wx + cy / wy < 1) continue;
+    elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]); cent.push([cx, cy]);
+  }
+  const used = new Set(); elems.forEach((e) => e.forEach((k) => used.add(k)));
+  const fix = [], sup = [];
+  for (let i = 0; i <= nx; i++) {
+    const x = i * hx;
+    if (x >= Xm - 1e-6 && x <= Xm + 25) { fix.push([id(i, 0), 1]); sup.push(id(i, 0)); }
+    if (x >= L - 25 - 1e-6) { fix.push([id(i, ny), 1]); sup.push(id(i, ny)); }
+  }
+  fix.push([id(nx, Math.round(ny / 2)), 0]);
+  const F = R.Fmax * 1e3, cand = [];
+  for (const k of used) {
+    const [x, y] = nodes[k], d = Math.hypot(x - Xs, y - Ys);
+    if (d >= Rs - 0.01 && d <= Rs + 1.6 * h) {
+      const ph = Math.atan2(y - Ys, x - Xs);
+      const w = Math.cos(ph + Math.PI / 2);   // máximo en φ = −90°
+      if (w > 0.05 && y < Ys) cand.push([k, ph, w]);
+    }
+  }
+  // un nodo por dirección: conservar el más cercano al arco por sector angular de 3°
+  const bins = new Map();
+  for (const c of cand) {
+    const key = Math.round(c[1] * 180 / Math.PI / 3);
+    const d = Math.hypot(nodes[c[0]][0] - Xs, nodes[c[0]][1] - Ys);
+    if (!bins.has(key) || d < bins.get(key).d) bins.set(key, { c, d });
+  }
+  const ld = [...bins.values()].map((v) => v.c);
+  const sw = ld.reduce((s, [, , w]) => s + w, 0);
+  const loads = ld.map(([k, , w]) => [k, 0, -F * w / sw]);
+  const t0 = performance.now();
+  const r = FEA.planeStress({ nodes, elems, t: P.pawl_h, E: P.E, nu: P.nu, fix, loads });
+  const ms = performance.now() - t0;
+  let vmMax = 0, vmMouth = 0, vmFar = 0;
+  const loadSet = new Set(ld.map((l) => l[0])), supSet = new Set(sup);
+  r.el.forEach((e, i) => {
+    vmMax = Math.max(vmMax, e.vm);
+    const [cx, cy] = cent[i];
+    if (Math.abs(cx - Xm) <= hx && cy > b / 2) vmMouth = Math.max(vmMouth, e.vm);
+    const nearLoad = Math.hypot(cx - Xs, cy - Ys) < Rs + 4 * h;
+    const nearSup = sup.some((k) => Math.hypot(cx - nodes[k][0], cy - nodes[k][1]) < 4 * h);
+    if (!nearLoad && !nearSup) vmFar = Math.max(vmFar, e.vm);
+  });
+  let dmax = 0; for (let k = 0; k < nodes.length; k++) if (used.has(k)) dmax = Math.max(dmax, Math.hypot(r.u[2 * k], r.u[2 * k + 1]));
+  const beam = F * (Xm - Xs) / (P.pawl_h * b * b / 6);
+  return { nodes, elems, cent, res: r, ms, vmMax, vmMouth, vmFar, dmax, beam, Xs, Ys, Rs, Xm, L, b, loads, sup, nx, ny };
+}
+
+if (false) module.exports = { PARAM_GROUPS, defaults, compute, verifs, discModel, runDisc, runPawl, parseRings };
+
+/* Diagramas SVG (fuerzas, vigas, gráficos). Paleta C explícita para poder exportar a PNG/PDF. */
+const nf = (x, d = 0) => (isFinite(x) ? Number(x).toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d }) : "–");
+
+const SV = {
+  open: (w, h, extra) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="dg" style="max-width:${w}px" ${extra || ""}>`,
+  line: (x1, y1, x2, y2, c, w = 1, dash) => `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""} fill="none"/>`,
+  rect: (x, y, w, h, c, fill = "none", sw = 1, dash) => `<rect x="${Math.min(x, x + w).toFixed(1)}" y="${Math.min(y, y + h).toFixed(1)}" width="${Math.abs(w).toFixed(1)}" height="${Math.abs(h).toFixed(1)}" stroke="${c}" stroke-width="${sw}" fill="${fill}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`,
+  circ: (x, y, r, c, fill = "none", sw = 1, dash) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${Math.max(0.5, r).toFixed(1)}" stroke="${c}" stroke-width="${sw}" fill="${fill}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`,
+  poly: (pts, c, fill = "none", sw = 1, dash) => `<polyline points="${pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ")}" stroke="${c}" stroke-width="${sw}" fill="${fill}"${dash ? ` stroke-dasharray="${dash}"` : ""} stroke-linejoin="round"/>`,
+  pgon: (pts, c, fill, sw = 1, op = 1) => `<polygon points="${pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ")}" stroke="${c}" stroke-width="${sw}" fill="${fill}" fill-opacity="${op}"/>`,
+  text: (x, y, s, C, o = {}) => `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${C.font}" font-size="${o.size || 12}" fill="${o.fill || C.ink}" text-anchor="${o.anchor || "start"}"${o.weight ? ` font-weight="${o.weight}"` : ""}${o.rot ? ` transform="rotate(${o.rot} ${x.toFixed(1)} ${y.toFixed(1)})"` : ""}${o.base ? ` dominant-baseline="${o.base}"` : ""}>${String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`,
+  arrow: (x1, y1, x2, y2, c, w = 2.2, head = 9) => {
+    const a = Math.atan2(y2 - y1, x2 - x1), hx = x2 - head * Math.cos(a), hy = y2 - head * Math.sin(a);
+    const p1 = [hx + head * 0.42 * Math.sin(a), hy - head * 0.42 * Math.cos(a)], p2 = [hx - head * 0.42 * Math.sin(a), hy + head * 0.42 * Math.cos(a)];
+    return SV.line(x1, y1, hx, hy, c, w) + SV.pgon([[x2, y2], p1, p2], c, c, 1);
+  },
+  arcArrow: (cx, cy, r, a0, a1, c, w = 1.8) => {
+    const P = (a) => [cx + r * Math.cos(a), cy - r * Math.sin(a)];
+    const p0 = P(a0), p1 = P(a1), large = Math.abs(a1 - a0) > Math.PI ? 1 : 0, sweep = a1 > a0 ? 0 : 1;
+    const tang = a1 > a0 ? a1 + Math.PI / 2 : a1 - Math.PI / 2;
+    const tip = p1, back = [tip[0] - 9 * Math.cos(-tang), tip[1] - 9 * Math.sin(-tang)];
+    return `<path d="M${p0[0].toFixed(1)},${p0[1].toFixed(1)} A${r},${r} 0 ${large} ${sweep} ${p1[0].toFixed(1)},${p1[1].toFixed(1)}" stroke="${c}" stroke-width="${w}" fill="none"/>` + SV.arrow(back[0], back[1], tip[0], tip[1], c, w, 9);
+  },
+  label: (x, y, lines, C, o = {}) => {
+    const size = o.size || 12, lh = size * 1.3, w = Math.max(...lines.map((l) => l.length)) * size * 0.56 + 12, h = lines.length * lh + 8;
+    const x0 = o.anchor === "end" ? x - w : o.anchor === "middle" ? x - w / 2 : x;
+    let s = `<rect x="${x0.toFixed(1)}" y="${(y - size - 3).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${C.bg}" fill-opacity="0.92" stroke="${o.stroke || C.line}" stroke-width="1"/>`;
+    lines.forEach((l, i) => { s += SV.text(x0 + 6, y + i * lh, l, C, { size, weight: i === 0 && o.boldFirst ? 600 : null, fill: i === 0 && o.color ? o.color : C.ink }); });
+    return s;
+  },
+};
+
+/* ---------- D1: planta con fuerzas ---------- */
+function dgPlan(R, C) {
+  const P = R.P, W = 860, H = 560, k = Math.min(0.2, 460 / Math.max(P.BX, P.BY, P.D_disc)), cx = W / 2, cy = H / 2 + 4;
+  const X = (x) => cx + x * k, Y = (y) => cy - y * k;
+  let s = SV.open(W, H);
+  s += SV.rect(X(-P.BX / 2), Y(P.BY / 2), P.BX * k, P.BY * k, C.mute, C.fill2, 1);
+  s += SV.circ(cx, cy, P.D_disc / 2 * k, C.ink, C.fill, 1.6);
+  for (const r of parseRings(P.rings)) s += SV.circ(cx, cy, r * k, C.mute, "none", 1, "5 4");
+  for (let i = 0; i < P.N_rib; i++) { const a = 2 * Math.PI * i / P.N_rib; s += SV.line(X(P.D_hub / 2 * Math.cos(a)), Y(P.D_hub / 2 * Math.sin(a)), X(P.R_rib * Math.cos(a)), Y(P.R_rib * Math.sin(a)), C.mute, 1, "5 4"); }
+  for (let i = 0; i < P.N_bar; i++) { const a = Math.PI / P.N_bar + 2 * Math.PI * i / P.N_bar; s += SV.circ(X(P.R_bar * Math.cos(a)), Y(P.R_bar * Math.sin(a)), P.D_bar / 2 * k, C.ink, C.fill2, 1); }
+  s += SV.circ(cx, cy, P.D_hub / 2 * k, C.ink, "none", 1.2) + SV.circ(cx, cy, P.D_piv / 2 * k, C.ink, C.fill2, 1);
+  const d = R.d, Fs = 330 / Math.max(R.Fmax, d.Fc);   // mm modelo por kN
+  const Rg = d.Fb * R.Delta / P.Lg;
+  for (const sx of [1, -1]) {
+    const yb = -sx * P.R_bar * Math.sin(R.th), xa = sx * R.a;
+    const yE = yb - sx * P.eye_off, yP = -sx * R.Ybrk;
+    // guía
+    s += SV.rect(X(sx * P.X_cyl - P.rail_w / 2), Y(425), P.rail_w * k, 850 * k, C.mute, C.fill2, 1);
+    // ménsula
+    s += SV.rect(X(sx * P.X_cyl - P.gap_cheek / 2 - P.t_cheek), Y(yP + P.L_cheek / 2), (P.gap_cheek + 2 * P.t_cheek) * k, P.L_cheek * k, C.ink, C.fill2, 1.2);
+    // cilindro
+    const yb0 = yP + sx * 70, yb1 = yP + sx * 370;
+    s += SV.rect(X(sx * P.X_cyl - 70), Y(Math.max(yb0, yb1)), 140 * k, 300 * k, C.ink, C.cyl, 1.2);
+    s += SV.rect(X(sx * P.X_cyl - P.D_rod / 2), Y(Math.max(yb1, yE)), P.D_rod * k, Math.abs(yE - yb1) * k, C.ink, C.fill, 1);
+    s += SV.circ(X(sx * P.X_cyl), Y(yP), 35 * k * 1.5, C.ink, C.bg, 1.2) + SV.circ(X(sx * P.X_cyl), Y(yE), 35 * k * 1.5, C.ink, C.bg, 1.2);
+    // carro y trinquete
+    const yf = yb + sx * 20, yr = yb + sx * 20 - sx * 300;
+    s += SV.rect(X(sx * P.shoe_x0), Y(Math.max(yf, yr)), sx * 130 * k, 300 * k, C.ink, C.shoe, 1.2);
+    s += SV.rect(X(sx * P.pawl_tip), Y(Math.max(yb, yb - sx * P.pawl_b)), sx * P.pawl_L * k, P.pawl_b * k, C.ink, C.pawl, 1.2);
+    // fuerzas
+    const Lb = d.Fb * Fs, Lc = d.Fc * Fs, Lr = Rg * Fs * 1.0;
+    s += SV.arrow(X(xa), Y(yb - sx * Lb), X(xa), Y(yb), C.force, 3);
+    s += SV.arrow(X(sx * P.X_cyl), Y(yE - sx * Lc * 0.55), X(sx * P.X_cyl), Y(yE), C.force, 3);
+    s += SV.arrow(X(sx * P.X_cyl), Y(yP), X(sx * P.X_cyl), Y(yP - sx * Lc * 0.55), C.react, 2.6);
+    s += SV.arrow(X(sx * (P.X_cyl + 25) + sx * Lr * 0.6), Y(yf - sx * 12), X(sx * (P.X_cyl + 25)), Y(yf - sx * 12), C.react, 2.2);
+    s += SV.arrow(X(sx * (P.X_cyl - 25) - sx * Lr * 0.6), Y(yr + sx * 12), X(sx * (P.X_cyl - 25)), Y(yr + sx * 12), C.react, 2.2);
+    const lx = sx > 0 ? X(xa) - 12 : X(xa) + 12, an = sx > 0 ? "end" : "start";
+    s += SV.label(lx, Y(yb - sx * Lb * 0.55), [`F barra = ${nf(d.Fb)} kN`], C, { anchor: an, color: C.force, boldFirst: true });
+    s += SV.label(sx > 0 ? X(sx * P.X_cyl) + 30 : X(sx * P.X_cyl) - 30, Y((yE + yb1) / 2), [`F cil = ${nf(d.Fc)} kN`, `p = ${nf(d.p)} bar`], C, { anchor: sx > 0 ? "start" : "end", color: C.force, boldFirst: true });
+    s += SV.label(sx > 0 ? X(sx * P.X_cyl) + 30 : X(sx * P.X_cyl) - 30, Y(yP - sx * 40), [`Reacción ménsula`, `${nf(d.Fc)} kN`], C, { anchor: sx > 0 ? "start" : "end", color: C.react, boldFirst: true });
+    s += SV.label(sx > 0 ? X(sx * (P.X_cyl + 25) + sx * Lr * 0.6) + 6 : X(sx * (P.X_cyl + 25) + sx * Lr * 0.6) - 6, Y(yf - sx * 12) + 4, [`R guía = ${nf(Rg)} kN`], C, { anchor: sx > 0 ? "start" : "end", color: C.react, size: 11 });
+  }
+  s += SV.arcArrow(cx, cy, 70, Math.PI * 0.15, Math.PI * 0.85, C.accent, 2);
+  s += SV.text(cx, cy - 78, "giro", C, { anchor: "middle", size: 11, fill: C.accent });
+  s += SV.arcArrow(cx, cy, 120, -Math.PI * 0.25, -Math.PI * 0.75, C.react, 2);
+  s += SV.label(cx, cy + 150, [`T resistente = ${nf(d.T)} kN·m`, `μ = ${nf(d.mu, 2)} · N = ${nf(R.N)} kN · r = ${nf(d.r, 3)} m`], C, { anchor: "middle", color: C.react, boldFirst: true, size: 11.5 });
+  s += SV.line(cx, cy, X(R.a), cy, C.mute, 1, "3 3") + SV.text((cx + X(R.a)) / 2, cy - 6, `a = ${nf(R.a, 1)} mm`, C, { anchor: "middle", size: 11 });
+  s += SV.text(14, 22, "PLANTA – FUERZAS EN EL CASO DE DISEÑO (escala de flechas común)", C, { size: 12, weight: 600 });
+  s += SV.text(14, H - 12, `Par motor = 2 · F barra · a = ${nf(2 * d.Fb * R.a / 1000)} kN·m   |   Resultante sobre el pivote = 0 (par puro)`, C, { size: 11.5, fill: C.mute });
+  return s + "</svg>";
+}
+
+/* ---------- D2: diagrama de cuerpo libre del carro ---------- */
+function dgShoe(R, C, F) {
+  const P = R.P, W = 560, H = 420;
+  F = F || R.d.Fb;
+  const Fc = F * R.K, Rg = F * R.Delta / P.Lg, fr = P.mu_g * Rg;
+  let s = SV.open(W, H);
+  const x0 = 210, x1 = 360, y0 = 100, y1 = 320;
+  s += SV.rect(x0, y0, x1 - x0, y1 - y0, C.ink, C.shoe, 1.6);
+  s += SV.rect(110, y0 - 2, x0 - 110 + 60, 46, C.ink, C.pawl, 1.4);
+  s += SV.circ(110, y0 - 2, 22, C.ink, C.fill2, 1.4);
+  const xc = 320, xb = 110;
+  s += SV.line(xc, 56, xc, H - 40, C.mute, 1, "8 4 2 4");
+  s += SV.line(xb, 56, xb, H - 40, C.mute, 1, "8 4 2 4");
+  s += SV.text(xc + 4, H - 30, "eje cilindro / guía", C, { size: 10.5, fill: C.mute });
+  s += SV.text(xb - 4, H - 30, "línea de la barra", C, { size: 10.5, fill: C.mute, anchor: "end" });
+  s += SV.arrow(xc, H - 44, xc, y1 + 2, C.force, 3);
+  s += SV.label(xc + 10, y1 + 30, [`F cil·ηc = ${nf(Fc * P.eta_c)} kN`, `(F cil = ${nf(Fc)} kN)`], C, { color: C.force, boldFirst: true, size: 11.5 });
+  s += SV.arrow(xb, y0 - 26, xb, y0 + 46, C.react, 3);
+  s += SV.label(xb - 6, y0 + 74, [`F barra = ${nf(F)} kN`], C, { anchor: "middle", color: C.react, boldFirst: true, size: 11.5 });
+  // reacciones de guía
+  s += SV.arrow(x1 + 70, y0 + 20, x1 + 2, y0 + 20, C.react, 2.4);
+  s += SV.arrow(x0 - 70, y1 - 20, x0 - 2, y1 - 20, C.react, 2.4);
+  s += SV.label(x1 + 74, y0 + 24, [`R1 = ${nf(Rg)} kN`, `μg·R1 = ${nf(fr)} kN`], C, { color: C.react, size: 11 });
+  s += SV.label(x0 - 74, y1 - 16, [`R2 = ${nf(Rg)} kN`, `μg·R2 = ${nf(fr)} kN`], C, { anchor: "end", color: C.react, size: 11 });
+  s += SV.arrow(x1 + 8, y0 + 24, x1 + 8, y0 + 54, C.mute, 1.8, 7);
+  s += SV.arrow(x0 - 8, y1 - 54, x0 - 8, y1 - 24, C.mute, 1.8, 7);
+  s += SV.line(xb, 48, xc, 48, C.ink, 1) + SV.text((xb + xc) / 2, 43, `Δ = ${nf(R.Delta, 1)} mm`, C, { anchor: "middle", size: 11 });
+  s += SV.line(x1 + 40, y0 + 20, x1 + 40, y1 - 20, C.mute, 1, "3 3") + SV.text(x1 + 46, (y0 + y1) / 2, `Lg = ${nf(P.Lg)} mm`, C, { size: 11, fill: C.mute });
+  s += SV.text(14, 18, "CUERPO LIBRE DEL CARRO (planta, sin escala)", C, { size: 12, weight: 600 });
+  s += SV.text(14, H - 8, `R = F·Δ/Lg ;  F cil·ηc = F barra + 2·μg·R  →  K = ${nf(R.K, 3)}`, C, { size: 11.5 });
+  return s + "</svg>";
+}
+
+/* ---------- D3: barra 4f como viga entre planchas ---------- */
+function dgBar(R, C) {
+  const P = R.P, F = R.Fmax, L = P.gap, c = Math.min(P.pawl_h, L), W = 560, H = 430;
+  const x0 = 90, x1 = 470, sc = (x1 - x0) / L, X = (x) => x0 + x * sc;
+  const Mss = F / 4 * (L - c / 2), Mfe = F * (3 * L * L - c * c) / (24 * L), Mmidf = Mss - Mfe;
+  let s = SV.open(W, H);
+  s += SV.text(14, 18, `BARRA 4f Ø${P.D_bar} – VIGA ENTRE PLANCHAS (F calado = ${nf(F)} kN)`, C, { size: 12, weight: 600 });
+  const yb = 92;
+  s += SV.rect(x0 - 26, yb - 40, 26, 80, C.ink, C.fill2, 1.2) + SV.rect(x1, yb - 40, 26, 80, C.ink, C.fill2, 1.2);
+  s += SV.text(x0 - 13, yb + 56, "4b", C, { anchor: "middle", size: 11 }) + SV.text(x1 + 13, yb + 56, "4a", C, { anchor: "middle", size: 11 });
+  s += SV.rect(x0, yb - 10, x1 - x0, 20, C.ink, C.fill, 1.4);
+  const xa = X((L - c) / 2), xb2 = X((L + c) / 2);
+  for (let i = 0; i <= 8; i++) { const x = xa + (xb2 - xa) * i / 8; s += SV.arrow(x, yb - 44, x, yb - 11, C.force, 1.4, 6); }
+  s += SV.line(xa, yb - 44, xb2, yb - 44, C.force, 1.4);
+  s += SV.text((xa + xb2) / 2, yb - 50, `F = ${nf(F)} kN en c = ${nf(c)} mm (alto trinquete)`, C, { anchor: "middle", size: 11, fill: C.force });
+  s += SV.text((x0 + x1) / 2, yb + 30, `L = ${nf(L)} mm (luz libre entre planchas)`, C, { anchor: "middle", size: 11, fill: C.mute });
+  // corte
+  const yV = 190, vs = 40 / (F / 2);
+  s += SV.line(x0, yV, x1, yV, C.mute, 1);
+  s += SV.pgon([[x0, yV], [x0, yV - F / 2 * vs], [xa, yV - F / 2 * vs], [xb2, yV + F / 2 * vs], [x1, yV + F / 2 * vs], [x1, yV]], C.accent, C.accent, 1.4, 0.18);
+  s += SV.text(14, yV + 4, "V (kN)", C, { size: 11, weight: 600 });
+  s += SV.text(x0 + 4, yV - F / 2 * vs - 5, `+${nf(F / 2)}`, C, { size: 11 }) + SV.text(x1 - 4, yV + F / 2 * vs + 14, `−${nf(F / 2)}`, C, { size: 11, anchor: "end" });
+  // momento
+  const yM = 320, ms = 70 / Math.max(Mss, Mfe);
+  const Mpin = (x) => (x <= (L - c) / 2 ? F / 2 * x : x >= (L + c) / 2 ? F / 2 * (L - x) : F / 2 * x - F / c * (x - (L - c) / 2) ** 2 / 2);
+  const pts = [], ptsF = [];
+  for (let i = 0; i <= 60; i++) { const x = L * i / 60; pts.push([X(x), yM + Mpin(x) * ms]); ptsF.push([X(x), yM + (Mpin(x) - Mfe) * ms]); }
+  s += SV.line(x0, yM, x1, yM, C.mute, 1);
+  s += SV.pgon([[x0, yM], ...pts, [x1, yM]], C.force, C.force, 1.6, 0.14);
+  s += SV.poly(ptsF, C.react, "none", 1.8, "6 4");
+  s += SV.text(14, yM + 4, "M (kN·m)", C, { size: 11, weight: 600 });
+  s += SV.label(X(L / 2) + 50, yM + Mss * ms - 4, [`Rotulada: M máx = ${nf(Mss / 1e3, 2)} kN·m`], C, { color: C.force, size: 11 });
+  s += SV.label(x0 + 8, yM - Mfe * ms - 12, [`Empotrada: M extremo = ${nf(Mfe / 1e3, 2)} kN·m`, `M centro = ${nf(Mmidf / 1e3, 2)} kN·m`], C, { color: C.react, size: 11 });
+  s += SV.text(14, H - 8, "Barra: se verifica con M rotulado. Soldadura bisel: con M empotrado + V.", C, { size: 11, fill: C.mute });
+  return s + "</svg>";
+}
+
+/* ---------- D4: pasador en horquilla ---------- */
+function dgPin(R, C) {
+  const P = R.P, F = R.Fmax, W = 560, H = 360;
+  const t = P.t_cheek, g = (P.gap_cheek - P.w_eye) / 2, b = P.w_eye, tot = 2 * t + P.gap_cheek;
+  const x0 = 110, sc = 340 / tot, X = (x) => x0 + x * sc;
+  let s = SV.open(W, H);
+  s += SV.text(14, 18, `PASADOR Ø${P.D_pin} EN HORQUILLA DE LA MÉNSULA (F = ${nf(F)} kN)`, C, { size: 12, weight: 600 });
+  const yp = 110;
+  s += SV.rect(X(0), yp - 60, t * sc, 50, C.ink, C.fill2, 1.2) + SV.rect(X(tot - t), yp - 60, t * sc, 50, C.ink, C.fill2, 1.2);
+  s += SV.rect(X(t + g), yp + 10, b * sc, 50, C.ink, C.cyl, 1.2);
+  s += SV.rect(X(-10), yp - 9, (tot + 20) * sc, 18, C.ink, C.fill, 1.4);
+  s += SV.arrow(X(t / 2), yp - 70, X(t / 2), yp - 10, C.react, 2.4) + SV.arrow(X(tot - t / 2), yp - 70, X(tot - t / 2), yp - 10, C.react, 2.4);
+  s += SV.arrow(X(tot / 2), yp + 75, X(tot / 2), yp + 10, C.force, 3);
+  s += SV.text(X(t / 2), yp - 76, `F/2 = ${nf(F / 2)}`, C, { anchor: "middle", size: 11, fill: C.react });
+  s += SV.text(X(tot - t / 2), yp - 76, `F/2 = ${nf(F / 2)}`, C, { anchor: "middle", size: 11, fill: C.react });
+  s += SV.text(X(tot / 2), yp + 92, `F = ${nf(F)} kN (ojal GE${P.D_pin})`, C, { anchor: "middle", size: 11, fill: C.force });
+  const M = R.extra ? R.extra.Mpin : F / 2 * (t / 2 + g + b / 4) / 1e3;
+  const yM = 250, ms = 60 / M;
+  const xs = [0, t / 2, t + g, tot / 2, tot - t - g, tot - t / 2, tot].map(X);
+  s += SV.line(xs[0], yM, xs[6], yM, C.mute, 1);
+  s += SV.pgon([[xs[1], yM], [xs[2], yM + (F / 2 * (t / 2 + g) / 1e3) * ms], [xs[3], yM + M * ms], [xs[4], yM + (F / 2 * (t / 2 + g) / 1e3) * ms], [xs[5], yM]], C.force, C.force, 1.6, 0.15);
+  s += SV.text(14, yM + 4, "M (kN·m)", C, { size: 11, weight: 600 });
+  s += SV.label(xs[3] + 14, yM + M * ms + 4, [`M máx = F/2·(t/2 + g + b/4) = ${nf(M, 2)} kN·m`, `σ = ${nf(M * 1e6 / (Math.PI * P.D_pin ** 3 / 32))} MPa`], C, { color: C.force, size: 11 });
+  s += SV.text(14, H - 8, `t = ${t} mejilla · g = ${nf(g, 1)} holgura · b = ${b} ojal`, C, { size: 11, fill: C.mute });
+  return s + "</svg>";
+}
+
+/* ---------- gráfico genérico ---------- */
+function dgChart(o, C) {
+  const W = o.w || 560, H = o.h || 340, m = { l: 58, r: o.y2 ? 58 : 18, t: 34, b: 46 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const X = (x) => m.l + (x - o.xr[0]) / (o.xr[1] - o.xr[0]) * pw, Y = (y) => m.t + ph - (y - o.yr[0]) / (o.yr[1] - o.yr[0]) * ph;
+  let s = SV.open(W, H);
+  s += SV.text(14, 18, o.title, C, { size: 12, weight: 600 });
+  for (const b of o.bands || []) s += SV.rect(X(b[0]), m.t, X(b[1]) - X(b[0]), ph, "none", C.band, 0) + SV.text((X(b[0]) + X(b[1])) / 2, m.t + 14, b[2], C, { anchor: "middle", size: 10.5, fill: C.mute });
+  for (const t of o.xt) { s += SV.line(X(t), m.t, X(t), m.t + ph, C.grid, 1) + SV.text(X(t), m.t + ph + 16, o.xf ? o.xf(t) : nf(t, 2), C, { anchor: "middle", size: 10.5, fill: C.mute }); }
+  for (const t of o.yt) { s += SV.line(m.l, Y(t), m.l + pw, Y(t), C.grid, 1) + SV.text(m.l - 6, Y(t) + 4, nf(t), C, { anchor: "end", size: 10.5, fill: C.mute }); }
+  if (o.y2) for (const t of o.yt) s += SV.text(m.l + pw + 6, Y(t) + 4, nf(o.y2(t)), C, { size: 10.5, fill: C.mute });
+  s += SV.rect(m.l, m.t, pw, ph, C.line, "none", 1);
+  s += SV.text(m.l + pw / 2, H - 8, o.xl, C, { anchor: "middle", size: 11 });
+  s += SV.text(14, m.t + ph / 2, o.yl, C, { anchor: "middle", size: 11, rot: -90 });
+  if (o.y2l) s += SV.text(W - 12, m.t + ph / 2, o.y2l, C, { anchor: "middle", size: 11, rot: 90 });
+  for (const h of o.hl || []) { s += SV.line(m.l, Y(h.y), m.l + pw, Y(h.y), h.c, h.w || 1.6, h.dash) + SV.text(m.l + 6, Y(h.y) - 5, h.t, C, { size: 10.5, fill: h.c, weight: 600 }); }
+  const clip = `cp${Math.random().toString(36).slice(2, 8)}`;
+  s += `<defs><clipPath id="${clip}"><rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}"/></clipPath></defs><g clip-path="url(#${clip})">`;
+  for (const se of o.series) s += SV.poly(se.pts.map((p) => [X(p[0]), Y(p[1])]), se.c, "none", se.w || 2, se.dash);
+  s += "</g>";
+  for (const se of o.series) if (se.lab) { const p = se.lab.at; s += SV.text(X(p[0]), Y(p[1]), se.lab.t, C, { size: 10.5, fill: se.c, anchor: se.lab.anchor || "start", weight: 600 }); }
+  if (o.legend) {
+    const lx = m.l + pw - 170, ly = m.t + ph - 14 - o.legend.length * 17;
+    s += `<rect x="${lx - 8}" y="${ly - 14}" width="174" height="${o.legend.length * 17 + 10}" rx="3" fill="${C.bg}" fill-opacity="0.92" stroke="${C.line}"/>`;
+    o.legend.forEach(([c, w, dash, t], i) => { const y = ly + i * 17; s += SV.line(lx, y - 4, lx + 22, y - 4, c, w, dash) + SV.text(lx + 28, y, t, C, { size: 10.5 }); });
+  }
+  for (const mk of o.markers || []) {
+    s += SV.circ(X(mk.x), Y(Math.min(mk.y, o.yr[1])), 4.5, mk.c, mk.c, 1);
+    s += SV.text(X(mk.x) + (mk.dx || 7), Y(Math.min(mk.y, o.yr[1])) + (mk.dy || -7), mk.t, C, { size: 10.5, fill: C.ink, anchor: mk.anchor || "start" });
+  }
+  return s + "</svg>";
+}
+function niceTicks(lo, hi, n) {
+  const span = hi - lo, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0)), r = step0 / mag;
+  const step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag, t = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+  return t;
+}
+function dgMu(R, C) {
+  const P = R.P, xmax = Math.max(0.6, P.mu_dry + 0.05), Fc = (mu, r) => R.cs(mu, r).Fc;
+  const ymax = Math.max(R.Fmax * 1.35, Fc(xmax, R.r_eff) * 0.8);
+  const curve = (r) => { const pts = []; for (let i = 0; i <= 60; i++) { const mu = xmax * i / 60; pts.push([mu, Fc(mu, r)]); } return pts; };
+  const lab = (r, t) => { let mu = xmax; const f = Fc(xmax, r); if (f > ymax) mu = (ymax * 0.97 / R.K * 2 * R.a / 1000 - R.Tpiv) / (R.N * r); return { at: [mu, Fc(mu, r)], t, anchor: "end" }; };
+  return dgChart({
+    title: "FUERZA POR CILINDRO vs COEFICIENTE DE FRICCIÓN", xr: [0, xmax], yr: [0, ymax], xt: niceTicks(0, xmax, 6), yt: niceTicks(0, ymax, 6),
+    xl: "μ estático en la interfaz de giro", yl: "F por cilindro (kN)", y2: (F) => F * 1e3 / R.A * 10, y2l: "presión (bar)",
+    bands: [[0.10, 0.20, "acero/acero engrasado"], [0.5, Math.min(0.8, xmax), "acero seco"]],
+    hl: [{ y: R.Fmax, c: C.bad, t: `alivio ${nf(P.p_relief)} bar = ${nf(R.Fmax)} kN` }, { y: R.Falarm, c: C.warn, t: `alarma ${nf(P.p_alarm)} bar = ${nf(R.Falarm)} kN`, dash: "6 4" }],
+    series: [
+      { pts: curve(R.r_u), c: C.mute, w: 1.6 },
+      { pts: curve(R.r_eff), c: C.accent, w: 2.6 },
+      { pts: curve(R.r_max), c: C.mute, w: 1.4, dash: "5 4" },
+    ],
+    legend: [[C.accent, 2.6, null, `r ${nf(R.r_eff, 2)} m (diseño)`], [C.mute, 1.6, null, `r ${nf(R.r_u, 3)} m (uniforme)`], [C.mute, 1.4, "5 4", `r ${nf(R.r_max, 2)} m (cota física)`]],
+    markers: R.cases.map((c) => ({ x: c.mu, y: c.Fc, c: c.FS >= 1 ? C.good : C.bad, t: `${nf(c.Fc)} kN`, dx: 7, dy: c.key === "nom" ? 14 : -7 })),
+  }, C);
+}
+function dgStroke(R, C) {
+  const P = R.P, d = R.stroke, ymax = Math.max(R.Fmax * 1.15, ...d.map((r) => r.con) ) * 1.05;
+  const ser = (k, c, w, dash, t) => ({ pts: [[0, 0], [P.free, 0], ...d.map((r) => [r.s, r[k]])], c, w, dash, lab: { at: [d[d.length - 1].s, d[d.length - 1][k]], t, anchor: "end" } });
+  return dgChart({
+    title: "FUERZA EN CADA CILINDRO A LO LARGO DE LA CARRERA", xr: [0, P.stroke], yr: [0, ymax], xt: niceTicks(0, P.stroke, 8), yt: niceTicks(0, ymax, 6), xf: (t) => nf(t),
+    xl: `carrera del vástago (mm) – libre 0–${nf(P.free)}, toma barra a −${nf(180 / P.N_bar, 1)}° y suelta a +${nf(180 / P.N_bar, 1)}°`, yl: "F por cilindro (kN)", y2: (F) => F * 1e3 / R.A * 10, y2l: "presión (bar)",
+    hl: [{ y: R.Fmax, c: C.bad, t: "alivio" }, { y: R.Falarm, c: C.warn, t: "alarma", dash: "6 4" }],
+    series: [ser("nom", C.good, 1.8, null, "nominal"), ser("dis", C.accent, 2.6, null, "diseño"), ser("con", C.warn, 1.8, "6 4", "contaminado")],
+  }, C);
+}
+function dgBreak(R, C) {
+  const W = 900, H = 150, tot = R.d.Fc, x0 = 20, x1 = W - 20, sc = (x1 - x0) / tot;
+  let s = SV.open(W, H) + SV.text(14, 18, `DESGLOSE DE LA FUERZA DE DISEÑO POR CILINDRO (${nf(tot)} kN)`, C, { size: 12, weight: 600 });
+  const cols = [C.accent, C.react, C.warn, C.mute];
+  let x = x0;
+  R.breakdown.forEach(([t, v], i) => {
+    const w = v * sc;
+    s += SV.rect(x, 40, w, 34, C.bg, cols[i], 1.5);
+    if (w > 46) s += SV.text(x + w / 2, 62, nf(v), C, { anchor: "middle", size: 11.5, weight: 600, fill: C.bg });
+    x += w;
+  });
+  R.breakdown.forEach(([t, v], i) => {
+    const yy = 102 + (i % 2) * 22, xx = 20 + Math.floor(i / 2) * 440;
+    s += SV.rect(xx, yy - 10, 12, 12, cols[i], cols[i], 1) + SV.text(xx + 18, yy, `${t}: ${nf(v, 1)} kN (${nf(v / tot * 100, 1)} %)`, C, { size: 11 });
+  });
+  return s + "</svg>";
+}
+
+/* Plano paramétrico (SVG / DXF / PDF) y memoria de verificación (PDF). Coordenadas de papel en mm, y hacia arriba. */
+const LAYERS = {
+  VIS: { w: 0.5, dash: null, color: 7 }, FINA: { w: 0.18, dash: null, color: 8 }, EJE: { w: 0.18, dash: [10, 2, 1.5, 2], color: 1 },
+  OCU: { w: 0.25, dash: [3, 1.5], color: 3 }, COTA: { w: 0.18, dash: null, color: 4 }, TXT: { w: 0.25, dash: null, color: 7 },
+  MARCO: { w: 0.7, dash: null, color: 7 }, FUERZA: { w: 0.5, dash: null, color: 1 },
+};
+function Sheet() { this.it = []; }
+Sheet.prototype = {
+  L(x1, y1, x2, y2, ly = "VIS") { this.it.push({ k: "L", x1, y1, x2, y2, ly }); },
+  R(x0, y0, x1, y1, ly = "VIS") { this.L(x0, y0, x1, y0, ly); this.L(x1, y0, x1, y1, ly); this.L(x1, y1, x0, y1, ly); this.L(x0, y1, x0, y0, ly); },
+  P(pts, closed, ly = "VIS") { for (let i = 0; i < pts.length - 1; i++) this.L(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ly); if (closed) this.L(pts[pts.length - 1][0], pts[pts.length - 1][1], pts[0][0], pts[0][1], ly); },
+  C(x, y, r, ly = "VIS") { this.it.push({ k: "C", x, y, r, ly }); },
+  A(x, y, r, a0, a1, ly = "VIS") { this.it.push({ k: "A", x, y, r, a0, a1, ly }); },
+  T(s, x, y, h = 2.5, al = "l", ly = "TXT", bold = false) { this.it.push({ k: "T", s: String(s), x, y, h, al, ly, bold }); },
+  S(pts, ly = "COTA") { this.it.push({ k: "S", pts, ly }); },
+  arrow(x, y, ang, size = 2.6, ly = "COTA") {
+    const w = size * 0.33, bx = x - size * Math.cos(ang), by = y - size * Math.sin(ang);
+    this.S([[x, y], [bx + w * Math.sin(ang), by - w * Math.cos(ang)], [bx - w * Math.sin(ang), by + w * Math.cos(ang)]], ly);
+  },
+  force(x1, y1, x2, y2, label, h = 2.4) {
+    this.L(x1, y1, x2, y2, "FUERZA"); this.arrow(x2, y2, Math.atan2(y2 - y1, x2 - x1), 4, "FUERZA");
+    if (label) this.T(label, x1 + 1.5, y1 + (y1 > y2 ? 1.5 : -4), h, "l", "TXT", true);
+  },
+  dim(x1, y1, x2, y2, off, txt, orient = "h", h = 2.3) {
+    if (orient === "h") {
+      const y = y1 + off; this.L(x1, y1, x1, y + Math.sign(off) * 1.5, "COTA"); this.L(x2, y2, x2, y + Math.sign(off) * 1.5, "COTA");
+      this.L(x1, y, x2, y, "COTA"); this.arrow(x1, y, Math.PI); this.arrow(x2, y, 0); this.T(txt, (x1 + x2) / 2, y + 0.8, h, "c", "COTA");
+    } else {
+      const x = x1 + off; this.L(x1, y1, x + Math.sign(off) * 1.5, y1, "COTA"); this.L(x2, y2, x + Math.sign(off) * 1.5, y2, "COTA");
+      this.L(x, y1, x, y2, "COTA"); this.arrow(x, y1, y1 < y2 ? -Math.PI / 2 : Math.PI / 2); this.arrow(x, y2, y2 > y1 ? Math.PI / 2 : -Math.PI / 2);
+      this.it.push({ k: "T", s: txt, x: x - 0.8, y: (y1 + y2) / 2, h, al: "c", ly: "COTA", rot: 90 });
+    }
+  },
+  table(x0, y0, cols, rows, rh = 4.2, h = 2.0) {
+    const Wt = cols.reduce((s, c) => s + c[1], 0); let y = y0;
+    const all = [cols.map((c) => c[0])].concat(rows);
+    all.forEach((row, i) => {
+      this.L(x0, y, x0 + Wt, y, i <= 1 ? "VIS" : "FINA"); let x = x0;
+      row.forEach((cell, j) => {
+        const al = i === 0 ? "c" : cols[j][2];
+        const tx = al === "c" ? x + cols[j][1] / 2 : al === "r" ? x + cols[j][1] - 1 : x + 1;
+        this.T(cell, tx, y - rh + (rh - h) / 2 + 0.2, h, al, "TXT", i === 0); x += cols[j][1];
+      });
+      y -= rh;
+    });
+    this.L(x0, y, x0 + Wt, y, "VIS"); let x = x0;
+    for (const c of cols.concat([[0, 0]])) { this.L(x, y0, x, y, x === x0 || x >= x0 + Wt - 0.01 ? "VIS" : "FINA"); x += c[1]; }
+    return y;
+  },
+};
+
+function buildSheet(R, V, fea) {
+  const P = R.P, S = new Sheet(), W = 841, H = 594;
+  S.R(0, 0, W, H, "FINA"); S.R(20, 10, W - 10, H - 10, "MARCO");
+  // rótulo
+  const x0 = W - 190, y1 = 72;
+  S.R(x0, 10, W - 10, y1, "MARCO");
+  [20, 30, 44].forEach((yy) => S.L(x0, 10 + yy - 10, W - 10, 10 + yy - 10, "FINA"));
+  S.L(x0 + 60, 10, x0 + 60, 30, "FINA"); S.L(x0 + 120, 10, x0 + 120, 30, "FINA");
+  S.T("PROYECTO: TORNAMESA HIDRÁULICA " + nf(P.W_tf) + " tf", x0 + 2, y1 - 5, 3.2, "l", "TXT", true);
+  S.T("SOLUCIÓN B – ACERO-ACERO CON GRASA GRAFITADA", x0 + 2, y1 - 10.5, 2.4);
+  S.T("PLANO DE VERIFICACIÓN PARAMÉTRICO", x0 + 2, y1 - 19, 3.6, "l", "TXT", true);
+  S.T("Generado desde la herramienta de verificación con los parámetros indicados.", x0 + 2, 31.5, 2.0);
+  const today = new Date().toLocaleDateString("es-CL");
+  [["ESCALA", "INDICADA", 0, 1], ["FECHA", today, 1, 1], ["FORMATO", "A1", 2, 1], ["PLANO N°", "TT300-B-P-01", 0, 0], ["LÁMINA", "1 de 1", 1, 0], ["REV.", "P", 2, 0]]
+    .forEach(([l, v, c, r]) => { S.T(l, x0 + c * 60 + 1.5, 10 + r * 10 + 7.2, 1.8); S.T(v, x0 + c * 60 + 30, 10 + r * 10 + 2.2, r === 0 ? 3.0 : 2.6, "c", "TXT", r === 0); });
+
+  // ---- VISTA 1: planta 1:10 ----
+  const k1 = 0.1, cx = 195, cy = 420, X = (x) => cx + x * k1, Y = (y) => cy + y * k1;
+  S.R(X(-P.BX / 2), Y(-P.BY / 2), X(P.BX / 2), Y(P.BY / 2));
+  S.C(cx, cy, P.D_disc / 2 * k1);
+  parseRings(P.rings).forEach((r) => S.C(cx, cy, r * k1, "OCU"));
+  for (let i = 0; i < P.N_rib; i++) { const a = 2 * Math.PI * i / P.N_rib; S.L(X(P.D_hub / 2 * Math.cos(a)), Y(P.D_hub / 2 * Math.sin(a)), X(P.R_rib * Math.cos(a)), Y(P.R_rib * Math.sin(a)), "OCU"); }
+  for (let i = 0; i < P.N_bar; i++) { const a = Math.PI / P.N_bar + 2 * Math.PI * i / P.N_bar; S.C(X(P.R_bar * Math.cos(a)), Y(P.R_bar * Math.sin(a)), P.D_bar / 2 * k1); }
+  S.C(cx, cy, P.D_hub / 2 * k1); S.C(cx, cy, P.D_piv / 2 * k1, "FINA");
+  S.L(X(-P.BX / 2 - 30), cy, X(P.BX / 2 + 30), cy, "EJE"); S.L(cx, Y(-P.BY / 2 - 30), cx, Y(P.BY / 2 + 30), "EJE");
+  for (const sx of [1, -1]) {
+    const yb = -sx * P.R_bar * Math.sin(R.th), yE = yb - sx * P.eye_off, yP = -sx * R.Ybrk;
+    S.R(X(sx * P.X_cyl - P.rail_w / 2), Y(-425), X(sx * P.X_cyl + P.rail_w / 2), Y(425), "OCU");
+    S.R(X(sx * P.X_cyl - P.gap_cheek / 2 - P.t_cheek), Y(yP - P.L_cheek / 2), X(sx * P.X_cyl + P.gap_cheek / 2 + P.t_cheek), Y(yP + P.L_cheek / 2));
+    S.R(X(sx * P.X_cyl - 70), Y(yP + sx * 70), X(sx * P.X_cyl + 70), Y(yP + sx * 370));
+    S.R(X(sx * P.X_cyl - P.D_rod / 2), Y(yP + sx * 370), X(sx * P.X_cyl + P.D_rod / 2), Y(yE));
+    S.R(X(sx * P.shoe_x0), Y(yb + sx * 20), X(sx * (P.shoe_x0 + 130)), Y(yb + sx * 20 - sx * 300));
+    S.R(X(sx * P.pawl_tip), Y(yb), X(sx * (P.pawl_tip + P.pawl_L)), Y(yb - sx * P.pawl_b));
+    S.force(X(sx * R.a), Y(yb - sx * 360), X(sx * R.a), Y(yb), sx > 0 ? `F barra ${nf(R.d.Fb)} kN` : null);
+  }
+  S.dim(X(-P.BX / 2), Y(-P.BY / 2), X(P.BX / 2), Y(-P.BY / 2), -10, nf(P.BX));
+  S.dim(X(-P.BX / 2), Y(-P.BY / 2), X(-P.BX / 2), Y(P.BY / 2), -10, nf(P.BY), "v");
+  S.dim(X(-P.X_cyl), Y(P.BY / 2), X(P.X_cyl), Y(P.BY / 2), 8, `${nf(2 * P.X_cyl)} (ejes cilindros)`);
+  S.T(`Ø${nf(P.D_disc)} disco · ${P.N_bar} barras Ø${P.D_bar} en R${nf(P.R_bar)}`, X(-P.D_disc / 2), Y(P.D_disc / 2) + 3, 2.4);
+  S.T("VISTA 1 – PLANTA", cx, Y(-P.BY / 2) - 22, 4, "c", "TXT", true); S.T("ESC. 1:10", cx, Y(-P.BY / 2) - 27, 2.8, "c");
+
+  // ---- VISTA 2: corte diametral 1:10 ----
+  const zb = 215;
+  const Z = (z) => zb + z * k1, TD = R.TD;
+  S.R(X(-P.BX / 2), Z(0), X(P.BX / 2), Z(P.t_base));
+  S.R(X(-P.D_disc / 2), Z(P.t_base), X(P.D_disc / 2), Z(P.t_base + P.t_bot));
+  S.R(X(-P.D_disc / 2), Z(P.t_base + P.t_bot + P.gap), X(P.D_disc / 2), Z(P.t_base + TD));
+  for (const r of parseRings(P.rings)) for (const sg of [1, -1]) S.R(X(sg * r - P.t_ring / 2), Z(P.t_base + P.t_bot), X(sg * r + P.t_ring / 2), Z(P.t_base + P.t_bot + P.gap), "FINA");
+  S.R(X(-P.D_hub / 2), Z(P.t_base), X(P.D_hub / 2), Z(P.t_base + TD), "VIS");
+  S.L(cx, Z(-15), cx, Z(P.t_base + TD + 25), "EJE");
+  S.dim(X(P.BX / 2), Z(0), X(P.BX / 2), Z(P.t_base), 6, nf(P.t_base), "v");
+  S.dim(X(P.D_disc / 2), Z(P.t_base), X(P.D_disc / 2), Z(P.t_base + TD), 14, nf(TD), "v");
+  S.T("VISTA 2 – CORTE DIAMETRAL", cx, zb - 12, 4, "c", "TXT", true); S.T("ESC. 1:10", cx, zb - 17, 2.8, "c");
+
+  // ---- DETALLE 1: borde del disco 1:2,5 (sección por una barra) ----
+  const k2 = 0.4, rl = parseRings(P.rings), r0 = (rl.length ? rl[rl.length - 1] : P.R_bar - 200) - 60, rx = P.D_disc / 2 + 60;
+  const ox = 345, oz = 360, XR = (r) => ox + (r - r0) * k2, ZR = (z) => oz + z * k2;
+  S.L(XR(r0), ZR(0), XR(rx), ZR(0)); S.L(XR(r0), ZR(P.t_base), XR(rx), ZR(P.t_base));
+  S.L(XR(rx), ZR(-5), XR(rx), ZR(P.t_base + 5), "FINA"); S.L(XR(r0), ZR(-5), XR(r0), ZR(P.t_base + TD + 10), "FINA");
+  const zt0 = P.t_base, zt1 = P.t_base + P.t_bot, zt2 = zt1 + P.gap, zt3 = zt2 + P.t_top, Rd = P.D_disc / 2;
+  const bx0 = P.R_bar - P.D_hole / 2, bx1 = P.R_bar + P.D_hole / 2;
+  for (const [za, zz] of [[zt0, zt1], [zt2, zt3]]) { S.P([[XR(r0), ZR(za)], [XR(bx0), ZR(za)], [XR(bx0), ZR(zz)], [XR(r0), ZR(zz)]], false); S.P([[XR(bx1), ZR(za)], [XR(Rd), ZR(za)], [XR(Rd), ZR(zz)], [XR(bx1), ZR(zz)]], false); }
+  S.R(XR(P.R_bar - P.D_bar / 2), ZR(zt0), XR(P.R_bar + P.D_bar / 2), ZR(zt3));
+  S.L(XR(P.R_bar), ZR(zt0 - 8), XR(P.R_bar), ZR(zt3 + 8), "EJE");
+  if (rl.length) { const rr = rl[rl.length - 1]; S.R(XR(rr - P.t_ring / 2), ZR(zt1), XR(rr + P.t_ring / 2), ZR(zt2)); S.L(XR(rr), ZR(zt1 - 6), XR(rr), ZR(zt2 + 6), "EJE"); S.T(`Alma 4d R${nf(rr)} e=${P.t_ring}`, XR(rr) + 3, ZR(zt2) - 6, 2.2); }
+  // biseles de soldadura
+  const sb = P.weld_S * k2;
+  for (const [zf, sgn] of [[zt3, -1], [zt0, 1]]) for (const xe of [XR(P.R_bar - P.D_bar / 2), XR(P.R_bar + P.D_bar / 2)]) {
+    const dir = xe < XR(P.R_bar) ? -1 : 1; S.S([[xe, ZR(zf)], [xe + dir * sb, ZR(zf)], [xe, ZR(zf) + sgn * sb]], "VIS");
+  }
+  S.dim(XR(Rd), ZR(zt0), XR(Rd), ZR(zt1), 8, nf(P.t_bot), "v"); S.dim(XR(Rd), ZR(zt1), XR(Rd), ZR(zt2), 8, nf(P.gap), "v");
+  S.dim(XR(Rd), ZR(zt2), XR(Rd), ZR(zt3), 8, nf(P.t_top), "v"); S.dim(XR(Rd), ZR(zt0), XR(Rd), ZR(zt3), 18, nf(TD), "v");
+  S.dim(XR(r0), ZR(0), XR(r0), ZR(P.t_base), -6, nf(P.t_base), "v");
+  S.dim(XR(P.R_bar - P.D_bar / 2), ZR(zt3), XR(P.R_bar + P.D_bar / 2), ZR(zt3), 8, `Ø${P.D_bar} (agujero Ø${P.D_hole})`);
+  S.T(`4a plancha sup. e=${P.t_top}`, XR(r0) + 2, ZR(zt3) + 2, 2.2); S.T(`4b plancha inf. e=${P.t_bot}`, XR(r0) + 2, ZR(zt0) + 1.0 + P.t_bot * k2 * 0.15, 2.2);
+  S.T(`Placa base pos 1 e=${P.t_base}`, XR(r0) + 2, ZR(P.t_base / 2) - 1, 2.2);
+  S.T(`Bisel ${P.weld_S} (E = ${P.weld_S - 3}) a ras, ambas caras`, XR(P.R_bar) - 16, ZR(zt3) + 16, 2.2);
+  S.T(`Grasa grafitada en interfaz (μ diseño ${nf(P.mu, 2)})`, XR(r0) + 2, ZR(zt0) - 4.5, 2.2);
+  S.T("DETALLE 1 – BORDE DEL DISCO (corte por barra 4f)", (XR(r0) + XR(rx)) / 2, oz - 18, 3.6, "c", "TXT", true);
+  S.T("ESC. 1:2,5", (XR(r0) + XR(rx)) / 2, oz - 23, 2.8, "c");
+
+  // ---- DETALLE 2: carro y trinquete 1:4 ----
+  const k3 = 0.25, xm0 = 840, ox3 = 350, oy3 = 270, X3 = (x) => ox3 + (x - xm0) * k3, Y3 = (y) => oy3 + y * k3;
+  const yb = -P.R_bar * Math.sin(R.th), yE = yb - P.eye_off;
+  const angA = Math.asin(Math.max(-1, -560 / P.R_bar)), angB = Math.asin(Math.min(1, 60 / P.R_bar));
+  const arcPts = (rr) => { const p = []; for (let i = 0; i <= 30; i++) { const t = angA + (angB - angA) * i / 30; p.push([X3(rr * Math.cos(t)), Y3(rr * Math.sin(t))]); } return p; };
+  S.P(arcPts(P.D_disc / 2), false, "VIS"); S.P(arcPts(P.R_bar), false, "EJE");
+  for (let i = -3; i <= 0; i++) { const a = -R.th + i * 2 * R.th; if (P.R_bar * Math.sin(a) < -560) continue; S.C(X3(P.R_bar * Math.cos(a)), Y3(P.R_bar * Math.sin(a)), P.D_bar / 2 * k3); }
+  S.R(X3(P.pawl_tip), Y3(yb), X3(P.pawl_tip + P.pawl_L), Y3(yb - P.pawl_b));
+  S.R(X3(P.shoe_x0), Y3(yb + 20), X3(P.shoe_x0 + 130), Y3(yb + 20 - 300));
+  S.R(X3(P.X_cyl - P.rail_w / 2), Y3(yb + 60), X3(P.X_cyl + P.rail_w / 2), Y3(yb - 360), "OCU");
+  S.L(X3(P.X_cyl), Y3(yb + 80), X3(P.X_cyl), Y3(yE - 120), "EJE"); S.L(X3(R.a), Y3(yb + 80), X3(R.a), Y3(yb - 360), "EJE");
+  S.C(X3(P.X_cyl), Y3(yE), 35 * k3 * 1.5); S.R(X3(P.X_cyl - P.D_rod / 2), Y3(yE - 20), X3(P.X_cyl + P.D_rod / 2), Y3(yE - 110));
+  S.force(X3(R.a) - 0, Y3(yb - 230), X3(R.a), Y3(yb - 2), null);
+  S.T(`F barra = ${nf(R.d.Fb)} kN`, X3(R.a) - 2, Y3(yb - 160), 2.3, "r", "TXT", true);
+  S.force(X3(P.X_cyl), Y3(yE - 230), X3(P.X_cyl), Y3(yE - 40), null);
+  S.T(`F cil = ${nf(R.d.Fc)} kN (${nf(R.d.p)} bar)`, X3(P.X_cyl) + 3, Y3(yE - 200), 2.3, "l", "TXT", true);
+  S.dim(X3(R.a), Y3(yb + 40), X3(P.X_cyl), Y3(yb + 40), 4, `Δ = ${nf(R.Delta, 1)}`);
+  S.dim(X3(R.a), Y3(yb - P.pawl_b), X3(P.shoe_x0), Y3(yb - P.pawl_b), -6, `${nf(P.shoe_x0 - R.a, 1)}`);
+  S.dim(X3(P.pawl_tip), Y3(yb), X3(P.pawl_tip), Y3(yb - P.pawl_b), -5, nf(P.pawl_b), "v");
+  S.dim(X3(P.shoe_x0 + 130), Y3(yb + 20 - 25), X3(P.shoe_x0 + 130), Y3(yb + 20 - 25 - P.Lg), 6, `Lg ${nf(P.Lg)}`, "v");
+  S.T(`a = R·cos(${nf(180 / P.N_bar, 1)}°) = ${nf(R.a, 1)} mm desde el eje del disco`, X3(xm0) + 2, Y3(yb + 95), 2.2);
+  S.T("DETALLE 2 – CARRO, TRINQUETE Y BARRA (planta)", (X3(xm0) + X3(1250)) / 2, Y3(yE - 290), 3.6, "c", "TXT", true);
+  S.T("ESC. 1:4", (X3(xm0) + X3(1250)) / 2, Y3(yE - 290) - 5, 2.8, "c");
+
+  // ---- notas ----
+  const notes = [
+    "BASES DE CÁLCULO",
+    `1. Carga WLL ${nf(P.W_tf)} tf = ${nf(R.W)} kN; disco ${nf(R.mass.total)} kg; N = ${nf(R.N, 1)} kN; e ≤ ${nf(P.e)} mm; φd = ${nf(P.phi_d, 2)}.`,
+    `2. Fricción estática de diseño μ = ${nf(P.mu, 2)} con r_ef = ${nf(P.r_eff, 2)} m (uniforme ${nf(R.r_u, 3)} m).`,
+    `3. Empuje en par: F barra = T/(2a); K = (1 + 2μg·Δ/Lg)/ηc = ${nf(R.K, 3)}; F cil = K·F barra.`,
+    `4. Cadena de empuje verificada a la fuerza de calado ${nf(R.Fmax)} kN (alivio ${nf(P.p_relief)} bar).`,
+    "5. Placas 4a/4b: FEA Mindlin (MITC4) de un sector entre nervios con almas, nervios y barras como apoyos.",
+    "6. Trinquete: FEA tensión plana Q4. Normas: AISC 360-22 (ASD), ASME BTH-1, AWS D1.1.",
+    "7. Plano de verificación. No reemplaza los planos de fabricación emitidos (TT300-B-D/F).",
+  ];
+  notes.forEach((t, i) => S.T(t, 26, 185 - i * 4.4, 2.3, "l", "TXT", i === 0));
+
+  // ---- tablas (columna derecha) ----
+  const tx = 610;
+  S.T("PARÁMETROS DE ENTRADA", tx, 578, 3.0, "l", "TXT", true);
+  const prow = [];
+  for (const g of PARAM_GROUPS) for (const it of g.items) prow.push([it[1], String(typeof P[it[0]] === "number" ? nf(P[it[0]], it[4] && it[4] < 1 ? (it[4] < 0.01 ? 3 : 2) : 0) : P[it[0]]), it[2]]);
+  const half = Math.ceil(prow.length / 2);
+  S.table(tx, 574, [["Parámetro", 54, "l"], ["Valor", 22, "r"], ["Unid.", 13, "l"]], prow.slice(0, half), 3.6, 1.8);
+  S.table(tx + 91, 574, [["Parámetro", 54, "l"], ["Valor", 22, "r"], ["Unid.", 13, "l"]], prow.slice(half), 3.6, 1.8);
+  let yy = 574 - (half + 1) * 3.6 - 9;
+  S.T("ACCIONAMIENTO – FUERZA POR CILINDRO", tx, yy + 4, 3.0, "l", "TXT", true);
+  yy = S.table(tx, yy, [["Caso", 50, "l"], ["μ", 12, "c"], ["r m", 14, "c"], ["F cil kN", 20, "r"], ["p bar", 18, "r"], ["FS", 14, "r"], ["", 52, "l"]],
+    R.cases.map((c) => [c.name.split(" – ")[0], nf(c.mu, 2), nf(c.r, 3), nf(c.Fc), nf(c.p), nf(c.FS, 2), c.FS >= 1 ? "gira" : "NO GIRA"]), 4.0, 2.0);
+  S.T(`μ máximo vencible a ${nf(P.p_relief)} bar: ${nf(R.muMax(R.r_eff, P.p_relief), 3)} (r ${nf(R.r_eff, 2)}) / ${nf(R.muMax(R.r_max, P.p_relief), 3)} (r ${nf(R.r_max, 2)})`, tx, yy - 4, 2.1);
+  yy -= 18;
+  S.T("VERIFICACIONES – FACTOR DE UTILIZACIÓN", tx, yy + 4, 3.0, "l", "TXT", true);
+  S.table(tx, yy, [["Elemento", 108, "l"], ["Demanda", 22, "r"], ["Capac.", 22, "r"], ["FU", 13, "r"], ["", 15, "c"]],
+    V.map((v) => [`${v.grp}: ${v.el}`.slice(0, 70), nf(v.dem, v.dem < 20 ? 2 : 0), nf(v.cap, v.cap < 20 ? 2 : 0), nf(v.fu, 2), (v.kind === "pass" ? v.fu <= 1 : v.fu <= 0.9) ? "OK" : v.fu <= 1 ? "MON." : "NO"]), 3.5, 1.75);
+  return S;
+}
+
+/* ---------- salidas ---------- */
+function sheetSVG(S, C) {
+  const H = 594;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 841 594" class="sheet">` + `<rect x="0" y="0" width="841" height="594" fill="${C.paper}"/>`;
+  for (const e of S.it) {
+    const L = LAYERS[e.ly] || LAYERS.VIS, col = e.ly === "FUERZA" ? C.force : C.ink, dash = L.dash ? ` stroke-dasharray="${L.dash.join(" ")}"` : "";
+    if (e.k === "L") s += `<line x1="${e.x1.toFixed(2)}" y1="${(H - e.y1).toFixed(2)}" x2="${e.x2.toFixed(2)}" y2="${(H - e.y2).toFixed(2)}" stroke="${col}" stroke-width="${L.w}"${dash}/>`;
+    else if (e.k === "C") s += `<circle cx="${e.x.toFixed(2)}" cy="${(H - e.y).toFixed(2)}" r="${e.r.toFixed(2)}" stroke="${col}" stroke-width="${L.w}" fill="none"${dash}/>`;
+    else if (e.k === "S") s += `<polygon points="${e.pts.map((p) => p[0].toFixed(2) + "," + (H - p[1]).toFixed(2)).join(" ")}" fill="${col}"/>`;
+    else if (e.k === "T") {
+      const an = e.al === "c" ? "middle" : e.al === "r" ? "end" : "start", x = e.x, y = H - e.y;
+      s += `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-family="Helvetica, Arial, sans-serif" font-size="${(e.h * 1.38).toFixed(2)}" text-anchor="${an}" fill="${C.ink}"${e.bold ? ' font-weight="700"' : ""}${e.rot ? ` transform="rotate(${-e.rot} ${x.toFixed(2)} ${y.toFixed(2)})"` : ""}>${e.s.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`;
+    }
+  }
+  return s + "</svg>";
+}
+
+function dxfText(s) {
+  let o = "";
+  for (const ch of s) {
+    const c = ch.codePointAt(0);
+    if (ch === "Ø") o += "%%c"; else if (ch === "°") o += "%%d"; else if (ch === "±") o += "%%p";
+    else if (c < 128) o += ch; else o += "\\U+" + c.toString(16).toUpperCase().padStart(4, "0");
+  }
+  return o;
+}
+function sheetDXF(S) {
+  const out = [];
+  const g = (code, val) => { out.push(String(code)); out.push(String(val)); };
+  g(0, "SECTION"); g(2, "HEADER"); g(9, "$ACADVER"); g(1, "AC1009"); g(9, "$INSUNITS"); g(70, 4); g(9, "$LTSCALE"); g(40, 1.0); g(0, "ENDSEC");
+  g(0, "SECTION"); g(2, "TABLES");
+  g(0, "TABLE"); g(2, "LTYPE"); g(70, 3);
+  const lt = [["CONTINUOUS", "Solid", []], ["DASHED", "__ __", [3, -1.5]], ["CENTER", "__ . __", [10, -2, 1.5, -2]]];
+  for (const [n, d, pat] of lt) { g(0, "LTYPE"); g(2, n); g(70, 0); g(3, d); g(72, 65); g(73, pat.length); g(40, pat.reduce((s, v) => s + Math.abs(v), 0)); for (const v of pat) g(49, v); }
+  g(0, "ENDTAB");
+  g(0, "TABLE"); g(2, "LAYER"); g(70, Object.keys(LAYERS).length);
+  for (const [n, L] of Object.entries(LAYERS)) { g(0, "LAYER"); g(2, n); g(70, 0); g(62, L.color); g(6, n === "EJE" ? "CENTER" : n === "OCU" ? "DASHED" : "CONTINUOUS"); }
+  g(0, "ENDTAB"); g(0, "ENDSEC");
+  g(0, "SECTION"); g(2, "ENTITIES");
+  for (const e of S.it) {
+    if (e.k === "L") { g(0, "LINE"); g(8, e.ly); g(10, e.x1.toFixed(3)); g(20, e.y1.toFixed(3)); g(30, 0); g(11, e.x2.toFixed(3)); g(21, e.y2.toFixed(3)); g(31, 0); }
+    else if (e.k === "C") { g(0, "CIRCLE"); g(8, e.ly); g(10, e.x.toFixed(3)); g(20, e.y.toFixed(3)); g(30, 0); g(40, e.r.toFixed(3)); }
+    else if (e.k === "S") { const p = e.pts; g(0, "SOLID"); g(8, e.ly); g(10, p[0][0].toFixed(3)); g(20, p[0][1].toFixed(3)); g(30, 0); g(11, p[1][0].toFixed(3)); g(21, p[1][1].toFixed(3)); g(31, 0); g(12, p[2][0].toFixed(3)); g(22, p[2][1].toFixed(3)); g(32, 0); g(13, p[2][0].toFixed(3)); g(23, p[2][1].toFixed(3)); g(33, 0); }
+    else if (e.k === "T") {
+      g(0, "TEXT"); g(8, e.ly); g(10, e.x.toFixed(3)); g(20, e.y.toFixed(3)); g(30, 0); g(40, e.h); g(1, dxfText(e.s));
+      if (e.rot) g(50, e.rot);
+      const ha = e.al === "c" ? 1 : e.al === "r" ? 2 : 0;
+      if (ha) { g(72, ha); g(11, e.x.toFixed(3)); g(21, e.y.toFixed(3)); g(31, 0); }
+    }
+  }
+  g(0, "ENDSEC"); g(0, "EOF");
+  return out.join("\r\n") + "\r\n";
+}
+function pdfText(s) {
+  const map = { "μ": "µ", "≤": "<=", "≥": ">=", "φ": "phi", "Δ": "Delta ", "σ": "sigma", "τ": "tau", "η": "eta", "π": "pi", "√": "raiz", "−": "-", "→": "->", "≈": "~", "Ω": "Omega", "ν": "nu", "γ": "gamma", "β": "beta", "…": "...", "✓": "OK" };
+  map["∫"] = "int "; map["Σ"] = "Sum "; map["θ"] = "theta"; map["κ"] = "kappa"; map["·"] = "·";
+  return String(s).replace(/[μ≤≥φΔστηπ√−→≈Ωνγβ…✓∫Σθκ]/g, (m) => map[m]).replace(/[^\x00-\xFF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026\u20AC]/g, "");
+}
+function sheetPDF(S) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [841, 594] });
+  const H = 594;
+  for (const e of S.it) {
+    const L = LAYERS[e.ly] || LAYERS.VIS;
+    doc.setDrawColor(0); doc.setFillColor(0); doc.setTextColor(0);
+    doc.setLineWidth(L.w); doc.setLineDashPattern(L.dash || [], 0);
+    if (e.k === "L") doc.line(e.x1, H - e.y1, e.x2, H - e.y2);
+    else if (e.k === "C") doc.circle(e.x, H - e.y, e.r, "S");
+    else if (e.k === "S") doc.triangle(e.pts[0][0], H - e.pts[0][1], e.pts[1][0], H - e.pts[1][1], e.pts[2][0], H - e.pts[2][1], "F");
+    else if (e.k === "T") {
+      doc.setFont("helvetica", e.bold ? "bold" : "normal"); doc.setFontSize(e.h * 4.0);
+      const str = pdfText(e.s);
+      if (e.rot) { const w = doc.getTextWidth(str); doc.text(str, e.x, H - (e.y - w / 2), { angle: 90 }); }
+      else doc.text(str, e.x, H - e.y, { align: e.al === "c" ? "center" : e.al === "r" ? "right" : "left" });
+    }
+  }
+  doc.setLineDashPattern([], 0);
+  return doc.output("blob");
+}
+
+/* ---------- memoria de verificación A4 ---------- */
+async function svgToPng(svg, scale = 2) {
+  const img = new Image();
+  const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("svg")); img.src = url; });
+  const c = document.createElement("canvas"); c.width = img.width * scale; c.height = img.height * scale;
+  const x = c.getContext("2d"); x.fillStyle = "#ffffff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+  return { data: c.toDataURL("image/png"), w: img.width, h: img.height };
+}
+async function memoriaPDF(R, V, fea, Cp, images) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const P = R.P, M = 16, PW = 210 - 2 * M;
+  let y = 18;
+  const T = (s, size = 9.5, bold = false, x = M) => { doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); doc.setTextColor(0); const lines = doc.splitTextToSize(pdfText(s), PW - (x - M)); for (const l of lines) { if (y > 280) { doc.addPage(); y = 18; } doc.text(l, x, y); y += size * 0.43; } };
+  const H1 = (s) => { y += 3; if (y > 262) { doc.addPage(); y = 18; } T(s, 12.5, true); y += 1.5; doc.setDrawColor(0); doc.setLineWidth(0.3); doc.line(M, y - 3.2, M + PW, y - 3.2); y += 1; };
+  const tbl = (head, body, colStyles) => { doc.autoTable({ startY: y, head: [head.map(pdfText)], body: body.map((r) => r.map(pdfText)), margin: { left: M, right: M }, styles: { fontSize: 8, textColor: 0, lineColor: 120, lineWidth: 0.1, cellPadding: 1.2 }, headStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: "bold" }, columnStyles: colStyles || {}, theme: "grid" }); y = doc.lastAutoTable.finalY + 5; };
+  const img = (im, wmm) => { const h = wmm * im.h / im.w; if (y + h > 282) { doc.addPage(); y = 18; } doc.addImage(im.data, "PNG", M + (PW - wmm) / 2, y, wmm, h); y += h + 4; };
+  T("MEMORIA DE VERIFICACIÓN – TORNAMESA HIDRÁULICA " + nf(P.W_tf) + " tf (TT300-B)", 14, true);
+  T("Solución B: interfaz acero-acero con grasa grafitada. Accionamiento por 2 cilindros en par sobre barras verticales.", 9.5);
+  T(`Fecha: ${new Date().toLocaleDateString("es-CL")} · Generada con la herramienta de verificación paramétrica · Rev. P`, 8.5);
+  y += 2;
+  const VV = V.filter((v) => v.kind !== "pass"), worst = VV.reduce((a, b) => (b.fu > a.fu ? b : a));
+  H1("1. RESULTADO");
+  tbl(["Concepto", "Valor"], [
+    ["Fuerza de diseño por cilindro", `${nf(R.d.Fc, 1)} kN (${nf(R.d.tf, 1)} tf) a ${nf(R.d.p)} bar`],
+    ["Fuerza disponible por cilindro", `${nf(R.Fmax, 1)} kN a ${nf(P.p_relief)} bar (alivio)`],
+    ["Factor de seguridad del accionamiento", nf(R.d.FS, 2)],
+    ["μ máximo vencible (r diseño / r máx.)", `${nf(R.muMax(R.r_eff, P.p_relief), 3)} / ${nf(R.muMax(R.r_max, P.p_relief), 3)}`],
+    ["Factor de utilización máximo", `${nf(worst.fu, 2)} – ${worst.grp}: ${worst.el}`],
+    ["Acero seco (μ " + nf(P.mu_dry, 2) + ")", R.cases[3].FS < 1 ? `No gira (requiere ${nf(R.cases[3].p)} bar)` : `Gira (FS ${nf(R.cases[3].FS, 2)})`],
+  ], { 0: { cellWidth: 70 } });
+  H1("2. HIPÓTESIS");
+  [
+    `H1 Carga WLL ${nf(P.W_tf)} tf = ${nf(R.W, 1)} kN; peso disco ${nf(R.mass.total)} kg (${nf(R.Wd, 2)} kN); N = ${nf(R.N, 1)} kN. Excentricidad e ≤ ${nf(P.e)} mm. φd = ${nf(P.phi_d, 2)} sólo en resistencias.`,
+    `H2 Interfaz plana anular acero/acero, R = ${nf(P.D_disc / 2)} mm, r = ${nf(P.D_bore / 2)} mm, grasa grafitada NLGI 2 (≥10 % grafito).`,
+    `H3 μ estático de diseño = ${nf(P.mu, 2)} (límite superior del rango acero/acero engrasado 0,10–0,20). Nominal ${nf(P.mu_nom, 2)}; contaminado ${nf(P.mu_cont, 2)}; seco ${nf(P.mu_dry, 2)}.`,
+    `H4 r uniforme = 2/3·(R³−r³)/(R²−r²) = ${nf(R.r_u, 3)} m; la distribución lineal por excentricidad no lo cambia (∫x·r dA = 0). Diseño r_ef = ${nf(P.r_eff, 2)} m por concentración al borde.`,
+    `H5 Dos cilindros en par sobre barras en R${nf(P.R_bar)}; brazo mínimo a = R·cos(180°/N) = ${nf(R.a, 1)} mm.`,
+    `H6 Pérdidas: μg = ${nf(P.mu_g, 2)} con Δ = ${nf(R.Delta, 1)} mm y Lg = ${nf(P.Lg)} mm; ηc = ${nf(P.eta_c, 2)}; K = ${nf(R.K, 3)}. T piv = ${nf(R.Tpiv, 2)} kN·m.`,
+    `H7 Elementos de la cadena de empuje verificados a la fuerza de calado ${nf(R.Fmax, 1)} kN (alivio ${nf(P.p_relief)} bar).`,
+  ].forEach((t) => { T(t, 8.8, false); y += 0.8; });
+  H1("3. PARÁMETROS");
+  const prm = []; for (const g of PARAM_GROUPS) for (const it of g.items) prm.push([g.t, it[1], typeof P[it[0]] === "number" ? nf(P[it[0]], it[4] && it[4] < 1 ? (it[4] < 0.01 ? 3 : 2) : 0) : P[it[0]], it[2]]);
+  tbl(["Grupo", "Parámetro", "Valor", "Unidad"], prm, { 2: { halign: "right" } });
+  H1("4. ACCIONAMIENTO");
+  ["(1) T = μ·N·r_ef + T_piv", "(2) F_barra = T/(2a)", "(3) K = (1 + 2·μg·Δ/Lg)/ηc", "(4) F_cil = K·F_barra ;  p = F_cil/A ;  FS = F_max/F_cil", "(5) μ_max = (F_max/K·2a − T_piv)/(N·r_ef)"].forEach((t) => T(t, 9));
+  y += 1;
+  T(`Caso de diseño: T = ${nf(P.mu, 2)} × ${nf(R.N, 1)} × ${nf(P.r_eff, 3)} + ${nf(R.Tpiv, 2)} = ${nf(R.d.T, 1)} kN·m → F_barra = ${nf(R.d.Fb, 1)} kN → F_cil = ${nf(R.d.Fc, 1)} kN → p = ${nf(R.d.p)} bar → FS = ${nf(R.d.FS, 2)}.`, 9);
+  y += 1;
+  tbl(["Caso", "μ", "r_ef m", "T kN·m", "F barra kN", "F cil kN", "p bar", "FS", "Resultado"], R.cases.map((c) => [c.name, nf(c.mu, 2), nf(c.r, 3), nf(c.T), nf(c.Fb), nf(c.Fc), nf(c.p), nf(c.FS, 2), c.FS >= 1.25 ? "Gira" : c.FS >= 1 ? "Gira (límite)" : "NO GIRA"]));
+  tbl(["Componente de F_cil (diseño)", "kN", "%"], R.breakdown.map(([t, v]) => [t, nf(v, 1), nf(v / R.d.Fc * 100, 1)]));
+  for (const k of ["plan", "mu", "stroke", "breakdown"]) if (images[k]) img(images[k], k === "breakdown" ? 130 : 170);
+  H1("5. DIAGRAMAS DE CARGA DE ELEMENTOS");
+  for (const k of ["shoe", "bar", "pin"]) if (images[k]) img(images[k], 140);
+  H1("6. VERIFICACIONES");
+  tbl(["Grupo", "Elemento", "Demanda", "Capacidad", "Unid.", "FU", "Estado", "Referencia"], V.map((v) => [v.grp, v.el, nf(v.dem, v.dem < 20 ? 2 : 1), nf(v.cap, v.cap < 20 ? 2 : 1), v.unit, nf(v.fu, 2), v.kind === "pass" ? (v.fu <= 1 ? "Cumple" : "No cumple") : v.fu <= 0.9 ? "Aceptable" : v.fu <= 1 ? "Monitoreo" : "No cumple", v.ref]),
+    { 2: { halign: "right" }, 3: { halign: "right" }, 5: { halign: "right" } });
+  H1("7. ANÁLISIS POR ELEMENTOS FINITOS");
+  if (fea && fea.bot) {
+    T(`Disco: sector de ${nf(360 / P.N_rib, 1)}° entre nervios, placa Mindlin MITC4 (${fea.bot.model.elems.length} elementos, ${fea.bot.res.ndof} GDL). Apoyos: cubo empotrado; almas 4d y nervios 4e como apoyos lineales (w = 0); barras 4f como apoyos de área; simetría en los bordes del sector. Plancha inferior con q_max = ${nf(R.q_max, 2)} MPa uniforme (conservador); superior con q = ${nf(R.q_top, 2)} MPa en Ø${nf(P.D_load)}.`, 8.8);
+    tbl(["Plancha", "σvm máx MPa", "w máx mm", "Reacción almas N/mm", "Reacción barra kN", "Σ cargas / Σ reacciones kN"], ["bot", "top"].map((k) => { const f = fea[k]; return [k === "bot" ? "4b inferior" : "4a superior", nf(f.vmMax, 1), nf(f.wMax, 3), f.ringLine.map((v) => nf(v)).join(" / "), nf(f.barMax, 1), `${nf(f.Fapp, 1)} / ${nf(f.Rsum, 1)}`]; }));
+    for (const k of ["feaBot", "feaTop"]) if (images[k]) img(images[k], 110);
+  }
+  if (fea && fea.pawl) {
+    T(`Trinquete: tensión plana Q4 h = 2,5 mm, espesor ${P.pawl_h} mm, carga F = ${nf(R.Fmax, 1)} kN en el asiento R${P.seat_R}; apoyo en la boca del carro (25 mm inferiores) y labio posterior. σ boca FEA = ${nf(fea.pawl.vmMouth)} MPa; teoría de vigas = ${nf(fea.pawl.beam)} MPa; máximo fuera de zonas de contacto = ${nf(fea.pawl.vmFar)} MPa; pico local en contacto = ${nf(fea.pawl.vmMax)} MPa (singularidad del modelo de apoyo).`, 8.8);
+    if (images.feaPawl) img(images.feaPawl, 170);
+  }
+  H1("8. CONCLUSIÓN");
+  T(R.d.FS >= 1.25 && worst.fu <= 1 ? `Con los parámetros indicados el accionamiento vence la fricción de diseño con FS = ${nf(R.d.FS, 2)} y todos los elementos verificados quedan con FU ≤ ${nf(worst.fu, 2)}. La lubricación con grasa grafitada es obligatoria.` : `Con los parámetros indicados NO se cumple al menos un criterio (FS accionamiento ${nf(R.d.FS, 2)}; FU máx ${nf(worst.fu, 2)}). Revisar antes de aprobar.`, 9.5);
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.text(pdfText(`TT300-B · Memoria de verificación paramétrica · pág. ${i} de ${n}`), M, 290); }
+  return doc.output("blob");
+}
+
+/* Esquema de geometría: vistas 2D (planta, elevación, detalle de borde) y modelo 3D con resaltado del parámetro editado. */
+const PART_OF = {
+  W_tf: ["load"], e: ["load"], phi_d: ["load"], D_load: ["load"],
+  D_disc: ["top", "bot"], t_top: ["top"], t_bot: ["bot"], gap: ["top", "bot", "rings", "ribs"], D_hub: ["hub"], D_bore: ["hub", "pivot"],
+  rings: ["rings"], t_ring: ["rings"], N_rib: ["ribs"], t_rib: ["ribs"], R_rib: ["ribs"],
+  R_bar: ["bars"], D_bar: ["bars"], N_bar: ["bars"], D_hole: ["bars"], weld_S: ["bars"],
+  mu: ["iface"], r_eff: ["iface"], mu_nom: ["iface"], mu_cont: ["iface"], mu_dry: ["iface"], q_lim: ["iface"],
+  D_piston: ["cyl"], D_rod: ["cyl"], p_relief: ["cyl"], p_alarm: ["cyl"], stroke: ["cyl"], free: ["cyl", "shoe"], L0: ["cyl"], eye_off: ["cyl", "shoe"],
+  X_cyl: ["cyl", "rail", "bracket"], Lg: ["shoe", "rail"], mu_g: ["shoe", "rail"], eta_c: ["cyl"], mu_piv: ["pivot"], H_frac: ["pivot"],
+  pawl_tip: ["pawl"], pawl_L: ["pawl"], pawl_b: ["pawl"], pawl_h: ["pawl"], seat_R: ["pawl"], shoe_x0: ["shoe"], Fy_pawl: ["pawl"],
+  D_pin: ["bracket"], t_cheek: ["bracket"], gap_cheek: ["bracket"], w_eye: ["bracket"], L_cheek: ["bracket"], h_axis: ["bracket", "cyl"], Fy_pin: ["bracket", "pivot"],
+  rail_w: ["rail"], rail_embed: ["rail"], rail_h: ["rail"], L_brg: ["rail"],
+  D_piv: ["pivot"], L_bush: ["pivot"], p_bush: ["pivot"], H_bush: ["pivot"], lev_piv: ["pivot"],
+  BX: ["base"], BY: ["base"], t_base: ["base"], Fy: ["top", "bot", "rings", "ribs", "bars", "base"], FEXX: ["bars"], Nd: ["pawl", "bracket", "pivot"],
+};
+const PART_NAME = { load: "carga sobre la parrilla", top: "plancha superior 4a", bot: "plancha inferior 4b", rings: "almas 4d", ribs: "nervios 4e", hub: "cubo 4c", bars: "barras 4f",
+  iface: "interfaz de giro (r efectivo)", cyl: "cilindros", shoe: "carros de empuje", pawl: "trinquetes", bracket: "ménsulas y pasadores", rail: "guías", pivot: "pivote y buje", base: "placa base" };
+
+/* ---------- vistas 2D ---------- */
+function geoStyle(C, hl, part, fill) {
+  const on = hl && hl.includes(part);
+  return { s: on ? C.accent : C.ink, w: on ? 2.4 : 1.1, f: on ? C.band : fill || "none", on };
+}
+function geoPlan(R, C, hl) {
+  const P = R.P, W = 620, H = 540, k = Math.min(520 / P.BX, 440 / P.BY), cx = W / 2, cy = H / 2 + 6;
+  const X = (x) => cx + x * k, Y = (y) => cy - y * k;
+  let s = SV.open(W, H);
+  const g = (p, f) => geoStyle(C, hl, p, f);
+  let st = g("base", C.fill2); s += SV.rect(X(-P.BX / 2), Y(P.BY / 2), P.BX * k, P.BY * k, st.s, st.f, st.w);
+  st = g("top", C.fill); const stb = g("bot");
+  s += SV.circ(cx, cy, P.D_disc / 2 * k, st.on || stb.on ? C.accent : C.ink, st.on || stb.on ? C.band : C.fill, st.on || stb.on ? 2.4 : 1.6);
+  st = g("rings"); for (const r of parseRings(P.rings)) s += SV.circ(cx, cy, r * k, st.on ? C.accent : C.mute, "none", st.on ? 2.2 : 1, st.on ? null : "5 4");
+  st = g("ribs");
+  for (let i = 0; i < P.N_rib; i++) { const a = 2 * Math.PI * i / P.N_rib; s += SV.line(X(P.D_hub / 2 * Math.cos(a)), Y(P.D_hub / 2 * Math.sin(a)), X(P.R_rib * Math.cos(a)), Y(P.R_rib * Math.sin(a)), st.on ? C.accent : C.mute, st.on ? 2.2 : 1, st.on ? null : "5 4"); }
+  st = g("bars", C.fill2);
+  for (let i = 0; i < P.N_bar; i++) { const a = Math.PI / P.N_bar + 2 * Math.PI * i / P.N_bar; s += SV.circ(X(P.R_bar * Math.cos(a)), Y(P.R_bar * Math.sin(a)), P.D_bar / 2 * k, st.s, st.on ? C.accent : C.fill2, st.w); }
+  st = g("hub"); s += SV.circ(cx, cy, P.D_hub / 2 * k, st.s, st.f, st.w);
+  st = g("pivot", C.fill2); s += SV.circ(cx, cy, P.D_piv / 2 * k, st.s, st.f, st.w);
+  st = g("load"); s += SV.circ(cx, cy, P.D_load / 2 * k, st.on ? C.accent : C.force, "none", st.on ? 2.2 : 1, "10 4 2 4");
+  s += SV.circ(X(P.e), cy, 4, C.force, C.force, 1) + SV.text(X(P.e) + 6, cy - 6, "CG", C, { size: 10.5, fill: C.force });
+  st = g("iface"); if (st.on) s += SV.circ(cx, cy, P.r_eff * 1000 * k, C.accent, "none", 2.2, "3 3") + SV.text(cx, Y(P.r_eff * 1000) - 4, `r ef = ${nf(P.r_eff, 2)} m`, C, { anchor: "middle", size: 11, fill: C.accent });
+  for (const sx of [1, -1]) {
+    const yb = -sx * P.R_bar * Math.sin(R.th), yE = yb - sx * P.eye_off, yP = -sx * R.Ybrk;
+    st = g("rail", C.fill2); s += SV.rect(X(sx * P.X_cyl - P.rail_w / 2), Y(425), P.rail_w * k, 850 * k, st.s, st.f, st.w);
+    st = g("bracket", C.fill2); s += SV.rect(X(sx * P.X_cyl - P.gap_cheek / 2 - P.t_cheek), Y(yP + P.L_cheek / 2), (P.gap_cheek + 2 * P.t_cheek) * k, P.L_cheek * k, st.s, st.f, st.w);
+    st = g("cyl", C.cyl);
+    const yb1 = yP + sx * 370;
+    s += SV.rect(X(sx * P.X_cyl - 70), Y(Math.max(yP + sx * 70, yb1)), 140 * k, 300 * k, st.s, st.on ? C.band : C.cyl, st.w);
+    s += SV.rect(X(sx * P.X_cyl - P.D_rod / 2), Y(Math.max(yb1, yE)), P.D_rod * k, Math.abs(yE - yb1) * k, st.s, "none", st.w);
+    st = g("shoe", C.shoe); s += SV.rect(X(sx * P.shoe_x0), Y(Math.max(yb + sx * 20, yb + sx * 20 - sx * 300)), sx * 130 * k, 300 * k, st.s, st.on ? C.band : C.shoe, st.w);
+    st = g("pawl", C.pawl); s += SV.rect(X(sx * P.pawl_tip), Y(Math.max(yb, yb - sx * P.pawl_b)), sx * P.pawl_L * k, P.pawl_b * k, st.s, st.on ? C.band : C.pawl, st.w);
+  }
+  // cotas
+  const dimH = (x1, x2, y, t) => SV.line(x1, y, x2, y, C.mute, 1) + SV.line(x1, y - 4, x1, y + 4, C.mute, 1) + SV.line(x2, y - 4, x2, y + 4, C.mute, 1) + SV.text((x1 + x2) / 2, y - 4, t, C, { anchor: "middle", size: 10.5, fill: C.mute });
+  s += dimH(X(-P.BX / 2), X(P.BX / 2), Y(-P.BY / 2) + 16, `${nf(P.BX)} placa base`);
+  s += dimH(X(-P.X_cyl), X(P.X_cyl), Y(P.BY / 2) - 10, `${nf(2 * P.X_cyl)} entre ejes de cilindros`);
+  s += SV.text(X(-P.BX / 2) - 6, cy, `${nf(P.BY)}`, C, { anchor: "middle", size: 10.5, fill: C.mute, rot: -90 });
+  s += SV.text(14, 18, `PLANTA · disco Ø${nf(P.D_disc)} · ${P.N_bar} barras Ø${P.D_bar} en R${nf(P.R_bar)} · ${P.N_rib} nervios`, C, { size: 12, weight: 600 });
+  return s + "</svg>";
+}
+function geoElev(R, C, hl) {
+  const P = R.P, W = 620, H = 300, k = 480 / P.BX, cx = W / 2 - 20, zb = H - 70;
+  const X = (x) => cx + x * k, Z = (z) => zb - z * k * 2.2;    // escala vertical ×2,2
+  const g = (p, f) => geoStyle(C, hl, p, f), TD = R.TD, Rd = P.D_disc / 2, t0 = P.t_base, t1 = t0 + P.t_bot, t2 = t1 + P.gap, t3 = t2 + P.t_top;
+  let s = SV.open(W, H), st;
+  st = g("base", C.fill2); s += SV.rect(X(-P.BX / 2), Z(t0), P.BX * k, Z(0) - Z(t0), st.s, st.f, st.w);
+  st = g("bot", C.fill2); s += SV.rect(X(-Rd), Z(t1), 2 * Rd * k, Z(t0) - Z(t1), st.s, st.on ? C.band : C.fill2, st.w);
+  st = g("top", C.fill2); s += SV.rect(X(-Rd), Z(t3), 2 * Rd * k, Z(t2) - Z(t3), st.s, st.on ? C.band : C.fill2, st.w);
+  st = g("ribs"); s += SV.rect(X(P.D_hub / 2), Z(t2), (P.R_rib - P.D_hub / 2) * k, Z(t1) - Z(t2), st.on ? C.accent : C.mute, st.on ? C.band : "none", st.on ? 2 : 0.8, "4 3") + SV.rect(X(-P.R_rib), Z(t2), (P.R_rib - P.D_hub / 2) * k, Z(t1) - Z(t2), st.on ? C.accent : C.mute, st.on ? C.band : "none", st.on ? 2 : 0.8, "4 3");
+  st = g("rings"); for (const r of parseRings(P.rings)) for (const sg of [1, -1]) s += SV.rect(X(sg * r - P.t_ring / 2), Z(t2), P.t_ring * k, Z(t1) - Z(t2), st.s, st.on ? C.accent : C.ink, st.w * 0.6);
+  st = g("bars"); const xb = R.a; for (const sg of [1, -1]) s += SV.rect(X(sg * xb - P.D_bar / 2), Z(t3), P.D_bar * k, Z(t0) - Z(t3), st.s, st.on ? C.band : "none", st.w, "3 2");
+  st = g("hub", C.fill); s += SV.rect(X(-P.D_hub / 2), Z(t3), P.D_hub * k, Z(t0) - Z(t3), st.s, st.on ? C.band : C.fill, st.w);
+  st = g("pivot"); s += SV.rect(X(-P.D_piv / 2), Z(t3 - 20), P.D_piv * k, Z(0) - Z(t3 - 20), st.s, st.on ? C.band : "none", st.w, "4 3");
+  st = g("load"); s += SV.rect(X(-P.D_load / 2), Z(t3 + 40), P.D_load * k, Z(t3) - Z(t3 + 40), st.on ? C.accent : C.force, "none", st.on ? 2 : 1, "8 4");
+  s += SV.arrow(X(P.e), Z(t3 + 110), X(P.e), Z(t3 + 42), C.force, 2.4) + SV.text(X(P.e) + 6, Z(t3 + 90), `W = ${nf(P.W_tf)} tf (e = ${nf(P.e)})`, C, { size: 10.5, fill: C.force });
+  for (const sx of [1, -1]) {
+    const za = t0 + P.h_axis;
+    st = g("rail", C.fill2); s += SV.rect(X(sx * P.X_cyl - P.rail_w / 2), Z(t0 + P.rail_h), P.rail_w * k, Z(t0 - P.rail_embed) - Z(t0 + P.rail_h), st.s, st.f, st.w);
+    st = g("cyl"); s += SV.circ(X(sx * P.X_cyl), Z(za), 70 * k * 1.5, st.s, st.on ? C.band : "none", st.w, "4 3");
+    st = g("shoe"); s += SV.rect(X(sx * P.shoe_x0), Z(za + 70), sx * 130 * k, Z(t0) - Z(za + 70), st.s, st.on ? C.band : "none", st.w, "4 3");
+    st = g("bracket"); s += SV.rect(X(sx * P.X_cyl - P.gap_cheek / 2 - P.t_cheek), Z(za + 70), (P.gap_cheek + 2 * P.t_cheek) * k, Z(t0) - Z(za + 70), st.s, "none", st.w, "2 2");
+  }
+  // cotas verticales (lado derecho)
+  const xr = X(-P.BX / 2) - 22;
+  const dimV = (z1, z2, t, x) => SV.line(x, Z(z1), x, Z(z2), C.mute, 1) + SV.line(x - 3, Z(z1), x + 3, Z(z1), C.mute, 1) + SV.line(x - 3, Z(z2), x + 3, Z(z2), C.mute, 1) + SV.text(x + 4, (Z(z1) + Z(z2)) / 2 + 4, t, C, { size: 10, fill: C.mute });
+  const xd = X(P.BX / 2) + 12;
+  s += dimV(0, t0, nf(P.t_base), xr) + dimV(t0, t1, nf(P.t_bot), xd) + dimV(t1, t2, nf(P.gap), xd) + dimV(t2, t3, nf(P.t_top), xd) + dimV(t0, t3, `TD ${nf(TD)}`, xd + 34);
+  s += SV.text(14, 18, "ELEVACIÓN – CORTE A-A POR EL EJE X", C, { size: 12, weight: 600 }) + SV.text(14, 34, "escala vertical ×2,2 para leer espesores", C, { size: 10.5, fill: C.mute });
+  return s + "</svg>";
+}
+function geoEdge(R, C, hl) {
+  const P = R.P, rl = parseRings(P.rings), Rd = P.D_disc / 2, r0 = (rl.length ? rl[rl.length - 1] : P.R_bar - 200) - 70, r1 = Rd + 70;
+  const W = 620, H = 320, k = Math.min((W - 110) / (r1 - r0), 200 / (R.TD + 50)), x0 = 40, zb = H - 50;
+  const X = (r) => x0 + (r - r0) * k, Z = (z) => zb - z * k;
+  const g = (p, f) => geoStyle(C, hl, p, f), t0 = 40, t1 = t0 + P.t_bot, t2 = t1 + P.gap, t3 = t2 + P.t_top;
+  let s = SV.open(W, H), st;
+  st = g("base", C.fill2); s += SV.rect(X(r0), Z(t0), (r1 - r0) * k, Z(0) - Z(t0), st.s, st.f, st.w);
+  s += SV.text(X(r0) + 6, Z(t0 / 2) + 4, `placa base e=${P.t_base} (parcial)`, C, { size: 10.5, fill: C.mute });
+  const hx0 = P.R_bar - P.D_hole / 2, hx1 = P.R_bar + P.D_hole / 2;
+  for (const [p, za, zz, lab] of [["bot", t0, t1, `4b e=${P.t_bot}`], ["top", t2, t3, `4a e=${P.t_top}`]]) {
+    st = g(p, C.fill2);
+    s += SV.rect(X(r0), Z(zz), (hx0 - r0) * k, Z(za) - Z(zz), st.s, st.on ? C.band : C.fill2, st.w) + SV.rect(X(hx1), Z(zz), (Rd - hx1) * k, Z(za) - Z(zz), st.s, st.on ? C.band : C.fill2, st.w);
+    s += SV.text(X(r0) + 6, (Z(za) + Z(zz)) / 2 + 4, lab, C, { size: 10.5, fill: st.on ? C.accent : C.ink, weight: st.on ? 600 : null });
+  }
+  if (rl.length) { const rr = rl[rl.length - 1]; st = g("rings", C.fill); s += SV.rect(X(rr - P.t_ring / 2), Z(t2), P.t_ring * k, Z(t1) - Z(t2), st.s, st.on ? C.band : C.fill, st.w) + SV.text(X(rr + P.t_ring / 2) + 4, Z(t1) - 8, `alma R${nf(rr)} e=${P.t_ring}`, C, { size: 10.5, fill: st.on ? C.accent : C.mute }); }
+  st = g("ribs"); if (P.R_rib > r0) s += SV.rect(X(Math.max(r0, rl.length ? rl[rl.length - 1] + P.t_ring / 2 : r0)), Z(t2), (P.R_rib - Math.max(r0, rl.length ? rl[rl.length - 1] + P.t_ring / 2 : r0)) * k, Z(t1) - Z(t2), st.on ? C.accent : C.mute, st.on ? C.band : "none", st.on ? 2 : 0.8, "4 3");
+  st = g("bars", C.fill);
+  s += SV.rect(X(P.R_bar - P.D_bar / 2), Z(t3), P.D_bar * k, Z(t0) - Z(t3), st.s, st.on ? C.band : C.fill, st.w);
+  const sb = P.weld_S * k;
+  for (const [zf, sg] of [[t3, 1], [t0, -1]]) for (const xe of [X(P.R_bar - P.D_bar / 2), X(P.R_bar + P.D_bar / 2)]) { const dir = xe < X(P.R_bar) ? -1 : 1; s += SV.pgon([[xe, Z(zf)], [xe + dir * sb, Z(zf)], [xe, Z(zf) + sg * sb]], st.s, st.s, 1); }
+  st = g("iface"); s += SV.line(X(r0), Z(t0), X(Rd), Z(t0), st.on ? C.accent : C.react, st.on ? 3 : 2, "6 3");
+  s += SV.text(X(Rd) - 4, Z(t0) + 16, `grasa grafitada · μ ${nf(P.mu, 2)}`, C, { anchor: "end", size: 10.5, fill: st.on ? C.accent : C.react });
+  const dimV = (z1, z2, t, x) => SV.line(x, Z(z1), x, Z(z2), C.mute, 1) + SV.line(x - 3, Z(z1), x + 3, Z(z1), C.mute, 1) + SV.line(x - 3, Z(z2), x + 3, Z(z2), C.mute, 1) + SV.text(x + 5, (Z(z1) + Z(z2)) / 2 + 4, t, C, { size: 10.5, fill: C.mute });
+  s += dimV(t0, t1, nf(P.t_bot), X(Rd) + 8) + dimV(t1, t2, nf(P.gap), X(Rd) + 8) + dimV(t2, t3, nf(P.t_top), X(Rd) + 8) + dimV(t0, t3, nf(R.TD), X(Rd) + 40);
+  s += SV.line(X(P.R_bar - P.D_bar / 2), Z(t3) - 14, X(P.R_bar + P.D_bar / 2), Z(t3) - 14, C.mute, 1) + SV.text(X(P.R_bar), Z(t3) - 18, `Ø${P.D_bar} · bisel ${P.weld_S}`, C, { anchor: "middle", size: 10.5, fill: C.mute });
+  s += SV.line(X(P.R_bar), Z(t0) + 4, X(P.R_bar), Z(t3) - 4, C.mute, 0.8, "8 3 2 3");
+  s += SV.text(14, 18, "DETALLE – BORDE DEL DISCO (corte por una barra)", C, { size: 12, weight: 600 });
+  return s + "</svg>";
+}
+
+/* ---------- 3D (three.js r147) ---------- */
+function Geo3D(host) {
+  this.host = host; this.ok = !!window.THREE;
+  if (!this.ok) return;
+  try {
+    this.ren = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  } catch (e) { this.ok = false; return; }
+  this.ren.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  host.appendChild(this.ren.domElement);
+  this.scene = new THREE.Scene();
+  this.cam = new THREE.PerspectiveCamera(35, 1.6, 10, 40000);
+  this.cam.position.set(2350, 1850, 2550);
+  this.ctl = new THREE.OrbitControls(this.cam, this.ren.domElement);
+  this.ctl.target.set(0, 120, 0); this.ctl.enableDamping = false; this.ctl.update();
+  this.ctl.addEventListener("change", () => this.draw());
+  this.scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.85));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.75); dl.position.set(2000, 4000, 1500); this.scene.add(dl);
+  const dl2 = new THREE.DirectionalLight(0xffffff, 0.3); dl2.position.set(-2500, 1500, -2000); this.scene.add(dl2);
+  this.grp = new THREE.Group(); this.scene.add(this.grp);
+  this.parts = {}; this.topMode = "trans";
+  new ResizeObserver(() => this.resize()).observe(host);
+  this.resize();
+}
+Geo3D.prototype = {
+  resize() { if (!this.ok) return; const w = this.host.clientWidth || 600, h = Math.max(280, Math.round(w * 0.62)); this.ren.setSize(w, h); this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); this.draw(); },
+  draw() { if (this.ok) this.ren.render(this.scene, this.cam); },
+  mat(hex, part, opt) {
+    const m = new THREE.MeshStandardMaterial(Object.assign({ color: hex, metalness: 0.25, roughness: 0.62 }, opt || {}));
+    m.userData.base = hex; (this.parts[part] = this.parts[part] || []).push(m); return m;
+  },
+  add(geo, m, x, z, y) { const me = new THREE.Mesh(geo, m); me.position.set(x || 0, z || 0, -(y || 0)); this.grp.add(me); return me; },
+  ringShape(ro, ri, holes) {
+    const sh = new THREE.Shape(); sh.absarc(0, 0, ro, 0, Math.PI * 2, false);
+    const h = new THREE.Path(); h.absarc(0, 0, ri, 0, Math.PI * 2, true); sh.holes.push(h);
+    for (const [x, y, r] of holes || []) { const p = new THREE.Path(); p.absarc(x, y, r, 0, Math.PI * 2, true); sh.holes.push(p); }
+    return sh;
+  },
+  extr(shape, depth, segs) { const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: segs || 64 }); g.rotateX(-Math.PI / 2); return g; },
+  build(R, C) {
+    if (!this.ok) return;
+    const P = R.P; this.parts = {};
+    while (this.grp.children.length) { const o = this.grp.children.pop(); o.geometry && o.geometry.dispose(); }
+    this.scene.background = new THREE.Color(C.bg);
+    const t0 = P.t_base, t1 = t0 + P.t_bot, t2 = t1 + P.gap, t3 = t2 + P.t_top, Rd = P.D_disc / 2, rh = P.D_hub / 2;
+    const holes = []; for (let i = 0; i < P.N_bar; i++) { const a = Math.PI / P.N_bar + 2 * Math.PI * i / P.N_bar; holes.push([P.R_bar * Math.cos(a), P.R_bar * Math.sin(a), P.D_hole / 2]); }
+    this.add(new THREE.BoxGeometry(P.BX, P.t_base, P.BY), this.mat(0x8f9aa3, "base"), 0, t0 / 2, 0);
+    this.add(this.extr(this.ringShape(Rd, rh, holes), P.t_bot), this.mat(0x6d8fb3, "bot"), 0, t0, 0);
+    const mt = this.mat(0x7fa0c4, "top", { transparent: true, opacity: 0.32, depthWrite: false });
+    this.topMesh = this.add(this.extr(this.ringShape(Rd, rh, holes), P.t_top), mt, 0, t2, 0);
+    const mr = this.mat(0xc9a35a, "rings");
+    for (const r of parseRings(P.rings)) this.add(this.extr(this.ringShape(r + P.t_ring / 2, r - P.t_ring / 2), P.gap), mr, 0, t1, 0);
+    const mb = this.mat(0xd9b46e, "ribs");
+    for (let i = 0; i < P.N_rib; i++) {
+      const a = 2 * Math.PI * i / P.N_rib, L = P.R_rib - rh, rc = rh + L / 2;
+      const me = this.add(new THREE.BoxGeometry(L, P.gap, P.t_rib), mb, rc * Math.cos(a), t1 + P.gap / 2, rc * Math.sin(a)); me.rotation.y = a;
+    }
+    const mbar = this.mat(0x3d4650, "bars"), gb = new THREE.CylinderGeometry(P.D_bar / 2, P.D_bar / 2, R.TD, 20);
+    for (const [x, y] of holes) this.add(gb, mbar, x, t0 + R.TD / 2, y);
+    this.add(new THREE.CylinderGeometry(rh, rh, R.TD, 40), this.mat(0x58626c, "hub"), 0, t0 + R.TD / 2, 0);
+    this.add(new THREE.CylinderGeometry(P.D_piv / 2, P.D_piv / 2, t3 + 25, 32), this.mat(0xb8c0c7, "pivot"), 0, (t3 + 25) / 2, 0);
+    // carga y radio efectivo
+    const ml = this.mat(0xe06a3a, "load", { transparent: true, opacity: 0.18, depthWrite: false });
+    this.add(new THREE.CylinderGeometry(P.D_load / 2, P.D_load / 2, 30, 64), ml, 0, t3 + 60, 0);
+    const mcg = this.mat(0xc0392b, "load"); this.add(new THREE.SphereGeometry(35, 20, 14), mcg, P.e, t3 + 120, 0);
+    const mi = this.mat(0x13a08d, "iface"), ti = new THREE.TorusGeometry(P.r_eff * 1000, 9, 8, 96); ti.rotateX(Math.PI / 2); this.add(ti, mi, 0, t0 + 2, 0);
+    // accionamiento
+    const za = t0 + P.h_axis;
+    for (const sx of [1, -1]) {
+      const yb = -sx * P.R_bar * Math.sin(R.th), yE = yb - sx * P.eye_off, yP = -sx * R.Ybrk, xc = sx * P.X_cyl;
+      this.add(new THREE.BoxGeometry(P.rail_w, P.rail_h, 850), this.mat(0x9aa4ad, "rail"), xc, t0 + P.rail_h / 2, 0);
+      const mbk = this.mat(0x7c8792, "bracket"), hc = za + 70 - t0;
+      for (const sd of [1, -1]) this.add(new THREE.BoxGeometry(P.t_cheek, hc, P.L_cheek), mbk, xc + sd * (P.gap_cheek / 2 + P.t_cheek / 2), t0 + hc / 2, yP);
+      this.add(new THREE.BoxGeometry(P.gap_cheek + 2 * P.t_cheek, hc, 40), mbk, xc, t0 + hc / 2, yP - sx * (P.L_cheek / 2 + 20));
+      const pin = new THREE.CylinderGeometry(P.D_pin / 2, P.D_pin / 2, P.gap_cheek + 2 * P.t_cheek + 40, 20); pin.rotateZ(Math.PI / 2); this.add(pin, mbk, xc, za, yP);
+      const mc = this.mat(0x2f5fb3, "cyl");
+      const body = new THREE.CylinderGeometry(70, 70, 300, 32); body.rotateX(Math.PI / 2); this.add(body, mc, xc, za, yP + sx * 220);
+      const Lr = Math.abs(yE - (yP + sx * 370)), rod = new THREE.CylinderGeometry(P.D_rod / 2, P.D_rod / 2, Lr, 24); rod.rotateX(Math.PI / 2);
+      this.add(rod, this.mat(0xc9d1d8, "cyl", { metalness: 0.6, roughness: 0.3 }), xc, za, (yE + yP + sx * 370) / 2);
+      const shoeH = za + 70 - t0, ys = yb + sx * 20 - sx * 150;
+      this.add(new THREE.BoxGeometry(130, shoeH, 300), this.mat(0xb08a52, "shoe"), sx * (P.shoe_x0 + 65), t0 + shoeH / 2, ys);
+      this.add(new THREE.BoxGeometry(P.pawl_L, P.pawl_h, P.pawl_b), this.mat(0xe0a63c, "pawl"), sx * (P.pawl_tip + P.pawl_L / 2), za, yb - sx * P.pawl_b / 2);
+    }
+    this.setTop(this.topMode);
+    this.highlight(this.hl || []);
+  },
+  setTop(mode) {
+    this.topMode = mode; if (!this.topMesh) return;
+    this.topMesh.visible = mode !== "hide";
+    const m = this.topMesh.material; m.transparent = mode === "trans"; m.opacity = mode === "trans" ? 0.32 : 1; m.depthWrite = mode !== "trans"; m.needsUpdate = true;
+    this.draw();
+  },
+  highlight(parts) {
+    this.hl = parts;
+    if (!this.ok) return;
+    for (const [p, ms] of Object.entries(this.parts)) for (const m of ms) {
+      const on = parts.includes(p);
+      m.color.setHex(on ? 0xff7a1a : m.userData.base);
+      m.emissive && m.emissive.setHex(on ? 0x5a2200 : 0x000000);
+    }
+    this.draw();
+  },
+  view(name) {
+    const v = { iso: [2350, 1850, 2550], top: [0, 3900, 1], front: [0, 380, 3500], side: [3500, 380, 0] }[name];
+    this.cam.position.set(...v); this.ctl.target.set(0, 120, 0); this.ctl.update(); this.draw();
+  },
+};
+
+(function () {
+  const DEF = defaults();
+  const KEY = "tt300b-params-v1";
+  let P = Object.assign({}, DEF);
+  try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) for (const k in s) if (k in DEF && typeof s[k] === typeof DEF[k]) P[k] = s[k]; } catch (e) { /* sin almacenamiento */ }
+  let R = null, V = [], F = {}, plate = "bot", field = "vm", deformed = 0, timer = null, hl = [], g3 = null;
+  const $ = (id) => document.getElementById(id);
+  const dlP = window.claude && window.claude.use ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
+
+  function pal(print) {
+    if (print) return { ink: "#000000", mute: "#444444", line: "#8a8a8a", grid: "#dddddd", bg: "#ffffff", accent: "#1f4fbf", force: "#b3361f", react: "#0d776a", good: "#2e7a33", warn: "#a8700f", bad: "#c22a2a", fill: "#eef0ee", fill2: "#dcdfdc", cyl: "#d6dceb", shoe: "#efe2cc", pawl: "#f3d49b", band: "rgba(36,83,196,0.08)", paper: "#ffffff", font: "Helvetica, Arial, sans-serif" };
+    const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue("--" + n).trim();
+    return { ink: g("ink"), mute: g("mute"), line: g("line"), grid: g("grid"), bg: g("panel"), accent: g("accent"), force: g("force"), react: g("react"), good: g("good"), warn: g("warn"), bad: g("bad"), fill: g("fill"), fill2: g("fill2"), cyl: g("cyl"), shoe: g("shoe"), pawl: g("pawl"), band: g("band"), paper: "#ffffff", font: "IBM Plex Sans, Segoe UI, sans-serif" };
+  }
+  const stOf = (v) => (v.kind === "pass" ? (v.fu <= 1 ? "ok" : "no") : v.fu <= 0.9 ? "ok" : v.fu <= 1 ? "wa" : "no");
+  const stTxt = { ok: "OK", wa: "Monitoreo", no: "No cumple" };
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3200); }
+
+  /* ---------------- formulario ---------------- */
+  function buildForm() {
+    const f = $("pform"); let html = "";
+    PARAM_GROUPS.forEach((g, gi) => {
+      html += `<details class="grp" ${gi < 4 && window.innerWidth > 980 ? "open" : ""}><summary>${g.t}</summary><div class="grp-body">`;
+      for (const [id, lab, unit, dv, step] of g.items) {
+        const isTxt = typeof dv === "string";
+        html += `<div class="prow" data-row="${id}"><label for="p_${id}">${lab}<small>${unit} · Rev.0: ${isTxt ? dv : nf(dv, step && step < 1 ? (step < 0.01 ? 3 : 2) : 0)}</small></label>` +
+          `<input id="p_${id}" name="${id}" ${isTxt ? 'type="text" class="txt"' : `type="number" step="${step}" inputmode="decimal"`} value="${P[id]}"></div>`;
+      }
+      html += "</div></details>";
+    });
+    f.innerHTML = html;
+    f.addEventListener("input", (ev) => {
+      const el = ev.target; if (!el.name) return;
+      const dv = DEF[el.name];
+      if (typeof dv === "string") P[el.name] = el.value;
+      else { const v = parseFloat(String(el.value).replace(",", ".")); if (!isFinite(v)) return; P[el.name] = v; }
+      markChanged(); schedule();
+    });
+    f.addEventListener("submit", (e) => e.preventDefault());
+    f.addEventListener("focusin", (ev) => { if (ev.target.name) focusParam(ev.target.name); });
+    markChanged();
+  }
+  function markChanged() {
+    let n = 0;
+    for (const k in DEF) { const row = document.querySelector(`[data-row="${k}"]`); const ch = String(P[k]).replace(/\s/g, "") !== String(DEF[k]).replace(/\s/g, ""); if (ch) n++; if (row) row.classList.toggle("chg", ch); }
+    const w = $("issuedWarn"); w.hidden = n === 0; w.textContent = `Hay ${n} parámetro(s) distinto(s) del diseño emitido: los planos Rev. 0 no los reflejan. Use el plano paramétrico para documentar esta variante.`;
+    try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) { /* sin almacenamiento */ }
+  }
+  $("reset").addEventListener("click", () => { P = Object.assign({}, DEF); for (const k in DEF) { const el = $("p_" + k); if (el) el.value = DEF[k]; } markChanged(); recompute(); toast("Valores de diseño Rev. 0 restablecidos"); });
+
+  function validate() {
+    const errs = [];
+    if (P.N_rib < 3 || P.N_rib > 36) errs.push("N° de nervios entre 3 y 36");
+    if (P.N_bar < 8 || P.N_bar > 120) errs.push("N° de barras entre 8 y 120");
+    if (P.R_bar + P.D_bar / 2 >= P.D_disc / 2) errs.push("Las barras deben quedar dentro del disco");
+    if (P.D_hub >= P.D_disc) errs.push("Cubo mayor que el disco");
+    if (P.D_bore >= P.D_hub) errs.push("Buje mayor que el cubo");
+    if (P.weld_S <= 3) errs.push("Bisel de soldadura > 3 mm");
+    for (const k in DEF) if (typeof DEF[k] === "number" && !(P[k] > 0) && k !== "e") errs.push(`${k} debe ser positivo`);
+    return errs;
+  }
+  function schedule() { document.querySelector("main").classList.add("busy"); clearTimeout(timer); timer = setTimeout(recompute, 380); }
+
+  function recompute() {
+    document.querySelector("main").classList.remove("busy");
+    const errs = validate();
+    if (errs.length) { $("verdict").className = "verdict no"; $("verdict").innerHTML = `<strong>Parámetros inválidos</strong><span>${errs.join(" · ")}</span>`; return; }
+    R = compute(P); F = {};
+    try { F.bot = runDisc(P, "bot"); F.top = runDisc(P, "top"); } catch (e) { F.discErr = e.message; }
+    try { F.pawl = runPawl(P, R); } catch (e) { F.pawlErr = e.message; }
+    V = verifs(R, F);
+    render();
+  }
+
+  /* ---------------- render ---------------- */
+  function render() {
+    const C = pal(false), d = R.d, worst = V.filter((v) => v.kind !== "pass").reduce((a, b) => (b.fu > a.fu ? b : a));
+    const fails = V.filter((v) => stOf(v) === "no"), mons = V.filter((v) => stOf(v) === "wa"), dry = R.cases[3];
+    // veredicto
+    let cls = "ok", head = "Gira con certeza en el rango acero/acero engrasado", body = `Cada cilindro necesita ${nf(d.Fc)} kN (${nf(d.p)} bar) con μ = ${nf(P.mu, 2)} y r = ${nf(P.r_eff, 2)} m; dispone de ${nf(R.Fmax)} kN a ${nf(P.p_relief)} bar → FS = ${nf(d.FS, 2)}. Elementos: FU máx ${nf(worst.fu, 2)} (${worst.grp}).`;
+    if (d.FS < 1) { cls = "no"; head = "El accionamiento NO vence la fricción de diseño"; body = `Se requieren ${nf(d.Fc)} kN por cilindro (${nf(d.p)} bar) y el alivio entrega ${nf(R.Fmax)} kN.`; }
+    else if (fails.length) { cls = "no"; head = `${fails.length} verificación(es) no cumplen`; body = fails.map((v) => `${v.grp}: ${v.el} (FU ${nf(v.fu, 2)})`).join(" · "); }
+    else if (d.FS < 1.25 || mons.length) { cls = "wa"; head = "Cumple con margen reducido"; body = (d.FS < 1.25 ? `FS del accionamiento ${nf(d.FS, 2)} < 1,25. ` : "") + mons.map((v) => `${v.grp}: ${v.el} (FU ${nf(v.fu, 2)})`).join(" · "); }
+    $("verdict").className = "verdict " + cls;
+    $("verdict").innerHTML = `<strong>${head}</strong><span>${body}</span><span class="note">Acero seco (μ ${nf(P.mu_dry, 2)}): ${dry.FS < 1 ? `no gira, requiere ${nf(dry.p)} bar &gt; ${nf(P.p_relief)} bar. Lubricación obligatoria.` : `gira con FS ${nf(dry.FS, 2)}.`}</span>`;
+    // chips
+    const chip = (c, t, v) => `<span class="chip ${c}"><span class="dot"></span>${t} <b>${v}</b></span>`;
+    $("chips").innerHTML = chip(d.FS >= 1.25 ? "ok" : d.FS >= 1 ? "wa" : "no", "FS accionamiento", nf(d.FS, 2)) + chip(worst.fu <= 0.9 ? "ok" : worst.fu <= 1 ? "wa" : "no", "FU máx", nf(worst.fu, 2)) +
+      chip(dry.FS < 1 ? "wa" : "ok", "Acero seco", dry.FS < 1 ? "no gira" : "gira") + (F.bot ? chip(Math.abs(F.bot.Fapp - F.bot.Rsum) / F.bot.Fapp < 1e-3 ? "ok" : "no", "FEA equilibrio", "Σ OK") : chip("no", "FEA", "error"));
+    // KPIs
+    const k = (c, l, v, s) => `<div class="kpi ${c}"><span class="l">${l}</span><span class="v">${v}</span><span class="s">${s}</span></div>`;
+    const plMax = F.bot ? Math.max(F.bot.vmMax, F.top.vmMax) : NaN;
+    $("kpis").innerHTML =
+      k(d.FS >= 1.25 ? "ok" : d.FS >= 1 ? "wa" : "no", "Fuerza por cilindro", `${nf(d.Fc)} kN`, `${nf(d.tf, 1)} tf · ${nf(d.p)} bar (diseño)`) +
+      k("", "Capacidad por cilindro", `${nf(R.Fmax)} kN`, `Ø${nf(P.D_piston)} a ${nf(P.p_relief)} bar · FS ${nf(d.FS, 2)}`) +
+      k("", "Fricción máx. vencible <span class=\"nt\">μ</span>", nf(R.muMax(R.r_eff, P.p_relief), 3), `r ${nf(R.r_eff, 2)} m · ${nf(R.muMax(R.r_max, P.p_relief), 3)} con r ${nf(R.r_max, 2)}`) +
+      k("", "Par resistente", `${nf(d.T)} kN·m`, `N = ${nf(R.N)} kN · 2 × ${nf(d.Fb)} kN × ${nf(R.a / 1000, 3)} m`) +
+      k(worst.fu <= 0.9 ? "ok" : worst.fu <= 1 ? "wa" : "no", "FU máximo", nf(worst.fu, 2), `${worst.grp}: ${worst.el}`) +
+      k(plMax <= 0.6 * P.Fy ? "ok" : "no", "Placas 4a/4b (FEA)", `${nf(plMax, 1)} MPa`, `σvm máx · admisible ${nf(0.6 * P.Fy)} MPa`);
+    // casos
+    $("casesT").innerHTML = `<table class="t"><thead><tr><th>Caso</th><th class="n"><span class="nt">μ</span></th><th class="n"><span class="nt">r m</span></th><th class="n">T kN·m</th><th class="n">F barra</th><th class="n">F cil kN</th><th class="n">p bar</th><th class="n">FS</th><th></th></tr></thead><tbody>` +
+      R.cases.map((c) => { const s = c.FS >= 1.25 ? "ok" : c.FS >= 1 ? "wa" : "no"; return `<tr class="${c.key === "dis" ? "hl" : ""}"><td>${c.name}</td><td class="n">${nf(c.mu, 2)}</td><td class="n">${nf(c.r, 3)}</td><td class="n">${nf(c.T)}</td><td class="n">${nf(c.Fb)}</td><td class="n">${nf(c.Fc)}</td><td class="n">${nf(c.p)}</td><td class="n">${nf(c.FS, 2)}</td><td><span class="st ${s}">${c.FS >= 1.25 ? "Gira" : c.FS >= 1 ? "Al límite" : "No gira"}</span></td></tr>`; }).join("") + "</tbody></table>";
+    $("mumaxT").textContent = `μ máximo que vencen los cilindros: ${nf(R.muMax(R.r_u, P.p_relief), 3)} (r ${nf(R.r_u, 3)}) · ${nf(R.muMax(R.r_eff, P.p_relief), 3)} (r ${nf(R.r_eff, 2)}) · ${nf(R.muMax(R.r_max, P.p_relief), 3)} (r ${nf(R.r_max, 2)}) a ${nf(P.p_relief)} bar; a ${nf(P.p_alarm)} bar: ${nf(R.muMax(R.r_eff, P.p_alarm), 3)} (r ${nf(R.r_eff, 2)}).`;
+    const Tf = P.mu * R.N * P.r_eff;
+    $("eqs").innerHTML = [
+      `N = W + W_disco = ${nf(R.W, 1)} + ${nf(R.Wd, 2)} = ${nf(R.N, 1)} kN`,
+      `T_f = μ·N·r = ${nf(P.mu, 2)} × ${nf(R.N, 1)} × ${nf(P.r_eff, 3)} = ${nf(Tf, 1)} kN·m`,
+      `T_piv = μb·H·r = ${nf(P.mu_piv, 2)} × ${nf(P.H_frac * R.W, 1)} × ${nf(P.D_piv / 2000, 3)} = ${nf(R.Tpiv, 2)} kN·m`,
+      `a = R_b·cos(180°/N_b) = ${nf(P.R_bar)} × cos ${nf(180 / P.N_bar, 2)}° = ${nf(R.a, 1)} mm`,
+      `F_barra = T/(2a) = ${nf(d.T, 1)} / (2 × ${nf(R.a / 1000, 4)}) = ${nf(d.Fb, 1)} kN`,
+      `K = (1 + 2·μg·Δ/Lg)/ηc = (1 + 2 × ${nf(P.mu_g, 2)} × ${nf(R.Delta, 1)}/${nf(P.Lg)}) / ${nf(P.eta_c, 2)} = ${nf(R.K, 3)}`,
+      `F_cil = K·F_barra = ${nf(R.K, 3)} × ${nf(d.Fb, 1)} = ${nf(d.Fc, 1)} kN (${nf(d.tf, 1)} tf)`,
+      `p = F_cil/A = ${nf(d.Fc * 1e3)} N / ${nf(R.A)} mm² = ${nf(d.p)} bar`,
+      `FS = A·p_alivio / F_cil = ${nf(R.Fmax, 1)} / ${nf(d.Fc, 1)} = ${nf(d.FS, 2)}`,
+    ].map((t) => `<span>${t}</span>`).join("");
+    $("hyps").innerHTML = [
+      `Carga WLL ${nf(P.W_tf)} tf con CG a e ≤ ${nf(P.e)} mm del pivote; carga solo sobre parrilla de Ø${nf(P.D_load)}.`,
+      `Interfaz plana anular acero/acero R ${nf(P.D_disc / 2)} / r ${nf(P.D_bore / 2)} mm con grasa grafitada NLGI 2 (≥10 % grafito). μ estático de diseño ${nf(P.mu, 2)}: límite superior de 0,10–0,20 para acero engrasado.`,
+      `Radio efectivo: uniforme ${nf(R.r_u, 3)} m. La distribución lineal por excentricidad no cambia el par (∫x·r dA = 0); el diseño usa ${nf(P.r_eff, 2)} m para cubrir la concentración de presión hacia el borde por flexión del disco.`,
+      `Dos cilindros simultáneos (válvula de bloqueo): las fuerzas sobre las barras forman un par puro; el pivote no recibe resultante en operación normal.`,
+      `Pérdidas por fricción carro/guía (μg ${nf(P.mu_g, 2)}) debidas a la excentricidad Δ entre eje del cilindro y barra, y rendimiento de sellos ηc ${nf(P.eta_c, 2)}.`,
+      `La cadena de empuje (barra, soldadura, trinquete, guía, ménsula, pasador, vástago) se verifica a la fuerza de calado ${nf(R.Fmax)} kN: si el disco se traba, abre la válvula antes de que falle un elemento.`,
+      `Placas del disco por FEA (Mindlin MITC4): almas, nervios y barras como apoyos rígidos; plancha inferior con q_max ${nf(R.q_max, 2)} MPa uniforme (conservador).`,
+    ].map((t) => `<li>${t}</li>`).join("");
+    // cilindros
+    $("dgPlan").innerHTML = dgPlan(R, C);
+    $("dgStroke").innerHTML = dgStroke(R, C);
+    $("dgMu").innerHTML = dgMu(R, C);
+    $("dgBreak").innerHTML = dgBreak(R, C);
+    const at = (c, t) => { const a = P.R_bar * Math.cos(t), Kt = (1 + 2 * P.mu_g * (P.X_cyl - a) / P.Lg) / P.eta_c; return Kt * c.T / (2 * a / 1000); };
+    const posn = [["Recorrido libre (0–" + nf(P.free) + " mm)", null], [`Toma la barra (θ = −${nf(180 / P.N_bar, 1)}°)`, -R.th], ["Centro (θ = 0°)", 0], [`Suelta la barra (θ = +${nf(180 / P.N_bar, 1)}°)`, R.th]];
+    const cs3 = R.cases.slice(0, 3);
+    $("pistonT").innerHTML = `<table class="t"><thead><tr><th>Posición en la carrera</th>${cs3.map((c) => `<th class="n">${c.name.split(" – ")[0]}<br>kN / bar</th>`).join("")}</tr></thead><tbody>` +
+      posn.map(([n, t]) => `<tr class="${t === -R.th ? "hl" : ""}"><td>${n}</td>${cs3.map((c) => { if (t === null) return `<td class="n">≈ 0 / –</td>`; const f = at(c, t); return `<td class="n">${nf(f)} / ${nf(f * 1e3 / R.A * 10)}</td>`; }).join("")}</tr>`).join("") +
+      `<tr><td>Alarma (detener y relubricar)</td><td class="n" colspan="3">${nf(R.Falarm)} kN / ${nf(P.p_alarm)} bar</td></tr>` +
+      `<tr><td>Alivio = fuerza de calado</td><td class="n" colspan="3">${nf(R.Fmax)} kN / ${nf(P.p_relief)} bar</td></tr></tbody></table>` +
+      `<h4>Reacciones por cilindro</h4><table class="t"><thead><tr><th>Elemento</th><th class="n">Diseño kN</th><th class="n">Calado kN</th></tr></thead><tbody>` +
+      [["Ménsula pos 2 (pasador Ø" + P.D_pin + ")", d.Fc, R.Fmax], ["Pasador: cada plano de corte", d.Fc / 2, R.Fmax / 2], ["Barra 4f (trinquete)", d.Fb, R.Fmax / R.K], ["Guía pos 22, cada reacción R", d.Fb * R.Delta / P.Lg, R.Fmax * R.Delta / P.Lg], ["Pivote (2 cilindros en par)", 0, 0], ["Pivote (accidental, 1 cilindro – bloqueado por válvula)", d.Fc, R.Fmax]]
+        .map(([n, a, b]) => `<tr><td>${n}</td><td class="n">${nf(a)}</td><td class="n">${nf(b)}</td></tr>`).join("") + "</tbody></table>";
+    // diagramas
+    $("dgShoe").innerHTML = dgShoe(R, C);
+    $("dgBar").innerHTML = dgBar(R, C);
+    $("dgPin").innerHTML = dgPin(R, C);
+    $("pathT").innerHTML = `<table class="t"><thead><tr><th>Tramo del camino de carga</th><th class="n">Diseño</th><th class="n">Calado</th></tr></thead><tbody>` +
+      [["Presión en cilindro", `${nf(d.p)} bar`, `${nf(P.p_relief)} bar`], ["Vástago → pasador del carro", `${nf(d.Fc)} kN`, `${nf(R.Fmax)} kN`], ["Carro → guía (2 reacciones)", `${nf(d.Fb * R.Delta / P.Lg)} kN c/u`, `${nf(R.Fmax * R.Delta / P.Lg)} kN c/u`],
+        ["Trinquete → barra 4f", `${nf(d.Fb)} kN`, `${nf(R.Fmax / R.K)} kN`], ["Barra → planchas 4a/4b (aplast.)", `${nf(d.Fb / 2)} kN c/u`, `${nf(R.Fmax / 2)} kN c/u`], ["Par motor sobre el disco", `${nf(d.T)} kN·m`, `${nf(R.Fmax / R.K * 2 * R.a / 1000)} kN·m`],
+        ["Cuerpo cilindro → ménsula → placa base", `${nf(d.Fc)} kN`, `${nf(R.Fmax)} kN`], ["Interfaz de giro (fricción a vencer)", `${nf(d.Tf)} kN·m`, "–"]]
+        .map(([a, b, c]) => `<tr><td>${a}</td><td class="n">${b}</td><td class="n">${c}</td></tr>`).join("") + "</tbody></table>" +
+      `<p class="note">En el calado el pistón no vence la fricción: el disco no gira y toda la fuerza del alivio queda en la cadena de empuje. Por eso los elementos se verifican a ese valor.</p>`;
+    // verificaciones
+    $("verT").innerHTML = `<table class="t"><thead><tr><th>Grupo</th><th>Elemento</th><th>Fórmula</th><th class="n">Demanda</th><th class="n">Capacidad</th><th>FU</th><th>Estado</th><th>Referencia</th></tr></thead><tbody>` +
+      V.map((v) => { const s = stOf(v), c = s === "ok" ? "var(--good)" : s === "wa" ? "var(--warn)" : "var(--bad)"; const dd = Math.abs(v.dem) < 20 ? 2 : 1;
+        return `<tr><td>${v.grp}</td><td>${v.el}</td><td class="f">${v.formula}</td><td class="n">${nf(v.dem, dd)} ${v.unit}</td><td class="n">${nf(v.cap, Math.abs(v.cap) < 20 ? 2 : 0)} ${v.unit}</td><td><div class="fu"><span class="bar"><i style="width:${Math.min(100, v.fu * 100).toFixed(1)}%;background:${c}"></i></span><b class="n" style="font-family:var(--f-mono)">${nf(v.fu, 2)}</b></div></td><td><span class="st ${s}">${v.kind === "pass" ? (s === "ok" ? "Cumple" : "No cumple") : stTxt[s]}</span></td><td class="note">${v.ref}</td></tr>`; }).join("") + "</tbody></table>";
+    renderFEA();
+    renderSheet();
+    renderGeo(true);
+  }
+
+  /* ---------------- geometría ---------------- */
+  const LABEL = {}; for (const g of PARAM_GROUPS) for (const it of g.items) LABEL[it[0]] = it[1];
+  function focusParam(name) {
+    hl = PART_OF[name] || [];
+    $("editing").innerHTML = hl.length ? `Editando <b>${LABEL[name]}</b> → resaltado: ${hl.map((p) => PART_NAME[p]).join(", ")}` : `Editando <b>${LABEL[name]}</b> (parámetro de material o de cálculo, sin elemento asociado)`;
+    renderGeo(false);
+  }
+  function renderGeo(rebuild) {
+    if (!R) return;
+    const C = pal(false);
+    $("gPlan").innerHTML = geoPlan(R, C, hl);
+    $("gElev").innerHTML = geoElev(R, C, hl);
+    $("gEdge").innerHTML = geoEdge(R, C, hl);
+    if (!g3) { g3 = new Geo3D($("g3d")); if (!g3.ok) $("g3note").textContent = "Este navegador no permite WebGL: se muestran solo las vistas 2D."; }
+    if (g3.ok) { if (rebuild) g3.build(R, C); g3.highlight(hl); }
+  }
+  document.querySelectorAll("[data-v3]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-v3]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); g3 && g3.ok && g3.view(b.dataset.v3); }));
+  document.querySelectorAll("[data-top]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-top]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); g3 && g3.ok && g3.setTop(b.dataset.top); }));
+
+  /* ---------------- FEA ---------------- */
+  const STOPS = [[0, [29, 63, 143]], [0.2, [44, 127, 184]], [0.4, [65, 182, 164]], [0.6, [166, 217, 106]], [0.75, [253, 211, 77]], [0.88, [240, 138, 53]], [1, [198, 40, 40]]];
+  function cmap(t) {
+    t = Math.max(0, Math.min(1, t));
+    for (let i = 1; i < STOPS.length; i++) if (t <= STOPS[i][0]) { const [a, ca] = STOPS[i - 1], [b, cb] = STOPS[i], u = (t - a) / (b - a); return `rgb(${ca.map((v, k) => Math.round(v + (cb[k] - v) * u)).join(",")})`; }
+    return "rgb(198,40,40)";
+  }
+  const rampCSS = "linear-gradient(90deg," + STOPS.map(([t, c]) => `rgb(${c.join(",")}) ${t * 100}%`).join(",") + ")";
+  function elemVal(f, e, fld) { if (fld === "vm") return f.res.el[e].vm; const en = f.model.elems[e]; return en.reduce((s, k) => s + Math.abs(f.res.w[k]), 0) / 4; }
+  function drawDisc(cv, f, fld, C) {
+    const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, m = f.model, Pp = P, Rd = Pp.D_disc / 2, sc = (Math.min(W, H) / 2 - 40) / Rd, cx = W / 2, cy = H / 2 + 10;
+    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+    let vmax = 0; const vals = new Float64Array(m.elems.length);
+    for (let e = 0; e < m.elems.length; e++) { vals[e] = elemVal(f, e, fld); vmax = Math.max(vmax, vals[e]); }
+    vmax = vmax || 1;
+    for (let s = 0; s < Pp.N_rib; s++) {
+      const ca = Math.cos(s * m.alpha), sa = Math.sin(s * m.alpha);
+      for (let e = 0; e < m.elems.length; e++) {
+        ctx.beginPath();
+        m.elems[e].forEach((k, i) => { const [x, y] = m.nodes[k], X = cx + (x * ca - y * sa) * sc, Y = cy - (x * sa + y * ca) * sc; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+        ctx.closePath(); ctx.fillStyle = cmap(vals[e] / vmax); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.85;
+    const circ = (r, w, dash) => { ctx.setLineDash(dash || []); ctx.lineWidth = w; ctx.beginPath(); ctx.arc(cx, cy, r * sc, 0, 2 * Math.PI); ctx.stroke(); };
+    circ(Rd, 2); circ(Pp.D_hub / 2, 1.4); m.rings.forEach((r) => circ(r, 1.2, [6, 4]));
+    if (m.which === "top") circ(Pp.D_load / 2, 1, [2, 4]);
+    ctx.setLineDash([6, 4]);
+    for (let s = 0; s < Pp.N_rib; s++) { const a = s * m.alpha; ctx.beginPath(); ctx.moveTo(cx + Pp.D_hub / 2 * Math.cos(a) * sc, cy - Pp.D_hub / 2 * Math.sin(a) * sc); ctx.lineTo(cx + Pp.R_rib * Math.cos(a) * sc, cy - Pp.R_rib * Math.sin(a) * sc); ctx.stroke(); }
+    ctx.setLineDash([]);
+    for (let i = 0; i < Pp.N_bar; i++) { const a = Math.PI / Pp.N_bar + 2 * Math.PI * i / Pp.N_bar; ctx.beginPath(); ctx.arc(cx + Pp.R_bar * Math.cos(a) * sc, cy - Pp.R_bar * Math.sin(a) * sc, Pp.D_bar / 2 * sc, 0, 2 * Math.PI); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    if (fld === "vm") { const [r, t] = f.maxAt, a = t * Math.PI / 180, X = cx + r * Math.cos(a) * sc, Y = cy - r * Math.sin(a) * sc; ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, 9, 0, 2 * Math.PI); ctx.stroke(); ctx.fillStyle = C.ink; ctx.font = `600 18px ${C.font}`; ctx.fillText(`máx ${nf(f.vmMax, 1)} MPa`, X + 12, Y - 10); }
+    ctx.fillStyle = C.ink; ctx.font = `600 20px ${C.font}`; ctx.textAlign = "left";
+    ctx.fillText(`${m.which === "bot" ? "Plancha inferior 4b" : "Plancha superior 4a"} · ${fld === "vm" ? "σ von Mises (MPa)" : "flecha relativa |w| (mm)"}`, 14, 26);
+    ctx.font = `15px ${C.font}`; ctx.fillStyle = C.mute;
+    ctx.fillText(`q = ${nf(m.which === "bot" ? R.q_max : R.q_top, 2)} MPa ${m.which === "bot" ? "(contacto máx., uniforme)" : `en Ø${nf(Pp.D_load)}`} · t = ${nf(m.t)} mm`, 14, 48);
+    cv._map = { cx, cy, sc, f, fld, vmax };
+    return vmax;
+  }
+  function drawPawl(cv, f, C, defm) {
+    const ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+    const sc = Math.min((W - 140) / (f.L + 70), (H - 150) / (f.b + 60)), ox = 70 + 45 * sc, oy = H - 70 - 25 * sc;
+    const X = (x) => ox + x * sc, Y = (y) => oy - y * sc;
+    const ds = defm ? 0.06 * f.L / Math.max(f.dmax, 1e-9) : 0;
+    ctx.fillStyle = C.fill2; ctx.fillRect(X(f.Xm), Y(f.b + 20), (f.L + 30 - f.Xm) * sc, (f.b + 40) * sc);
+    ctx.fillStyle = C.bg; ctx.fillRect(X(f.Xm), Y(f.b + 0.5), (f.L + 31 - f.Xm) * sc, (f.b + 1) * sc);
+    ctx.fillStyle = C.mute; ctx.font = `14px ${C.font}`; ctx.fillText("carro pos 10 (alojamiento)", X(f.Xm) + 6, Y(f.b + 20) + 16);
+    let vmax = 0; for (const e of f.res.el) vmax = Math.max(vmax, e.vm);
+    const vcap = Math.min(vmax, (P.Fy_pawl / P.Nd) * 1.25);
+    f.elems.forEach((en, i) => {
+      ctx.beginPath();
+      en.forEach((k, j) => { const x = f.nodes[k][0] + ds * f.res.u[2 * k], y = f.nodes[k][1] + ds * f.res.u[2 * k + 1]; j ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); });
+      ctx.closePath(); ctx.fillStyle = cmap(f.res.el[i].vm / vcap); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.5; ctx.stroke();
+    });
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(X(f.Xs), Y(f.Ys), (P.D_bar / 2) * sc, 0, 2 * Math.PI); ctx.stroke();
+    ctx.fillStyle = C.mute; ctx.fillText(`barra 4f Ø${P.D_bar}`, X(f.Xs) - 30, Y(f.Ys) - (P.D_bar / 2) * sc - 8);
+    ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(f.Xm), Y(-25)); ctx.lineTo(X(f.Xm), Y(f.b + 30)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.ink; ctx.fillText("boca del carro", X(f.Xm) + 4, Y(-18));
+    ctx.fillStyle = C.react;
+    for (const k of f.sup) { const [x, y] = f.nodes[k], up = y < 1; ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x) - 4, Y(y) + (up ? 8 : -8)); ctx.lineTo(X(x) + 4, Y(y) + (up ? 8 : -8)); ctx.fill(); }
+    ctx.strokeStyle = C.force; ctx.fillStyle = C.force; ctx.lineWidth = 2;
+    const step = Math.max(1, Math.floor(f.loads.length / 7));
+    f.loads.forEach(([k], i) => { if (i % step) return; const [x, y] = f.nodes[k]; ctx.beginPath(); ctx.moveTo(X(x), Y(y) - 30); ctx.lineTo(X(x), Y(y) - 4); ctx.stroke(); ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x) - 4, Y(y) - 9); ctx.lineTo(X(x) + 4, Y(y) - 9); ctx.fill(); });
+    ctx.fillStyle = C.ink; ctx.font = `600 20px ${C.font}`;
+    ctx.fillText(`σ von Mises (MPa) · F = ${nf(R.Fmax)} kN en el asiento R${P.seat_R}${defm ? ` · deformada ×${nf(ds, 0)}` : ""}`, 14, 26);
+    ctx.font = `14px ${C.font}`; ctx.fillStyle = C.mute; ctx.fillText(`escala de color saturada en ${nf(vcap)} MPa (1,25 × admisible); picos locales de contacto hasta ${nf(vmax)} MPa`, 14, 46);
+    cv._map = { X, Y, sc, ox, oy, f };
+    return vcap;
+  }
+  function renderFEA() {
+    const C = pal(false);
+    document.querySelectorAll("[data-plate]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.plate === plate)));
+    document.querySelectorAll("[data-field]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.field === field)));
+    document.querySelectorAll("[data-def]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.def === deformed)));
+    $("ramp1").style.background = rampCSS; $("ramp2").style.background = rampCSS;
+    if (F.discErr) { $("feaDiscN").textContent = "Error en el modelo del disco: " + F.discErr; }
+    else {
+      const f = F[plate], vmax = drawDisc($("cvDisc"), f, field, C);
+      $("lgMin").textContent = "0"; $("lgMax").textContent = field === "vm" ? `${nf(vmax, 1)} MPa` : `${nf(vmax, 4)} mm`;
+      const row = (n, b, t) => `<tr><td>${n}</td><td class="n">${b}</td><td class="n">${t}</td></tr>`;
+      $("feaDiscT").innerHTML = `<table class="t"><thead><tr><th>Resultado</th><th class="n">4b inferior</th><th class="n">4a superior</th></tr></thead><tbody>` +
+        row("Presión aplicada", `${nf(R.q_max, 2)} MPa`, `${nf(R.q_top, 2)} MPa`) + row("σvm máx.", `${nf(F.bot.vmMax, 1)} MPa`, `${nf(F.top.vmMax, 1)} MPa`) +
+        row("Ubicación (r, θ)", `${nf(F.bot.maxAt[0])} mm, ${nf(F.bot.maxAt[1], 1)}°`, `${nf(F.top.maxAt[0])} mm, ${nf(F.top.maxAt[1], 1)}°`) +
+        row("Flecha máx.", `${nf(F.bot.wMax, 3)} mm`, `${nf(F.top.wMax, 3)} mm`) +
+        row("Almas 4d", F.bot.ringLine.map((v) => nf(v)).join(" / ") + " N/mm", F.top.ringLine.map((v) => nf(v)).join(" / ") + " N/mm") +
+        row("Barras 4f", F.bot.barF.map((v) => nf(v, 1)).join(" / ") + " kN", F.top.barF.map((v) => nf(v, 1)).join(" / ") + " kN") +
+        row("Σ carga / Σ reac.", `${nf(F.bot.Fapp, 1)} / ${nf(F.bot.Rsum, 1)} kN`, `${nf(F.top.Fapp, 1)} / ${nf(F.top.Rsum, 1)} kN`) +
+        row("Admisible 0,6 Fy", `${nf(0.6 * P.Fy)} MPa`, `${nf(0.6 * P.Fy)} MPa`) + "</tbody></table>";
+      $("feaDiscN").textContent = `Modelo: sector de ${nf(360 / P.N_rib, 1)}° entre nervios, ${F.bot.model.elems.length} elementos placa Mindlin MITC4 (${F.bot.res.ndof} GDL, resuelto en ${nf(F.bot.ms + F.top.ms)} ms). Cubo empotrado; almas, nervios y barras como apoyos verticales rígidos; simetría en los bordes del sector; la imagen repite el sector ${P.N_rib} veces. Al tratar almas y barras como apoyos rígidos se obtiene la flexión local de cada paño, que es la que gobierna el espesor; la flexión global del cajón se verifica aparte (FU en la pestaña Verificaciones).`;
+    }
+    if (F.pawlErr) $("feaPawlN").textContent = "Error en el modelo del trinquete: " + F.pawlErr;
+    else {
+      const f = F.pawl, vcap = drawPawl($("cvPawl"), f, C, deformed);
+      $("lgMin2").textContent = "0"; $("lgMax2").textContent = `≥ ${nf(vcap)} MPa`;
+      const adm = P.Fy_pawl / P.Nd;
+      $("feaPawlT").innerHTML = `<table class="t"><thead><tr><th>Resultado</th><th class="n">Valor</th><th class="n">FU</th></tr></thead><tbody>` +
+        `<tr><td>σ en la boca, fibra traccionada (FEA)</td><td class="n">${nf(f.vmMouth)} MPa</td><td class="n">${nf(f.vmMouth / adm, 2)}</td></tr>` +
+        `<tr><td>σ en la boca, teoría de vigas M/S</td><td class="n">${nf(f.beam)} MPa</td><td class="n">${nf(f.beam / adm, 2)}</td></tr>` +
+        `<tr><td>σvm máx. fuera de zonas de contacto (≥ 10 mm)</td><td class="n">${nf(f.vmFar)} MPa</td><td class="n">${nf(f.vmFar / adm, 2)}</td></tr>` +
+        `<tr><td>Pico local en contacto/apoyo (singularidad)</td><td class="n">${nf(f.vmMax)} MPa</td><td class="n">–</td></tr>` +
+        `<tr><td>Desplazamiento máximo</td><td class="n">${nf(f.dmax, 3)} mm</td><td class="n">–</td></tr>` +
+        `<tr><td>Admisible Fy/Nd</td><td class="n">${nf(adm)} MPa</td><td class="n"></td></tr></tbody></table>`;
+      $("feaPawlN").textContent = `Tensión plana Q4, malla 2,5 mm (${f.elems.length} elementos, ${f.res.ndof} GDL, ${nf(f.ms)} ms), espesor ${P.pawl_h} mm. Carga del calado repartida en el asiento con distribución cosenoidal. Apoyos: 25 mm inferiores en la boca del carro y labio posterior superior. Los picos en el borde de contacto son singularidades del modelo de apoyo puntual; en la pieza real el contacto se reparte y el chaflán de aristas los elimina. La verificación usa el mayor entre teoría de vigas y FEA en la sección de la boca.`;
+    }
+  }
+  $("cvDisc").addEventListener("mousemove", (ev) => {
+    const cv = ev.currentTarget, mp = cv._map; if (!mp) return;
+    const r0 = cv.getBoundingClientRect(), x = (ev.clientX - r0.left) * cv.width / r0.width, y = (ev.clientY - r0.top) * cv.height / r0.height;
+    const mx = (x - mp.cx) / mp.sc, my = -(y - mp.cy) / mp.sc, r = Math.hypot(mx, my); let th = Math.atan2(my, mx); if (th < 0) th += 2 * Math.PI;
+    const m = mp.f.model, tl = th % m.alpha;
+    if (r < m.rs[0] || r > m.rs[m.rs.length - 1]) { $("roDisc").textContent = `r = ${nf(r)} mm – fuera de la placa`; return; }
+    let i = m.rs.findIndex((v) => v > r) - 1; if (i < 0) i = m.rs.length - 2;
+    let j = m.ts.findIndex((v) => v > tl) - 1; if (j < 0) j = m.ts.length - 2;
+    const e = i * (m.ts.length - 1) + j, el = mp.f.res.el[e];
+    $("roDisc").textContent = `r = ${nf(r)} mm · θ = ${nf(th * 180 / Math.PI, 1)}° · σvm = ${nf(el.vm, 1)} MPa · Mx/My/Mxy = ${nf(el.M[0])}/${nf(el.M[1])}/${nf(el.M[2])} N·mm/mm`;
+  });
+  $("cvPawl").addEventListener("mousemove", (ev) => {
+    const cv = ev.currentTarget, mp = cv._map; if (!mp) return;
+    const r0 = cv.getBoundingClientRect(), x = (ev.clientX - r0.left) * cv.width / r0.width, y = (ev.clientY - r0.top) * cv.height / r0.height;
+    const mx = (x - mp.ox) / mp.sc, my = (mp.oy - y) / mp.sc, f = mp.f;
+    let best = -1, bd = 1e9; f.cent.forEach(([cx, cy], i) => { const d = Math.abs(cx - mx) + Math.abs(cy - my); if (d < bd) { bd = d; best = i; } });
+    if (best < 0 || bd > 6) { $("roPawl").textContent = ""; return; }
+    const e = f.res.el[best];
+    $("roPawl").textContent = `x = ${nf(mx, 1)} · y = ${nf(my, 1)} mm · σx = ${nf(e.sx)} · σy = ${nf(e.sy)} · τxy = ${nf(e.txy)} · σvm = ${nf(e.vm)} MPa`;
+  });
+  document.querySelectorAll("[data-plate]").forEach((b) => b.addEventListener("click", () => { plate = b.dataset.plate; renderFEA(); }));
+  document.querySelectorAll("[data-field]").forEach((b) => b.addEventListener("click", () => { field = b.dataset.field; renderFEA(); }));
+  document.querySelectorAll("[data-def]").forEach((b) => b.addEventListener("click", () => { deformed = +b.dataset.def; renderFEA(); }));
+
+  /* ---------------- planos ---------------- */
+  function renderSheet() { $("sheetPrev").innerHTML = sheetSVG(buildSheet(R, V, F), { ink: "#000000", paper: "#ffffff", force: "#b3361f" }); }
+  async function save(name, blob) {
+    let d = null; try { d = await dlP; } catch (e) { d = null; }
+    if (d) {
+      try { await d.save({ filename: name, data: blob }); toast("Archivo entregado: " + name); }
+      catch (e) { toast(e && e.code === "declined" ? "Descarga cancelada" : `No se pudo guardar (${(e && (e.code || e.message)) || "error"})`); }
+      return;
+    }
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 4000);
+    toast("Descargando " + name);
+  }
+  async function busy(btn, fn) { const t = btn.textContent; btn.disabled = true; btn.textContent = "Generando…"; try { await fn(); } catch (e) { console.error(e); toast("Error: " + e.message); } finally { btn.disabled = false; btn.textContent = t; } }
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  document.querySelectorAll("[data-file]").forEach((b) => b.addEventListener("click", () => busy(b, async () => {
+    const r = await fetch(b.dataset.file); if (!r.ok) throw new Error("archivo no disponible en esta copia");
+    await save(b.dataset.file.split("/").pop(), await r.blob());
+  })));
+  $("bIssuedZip").addEventListener("click", (ev) => busy(ev.currentTarget, async () => {
+    if (!window.JSZip) throw new Error("no se cargó la librería ZIP");
+    const names = ["TT300-B-D-01.dxf", "TT300-B-D-02.dxf", "TT300-B-D-03.dxf", "TT300-B-F-01.dxf", "TT300-B-F-02.dxf", "TT300-B-F-03.dxf", "TT300-B.step"], z = new JSZip();
+    for (const n of names) { const r = await fetch("planos/src/" + n + ".txt"); if (!r.ok) throw new Error("archivo no disponible en esta copia"); z.file(n === "TT300-B.step" ? "TT300-B_conjunto.step" : n, await r.arrayBuffer()); }
+    await save("TT300-B_Tornamesa300_DXF_STEP.zip", await z.generateAsync({ type: "blob", compression: "DEFLATE" }));
+  }));
+  $("bSheetPdf").addEventListener("click", (ev) => busy(ev.currentTarget, async () => {
+    if (!window.jspdf) throw new Error("no se cargó la librería PDF");
+    await save(`TT300-B-P-01_plano_parametrico_${stamp()}.pdf`, sheetPDF(buildSheet(R, V, F)));
+  }));
+  $("bSheetDxf").addEventListener("click", (ev) => busy(ev.currentTarget, async () => {
+    if (!window.JSZip) throw new Error("no se cargó la librería ZIP");
+    const z = new JSZip(); z.file("TT300-B-P-01_plano_parametrico.dxf", sheetDXF(buildSheet(R, V, F)));
+    z.file("LEEME.txt", "Plano de verificación paramétrico TT300-B-P-01 en DXF R12 (AC1009), unidades mm, escala de papel 1:1 (formato A1 841x594).\r\nCapas: VIS, FINA, EJE, OCU, COTA, TXT, MARCO, FUERZA.\r\n");
+    await save(`TT300-B-P-01_DXF_${stamp()}.zip`, await z.generateAsync({ type: "blob", compression: "DEFLATE" }));
+  }));
+  $("bMemo").addEventListener("click", (ev) => busy(ev.currentTarget, async () => {
+    if (!window.jspdf || !window.jspdf.jsPDF.API.autoTable) throw new Error("no se cargó la librería PDF");
+    const Cp = pal(true), im = {};
+    im.plan = await svgToPng(dgPlan(R, Cp)); im.mu = await svgToPng(dgMu(R, Cp)); im.stroke = await svgToPng(dgStroke(R, Cp)); im.breakdown = await svgToPng(dgBreak(R, Cp));
+    im.shoe = await svgToPng(dgShoe(R, Cp)); im.bar = await svgToPng(dgBar(R, Cp)); im.pin = await svgToPng(dgPin(R, Cp));
+    const off = (w, h, fn) => { const c = document.createElement("canvas"); c.width = w; c.height = h; fn(c); return { data: c.toDataURL("image/png"), w, h }; };
+    if (F.bot) { im.feaBot = off(900, 900, (c) => drawDisc(c, F.bot, "vm", Cp)); im.feaTop = off(900, 900, (c) => drawDisc(c, F.top, "vm", Cp)); }
+    if (F.pawl) im.feaPawl = off(1000, 560, (c) => drawPawl(c, F.pawl, Cp, 0));
+    renderFEA();
+    await save(`TT300-B_memoria_verificacion_${stamp()}.pdf`, await memoriaPDF(R, V, F, Cp, im));
+  }));
+  (async () => {
+    try { const r = await fetch("planos/TT300-B_Tornamesa300_Planos_Diseno.pdf", { method: "HEAD" }); if (!r.ok) throw 0; }
+    catch (e) { document.querySelectorAll("[data-file], #bIssuedZip").forEach((b) => { b.disabled = true; b.title = "Disponible en la versión publicada"; }); }
+  })();
+
+  /* ---------------- pestañas ---------------- */
+  const TABS = ["modelo", "resumen", "actuador", "diagramas", "verificaciones", "fea", "planos"];
+  function show(t) {
+    if (!TABS.includes(t)) t = "modelo";
+    document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.t === t)));
+    document.querySelectorAll("[data-p]").forEach((p) => (p.hidden = p.dataset.p !== t));
+  }
+  document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => { show(b.dataset.t); try { history.replaceState(null, "", "#" + b.dataset.t); } catch (e) { location.hash = b.dataset.t; } }));
+  window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+  try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => R && render()); } catch (e) { /* */ }
+  new MutationObserver(() => R && render()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  buildForm();
+  show(location.hash.slice(1));
+  recompute();
+})();
+
+</script>

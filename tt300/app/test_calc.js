@@ -1,0 +1,13 @@
+global.FEA = require('./fea.js');
+const C = require('./calc.js');
+const P = C.defaults();
+const R = C.compute(P);
+console.log('mass', R.mass.total.toFixed(1), 'N', R.N.toFixed(1), 'r_u', R.r_u.toFixed(4), 'a', R.a.toFixed(2), 'K', R.K.toFixed(4), 'Fmax', R.Fmax.toFixed(1));
+for (const c of R.cases) console.log(c.name.padEnd(45), c.mu, c.r.toFixed(3), c.T.toFixed(1), c.Fb.toFixed(1), c.Fc.toFixed(1), c.p.toFixed(0), c.FS.toFixed(2));
+console.log('mumax', R.muMax(0.8,700).toFixed(3), 'qavg', R.q_avg.toFixed(3), 'qmax', R.q_max.toFixed(3), 'qtop', R.q_top.toFixed(3), 'ground', R.g_avg.toFixed(3), R.g_max.toFixed(3));
+const bot = C.runDisc(P,'bot'), top = C.runDisc(P,'top');
+for (const f of [bot, top]) console.log(f.model.which, 'nodes', f.model.nodes.length, 'ms', f.ms.toFixed(0), 'vmMax', f.vmMax.toFixed(1), 'vmC', f.vmC.toFixed(1), 'at', f.maxAt.map(v=>v.toFixed(1)), 'w', f.wMax.toFixed(4), 'ring N/mm', f.ringLine.map(v=>v.toFixed(0)), 'bars kN', f.barF.map(v=>v.toFixed(1)), 'rib', f.ribF.toFixed(1), 'hub', f.hubF.toFixed(1), 'F', f.Fapp.toFixed(1), 'R', f.Rsum.toFixed(1));
+const pw = C.runPawl(P, R);
+console.log('pawl ms', pw.ms.toFixed(0), 'vmMax', pw.vmMax.toFixed(0), 'mouth', pw.vmMouth.toFixed(0), 'far', pw.vmFar.toFixed(0), 'beam', pw.beam.toFixed(0), 'dmax', pw.dmax.toFixed(3), 'loads', pw.loads.length, 'sumFy', pw.loads.reduce((s,l)=>s+l[2],0).toFixed(0), 'sumFx', pw.loads.reduce((s,l)=>s+l[1],0).toFixed(0));
+const V = C.verifs(R, {bot, top, pawl: pw});
+for (const v of V) console.log(v.grp.padEnd(14), v.el.padEnd(48), v.dem.toFixed(2).padStart(9), v.cap.toFixed(2).padStart(9), v.fu.toFixed(2));

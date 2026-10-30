@@ -1,0 +1,10 @@
+﻿node_modules/
+site/
+out/
+*.step
+*.glb
+*.png
+*.pdf
+*.zip
+__pycache__/
+*Verificacion_Tornamesa.html
