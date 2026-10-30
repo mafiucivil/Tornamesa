@@ -28,12 +28,25 @@ Software de cálculo y verificación normativa de la tornamesa hidráulica TT300
 | Id | Hipótesis | Fuente |
 |---|---|---|
 | H1 | W = 300 tf = 2942 kN; e ≤ 150 mm; φd = 1,10 solo en resistencias | Traspaso §3 |
-| H2 | Normas base: AISC 360-22 (ASD), ASME BTH-1 Cat. A (Nd = 2,0, por analogía), AWS D1.1/D1.1M:2020 | Traspaso §2.7 |
+| H2 | Normas base: AISC 360-22 (ASD), ASME BTH-1 **Categoría de diseño B (Nd = 3,0)**, por analogía, para elementos mecánicos de la cadena de empuje; AWS D1.1/D1.1M:2020. El traspaso usaba Cat. A (Nd = 2,0) | Decisión del usuario, 30-10-2026 |
+| H2b | Soldadura de las barras 4f: tipo (filete, PJP o CJP) y ubicación (caras exteriores, interiores o ambas) son **parámetros de entrada**; el software verifica según AWS D1.1 y AISC 360-22 J2 y reporta el tipo mínimo que cumple FU ≤ 0,90. Valor por defecto: apoyo en caras exteriores (luz 160 mm), por ser lo habitual en barras pasantes de cajón cerrado. Supuesto a confirmar con el taller | Decisión del usuario, 30-10-2026 |
+| H2c | Cilindro: lo define el cálculo (fuerza de calado y presión) y debe existir comercialmente; el software lo selecciona de un catálogo cargado como dato, sin cifras inventadas | Decisión del usuario, 30-10-2026 |
 | H3 | μ estático de diseño 0,20; r_ef 0,80 m (a revisar por M1) | Traspaso §3 |
 | H4 | La cadena de empuje se verifica a la fuerza de calado (A·p_alivio = 445,3 kN) | Traspaso §3, H9 |
 | H5 | Unidades SI; resultados con 2–3 cifras significativas | Preferencias del usuario |
 
-**Normas por incorporar y justificar:** NCh2369 (sismo, M8), AISC 360-22 Apéndice 3 (fatiga, M5), ISO/TS 13725 (pandeo del vástago). Pendiente de decisión del usuario: Categoría de diseño BTH-1 A (Nd = 2,0) frente a B (Nd = 3,0).
+**Normas por incorporar y justificar:** NCh2369 (sismo, M8), AISC 360-22 Apéndice 3 (fatiga, M5), ISO/TS 13725 (pandeo del vástago).
+
+**Consecuencia de la Categoría B (Nd = 3,0) sobre los valores del Apéndice A (F calado 445,3 kN):**
+
+| Elemento | Demanda (MPa) | Fy/Nd, Cat. A | FU Cat. A | Fy/Nd, Cat. B | FU Cat. B |
+|---|---|---|---|---|---|
+| Trinquete, flexión en boca (vigas) | 343 | 400 | 0,86 | 267 | **1,29** |
+| Trinquete, flexión en boca (FEA Q4) | 297 | 400 | 0,74 | 267 | **1,11** |
+| Pasador, flexión en horquilla | 281 | 325 | 0,86 | 217 | **1,30** |
+| Pasador, corte doble | 57,9 | 188 | 0,31 | 125 | 0,46 |
+
+Con Cat. B el trinquete y el pasador **no cumplen** con la geometría actual. Estimación preliminar para FU ≤ 0,90, escalando la tensión con la geometría actual (indicativa, se recalcula en el núcleo): pasador Ø70 → ≈ Ø80; ancho del trinquete 85 → ≈ 95–102 mm. Este rediseño entra al backlog en prioridad 1.
 
 ## 4. Línea base verificada
 
@@ -71,12 +84,12 @@ Los agentes reutilizan como criterio los skills `revisor-calculo-estructural` y 
 
 | Prioridad | Hallazgos |
 |---|---|
-| 1 | C1 luz de barra y ubicación de la soldadura (FU 0,83 → 1,06–1,31 según luz); C2 libertad radial del asiento (3,58 mm frente a 1,0 mm de holgura); C3 margen de carrera (0,15 mm) |
+| 1 | C1 luz de barra y soldadura (FU 0,83 → 1,06–1,31 según luz); C2 libertad radial del asiento (3,58 mm frente a 1,0 mm de holgura); C3 margen de carrera (0,15 mm); **N1 rediseño de trinquete y pasador por Cat. B (FU 1,29–1,30)** |
 | 2 | M1 r_ef (con r = 1,0 y μ 0,25, FS 0,91); M2 flexión global (8,6 frente a ≈ 23 MPa) y corte de nervios; M3 guía y volcamiento; M4 apoyo trinquete/carro (≈ 1,8 F) |
 | 3 | M5 fatiga; M6 plancha superior con excentricidad; M7 suelo biaxial (0,988 MPa); M8 sismo NCh2369 |
 | 4 | m1 tope 1,6·Fy·S; m2 Ωv = 1,67; m3 suma de reacciones con signo; m4 recuperación en apoyos; m5–m9 |
 
-## 7. Agentes deterministas del producto
+## 7. Agentes deterministas del producto (8 módulos)
 
 Módulos del núcleo, sin red ni LLM: mismas entradas, mismas salidas, aptos para respaldar una memoria firmada.
 
@@ -88,8 +101,10 @@ Módulos del núcleo, sin red ni LLM: mismas entradas, mismas salidas, aptos par
 | 4 | `escenarios` | Casos de borde en lote: r_ef 0,67/0,80/0,94/1,00; μ 0,15–0,25; sismo; un solo cilindro | M1, M8 |
 | 5 | `ensayo-aceptacion` | μ_real = (p·A·2a/K − T_piv)/(N·r_ef); cumple si μ_real ≤ 0,20 | Traspaso §4.8 |
 | 6 | `generador-memoria` | Memoria con hipótesis, desarrollo y resultado, exportada a Word y PDF en negro | Preferencias |
+| 7 | `selector-comercial` | Con la fuerza de calado, la presión, la carrera y el pandeo del vástago, filtra el catálogo de cilindros cargado como dato (diámetros de émbolo y vástago, presión nominal, carrera, ojales) y propone los que cumplen | Datos del cilindro, H2c |
+| 8 | `selector-soldadura` | Para cada junta soldada evalúa filete, PJP y CJP según AWS D1.1 y AISC 360-22 J2 y devuelve el tipo mínimo con FU ≤ 0,90 para la ubicación elegida | C1, H2b |
 
-**Flujo:** entradas → `validador-entradas` → núcleo → `auditor-normativo` + `revisor-cruzado` → `escenarios` → `generador-memoria`. Una advertencia crítica de los módulos 1 a 3 bloquea la emisión de la memoria.
+**Flujo:** entradas → `validador-entradas` → núcleo (con `selector-comercial` y `selector-soldadura`) → `auditor-normativo` + `revisor-cruzado` → `escenarios` → `generador-memoria`. Una advertencia crítica de los módulos 1 a 3 bloquea la emisión de la memoria.
 
 ## 8. Criterios de aceptación
 
@@ -103,15 +118,15 @@ Módulos del núcleo, sin red ni LLM: mismas entradas, mismas salidas, aptos par
 | A6 | Memoria Word y PDF generada con letras negras desde el JSON del núcleo |
 | A7 | Planos Rev. 1 generados desde el mismo JSON, sin parámetros duplicados |
 
-## 9. Riesgos y decisiones abiertas
+## 9. Riesgos y decisiones
 
-| Tema | Riesgo | Acción |
+| Tema | Estado | Acción |
 |---|---|---|
-| Ubicación de la soldadura de barras (C1) | Define la luz de 100, 130 o 160 mm; cambia la conclusión de cumple a no cumple | Decisión de diseño del usuario antes de corregir |
-| Categoría BTH-1 | A (Nd 2,0) frente a B (Nd 3,0) cambia los FU del trinquete y el pasador (hoy 0,86) | Justificar en `docs/normas/registro.md` |
-| Parámetros sísmicos NCh2369 | No definidos (zona, suelo, categoría del equipo) | Preguntar al usuario al llegar a M8 |
-| Datos del cilindro | Vástago dibujado Ø90 frente a Ø63 supuesto en pandeo | Confirmar con catálogo del proveedor |
-| Migración JS → TS | Pérdida de equivalencia numérica | Golden file en cada paso, un módulo a la vez |
+| Categoría BTH-1 | **Resuelto: B (Nd = 3,0).** Trinquete (FU 1,29) y pasador (FU 1,30) no cumplen con la geometría actual | Rediseño en backlog N1; registrar la justificación en `docs/normas/registro.md` |
+| Soldadura de barras (C1) | **Resuelto como parámetro:** tipo y ubicación son entradas; defecto caras exteriores (luz 160) | Confirmar con el taller si se puede soldar por el interior antes de cerrar el cajón |
+| Cilindro | **Resuelto como criterio:** lo define el cálculo y la disponibilidad comercial | Cargar el catálogo del proveedor como dato; con Cat. B el cálculo de pandeo y el vástago reales deben confirmarse con ficha técnica |
+| Parámetros sísmicos NCh2369 | Abierto: zona, suelo y categoría del equipo no definidos | Preguntar al usuario al llegar a M8 |
+| Migración JS → TS | Riesgo de pérdida de equivalencia numérica | Golden file en cada paso, un módulo a la vez |
 
 ## 10. Fuera de esta especificación
 
