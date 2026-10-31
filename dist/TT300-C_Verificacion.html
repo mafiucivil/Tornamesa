@@ -1,0 +1,1541 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TT300-C Verificación</title>
+<style>
+:root{
+  --bg:#f6f7f9;--panel:#ffffff;--ink:#14171c;--ink2:#4a5260;--line:#d9dde3;--soft:#eef1f4;
+  --acc:#1f5fbf;--ok:#1e7d3c;--okbg:#e5f3e9;--warn:#9a6400;--warnbg:#fbf0d9;--fail:#b3261e;--failbg:#fbe4e2;
+  --info:#5b6472;--infobg:#eceff3;--pend:#3657a8;--pendbg:#e6ecf8;--steel:#8a94a3;--load:#c2410c;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111418;--panel:#181c22;--ink:#e7eaee;--ink2:#a7b0bd;--line:#2c333d;--soft:#20262e;
+  --acc:#6ea8ff;--ok:#5fd08a;--okbg:#173322;--warn:#f0b54a;--warnbg:#3a2d12;--fail:#ff7b72;--failbg:#3d1a18;
+  --info:#a7b0bd;--infobg:#242a33;--pend:#8fb0ff;--pendbg:#1d2740;--steel:#7d8796;--load:#fb923c;}}
+:root[data-theme="dark"]{
+  --bg:#111418;--panel:#181c22;--ink:#e7eaee;--ink2:#a7b0bd;--line:#2c333d;--soft:#20262e;
+  --acc:#6ea8ff;--ok:#5fd08a;--okbg:#173322;--warn:#f0b54a;--warnbg:#3a2d12;--fail:#ff7b72;--failbg:#3d1a18;
+  --info:#a7b0bd;--infobg:#242a33;--pend:#8fb0ff;--pendbg:#1d2740;--steel:#7d8796;--load:#fb923c;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+header .sub{color:var(--ink2);font-size:12px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-weight:600;font-size:12.5px;border:1px solid transparent;white-space:nowrap}
+.b-ok{background:var(--okbg);color:var(--ok)}.b-fail{background:var(--failbg);color:var(--fail)}.b-warn{background:var(--warnbg);color:var(--warn)}.b-info{background:var(--infobg);color:var(--info)}.b-pend{background:var(--pendbg);color:var(--pend)}
+.wrap{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 56px)}
+aside{border-right:1px solid var(--line);overflow:auto;background:var(--panel);padding:10px 12px 40px}
+main{overflow:auto;padding:12px 16px 60px;min-width:0}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;height:auto}aside{border-right:0;border-bottom:1px solid var(--line);max-height:none}main{overflow:visible}}
+details{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:var(--panel)}
+summary{cursor:pointer;padding:7px 10px;font-weight:600;font-size:13px;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"▸";color:var(--ink2)}details[open] summary::after{content:"▾"}
+.prm{display:grid;grid-template-columns:1fr 92px;gap:4px 8px;align-items:center;padding:3px 10px}
+.prm label{font-size:12.5px;color:var(--ink2)}
+.prm label .u{color:var(--steel);font-size:11px;margin-left:3px}
+.prm input{width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12.5px var(--mono);text-align:right}
+.prm input.txt{text-align:left}
+.prm input:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.prm.chg input{border-color:var(--acc)}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+button{font:600 12.5px var(--sans);padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+nav.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+nav.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--ink2);padding:8px 10px}
+nav.tabs button.on{color:var(--ink);border-bottom-color:var(--acc)}
+.tab{display:none}.tab.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--ink2);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.big{font-size:26px;font-weight:700;letter-spacing:-.3px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px}
+.kv span:nth-child(even){font-family:var(--mono);text-align:right}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:5px 7px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--ink2);font-weight:600;background:var(--soft);position:sticky;top:0}
+td.n,th.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+tr.grp td{background:var(--soft);font-weight:650;color:var(--ink)}
+.st{display:inline-block;min-width:68px;text-align:center;padding:1px 6px;border-radius:5px;font-size:11.5px;font-weight:650}
+.st-ok{background:var(--okbg);color:var(--ok)}.st-warn{background:var(--warnbg);color:var(--warn)}.st-fail{background:var(--failbg);color:var(--fail)}.st-info{background:var(--infobg);color:var(--info)}.st-pend{background:var(--pendbg);color:var(--pend)}
+.fu{position:relative;height:6px;background:var(--soft);border-radius:3px;min-width:70px;margin-top:4px}
+.fu i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.ref{color:var(--ink2);font-size:11.5px}
+.form{font-family:var(--mono);font-size:11.5px;color:var(--ink2)}
+.msg{padding:6px 10px;border-radius:7px;margin:4px 0;font-size:12.5px}
+.msg.error{background:var(--failbg);color:var(--fail)}.msg.warn{background:var(--warnbg);color:var(--warn)}.msg.ok{background:var(--okbg);color:var(--ok)}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--sans);fill:var(--ink)}
+.scroll{overflow:auto}
+.note{color:var(--ink2);font-size:12px;margin:6px 0}
+.prog{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin:8px 0}
+.prog i{display:block;height:100%;background:var(--acc);width:0}
+.busy{color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro pivotado y uña · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
+  <div class="badges" id="badges"></div>
+</header>
+<div class="wrap">
+  <aside>
+    <div class="btns">
+      <button class="pri" id="bOpt">Minimizar peso</button>
+      <button id="bReset">Valores por defecto</button>
+      <button id="bExp">Exportar JSON</button>
+      <button id="bImp">Importar JSON</button>
+      <button id="bTheme" title="Tema claro / oscuro">◐</button>
+    </div>
+    <input type="file" id="fImp" accept=".json,application/json" hidden>
+    <div class="busy" id="busy"></div>
+    <div id="form"></div>
+  </aside>
+  <main>
+    <nav class="tabs" id="tabs"></nav>
+    <section class="tab" data-t="resumen" data-l="Resumen"></section>
+    <section class="tab" data-t="modelo" data-l="Modelo"></section>
+    <section class="tab" data-t="giro" data-l="Accionamiento"></section>
+    <section class="tab" data-t="verif" data-l="Verificaciones"></section>
+    <section class="tab" data-t="fea" data-l="FEA"></section>
+    <section class="tab" data-t="masa" data-l="Masas"></section>
+    <section class="tab" data-t="agentes" data-l="Agentes"></section>
+    <section class="tab" data-t="opt" data-l="Optimizador"></section>
+  </main>
+</div>
+<script>
+/* FEA engine: banded Cholesky, Mindlin plate MITC4, plane-stress Q4. Units N, mm, MPa. */
+const FEA = (() => {
+  const GP = [-1 / Math.sqrt(3), 1 / Math.sqrt(3)];
+  const XI = [-1, 1, 1, -1], ETA = [-1, -1, 1, 1];
+
+  function Band(n, bw) { this.n = n; this.bw = bw; this.W = bw + 1; this.a = new Float64Array(n * (bw + 1)); }
+  Band.prototype.add = function (i, j, v) {
+    if (j < i) { const t = i; i = j; j = t; }
+    const d = j - i;
+    if (d > this.bw) throw new Error("bandwidth " + d + ">" + this.bw);
+    this.a[i * this.W + d] += v;
+  };
+  Band.prototype.diag = function (i) { return this.a[i * this.W]; };
+
+  function cholSolve(B, f) {
+    const n = B.n, w = B.bw, W = B.W, a = B.a;
+    for (let i = 0; i < n; i++) {
+      let s = a[i * W];
+      for (let k = Math.max(0, i - w); k < i; k++) { const u = a[k * W + (i - k)]; s -= u * u; }
+      if (!(s > 0)) throw new Error("Matriz no definida positiva en GDL " + i + " (modelo inestable)");
+      const d = Math.sqrt(s); a[i * W] = d;
+      const jmax = Math.min(n - 1, i + w);
+      for (let j = i + 1; j <= jmax; j++) {
+        let t = a[i * W + (j - i)];
+        for (let k = Math.max(0, j - w); k < i; k++) t -= a[k * W + (i - k)] * a[k * W + (j - k)];
+        a[i * W + (j - i)] = t / d;
+      }
+    }
+    const y = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = f[i];
+      for (let k = Math.max(0, i - w); k < i; k++) s -= a[k * W + (i - k)] * y[k];
+      y[i] = s / a[i * W];
+    }
+    const x = new Float64Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+      let s = y[i];
+      const jmax = Math.min(n - 1, i + w);
+      for (let j = i + 1; j <= jmax; j++) s -= a[i * W + (j - i)] * x[j];
+      x[i] = s / a[i * W];
+    }
+    return x;
+  }
+
+  function shape(xi, eta) {
+    const N = [], dxi = [], deta = [];
+    for (let i = 0; i < 4; i++) {
+      N.push(0.25 * (1 + xi * XI[i]) * (1 + eta * ETA[i]));
+      dxi.push(0.25 * XI[i] * (1 + eta * ETA[i]));
+      deta.push(0.25 * ETA[i] * (1 + xi * XI[i]));
+    }
+    return { N, dxi, deta };
+  }
+  function jac(X, Y, s) {
+    let xx = 0, xy = 0, yx = 0, yy = 0;
+    for (let i = 0; i < 4; i++) { xx += s.dxi[i] * X[i]; xy += s.dxi[i] * Y[i]; yx += s.deta[i] * X[i]; yy += s.deta[i] * Y[i]; }
+    const det = xx * yy - xy * yx;
+    const inv = [[yy / det, -xy / det], [-yx / det, xx / det]];
+    const dx = [], dy = [];
+    for (let i = 0; i < 4; i++) { dx.push(inv[0][0] * s.dxi[i] + inv[0][1] * s.deta[i]); dy.push(inv[1][0] * s.dxi[i] + inv[1][1] * s.deta[i]); }
+    return { det, inv, dx, dy, J: [[xx, xy], [yx, yy]] };
+  }
+  function addBtDB(K, B, D, f, nd) {
+    const nr = B.length;
+    const DB = [];
+    for (let r = 0; r < nr; r++) { DB.push(new Float64Array(nd)); for (let c = 0; c < nd; c++) { let s = 0; for (let k = 0; k < nr; k++) s += D[r][k] * B[k][c]; DB[r][c] = s; } }
+    for (let i = 0; i < nd; i++) for (let j = 0; j < nd; j++) { let s = 0; for (let r = 0; r < nr; r++) s += B[r][i] * DB[r][j]; K[i][j] += s * f; }
+  }
+  const zeros = (n) => Array.from({ length: n }, () => new Float64Array(n));
+
+  /* ---------------- Mindlin plate (MITC4). DOF/node: w, bx, by ---------------- */
+  function plateDb(t, E, nu) {
+    const D = E * t ** 3 / (12 * (1 - nu * nu));
+    return [[D, nu * D, 0], [nu * D, D, 0], [0, 0, D * (1 - nu) / 2]];
+  }
+  function plateBb(jj) {
+    const B = [new Float64Array(12), new Float64Array(12), new Float64Array(12)];
+    for (let i = 0; i < 4; i++) {
+      B[0][3 * i + 1] = jj.dx[i];
+      B[1][3 * i + 2] = jj.dy[i];
+      B[2][3 * i + 1] = jj.dy[i]; B[2][3 * i + 2] = jj.dx[i];
+    }
+    return B;
+  }
+  function plateKe(X, Y, t, E, nu) {
+    const Db = plateDb(t, E, nu);
+    const ks = 5 / 6 * E / (2 * (1 + nu)) * t;
+    const K = zeros(12);
+    for (const xi of GP) for (const eta of GP) {
+      const s = shape(xi, eta), jj = jac(X, Y, s);
+      addBtDB(K, plateBb(jj), Db, jj.det, 12);
+    }
+    const row = (xi, eta, dir) => {
+      const s = shape(xi, eta);
+      const d = dir === 0 ? s.dxi : s.deta;
+      let tx = 0, ty = 0;
+      for (let i = 0; i < 4; i++) { tx += d[i] * X[i]; ty += d[i] * Y[i]; }
+      const r = new Float64Array(12);
+      for (let i = 0; i < 4; i++) { r[3 * i] = d[i]; r[3 * i + 1] = s.N[i] * tx; r[3 * i + 2] = s.N[i] * ty; }
+      return r;
+    };
+    const rA = row(0, 1, 0), rC = row(0, -1, 0), rB = row(-1, 0, 1), rD = row(1, 0, 1);
+    const Ds = [[ks, 0], [0, ks]];
+    for (const xi of GP) for (const eta of GP) {
+      const s = shape(xi, eta), jj = jac(X, Y, s);
+      const gx = new Float64Array(12), ge = new Float64Array(12);
+      for (let c = 0; c < 12; c++) {
+        gx[c] = 0.5 * (1 + eta) * rA[c] + 0.5 * (1 - eta) * rC[c];
+        ge[c] = 0.5 * (1 + xi) * rD[c] + 0.5 * (1 - xi) * rB[c];
+      }
+      const Bs = [new Float64Array(12), new Float64Array(12)];
+      for (let c = 0; c < 12; c++) {
+        Bs[0][c] = jj.inv[0][0] * gx[c] + jj.inv[0][1] * ge[c];
+        Bs[1][c] = jj.inv[1][0] * gx[c] + jj.inv[1][1] * ge[c];
+      }
+      addBtDB(K, Bs, Ds, jj.det, 12);
+    }
+    return K;
+  }
+
+  function bandwidth(elems, ndof) {
+    let bw = 0;
+    for (const e of elems) { const mn = Math.min(...e), mx = Math.max(...e); bw = Math.max(bw, (mx - mn + 1) * ndof - 1); }
+    return bw;
+  }
+
+  /* model: {nodes:[[x,y]], elems:[[n1..n4]], t,E,nu, q:Float64Array per elem (MPa, +z),
+     wFix:[node], clamp:[node], betaN:[[node,nx,ny]]} */
+  function plate(m) {
+    const nn = m.nodes.length, n = 3 * nn;
+    const bw = bandwidth(m.elems, 3);
+    const K = new Band(n, bw), f = new Float64Array(n);
+    let maxd = 0;
+    for (let e = 0; e < m.elems.length; e++) {
+      const en = m.elems[e];
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ke = plateKe(X, Y, m.t, m.E, m.nu);
+      const dofs = [];
+      for (const k of en) dofs.push(3 * k, 3 * k + 1, 3 * k + 2);
+      for (let i = 0; i < 12; i++) for (let j = i; j < 12; j++) {
+        const gi = dofs[i], gj = dofs[j];
+        if (gi === gj) K.add(gi, gj, ke[i][j]);
+        else if (gi < gj) K.add(gi, gj, ke[i][j]);
+        else K.add(gj, gi, ke[i][j]);
+        if (i === j) maxd = Math.max(maxd, ke[i][i]);
+      }
+      const q = m.q[e];
+      if (q) for (const xi of GP) for (const eta of GP) {
+        const s = shape(xi, eta), jj = jac(X, Y, s);
+        for (let i = 0; i < 4; i++) f[3 * en[i]] += s.N[i] * q * jj.det;
+      }
+    }
+    // symmetric fill: ensure lower duplicates added only once (handled by i<=j loop with symmetric storage)
+    const kp = maxd * 1e6;
+    const used = new Uint8Array(nn);
+    for (const en of m.elems) for (const k of en) used[k] = 1;
+    for (let k = 0; k < nn; k++) if (!used[k]) { K.add(3 * k, 3 * k, 1); K.add(3 * k + 1, 3 * k + 1, 1); K.add(3 * k + 2, 3 * k + 2, 1); }
+    for (const k of m.wFix) K.add(3 * k, 3 * k, kp);
+    for (const k of (m.clamp || [])) { K.add(3 * k, 3 * k, kp); K.add(3 * k + 1, 3 * k + 1, kp); K.add(3 * k + 2, 3 * k + 2, kp); }
+    for (const [k, nx, ny] of (m.betaN || [])) {
+      K.add(3 * k + 1, 3 * k + 1, kp * nx * nx); K.add(3 * k + 2, 3 * k + 2, kp * ny * ny); K.add(3 * k + 1, 3 * k + 2, kp * nx * ny);
+    }
+    const u = cholSolve(K, f);
+    const w = new Float64Array(nn);
+    for (let k = 0; k < nn; k++) w[k] = u[3 * k];
+    const reac = new Float64Array(nn);
+    const fixed = new Set([...m.wFix, ...(m.clamp || [])]);
+    for (const k of fixed) reac[k] = -kp * u[3 * k];
+    const Db = plateDb(m.t, m.E, m.nu);
+    const el = [];
+    const pts = [[0, 0]].concat(GP.flatMap((a) => GP.map((b) => [a, b])));
+    for (let e = 0; e < m.elems.length; e++) {
+      const en = m.elems[e];
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ue = []; for (const k of en) ue.push(u[3 * k], u[3 * k + 1], u[3 * k + 2]);
+      let vmc = 0, vmx = 0, Mc = null;
+      for (let p = 0; p < pts.length; p++) {
+        const s = shape(pts[p][0], pts[p][1]), jj = jac(X, Y, s), B = plateBb(jj);
+        const kap = [0, 0, 0];
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 12; c++) kap[r] += B[r][c] * ue[c];
+        const M = [0, 0, 0];
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) M[r] += Db[r][c] * kap[c];
+        const k6 = 6 / (m.t * m.t);
+        const sx = M[0] * k6, sy = M[1] * k6, txy = M[2] * k6;
+        const vm = Math.sqrt(sx * sx - sx * sy + sy * sy + 3 * txy * txy);
+        if (p === 0) { vmc = vm; Mc = M; } else vmx = Math.max(vmx, vm);
+      }
+      el.push({ vm: vmc, vmGauss: vmx, M: Mc });
+    }
+    let F = 0; for (let k = 0; k < nn; k++) F += f[3 * k];
+    let R = 0; for (const k of fixed) R += reac[k];
+    return { w, reac, el, Fapplied: F, Rsum: R, ndof: n, bw };
+  }
+
+  /* ---------------- Plane stress Q4. DOF/node: ux, uy ---------------- */
+  function psD(E, nu) { const c = E / (1 - nu * nu); return [[c, c * nu, 0], [c * nu, c, 0], [0, 0, c * (1 - nu) / 2]]; }
+  function psB(jj) {
+    const B = [new Float64Array(8), new Float64Array(8), new Float64Array(8)];
+    for (let i = 0; i < 4; i++) { B[0][2 * i] = jj.dx[i]; B[1][2 * i + 1] = jj.dy[i]; B[2][2 * i] = jj.dy[i]; B[2][2 * i + 1] = jj.dx[i]; }
+    return B;
+  }
+  /* m: {nodes, elems, t, E, nu, fix:[[node,dof]], loads:[[node,fx,fy]]} */
+  function planeStress(m) {
+    const nn = m.nodes.length, n = 2 * nn, bw = bandwidth(m.elems, 2);
+    const K = new Band(n, bw), f = new Float64Array(n), D = psD(m.E, m.nu);
+    let maxd = 0;
+    for (const en of m.elems) {
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ke = zeros(8);
+      for (const xi of GP) for (const eta of GP) { const s = shape(xi, eta), jj = jac(X, Y, s); addBtDB(ke, psB(jj), D, jj.det * m.t, 8); }
+      const dofs = []; for (const k of en) dofs.push(2 * k, 2 * k + 1);
+      for (let i = 0; i < 8; i++) for (let j = i; j < 8; j++) K.add(dofs[i], dofs[j], ke[i][j]);
+      for (let i = 0; i < 8; i++) maxd = Math.max(maxd, ke[i][i]);
+    }
+    const used = new Uint8Array(nn);
+    for (const en of m.elems) for (const k of en) used[k] = 1;
+    for (let k = 0; k < nn; k++) if (!used[k]) { K.add(2 * k, 2 * k, 1); K.add(2 * k + 1, 2 * k + 1, 1); }
+    const kp = maxd * 1e6;
+    for (const [k, d] of m.fix) K.add(2 * k + d, 2 * k + d, kp);
+    for (const [k, fx, fy] of m.loads) { f[2 * k] += fx; f[2 * k + 1] += fy; }
+    const u = cholSolve(K, f);
+    const el = [];
+    for (const en of m.elems) {
+      const X = en.map((k) => m.nodes[k][0]), Y = en.map((k) => m.nodes[k][1]);
+      const ue = []; for (const k of en) ue.push(u[2 * k], u[2 * k + 1]);
+      const s = shape(0, 0), jj = jac(X, Y, s), B = psB(jj);
+      const eps = [0, 0, 0];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) eps[r] += B[r][c] * ue[c];
+      const sg = [0, 0, 0];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) sg[r] += D[r][c] * eps[c];
+      const vm = Math.sqrt(sg[0] ** 2 - sg[0] * sg[1] + sg[1] ** 2 + 3 * sg[2] ** 2);
+      el.push({ sx: sg[0], sy: sg[1], txy: sg[2], vm });
+    }
+    const reac = [];
+    for (const [k, d] of m.fix) reac.push([k, d, -kp * u[2 * k + d]]);
+    return { u, el, reac, ndof: n, bw };
+  }
+
+  return { plate, planeStress, cholSolve, Band };
+})();
+if (false) module.exports = FEA;
+
+/* TT300-C · Núcleo de cálculo de tornamesa hidráulica (accionamiento por cilindro pivotado y uña).
+   Unidades: N, mm, MPa (internas); kN, kN·m, kg y bar en la salida.
+   Requiere FEA (fea.js) en el ámbito global o vía require. */
+const TT = (() => {
+  const FEA_ = (typeof FEA !== "undefined") ? FEA : require("./fea.js");
+  const G = 9.80665, RHO = 7.85e-6, D2R = Math.PI / 180;
+
+  /* ---------------- Parámetros ---------------- */
+  // [id, etiqueta, unidad, valor por defecto, mín, máx, paso, nota]
+  const PARAM_GROUPS = [
+    { id: "carga", t: "Carga", p: [
+      ["W_tf", "Capacidad nominal (WLL)", "tf", 300, 50, 1000, 10],
+      ["e", "Excentricidad máx. del CG", "mm", 150, 0, 400, 10],
+      ["phi_d", "Factor de carga para resistencias φd", "–", 1.10, 1, 2, 0.05],
+      ["D_load", "Diámetro de apoyo de la carga (parrilla)", "mm", 1600, 600, 2000, 50],
+    ] },
+    { id: "interfaz", t: "Interfaz de giro (acero-acero, grasa grafitada)", p: [
+      ["mu_d", "μ estático de diseño", "–", 0.20, 0.05, 0.6, 0.01],
+      ["r_ef", "Radio efectivo de fricción de diseño", "mm", 800, 300, 1000, 10],
+      ["mu_nom", "μ nominal (grasa limpia)", "–", 0.15, 0.05, 0.6, 0.01],
+      ["mu_cont", "μ contaminado", "–", 0.25, 0.05, 0.6, 0.01],
+      ["mu_dry", "μ acero seco (referencial)", "–", 0.50, 0.1, 0.9, 0.01],
+      ["q_adm", "Presión de contacto admisible", "MPa", 10, 1, 50, 0.5],
+      ["FS_min", "FS mínimo del accionamiento (calado / diseño)", "–", 1.25, 1, 3, 0.05],
+    ] },
+    { id: "mesa", t: "Mesa giratoria (cajón)", p: [
+      ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
+      ["t_top", "Espesor plancha superior", "mm", 20, 6, 60, 1],
+      ["t_bot", "Espesor plancha inferior (contacto)", "mm", 20, 6, 60, 1],
+      ["h_disc", "Altura total de la mesa", "mm", 135, 60, 400, 5],
+      ["rings", "Radios de almas anulares", "mm", "300, 580, 840"],
+      ["t_web", "Espesor almas anulares", "mm", 8, 6, 40, 1],
+      ["N_rib", "N° de nervios radiales", "–", 14, 4, 56, 1],
+      ["t_rib", "Espesor nervios radiales", "mm", 8, 6, 40, 1],
+      ["R_rib", "Radio exterior de nervios", "mm", 840, 300, 1900, 5],
+      ["D_hub", "Diámetro exterior del cubo", "mm", 300, 150, 600, 10],
+      ["w_web", "Filete almas/nervios–planchas (cada lado)", "mm", 6, 3, 16, 1],
+    ] },
+    { id: "pasadores", t: "Pasadores de empuje (en la mesa)", p: [
+      ["N_pin", "N° de pasadores", "–", 28, 8, 72, 1],
+      ["d_pin", "Diámetro del pasador", "mm", 90, 30, 160, 5],
+      ["R_pin", "Radio del círculo de pasadores", "mm", 930, 400, 1950, 5],
+      ["Fy_pin", "Fy pasador (42CrMo4+QT)", "MPa", 650, 235, 1000, 5],
+      ["t_pr", "Espesor del anillo perimetral de pasadores (sup. e inf.)", "mm", 35, 10, 80, 1],
+    ] },
+    { id: "cilindros", t: "Cilindros hidráulicos", p: [
+      ["n_cyl", "N° de cilindros (en par)", "–", 2, 1, 4, 1],
+      ["D_bore", "Diámetro del émbolo", "mm", 85, 40, 250, 1],
+      ["d_rod", "Diámetro del vástago", "mm", 55, 20, 200, 1],
+      ["D_body", "Diámetro exterior del cuerpo", "mm", 115, 50, 300, 1],
+      ["p_relief", "Presión de alivio (calado)", "bar", 700, 50, 800, 10],
+      ["p_alarm", "Presión de alarma / detención", "bar", 600, 50, 800, 10],
+      ["p_ret", "Presión de retorno (puerto B)", "bar", 200, 10, 700, 10],
+      ["stroke", "Carrera", "mm", 235, 50, 600, 1],
+      ["L0", "Longitud ojal-ojal retraído", "mm", 493, 200, 2000, 1],
+      ["eta_c", "Rendimiento del cilindro (sellos)", "–", 0.95, 0.8, 1, 0.01],
+      ["m_cyl", "Masa por cilindro", "kg", 45, 5, 500, 1],
+      ["Q_pump", "Caudal de la bomba", "L/min", 1.8, 0.2, 50, 0.1],
+    ] },
+    { id: "cinematica", t: "Cinemática", p: [
+      ["R_eye", "Radio del ojal en la base", "mm", 1390, 500, 3000, 5],
+      ["a_eye", "Ángulo del ojal (planta)", "°", 135, 0, 360, 1],
+      ["d_dog", "Uña: pasador del vástago → centro del pasador", "mm", 208, 60, 600, 1],
+      ["s_free", "Recorrido libre antes de tomar el pasador", "mm", 10, 0, 100, 1],
+      ["s_margin", "Margen mínimo de carrera exigido", "mm", 5, 0, 50, 1],
+    ] },
+    { id: "una", t: "Uña de empuje", p: [
+      ["dog_b", "Ancho de la uña (en planta)", "mm", 65, 20, 200, 1],
+      ["dog_h", "Alto de la uña (contacto con el pasador)", "mm", 50, 20, 200, 1],
+      ["dog_tip", "Ancho de la punta entre pasadores", "mm", 60, 20, 200, 1],
+      ["e_dog", "Excentricidad accidental de la uña", "mm", 10, 0, 50, 1],
+      ["Fy_dog", "Fy uña (34CrNiMo6+QT)", "MPa", 800, 235, 1200, 5],
+    ] },
+    { id: "articulacion", t: "Articulaciones y ménsulas del cilindro", p: [
+      ["d_pp", "Diámetro de pasadores de articulación", "mm", 70, 20, 150, 5],
+      ["Fy_pp", "Fy pasadores de articulación", "MPa", 650, 235, 1000, 5],
+      ["t_ch", "Espesor de mejillas (horquilla)", "mm", 22, 8, 80, 1],
+      ["g_ch", "Holgura mejilla-ojal", "mm", 2, 0, 10, 0.5],
+      ["b_eye", "Ancho del ojal del cilindro", "mm", 50, 20, 150, 1],
+      ["L_ch", "Largo de mejilla de la ménsula (sobre la base)", "mm", 300, 80, 800, 5],
+      ["w_br", "Filete mejilla–base", "mm", 12, 4, 25, 1],
+      ["n_br", "N° de ménsulas (2 por sentido de giro)", "–", 4, 2, 8, 1],
+    ] },
+    { id: "base", t: "Base", p: [
+      ["B", "Lado de la base cuadrada", "mm", 2200, 1000, 4500, 10],
+      ["t_base", "Espesor plancha base", "mm", 20, 6, 60, 1],
+      ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
+      ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
+      ["c_lug", "Distancia del izaje a los bordes", "mm", 150, 50, 600, 5],
+      ["phi_lift", "Factor dinámico de izaje", "–", 1.30, 1, 2, 0.05],
+      ["q_floor", "Presión admisible de la losa / mats (referencial)", "MPa", 2.0, 0.1, 20, 0.1],
+    ] },
+    { id: "pivote", t: "Pivote central", p: [
+      ["D_piv", "Diámetro del pivote", "mm", 120, 40, 400, 5],
+      ["L_bush", "Largo del buje", "mm", 80, 20, 300, 5],
+      ["p_bush", "Presión admisible del buje", "MPa", 30, 5, 100, 1],
+      ["mu_bush", "μ del buje", "–", 0.20, 0.02, 0.5, 0.01],
+      ["e_piv", "Brazo de flexión del pivote", "mm", 40, 5, 200, 1],
+      ["Fy_piv", "Fy pivote", "MPa", 650, 235, 1000, 5],
+      ["Ch", "Coeficiente sísmico horizontal (NCh2369; 0 = sin definir)", "–", 0, 0, 1.5, 0.01],
+    ] },
+    { id: "material", t: "Materiales y normas", p: [
+      ["Fy", "Fy acero estructural (ASTM A572 Gr.50)", "MPa", 345, 235, 690, 5],
+      ["FEXX", "Resistencia del electrodo FEXX", "MPa", 490, 410, 830, 10],
+      ["E", "Módulo de elasticidad", "MPa", 200000, 190000, 210000, 1000],
+      ["nu", "Coeficiente de Poisson", "–", 0.30, 0.25, 0.35, 0.01],
+      ["Nd", "ASME BTH-1 factor de diseño (Cat. B = 3,0)", "–", 3.0, 2.0, 4.0, 0.5],
+      ["kFEA", "Factor de convergencia de malla FEA", "–", 1.15, 1, 1.5, 0.01],
+    ] },
+    { id: "fatiga", t: "Ciclo de servicio (fatiga)", p: [
+      ["turns_yr", "Vueltas completas por año", "–", 50, 0, 10000, 1],
+      ["life", "Vida de diseño", "años", 25, 1, 100, 1],
+    ] },
+  ];
+
+  function defaults() {
+    const P = {};
+    PARAM_GROUPS.forEach((g) => g.p.forEach((q) => { P[q[0]] = q[3]; }));
+    return P;
+  }
+  function parseRings(s) {
+    return String(s).split(/[,; ]+/).map(Number).filter((v) => isFinite(v) && v > 0).sort((a, b) => a - b);
+  }
+
+  /* ---------------- Masas ---------------- */
+  function masses(P) {
+    const rings = parseRings(P.rings);
+    const hw = P.h_disc - P.t_top - P.t_bot;
+    const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15;
+    const holes = (t) => P.N_pin * Math.PI / 4 * P.d_pin ** 2 * t + Math.PI / 4 * d_bush ** 2 * t;
+    const m = {};
+    const rpr = prIn(P), band = Math.PI * (Rt * Rt - rpr * rpr);
+    m.top = RHO * (Math.PI * Rt * Rt * P.t_top - holes(P.t_top) + band * Math.max(0, P.t_pr - P.t_top));
+    m.bot = RHO * (Math.PI * Rt * Rt * P.t_bot - holes(P.t_bot) + band * Math.max(0, P.t_pr - P.t_bot));
+    m.webs = RHO * rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0);
+    const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
+    m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
+    m.hub = RHO * Math.PI / 4 * (P.D_hub ** 2 - d_bush ** 2) * hw;
+    m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
+    m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins;
+    m.base = RHO * P.B * P.B * P.t_base;
+    m.rim = RHO * 4 * P.B * P.rim_h * P.rim_t;
+    const H_ch = hAxis(P) + P.d_pp;                         // alto de mejilla ≈ eje + 1 diámetro
+    m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * H_ch);
+    m.dogs = RHO * 2 * P.dog_b * P.dog_h * (P.d_dog + P.d_pp);
+    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.h_disc + P.t_base);
+    m.cyl = P.n_cyl * P.m_cyl;
+    m.total = m.disc + m.base + m.rim + m.brackets + m.dogs + m.pivot + m.cyl;
+    return m;
+  }
+  function hAxis(P) { return P.h_disc / 2; }                         // eje del cilindro sobre la base = mitad de la luz del pasador
+  function prIn(P) { return Math.max(P.D_hub / 2, P.R_pin - (P.D_top / 2 - P.R_pin)); }   // radio interior del anillo de pasadores
+  function pinClear(P) { return P.h_disc - 2 * Math.max(P.t_pr, P.t_top, P.t_bot); }
+
+  /* ---------------- Cinemática ---------------- */
+  function kinematics(P) {
+    const Re = P.R_eye, R = P.R_pin, d = P.d_dog, pitch = 2 * Math.PI / P.N_pin;
+    const dist = (del) => Math.sqrt(Re * Re + R * R - 2 * Re * R * Math.cos(del));
+    const arm = (del) => Re * R * Math.sin(del) / dist(del);
+    const Leng = P.L0 + P.s_free + d;
+    const c = (Re * Re + R * R - Leng * Leng) / (2 * Re * R);
+    if (!(Math.abs(c) <= 1)) return { ok: false, msg: "La uña no alcanza el círculo de pasadores con L0 + libre + uña" };
+    const de = Math.acos(c), dend = de + pitch;
+    const Lend = dist(dend) - d;
+    const s_req = Lend - P.L0;
+    const pts = [];
+    let armMin = Infinity, armMax = 0;
+    for (let i = 0; i <= 60; i++) {
+      const del = de + pitch * i / 60, a = arm(del);
+      armMin = Math.min(armMin, a); armMax = Math.max(armMax, a);
+      pts.push({ del, s: dist(del) - d - P.L0, arm: a });
+    }
+    const chord = 2 * R * Math.sin(pitch / 2);
+    return { ok: true, Re, R, d, pitch, dist, arm, Leng, de, dend, Lend, s_req, margin: P.stroke - s_req, armMin, armMax, pts, chord, gap: chord - P.d_pin };
+  }
+
+  /* ---------------- Accionamiento ---------------- */
+  function compute(P) {
+    const m = masses(P);
+    const W = P.W_tf * G;                             // kN
+    const Wd = (m.disc + m.pivot * 0.5) * G / 1e3;     // kN (mesa + medio pivote)
+    const N = W + Wd, ND = P.phi_d * W + Wd;
+    const Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15;
+    const Ac = Math.PI * (Ro * Ro - Ri * Ri);
+    const r_u = 2 / 3 * (Ro ** 3 - Ri ** 3) / (Ro ** 2 - Ri ** 2);
+    const kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri);
+    const q_avg = ND * 1e3 / Ac, q_max = q_avg * (1 + kq), q_min = q_avg * (1 - kq);
+    const H_ecc = (mu) => mu * N * P.e * (4 / 3) * (Ro ** 3 - Ri ** 3) / (Ro ** 4 - Ri ** 4);   // kN
+    const T_piv = (mu) => P.mu_bush * H_ecc(mu) * (P.D_piv / 2) / 1e3;                        // kN·m
+    const K = kinematics(P);
+    const A = Math.PI / 4 * P.D_bore ** 2, Aann = A - Math.PI / 4 * P.d_rod ** 2;
+    const Fstall = A * P.p_relief / 10 / 1e3, Falarm = A * P.p_alarm / 10 / 1e3, Fret = Aann * P.p_ret / 10 / 1e3;
+    const torque = (mu, r) => mu * N * r / 1e3 + T_piv(mu);                                   // kN·m
+    const Fcyl = (T, armmm) => T * 1e3 / (P.n_cyl * armmm * P.eta_c);                          // kN
+    const caseDef = [
+      ["nom", "Nominal: grasa grafitada limpia", P.mu_nom, r_u],
+      ["dis", "Diseño: μ límite superior, r efectivo", P.mu_d, P.r_ef],
+      ["borde", "Borde: μ de diseño con contacto en el borde (r = R)", P.mu_d, Ro],
+      ["cont", "Contaminado: arena / película degradada", P.mu_cont, P.r_ef],
+      ["seco", "Acero seco, sin lubricación (referencial)", P.mu_dry, r_u],
+    ];
+    const cases = K.ok ? caseDef.map(([id, name, mu, r]) => {
+      const T = torque(mu, r), F = Fcyl(T, K.armMin);
+      return { id, name, mu, r, T, F, p: F * 1e3 / A * 10, FS: Fstall / F, turns: F <= Fstall };
+    }) : [];
+    const cd = cases.find((c) => c.id === "dis");
+    const muMax = (r) => K.ok ? (P.n_cyl * Fstall * P.eta_c * K.armMin / 1e3 - T_piv(P.mu_d)) / (N * r / 1e3) : 0;
+    const curve = K.ok ? K.pts.map((q) => ({ s: q.s, arm: q.arm, F: cd ? Fcyl(cd.T, q.arm) : 0 })) : [];
+    const Vext = P.n_cyl * A * P.stroke, Vret = P.n_cyl * Aann * P.stroke;
+    const tCycle = (Vext + Vret) / 1e6 / P.Q_pump;    // min
+    // tierra / losa (base delgada: sin reparto, se toma q_max de la interfaz como presión de apoyo)
+    const N_tot = ND + (m.total - m.disc) * G / 1e3;
+    const g_rigid = N_tot * 1e3 / (P.B * P.B) * (1 + 6 * P.e * Math.SQRT2 / P.B);
+    return { m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
+      cases, cd, muMax, curve, tCycle, tRev: tCycle * P.N_pin, Vext, g_rigid, hax: hAxis(P), torque, Fcyl };
+  }
+
+  /* ---------------- FEA de la mesa (sector entre nervios) ---------------- */
+  function linspaceKeys(keys, h) {
+    const out = [keys[0]];
+    for (let i = 1; i < keys.length; i++) {
+      const a = keys[i - 1], b = keys[i], n = Math.max(1, Math.ceil((b - a) / h));
+      for (let k = 1; k <= n; k++) out.push(a + (b - a) * k / n);
+    }
+    return out;
+  }
+  function uniqSorted(arr, tol) {
+    const s = arr.slice().sort((a, b) => a - b), o = [];
+    for (const v of s) if (!o.length || v - o[o.length - 1] > tol) o.push(v);
+    return o;
+  }
+  function discModel(P, R, which, coarse) {
+    const alpha = 2 * Math.PI / P.N_rib, r0 = P.D_hub / 2, Rd = P.D_top / 2;
+    const hr = Math.max(coarse ? 30 : 18, (Rd - r0) / (coarse ? 28 : 48));
+    const rings = parseRings(P.rings).filter((r) => r > r0 && r < Rd);
+    const RL = Math.min(P.D_load / 2, Rd);
+    const keyR = uniqSorted([r0, ...rings, Math.min(P.R_rib, Rd), P.R_pin - P.d_pin / 2, P.R_pin, P.R_pin + P.d_pin / 2, Rd, which === "top" ? RL : r0]
+      .filter((r) => r >= r0 && r <= Rd), 2);
+    const rs = linspaceKeys(keyR, hr);
+    const pinAng = [];
+    for (let k = 0; k < P.N_pin; k++) {
+      const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin;
+      if (a >= -1e-9 && a <= alpha + 1e-9) pinAng.push(a);
+    }
+    const db = (P.d_pin / 2) / P.R_pin;
+    const keyT = uniqSorted([0, alpha, ...pinAng, ...pinAng.map((a) => a - db), ...pinAng.map((a) => a + db)].filter((a) => a >= 0 && a <= alpha), 1e-4);
+    const ts = linspaceKeys(keyT, Math.max((coarse ? 2.5 : 1.25) * D2R, alpha / (coarse ? 16 : 30)));
+    const nT = ts.length, nodes = [], elems = [], pol = [];
+    for (let i = 0; i < rs.length; i++) for (let j = 0; j < nT; j++) { nodes.push([rs[i] * Math.cos(ts[j]), rs[i] * Math.sin(ts[j])]); pol.push([rs[i], ts[j]]); }
+    const id = (i, j) => i * nT + j;
+    const q = [], t = which === "top" ? P.t_top : P.t_bot;
+    const q_top = P.phi_d * R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P.e / RL);
+    for (let i = 0; i < rs.length - 1; i++) for (let j = 0; j < nT - 1; j++) {
+      elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]);
+      const rc = (rs[i] + rs[i + 1]) / 2;
+      q.push(which === "top" ? (rc <= RL ? q_top : 0) : R.q_max);
+    }
+    const wFix = new Set(), clamp = [], betaN = [], groups = { ring: rings.map(() => []), rib: [], pin: pinAng.map(() => []), hub: [] };
+    const near = (a, b, tol) => Math.abs(a - b) < tol;
+    for (let i = 0; i < rs.length; i++) for (let j = 0; j < nT; j++) {
+      const k = id(i, j), r = rs[i], th = ts[j];
+      if (i === 0) { clamp.push(k); groups.hub.push(k); continue; }
+      rings.forEach((rr, ri) => { if (near(r, rr, 0.5)) { wFix.add(k); groups.ring[ri].push(k); } });
+      if ((j === 0 || j === nT - 1) && r <= P.R_rib + 0.5) { if (!wFix.has(k)) groups.rib.push(k); wFix.add(k); }
+      pinAng.forEach((ba, bi) => {
+        const x = r * Math.cos(th) - P.R_pin * Math.cos(ba), y = r * Math.sin(th) - P.R_pin * Math.sin(ba);
+        if (Math.hypot(x, y) <= P.d_pin / 2 + 0.5) { if (!wFix.has(k)) groups.pin[bi].push(k); wFix.add(k); }
+      });
+      if (j === 0) betaN.push([k, 0, 1]);
+      if (j === nT - 1) betaN.push([k, -Math.sin(alpha), Math.cos(alpha)]);
+    }
+    return { nodes, pol, elems, q: Float64Array.from(q), t, E: P.E, nu: P.nu, wFix: [...wFix], clamp, betaN, groups, rings, pinAng, alpha, rs, ts, which, q_top };
+  }
+  const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+  function runDisc(P, R, which, coarse) {
+    const m = discModel(P, R, which, coarse);
+    const t0 = now();
+    const r = FEA_.plate(m);
+    const ms = now() - t0;
+    let vmMax = 0, imax = 0;
+    r.el.forEach((e, i) => { if (e.vmGauss > vmMax) { vmMax = e.vmGauss; imax = i; } });
+    let wMax = 0; for (const w of r.w) wMax = Math.max(wMax, Math.abs(w));
+    const sumS = (arr) => Math.abs(arr.reduce((s, k) => s + r.reac[k], 0));   // suma con signo (rev. m3)
+    const ringLine = m.rings.map((rr, i) => sumS(m.groups.ring[i]) / (rr * m.alpha));   // N/mm
+    const ribF = sumS(m.groups.rib), ribLine = ribF / (2 * Math.max(1, P.R_rib - P.D_hub / 2));   // N/mm, 2 bordes del sector = 1 nervio
+    const pinF = m.groups.pin.map((g) => sumS(g) / 1e3);
+    const ec = m.elems[imax].map((k) => m.nodes[k]);
+    const cx = ec.reduce((s, p) => s + p[0], 0) / 4, cy = ec.reduce((s, p) => s + p[1], 0) / 4;
+    return { model: m, res: r, ms, vmMax, wMax, ringLine, ribLine, pinF, lineMax: Math.max(0, ribLine, ...ringLine),
+      Fapp: r.Fapplied / 1e3, Rsum: Math.abs(r.Rsum) / 1e3, maxAt: [Math.hypot(cx, cy), Math.atan2(cy, cx) / D2R], n: m.nodes.length };
+  }
+
+  /* ---------------- Flexión global axisimétrica del cajón (placa sándwich, borde libre) ---------------- */
+  function globalBending(P, R) {
+    const n = 4000, Rd = P.D_top / 2, RL = Math.min(P.D_load / 2, Rd), Ri = R.Ri;
+    const qt = P.phi_d * R.W * 1e3 / (Math.PI * RL * RL), qd = R.Wd * 1e3 / (Math.PI * Rd * Rd);
+    const qb = R.ND * 1e3 / (Math.PI * (Rd * Rd - Ri * Ri));
+    const r = new Float64Array(n), p = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      r[i] = 1e-6 + Rd * i / (n - 1);
+      p[i] = (r[i] >= Ri ? qb : 0) - (r[i] <= RL ? qt : 0) - qd;
+    }
+    const cum = new Float64Array(n), Q = new Float64Array(n);
+    for (let i = 1; i < n; i++) cum[i] = cum[i - 1] + 0.5 * (p[i] * r[i] + p[i - 1] * r[i - 1]) * (r[i] - r[i - 1]);
+    for (let i = 0; i < n; i++) Q[i] = cum[i] / r[i];
+    const Iq = new Float64Array(n), J = new Float64Array(n);
+    for (let i = 1; i < n; i++) Iq[i] = Iq[i - 1] + 0.5 * (Q[i] + Q[i - 1]) * (r[i] - r[i - 1]);
+    for (let i = 1; i < n; i++) J[i] = J[i - 1] + 0.5 * (Iq[i] * r[i] + Iq[i - 1] * r[i - 1]) * (r[i] - r[i - 1]);
+    const psi = new Float64Array(n), dps = new Float64Array(n);
+    for (let i = 0; i < n; i++) psi[i] = J[i] / r[i];
+    for (let i = 1; i < n - 1; i++) dps[i] = (psi[i + 1] - psi[i - 1]) / (r[i + 1] - r[i - 1]);
+    dps[0] = dps[1]; dps[n - 1] = dps[n - 2];
+    const C = -(dps[n - 1] + P.nu * psi[n - 1] / Rd) / (1 + P.nu);
+    let Mmax = 0, rM = 0, Vmax = 0, rV = 0;
+    for (let i = 5; i < n - 5; i++) {
+      const ps = psi[i] + C * r[i], dp = dps[i] + C;
+      const Mr = dp + P.nu * ps / r[i], Mt = ps / r[i] + P.nu * dp;
+      const M = Math.max(Math.abs(Mr), Math.abs(Mt));
+      if (M > Mmax) { Mmax = M; rM = r[i]; }
+      if (r[i] >= P.D_hub / 2 && r[i] <= P.R_rib) {
+        const V = Math.abs(Q[i]) * 2 * Math.PI * r[i];
+        if (V > Vmax) { Vmax = V; rV = r[i]; }
+      }
+    }
+    const hc = P.h_disc - (P.t_top + P.t_bot) / 2;
+    const imb = Q[n - 1] * 2 * Math.PI * Rd / 1e3;
+    return { Mmax, rM, sigTop: Mmax / (P.t_top * hc), sigBot: Mmax / (P.t_bot * hc), Vmax: Vmax / 1e3, rV, imbalance: imb };
+  }
+
+  /* ---------------- FEA de izaje de la base (cuarto de placa con simetría) ---------------- */
+  function runLift(P, R, coarse) {
+    const a = P.B / 2, n = coarse ? 14 : 24, h = a / n;
+    const nodes = [], elems = [];
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) nodes.push([i * h, j * h]);
+    const id = (i, j) => i * (n + 1) + j;
+    const Rd = P.D_top / 2;
+    const mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl;            // apoyado sobre la huella de la mesa
+    const qDisc = mOther * G / (Math.PI * Rd * Rd);
+    const qOwn = (R.m.base + R.m.rim + R.m.brackets) * G / (P.B * P.B);
+    const q = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]);
+      const xc = (i + 0.5) * h, yc = (j + 0.5) * h;
+      q.push(P.phi_lift * (qOwn + (Math.hypot(xc, yc) <= Rd ? qDisc : 0)));
+    }
+    const xl = a - P.c_lug, pad = Math.max(75, 1.01 * h);       // placa de apoyo del cáncamo 150 × 150 (mín. un elemento)
+    const wFix = [], betaN = [];
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+      const k = id(i, j), x = i * h, y = j * h;
+      if (Math.abs(x - xl) <= pad + 1e-6 && Math.abs(y - xl) <= pad + 1e-6) wFix.push(k);
+      if (i === 0) betaN.push([k, 1, 0]);
+      if (j === 0) betaN.push([k, 0, 1]);
+    }
+    if (!wFix.length) { let best = 0, bd = 1e9; nodes.forEach((p, k) => { const d = Math.hypot(p[0] - xl, p[1] - xl); if (d < bd) { bd = d; best = k; } }); wFix.push(best); }
+    const t0 = now();
+    const r = FEA_.plate({ nodes, elems, t: P.t_base, E: P.E, nu: P.nu, q: Float64Array.from(q), wFix, betaN });
+    let vmMax = 0, wMax = 0;
+    r.el.forEach((e) => { vmMax = Math.max(vmMax, e.vmGauss); });
+    for (const w of r.w) wMax = Math.max(wMax, Math.abs(w));
+    return { nodes, elems, res: r, vmMax, wMax, ms: now() - t0, Fapp: 4 * r.Fapplied / 1e3, Rsum: 4 * Math.abs(r.Rsum) / 1e3, n };
+  }
+
+  /* ---------------- Fatiga: AISC 360-22 Apéndice 3, Tabla A-3.1 (SI) ---------------- */
+  // Cf en unidades US (ksi) según la tabla; F_SR[MPa] = 6,895·(Cf/n)^(1/k); F_TH en MPa
+  const FAT_CAT = { A: [250e8, 165, 3], B: [120e8, 110, 3], C: [44e8, 69, 3], D: [22e8, 48, 3], E: [11e8, 31, 3], "E'": [3.9e8, 18, 3], F: [150e10, 55, 6] };
+  function FSR(cat, nCyc) { const [Cf, Fth, k] = FAT_CAT[cat]; return Math.max(6.895 * Math.pow(Cf / Math.max(nCyc, 1), 1 / k), Fth); }
+
+  /* ---------------- Verificaciones ---------------- */
+  // kind: "fu" (FU = dem/cap), "geo" (FU con criterio geométrico), "info" (no afecta el veredicto), "pend" (pendiente de dato)
+  function verifs(P, R, fea) {
+    const out = [];
+    const add = (o) => out.push(Object.assign({ kind: "fu" }, o, { fu: o.kind === "info" || o.kind === "pend" ? null : (o.fu != null ? o.fu : o.dem / o.cap) }));
+    const K = R.K, Nd = P.Nd, Fy = P.Fy;
+    const Fs = R.Fstall;                                   // fuerza de calado por cilindro, kN
+    const cd = R.cd || { F: NaN, p: NaN, FS: NaN };
+    const cs = (id) => R.cases.find((c) => c.id === id) || { F: NaN, FS: NaN, p: NaN };
+    const Fw = (P.FEXX * 0.60) / (1.20 * Nd);              // BTH-1 soldaduras
+    const FwA = 0.60 * P.FEXX / 2.0;                       // AISC J2.4 ASD (Ω 2,00), sin aumento direccional
+
+    /* --- Giro --- */
+    add({ grp: "Giro", sys: "giro", name: "FS del accionamiento en el caso de diseño", formula: "FS = F_calado / F_dis ≥ FS_min", dem: P.FS_min, cap: cd.FS, unit: "–", ref: "Criterio del proyecto (μ_d, r_ef)" });
+    add({ grp: "Giro", sys: "giro", name: "Presión de diseño frente a la alarma", formula: "p_dis = F_dis / A ≤ p_alarma", dem: cd.p, cap: P.p_alarm, unit: "bar", ref: "Criterio de operación" });
+    add({ grp: "Giro", sys: "giro", name: "Gira con grasa contaminada", formula: "F_cont ≤ F_calado", dem: cs("cont").F, cap: Fs, unit: "kN", ref: "Criterio del proyecto" });
+    add({ grp: "Giro", sys: "giro", name: "Gira con contacto en el borde (r = R)", formula: "F(μ_d, R) ≤ F_calado", dem: cs("borde").F, cap: Fs, unit: "kN", ref: "Revisión independiente M1" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen", formula: "s_libre + ΔL(paso) + margen ≤ carrera", dem: K.ok ? K.s_req + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática (rev. C3)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Holgura de la punta de la uña entre pasadores", formula: "cuerda − d_pas ≥ punta + 2·10", dem: P.dog_tip + 20, cap: K.ok ? K.gap : NaN, unit: "mm", ref: "Cinemática" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Contacto de la uña dentro de la luz libre del pasador", formula: "h_uña + 10 ≤ h − 2·t_anillo", dem: P.dog_h + 10, cap: pinClear(P), unit: "mm", ref: "Geometría" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro libre sobre la base", formula: "D_cuerpo/2 + 5 ≤ h_eje", dem: P.D_body / 2 + 5, cap: R.hax, unit: "mm", ref: "Geometría" });
+    const Ir = Math.PI * P.d_rod ** 4 / 64, Lext = P.L0 + P.stroke;
+    const Pcr = Math.PI ** 2 * P.E * Ir / (Lext * Lext) / 1e3;
+    add({ grp: "Giro", sys: "giro", name: "Pandeo del vástago (biarticulado, longitud extendida)", formula: "F_calado ≤ Pcr / 3; Pcr = π²EI/L²", dem: Fs, cap: Pcr / 3, unit: "kN", ref: "Euler, FS 3 (conservador frente a ISO/TS 13725)" });
+    add({ grp: "Giro", sys: "giro", kind: "info", name: "Retorno: fuerza disponible en el puerto B", formula: "F_ret = A_anular · p_ret", dem: R.Fret, unit: "kN", ref: "Hidráulica" });
+    add({ grp: "Giro", sys: "giro", kind: "info", name: "Tiempo por vuelta", formula: "N_pas · (V_ext + V_ret) / Q", dem: R.tRev, unit: "min", ref: "Hidráulica" });
+
+    /* --- Interfaz y apoyo --- */
+    add({ grp: "Interfaz", sys: "est", name: "Presión de contacto máxima", formula: "q = N_D/A · (1 + 4eR/(R²+r²))", dem: R.q_max, cap: P.q_adm, unit: "MPa", ref: "Criterio acero/acero lubricado" });
+    add({ grp: "Interfaz", sys: "est", kind: "geo", name: "Sin despegue de la mesa (q_mín ≥ 0)", formula: "1 − 4eR/(R²+r²) ≥ 0", dem: 4 * P.e * R.Ro / (R.Ro ** 2 + R.Ri ** 2), cap: 1, unit: "–", ref: "Núcleo central" });
+    add({ grp: "Interfaz", sys: "est", kind: "info", name: "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)", formula: "σ ≈ q_max ≤ q_losa (verificar por terceros)", dem: R.q_max, cap: P.q_floor, unit: "MPa", ref: "Referencial (rev. M7)" });
+
+    /* --- Mesa --- */
+    const sAll = 0.6 * Fy;
+    if (fea) {
+      const k = P.kFEA;
+      add({ grp: "Mesa (FEA)", sys: "est", name: "Plancha superior: σvm local (carga con e)", formula: "MITC4 × k_malla", dem: fea.top.vmMax * k, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy), criterio conservador" });
+      add({ grp: "Mesa (FEA)", sys: "est", name: "Plancha inferior: σvm local (contacto q_max)", formula: "MITC4 × k_malla", dem: fea.bot.vmMax * k, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy), criterio conservador" });
+      const gb = fea.glob;
+      add({ grp: "Mesa", sys: "est", name: "Plancha superior: global + local", formula: "σ = M_glob/(t·h_c) + σvm_local", dem: gb.sigTop + fea.top.vmMax * k, cap: sAll, unit: "MPa", ref: "Placa sándwich axisimétrica (rev. M2)" });
+      add({ grp: "Mesa", sys: "est", name: "Plancha inferior: global + local", formula: "σ = M_glob/(t·h_c) + σvm_local", dem: gb.sigBot + fea.bot.vmMax * k, cap: sAll, unit: "MPa", ref: "Placa sándwich axisimétrica (rev. M2)" });
+      const hw = P.h_disc - P.t_top - P.t_bot;
+      const tau = gb.Vmax * 1e3 / (P.N_rib * P.t_rib * hw);
+      const lam = hw / P.t_rib, lamLim = 2.24 * Math.sqrt(P.E / Fy);
+      add({ grp: "Mesa", sys: "est", name: "Corte en nervios radiales", formula: "τ = V/(N·t·h_w) ≤ 0,6Fy/1,50 (h/t ≤ 2,24√(E/Fy))", dem: tau, cap: 0.6 * Fy / (lam <= lamLim ? 1.50 : 1.67), unit: "MPa", ref: "AISC 360-22 G2.1(a), Ec. G2-1" });
+      const qv = Math.max(fea.top.lineMax, fea.bot.lineMax);
+      const qh = gb.Vmax * 1e3 / (P.N_rib * hw);
+      const fw = Math.hypot(qh, qv) / (2 * 0.707 * P.w_web);
+      add({ grp: "Mesa", sys: "est", name: "Soldadura alma/nervio–plancha (2 filetes)", formula: "f = √(q_h² + q_v²)/(2·0,707·w) ≤ 0,6FEXX/2,0", dem: fw, cap: FwA, unit: "MPa", ref: "AISC 360-22 J2.4, Ec. J2-4" });
+      add({ grp: "Mesa", sys: "est", name: "Fluencia local de almas por carga de línea", formula: "σ = q_v / t ≤ Fy/1,50", dem: qv / Math.min(P.t_web, P.t_rib), cap: Fy / 1.5, unit: "MPa", ref: "AISC 360-22 J10.2" });
+      add({ grp: "Mesa (FEA)", sys: "est", kind: "geo", name: "Equilibrio FEA (ΣF = ΣR)", formula: "|ΣF − ΣR| / ΣF ≤ 0,5 %", dem: Math.abs(fea.bot.Fapp - fea.bot.Rsum) / fea.bot.Fapp * 100 + 0.0001, cap: 0.5, unit: "%", ref: "Control numérico" });
+    }
+
+    /* --- Tamaño mínimo de filete según espesor de la parte más gruesa --- */
+    const wMin = (T) => T <= 6 ? 3 : T <= 12 ? 5 : T <= 20 ? 6 : 8;
+    const Tw = Math.max(P.t_top, P.t_bot), Tb = Math.max(P.t_base, P.t_ch);
+    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo almas/nervios–planchas", formula: "w_mín(T = " + Tw + ") ≤ w ≤ t_alma", dem: wMin(Tw), cap: Math.min(P.w_web, Math.min(P.t_web, P.t_rib)), unit: "mm", ref: "AWS D1.1/D1.1M:2020, tamaño mínimo de filete" });
+    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo mejillas–base", formula: "w_mín(T = " + Tb + ") ≤ w ≤ t_mín", dem: wMin(Tb), cap: Math.min(P.w_br, Math.min(P.t_base, P.t_ch)), unit: "mm", ref: "AWS D1.1/D1.1M:2020, tamaño mínimo de filete" });
+
+    /* --- Pasadores de empuje (cadena de empuje a fuerza de calado) --- */
+    const tpr = Math.max(P.t_pr, P.t_top, P.t_bot), Ls = P.h_disc - tpr;
+    const Mp = Fs * Ls / 4 / 1e3;                                       // kN·m, carga en el centro (máximo)
+    const Sp = Math.PI * P.d_pin ** 3 / 32, Ap = Math.PI * P.d_pin ** 2 / 4;
+    add({ grp: "Pasadores de empuje", sys: "est", name: "Flexión (biapoyado entre planchas, carga al centro)", formula: "M = F·L/4; σ = M/S ≤ Fy/Nd", dem: Mp * 1e6 / Sp, cap: P.Fy_pin / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3 (Fy/Nd, conservador)" });
+    add({ grp: "Pasadores de empuje", sys: "est", name: "Corte (carga junto a una plancha)", formula: "τ = 4F/(3A) ≤ Fy/(Nd·√3)", dem: 4 * Fs * 1e3 / (3 * Ap), cap: P.Fy_pin / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
+    add({ grp: "Pasadores de empuje", sys: "est", name: "Aplastamiento en el agujero de la plancha", formula: "σ = F/(d·t_anillo) ≤ 1,25Fy/Nd", dem: Fs * 1e3 / (P.d_pin * tpr), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento en pasadores)" });
+    add({ grp: "Pasadores de empuje", sys: "est", name: "Aplastamiento pasador–uña", formula: "σ = F/(d·h_uña) ≤ 1,25·Fy_mín/Nd", dem: Fs * 1e3 / (P.d_pin * P.dog_h), cap: 1.25 * Math.min(P.Fy_pin, P.Fy_dog) / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
+
+    /* --- Uña --- */
+    const Adog = P.dog_b * P.dog_h;
+    add({ grp: "Uña", sys: "est", name: "Compresión con excentricidad accidental", formula: "σ = F/A·(1 + 6e/b) ≤ Fy/Nd", dem: Fs * 1e3 / Adog * (1 + 6 * P.e_dog / P.dog_b), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.4 / 3-2.3" });
+
+    /* --- Articulaciones (ojal en la base y pasador del vástago) --- */
+    const App = Math.PI * P.d_pp ** 2 / 4, Spp = Math.PI * P.d_pp ** 3 / 32;
+    const Mpp = Fs / 2 * (P.t_ch / 2 + P.g_ch + P.b_eye / 4) / 1e3;
+    add({ grp: "Articulaciones", sys: "est", name: "Pasador: flexión (horquilla)", formula: "M = F/2·(t/2 + g + b/4); σ ≤ Fy/Nd", dem: Mpp * 1e6 / Spp, cap: P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / 3-2.3" });
+    add({ grp: "Articulaciones", sys: "est", name: "Pasador: corte doble", formula: "τ = (F/2)/A ≤ Fy/(Nd·√3)", dem: Fs / 2 * 1e3 / App, cap: P.Fy_pp / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
+    add({ grp: "Articulaciones", sys: "est", name: "Aplastamiento en mejillas", formula: "σ = (F/2)/(d·t) ≤ 1,25Fy/Nd", dem: Fs / 2 * 1e3 / (P.d_pp * P.t_ch), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
+    add({ grp: "Articulaciones", sys: "est", kind: "info", name: "Ojal comercial del cilindro: admitir pasador y carga", formula: "Ø ojal ≥ d_pp; ancho = b_ojal (confirmar con ficha)", dem: P.d_pp, unit: "mm", ref: "Ficha del fabricante" });
+    const hax = R.hax;
+    const Mch = Fs / 2 * hax / 1e3;
+    add({ grp: "Articulaciones", sys: "est", name: "Mejilla de la ménsula: flexión en la base", formula: "σ = (F/2)·h_eje/(t·L²/6) ≤ Fy/Nd", dem: Mch * 1e6 / (P.t_ch * P.L_ch ** 2 / 6), cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    const aw = 0.707 * P.w_br;
+    const fV = Fs * 1e3 / (4 * aw * P.L_ch), fM = Fs * 1e3 * hax / (4 * aw * P.L_ch ** 2 / 6);
+    add({ grp: "Articulaciones", sys: "est", name: "Soldadura mejillas–base (4 filetes)", formula: "f = √(fV² + fM²) ≤ 0,60FEXX/(1,20Nd)", dem: Math.hypot(fV, fM), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
+
+    /* --- Pivote --- */
+    const H = Math.max(R.H_ecc(P.mu_d), P.Ch * R.N);
+    add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N)", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
+    add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd", dem: H * 1e3 * P.e_piv / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    if (!(P.Ch > 0)) add({ grp: "Pivote", sys: "est", kind: "pend", name: "Caso sísmico", formula: "Ch según NCh2369 (zona, suelo, categoría)", unit: "–", ref: "NCh2369 — definir parámetros" });
+
+    /* --- Base --- */
+    if (fea && fea.lift) {
+      add({ grp: "Base", sys: "est", name: "Izaje del conjunto: σvm en la plancha base", formula: "MITC4 × k_malla, φ_izaje", dem: fea.lift.vmMax * P.kFEA, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy)" });
+      add({ grp: "Base", sys: "est", kind: "geo", name: "Izaje: flecha de la base", formula: "w ≤ B/300", dem: fea.lift.wMax, cap: P.B / 300, unit: "mm", ref: "Criterio del proyecto" });
+    }
+    const mt = R.m.total;
+    add({ grp: "Base", sys: "est", kind: "info", name: "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)", formula: "m·φ / (3·sin 60°)", dem: mt * P.phi_lift / (3 * Math.sin(60 * D2R)) / 1000, unit: "t", ref: "ASME B30.9 (3 ramales efectivos)" });
+
+    /* --- Fatiga --- */
+    const nCyc = P.N_pin * P.turns_yr * P.life, nPin = 2 * P.turns_yr * P.life;
+    const Fd = cd.F;                                                  // fuerza de operación (rango de tensiones)
+    const fat = (name, sig, cat, N) => {
+      if (N <= 20000) add({ grp: "Fatiga", sys: "est", kind: "info", name: name + " (N = " + Math.round(N) + " ≤ 20 000)", formula: "Clase de servicio 0: no requiere verificación", dem: N, unit: "ciclos", ref: "ASME BTH-1 §3-4 / AISC 360-22 A-3.1" });
+      else add({ grp: "Fatiga", sys: "est", name: name + " (cat. " + cat + ", N = " + Math.round(N) + ")", formula: (cat === "F" ? "Δτ ≤ F_SR = (Cf/N)^0,167 ≥ F_TH" : "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH"), dem: sig, cap: FSR(cat, N), unit: "MPa", ref: "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1" });
+    };
+    fat("Pasadores de empuje", Fd * Ls / 4 * 1e3 / Sp, "A", nPin);
+    fat("Uña", Fd * 1e3 / Adog * (1 + 6 * P.e_dog / P.dog_b), "A", nCyc);
+    fat("Pasadores de articulación", Fd / 2 * (P.t_ch / 2 + P.g_ch + P.b_eye / 4) * 1e3 / Spp, "A", nCyc);
+    fat("Pie de soldadura mejilla–base", Fd / 2 * 1e3 * hax / (P.t_ch * P.L_ch ** 2 / 6), "E", nCyc);
+    fat("Garganta soldadura mejilla–base (corte)", Math.hypot(Fd * 1e3 / (4 * aw * P.L_ch), Fd * 1e3 * hax / (4 * aw * P.L_ch ** 2 / 6)), "F", nCyc);
+
+    out.forEach((c) => {
+      if (c.kind === "info") c.st = "info";
+      else if (c.kind === "pend") c.st = "pend";
+      else if (!isFinite(c.fu)) c.st = "fail";
+      else if (c.kind === "geo" || c.sys === "giro") c.st = c.fu <= 1 ? "ok" : "fail";   // límites con margen propio
+      else c.st = c.fu <= 0.9 ? "ok" : c.fu <= 1 ? "warn" : "fail";
+    });
+    return out;
+  }
+
+  /* FEA de la mesa con caché: con apoyos rígidos la solución es lineal en q y, en flexión, σ ∝ q/t².
+     Se usa solo en la búsqueda del optimizador; la confirmación final corre una FEA nueva. */
+  function discCached(P, R, which, opts) {
+    if (!opts.cache) return runDisc(P, R, which, opts.coarse);
+    const RL = Math.min(P.D_load / 2, P.D_top / 2);
+    const q = which === "top" ? P.phi_d * R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P.e / RL) : R.q_max;
+    const t = which === "top" ? P.t_top : P.t_bot;
+    const key = which + JSON.stringify([P.N_rib, P.D_hub, P.D_top, P.rings, P.R_rib, P.R_pin, P.d_pin, P.N_pin, P.D_load, P.E, P.nu, !!opts.coarse]);
+    let c = opts.cache.get(key);
+    if (!c) { c = { q, t, res: runDisc(P, R, which, opts.coarse) }; opts.cache.set(key, c); }
+    const kq = q / c.q, ks = kq * (c.t / t) ** 2;
+    return Object.assign({}, c.res, { vmMax: c.res.vmMax * ks, lineMax: c.res.lineMax * kq, ringLine: c.res.ringLine.map((v) => v * kq),
+      ribLine: c.res.ribLine * kq, Fapp: c.res.Fapp * kq, Rsum: c.res.Rsum * kq, scaled: c.t !== t || c.q !== q });
+  }
+
+  /* ---------------- Análisis completo ---------------- */
+  function analyze(P, opts) {
+    opts = opts || {};
+    const R = compute(P);
+    let fea = null;
+    if (R.K.ok && !opts.noFEA) {
+      fea = { top: discCached(P, R, "top", opts), bot: discCached(P, R, "bot", opts), glob: globalBending(P, R), lift: runLift(P, R, opts.coarse) };
+    }
+    const checks = verifs(P, R, fea);
+    const bad = (sys) => checks.filter((c) => c.sys === sys && c.st === "fail");
+    const warn = (sys) => checks.filter((c) => c.sys === sys && c.st === "warn");
+    const verdict = {
+      gira: R.K.ok && bad("giro").length === 0,
+      estructura: bad("est").length === 0,
+      warnGiro: warn("giro").length, warnEst: warn("est").length,
+      pend: checks.filter((c) => c.st === "pend").length,
+      fuMax: Math.max(0, ...checks.filter((c) => c.fu != null && isFinite(c.fu) && c.kind === "fu").map((c) => c.fu)),
+    };
+    return { P, R, fea, checks, verdict };
+  }
+
+  return { prIn, pinClear, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G };
+})();
+if (false) module.exports = TT;
+
+/* TT300-C · Agentes deterministas del producto: validador de entradas, auditor normativo,
+   revisor cruzado, escenarios y optimizador de peso. Sin red ni LLM: mismas entradas, mismas salidas. */
+const AG = (() => {
+  const TT_ = (typeof TT !== "undefined") ? TT : require("../core/tt300c.js");
+  const D2R = Math.PI / 180;
+
+  /* ---------- 1. Validador de entradas ---------- */
+  function validate(P) {
+    const out = [];
+    const E = (msg) => out.push({ lvl: "error", msg }), W = (msg) => out.push({ lvl: "warn", msg });
+    TT_.PARAM_GROUPS.forEach((g) => g.p.forEach(([id, lab, u, , mn, mx]) => {
+      if (mn === undefined) return;
+      const v = P[id];
+      if (!isFinite(v)) E(lab + ": valor no numérico");
+      else if (v < mn || v > mx) E(`${lab} = ${v} ${u} fuera de rango [${mn}; ${mx}]`);
+    }));
+    const rings = TT_.parseRings(P.rings);
+    if (!rings.length) E("Defina al menos un radio de alma anular");
+    if (P.D_bore <= P.d_rod) E("El émbolo debe ser mayor que el vástago");
+    if (P.p_alarm > P.p_relief) E("La presión de alarma no puede superar la de alivio");
+    if (P.s_free >= P.stroke) E("El recorrido libre debe ser menor que la carrera");
+    if (P.N_pin % P.N_rib !== 0) {
+      const ok = []; for (let n = 4; n <= P.N_pin; n++) if (P.N_pin % n === 0) ok.push(n);
+      E(`N° de pasadores (${P.N_pin}) debe ser múltiplo del N° de nervios (${P.N_rib}) para la simetría del modelo FEA. Nervios válidos: ${ok.join(", ")}`);
+    }
+    if (P.R_pin + P.d_pin / 2 + 15 > P.D_top / 2) E("Los pasadores quedan a menos de 15 mm del borde de la mesa");
+    const rpr = TT_.prIn(P);
+    rings.forEach((r) => {
+      if (r <= P.D_hub / 2) E(`Alma R${r} dentro del cubo`);
+      if (r > rpr - 5) W(`Alma R${r} invade el anillo de pasadores (R ≥ ${rpr.toFixed(0)}): revisar holgura con los pasadores`);
+    });
+    if (rings.length && P.R_rib > Math.max(...rings) + 1) W("Los nervios terminan fuera del alma exterior");
+    if (P.D_top + 100 > P.B) E("La base debe sobresalir al menos 50 mm de la mesa por lado");
+    const xe = P.R_eye * Math.cos(P.a_eye * D2R), ye = P.R_eye * Math.sin(P.a_eye * D2R);
+    if (Math.max(Math.abs(xe), Math.abs(ye)) > P.B / 2 - 60) E("El ojal del cilindro queda fuera de la base (o a menos de 60 mm del borde)");
+    if (P.D_load > P.D_top) E("El diámetro de apoyo de la carga supera la mesa");
+    if (P.n_cyl === 1) W("Un solo cilindro no forma par: el pivote recibe la fuerza completa. Válvula de bloqueo obligatoria");
+    if (P.n_cyl % 2 === 1 && P.n_cyl > 1) W("N° impar de cilindros: verificar que el conjunto forme par puro");
+    if (P.t_pr < Math.max(P.t_top, P.t_bot)) W("El anillo de pasadores es más delgado que las planchas: se usa el mayor espesor");
+    if (!(P.Ch > 0)) W("Coeficiente sísmico sin definir (NCh2369): el caso sísmico queda pendiente");
+    const K = TT_.kinematics(P);
+    if (!K.ok) E(K.msg);
+    return out;
+  }
+
+  /* ---------- 2. Auditor normativo ---------- */
+  function audit(checks) {
+    const missing = checks.filter((c) => !c.ref || !c.formula || /tbd|pendiente de ref/i.test(c.ref));
+    const refs = {};
+    checks.forEach((c) => { if (c.ref) refs[c.ref] = (refs[c.ref] || 0) + 1; });
+    return { ok: missing.length === 0, missing, refs: Object.entries(refs).sort((a, b) => b[1] - a[1]) };
+  }
+
+  /* ---------- 3. Revisor cruzado: recálculo independiente con formulaciones distintas ---------- */
+  // Roark, 7.ª ed., Tabla 11.4 caso 8a (placa rectangular empotrada, carga uniforme): σ_borde = β1·q·b²/t²
+  const ROARK = [[1.0, 0.3078], [1.2, 0.3834], [1.4, 0.4356], [1.6, 0.4680], [1.8, 0.4872], [2.0, 0.4974], [1e9, 0.5]];
+  function beta1(ar) { for (let i = 1; i < ROARK.length; i++) if (ar <= ROARK[i][0]) { const [a0, b0] = ROARK[i - 1], [a1, b1] = ROARK[i]; return a1 > 1e8 ? b1 : b0 + (b1 - b0) * (ar - a0) / (a1 - a0); } return 0.5; }
+  function crossCheck(A) {
+    const P = A.P, R = A.R, out = [];
+    const add = (name, a, b, tol, note) => out.push({ name, tool: a, indep: b, d: (a - b) / (Math.abs(b) || 1) * 100, tol, ok: Math.abs(a - b) <= tol / 100 * Math.abs(b) + 1e-9, note });
+    if (!R.K.ok) return out;
+    // (a) Fuerza de diseño por trabajos virtuales: F = T / (dL/dθ), con coordenadas explícitas
+    const E = [P.R_eye * Math.cos(P.a_eye * D2R), P.R_eye * Math.sin(P.a_eye * D2R)];
+    const Lof = (th) => { const p = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)]; return Math.hypot(p[0] - E[0], p[1] - E[1]); };
+    const th0 = P.a_eye * D2R - R.K.de, pitch = 2 * Math.PI / P.N_pin;
+    let dmin = Infinity;
+    for (let i = 0; i <= 200; i++) { const th = th0 - pitch * i / 200, h = 1e-6; dmin = Math.min(dmin, Math.abs((Lof(th - h) - Lof(th + h)) / (2 * h))); }
+    const Fvw = R.cd.T * 1e3 / (P.n_cyl * dmin * P.eta_c);
+    add("Fuerza de diseño por cilindro (trabajos virtuales)", R.cd.F, Fvw, 0.1, "kN");
+    // (b) Carrera requerida por bisección directa sobre |P − E|
+    const target = P.L0 + P.s_free + P.d_dog;
+    const fL = (th) => Lof(th) - target;
+    let a = P.a_eye * D2R - 1e-6, b = P.a_eye * D2R - Math.PI + 1e-6;
+    for (let i = 0; i < 200; i++) { const m = (a + b) / 2; if (fL(m) > 0) b = m; else a = m; }
+    const thE = (a + b) / 2, sreq = Lof(thE - pitch) - P.d_dog - P.L0;
+    add("Carrera requerida (bisección)", R.K.s_req, sreq, 0.1, "mm");
+    // (c) Radio de fricción por integración numérica en malla polar
+    let num = 0, den = 0; const nr = 400;
+    for (let i = 0; i < nr; i++) { const r = R.Ri + (R.Ro - R.Ri) * (i + 0.5) / nr, dA = r * (R.Ro - R.Ri) / nr; num += r * dA; den += dA; }
+    add("Radio de fricción con presión uniforme r_u", R.r_u, num / den, 0.05, "mm");
+    // (d) Presión máxima por Navier con inercia integrada numéricamente
+    let I = 0; for (let i = 0; i < nr; i++) { const r = R.Ri + (R.Ro - R.Ri) * (i + 0.5) / nr; I += Math.PI * r ** 3 * (R.Ro - R.Ri) / nr; }
+    const qN = R.ND * 1e3 / R.Ac + R.ND * 1e3 * P.e * R.Ro / I;
+    add("Presión de contacto máxima (Navier)", R.q_max, qN, 0.2, "MPa");
+    if (A.fea) {
+      // (e) Equilibrio de los modelos FEA
+      ["top", "bot"].forEach((w) => add(`Equilibrio FEA plancha ${w === "top" ? "superior" : "inferior"} ΣR/ΣF`, A.fea[w].Rsum, A.fea[w].Fapp, 0.5, "kN"));
+      add("Equilibrio FEA izaje ΣR/ΣF", A.fea.lift.Rsum, A.fea.lift.Fapp, 0.5, "kN");
+      // (f) Plancha inferior: orden de magnitud frente a Roark (paño empotrado)
+      const rings = TT_.parseRings(P.rings).filter((r) => r > P.D_hub / 2);
+      const radii = [P.D_hub / 2, ...rings];
+      let sR = 0;
+      for (let i = 0; i < radii.length - 1; i++) {
+        const a1 = radii[i + 1] - radii[i], rm = (radii[i + 1] + radii[i]) / 2, b1 = 2 * Math.PI * rm / P.N_rib;
+        const bb = Math.min(a1, b1), ar = Math.max(a1, b1) / bb;
+        sR = Math.max(sR, beta1(ar) * R.q_max * bb * bb / P.t_bot ** 2);
+      }
+      const ratio = A.fea.bot.vmMax / sR;
+      out.push({ name: "Plancha inferior: FEA / Roark (paño empotrado)", tool: A.fea.bot.vmMax, indep: sR, d: (ratio - 1) * 100, tol: null, ok: ratio > 0.5 && ratio < 2.0, note: "MPa; aceptable si 0,5 < razón < 2,0" });
+      // (g) Desequilibrio de la solución axisimétrica global
+      out.push({ name: "Flexión global: desequilibrio en el borde", tool: A.fea.glob.imbalance, indep: 0, d: A.fea.glob.imbalance / (R.ND) * 100, tol: 0.1, ok: Math.abs(A.fea.glob.imbalance) <= 1e-3 * R.ND, note: "kN" });
+    }
+    // (h) Masa de las planchas por área integrada
+    const Rt = P.D_top / 2, rpr = TT_.prIn(P);
+    const mTop = 7.85e-6 * (Math.PI * Rt * Rt * P.t_top + Math.PI * (Rt * Rt - rpr * rpr) * Math.max(0, P.t_pr - P.t_top) - (P.N_pin * Math.PI / 4 * P.d_pin ** 2 + Math.PI / 4 * (P.D_piv + 30) ** 2) * P.t_top);
+    add("Masa plancha superior", R.m.top, mTop, 0.01, "kg");
+    return out;
+  }
+
+  /* ---------- 4. Escenarios ---------- */
+  function scenarios(A) {
+    const P = A.P, R = A.R;
+    if (!R.K.ok) return { mu: [], rs: [], grid: [] };
+    const mus = [0.10, 0.15, 0.20, 0.25, 0.30], rs = [["r_u", R.r_u], ["r_ef", P.r_ef], ["R", R.Ro]];
+    const grid = mus.map((mu) => rs.map(([, r]) => {
+      const T = R.torque(mu, r), F = R.Fcyl(T, R.K.armMin);
+      return { mu, r, F, p: F * 1e3 / R.A * 10, FS: R.Fstall / F };
+    }));
+    const loads = [0.8, 1.0, 1.2].map((k) => {
+      const Q = Object.assign({}, P, { W_tf: P.W_tf * k });
+      const RR = TT_.compute(Q);
+      return { W: Q.W_tf, FS: RR.cd ? RR.cd.FS : NaN, p: RR.cd ? RR.cd.p : NaN, muMax: RR.muMax(P.r_ef) };
+    });
+    return { mus, rs, grid, loads };
+  }
+
+  /* ---------- 5. Optimizador de peso ---------- */
+  const range = (a, b, s) => { const o = []; for (let v = a; v <= b + 1e-9; v += s) o.push(+v.toFixed(3)); return o; };
+  const VARS = [
+    ["t_top", [10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], true],
+    ["t_bot", [10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], true],
+    ["t_base", [8, 10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40], true],
+    ["t_pr", [16, 20, 22, 25, 30, 32, 35, 40, 45, 50, 55, 60], false],
+    ["h_disc", range(100, 300, 5), true],
+    ["t_web", [8, 10, 12, 15, 16, 20, 25], true],
+    ["t_rib", [8, 10, 12, 15, 16, 20, 25], true],
+    ["d_pin", range(50, 130, 5), true],
+    ["t_ch", [12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], false],
+    ["L_ch", range(150, 600, 25), false],
+    ["d_pp", range(40, 120, 5), false],
+    ["dog_b", range(40, 150, 5), false],
+    ["dog_h", range(30, 150, 5), false],
+    ["w_br", [6, 8, 10, 12, 14, 16, 18, 20], false],
+    ["w_web", [4, 5, 6, 8, 10, 12], false],
+  ];
+  function feasible(A, target) {
+    return A.checks.every((c) => {
+      if (c.st === "info" || c.st === "pend") return true;
+      if (c.st === "fail") return false;
+      return c.kind === "geo" || c.sys === "giro" ? true : c.fu <= target;
+    });
+  }
+  function* optimizeGen(P0, opts) {
+    opts = Object.assign({ target: 0.90, maxEval: 400 }, opts || {});
+    let P = Object.assign({}, P0), evals = 0;
+    const cache = new Map();
+    const run = (Q, fresh) => { evals++; return fresh ? TT_.analyze(Q) : TT_.analyze(Q, { cache }); };
+    const tgt = opts.target;
+    let A = run(P);
+    // fase 1: factibilidad, subir variables hasta cumplir
+    let guard = 0;
+    while (!feasible(A, tgt) && guard++ < 60) {
+      let moved = false;
+      for (const [k, list] of VARS) {
+        const i = list.findIndex((v) => v >= P[k] - 1e-9);
+        if (i >= 0 && i < list.length - 1) {
+          const Q = Object.assign({}, P, { [k]: list[i + 1] }), B = run(Q);
+          const bad = (X) => X.checks.filter((c) => c.st === "fail" || (c.kind === "fu" && c.sys === "est" && c.fu > tgt)).reduce((s, c) => s + (isFinite(c.fu) ? c.fu : 10), 0);
+          if (bad(B) < bad(A) - 1e-6) { P = Q; A = B; moved = true; yield { phase: "factibilidad", P, A, evals }; }
+        }
+        if (feasible(A, tgt)) break;
+      }
+      if (!moved) break;
+    }
+    if (!feasible(A, tgt)) { yield { phase: "fin", P, A: run(P, true), evals, ok: false, msg: "No se encontró una configuración factible con las listas de tamaños" }; return; }
+    // fase 2: descenso por coordenadas hacia la menor masa
+    let improved = true, pass = 0;
+    while (improved && pass++ < 6 && evals < opts.maxEval) {
+      improved = false;
+      for (const [k, list] of VARS) {
+        let i = list.findIndex((v) => v >= P[k] - 1e-9);
+        while (i > 0 && evals < opts.maxEval) {
+          const Q = Object.assign({}, P, { [k]: list[i - 1] });
+          if (TT_.masses(Q).total >= TT_.masses(P).total - 1e-6 && k !== "h_disc") { break; }
+          const B = run(Q);
+          if (feasible(B, tgt) && B.R.m.total <= A.R.m.total + 1e-6) { P = Q; A = B; i--; improved = true; yield { phase: "descenso", P, A, evals, k }; }
+          else break;
+        }
+      }
+    }
+    // fase 3: confirmación con malla fina; si algo falla, subir la variable asociada
+    let F = run(P, true), fix = 0;
+    while (!feasible(F, opts.target) && fix++ < 20) {
+      const bad = F.checks.filter((c) => c.st === "fail" || (c.kind === "fu" && c.sys === "est" && c.fu > opts.target));
+      const map = (c) => /superior/.test(c.name) ? "t_top" : /inferior/.test(c.name) ? "t_bot" : /Izaje/.test(c.name) ? "t_base" : /nervios/.test(c.name) ? "t_rib" : /almas|alma\//.test(c.name) ? "w_web" : null;
+      const k = bad.map(map).find(Boolean);
+      if (!k) break;
+      const list = VARS.find((v) => v[0] === k)[1], i = list.findIndex((v) => v >= P[k] - 1e-9);
+      if (i < 0 || i >= list.length - 1) break;
+      P = Object.assign({}, P, { [k]: list[i + 1] });
+      F = run(P, true);
+    }
+    yield { phase: "fin", P, A: F, evals, ok: feasible(F, opts.target) };
+  }
+  function optimize(P0, opts) { let last; for (const s of optimizeGen(P0, opts)) last = s; return last; }
+
+  return { validate, audit, crossCheck, scenarios, optimize, optimizeGen, VARS, feasible };
+})();
+if (false) module.exports = AG;
+
+/* TT300-C · Interfaz: formulario, recálculo, dibujos, tablas y optimizador. */
+(() => {
+  const LS = "tt300c-params-v1", LST = "tt300c-theme";
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
+  const DEF = TT.defaults();
+  let P = Object.assign({}, DEF);
+  try { const s = JSON.parse(store.get(LS) || "null"); if (s) Object.keys(DEF).forEach((k) => { if (k in s) P[k] = s[k]; }); } catch (e) { }
+  let A = null, X = null, AU = null, SC = null, VAL = [], optRes = null, optRunning = false;
+  const $ = (s) => document.querySelector(s);
+  const D2R = Math.PI / 180;
+  const REF = { KIET: 2158, TT300B: 5354 };
+
+  /* ---------- formato: 2–3 cifras significativas, coma decimal ---------- */
+  function fmt(v, sig) {
+    if (v == null || !isFinite(v)) return "—";
+    sig = sig || 3;
+    const a = Math.abs(v);
+    let d = a >= 1000 ? 0 : a === 0 ? 0 : Math.max(0, Math.min(3, sig - 1 - Math.floor(Math.log10(a))));
+    return v.toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  const fu2 = (v) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const ST = { ok: "Cumple", warn: "Monitoreo", fail: "No cumple", info: "Info", pend: "Pendiente" };
+
+  /* ---------- pestañas ---------- */
+  const tabs = [...document.querySelectorAll(".tab")];
+  let cur = (location.hash || "#resumen").slice(1);
+  if (!tabs.some((t) => t.dataset.t === cur)) cur = "resumen";
+  $("#tabs").innerHTML = tabs.map((t) => `<button data-t="${t.dataset.t}">${t.dataset.l}</button>`).join("");
+  function showTab(t) {
+    cur = t;
+    tabs.forEach((s) => s.classList.toggle("on", s.dataset.t === t));
+    document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+    try { history.replaceState(null, "", "#" + t); } catch (e) { }
+  }
+  $("#tabs").addEventListener("click", (e) => { if (e.target.dataset.t) showTab(e.target.dataset.t); });
+  showTab(cur);
+
+  /* ---------- tema ---------- */
+  const th = store.get(LST); if (th) document.documentElement.dataset.theme = th;
+  $("#bTheme").onclick = () => {
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const now = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+    const nx = now === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = nx; store.set(LST, nx); renderAll();
+  };
+
+  /* ---------- formulario ---------- */
+  function buildForm() {
+    $("#form").innerHTML = TT.PARAM_GROUPS.map((g, gi) => `<details ${gi < 5 ? "open" : ""}><summary>${esc(g.t)}</summary>${g.p.map(([id, lab, u, def, mn, mx, st]) => {
+      const txt = typeof def === "string";
+      return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
+      <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
+    }).join("")}</details>`).join("");
+  }
+  let tmr = null;
+  $("#form").addEventListener("input", (e) => {
+    const row = e.target.closest(".prm"); if (!row) return;
+    const id = row.dataset.id, txt = typeof DEF[id] === "string";
+    P[id] = txt ? e.target.value : parseFloat(e.target.value);
+    row.classList.toggle("chg", P[id] !== DEF[id]);
+    clearTimeout(tmr); $("#busy").textContent = "Calculando…";
+    tmr = setTimeout(recalc, 380);
+  });
+  $("#bReset").onclick = () => { P = Object.assign({}, DEF); buildForm(); recalc(); };
+  $("#bExp").onclick = () => {
+    const blob = new Blob([JSON.stringify(P, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "TT300-C_parametros.json";
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+  $("#bImp").onclick = () => $("#fImp").click();
+  $("#fImp").onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    f.text().then((t) => { const s = JSON.parse(t); Object.keys(DEF).forEach((k) => { if (k in s) P[k] = s[k]; }); buildForm(); recalc(); }).catch(() => alert("Archivo JSON no válido"));
+  };
+  $("#bOpt").onclick = () => { showTab("opt"); runOpt(); };
+
+  /* ---------- cálculo ---------- */
+  function recalc() {
+    store.set(LS, JSON.stringify(P));
+    VAL = AG.validate(P);
+    const t0 = performance.now();
+    if (VAL.some((v) => v.lvl === "error")) { A = null; }
+    else {
+      try { A = TT.analyze(P); X = AG.crossCheck(A); AU = AG.audit(A.checks); SC = AG.scenarios(A); }
+      catch (err) { A = null; VAL.push({ lvl: "error", msg: "Error de cálculo: " + err.message }); }
+    }
+    $("#busy").textContent = A ? `Recalculado en ${fmt(performance.now() - t0, 3)} ms` : "Corrija los datos marcados";
+    renderAll();
+  }
+
+  /* ---------- encabezado ---------- */
+  function renderBadges() {
+    if (!A) { $("#badges").innerHTML = `<span class="badge b-fail">Datos inválidos</span>`; return; }
+    const v = A.verdict;
+    const fuEst = Math.max(0, ...A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && isFinite(c.fu)).map((c) => c.fu));
+    const nF = A.checks.filter((c) => c.st === "fail").length;
+    $("#badges").innerHTML = [
+      `<span class="badge ${v.gira ? "b-ok" : "b-fail"}">${v.gira ? "✓ GIRA" : "✗ NO GIRA"} · FS ${fmt(A.R.cd ? A.R.cd.FS : NaN, 3)}</span>`,
+      `<span class="badge ${v.estructura ? (v.warnEst ? "b-warn" : "b-ok") : "b-fail"}">${v.estructura ? "✓ ESTRUCTURA CUMPLE" : `✗ ${nF} NO CUMPLE`} · FU ${fu2(fuEst)}</span>`,
+      `<span class="badge b-info">Masa ${fmt(A.R.m.total, 4)} kg</span>`,
+      v.pend ? `<span class="badge b-pend">${v.pend} pendiente</span>` : "",
+      X && X.every((c) => c.ok) && AU && AU.ok ? `<span class="badge b-ok">Revisión cruzada OK</span>` : `<span class="badge b-warn">Revisar agentes</span>`,
+    ].join("");
+  }
+
+  /* ---------- Resumen ---------- */
+  function msgs() {
+    return VAL.map((v) => `<div class="msg ${v.lvl}">${v.lvl === "error" ? "Error" : "Aviso"}: ${esc(v.msg)}</div>`).join("") || `<div class="msg ok">Validador de entradas: sin observaciones.</div>`;
+  }
+  function renderResumen() {
+    const el = document.querySelector('section[data-t="resumen"]');
+    if (!A) { el.innerHTML = msgs(); return; }
+    const R = A.R, K = R.K, c = (id) => R.cases.find((x) => x.id === id);
+    const est = A.checks.filter((x) => x.sys === "est" && x.kind === "fu" && isFinite(x.fu)).sort((a, b) => b.fu - a.fu);
+    const notOk = A.checks.filter((x) => x.st === "fail" || x.st === "warn");
+    const bar = (v, ref, col) => `<div class="fu" style="height:10px"><i style="width:${Math.min(100, v / ref * 100)}%;background:${col}"></i></div>`;
+    const mx = Math.max(R.m.total, REF.TT300B);
+    el.innerHTML = msgs() + `
+    <div class="grid" style="margin-top:10px">
+      <div class="card"><h3>¿Gira?</h3><div class="big" style="color:var(${A.verdict.gira ? "--ok" : "--fail"})">${A.verdict.gira ? "Sí, con margen" : "No asegurado"}</div>
+        <div class="kv" style="margin-top:6px">
+          <span>FS diseño (μ ${fmt(P.mu_d)}, r ${fmt(P.r_ef)} mm)</span><span>${fmt(c("dis").FS)}</span>
+          <span>Presión de diseño / alarma</span><span>${fmt(c("dis").p)} / ${fmt(P.p_alarm)} bar</span>
+          <span>FS contaminado (μ ${fmt(P.mu_cont)})</span><span>${fmt(c("cont").FS)}</span>
+          <span>FS contacto en el borde</span><span>${fmt(c("borde").FS)}</span>
+          <span>Margen de carrera</span><span>${fmt(K.margin)} mm</span>
+          <span>μ máx vencible (r_ef, alivio)</span><span>${fmt(R.muMax(P.r_ef))}</span>
+          <span>Tiempo por vuelta</span><span>${fmt(R.tRev)} min</span>
+        </div></div>
+      <div class="card"><h3>Estructura</h3><div class="big" style="color:var(${A.verdict.estructura ? "--ok" : "--fail"})">${A.verdict.estructura ? "Cumple" : "No cumple"}</div>
+        <div class="kv" style="margin-top:6px">
+          <span>FU máximo</span><span>${est.length ? fu2(est[0].fu) : "—"}</span>
+          <span>Gobierna</span><span style="font-family:var(--sans);text-align:right">${est.length ? esc(est[0].grp + ": " + est[0].name) : ""}</span>
+          <span>No cumple / monitoreo</span><span>${A.checks.filter((x) => x.st === "fail").length} / ${A.checks.filter((x) => x.st === "warn").length}</span>
+          <span>Pendientes</span><span>${A.verdict.pend}</span>
+        </div>
+        ${notOk.length ? `<div class="note">${notOk.map((x) => `<span class="st st-${x.st}">${ST[x.st]}</span> ${esc(x.grp)} · ${esc(x.name)} (FU ${fu2(x.fu)})`).join("<br>")}</div>` : ""}</div>
+      <div class="card"><h3>Masa del equipo</h3><div class="big">${fmt(R.m.total, 4)} kg</div>
+        <div class="kv" style="margin-top:6px"><span>Este diseño</span><span>${fmt(R.m.total, 4)} kg</span></div>${bar(R.m.total, mx, "var(--acc)")}
+        <div class="kv" style="margin-top:6px"><span>Referencia KIET 400T (fabricante)</span><span>${fmt(REF.KIET, 4)} kg</span></div>${bar(REF.KIET, mx, "var(--steel)")}
+        <div class="kv" style="margin-top:6px"><span>TT300-B Rev. 0 (carro guiado)</span><span>${fmt(REF.TT300B, 4)} kg</span></div>${bar(REF.TT300B, mx, "var(--steel)")}
+        <div class="note">Mesa ${fmt(R.m.disc, 4)} kg · base ${fmt(R.m.base + R.m.rim, 4)} kg · cilindros ${fmt(R.m.cyl, 3)} kg</div></div>
+      <div class="card"><h3>Cargas</h3><div class="kv">
+          <span>W (WLL)</span><span>${fmt(R.W, 4)} kN</span>
+          <span>N = W + W_mesa</span><span>${fmt(R.N, 4)} kN</span>
+          <span>N_D = φd·W + W_mesa</span><span>${fmt(R.ND, 4)} kN</span>
+          <span>q medio / q máx interfaz</span><span>${fmt(R.q_avg)} / ${fmt(R.q_max)} MPa</span>
+          <span>F calado por cilindro (${fmt(P.p_relief)} bar)</span><span>${fmt(R.Fstall)} kN</span>
+          <span>Brazo mínimo de la fuerza</span><span>${fmt(K.armMin, 4)} mm</span>
+        </div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>`;
+  }
+  function casesTable() {
+    const R = A.R;
+    return `<div class="scroll"><table><tr><th>Caso</th><th class="n">μ</th><th class="n">r (mm)</th><th class="n">T (kN·m)</th><th class="n">F/cil (kN)</th><th class="n">p (bar)</th><th class="n">FS</th><th>Resultado</th></tr>
+      ${R.cases.map((c) => `<tr><td>${esc(c.name)}</td><td class="n">${fmt(c.mu)}</td><td class="n">${fmt(c.r, 4)}</td><td class="n">${fmt(c.T)}</td><td class="n">${fmt(c.F)}</td><td class="n">${fmt(c.p)}</td><td class="n">${fmt(c.FS)}</td>
+      <td><span class="st st-${c.id === "seco" ? (c.turns ? "info" : "info") : c.turns ? (c.p > P.p_alarm ? "warn" : "ok") : "fail"}">${c.turns ? (c.p > P.p_alarm ? "Gira (sobre alarma)" : "Gira") : "No gira"}</span></td></tr>`).join("")}</table></div>
+      <div class="note">F/cil = T/(n·brazo_mín·η_c). Fuerza de calado: ${fmt(R.Fstall)} kN a ${fmt(P.p_relief)} bar. El caso de acero seco es referencial: la operación exige lubricación.</div>`;
+  }
+
+  /* ---------- Modelo: planta y corte ---------- */
+  function planSVG() {
+    const R = A.R, K = R.K, B = P.B, S = B / 2 + 160;
+    const y = (v) => -v;
+    const o = [];
+    o.push(`<rect x="${-B / 2}" y="${-B / 2}" width="${B}" height="${B}" fill="var(--soft)" stroke="var(--steel)" stroke-width="4"/>`);
+    if (P.rim_t > 0) o.push(`<rect x="${-B / 2 + P.rim_t / 2}" y="${-B / 2 + P.rim_t / 2}" width="${B - P.rim_t}" height="${B - P.rim_t}" fill="none" stroke="var(--steel)" stroke-width="${P.rim_t}" opacity=".6"/>`);
+    const Rt = P.D_top / 2;
+    o.push(`<circle r="${Rt}" fill="var(--panel)" stroke="var(--ink)" stroke-width="5"/>`);
+    o.push(`<circle r="${TT.prIn(P)}" fill="none" stroke="var(--steel)" stroke-width="2" stroke-dasharray="14 10"/>`);
+    TT.parseRings(P.rings).forEach((r) => o.push(`<circle r="${r}" fill="none" stroke="var(--steel)" stroke-width="${Math.max(3, P.t_web)}" stroke-dasharray="20 12" opacity=".8"/>`));
+    for (let k = 0; k < P.N_rib; k++) { const a = 2 * Math.PI * k / P.N_rib; o.push(`<line x1="${P.D_hub / 2 * Math.cos(a)}" y1="${y(P.D_hub / 2 * Math.sin(a))}" x2="${P.R_rib * Math.cos(a)}" y2="${y(P.R_rib * Math.sin(a))}" stroke="var(--steel)" stroke-width="${Math.max(3, P.t_rib)}" stroke-dasharray="20 12" opacity=".8"/>`); }
+    o.push(`<circle r="${P.D_hub / 2}" fill="none" stroke="var(--steel)" stroke-width="4"/><circle r="${P.D_piv / 2}" fill="var(--steel)" opacity=".5"/>`);
+    for (let k = 0; k < P.N_pin; k++) { const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin; o.push(`<circle cx="${P.R_pin * Math.cos(a)}" cy="${y(P.R_pin * Math.sin(a))}" r="${P.d_pin / 2}" fill="var(--ink2)"/>`); }
+    // cáncamos
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * (B / 2 - P.c_lug) - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
+    // cilindros
+    for (let i = 0; i < P.n_cyl; i++) {
+      const aE = (P.a_eye + 360 * i / P.n_cyl) * D2R, E = [P.R_eye * Math.cos(aE), P.R_eye * Math.sin(aE)];
+      const pos = (del, ghost) => {
+        const th = aE - del, Pp = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)];
+        const L = Math.hypot(Pp[0] - E[0], Pp[1] - E[1]), u = [(Pp[0] - E[0]) / L, (Pp[1] - E[1]) / L];
+        const Rp = [Pp[0] - P.d_dog * u[0], Pp[1] - P.d_dog * u[1]];
+        const Lb = Math.min(P.L0 * 0.82, L - P.d_dog);
+        const Bd = [E[0] + Lb * u[0], E[1] + Lb * u[1]];
+        const op = ghost ? 0.35 : 1;
+        return `<g opacity="${op}"><line x1="${E[0]}" y1="${y(E[1])}" x2="${Bd[0]}" y2="${y(Bd[1])}" stroke="var(--acc)" stroke-width="${P.D_body}" stroke-linecap="round" opacity=".55"/>
+          <line x1="${Bd[0]}" y1="${y(Bd[1])}" x2="${Rp[0]}" y2="${y(Rp[1])}" stroke="var(--acc)" stroke-width="${P.d_rod}"/>
+          <line x1="${Rp[0]}" y1="${y(Rp[1])}" x2="${Pp[0]}" y2="${y(Pp[1])}" stroke="var(--load)" stroke-width="${P.dog_b}" stroke-linecap="round"/>
+          <circle cx="${Rp[0]}" cy="${y(Rp[1])}" r="${P.d_pp / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="4"/>
+          <circle cx="${Pp[0]}" cy="${y(Pp[1])}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/></g>`;
+      };
+      o.push(pos(K.dend, true), pos(K.de, false));
+      o.push(`<circle cx="${E[0]}" cy="${y(E[1])}" r="${P.d_pp / 2 + P.t_ch}" fill="var(--panel)" stroke="var(--ink)" stroke-width="6"/><circle cx="${E[0]}" cy="${y(E[1])}" r="${P.d_pp / 2}" fill="var(--ink)"/>`);
+      if (i === 0) {
+        const th = aE - K.de, Pp = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)];
+        const L = Math.hypot(Pp[0] - E[0], Pp[1] - E[1]), u = [(Pp[0] - E[0]) / L, (Pp[1] - E[1]) / L];
+        const t = -(E[0] * u[0] + E[1] * u[1]), F = [E[0] + t * u[0], E[1] + t * u[1]];
+        o.push(`<line x1="${Pp[0]}" y1="${y(Pp[1])}" x2="${F[0]}" y2="${y(F[1])}" stroke="var(--load)" stroke-width="3" stroke-dasharray="16 10"/>`);
+        o.push(`<line x1="0" y1="0" x2="${F[0]}" y2="${y(F[1])}" stroke="var(--load)" stroke-width="3"/>`);
+        o.push(`<text x="${F[0] / 2 + 20}" y="${y(F[1] / 2) - 10}" font-size="46" fill="var(--load)">brazo ${fmt(Math.hypot(F[0], F[1]), 3)} mm</text>`);
+      }
+    }
+    o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
+    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">Uña al tomar el pasador (sólido) y al final de la carrera (tenue) · giro horario en planta</text>`);
+    return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
+  }
+  function sectionSVG() {
+    const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot);
+    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tb + hd + 160;
+    const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
+    const o = [];
+    o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
+    if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
+    const Rt = P.D_top / 2, rpr = TT.prIn(P);
+    // plancha inferior y superior con anillo
+    o.push(`<rect x="${X(r0)}" y="${Z(tb + P.t_bot)}" width="${X(rpr) - X(r0)}" height="${P.t_bot}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(rpr)}" y="${Z(tb + tpr)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(r0)}" y="${Z(tb + hd)}" width="${X(rpr) - X(r0)}" height="${P.t_top}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(rpr)}" y="${Z(tb + hd)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
+    TT.parseRings(P.rings).filter((r) => r > r0).forEach((r) => o.push(`<rect x="${X(r - P.t_web / 2)}" y="${Z(tb + hd - P.t_top)}" width="${P.t_web}" height="${hd - P.t_top - P.t_bot}" fill="var(--ink2)" opacity=".75"/>`));
+    o.push(`<rect x="${X(P.R_pin - P.d_pin / 2)}" y="${Z(tb + hd)}" width="${P.d_pin}" height="${hd}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
+    const zc = tb + R.hax;
+    o.push(`<line x1="${X(r0)}" y1="${Z(zc)}" x2="${X(r1)}" y2="${Z(zc)}" stroke="var(--load)" stroke-width="1.5" stroke-dasharray="10 6"/>`);
+    o.push(`<rect x="${X(P.R_pin + P.d_pin / 2)}" y="${Z(zc + P.dog_h / 2)}" width="${Math.min(P.d_dog, r1 - P.R_pin - P.d_pin / 2 - 10)}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
+    const bx = P.R_pin + P.d_pin / 2 + Math.min(P.d_dog, 200);
+    if (bx + 40 < r1) o.push(`<rect x="${X(bx)}" y="${Z(zc + P.D_body / 2)}" width="${X(r1) - X(bx)}" height="${P.D_body}" fill="var(--acc)" opacity=".35" stroke="var(--acc)"/>`);
+    const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
+    o.push(dim(r0 + 8, tb, tb + hd, `h ${fmt(hd, 3)}`, 6));
+    o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
+    o.push(dim(P.R_pin, tb + tpr, tb + hd - tpr, `libre ${fmt(TT.pinClear(P))}`, -P.d_pin / 2 - 8));
+    o.push(`<text x="${X(Rt) + 8}" y="${Z(tb + hd) + 14}" font-size="13">anillo ${fmt(tpr)}</text>`);
+    o.push(`<text x="${X(r0) + 4}" y="${Z(tb + hd) - 8}" font-size="13">sup. ${fmt(P.t_top)} · inf. ${fmt(P.t_bot)} · almas ${fmt(P.t_web)}</text>`);
+    o.push(`<text x="${X(r1) - 4}" y="${Z(zc) - 6}" font-size="13" text-anchor="end" fill="var(--load)">eje cilindro +${fmt(R.hax)}</text>`);
+    o.push(`<text x="${X(P.R_pin)}" y="${Z(-10) + 22}" font-size="13" text-anchor="middle">R${fmt(P.R_pin, 4)}</text>`);
+    return `<svg viewBox="0 0 ${W} ${Hs + 20}" role="img" aria-label="Corte radial en el borde">${o.join("")}</svg>`;
+  }
+  function renderModelo() {
+    const el = document.querySelector('section[data-t="modelo"]');
+    if (!A) { el.innerHTML = msgs(); return; }
+    el.innerHTML = `<div class="grid" style="grid-template-columns:minmax(300px,1.3fr) minmax(280px,1fr)">
+      <div class="card"><h3>Planta</h3>${planSVG()}</div>
+      <div class="card"><h3>Corte radial en el borde (escala 1:1 relativa)</h3>${sectionSVG()}
+        <div class="kv" style="margin-top:10px">
+          <span>Ángulo de toma δ_e / fin δ_f</span><span>${fmt(A.R.K.de / D2R)}° / ${fmt(A.R.K.dend / D2R)}°</span>
+          <span>Brazo mín / máx</span><span>${fmt(A.R.K.armMin, 4)} / ${fmt(A.R.K.armMax, 4)} mm</span>
+          <span>Carrera requerida (libre + paso)</span><span>${fmt(A.R.K.s_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
+          <span>Cuerda / hueco entre pasadores</span><span>${fmt(A.R.K.chord, 4)} / ${fmt(A.R.K.gap, 4)} mm</span>
+          <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
+        </div></div></div>`;
+  }
+
+  /* ---------- Accionamiento ---------- */
+  function lineChart(series, opt) {
+    const Wd = 640, Hd = 300, m = { l: 56, r: 16, t: 14, b: 38 };
+    const xs = series.flatMap((s) => s.pts.map((p) => p[0])).concat(opt.xs || []);
+    const ys = series.flatMap((s) => s.pts.map((p) => p[1])).concat(opt.ys || []);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = 0, y1 = Math.max(...ys) * 1.08;
+    const X = (v) => m.l + (v - x0) / (x1 - x0 || 1) * (Wd - m.l - m.r), Y = (v) => Hd - m.b - (v - y0) / (y1 - y0 || 1) * (Hd - m.t - m.b);
+    const o = [];
+    for (let i = 0; i <= 5; i++) { const v = y0 + (y1 - y0) * i / 5; o.push(`<line x1="${m.l}" x2="${Wd - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${Y(v) + 4}" font-size="11" text-anchor="end">${fmt(v, 3)}</text>`); }
+    for (let i = 0; i <= 5; i++) { const v = x0 + (x1 - x0) * i / 5; o.push(`<text x="${X(v)}" y="${Hd - m.b + 16}" font-size="11" text-anchor="middle">${fmt(v, 3)}</text>`); }
+    (opt.hl || []).forEach((h) => o.push(`<line x1="${m.l}" x2="${Wd - m.r}" y1="${Y(h.v)}" y2="${Y(h.v)}" stroke="${h.c}" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${Wd - m.r - 4}" y="${Y(h.v) - 5}" font-size="11" text-anchor="end" fill="${h.c}">${h.t}</text>`));
+    (opt.vl || []).forEach((h) => o.push(`<line y1="${m.t}" y2="${Hd - m.b}" x1="${X(h.v)}" x2="${X(h.v)}" stroke="${h.c}" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${X(h.v) - 4}" y="${Hd - m.b - 6}" font-size="11" text-anchor="end" fill="${h.c}">${h.t}</text>`));
+    series.forEach((s) => o.push(`<polyline fill="none" stroke="${s.c}" stroke-width="2" points="${s.pts.map((p) => X(p[0]) + "," + Y(p[1])).join(" ")}"/>`));
+    o.push(`<text x="${(m.l + Wd - m.r) / 2}" y="${Hd - 6}" font-size="12" text-anchor="middle">${opt.xl}</text><text x="12" y="${(m.t + Hd - m.b) / 2}" font-size="12" text-anchor="middle" transform="rotate(-90 12 ${(m.t + Hd - m.b) / 2})">${opt.yl}</text>`);
+    const leg = series.map((s, i) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:16px;height:3px;background:${s.c};display:inline-block"></i>${s.n}</span>`).join("");
+    return `<svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${opt.yl} vs ${opt.xl}">${o.join("")}</svg><div class="note">${leg}</div>`;
+  }
+  function renderGiro() {
+    const el = document.querySelector('section[data-t="giro"]');
+    if (!A) { el.innerHTML = msgs(); return; }
+    const R = A.R, K = R.K;
+    const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(P.mu_cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(P.mu_d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
+      const cs = R.cases.find((x) => x.id === id);
+      return { n, c, pts: K.pts.map((q) => [q.s, R.Fcyl(cs.T, q.arm)]) };
+    });
+    const chart = lineChart(ser, { xl: "Extensión del cilindro desde retraído (mm)", yl: "Fuerza por cilindro (kN)", ys: [R.Fstall], xs: [0, P.stroke],
+      hl: [{ v: R.Fstall, c: "var(--fail)", t: `Calado ${fmt(R.Fstall)} kN (${fmt(P.p_relief)} bar)` }, { v: R.Falarm, c: "var(--warn)", t: `Alarma ${fmt(R.Falarm)} kN (${fmt(P.p_alarm)} bar)` }],
+      vl: [{ v: P.stroke, c: "var(--ink2)", t: "fin de carrera" }, { v: K.s_req, c: "var(--ok)", t: "suelta el pasador" }] });
+    const mm = [["r_u (uniforme)", R.r_u], ["r_ef (diseño)", P.r_ef], ["R (borde)", R.Ro]];
+    el.innerHTML = `<div class="card"><h3>Casos</h3>${casesTable()}</div>
+      <div class="grid" style="margin-top:12px">
+      <div class="card"><h3>Fuerza en cada cilindro a lo largo de la carrera</h3>${chart}</div>
+      <div class="card"><h3>Fricción máxima vencible</h3><table><tr><th>Radio</th><th class="n">mm</th><th class="n">μ máx a alivio</th><th class="n">μ máx a alarma</th></tr>
+        ${mm.map(([n, r]) => `<tr><td>${n}</td><td class="n">${fmt(r, 4)}</td><td class="n">${fmt(R.muMax(r))}</td><td class="n">${fmt(R.muMax(r) * P.p_alarm / P.p_relief)}</td></tr>`).join("")}</table>
+        <div class="note">μ_máx = (n·F_calado·η_c·brazo_mín − T_pivote)/(N·r). Aproximación a alarma: proporcional a la presión.</div>
+        <h3 style="margin-top:14px">Hidráulica</h3><div class="kv">
+          <span>Área émbolo / anular</span><span>${fmt(R.A, 4)} / ${fmt(R.Aann, 4)} mm²</span>
+          <span>F calado / alarma / retorno</span><span>${fmt(R.Fstall)} / ${fmt(R.Falarm)} / ${fmt(R.Fret)} kN</span>
+          <span>Volumen por carrera (n cilindros)</span><span>${fmt(R.Vext / 1e6)} L</span>
+          <span>Tiempo por ciclo / por vuelta</span><span>${fmt(R.tCycle)} / ${fmt(R.tRev)} min</span>
+        </div>
+        <div class="note">Ensayo de aceptación: con la presión de despegue medida p, μ_real = (n·p·A·η_c·brazo_mín − T_piv)/(N·${fmt(P.r_ef, 4)} mm). Aceptar si μ_real ≤ ${fmt(P.mu_d)}.</div></div></div>`;
+  }
+
+  /* ---------- Verificaciones ---------- */
+  function fuBar(c) {
+    if (c.fu == null || !isFinite(c.fu)) return "";
+    const col = { ok: "var(--ok)", warn: "var(--warn)", fail: "var(--fail)" }[c.st] || "var(--steel)";
+    return `<div class="fu"><i style="width:${Math.min(100, c.fu * 100)}%;background:${col}"></i></div>`;
+  }
+  function renderVerif() {
+    const el = document.querySelector('section[data-t="verif"]');
+    if (!A) { el.innerHTML = msgs(); return; }
+    let g = "", rows = "";
+    A.checks.forEach((c) => {
+      if (c.grp !== g) { g = c.grp; rows += `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`; }
+      rows += `<tr><td><span class="st st-${c.st}">${ST[c.st]}</span></td><td>${esc(c.name)}<div class="form">${esc(c.formula)}</div></td>
+        <td class="n">${fmt(c.dem)}</td><td class="n">${c.cap != null ? fmt(c.cap) : ""}</td><td>${esc(c.unit || "")}</td>
+        <td class="n">${c.fu != null && isFinite(c.fu) ? fu2(c.fu) : ""}${fuBar(c)}</td><td class="ref">${esc(c.ref)}</td></tr>`;
+    });
+    el.innerHTML = `<div class="note">Clasificación: FU ≤ 0,90 cumple; 0,90–1,00 monitoreo; &gt; 1,00 no cumple. Los chequeos de giro y geométricos son límites con margen propio: cumplen con FU ≤ 1,00. Cadena de empuje verificada a la fuerza de calado ${fmt(A.R.Fstall)} kN con ASME BTH-1 Nd = ${fmt(P.Nd)}.</div>
+      <div class="card scroll"><table><tr><th>Estado</th><th>Verificación</th><th class="n">Demanda</th><th class="n">Capacidad</th><th>Unidad</th><th class="n">FU</th><th>Referencia</th></tr>${rows}</table></div>`;
+  }
+
+  /* ---------- FEA ---------- */
+  function ramp(t) {   // secuencial claro → oscuro (azul → violeta → rojo)
+    const stops = [[0, [236, 242, 250]], [0.35, [120, 170, 230]], [0.65, [70, 80, 190]], [0.85, [170, 40, 120]], [1, [200, 30, 30]]];
+    t = Math.max(0, Math.min(1, t));
+    for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { const [a, ca] = stops[i - 1], [b, cb] = stops[i], f = (t - a) / (b - a); return `rgb(${ca.map((v, k) => Math.round(v + (cb[k] - v) * f)).join(",")})`; }
+    return "rgb(200,30,30)";
+  }
+  function meshSVG(nodes, elems, vals, vmax, label, flipY) {
+    const xs = nodes.map((p) => p[0]), ys = nodes.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const pad = 20, s = 600 / Math.max(x1 - x0, y1 - y0);
+    const X = (v) => pad + (v - x0) * s, Y = (v) => pad + (y1 - v) * s;
+    let imax = 0; vals.forEach((v, i) => { if (v > vals[imax]) imax = i; });
+    const polys = elems.map((e, i) => `<polygon points="${e.map((k) => X(nodes[k][0]) + "," + Y(nodes[k][1])).join(" ")}" fill="${ramp(vals[i] / vmax)}" stroke="${ramp(vals[i] / vmax)}" stroke-width=".4"/>`).join("");
+    const em = elems[imax].map((k) => nodes[k]), cx = em.reduce((a, p) => a + p[0], 0) / 4, cy = em.reduce((a, p) => a + p[1], 0) / 4;
+    const Wd = pad * 2 + (x1 - x0) * s, Hd = pad * 2 + (y1 - y0) * s;
+    return `<svg viewBox="0 0 ${Wd} ${Hd + 56}" role="img" aria-label="${label}">${polys}<circle cx="${X(cx)}" cy="${Y(cy)}" r="7" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <defs><linearGradient id="g${label.length}"><stop offset="0" stop-color="${ramp(0)}"/><stop offset=".35" stop-color="${ramp(.35)}"/><stop offset=".65" stop-color="${ramp(.65)}"/><stop offset=".85" stop-color="${ramp(.85)}"/><stop offset="1" stop-color="${ramp(1)}"/></linearGradient></defs>
+      <rect x="${pad}" y="${Hd + 6}" width="260" height="14" fill="url(#g${label.length})"/><text x="${pad}" y="${Hd + 46}" font-size="22">0</text><text x="${pad + 260}" y="${Hd + 46}" font-size="22" text-anchor="end">${fmt(vmax)} MPa</text>
+      <text x="${pad + 280}" y="${Hd + 22}" font-size="22">○ máx ${fmt(vals[imax])} MPa</text></svg>`;
+  }
+  function renderFEA() {
+    const el = document.querySelector('section[data-t="fea"]');
+    if (!A || !A.fea) { el.innerHTML = msgs(); return; }
+    const F = A.fea, k = P.kFEA;
+    const card = (t, r, txt) => {
+      const vals = r.res.el.map((e) => e.vmGauss);
+      return `<div class="card"><h3>${t}</h3>${meshSVG(r.model ? r.model.nodes : r.nodes, r.model ? r.model.elems : r.elems, vals, Math.max(...vals), t)}<div class="kv">${txt}</div></div>`;
+    };
+    el.innerHTML = `<div class="note">Placa Mindlin MITC4 (validada: Navier 0,05 %, voladizo Q4 1,4 %). Mesa: sector entre nervios con simetría; almas, nervios y pasadores como apoyos rígidos; cubo empotrado. Las tensiones de verificación se multiplican por k_malla = ${fmt(k)} (estudio de convergencia de la revisión independiente).</div>
+    <div class="grid">
+      ${card("Plancha superior (carga con excentricidad)", F.top, `<span>σvm máx (×k)</span><span>${fmt(F.top.vmMax)} (${fmt(F.top.vmMax * k)}) MPa</span><span>Ubicación r / θ</span><span>${fmt(F.top.maxAt[0], 4)} mm / ${fmt(F.top.maxAt[1])}°</span><span>Flecha máx.</span><span>${fmt(F.top.wMax)} mm</span><span>Carga de línea máx.</span><span>${fmt(F.top.lineMax)} N/mm</span><span>ΣF / ΣR</span><span>${fmt(F.top.Fapp)} / ${fmt(F.top.Rsum)} kN</span><span>Nodos · tiempo</span><span>${F.top.n} · ${fmt(F.top.ms)} ms</span>`)}
+      ${card("Plancha inferior (contacto q_máx)", F.bot, `<span>σvm máx (×k)</span><span>${fmt(F.bot.vmMax)} (${fmt(F.bot.vmMax * k)}) MPa</span><span>Ubicación r / θ</span><span>${fmt(F.bot.maxAt[0], 4)} mm / ${fmt(F.bot.maxAt[1])}°</span><span>Flecha máx.</span><span>${fmt(F.bot.wMax)} mm</span><span>Carga de línea máx.</span><span>${fmt(F.bot.lineMax)} N/mm</span><span>ΣF / ΣR</span><span>${fmt(F.bot.Fapp)} / ${fmt(F.bot.Rsum)} kN</span><span>Nodos · tiempo</span><span>${F.bot.n} · ${fmt(F.bot.ms)} ms</span>`)}
+      ${card("Izaje del conjunto: plancha base (¼ con simetría)", F.lift, `<span>σvm máx (×k)</span><span>${fmt(F.lift.vmMax)} (${fmt(F.lift.vmMax * k)}) MPa</span><span>Flecha máx.</span><span>${fmt(F.lift.wMax)} mm</span><span>ΣF / ΣR (conjunto)</span><span>${fmt(F.lift.Fapp)} / ${fmt(F.lift.Rsum)} kN</span><span>Factor dinámico</span><span>${fmt(P.phi_lift)}</span>`)}
+      <div class="card"><h3>Flexión global del cajón (axisimétrica)</h3><div class="kv">
+        <span>|M| máx</span><span>${fmt(F.glob.Mmax / 1e3)} kN·mm/mm a r = ${fmt(F.glob.rM, 3)} mm</span>
+        <span>σ membrana sup. / inf.</span><span>${fmt(F.glob.sigTop)} / ${fmt(F.glob.sigBot)} MPa</span>
+        <span>Corte total máx en nervios</span><span>${fmt(F.glob.Vmax)} kN a r = ${fmt(F.glob.rV, 3)} mm</span>
+        <span>Desequilibrio en el borde</span><span>${fmt(F.glob.imbalance)} kN</span></div>
+        <div class="note">Placa sándwich con borde libre: carga φd·W sobre la parrilla y reacción uniforme en la interfaz. La tensión de membrana se suma a la flexión local del FEA.</div></div>
+    </div>`;
+  }
+
+  /* ---------- Masas ---------- */
+  function renderMasa() {
+    const el = document.querySelector('section[data-t="masa"]');
+    if (!A) { el.innerHTML = msgs(); return; }
+    const m = A.R.m;
+    const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
+      ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+    const mx = Math.max(...parts.map((p) => p[1]));
+    el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
+      ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}
+      <tr class="grp"><td>Total</td><td class="n">${fmt(m.total, 4)}</td><td class="n">100</td><td></td></tr></table>
+      <div class="note">Masas de acero con ρ = 7850 kg/m³, sin soldadura ni pintura (agregar ≈ 2 %). No incluye bomba, mangueras ni plancha diamantada.</div></div>
+      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + P.h_disc, 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
+      <div class="note">Use el optimizador para reducir la masa manteniendo todas las verificaciones (FU ≤ 0,90 en estructura y giro asegurado).</div></div></div>`;
+  }
+
+  /* ---------- Agentes ---------- */
+  function renderAgentes() {
+    const el = document.querySelector('section[data-t="agentes"]');
+    if (!A) { el.innerHTML = `<div class="card"><h3>1 · Validador de entradas</h3>${msgs()}</div>`; return; }
+    const xc = X.map((c) => `<tr><td><span class="st st-${c.ok ? "ok" : "fail"}">${c.ok ? "OK" : "Revisar"}</span></td><td>${esc(c.name)}</td><td class="n">${fmt(c.tool, 4)}</td><td class="n">${fmt(c.indep, 4)}</td><td class="n">${fmt(c.d, 2)} %</td><td class="ref">${esc(c.note || "")}${c.tol != null ? " · tol. " + fmt(c.tol) + " %" : ""}</td></tr>`).join("");
+    const sg = SC.grid.map((row) => `<tr><td class="n">${fmt(row[0].mu)}</td>${row.map((c) => `<td class="n"><span class="st st-${c.FS >= P.FS_min ? "ok" : c.FS >= 1 ? "warn" : "fail"}">FS ${fmt(c.FS)}</span><div class="form">${fmt(c.p)} bar</div></td>`).join("")}</tr>`).join("");
+    el.innerHTML = `<div class="grid">
+      <div class="card"><h3>1 · Validador de entradas</h3>${msgs()}</div>
+      <div class="card"><h3>2 · Auditor normativo</h3>${AU.ok ? `<div class="msg ok">Las ${A.checks.length} verificaciones declaran fórmula y referencia.</div>` : `<div class="msg error">${AU.missing.length} verificaciones sin referencia: ${AU.missing.map((c) => esc(c.name)).join(", ")}</div>`}
+        <table><tr><th>Referencia</th><th class="n">N°</th></tr>${AU.refs.map(([r, n]) => `<tr><td class="ref">${esc(r)}</td><td class="n">${n}</td></tr>`).join("")}</table></div></div>
+      <div class="card scroll" style="margin-top:12px"><h3>3 · Revisor cruzado (formulación independiente)</h3><table><tr><th>Estado</th><th>Magnitud</th><th class="n">Herramienta</th><th class="n">Independiente</th><th class="n">Δ</th><th>Nota</th></tr>${xc}</table></div>
+      <div class="grid" style="margin-top:12px">
+      <div class="card scroll"><h3>4 · Escenarios de fricción (FS al calado)</h3><table><tr><th class="n">μ</th>${SC.rs.map(([n, r]) => `<th class="n">${n} = ${fmt(r, 4)} mm</th>`).join("")}</tr>${sg}</table>
+        <div class="note">Verde: FS ≥ FS_min (${fmt(P.FS_min)}); ámbar: gira sin el margen exigido; rojo: no gira.</div></div>
+      <div class="card"><h3>4 · Escenarios de carga (caso de diseño)</h3><table><tr><th class="n">W (tf)</th><th class="n">FS</th><th class="n">p (bar)</th><th class="n">μ máx (r_ef)</th></tr>
+        ${SC.loads.map((l) => `<tr><td class="n">${fmt(l.W, 3)}</td><td class="n">${fmt(l.FS)}</td><td class="n">${fmt(l.p)}</td><td class="n">${fmt(l.muMax)}</td></tr>`).join("")}</table></div></div>`;
+  }
+
+  /* ---------- Optimizador ---------- */
+  function renderOpt() {
+    const el = document.querySelector('section[data-t="opt"]');
+    const vars = AG.VARS.map(([k]) => k);
+    const lab = (k) => { for (const g of TT.PARAM_GROUPS) for (const p of g.p) if (p[0] === k) return p[1]; return k; };
+    let res = "";
+    if (optRes) {
+      const ch = vars.filter((k) => optRes.P[k] !== optRes.P0[k]);
+      res = `<div class="msg ${optRes.ok ? "ok" : "error"}">${optRes.ok ? "Configuración factible encontrada" : esc(optRes.msg || "No se encontró configuración factible")} · ${optRes.evals} evaluaciones · masa ${fmt(optRes.m0, 4)} → ${fmt(optRes.A.R.m.total, 4)} kg (${fmt((optRes.A.R.m.total - optRes.m0) / optRes.m0 * 100, 2)} %)</div>
+        <table><tr><th>Variable</th><th class="n">Actual</th><th class="n">Optimizado</th></tr>${ch.map((k) => `<tr><td>${esc(lab(k))}</td><td class="n">${fmt(optRes.P0[k], 4)}</td><td class="n">${fmt(optRes.P[k], 4)}</td></tr>`).join("") || `<tr><td colspan="3">Sin cambios</td></tr>`}</table>
+        <div class="btns"><button class="pri" id="bApply" ${optRes.ok ? "" : "disabled"}>Aplicar al modelo</button></div>`;
+    }
+    el.innerHTML = `<div class="card"><h3>Optimizador de peso</h3>
+      <div class="note">Minimiza la masa total con tamaños comerciales (espesores de plancha, diámetros, largos) manteniendo: giro asegurado (todos los chequeos de giro) y FU ≤ objetivo en estructura. Búsqueda por coordenadas con FEA escalada (σ ∝ q/t²); el resultado final se confirma con FEA nueva en malla fina. No cambia la geometría de cinemática, la capacidad ni los materiales.</div>
+      <div class="prm" style="max-width:340px;padding:0"><label for="optT">FU objetivo en estructura</label><input id="optT" type="number" step="0.01" min="0.5" max="1" value="0.90"></div>
+      <div class="btns"><button class="pri" id="bRun" ${optRunning || !A ? "disabled" : ""}>${optRunning ? "Optimizando…" : "Ejecutar"}</button></div>
+      <div class="prog"><i id="optBar"></i></div><div class="busy" id="optMsg"></div>${res}</div>`;
+    const b = $("#bRun"); if (b) b.onclick = runOpt;
+    const ap = $("#bApply"); if (ap) ap.onclick = () => { P = Object.assign({}, optRes.P); optRes = null; buildForm(); recalc(); showTab("resumen"); };
+  }
+  function runOpt() {
+    if (optRunning || !A) return;
+    optRunning = true; renderOpt();
+    const target = parseFloat(($("#optT") || {}).value) || 0.9;
+    const P0 = Object.assign({}, P), m0 = A.R.m.total;
+    const gen = AG.optimizeGen(P0, { target });
+    let last = null;
+    const step = () => {
+      const t0 = performance.now();
+      while (performance.now() - t0 < 60) {
+        const r = gen.next();
+        if (r.done) { optRunning = false; optRes = Object.assign({}, last, { P0, m0 }); renderOpt(); return; }
+        last = r.value;
+        if (last.phase === "fin") break;
+      }
+      const bar = $("#optBar"), msg = $("#optMsg");
+      if (bar) bar.style.width = Math.min(100, last.evals / 1.2) + "%";
+      if (msg) msg.textContent = `Fase: ${last.phase} · evaluaciones ${last.evals} · masa ${fmt(last.A.R.m.total, 4)} kg`;
+      setTimeout(step, 0);
+    };
+    setTimeout(step, 30);
+  }
+
+  function renderAll() {
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt();
+  }
+  buildForm(); recalc();
+})();
+
+</script>
+</body>
+</html>

@@ -144,3 +144,16 @@ Módulos del núcleo, sin red ni LLM: mismas entradas, mismas salidas, aptos par
 ## 10. Fuera de esta especificación
 
 La especificación detallada de cada corrección (C1–C3, M1–M8) se escribe y aprueba por separado. Este documento fija la arquitectura, los roles y el orden de trabajo.
+
+
+## 11. Decisiones posteriores (30-10-2026, tarde)
+
+| Tema | Decisión |
+|---|---|
+| Arquitectura del accionamiento | **Tipo KIET verificada (TT300-C):** cilindro pivotado en la base con uña pivotada en el vástago, sin carro ni guía. Referencia: `docs/referencias/2026-10-30-kiet-400t-analisis.md` |
+| Capacidad | 300 tf |
+| Cilindros | 2 × Ø85/Ø55, carrera 235, 700 bar (como KIET), paramétricos |
+| Entregable de software | Herramienta HTML autónoma `dist/TT300-C_Verificacion.html`: ingreso de parámetros, verificación completa en vivo, veredicto de giro y de estructura, optimizador de peso |
+| Objetivos | Peso mínimo (transporte) con giro asegurado |
+| Entregable final | Planos de fabricación completos, generados desde el mismo JSON de parámetros |
+| Lenguaje del núcleo | JavaScript (continuidad con el código existente), sin dependencias, con tests en Node y verificación independiente en Python |
