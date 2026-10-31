@@ -1,54 +1,55 @@
 {
- "masa_total": 2522.5277659626036,
+ "masa_total": 2520.1174656475623,
  "masa_mesa": 1600.95767199695,
  "N": 2957.784708318544,
  "q_max": 1.6620972022665874,
  "F_calado": 397.2151211382594,
- "brazo_min": 841.9507770952358,
- "carrera_req": 209.70700123782535,
+ "brazo_min": 866.8030853112022,
+ "carrera_req": 212.88329710211303,
  "casos": {
   "nom": [
-   186.52830392524154,
-   328.71309725951096,
-   2.1295166083612638
+   181.18030854000682,
+   319.2884893570306,
+   2.19237468099658
   ],
   "dis": [
-   296.71989388175393,
-   522.9003496191976,
-   1.3386871906086415
+   288.2125703828872,
+   507.90815488063447,
+   1.3782019313403422
   ],
   "borde": [
-   370.6780793815117,
-   653.2345868996823,
-   1.0715905343014231
+   360.0502839412308,
+   634.5055496292025,
+   1.1032212411838975
   ],
   "cont": [
-   370.8998673521925,
-   653.6254370239969,
-   1.070949752486913
+   360.26571297860903,
+   634.8851936007931,
+   1.1025615450722734
   ],
   "seco": [
-   621.7610130841384,
-   1095.7103241983696,
-   0.6388549825083792
+   603.9343618000225,
+   1064.294964523435,
+   0.6577124042989743
   ]
  },
  "fea": {
   "top": 126.40439173834693,
   "bot": 118.8428971938884,
-  "lift": 70.95807839901924,
+  "lift": 89.61354813135932,
   "glob": 96130.00507144206
  },
  "fu": {
-  "Giro · FS del accionamiento en el caso de diseño": 0.9337506243199957,
-  "Giro · Presión de diseño frente a la alarma": 0.8715005826986627,
-  "Giro · Gira con grasa contaminada": 0.9337506243199958,
-  "Giro · Gira con contacto en el borde (r = R)": 0.9331922669995463,
-  "Giro · Carrera requerida con margen": 0.9136468137779802,
+  "Giro · FS del accionamiento en el caso de diseño": 0.9069788480011329,
+  "Giro · Presión de diseño frente a la alarma": 0.8465135914677241,
+  "Giro · Gira con grasa contaminada": 0.906978848001133,
+  "Giro · Gira con contacto en el borde (r = R)": 0.9064364994702894,
+  "Giro · Carrera requerida con margen": 0.9271629663919704,
   "Giro · Holgura de la punta de la uña entre pasadores": 0.7063772810520424,
   "Giro · Contacto de la uña dentro de la luz libre del pasador": 0.5,
   "Giro · Horquilla de la uña entre anillos de pasadores": 0.9833333333333333,
-  "Giro · Ménsula del ojal dentro de la base": 0.970394862533918,
+  "Giro · Ménsula del ojal dentro de la base (esquinas de la caja)": 0.981828557946572,
+  "Giro · Ménsula libre de la mesa": 0.9073492675550333,
   "Giro · Cuerpo del cilindro libre sobre la base": 0.6578947368421053,
   "Giro · Pandeo del vástago (biarticulado, longitud extendida)": 0.7122941678327283,
   "Interfaz · Presión de contacto máxima": 0.16620972022665875,
@@ -75,11 +76,13 @@
   "Articulaciones · Soldadura mejillas–base (4 filetes)": 0.8792304296158115,
   "Pivote · Presión en el buje": 0.4106431170180302,
   "Pivote · Flexión del pivote": 0.1287008136272406,
-  "Base · Izaje del conjunto: σvm en la plancha base": 0.394211546661218,
-  "Base · Izaje: flecha de la base": 0.31821815240283075,
-  "Fatiga · Uña (cat. A, N = 35000)": 0.2848623384418722,
-  "Fatiga · Pasadores de articulación (cat. A, N = 35000)": 0.18227953418270715,
-  "Fatiga · Pie de soldadura mejilla–base (cat. E, N = 35000)": 0.19628352585100875,
-  "Fatiga · Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)": 0.41584385914080063
+  "Base · Izaje del conjunto: σvm en la plancha base": 0.4978530451742184,
+  "Base · Izaje: flecha de la base": 0.5005098431922221,
+  "Base · Punto de izaje fuera de la mesa": 0.9952380952380953,
+  "Base · Punto de izaje dentro del marco": 0.9,
+  "Fatiga · Uña (cat. A, N = 35000)": 0.2766949856093235,
+  "Fatiga · Pasadores de articulación (cat. A, N = 35000)": 0.1770533562401759,
+  "Fatiga · Pie de soldadura mejilla–base (cat. E, N = 35000)": 0.19065583628133617,
+  "Fatiga · Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)": 0.4039211053663679
  }
 }

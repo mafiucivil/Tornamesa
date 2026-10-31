@@ -18,6 +18,8 @@ Abrir `dist/TT300-C_Verificacion.html` en cualquier navegador (un solo archivo, 
 | `packages/agents/` | Agentes deterministas del producto |
 | `packages/web/` | Interfaz (`shell.html`, `ui.js`) |
 | `tools/build_tt300c.py` | Arma el HTML autónomo en `dist/` |
+| `tools/export_design.js` | Exporta el diseño (parámetros + resultados) para los planos |
+| `cad/planos_tt300c.py` | Genera las 6 láminas A1 (PDF + DXF) en `cad/out/` desde el JSON exportado |
 | `tests/` | Tests Node, golden file y verificación independiente en Python |
 | `.claude/agents/` | Subagentes de desarrollo |
 | `tt300/`, `tt/` | Proyecto anterior TT300-B (carro guiado) y TT500 |
@@ -32,3 +34,11 @@ npm test
 ```bash
 npm run build
 ```
+
+```bash
+npm run planos
+```
+
+Para generar planos con parámetros propios: exportar el JSON desde la herramienta HTML («Exportar JSON») y ejecutar `node tools/export_design.js parametros.json > cad/out/TT300-C_design.json && python3 cad/planos_tt300c.py`. El generador se niega a emitir si el diseño no gira o la estructura no cumple.
+
+Requisitos de los planos: Python 3 con `ezdxf` y `pymupdf` (`pip install ezdxf pymupdf`).

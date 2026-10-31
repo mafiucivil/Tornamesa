@@ -411,7 +411,7 @@ const TT = (() => {
       ["Q_pump", "Caudal de la bomba", "L/min", 1.8, 0.2, 50, 0.1],
     ] },
     { id: "cinematica", t: "Cinemática", p: [
-      ["R_eye", "Radio del ojal en la base", "mm", 1390, 500, 3000, 5],
+      ["R_eye", "Radio del ojal en la base", "mm", 1360, 500, 3000, 5],
       ["a_eye", "Ángulo del ojal (planta)", "°", 135, 0, 360, 1],
       ["d_dog", "Uña: pasador del vástago → centro del pasador", "mm", 208, 60, 600, 1],
       ["s_free", "Recorrido libre antes de tomar el pasador", "mm", 10, 0, 100, 1],
@@ -439,7 +439,7 @@ const TT = (() => {
       ["t_base", "Espesor plancha base", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
-      ["c_lug", "Punto de izaje (a medio lado): distancia al borde", "mm", 150, 50, 600, 5],
+      ["c_lug", "Punto de izaje (a medio lado): distancia al borde", "mm", 50, 30, 600, 5],
       ["phi_lift", "Factor dinámico de izaje", "–", 1.30, 1, 2, 0.05],
       ["q_floor", "Presión admisible de la losa / mats (referencial)", "MPa", 2.0, 0.1, 20, 0.1],
     ] },
@@ -544,7 +544,7 @@ const TT = (() => {
       const ph = Math.atan2(u[1], u[0]); phMin = Math.min(phMin, ph); phMax = Math.max(phMax, ph);
     }
     return { ok: true, Re, R, d, pitch, dist, arm, Leng, de, dend, Lend, s_req, margin: P.stroke - s_req, armMin, armMax, pts, chord, gap: chord - P.d_pin,
-      dr, RrodMin, RrodMax, swing: phMax - phMin };
+      dr, RrodMin, RrodMax, swing: phMax - phMin, phMid: (phMax + phMin) / 2 };
   }
 
   /* ---------------- Accionamiento ---------------- */
@@ -761,8 +761,17 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Contacto de la uña dentro de la luz libre del pasador", formula: "h_uña + 10 ≤ h − 2·t_anillo", dem: P.dog_h + 10, cap: pinClear(P), unit: "mm", ref: "Geometría" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Horquilla de la uña entre anillos de pasadores", formula: "b_ojal + 2g + 2t + 2·10 ≤ h − 2·t_anillo", dem: forkH(P) + 20, cap: pinClear(P), unit: "mm", ref: "Geometría (horquilla sobre el borde de la mesa)" });
     const bgv = bracketGeo(P, K), D2 = Math.PI / 180;
-    const xe = Math.max(Math.abs(P.R_eye * Math.cos(P.a_eye * D2)), Math.abs(P.R_eye * Math.sin(P.a_eye * D2)));
-    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Ménsula del ojal dentro de la base", formula: "R_ojal·máx(|cos|,|sin|) + d_pp ≤ B/2 − t_marco − 5", dem: xe + bgv.rear, cap: P.B / 2 - P.rim_t - 5, unit: "mm", ref: "Geometría" });
+    // esquinas de la caja de la ménsula (local: eje x hacia el cilindro), en coordenadas de planta
+    let cmax = 0, rmin = Infinity;
+    if (K.ok) {
+      const aE = P.a_eye * D2, ph = aE + K.phMid, E0 = [P.R_eye * Math.cos(aE), P.R_eye * Math.sin(aE)];
+      for (const [lx, ly] of [[-bgv.rear, -bgv.Wout / 2], [-bgv.rear, bgv.Wout / 2], [P.L_ch - bgv.rear, -bgv.Wout / 2], [P.L_ch - bgv.rear, bgv.Wout / 2]]) {
+        const X = E0[0] + lx * Math.cos(ph) - ly * Math.sin(ph), Y = E0[1] + lx * Math.sin(ph) + ly * Math.cos(ph);
+        cmax = Math.max(cmax, Math.abs(X), Math.abs(Y)); rmin = Math.min(rmin, Math.hypot(X, Y));
+      }
+    }
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Ménsula del ojal dentro de la base (esquinas de la caja)", formula: "máx |x|,|y| de la caja ≤ B/2 − t_marco − 5", dem: K.ok ? cmax : NaN, cap: P.B / 2 - P.rim_t - 5, unit: "mm", ref: "Geometría" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Ménsula libre de la mesa", formula: "D/2 + 20 ≤ r mín. de la caja", dem: P.D_top / 2 + 20, cap: K.ok ? rmin : NaN, unit: "mm", ref: "Geometría" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro libre sobre la base", formula: "D_cuerpo/2 + 5 ≤ h_eje", dem: P.D_body / 2 + 5, cap: R.hax, unit: "mm", ref: "Geometría" });
     const Ir = Math.PI * P.d_rod ** 4 / 64, Lext = P.L0 + P.stroke;
     const Pcr = Math.PI ** 2 * P.E * Ir / (Lext * Lext) / 1e3;
@@ -840,6 +849,8 @@ const TT = (() => {
       add({ grp: "Base", sys: "est", name: "Izaje del conjunto: σvm en la plancha base", formula: "MITC4 × k_malla, φ_izaje", dem: fea.lift.vmMax * P.kFEA, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy)" });
       add({ grp: "Base", sys: "est", kind: "geo", name: "Izaje: flecha de la base", formula: "w ≤ B/300", dem: fea.lift.wMax, cap: P.B / 300, unit: "mm", ref: "Criterio del proyecto" });
     }
+    add({ grp: "Base", sys: "est", kind: "geo", name: "Punto de izaje fuera de la mesa", formula: "D/2 + 10 + 35 ≤ B/2 − c (huella Ø70)", dem: P.D_top / 2 + 45, cap: P.B / 2 - P.c_lug, unit: "mm", ref: "Geometría" });
+    add({ grp: "Base", sys: "est", kind: "geo", name: "Punto de izaje dentro del marco", formula: "t_marco + 35 ≤ c", dem: P.rim_t + 35, cap: P.c_lug, unit: "mm", ref: "Geometría" });
     const mt = R.m.total;
     add({ grp: "Base", sys: "est", kind: "info", name: "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)", formula: "m·φ / (3·sin 60°)", dem: mt * P.phi_lift / (3 * Math.sin(60 * D2R)) / 1000, unit: "t", ref: "ASME B30.9 (3 ramales efectivos)" });
 
