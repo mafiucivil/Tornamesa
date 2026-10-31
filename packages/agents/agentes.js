@@ -129,7 +129,7 @@ const AG = (() => {
   const VARS = [
     ["t_top", [10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], true],
     ["t_bot", [10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], true],
-    ["t_base", [8, 10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40], true],
+    ["t_base", [16, 20, 22, 25, 30, 32, 35, 40], true],   // mín. 16: planitud 0,20 de la cara de giro (criterio de fabricación)
     ["t_pr", [16, 20, 22, 25, 30, 32, 35, 40, 45, 50, 55, 60], false],
     ["h_disc", range(100, 300, 5), true],
     ["t_web", [8, 10, 12, 15, 16, 20, 25], true],
@@ -157,20 +157,28 @@ const AG = (() => {
     const run = (Q, fresh) => { evals++; return fresh ? TT_.analyze(Q) : TT_.analyze(Q, { cache }); };
     const tgt = opts.target;
     let A = run(P);
-    // fase 1: factibilidad, subir variables hasta cumplir
-    let guard = 0;
-    while (!feasible(A, tgt) && guard++ < 60) {
-      let moved = false;
+    // fase 1: factibilidad por máximo descenso del déficit (cada variable ±1 tamaño)
+    const deficit = (X) => X.checks.reduce((s, c) => {
+      if (c.st === "info" || c.st === "pend") return s;
+      if (!isFinite(c.fu)) return s + 10;
+      const lim = (c.kind === "geo" || c.sys === "giro") ? 1 : tgt;
+      return s + Math.max(0, c.fu - lim);
+    }, 0);
+    let guard = 0, dA = deficit(A);
+    while (dA > 0 && guard++ < 80) {
+      let best = null;
       for (const [k, list] of VARS) {
         const i = list.findIndex((v) => v >= P[k] - 1e-9);
-        if (i >= 0 && i < list.length - 1) {
-          const Q = Object.assign({}, P, { [k]: list[i + 1] }), B = run(Q);
-          const bad = (X) => X.checks.filter((c) => c.st === "fail" || (c.kind === "fu" && c.sys === "est" && c.fu > tgt)).reduce((s, c) => s + (isFinite(c.fu) ? c.fu : 10), 0);
-          if (bad(B) < bad(A) - 1e-6) { P = Q; A = B; moved = true; yield { phase: "factibilidad", P, A, evals }; }
+        for (const j of [i + 1, i - 1]) {
+          if (i < 0 || j < 0 || j >= list.length) continue;
+          const Q = Object.assign({}, P, { [k]: list[j] }), B = run(Q), dB = deficit(B);
+          const score = dA - dB;
+          if (score > 1e-9 && (!best || score > best.score + 1e-12 || (Math.abs(score - best.score) <= 1e-12 && B.R.m.total < best.B.R.m.total))) best = { Q, B, dB, score };
         }
-        if (feasible(A, tgt)) break;
       }
-      if (!moved) break;
+      if (!best) break;
+      P = best.Q; A = best.B; dA = best.dB;
+      yield { phase: "factibilidad", P, A, evals };
     }
     if (!feasible(A, tgt)) { yield { phase: "fin", P, A: run(P, true), evals, ok: false, msg: "No se encontró una configuración factible con las listas de tamaños" }; return; }
     // fase 2: descenso por coordenadas hacia la menor masa

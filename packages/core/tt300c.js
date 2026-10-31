@@ -26,8 +26,8 @@ const TT = (() => {
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
       ["t_top", "Espesor plancha superior", "mm", 20, 6, 60, 1],
-      ["t_bot", "Espesor plancha inferior (contacto)", "mm", 20, 6, 60, 1],
-      ["h_disc", "Altura total de la mesa", "mm", 135, 60, 400, 5],
+      ["t_bot", "Espesor plancha inferior (contacto)", "mm", 16, 6, 60, 1],
+      ["h_disc", "Altura total de la mesa", "mm", 190, 60, 400, 5],
       ["rings", "Radios de almas anulares", "mm", "300, 580, 840"],
       ["t_web", "Espesor almas anulares", "mm", 8, 6, 40, 1],
       ["N_rib", "N° de nervios radiales", "–", 14, 4, 56, 1],
@@ -38,7 +38,7 @@ const TT = (() => {
     ] },
     { id: "pasadores", t: "Pasadores de empuje (en la mesa)", p: [
       ["N_pin", "N° de pasadores", "–", 28, 8, 72, 1],
-      ["d_pin", "Diámetro del pasador", "mm", 90, 30, 160, 5],
+      ["d_pin", "Diámetro del pasador", "mm", 95, 30, 160, 5],
       ["R_pin", "Radio del círculo de pasadores", "mm", 930, 400, 1950, 5],
       ["Fy_pin", "Fy pasador (42CrMo4+QT)", "MPa", 650, 235, 1000, 5],
       ["t_pr", "Espesor del anillo perimetral de pasadores (sup. e inf.)", "mm", 35, 10, 80, 1],
@@ -78,15 +78,15 @@ const TT = (() => {
       ["g_ch", "Holgura mejilla-ojal", "mm", 2, 0, 10, 0.5],
       ["b_eye", "Ancho del ojal del cilindro", "mm", 50, 20, 150, 1],
       ["L_ch", "Largo de mejilla de la ménsula (sobre la base)", "mm", 300, 80, 800, 5],
-      ["w_br", "Filete mejilla–base", "mm", 12, 4, 25, 1],
+      ["w_br", "Filete mejilla–base", "mm", 14, 4, 25, 1],
       ["n_br", "N° de ménsulas (2 por sentido de giro)", "–", 4, 2, 8, 1],
     ] },
     { id: "base", t: "Base", p: [
       ["B", "Lado de la base cuadrada", "mm", 2200, 1000, 4500, 10],
-      ["t_base", "Espesor plancha base", "mm", 20, 6, 60, 1],
+      ["t_base", "Espesor plancha base", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
-      ["c_lug", "Distancia del izaje a los bordes", "mm", 150, 50, 600, 5],
+      ["c_lug", "Punto de izaje (a medio lado): distancia al borde", "mm", 150, 50, 600, 5],
       ["phi_lift", "Factor dinámico de izaje", "–", 1.30, 1, 2, 0.05],
       ["q_floor", "Presión admisible de la losa / mats (referencial)", "MPa", 2.0, 0.1, 20, 0.1],
     ] },
@@ -140,14 +140,23 @@ const TT = (() => {
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins;
     m.base = RHO * P.B * P.B * P.t_base;
     m.rim = RHO * 4 * P.B * P.rim_h * P.rim_t;
-    const H_ch = hAxis(P) + P.d_pp;                         // alto de mejilla ≈ eje + 1 diámetro
-    m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * H_ch);
+    const bg = bracketGeo(P, kinematics(P));
+    m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * bg.H + 2 * bg.Wout * 2.5 * P.d_pp * P.t_ch + bg.Wout * 2.5 * P.d_pp * bg.spacer);
     m.dogs = RHO * 2 * P.dog_b * P.dog_h * (P.d_dog + P.d_pp);
     m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.h_disc + P.t_base);
     m.cyl = P.n_cyl * P.m_cyl;
     m.total = m.disc + m.base + m.rim + m.brackets + m.dogs + m.pivot + m.cyl;
     return m;
   }
+  function bracketGeo(P, K) {
+    const half = Math.sin((K && K.ok ? K.swing : 0.1) / 2);
+    const Win = P.D_body + 2 * (P.L_ch * half + 10);                    // luz interior entre mejillas
+    const H = hAxis(P) + P.b_eye / 2 + P.g_ch + P.t_ch;                 // alto hasta cara superior de la oreja superior
+    const spacer = Math.max(0, hAxis(P) - P.b_eye / 2 - P.g_ch - P.t_ch); // suplemento bajo la oreja inferior
+    const rear = P.d_pp;                                                 // saliente trasera desde el eje del ojal
+    return { Win, H, spacer, rear, Wout: Win + 2 * P.t_ch };
+  }
+  function forkH(P) { return P.b_eye + 2 * P.g_ch + 2 * P.t_ch; }       // alto de la horquilla de la uña
   function hAxis(P) { return P.h_disc / 2; }                         // eje del cilindro sobre la base = mitad de la luz del pasador
   function prIn(P) { return Math.max(P.D_hub / 2, P.R_pin - (P.D_top / 2 - P.R_pin)); }   // radio interior del anillo de pasadores
   function pinClear(P) { return P.h_disc - 2 * Math.max(P.t_pr, P.t_top, P.t_bot); }
@@ -171,7 +180,18 @@ const TT = (() => {
       pts.push({ del, s: dist(del) - d - P.L0, arm: a });
     }
     const chord = 2 * R * Math.sin(pitch / 2);
-    return { ok: true, Re, R, d, pitch, dist, arm, Leng, de, dend, Lend, s_req, margin: P.stroke - s_req, armMin, armMax, pts, chord, gap: chord - P.d_pin };
+    // posición del pasador del vástago y dirección del cilindro desde retraído hasta fin del paso
+    const cr = (Re * Re + R * R - (P.L0 + d) ** 2) / (2 * Re * R), dr = Math.abs(cr) <= 1 ? Math.acos(cr) : de;
+    let RrodMin = Infinity, RrodMax = 0, phMin = Infinity, phMax = -Infinity;
+    for (let i = 0; i <= 60; i++) {
+      const del = dr + (dend - dr) * i / 60, Dd = dist(del);
+      const Pp = [R * Math.cos(-del), R * Math.sin(-del)], E0 = [Re, 0];   // marco local: ojal sobre el eje x
+      const u = [(Pp[0] - E0[0]) / Dd, (Pp[1] - E0[1]) / Dd], Rp = [Pp[0] - d * u[0], Pp[1] - d * u[1]];
+      RrodMin = Math.min(RrodMin, Math.hypot(Rp[0], Rp[1])); RrodMax = Math.max(RrodMax, Math.hypot(Rp[0], Rp[1]));
+      const ph = Math.atan2(u[1], u[0]); phMin = Math.min(phMin, ph); phMax = Math.max(phMax, ph);
+    }
+    return { ok: true, Re, R, d, pitch, dist, arm, Leng, de, dend, Lend, s_req, margin: P.stroke - s_req, armMin, armMax, pts, chord, gap: chord - P.d_pin,
+      dr, RrodMin, RrodMax, swing: phMax - phMin };
   }
 
   /* ---------------- Accionamiento ---------------- */
@@ -343,11 +363,12 @@ const TT = (() => {
       const xc = (i + 0.5) * h, yc = (j + 0.5) * h;
       q.push(P.phi_lift * (qOwn + (Math.hypot(xc, yc) <= Rd ? qDisc : 0)));
     }
-    const xl = a - P.c_lug, pad = Math.max(75, 1.01 * h);       // placa de apoyo del cáncamo 150 × 150 (mín. un elemento)
+    // puntos de izaje a medio lado (las esquinas las ocupan las ménsulas): (xl, 0) y (0, xl)
+    const xl = a - P.c_lug, pad = Math.max(75, 1.01 * h);       // placa de apoyo del punto de izaje 150 × 150 (mín. un elemento)
     const wFix = [], betaN = [];
     for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
       const k = id(i, j), x = i * h, y = j * h;
-      if (Math.abs(x - xl) <= pad + 1e-6 && Math.abs(y - xl) <= pad + 1e-6) wFix.push(k);
+      if ((Math.abs(x - xl) <= pad + 1e-6 && y <= pad + 1e-6) || (Math.abs(y - xl) <= pad + 1e-6 && x <= pad + 1e-6)) wFix.push(k);
       if (i === 0) betaN.push([k, 1, 0]);
       if (j === 0) betaN.push([k, 0, 1]);
     }
@@ -385,6 +406,10 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen", formula: "s_libre + ΔL(paso) + margen ≤ carrera", dem: K.ok ? K.s_req + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática (rev. C3)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Holgura de la punta de la uña entre pasadores", formula: "cuerda − d_pas ≥ punta + 2·10", dem: P.dog_tip + 20, cap: K.ok ? K.gap : NaN, unit: "mm", ref: "Cinemática" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Contacto de la uña dentro de la luz libre del pasador", formula: "h_uña + 10 ≤ h − 2·t_anillo", dem: P.dog_h + 10, cap: pinClear(P), unit: "mm", ref: "Geometría" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Horquilla de la uña entre anillos de pasadores", formula: "b_ojal + 2g + 2t + 2·10 ≤ h − 2·t_anillo", dem: forkH(P) + 20, cap: pinClear(P), unit: "mm", ref: "Geometría (horquilla sobre el borde de la mesa)" });
+    const bgv = bracketGeo(P, K), D2 = Math.PI / 180;
+    const xe = Math.max(Math.abs(P.R_eye * Math.cos(P.a_eye * D2)), Math.abs(P.R_eye * Math.sin(P.a_eye * D2)));
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Ménsula del ojal dentro de la base", formula: "R_ojal·máx(|cos|,|sin|) + d_pp ≤ B/2 − t_marco − 5", dem: xe + bgv.rear, cap: P.B / 2 - P.rim_t - 5, unit: "mm", ref: "Geometría" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro libre sobre la base", formula: "D_cuerpo/2 + 5 ≤ h_eje", dem: P.D_body / 2 + 5, cap: R.hax, unit: "mm", ref: "Geometría" });
     const Ir = Math.PI * P.d_rod ** 4 / 64, Lext = P.L0 + P.stroke;
     const Pcr = Math.PI ** 2 * P.E * Ir / (Lext * Lext) / 1e3;
@@ -524,6 +549,6 @@ const TT = (() => {
     return { P, R, fea, checks, verdict };
   }
 
-  return { prIn, pinClear, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G };
+  return { prIn, pinClear, bracketGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G };
 })();
 if (typeof module !== "undefined") module.exports = TT;

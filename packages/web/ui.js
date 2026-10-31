@@ -176,7 +176,7 @@
     o.push(`<circle r="${P.D_hub / 2}" fill="none" stroke="var(--steel)" stroke-width="4"/><circle r="${P.D_piv / 2}" fill="var(--steel)" opacity=".5"/>`);
     for (let k = 0; k < P.N_pin; k++) { const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin; o.push(`<circle cx="${P.R_pin * Math.cos(a)}" cy="${y(P.R_pin * Math.sin(a))}" r="${P.d_pin / 2}" fill="var(--ink2)"/>`); }
     // cáncamos
-    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * (B / 2 - P.c_lug) - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * (B / 2 - P.c_lug) - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
     // cilindros
     for (let i = 0; i < P.n_cyl; i++) {
       const aE = (P.a_eye + 360 * i / P.n_cyl) * D2R, E = [P.R_eye * Math.cos(aE), P.R_eye * Math.sin(aE)];
