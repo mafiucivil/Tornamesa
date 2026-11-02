@@ -122,7 +122,7 @@ for c in D["cilindros"]["antihorario"]:
     cy = body.union(rod).union(eye0).union(eye1)
     cyls = cy if cyls is None else cyls.union(cy)
     # uña: bloque entre el pasador y el fondo del alojamiento; asiento cilíndrico R = d/2 + 1 en el pasador tomado
-    xi, xo = srt(sx * (KG["armMin"] - 0.3 * d_pin), sx * (KG["mouthX"] + P["L_in"]))
+    xi, xo = srt(sx * KG["tipX"], sx * (KG["mouthX"] + P["L_in"]))
     yd0, yd1 = srt(yps - dy * (d_pin / 2 + 1 + P["dog_b"] - nose_R), yps)
     dog = box(xi, xo, yd0, yd1, zc - P["dog_h"] / 2, zc + P["dog_h"] / 2).cut(cyl(nose_R, P["dog_h"] + 10, zc - P["dog_h"] / 2 - 5, c["pinStart"][0], yps))
     dogs = dog if dogs is None else dogs.union(dog)
@@ -137,7 +137,8 @@ for c in D["cilindros"]["antihorario"]:
     sh = sh.cut(cyl(P["d_pp"] / 2, forkH + 20, zc - forkH / 2 - 10, X, yr))
     gr0, gr1 = srt(yr - dy * (KG["rear"] + 5), yr - dy * 40)            # ranura de paso del vástago (orejas no cargadas atrás)
     sh = sh.cut(box(X - (P["d_rod"] + 10) / 2, X + (P["d_rod"] + 10) / 2, gr0, gr1, zc - (P["d_rod"] + 10) / 2, zc + (P["d_rod"] + 10) / 2))
-    sh = sh.cut(box(xi - cl1, xo + cl1, yd0 - cl1, yd1 + cl1, zc - P["dog_h"] / 2 - cl1, zc + P["dog_h"] / 2 + cl1))
+    px0, px1 = srt(sx * KG["mouthX"], sx * (KG["pocketEnd"] + cl1))      # alojamiento: uña + recorrido de retorno + resorte
+    sh = sh.cut(box(px0 - cl1, px1, yd0 - cl1, yd1 + cl1, zc - P["dog_h"] / 2 - cl1, zc + P["dog_h"] / 2 + cl1))
     shoes = sh if shoes is None else shoes.union(sh)
     ap = cyl(P["d_pp"] / 2, forkH + 20, zc - forkH / 2 - 10, X, yr).union(cyl(P["d_pp"] / 2, BR["H"] + 20, tb - 5, X, ye))
     apins = ap if apins is None else apins.union(ap)
