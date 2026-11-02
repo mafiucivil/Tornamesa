@@ -40,7 +40,7 @@ ys = [P["R_pin"] * math.sin(-pitch / 2 + pitch * i / 2000) for i in range(2001)]
 chk("Carrera requerida (mm)", P["s_free"] + ys[-1] - ys[0], G["carrera_req"])
 armmin = min(P["R_pin"] * math.cos(-pitch / 2 + pitch * i / 2000) for i in range(2001))
 chk("Brazo mínimo (mm)", armmin, G["brazo_min"])
-front = P["l_p"] - P["d_pin"] / 2 - 5; rear = 1.25 * P["d_pp"]; Lg = 2 / 3 * (front + rear)
+front = P["l_p"] + 20; rear = 1.25 * P["d_pp"]; Lg = 2 / 3 * (front + rear)
 Kg = (1 + 2 * P["mu_g"] * (P["x_g"] - armmin) / Lg) / P["eta_c"]
 
 # --- accionamiento ---
