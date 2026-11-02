@@ -237,7 +237,7 @@ def sheet_d01():
         "7. Operar siempre con ambos cilindros en par (circuito en paralelo, válvula de bloqueo). Prohibido empujar con un solo cilindro.",
         f"8. Detener y relubricar si la presión supera {f(P['p_alarm'])} bar. Ensayo de aceptación y operación en F-04.",
         f"9. Puntos de izaje pos 1d: comerciales soldables certificados, WLL ≥ {M['total'] * P['phi_lift'] / (3 * math.sin(math.radians(60))) / 1000:.1f} t c/u (eslinga 4 ramales, 60°).".replace(".", ",", 1),
-        "10. Caso sísmico (NCh2369) pendiente de definición de parámetros: no instalar de forma permanente sin esa verificación.",
+        "10. Sin requerimiento sísmico (decisión del mandante). Para instalación permanente, verificar con NCh2369 en la herramienta (Ch).",
         "11. Verificaciones completas en D-02 y en la herramienta TT300-C_Verificacion.html (misma fuente de datos).",
     ]
     s.mtext(notas, (300, yt - 6), 2.15, 1.55, bold_first=True)
@@ -258,7 +258,8 @@ def sheet_d02():
            ["H4", f"Fuerza en la línea ojal–centro del pasador (uña biarticulada); brazo mínimo {f1(DV['K']['armMin'])} mm"],
            ["H5", f"Cadena de empuje a fuerza de calado {f1(DV['Fstall'])} kN; ASME BTH-1 Cat. B, Nd = {P['Nd']:.1f}".replace(".", ",")],
            ["H6", f"Estructura AISC 360-22 ASD; FEA MITC4 de la mesa × k_malla {P['kFEA']:.2f}; flexión global axisimétrica sumada".replace(".", ",")],
-           ["H7", "Base delgada apoyada en losa o mats rígidos: la presión en la losa ≈ presión de contacto (verificar por terceros)"]]
+           ["H7", "Base delgada apoyada en losa o mats rígidos: la presión en la losa ≈ presión de contacto (verificar por terceros)"],
+           ["H8", "Sin requerimiento sísmico (decisión del mandante, 31-10-2026); base t ≥ {0} mm por planitud".format(f(P.get("t_base_min", 16)))]]
     y = s.table(30, 572, [("Id", 10, "C"), ("Hipótesis", 250, "L")], hip, rh=5.0, h=2.2)
     s.text("CASOS DE ACCIONAMIENTO", (30, y - 6), 3.5, bold=True)
     rows = [[x["nombre"], f"{x['mu']:.2f}", f(x['r']), f1(x['T']), f1(x['F']), f(x['p']), f"{x['FS']:.2f}", "Gira" if x['gira'] else "No gira"] for x in DV["casos"]]

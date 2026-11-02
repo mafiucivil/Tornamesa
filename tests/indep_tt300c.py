@@ -17,10 +17,9 @@ rings = sorted(float(x) for x in P["rings"].replace(";", ",").split(",") if x.st
 Rt = P["D_top"] / 2; hw = P["h_disc"] - P["t_top"] - P["t_bot"]
 rpr = max(P["D_hub"] / 2, P["R_pin"] - (Rt - P["R_pin"]))
 db = P["D_piv"] + 30
-hole = P["N_pin"] * math.pi * P["d_pin"]**2 / 4 + math.pi * db**2 / 4
-band = math.pi * (Rt**2 - rpr**2)
-m_top = rho * (math.pi * Rt**2 * P["t_top"] - hole * P["t_top"] + band * max(0, P["t_pr"] - P["t_top"]))
-m_bot = rho * (math.pi * Rt**2 * P["t_bot"] - hole * P["t_bot"] + band * max(0, P["t_pr"] - P["t_bot"]))
+aring = math.pi * (Rt**2 - rpr**2) - P["N_pin"] * math.pi * P["d_pin"]**2 / 4
+m_top = rho * ((math.pi * rpr**2 - math.pi / 4 * (P["D_piv"] + 80)**2) * P["t_top"] + aring * max(P["t_pr"], P["t_top"]))
+m_bot = rho * ((math.pi * rpr**2 - math.pi / 4 * db**2) * P["t_bot"] + aring * max(P["t_pr"], P["t_bot"]))
 m_webs = rho * sum(2 * math.pi * r * hw * P["t_web"] for r in rings)
 nin = sum(1 for r in rings if P["D_hub"] / 2 < r < P["R_rib"])
 m_ribs = rho * P["N_rib"] * (P["R_rib"] - P["D_hub"] / 2 - nin * P["t_web"]) * hw * P["t_rib"]
@@ -28,7 +27,7 @@ m_hub = rho * math.pi / 4 * (P["D_hub"]**2 - db**2) * hw
 m_pins = rho * P["N_pin"] * math.pi / 4 * P["d_pin"]**2 * P["h_disc"]
 m_disc = m_top + m_bot + m_webs + m_ribs + m_hub + m_pins
 chk("Masa de la mesa (kg)", m_disc, G["masa_mesa"])
-m_piv = rho * math.pi / 4 * P["D_piv"]**2 * (P["h_disc"] + P["t_base"])
+m_piv = rho * math.pi / 4 * P["D_piv"]**2 * (P["t_base"] + P["h_disc"] - P["t_top"] + 3)
 W = P["W_tf"] * g; Wd = (m_disc + 0.5 * m_piv) * g / 1e3; N = W + Wd; ND = P["phi_d"] * W + Wd
 chk("N = W + W_mesa (kN)", N, G["N"])
 Ro, Ri = Rt, P["D_piv"] / 2 + 15

@@ -84,6 +84,7 @@ const TT = (() => {
     { id: "base", t: "Base", p: [
       ["B", "Lado de la base cuadrada", "mm", 2200, 1000, 4500, 10],
       ["t_base", "Espesor plancha base", "mm", 16, 6, 60, 1],
+      ["t_base_min", "Espesor mínimo de base por planitud (criterio de fabricación)", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
       ["c_lug", "Punto de izaje (a medio lado): distancia al borde", "mm", 50, 30, 600, 5],
@@ -97,7 +98,7 @@ const TT = (() => {
       ["mu_bush", "μ del buje", "–", 0.20, 0.02, 0.5, 0.01],
       ["e_piv", "Brazo de flexión del pivote", "mm", 40, 5, 200, 1],
       ["Fy_piv", "Fy pivote", "MPa", 650, 235, 1000, 5],
-      ["Ch", "Coeficiente sísmico horizontal (NCh2369; 0 = sin definir)", "–", 0, 0, 1.5, 0.01],
+      ["Ch", "Coeficiente sísmico horizontal (0 = no aplica, decisión del mandante)", "–", 0, 0, 1.5, 0.01],
     ] },
     { id: "material", t: "Materiales y normas", p: [
       ["Fy", "Fy acero estructural (ASTM A572 Gr.50)", "MPa", 345, 235, 690, 5],
@@ -127,23 +128,28 @@ const TT = (() => {
     const rings = parseRings(P.rings);
     const hw = P.h_disc - P.t_top - P.t_bot;
     const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15;
-    const holes = (t) => P.N_pin * Math.PI / 4 * P.d_pin ** 2 * t + Math.PI / 4 * d_bush ** 2 * t;
+    // planchas: disco central + anillo de pasadores (agujeros de pasadores en todo el espesor del anillo)
+    const rpr = prIn(P), aRing = Math.PI * (Rt * Rt - rpr * rpr) - P.N_pin * Math.PI / 4 * P.d_pin ** 2;
+    const hole_top = P.D_piv + 80;                                       // alojamiento de la tapa retenedora
     const m = {};
-    const rpr = prIn(P), band = Math.PI * (Rt * Rt - rpr * rpr);
-    m.top = RHO * (Math.PI * Rt * Rt * P.t_top - holes(P.t_top) + band * Math.max(0, P.t_pr - P.t_top));
-    m.bot = RHO * (Math.PI * Rt * Rt * P.t_bot - holes(P.t_bot) + band * Math.max(0, P.t_pr - P.t_bot));
+    m.top = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * hole_top ** 2) * P.t_top + aRing * Math.max(P.t_pr, P.t_top));
+    m.bot = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * d_bush ** 2) * P.t_bot + aRing * Math.max(P.t_pr, P.t_bot));
     m.webs = RHO * rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0);
     const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
     m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
     m.hub = RHO * Math.PI / 4 * (P.D_hub ** 2 - d_bush ** 2) * hw;
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins;
-    m.base = RHO * P.B * P.B * P.t_base;
-    m.rim = RHO * 4 * P.B * P.rim_h * P.rim_t;
+    m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
+    m.rim = RHO * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t;
     const bg = bracketGeo(P, kinematics(P));
-    m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * bg.H + 2 * bg.Wout * 2.5 * P.d_pp * P.t_ch + bg.Wout * 2.5 * P.d_pp * bg.spacer);
-    m.dogs = RHO * 2 * P.dog_b * P.dog_h * (P.d_dog + P.d_pp);
-    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.h_disc + P.t_base);
+    const Llug = 2.5 * P.d_pp, tl = 2 * P.t_ch + bg.spacer;
+    m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * bg.H + (bg.Win * Llug - Math.PI / 4 * P.d_pp ** 2) * tl);
+    // uña: horquilla (2 orejas) + cuerpo − asiento cilíndrico
+    const fw = 2.4 * P.d_pp, tf = forkH(P) - P.b_eye - 2 * P.g_ch, Rn = P.d_pin / 2 + 1, yb = Math.min(P.dog_b / 2, Rn);
+    const seat = 2 * (yb / 2 * Math.sqrt(Rn * Rn - yb * yb) + Rn * Rn / 2 * Math.asin(yb / Rn));
+    m.dogs = RHO * P.n_cyl * ((fw * fw - Math.PI / 4 * P.d_pp ** 2) * tf + ((P.d_dog - fw / 2 + 5) * P.dog_b - seat) * P.dog_h);
+    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
     m.cyl = P.n_cyl * P.m_cyl;
     m.total = m.disc + m.base + m.rim + m.brackets + m.dogs + m.pivot + m.cyl;
     return m;
@@ -454,6 +460,7 @@ const TT = (() => {
 
     /* --- Tamaño mínimo de filete según espesor de la parte más gruesa --- */
     const wMin = (T) => T <= 6 ? 3 : T <= 12 ? 5 : T <= 20 ? 6 : 8;
+    add({ grp: "Base", sys: "est", kind: "geo", name: "Espesor de la plancha base frente al mínimo por planitud", formula: "t_base_mín ≤ t_base", dem: P.t_base_min, cap: P.t_base, unit: "mm", ref: "Criterio de fabricación (planitud 0,20 de la cara de giro)" });
     const Tw = Math.max(P.t_top, P.t_bot), Tb = Math.max(P.t_base, P.t_ch);
     add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo almas/nervios–planchas", formula: "w_mín(T = " + Tw + ") ≤ w ≤ t_alma", dem: wMin(Tw), cap: Math.min(P.w_web, Math.min(P.t_web, P.t_rib)), unit: "mm", ref: "AWS D1.1/D1.1M:2020, tamaño mínimo de filete" });
     add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo mejillas–base", formula: "w_mín(T = " + Tb + ") ≤ w ≤ t_mín", dem: wMin(Tb), cap: Math.min(P.w_br, Math.min(P.t_base, P.t_ch)), unit: "mm", ref: "AWS D1.1/D1.1M:2020, tamaño mínimo de filete" });
@@ -489,7 +496,7 @@ const TT = (() => {
     const H = Math.max(R.H_ecc(P.mu_d), P.Ch * R.N);
     add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N)", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
     add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd", dem: H * 1e3 * P.e_piv / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
-    if (!(P.Ch > 0)) add({ grp: "Pivote", sys: "est", kind: "pend", name: "Caso sísmico", formula: "Ch según NCh2369 (zona, suelo, categoría)", unit: "–", ref: "NCh2369 — definir parámetros" });
+    if (!(P.Ch > 0)) add({ grp: "Pivote", sys: "est", kind: "info", name: "Caso sísmico: no aplica", formula: "Sin requerimiento sísmico (decisión del mandante, 31-10-2026); si se instala en forma permanente, ingresar Ch", dem: 0, unit: "–", ref: "Decisión del mandante" });
 
     /* --- Base --- */
     if (fea && fea.lift) {

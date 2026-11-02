@@ -58,6 +58,7 @@
  "n_br": 4,
  "B": 2200,
  "t_base": 16,
+ "t_base_min": 16,
  "rim_h": 45,
  "rim_t": 10,
  "c_lug": 50,

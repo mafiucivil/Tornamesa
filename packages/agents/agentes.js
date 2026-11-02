@@ -37,7 +37,6 @@ const AG = (() => {
     if (P.n_cyl === 1) W("Un solo cilindro no forma par: el pivote recibe la fuerza completa. Válvula de bloqueo obligatoria");
     if (P.n_cyl % 2 === 1 && P.n_cyl > 1) W("N° impar de cilindros: verificar que el conjunto forme par puro");
     if (P.t_pr < Math.max(P.t_top, P.t_bot)) W("El anillo de pasadores es más delgado que las planchas: se usa el mayor espesor");
-    if (!(P.Ch > 0)) W("Coeficiente sísmico sin definir (NCh2369): el caso sísmico queda pendiente");
     const K = TT_.kinematics(P);
     if (!K.ok) E(K.msg);
     return out;
@@ -100,9 +99,12 @@ const AG = (() => {
       // (g) Desequilibrio de la solución axisimétrica global
       out.push({ name: "Flexión global: desequilibrio en el borde", tool: A.fea.glob.imbalance, indep: 0, d: A.fea.glob.imbalance / (R.ND) * 100, tol: 0.1, ok: Math.abs(A.fea.glob.imbalance) <= 1e-3 * R.ND, note: "kN" });
     }
-    // (h) Masa de las planchas por área integrada
-    const Rt = P.D_top / 2, rpr = TT_.prIn(P);
-    const mTop = 7.85e-6 * (Math.PI * Rt * Rt * P.t_top + Math.PI * (Rt * Rt - rpr * rpr) * Math.max(0, P.t_pr - P.t_top) - (P.N_pin * Math.PI / 4 * P.d_pin ** 2 + Math.PI / 4 * (P.D_piv + 30) ** 2) * P.t_top);
+    // (h) Masa de la plancha superior por integración numérica del espesor t(r) en anillos concéntricos
+    const Rt = P.D_top / 2, rpr = TT_.prIn(P), hole = P.D_piv + 80, tprx = Math.max(P.t_pr, P.t_top);
+    let vTop = 0; const nI = 4000;
+    for (let i = 0; i < nI; i++) { const r = hole / 2 + (Rt - hole / 2) * (i + 0.5) / nI; vTop += 2 * Math.PI * r * (Rt - hole / 2) / nI * (r < rpr ? P.t_top : tprx); }
+    vTop -= P.N_pin * Math.PI / 4 * P.d_pin ** 2 * tprx;
+    const mTop = 7.85e-6 * vTop;
     add("Masa plancha superior", R.m.top, mTop, 0.01, "kg");
     return out;
   }
@@ -129,7 +131,7 @@ const AG = (() => {
   const VARS = [
     ["t_top", [10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], true],
     ["t_bot", [10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40, 45, 50], true],
-    ["t_base", [16, 20, 22, 25, 30, 32, 35, 40], true],   // mín. 16: planitud 0,20 de la cara de giro (criterio de fabricación)
+    ["t_base", [6, 8, 10, 12, 15, 16, 20, 22, 25, 30, 32, 35, 40], true],   // el mínimo lo impone el chequeo t_base_mín (planitud)
     ["t_pr", [16, 20, 22, 25, 30, 32, 35, 40, 45, 50, 55, 60], false],
     ["h_disc", range(100, 300, 5), true],
     ["t_web", [8, 10, 12, 15, 16, 20, 25], true],
