@@ -1,0 +1,1150 @@
+{
+ "proyecto": "TT300-C",
+ "fecha": "2026-11-02",
+ "P": {
+  "W_tf": 300,
+  "e": 150,
+  "phi_d": 1.1,
+  "D_load": 1600,
+  "mu_d": 0.2,
+  "r_ef": 800,
+  "mu_nom": 0.15,
+  "mu_cont": 0.25,
+  "mu_dry": 0.5,
+  "q_adm": 10,
+  "FS_min": 1.25,
+  "D_top": 2000,
+  "t_top": 20,
+  "t_bot": 16,
+  "h_disc": 210,
+  "rings": "300, 580, 840",
+  "t_web": 8,
+  "N_rib": 14,
+  "t_rib": 8,
+  "R_rib": 840,
+  "D_hub": 300,
+  "w_web": 6,
+  "N_pin": 28,
+  "d_pin": 100,
+  "R_pin": 930,
+  "Fy_pin": 800,
+  "t_pr": 35,
+  "n_cyl": 2,
+  "D_bore": 90,
+  "d_rod": 63,
+  "D_body": 130,
+  "p_relief": 700,
+  "p_alarm": 600,
+  "p_ret": 200,
+  "stroke": 235,
+  "L0": 520,
+  "e_body": 75,
+  "c_rod": 110,
+  "eta_c": 0.95,
+  "m_cyl": 55,
+  "Q_pump": 1.8,
+  "x_g": 1120,
+  "l_p": 300,
+  "s_free": 10,
+  "s_margin": 5,
+  "mu_g": 0.15,
+  "w_s": 210,
+  "slot": 10,
+  "c_tip": 15,
+  "s_sp": 40,
+  "dog_b": 88,
+  "dog_h": 110,
+  "L_in": 100,
+  "l_lip": 60,
+  "e_dog": 10,
+  "Fy_dog": 800,
+  "t_bed": 25,
+  "w_bed": 120,
+  "w_slot": 40,
+  "h_slot": 22,
+  "w_bed_f": 10,
+  "d_pp": 70,
+  "Fy_pp": 650,
+  "t_ch": 25,
+  "g_ch": 2,
+  "b_eye": 50,
+  "L_ch": 325,
+  "w_br": 16,
+  "n_br": 4,
+  "B": 2480,
+  "t_base": 20,
+  "t_base_min": 16,
+  "rim_h": 45,
+  "rim_t": 10,
+  "c_lug": 50,
+  "x_lug": 500,
+  "phi_lift": 1.3,
+  "q_floor": 2,
+  "D_piv": 120,
+  "L_bush": 80,
+  "p_bush": 30,
+  "mu_bush": 0.2,
+  "e_piv": 40,
+  "Fy_piv": 650,
+  "Ch": 0,
+  "Fy": 345,
+  "FEXX": 490,
+  "E": 200000,
+  "nu": 0.3,
+  "Nd": 3,
+  "kFEA": 1.15,
+  "turns_yr": 50,
+  "life": 25
+ },
+ "verdict": {
+  "gira": true,
+  "estructura": true,
+  "warnGiro": 0,
+  "warnEst": 0,
+  "pend": 0,
+  "fuMax": 0.9230103178743302
+ },
+ "validacion": [],
+ "derivados": {
+  "W": 2941.995,
+  "N": 2958.114737563025,
+  "ND": 3252.314237563025,
+  "q_max": 1.6622658810327744,
+  "q_avg": 1.0410999620793047,
+  "Fstall": 445.32075864635317,
+  "Falarm": 381.7035074111599,
+  "Fret": 64.88959625989716,
+  "A": 6361.725123519331,
+  "Aann": 3244.4798129948585,
+  "hax": 105,
+  "prIn": 860,
+  "pinClear": 140,
+  "forkH": 104,
+  "bracket": {
+   "Win": 150,
+   "H": 157,
+   "spacer": 53,
+   "rear": 115,
+   "lugF": 60,
+   "Llug": 175,
+   "aReq": 67.07114605570445,
+   "Wout": 200
+  },
+  "tRev": 70.23203164695927,
+  "tCycle": 2.50828684453426,
+  "muMax_ref": 0.2710653525753426,
+  "Kguide": 1.2802878660889323,
+  "Rguide": 321.0368899182288,
+  "K": {
+   "armMin": 924.1523552007156,
+   "armMax": 930,
+   "s_req": 218.25392555215262,
+   "margin": 16.746074447847377,
+   "chord": 208.25392555215262,
+   "gap": 108.25392555215262,
+   "radial": 5.847644799284353,
+   "DeltaMax": 195.84764479928435,
+   "L_s": 407.5,
+   "Lg": 271.66666666666663,
+   "front": 320,
+   "rear": 87.5,
+   "y_eye": -934.1269627760763,
+   "y_rp0": -414.1269627760763,
+   "y_rp1": -195.8730372239237,
+   "L_bed": 1023.2539255521526,
+   "Y_bed": 511.6269627760763,
+   "zc0": 125,
+   "lever": 65.84764479928435,
+   "mouthX": 990,
+   "inset": 25,
+   "tipX": 909.1523552007156,
+   "travel": 75.84764479928435,
+   "pocketEnd": 1205.8476447992844
+  },
+  "casos": [
+   {
+    "id": "nom",
+    "nombre": "Nominal: grasa grafitada limpia",
+    "mu": 0.15,
+    "r": 670.1550387596899,
+    "T": 298.4238302145471,
+    "F": 206.71289026390423,
+    "p": 324.9321312228433,
+    "FS": 2.1542960290373054,
+    "gira": true
+   },
+   {
+    "id": "dis",
+    "nombre": "Diseño: μ límite superior, r efectivo",
+    "mu": 0.2,
+    "r": 800,
+    "T": 474.7176989747151,
+    "F": 328.8285239953666,
+    "p": 516.8857780096248,
+    "FS": 1.3542643844748334,
+    "gira": true
+   },
+   {
+    "id": "borde",
+    "nombre": "Borde: μ de diseño con contacto en el borde (r = R)",
+    "mu": 0.2,
+    "r": 1000,
+    "T": 593.0422884772362,
+    "F": 410.7898669208682,
+    "p": 645.7208680742522,
+    "FS": 1.0840597456415273,
+    "gira": true
+   },
+   {
+    "id": "cont",
+    "nombre": "Contaminado: arena / película degradada",
+    "mu": 0.25,
+    "r": 800,
+    "T": 593.3971237183939,
+    "F": 411.0356549942083,
+    "p": 646.1072225120312,
+    "FS": 1.0834115075798667,
+    "gira": true
+   },
+   {
+    "id": "seco",
+    "nombre": "Acero seco, sin lubricación (referencial)",
+    "mu": 0.5,
+    "r": 670.1550387596899,
+    "T": 994.7461007151571,
+    "F": 689.0429675463474,
+    "p": 1083.1071040761444,
+    "FS": 0.6462888087111917,
+    "gira": false
+   }
+  ],
+  "masas": {
+   "top": 524.2048935409314,
+   "bot": 453.9590703022228,
+   "webs": 118.09111068041398,
+   "ribs": 103.10905919999999,
+   "hub": 72.41233621845878,
+   "pins": 362.52408426099413,
+   "disc": 1634.300554203021,
+   "base": 963.837171832191,
+   "rim": 34.9011,
+   "brackets": 152.56033977370586,
+   "dogs": 22.654601156090862,
+   "shoes": 135.6250180320345,
+   "beds": 34.057983658077845,
+   "pivot": 18.910439987165326,
+   "cyl": 110,
+   "total": 3106.847208642286
+  }
+ },
+ "pasadores": [
+  6.428571428571429,
+  19.285714285714285,
+  32.142857142857146,
+  45,
+  57.85714285714286,
+  70.71428571428572,
+  83.57142857142857,
+  96.42857142857143,
+  109.28571428571429,
+  122.14285714285714,
+  135,
+  147.85714285714283,
+  160.7142857142857,
+  173.57142857142856,
+  186.42857142857142,
+  199.28571428571428,
+  212.14285714285714,
+  225,
+  237.85714285714283,
+  250.7142857142857,
+  263.5714285714286,
+  276.42857142857144,
+  289.2857142857143,
+  302.14285714285717,
+  315,
+  327.8571428571429,
+  340.7142857142857,
+  353.5714285714286
+ ],
+ "nervios": [
+  0,
+  25.714285714285715,
+  51.42857142857143,
+  77.14285714285714,
+  102.85714285714286,
+  128.57142857142858,
+  154.28571428571428,
+  180,
+  205.71428571428572,
+  231.42857142857142,
+  257.14285714285717,
+  282.85714285714283,
+  308.57142857142856,
+  334.2857142857143
+ ],
+ "almas": [
+  300,
+  580,
+  840
+ ],
+ "cilindros": {
+  "horario": [
+   {
+    "side": 1,
+    "dir": -1,
+    "x": 1120,
+    "eye": [
+     1120,
+     934.1269627760763
+    ],
+    "phiMean": -90,
+    "rodRetracted": [
+     1120,
+     414.1269627760763
+    ],
+    "rodEngage": [
+     1120,
+     404.1269627760763
+    ],
+    "rodEnd": [
+     1120,
+     195.8730372239237
+    ],
+    "pinStart": [
+     924.1523552007156,
+     104.12696277607631
+    ],
+    "pinEnd": [
+     924.1523552007156,
+     -104.12696277607631
+    ],
+    "shoeFront": 320,
+    "shoeRear": 87.5,
+    "mouthX": 990
+   },
+   {
+    "side": -1,
+    "dir": 1,
+    "x": -1120,
+    "eye": [
+     -1120,
+     -934.1269627760763
+    ],
+    "phiMean": 90,
+    "rodRetracted": [
+     -1120,
+     -414.1269627760763
+    ],
+    "rodEngage": [
+     -1120,
+     -404.1269627760763
+    ],
+    "rodEnd": [
+     -1120,
+     -195.8730372239237
+    ],
+    "pinStart": [
+     -924.1523552007156,
+     -104.12696277607631
+    ],
+    "pinEnd": [
+     -924.1523552007156,
+     104.12696277607631
+    ],
+    "shoeFront": 320,
+    "shoeRear": 87.5,
+    "mouthX": -990
+   }
+  ],
+  "antihorario": [
+   {
+    "side": 1,
+    "dir": 1,
+    "x": 1120,
+    "eye": [
+     1120,
+     -934.1269627760763
+    ],
+    "phiMean": 90,
+    "rodRetracted": [
+     1120,
+     -414.1269627760763
+    ],
+    "rodEngage": [
+     1120,
+     -404.1269627760763
+    ],
+    "rodEnd": [
+     1120,
+     -195.8730372239237
+    ],
+    "pinStart": [
+     924.1523552007156,
+     -104.12696277607631
+    ],
+    "pinEnd": [
+     924.1523552007156,
+     104.12696277607631
+    ],
+    "shoeFront": 320,
+    "shoeRear": 87.5,
+    "mouthX": 990
+   },
+   {
+    "side": -1,
+    "dir": -1,
+    "x": -1120,
+    "eye": [
+     -1120,
+     934.1269627760763
+    ],
+    "phiMean": -90,
+    "rodRetracted": [
+     -1120,
+     414.1269627760763
+    ],
+    "rodEngage": [
+     -1120,
+     404.1269627760763
+    ],
+    "rodEnd": [
+     -1120,
+     195.8730372239237
+    ],
+    "pinStart": [
+     -924.1523552007156,
+     104.12696277607631
+    ],
+    "pinEnd": [
+     -924.1523552007156,
+     -104.12696277607631
+    ],
+    "shoeFront": 320,
+    "shoeRear": 87.5,
+    "mouthX": -990
+   }
+  ]
+ },
+ "verificaciones": [
+  {
+   "grp": "Giro",
+   "nombre": "FS del accionamiento en el caso de diseño",
+   "formula": "FS = F_calado / F_dis ≥ FS_min",
+   "dem": 1.25,
+   "cap": 1.3542643844748334,
+   "unidad": "–",
+   "fu": 0.9230103178743301,
+   "estado": "ok",
+   "ref": "Criterio del proyecto (μ_d, r_ef)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Presión de diseño frente a la alarma",
+   "formula": "p_dis = F_dis / A ≤ p_alarma",
+   "dem": 516.8857780096248,
+   "cap": 600,
+   "unidad": "bar",
+   "fu": 0.861476296682708,
+   "estado": "ok",
+   "ref": "Criterio de operación"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Gira con grasa contaminada",
+   "formula": "F_cont ≤ F_calado",
+   "dem": 411.0356549942083,
+   "cap": 445.32075864635317,
+   "unidad": "kN",
+   "fu": 0.9230103178743302,
+   "estado": "ok",
+   "ref": "Criterio del proyecto"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Gira con contacto en el borde (r = R)",
+   "formula": "F(μ_d, R) ≤ F_calado",
+   "dem": 410.7898669208682,
+   "cap": 445.32075864635317,
+   "unidad": "kN",
+   "fu": 0.9224583829632175,
+   "estado": "ok",
+   "ref": "Revisión independiente M1"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Carrera requerida con margen",
+   "formula": "s_libre + ΔL(paso) + margen ≤ carrera",
+   "dem": 223.25392555215262,
+   "cap": 235,
+   "unidad": "mm",
+   "fu": 0.9500167044772452,
+   "estado": "ok",
+   "ref": "Cinemática (rev. C3)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Uña entre pasadores (ancho en el sentido del empuje)",
+   "formula": "cuerda − d_pas ≥ b_uña + 2·10",
+   "dem": 108,
+   "cap": 108.25392555215262,
+   "unidad": "mm",
+   "fu": 0.9976543524786056,
+   "estado": "ok",
+   "ref": "Cinemática"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Uña dentro de la luz libre entre anillos",
+   "formula": "h_uña + 10 ≤ h − 2·t_anillo",
+   "dem": 120,
+   "cap": 140,
+   "unidad": "mm",
+   "fu": 0.8571428571428571,
+   "estado": "ok",
+   "ref": "Geometría"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Boca del alojamiento entre los anillos de la mesa",
+   "formula": "h_uña + 2·10 (marco) + 10 ≤ h − 2·t_anillo",
+   "dem": 140,
+   "cap": 140,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Geometría (alzado)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Alojamiento de la uña (retorno + resorte) dentro del patín",
+   "formula": "boca + L_in + recorrido de retorno + resorte + 10 ≤ x_g + w_s/2",
+   "dem": 1215.8476447992844,
+   "cap": 1225,
+   "unidad": "mm",
+   "fu": 0.9925286896320689,
+   "estado": "ok",
+   "ref": "Geometría (retorno del trinquete)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Holgura radial de la uña en el patín",
+   "formula": "R·(1 − cos π/N) + 2 ≤ holgura",
+   "dem": 7.847644799284353,
+   "cap": 10,
+   "unidad": "mm",
+   "fu": 0.7847644799284353,
+   "estado": "ok",
+   "ref": "Cinemática (rev. C2)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Patín fuera de la mesa",
+   "formula": "D/2 + 15 ≤ x_g − w_s/2",
+   "dem": 1015,
+   "cap": 1015,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Geometría (planta)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Bancada de guía fuera de la mesa",
+   "formula": "D/2 + 10 ≤ x_g − w_bancada/2",
+   "dem": 1010,
+   "cap": 1060,
+   "unidad": "mm",
+   "fu": 0.9528301886792453,
+   "estado": "ok",
+   "ref": "Geometría (planta)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Cilindro, ménsula y bancada dentro de la base (x)",
+   "formula": "x_g + máx(D_cuerpo, W_ménsula, w_bancada)/2 ≤ B/2 − t_marco − 5",
+   "dem": 1220,
+   "cap": 1225,
+   "unidad": "mm",
+   "fu": 0.9959183673469387,
+   "estado": "ok",
+   "ref": "Geometría (planta)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Ménsula del ojal dentro de la base (y)",
+   "formula": "|y_ojal| + saliente trasera ≤ B/2 − t_marco − 5",
+   "dem": 1049.1269627760762,
+   "cap": 1225,
+   "unidad": "mm",
+   "fu": 0.856430173694756,
+   "estado": "ok",
+   "ref": "Geometría (planta)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Cuerpo del cilindro detrás del patín",
+   "formula": "saliente trasera del patín + 10 ≤ c_vástago",
+   "dem": 97.5,
+   "cap": 110,
+   "unidad": "mm",
+   "fu": 0.8863636363636364,
+   "estado": "ok",
+   "ref": "Geometría (cilindro retraído)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Horquilla del patín sobre la bancada",
+   "formula": "z_bancada + 5 ≤ z_eje − h_horquilla/2",
+   "dem": 50,
+   "cap": 73,
+   "unidad": "mm",
+   "fu": 0.684931506849315,
+   "estado": "ok",
+   "ref": "Geometría (alzado)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Orejas de la ménsula libres del cuerpo del cilindro",
+   "formula": "d_pp/2 + 25 + 10 ≤ e_cuerpo",
+   "dem": 70,
+   "cap": 75,
+   "unidad": "mm",
+   "fu": 0.9333333333333333,
+   "estado": "ok",
+   "ref": "Geometría"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Cuerpo del cilindro libre sobre la base",
+   "formula": "D_cuerpo/2 + 5 ≤ h_eje",
+   "dem": 70,
+   "cap": 105,
+   "unidad": "mm",
+   "fu": 0.6666666666666666,
+   "estado": "ok",
+   "ref": "Geometría"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Pandeo del vástago (biarticulado, longitud extendida)",
+   "formula": "F_calado ≤ Pcr / 3; Pcr = π²EI/L²",
+   "dem": 445.32075864635317,
+   "cap": 892.5790303421862,
+   "unidad": "kN",
+   "fu": 0.49891465462238277,
+   "estado": "ok",
+   "ref": "Euler, FS 3 (conservador frente a ISO/TS 13725)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Retorno: fuerza disponible en el puerto B",
+   "formula": "F_ret = A_anular · p_ret",
+   "dem": 64.88959625989716,
+   "unidad": "kN",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Tiempo por vuelta",
+   "formula": "N_pas · (V_ext + V_ret) / Q",
+   "dem": 70.23203164695927,
+   "unidad": "min",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
+  },
+  {
+   "grp": "Interfaz",
+   "nombre": "Presión de contacto máxima",
+   "formula": "q = N_D/A · (1 + 4eR/(R²+r²))",
+   "dem": 1.6622658810327744,
+   "cap": 10,
+   "unidad": "MPa",
+   "fu": 0.16622658810327745,
+   "estado": "ok",
+   "ref": "Criterio acero/acero lubricado"
+  },
+  {
+   "grp": "Interfaz",
+   "nombre": "Sin despegue de la mesa (q_mín ≥ 0)",
+   "formula": "1 − 4eR/(R²+r²) ≥ 0",
+   "dem": 0.5966438781852083,
+   "cap": 1,
+   "unidad": "–",
+   "fu": 0.5966438781852083,
+   "estado": "ok",
+   "ref": "Núcleo central"
+  },
+  {
+   "grp": "Interfaz",
+   "nombre": "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)",
+   "formula": "σ ≈ q_max ≤ q_losa (verificar por terceros)",
+   "dem": 1.6622658810327744,
+   "cap": 2,
+   "unidad": "MPa",
+   "fu": null,
+   "estado": "info",
+   "ref": "Referencial (rev. M7)"
+  },
+  {
+   "grp": "Mesa (FEA)",
+   "nombre": "Plancha superior: σvm local (carga con e)",
+   "formula": "MITC4 × k_malla",
+   "dem": 146.47981574807488,
+   "cap": 207,
+   "unidad": "MPa",
+   "fu": 0.7076319601356275,
+   "estado": "ok",
+   "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
+  },
+  {
+   "grp": "Mesa (FEA)",
+   "nombre": "Plancha inferior: σvm local (contacto q_max)",
+   "formula": "MITC4 × k_malla",
+   "dem": 137.87562788146212,
+   "cap": 207,
+   "unidad": "MPa",
+   "fu": 0.6660658351761455,
+   "estado": "ok",
+   "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
+  },
+  {
+   "grp": "Mesa",
+   "nombre": "Plancha superior: global + local",
+   "formula": "σ = M_glob/(t·h_c) + σvm_local",
+   "dem": 171.5138078379201,
+   "cap": 207,
+   "unidad": "MPa",
+   "fu": 0.8285691199899522,
+   "estado": "ok",
+   "ref": "Placa sándwich axisimétrica (rev. M2)"
+  },
+  {
+   "grp": "Mesa",
+   "nombre": "Plancha inferior: global + local",
+   "formula": "σ = M_glob/(t·h_c) + σvm_local",
+   "dem": 169.16811799376865,
+   "cap": 207,
+   "unidad": "MPa",
+   "fu": 0.8172372849940515,
+   "estado": "ok",
+   "ref": "Placa sándwich axisimétrica (rev. M2)"
+  },
+  {
+   "grp": "Mesa",
+   "nombre": "Corte en nervios radiales",
+   "formula": "τ = V/(N·t·h_w) ≤ 0,6Fy/1,50 (h/t ≤ 2,24√(E/Fy))",
+   "dem": 60.111703227034766,
+   "cap": 138,
+   "unidad": "MPa",
+   "fu": 0.43559205236981713,
+   "estado": "ok",
+   "ref": "AISC 360-22 G2.1(a), Ec. G2-1"
+  },
+  {
+   "grp": "Mesa",
+   "nombre": "Soldadura alma/nervio–plancha (2 filetes)",
+   "formula": "f = √(q_h² + q_v²)/(2·0,707·w) ≤ 0,6FEXX/2,0",
+   "dem": 72.15234569941437,
+   "cap": 147,
+   "unidad": "MPa",
+   "fu": 0.4908322836694855,
+   "estado": "ok",
+   "ref": "AISC 360-22 J2.4, Ec. J2-4"
+  },
+  {
+   "grp": "Mesa",
+   "nombre": "Fluencia local de almas por carga de línea",
+   "formula": "σ = q_v / t ≤ Fy/1,50",
+   "dem": 47.34469900176093,
+   "cap": 230,
+   "unidad": "MPa",
+   "fu": 0.20584651739896057,
+   "estado": "ok",
+   "ref": "AISC 360-22 J10.2"
+  },
+  {
+   "grp": "Mesa (FEA)",
+   "nombre": "Equilibrio FEA (ΣF = ΣR)",
+   "formula": "|ΣF − ΣR| / ΣF ≤ 0,5 %",
+   "dem": 0.00010000000146552893,
+   "cap": 0.5,
+   "unidad": "%",
+   "fu": 0.00020000000293105786,
+   "estado": "ok",
+   "ref": "Control numérico"
+  },
+  {
+   "grp": "Base",
+   "nombre": "Espesor de la plancha base frente al mínimo por planitud",
+   "formula": "t_base_mín ≤ t_base",
+   "dem": 16,
+   "cap": 20,
+   "unidad": "mm",
+   "fu": 0.8,
+   "estado": "ok",
+   "ref": "Criterio de fabricación (planitud 0,20 de la cara de giro)"
+  },
+  {
+   "grp": "Soldaduras",
+   "nombre": "Filete mínimo almas/nervios–planchas",
+   "formula": "w_mín(T = 20) ≤ w ≤ t_alma",
+   "dem": 6,
+   "cap": 6,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
+  },
+  {
+   "grp": "Soldaduras",
+   "nombre": "Filete mínimo mejillas–base",
+   "formula": "w_mín(T = 25) ≤ w ≤ t_mín",
+   "dem": 8,
+   "cap": 16,
+   "unidad": "mm",
+   "fu": 0.5,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
+  },
+  {
+   "grp": "Pasadores de empuje",
+   "nombre": "Flexión (biapoyado entre planchas, carga al centro)",
+   "formula": "M = F·L/4; σ = M/S ≤ Fy/Nd",
+   "dem": 198.45,
+   "cap": 266.6666666666667,
+   "unidad": "MPa",
+   "fu": 0.7441874999999999,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3 (Fy/Nd, conservador)"
+  },
+  {
+   "grp": "Pasadores de empuje",
+   "nombre": "Corte (carga junto a una plancha)",
+   "formula": "τ = 4F/(3A) ≤ Fy/(Nd·√3)",
+   "dem": 75.6,
+   "cap": 153.9600717839002,
+   "unidad": "MPa",
+   "fu": 0.49103640394577674,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Pasadores de empuje",
+   "nombre": "Aplastamiento en el agujero de la plancha",
+   "formula": "σ = F/(d·t_anillo) ≤ 1,25Fy/Nd",
+   "dem": 127.23450247038662,
+   "cap": 143.75,
+   "unidad": "MPa",
+   "fu": 0.8851095824026896,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3 (aplastamiento en pasadores)"
+  },
+  {
+   "grp": "Pasadores de empuje",
+   "nombre": "Aplastamiento pasador–uña",
+   "formula": "σ = F/(d·h_uña) ≤ 1,25·Fy_mín/Nd",
+   "dem": 40.48370533148665,
+   "cap": 333.3333333333333,
+   "unidad": "MPa",
+   "fu": 0.12145111599445994,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3"
+  },
+  {
+   "grp": "Uña",
+   "nombre": "Flexión en la boca del patín (voladizo)",
+   "formula": "σ = F·(x_boca − a_mín + e)/(h·b²/6) ≤ Fy/Nd",
+   "dem": 237.90756989732645,
+   "cap": 266.6666666666667,
+   "unidad": "MPa",
+   "fu": 0.8921533871149742,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Uña",
+   "nombre": "Corte en la boca del patín",
+   "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
+   "dem": 69.00631590594315,
+   "cap": 153.9600717839002,
+   "unidad": "MPa",
+   "fu": 0.44820916947090716,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Aplastamiento del labio delantero del alojamiento",
+   "formula": "R = F·(voladizo + L_in)/L_in; σ = R/(l_labio·h) ≤ 1,25Fy/Nd",
+   "dem": 111.90211969958821,
+   "cap": 143.75,
+   "unidad": "MPa",
+   "fu": 0.7784495283449615,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.5 (aplastamiento) — rev. M4"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Aplastamiento de la lengüeta en la ranura de la bancada",
+   "formula": "R = F·Δ/Lg; σ = R/(h_ranura·L_s/3) ≤ 1,25Fy/Nd",
+   "dem": 107.43008028496222,
+   "cap": 143.75,
+   "unidad": "MPa",
+   "fu": 0.7473396889388676,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.5 — rev. M3"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Pared de la ranura: flexión en la raíz",
+   "formula": "σ = R·h_ranura/2 / (L_s/3·pared²/6) ≤ Fy/Nd",
+   "dem": 97.49279785860321,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.847763459640028,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Soldadura bancada–base (2 filetes longitudinales)",
+   "formula": "f = R/(2·0,707·w·L_ef), L_ef = L_s + 2·w_bancada",
+   "dem": 35.06434714282752,
+   "cap": 81.66666666666667,
+   "unidad": "MPa",
+   "fu": 0.4293593527693166,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.4"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Factor de guía K = (1 + 2μg·Δ/Lg)/η",
+   "formula": "Δ = x_g − a_mín; Lg = 2/3·L_patín",
+   "dem": 1.2802878660889323,
+   "unidad": "–",
+   "fu": null,
+   "estado": "info",
+   "ref": "Revisión independiente M3"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Pasador: flexión (horquilla)",
+   "formula": "M = F/2·(t/2 + g + b/4); σ ≤ Fy/Nd",
+   "dem": 178.53061224489795,
+   "cap": 216.66666666666666,
+   "unidad": "MPa",
+   "fu": 0.8239874411302983,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3 / 3-2.3"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Pasador: corte doble",
+   "formula": "τ = (F/2)/A ≤ Fy/(Nd·√3)",
+   "dem": 57.857142857142854,
+   "cap": 125.09255832441892,
+   "unidad": "MPa",
+   "fu": 0.4625146661969639,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Aplastamiento en mejillas",
+   "formula": "σ = (F/2)/(d·t) ≤ 1,25Fy/Nd",
+   "dem": 127.23450247038662,
+   "cap": 143.75,
+   "unidad": "MPa",
+   "fu": 0.8851095824026896,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Oreja superior de la ménsula: desgarro por corte tras el agujero",
+   "formula": "τ = (F/2)/(2·t·a) ≤ Fy/(Nd·√3), a = saliente − d/2",
+   "dem": 55.665094830794146,
+   "cap": 66.39528095680696,
+   "unidad": "MPa",
+   "fu": 0.8383893256963056,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3 (simplificado, 2 planos de corte)"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Ojal comercial del cilindro: admitir pasador y carga",
+   "formula": "Ø ojal ≥ d_pp; ancho = b_ojal (confirmar con ficha)",
+   "dem": 70,
+   "unidad": "mm",
+   "fu": null,
+   "estado": "info",
+   "ref": "Ficha del fabricante"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Mejilla de la ménsula: flexión en la base",
+   "formula": "σ = (F/2)·h_eje/(t·L²/6) ≤ Fy/Nd",
+   "dem": 53.12228694858272,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.4619329299876758,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Articulaciones",
+   "nombre": "Soldadura mejillas–base (4 filetes)",
+   "formula": "f = √(fV² + fM²) ≤ 0,60FEXX/(1,20Nd)",
+   "dem": 66.05195352357497,
+   "cap": 81.66666666666667,
+   "unidad": "MPa",
+   "fu": 0.8087994309009179,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.4"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Presión en el buje",
+   "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N)",
+   "dem": 12.320668095756115,
+   "cap": 30,
+   "unidad": "MPa",
+   "fu": 0.41068893652520383,
+   "estado": "ok",
+   "ref": "Fabricante del buje"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Flexión del pivote",
+   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd",
+   "dem": 27.888287710352998,
+   "cap": 216.66666666666666,
+   "unidad": "MPa",
+   "fu": 0.12871517404778307,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Caso sísmico: no aplica",
+   "formula": "Sin requerimiento sísmico (decisión del mandante, 31-10-2026); si se instala en forma permanente, ingresar Ch",
+   "dem": 0,
+   "unidad": "–",
+   "fu": null,
+   "estado": "info",
+   "ref": "Decisión del mandante"
+  },
+  {
+   "grp": "Base",
+   "nombre": "Izaje del conjunto: σvm en la plancha base",
+   "formula": "MITC4 × k_malla, φ_izaje",
+   "dem": 137.0466795067071,
+   "cap": 207,
+   "unidad": "MPa",
+   "fu": 0.6620612536555899,
+   "estado": "ok",
+   "ref": "AISC 360-22 F11 (0,6Fy)"
+  },
+  {
+   "grp": "Base",
+   "nombre": "Izaje: flecha de la base",
+   "formula": "w ≤ B/300",
+   "dem": 7.0602330078532844,
+   "cap": 8.266666666666667,
+   "unidad": "mm",
+   "fu": 0.8540604444983811,
+   "estado": "ok",
+   "ref": "Criterio del proyecto"
+  },
+  {
+   "grp": "Base",
+   "nombre": "Punto de izaje fuera de la mesa",
+   "formula": "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)",
+   "dem": 1045,
+   "cap": 1290.774961021479,
+   "unidad": "mm",
+   "fu": 0.8095911615553959,
+   "estado": "ok",
+   "ref": "Geometría"
+  },
+  {
+   "grp": "Base",
+   "nombre": "Punto de izaje dentro del marco",
+   "formula": "t_marco + 35 ≤ c",
+   "dem": 45,
+   "cap": 50,
+   "unidad": "mm",
+   "fu": 0.9,
+   "estado": "ok",
+   "ref": "Geometría"
+  },
+  {
+   "grp": "Base",
+   "nombre": "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)",
+   "formula": "m·φ / (3·sin 60°)",
+   "dem": 1.5545738626085734,
+   "unidad": "t",
+   "fu": null,
+   "estado": "info",
+   "ref": "ASME B30.9 (3 ramales efectivos)"
+  },
+  {
+   "grp": "Fatiga",
+   "nombre": "Pasadores de empuje (N = 2500 ≤ 20 000)",
+   "formula": "Clase de servicio 0: no requiere verificación",
+   "dem": 2500,
+   "unidad": "ciclos",
+   "fu": null,
+   "estado": "info",
+   "ref": "ASME BTH-1 §3-4 / AISC 360-22 A-3.1"
+  },
+  {
+   "grp": "Fatiga",
+   "nombre": "Uña (boca del patín) (cat. A, N = 35000)",
+   "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
+   "dem": 175.67291337251257,
+   "cap": 616.3464874490833,
+   "unidad": "MPa",
+   "fu": 0.28502298130972153,
+   "estado": "ok",
+   "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
+  },
+  {
+   "grp": "Fatiga",
+   "nombre": "Pasadores de articulación (cat. A, N = 35000)",
+   "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
+   "dem": 131.82847772676965,
+   "cap": 616.3464874490833,
+   "unidad": "MPa",
+   "fu": 0.2138869619787686,
+   "estado": "ok",
+   "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
+  },
+  {
+   "grp": "Fatiga",
+   "nombre": "Pie de soldadura mejilla–base (cat. E, N = 35000)",
+   "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
+   "dem": 39.22593517009817,
+   "cap": 217.5917795949937,
+   "unidad": "MPa",
+   "fu": 0.18027305646890654,
+   "estado": "ok",
+   "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
+  },
+  {
+   "grp": "Fatiga",
+   "nombre": "Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)",
+   "formula": "Δτ ≤ F_SR = (Cf/N)^0,167 ≥ F_TH",
+   "dem": 48.773307694412324,
+   "cap": 128.98468269408576,
+   "unidad": "MPa",
+   "fu": 0.378132555553813,
+   "estado": "ok",
+   "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
+  }
+ ]
+}

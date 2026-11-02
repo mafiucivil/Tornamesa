@@ -12,9 +12,9 @@ info = {
     "Alto total": f"{P['t_base'] + P['h_disc']:.0f} mm", "Masa total": f"{DV['masas']['total']:.0f} kg", "FS diseño": f"{dis['FS']:.2f}".replace(".", ","),
     "Pasadores": f"{P['N_pin']:.0f} × Ø{P['d_pin']:.0f} en R{P['R_pin']:.0f}", "Cilindros": f"{P['n_cyl']:.0f} × Ø{P['D_bore']:.0f}/Ø{P['d_rod']:.0f}, carrera {P['stroke']:.0f}",
 }
-NAMES = {"1a_plancha_base": "1a Plancha base", "1b_marco": "1b Marco", "1c_menuslas": "1c Ménsulas", "1d_puntos_izaje": "1d Puntos de izaje", "2_mesa": "2 Mesa giratoria",
+NAMES = {"1a_plancha_base": "1a Plancha base", "1b_marco": "1b Marco", "1c_menuslas": "1c Ménsulas", "1d_puntos_izaje": "1d Puntos de izaje", "1e_bancadas": "1e Bancadas de guía", "2_mesa": "2 Mesa giratoria",
          "3_pasadores": "3 Pasadores de empuje", "4_arandelas_pernos": "4 Arandelas y pernos", "5_pivote": "5 Pivote", "6_buje": "6 Buje", "7_tapa_retenedora": "7 Tapa retenedora",
-         "8_tapa_inspeccion": "8 Tapa de inspección", "9_cilindros": "9 Cilindros", "10_unas": "10 Uñas", "11_pasadores_articulacion": "11 Pasadores de articulación"}
+         "8_tapa_inspeccion": "8 Tapa de inspección", "9_cilindros": "9 Cilindros", "10_unas": "10 Uñas deslizantes", "10b_patines": "16 Patines guiados", "11_pasadores_articulacion": "11 Pasadores de articulación"}
 html = """<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TT300-C Modelo 3D</title>
@@ -39,7 +39,7 @@ table{border-collapse:collapse;width:100%;font-size:12px}td,th{padding:3px 4px;b
 @media (max-width:860px){.wrap{grid-template-columns:1fr;grid-template-rows:auto 70vh;height:auto}aside{border-right:0;border-bottom:1px solid var(--line)}}
 </style></head><body>
 <div class="wrap"><aside>
-<h1>TT300-C · Modelo 3D</h1><div class="sub">Generado desde TT300-C_design.json (misma fuente que el cálculo y los planos). Cilindros en la posición de toma del pasador, giro horario.</div>
+<h1>TT300-C · Modelo 3D</h1><div class="sub">Generado desde TT300-C_design.json (misma fuente que el cálculo y los planos). Cilindros con patín guiado en la posición de toma del pasador, giro antihorario.</div>
 <div class="btns"><button data-v="iso" class="on">Isométrica</button><button data-v="top">Planta</button><button data-v="front">Frente</button><button data-v="side">Lateral</button></div>
 <div class="btns" style="margin-top:6px"><button id="bx">Mesa transparente</button><button id="bt">◐ Tema</button></div>
 <h2>Datos</h2><div class="kv">__INFO__</div>
