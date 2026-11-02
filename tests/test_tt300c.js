@@ -31,13 +31,14 @@ test("FEA: voladizo en tensión plana", () => {
   near(-r.u[2 * id(nx, ny / 2) + 1], 2.026, 0.02, "flecha de punta");
 });
 
-test("Cinemática: reproduce la geometría medida de KIET 400T", () => {
-  const P = Object.assign(TT.defaults(), { R_eye: 1390, a_eye: 135, R_pin: 950, N_pin: 28, d_dog: 208.4, L0: 493, s_free: 0, stroke: 235 });
-  const K = TT.kinematics(P);
-  assert.ok(K.ok);
-  near(K.arm(K.de), 869, 0.01, "brazo al inicio (medido 869 mm)");
-  near(K.chord, 212.7, 0.001, "cuerda entre pasadores");
-  assert.ok(K.s_req < 235, "la carrera de KIET alcanza un paso");
+test("Accionamiento guiado: reproduce el factor de guía de TT300-B (K = 1,2403)", () => {
+  // TT300-B: barras R940, 36, guía en x = 1085, Lg = 250, μg 0,15, η 0,95 → K = 1,24031, brazo 936,42
+  const P = Object.assign(TT.defaults(), { R_pin: 940, N_pin: 36, N_rib: 12, x_g: 1085, d_pin: 70, d_pp: 70, l_p: 327.5, mu_g: 0.15, eta_c: 0.95 });
+  const K = TT.kinematics(P), R = TT.compute(P);
+  near(K.L_s, 375, 1e-9, "largo del patín para Lg = 250");
+  near(K.armMin, 936.42, 1e-4, "brazo mínimo R·cos(π/N)");
+  near(R.Kguide, 1.24031, 1e-4, "factor de guía");
+  near(K.s_req, P.s_free + 2 * 940 * Math.sin(Math.PI / 36), 1e-9, "carrera = libre + cuerda");
 });
 
 test("Valores por defecto: sin errores, gira y la estructura cumple", () => {

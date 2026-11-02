@@ -176,36 +176,35 @@
     o.push(`<circle r="${P.D_hub / 2}" fill="none" stroke="var(--steel)" stroke-width="4"/><circle r="${P.D_piv / 2}" fill="var(--steel)" opacity=".5"/>`);
     for (let k = 0; k < P.N_pin; k++) { const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin; o.push(`<circle cx="${P.R_pin * Math.cos(a)}" cy="${y(P.R_pin * Math.sin(a))}" r="${P.d_pin / 2}" fill="var(--ink2)"/>`); }
     // cáncamos
-    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * (B / 2 - P.c_lug) - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
-    // cilindros
-    for (let i = 0; i < P.n_cyl; i++) {
-      const aE = (P.a_eye + 360 * i / P.n_cyl) * D2R, E = [P.R_eye * Math.cos(aE), P.R_eye * Math.sin(aE)];
-      const pos = (del, ghost) => {
-        const th = aE - del, Pp = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)];
-        const L = Math.hypot(Pp[0] - E[0], Pp[1] - E[1]), u = [(Pp[0] - E[0]) / L, (Pp[1] - E[1]) / L];
-        const Rp = [Pp[0] - P.d_dog * u[0], Pp[1] - P.d_dog * u[1]];
-        const Lb = Math.min(P.L0 * 0.82, L - P.d_dog);
-        const Bd = [E[0] + Lb * u[0], E[1] + Lb * u[1]];
-        const op = ghost ? 0.35 : 1;
-        return `<g opacity="${op}"><line x1="${E[0]}" y1="${y(E[1])}" x2="${Bd[0]}" y2="${y(Bd[1])}" stroke="var(--acc)" stroke-width="${P.D_body}" stroke-linecap="round" opacity=".55"/>
-          <line x1="${Bd[0]}" y1="${y(Bd[1])}" x2="${Rp[0]}" y2="${y(Rp[1])}" stroke="var(--acc)" stroke-width="${P.d_rod}"/>
-          <line x1="${Rp[0]}" y1="${y(Rp[1])}" x2="${Pp[0]}" y2="${y(Pp[1])}" stroke="var(--load)" stroke-width="${P.dog_b}" stroke-linecap="round"/>
-          <circle cx="${Rp[0]}" cy="${y(Rp[1])}" r="${P.d_pp / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="4"/>
-          <circle cx="${Pp[0]}" cy="${y(Pp[1])}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/></g>`;
-      };
-      o.push(pos(K.dend, true), pos(K.de, false));
-      o.push(`<circle cx="${E[0]}" cy="${y(E[1])}" r="${P.d_pp / 2 + P.t_ch}" fill="var(--panel)" stroke="var(--ink)" stroke-width="6"/><circle cx="${E[0]}" cy="${y(E[1])}" r="${P.d_pp / 2}" fill="var(--ink)"/>`);
-      if (i === 0) {
-        const th = aE - K.de, Pp = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)];
-        const L = Math.hypot(Pp[0] - E[0], Pp[1] - E[1]), u = [(Pp[0] - E[0]) / L, (Pp[1] - E[1]) / L];
-        const t = -(E[0] * u[0] + E[1] * u[1]), F = [E[0] + t * u[0], E[1] + t * u[1]];
-        o.push(`<line x1="${Pp[0]}" y1="${y(Pp[1])}" x2="${F[0]}" y2="${y(F[1])}" stroke="var(--load)" stroke-width="3" stroke-dasharray="16 10"/>`);
-        o.push(`<line x1="0" y1="0" x2="${F[0]}" y2="${y(F[1])}" stroke="var(--load)" stroke-width="3"/>`);
-        o.push(`<text x="${F[0] / 2 + 20}" y="${y(F[1] / 2) - 10}" font-size="46" fill="var(--load)">brazo ${fmt(Math.hypot(F[0], F[1]), 3)} mm</text>`);
+    [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * P.x_lug - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
+    // accionamiento guiado: bancadas, ménsulas (ambos sentidos), patines, uñas y cilindros (sentido antihorario)
+    const g = K, bg = TT.bracketGeo(P);
+    for (const sx of [1, -1]) {
+      const X = sx * P.x_g;
+      o.push(`<rect x="${X - P.w_bed / 2}" y="${-g.Y_bed}" width="${P.w_bed}" height="${2 * g.Y_bed}" fill="var(--soft)" stroke="var(--steel)" stroke-width="3"/>`);
+      o.push(`<line x1="${X}" y1="${-g.Y_bed}" x2="${X}" y2="${g.Y_bed}" stroke="var(--steel)" stroke-width="${P.w_slot}" opacity=".35"/>`);
+      for (const dy of [1, -1]) {
+        const act = sx * dy > 0, op = act ? 1 : 0.35, Ye = dy * g.y_eye;
+        o.push(`<g opacity="${op}"><rect x="${X - bg.Wout / 2}" y="${y(Ye + dy * (P.L_ch - bg.rear)) - (dy > 0 ? 0 : 0)}" width="${bg.Wout}" height="${P.L_ch}" transform="translate(0 ${dy > 0 ? 0 : -P.L_ch})" fill="none" stroke="var(--ink)" stroke-width="5"/>
+          <circle cx="${X}" cy="${y(Ye)}" r="${P.d_pp / 2}" fill="var(--ink)"/></g>`);
+        if (!act) continue;
+        const yr = dy * (g.y_rp0 + P.s_free), yb0 = Ye + dy * P.e_body, yb1 = dy * (g.y_rp0 - P.c_rod);
+        o.push(`<rect x="${X - P.D_body / 2}" y="${Math.min(y(yb0), y(yb1))}" width="${P.D_body}" height="${Math.abs(yb1 - yb0)}" fill="var(--acc)" opacity=".55"/>`);
+        o.push(`<rect x="${X - P.d_rod / 2}" y="${Math.min(y(yb1), y(yr))}" width="${P.d_rod}" height="${Math.abs(yr - yb1)}" fill="var(--acc)"/>`);
+        const ys0 = yr - dy * g.rear, ys1 = yr + dy * g.front;
+        o.push(`<rect x="${X - P.w_s / 2}" y="${Math.min(y(ys0), y(ys1))}" width="${P.w_s}" height="${g.L_s}" fill="var(--panel)" stroke="var(--ink)" stroke-width="5"/>`);
+        o.push(`<circle cx="${X}" cy="${y(yr)}" r="${P.d_pp / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="4"/>`);
+        const yp = dy * (-P.R_pin * Math.sin(g.pitch / 2)), xm = sx * g.mouthX, xa = sx * g.a_min;
+        o.push(`<rect x="${Math.min(xm, xa)}" y="${y(yp - dy * (P.d_pin / 2 + 2)) - (dy > 0 ? P.dog_b : 0)}" width="${Math.abs(xm - xa) + (sx > 0 ? 0 : 0)}" height="${P.dog_b}" fill="var(--load)" opacity=".85"/>`);
+        o.push(`<circle cx="${xa}" cy="${y(yp)}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`);
+        if (sx > 0) {
+          o.push(`<line x1="0" y1="0" x2="${xa}" y2="0" stroke="var(--load)" stroke-width="3"/><text x="${xa / 2}" y="-14" font-size="44" text-anchor="middle" fill="var(--load)">brazo ${fmt(g.a_min, 3)} mm</text>`);
+          o.push(`<line x1="${xa}" y1="${y(yp)}" x2="${X}" y2="${y(yp)}" stroke="var(--load)" stroke-width="3" stroke-dasharray="14 10"/><text x="${(xa + X) / 2}" y="${y(yp) + (dy > 0 ? 60 : -30)}" font-size="40" text-anchor="middle" fill="var(--load)">Δ ${fmt(g.DeltaMax, 3)}</text>`);
+        }
       }
     }
     o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
-    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">Uña al tomar el pasador (sólido) y al final de la carrera (tenue) · giro horario en planta</text>`);
+    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)</text>`);
     return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
   }
   function sectionSVG() {
@@ -225,9 +224,14 @@
     o.push(`<rect x="${X(P.R_pin - P.d_pin / 2)}" y="${Z(tb + hd)}" width="${P.d_pin}" height="${hd}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
     const zc = tb + R.hax;
     o.push(`<line x1="${X(r0)}" y1="${Z(zc)}" x2="${X(r1)}" y2="${Z(zc)}" stroke="var(--load)" stroke-width="1.5" stroke-dasharray="10 6"/>`);
-    o.push(`<rect x="${X(P.R_pin + P.d_pin / 2)}" y="${Z(zc + P.dog_h / 2)}" width="${Math.min(P.d_dog, r1 - P.R_pin - P.d_pin / 2 - 10)}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
-    const bx = P.R_pin + P.d_pin / 2 + Math.min(P.d_dog, 200);
-    if (bx + 40 < r1) o.push(`<rect x="${X(bx)}" y="${Z(zc + P.D_body / 2)}" width="${X(r1) - X(bx)}" height="${P.D_body}" fill="var(--acc)" opacity=".35" stroke="var(--acc)"/>`);
+    const K = A.R.K, zb = tb + P.t_bed, fh = TT.forkH(P);
+    o.push(`<rect x="${X(P.x_g - P.w_bed / 2)}" y="${Z(zb)}" width="${P.w_bed}" height="${P.t_bed}" fill="var(--steel)" opacity=".8"/>`);
+    o.push(`<rect x="${X(P.x_g - P.w_slot / 2)}" y="${Z(zb)}" width="${P.w_slot}" height="${P.h_slot}" fill="var(--panel)"/>`);
+    o.push(`<rect x="${X(P.x_g - P.w_s / 2)}" y="${Z(zc + fh / 2)}" width="${P.w_s}" height="${zc + fh / 2 - zb}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
+    o.push(`<rect x="${X(P.x_g - P.w_slot / 2 + 1)}" y="${Z(zb)}" width="${P.w_slot - 2}" height="${P.h_slot - 2}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(K.mouthX)}" y="${Z(zc + P.dog_h / 2 + 10)}" width="${P.x_g - P.w_s / 2 - K.mouthX}" height="${P.dog_h + 20}" fill="none" stroke="var(--ink)" stroke-width="2"/>`);
+    o.push(`<rect x="${X(K.a_min + P.d_pin / 2)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.a_min - P.d_pin / 2}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
+    o.push(`<line x1="${X(P.x_g)}" y1="${Z(tb)}" x2="${X(P.x_g)}" y2="${Z(zc + fh / 2 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
     const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
     o.push(dim(r0 + 8, tb, tb + hd, `h ${fmt(hd, 3)}`, 6));
     o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
@@ -243,11 +247,13 @@
     if (!A) { el.innerHTML = msgs(); return; }
     el.innerHTML = `<div class="grid" style="grid-template-columns:minmax(300px,1.3fr) minmax(280px,1fr)">
       <div class="card"><h3>Planta</h3>${planSVG()}</div>
-      <div class="card"><h3>Corte radial en el borde (escala 1:1 relativa)</h3>${sectionSVG()}
+      <div class="card"><h3>Corte radial por el patín (escala 1:1 relativa)</h3>${sectionSVG()}
         <div class="kv" style="margin-top:10px">
-          <span>Ángulo de toma δ_e / fin δ_f</span><span>${fmt(A.R.K.de / D2R)}° / ${fmt(A.R.K.dend / D2R)}°</span>
-          <span>Brazo mín / máx</span><span>${fmt(A.R.K.armMin, 4)} / ${fmt(A.R.K.armMax, 4)} mm</span>
-          <span>Carrera requerida (libre + paso)</span><span>${fmt(A.R.K.s_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
+          <span>Brazo mín (R·cos π/N) / máx</span><span>${fmt(A.R.K.armMin, 4)} / ${fmt(A.R.K.armMax, 4)} mm</span>
+          <span>Carrera requerida (libre + cuerda)</span><span>${fmt(A.R.K.s_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
+          <span>Δ guía–pasador / Lg / factor K</span><span>${fmt(A.R.K.DeltaMax, 3)} / ${fmt(A.R.K.Lg, 3)} mm / ${fmt(A.R.Kguide)}</span>
+          <span>Reacción de guía (calado)</span><span>${fmt(A.R.Rguide)} kN</span>
+          <span>Voladizo de la uña / holgura radial</span><span>${fmt(A.R.K.lever, 3)} / ${fmt(A.R.K.radial)} mm</span>
           <span>Cuerda / hueco entre pasadores</span><span>${fmt(A.R.K.chord, 4)} / ${fmt(A.R.K.gap, 4)} mm</span>
           <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
         </div></div></div>`;

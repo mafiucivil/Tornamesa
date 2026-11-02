@@ -31,8 +31,9 @@ const AG = (() => {
     });
     if (rings.length && P.R_rib > Math.max(...rings) + 1) W("Los nervios terminan fuera del alma exterior");
     if (P.D_top + 100 > P.B) E("La base debe sobresalir al menos 50 mm de la mesa por lado");
-    const xe = P.R_eye * Math.cos(P.a_eye * D2R), ye = P.R_eye * Math.sin(P.a_eye * D2R);
-    if (Math.max(Math.abs(xe), Math.abs(ye)) > P.B / 2 - 60) E("El ojal del cilindro queda fuera de la base (o a menos de 60 mm del borde)");
+    const g = TT_.guideGeo(P);
+    if (Math.abs(g.y_eye) > P.B / 2 - 60 || P.x_g > P.B / 2 - 60) E("El ojal del cilindro queda fuera de la base (o a menos de 60 mm del borde)");
+    if (P.l_p - P.d_pin / 2 - 5 <= 0) E("El pasador del vástago queda delante de la uña: aumentar l_p");
     if (P.D_load > P.D_top) E("El diámetro de apoyo de la carga supera la mesa");
     if (P.n_cyl === 1) W("Un solo cilindro no forma par: el pivote recibe la fuerza completa. Válvula de bloqueo obligatoria");
     if (P.n_cyl % 2 === 1 && P.n_cyl > 1) W("N° impar de cilindros: verificar que el conjunto forme par puro");
@@ -58,21 +59,18 @@ const AG = (() => {
     const P = A.P, R = A.R, out = [];
     const add = (name, a, b, tol, note) => out.push({ name, tool: a, indep: b, d: (a - b) / (Math.abs(b) || 1) * 100, tol, ok: Math.abs(a - b) <= tol / 100 * Math.abs(b) + 1e-9, note });
     if (!R.K.ok) return out;
-    // (a) Fuerza de diseño por trabajos virtuales: F = T / (dL/dθ), con coordenadas explícitas
-    const E = [P.R_eye * Math.cos(P.a_eye * D2R), P.R_eye * Math.sin(P.a_eye * D2R)];
-    const Lof = (th) => { const p = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)]; return Math.hypot(p[0] - E[0], p[1] - E[1]); };
-    const th0 = P.a_eye * D2R - R.K.de, pitch = 2 * Math.PI / P.N_pin;
-    let dmin = Infinity;
-    for (let i = 0; i <= 200; i++) { const th = th0 - pitch * i / 200, h = 1e-6; dmin = Math.min(dmin, Math.abs((Lof(th - h) - Lof(th + h)) / (2 * h))); }
-    const Fvw = R.cd.T * 1e3 / (P.n_cyl * dmin * P.eta_c);
-    add("Fuerza de diseño por cilindro (trabajos virtuales)", R.cd.F, Fvw, 0.1, "kN");
-    // (b) Carrera requerida por bisección directa sobre |P − E|
-    const target = P.L0 + P.s_free + P.d_dog;
-    const fL = (th) => Lof(th) - target;
-    let a = P.a_eye * D2R - 1e-6, b = P.a_eye * D2R - Math.PI + 1e-6;
-    for (let i = 0; i < 200; i++) { const m = (a + b) / 2; if (fL(m) > 0) b = m; else a = m; }
-    const thE = (a + b) / 2, sreq = Lof(thE - pitch) - P.d_dog - P.L0;
-    add("Carrera requerida (bisección)", R.K.s_req, sreq, 0.1, "mm");
+    // (a) Fuerza de diseño por trabajos virtuales: barra F_b = T/(n·dy/dθ) con y(θ) = R·sen θ derivado numéricamente,
+    //     más el equilibrio del patín con fricción en las dos reacciones de guía: F·η = F_b·(1 + 2μg·Δ/Lg)
+    const pitch = 2 * Math.PI / P.N_pin, yOf = (th) => P.R_pin * Math.sin(th);
+    let Fmax = 0;
+    for (let i = 0; i <= 200; i++) {
+      const th = -pitch / 2 + pitch * i / 200, h = 1e-6, dy = (yOf(th + h) - yOf(th - h)) / (2 * h);
+      const Fb = R.cd.T * 1e3 / (P.n_cyl * dy), xb = P.R_pin * Math.cos(th);
+      Fmax = Math.max(Fmax, Fb * (1 + 2 * P.mu_g * (P.x_g - xb) / (2 / 3 * R.K.L_s)) / P.eta_c);
+    }
+    add("Fuerza de diseño por cilindro (trabajos virtuales + equilibrio del patín)", R.cd.F, Fmax, 0.1, "kN");
+    // (b) Carrera requerida por coordenadas de los pasadores al inicio y fin del paso
+    add("Carrera requerida (coordenadas)", R.K.s_req, P.s_free + yOf(pitch / 2) - yOf(-pitch / 2), 0.1, "mm");
     // (c) Radio de fricción por integración numérica en malla polar
     let num = 0, den = 0; const nr = 400;
     for (let i = 0; i < nr; i++) { const r = R.Ri + (R.Ro - R.Ri) * (i + 0.5) / nr, dA = r * (R.Ro - R.Ri) / nr; num += r * dA; den += dA; }
@@ -142,6 +140,13 @@ const AG = (() => {
     ["d_pp", range(40, 120, 5), false],
     ["dog_b", range(40, 150, 5), false],
     ["dog_h", range(30, 150, 5), false],
+    ["L_in", range(100, 400, 25), false],
+    ["l_lip", range(30, 150, 10), false],
+    ["h_slot", [10, 12, 15, 16, 20, 22, 25, 30], false],
+    ["w_bed", range(100, 220, 10), false],
+    ["t_bed", [25, 30, 32, 35, 40, 45, 50], false],
+    ["w_bed_f", [6, 8, 10, 12, 14], false],
+    ["x_lug", range(300, 1000, 50), false],
     ["w_br", [6, 8, 10, 12, 14, 16, 18, 20], false],
     ["w_web", [4, 5, 6, 8, 10, 12], false],
   ];

@@ -34,22 +34,14 @@ Ro, Ri = Rt, P["D_piv"] / 2 + 15
 A = math.pi * (Ro**2 - Ri**2); I = math.pi * (Ro**4 - Ri**4) / 4
 chk("q_max interfaz (MPa) — Navier", ND * 1e3 / A + ND * 1e3 * P["e"] * Ro / I, G["q_max"])
 
-# --- cinemática por coordenadas ---
-E = (P["R_eye"] * math.cos(math.radians(P["a_eye"])), P["R_eye"] * math.sin(math.radians(P["a_eye"])))
-def pin(th): return (P["R_pin"] * math.cos(th), P["R_pin"] * math.sin(th))
-def L(th): p = pin(th); return math.hypot(p[0] - E[0], p[1] - E[1])
-target = P["L0"] + P["s_free"] + P["d_dog"]
-a, b = math.radians(P["a_eye"]) - 1e-9, math.radians(P["a_eye"]) - math.pi + 1e-9
-for _ in range(200):
-    m = (a + b) / 2
-    a, b = (a, m) if L(m) > target else (m, b)
-the = (a + b) / 2; pitch = 2 * math.pi / P["N_pin"]
-chk("Carrera requerida (mm)", L(the - pitch) - P["d_dog"] - P["L0"], G["carrera_req"])
-def arm(th):
-    p = pin(th); ux, uy = (p[0] - E[0]) / L(th), (p[1] - E[1]) / L(th)
-    return abs(E[0] * uy - E[1] * ux)
-armmin = min(arm(the - pitch * i / 400) for i in range(401))
+# --- cinemática del accionamiento guiado (pasador entre −π/N y +π/N, empuje paralelo a la guía) ---
+pitch = 2 * math.pi / P["N_pin"]
+ys = [P["R_pin"] * math.sin(-pitch / 2 + pitch * i / 2000) for i in range(2001)]
+chk("Carrera requerida (mm)", P["s_free"] + ys[-1] - ys[0], G["carrera_req"])
+armmin = min(P["R_pin"] * math.cos(-pitch / 2 + pitch * i / 2000) for i in range(2001))
 chk("Brazo mínimo (mm)", armmin, G["brazo_min"])
+front = P["l_p"] - P["d_pin"] / 2 - 5; rear = 1.25 * P["d_pp"]; Lg = 2 / 3 * (front + rear)
+Kg = (1 + 2 * P["mu_g"] * (P["x_g"] - armmin) / Lg) / P["eta_c"]
 
 # --- accionamiento ---
 Ab = math.pi / 4 * P["D_bore"]**2
@@ -60,7 +52,7 @@ r_u = 2 / 3 * (Ro**3 - Ri**3) / (Ro**2 - Ri**2)
 cases = {"nom": (P["mu_nom"], r_u), "dis": (P["mu_d"], P["r_ef"]), "borde": (P["mu_d"], Ro), "cont": (P["mu_cont"], P["r_ef"]), "seco": (P["mu_dry"], r_u)}
 for k, (mu, r) in cases.items():
     T = mu * N * r / 1e3 + P["mu_bush"] * H(mu) * P["D_piv"] / 2 / 1e3
-    F = T * 1e3 / (P["n_cyl"] * armmin * P["eta_c"])
+    F = T * 1e3 / (P["n_cyl"] * armmin) * Kg
     chk(f"Caso {k}: F por cilindro (kN)", F, G["casos"][k][0])
     chk(f"Caso {k}: FS", Fst / F, G["casos"][k][2])
 
@@ -77,5 +69,10 @@ f = math.hypot(Fst * 1e3 / (4 * aw * P["L_ch"]), Fst * 1e3 * hax / (4 * aw * P["
 chk("Soldadura mejillas–base: FU", f / (0.6 * P["FEXX"] / (1.2 * Nd)), G["fu"]["Articulaciones · Soldadura mejillas–base (4 filetes)"])
 Pcr = math.pi**2 * P["E"] * math.pi * P["d_rod"]**4 / 64 / (P["L0"] + P["stroke"])**2 / 1e3
 chk("Pandeo del vástago: FU", Fst / (Pcr / 3), G["fu"]["Giro · Pandeo del vástago (biarticulado, longitud extendida)"])
+mouth = min(P["x_g"] - P["w_s"] / 2, P["R_pin"] + P["d_pin"] / 2 + 10)
+lev = mouth - armmin + P["e_dog"]
+chk("Uña: FU flexión en la boca del patín", Fst * 1e3 * lev / (P["dog_h"] * P["dog_b"]**2 / 6) / (P["Fy_dog"] / Nd), G["fu"]["Uña · Flexión en la boca del patín (voladizo)"])
+Rg = Fst * (P["x_g"] - armmin) / Lg
+chk("Ranura de guía: FU aplastamiento", Rg * 1e3 / (P["h_slot"] * (front + rear) / 3) / (1.25 * P["Fy"] / Nd), G["fu"]["Patín y guía · Aplastamiento de la lengüeta en la ranura de la bancada"])
 print("\nRESULTADO:", "sin diferencias" if not fails else "DIFERENCIAS en " + ", ".join(fails))
 sys.exit(1 if fails else 0)

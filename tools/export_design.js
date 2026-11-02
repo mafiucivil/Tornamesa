@@ -7,28 +7,29 @@ const P = Object.assign(TT.defaults(), process.argv[2] ? JSON.parse(fs.readFileS
 const val = AG.validate(P);
 if (val.some((v) => v.lvl === "error")) { console.error(val.filter((v) => v.lvl === "error").map((v) => v.msg).join("\n")); process.exit(2); }
 const A = TT.analyze(P), R = A.R, K = R.K, D2R = Math.PI / 180;
-const bg = TT.bracketGeo(P, K);
-// posiciones de cilindro: giro horario (a_eye + k·360/n) y antihorario (espejo respecto del eje y)
-function cylPos(aEdeg, mirror) {
-  const aE = aEdeg * D2R, E = [P.R_eye * Math.cos(aE), P.R_eye * Math.sin(aE)];
-  const at = (del) => {
-    const th = mirror ? aE + del : aE - del, Pp = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)];
-    const L = Math.hypot(Pp[0] - E[0], Pp[1] - E[1]), u = [(Pp[0] - E[0]) / L, (Pp[1] - E[1]) / L];
-    return { pin: Pp, rod: [Pp[0] - P.d_dog * u[0], Pp[1] - P.d_dog * u[1]], u, phi: Math.atan2(u[1], u[0]) / D2R };
+const bg = TT.bracketGeo(P);
+// posiciones de cilindro (accionamiento guiado): lado sx = ±1 (guía en x = sx·x_g), sentido de empuje dy = ±1 en y.
+// sx·dy = +1 → giro antihorario en planta; −1 → horario. Cada par es simétrico respecto del centro (par puro).
+function cylPos(sx, dy) {
+  const g = TT.guideGeo(P), R = P.R_pin, ph = g.pitch / 2;
+  const Y = (y) => dy * y, X = sx * P.x_g;
+  const pin = (th) => [sx * R * Math.cos(th), dy * R * Math.sin(th)];
+  return {
+    side: sx, dir: dy, x: X, eye: [X, Y(g.y_eye)], phiMean: dy > 0 ? 90 : -90,
+    rodRetracted: [X, Y(g.y_rp0)], rodEngage: [X, Y(g.y_rp0 + P.s_free)], rodEnd: [X, Y(g.y_rp1)],
+    pinStart: pin(-ph), pinEnd: pin(ph), shoeFront: g.front, shoeRear: g.rear, mouthX: sx * g.mouthX,
   };
-  const a0 = at(K.dr), a1 = at(K.dend), ae = at(K.de);
-  let dphi = a1.phi - a0.phi; if (dphi > 180) dphi -= 360; if (dphi < -180) dphi += 360;
-  return { eye: E, aE: aEdeg, retracted: a0, engage: ae, end: a1, phiMean: a0.phi + dphi / 2 };
 }
-const cw = [], ccw = [];
-for (let k = 0; k < P.n_cyl; k++) { const a = P.a_eye + 360 * k / P.n_cyl; cw.push(cylPos(a, false)); ccw.push(cylPos(180 - a, true)); }
+const ccw = [cylPos(1, 1), cylPos(-1, -1)], cw = [cylPos(1, -1), cylPos(-1, 1)];
 const out = {
   proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P,
   verdict: A.verdict, validacion: val,
   derivados: {
     W: R.W, N: R.N, ND: R.ND, q_max: R.q_max, q_avg: R.q_avg, Fstall: R.Fstall, Falarm: R.Falarm, Fret: R.Fret, A: R.A, Aann: R.Aann,
     hax: R.hax, prIn: TT.prIn(P), pinClear: TT.pinClear(P), forkH: TT.forkH(P), bracket: bg, tRev: R.tRev, tCycle: R.tCycle, muMax_ref: R.muMax(P.r_ef),
-    K: { de: K.de / D2R, dend: K.dend / D2R, dr: K.dr / D2R, armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, gap: K.gap, swing: K.swing / D2R, RrodMin: K.RrodMin, RrodMax: K.RrodMax },
+    Kguide: R.Kguide, Rguide: R.Rguide,
+    K: { armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, gap: K.gap, radial: K.radial, DeltaMax: K.DeltaMax,
+         L_s: K.L_s, Lg: K.Lg, front: K.front, rear: K.rear, y_eye: K.y_eye, y_rp0: K.y_rp0, y_rp1: K.y_rp1, L_bed: K.L_bed, Y_bed: K.Y_bed, zc0: K.zc0, lever: K.lever, mouthX: K.mouthX, inset: K.inset },
     casos: R.cases.map((c) => ({ id: c.id, nombre: c.name, mu: c.mu, r: c.r, T: c.T, F: c.F, p: c.p, FS: c.FS, gira: c.turns })),
     masas: R.m,
   },
