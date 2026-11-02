@@ -21,9 +21,10 @@ L_piv = tb + hd - tt + 3
 cap_D, cap_t = P["D_piv"] + 60, 15
 hole_top = cap_D + 20
 BR = DV["bracket"]
-Llug = 2.5 * P["d_pp"]
+Llug = BR["Llug"]
 forkH = DV["forkH"]
-fork_w = 2.4 * P["d_pp"]
+KG = DV["K"]
+zb = tb + P["t_bed"]                      # cara superior de la bancada
 nose_R = d_pin / 2 + 1
 washer_D = d_pin + 30
 
@@ -61,10 +62,17 @@ for grp in ("horario", "antihorario"):
 parts["1c_menuslas"] = (brk, (0.5, 0.52, 0.55), "brackets")
 cl = B / 2 - P["c_lug"]
 lugs = None
-for (x, y) in [(cl, 0), (-cl, 0), (0, cl), (0, -cl)]:
+for (x, y) in [(P["x_lug"], cl), (-P["x_lug"], cl), (P["x_lug"], -cl), (-P["x_lug"], -cl)]:
     l = cyl(35, 25, tb, x, y).union(cyl(20, 40, tb + 25, x, y))
     lugs = l if lugs is None else lugs.union(l)
 parts["1d_puntos_izaje"] = (lugs, (0.9, 0.2, 0.15), None)
+beds = None
+for sx in (1, -1):
+    X = sx * P["x_g"]
+    bd = box(X - P["w_bed"] / 2, X + P["w_bed"] / 2, -KG["Y_bed"], KG["Y_bed"], tb, zb).cut(
+        box(X - P["w_slot"] / 2, X + P["w_slot"] / 2, -KG["Y_bed"] - 1, KG["Y_bed"] + 1, zb - P["h_slot"], zb + 1))
+    beds = bd if beds is None else beds.union(bd)
+parts["1e_bancadas"] = (beds, (0.45, 0.47, 0.5), "beds")
 
 # ---------------- mesa ----------------
 z0 = tb
@@ -97,33 +105,45 @@ parts["6_buje"] = (ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], tb + 2), (0.8, 
 parts["7_tapa_retenedora"] = (cyl(cap_D / 2, cap_t, L_piv), (0.35, 0.35, 0.38), None)
 parts["8_tapa_inspeccion"] = (cyl(hole_top / 2 - 1, 8, z0 + hd - 8), (0.22, 0.4, 0.7), None)
 
-# ---------------- cilindros, uñas y pasadores de articulación (giro horario, al tomar el pasador) ----------------
-cyls = dogs = apins = None
-for c in D["cilindros"]["horario"]:
-    E, g = c["eye"], c["engage"]
-    u = g["u"]; ph = math.degrees(math.atan2(u[1], u[0]))
-    Lr = math.hypot(g["rod"][0] - E[0], g["rod"][1] - E[1])        # ojal → pasador del vástago
-    Lb = P["L0"] - 75
-    def along(wp):
-        return place(wp, ph, E)
-    body = cq.Workplane("YZ").workplane(offset=55).center(0, zc).circle(P["D_body"] / 2).extrude(Lb - 55)
-    rod = cq.Workplane("YZ").workplane(offset=Lb).center(0, zc).circle(P["d_rod"] / 2).extrude(Lr - 52 - Lb)
-    eye0 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, 0, 0)
-    eye1 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, Lr, 0)
-    cy = along(body.union(rod).union(eye0).union(eye1))
+# ---------------- cilindros, patines, uñas y pasadores (sentido antihorario, al tomar el pasador) ----------------
+cyls = dogs = apins = shoes = None
+cl1 = 1.0                                                             # holgura de modelo entre piezas móviles
+for c in D["cilindros"]["antihorario"]:
+    sx, dy, X = c["side"], c["dir"], c["x"]
+    ye, yr, yps = c["eye"][1], c["rodEngage"][1], c["pinStart"][1]
+    srt = lambda a, b: (min(a, b), max(a, b))
+    # cilindro coaxial con la guía (eje y): cuerpo fijo (geometría retraída) + vástago hasta el pasador del patín
+    yb0, yb1 = srt(ye + dy * P["e_body"], c["rodRetracted"][1] - dy * P["c_rod"])
+    body = cq.Workplane("XZ").workplane(offset=-yb1).center(X, zc).circle(P["D_body"] / 2).extrude(yb1 - yb0)
+    yr0, yr1 = srt(c["rodRetracted"][1] - dy * P["c_rod"], yr - dy * 52.5)
+    rod = cq.Workplane("XZ").workplane(offset=-yr1).center(X, zc).circle(P["d_rod"] / 2).extrude(yr1 - yr0)
+    eye0 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, X, ye)
+    eye1 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, X, yr)
+    cy = body.union(rod).union(eye0).union(eye1)
     cyls = cy if cyls is None else cyls.union(cy)
-    # uña: horquilla + cuerpo + asiento
-    Ld = P["d_dog"]
-    fork = box(Lr - fork_w / 2, Lr + fork_w / 2, -fork_w / 2, fork_w / 2, zc - forkH / 2, zc + forkH / 2).cut(
-        box(Lr - fork_w / 2 - 1, Lr + fork_w / 2 + 1, -fork_w / 2 - 1, fork_w / 2 + 1, zc - P["b_eye"] / 2 - P["g_ch"], zc + P["b_eye"] / 2 + P["g_ch"]))
-    bodyd = box(Lr + fork_w / 2 - 5, Lr + Ld, -P["dog_b"] / 2, P["dog_b"] / 2, zc - P["dog_h"] / 2, zc + P["dog_h"] / 2)
-    dog = fork.union(bodyd).cut(cyl(nose_R, forkH + 10, zc - forkH / 2 - 5, Lr + Ld, 0)).cut(cyl(P["d_pp"] / 2, forkH + 10, zc - forkH / 2 - 5, Lr, 0))
-    dg = along(dog)
-    dogs = dg if dogs is None else dogs.union(dg)
-    ap = along(cyl(P["d_pp"] / 2, forkH + 30, zc - forkH / 2 - 15, Lr, 0)).union(cyl(P["d_pp"] / 2, BR["H"] + 20, tb - 5, E[0], E[1]))
+    # uña: bloque entre el pasador y el fondo del alojamiento; asiento cilíndrico R = d/2 + 1 en el pasador tomado
+    xi, xo = srt(sx * (KG["armMin"] - 0.3 * d_pin), sx * (KG["mouthX"] + P["L_in"]))
+    yd0, yd1 = srt(yps - dy * (d_pin / 2 + 1 + P["dog_b"] - nose_R), yps)
+    dog = box(xi, xo, yd0, yd1, zc - P["dog_h"] / 2, zc + P["dog_h"] / 2).cut(cyl(nose_R, P["dog_h"] + 10, zc - P["dog_h"] / 2 - 5, c["pinStart"][0], yps))
+    dogs = dog if dogs is None else dogs.union(dog)
+    # patín: caja sobre la bancada + lengüeta en la ranura + marco de boca; huecos para ojal, pasador y uña
+    ys0, ys1 = srt(yr - dy * KG["rear"], yr + dy * KG["front"])
+    sh = box(X - P["w_s"] / 2, X + P["w_s"] / 2, ys0, ys1, zb, zc + forkH / 2)
+    sh = sh.union(box(X - P["w_slot"] / 2 + cl1, X + P["w_slot"] / 2 - cl1, ys0, ys1, zb - P["h_slot"] + 2, zb))
+    mx0, mx1 = srt(sx * KG["mouthX"], sx * (P["x_g"] - P["w_s"] / 2))
+    sh = sh.union(box(mx0, mx1, yd0 - 20, yd1 + 20, zc - P["dog_h"] / 2 - 10, zc + P["dog_h"] / 2 + 10))
+    ge0, ge1 = srt(yr - dy * KG["rear"] - 1, yr + dy * (52.5 + 5))
+    sh = sh.cut(box(X - 57.5, X + 57.5, ge0, ge1, zc - P["b_eye"] / 2 - P["g_ch"], zc + P["b_eye"] / 2 + P["g_ch"]))
+    sh = sh.cut(cyl(P["d_pp"] / 2, forkH + 20, zc - forkH / 2 - 10, X, yr))
+    gr0, gr1 = srt(yr - dy * (KG["rear"] + 5), yr - dy * 40)            # ranura de paso del vástago (orejas no cargadas atrás)
+    sh = sh.cut(box(X - (P["d_rod"] + 10) / 2, X + (P["d_rod"] + 10) / 2, gr0, gr1, zc - (P["d_rod"] + 10) / 2, zc + (P["d_rod"] + 10) / 2))
+    sh = sh.cut(box(xi - cl1, xo + cl1, yd0 - cl1, yd1 + cl1, zc - P["dog_h"] / 2 - cl1, zc + P["dog_h"] / 2 + cl1))
+    shoes = sh if shoes is None else shoes.union(sh)
+    ap = cyl(P["d_pp"] / 2, forkH + 20, zc - forkH / 2 - 10, X, yr).union(cyl(P["d_pp"] / 2, BR["H"] + 20, tb - 5, X, ye))
     apins = ap if apins is None else apins.union(ap)
 parts["9_cilindros"] = (cyls, (0.95, 0.78, 0.1), None)
 parts["10_unas"] = (dogs, (0.85, 0.35, 0.1), "dogs")
+parts["10b_patines"] = (shoes, (0.25, 0.25, 0.28), "shoes")
 parts["11_pasadores_articulacion"] = (apins, (0.3, 0.3, 0.32), None)
 
 # ---------------- ensamble y exportación ----------------
@@ -143,12 +163,16 @@ cmp = [("Plancha base", vol["1a_plancha_base"] * RHO, M["base"]),
        ("Mesa (planchas, almas, nervios, cubo)", vol["2_mesa"] * RHO, M["top"] + M["bot"] + M["webs"] + M["ribs"] + M["hub"]),
        ("Pasadores de empuje", vol["3_pasadores"] * RHO, M["pins"]),
        ("Pivote", vol["5_pivote"] * RHO, M["pivot"]),
-       ("Uñas", vol["10_unas"] * RHO, M["dogs"])]
+       ("Uñas", vol["10_unas"] * RHO, M["dogs"]),
+       ("Patines", vol["10b_patines"] * RHO, M["shoes"]),
+       ("Bancadas de guía", vol["1e_bancadas"] * RHO, M["beds"])]
 # ---------------- control de interferencias entre piezas que no deben tocarse ----------------
-PAIRS = [("2_mesa", "10_unas"), ("3_pasadores", "10_unas"), ("2_mesa", "9_cilindros"), ("3_pasadores", "9_cilindros"),
-         ("2_mesa", "1c_menuslas"), ("1c_menuslas", "9_cilindros"), ("1b_marco", "1c_menuslas"), ("2_mesa", "1d_puntos_izaje"),
-         ("1b_marco", "1d_puntos_izaje"), ("1c_menuslas", "10_unas"), ("2_mesa", "11_pasadores_articulacion"), ("3_pasadores", "11_pasadores_articulacion"),
-         ("4_arandelas_pernos", "10_unas"), ("4_arandelas_pernos", "9_cilindros")]
+PAIRS = [("2_mesa", "10_unas"), ("3_pasadores", "10_unas"), ("2_mesa", "10b_patines"), ("3_pasadores", "10b_patines"), ("2_mesa", "1e_bancadas"),
+         ("2_mesa", "9_cilindros"), ("3_pasadores", "9_cilindros"), ("1e_bancadas", "9_cilindros"), ("1e_bancadas", "10b_patines"), ("10b_patines", "10_unas"),
+         ("10b_patines", "9_cilindros"), ("2_mesa", "1c_menuslas"), ("1c_menuslas", "9_cilindros"), ("1c_menuslas", "1e_bancadas"), ("1b_marco", "1c_menuslas"),
+         ("1b_marco", "1e_bancadas"), ("2_mesa", "1d_puntos_izaje"), ("1b_marco", "1d_puntos_izaje"), ("1d_puntos_izaje", "1c_menuslas"), ("1d_puntos_izaje", "1e_bancadas"),
+         ("2_mesa", "11_pasadores_articulacion"), ("3_pasadores", "11_pasadores_articulacion"), ("4_arandelas_pernos", "10_unas"), ("4_arandelas_pernos", "10b_patines"),
+         ("1a_plancha_base", "10b_patines"), ("1a_plancha_base", "9_cilindros")]
 inter = []
 for a_, b_ in PAIRS:
     try:

@@ -431,7 +431,7 @@ const TT = (() => {
     ] },
     { id: "guia", t: "Bancada de guía", p: [
       ["t_bed", "Bancada: espesor", "mm", 25, 16, 100, 1],
-      ["w_bed", "Bancada: ancho", "mm", 130, 60, 400, 5],
+      ["w_bed", "Bancada: ancho", "mm", 110, 60, 400, 5],
       ["w_slot", "Ranura de guía: ancho (H8)", "mm", 40, 10, 100, 1],
       ["h_slot", "Ranura de guía: profundidad", "mm", 22, 5, 60, 1],
       ["w_bed_f", "Filete bancada–base", "mm", 10, 4, 20, 1],
@@ -512,11 +512,15 @@ const TT = (() => {
     const Llug = bg.Llug, tl = 2 * P.t_ch + bg.spacer;
     m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * bg.H + (bg.Win * Llug - Math.PI / 4 * P.d_pp ** 2) * tl);
     const g = guideGeo(P);
-    // uña: bloque (voladizo + largo alojado + medio pasador) − asiento cilíndrico
-    m.dogs = RHO * P.n_cyl * ((g.lever + P.L_in + P.d_pin / 2) * P.dog_b - seatArea(P)) * P.dog_h;
-    // patín: caja L_s × w_s × alto de horquilla, menos ojal y alojamiento de la uña (≈ 25 % de vacíos)
-    m.shoes = RHO * P.n_cyl * (0.75 * g.L_s * P.w_s * (forkH(P) + g.zc0 - (P.t_base + P.t_bed)) + g.L_s * (P.w_slot - 1) * (P.h_slot - 2)
-      + g.inset * ((P.dog_b + 40) * (P.dog_h + 20) - P.dog_b * P.dog_h));
+    // uña: bloque desde 0,3·d antes del centro del pasador hasta el fondo del alojamiento, menos el asiento cilíndrico
+    const xUn = g.lever + 0.3 * P.d_pin + P.L_in;
+    m.dogs = RHO * P.n_cyl * (xUn * P.dog_b - seatCut(P)) * P.dog_h;
+    // patín: caja sobre la bancada + lengüeta + marco de boca − hueco del ojal − pasador − paso del vástago − alojamiento de la uña
+    const zb = P.t_base + P.t_bed, Hs = g.zc0 + forkH(P) / 2 - zb, gap = P.b_eye + 2 * P.g_ch, dr = P.d_rod + 10;
+    const shoeV = g.L_s * P.w_s * Hs + g.L_s * (P.w_slot - 2) * (P.h_slot - 2) + g.inset * (P.dog_b + 40) * (P.dog_h + 20)
+      - (g.rear + 57.5) * 115 * gap - Math.PI / 4 * P.d_pp ** 2 * (g.zc0 + forkH(P) / 2 - Math.max(zb, g.zc0 - forkH(P) / 2 - 10) - gap) - dr * (g.rear - 40) * (dr - gap)
+      - (P.L_in + 1) * (P.dog_b + 2) * (P.dog_h + 2);
+    m.shoes = RHO * P.n_cyl * shoeV;
     // bancadas: una por lado de cilindro (sirve a ambos sentidos de giro)
     m.beds = RHO * P.n_cyl * (g.L_bed * P.w_bed * P.t_bed - g.L_bed * P.w_slot * P.h_slot);
     m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
@@ -535,6 +539,12 @@ const TT = (() => {
     const lugF = P.d_pp / 2 + 25;                                        // saliente delantera (sin carga), libre del cuerpo
     return { Win, H, spacer, rear, lugF, Llug: rear + lugF, aReq, Wout: Win + 2 * P.t_ch };
   }
+  function seatCut(P) {     // área de la uña (y ≤ 0 respecto del pasador, x ≥ −0,3·d) dentro del círculo R = d/2 + 1
+    const Rn = P.d_pin / 2 + 1, x0 = -0.3 * P.d_pin, yb = Math.min(P.dog_b, Rn), n = 400;
+    let A = 0;
+    for (let i = 0; i < n; i++) { const y = -yb * (i + 0.5) / n, hx = Math.sqrt(Math.max(0, Rn * Rn - y * y)); A += Math.max(0, hx - Math.max(-hx, x0)) * yb / n; }
+    return A;
+  }
   function seatArea(P) {   // área del asiento cilíndrico R = d_pas/2 + 1 dentro del ancho de la punta
     const Rn = P.d_pin / 2 + 1, yb = Math.min(P.dog_b / 2, Rn);
     return 2 * (yb / 2 * Math.sqrt(Rn * Rn - yb * yb) + Rn * Rn / 2 * Math.asin(yb / Rn));
@@ -549,7 +559,7 @@ const TT = (() => {
   // Lado +x: guía y cilindro paralelos a y en x = x_g; la uña empuja el pasador en +y entre θ = −π/N y +π/N.
   function guideGeo(P) {
     const pitch = 2 * Math.PI / P.N_pin, R = P.R_pin, a_min = R * Math.cos(pitch / 2);
-    const front = P.l_p - P.d_pin / 2 - 5;                               // pasador del vástago → cara delantera del patín
+    const front = P.l_p + 20;                                            // pasador del vástago → cara delantera del patín (cubre la uña)
     const rear = 1.25 * P.d_pp;                                          // pasador del vástago → cara trasera del patín
     const L_s = front + rear, Lg = 2 / 3 * L_s;                          // brazo entre reacciones de guía (presión lineal)
     const chord = 2 * R * Math.sin(pitch / 2);

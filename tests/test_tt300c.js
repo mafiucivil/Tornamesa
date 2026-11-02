@@ -33,7 +33,7 @@ test("FEA: voladizo en tensión plana", () => {
 
 test("Accionamiento guiado: reproduce el factor de guía de TT300-B (K = 1,2403)", () => {
   // TT300-B: barras R940, 36, guía en x = 1085, Lg = 250, μg 0,15, η 0,95 → K = 1,24031, brazo 936,42
-  const P = Object.assign(TT.defaults(), { R_pin: 940, N_pin: 36, N_rib: 12, x_g: 1085, d_pin: 70, d_pp: 70, l_p: 327.5, mu_g: 0.15, eta_c: 0.95 });
+  const P = Object.assign(TT.defaults(), { R_pin: 940, N_pin: 36, N_rib: 12, x_g: 1085, d_pin: 70, d_pp: 70, l_p: 267.5, mu_g: 0.15, eta_c: 0.95 });
   const K = TT.kinematics(P), R = TT.compute(P);
   near(K.L_s, 375, 1e-9, "largo del patín para Lg = 250");
   near(K.armMin, 936.42, 1e-4, "brazo mínimo R·cos(π/N)");
