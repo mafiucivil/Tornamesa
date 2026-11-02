@@ -406,6 +406,7 @@ const TT = (() => {
       ["p_ret", "Presión de retorno (puerto B)", "bar", 200, 10, 700, 10],
       ["stroke", "Carrera", "mm", 235, 50, 600, 1],
       ["L0", "Longitud ojal-ojal retraído", "mm", 493, 200, 2000, 1],
+      ["e_body", "Distancia del eje del ojal trasero al inicio del cuerpo", "mm", 75, 30, 300, 1],
       ["eta_c", "Rendimiento del cilindro (sellos)", "–", 0.95, 0.8, 1, 0.01],
       ["m_cyl", "Masa por cilindro", "kg", 45, 5, 500, 1],
       ["Q_pump", "Caudal de la bomba", "L/min", 1.8, 0.2, 50, 0.1],
@@ -413,7 +414,7 @@ const TT = (() => {
     { id: "cinematica", t: "Cinemática", p: [
       ["R_eye", "Radio del ojal en la base", "mm", 1360, 500, 3000, 5],
       ["a_eye", "Ángulo del ojal (planta)", "°", 135, 0, 360, 1],
-      ["d_dog", "Uña: pasador del vástago → centro del pasador", "mm", 208, 60, 600, 1],
+      ["d_dog", "Uña: pasador del vástago → centro del pasador", "mm", 290, 60, 600, 1],
       ["s_free", "Recorrido libre antes de tomar el pasador", "mm", 10, 0, 100, 1],
       ["s_margin", "Margen mínimo de carrera exigido", "mm", 5, 0, 50, 1],
     ] },
@@ -421,6 +422,8 @@ const TT = (() => {
       ["dog_b", "Ancho de la uña (en planta)", "mm", 65, 20, 200, 1],
       ["dog_h", "Alto de la uña (contacto con el pasador)", "mm", 50, 20, 200, 1],
       ["dog_tip", "Ancho de la punta entre pasadores", "mm", 60, 20, 200, 1],
+      ["e_off", "Desplazamiento del cuerpo de la uña (+ afuera, − hacia el centro)", "mm", 0, -300, 300, 1],
+      ["l_nose", "Largo de la punta sobre la línea de fuerza", "mm", 80, 20, 300, 1],
       ["e_dog", "Excentricidad accidental de la uña", "mm", 10, 0, 50, 1],
       ["Fy_dog", "Fy uña (34CrNiMo6+QT)", "MPa", 800, 235, 1200, 5],
     ] },
@@ -496,12 +499,12 @@ const TT = (() => {
     m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
     m.rim = RHO * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t;
     const bg = bracketGeo(P, kinematics(P));
-    const Llug = 2.5 * P.d_pp, tl = 2 * P.t_ch + bg.spacer;
+    const Llug = bg.Llug, tl = 2 * P.t_ch + bg.spacer;
     m.brackets = RHO * P.n_br * (2 * P.t_ch * P.L_ch * bg.H + (bg.Win * Llug - Math.PI / 4 * P.d_pp ** 2) * tl);
     // uña: horquilla (2 orejas) + cuerpo − asiento cilíndrico
-    const fw = 2.4 * P.d_pp, tf = forkH(P) - P.b_eye - 2 * P.g_ch, Rn = P.d_pin / 2 + 1, yb = Math.min(P.dog_b / 2, Rn);
-    const seat = 2 * (yb / 2 * Math.sqrt(Rn * Rn - yb * yb) + Rn * Rn / 2 * Math.asin(yb / Rn));
-    m.dogs = RHO * P.n_cyl * ((fw * fw - Math.PI / 4 * P.d_pp ** 2) * tf + ((P.d_dog - fw / 2 + 5) * P.dog_b - seat) * P.dog_h);
+    const fw = 2.4 * P.d_pp, tf = forkH(P) - P.b_eye - 2 * P.g_ch;
+    const bodyL = Math.max(0, P.d_dog - fw / 2 - P.l_nose), crank = Math.abs(P.e_off) * Math.max(P.dog_b, P.dog_tip);
+    m.dogs = RHO * P.n_cyl * ((fw * fw - Math.PI / 4 * P.d_pp ** 2) * tf + (bodyL * P.dog_b + P.l_nose * P.dog_tip + crank - seatArea(P)) * P.dog_h);
     m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
     m.cyl = P.n_cyl * P.m_cyl;
     m.total = m.disc + m.base + m.rim + m.brackets + m.dogs + m.pivot + m.cyl;
@@ -512,9 +515,18 @@ const TT = (() => {
     const Win = P.D_body + 2 * (P.L_ch * half + 10);                    // luz interior entre mejillas
     const H = hAxis(P) + P.b_eye / 2 + P.g_ch + P.t_ch;                 // alto hasta cara superior de la oreja superior
     const spacer = Math.max(0, hAxis(P) - P.b_eye / 2 - P.g_ch - P.t_ch); // suplemento bajo la oreja inferior
-    const rear = P.d_pp;                                                 // saliente trasera desde el eje del ojal
-    return { Win, H, spacer, rear, Wout: Win + 2 * P.t_ch };
+    // saliente trasera: desgarro por corte de la oreja superior (2 planos) con F/2 a calado, BTH-1 Fy/(Nd·√3)
+    const Fs = Math.PI / 4 * P.D_bore ** 2 * P.p_relief / 10;           // N
+    const aReq = (Fs / 2) / (2 * P.t_ch * P.Fy / (P.Nd * Math.sqrt(3)));
+    const rear = Math.ceil((P.d_pp / 2 + aReq / 0.85) / 5) * 5;
+    const lugF = P.d_pp / 2 + 25;                                        // saliente delantera (sin carga), libre del cuerpo
+    return { Win, H, spacer, rear, lugF, Llug: rear + lugF, aReq, Wout: Win + 2 * P.t_ch };
   }
+  function seatArea(P) {   // área del asiento cilíndrico R = d_pas/2 + 1 dentro del ancho de la punta
+    const Rn = P.d_pin / 2 + 1, yb = Math.min(P.dog_tip / 2, Rn);
+    return 2 * (yb / 2 * Math.sqrt(Rn * Rn - yb * yb) + Rn * Rn / 2 * Math.asin(yb / Rn));
+  }
+  function TT_lugF(P) { return P.d_pp / 2 + 25; }
   function forkH(P) { return P.b_eye + 2 * P.g_ch + 2 * P.t_ch; }       // alto de la horquilla de la uña
   function hAxis(P) { return P.h_disc / 2; }                         // eje del cilindro sobre la base = mitad de la luz del pasador
   function prIn(P) { return Math.max(P.D_hub / 2, P.R_pin - (P.D_top / 2 - P.R_pin)); }   // radio interior del anillo de pasadores
@@ -553,6 +565,54 @@ const TT = (() => {
       dr, RrodMin, RrodMax, swing: phMax - phMin, phMid: (phMax + phMin) / 2 };
   }
 
+  // distancia mínima, durante el empuje, entre el pasador del vástago y el pasador siguiente (+1),
+  // y entre los pasadores vecinos (±1) y el eje de la uña (segmento pasador del vástago → pasador tomado)
+  function dogClear(Re, R, d, pitch, de, dend) {
+    let fork = Infinity, body = Infinity;
+    const E0 = [Re, 0];
+    for (let i = 0; i <= 40; i++) {
+      const del = de + (dend - de) * i / 40;
+      const Pp = [R * Math.cos(-del), R * Math.sin(-del)], L = Math.hypot(Pp[0] - E0[0], Pp[1] - E0[1]);
+      const u = [(Pp[0] - E0[0]) / L, (Pp[1] - E0[1]) / L], Rp = [Pp[0] - d * u[0], Pp[1] - d * u[1]];
+      for (const k of [1, -1]) {
+        const a = -(del - k * pitch), Q = [R * Math.cos(a), R * Math.sin(a)];
+        if (k === 1) fork = Math.min(fork, Math.hypot(Q[0] - Rp[0], Q[1] - Rp[1]));
+        const t = Math.max(0, Math.min(d, (Q[0] - Rp[0]) * u[0] + (Q[1] - Rp[1]) * u[1]));
+        body = Math.min(body, Math.hypot(Q[0] - Rp[0] - t * u[0], Q[1] - Rp[1] - t * u[1]));
+      }
+    }
+    return { clrFork: fork, clrBody: body };
+  }
+  // uña acodada: cuerpo desplazado e_off hacia afuera (lado opuesto al centro) entre la horquilla y la raíz de la punta;
+  // la punta (largo l_nose) queda sobre la línea de fuerza. Distancias mínimas a los pasadores vecinos durante el empuje.
+  function dogClear2(P, K) {
+    const Re = P.R_eye, R = P.R_pin, d = P.d_dog, pitch = 2 * Math.PI / P.N_pin;
+    const segDist = (Q, A, B) => {
+      const ab = [B[0] - A[0], B[1] - A[1]], L2 = ab[0] ** 2 + ab[1] ** 2;
+      const t = Math.max(0, Math.min(1, ((Q[0] - A[0]) * ab[0] + (Q[1] - A[1]) * ab[1]) / (L2 || 1)));
+      return Math.hypot(Q[0] - A[0] - t * ab[0], Q[1] - A[1] - t * ab[1]);
+    };
+    let fork = Infinity, body = Infinity, nose = Infinity, rmin = Infinity;
+    for (let i = 0; i <= 40; i++) {
+      const del = K.de + (K.dend - K.de) * i / 40;
+      const Pp = [R * Math.cos(-del), R * Math.sin(-del)], E0 = [Re, 0], L = Math.hypot(Pp[0] - E0[0], Pp[1] - E0[1]);
+      const u = [(Pp[0] - E0[0]) / L, (Pp[1] - E0[1]) / L];
+      let n = [-u[1], u[0]];
+      const mid = [Pp[0] - d / 2 * u[0], Pp[1] - d / 2 * u[1]];
+      if (n[0] * mid[0] + n[1] * mid[1] < 0) n = [-n[0], -n[1]];          // normal hacia afuera (e_off > 0) ; e_off < 0: hacia el centro
+      const Rp = [Pp[0] - d * u[0], Pp[1] - d * u[1]], Nr = [Pp[0] - P.l_nose * u[0], Pp[1] - P.l_nose * u[1]];
+      const B0 = [Rp[0] + P.e_off * n[0], Rp[1] + P.e_off * n[1]], B1 = [Nr[0] + P.e_off * n[0], Nr[1] + P.e_off * n[1]];
+      for (const [A, B] of [[B0, B1], [Rp, B0], [Nr, B1]]) rmin = Math.min(rmin, segDist([0, 0], A, B));
+      for (const k of [1, -1, 2, 3]) {
+        const a = -(del - k * pitch), Q = [R * Math.cos(a), R * Math.sin(a)];
+        if (k === 1) fork = Math.min(fork, Math.hypot(Q[0] - Rp[0], Q[1] - Rp[1]));
+        body = Math.min(body, segDist(Q, B0, B1), segDist(Q, Rp, B0), segDist(Q, Nr, B1));
+        nose = Math.min(nose, segDist(Q, Nr, Pp));
+      }
+    }
+    return { clrFork: fork, clrBody: body, clrNose: nose, rBodyMin: rmin };
+  }
+
   /* ---------------- Accionamiento ---------------- */
   function compute(P) {
     const m = masses(P);
@@ -567,6 +627,7 @@ const TT = (() => {
     const H_ecc = (mu) => mu * N * P.e * (4 / 3) * (Ro ** 3 - Ri ** 3) / (Ro ** 4 - Ri ** 4);   // kN
     const T_piv = (mu) => P.mu_bush * H_ecc(mu) * (P.D_piv / 2) / 1e3;                        // kN·m
     const K = kinematics(P);
+    if (K.ok) Object.assign(K, dogClear2(P, K));
     const A = Math.PI / 4 * P.D_bore ** 2, Aann = A - Math.PI / 4 * P.d_rod ** 2;
     const Fstall = A * P.p_relief / 10 / 1e3, Falarm = A * P.p_alarm / 10 / 1e3, Fret = Aann * P.p_ret / 10 / 1e3;
     const torque = (mu, r) => mu * N * r / 1e3 + T_piv(mu);                                   // kN·m
@@ -765,6 +826,12 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen", formula: "s_libre + ΔL(paso) + margen ≤ carrera", dem: K.ok ? K.s_req + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática (rev. C3)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Holgura de la punta de la uña entre pasadores", formula: "cuerda − d_pas ≥ punta + 2·10", dem: P.dog_tip + 20, cap: K.ok ? K.gap : NaN, unit: "mm", ref: "Cinemática" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Contacto de la uña dentro de la luz libre del pasador", formula: "h_uña + 10 ≤ h − 2·t_anillo", dem: P.dog_h + 10, cap: pinClear(P), unit: "mm", ref: "Geometría" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Horquilla de la uña libre del pasador siguiente", formula: "1,2·d_pp + d_pas/2 + 10 ≤ dist. mín. (empuje)", dem: 1.2 * P.d_pp + P.d_pin / 2 + 10, cap: K.ok ? K.clrFork : NaN, unit: "mm", ref: "Geometría (interferencia en planta)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo de la uña (acodada) libre de los pasadores vecinos", formula: "b_uña/2 + d_pas/2 + 10 ≤ dist. mín. al eje del cuerpo", dem: P.dog_b / 2 + P.d_pin / 2 + 10, cap: K.ok ? K.clrBody : NaN, unit: "mm", ref: "Geometría (interferencia en planta)" });
+    const ringsAll = parseRings(P.rings), rWeb = ringsAll.length ? Math.max(...ringsAll) + P.t_web / 2 : 0;
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo de la uña libre del alma exterior de la mesa", formula: "R_alma + t/2 + b_uña/2 + 10 ≤ r mín. del eje del cuerpo", dem: rWeb + P.dog_b / 2 + 10, cap: K.ok ? K.rBodyMin : NaN, unit: "mm", ref: "Geometría (interferencia en planta)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Punta de la uña libre de los pasadores vecinos", formula: "punta/2 + d_pas/2 + 10 ≤ dist. mín. al eje de la punta", dem: P.dog_tip / 2 + P.d_pin / 2 + 10, cap: K.ok ? K.clrNose : NaN, unit: "mm", ref: "Geometría (interferencia en planta)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Orejas de la ménsula libres del cuerpo del cilindro", formula: "d_pp/2 + 25 + 10 ≤ e_cuerpo", dem: TT_lugF(P) + 10, cap: P.e_body, unit: "mm", ref: "Geometría" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Horquilla de la uña entre anillos de pasadores", formula: "b_ojal + 2g + 2t + 2·10 ≤ h − 2·t_anillo", dem: forkH(P) + 20, cap: pinClear(P), unit: "mm", ref: "Geometría (horquilla sobre el borde de la mesa)" });
     const bgv = bracketGeo(P, K), D2 = Math.PI / 180;
     // esquinas de la caja de la ménsula (local: eje x hacia el cilindro), en coordenadas de planta
@@ -829,7 +896,8 @@ const TT = (() => {
 
     /* --- Uña --- */
     const Adog = P.dog_b * P.dog_h;
-    add({ grp: "Uña", sys: "est", name: "Compresión con excentricidad accidental", formula: "σ = F/A·(1 + 6e/b) ≤ Fy/Nd", dem: Fs * 1e3 / Adog * (1 + 6 * P.e_dog / P.dog_b), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.4 / 3-2.3" });
+    add({ grp: "Uña", sys: "est", name: "Cuerpo: compresión + flexión por acodamiento", formula: "σ = F/A·(1 + 6(e_off + e_acc)/b) ≤ Fy/Nd", dem: Fs * 1e3 / Adog * (1 + 6 * (Math.abs(P.e_off) + P.e_dog) / P.dog_b), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.4 / 3-2.3" });
+    add({ grp: "Uña", sys: "est", name: "Punta: compresión + flexión en la raíz del codo", formula: "σ = F/(t·h)·(1 + 6·e_off/t), t = punta", dem: Fs * 1e3 / (P.dog_tip * P.dog_h) * (1 + 6 * Math.abs(P.e_off) / P.dog_tip), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.4 / 3-2.3" });
 
     /* --- Articulaciones (ojal en la base y pasador del vástago) --- */
     const App = Math.PI * P.d_pp ** 2 / 4, Spp = Math.PI * P.d_pp ** 3 / 32;
@@ -837,6 +905,8 @@ const TT = (() => {
     add({ grp: "Articulaciones", sys: "est", name: "Pasador: flexión (horquilla)", formula: "M = F/2·(t/2 + g + b/4); σ ≤ Fy/Nd", dem: Mpp * 1e6 / Spp, cap: P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / 3-2.3" });
     add({ grp: "Articulaciones", sys: "est", name: "Pasador: corte doble", formula: "τ = (F/2)/A ≤ Fy/(Nd·√3)", dem: Fs / 2 * 1e3 / App, cap: P.Fy_pp / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
     add({ grp: "Articulaciones", sys: "est", name: "Aplastamiento en mejillas", formula: "σ = (F/2)/(d·t) ≤ 1,25Fy/Nd", dem: Fs / 2 * 1e3 / (P.d_pp * P.t_ch), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
+    const bgx = bracketGeo(P, K), aSh = bgx.rear - P.d_pp / 2;
+    add({ grp: "Articulaciones", sys: "est", name: "Oreja superior de la ménsula: desgarro por corte tras el agujero", formula: "τ = (F/2)/(2·t·a) ≤ Fy/(Nd·√3), a = saliente − d/2", dem: Fs / 2 * 1e3 / (2 * P.t_ch * aSh), cap: Fy / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-3.3 (simplificado, 2 planos de corte)" });
     add({ grp: "Articulaciones", sys: "est", kind: "info", name: "Ojal comercial del cilindro: admitir pasador y carga", formula: "Ø ojal ≥ d_pp; ancho = b_ojal (confirmar con ficha)", dem: P.d_pp, unit: "mm", ref: "Ficha del fabricante" });
     const hax = R.hax;
     const Mch = Fs / 2 * hax / 1e3;
@@ -869,7 +939,7 @@ const TT = (() => {
       else add({ grp: "Fatiga", sys: "est", name: name + " (cat. " + cat + ", N = " + Math.round(N) + ")", formula: (cat === "F" ? "Δτ ≤ F_SR = (Cf/N)^0,167 ≥ F_TH" : "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH"), dem: sig, cap: FSR(cat, N), unit: "MPa", ref: "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1" });
     };
     fat("Pasadores de empuje", Fd * Ls / 4 * 1e3 / Sp, "A", nPin);
-    fat("Uña", Fd * 1e3 / Adog * (1 + 6 * P.e_dog / P.dog_b), "A", nCyc);
+    fat("Uña", Fd * 1e3 / Adog * (1 + 6 * (Math.abs(P.e_off) + P.e_dog) / P.dog_b), "A", nCyc);
     fat("Pasadores de articulación", Fd / 2 * (P.t_ch / 2 + P.g_ch + P.b_eye / 4) * 1e3 / Spp, "A", nCyc);
     fat("Pie de soldadura mejilla–base", Fd / 2 * 1e3 * hax / (P.t_ch * P.L_ch ** 2 / 6), "E", nCyc);
     fat("Garganta soldadura mejilla–base (corte)", Math.hypot(Fd * 1e3 / (4 * aw * P.L_ch), Fd * 1e3 * hax / (4 * aw * P.L_ch ** 2 / 6)), "F", nCyc);

@@ -144,9 +144,26 @@ cmp = [("Plancha base", vol["1a_plancha_base"] * RHO, M["base"]),
        ("Pasadores de empuje", vol["3_pasadores"] * RHO, M["pins"]),
        ("Pivote", vol["5_pivote"] * RHO, M["pivot"]),
        ("Uñas", vol["10_unas"] * RHO, M["dogs"])]
-rep = {"partes": {n: round(v * RHO, 2) for n, v in vol.items()}, "comparacion": [{"pieza": a, "modelo3d": round(b, 1), "nucleo": round(c, 1), "dif_%": round((b - c) / c * 100, 1)} for a, b, c in cmp]}
+# ---------------- control de interferencias entre piezas que no deben tocarse ----------------
+PAIRS = [("2_mesa", "10_unas"), ("3_pasadores", "10_unas"), ("2_mesa", "9_cilindros"), ("3_pasadores", "9_cilindros"),
+         ("2_mesa", "1c_menuslas"), ("1c_menuslas", "9_cilindros"), ("1b_marco", "1c_menuslas"), ("2_mesa", "1d_puntos_izaje"),
+         ("1b_marco", "1d_puntos_izaje"), ("1c_menuslas", "10_unas"), ("2_mesa", "11_pasadores_articulacion"), ("3_pasadores", "11_pasadores_articulacion"),
+         ("4_arandelas_pernos", "10_unas"), ("4_arandelas_pernos", "9_cilindros")]
+inter = []
+for a_, b_ in PAIRS:
+    try:
+        v = parts[a_][0].val().intersect(parts[b_][0].val()).Volume()
+    except Exception as e:
+        v = float("nan")
+    inter.append({"a": a_, "b": b_, "vol_mm3": round(v, 1), "ok": bool(v < 1.0)})
+rep = {"interferencias": inter, "partes": {n: round(v * RHO, 2) for n, v in vol.items()}, "comparacion": [{"pieza": a, "modelo3d": round(b, 1), "nucleo": round(c, 1), "dif_%": round((b - c) / c * 100, 1)} for a, b, c in cmp]}
 json.dump(rep, open(OUT / "TT300-C_masas3d.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(f"{'Pieza':40s} {'3D kg':>9s} {'Núcleo kg':>10s} {'Δ %':>7s}")
 for r in rep["comparacion"]:
     print(f"{r['pieza']:40s} {r['modelo3d']:9.1f} {r['nucleo']:10.1f} {r['dif_%']:7.1f}")
+print("\nInterferencias (volumen común, debe ser 0):")
+for r in inter:
+    print(f"  {'OK ' if r['ok'] else 'XX '} {r['a']:28s} × {r['b']:28s} {r['vol_mm3']:12.1f} mm³")
 print("STEP y GLB en", OUT)
+if not all(r["ok"] for r in inter):
+    sys.exit("Hay interferencias entre piezas: revisar geometría")
