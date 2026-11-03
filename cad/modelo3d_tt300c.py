@@ -25,7 +25,10 @@ Llug = BR["Llug"]
 forkH = DV["forkH"]
 KG = DV["K"]
 zb = tb + P["t_bed"]                      # cara superior de la bancada
-nose_R = d_pin / 2 + 1
+zT1 = zb - P["h_slot"]                    # cabeza de la ranura T: z ∈ [zT0, zT1]
+zT0 = zT1 - P["h_tee"]
+ch_dx = KG["travel"]                      # chaflán de retorno de la uña (= chamferGeo del núcleo)
+ch_dy = ch_dx / math.tan(math.radians(P["beta_ch"]))
 washer_D = d_pin + 30
 
 def cyl(r, h, z0=0.0, x=0.0, y=0.0):
@@ -69,8 +72,11 @@ parts["1d_puntos_izaje"] = (lugs, (0.9, 0.2, 0.15), None)
 beds = None
 for sx in (1, -1):
     X = sx * P["x_g"]
+    # ranura T pasante en y: cuello w_slot × h_slot y cabeza w_tee × h_tee bajo el cuello (fondo t_bed − h_slot − h_tee)
     bd = box(X - P["w_bed"] / 2, X + P["w_bed"] / 2, -KG["Y_bed"], KG["Y_bed"], tb, zb).cut(
         box(X - P["w_slot"] / 2, X + P["w_slot"] / 2, -KG["Y_bed"] - 1, KG["Y_bed"] + 1, zb - P["h_slot"], zb + 1))
+    if P["h_tee"] > 0:
+        bd = bd.cut(box(X - P["w_tee"] / 2, X + P["w_tee"] / 2, -KG["Y_bed"] - 1, KG["Y_bed"] + 1, zT0, zT1))
     beds = bd if beds is None else beds.union(bd)
 parts["1e_bancadas"] = (beds, (0.45, 0.47, 0.5), "beds")
 
@@ -117,30 +123,40 @@ for c in D["cilindros"]["antihorario"]:
     body = cq.Workplane("XZ").workplane(offset=-yb1).center(X, zc).circle(P["D_body"] / 2).extrude(yb1 - yb0)
     yr0, yr1 = srt(c["rodRetracted"][1] - dy * P["c_rod"], yr - dy * 52.5)
     rod = cq.Workplane("XZ").workplane(offset=-yr1).center(X, zc).circle(P["d_rod"] / 2).extrude(yr1 - yr0)
-    eye0 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, X, ye)
-    eye1 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, X, yr)
+    eye0 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, X, ye).cut(cyl(P["d_pp"] / 2, P["b_eye"] + 2, zc - P["b_eye"] / 2 - 1, X, ye))
+    eye1 = cyl(52.5, P["b_eye"], zc - P["b_eye"] / 2, X, yr).cut(cyl(P["d_pp"] / 2, P["b_eye"] + 2, zc - P["b_eye"] / 2 - 1, X, yr))
     cy = body.union(rod).union(eye0).union(eye1)
     cyls = cy if cyls is None else cyls.union(cy)
-    # uña: bloque entre el pasador y el fondo del alojamiento; asiento cilíndrico R = d/2 + 1 en el pasador tomado
-    xi, xo = srt(sx * KG["tipX"], sx * (KG["mouthX"] + P["L_in"]))
-    yd0, yd1 = srt(yps - dy * (d_pin / 2 + 1 + P["dog_b"] - nose_R), yps)
-    dog = box(xi, xo, yd0, yd1, zc - P["dog_h"] / 2, zc + P["dog_h"] / 2).cut(cyl(nose_R, P["dog_h"] + 10, zc - P["dog_h"] / 2 - 5, c["pinStart"][0], yps))
+    # uña: cara de empuje PLANA (normal a y) en contacto con el pasador tomado, y = y_pas − dy·d/2;
+    # ocupa x ∈ [tipX, boca + L_in] e y entre la cara de empuje y la cara trasera (ancho dog_b).
+    # Chaflán de retorno en la arista punta–cara trasera: Δx = recorrido de retorno, Δy = Δx/tan β.
+    yF = yps - dy * d_pin / 2                                         # cara de empuje
+    yB = yF - dy * P["dog_b"]                                         # cara trasera
+    yd0, yd1 = srt(yB, yF)
+    xT, xE = sx * KG["tipX"], sx * (KG["mouthX"] + P["L_in"])
+    dog_pts = [(xT, yF), (xE, yF), (xE, yB), (xT + sx * ch_dx, yB), (xT, yB + dy * min(ch_dy, P["dog_b"]))]
+    dog = cq.Workplane("XY").workplane(offset=zc - P["dog_h"] / 2).polyline(dog_pts).close().extrude(P["dog_h"])
     dogs = dog if dogs is None else dogs.union(dog)
-    # patín: caja sobre la bancada + lengüeta en la ranura + marco de boca; huecos para ojal, pasador y uña
+    # patín: caja sobre la bancada + lengüeta T (cuello y cabeza) + marco de boca (paredes t_fw); huecos para ojal, pasador y uña
     ys0, ys1 = srt(yr - dy * KG["rear"], yr + dy * KG["front"])
     sh = box(X - P["w_s"] / 2, X + P["w_s"] / 2, ys0, ys1, zb, zc + forkH / 2)
-    sh = sh.union(box(X - P["w_slot"] / 2 + cl1, X + P["w_slot"] / 2 - cl1, ys0, ys1, zb - P["h_slot"] + 2, zb))
+    # cabeza T con 1 mm de juego arriba y abajo en la cabeza de la ranura; el cuello llega desde la cabeza hasta la caja
+    zh0, zh1 = (zT0 + 1, zT1 - 1) if P["h_tee"] > 0 else (zb - P["h_slot"] + 2, zb - P["h_slot"] + 2)
+    sh = sh.union(box(X - P["w_slot"] / 2 + cl1, X + P["w_slot"] / 2 - cl1, ys0, ys1, zh1 if P["h_tee"] > 0 else zh0, zb))
+    if P["h_tee"] > 0:
+        sh = sh.union(box(X - P["w_tee"] / 2 + cl1, X + P["w_tee"] / 2 - cl1, ys0, ys1, zh0, zh1))
     mx0, mx1 = srt(sx * KG["mouthX"], sx * (P["x_g"] - P["w_s"] / 2))
-    sh = sh.union(box(mx0, mx1, yd0 - 20, yd1 + 20, zc - P["dog_h"] / 2 - 10, zc + P["dog_h"] / 2 + 10))
+    sh = sh.union(box(mx0, mx1, yd0 - P["t_fw"], yd1 + P["t_fw"], zc - P["dog_h"] / 2 - 10, zc + P["dog_h"] / 2 + 10))
     ge0, ge1 = srt(yr - dy * KG["rear"] - 1, yr + dy * (52.5 + 5))
     sh = sh.cut(box(X - 57.5, X + 57.5, ge0, ge1, zc - P["b_eye"] / 2 - P["g_ch"], zc + P["b_eye"] / 2 + P["g_ch"]))
-    sh = sh.cut(cyl(P["d_pp"] / 2, forkH + 20, zc - forkH / 2 - 10, X, yr))
+    zpp0 = max(zb, zc - forkH / 2 - 10)                                 # agujero del pasador del vástago: ciego sobre la lengüeta
+    sh = sh.cut(cyl(P["d_pp"] / 2, zc + forkH / 2 + 10 - zpp0, zpp0, X, yr))
     gr0, gr1 = srt(yr - dy * (KG["rear"] + 5), yr - dy * 40)            # ranura de paso del vástago (orejas no cargadas atrás)
     sh = sh.cut(box(X - (P["d_rod"] + 10) / 2, X + (P["d_rod"] + 10) / 2, gr0, gr1, zc - (P["d_rod"] + 10) / 2, zc + (P["d_rod"] + 10) / 2))
     px0, px1 = srt(sx * KG["mouthX"], sx * (KG["pocketEnd"] + cl1))      # alojamiento: uña + recorrido de retorno + resorte
     sh = sh.cut(box(px0 - cl1, px1, yd0 - cl1, yd1 + cl1, zc - P["dog_h"] / 2 - cl1, zc + P["dog_h"] / 2 + cl1))
     shoes = sh if shoes is None else shoes.union(sh)
-    ap = cyl(P["d_pp"] / 2, forkH + 20, zc - forkH / 2 - 10, X, yr).union(cyl(P["d_pp"] / 2, BR["H"] + 20, tb - 5, X, ye))
+    ap = cyl(P["d_pp"] / 2, zc + forkH / 2 + 10 - zpp0, zpp0, X, yr).union(cyl(P["d_pp"] / 2, BR["H"] + 15, tb, X, ye))
     apins = ap if apins is None else apins.union(ap)
 parts["9_cilindros"] = (cyls, (0.95, 0.78, 0.1), None)
 parts["10_unas"] = (dogs, (0.85, 0.35, 0.1), "dogs")
@@ -168,12 +184,9 @@ cmp = [("Plancha base", vol["1a_plancha_base"] * RHO, M["base"]),
        ("Patines", vol["10b_patines"] * RHO, M["shoes"]),
        ("Bancadas de guía", vol["1e_bancadas"] * RHO, M["beds"])]
 # ---------------- control de interferencias entre piezas que no deben tocarse ----------------
-PAIRS = [("2_mesa", "10_unas"), ("3_pasadores", "10_unas"), ("2_mesa", "10b_patines"), ("3_pasadores", "10b_patines"), ("2_mesa", "1e_bancadas"),
-         ("2_mesa", "9_cilindros"), ("3_pasadores", "9_cilindros"), ("1e_bancadas", "9_cilindros"), ("1e_bancadas", "10b_patines"), ("10b_patines", "10_unas"),
-         ("10b_patines", "9_cilindros"), ("2_mesa", "1c_menuslas"), ("1c_menuslas", "9_cilindros"), ("1c_menuslas", "1e_bancadas"), ("1b_marco", "1c_menuslas"),
-         ("1b_marco", "1e_bancadas"), ("2_mesa", "1d_puntos_izaje"), ("1b_marco", "1d_puntos_izaje"), ("1d_puntos_izaje", "1c_menuslas"), ("1d_puntos_izaje", "1e_bancadas"),
-         ("2_mesa", "11_pasadores_articulacion"), ("3_pasadores", "11_pasadores_articulacion"), ("4_arandelas_pernos", "10_unas"), ("4_arandelas_pernos", "10b_patines"),
-         ("1a_plancha_base", "10b_patines"), ("1a_plancha_base", "9_cilindros")]
+# todos los pares de piezas: las piezas ajustadas (pasador en agujero, buje en cubo, piezas apiladas) solo comparten caras (volumen 0)
+names = list(parts)
+PAIRS = [(names[i], names[j]) for i in range(len(names)) for j in range(i + 1, len(names))]
 inter = []
 for a_, b_ in PAIRS:
     try:
