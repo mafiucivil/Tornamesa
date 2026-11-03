@@ -18,6 +18,7 @@ const AG = (() => {
     if (!rings.length) E("Defina al menos un radio de alma anular");
     if (P.D_bore <= P.d_rod) E("El émbolo debe ser mayor que el vástago");
     if (P.p_alarm > P.p_relief) E("La presión de alarma no puede superar la de alivio");
+    if (P.p_relief > P.p_rated * TT_.PSI_CAT + 1e-6) E(`El alivio (${P.p_relief} bar) supera la presión nominal del cilindro (${P.p_rated} psi ≙ ${Math.round(P.p_rated * TT_.PSI_CAT)} bar)`);
     if (P.s_free >= P.stroke) E("El recorrido libre debe ser menor que la carrera");
     if (P.N_pin % P.N_rib !== 0) {
       const ok = []; for (let n = 4; n <= P.N_pin; n++) if (P.N_pin % n === 0) ok.push(n);
@@ -121,7 +122,13 @@ const AG = (() => {
       const RR = TT_.compute(Q);
       return { W: Q.W_tf, FS: RR.cd ? RR.cd.FS : NaN, p: RR.cd ? RR.cd.p : NaN, muMax: RR.muMax(P.r_ef) };
     });
-    return { mus, rs, grid, loads };
+    // clases de presión de catálogo: alivio = nominal, alarma = 0,85·alivio; émbolo mínimo por FS_min y por alarma
+    const classes = [10000, 5000].map((psi) => {
+      const pr = Math.floor(psi * TT_.PSI_CAT / 10) * 10, pa = Math.floor(0.85 * pr / 10) * 10, F = R.cd.F;
+      const Amin = Math.max(P.FS_min * F * 1e3 / (pr / 10), F * 1e3 / (pa / 10));
+      return { psi, pr, pa, Dmin: Math.sqrt(4 * Amin / Math.PI), FScur: R.A * pr / 10 / 1e3 / F, pcur: F * 1e3 / R.A * 10 };
+    });
+    return { mus, rs, grid, loads, classes };
   }
 
   /* ---------- 5. Optimizador de peso ---------- */

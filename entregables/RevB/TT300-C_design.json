@@ -1,6 +1,6 @@
 {
  "proyecto": "TT300-C",
- "fecha": "2026-11-02",
+ "fecha": "2026-11-03",
  "P": {
   "W_tf": 300,
   "e": 150,
@@ -33,6 +33,7 @@
   "D_bore": 90,
   "d_rod": 63,
   "D_body": 130,
+  "p_rated": 10000,
   "p_relief": 700,
   "p_alarm": 600,
   "p_ret": 200,
@@ -102,7 +103,7 @@
   "warnGiro": 0,
   "warnEst": 0,
   "pend": 0,
-  "fuMax": 0.9230103178743302
+  "fuMax": 0.9999999999999999
  },
  "validacion": [],
  "derivados": {
@@ -448,6 +449,50 @@
    "fu": 0.861476296682708,
    "estado": "ok",
    "ref": "Criterio de operación"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Alivio dentro de la presión nominal del cilindro y la bomba",
+   "formula": "p_alivio ≤ p_nominal (10.000 psi ≙ 700 bar; 5.000 psi ≙ 350 bar)",
+   "dem": 700,
+   "cap": 700.0000000000001,
+   "unidad": "bar",
+   "fu": 0.9999999999999999,
+   "estado": "ok",
+   "ref": "ISO 4413:2010, protección contra sobrepresión; catálogo del fabricante"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Alarma bajo el alivio (detiene antes de calar)",
+   "formula": "p_alarma ≤ 0,90 · p_alivio",
+   "dem": 600,
+   "cap": 630,
+   "unidad": "bar",
+   "fu": 0.9523809523809523,
+   "estado": "ok",
+   "ref": "Criterio de operación"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Retorno dentro de la presión nominal",
+   "formula": "p_retorno ≤ p_nominal",
+   "dem": 200,
+   "cap": 700.0000000000001,
+   "unidad": "bar",
+   "fu": 0.28571428571428564,
+   "estado": "ok",
+   "ref": "Catálogo del fabricante"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Émbolo mínimo con las presiones elegidas",
+   "formula": "A ≥ máx(FS_min·F_dis/p_alivio; F_dis/p_alarma)",
+   "dem": 86.4660833782939,
+   "cap": 90,
+   "unidad": "mm",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
   },
   {
    "grp": "Giro",

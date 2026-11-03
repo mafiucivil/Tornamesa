@@ -42,6 +42,9 @@
  "fu": {
   "Giro · FS del accionamiento en el caso de diseño": 0.9230103178743301,
   "Giro · Presión de diseño frente a la alarma": 0.861476296682708,
+  "Giro · Alivio dentro de la presión nominal del cilindro y la bomba": 0.9999999999999999,
+  "Giro · Alarma bajo el alivio (detiene antes de calar)": 0.9523809523809523,
+  "Giro · Retorno dentro de la presión nominal": 0.28571428571428564,
   "Giro · Gira con grasa contaminada": 0.9230103178743302,
   "Giro · Gira con contacto en el borde (r = R)": 0.9224583829632175,
   "Giro · Carrera requerida con margen": 0.9500167044772452,

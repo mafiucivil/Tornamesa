@@ -397,7 +397,10 @@
       <div class="card scroll"><h3>4 · Escenarios de fricción (FS al calado)</h3><table><tr><th class="n">μ</th>${SC.rs.map(([n, r]) => `<th class="n">${n} = ${fmt(r, 4)} mm</th>`).join("")}</tr>${sg}</table>
         <div class="note">Verde: FS ≥ FS_min (${fmt(P.FS_min)}); ámbar: gira sin el margen exigido; rojo: no gira.</div></div>
       <div class="card"><h3>4 · Escenarios de carga (caso de diseño)</h3><table><tr><th class="n">W (tf)</th><th class="n">FS</th><th class="n">p (bar)</th><th class="n">μ máx (r_ef)</th></tr>
-        ${SC.loads.map((l) => `<tr><td class="n">${fmt(l.W, 3)}</td><td class="n">${fmt(l.FS)}</td><td class="n">${fmt(l.p)}</td><td class="n">${fmt(l.muMax)}</td></tr>`).join("")}</table></div></div>`;
+        ${SC.loads.map((l) => `<tr><td class="n">${fmt(l.W, 3)}</td><td class="n">${fmt(l.FS)}</td><td class="n">${fmt(l.p)}</td><td class="n">${fmt(l.muMax)}</td></tr>`).join("")}</table></div>
+      <div class="card"><h3>4 · Clase de presión del cilindro (caso de diseño)</h3><table><tr><th class="n">Clase (psi)</th><th class="n">Alivio / alarma (bar)</th><th class="n">Émbolo mínimo (mm)</th><th class="n">FS con Ø${fmt(P.D_bore, 3)}</th><th class="n">p dis. (bar)</th></tr>
+        ${(SC.classes || []).map((c) => `<tr><td class="n">${fmt(c.psi, 5)}</td><td class="n">${fmt(c.pr, 3)} / ${fmt(c.pa, 3)}</td><td class="n">${fmt(c.Dmin, 3)}</td><td class="n">${fmt(c.FScur)}</td><td class="n">${fmt(c.pcur, 3)}</td></tr>`).join("")}</table>
+        <div class="note">Émbolo mínimo = máx(FS_min·F_dis/p_alivio; F_dis/p_alarma), con alarma = 0,85·alivio. Al cambiar de clase, ajuste también Ø del cuerpo, masa y cotas del cilindro según catálogo; la herramienta verifica el resto.</div></div></div>`;
   }
 
   /* ---------- Optimizador ---------- */

@@ -11,6 +11,7 @@
 | Fatiga | N ≤ 20 000: clase de servicio 0, sin verificación; si no, F_SR = 6,895·(Cf/N)^(1/3) ≥ F_TH (Cat. F: exponente 1/6) | ASME BTH-1 §3-4; AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1 | Cf de la tabla en ksi, convertido a MPa |
 | Pandeo del vástago | F_calado ≤ Pcr/3, Euler biarticulado con longitud extendida y diámetro del vástago | Criterio conservador frente a ISO/TS 13725 | Confirmar con ficha del cilindro |
 | Giro | FS = F_calado/F_diseño ≥ 1,25; p_diseño ≤ alarma; gira con μ contaminado y con contacto en el borde | Criterio del proyecto | Revisión independiente M1 |
+| Presión nominal del cilindro | p_alivio ≤ p_nominal (10.000 psi ≙ 700 bar; 5.000 psi ≙ 350 bar, convención de catálogo); p_alarma ≤ 0,90·p_alivio; p_retorno ≤ p_nominal | ISO 4413:2010 (protección contra sobrepresión) y catálogo del fabricante | Confirmar el artículo de ISO 4413 |
 | Sismo | Pendiente | NCh2369 | Falta zona, suelo y categoría |
 
 **Puntos a confirmar:** numeración exacta de ecuaciones de BTH-1 en la edición vigente; tabla de tamaño mínimo de filete en AWS D1.1:2020.

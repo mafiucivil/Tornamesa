@@ -72,7 +72,7 @@ BOM = [
     ("6", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])} × {f(P['L_bush'])} autolubricado", "1", "CuAl10Ni5Fe4 + grafito", 7.85e-6 * 1.07 * math.pi / 4 * (d_bush**2 - P['D_piv']**2) * P['L_bush']),
     ("7", f"Tapa retenedora Ø{f(cap_D)}×{f(cap_t)} + 4 × M16×35 10.9", "1", "S355J2", 7.85e-6 * math.pi / 4 * cap_D**2 * cap_t),
     ("8", f"Tapa de inspección Ø{f(cb_D - 2)}×{f(cb_t)} + 6 × M10 avellanado", "1", "S355J2", 7.85e-6 * math.pi / 4 * (cb_D - 2)**2 * cb_t),
-    ("9", f"Cilindro hidr. doble efecto Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, 700 bar", f"{P['n_cyl']:.0f}", "Comercial (ver F-03)", P["m_cyl"]),
+    ("9", f"Cilindro hidr. doble efecto Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, {f(P['p_rated'])} psi", f"{P['n_cyl']:.0f}", "Comercial (ver F-03)", P["m_cyl"]),
     ("10", f"Uña deslizante {f(paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])} (asiento R{f1(nose_R)})", f"{P['n_cyl']:.0f}", "34CrNiMo6+QT 280–330 HB", M["dogs"] / P["n_cyl"]),
     ("11", f"Pasador de articulación Ø{f(P['d_pp'])} f8 + placa de retención", f"{2 * P['n_cyl']:.0f}", "42CrMo4+QT", 7.85e-6 * math.pi / 4 * P['d_pp']**2 * (forkH + 20)),
     ("12", f"Resorte de retorno de la uña (compresión, carrera ≥ {f(KG['travel'] + 5)}) + tapa", f"{P['n_cyl']:.0f}", "Comercial", 0.8),
@@ -602,18 +602,18 @@ def sheet_f03():
     s.view_title((340, 140), "PIVOTE POS 5, BUJE POS 6, TAPA POS 7", "ESC 1:4")
     # especificación hidráulica
     c = {x["id"]: x for x in DV["casos"]}
-    spec = [["Cilindros pos 9", f"{P['n_cyl']:.0f} × doble efecto, Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, 700 bar"],
+    spec = [["Cilindros pos 9", f"{P['n_cyl']:.0f} × doble efecto, Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, clase {f(P['p_rated'])} psi ({f(P['p_rated'] * 0.07)} bar)"],
             ["Largo ojal–ojal retraído", f"{f(P['L0'])} mm (confirmar con proveedor; ajustar ménsula si difiere)"],
             ["Geometría de extremos", f"ojal trasero → cuerpo ≥ {f(P['e_body'])}; retraído: ojal del vástago → cuerpo ≥ {f(P['c_rod'])}"],
             ["Ojales", f"Rótula esférica en ambos extremos, pasador Ø{f(P['d_pp'])}, ancho {f(P['b_eye'])}"],
             ["Cuerpo", f"Ø exterior ≤ {f(P['D_body'])} mm; masa ≈ {f(P['m_cyl'])} kg"],
-            ["Fuerza a 700 bar / área", f"{f1(DV['Fstall'])} kN / {f(DV['A'])} mm²"],
+            [f"Fuerza a {f(P['p_relief'])} bar / área", f"{f1(DV['Fstall'])} kN / {f(DV['A'])} mm²"],
             ["Retorno (puerto B {0} bar)".format(f(P['p_ret'])), f"{f1(DV['Fret'])} kN"],
             ["Bomba", f"Eléctrica 70 MPa, ≥ {f1(P['Q_pump'])} L/min, 2 salidas, válvula J con bloqueo"],
             ["Circuito", "Paralelo con colector común; bloqueo de operación con un solo cilindro"],
             ["Alivio / alarma", f"{f(P['p_relief'])} / {f(P['p_alarm'])} bar; manómetro 0–1000 bar clase 1,0"],
             ["Presión esperada", f"nominal ≈ {f(c['nom']['p'])} bar; despegue de diseño ≤ {f(c['dis']['p'])} bar"],
-            ["Mangueras", "700 bar, acoples rápidos con protección, radio de curvatura del fabricante"],
+            ["Mangueras", f"{f(P['p_rated'])} psi mín., acoples rápidos con protección, radio de curvatura del fabricante"],
             ["Patín y guía", f"μg ≤ {P['mu_g']:.2f} con grasa grafitada; reacción de guía a calado {f1(DV['Rguide'])} kN".replace(".", ",", 1)]]
     s.text("ESPECIFICACIÓN HIDRÁULICA", (560, 584 - 6), 3.5, bold=True)
     s.table(560, 584 - 9, [("Ítem", 64, "L"), ("Valor", 178, "L")], spec, rh=5.4, h=2.1)

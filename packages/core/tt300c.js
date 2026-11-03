@@ -48,6 +48,7 @@ const TT = (() => {
       ["D_bore", "Diámetro del émbolo", "mm", 90, 40, 250, 1],
       ["d_rod", "Diámetro del vástago", "mm", 63, 20, 200, 1],
       ["D_body", "Diámetro exterior del cuerpo", "mm", 130, 50, 300, 1],
+      ["p_rated", "Presión nominal del cilindro y la bomba (clase de catálogo: 10.000 o 5.000 psi)", "psi", 10000, 1000, 10000, 500],
       ["p_relief", "Presión de alivio (calado)", "bar", 700, 50, 800, 10],
       ["p_alarm", "Presión de alarma / detención", "bar", 600, 50, 800, 10],
       ["p_ret", "Presión de retorno (puerto B)", "bar", 200, 10, 700, 10],
@@ -237,6 +238,7 @@ const TT = (() => {
   }
 
   /* ---------------- Accionamiento ---------------- */
+  const PSI_CAT = 0.07;   // bar por psi según la convención de catálogo (700 bar ≙ 10.000 psi); el factor exacto es 0,06895
   function compute(P) {
     const m = masses(P);
     const W = P.W_tf * G;                             // kN
@@ -446,6 +448,12 @@ const TT = (() => {
     /* --- Giro --- */
     add({ grp: "Giro", sys: "giro", name: "FS del accionamiento en el caso de diseño", formula: "FS = F_calado / F_dis ≥ FS_min", dem: P.FS_min, cap: cd.FS, unit: "–", ref: "Criterio del proyecto (μ_d, r_ef)" });
     add({ grp: "Giro", sys: "giro", name: "Presión de diseño frente a la alarma", formula: "p_dis = F_dis / A ≤ p_alarma", dem: cd.p, cap: P.p_alarm, unit: "bar", ref: "Criterio de operación" });
+    const pRatedBar = P.p_rated * PSI_CAT;
+    add({ grp: "Giro", sys: "giro", name: "Alivio dentro de la presión nominal del cilindro y la bomba", formula: "p_alivio ≤ p_nominal (10.000 psi ≙ 700 bar; 5.000 psi ≙ 350 bar)", dem: P.p_relief, cap: pRatedBar, unit: "bar", ref: "ISO 4413:2010, protección contra sobrepresión; catálogo del fabricante" });
+    add({ grp: "Giro", sys: "giro", name: "Alarma bajo el alivio (detiene antes de calar)", formula: "p_alarma ≤ 0,90 · p_alivio", dem: P.p_alarm, cap: 0.9 * P.p_relief, unit: "bar", ref: "Criterio de operación" });
+    add({ grp: "Giro", sys: "giro", name: "Retorno dentro de la presión nominal", formula: "p_retorno ≤ p_nominal", dem: P.p_ret, cap: pRatedBar, unit: "bar", ref: "Catálogo del fabricante" });
+    const Dreq = (pr, pa) => Math.sqrt(4 / Math.PI * Math.max(P.FS_min * cd.F * 1e3 / (pr / 10), cd.F * 1e3 / (pa / 10)));
+    add({ grp: "Giro", sys: "giro", kind: "info", name: "Émbolo mínimo con las presiones elegidas", formula: "A ≥ máx(FS_min·F_dis/p_alivio; F_dis/p_alarma)", dem: Dreq(P.p_relief, P.p_alarm), cap: P.D_bore, unit: "mm", ref: "Hidráulica" });
     add({ grp: "Giro", sys: "giro", name: "Gira con grasa contaminada", formula: "F_cont ≤ F_calado", dem: cs("cont").F, cap: Fs, unit: "kN", ref: "Criterio del proyecto" });
     add({ grp: "Giro", sys: "giro", name: "Gira con contacto en el borde (r = R)", formula: "F(μ_d, R) ≤ F_calado", dem: cs("borde").F, cap: Fs, unit: "kN", ref: "Revisión independiente M1" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen", formula: "s_libre + ΔL(paso) + margen ≤ carrera", dem: K.ok ? K.s_req + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática (rev. C3)" });
@@ -617,6 +625,6 @@ const TT = (() => {
     return { P, R, fea, checks, verdict };
   }
 
-  return { prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G };
+  return { prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT };
 })();
 if (typeof module !== "undefined") module.exports = TT;
