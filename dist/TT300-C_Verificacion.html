@@ -423,9 +423,10 @@ const TT = (() => {
       ["slot", "Holgura radial de la uña en el patín", "mm", 10, 2, 40, 1],
       ["c_tip", "Penetración de la uña más allá del centro del pasador", "mm", 15, 0, 60, 1],
       ["s_sp", "Largo del resorte de retorno comprimido + tope", "mm", 55, 10, 150, 1],
-      ["f_ext", "Extensión delantera del patín (más largo de guía)", "mm", 100, 0, 400, 5],
+      ["f_ext", "Extensión delantera del patín (más largo de guía)", "mm", 165, 0, 400, 5],
       ["t_fw", "Marco de boca: espesor de las paredes laterales", "mm", 60, 10, 100, 1],
       ["Fy_shoe", "Fy del patín (alojamiento de la uña y marco de boca)", "MPa", 460, 235, 1000, 5],
+      ["t_pk", "Patín: espesor mínimo de tapa y fondo del alojamiento de la uña", "mm", 8, 4, 40, 1],
     ] },
     { id: "una", t: "Uña de empuje (en el patín)", p: [
       ["dog_b", "Uña: ancho en el sentido del empuje", "mm", 88, 20, 200, 1],
@@ -441,12 +442,12 @@ const TT = (() => {
       ["b_tip", "Ancho mínimo de la punta de la uña tras el chaflán", "mm", 20, 5, 100, 1],
     ] },
     { id: "guia", t: "Bancada de guía", p: [
-      ["t_bed", "Bancada: espesor", "mm", 48, 16, 100, 1],
-      ["w_bed", "Bancada: ancho", "mm", 190, 60, 400, 5],
+      ["t_bed", "Bancada: espesor", "mm", 40, 16, 100, 1],
+      ["w_bed", "Bancada: ancho", "mm", 170, 60, 400, 5],
       ["w_slot", "Ranura de guía: ancho (H8)", "mm", 40, 10, 100, 1],
-      ["h_slot", "Ranura de guía: profundidad del cuello", "mm", 22, 5, 60, 1],
+      ["h_slot", "Ranura de guía: profundidad del cuello", "mm", 18, 5, 60, 1],
       ["w_tee", "Ranura T: ancho de la cabeza (retención vertical del patín)", "mm", 64, 10, 150, 1],
-      ["h_tee", "Ranura T: alto de la cabeza", "mm", 14, 0, 40, 1],
+      ["h_tee", "Ranura T: alto de la cabeza", "mm", 10, 0, 40, 1],
       ["w_bed_f", "Filete bancada–base", "mm", 10, 4, 20, 1],
     ] },
     { id: "articulacion", t: "Articulaciones y ménsulas del cilindro", p: [
@@ -529,8 +530,8 @@ const TT = (() => {
     const xUn = g.lever + P.c_tip + P.L_in;
     m.dogs = RHO * P.n_cyl * (xUn * P.dog_b - chamferCut(P)) * P.dog_h;
     // patín: caja sobre la bancada + lengüeta + marco de boca − hueco del ojal − pasador − paso del vástago − alojamiento de la uña
-    const zb = P.t_base + P.t_bed, Hs = g.zc0 + forkH(P) / 2 - zb, gap = P.b_eye + 2 * P.g_ch, dr = P.d_rod + 10;
-    const shoeV = g.L_s * P.w_s * Hs + g.L_s * (P.w_slot - 2) * (P.h_slot - 2) + (P.h_tee > 0 ? g.L_s * (P.w_tee - 2) * (P.h_tee - 2) : 0) + g.inset * (P.dog_b + 2 * P.t_fw) * (P.dog_h + 20)
+    const zb = P.t_base + P.t_bed, Hs = g.shoeTop - zb, gap = P.b_eye + 2 * P.g_ch, dr = P.d_rod + 10;
+    const shoeV = g.L_s * P.w_s * Hs + g.L_s * (P.w_slot - 2) * (P.h_tee > 0 ? P.h_slot + 1 : P.h_slot - 2) + (P.h_tee > 0 ? g.L_s * (P.w_tee - 2) * (P.h_tee - 2) : 0) + g.inset * (P.dog_b + 2 * P.t_fw) * (P.dog_h + 20)
       - (g.rear + 57.5) * 115 * gap - Math.PI / 4 * P.d_pp ** 2 * (g.zc0 + forkH(P) / 2 - Math.max(zb, g.zc0 - forkH(P) / 2 - 10) - gap) - dr * (g.rear - 40) * (dr - gap)
       - (g.pocketEnd - g.mouthX + 1 - g.inset) * (P.dog_b + 2) * (P.dog_h + 2) - g.inset * (P.dog_b + 2) * (P.dog_h + 2);
     m.shoes = RHO * P.n_cyl * shoeV;
@@ -587,7 +588,8 @@ const TT = (() => {
     // retorno: la uña se desliza radialmente hacia afuera (resorte) hasta despejar el pasador siguiente
     const tipX = a_min - P.c_tip, travel = R + P.d_pin / 2 + 5 - tipX;
     const pocketEnd = mouthX + P.L_in + travel + P.s_sp;                // fondo del alojamiento (uña retraída + resorte)
-    return { pitch, a_min, front, rear, L_s, Lg, chord, y_pin0, y_rp0, y_rp1, y_eye, L_bed: 2 * Y_bed, Y_bed, zc0, lever, mouthX, inset, tipX, travel, pocketEnd };
+    const shoeTop = Math.max(zc0 + forkH(P) / 2, zc0 + P.dog_h / 2 + 1 + P.t_pk);   // cara superior del patín (horquilla o tapa del alojamiento)
+    return { shoeTop, pitch, a_min, front, rear, L_s, Lg, chord, y_pin0, y_rp0, y_rp1, y_eye, L_bed: 2 * Y_bed, Y_bed, zc0, lever, mouthX, inset, tipX, travel, pocketEnd };
   }
   function kinematics(P) {
     const g = guideGeo(P), R = P.R_pin, n = 60;
@@ -856,6 +858,8 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cilindro, ménsula y bancada dentro de la base (x)", formula: "x_g + máx(D_cuerpo, W_ménsula, w_bancada, w_patín)/2 ≤ B/2 − t_marco − 5", dem: P.x_g + Math.max(P.D_body, bgv.Wout, P.w_bed, P.w_s) / 2, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Ménsula del ojal dentro de la base (y)", formula: "|y_ojal| + saliente trasera ≤ B/2 − t_marco − 5", dem: Math.abs(K.y_eye) + bgv.rear, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro detrás del patín", formula: "saliente trasera del patín + 10 ≤ c_vástago", dem: K.rear + 10, cap: P.c_rod, unit: "mm", ref: "Geometría (cilindro retraído)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Fondo del alojamiento de la uña sobre la bancada", formula: "z_eje − h_uña/2 − 1 − z_bancada ≥ t_alojamiento", dem: P.t_pk, cap: K.zc0 - P.dog_h / 2 - 1 - zBed, unit: "mm", ref: "Geometría (alzado)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Patín bajo la cara superior de la mesa", formula: "z_sup_patín ≤ t_base + h_mesa", dem: K.shoeTop, cap: P.t_base + P.h_disc, unit: "mm", ref: "Geometría (alzado)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Horquilla del patín sobre la bancada", formula: "z_bancada + 5 ≤ z_eje − h_horquilla/2", dem: zBed + 5, cap: K.zc0 - forkH(P) / 2, unit: "mm", ref: "Geometría (alzado)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Orejas de la ménsula libres del cuerpo del cilindro", formula: "d_pp/2 + 25 + 10 ≤ e_cuerpo", dem: TT_lugF(P) + 10, cap: P.e_body, unit: "mm", ref: "Geometría" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro libre sobre la base", formula: "D_cuerpo/2 + 5 ≤ h_eje", dem: P.D_body / 2 + 5, cap: R.hax, unit: "mm", ref: "Geometría" });

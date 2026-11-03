@@ -47,7 +47,7 @@ zT0 = zT1 - P["h_tee"]
 fondo = P["t_bed"] - P["h_slot"] - P["h_tee"]          # fondo de la ranura
 neck_w, head_w, head_h = P["w_slot"] - 2, P["w_tee"] - 2, P["h_tee"] - 2   # lengüeta T del patín (1 de juego por lado)
 neck_h = P["h_slot"] + 1                               # cuello: de la cabeza T (1 de juego bajo el labio) a la caja del patín
-z_shoe = zc + forkH / 2                                # cara superior de la caja del patín
+z_shoe = KG["shoeTop"]                                # cara superior de la caja del patín (horquilla o tapa del alojamiento)
 Hs = z_shoe - zb
 ch_dx = KG["travel"]                                   # chaflán de retorno de la uña (chamferGeo del núcleo): Δx = recorrido
 ch_dy = ch_dx / math.tan(math.radians(P["beta_ch"]))   # Δy = Δx / tan β
@@ -678,8 +678,7 @@ def sheet_f03():
     s.view_title((750, 146), "CORTE F-F – PATÍN (pared del marco y lengüeta T)", "ESC 1:2,5")
     s.mtext([f"Patín: S460 (EN 10025) o 34CrNiMo6+QT, Fy ≥ {f(P['Fy_shoe'])} MPa, certificado 3.1; una pieza, sin soldadura.",
              f"Lengüeta T: cuello {f(neck_w)} f7 en ranura {f(P['w_slot'])} H8; cabeza {f(head_w)}×{f(head_h)} en {f(P['w_tee'])}×{f(P['h_tee'])} (juego 1 por lado).",
-             f"P1 (revisión): el alojamiento ({f(hdg + 2)}) es más alto que la caja ({f(Hs)}): queda abierto {f(pk_top - z_shoe)} mm arriba",
-             f"   y con fondo de {f(pk_bot - zb)} mm sobre la bancada. Confirmar alto de la caja o tapa superior antes de fabricar."], (655, 128), 2.1, 1.6)
+             f"Alojamiento de la uña {f(hdg + 2)} alto: tapa superior {f(z_shoe - pk_top)} y fondo {f(pk_bot - zb)} sobre la bancada (mín. {f(P['t_pk'])})."], (655, 128), 2.1, 1.6)
     # pasador de empuje 1:2
     sc2 = 0.5; T2 = tr(300, 430, sc2)
     s.pline([T2(p) for p in [(-d_pin / 2, 0), (d_pin / 2, 0), (d_pin / 2, hd), (-d_pin / 2, hd)]], "VIS", True)

@@ -44,25 +44,36 @@
   "eta_c": 0.95,
   "m_cyl": 55,
   "Q_pump": 1.8,
-  "x_g": 1120,
+  "x_g": 1140,
   "l_p": 300,
   "s_free": 10,
   "s_margin": 5,
   "mu_g": 0.15,
-  "w_s": 210,
+  "w_s": 250,
   "slot": 10,
   "c_tip": 15,
-  "s_sp": 40,
+  "s_sp": 55,
+  "f_ext": 165,
+  "t_fw": 60,
+  "Fy_shoe": 460,
+  "t_pk": 8,
   "dog_b": 88,
   "dog_h": 110,
-  "L_in": 100,
+  "L_in": 125,
   "l_lip": 60,
   "e_dog": 10,
-  "Fy_dog": 800,
-  "t_bed": 25,
-  "w_bed": 120,
+  "Fy_dog": 900,
+  "mu_s": 0.15,
+  "Fy_surf": 1300,
+  "beta_ch": 54,
+  "mu_ret": 0.2,
+  "b_tip": 20,
+  "t_bed": 40,
+  "w_bed": 170,
   "w_slot": 40,
-  "h_slot": 22,
+  "h_slot": 18,
+  "w_tee": 64,
+  "h_tee": 10,
   "w_bed_f": 10,
   "d_pp": 70,
   "Fy_pp": 650,
@@ -72,13 +83,13 @@
   "L_ch": 325,
   "w_br": 16,
   "n_br": 4,
-  "B": 2480,
+  "B": 2560,
   "t_base": 20,
   "t_base_min": 16,
   "rim_h": 45,
   "rim_t": 10,
   "c_lug": 50,
-  "x_lug": 500,
+  "x_lug": 600,
   "phi_lift": 1.3,
   "q_floor": 2,
   "D_piv": 120,
@@ -133,9 +144,20 @@
   },
   "tRev": 70.23203164695927,
   "tCycle": 2.50828684453426,
-  "muMax_ref": 0.2710653525753426,
-  "Kguide": 1.2802878660889323,
-  "Rguide": 321.0368899182288,
+  "muMax_ref": 0.27602666207570986,
+  "Kguide": 1.2562904220056528,
+  "Rguide": 279.50447065486117,
+  "stallMax": {
+   "Fp": 423.0547207140355,
+   "H": 63.45820810710532,
+   "R": 279.50447065486117,
+   "Rsum": 495.5507332026169
+  },
+  "chaflan": {
+   "dx": 75.84764479928435,
+   "dy": 55.106539595724726,
+   "area": 2089.850620687114
+  },
   "K": {
    "armMin": 924.1523552007156,
    "armMax": 930,
@@ -144,10 +166,10 @@
    "chord": 208.25392555215262,
    "gap": 108.25392555215262,
    "radial": 5.847644799284353,
-   "DeltaMax": 195.84764479928435,
-   "L_s": 407.5,
-   "Lg": 271.66666666666663,
-   "front": 320,
+   "DeltaMax": 215.84764479928435,
+   "L_s": 572.5,
+   "Lg": 381.66666666666663,
+   "front": 485,
    "rear": 87.5,
    "y_eye": -934.1269627760763,
    "y_rp0": -414.1269627760763,
@@ -160,7 +182,8 @@
    "inset": 25,
    "tipX": 909.1523552007156,
    "travel": 75.84764479928435,
-   "pocketEnd": 1205.8476447992844
+   "pocketEnd": 1245.8476447992844,
+   "shoeTop": 189
   },
   "casos": [
    {
@@ -169,9 +192,9 @@
     "mu": 0.15,
     "r": 670.1550387596899,
     "T": 298.4238302145471,
-    "F": 206.71289026390423,
-    "p": 324.9321312228433,
-    "FS": 2.1542960290373054,
+    "F": 202.83830771353223,
+    "p": 318.84167230620824,
+    "FS": 2.195447022143756,
     "gira": true
    },
    {
@@ -180,9 +203,9 @@
     "mu": 0.2,
     "r": 800,
     "T": 474.7176989747151,
-    "F": 328.8285239953666,
-    "p": 516.8857780096248,
-    "FS": 1.3542643844748334,
+    "F": 322.66503191942274,
+    "p": 507.19738067042294,
+    "FS": 1.3801333103785491,
     "gira": true
    },
    {
@@ -191,9 +214,9 @@
     "mu": 0.2,
     "r": 1000,
     "T": 593.0422884772362,
-    "F": 410.7898669208682,
-    "p": 645.7208680742522,
-    "FS": 1.0840597456415273,
+    "F": 403.0901088254285,
+    "p": 633.6176131458468,
+    "FS": 1.1047672688967272,
     "gira": true
    },
    {
@@ -202,9 +225,9 @@
     "mu": 0.25,
     "r": 800,
     "T": 593.3971237183939,
-    "F": 411.0356549942083,
-    "p": 646.1072225120312,
-    "FS": 1.0834115075798667,
+    "F": 403.33128989927843,
+    "p": 633.9967258380286,
+    "FS": 1.1041066483028394,
     "gira": true
    },
    {
@@ -213,9 +236,9 @@
     "mu": 0.5,
     "r": 670.1550387596899,
     "T": 994.7461007151571,
-    "F": 689.0429675463474,
-    "p": 1083.1071040761444,
-    "FS": 0.6462888087111917,
+    "F": 676.1276923784408,
+    "p": 1062.8055743540272,
+    "FS": 0.6586341066431267,
     "gira": false
    }
   ],
@@ -227,15 +250,15 @@
    "hub": 72.41233621845878,
    "pins": 362.52408426099413,
    "disc": 1634.300554203021,
-   "base": 963.837171832191,
-   "rim": 34.9011,
+   "base": 1027.139571832191,
+   "rim": 36.031499999999994,
    "brackets": 152.56033977370586,
-   "dogs": 22.654601156090862,
-   "shoes": 135.6250180320345,
-   "beds": 34.057983658077845,
+   "dogs": 27.67472964408939,
+   "shoes": 251.9876090320345,
+   "beds": 87.39407127355825,
    "pivot": 18.910439987165326,
    "cyl": 110,
-   "total": 3106.847208642286
+   "total": 3345.9988157457656
   }
  },
  "pasadores": [
@@ -294,22 +317,22 @@
    {
     "side": 1,
     "dir": -1,
-    "x": 1120,
+    "x": 1140,
     "eye": [
-     1120,
+     1140,
      934.1269627760763
     ],
     "phiMean": -90,
     "rodRetracted": [
-     1120,
+     1140,
      414.1269627760763
     ],
     "rodEngage": [
-     1120,
+     1140,
      404.1269627760763
     ],
     "rodEnd": [
-     1120,
+     1140,
      195.8730372239237
     ],
     "pinStart": [
@@ -320,29 +343,29 @@
      924.1523552007156,
      -104.12696277607631
     ],
-    "shoeFront": 320,
+    "shoeFront": 485,
     "shoeRear": 87.5,
     "mouthX": 990
    },
    {
     "side": -1,
     "dir": 1,
-    "x": -1120,
+    "x": -1140,
     "eye": [
-     -1120,
+     -1140,
      -934.1269627760763
     ],
     "phiMean": 90,
     "rodRetracted": [
-     -1120,
+     -1140,
      -414.1269627760763
     ],
     "rodEngage": [
-     -1120,
+     -1140,
      -404.1269627760763
     ],
     "rodEnd": [
-     -1120,
+     -1140,
      -195.8730372239237
     ],
     "pinStart": [
@@ -353,7 +376,7 @@
      -924.1523552007156,
      104.12696277607631
     ],
-    "shoeFront": 320,
+    "shoeFront": 485,
     "shoeRear": 87.5,
     "mouthX": -990
    }
@@ -362,22 +385,22 @@
    {
     "side": 1,
     "dir": 1,
-    "x": 1120,
+    "x": 1140,
     "eye": [
-     1120,
+     1140,
      -934.1269627760763
     ],
     "phiMean": 90,
     "rodRetracted": [
-     1120,
+     1140,
      -414.1269627760763
     ],
     "rodEngage": [
-     1120,
+     1140,
      -404.1269627760763
     ],
     "rodEnd": [
-     1120,
+     1140,
      -195.8730372239237
     ],
     "pinStart": [
@@ -388,29 +411,29 @@
      924.1523552007156,
      104.12696277607631
     ],
-    "shoeFront": 320,
+    "shoeFront": 485,
     "shoeRear": 87.5,
     "mouthX": 990
    },
    {
     "side": -1,
     "dir": -1,
-    "x": -1120,
+    "x": -1140,
     "eye": [
-     -1120,
+     -1140,
      934.1269627760763
     ],
     "phiMean": -90,
     "rodRetracted": [
-     -1120,
+     -1140,
      414.1269627760763
     ],
     "rodEngage": [
-     -1120,
+     -1140,
      404.1269627760763
     ],
     "rodEnd": [
-     -1120,
+     -1140,
      195.8730372239237
     ],
     "pinStart": [
@@ -421,7 +444,7 @@
      -924.1523552007156,
      -104.12696277607631
     ],
-    "shoeFront": 320,
+    "shoeFront": 485,
     "shoeRear": 87.5,
     "mouthX": -990
    }
@@ -716,6 +739,26 @@
      "id": "s_sp",
      "lab": "Largo del resorte de retorno comprimido + tope",
      "u": "mm"
+    },
+    {
+     "id": "f_ext",
+     "lab": "Extensión delantera del patín (más largo de guía)",
+     "u": "mm"
+    },
+    {
+     "id": "t_fw",
+     "lab": "Marco de boca: espesor de las paredes laterales",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_shoe",
+     "lab": "Fy del patín (alojamiento de la uña y marco de boca)",
+     "u": "MPa"
+    },
+    {
+     "id": "t_pk",
+     "lab": "Patín: espesor mínimo de tapa y fondo del alojamiento de la uña",
+     "u": "mm"
     }
    ]
   },
@@ -750,8 +793,33 @@
     },
     {
      "id": "Fy_dog",
-     "lab": "Fy uña (34CrNiMo6+QT)",
+     "lab": "Fy uña (34CrNiMo6+QT, Re ≥ 900 certificado 3.1)",
      "u": "MPa"
+    },
+    {
+     "id": "mu_s",
+     "lab": "μ cara de la uña–pasador (deslizamiento radial)",
+     "u": "–"
+    },
+    {
+     "id": "Fy_surf",
+     "lab": "Límite elástico superficial de las caras de contacto (temple por inducción)",
+     "u": "MPa"
+    },
+    {
+     "id": "beta_ch",
+     "lab": "Chaflán de retorno: ángulo de la normal respecto del eje radial",
+     "u": "°"
+    },
+    {
+     "id": "mu_ret",
+     "lab": "μ de retorno (chaflán y alojamiento), verificación de autobloqueo",
+     "u": "–"
+    },
+    {
+     "id": "b_tip",
+     "lab": "Ancho mínimo de la punta de la uña tras el chaflán",
+     "u": "mm"
     }
    ]
   },
@@ -776,7 +844,17 @@
     },
     {
      "id": "h_slot",
-     "lab": "Ranura de guía: profundidad",
+     "lab": "Ranura de guía: profundidad del cuello",
+     "u": "mm"
+    },
+    {
+     "id": "w_tee",
+     "lab": "Ranura T: ancho de la cabeza (retención vertical del patín)",
+     "u": "mm"
+    },
+    {
+     "id": "h_tee",
+     "lab": "Ranura T: alto de la cabeza",
      "u": "mm"
     },
     {
@@ -993,42 +1071,60 @@
    "th": -6.428571428571429,
    "s": 10,
    "arm": 924.1523552007156,
-   "Delta": 195.84764479928435,
-   "Kg": 1.2802878660889323,
-   "F": 328.8285239953666,
-   "p": 516.8857780096248,
-   "Fpin": 256.8395223488944,
-   "Ft": 255.22456934124472,
-   "Fr": -28.75690256241779,
-   "Rg": 185.15858482234648
+   "Delta": 215.84764479928435,
+   "F": 322.66503191942274,
+   "p": 507.19738067042294,
+   "Fpin": 263.429605372468,
+   "H": -39.5144408058702,
+   "Ft": 257.3490016426356,
+   "Fr": -68.76074005152651,
+   "Rf": 123.91669610034337,
+   "Rr": -163.4311369062136
   },
   {
-   "pos": "Centro",
-   "th": 0,
-   "s": 114.12696277607631,
-   "arm": 930,
-   "Delta": 190,
-   "Kg": 1.2734904746528901,
-   "F": 325.0260579534612,
-   "p": 510.9086790811476,
-   "Fpin": 255.2245693412447,
-   "Ft": 255.2245693412447,
-   "Fr": 0,
-   "Rg": 178.50061904847792
+   "pos": "Cambio de sentido de la fricción (antes)",
+   "th": 3.081904182375775,
+   "s": 164.1269627760763,
+   "arm": 928.654941299512,
+   "Delta": 211.34505870048804,
+   "F": 312.11558489414205,
+   "p": 490.6146977967487,
+   "Fpin": 255.5942352013007,
+   "H": -38.3391352801951,
+   "Ft": 257.2858131735132,
+   "Fr": -24.542059852729665,
+   "Rf": 117.21566718701663,
+   "Rr": -155.55480246721174
+  },
+  {
+   "pos": "Cambio de sentido de la fricción (después)",
+   "th": 3.081904182375775,
+   "s": 164.1269627760763,
+   "arm": 928.654941299512,
+   "Delta": 211.34505870048804,
+   "F": 315.3670537331198,
+   "p": 495.7256838513914,
+   "Fpin": 255.5942352013007,
+   "H": 38.3391352801951,
+   "Ft": 253.1633255089761,
+   "Fr": 52.025310949643725,
+   "Rf": 165.85112045730781,
+   "Rr": -127.51198517711269
   },
   {
    "pos": "Final",
    "th": 6.428571428571429,
    "s": 218.25392555215262,
    "arm": 924.1523552007156,
-   "Delta": 195.84764479928435,
-   "Kg": 1.2802878660889323,
-   "F": 328.8285239953666,
-   "p": 516.8857780096248,
-   "Fpin": 256.8395223488944,
-   "Ft": 255.22456934124472,
-   "Fr": 28.75690256241779,
-   "Rg": 185.15858482234648
+   "Delta": 215.84764479928435,
+   "F": 320.67767747110616,
+   "p": 504.0734568765933,
+   "Fpin": 259.1159586588962,
+   "H": 38.86739379883443,
+   "Ft": 253.13492451335043,
+   "Fr": 67.63478634588037,
+   "Rf": 171.19314669493272,
+   "Rr": -132.3257528960983
   }
  ],
  "escenarios": {
@@ -1058,136 +1154,136 @@
     {
      "mu": 0.1,
      "r": 670.1550387596899,
-     "F": 137.8085935092695,
-     "p": 216.6214208152289,
-     "FS": 3.2314440435559577
+     "F": 135.22553847568815,
+     "p": 212.56111487080545,
+     "FS": 3.293170533215634
     },
     {
      "mu": 0.1,
      "r": 800,
-     "F": 164.4142619976833,
-     "p": 258.4428890048124,
-     "FS": 2.708528768949667
+     "F": 161.33251595971134,
+     "p": 253.59869033521142,
+     "FS": 2.760266620757099
     },
     {
      "mu": 0.1,
      "r": 1000,
-     "F": 205.3949334604341,
-     "p": 322.8604340371261,
-     "FS": 2.1681194912830546
+     "F": 201.5450544127142,
+     "p": 316.8088065729233,
+     "FS": 2.2095345377934548
     }
    ],
    [
     {
      "mu": 0.15,
      "r": 670.1550387596899,
-     "F": 206.71289026390423,
-     "p": 324.9321312228433,
-     "FS": 2.1542960290373054
+     "F": 202.8383077135322,
+     "p": 318.8416723062081,
+     "FS": 2.1954470221437563
     },
     {
      "mu": 0.15,
      "r": 800,
-     "F": 246.62139299652483,
-     "p": 387.6643335072185,
-     "FS": 1.8056858459664455
+     "F": 241.99877393956692,
+     "p": 380.398035502817,
+     "FS": 1.8401777471714
     },
     {
      "mu": 0.15,
      "r": 1000,
-     "F": 308.092400190651,
-     "p": 484.29065105568895,
-     "FS": 1.4454129941887035
+     "F": 302.31758161907123,
+     "p": 475.2132098593848,
+     "FS": 1.4730230251956369
     }
    ],
    [
     {
      "mu": 0.2,
      "r": 670.1550387596899,
-     "F": 275.617187018539,
-     "p": 433.2428416304578,
-     "FS": 1.6157220217779789
+     "F": 270.4510769513763,
+     "p": 425.1222297416109,
+     "FS": 1.646585266607817
     },
     {
      "mu": 0.2,
      "r": 800,
-     "F": 328.8285239953666,
-     "p": 516.8857780096248,
-     "FS": 1.3542643844748334
+     "F": 322.6650319194227,
+     "p": 507.19738067042283,
+     "FS": 1.3801333103785496
     },
     {
      "mu": 0.2,
      "r": 1000,
-     "F": 410.7898669208682,
-     "p": 645.7208680742522,
-     "FS": 1.0840597456415273
+     "F": 403.0901088254284,
+     "p": 633.6176131458466,
+     "FS": 1.1047672688967274
     }
    ],
    [
     {
      "mu": 0.25,
      "r": 670.1550387596899,
-     "F": 344.5214837731737,
-     "p": 541.5535520380722,
-     "FS": 1.2925776174223833
+     "F": 338.0638461892204,
+     "p": 531.4027871770136,
+     "FS": 1.3172682132862534
     },
     {
      "mu": 0.25,
      "r": 800,
-     "F": 411.0356549942083,
-     "p": 646.1072225120312,
-     "FS": 1.0834115075798667
+     "F": 403.3312898992784,
+     "p": 633.9967258380286,
+     "FS": 1.1041066483028394
     },
     {
      "mu": 0.25,
      "r": 1000,
-     "F": 513.4873336510851,
-     "p": 807.1510850928153,
-     "FS": 0.8672477965132219
+     "F": 503.86263603178537,
+     "p": 792.022016432308,
+     "FS": 0.8838138151173821
     }
    ],
    [
     {
      "mu": 0.3,
      "r": 670.1550387596899,
-     "F": 413.42578052780846,
-     "p": 649.8642624456866,
-     "FS": 1.0771480145186527
+     "F": 405.6766154270644,
+     "p": 637.6833446124162,
+     "FS": 1.0977235110718782
     },
     {
      "mu": 0.3,
      "r": 800,
-     "F": 493.24278599304967,
-     "p": 775.328667014437,
-     "FS": 0.9028429229832228
+     "F": 483.99754787913383,
+     "p": 760.796071005634,
+     "FS": 0.9200888735857
     },
     {
      "mu": 0.3,
      "r": 1000,
-     "F": 616.184800381302,
-     "p": 968.5813021113779,
-     "FS": 0.7227064970943518
+     "F": 604.6351632381425,
+     "p": 950.4264197187696,
+     "FS": 0.7365115125978184
     }
    ]
   ],
   "loads": [
    {
     "W": 240,
-    "FS": 1.6905274209772925,
-    "p": 414.0719584396511,
-    "muMax": 0.3385196389624072
+    "FS": 1.722819585707313,
+    "p": 406.3106815172473,
+    "muMax": 0.34456391714146273
    },
    {
     "W": 300,
-    "FS": 1.3542643844748334,
-    "p": 516.8857780096248,
-    "muMax": 0.2710653525753426
+    "FS": 1.3801333103785491,
+    "p": 507.19738067042294,
+    "muMax": 0.27602666207570986
    },
    {
     "W": 360,
-    "FS": 1.1295795619910614,
-    "p": 619.6995975795987,
-    "muMax": 0.22599362979460733
+    "FS": 1.1511565969677513,
+    "p": 608.0840798235986,
+    "muMax": 0.2302313193935502
    }
   ],
   "classes": [
@@ -1195,26 +1291,26 @@
     "psi": 10000,
     "pr": 700,
     "pa": 590,
-    "Dmin": 86.4660833782939,
-    "FScur": 1.3542643844748334,
-    "pcur": 516.8857780096248
+    "Dmin": 85.65189914738804,
+    "FScur": 1.3801333103785491,
+    "pcur": 507.19738067042294
    },
    {
     "psi": 5000,
     "pr": 350,
     "pa": 290,
-    "Dmin": 122.28150779886609,
-    "FScur": 0.6771321922374167,
-    "pcur": 516.8857780096248
+    "Dmin": 121.1300774172487,
+    "FScur": 0.6900666551892746,
+    "pcur": 507.19738067042294
    }
   ]
  },
  "revisionCruzada": [
   {
-   "name": "Fuerza de diseño por cilindro (trabajos virtuales + equilibrio del patín)",
-   "tool": 328.8285239953666,
-   "indep": 328.82852399690796,
-   "d": -4.687446597072473e-10,
+   "name": "Fuerza de diseño por cilindro (potencia virtual con fricción en guía y cara de la uña)",
+   "tool": 322.66503191942274,
+   "indep": 322.6650319101676,
+   "d": 2.8683404945645732e-9,
    "tol": 0.1,
    "ok": true,
    "note": "kN"
@@ -1266,9 +1362,9 @@
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 37.42800717245869,
-   "indep": 37.42800717285989,
-   "d": -1.0719268286624274e-9,
+   "tool": 38.56872024846143,
+   "indep": 38.568720247764446,
+   "d": 1.8071265416233166e-9,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
@@ -1306,15 +1402,23 @@
   "missing": [],
   "refs": [
    [
+    "ASME BTH-1 §3-2.3",
+    8
+   ],
+   [
     "Geometría",
+    6
+   ],
+   [
+    "ASME BTH-1 §3-2.2",
     5
    ],
    [
-    "Geometría (planta)",
+    "Geometría (alzado)",
     4
    ],
    [
-    "ASME BTH-1 §3-2.3",
+    "Geometría (planta)",
     4
    ],
    [
@@ -1326,10 +1430,6 @@
     3
    ],
    [
-    "ASME BTH-1 §3-2.2",
-    3
-   ],
-   [
     "Criterio de operación",
     2
    ],
@@ -1338,7 +1438,7 @@
     2
    ],
    [
-    "Geometría (alzado)",
+    "Geometría (retorno del trinquete)",
     2
    ],
    [
@@ -1355,6 +1455,10 @@
    ],
    [
     "ASME BTH-1 §3-3.3",
+    2
+   ],
+   [
+    "ASME BTH-1 §3-2.5",
     2
    ],
    [
@@ -1383,10 +1487,6 @@
    ],
    [
     "Cinemática",
-    1
-   ],
-   [
-    "Geometría (retorno del trinquete)",
     1
    ],
    [
@@ -1442,15 +1542,27 @@
     1
    ],
    [
-    "ASME BTH-1 §3-2.5 (aplastamiento) — rev. M4",
+    "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)",
     1
    ],
    [
-    "ASME BTH-1 §3-2.5 — rev. M3",
+    "Hertz, contacto lineal",
     1
    ],
    [
-    "Revisión independiente M3",
+    "Equilibrio con fricción del trinquete",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-2.5 (aplastamiento)",
+    1
+   ],
+   [
+    "Criterio de fabricación (la bancada trabaja como una pieza)",
+    1
+   ],
+   [
+    "Equilibrio del patín",
     1
    ],
    [
@@ -1463,6 +1575,10 @@
    ],
    [
     "Ficha del fabricante",
+    1
+   ],
+   [
+    "Equilibrio (revisión independiente H10)",
     1
    ],
    [
@@ -1493,9 +1609,9 @@
    "nombre": "FS del accionamiento en el caso de diseño",
    "formula": "FS = F_calado / F_dis ≥ FS_min",
    "dem": 1.25,
-   "cap": 1.3542643844748334,
+   "cap": 1.3801333103785491,
    "unidad": "–",
-   "fu": 0.9230103178743301,
+   "fu": 0.905709608340041,
    "estado": "ok",
    "ref": "Criterio del proyecto (μ_d, r_ef)"
   },
@@ -1503,10 +1619,10 @@
    "grp": "Giro",
    "nombre": "Presión de diseño frente a la alarma",
    "formula": "p_dis = F_dis / A ≤ p_alarma",
-   "dem": 516.8857780096248,
+   "dem": 507.19738067042294,
    "cap": 600,
    "unidad": "bar",
-   "fu": 0.861476296682708,
+   "fu": 0.8453289677840382,
    "estado": "ok",
    "ref": "Criterio de operación"
   },
@@ -1547,7 +1663,7 @@
    "grp": "Giro",
    "nombre": "Émbolo mínimo con las presiones elegidas",
    "formula": "A ≥ máx(FS_min·F_dis/p_alivio; F_dis/p_alarma)",
-   "dem": 86.4660833782939,
+   "dem": 85.65189914738804,
    "cap": 90,
    "unidad": "mm",
    "fu": null,
@@ -1558,10 +1674,10 @@
    "grp": "Giro",
    "nombre": "Gira con grasa contaminada",
    "formula": "F_cont ≤ F_calado",
-   "dem": 411.0356549942083,
+   "dem": 403.33128989927843,
    "cap": 445.32075864635317,
    "unidad": "kN",
-   "fu": 0.9230103178743302,
+   "fu": 0.905709608340041,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -1569,10 +1685,10 @@
    "grp": "Giro",
    "nombre": "Gira con contacto en el borde (r = R)",
    "formula": "F(μ_d, R) ≤ F_calado",
-   "dem": 410.7898669208682,
+   "dem": 403.0901088254285,
    "cap": 445.32075864635317,
    "unidad": "kN",
-   "fu": 0.9224583829632175,
+   "fu": 0.9051680187797809,
    "estado": "ok",
    "ref": "Revisión independiente M1"
   },
@@ -1624,10 +1740,10 @@
    "grp": "Giro",
    "nombre": "Alojamiento de la uña (retorno + resorte) dentro del patín",
    "formula": "boca + L_in + recorrido de retorno + resorte + 10 ≤ x_g + w_s/2",
-   "dem": 1215.8476447992844,
-   "cap": 1225,
+   "dem": 1255.8476447992844,
+   "cap": 1265,
    "unidad": "mm",
-   "fu": 0.9925286896320689,
+   "fu": 0.9927649366002248,
    "estado": "ok",
    "ref": "Geometría (retorno del trinquete)"
   },
@@ -1658,20 +1774,20 @@
    "nombre": "Bancada de guía fuera de la mesa",
    "formula": "D/2 + 10 ≤ x_g − w_bancada/2",
    "dem": 1010,
-   "cap": 1060,
+   "cap": 1055,
    "unidad": "mm",
-   "fu": 0.9528301886792453,
+   "fu": 0.957345971563981,
    "estado": "ok",
    "ref": "Geometría (planta)"
   },
   {
    "grp": "Giro",
    "nombre": "Cilindro, ménsula y bancada dentro de la base (x)",
-   "formula": "x_g + máx(D_cuerpo, W_ménsula, w_bancada)/2 ≤ B/2 − t_marco − 5",
-   "dem": 1220,
-   "cap": 1225,
+   "formula": "x_g + máx(D_cuerpo, W_ménsula, w_bancada, w_patín)/2 ≤ B/2 − t_marco − 5",
+   "dem": 1265,
+   "cap": 1265,
    "unidad": "mm",
-   "fu": 0.9959183673469387,
+   "fu": 1,
    "estado": "ok",
    "ref": "Geometría (planta)"
   },
@@ -1680,9 +1796,9 @@
    "nombre": "Ménsula del ojal dentro de la base (y)",
    "formula": "|y_ojal| + saliente trasera ≤ B/2 − t_marco − 5",
    "dem": 1049.1269627760762,
-   "cap": 1225,
+   "cap": 1265,
    "unidad": "mm",
-   "fu": 0.856430173694756,
+   "fu": 0.8293493776885977,
    "estado": "ok",
    "ref": "Geometría (planta)"
   },
@@ -1699,12 +1815,34 @@
   },
   {
    "grp": "Giro",
+   "nombre": "Fondo del alojamiento de la uña sobre la bancada",
+   "formula": "z_eje − h_uña/2 − 1 − z_bancada ≥ t_alojamiento",
+   "dem": 8,
+   "cap": 9,
+   "unidad": "mm",
+   "fu": 0.8888888888888888,
+   "estado": "ok",
+   "ref": "Geometría (alzado)"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Patín bajo la cara superior de la mesa",
+   "formula": "z_sup_patín ≤ t_base + h_mesa",
+   "dem": 189,
+   "cap": 230,
+   "unidad": "mm",
+   "fu": 0.8217391304347826,
+   "estado": "ok",
+   "ref": "Geometría (alzado)"
+  },
+  {
+   "grp": "Giro",
    "nombre": "Horquilla del patín sobre la bancada",
    "formula": "z_bancada + 5 ≤ z_eje − h_horquilla/2",
-   "dem": 50,
+   "dem": 65,
    "cap": 73,
    "unidad": "mm",
-   "fu": 0.684931506849315,
+   "fu": 0.8904109589041096,
    "estado": "ok",
    "ref": "Geometría (alzado)"
   },
@@ -1918,33 +2056,33 @@
   {
    "grp": "Pasadores de empuje",
    "nombre": "Flexión (biapoyado entre planchas, carga al centro)",
-   "formula": "M = F·L/4; σ = M/S ≤ Fy/Nd",
-   "dem": 198.45,
+   "formula": "M = F_r·L/4, F_r = F·√(1 + μ_s²); σ = M/S ≤ Fy/Nd",
+   "dem": 200.67014365931465,
    "cap": 266.6666666666667,
    "unidad": "MPa",
-   "fu": 0.7441874999999999,
+   "fu": 0.7525130387224299,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3 (Fy/Nd, conservador)"
   },
   {
    "grp": "Pasadores de empuje",
    "nombre": "Corte (carga junto a una plancha)",
-   "formula": "τ = 4F/(3A) ≤ Fy/(Nd·√3)",
-   "dem": 75.6,
+   "formula": "τ = 4F_r/(3A) ≤ Fy/(Nd·√3)",
+   "dem": 76.44576901307225,
    "cap": 153.9600717839002,
    "unidad": "MPa",
-   "fu": 0.49103640394577674,
+   "fu": 0.49652983482868374,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.2"
   },
   {
    "grp": "Pasadores de empuje",
    "nombre": "Aplastamiento en el agujero de la plancha",
-   "formula": "σ = F/(d·t_anillo) ≤ 1,25Fy/Nd",
-   "dem": 127.23450247038662,
+   "formula": "σ = F_r/(d·t_anillo) ≤ 1,25Fy/Nd",
+   "dem": 128.65792839079825,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.8851095824026896,
+   "fu": 0.8950116757620747,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento en pasadores)"
   },
@@ -1961,12 +2099,12 @@
   },
   {
    "grp": "Uña",
-   "nombre": "Flexión en la boca del patín (voladizo)",
-   "formula": "σ = F·(x_boca − a_mín + e)/(h·b²/6) ≤ Fy/Nd",
-   "dem": 237.90756989732645,
-   "cap": 266.6666666666667,
+   "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
+   "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
+   "dem": 265.51009625970374,
+   "cap": 300,
    "unidad": "MPa",
-   "fu": 0.8921533871149742,
+   "fu": 0.8850336541990125,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -1975,65 +2113,207 @@
    "nombre": "Corte en la boca del patín",
    "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
    "dem": 69.00631590594315,
-   "cap": 153.9600717839002,
+   "cap": 173.20508075688772,
    "unidad": "MPa",
-   "fu": 0.44820916947090716,
+   "fu": 0.39840815064080637,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.2"
   },
   {
-   "grp": "Patín y guía",
-   "nombre": "Aplastamiento del labio delantero del alojamiento",
-   "formula": "R = F·(voladizo + L_in)/L_in; σ = R/(l_labio·h) ≤ 1,25Fy/Nd",
-   "dem": 111.90211969958821,
-   "cap": 143.75,
+   "grp": "Uña",
+   "nombre": "Contacto de Hertz cara plana–pasador (a calado; ambas caras templadas)",
+   "formula": "p₀ = √(F·E*/(π·r·h)), E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup",
+   "dem": 1682.9045820152228,
+   "cap": 2171,
    "unidad": "MPa",
-   "fu": 0.7784495283449615,
+   "fu": 0.775174842015303,
    "estado": "ok",
-   "ref": "ASME BTH-1 §3-2.5 (aplastamiento) — rev. M4"
+   "ref": "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)"
+  },
+  {
+   "grp": "Uña",
+   "nombre": "Profundidad mínima de temple (3 × profundidad del corte máximo)",
+   "formula": "z = 3·0,78·b, b = √(4F·r/(π·h·E*))",
+   "dem": 3.5835770169432153,
+   "unidad": "mm",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hertz, contacto lineal"
+  },
+  {
+   "grp": "Uña",
+   "nombre": "Chaflán de retorno: cabe en la uña dejando la punta",
+   "formula": "Δy = recorrido/tan β; Δy + b_punta ≤ b_uña",
+   "dem": 75.10653959572473,
+   "cap": 88,
+   "unidad": "mm",
+   "fu": 0.8534834044968719,
+   "estado": "ok",
+   "ref": "Geometría (retorno del trinquete)"
+  },
+  {
+   "grp": "Uña",
+   "nombre": "Corte en la sección del contacto (punta achaflanada)",
+   "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
+   "dem": 138.66942591920898,
+   "cap": 173.20508075688772,
+   "unidad": "MPa",
+   "fu": 0.8006083038282618,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Uña",
+   "nombre": "Flexión en la zona del chaflán",
+   "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
+   "dem": 190.85780905236524,
+   "cap": 300,
+   "unidad": "MPa",
+   "fu": 0.6361926968412175,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Retorno sin autobloqueo de la uña (chaflán contra el pasador siguiente)",
+   "formula": "μ·k·(sin β + μ cos β) < cos β − μ sin β, k = 1 + 2·l/L_in",
+   "dem": 0.31258552813644447,
+   "cap": 0.4259818534174836,
+   "unidad": "–",
+   "fu": 0.7338001035224732,
+   "estado": "ok",
+   "ref": "Equilibrio con fricción del trinquete"
   },
   {
    "grp": "Patín y guía",
-   "nombre": "Aplastamiento de la lengüeta en la ranura de la bancada",
-   "formula": "R = F·Δ/Lg; σ = R/(h_ranura·L_s/3) ≤ 1,25Fy/Nd",
-   "dem": 107.43008028496222,
-   "cap": 143.75,
+   "nombre": "Aplastamiento del alojamiento de la uña (bloque rígido-plástico)",
+   "formula": "c = −l + √(l² + l·L_in + L_in²/2); σ = F/(h·(2c − L_in)) ≤ 1,25Fy_patín/Nd",
+   "dem": 150.35728070080447,
+   "cap": 191.66666666666666,
    "unidad": "MPa",
-   "fu": 0.7473396889388676,
+   "fu": 0.7844727688737625,
    "estado": "ok",
-   "ref": "ASME BTH-1 §3-2.5 — rev. M3"
+   "ref": "ASME BTH-1 §3-2.5 (aplastamiento)"
   },
   {
    "grp": "Patín y guía",
-   "nombre": "Pared de la ranura: flexión en la raíz",
-   "formula": "σ = R·h_ranura/2 / (L_s/3·pared²/6) ≤ Fy/Nd",
-   "dem": 97.49279785860321,
-   "cap": 115,
+   "nombre": "Pared del marco de boca: flexión (voladizo del marco)",
+   "formula": "σ = 6V·(i/2)/((h+20)·t²), V = σ_al·h·mín(i, c)",
+   "dem": 66.26322466782248,
+   "cap": 153.33333333333334,
    "unidad": "MPa",
-   "fu": 0.847763459640028,
+   "fu": 0.4321514652249292,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
   {
    "grp": "Patín y guía",
+   "nombre": "Pared del marco de boca: corte",
+   "formula": "τ = 1,5V/((h+20)·t) ≤ Fy/(Nd·√3)",
+   "dem": 79.51586960138698,
+   "cap": 88.52704127574262,
+   "unidad": "MPa",
+   "fu": 0.8982099532018948,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Aplastamiento de la lengüeta en la ranura (pico de la distribución lineal)",
+   "formula": "R = máx[F_pas·Δ + H·(y_c − y_r)]/Lg; σ = 4R/((h_ranura − 2)·L_patín) ≤ 1,25Fy/Nd",
+   "dem": 122.05435399775598,
+   "cap": 143.75,
+   "unidad": "MPa",
+   "fu": 0.8490737669409112,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.5"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Pared de la ranura: flexión en la raíz",
+   "formula": "σ = 6·(4R/L_patín)·(h_T + h_ranura/2 + 1)/t_raíz², t_raíz = (w_b − w_T)/2 ≤ Fy/Nd",
+   "dem": 83.42625833951281,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.7254457246914158,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Fondo de la ranura de la bancada",
+   "formula": "t_bancada − h_ranura − h_T ≥ 12",
+   "dem": 12,
+   "cap": 12,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Criterio de fabricación (la bancada trabaja como una pieza)"
+  },
+  {
+   "grp": "Patín y guía",
    "nombre": "Soldadura bancada–base (2 filetes longitudinales)",
-   "formula": "f = R/(2·0,707·w·L_ef), L_ef = L_s + 2·w_bancada",
-   "dem": 35.06434714282752,
+   "formula": "f = R/(2·0,707·w·L_ef), L_ef = L_patín + 2·w_bancada",
+   "dem": 21.66239527657757,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.4293593527693166,
+   "fu": 0.2652538197131947,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4"
   },
   {
    "grp": "Patín y guía",
-   "nombre": "Factor de guía K = (1 + 2μg·Δ/Lg)/η",
-   "formula": "Δ = x_g − a_mín; Lg = 2/3·L_patín",
-   "dem": 1.2802878660889323,
+   "nombre": "Ranura T: cabeza más ancha que el cuello",
+   "formula": "w_T ≥ w_ranura + 2·8",
+   "dem": 56,
+   "cap": 64,
+   "unidad": "mm",
+   "fu": 0.875,
+   "estado": "ok",
+   "ref": "Geometría"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Retención vertical del patín: aplastamiento en la cabeza T",
+   "formula": "V = M_vuelco/((w_b + w_T)/2) + M_cabeceo/L_patín; σ = V/(ala·L_patín) ≤ 1,25Fy/Nd",
+   "dem": 7.2407596167474395,
+   "cap": 143.75,
+   "unidad": "MPa",
+   "fu": 0.050370501681721316,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.5"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Retención vertical: flexión del ala de la cabeza T",
+   "formula": "σ = 6V·(ala/2)/(L_patín·h_T²) ≤ Fy/Nd",
+   "dem": 31.280081544348935,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.2720007090812951,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Retención vertical: flexión del labio de la bancada sobre la cabeza T",
+   "formula": "σ = 6V·(ala/2)/(L_patín·h_ranura²) ≤ Fy/Nd",
+   "dem": 9.654346155663251,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.08395083613620219,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Patín y guía",
+   "nombre": "Factor de guía equivalente K = F_cil·n·a_mín/T (máximo en la carrera)",
+   "formula": "incluye μg en la guía y μ_s en la cara de la uña",
+   "dem": 1.2562904220056528,
    "unidad": "–",
    "fu": null,
    "estado": "info",
-   "ref": "Revisión independiente M3"
+   "ref": "Equilibrio del patín"
   },
   {
    "grp": "Articulaciones",
@@ -2113,12 +2393,22 @@
   },
   {
    "grp": "Pivote",
+   "nombre": "Empuje neto al pivote por fricción desigual de los patines (μg ± 0,05)",
+   "formula": "H_asim = F_calado·η·|1/f(μg−0,05) − 1/f(μg+0,05)|",
+   "dem": 35.939402182162546,
+   "unidad": "kN",
+   "fu": null,
+   "estado": "info",
+   "ref": "Equilibrio (revisión independiente H10)"
+  },
+  {
+   "grp": "Pivote",
    "nombre": "Presión en el buje",
-   "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N)",
-   "dem": 12.320668095756115,
+   "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim",
+   "dem": 16.064355823064716,
    "cap": 30,
    "unidad": "MPa",
-   "fu": 0.41068893652520383,
+   "fu": 0.5354785274354905,
    "estado": "ok",
    "ref": "Fabricante del buje"
   },
@@ -2126,10 +2416,10 @@
    "grp": "Pivote",
    "nombre": "Flexión del pivote",
    "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd",
-   "dem": 27.888287710352998,
+   "dem": 36.36226327932903,
    "cap": 216.66666666666666,
    "unidad": "MPa",
-   "fu": 0.12871517404778307,
+   "fu": 0.16782583051998012,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -2147,10 +2437,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje",
-   "dem": 137.0466795067071,
+   "dem": 136.45570810639472,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.6620612536555899,
+   "fu": 0.6592063193545639,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -2158,10 +2448,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 7.0602330078532844,
-   "cap": 8.266666666666667,
+   "dem": 7.068229352548214,
+   "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.8540604444983811,
+   "fu": 0.8283081272517439,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -2170,9 +2460,9 @@
    "nombre": "Punto de izaje fuera de la mesa",
    "formula": "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)",
    "dem": 1045,
-   "cap": 1290.774961021479,
+   "cap": 1368.5393673548454,
    "unidad": "mm",
-   "fu": 0.8095911615553959,
+   "fu": 0.7635878257706301,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -2191,7 +2481,7 @@
    "grp": "Base",
    "nombre": "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)",
    "formula": "m·φ / (3·sin 60°)",
-   "dem": 1.5545738626085734,
+   "dem": 1.6742382080484555,
    "unidad": "t",
    "fu": null,
    "estado": "info",
@@ -2211,10 +2501,10 @@
    "grp": "Fatiga",
    "nombre": "Uña (boca del patín) (cat. A, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 175.67291337251257,
+   "dem": 172.38013756227076,
    "cap": 616.3464874490833,
    "unidad": "MPa",
-   "fu": 0.28502298130972153,
+   "fu": 0.27968057103028626,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -2222,10 +2512,10 @@
    "grp": "Fatiga",
    "nombre": "Pasadores de articulación (cat. A, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 131.82847772676965,
+   "dem": 129.3575127144274,
    "cap": 616.3464874490833,
    "unidad": "MPa",
-   "fu": 0.2138869619787686,
+   "fu": 0.20987791015052015,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -2233,10 +2523,10 @@
    "grp": "Fatiga",
    "nombre": "Pie de soldadura mejilla–base (cat. E, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 39.22593517009817,
+   "dem": 38.490692565062496,
    "cap": 217.5917795949937,
    "unidad": "MPa",
-   "fu": 0.18027305646890654,
+   "fu": 0.17689405655262208,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -2244,10 +2534,10 @@
    "grp": "Fatiga",
    "nombre": "Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)",
    "formula": "Δτ ≤ F_SR = (Cf/N)^0,167 ≥ F_TH",
-   "dem": 48.773307694412324,
+   "dem": 47.85911116474533,
    "cap": 128.98468269408576,
    "unidad": "MPa",
-   "fu": 0.378132555553813,
+   "fu": 0.37104491917271487,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   }

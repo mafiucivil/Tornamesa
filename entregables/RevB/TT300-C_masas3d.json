@@ -1,74 +1,230 @@
 {
  "interferencias": [
   {
-   "a": "2_mesa",
-   "b": "10_unas",
+   "a": "1a_plancha_base",
+   "b": "1b_marco",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "3_pasadores",
-   "b": "10_unas",
+   "a": "1a_plancha_base",
+   "b": "1c_menuslas",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "2_mesa",
-   "b": "10b_patines",
+   "a": "1a_plancha_base",
+   "b": "1d_puntos_izaje",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "3_pasadores",
-   "b": "10b_patines",
-   "vol_mm3": 0.0,
-   "ok": true
-  },
-  {
-   "a": "2_mesa",
+   "a": "1a_plancha_base",
    "b": "1e_bancadas",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "2_mesa",
+   "a": "1a_plancha_base",
+   "b": "2_mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "3_pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "4_arandelas_pernos",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
    "b": "9_cilindros",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "3_pasadores",
-   "b": "9_cilindros",
-   "vol_mm3": 0.0,
-   "ok": true
-  },
-  {
-   "a": "1e_bancadas",
-   "b": "9_cilindros",
-   "vol_mm3": 0.0,
-   "ok": true
-  },
-  {
-   "a": "1e_bancadas",
-   "b": "10b_patines",
-   "vol_mm3": 0.0,
-   "ok": true
-  },
-  {
-   "a": "10b_patines",
+   "a": "1a_plancha_base",
    "b": "10_unas",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "10b_patines",
+   "a": "1a_plancha_base",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1a_plancha_base",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "1c_menuslas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "1d_puntos_izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "1e_bancadas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "2_mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "3_pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "4_arandelas_pernos",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
    "b": "9_cilindros",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "2_mesa",
-   "b": "1c_menuslas",
+   "a": "1b_marco",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1b_marco",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "1d_puntos_izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "1e_bancadas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "2_mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "3_pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "4_arandelas_pernos",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "8_tapa_inspeccion",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -80,43 +236,211 @@
   },
   {
    "a": "1c_menuslas",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1c_menuslas",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
    "b": "1e_bancadas",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "1b_marco",
-   "b": "1c_menuslas",
+   "a": "1d_puntos_izaje",
+   "b": "2_mesa",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "1b_marco",
-   "b": "1e_bancadas",
+   "a": "1d_puntos_izaje",
+   "b": "3_pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "4_arandelas_pernos",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1d_puntos_izaje",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "2_mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "3_pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "4_arandelas_pernos",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "1e_bancadas",
+   "b": "11_pasadores_articulacion",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
    "a": "2_mesa",
-   "b": "1d_puntos_izaje",
+   "b": "3_pasadores",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "1b_marco",
-   "b": "1d_puntos_izaje",
+   "a": "2_mesa",
+   "b": "4_arandelas_pernos",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "1d_puntos_izaje",
-   "b": "1c_menuslas",
+   "a": "2_mesa",
+   "b": "5_pivote",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "1d_puntos_izaje",
-   "b": "1e_bancadas",
+   "a": "2_mesa",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "2_mesa",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "2_mesa",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "2_mesa",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "2_mesa",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "2_mesa",
+   "b": "10b_patines",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -128,7 +452,85 @@
   },
   {
    "a": "3_pasadores",
+   "b": "4_arandelas_pernos",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "3_pasadores",
    "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "4_arandelas_pernos",
+   "b": "5_pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "4_arandelas_pernos",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "4_arandelas_pernos",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "4_arandelas_pernos",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "4_arandelas_pernos",
+   "b": "9_cilindros",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -145,54 +547,216 @@
    "ok": true
   },
   {
-   "a": "1a_plancha_base",
+   "a": "4_arandelas_pernos",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "5_pivote",
+   "b": "6_buje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "5_pivote",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "5_pivote",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "5_pivote",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "5_pivote",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "5_pivote",
    "b": "10b_patines",
    "vol_mm3": 0.0,
    "ok": true
   },
   {
-   "a": "1a_plancha_base",
+   "a": "5_pivote",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "6_buje",
+   "b": "7_tapa_retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "6_buje",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "6_buje",
    "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "6_buje",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "6_buje",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "6_buje",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "7_tapa_retenedora",
+   "b": "8_tapa_inspeccion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "7_tapa_retenedora",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "7_tapa_retenedora",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "7_tapa_retenedora",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "7_tapa_retenedora",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "8_tapa_inspeccion",
+   "b": "9_cilindros",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "8_tapa_inspeccion",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "8_tapa_inspeccion",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "8_tapa_inspeccion",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "9_cilindros",
+   "b": "10_unas",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "9_cilindros",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "9_cilindros",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "10_unas",
+   "b": "10b_patines",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "10_unas",
+   "b": "11_pasadores_articulacion",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "10b_patines",
+   "b": "11_pasadores_articulacion",
    "vol_mm3": 0.0,
    "ok": true
   }
  ],
  "partes": {
-  "1a_plancha_base": 963.84,
-  "1b_marco": 34.9,
+  "1a_plancha_base": 1027.14,
+  "1b_marco": 36.03,
   "1c_menuslas": 152.56,
   "1d_puntos_izaje": 4.6,
-  "1e_bancadas": 34.06,
+  "1e_bancadas": 87.39,
   "2_mesa": 1271.16,
   "3_pasadores": 362.52,
   "4_arandelas_pernos": 32.28,
   "5_pivote": 18.91,
   "6_buje": 4.0,
-  "7_tapa_retenedora": 3.0,
+  "7_tapa_retenedora": 1.6,
   "8_tapa_inspeccion": 1.93,
-  "9_cilindros": 86.71,
-  "10_unas": 22.65,
-  "10b_patines": 136.65,
-  "11_pasadores_articulacion": 18.19
+  "9_cilindros": 80.67,
+  "10_unas": 27.67,
+  "10b_patines": 251.2,
+  "11_pasadores_articulacion": 18.61
  },
  "comparacion": [
   {
    "pieza": "Plancha base",
-   "modelo3d": 963.8,
-   "nucleo": 963.8,
-   "dif_%": 0.0
+   "modelo3d": 1027.1,
+   "nucleo": 1027.1,
+   "dif_%": -0.0
   },
   {
    "pieza": "Marco",
-   "modelo3d": 34.9,
-   "nucleo": 34.9,
+   "modelo3d": 36.0,
+   "nucleo": 36.0,
    "dif_%": 0.0
   },
   {
    "pieza": "Ménsulas",
    "modelo3d": 152.6,
    "nucleo": 152.6,
-   "dif_%": 0.0
+   "dif_%": -0.0
   },
   {
    "pieza": "Mesa (planchas, almas, nervios, cubo)",
@@ -214,21 +778,22 @@
   },
   {
    "pieza": "Uñas",
-   "modelo3d": 22.7,
-   "nucleo": 22.7,
+   "modelo3d": 27.7,
+   "nucleo": 27.7,
    "dif_%": 0.0
   },
   {
    "pieza": "Patines",
-   "modelo3d": 136.7,
-   "nucleo": 135.6,
-   "dif_%": 0.8
+   "modelo3d": 251.2,
+   "nucleo": 252.0,
+   "dif_%": -0.3
   },
   {
    "pieza": "Bancadas de guía",
-   "modelo3d": 34.1,
-   "nucleo": 34.1,
+   "modelo3d": 87.4,
+   "nucleo": 87.4,
    "dif_%": -0.0
   }
- ]
+ ],
+ "diferencias_nucleo": []
 }

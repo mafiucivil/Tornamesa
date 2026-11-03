@@ -45,7 +45,7 @@ def s3(x):
 
 def table(title, head, rows):
     print(f"\n### {title}")
-    w = [max(len(str(h)), *(len(str(r[i])) for r in rows)) for i, h in enumerate(head)]
+    w = [max([len(str(h))] + [len(str(r[i])) for r in rows]) for i, h in enumerate(head)]
     print("| " + " | ".join(str(h).ljust(w[i]) for i, h in enumerate(head)) + " |")
     print("|" + "|".join("-" * (x + 2) for x in w) + "|")
     for r in rows:

@@ -141,7 +141,7 @@ for c in D["cilindros"]["antihorario"]:
     dogs = dog if dogs is None else dogs.union(dog)
     # patín: caja sobre la bancada + lengüeta T (cuello y cabeza) + marco de boca (paredes t_fw); huecos para ojal, pasador y uña
     ys0, ys1 = srt(yr - dy * KG["rear"], yr + dy * KG["front"])
-    sh = box(X - P["w_s"] / 2, X + P["w_s"] / 2, ys0, ys1, zb, zc + forkH / 2)
+    sh = box(X - P["w_s"] / 2, X + P["w_s"] / 2, ys0, ys1, zb, KG["shoeTop"])   # cara superior: horquilla o tapa del alojamiento (núcleo)
     # cabeza T con 1 mm de juego arriba y abajo en la cabeza de la ranura; el cuello llega desde la cabeza hasta la caja
     zh0, zh1 = (zT0 + 1, zT1 - 1) if P["h_tee"] > 0 else (zb - P["h_slot"] + 2, zb - P["h_slot"] + 2)
     sh = sh.union(box(X - P["w_slot"] / 2 + cl1, X + P["w_slot"] / 2 - cl1, ys0, ys1, zh1 if P["h_tee"] > 0 else zh0, zb))
@@ -152,13 +152,13 @@ for c in D["cilindros"]["antihorario"]:
     ge0, ge1 = srt(yr - dy * KG["rear"] - 1, yr + dy * (52.5 + 5))
     sh = sh.cut(box(X - 57.5, X + 57.5, ge0, ge1, zc - P["b_eye"] / 2 - P["g_ch"], zc + P["b_eye"] / 2 + P["g_ch"]))
     zpp0 = max(zb, zc - forkH / 2 - 10)                                 # agujero del pasador del vástago: ciego sobre la lengüeta
-    sh = sh.cut(cyl(P["d_pp"] / 2, zc + forkH / 2 + 10 - zpp0, zpp0, X, yr))
+    sh = sh.cut(cyl(P["d_pp"] / 2, KG["shoeTop"] + 10 - zpp0, zpp0, X, yr))
     gr0, gr1 = srt(yr - dy * (KG["rear"] + 5), yr - dy * 40)            # ranura de paso del vástago (orejas no cargadas atrás)
     sh = sh.cut(box(X - (P["d_rod"] + 10) / 2, X + (P["d_rod"] + 10) / 2, gr0, gr1, zc - (P["d_rod"] + 10) / 2, zc + (P["d_rod"] + 10) / 2))
     px0, px1 = srt(sx * KG["mouthX"], sx * (KG["pocketEnd"] + cl1))      # alojamiento: uña + recorrido de retorno + resorte
     sh = sh.cut(box(px0 - cl1, px1, yd0 - cl1, yd1 + cl1, zc - P["dog_h"] / 2 - cl1, zc + P["dog_h"] / 2 + cl1))
     shoes = sh if shoes is None else shoes.union(sh)
-    ap = cyl(P["d_pp"] / 2, zc + forkH / 2 + 10 - zpp0, zpp0, X, yr).union(cyl(P["d_pp"] / 2, BR["H"] + 15, tb, X, ye))
+    ap = cyl(P["d_pp"] / 2, KG["shoeTop"] + 10 - zpp0, zpp0, X, yr).union(cyl(P["d_pp"] / 2, BR["H"] + 15, tb, X, ye))
     apins = ap if apins is None else apins.union(ap)
 parts["9_cilindros"] = (cyls, (0.95, 0.78, 0.1), None)
 parts["10_unas"] = (dogs, (0.85, 0.35, 0.1), "dogs")
@@ -198,12 +198,13 @@ for a_, b_ in PAIRS:
     inter.append({"a": a_, "b": b_, "vol_mm3": round(v, 1), "ok": bool(v < 1.0)})
 rep = {"interferencias": inter, "partes": {n: round(v * RHO, 2) for n, v in vol.items()}, "comparacion": [{"pieza": a, "modelo3d": round(b, 1), "nucleo": round(c, 1), "dif_%": round((b - c) / c * 100, 1)} for a, b, c in cmp]}
 # diferencias conocidas de la fórmula del núcleo para el patín (no se fuerzan en el modelo; se informan)
-neck_dz = (P["h_slot"] + 1) - (P["h_slot"] - 2) if P["h_tee"] > 0 else 0          # cuello real: de la cabeza T (1 de juego) a la caja
-pocket_open = max(0.0, (zc + P["dog_h"] / 2 + cl1) - (zc + forkH / 2))            # alojamiento más alto que la caja del patín
+neck_dz = 0                                                                       # el núcleo ya usa el cuello real h_ranura + 1 con cabeza T
+pocket_open = max(0.0, (zc + P["dog_h"] / 2 + cl1) - KG["shoeTop"])            # alojamiento más alto que la caja del patín
 nuc = [{"pieza": "Patines", "causa": "cuello de la lengüeta: el núcleo usa h_ranura − 2; con cabeza T el cuello mide h_ranura + 1",
         "kg": round(P["n_cyl"] * RHO * KG["L_s"] * (P["w_slot"] - 2) * neck_dz, 2)},
        {"pieza": "Patines", "causa": f"alojamiento de la uña (alto h_uña + 2) abierto {pocket_open:.0f} mm por la cara superior de la caja: el núcleo descuenta el alto completo",
         "kg": round(P["n_cyl"] * RHO * pocket_open * (P["dog_b"] + 2) * (KG["pocketEnd"] + cl1 - (P["x_g"] - P["w_s"] / 2)), 2)}]
+nuc = [r for r in nuc if abs(r["kg"]) > 0.005]
 rep["diferencias_nucleo"] = nuc
 json.dump(rep, open(OUT / "TT300-C_masas3d.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(f"{'Pieza':40s} {'3D kg':>9s} {'Núcleo kg':>10s} {'Δ %':>7s}")
