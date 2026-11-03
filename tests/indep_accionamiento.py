@@ -200,17 +200,16 @@ eM = Fmax(Tn_d)
 cd = [c for c in DV["casos"] if c["id"] == "dis"][0]
 comp("1", "F_cil de diseño = máx en la carrera (kN)", eM["Fh"] / 1e3, cd["F"])
 comp("1", "K equivalente = F_cil·n·a_min/T", eM["Fh"] * a_min / Tn_d, DV["Kguide"])
-car = {c["pos"]: c for c in D0["carrera"]}
-for th, key in [(-ph, "Inicio (toma)"), (0.0, "Centro"), (ph, "Final")]:
-    e = estado(th, Tn_d)
-    comp("1", f"Export «carrera» {key}: F_cil", e["Fh"] / 1e3, car[key]["F"])
-    comp("1", f"Export «carrera» {key}: F_pas", e["F"] / 1e3, car[key]["Fpin"])
-    comp("1", f"Export «carrera» {key}: R_guía", e["Rf"] / 1e3, car[key]["Rg"])
-e_ini = estado(-ph, Tn_d)
-if abs(e_ini["Fh"] / 1e3 - car["Inicio (toma)"]["F"]) / car["Inicio (toma)"]["F"] > 1e-3 or abs(eM["Rf"] / 1e3 - car["Final"]["Rg"]) / car["Final"]["Rg"] > 1e-3:
-    FIND.append(("N5", "menor", "tools/export_design.js, bloque «carrera»: F_pas = T/(n·a) y R_g = F_pas·Δ/Lg del modelo antiguo; F_cil de «Inicio» igual al del final (el brazo no distingue el signo de y_p)",
-                 f"Inicio {s3(car['Inicio (toma)']['F'])}, R_g final {s3(car['Final']['Rg'])}",
-                 f"Inicio {s3(e_ini['Fh']/1e3)}, F_pas final {s3(eM['F']/1e3)}, R_g final {s3(eM['Rf']/1e3)} kN"))
+car = D0["carrera"]
+for c in car:
+    sgn = None
+    if "antes" in c["pos"]: sgn = -1
+    if "después" in c["pos"]: sgn = +1
+    e = estado(math.radians(c["th"]), Tn_d, sg=sgn)
+    ct, st_ = math.cos(e["th"]), math.sin(e["th"])
+    for k, mine in (("F", e["Fh"]), ("Fpin", e["F"]), ("H", e["H"]), ("Rf", e["Rf"]), ("Rr", e["Rr"]),
+                    ("Ft", -e["H"] * st_ + e["F"] * ct), ("Fr", e["H"] * ct + e["F"] * st_)):
+        comp("1", f"Carrera «{c['pos']}»: {k}", mine / 1e3, c[k])
 # validez de la hipótesis «la uña no se mueve en el alojamiento»: μ_s F ≤ μ_p ΣN
 lev = mouthX - a_min
 SN = (1 + 2 * lev / L_in)
@@ -295,8 +294,8 @@ comp("4", "Profundidad de temple 3·0,78·b (mm)", 3 * 0.78 * bH, ver("Profundid
 fu_pin_H = pH / (1.67 * P["Fy_pin"])
 F_dd = eM["F"]
 fu_pin_Hd = math.sqrt(F_dd / h_d * Es / (math.pi * r_p)) / (1.67 * P["Fy_pin"])
-FIND.append(("N2", "importante", "Hertz: la presión de contacto es la misma en ambos cuerpos; el núcleo verifica solo la cara templada de la uña. El pasador (34CrNiMo6+QT, Fy 800, sin temple superficial en planos) queda sobre 1,67Fy",
-             f"FU {s3(ver('Contacto de Hertz')['fu'])} (uña)", f"pasador FU {s3(fu_pin_H)} a calado ({s3(fu_pin_Hd)} a diseño); templar también los pasadores o verificar con min(Fy_sup uña, Fy_sup pasador)"))
+FIND.append(("N2", "importante", "Hertz: la presión es la misma en ambos cuerpos. La memoria pide temple por inducción en pasador y uña, pero la nota de planos (cad/planos_tt300c.py) sigue con «Dureza pos 3 y 10: 280–330 HB». Sin temple, el pasador (Fy 800) no cumple",
+             f"FU {s3(ver('Contacto de Hertz')['fu'])} (con Fy_sup = {P['Fy_surf']} en ambos)", f"pasador sin temple: FU {s3(fu_pin_H)} a calado ({s3(fu_pin_Hd)} a diseño). Llevar el temple de pos 3 y 10 a planos; rotular el chequeo «ambas caras»"))
 # chaflán de retorno
 beta = math.radians(P["beta_ch"])
 travel = KC["travel"]
@@ -473,8 +472,8 @@ comp("8", "Fondo de ranura (mm)", P["t_bed"] - P["h_slot"] - P["h_tee"], ver("Fo
 Fp_c2 = F_st * eta
 Rf_c2 = (Fp_c2 * (x_g - a_min) + mu_s * Fp_c2 * (y_c - y_r)) / Lg
 FIND.append(("N1", "crítica", f"Pared de la ranura T: la sección de t_raíz = (w_b − w_T)/2 = {s3(t_root)} mm está junto a la cabeza T; su raíz es el fondo de la cabeza, a {s3(lev_w)} mm del centroide del contacto (no h_ranura/2 = {s3(P['h_slot']/2)})",
-             f"FU {s3(ver('Pared de la ranura')['fu'])}", f"FU {s3(sig_w/(Fy/Nd))} (σ = 6q·(h_T + (h−2)/2 + 2)/t_raíz²); {s3(sig_w/(Fy/Nd)*Rf_c2/Rf_cal)} con F_pas = η·F_calado; w_bancada ≥ {s3(w_bed_req)} mm"))
-FIND.append(("N3", "importante", "Guía a calado: R se calcula con F_pas = 0,79·F_calado (descuenta η y la fricción de guía), mientras uña y pasadores usan F_calado. En reposo la fricción de guía puede ser nula",
+             f"FU {s3(ver('Pared de la ranura')['fu'])}", f"FU {s3(sig_w/(Fy/Nd))} (σ = 6q·(h_T + (h−2)/2 + 2)/t_raíz²); {s3(sig_w/(Fy/Nd)*Rf_c2/Rf_cal)} con F_pas = η·F_calado; w_bancada ≥ {s3(w_bed_req)} mm ({s3(P['w_tee'] + 2*math.sqrt(6*4*Rf_c2/L_s*lev_w/(Fy/Nd)))} con η·F_calado)"))
+FIND.append(("N3", "menor", "Guía a calado: R se calcula con F_pas = 0,79·F_calado (descuenta η y la fricción de guía), mientras uña y pasadores usan F_calado. En reposo la fricción de guía puede ser nula",
              f"R = {s3(Rf_cal/1e3)} kN; lengüeta FU {s3(ver('Aplastamiento de la lengüeta')['fu'])}",
              f"R = {s3(Rf_c2/1e3)} kN con F_pas = η·F_calado: lengüeta FU {s3(4*Rf_c2/(h_t*L_s)/Fb)}, pared (fórmula declarada) FU {s3(sig_w_core/(Fy/Nd)*Rf_c2/Rf_cal)}"))
 # asimetría

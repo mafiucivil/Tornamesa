@@ -40,8 +40,31 @@ ys = [P["R_pin"] * math.sin(-pitch / 2 + pitch * i / 2000) for i in range(2001)]
 chk("Carrera requerida (mm)", P["s_free"] + ys[-1] - ys[0], G["carrera_req"])
 armmin = min(P["R_pin"] * math.cos(-pitch / 2 + pitch * i / 2000) for i in range(2001))
 chk("Brazo mínimo (mm)", armmin, G["brazo_min"])
-front = P["l_p"] + 20; rear = 1.25 * P["d_pp"]; Lg = 2 / 3 * (front + rear)
-Kg = (1 + 2 * P["mu_g"] * (P["x_g"] - armmin) / Lg) / P["eta_c"]
+# patín: frente = l_p + 20 + f_ext; trasera = 1,25 d_pp; Lg = 2/3 L_s; reacciones en (front−rear)/2 ± Lg/2
+front = P["l_p"] + 20 + P["f_ext"]; rear = 1.25 * P["d_pp"]; Lsh = front + rear; Lg = 2 / 3 * Lsh
+y_r = (front - rear) / 2 - Lg / 2
+rp = P["d_pin"] / 2; y_c = P["l_p"] - rp            # cara plana de la uña en la superficie del pasador
+mu_s, mu_g, eta = P["mu_s"], P["mu_g"], P["eta_c"]
+
+def estado(th, Tn, sg=None, mug=None):
+    """Cara plana normal a y. Fricción en la cara: H (sobre el pasador, en x) = s·μ_s·F, s = signo(y_p − r).
+    Mesa: T/n = a·F − (y_p − r)·H.  Patín: R_f = [F·Δ + H(y_c − y_r)]/Lg, R_r = H − R_f.
+    F_cil = [F + μg(|R_f| + |R_r|)]/η."""
+    mug = mu_g if mug is None else mug
+    a, yp = P["R_pin"] * math.cos(th), P["R_pin"] * math.sin(th)
+    if sg is None:
+        sg = 1 if yp > rp else -1
+    F = Tn / (a + sg * mu_s * (rp - yp))
+    H = sg * mu_s * F
+    Rf = (F * (P["x_g"] - a) + H * (y_c - y_r)) / Lg
+    Rr = H - Rf
+    return F, H, Rf, Rr, (F + mug * (abs(Rf) + abs(Rr))) / eta
+
+def fmax(Tn, mug=None):
+    ths = [-pitch / 2 + pitch * i / 4000 for i in range(4001)]
+    t0 = math.asin(rp / P["R_pin"])
+    cands = [estado(t, Tn, mug=mug) for t in ths] + [estado(t0, Tn, s, mug) for s in (1, -1)]
+    return max(cands, key=lambda e: e[4])
 
 # --- accionamiento ---
 Ab = math.pi / 4 * P["D_bore"]**2
@@ -51,28 +74,73 @@ def H(mu): return mu * N * P["e"] * 4 / 3 * (Ro**3 - Ri**3) / (Ro**4 - Ri**4)
 r_u = 2 / 3 * (Ro**3 - Ri**3) / (Ro**2 - Ri**2)
 cases = {"nom": (P["mu_nom"], r_u), "dis": (P["mu_d"], P["r_ef"]), "borde": (P["mu_d"], Ro), "cont": (P["mu_cont"], P["r_ef"]), "seco": (P["mu_dry"], r_u)}
 for k, (mu, r) in cases.items():
-    T = mu * N * r / 1e3 + P["mu_bush"] * H(mu) * P["D_piv"] / 2 / 1e3
-    F = T * 1e3 / (P["n_cyl"] * armmin) * Kg
+    T = mu * N * r / 1e3 + P["mu_bush"] * H(mu) * P["D_piv"] / 2 / 1e3     # kN·m
+    F = fmax(T * 1e3 / P["n_cyl"])[4]                                         # kN (T en kN·mm / mm)
     chk(f"Caso {k}: F por cilindro (kN)", F, G["casos"][k][0])
     chk(f"Caso {k}: FS", Fst / F, G["casos"][k][2])
+fu = G["fu"]
+Td = P["mu_d"] * N * P["r_ef"] / 1e3 + P["mu_bush"] * H(P["mu_d"]) * P["D_piv"] / 2 / 1e3
+eM = fmax(Td * 1e3 / P["n_cyl"])
+sc = Fst / eM[4]                                       # estado de calado = estado crítico escalado (convención del núcleo)
+Rcal = eM[2] * sc                                      # kN
 
 # --- cadena de empuje (BTH-1, Nd) ---
 Nd = P["Nd"]; tpr = max(P["t_pr"], P["t_top"], P["t_bot"])
 Ls = P["h_disc"] - tpr
-sig = Fst * 1e3 * Ls / 4 / (math.pi * P["d_pin"]**3 / 32)
-chk("Pasador de empuje: FU flexión", sig / (P["Fy_pin"] / Nd), G["fu"]["Pasadores de empuje · Flexión (biapoyado entre planchas, carga al centro)"])
-chk("Pasador de empuje: FU aplastamiento", Fst * 1e3 / (P["d_pin"] * tpr) / (1.25 * P["Fy"] / Nd), G["fu"]["Pasadores de empuje · Aplastamiento en el agujero de la plancha"])
+Fr = Fst * math.sqrt(1 + mu_s**2)
+sig = Fr * 1e3 * Ls / 4 / (math.pi * P["d_pin"]**3 / 32)
+chk("Pasador de empuje: FU flexión (F·√(1+μs²))", sig / (P["Fy_pin"] / Nd), fu["Pasadores de empuje · Flexión (biapoyado entre planchas, carga al centro)"])
+chk("Pasador de empuje: FU aplastamiento", Fr * 1e3 / (P["d_pin"] * tpr) / (1.25 * P["Fy"] / Nd), fu["Pasadores de empuje · Aplastamiento en el agujero de la plancha"])
 Mpp = Fst / 2 * (P["t_ch"] / 2 + P["g_ch"] + P["b_eye"] / 4) * 1e3
-chk("Pasador articulación: FU flexión", Mpp / (math.pi * P["d_pp"]**3 / 32) / (P["Fy_pp"] / Nd), G["fu"]["Articulaciones · Pasador: flexión (horquilla)"])
+chk("Pasador articulación: FU flexión", Mpp / (math.pi * P["d_pp"]**3 / 32) / (P["Fy_pp"] / Nd), fu["Articulaciones · Pasador: flexión (horquilla)"])
 hax = P["h_disc"] / 2; aw = 0.707 * P["w_br"]
 f = math.hypot(Fst * 1e3 / (4 * aw * P["L_ch"]), Fst * 1e3 * hax / (4 * aw * P["L_ch"]**2 / 6))
-chk("Soldadura mejillas–base: FU", f / (0.6 * P["FEXX"] / (1.2 * Nd)), G["fu"]["Articulaciones · Soldadura mejillas–base (4 filetes)"])
+chk("Soldadura mejillas–base: FU", f / (0.6 * P["FEXX"] / (1.2 * Nd)), fu["Articulaciones · Soldadura mejillas–base (4 filetes)"])
 Pcr = math.pi**2 * P["E"] * math.pi * P["d_rod"]**4 / 64 / (P["L0"] + P["stroke"])**2 / 1e3
-chk("Pandeo del vástago: FU", Fst / (Pcr / 3), G["fu"]["Giro · Pandeo del vástago (biarticulado, longitud extendida)"])
-mouth = min(P["x_g"] - P["w_s"] / 2, P["R_pin"] + P["d_pin"] / 2 + 10)
-lev = mouth - armmin + P["e_dog"]
-chk("Uña: FU flexión en la boca del patín", Fst * 1e3 * lev / (P["dog_h"] * P["dog_b"]**2 / 6) / (P["Fy_dog"] / Nd), G["fu"]["Uña · Flexión en la boca del patín (voladizo)"])
-Rg = Fst * (P["x_g"] - armmin) / Lg
-chk("Ranura de guía: FU aplastamiento", Rg * 1e3 / (P["h_slot"] * (front + rear) / 3) / (1.25 * P["Fy"] / Nd), G["fu"]["Patín y guía · Aplastamiento de la lengüeta en la ranura de la bancada"])
+chk("Pandeo del vástago: FU", Fst / (Pcr / 3), fu["Giro · Pandeo del vástago (biarticulado, longitud extendida)"])
+
+# --- uña (cara plana) a F_calado ---
+F1 = Fst * 1e3; b, hd = P["dog_b"], P["dog_h"]; fa, fv = P["Fy_dog"] / Nd, P["Fy_dog"] / (Nd * 3**.5)
+mouth = min(P["x_g"] - P["w_s"] / 2, P["R_pin"] + rp + 10)
+lev = mouth - armmin
+chk("Uña: FU flexión en la boca + axial μ_s·F", (F1 * (lev + P["e_dog"]) / (hd * b**2 / 6) + mu_s * F1 / (hd * b)) / fa,
+    fu["Uña · Flexión en la boca del patín (voladizo) con fricción radial"])
+chk("Uña: FU corte en la boca", 1.5 * F1 / (hd * b) / fv, fu["Uña · Corte en la boca del patín"])
+Es = P["E"] / (2 * (1 - P["nu"]**2))
+chk("Uña: FU Hertz cara plana–pasador", math.sqrt(F1 / hd * Es / (math.pi * rp)) / (1.67 * P["Fy_surf"]), fu["Uña · Contacto de Hertz cara plana–pasador (a calado)"])
+tip = armmin - P["c_tip"]
+travel = (P["R_pin"] + rp + 5) - tip                  # punta retraída 5 mm fuera del pasador en a = R (cota del núcleo)
+beta = math.radians(P["beta_ch"])
+dy = travel / math.tan(beta)
+chk("Uña: FU chaflán (Δy + b_punta ≤ b)", (dy + P["b_tip"]) / b, fu["Uña · Chaflán de retorno: cabe en la uña dejando la punta"])
+wc = b - dy * (1 - P["c_tip"] / travel)
+chk("Uña: FU corte en la sección de contacto", 1.5 * F1 / (hd * wc) / fv, fu["Uña · Corte en la sección del contacto (punta achaflanada)"])
+smax, x = 0.0, P["c_tip"]
+while x <= travel:
+    w = b - dy * (1 - x / travel); smax = max(smax, 6 * F1 * (x - P["c_tip"]) / (hd * w * w)); x += 0.01
+chk("Uña: FU flexión en la zona del chaflán", smax / fa, fu["Uña · Flexión en la zona del chaflán"], tol=2e-3)
+mur = P["mu_ret"]; kk = 1 + 2 * (mouth - (tip + travel / 2)) / P["L_in"]
+chk("Retorno: FU autobloqueo (contacto en el medio del chaflán)", mur * kk * (math.sin(beta) + mur * math.cos(beta)) / (math.cos(beta) - mur * math.sin(beta)),
+    fu["Giro · Retorno sin autobloqueo de la uña (chaflán contra el pasador siguiente)"])
+l = lev + P["e_dog"]; Lin = P["L_in"]
+c = -l + math.sqrt(l * l + l * Lin + Lin * Lin / 2)
+sal = F1 / (hd * (2 * c - Lin))
+fb_sh = 1.25 * P["Fy_shoe"] / Nd
+chk("Alojamiento: FU bloque rígido-plástico", sal / fb_sh, fu["Patín y guía · Aplastamiento del alojamiento de la uña (bloque rígido-plástico)"])
+inset = (P["x_g"] - P["w_s"] / 2) - mouth
+V = sal * hd * min(inset, c)
+chk("Marco de boca: FU flexión", 6 * V * inset / 2 / ((hd + 20) * P["t_fw"]**2) / (P["Fy_shoe"] / Nd), fu["Patín y guía · Pared del marco de boca: flexión (voladizo del marco)"])
+chk("Marco de boca: FU corte", 1.5 * V / ((hd + 20) * P["t_fw"]) / (P["Fy_shoe"] / (Nd * 3**.5)), fu["Patín y guía · Pared del marco de boca: corte"])
+
+# --- guía y bancada con ranura T ---
+ht = P["h_slot"] - 2
+chk("Lengüeta: FU pico 4R/((h−2)L_s)", 4 * Rcal * 1e3 / (ht * Lsh) / (1.25 * P["Fy"] / Nd), fu["Patín y guía · Aplastamiento de la lengüeta en la ranura (pico de la distribución lineal)"])
+troot = (P["w_bed"] - P["w_tee"]) / 2
+lev_w = ht / 2 + 2 + P["h_tee"]                       # centroide del contacto en el cuello → fondo de la cabeza T (raíz de t_raíz)
+chk("Pared de la ranura: FU flexión en la raíz de t_raíz (brazo hasta el fondo de la cabeza T)",
+    6 * (4 * Rcal * 1e3 / Lsh) * lev_w / troot**2 / (P["Fy"] / Nd), fu["Patín y guía · Pared de la ranura: flexión en la raíz"])
+chk("Soldadura bancada–base: FU", Rcal * 1e3 / (2 * 0.707 * P["w_bed_f"] * (Lsh + 2 * P["w_bed"])) / (0.6 * P["FEXX"] / (1.2 * Nd)),
+    fu["Patín y guía · Soldadura bancada–base (2 filetes longitudinales)"])
+chk("Fondo de la ranura (FU = 12/fondo)", 12 / (P["t_bed"] - P["h_slot"] - P["h_tee"]), fu["Patín y guía · Fondo de la ranura de la bancada"])
 print("\nRESULTADO:", "sin diferencias" if not fails else "DIFERENCIAS en " + ", ".join(fails))
 sys.exit(1 if fails else 0)

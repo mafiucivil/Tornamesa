@@ -16,7 +16,7 @@ if not (D["verdict"]["gira"] and D["verdict"]["estructura"]):
 FECHA = datetime.date.fromisoformat(D["fecha"]).strftime("%d-%m-%Y")
 M = DV["masas"]
 V = {"proj": "TT300-C · TORNAMESA HIDRÁULICA 300 tf", "title": "Cilindro con patín guiado y uña · acero-acero con grasa grafitada", "code": "TT300-C", "fecha": FECHA,
-     "rev_txt": f"Rev. B ({FECHA}): accionamiento por uña guiada (patín en bancada), cilindros Ø90; reemplaza Rev. A. Generado desde TT300-C_design.json · FS diseño {DV['casos'][1]['FS']:.2f} · masa {M['total']:.0f} kg."}
+     "rev_txt": f"Rev. B ({FECHA}): uña guiada de cara de empuje plana templada con chaflán de retorno {P['beta_ch']:.0f}°, patín con lengüeta T en bancada con ranura T, cilindros Ø{P['D_bore']:.0f}; reemplaza Rev. A. Generado desde TT300-C_design.json · FS diseño {DV['casos'][1]['FS']:.2f} · masa {M['total']:.0f} kg."}
 SHEETS = ["D-01", "D-02", "F-01", "F-02", "F-03", "F-04"]
 NS = len(SHEETS)
 
@@ -31,16 +31,32 @@ d_pin, R_pin, N_pin = P["d_pin"], P["R_pin"], int(P["N_pin"])
 d_bush = P["D_piv"] + 30
 z_hubtop = tb + hd - tt
 L_piv = z_hubtop + 3
-cap_D, cap_t = P["D_piv"] + 60, 15
-hole_top, cb_D, cb_t = cap_D + 20, cap_D + 60, 8
+cb_t = 8                                        # tapa de inspección pos 8 (rebaje en la plancha superior)
+cap_D = P["D_piv"] + 60
+cap_t = tt - 3 - cb_t - 1                       # tapa retenedora pos 7: entre el pivote (+3 sobre el cubo) y la tapa pos 8, 1 de juego
+hole_top, cb_D = cap_D + 20, cap_D + 60
 BR = DV["bracket"]
 Llug = BR["Llug"]
 KG = DV["K"]
 zb = tb + P["t_bed"]                                   # cara superior de la bancada
 paw_L = KG["mouthX"] + P["L_in"] - KG["tipX"]          # largo de la uña
 forkH = DV["forkH"]
-nose_R = d_pin / 2 + 1
 washer_D = d_pin + 30
+zT1 = zb - P["h_slot"]                                 # cabeza de la ranura T de la bancada: z ∈ [zT0, zT1]
+zT0 = zT1 - P["h_tee"]
+fondo = P["t_bed"] - P["h_slot"] - P["h_tee"]          # fondo de la ranura
+neck_w, head_w, head_h = P["w_slot"] - 2, P["w_tee"] - 2, P["h_tee"] - 2   # lengüeta T del patín (1 de juego por lado)
+neck_h = P["h_slot"] + 1                               # cuello: de la cabeza T (1 de juego bajo el labio) a la caja del patín
+z_shoe = zc + forkH / 2                                # cara superior de la caja del patín
+Hs = z_shoe - zb
+ch_dx = KG["travel"]                                   # chaflán de retorno de la uña (chamferGeo del núcleo): Δx = recorrido
+ch_dy = ch_dx / math.tan(math.radians(P["beta_ch"]))   # Δy = Δx / tan β
+b_tipr = P["dog_b"] - ch_dy                            # ancho que queda en la punta
+VER = {v["nombre"]: v for v in D["verificaciones"]}
+z_hard = next(v["dem"] for v in D["verificaciones"] if v["nombre"].startswith("Profundidad mínima de temple"))
+z_hard = math.ceil(z_hard * 10) / 10                   # profundidad efectiva de temple exigida (redondeo hacia arriba)
+pk_top, pk_bot = zc + P["dog_h"] / 2 + 1, zc - P["dog_h"] / 2 - 1   # alojamiento de la uña en el patín (alto h_uña + 2)
+HRC = "≥ 50 HRC"
 def f(v, n=0):
     s = f"{v:,.{n}f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return s
@@ -55,6 +71,39 @@ def rot(p, a, c=(0, 0)):
     return (c[0] + p[0] * ca - p[1] * sa, c[1] + p[0] * sa + p[1] * ca)
 def box_local(E, phi, x0, x1, y0, y1):
     return [(E[0] + q[0], E[1] + q[1]) for q in (rot(p, math.radians(phi)) for p in [(x0, y0), (x1, y0), (x1, y1), (x0, y1)])]
+def section(s, T, adds, cuts=(), hatch=True, scale=0.5, angle=0.0, lay="VIS"):
+    """Sección de una unión de rectángulos (x0, x1, z0, z1) menos otros: achurado por celdas y contorno real (sin líneas internas)."""
+    xs = sorted({v for r in list(adds) + list(cuts) for v in r[:2]}); zs = sorted({v for r in list(adds) + list(cuts) for v in r[2:]})
+    inside = lambda r, x, z: r[0] < x < r[1] and r[2] < z < r[3]
+    fill = [[any(inside(r, (xs[i] + xs[i + 1]) / 2, (zs[j] + zs[j + 1]) / 2) for r in adds) and not any(inside(r, (xs[i] + xs[i + 1]) / 2, (zs[j] + zs[j + 1]) / 2) for r in cuts)
+             for j in range(len(zs) - 1)] for i in range(len(xs) - 1)]
+    F = lambda i, j: 0 <= i < len(xs) - 1 and 0 <= j < len(zs) - 1 and fill[i][j]
+    for i in range(len(xs) - 1):
+        for j in range(len(zs) - 1):
+            if not fill[i][j]:
+                continue
+            if hatch:
+                s.hatch_poly([T((xs[i], zs[j])), T((xs[i + 1], zs[j])), T((xs[i + 1], zs[j + 1])), T((xs[i], zs[j + 1]))], scale=scale, angle=angle)
+            if not F(i - 1, j): s.line(T((xs[i], zs[j])), T((xs[i], zs[j + 1])), lay)
+            if not F(i + 1, j): s.line(T((xs[i + 1], zs[j])), T((xs[i + 1], zs[j + 1])), lay)
+            if not F(i, j - 1): s.line(T((xs[i], zs[j])), T((xs[i + 1], zs[j])), lay)
+            if not F(i, j + 1): s.line(T((xs[i], zs[j + 1])), T((xs[i + 1], zs[j + 1])), lay)
+def bed_xz(X):
+    """Sección transversal de la bancada 1e (ranura T) en el plano x–z; X: eje de la guía."""
+    adds = [(X - P["w_bed"] / 2, X + P["w_bed"] / 2, tb, zb)]
+    cuts = [(X - P["w_slot"] / 2, X + P["w_slot"] / 2, zT1, zb + 1)] + ([(X - P["w_tee"] / 2, X + P["w_tee"] / 2, zT0, zT1)] if P["h_tee"] > 0 else [])
+    return adds, cuts
+def shoe_xz(X, mouth):
+    """Sección del patín 16 por el alojamiento de la uña (plano x–z); mouth: x de la boca (mismo lado que X > 0)."""
+    adds = [(X - P["w_s"] / 2, X + P["w_s"] / 2, zb, z_shoe), (X - neck_w / 2, X + neck_w / 2, zT1 - 1, zb), (X - head_w / 2, X + head_w / 2, zT0 + 1, zT1 - 1),
+            (mouth, X - P["w_s"] / 2, zc - P["dog_h"] / 2 - 10, zc + P["dog_h"] / 2 + 10)]
+    cuts = [(mouth - 1, X - P["x_g"] + KG["pocketEnd"] + 1, pk_bot, pk_top)]
+    return adds, cuts
+def dog_plan(sx, dy, yps):
+    """Contorno en planta de la uña tomando el pasador (cara plana en y = y_pas − dy·d/2, chaflán en la punta–cara trasera)."""
+    yF = yps - dy * d_pin / 2; yB = yF - dy * P["dog_b"]
+    xT, xE = sx * KG["tipX"], sx * (KG["mouthX"] + P["L_in"])
+    return [(xT, yF), (xE, yF), (xE, yB), (xT + sx * ch_dx, yB), (xT, yB + dy * min(ch_dy, P["dog_b"]))], yF, yB
 
 # ---------------- lista de materiales ----------------
 cut = lambda a, b: f"{a:.0f}×{b:.0f}"
@@ -64,22 +113,24 @@ BOM = [
     ("1b", f"Marco perimetral {f(P['rim_t'])}×{f(P['rim_h'])}", "4", "ASTM A572 Gr.50", M["rim"] / 4),
     ("1c", f"Ménsula de cilindro en caja (mejillas {f(P['t_ch'])}, orejas Ø{f(P['d_pp'])} H9)", f"{P['n_br']:.0f}", "ASTM A572 Gr.50", M["brackets"] / P["n_br"]),
     ("1d", "Punto de izaje soldable, giratorio (ver nota 9)", "4", "Comercial certificado", 3.0),
-    ("1e", f"Bancada de guía {f(P['w_bed'])}×{f(P['t_bed'])}×{f(KG['L_bed'])}, ranura {f(P['w_slot'])} H8×{f(P['h_slot'])}", f"{P['n_cyl']:.0f}", "ASTM A572 Gr.50", M["beds"] / P["n_cyl"]),
+    ("1e", f"Bancada de guía {f(P['w_bed'])}×{f(P['t_bed'])}×{f(KG['L_bed'])}, ranura T: cuello {f(P['w_slot'])} H8×{f(P['h_slot'])}, cabeza {f(P['w_tee'])}×{f(P['h_tee'])}", f"{P['n_cyl']:.0f}", "ASTM A572 Gr.50", M["beds"] / P["n_cyl"]),
     ("2", "Mesa giratoria (conj. soldado 2a–2g + 3)", "1", "ASTM A572 Gr.50 – Z35", M["disc"]),
-    ("3", f"Pasador de empuje Ø{f(d_pin)} m6 × {f(hd)}", f"{N_pin}", f"34CrNiMo6+QT, Fy ≥ {f(P['Fy_pin'])} (EN 10083-3)", M["pins"] / N_pin),
+    ("3", f"Pasador de empuje Ø{f(d_pin)} m6 × {f(hd)}", f"{N_pin}", f"34CrNiMo6+QT Fy ≥ {f(P['Fy_pin'])} (3.1); contacto ind. {HRC}", M["pins"] / N_pin),
     ("4", f"Perno ISO 4762 M20×45 10.9 + arandela Ø{f(washer_D)}×10", f"{N_pin}", "10.9 / S355J2", 0.9),
     ("5", f"Pivote Ø{f(P['D_piv'])} × {f(L_piv)}", "1", "42CrMo4+QT", M["pivot"]),
     ("6", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])} × {f(P['L_bush'])} autolubricado", "1", "CuAl10Ni5Fe4 + grafito", 7.85e-6 * 1.07 * math.pi / 4 * (d_bush**2 - P['D_piv']**2) * P['L_bush']),
-    ("7", f"Tapa retenedora Ø{f(cap_D)}×{f(cap_t)} + 4 × M16×35 10.9", "1", "S355J2", 7.85e-6 * math.pi / 4 * cap_D**2 * cap_t),
+    ("7", f"Tapa retenedora Ø{f(cap_D)}×{f(cap_t)} + 4 × M10×25 ISO 10642 10.9 (avellanados)", "1", "S355J2", 7.85e-6 * math.pi / 4 * cap_D**2 * cap_t),
     ("8", f"Tapa de inspección Ø{f(cb_D - 2)}×{f(cb_t)} + 6 × M10 avellanado", "1", "S355J2", 7.85e-6 * math.pi / 4 * (cb_D - 2)**2 * cb_t),
     ("9", f"Cilindro hidr. doble efecto Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, {f(P['p_rated'])} psi", f"{P['n_cyl']:.0f}", "Comercial (ver F-03)", P["m_cyl"]),
-    ("10", f"Uña deslizante {f(paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])} (asiento R{f1(nose_R)})", f"{P['n_cyl']:.0f}", "34CrNiMo6+QT 280–330 HB", M["dogs"] / P["n_cyl"]),
+    ("10", f"Uña deslizante {f(paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])}, cara de empuje plana templada, chaflán de retorno {P['beta_ch']:.0f}° ({f1(ch_dx)}×{f1(ch_dy)})", f"{P['n_cyl']:.0f}",
+     f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} (3.1); cara ind. {HRC}", M["dogs"] / P["n_cyl"]),
     ("11", f"Pasador de articulación Ø{f(P['d_pp'])} f8 + placa de retención", f"{2 * P['n_cyl']:.0f}", "42CrMo4+QT", 7.85e-6 * math.pi / 4 * P['d_pp']**2 * (forkH + 20)),
     ("12", f"Resorte de retorno de la uña (compresión, carrera ≥ {f(KG['travel'] + 5)}) + tapa", f"{P['n_cyl']:.0f}", "Comercial", 0.8),
     ("13", "Faldón de sello NBR e=5 + fleje 25×4 + 36 × M8×20 A2-70", "1", "NBR 70 / S235 galv.", 6.0),
     ("14", "Grasa grafitada NLGI 2 (≥10 % grafito) + 4 graseras DIN 71412 M10×1", "≈2,5 kg", "Ver F-04", 0.2),
     ("15", "Cáncamo giratorio M30 WLL ≥ 2,5 t (izaje de la mesa, suelto) + tapón M30", "4", "Comercial", 2.2),
-    ("16", f"Patín guiado {f(KG['L_s'])}×{f(P['w_s'])} con lengüeta {f(P['w_slot'])} h9 y alojamiento de la uña", f"{P['n_cyl']:.0f}", "34CrNiMo6+QT / S355J2+N", M["shoes"] / P["n_cyl"]),
+    ("16", f"Patín guiado {f(KG['L_s'])}×{f(P['w_s'])}, lengüeta T (cuello {f(neck_w)}, cabeza {f(head_w)}×{f(head_h)}), marco de boca e={f(P['t_fw'])}", f"{P['n_cyl']:.0f}",
+     f"S460 o 34CrNiMo6+QT, Fy ≥ {f(P['Fy_shoe'])} (3.1)", M["shoes"] / P["n_cyl"]),
 ]
 
 # =====================================================================
@@ -116,7 +167,8 @@ def plan_base(s, T, sc, detail_cyl=True, show_hidden=True, ccw_phantom=True, bal
     for sx in (1, -1):
         X = sx * P["x_g"]
         s.pline([T(p) for p in [(X - P["w_bed"] / 2, -KG["Y_bed"]), (X + P["w_bed"] / 2, -KG["Y_bed"]), (X + P["w_bed"] / 2, KG["Y_bed"]), (X - P["w_bed"] / 2, KG["Y_bed"])]], "VIS", True)
-        s.line(T((X - P["w_slot"] / 2, -KG["Y_bed"])), T((X - P["w_slot"] / 2, KG["Y_bed"])), "OCU"); s.line(T((X + P["w_slot"] / 2, -KG["Y_bed"])), T((X + P["w_slot"] / 2, KG["Y_bed"])), "OCU")
+        for wq in (P["w_slot"], P["w_tee"]):
+            s.line(T((X - wq / 2, -KG["Y_bed"])), T((X - wq / 2, KG["Y_bed"])), "OCU"); s.line(T((X + wq / 2, -KG["Y_bed"])), T((X + wq / 2, KG["Y_bed"])), "OCU")
     # ménsulas
     for grp, lay in (("antihorario", "VIS"), ("horario", "FANT" if ccw_phantom else "VIS")):
         for c in D["cilindros"][grp]:
@@ -135,9 +187,11 @@ def plan_base(s, T, sc, detail_cyl=True, show_hidden=True, ccw_phantom=True, bal
             ys0, ys1 = sorted([yr - dy * KG["rear"], yr + dy * KG["front"]])
             rect(X - P["w_s"] / 2, X + P["w_s"] / 2, ys0, ys1)
             s.pline([T(p) for p in circ((X, yr), P["d_pp"] / 2, 30)], "VIS")
-            xd0, xd1 = sorted([sx * KG["tipX"], sx * (KG["mouthX"] + P["L_in"])])
-            yd0, yd1 = sorted([yps - dy * P["dog_b"], yps])
-            rect(xd0, xd1, yd0, yd1)
+            dpts, yF, yB = dog_plan(sx, dy, yps)
+            s.pline([T(p) for p in dpts], "VIS", True)
+            yd0, yd1 = sorted([yF, yB])
+            mx0, mx1 = sorted([sx * KG["mouthX"], sx * (P["x_g"] - P["w_s"] / 2)])
+            rect(mx0, mx1, yd0 - P["t_fw"], yd1 + P["t_fw"])                       # marco de boca
             s.pline([T(p) for p in circ(c["pinStart"], d_pin / 2 + 4, 40)], "FINA")
 
 # =====================================================================
@@ -192,39 +246,32 @@ def sheet_d01():
     s.leader(T2((450, tb)), T2((500, -110)), f"Plancha inf. e={f(tbo)} (cara de giro)")
     s.leader(T2((650, tb / 2)), T2((700, -170)), f"Plancha base e={f(tb)}")
     s.view_title((150, 108), "CORTE A-A (media sección)", "ESC 1:5")
-    # ---- detalle B: corte radial por la uña y el patín (x absoluto desde el centro), 1:2,5 ----
+    # ---- detalle B: corte radial por la cara de empuje de la uña y el patín (x absoluto desde el centro), 1:2,5 ----
     sc3 = 0.4; x0d = R_pin - 140; T3 = tr(335 - x0d * sc3, 425, sc3)
-    def rz(x0, x1, z0, z1, hatch=True, lay="VIS"):
-        pts = [T3((x0, z0)), T3((x1, z0)), T3((x1, z1)), T3((x0, z1))]
-        s.pline(pts, lay, True)
-        if hatch: s.hatch_poly(pts, scale=0.5)
-    xE = P["B"] / 2
-    rz(x0d, xE, 0, tb)
-    rz(xE - P["rim_t"], xE, tb, tb + P["rim_h"])
-    rz(x0d, Rt, tb, tb + tpr); rz(x0d, Rt, tb + hd - tpr, tb + hd)
-    rz(R_pin - d_pin / 2, R_pin + d_pin / 2, tb + tpr, tb + hd - tpr, hatch=False)
-    rz(P["x_g"] - P["w_bed"] / 2, P["x_g"] - P["w_slot"] / 2, tb, zb); rz(P["x_g"] + P["w_slot"] / 2, P["x_g"] + P["w_bed"] / 2, tb, zb)
-    rz(P["x_g"] - P["w_slot"] / 2, P["x_g"] + P["w_slot"] / 2, tb, zb - P["h_slot"])
-    rz(P["x_g"] - P["w_s"] / 2, P["x_g"] + P["w_s"] / 2, zb, zc + forkH / 2, hatch=False)
-    rz(P["x_g"] - P["w_slot"] / 2 + 1, P["x_g"] + P["w_slot"] / 2 - 1, zb - P["h_slot"] + 2, zb, hatch=False)
-    rz(KG["mouthX"], P["x_g"] - P["w_s"] / 2, zc - P["dog_h"] / 2 - 10, zc + P["dog_h"] / 2 + 10, hatch=False)
-    rz(KG["mouthX"], KG["pocketEnd"], zc - P["dog_h"] / 2 - 1, zc + P["dog_h"] / 2 + 1, hatch=False, lay="OCU")
-    rz(KG["tipX"], KG["mouthX"] + P["L_in"], zc - P["dog_h"] / 2, zc + P["dog_h"] / 2)
+    xE = P["B"] / 2; X = P["x_g"]
+    section(s, T3, [(x0d, xE, 0, tb), (xE - P["rim_t"], xE, tb, tb + P["rim_h"])])
+    section(s, T3, [(x0d, Rt, tb, tb + tpr)]); section(s, T3, [(x0d, Rt, tb + hd - tpr, tb + hd)])
+    s.pline([T3(p) for p in [(R_pin - d_pin / 2, tb + tpr), (R_pin + d_pin / 2, tb + tpr), (R_pin + d_pin / 2, tb + hd - tpr), (R_pin - d_pin / 2, tb + hd - tpr)]], "VIS", True)
+    section(s, T3, *bed_xz(X), scale=0.35, angle=90)
+    section(s, T3, *shoe_xz(X, KG["mouthX"]), scale=0.5)
+    section(s, T3, [(KG["tipX"], KG["mouthX"] + P["L_in"], zc - P["dog_h"] / 2, zc + P["dog_h"] / 2)], scale=0.3, angle=90)
     sp0 = KG["mouthX"] + P["L_in"]
     for k in range(6):
         xa, xb = sp0 + (KG["pocketEnd"] - sp0) * k / 6, sp0 + (KG["pocketEnd"] - sp0) * (k + 1) / 6
         s.line(T3((xa, zc - 25 if k % 2 else zc + 25)), T3((xb, zc + 25 if k % 2 else zc - 25)), "FINA")
-    s.line(T3((x0d, zc)), T3((xE + 30, zc)), "EJE"); s.line(T3((R_pin, tb - 15)), T3((R_pin, tb + hd + 25)), "EJE"); s.line(T3((P["x_g"], tb - 15)), T3((P["x_g"], zc + forkH / 2 + 20)), "EJE")
+    s.line(T3((x0d, zc)), T3((xE + 30, zc)), "EJE"); s.line(T3((R_pin, tb - 15)), T3((R_pin, tb + hd + 25)), "EJE"); s.line(T3((X, tb - 15)), T3((X, z_shoe + 20)), "EJE")
     s.dim(T3((R_pin, tb + hd + 12)), T3((KG["mouthX"], tb + hd + 12)), 10, f"{f1(KG['mouthX'] - R_pin)}", "h")
-    s.dim(T3((Rt, tb + hd + 12)), T3((P["x_g"], tb + hd + 12)), 22, f"{f(P['x_g'] - Rt)}", "h")
-    s.dim(T3((0 + x0d, 0)), T3((x0d, zc)), -10, f"eje {f(zc)}", "v")
-    s.dim(T3((P["x_g"] + P["w_s"] / 2, zb)), T3((P["x_g"] + P["w_s"] / 2, zc + forkH / 2)), 8, f"{f(zc + forkH / 2 - zb)}", "v")
+    s.dim(T3((Rt, tb + hd + 12)), T3((X, tb + hd + 12)), 22, f"{f(X - Rt)}", "h")
+    s.dim(T3((x0d, 0)), T3((x0d, zc)), -10, f"eje {f(zc)}", "v")
+    s.dim(T3((X + P["w_s"] / 2, zb)), T3((X + P["w_s"] / 2, z_shoe)), 8, f"{f(Hs)}", "v")
+    s.dim(T3((xE, 0)), T3((xE, zb)), 8, f"{f(zb)}", "v")
     s.dim(T3((KG["tipX"], tb + tpr - 2)), T3((KG["mouthX"] + P["L_in"], tb + tpr - 2)), -8, f"uña {f(paw_L)}", "h")
-    s.leader(T3((KG["tipX"] + 30, zc + P["dog_h"] / 2)), T3((KG["tipX"] - 40, tb + hd + 70)), f"Uña pos 10 ({f(P['dog_b'])}×{f(P['dog_h'])})")
-    s.leader(T3((P["x_g"] + 40, zc + forkH / 2)), T3((P["x_g"] + 80, tb + hd + 70)), "Patín pos 16")
-    s.leader(T3((P["x_g"], zb - 5)), T3((P["x_g"] + 140, -60)), f"Bancada pos 1e, ranura {f(P['w_slot'])} H8 × {f(P['h_slot'])}")
+    s.leader(T3((KG["tipX"] + 30, zc + P["dog_h"] / 2)), T3((KG["tipX"] - 40, tb + hd + 70)), f"Uña pos 10 ({f(P['dog_b'])}×{f(P['dog_h'])}), cara de empuje plana {HRC}")
+    s.leader(T3((X + 40, z_shoe)), T3((X + 60, tb + hd + 70)), f"Patín pos 16 (marco e={f(P['t_fw'])})")
+    s.leader(T3((X - P["w_tee"] / 2 + 4, zT0 + 4)), T3((X - 140, -45)), f"Ranura T bancada 1e: {f(P['w_slot'])} H8×{f(P['h_slot'])} + {f(P['w_tee'])}×{f(P['h_tee'])}, fondo {f(fondo)}")
+    s.leader(T3((X + head_w / 2 - 3, zT0 + 6)), T3((X + 60, -75)), f"Lengüeta T: cuello {f(neck_w)}, cabeza {f(head_w)}×{f(head_h)}")
     s.leader(T3(((sp0 + KG["pocketEnd"]) / 2, zc + 25)), T3((sp0 + 60, tb + hd + 110)), f"Resorte pos 12 (retorno {f(KG['travel'])})")
-    s.text(f"Al retornar, la uña se retrae {f(KG['travel'])} mm hacia afuera y despeja el pasador siguiente; el resorte la devuelve contra el tope.", (330, 416), 2.2)
+    s.text(f"Al retraer, el chaflán de retorno ({P['beta_ch']:.0f}°) toca el pasador siguiente: la uña se retrae {f(KG['travel'])} mm hacia afuera y el resorte la devuelve.", (330, 416), 2.2)
     s.view_title((452, 404), "DETALLE B (corte radial por la uña y el patín)", "ESC 1:2,5")
     # ---- datos técnicos ----
     c = {x["id"]: x for x in DV["casos"]}
@@ -381,7 +428,13 @@ def sheet_f01():
     s.leader(T3((0, hd + 30)), T3((70, hd + 70)), "Perno ISO 4762 M20×45 10.9 (pos 4)")
     s.leader(T3((-50, hd + 5)), T3((-150, hd + 50)), "Arandela Ø{0}×10 S355 (pos 4)".format(f(washer_D)))
     s.leader(T3((0, hd - 25)), T3((-160, hd - 60)), "Rosca M20 prof. 40 en pasador")
-    s.leader(T3((d_pin / 2, hd / 2)), T3((140, hd / 2 + 40)), "Contacto de la uña (asiento R{0})".format(f1(nose_R)))
+    zh0, zh1 = max(tpr, zc - tb - P["dog_h"] / 2 - 5), min(hd - tpr, zc - tb + P["dog_h"] / 2 + 5)   # franja de contacto con la uña
+    for sg in (-1, 1):
+        s.line(T3((sg * (d_pin / 2 + 3), zh0)), T3((sg * (d_pin / 2 + 3), zh1)), "EJE")
+    s.dim(T3((-d_pin / 2 - 3, zh0)), T3((-d_pin / 2 - 3, zh1)), -6, f"{f(zh1 - zh0)}", "v")
+    s.dim(T3((-d_pin / 2 - 3, 0)), T3((-d_pin / 2 - 3, zh0)), -18, f"{f(zh0)}", "v")
+    s.leader(T3((d_pin / 2 + 3, hd / 2)), T3((140, hd / 2 + 40)), f"Contacto de la uña: cara plana templada (sin asiento)")
+    s.text(f"Franja de contacto: temple por inducción {HRC}, prof. efectiva ≥ {f1(z_hard)} mm, toda la circunferencia", T3((70 + 0, hd / 2 + 26)), 2.2)
     s.finish(T3((-100, tpr)), "Ra 1,6")
     s.text("Agujeros Ø{0} H7 escariados en línea en ambos anillos después del alivio de tensiones; coaxialidad 0,05.".format(f(d_pin)), (360, 300), 2.2)
     s.text("Pasador a ras con la cara inferior (cara de giro): −0,5/0 mm. Sin soldadura: reemplazable.", (360, 296), 2.2)
@@ -455,7 +508,9 @@ def sheet_f02():
         X = sx * P["x_g"]
         s.pline([T(p) for p in [(X - P["w_bed"] / 2, -KG["Y_bed"]), (X + P["w_bed"] / 2, -KG["Y_bed"]), (X + P["w_bed"] / 2, KG["Y_bed"]), (X - P["w_bed"] / 2, KG["Y_bed"])]], "VIS", True)
         s.line(T((X - P["w_slot"] / 2, -KG["Y_bed"])), T((X - P["w_slot"] / 2, KG["Y_bed"])), "VIS"); s.line(T((X + P["w_slot"] / 2, -KG["Y_bed"])), T((X + P["w_slot"] / 2, KG["Y_bed"])), "VIS")
+        s.line(T((X - P["w_tee"] / 2, -KG["Y_bed"])), T((X - P["w_tee"] / 2, KG["Y_bed"])), "OCU"); s.line(T((X + P["w_tee"] / 2, -KG["Y_bed"])), T((X + P["w_tee"] / 2, KG["Y_bed"])), "OCU")
         s.line(T((X, -Bh - 30)), T((X, Bh + 30)), "EJE")
+    s.section_mark(T((P["x_g"] - 150, 300)), 90, "E"); s.section_mark(T((P["x_g"] + 150, 300)), 90, "E")
     s.line(T((-Bh - 40, 0)), T((Bh + 40, 0)), "EJE"); s.line(T((0, -Bh - 40)), T((0, Bh + 40)), "EJE")
     s.dim(T((-Bh, -Bh)), T((Bh, -Bh)), -9, f"{f(B)}", "h"); s.dim(T((Bh, -Bh)), T((Bh, Bh)), 9, f"{f(B)}", "v")
     s.dim(T((0, Bh)), T((P["x_g"], Bh)), 8, f"{f(P['x_g'])}", "h")
@@ -498,6 +553,25 @@ def sheet_f02():
     s.leader(Te((x0 + 30, BR["spacer"] / 2)), Te((x0 - 70, -55)), f"Oreja inf. bloque e={f(BR['spacer'] + P['t_ch'])} (mec.)")
     s.text(f"Mejillas e={f(P['t_ch'])} · orejas e={f(P['t_ch'])}", Te((x0, BR["H"] + 12)), 2.3)
     s.view_title((500, 286), "MÉNSULA 1c – ELEVACIÓN LATERAL", "ESC 1:4")
+    # corte E-E: bancada 1e con ranura T (1:1), lengüeta del patín en fantasma
+    X = P["x_g"]; Tb_ = tr(430 - X, 150, 1.0)
+    section(s, Tb_, [(X - P["w_bed"] / 2 - 30, X + P["w_bed"] / 2 + 30, 0, tb)], scale=0.6)
+    section(s, Tb_, *bed_xz(X), scale=0.6, angle=90)
+    s.pline([Tb_(p) for p in [(X - neck_w / 2, zb + 12), (X - neck_w / 2, zT1 - 1), (X - head_w / 2, zT1 - 1), (X - head_w / 2, zT0 + 1), (X + head_w / 2, zT0 + 1),
+                              (X + head_w / 2, zT1 - 1), (X + neck_w / 2, zT1 - 1), (X + neck_w / 2, zb + 12)]], "FANT")
+    s.line(Tb_((X, -8)), Tb_((X, zb + 18)), "EJE")
+    s.dim(Tb_((X - P["w_bed"] / 2, zb)), Tb_((X + P["w_bed"] / 2, zb)), 22, f"{f(P['w_bed'])}", "h")
+    s.dim(Tb_((X - P["w_slot"] / 2, zb)), Tb_((X + P["w_slot"] / 2, zb)), 12, f"{f(P['w_slot'])} H8", "h")
+    s.dim(Tb_((X - P["w_tee"] / 2, zT0)), Tb_((X + P["w_tee"] / 2, zT0)), -(zT0 - tb) - 10, f"{f(P['w_tee'])} +0,2/0", "h")
+    s.dim(Tb_((X + P["w_bed"] / 2, tb)), Tb_((X + P["w_bed"] / 2, zb)), 22, f"{f(P['t_bed'])}", "v")
+    s.dim(Tb_((X + P["w_slot"] / 2, zT1)), Tb_((X + P["w_slot"] / 2, zb)), 32 + (P["w_bed"] - P["w_slot"]) / 2, f"{f(P['h_slot'])} +0,1/0", "v")
+    s.dim(Tb_((X + P["w_tee"] / 2, zT0)), Tb_((X + P["w_tee"] / 2, zT1)), 12 + (P["w_bed"] - P["w_tee"]) / 2, f"{f(P['h_tee'])} +0,2/0", "v")
+    s.dim(Tb_((X - P["w_tee"] / 2, tb)), Tb_((X - P["w_tee"] / 2, zT0)), -12 - (P["w_bed"] - P["w_tee"]) / 2, f"fondo {f(fondo)}", "v")
+    s.weld(Tb_((X - P["w_bed"] / 2, tb + 2)), Tb_((X - P["w_bed"] / 2 - 45, zb + 30)), "fillet", f"{f(P['w_bed_f'])}", other=True, note="W12")
+    s.finish(Tb_((X - P["w_slot"] / 2 + 3, zb)), "Ra 1,6")
+    s.text(f"Lengüeta T del patín pos 16 (fantasma): cuello {f(neck_w)}, cabeza {f(head_w)}×{f(head_h)}; juego 1 por lado.", (345, 132), 2.2)
+    s.text("Ranura T pasante en todo el largo: el patín entra por el extremo de la bancada.", (345, 128), 2.2)
+    s.view_title((430, 110), "CORTE E-E – BANCADA 1e (RANURA T)", "ESC 1:1")
     # despiece base
     dsp = [["1a", f"Plancha base {f(B)}×{f(B)}×{f(tb)}; Ø{f(P['D_piv'])} H7 central", "1", f1(M["base"])],
            ["1b", f"Marco perimetral pletina {f(P['rim_t'])}×{f(P['rim_h'])} (2 × {f(B)} + 2 × {f(B - 2 * P['rim_t'])})", "4", f1(M["rim"])],
@@ -505,7 +579,7 @@ def sheet_f02():
            ["1c2", f"Oreja superior {f(BR['Win'])}×{f(Llug)}×{f(P['t_ch'])}, Ø{f(P['d_pp'])} H9", f"{P['n_br']:.0f}", f1(7.85e-6 * BR['Win'] * Llug * P['t_ch'])],
            ["1c3", f"Oreja inferior (bloque) {f(BR['Win'])}×{f(Llug)}×{f(BR['spacer'] + P['t_ch'])}, Ø{f(P['d_pp'])} H9", f"{P['n_br']:.0f}", f1(7.85e-6 * BR['Win'] * Llug * (BR['spacer'] + P['t_ch']))],
            ["1d", "Punto de izaje soldable comercial (ver D-01 nota 9)", "4", "—"],
-           ["1e", f"Bancada {f(P['w_bed'])}×{f(P['t_bed'])}×{f(KG['L_bed'])}, ranura {f(P['w_slot'])} H8 × {f(P['h_slot'])} (mecanizar tras soldar)", f"{P['n_cyl']:.0f}", f1(M["beds"] / P["n_cyl"])]]
+           ["1e", f"Bancada {f(P['w_bed'])}×{f(P['t_bed'])}×{f(KG['L_bed'])}, ranura T {f(P['w_slot'])} H8×{f(P['h_slot'])} + cabeza {f(P['w_tee'])}×{f(P['h_tee'])}, fondo {f(fondo)} (mec. tras soldar)", f"{P['n_cyl']:.0f}", f1(M["beds"] / P["n_cyl"])]]
     s.text("DESPIECE POS 1", (560, 584 - 6), 3.5, bold=True)
     y = s.table(560, 584 - 9, [("Sub", 12, "C"), ("Descripción", 194, "L"), ("Cant.", 18, "C"), ("kg/u", 18, "R")], dsp, rh=5.4, h=2.1)
     nb = ["NOTAS DE FABRICACIÓN – BASE",
@@ -516,8 +590,9 @@ def sheet_f02():
           f"4. Pivote pos 5: calado en caliente Ø{f(P['D_piv'])} H7/p6 (base local ≤ 200 °C o pivote enfriado) + filete de sello 8 superior;",
           "   perpendicularidad 0,05 respecto de la cara de giro.",
           "5. Los puntos de izaje 1d se sueldan según instrucciones del fabricante (WPS del proveedor, MT 100 %).",
-          f"6. Bancadas 1e: filete {f(P['w_bed_f'])} continuo a ambos lados (W12); ranura {f(P['w_slot'])} H8 mecanizada después de soldar y relevar,",
-          "   paralela a Y ±0,10 en todo el largo y coaxial con el ojal de la ménsula ±0,2; Ra 1,6; lubricar con grasa grafitada.",
+          f"6. Bancadas 1e (e={f(P['t_bed'])}): filete {f(P['w_bed_f'])} continuo a ambos lados (W12, precalentar 65 °C); ranura T (cuello {f(P['w_slot'])} H8 × {f(P['h_slot'])},",
+          f"   cabeza {f(P['w_tee'])} × {f(P['h_tee'])}, fondo {f(fondo)}) mecanizada después de soldar y relevar, pasante (corte E-E);",
+          "   paralela a Y ±0,10 en todo el largo y coaxial con el ojal de la ménsula ±0,2; flancos Ra 1,6; lubricar con grasa grafitada.",
           "7. Protección: Sa 2½ + epóxico rico en zinc 75 µm + epóxico 125 µm + PU 50 µm (ISO 12944 C4) salvo caras de giro y orejas."]
     s.mtext(nb, (560, y - 8), 2.15, 1.55, bold_first=True)
     return s
