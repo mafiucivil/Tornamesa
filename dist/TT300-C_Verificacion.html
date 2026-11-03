@@ -442,7 +442,7 @@ const TT = (() => {
     ] },
     { id: "guia", t: "Bancada de guía", p: [
       ["t_bed", "Bancada: espesor", "mm", 48, 16, 100, 1],
-      ["w_bed", "Bancada: ancho", "mm", 140, 60, 400, 5],
+      ["w_bed", "Bancada: ancho", "mm", 190, 60, 400, 5],
       ["w_slot", "Ranura de guía: ancho (H8)", "mm", 40, 10, 100, 1],
       ["h_slot", "Ranura de guía: profundidad del cuello", "mm", 22, 5, 60, 1],
       ["w_tee", "Ranura T: ancho de la cabeza (retención vertical del patín)", "mm", 64, 10, 150, 1],
@@ -557,9 +557,9 @@ const TT = (() => {
     return { dx, dy, area: dx * Math.min(dy, P.dog_b) / 2 };
   }
   function chamferCut(P) { return chamferGeo(P).area; }
-  function asymF(P, mg) {   // factor F_cil·η/F_pas en la toma (θ = −π/N) para un μg dado
-    const g = guideGeo(P), th = -g.pitch / 2, xc = P.R_pin * Math.cos(th), yc = P.R_pin * Math.sin(th) - P.d_pin / 2;
-    const yr = P.R_pin * Math.sin(th) - P.l_p + (g.front - g.rear) / 2 - g.Lg / 2, h = -P.mu_s;
+  function asymF(P, mg, end) {   // factor F_cil·η/F_pas en un extremo de la carrera (end = −1 toma, +1 final) para un μg dado
+    const g = guideGeo(P), th = (end || -1) * g.pitch / 2, xc = P.R_pin * Math.cos(th), yc = P.R_pin * Math.sin(th) - P.d_pin / 2;
+    const yr = P.R_pin * Math.sin(th) - P.l_p + (g.front - g.rear) / 2 - g.Lg / 2, h = (P.R_pin * Math.sin(th) >= P.d_pin / 2 ? 1 : -1) * P.mu_s;
     const rf = ((P.x_g - xc) + h * (yc - yr)) / g.Lg, rr = h - rf;
     return 1 + Math.max(0, mg) * (Math.abs(rf) + Math.abs(rr));
   }
@@ -641,8 +641,8 @@ const TT = (() => {
       return Math.max(...dpts.map((d) => atPt(d, T).F));
     };
     const Kg = (arm) => Fcyl(1, arm) * P.n_cyl * (arm || K.armMin) / 1e3;   // factor equivalente F_cil·n·a/T
-    // a calado: F_pas = F_calado·η/(1 + μg(|r_f| + |r_r|)); reacciones de guía y fricción radial máximas
-    const stall = dpts.map((d) => { const Fp = Fstall * P.eta_c / d.fr; return { Fp, H: Math.abs(d.h) * Fp, R: Math.max(Math.abs(d.rf), Math.abs(d.rr)) * Fp, Rsum: (Math.abs(d.rf) + Math.abs(d.rr)) * Fp }; });
+    // a calado (mesa detenida, la fricción de guía puede ser nula): F_pas = η·F_calado; reacciones de guía y fricción radial máximas
+    const stall = dpts.map((d) => { const Fp = Fstall * P.eta_c; return { Fp, H: Math.abs(d.h) * Fp, R: Math.max(Math.abs(d.rf), Math.abs(d.rr)) * Fp, Rsum: (Math.abs(d.rf) + Math.abs(d.rr)) * Fp }; });
     const stallMax = { Fp: Math.max(...stall.map((x) => x.Fp)), H: Math.max(...stall.map((x) => x.H)), R: Math.max(...stall.map((x) => x.R)), Rsum: Math.max(...stall.map((x) => x.Rsum)) };
     const caseDef = [
       ["nom", "Nominal: grasa grafitada limpia", P.mu_nom, r_u],
@@ -657,7 +657,7 @@ const TT = (() => {
     }) : [];
     const cd = cases.find((c) => c.id === "dis");
     const Tmax = K.ok ? Fstall / Fcyl(1) : 0;           // par vencible a calado (F lineal en T)
-    const muMax = (r) => K.ok ? (Tmax - T_piv(P.mu_d)) / (N * r / 1e3) : 0;
+    const muMax = (r) => K.ok ? Tmax / (N * r / 1e3 + T_piv(1)) : 0;   // T(μ) = μ·(N·r + T_piv(1)), T_piv lineal en μ
     const curve = K.ok ? K.pts.map((q) => ({ s: q.s, arm: q.arm, F: cd ? Fcyl(cd.T, q.arm) : 0 })) : [];
     const stroke = K.ok && cd ? dpts.map((d) => Object.assign({ th: d.th, s: P.s_free + P.R_pin * (Math.sin(d.th) + Math.sin(K.pitch / 2)) }, atPt(d, cd.T))) : [];
     const Vext = P.n_cyl * A * P.stroke, Vret = P.n_cyl * Aann * P.stroke;
@@ -911,11 +911,11 @@ const TT = (() => {
     /* --- Uña (cara de empuje plana, templada) --- */
     const Adog = P.dog_b * P.dog_h, Hs = P.mu_s * Fs;                  // fricción radial máxima en la cara (a calado)
     const lev = K.lever + P.e_dog, Sdog = P.dog_h * P.dog_b ** 2 / 6;
-    add({ grp: "Uña", sys: "est", name: "Flexión en la boca del patín (voladizo) con fricción radial", formula: "σ = F·(x_boca − a_mín + e)/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd", dem: Fs * 1e3 * lev / Sdog + Hs * 1e3 / Adog, cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    add({ grp: "Uña", sys: "est", name: "Flexión en la boca del patín (voladizo) con fricción radial", formula: "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd", dem: (Fs * lev + Hs * P.dog_b / 2) * 1e3 / Sdog + Hs * 1e3 / Adog, cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
     add({ grp: "Uña", sys: "est", name: "Corte en la boca del patín", formula: "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)", dem: 1.5 * Fs * 1e3 / Adog, cap: P.Fy_dog / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
     const Es = P.E / (2 * (1 - P.nu ** 2)), rp = P.d_pin / 2;
     const p0 = Math.sqrt(Fs * 1e3 * Es / (Math.PI * rp * P.dog_h)), bH = Math.sqrt(4 * Fs * 1e3 * rp / (Math.PI * P.dog_h * Es));
-    add({ grp: "Uña", sys: "est", name: "Contacto de Hertz cara plana–pasador (a calado)", formula: "p₀ = √(F·E*/(π·r·h)), E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
+    add({ grp: "Uña", sys: "est", name: "Contacto de Hertz cara plana–pasador (a calado; ambas caras templadas)", formula: "p₀ = √(F·E*/(π·r·h)), E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
     add({ grp: "Uña", sys: "est", kind: "info", name: "Profundidad mínima de temple (3 × profundidad del corte máximo)", formula: "z = 3·0,78·b, b = √(4F·r/(π·h·E*))", dem: 3 * 0.78 * bH, unit: "mm", ref: "Hertz, contacto lineal" });
     const ch = chamferGeo(P);
     add({ grp: "Uña", sys: "est", kind: "geo", name: "Chaflán de retorno: cabe en la uña dejando la punta", formula: "Δy = recorrido/tan β; Δy + b_punta ≤ b_uña", dem: ch.dy + P.b_tip, cap: P.dog_b, unit: "mm", ref: "Geometría (retorno del trinquete)" });
@@ -941,7 +941,8 @@ const TT = (() => {
     const Rg = R.Rguide, qG = 4 * Rg * 1e3 / K.L_s;                   // presión lineal máxima (distribución triangular por mitad)
     add({ grp: "Patín y guía", sys: "est", name: "Aplastamiento de la lengüeta en la ranura (pico de la distribución lineal)", formula: "R = máx[F_pas·Δ + H·(y_c − y_r)]/Lg; σ = 4R/((h_ranura − 2)·L_patín) ≤ 1,25Fy/Nd", dem: qG / (P.h_slot - 2), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.5" });
     const tRoot = (P.w_bed - Math.max(P.w_slot, P.h_tee > 0 ? P.w_tee : 0)) / 2;
-    add({ grp: "Patín y guía", sys: "est", name: "Pared de la ranura: flexión en la raíz", formula: "σ = 6·(4R/L_patín)·(h_ranura/2)/t_raíz² ≤ Fy/Nd", dem: 6 * qG * P.h_slot / 2 / tRoot ** 2, cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    const armW = P.h_tee + P.h_slot / 2 + 1;                           // del centroide del contacto en el cuello a la raíz (fondo de la cabeza T)
+    add({ grp: "Patín y guía", sys: "est", name: "Pared de la ranura: flexión en la raíz", formula: "σ = 6·(4R/L_patín)·(h_T + h_ranura/2 + 1)/t_raíz², t_raíz = (w_b − w_T)/2 ≤ Fy/Nd", dem: 6 * qG * armW / tRoot ** 2, cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
     add({ grp: "Patín y guía", sys: "est", kind: "geo", name: "Fondo de la ranura de la bancada", formula: "t_bancada − h_ranura − h_T ≥ 12", dem: 12, cap: P.t_bed - P.h_slot - P.h_tee, unit: "mm", ref: "Criterio de fabricación (la bancada trabaja como una pieza)" });
     const Leff = Math.min(K.L_bed, K.L_s + 2 * P.w_bed), awb = 0.707 * P.w_bed_f;
     add({ grp: "Patín y guía", sys: "est", name: "Soldadura bancada–base (2 filetes longitudinales)", formula: "f = R/(2·0,707·w·L_ef), L_ef = L_patín + 2·w_bancada", dem: Rg * 1e3 / (2 * awb * Leff), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
@@ -978,7 +979,7 @@ const TT = (() => {
     add({ grp: "Articulaciones", sys: "est", name: "Soldadura mejillas–base (4 filetes)", formula: "f = √(fV² + fM²) ≤ 0,60FEXX/(1,20Nd)", dem: Math.hypot(fV, fM), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
 
     /* --- Pivote --- */
-    const Hasym = R.Fstall * P.eta_c * Math.abs(1 / asymF(P, P.mu_g - 0.05) - 1 / asymF(P, P.mu_g + 0.05));
+    const Hasym = R.Fstall * P.eta_c * Math.max(...[-1, 1].map((e) => Math.abs(1 / asymF(P, P.mu_g - 0.05, e) - 1 / asymF(P, P.mu_g + 0.05, e))));
     const H = Math.max(R.H_ecc(P.mu_d), P.Ch * R.N) + Hasym;
     add({ grp: "Pivote", sys: "est", kind: "info", name: "Empuje neto al pivote por fricción desigual de los patines (μg ± 0,05)", formula: "H_asim = F_calado·η·|1/f(μg−0,05) − 1/f(μg+0,05)|", dem: Hasym, unit: "kN", ref: "Equilibrio (revisión independiente H10)" });
     add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
