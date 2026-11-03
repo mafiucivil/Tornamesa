@@ -12,6 +12,6 @@
 | Pandeo del vástago | F_calado ≤ Pcr/3, Euler biarticulado con longitud extendida y diámetro del vástago | Criterio conservador frente a ISO/TS 13725 | Confirmar con ficha del cilindro |
 | Giro | FS = F_calado/F_diseño ≥ 1,25; p_diseño ≤ alarma; gira con μ contaminado y con contacto en el borde | Criterio del proyecto | Revisión independiente M1 |
 | Presión nominal del cilindro | p_alivio ≤ p_nominal (10.000 psi ≙ 700 bar; 5.000 psi ≙ 350 bar, convención de catálogo); p_alarma ≤ 0,90·p_alivio; p_retorno ≤ p_nominal | ISO 4413:2010 (protección contra sobrepresión) y catálogo del fabricante | Confirmado por el revisor del proyecto (02-11-2026) |
-| Sismo | Pendiente | NCh2369 | Falta zona, suelo y categoría |
+| Sismo | No aplica (Ch = 0) | NCh2369 | Decisión del usuario 01-11-2026; para instalación permanente verificar con Ch |
 
 **Puntos a confirmar:** numeración exacta de ecuaciones de BTH-1 en la edición vigente; tabla de tamaño mínimo de filete en AWS D1.1:2020.

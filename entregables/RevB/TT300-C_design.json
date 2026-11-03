@@ -427,6 +427,1066 @@
    }
   ]
  },
+ "grupos": [
+  {
+   "id": "carga",
+   "titulo": "Carga",
+   "p": [
+    {
+     "id": "W_tf",
+     "lab": "Capacidad nominal (WLL)",
+     "u": "tf"
+    },
+    {
+     "id": "e",
+     "lab": "Excentricidad máx. del CG",
+     "u": "mm"
+    },
+    {
+     "id": "phi_d",
+     "lab": "Factor de carga para resistencias φd",
+     "u": "–"
+    },
+    {
+     "id": "D_load",
+     "lab": "Diámetro de apoyo de la carga (parrilla)",
+     "u": "mm"
+    }
+   ]
+  },
+  {
+   "id": "interfaz",
+   "titulo": "Interfaz de giro (acero-acero, grasa grafitada)",
+   "p": [
+    {
+     "id": "mu_d",
+     "lab": "μ estático de diseño",
+     "u": "–"
+    },
+    {
+     "id": "r_ef",
+     "lab": "Radio efectivo de fricción de diseño",
+     "u": "mm"
+    },
+    {
+     "id": "mu_nom",
+     "lab": "μ nominal (grasa limpia)",
+     "u": "–"
+    },
+    {
+     "id": "mu_cont",
+     "lab": "μ contaminado",
+     "u": "–"
+    },
+    {
+     "id": "mu_dry",
+     "lab": "μ acero seco (referencial)",
+     "u": "–"
+    },
+    {
+     "id": "q_adm",
+     "lab": "Presión de contacto admisible",
+     "u": "MPa"
+    },
+    {
+     "id": "FS_min",
+     "lab": "FS mínimo del accionamiento (calado / diseño)",
+     "u": "–"
+    }
+   ]
+  },
+  {
+   "id": "mesa",
+   "titulo": "Mesa giratoria (cajón)",
+   "p": [
+    {
+     "id": "D_top",
+     "lab": "Diámetro de la mesa",
+     "u": "mm"
+    },
+    {
+     "id": "t_top",
+     "lab": "Espesor plancha superior",
+     "u": "mm"
+    },
+    {
+     "id": "t_bot",
+     "lab": "Espesor plancha inferior (contacto)",
+     "u": "mm"
+    },
+    {
+     "id": "h_disc",
+     "lab": "Altura total de la mesa",
+     "u": "mm"
+    },
+    {
+     "id": "rings",
+     "lab": "Radios de almas anulares",
+     "u": "mm"
+    },
+    {
+     "id": "t_web",
+     "lab": "Espesor almas anulares",
+     "u": "mm"
+    },
+    {
+     "id": "N_rib",
+     "lab": "N° de nervios radiales",
+     "u": "–"
+    },
+    {
+     "id": "t_rib",
+     "lab": "Espesor nervios radiales",
+     "u": "mm"
+    },
+    {
+     "id": "R_rib",
+     "lab": "Radio exterior de nervios",
+     "u": "mm"
+    },
+    {
+     "id": "D_hub",
+     "lab": "Diámetro exterior del cubo",
+     "u": "mm"
+    },
+    {
+     "id": "w_web",
+     "lab": "Filete almas/nervios–planchas (cada lado)",
+     "u": "mm"
+    }
+   ]
+  },
+  {
+   "id": "pasadores",
+   "titulo": "Pasadores de empuje (en la mesa)",
+   "p": [
+    {
+     "id": "N_pin",
+     "lab": "N° de pasadores",
+     "u": "–"
+    },
+    {
+     "id": "d_pin",
+     "lab": "Diámetro del pasador",
+     "u": "mm"
+    },
+    {
+     "id": "R_pin",
+     "lab": "Radio del círculo de pasadores",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_pin",
+     "lab": "Fy pasador (34CrNiMo6+QT)",
+     "u": "MPa"
+    },
+    {
+     "id": "t_pr",
+     "lab": "Espesor del anillo perimetral de pasadores (sup. e inf.)",
+     "u": "mm"
+    }
+   ]
+  },
+  {
+   "id": "cilindros",
+   "titulo": "Cilindros hidráulicos",
+   "p": [
+    {
+     "id": "n_cyl",
+     "lab": "N° de cilindros (en par)",
+     "u": "–"
+    },
+    {
+     "id": "D_bore",
+     "lab": "Diámetro del émbolo",
+     "u": "mm"
+    },
+    {
+     "id": "d_rod",
+     "lab": "Diámetro del vástago",
+     "u": "mm"
+    },
+    {
+     "id": "D_body",
+     "lab": "Diámetro exterior del cuerpo",
+     "u": "mm"
+    },
+    {
+     "id": "p_rated",
+     "lab": "Presión nominal del cilindro y la bomba (clase de catálogo: 10.000 o 5.000 psi)",
+     "u": "psi"
+    },
+    {
+     "id": "p_relief",
+     "lab": "Presión de alivio (calado)",
+     "u": "bar"
+    },
+    {
+     "id": "p_alarm",
+     "lab": "Presión de alarma / detención",
+     "u": "bar"
+    },
+    {
+     "id": "p_ret",
+     "lab": "Presión de retorno (puerto B)",
+     "u": "bar"
+    },
+    {
+     "id": "stroke",
+     "lab": "Carrera",
+     "u": "mm"
+    },
+    {
+     "id": "L0",
+     "lab": "Longitud ojal-ojal retraído (confirmar con proveedor)",
+     "u": "mm"
+    },
+    {
+     "id": "e_body",
+     "lab": "Distancia del eje del ojal trasero al inicio del cuerpo",
+     "u": "mm"
+    },
+    {
+     "id": "c_rod",
+     "lab": "Retraído: eje del ojal del vástago → cara frontal del cuerpo",
+     "u": "mm"
+    },
+    {
+     "id": "eta_c",
+     "lab": "Rendimiento del cilindro (sellos)",
+     "u": "–"
+    },
+    {
+     "id": "m_cyl",
+     "lab": "Masa por cilindro",
+     "u": "kg"
+    },
+    {
+     "id": "Q_pump",
+     "lab": "Caudal de la bomba",
+     "u": "L/min"
+    }
+   ]
+  },
+  {
+   "id": "cinematica",
+   "titulo": "Accionamiento guiado (patín y uña)",
+   "p": [
+    {
+     "id": "x_g",
+     "lab": "Eje del cilindro y de la guía: distancia al centro",
+     "u": "mm"
+    },
+    {
+     "id": "l_p",
+     "lab": "Pasador del vástago (en el patín) → centro del pasador tomado",
+     "u": "mm"
+    },
+    {
+     "id": "s_free",
+     "lab": "Recorrido libre antes de tomar el pasador",
+     "u": "mm"
+    },
+    {
+     "id": "s_margin",
+     "lab": "Margen mínimo de carrera exigido",
+     "u": "mm"
+    },
+    {
+     "id": "mu_g",
+     "lab": "μ patín–guía (grasa grafitada)",
+     "u": "–"
+    },
+    {
+     "id": "w_s",
+     "lab": "Ancho del patín (en x)",
+     "u": "mm"
+    },
+    {
+     "id": "slot",
+     "lab": "Holgura radial de la uña en el patín",
+     "u": "mm"
+    },
+    {
+     "id": "c_tip",
+     "lab": "Penetración de la uña más allá del centro del pasador",
+     "u": "mm"
+    },
+    {
+     "id": "s_sp",
+     "lab": "Largo del resorte de retorno comprimido + tope",
+     "u": "mm"
+    }
+   ]
+  },
+  {
+   "id": "una",
+   "titulo": "Uña de empuje (en el patín)",
+   "p": [
+    {
+     "id": "dog_b",
+     "lab": "Uña: ancho en el sentido del empuje",
+     "u": "mm"
+    },
+    {
+     "id": "dog_h",
+     "lab": "Uña: alto",
+     "u": "mm"
+    },
+    {
+     "id": "L_in",
+     "lab": "Uña: largo alojado en el patín",
+     "u": "mm"
+    },
+    {
+     "id": "l_lip",
+     "lab": "Labio de apoyo de la uña en el patín (largo en x)",
+     "u": "mm"
+    },
+    {
+     "id": "e_dog",
+     "lab": "Excentricidad accidental de la uña",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_dog",
+     "lab": "Fy uña (34CrNiMo6+QT)",
+     "u": "MPa"
+    }
+   ]
+  },
+  {
+   "id": "guia",
+   "titulo": "Bancada de guía",
+   "p": [
+    {
+     "id": "t_bed",
+     "lab": "Bancada: espesor",
+     "u": "mm"
+    },
+    {
+     "id": "w_bed",
+     "lab": "Bancada: ancho",
+     "u": "mm"
+    },
+    {
+     "id": "w_slot",
+     "lab": "Ranura de guía: ancho (H8)",
+     "u": "mm"
+    },
+    {
+     "id": "h_slot",
+     "lab": "Ranura de guía: profundidad",
+     "u": "mm"
+    },
+    {
+     "id": "w_bed_f",
+     "lab": "Filete bancada–base",
+     "u": "mm"
+    }
+   ]
+  },
+  {
+   "id": "articulacion",
+   "titulo": "Articulaciones y ménsulas del cilindro",
+   "p": [
+    {
+     "id": "d_pp",
+     "lab": "Diámetro de pasadores de articulación",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_pp",
+     "lab": "Fy pasadores de articulación",
+     "u": "MPa"
+    },
+    {
+     "id": "t_ch",
+     "lab": "Espesor de mejillas (horquilla)",
+     "u": "mm"
+    },
+    {
+     "id": "g_ch",
+     "lab": "Holgura mejilla-ojal",
+     "u": "mm"
+    },
+    {
+     "id": "b_eye",
+     "lab": "Ancho del ojal del cilindro",
+     "u": "mm"
+    },
+    {
+     "id": "L_ch",
+     "lab": "Largo de mejilla de la ménsula (sobre la base)",
+     "u": "mm"
+    },
+    {
+     "id": "w_br",
+     "lab": "Filete mejilla–base",
+     "u": "mm"
+    },
+    {
+     "id": "n_br",
+     "lab": "N° de ménsulas (2 por sentido de giro)",
+     "u": "–"
+    }
+   ]
+  },
+  {
+   "id": "base",
+   "titulo": "Base",
+   "p": [
+    {
+     "id": "B",
+     "lab": "Lado de la base cuadrada",
+     "u": "mm"
+    },
+    {
+     "id": "t_base",
+     "lab": "Espesor plancha base",
+     "u": "mm"
+    },
+    {
+     "id": "t_base_min",
+     "lab": "Espesor mínimo de base por planitud (criterio de fabricación)",
+     "u": "mm"
+    },
+    {
+     "id": "rim_h",
+     "lab": "Alto del marco perimetral",
+     "u": "mm"
+    },
+    {
+     "id": "rim_t",
+     "lab": "Espesor del marco perimetral",
+     "u": "mm"
+    },
+    {
+     "id": "c_lug",
+     "lab": "Puntos de izaje (lados y): distancia al borde",
+     "u": "mm"
+    },
+    {
+     "id": "x_lug",
+     "lab": "Puntos de izaje: distancia al eje y",
+     "u": "mm"
+    },
+    {
+     "id": "phi_lift",
+     "lab": "Factor dinámico de izaje",
+     "u": "–"
+    },
+    {
+     "id": "q_floor",
+     "lab": "Presión admisible de la losa / mats (referencial)",
+     "u": "MPa"
+    }
+   ]
+  },
+  {
+   "id": "pivote",
+   "titulo": "Pivote central",
+   "p": [
+    {
+     "id": "D_piv",
+     "lab": "Diámetro del pivote",
+     "u": "mm"
+    },
+    {
+     "id": "L_bush",
+     "lab": "Largo del buje",
+     "u": "mm"
+    },
+    {
+     "id": "p_bush",
+     "lab": "Presión admisible del buje",
+     "u": "MPa"
+    },
+    {
+     "id": "mu_bush",
+     "lab": "μ del buje",
+     "u": "–"
+    },
+    {
+     "id": "e_piv",
+     "lab": "Brazo de flexión del pivote",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_piv",
+     "lab": "Fy pivote",
+     "u": "MPa"
+    },
+    {
+     "id": "Ch",
+     "lab": "Coeficiente sísmico horizontal (0 = no aplica, decisión del mandante)",
+     "u": "–"
+    }
+   ]
+  },
+  {
+   "id": "material",
+   "titulo": "Materiales y normas",
+   "p": [
+    {
+     "id": "Fy",
+     "lab": "Fy acero estructural (ASTM A572 Gr.50)",
+     "u": "MPa"
+    },
+    {
+     "id": "FEXX",
+     "lab": "Resistencia del electrodo FEXX",
+     "u": "MPa"
+    },
+    {
+     "id": "E",
+     "lab": "Módulo de elasticidad",
+     "u": "MPa"
+    },
+    {
+     "id": "nu",
+     "lab": "Coeficiente de Poisson",
+     "u": "–"
+    },
+    {
+     "id": "Nd",
+     "lab": "ASME BTH-1 factor de diseño (Cat. B = 3,0)",
+     "u": "–"
+    },
+    {
+     "id": "kFEA",
+     "lab": "Factor de convergencia de malla FEA",
+     "u": "–"
+    }
+   ]
+  },
+  {
+   "id": "fatiga",
+   "titulo": "Ciclo de servicio (fatiga)",
+   "p": [
+    {
+     "id": "turns_yr",
+     "lab": "Vueltas completas por año",
+     "u": "–"
+    },
+    {
+     "id": "life",
+     "lab": "Vida de diseño",
+     "u": "años"
+    }
+   ]
+  }
+ ],
+ "apoyo": {
+  "r_u": 670.1550387596899,
+  "Ro": 1000,
+  "Ri": 75,
+  "Ac": 3123921.1949133505,
+  "T_piv_d": 1.4193409646311046,
+  "H_ecc_d": 118.27841371925871,
+  "q_min": 0.4199340431258351,
+  "Wd": 16.119737563025122
+ },
+ "carrera": [
+  {
+   "pos": "Inicio (toma)",
+   "th": -6.428571428571429,
+   "s": 10,
+   "arm": 924.1523552007156,
+   "Delta": 195.84764479928435,
+   "Kg": 1.2802878660889323,
+   "F": 328.8285239953666,
+   "p": 516.8857780096248,
+   "Fpin": 256.8395223488944,
+   "Ft": 255.22456934124472,
+   "Fr": -28.75690256241779,
+   "Rg": 185.15858482234648
+  },
+  {
+   "pos": "Centro",
+   "th": 0,
+   "s": 114.12696277607631,
+   "arm": 930,
+   "Delta": 190,
+   "Kg": 1.2734904746528901,
+   "F": 325.0260579534612,
+   "p": 510.9086790811476,
+   "Fpin": 255.2245693412447,
+   "Ft": 255.2245693412447,
+   "Fr": 0,
+   "Rg": 178.50061904847792
+  },
+  {
+   "pos": "Final",
+   "th": 6.428571428571429,
+   "s": 218.25392555215262,
+   "arm": 924.1523552007156,
+   "Delta": 195.84764479928435,
+   "Kg": 1.2802878660889323,
+   "F": 328.8285239953666,
+   "p": 516.8857780096248,
+   "Fpin": 256.8395223488944,
+   "Ft": 255.22456934124472,
+   "Fr": 28.75690256241779,
+   "Rg": 185.15858482234648
+  }
+ ],
+ "escenarios": {
+  "mus": [
+   0.1,
+   0.15,
+   0.2,
+   0.25,
+   0.3
+  ],
+  "rs": [
+   [
+    "r_u",
+    670.1550387596899
+   ],
+   [
+    "r_ef",
+    800
+   ],
+   [
+    "R",
+    1000
+   ]
+  ],
+  "grid": [
+   [
+    {
+     "mu": 0.1,
+     "r": 670.1550387596899,
+     "F": 137.8085935092695,
+     "p": 216.6214208152289,
+     "FS": 3.2314440435559577
+    },
+    {
+     "mu": 0.1,
+     "r": 800,
+     "F": 164.4142619976833,
+     "p": 258.4428890048124,
+     "FS": 2.708528768949667
+    },
+    {
+     "mu": 0.1,
+     "r": 1000,
+     "F": 205.3949334604341,
+     "p": 322.8604340371261,
+     "FS": 2.1681194912830546
+    }
+   ],
+   [
+    {
+     "mu": 0.15,
+     "r": 670.1550387596899,
+     "F": 206.71289026390423,
+     "p": 324.9321312228433,
+     "FS": 2.1542960290373054
+    },
+    {
+     "mu": 0.15,
+     "r": 800,
+     "F": 246.62139299652483,
+     "p": 387.6643335072185,
+     "FS": 1.8056858459664455
+    },
+    {
+     "mu": 0.15,
+     "r": 1000,
+     "F": 308.092400190651,
+     "p": 484.29065105568895,
+     "FS": 1.4454129941887035
+    }
+   ],
+   [
+    {
+     "mu": 0.2,
+     "r": 670.1550387596899,
+     "F": 275.617187018539,
+     "p": 433.2428416304578,
+     "FS": 1.6157220217779789
+    },
+    {
+     "mu": 0.2,
+     "r": 800,
+     "F": 328.8285239953666,
+     "p": 516.8857780096248,
+     "FS": 1.3542643844748334
+    },
+    {
+     "mu": 0.2,
+     "r": 1000,
+     "F": 410.7898669208682,
+     "p": 645.7208680742522,
+     "FS": 1.0840597456415273
+    }
+   ],
+   [
+    {
+     "mu": 0.25,
+     "r": 670.1550387596899,
+     "F": 344.5214837731737,
+     "p": 541.5535520380722,
+     "FS": 1.2925776174223833
+    },
+    {
+     "mu": 0.25,
+     "r": 800,
+     "F": 411.0356549942083,
+     "p": 646.1072225120312,
+     "FS": 1.0834115075798667
+    },
+    {
+     "mu": 0.25,
+     "r": 1000,
+     "F": 513.4873336510851,
+     "p": 807.1510850928153,
+     "FS": 0.8672477965132219
+    }
+   ],
+   [
+    {
+     "mu": 0.3,
+     "r": 670.1550387596899,
+     "F": 413.42578052780846,
+     "p": 649.8642624456866,
+     "FS": 1.0771480145186527
+    },
+    {
+     "mu": 0.3,
+     "r": 800,
+     "F": 493.24278599304967,
+     "p": 775.328667014437,
+     "FS": 0.9028429229832228
+    },
+    {
+     "mu": 0.3,
+     "r": 1000,
+     "F": 616.184800381302,
+     "p": 968.5813021113779,
+     "FS": 0.7227064970943518
+    }
+   ]
+  ],
+  "loads": [
+   {
+    "W": 240,
+    "FS": 1.6905274209772925,
+    "p": 414.0719584396511,
+    "muMax": 0.3385196389624072
+   },
+   {
+    "W": 300,
+    "FS": 1.3542643844748334,
+    "p": 516.8857780096248,
+    "muMax": 0.2710653525753426
+   },
+   {
+    "W": 360,
+    "FS": 1.1295795619910614,
+    "p": 619.6995975795987,
+    "muMax": 0.22599362979460733
+   }
+  ],
+  "classes": [
+   {
+    "psi": 10000,
+    "pr": 700,
+    "pa": 590,
+    "Dmin": 86.4660833782939,
+    "FScur": 1.3542643844748334,
+    "pcur": 516.8857780096248
+   },
+   {
+    "psi": 5000,
+    "pr": 350,
+    "pa": 290,
+    "Dmin": 122.28150779886609,
+    "FScur": 0.6771321922374167,
+    "pcur": 516.8857780096248
+   }
+  ]
+ },
+ "revisionCruzada": [
+  {
+   "name": "Fuerza de diseño por cilindro (trabajos virtuales + equilibrio del patín)",
+   "tool": 328.8285239953666,
+   "indep": 328.82852399690796,
+   "d": -4.687446597072473e-10,
+   "tol": 0.1,
+   "ok": true,
+   "note": "kN"
+  },
+  {
+   "name": "Carrera requerida (coordenadas)",
+   "tool": 218.25392555215262,
+   "indep": 218.25392555215262,
+   "d": 0,
+   "tol": 0.1,
+   "ok": true,
+   "note": "mm"
+  },
+  {
+   "name": "Radio de fricción con presión uniforme r_u",
+   "tool": 670.1550387596899,
+   "indep": 670.1542096656976,
+   "d": 0.0001237168968415966,
+   "tol": 0.05,
+   "ok": true,
+   "note": "mm"
+  },
+  {
+   "name": "Presión de contacto máxima (Navier)",
+   "tool": 1.6622658810327744,
+   "indep": 1.6622675326378165,
+   "d": -0.00009935855749059312,
+   "tol": 0.2,
+   "ok": true,
+   "note": "MPa"
+  },
+  {
+   "name": "Equilibrio FEA plancha superior ΣR/ΣF",
+   "tool": 390.27988928674915,
+   "indep": 390.27988928675023,
+   "d": -2.76730876481782e-13,
+   "tol": 0.5,
+   "ok": true,
+   "note": "kN"
+  },
+  {
+   "name": "Equilibrio FEA plancha inferior ΣR/ΣF",
+   "tool": 364.59746993854594,
+   "indep": 364.5974699385513,
+   "d": -1.4655289225722006e-12,
+   "tol": 0.5,
+   "ok": true,
+   "note": "kN"
+  },
+  {
+   "name": "Equilibrio FEA izaje ΣR/ΣF",
+   "tool": 37.42800717245869,
+   "indep": 37.42800717285989,
+   "d": -1.0719268286624274e-9,
+   "tol": 0.5,
+   "ok": true,
+   "note": "kN"
+  },
+  {
+   "name": "Plancha inferior: FEA / Roark (paño empotrado)",
+   "tool": 119.8918503317062,
+   "indep": 171.21937714400332,
+   "d": -29.97763901986884,
+   "tol": null,
+   "ok": true,
+   "note": "MPa; aceptable si 0,5 < razón < 2,0"
+  },
+  {
+   "name": "Flexión global: desequilibrio en el borde",
+   "tool": -0.5547354878051731,
+   "indep": 0,
+   "d": -0.017056638666651077,
+   "tol": 0.1,
+   "ok": true,
+   "note": "kN"
+  },
+  {
+   "name": "Masa plancha superior",
+   "tool": 524.2048935409314,
+   "indep": 524.1730792781186,
+   "d": 0.006069419447594086,
+   "tol": 0.01,
+   "ok": true,
+   "note": "kg"
+  }
+ ],
+ "auditoria": {
+  "ok": true,
+  "missing": [],
+  "refs": [
+   [
+    "Geometría",
+    5
+   ],
+   [
+    "Geometría (planta)",
+    4
+   ],
+   [
+    "ASME BTH-1 §3-2.3",
+    4
+   ],
+   [
+    "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1",
+    4
+   ],
+   [
+    "Hidráulica",
+    3
+   ],
+   [
+    "ASME BTH-1 §3-2.2",
+    3
+   ],
+   [
+    "Criterio de operación",
+    2
+   ],
+   [
+    "Criterio del proyecto",
+    2
+   ],
+   [
+    "Geometría (alzado)",
+    2
+   ],
+   [
+    "AISC 360-22 F11 (0,6Fy), criterio conservador",
+    2
+   ],
+   [
+    "Placa sándwich axisimétrica (rev. M2)",
+    2
+   ],
+   [
+    "AWS D1.1/D1.1M:2020, tamaño mínimo de filete",
+    2
+   ],
+   [
+    "ASME BTH-1 §3-3.3",
+    2
+   ],
+   [
+    "ASME BTH-1 §3-3.4",
+    2
+   ],
+   [
+    "Criterio del proyecto (μ_d, r_ef)",
+    1
+   ],
+   [
+    "ISO 4413:2010, protección contra sobrepresión; catálogo del fabricante",
+    1
+   ],
+   [
+    "Catálogo del fabricante",
+    1
+   ],
+   [
+    "Revisión independiente M1",
+    1
+   ],
+   [
+    "Cinemática (rev. C3)",
+    1
+   ],
+   [
+    "Cinemática",
+    1
+   ],
+   [
+    "Geometría (retorno del trinquete)",
+    1
+   ],
+   [
+    "Cinemática (rev. C2)",
+    1
+   ],
+   [
+    "Geometría (cilindro retraído)",
+    1
+   ],
+   [
+    "Euler, FS 3 (conservador frente a ISO/TS 13725)",
+    1
+   ],
+   [
+    "Criterio acero/acero lubricado",
+    1
+   ],
+   [
+    "Núcleo central",
+    1
+   ],
+   [
+    "Referencial (rev. M7)",
+    1
+   ],
+   [
+    "AISC 360-22 G2.1(a), Ec. G2-1",
+    1
+   ],
+   [
+    "AISC 360-22 J2.4, Ec. J2-4",
+    1
+   ],
+   [
+    "AISC 360-22 J10.2",
+    1
+   ],
+   [
+    "Control numérico",
+    1
+   ],
+   [
+    "Criterio de fabricación (planitud 0,20 de la cara de giro)",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-2.3 (Fy/Nd, conservador)",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-3.3 (aplastamiento en pasadores)",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-2.5 (aplastamiento) — rev. M4",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-2.5 — rev. M3",
+    1
+   ],
+   [
+    "Revisión independiente M3",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-3.3 / 3-2.3",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-3.3 (simplificado, 2 planos de corte)",
+    1
+   ],
+   [
+    "Ficha del fabricante",
+    1
+   ],
+   [
+    "Fabricante del buje",
+    1
+   ],
+   [
+    "Decisión del mandante",
+    1
+   ],
+   [
+    "AISC 360-22 F11 (0,6Fy)",
+    1
+   ],
+   [
+    "ASME B30.9 (3 ramales efectivos)",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-4 / AISC 360-22 A-3.1",
+    1
+   ]
+  ]
+ },
  "verificaciones": [
   {
    "grp": "Giro",

@@ -37,6 +37,16 @@ const out = {
   nervios: Array.from({ length: P.N_rib }, (_, k) => 360 * k / P.N_rib),
   almas: TT.parseRings(P.rings),
   cilindros: { horario: cw, antihorario: ccw },
+  grupos: TT.PARAM_GROUPS.map((g) => ({ id: g.id, titulo: g.t, p: g.p.map(([id, lab, u]) => ({ id, lab, u })) })),
+  apoyo: { r_u: R.r_u, Ro: R.Ro, Ri: R.Ri, Ac: R.Ac, T_piv_d: R.T_piv(P.mu_d), H_ecc_d: R.H_ecc(P.mu_d), q_min: R.q_min, Wd: R.Wd },
+  carrera: [0, 30, 60].map((i) => {
+    const q = K.pts[i], F = R.Fcyl(R.cd.T, q.arm), Fp = R.cd.T * 1e3 / (P.n_cyl * q.arm), D = P.x_g - q.arm;
+    return { pos: ["Inicio (toma)", "Centro", "Final"][i / 30], th: q.th / D2R, s: q.s, arm: q.arm, Delta: D, Kg: R.Kg(q.arm), F, p: F * 1e3 / R.A * 10,
+             Fpin: Fp, Ft: Fp * Math.cos(q.th), Fr: Fp * Math.sin(q.th), Rg: Fp * D / K.Lg };
+  }),
+  escenarios: (() => { const sc = AG.scenarios(A); return { mus: sc.mus, rs: sc.rs, grid: sc.grid, loads: sc.loads, classes: sc.classes }; })(),
+  revisionCruzada: AG.crossCheck(A),
+  auditoria: AG.audit(A.checks),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
 };
 process.stdout.write(JSON.stringify(out, null, 1));
