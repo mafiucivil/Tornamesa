@@ -18,7 +18,9 @@ zc = tb + DV["hax"]
 d_pin, R_pin = P["d_pin"], P["R_pin"]
 d_bush = P["D_piv"] + 30
 L_piv = tb + hd - tt + 3
-cap_D, cap_t = P["D_piv"] + 60, 15
+cb_t = 8                                  # tapa de inspección (rebaje en la plancha superior)
+cap_D = P["D_piv"] + 60
+cap_t = tt - 3 - cb_t - 1                 # tapa retenedora: entre el pivote (3 sobre el cubo) y la tapa de inspección, 1 de juego
 hole_top = cap_D + 20
 BR = DV["bracket"]
 Llug = BR["Llug"]
@@ -109,7 +111,7 @@ parts["4_arandelas_pernos"] = (wsh, (0.3, 0.3, 0.32), None)
 parts["5_pivote"] = (cyl(P["D_piv"] / 2, L_piv), (0.35, 0.35, 0.38), "pivot")
 parts["6_buje"] = (ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], tb + 2), (0.8, 0.55, 0.2), None)
 parts["7_tapa_retenedora"] = (cyl(cap_D / 2, cap_t, L_piv), (0.35, 0.35, 0.38), None)
-parts["8_tapa_inspeccion"] = (cyl(hole_top / 2 - 1, 8, z0 + hd - 8), (0.22, 0.4, 0.7), None)
+parts["8_tapa_inspeccion"] = (cyl(hole_top / 2 - 1, cb_t, z0 + hd - cb_t), (0.22, 0.4, 0.7), None)
 
 # ---------------- cilindros, patines, uñas y pasadores (sentido antihorario, al tomar el pasador) ----------------
 cyls = dogs = apins = shoes = None
@@ -195,13 +197,27 @@ for a_, b_ in PAIRS:
         v = float("nan")
     inter.append({"a": a_, "b": b_, "vol_mm3": round(v, 1), "ok": bool(v < 1.0)})
 rep = {"interferencias": inter, "partes": {n: round(v * RHO, 2) for n, v in vol.items()}, "comparacion": [{"pieza": a, "modelo3d": round(b, 1), "nucleo": round(c, 1), "dif_%": round((b - c) / c * 100, 1)} for a, b, c in cmp]}
+# diferencias conocidas de la fórmula del núcleo para el patín (no se fuerzan en el modelo; se informan)
+neck_dz = (P["h_slot"] + 1) - (P["h_slot"] - 2) if P["h_tee"] > 0 else 0          # cuello real: de la cabeza T (1 de juego) a la caja
+pocket_open = max(0.0, (zc + P["dog_h"] / 2 + cl1) - (zc + forkH / 2))            # alojamiento más alto que la caja del patín
+nuc = [{"pieza": "Patines", "causa": "cuello de la lengüeta: el núcleo usa h_ranura − 2; con cabeza T el cuello mide h_ranura + 1",
+        "kg": round(P["n_cyl"] * RHO * KG["L_s"] * (P["w_slot"] - 2) * neck_dz, 2)},
+       {"pieza": "Patines", "causa": f"alojamiento de la uña (alto h_uña + 2) abierto {pocket_open:.0f} mm por la cara superior de la caja: el núcleo descuenta el alto completo",
+        "kg": round(P["n_cyl"] * RHO * pocket_open * (P["dog_b"] + 2) * (KG["pocketEnd"] + cl1 - (P["x_g"] - P["w_s"] / 2)), 2)}]
+rep["diferencias_nucleo"] = nuc
 json.dump(rep, open(OUT / "TT300-C_masas3d.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(f"{'Pieza':40s} {'3D kg':>9s} {'Núcleo kg':>10s} {'Δ %':>7s}")
 for r in rep["comparacion"]:
     print(f"{r['pieza']:40s} {r['modelo3d']:9.1f} {r['nucleo']:10.1f} {r['dif_%']:7.1f}")
+for r in nuc:
+    print(f"  Diferencia de la fórmula del núcleo: {r['pieza']} {r['kg']:+.2f} kg · {r['causa']}")
+print(f"  Residual del patín sin esas diferencias: {(rep['partes']['10b_patines'] - sum(r['kg'] for r in nuc) - M['shoes']) / M['shoes'] * 100:+.2f} %")
 print("\nInterferencias (volumen común, debe ser 0):")
 for r in inter:
     print(f"  {'OK ' if r['ok'] else 'XX '} {r['a']:28s} × {r['b']:28s} {r['vol_mm3']:12.1f} mm³")
+big = [r for r in rep["comparacion"] if abs(r["dif_%"]) > 1.0]
+if big:
+    print("\nDiferencias de masa > 1 % (revisar la fórmula del núcleo o la geometría):", ", ".join(f"{r['pieza']} {r['dif_%']:+.1f} %" for r in big))
 print("STEP y GLB en", OUT)
 if not all(r["ok"] for r in inter):
     sys.exit("Hay interferencias entre piezas: revisar geometría")
