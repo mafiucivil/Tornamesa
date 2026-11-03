@@ -248,31 +248,40 @@ comp("3", "Cierre del balance de trabajo, modelo plana (%)", abs(clp) + 1, 1.0)
 tb = P["t_base"]
 z_c = tb + P["h_disc"] / 2
 h_t = P["h_slot"] - 2
-z_t = tb + P["t_bed"] - h_t / 2                       # centroide del contacto lateral en el cuello
+z_t = tb + P["t_bed"] - P["h_slot"] / 2                # definición declarada (contacto a h/2 bajo la cara)
+z_t2 = tb + P["t_bed"] - h_t / 2                       # centroide del contacto de 20 mm (h − 2)
 dz = z_c - z_t
 comp("2", "Altura del eje del cilindro (mm)", z_c, KC["zc0"])
-sc = F_st / eM["Fh"]                                  # estado de calado = estado del máximo escalado
-Fp_cal, H_cal, Frod_cal, Rf_cal = eM["F"] * sc, abs(eM["H"]) * sc, eM["Frod"] * sc, eM["Rf"] * sc
+# estado de calado en la guía: F_pas = η·F_calado, H = s·μ_s·F_pas (la fricción de guía puede ser nula en reposo)
+Fp_cal = eta * F_st
+def guia_cal(th):
+    a, yp = R * math.cos(th), R * math.sin(th)
+    Hh = (1 if yp > r_p else -1) * mu_s * Fp_cal
+    Rf = (Fp_cal * (x_g - a) + Hh * (y_c - y_r)) / Lg
+    return Hh, Rf, Hh - Rf
+GC = [guia_cal(-ph + 2 * ph * i / 4000) for i in range(4001)]
+Rf_cal = max(abs(g[1]) for g in GC)
+SR_cal = max(abs(g[1]) + abs(g[2]) for g in GC)
+H_cal = mu_s * Fp_cal
 ala = (P["w_tee"] - P["w_slot"]) / 2
-def retencion(Fp, H, Frod, lev_r):
-    Mv = H * dz; Mc = (Frod - Fp) * dz
-    return Mv, Mc, Mv / lev_r + Mc / L_s
 lev_core = (P["w_bed"] + P["w_tee"]) / 2
 lev_mine = P["w_bed"] / 2 + (P["w_slot"] / 2 + ala / 2)   # borde de la bancada ↔ centro del ala opuesta
-Mv, Mc, V_core = retencion(Fp_cal, H_cal, Frod_cal, lev_core)
-_, _, V_mine = retencion(Fp_cal, H_cal, Frod_cal, lev_mine)
-_, _, V_fst = retencion(F_st * eta, mu_s * F_st * eta, F_st * eta * (1 + 2 * mu_g * (x_g - a_min) / Lg) * 0 + F_st * eta, lev_mine)
+def retencion(dzz, lev_r):
+    Mv = H_cal * dzz; Mc = mu_g * SR_cal * dzz
+    return Mv, Mc, Mv / lev_r + Mc / L_s
+Mv, Mc, V_core = retencion(dz, lev_core)
+_, _, V_mine = retencion(z_c - z_t2, lev_mine)
 sig_V = V_core / (ala * L_s)
 vcore = ver("Retención vertical del patín")
-comp("2", "Retención vertical V (kN), fórmula declarada", V_core / 1e3, vcore["dem"] * ala * L_s / 1e3, tol=0.01)
-table("Prueba 2 – Fuera del plano a calado", ["Magnitud", "Propio", "Núcleo", "Comentario"],
+comp("2", "Retención vertical V (kN), definición declarada", V_core / 1e3, vcore["dem"] * ala * L_s / 1e3)
+table("Prueba 2 – Fuera del plano a calado (F_pas = η·F_calado)", ["Magnitud", "Propio", "Núcleo", "Comentario"],
       [["e_z eje cilindro – contacto uña (mm)", "0", "0", "uña centrada en la luz del pasador"],
-       ["Δz carga – contacto en el cuello (mm)", s3(dz), "—", f"z_c {s3(z_c)}, z_cuello {s3(z_t)}"],
-       ["Vuelco M = H·Δz (kN·m)", s3(Mv / 1e6), "—", ""],
-       ["Cabeceo M = (F_vástago − F_pas)·Δz (kN·m)", s3(Mc / 1e6), "—", ""],
-       ["V = M_v/((w_b+w_T)/2) + M_c/L_s (kN)", s3(V_core / 1e3), s3(vcore["dem"] * ala * L_s / 1e3), "Δz o fuerzas del núcleo no reproducibles exactamente"],
-       ["V con brazo al centro del ala (kN)", s3(V_mine / 1e3), "—", f"brazo {s3(lev_mine)} en vez de {s3(lev_core)}"],
-       ["σ ala de la cabeza T (MPa)", s3(sig_V), s3(vcore["dem"]), f"FU {s3(sig_V/Fb)} — sin consecuencia"]])
+       ["Δz carga – contacto en el cuello (mm)", s3(dz), "—", f"z_c {s3(z_c)}, z_t {s3(z_t)}"],
+       ["Vuelco M = H_máx·Δz (kN·m)", s3(Mv / 1e6), "—", ""],
+       ["Cabeceo M = μg·máx(|R_f|+|R_r|)·Δz (kN·m)", s3(Mc / 1e6), "—", ""],
+       ["V = M_v/((w_b+w_T)/2) + M_c/L_s (kN)", s3(V_core / 1e3), s3(vcore["dem"] * ala * L_s / 1e3), ""],
+       ["V con centroide a (h−2)/2 y brazo al centro del ala (kN)", s3(V_mine / 1e3), "—", f"sensibilidad: {(V_mine/V_core-1)*100:+.1f} %"],
+       ["σ ala de la cabeza T (MPa)", s3(sig_V), s3(vcore["dem"]), f"FU {s3(sig_V/Fb)}"]])
 
 # ======================================================================================
 # PRUEBA 4 – Uña (cara plana) a F_calado
@@ -280,9 +289,10 @@ table("Prueba 2 – Fuera del plano a calado", ["Magnitud", "Propio", "Núcleo",
 Fy_d = P["Fy_dog"]; fa_d, fv_d = Fy_d / Nd, Fy_d / (Nd * 3 ** .5)
 S_d, A_d = h_d * b ** 2 / 6, h_d * b
 sig_m = F_st * (lev + P["e_dog"]) / S_d + mu_s * F_st / A_d
-comp("4", "Uña: flexión en la boca + axial μF (MPa)", sig_m, ver("Flexión en la boca")["dem"])
 sig_m2 = sig_m + mu_s * F_st * (b / 2) / S_d          # H aplicada en la cara: excéntrica b/2 del eje
-FIND.append(("N4", "menor", "Uña: flexión en la boca omite el momento de H = μ_s·F aplicado en la cara (excentricidad b/2)",
+comp("4", "Uña: flexión en la boca + μF (axial y excéntrica b/2) (MPa)", sig_m2, ver("Flexión en la boca")["dem"])
+if abs(sig_m2 - ver("Flexión en la boca")["dem"]) / sig_m2 > 1e-3:
+  FIND.append(("N4", "menor", "Uña: flexión en la boca omite el momento de H = μ_s·F aplicado en la cara (excentricidad b/2)",
              f"FU {s3(ver('Flexión en la boca')['fu'])}", f"FU {s3(sig_m2/fa_d)}: σ += μ_s·F·(b/2)/(h·b²/6)"))
 tau_m = 1.5 * F_st / A_d
 comp("4", "Uña: corte en la boca (MPa)", tau_m, ver("Corte en la boca")["dem"])
@@ -294,7 +304,9 @@ comp("4", "Profundidad de temple 3·0,78·b (mm)", 3 * 0.78 * bH, ver("Profundid
 fu_pin_H = pH / (1.67 * P["Fy_pin"])
 F_dd = eM["F"]
 fu_pin_Hd = math.sqrt(F_dd / h_d * Es / (math.pi * r_p)) / (1.67 * P["Fy_pin"])
-FIND.append(("N2", "importante", "Hertz: la presión es la misma en ambos cuerpos. La memoria pide temple por inducción en pasador y uña, pero la nota de planos (cad/planos_tt300c.py) sigue con «Dureza pos 3 y 10: 280–330 HB». Sin temple, el pasador (Fy 800) no cumple",
+planos_txt = (ROOT / "cad" / "planos_tt300c.py").read_text()
+if "Dureza pos 3 y 10: 280–330 HB" in planos_txt or "inducc" not in planos_txt.lower():
+  FIND.append(("N2", "importante", "Hertz: la presión es la misma en ambos cuerpos. La memoria pide temple por inducción en pasador y uña, pero la nota de planos (cad/planos_tt300c.py) sigue con «Dureza pos 3 y 10: 280–330 HB». Sin temple, el pasador (Fy 800) no cumple",
              f"FU {s3(ver('Contacto de Hertz')['fu'])} (con Fy_sup = {P['Fy_surf']} en ambos)", f"pasador sin temple: FU {s3(fu_pin_H)} a calado ({s3(fu_pin_Hd)} a diseño). Llevar el temple de pos 3 y 10 a planos; rotular el chequeo «ambas caras»"))
 # chaflán de retorno
 beta = math.radians(P["beta_ch"])
@@ -455,49 +467,42 @@ table("Prueba 7 – Retorno y reenganche", ["Chequeo", "Propio", "Referencia", "
 # ======================================================================================
 Lb = P["L0"] + P["stroke"]; Pcr = math.pi ** 2 * P["E"] * math.pi * P["d_rod"] ** 4 / 64 / Lb ** 2
 comp("8", "Pandeo: Pcr (kN)", Pcr / 1e3, ver("Pandeo del vástago")["cap"] * 3)
-comp("8", "R_guía a calado (estado del máximo escalado a F_calado) (kN)", Rf_cal / 1e3, DV["Rguide"])
+comp("8", "R_guía a calado con F_pas = η·F_calado (kN)", Rf_cal / 1e3, DV["Rguide"])
 sig_t = 4 * Rf_cal / (h_t * L_s)
 comp("8", "Lengüeta: 4R/((h−2)L_s) (MPa)", sig_t, ver("Aplastamiento de la lengüeta")["dem"])
 t_root = (P["w_bed"] - P["w_tee"]) / 2
 q = 4 * Rf_cal / L_s
-sig_w_core = 6 * q * (P["h_slot"] / 2) / t_root ** 2
-comp("8", "Pared de la ranura, fórmula declarada (brazo h/2) (MPa)", sig_w_core, ver("Pared de la ranura")["dem"])
-lev_w = h_t / 2 + 2 + P["h_tee"]                    # centroide del contacto → fondo de la cabeza T (raíz de t_raíz)
+lev_w = h_t / 2 + 2 + P["h_tee"]                    # centroide del contacto (20 mm) → fondo de la cabeza T (raíz de t_raíz)
 sig_w = 6 * q * lev_w / t_root ** 2
+comp("8", "Pared de la ranura: raíz de t_raíz, brazo al fondo de la cabeza T (MPa)", sig_w, ver("Pared de la ranura")["dem"])
 w_bed_req = P["w_tee"] + 2 * math.sqrt(6 * q * lev_w / (Fy / Nd))
 f_w = Rf_cal / (2 * 0.707 * P["w_bed_f"] * (L_s + 2 * P["w_bed"]))
 comp("8", "Soldadura bancada (MPa)", f_w, ver("Soldadura bancada")["dem"])
 comp("8", "Fondo de ranura (mm)", P["t_bed"] - P["h_slot"] - P["h_tee"], ver("Fondo de la ranura")["dem"])
-# carga de calado en la guía con F_pas = F_calado·η (sin descontar la fricción de guía, que en reposo puede no existir)
-Fp_c2 = F_st * eta
-Rf_c2 = (Fp_c2 * (x_g - a_min) + mu_s * Fp_c2 * (y_c - y_r)) / Lg
-FIND.append(("N1", "crítica", f"Pared de la ranura T: la sección de t_raíz = (w_b − w_T)/2 = {s3(t_root)} mm está junto a la cabeza T; su raíz es el fondo de la cabeza, a {s3(lev_w)} mm del centroide del contacto (no h_ranura/2 = {s3(P['h_slot']/2)})",
-             f"FU {s3(ver('Pared de la ranura')['fu'])}", f"FU {s3(sig_w/(Fy/Nd))} (σ = 6q·(h_T + (h−2)/2 + 2)/t_raíz²); {s3(sig_w/(Fy/Nd)*Rf_c2/Rf_cal)} con F_pas = η·F_calado; w_bancada ≥ {s3(w_bed_req)} mm ({s3(P['w_tee'] + 2*math.sqrt(6*4*Rf_c2/L_s*lev_w/(Fy/Nd)))} con η·F_calado)"))
-FIND.append(("N3", "menor", "Guía a calado: R se calcula con F_pas = 0,79·F_calado (descuenta η y la fricción de guía), mientras uña y pasadores usan F_calado. En reposo la fricción de guía puede ser nula",
-             f"R = {s3(Rf_cal/1e3)} kN; lengüeta FU {s3(ver('Aplastamiento de la lengüeta')['fu'])}",
-             f"R = {s3(Rf_c2/1e3)} kN con F_pas = η·F_calado: lengüeta FU {s3(4*Rf_c2/(h_t*L_s)/Fb)}, pared (fórmula declarada) FU {s3(sig_w_core/(Fy/Nd)*Rf_c2/Rf_cal)}"))
+if sig_w / (Fy / Nd) > 1.0:
+    FIND.append(("N1", "crítica", "Pared de la ranura T no cumple", f"FU {s3(ver('Pared de la ranura')['fu'])}", f"FU {s3(sig_w/(Fy/Nd))}; w_bancada ≥ {s3(w_bed_req)}"))
+elif abs(sig_w - ver("Pared de la ranura")["dem"]) / sig_w > 1e-3:
+    FIND.append(("N1", "importante", "Pared de la ranura T: el brazo del núcleo no coincide con el propio", f"σ {s3(ver('Pared de la ranura')['dem'])}", f"σ {s3(sig_w)}"))
+Rf_c2 = Rf_cal
 # asimetría
 def f_rat(mg, th):
     e = estado(th, 1.0, mu_gg=mg); return e["Frod"] / e["F"]
 Has_core = ver("Empuje neto al pivote")["dem"]
 Has_mx = max(F_st * eta * abs(1 / f_rat(mu_g - 0.05, th) - 1 / f_rat(mu_g + 0.05, th)) for th in [(-ph + 2 * ph * i / 400) for i in range(401)])
 Has_ini = F_st * eta * abs(1 / f_rat(mu_g - 0.05, -ph) - 1 / f_rat(mu_g + 0.05, -ph))
-comp("8", "H_asim evaluado en θ = −π/N (kN)", Has_ini / 1e3, Has_core)
 comp("8", "H_asim máximo en la carrera (kN)", Has_mx / 1e3, Has_core)
 pb = ver("Presión en el buje")
 p_new = pb["dem"] + (Has_mx / 1e3 - Has_core) * 1e3 / (P["D_piv"] * P["L_bush"])
 if Has_mx / 1e3 > Has_core * 1.001:
-    FIND.append(("N7", "menor", "H_asim del pivote se evalúa en θ = −π/N; el máximo está en θ = +π/N (fin de carrera, donde también está F_dis)",
+    FIND.append(("N7", "menor", "H_asim del pivote menor que el máximo en la carrera",
                  f"{s3(Has_core)} kN, buje FU {s3(pb['fu'])}", f"{s3(Has_mx/1e3)} kN, buje FU {s3(p_new/pb['cap'])}"))
-comp("8", "Buje: p (MPa) con H_asim del núcleo", (D0["apoyo"]["H_ecc_d"] + Has_core) * 1e3 / (P["D_piv"] * P["L_bush"]), pb["dem"])
+comp("8", "Buje: p (MPa) con H_asim propio", (D0["apoyo"]["H_ecc_d"] + Has_mx / 1e3) * 1e3 / (P["D_piv"] * P["L_bush"]), pb["dem"])
 table("Prueba 8 – Guía, bancada y pivote", ["Frente", "Propio", "Núcleo", "Adm.", "FU propio", "FU núcleo"],
       [["R_guía delantera a calado (kN)", s3(Rf_cal / 1e3), s3(DV["Rguide"]), "—", "—", "—"],
        ["Lengüeta 4R/((h−2)L_s)", s3(sig_t), s3(ver("Aplastamiento de la lengüeta")["dem"]), s3(Fb), s3(sig_t / Fb), s3(ver("Aplastamiento de la lengüeta")["fu"])],
-       ["Pared ranura, brazo h/2 (núcleo)", s3(sig_w_core), s3(ver("Pared de la ranura")["dem"]), s3(Fy / Nd), s3(sig_w_core / (Fy / Nd)), s3(ver("Pared de la ranura")["fu"])],
-       [f"Pared ranura, brazo {s3(lev_w)} a la raíz de t_raíz", s3(sig_w), "—", s3(Fy / Nd), s3(sig_w / (Fy / Nd)), "—"],
+       [f"Pared ranura, brazo {s3(lev_w)} a la raíz de t_raíz = {s3(t_root)}", s3(sig_w), s3(ver("Pared de la ranura")["dem"]), s3(Fy / Nd), s3(sig_w / (Fy / Nd)), s3(ver("Pared de la ranura")["fu"])],
        ["Soldadura bancada (2 filetes)", s3(f_w), s3(ver("Soldadura bancada")["dem"]), s3(0.6 * P["FEXX"] / (1.2 * Nd)), s3(f_w / (0.6 * P["FEXX"] / (1.2 * Nd))), s3(ver("Soldadura bancada")["fu"])],
-       ["R con F_pas = η·F_calado (kN)", s3(Rf_c2 / 1e3), "—", "—", "—", "—"],
-       ["H_asim (kN) máx en carrera / en −π/N", f"{s3(Has_mx/1e3)} / {s3(Has_ini/1e3)}", s3(Has_core), "—", "—", "—"],
+       ["H_asim (kN) máx en carrera", s3(Has_mx/1e3), s3(Has_core), "—", "—", "—"],
        ["Pandeo del vástago Pcr (kN)", s3(Pcr / 1e3), s3(ver("Pandeo del vástago")["cap"] * 3), "Pcr/3", s3(F_st / (Pcr / 3)), s3(ver("Pandeo del vástago")["fu"])]])
 
 # ======================================================================================

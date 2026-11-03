@@ -78,11 +78,26 @@ for k, (mu, r) in cases.items():
     F = fmax(T * 1e3 / P["n_cyl"])[4]                                         # kN (T en kN·mm / mm)
     chk(f"Caso {k}: F por cilindro (kN)", F, G["casos"][k][0])
     chk(f"Caso {k}: FS", Fst / F, G["casos"][k][2])
-fu = G["fu"]
+FU = G["fu"]
+class _FU(dict):
+    def __getitem__(self, k):
+        if k in FU: return FU[k]
+        m = [v for kk, v in FU.items() if kk.startswith(k.split(" (")[0])]
+        if len(m) == 1: return m[0]
+        raise KeyError(k)
+fu = _FU()
 Td = P["mu_d"] * N * P["r_ef"] / 1e3 + P["mu_bush"] * H(P["mu_d"]) * P["D_piv"] / 2 / 1e3
 eM = fmax(Td * 1e3 / P["n_cyl"])
-sc = Fst / eM[4]                                       # estado de calado = estado crítico escalado (convención del núcleo)
-Rcal = eM[2] * sc                                      # kN
+# calado en la guía: F_pas = η·F_calado (la fricción de guía puede ser nula en reposo); R_f máx en θ = +π/N
+Fpc = eta * Fst                                        # kN
+def guia_cal(th):
+    a, yp = P["R_pin"] * math.cos(th), P["R_pin"] * math.sin(th)
+    Hh = (1 if yp > rp else -1) * mu_s * Fpc
+    Rf = (Fpc * (P["x_g"] - a) + Hh * (y_c - y_r)) / Lg
+    return Hh, Rf, Hh - Rf
+gc = [guia_cal(-pitch / 2 + pitch * i / 4000) for i in range(4001)]
+Rcal = max(abs(g[1]) for g in gc)                      # kN
+SRcal = max(abs(g[1]) + abs(g[2]) for g in gc)
 
 # --- cadena de empuje (BTH-1, Nd) ---
 Nd = P["Nd"]; tpr = max(P["t_pr"], P["t_top"], P["t_bot"])
@@ -103,11 +118,11 @@ chk("Pandeo del vástago: FU", Fst / (Pcr / 3), fu["Giro · Pandeo del vástago 
 F1 = Fst * 1e3; b, hd = P["dog_b"], P["dog_h"]; fa, fv = P["Fy_dog"] / Nd, P["Fy_dog"] / (Nd * 3**.5)
 mouth = min(P["x_g"] - P["w_s"] / 2, P["R_pin"] + rp + 10)
 lev = mouth - armmin
-chk("Uña: FU flexión en la boca + axial μ_s·F", (F1 * (lev + P["e_dog"]) / (hd * b**2 / 6) + mu_s * F1 / (hd * b)) / fa,
+chk("Uña: FU flexión en la boca + μ_s·F (axial y excéntrica b/2)", (F1 * (lev + P["e_dog"]) / (hd * b**2 / 6) + mu_s * F1 * (b / 2) / (hd * b**2 / 6) + mu_s * F1 / (hd * b)) / fa,
     fu["Uña · Flexión en la boca del patín (voladizo) con fricción radial"])
 chk("Uña: FU corte en la boca", 1.5 * F1 / (hd * b) / fv, fu["Uña · Corte en la boca del patín"])
 Es = P["E"] / (2 * (1 - P["nu"]**2))
-chk("Uña: FU Hertz cara plana–pasador", math.sqrt(F1 / hd * Es / (math.pi * rp)) / (1.67 * P["Fy_surf"]), fu["Uña · Contacto de Hertz cara plana–pasador (a calado)"])
+chk("Uña: FU Hertz cara plana–pasador (ambas caras templadas)", math.sqrt(F1 / hd * Es / (math.pi * rp)) / (1.67 * P["Fy_surf"]), fu["Uña · Contacto de Hertz cara plana–pasador"])
 tip = armmin - P["c_tip"]
 travel = (P["R_pin"] + rp + 5) - tip                  # punta retraída 5 mm fuera del pasador en a = R (cota del núcleo)
 beta = math.radians(P["beta_ch"])
@@ -142,5 +157,13 @@ chk("Pared de la ranura: FU flexión en la raíz de t_raíz (brazo hasta el fond
 chk("Soldadura bancada–base: FU", Rcal * 1e3 / (2 * 0.707 * P["w_bed_f"] * (Lsh + 2 * P["w_bed"])) / (0.6 * P["FEXX"] / (1.2 * Nd)),
     fu["Patín y guía · Soldadura bancada–base (2 filetes longitudinales)"])
 chk("Fondo de la ranura (FU = 12/fondo)", 12 / (P["t_bed"] - P["h_slot"] - P["h_tee"]), fu["Patín y guía · Fondo de la ranura de la bancada"])
+# retención vertical por la cabeza T (definición declarada: contacto a h_ranura/2 bajo la cara superior)
+z_eje = P["h_disc"] / 2 + P["t_base"]; z_t = P["t_base"] + P["t_bed"] - P["h_slot"] / 2; dz = z_eje - z_t
+Mv = mu_s * Fpc * 1e3 * dz; Mc = mu_g * SRcal * 1e3 * dz
+Vt = Mv / ((P["w_bed"] + P["w_tee"]) / 2) + Mc / Lsh
+ala = (P["w_tee"] - P["w_slot"]) / 2
+chk("Retención T: FU aplastamiento del ala", Vt / (ala * Lsh) / (1.25 * P["Fy"] / Nd), fu["Patín y guía · Retención vertical del patín: aplastamiento en la cabeza T"])
+chk("Retención T: FU flexión del ala", 6 * Vt * (ala / 2) / (Lsh * P["h_tee"]**2) / (P["Fy"] / Nd), fu["Patín y guía · Retención vertical: flexión del ala de la cabeza T"])
+chk("Retención T: FU flexión del labio de la bancada", 6 * Vt * (ala / 2) / (Lsh * P["h_slot"]**2) / (P["Fy"] / Nd), fu["Patín y guía · Retención vertical: flexión del labio de la bancada sobre la cabeza T"])
 print("\nRESULTADO:", "sin diferencias" if not fails else "DIFERENCIAS en " + ", ".join(fails))
 sys.exit(1 if fails else 0)
