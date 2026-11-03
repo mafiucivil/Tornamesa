@@ -194,8 +194,11 @@
         const ys0 = yr - dy * g.rear, ys1 = yr + dy * g.front;
         o.push(`<rect x="${X - P.w_s / 2}" y="${Math.min(y(ys0), y(ys1))}" width="${P.w_s}" height="${g.L_s}" fill="var(--panel)" stroke="var(--ink)" stroke-width="5"/>`);
         o.push(`<circle cx="${X}" cy="${y(yr)}" r="${P.d_pp / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="4"/>`);
-        const yp = dy * (-P.R_pin * Math.sin(g.pitch / 2)), xm = sx * g.mouthX, xa = sx * g.a_min;
-        o.push(`<rect x="${Math.min(xm, xa)}" y="${y(yp - dy * (P.d_pin / 2 + 2)) - (dy > 0 ? P.dog_b : 0)}" width="${Math.abs(xm - xa) + (sx > 0 ? 0 : 0)}" height="${P.dog_b}" fill="var(--load)" opacity=".85"/>`);
+        const yp = dy * (-P.R_pin * Math.sin(g.pitch / 2)), xm = sx * g.mouthX, xa = sx * g.a_min, xt = sx * g.tipX;
+        // uña de cara plana (en contacto con la superficie del pasador), con el chaflán de retorno en la arista punta–cara trasera
+        const ch = TT.chamferGeo(P), yf = yp - dy * P.d_pin / 2, ybk = yf - dy * P.dog_b;
+        const pts = [[xt, yf], [xm, yf], [xm, ybk], [xt + sx * ch.dx, ybk], [xt, ybk + dy * Math.min(ch.dy, P.dog_b)]].map(([a, b]) => `${a},${y(b)}`).join(" ");
+        o.push(`<polygon points="${pts}" fill="var(--load)" opacity=".85"/>`);
         o.push(`<circle cx="${xa}" cy="${y(yp)}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`);
         if (sx > 0) {
           o.push(`<line x1="0" y1="0" x2="${xa}" y2="0" stroke="var(--load)" stroke-width="3"/><text x="${xa / 2}" y="-14" font-size="44" text-anchor="middle" fill="var(--load)">brazo ${fmt(g.a_min, 3)} mm</text>`);
@@ -227,10 +230,12 @@
     const K = A.R.K, zb = tb + P.t_bed, fh = TT.forkH(P);
     o.push(`<rect x="${X(P.x_g - P.w_bed / 2)}" y="${Z(zb)}" width="${P.w_bed}" height="${P.t_bed}" fill="var(--steel)" opacity=".8"/>`);
     o.push(`<rect x="${X(P.x_g - P.w_slot / 2)}" y="${Z(zb)}" width="${P.w_slot}" height="${P.h_slot}" fill="var(--panel)"/>`);
+    if (P.h_tee > 0) o.push(`<rect x="${X(P.x_g - P.w_tee / 2)}" y="${Z(zb - P.h_slot)}" width="${P.w_tee}" height="${P.h_tee}" fill="var(--panel)"/>`);
     o.push(`<rect x="${X(P.x_g - P.w_s / 2)}" y="${Z(zc + fh / 2)}" width="${P.w_s}" height="${zc + fh / 2 - zb}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
     o.push(`<rect x="${X(P.x_g - P.w_slot / 2 + 1)}" y="${Z(zb)}" width="${P.w_slot - 2}" height="${P.h_slot - 2}" fill="var(--ink2)"/>`);
+    if (P.h_tee > 0) o.push(`<rect x="${X(P.x_g - P.w_tee / 2 + 1)}" y="${Z(zb - P.h_slot + 1)}" width="${P.w_tee - 2}" height="${P.h_tee - 2}" fill="var(--ink2)"/>`);
     o.push(`<rect x="${X(K.mouthX)}" y="${Z(zc + P.dog_h / 2 + 10)}" width="${P.x_g - P.w_s / 2 - K.mouthX}" height="${P.dog_h + 20}" fill="none" stroke="var(--ink)" stroke-width="2"/>`);
-    o.push(`<rect x="${X(K.a_min + P.d_pin / 2)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.a_min - P.d_pin / 2}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
+    o.push(`<rect x="${X(K.tipX)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.tipX}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
     o.push(`<line x1="${X(P.x_g)}" y1="${Z(tb)}" x2="${X(P.x_g)}" y2="${Z(zc + fh / 2 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
     const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
     o.push(dim(r0 + 8, tb, tb + hd, `h ${fmt(hd, 3)}`, 6));

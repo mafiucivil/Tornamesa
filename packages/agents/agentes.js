@@ -60,16 +60,31 @@ const AG = (() => {
     const P = A.P, R = A.R, out = [];
     const add = (name, a, b, tol, note) => out.push({ name, tool: a, indep: b, d: (a - b) / (Math.abs(b) || 1) * 100, tol, ok: Math.abs(a - b) <= tol / 100 * Math.abs(b) + 1e-9, note });
     if (!R.K.ok) return out;
-    // (a) Fuerza de diseño por trabajos virtuales: barra F_b = T/(n·dy/dθ) con y(θ) = R·sen θ derivado numéricamente,
-    //     más el equilibrio del patín con fricción en las dos reacciones de guía: F·η = F_b·(1 + 2μg·Δ/Lg)
-    const pitch = 2 * Math.PI / P.N_pin, yOf = (th) => P.R_pin * Math.sin(th);
+    // (a) Fuerza de diseño por potencia virtual con fricción. Para cada θ: equilibrio lineal del patín (3 incógnitas F_pas, R_f, R_r,
+    //     resueltas por eliminación de Gauss); el sentido de la fricción de la cara sale de la velocidad numérica del punto
+    //     material del pasador en el contacto. Luego F_cil·η·v = (T/n)·ω + μg·Σ|R|·v + μ_s·F_pas·|v_desliz|.
+    const pitch = 2 * Math.PI / P.N_pin, yOf = (th) => P.R_pin * Math.sin(th), r = P.d_pin / 2;
+    const Ls = R.K.L_s, Lg = 2 / 3 * Ls, front = R.K.front, rear = R.K.rear, Tn = R.cd.T * 1e3 / P.n_cyl;
+    const gauss = (M, v) => { const n = v.length, a = M.map((row, i) => [...row, v[i]]);
+      for (let c = 0; c < n; c++) { let pv = c; for (let i = c + 1; i < n; i++) if (Math.abs(a[i][c]) > Math.abs(a[pv][c])) pv = i; [a[c], a[pv]] = [a[pv], a[c]];
+        for (let i = c + 1; i < n; i++) { const f = a[i][c] / a[c][c]; for (let j = c; j <= n; j++) a[i][j] -= f * a[c][j]; } }
+      const x = new Array(n).fill(0); for (let i = n - 1; i >= 0; i--) { let s2 = a[i][n]; for (let j = i + 1; j < n; j++) s2 -= a[i][j] * x[j]; x[i] = s2 / a[i][i]; } return x; };
     let Fmax = 0;
-    for (let i = 0; i <= 200; i++) {
-      const th = -pitch / 2 + pitch * i / 200, h = 1e-6, dy = (yOf(th + h) - yOf(th - h)) / (2 * h);
-      const Fb = R.cd.T * 1e3 / (P.n_cyl * dy), xb = P.R_pin * Math.cos(th);
-      Fmax = Math.max(Fmax, Fb * (1 + 2 * P.mu_g * (P.x_g - xb) / (2 / 3 * R.K.L_s)) / P.eta_c);
-    }
-    add("Fuerza de diseño por cilindro (trabajos virtuales + equilibrio del patín)", R.cd.F, Fmax, 0.1, "kN");
+    const evalAt = (th, sgn) => {
+      const xc = P.R_pin * Math.cos(th), yc = yOf(th) - r, hh = 1e-7;
+      // punto material del pasador en el contacto, rotado dθ con la mesa: velocidad en x
+      const vx = ((xc * Math.cos(hh) - yc * Math.sin(hh)) - (xc * Math.cos(-hh) - yc * Math.sin(-hh))) / (2 * hh), vy = xc;
+      const sF = sgn !== undefined ? sgn : -Math.sign(vx);             // fricción sobre el pasador opuesta a su deslizamiento en x
+      const mu = P.mu_s * sF;
+      const yrp = yOf(th) - P.l_p, yr = yrp + (front - rear) / 2 - Lg / 2;
+      // incógnitas [Fp, Rf, Rr]: mesa x_c·Fp − y_c·μFp = Tn; patín ΣM(y_r): Fp·(x_g − x_c) + μFp·(y_c − y_r) − Lg·Rf = 0; ΣFx: −μFp + Rf + Rr = 0
+      const [Fp, Rf, Rr] = gauss([[xc - yc * mu, 0, 0], [(P.x_g - xc) + mu * (yc - yr), -Lg, 0], [-mu, 1, 1]], [Tn, 0, 0]);
+      const Pw = Tn + P.mu_g * (Math.abs(Rf) + Math.abs(Rr)) * vy + P.mu_s * Fp * Math.abs(vx);   // potencia por unidad de ω
+      return Pw / (P.eta_c * vy);
+    };
+    for (let i = 0; i <= 400; i++) { const th = -pitch / 2 + pitch * i / 400; Fmax = Math.max(Fmax, evalAt(th)); }
+    const thX = Math.asin(r / P.R_pin); if (thX < pitch / 2) { Fmax = Math.max(Fmax, evalAt(thX, 1), evalAt(thX, -1)); }
+    add("Fuerza de diseño por cilindro (potencia virtual con fricción en guía y cara de la uña)", R.cd.F, Fmax, 0.1, "kN");
     // (b) Carrera requerida por coordenadas de los pasadores al inicio y fin del paso
     add("Carrera requerida (coordenadas)", R.K.s_req, P.s_free + yOf(pitch / 2) - yOf(-pitch / 2), 0.1, "mm");
     // (c) Radio de fricción por integración numérica en malla polar

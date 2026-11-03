@@ -212,8 +212,10 @@ table(["Componente", "Descripción"], [
     ["Interfaz de giro", "Acero-acero con grasa grafitada (pos 14) sobre la cara inferior de la mesa"],
     ["Cilindros (pos 9)", f"{pint(P['n_cyl'])} × doble efecto Ø{pint(P['D_bore'])}/Ø{pint(P['d_rod'])}, carrera {pint(P['stroke'])}, clase {pint(P['p_rated'])} psi ({pint(psi_bar)} bar), "
                           f"alivio {pint(P['p_relief'])} bar, alarma {pint(P['p_alarm'])} bar"],
-    ["Patín guiado (pos 16) y bancada (pos 1e)", f"Patín coaxial con el cilindro en x = ±{pint(P['x_g'])}; lengüeta en ranura {pint(P['w_slot'])} H8 × {pint(P['h_slot'])}; largo de guía efectivo Lg = {n(K['Lg'])}"],
-    ["Uña deslizante (pos 10) y resorte (pos 12)", f"Uña {pint(P['dog_b'])} × {pint(P['dog_h'])}, retorno radial {n(K['travel'])} mm contra resorte; reengancha detrás del pasador siguiente"],
+    ["Patín guiado (pos 16) y bancada (pos 1e)", f"Patín {pint(K['L_s'])} × {pint(P['w_s'])} coaxial con el cilindro en x = ±{pint(P['x_g'])}; lengüeta con cabeza T en ranura T de la bancada "
+                                                 f"(cuello {pint(P['w_slot'])} H8 × {pint(P['h_slot'])}, cabeza {pint(P['w_tee'])} × {pint(P['h_tee'])}) que guía y retiene el patín; largo de guía efectivo Lg = {n(K['Lg'])}; marco de boca con paredes de {pint(P['t_fw'])}"],
+    ["Uña deslizante (pos 10) y resorte (pos 12)", f"Uña {pint(P['dog_b'])} × {pint(P['dog_h'])} con cara de empuje plana templada; chaflán de retorno a {pint(P['beta_ch'])}° "
+                                                   f"({n(DV['chaflan']['dx'])} × {n(DV['chaflan']['dy'])} mm); retorno radial {n(K['travel'])} mm contra resorte; reengancha detrás del pasador siguiente"],
 ], widths=(48, 122), size=8.5)
 T("Funcionamiento: los dos cilindros trabajan en par simétrico (par puro sobre la mesa). En cada carrera la uña toma un pasador y la mesa gira un paso; "
   "al retraer, la cara trasera achaflanada de la uña la desplaza radialmente contra el resorte, pasa el pasador siguiente y se reengancha. "
@@ -237,8 +239,10 @@ table(["Magnitud", "Símbolo", "Valor", "Origen"], [
 H("4.2 Materiales", 2)
 table(["Elemento", "Material", "Fy (MPa)"], [
     ["Planchas de mesa, base, ménsulas, bancadas", "ASTM A572 Gr.50", pint(P["Fy"])],
-    ["Pasadores de empuje (pos 3)", "34CrNiMo6+QT (EN 10083-3)", pint(P["Fy_pin"])],
-    ["Uña (pos 10)", "34CrNiMo6+QT", pint(P["Fy_dog"])],
+    ["Pasadores de empuje (pos 3)", "34CrNiMo6+QT (EN 10083-3); zona de contacto templada por inducción ≥ 50 HRC", pint(P["Fy_pin"])],
+    ["Uña (pos 10)", "34CrNiMo6+QT, certificado 3.1; cara de empuje templada por inducción ≥ 50 HRC", pint(P["Fy_dog"])],
+    ["Superficies de contacto uña–pasador", "Temple por inducción", pint(P["Fy_surf"])],
+    ["Patín (pos 16)", "S460 o 34CrNiMo6+QT", pint(P["Fy_shoe"])],
     ["Pasadores de articulación (pos 11)", "42CrMo4+QT", pint(P["Fy_pp"])],
     ["Pivote (pos 5)", "42CrMo4+QT", pint(P["Fy_piv"])],
     ["Soldadura", f"E70 (FEXX = {pint(P['FEXX'])} MPa)", "—"],
@@ -290,7 +294,7 @@ T(f"Resultado: q_mín > 0, la mesa no despega. La presión máxima {n(DV['q_max'
 H("7. Accionamiento")
 H("7.1 Par resistente", 2)
 T("T(μ, r) = μ·N·r + T_piv(μ)   [equilibrio de momentos respecto del eje del pivote]")
-H("7.2 Cinemática del accionamiento guiado", 2)
+H("7.2 Cinemática y equilibrio del accionamiento guiado", 2)
 table(["Magnitud", "Expresión", "Valor"], [
     ["Paso angular", "2π/N_pas", n(360 / P["N_pin"], unit="°")],
     ["Brazo mínimo (toma del pasador)", "a_mín = R_pas·cos(π/N)", n(K["armMin"], unit="mm")],
@@ -298,12 +302,23 @@ table(["Magnitud", "Expresión", "Valor"], [
     ["Carrera requerida", "s_req = s_libre + c", n(K["s_req"], unit="mm")],
     ["Margen de carrera", "carrera − s_req", n(K["margin"], unit="mm")],
     ["Excentricidad máxima eje cilindro–pasador", "Δ = x_g − a_mín", n(K["DeltaMax"], unit="mm")],
-    ["Largo efectivo de guía", "Lg = ⅔·L_patín", n(K["Lg"], unit="mm")],
-    ["Factor de guía", "K = (1 + 2μ_g·Δ/Lg)/η_c", n(DV["Kguide"], 4)],
-    ["Fuerza por cilindro", "F_cil = K·T/(n·a)", "ver 7.3"],
+    ["Largo del patín / largo efectivo de guía", "L_patín = l_p + 20 + f_ext + 1,25·d_pp; Lg = ⅔·L_patín", f"{n(K['L_s'])} / {n(K['Lg'])} mm"],
+    ["μ guía / μ cara de la uña–pasador", "μ_g / μ_s", f"{n(P['mu_g'])} / {n(P['mu_s'])}"],
+    ["Factor equivalente (máximo en la carrera)", "K = F_cil·n·a_mín/T", n(DV["Kguide"], 4)],
 ], widths=(65, 65, 40))
-T("Equilibrio del patín: la fuerza del cilindro actúa sobre x_g y la reacción del pasador sobre x = R·cos θ. El par F·Δ lo toman dos reacciones de la bancada "
-  "separadas Lg (R_guía = F_pas·Δ/Lg), cuya fricción 2μ_g·R_guía produce el factor K. La expresión se contrasta en el revisor cruzado por trabajos virtuales (Anexo A).")
+T("Hipótesis: la uña empuja con una cara plana normal a la guía (eje y). El pasador, fijo a la mesa, desliza sobre la cara: su punto de contacto (x_c, y_c) = "
+  "(R cos θ, R sin θ − r) se mueve en x con velocidad ω·(r − y_p), por lo que la fricción H = s·μ_s·F_pas cambia de sentido en y_p = r (θ = asin(r/R)); "
+  "en ese punto se evalúan ambos sentidos.", size=9)
+table(["Ecuación", "Expresión"], [
+    ["Momento sobre la mesa (por cilindro)", "x_c·F_pas − y_c·H = T/n   →   F_pas = (T/n)/(x_c − s·μ_s·y_c)"],
+    ["Momento del patín respecto de la reacción trasera", "R_f = [F_pas·(x_g − x_c) + H·(y_c − y_r)]/Lg"],
+    ["Fuerzas en x sobre el patín", "R_r = H − R_f"],
+    ["Fuerzas en y (fricción de guía)", "F_cil·η_c = F_pas + μ_g·(|R_f| + |R_r|)"],
+    ["Fuerza de diseño", "F_dis = máx F_cil(θ) en la carrera"],
+    ["Verificación de las piezas de la guía", f"R_guía = máx(|R_f|, |R_r|) a calado = {n(DV['Rguide'], unit='kN')}"],
+], widths=(70, 100), size=8.5)
+T("El resultado se contrasta en el Anexo A por potencia virtual (F_cil·η·v = T/n·ω + μ_g·Σ|R|·v + μ_s·F_pas·|v_desliz|) con resolución "
+  "numérica independiente del equilibrio, y en el verificador independiente en Python.", size=9)
 H("7.3 Casos de fricción (por cilindro, brazo mínimo)", 2)
 table(["Caso", "μ", "r (mm)", "T (kN·m)", "F_cil (kN)", "p (bar)", "FS al calado", "¿Gira?"],
       [[c["nombre"], n(c["mu"]), n(c["r"]), n(c["T"]), n(c["F"]), n(c["p"]), n(c["FS"]), "Sí" if c["gira"] else "NO"] for c in DV["casos"]],
@@ -311,11 +326,11 @@ table(["Caso", "μ", "r (mm)", "T (kN·m)", "F_cil (kN)", "p (bar)", "FS al cala
 T(f"Resultado: en el caso de diseño F_cil = {n(cd['F'], unit='kN')} a {n(cd['p'], unit='bar')}; FS = F_calado/F_dis = {n(cd['FS'])} ≥ FS_mín = {n(P['FS_min'])}. "
   f"μ máximo que gira con r_ef: {n(DV['muMax_ref'])}.", bold=True)
 H("7.4 Fuerzas a lo largo de la carrera (caso de diseño)", 2)
-table(["Posición", "θ (°)", "a (mm)", "Δ (mm)", "K", "F_cil (kN)", "p (bar)", "F_pas (kN)", "Tangencial (kN)", "Radial (kN)", "R_guía (kN)"],
-      [[c["pos"], n(c["th"]), n(c["arm"]), n(c["Delta"]), n(c["Kg"]), n(c["F"]), n(c["p"]), n(c["Fpin"]), n(c["Ft"]), n(c["Fr"]), n(c["Rg"])] for c in D["carrera"]],
-      widths=(24, 12, 15, 13, 12, 16, 13, 16, 18, 15, 16), size=7.5, num_cols=tuple(range(1, 11)))
-T("La componente radial (F_pas·sin θ, máximo 11 %) la toma el pivote; la tangencial es ≥ 99,4 % de F_pas. "
-  f"Las piezas de la guía se verifican con la fuerza de calado: R_guía = F_calado·Δ/Lg = {n(DV['Rguide'], unit='kN')}.")
+table(["Posición", "θ (°)", "s (mm)", "F_cil (kN)", "p (bar)", "F_pas (kN)", "H (kN)", "Tangencial (kN)", "Radial (kN)", "R_f (kN)", "R_r (kN)"],
+      [[c["pos"], n(c["th"]), n(c["s"]), n(c["F"]), n(c["p"]), n(c["Fpin"]), n(c["H"]), n(c["Ft"]), n(c["Fr"]), n(c["Rf"]), n(c["Rr"])] for c in D["carrera"]],
+      widths=(34, 11, 13, 15, 13, 15, 13, 17, 14, 13, 13), size=7.5, num_cols=tuple(range(1, 11)))
+T("La componente radial va al pivote y se anula en el par simétrico de cilindros; con fricción desigual entre patines (μ_g ± 0,05) queda un empuje neto que se agrega al pivote (capítulo 8). "
+  "La fricción de la cara (H) desequilibra las reacciones de guía; las piezas de la guía se verifican con las reacciones a calado.", size=9)
 H("7.5 Clase de presión del cilindro", 2)
 table(["Clase (psi)", "Alivio / alarma (bar)", "Émbolo mínimo (mm)", f"FS con Ø{pint(P['D_bore'])}", "p diseño (bar)"],
       [[pint(c["psi"]), f"{pint(c['pr'])} / {pint(c['pa'])}", n(c["Dmin"]), n(c["FScur"]), n(c["pcur"])] for c in D["escenarios"]["classes"]],
@@ -400,14 +415,16 @@ T(("Con los parámetros indicados la tornamesa TT300-C gira la carga de {0} tf e
 H("10. Puntos a confirmar antes de fabricar")
 table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["1", "Ficha del cilindro", f"Ø{pint(P['D_bore'])}/Ø{pint(P['d_rod'])} × {pint(P['stroke'])}; L0 {pint(P['L0'])}; e_cuerpo ≥ {pint(P['e_body'])}; c_vástago ≥ {pint(P['c_rod'])}; cuerpo Ø ≤ {pint(P['D_body'])}; {pint(P['m_cyl'])} kg; ojales con rótula", "Proveedor"],
-    ["2", "Resorte de retorno de la uña (pos 12)", f"Recorrido ≥ {n(K['travel'] + 5)} mm; 150 a 300 N", "Proveedor"],
-    ["3", "Fricción patín–guía", f"μ_g = {n(P['mu_g'])} con grasa grafitada", "Ensayo de aceptación (F-04)"],
+    ["2", "Resorte de retorno de la uña (pos 12)", f"Recorrido ≥ {n(K['travel'] + 5)} mm; largo comprimido + tope ≤ {pint(P['s_sp'])} mm; 150 a 300 N", "Proveedor"],
+    ["3", "Fricción patín–guía y cara de la uña", f"μ_g = {n(P['mu_g'])}, μ_s = {n(P['mu_s'])}, μ retorno ≤ {n(P['mu_ret'])} con grasa grafitada", "Ensayo de aceptación (F-04)"],
     ["4", "Numeración de artículos de ASME BTH-1", "§3-2, §3-3, §3-4 de la edición vigente", "Revisor"],
     ["5", "Tamaño mínimo de filete", "AWS D1.1/D1.1M:2020, tabla de tamaño mínimo", "Revisor"],
     ["6", "Puntos de izaje soldables (1d)", "Comerciales certificados, WLL ≥ 1,6 t c/u", "Proveedor"],
     ["7", "Losa o mats de apoyo", f"q ≈ {n(DV['q_max'], unit='MPa')}", "Tercero"],
     ["8", "Artículo de ISO 4413:2010 (sobrepresión)", "Criterio confirmado; numeral por citar", "Revisor"],
     ["9", "Guía de retorno tipo KIET", "No adoptada; evaluar con fotos del equipo existente", "Mandante / proyectista"],
+    ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
+    ["11", "Temple por inducción de caras de contacto", f"≥ 50 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
 ], widths=(9, 45, 85, 31), size=8)
 
 # ================================================================= ANEXO A

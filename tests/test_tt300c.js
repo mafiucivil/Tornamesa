@@ -33,12 +33,31 @@ test("FEA: voladizo en tensión plana", () => {
 
 test("Accionamiento guiado: reproduce el factor de guía de TT300-B (K = 1,2403)", () => {
   // TT300-B: barras R940, 36, guía en x = 1085, Lg = 250, μg 0,15, η 0,95 → K = 1,24031, brazo 936,42
-  const P = Object.assign(TT.defaults(), { R_pin: 940, N_pin: 36, N_rib: 12, x_g: 1085, d_pin: 70, d_pp: 70, l_p: 267.5, mu_g: 0.15, eta_c: 0.95 });
+  const P = Object.assign(TT.defaults(), { R_pin: 940, N_pin: 36, N_rib: 12, x_g: 1085, d_pin: 70, d_pp: 70, l_p: 267.5, mu_g: 0.15, eta_c: 0.95, f_ext: 0, mu_s: 0 });
   const K = TT.kinematics(P), R = TT.compute(P);
   near(K.L_s, 375, 1e-9, "largo del patín para Lg = 250");
   near(K.armMin, 936.42, 1e-4, "brazo mínimo R·cos(π/N)");
   near(R.Kguide, 1.24031, 1e-4, "factor de guía");
   near(K.s_req, P.s_free + 2 * 940 * Math.sin(Math.PI / 36), 1e-9, "carrera = libre + cuerda");
+});
+
+test("Cara plana: fricción de la cara cambia de sentido en y_p = r y μ_s = 0 recupera el modelo sin fricción", () => {
+  const P = TT.defaults(), R = TT.compute(P), r = P.d_pin / 2;
+  const thX = Math.asin(r / P.R_pin), atX = R.stroke.filter((q) => Math.abs(q.th - thX) < 1e-12);
+  assert.equal(atX.length, 2, "ambos sentidos evaluados en el cambio");
+  assert.ok(R.stroke.filter((q) => P.R_pin * Math.sin(q.th) < r - 1e-9).every((q) => q.H < 0), "antes del cambio la fricción sobre el pasador apunta hacia el centro");
+  assert.ok(R.stroke.filter((q) => P.R_pin * Math.sin(q.th) > r + 1e-9).every((q) => q.H > 0), "después del cambio apunta hacia afuera");
+  const Q = Object.assign(TT.defaults(), { mu_s: 0 }), RQ = TT.compute(Q), K = TT.kinematics(Q);
+  const Fold = RQ.cd.T * 1e3 / (Q.n_cyl * K.armMin) * (1 + 2 * Q.mu_g * (Q.x_g - K.armMin) / K.Lg) / Q.eta_c;
+  near(RQ.cd.F, Fold, 1e-9, "μ_s = 0: F = K·T/(n·a_mín)");
+  assert.ok(R.cd.F > RQ.cd.F, "la fricción de la cara aumenta la fuerza");
+});
+
+test("Detecta fallas de diseño del accionamiento: autobloqueo del chaflán y patín sin retención", () => {
+  const lock = TT.analyze(Object.assign(TT.defaults(), { beta_ch: 70, mu_ret: 0.3 }), { coarse: true }).checks.find((c) => /autobloqueo/.test(c.name));
+  assert.equal(lock.st, "fail", "β = 70° con μ = 0,3 se autobloquea");
+  const noT = TT.analyze(Object.assign(TT.defaults(), { h_tee: 0, t_bed: 34 }), { coarse: true }).checks.find((c) => /sin retención vertical/.test(c.name));
+  assert.ok(noT && noT.st === "fail", "sin ranura T el patín vuelca");
 });
 
 test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
