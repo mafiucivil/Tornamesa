@@ -18,7 +18,8 @@ def new_doc():
     lt.add("FANTASMA", pattern=[26.0, 14.0, -3.0, 2.0, -2.0, 2.0, -3.0], description="__ . . __")
     for name, lw, ltype in [("VIS", 50, "CONTINUOUS"), ("FINA", 18, "CONTINUOUS"), ("OCU", 25, "OCULTO"),
                             ("EJE", 18, "EJE"), ("COTA", 18, "CONTINUOUS"), ("TXT", 25, "CONTINUOUS"),
-                            ("ACH", 13, "CONTINUOUS"), ("MARCO", 70, "CONTINUOUS"), ("FANT", 18, "FANTASMA")]:
+                            ("ACH", 13, "CONTINUOUS"), ("MARCO", 70, "CONTINUOUS"), ("FANT", 18, "FANTASMA"),
+                            ("TRAT", 50, "EJE")]:   # TRAT: línea gruesa de trazo y punto (zona con tratamiento superficial, ISO 128)
         doc.layers.add(name, color=7, lineweight=lw, linetype=ltype)
     doc.header["$LTSCALE"] = 1.0
     doc.header["$PSLTSCALE"] = 0
