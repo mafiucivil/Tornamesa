@@ -21,19 +21,20 @@
   "ss_void": 100,
   "ss_allow": 0.5,
   "ss_tmin": 4,
-  "mu_back": 0.4,
+  "mu_back": 0.3,
+  "tau_bond": 0.5,
   "dT": 40,
   "muA_nom": 0.15,
   "muA_d": 0.2,
   "muA_cont": 0.25,
   "muA_dry": 0.6,
   "muB_nom": 0.08,
-  "muB_d": 0.15,
-  "muB_cont": 0.2,
-  "muB_dry": 0.2,
+  "muB_d": 0.2,
+  "muB_cont": 0.25,
+  "muB_dry": 0.25,
   "p_uhmw": 5,
   "E_uhmw": 300,
-  "d_flat": 0.1,
+  "d_flat": 0.05,
   "uh_tmin": 6,
   "k_wear": 2,
   "PV_uh": 0.05,
@@ -578,7 +579,7 @@
     },
     {
      "id": "ss_void",
-     "lab": "Ø del vacío local supuesto bajo el disco (pérdida de contacto con el respaldo)",
+     "lab": "Ø del vacío local bajo el disco (pérdida de contacto con el respaldo) y ventana de medición de la planitud",
      "u": "mm"
     },
     {
@@ -593,8 +594,13 @@
     },
     {
      "id": "mu_back",
-     "lab": "μ disco–plancha de respaldo (acero–inox seco bajo la carga)",
+     "lab": "μ disco–plancha de respaldo (acero–inox limpio y seco bajo la carga; clase A de AISC: 0,30)",
      "u": "–"
+    },
+    {
+     "id": "tau_bond",
+     "lab": "Pegado estructural del disco a su respaldo: resistencia de diseño al corte (0 = sin adhesivo)",
+     "u": "MPa"
     },
     {
      "id": "dT",
@@ -628,7 +634,7 @@
     },
     {
      "id": "muB_d",
-     "lab": "Opción B · μ estático de diseño (arranque tras reposo bajo carga)",
+     "lab": "Opción B · μ estático de diseño (arranque tras reposo bajo carga, sin película de grasa)",
      "u": "–"
     },
     {
@@ -638,7 +644,7 @@
     },
     {
      "id": "muB_dry",
-     "lab": "Opción B · μ seco (UHMW autolubricado)",
+     "lab": "Opción B · μ seco (UHMW sin lubricación)",
      "u": "–"
     },
     {
@@ -653,7 +659,7 @@
     },
     {
      "id": "d_flat",
-     "lab": "Tolerancia de planitud de los discos rectificados (de pico a valle)",
+     "lab": "Planitud local exigida a los discos y respaldos, en una ventana de Ø = vacío local (pico a valle)",
      "u": "mm"
     },
     {
@@ -1499,7 +1505,8 @@
     "muMax": 0.27664299304741513,
     "q": 1.661929727825973,
     "mAdd": 0,
-    "turns": true
+    "turns": true,
+    "dTot": 0
    },
    {
     "k": 1,
@@ -1520,28 +1527,30 @@
     "turns": true,
     "tFlex": 5.034446469847977,
     "tuhConf": null,
-    "qAvg": 1.041356025113886
+    "qAvg": 1.041356025113886,
+    "dTot": 339.86637147159536
    },
    {
     "k": 2,
     "name": "B · Discos inoxidables con lámina UHMW",
     "tss": 6,
-    "tuh": 10,
+    "tuh": 15,
     "tssReq": 5.534446469847977,
-    "tuhReq": 8.989234643186265,
-    "delta": 22,
-    "mass": 3690.2209542522255,
-    "mu_d": 0.15,
-    "F": 241.5794151567181,
-    "p": 379.73884515003294,
-    "FS": 1.843372119919503,
-    "muMax": 0.2765058179879254,
-    "q": 1.6626796174043819,
-    "mAdd": 326.63720014013995,
+    "tuhReq": 14.0388456990431,
+    "delta": 27,
+    "mass": 3722.6508966031683,
+    "mu_d": 0.2,
+    "F": 322.10612382061487,
+    "p": 506.31883265403417,
+    "FS": 1.3825280729352358,
+    "muMax": 0.2765056145870472,
+    "q": 1.6626807298805213,
+    "mAdd": 341.3196297562327,
     "turns": true,
     "tFlex": 5.034446469847977,
-    "tuhConf": 8.989234643186265,
-    "qAvg": 1.041356025113886
+    "tuhConf": 14.0388456990431,
+    "qAvg": 1.041356025113886,
+    "dTot": 437.15619852442524
    }
   ]
  },
@@ -1587,14 +1596,14 @@
     "ref": "ASTM A240 (plancha inoxidable)"
    },
    {
-    "nombre": "Retención de los discos por fricción sobre su plancha de respaldo",
-    "formula": "T_calado ≤ μ_respaldo·N·r_u (si no cumple: pasadores radiales o chaveteros)",
+    "nombre": "Retención de los discos sobre su plancha de respaldo (fricción más pegado)",
+    "formula": "T_calado ≤ μ_respaldo·N·r_u + τ_adhesivo·A·r_u (los pasadores no bastan: 656 kN·m exigen ≈ 1 m de borde en aplastamiento)",
     "dem": 656.4906300230158,
-    "cap": 793.1740273351948,
+    "cap": 1641.6362852310826,
     "unidad": "kN·m",
-    "fu": 0.8276753995949786,
+    "fu": 0.3999001702929622,
     "estado": "ok",
-    "ref": "Equilibrio; μ acero–inox seco bajo la carga"
+    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
    },
    {
     "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
@@ -1623,6 +1632,15 @@
     "fu": null,
     "estado": "info",
     "ref": "Geometría (eje de los cilindros sube Δ)"
+   },
+   {
+    "nombre": "Opción A: par inox–inox con riesgo de gripado si la película de grasa se expulsa: exigir aleaciones o durezas distintas (≥ 50 HB de diferencia) o recubrimiento",
+    "formula": "Sin verificación numérica (ASTM G98)",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "ASTM G98; decisión del proyectista"
    },
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
@@ -1675,14 +1693,14 @@
     "ref": "ASTM A240 (plancha inoxidable)"
    },
    {
-    "nombre": "Retención de los discos por fricción sobre su plancha de respaldo",
-    "formula": "T_calado ≤ μ_respaldo·N·r_u (si no cumple: pasadores radiales o chaveteros)",
+    "nombre": "Retención de los discos sobre su plancha de respaldo (fricción más pegado)",
+    "formula": "T_calado ≤ μ_respaldo·N·r_u + τ_adhesivo·A·r_u (los pasadores no bastan: 656 kN·m exigen ≈ 1 m de borde en aplastamiento)",
     "dem": 656.4906300230158,
-    "cap": 793.1751942737494,
+    "cap": 1641.6375980369567,
     "unidad": "kN·m",
-    "fu": 0.8276741818988863,
+    "fu": 0.3998998504956493,
     "estado": "ok",
-    "ref": "Equilibrio; μ acero–inox seco bajo la carga"
+    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
    },
    {
     "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
@@ -1706,7 +1724,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = 2·t_disco + t_UHMW",
-    "dem": 22,
+    "dem": 27,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -1715,7 +1733,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 326.63720014013995,
+    "dem": 341.3196297562327,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -1734,30 +1752,49 @@
    {
     "nombre": "Lámina UHMW: espesor adoptado frente al requerido",
     "formula": "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)",
-    "dem": 8.989234643186265,
-    "cap": 10,
+    "dem": 14.0388456990431,
+    "cap": 15,
     "unidad": "mm",
-    "fu": 0.8989234643186265,
+    "fu": 0.9359230466028733,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
-    "nombre": "Lámina UHMW: espesor por conformidad de planitud / mínimo constructivo / comercial adoptado",
-    "formula": "t_conf = E_ap·δ_planitud/(p_adm − q_máx)",
-    "dem": 8.989234643186265,
-    "cap": 10,
+    "nombre": "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado",
+    "formula": "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45",
+    "dem": 14.0388456990431,
+    "cap": 15,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
-    "nombre": "Lámina UHMW: valor PV en el borde de la mesa",
-    "formula": "PV = q_máx·v; v = R·(2π/N)/t_ciclo",
-    "dem": 0.0024791378762907775,
+    "nombre": "Lámina UHMW: factor de forma y módulo confinado en el espesor adoptado",
+    "formula": "S = D/(4t); E_c(S)",
+    "dem": 1.6666666666666667,
+    "cap": 916.1257606490876,
+    "unidad": "– / MPa",
+    "fu": null,
+    "estado": "info",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)",
+    "formula": "arrastre ≈ μ·N (los pernos no bastan: aplastamiento del UHMW)",
+    "dem": 591.7852824109337,
+    "unidad": "kN",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Equilibrio; decisión del proyectista"
+   },
+   {
+    "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",
+    "formula": "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
+    "dem": 0.004242091955575526,
     "cap": 0.05,
     "unidad": "MPa·m/s",
-    "fu": 0.04958275752581555,
+    "fu": 0.08484183911151051,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
@@ -1765,10 +1802,19 @@
     "nombre": "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor",
     "formula": "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef",
     "dem": 0.0020893786774179514,
-    "cap": 2,
+    "cap": 3,
     "unidad": "mm",
-    "fu": 0.0010446893387089757,
+    "fu": 0.0006964595591393172,
     "estado": "ok",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW: crecimiento radial del sector (fijar al centro con agujeros ranurados)",
+    "formula": "Δr = (α_UHMW − α_acero)·ΔT·R",
+    "dem": 6.732000000000001,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {

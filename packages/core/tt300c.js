@@ -33,22 +33,23 @@ const TT = (() => {
       ["t_ss", "Espesor de cada disco inoxidable (0 = automático, según cálculo)", "mm", 0, 0, 40, 1],
       ["t_uhmw", "Espesor de la lámina UHMW (0 = automático, según cálculo)", "mm", 0, 0, 60, 1],
       ["Fy_ss", "Fy del acero inoxidable (ASTM A240 304: 205; 316L: 170)", "MPa", 205, 100, 600, 5],
-      ["ss_void", "Ø del vacío local supuesto bajo el disco (pérdida de contacto con el respaldo)", "mm", 100, 20, 400, 5],
+      ["ss_void", "Ø del vacío local bajo el disco (pérdida de contacto con el respaldo) y ventana de medición de la planitud", "mm", 100, 20, 400, 5],
       ["ss_allow", "Sobreespesor por disco: desgaste y relapeado", "mm", 0.5, 0, 5, 0.1],
       ["ss_tmin", "Espesor mínimo constructivo del disco (avellanado y rectificado)", "mm", 4, 2, 20, 0.5],
-      ["mu_back", "μ disco–plancha de respaldo (acero–inox seco bajo la carga)", "–", 0.40, 0.1, 0.8, 0.01],
+      ["mu_back", "μ disco–plancha de respaldo (acero–inox limpio y seco bajo la carga; clase A de AISC: 0,30)", "–", 0.30, 0.1, 0.8, 0.01],
+      ["tau_bond", "Pegado estructural del disco a su respaldo: resistencia de diseño al corte (0 = sin adhesivo)", "MPa", 0.5, 0, 5, 0.1],
       ["dT", "Diferencia térmica de diseño entre disco o lámina y plancha de acero", "K", 40, 0, 100, 1],
       ["muA_nom", "Opción A · μ nominal (inox–inox con grasa limpia)", "–", 0.15, 0.03, 0.6, 0.01],
       ["muA_d", "Opción A · μ estático de diseño", "–", 0.20, 0.05, 0.6, 0.01],
       ["muA_cont", "Opción A · μ contaminado", "–", 0.25, 0.05, 0.8, 0.01],
       ["muA_dry", "Opción A · μ seco (referencial; riesgo de gripado)", "–", 0.60, 0.1, 1.0, 0.01],
       ["muB_nom", "Opción B · μ nominal (UHMW sobre inox con grasa limpia)", "–", 0.08, 0.02, 0.6, 0.01],
-      ["muB_d", "Opción B · μ estático de diseño (arranque tras reposo bajo carga)", "–", 0.15, 0.03, 0.6, 0.01],
-      ["muB_cont", "Opción B · μ contaminado", "–", 0.20, 0.05, 0.8, 0.01],
-      ["muB_dry", "Opción B · μ seco (UHMW autolubricado)", "–", 0.20, 0.05, 0.8, 0.01],
+      ["muB_d", "Opción B · μ estático de diseño (arranque tras reposo bajo carga, sin película de grasa)", "–", 0.20, 0.03, 0.6, 0.01],
+      ["muB_cont", "Opción B · μ contaminado", "–", 0.25, 0.05, 0.8, 0.01],
+      ["muB_dry", "Opción B · μ seco (UHMW sin lubricación)", "–", 0.25, 0.05, 0.8, 0.01],
       ["p_uhmw", "UHMW: presión admisible sostenida (≈ ¼ del esfuerzo a 10 % de deformación)", "MPa", 5, 1, 20, 0.5],
       ["E_uhmw", "UHMW: módulo aparente con fluencia (1.000 h)", "MPa", 300, 100, 1000, 10],
-      ["d_flat", "Tolerancia de planitud de los discos rectificados (de pico a valle)", "mm", 0.10, 0.01, 1, 0.01],
+      ["d_flat", "Planitud local exigida a los discos y respaldos, en una ventana de Ø = vacío local (pico a valle)", "mm", 0.05, 0.01, 1, 0.01],
       ["uh_tmin", "Espesor mínimo constructivo de la lámina UHMW (fijación avellanada)", "mm", 6, 2, 30, 1],
       ["k_wear", "UHMW sobre inox con grasa: tasa de desgaste específico (×10⁻⁷ mm³/N·m)", "–", 2, 0.1, 100, 0.1],
       ["PV_uh", "UHMW: valor PV admisible", "MPa·m/s", 0.05, 0.01, 0.5, 0.01],
@@ -219,6 +220,17 @@ const TT = (() => {
     const Ac = Math.PI * (Ro * Ro - Ri * Ri), kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri);
     return { Ac, Ro, Ri, ND, q_avg: ND * 1e3 / Ac, q_max: ND * 1e3 / Ac * (1 + kq) };
   }
+  // Lámina delgada de UHMW: el módulo aparente sube con el factor de forma S = D/(4t) (D = ventana del defecto) y se acota por el módulo
+  // confinado M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45:  E_c = E·[1 + (M/E − 1)·S²/(1+S²)].  Espesor mínimo: t = E_c(t)·δ/(p_adm − q), por bisección.
+  function uhConf(P, q) {
+    const nu = 0.45, Mf = (1 - nu) / ((1 + nu) * (1 - 2 * nu));
+    const Ec = (t) => { const S = P.ss_void / (4 * t), f = S * S / (1 + S * S); return P.E_uhmw * (1 + (Mf - 1) * f); };
+    if (!(P.p_uhmw > q)) return { t: Infinity, Ec, S: (t) => P.ss_void / (4 * t) };
+    const k = P.d_flat / (P.p_uhmw - q);
+    let lo = 0.5, hi = 1000;
+    for (let i = 0; i < 90; i++) { const mid = (lo + hi) / 2; if (mid - Ec(mid) * k >= 0) hi = mid; else lo = mid; }
+    return { t: hi, Ec, S: (t) => P.ss_void / (4 * t) };
+  }
   function ifaceDesign(P) {
     const o = ifOpt(P);
     if (o === 0) return { o, tss: 0, tuh: 0, delta: 0, mTop: 0, mUH: 0 };
@@ -235,13 +247,15 @@ const TT = (() => {
     }
     const q = c.L.q_max;
     // Lámina UHMW: la falta de planitud d_flat comprime localmente la lámina; la sobrepresión E·d/t se suma a q y no debe pasar de p_adm
-    let tuhConf = Infinity, tuhReq = 0, tuh = 0;
+    let tuhConf = Infinity, tuhReq = 0, tuh = 0, EcU = 0, SU = 0;
     if (o === 2) {
-      tuhConf = P.p_uhmw > q ? P.E_uhmw * P.d_flat / (P.p_uhmw - q) : Infinity;
+      const uc = uhConf(P, q);
+      tuhConf = uc.t;
       tuhReq = Math.max(tuhConf, P.uh_tmin);
       tuh = P.t_uhmw > 0 ? P.t_uhmw : commercial(UH_COMM, tuhReq);
+      EcU = uc.Ec(tuh); SU = uc.S(tuh);
     }
-    return { o, tss: t, tssReq: c.treq, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf,
+    return { o, tss: t, tssReq: c.treq, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf, EcU, SU,
       delta: 2 * t + tuh, mTop: RHO_SS * A_ss * t, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0 };
   }
 
@@ -612,25 +626,30 @@ const TT = (() => {
       add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Disco inoxidable: espesor adoptado frente al requerido", formula: "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor mínimo por flexión sobre el vacío local", formula: "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))", dem: I.tFlex, unit: "mm", ref: REFD });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)", formula: "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "ASTM A240 (plancha inoxidable)" });
-      const Ttot = R.Tmax, Tret = P.mu_back * R.N * R.r_u / 1e3;
-      add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos por fricción sobre su plancha de respaldo", formula: "T_calado ≤ μ_respaldo·N·r_u (si no cumple: pasadores radiales o chaveteros)", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; μ acero–inox seco bajo la carga" });
+      const Ttot = R.Tmax, Tret = P.mu_back * R.N * R.r_u / 1e3 + P.tau_bond * R.Ac * R.r_u / 1e6;
+      add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos sobre su plancha de respaldo (fricción más pegado)", formula: "T_calado ≤ μ_respaldo·N·r_u + τ_adhesivo·A·r_u (los pasadores no bastan: 656 kN·m exigen ≈ 1 m de borde en aplastamiento)", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
       const dr = (AL_SS - AL_S) * P.dT * R.Ro, sth = E_SS * (AL_SS - AL_S) * P.dT;
       add({ grp: "Interfaz inox", sys: "est", name: "Dilatación diferencial inox–acero: tensión si el disco quedara restringido", formula: "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox", dem: sth, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)", formula: "Δr = (α_inox − α_acero)·ΔT·R", dem: dr, unit: "mm", ref: "Termoelasticidad" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: I.o === 2 ? "Δ = 2·t_disco + t_UHMW" : "Δ = 2·t_disco", dem: I.delta, unit: "mm", ref: "Geometría (eje de los cilindros sube Δ)" });
+      if (I.o === 1) add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción A: par inox–inox con riesgo de gripado si la película de grasa se expulsa: exigir aleaciones o durezas distintas (≥ 50 HB de diferencia) o recubrimiento", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)", formula: "m = ρ·A·t", dem: R.m.ss + R.m.uhmw, unit: "kg", ref: "Geometría" });
     }
     if (I.o === 2) {
       const REFU = "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo";
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida", formula: "q_máx ≤ p_adm,UHMW", dem: I.q, cap: P.p_uhmw, unit: "MPa", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: espesor adoptado frente al requerido", formula: "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)", dem: I.tuhReq, cap: I.tuh, unit: "mm", ref: REFU });
-      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: espesor por conformidad de planitud / mínimo constructivo / comercial adoptado", formula: "t_conf = E_ap·δ_planitud/(p_adm − q_máx)", dem: I.tuhConf, cap: I.tuh, unit: "mm", ref: REFU });
-      const vmax = R.Ro / 1000 * (2 * Math.PI / P.N_pin) / (R.tCycle * 60);     // m/s en el borde (un paso por ciclo de bomba)
-      add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: valor PV en el borde de la mesa", formula: "PV = q_máx·v; v = R·(2π/N)/t_ciclo", dem: I.q * vmax, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado", formula: "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45", dem: I.tuhConf, cap: I.tuh, unit: "mm", ref: REFU });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: factor de forma y módulo confinado en el espesor adoptado", formula: "S = D/(4t); E_c(S)", dem: I.SU, cap: I.EcU, unit: "– / MPa", ref: REFU });
+      add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)", formula: "arrastre ≈ μ·N (los pernos no bastan: aplastamiento del UHMW)", dem: R.mu.d * R.N, unit: "kN", ref: "Equilibrio; decisión del proyectista" });
+      const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A);                          // mm/s, velocidad del vástago
+      const vmax = R.Ro / R.K.armMin * vcyl / 1000;                                 // m/s en el borde de la mesa durante la carrera
+      add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)", formula: "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)", dem: I.q * vmax, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
       const dist = P.life * P.turns_yr * 2 * Math.PI * P.r_ef / 1000;              // m deslizados en la vida
       const wear = P.k_wear * 1e-7 * I.q * dist;                                   // mm
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor", formula: "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef", dem: wear, cap: 0.2 * I.tuh, unit: "mm", ref: REFU });
       const gap = (AL_UH - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.n_seg);
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: crecimiento radial del sector (fijar al centro con agujeros ranurados)", formula: "Δr = (α_UHMW − α_acero)·ΔT·R", dem: (AL_UH - AL_S) * P.dT * R.Ro, unit: "mm", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: junta de dilatación entre sectores (ancho a dejar en frío)", formula: "j = (α_UHMW − α_acero)·ΔT·cuerda del sector; α_UHMW = 180×10⁻⁶/K", dem: gap, unit: "mm", ref: REFU });
     }
 

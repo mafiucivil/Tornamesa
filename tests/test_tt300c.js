@@ -75,10 +75,14 @@ test("Interfaz alternativa: discos inoxidables (A) y discos con UHMW (B)", () =>
   assert.deepEqual([A.R.mu.nom, A.R.mu.d, A.R.mu.cont, A.R.mu.dry], [P0.muA_nom, P0.muA_d, P0.muA_cont, P0.muA_dry]);
   // B: lámina UHMW t ≥ E·δ/(p_adm − q)
   const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), J = B.R.ifc;
-  near(J.tuhConf, P0.E_uhmw * P0.d_flat / (P0.p_uhmw - J.q), 1e-9, "t_conf UHMW");
+  // t_conf = E_c(S)·δ/(p_adm − q), con E_c = E[1 + (M/E − 1)S²/(1+S²)], S = D/(4t) (módulo confinado de lámina delgada)
+  const Mf = 0.55 / (1.45 * 0.1), Sx = P0.ss_void / (4 * J.tuhConf);
+  near(J.tuhConf, P0.E_uhmw * (1 + (Mf - 1) * Sx * Sx / (1 + Sx * Sx)) * P0.d_flat / (P0.p_uhmw - J.q), 1e-6, "t_conf UHMW (módulo confinado)");
+  assert.ok(J.tuhConf > P0.E_uhmw * P0.d_flat / (P0.p_uhmw - J.q), "el confinamiento exige más espesor que el módulo uniaxial");
   assert.ok(J.tuh >= J.tuhReq, "UHMW comercial ≥ requerido");
   near(B.R.hax, P0.h_disc / 2 + 2 * J.tss + J.tuh, 1e-12, "el eje sube 2·t_disco + t_UHMW");
-  assert.ok(B.R.cd.F < A.R.cd.F, "con UHMW baja la fuerza de diseño (μ menor)");
+  assert.ok(B.R.cases.find((c) => c.id === "nom").F < A.R.cases.find((c) => c.id === "nom").F, "con UHMW baja la fuerza nominal (μ menor)");
+  assert.ok(B.R.mu.d >= B.R.mu.nom && B.R.mu.cont >= B.R.mu.d && B.R.mu.dry >= B.R.mu.d, "μ de B ordenados: nominal ≤ diseño ≤ contaminado, seco");
   // espesor manual: un disco de 3 mm no cumple el mínimo constructivo ni la flexión
   const thin = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, t_ss: 3 }), { noFEA: true });
   assert.ok(thin.checks.some((c) => c.grp === "Interfaz inox" && c.st === "fail"), "3 mm no cumple");

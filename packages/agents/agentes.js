@@ -145,11 +145,12 @@ const AG = (() => {
       return { psi, pr, pa, Dmin: Math.sqrt(4 * Amin / Math.PI), FScur: R.A * pr / 10 / 1e3 / F, pcur: F * 1e3 / R.A * 10 };
     });
     // alternativas de interfaz de giro: acero–acero (actual), A: discos inoxidables con grasa, B: discos inoxidables con lámina UHMW
+    const R0m = TT_.compute(Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0 })).m.total;
     const ifaces = [0, 1, 2].map((k) => {
       const Q = Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0 }), RR = TT_.compute(Q), I = RR.ifc;
       return { k, name: ["Acero–acero con grasa (base)", "A · Discos inoxidables con grasa", "B · Discos inoxidables con lámina UHMW"][k],
         tss: I.tss, tuh: I.tuh, tssReq: I.tssReq, tuhReq: I.tuhReq, delta: I.delta, mass: RR.m.total, mu_d: RR.mu.d, F: RR.cd.F, p: RR.cd.p, FS: RR.cd.FS,
-        muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg };
+        muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg, dTot: RR.m.total - R0m };
     });
     return { mus, rs, grid, loads, classes, ifaces };
   }
