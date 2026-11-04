@@ -169,7 +169,7 @@ const TT = (() => {
       ["E", "Módulo de elasticidad", "MPa", 200000, 190000, 210000, 1000],
       ["nu", "Coeficiente de Poisson", "–", 0.30, 0.25, 0.35, 0.01],
       ["Nd", "ASME BTH-1 factor de diseño (Cat. B = 3,0)", "–", 3.0, 2.0, 4.0, 0.5],
-      ["kFEA", "Factor de convergencia de malla FEA", "–", 1.15, 1, 1.5, 0.01],
+      ["kFEA", "Factor de convergencia de malla FEA (error de malla de las planchas de la mesa: 1,20 a 1,21 por Richardson; ver tests/convergencia.js)", "–", 1.22, 1, 1.5, 0.01],
     ] },
     { id: "fatiga", t: "Ciclo de servicio (fatiga)", p: [
       ["turns_yr", "Vueltas completas por año", "–", 50, 0, 10000, 1],
@@ -183,7 +183,7 @@ const TT = (() => {
     return P;
   }
   function parseRings(s) {
-    return String(s).split(/[,; ]+/).map(Number).filter((v) => isFinite(v) && v > 0).sort((a, b) => a - b);
+    return [...new Set(String(s).split(/[,; ]+/).map(Number).filter((v) => isFinite(v) && v > 0))].sort((a, b) => a - b);   // sin radios repetidos
   }
 
   /* ---------------- Masas ---------------- */
@@ -200,7 +200,7 @@ const TT = (() => {
     m.webs = RHO * rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0);
     const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
     m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
-    m.hub = RHO * Math.PI / 4 * (P.D_hub ** 2 - d_bush ** 2) * hw;
+    m.hub = RHO * Math.PI / 4 * Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw;
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins;
     return m;
@@ -250,7 +250,7 @@ const TT = (() => {
     }
     const q = c.L.q_max;
     // Lámina UHMW: la falta de planitud d_flat comprime localmente la lámina; la sobrepresión E·d/t se suma a q y no debe pasar de p_adm
-    let tuhConf = Infinity, tuhReq = 0, tuh = 0, EcU = 0, SU = 0;
+    let tuhConf = 0, tuhReq = 0, tuh = 0, EcU = 0, SU = 0;
     if (o === 2) {
       const uc = uhConf(P, q);
       tuhConf = uc.t;
@@ -273,7 +273,7 @@ const TT = (() => {
     const g = guideGeo(P);
     // uña: bloque desde 0,3·d antes del centro del pasador hasta el fondo del alojamiento, menos el asiento cilíndrico
     const xUn = g.lever + P.c_tip + P.L_in;
-    m.dogs = RHO * P.n_cyl * (xUn * P.dog_b - chamferCut(P)) * P.dog_h;
+    m.dogs = Math.max(0, RHO * P.n_cyl * (xUn * P.dog_b - chamferCut(P)) * P.dog_h);
     // patín: caja sobre la bancada + lengüeta + marco de boca − hueco del ojal − pasador − paso del vástago − alojamiento de la uña
     const zb = P.t_base + P.t_bed, Hs = g.shoeTop - zb, gap = P.b_eye + 2 * P.g_ch, dr = P.d_rod + 10;
     const shoeV = g.L_s * P.w_s * Hs + g.L_s * (P.w_slot - 2) * (P.h_tee > 0 ? P.h_slot + 1 : P.h_slot - 2) + (P.h_tee > 0 ? g.L_s * (P.w_tee - 2) * (P.h_tee - 2) : 0) + g.inset * (P.dog_b + 2 * P.t_fw) * (P.dog_h + 20)
@@ -537,9 +537,9 @@ const TT = (() => {
     for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) nodes.push([i * h, j * h]);
     const id = (i, j) => i * (n + 1) + j;
     const Rd = P.D_top / 2;
-    const mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl;            // apoyado sobre la huella de la mesa
+    const mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl + R.m.ss + R.m.uhmw;   // apoyado sobre la huella de la mesa (con discos de la interfaz)
     const qDisc = mOther * G / (Math.PI * Rd * Rd);
-    const qOwn = (R.m.base + R.m.rim + R.m.brackets) * G / (P.B * P.B);
+    const qOwn = (R.m.base + R.m.rim + R.m.brackets + R.m.shoes + R.m.beds) * G / (P.B * P.B);   // peso propio repartido sobre la base
     const q = [];
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
       elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]);
@@ -558,10 +558,16 @@ const TT = (() => {
     if (!wFix.length) { let best = 0, bd = 1e9; nodes.forEach((p, k) => { const d = Math.hypot(p[0] - xl, p[1] - yl); if (d < bd) { bd = d; best = k; } }); wFix.push(best); }
     const t0 = now();
     const r = FEA_.plate({ nodes, elems, t: P.t_base, E: P.E, nu: P.nu, q: Float64Array.from(q), wFix, betaN });
-    let vmMax = 0, wMax = 0;
-    r.el.forEach((e) => { vmMax = Math.max(vmMax, e.vmGauss); });
+    // La tensión en la esquina de la placa rígida del cáncamo es singular (diverge con la malla): el máximo se toma a ≥ 2·pad del punto de izaje;
+    // el cáncamo y sus soldaduras se verifican aparte (WLL del cáncamo y soldadura del fabricante).
+    let vmMax = 0, wMax = 0, vmAll = 0;
+    r.el.forEach((e, k) => {
+      vmAll = Math.max(vmAll, e.vmGauss);
+      const c = elems[k].reduce((s2, ni) => [s2[0] + nodes[ni][0] / 4, s2[1] + nodes[ni][1] / 4], [0, 0]);
+      if (Math.max(Math.abs(c[0] - xl), Math.abs(c[1] - yl)) >= 2 * pad) vmMax = Math.max(vmMax, e.vmGauss);
+    });
     for (const w of r.w) wMax = Math.max(wMax, Math.abs(w));
-    return { nodes, elems, res: r, vmMax, wMax, ms: now() - t0, Fapp: 4 * r.Fapplied / 1e3, Rsum: 4 * Math.abs(r.Rsum) / 1e3, n };
+    return { nodes, elems, res: r, vmMax, vmAll, wMax, ms: now() - t0, Fapp: 4 * r.Fapplied / 1e3, Rsum: 4 * Math.abs(r.Rsum) / 1e3, n };
   }
 
   /* ---------------- Fatiga: AISC 360-22 Apéndice 3, Tabla A-3.1 (SI) ---------------- */
@@ -573,7 +579,7 @@ const TT = (() => {
   // kind: "fu" (FU = dem/cap), "geo" (FU con criterio geométrico), "info" (no afecta el veredicto), "pend" (pendiente de dato)
   function verifs(P, R, fea) {
     const out = [];
-    const add = (o) => out.push(Object.assign({ kind: "fu" }, o, { fu: o.kind === "info" || o.kind === "pend" ? null : (o.fu != null ? o.fu : o.dem / o.cap) }));
+    const add = (o) => out.push(Object.assign({ kind: "fu" }, o, { fu: o.kind === "info" || o.kind === "pend" ? null : (o.fu != null ? o.fu : ((o.cap > 0 && o.dem >= 0) ? o.dem / o.cap : Infinity)) }));   // capacidad ≤ 0 o demanda negativa: no cumple
     const K = R.K, Nd = P.Nd, Fy = P.Fy;
     const Fs = R.Fstall;                                   // fuerza de calado por cilindro, kN
     const cd = R.cd || { F: NaN, p: NaN, FS: NaN };
@@ -787,7 +793,7 @@ const TT = (() => {
 
     /* --- Base --- */
     if (fea && fea.lift) {
-      add({ grp: "Base", sys: "est", name: "Izaje del conjunto: σvm en la plancha base", formula: "MITC4 × k_malla, φ_izaje", dem: fea.lift.vmMax * P.kFEA, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy)" });
+      add({ grp: "Base", sys: "est", name: "Izaje del conjunto: σvm en la plancha base", formula: "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)", dem: fea.lift.vmMax * P.kFEA, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy)" });
       add({ grp: "Base", sys: "est", kind: "geo", name: "Izaje: flecha de la base", formula: "w ≤ B/300", dem: fea.lift.wMax, cap: P.B / 300, unit: "mm", ref: "Criterio del proyecto" });
     }
     add({ grp: "Base", sys: "est", kind: "geo", name: "Punto de izaje fuera de la mesa", formula: "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)", dem: P.D_top / 2 + 45, cap: Math.hypot(P.x_lug, P.B / 2 - P.c_lug), unit: "mm", ref: "Geometría" });
@@ -836,6 +842,7 @@ const TT = (() => {
   /* ---------------- Análisis completo ---------------- */
   function analyze(P, opts) {
     opts = opts || {};
+    if (P.opt_ss > 0.5 && P.opt_uhmw > 0.5) throw new Error("Las opciones de interfaz A (opt_ss) y B (opt_uhmw) son excluyentes");
     const R = compute(P);
     let fea = null;
     if (R.K.ok && !opts.noFEA) {

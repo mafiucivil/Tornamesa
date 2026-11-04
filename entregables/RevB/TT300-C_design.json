@@ -134,7 +134,7 @@
   "E": 200000,
   "nu": 0.3,
   "Nd": 3,
-  "kFEA": 1.15,
+  "kFEA": 1.22,
   "turns_yr": 50,
   "life": 25
  },
@@ -1222,7 +1222,7 @@
     },
     {
      "id": "kFEA",
-     "lab": "Factor de convergencia de malla FEA",
+     "lab": "Factor de convergencia de malla FEA (error de malla de las planchas de la mesa: 1,20 a 1,21 por Richardson; ver tests/convergencia.js)",
      "u": "–"
     }
    ]
@@ -1544,7 +1544,7 @@
     "mAdd": 297.27234090795446,
     "turns": true,
     "tFlex": 5.034446469847977,
-    "tuhConf": null,
+    "tuhConf": 0,
     "qAvg": 1.041356025113886,
     "dTot": 339.86637147159536
    },
@@ -1923,9 +1923,9 @@
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 37.69883571868103,
-   "indep": 37.698835718,
-   "d": 1.8065117475731782e-9,
+   "tool": 42.115041057714,
+   "indep": 42.11504105695602,
+   "d": 1.7997980180090739e-9,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
@@ -2497,10 +2497,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Plancha superior: σvm local (carga con e)",
    "formula": "MITC4 × k_malla",
-   "dem": 151.37300503284075,
+   "dem": 160.58701403483974,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.7312705557142065,
+   "fu": 0.7757826764968103,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
   },
@@ -2508,10 +2508,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Plancha inferior: σvm local (contacto q_max)",
    "formula": "MITC4 × k_malla",
-   "dem": 141.87622696955734,
+   "dem": 150.5121712198782,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.6853924008191176,
+   "fu": 0.7271119382602812,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
   },
@@ -2519,10 +2519,10 @@
    "grp": "Mesa",
    "nombre": "Plancha superior: global + local",
    "formula": "σ = M_glob/(t·h_c) + σvm_local",
-   "dem": 176.40672489301932,
+   "dem": 185.6207338950183,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.8522064004493687,
+   "fu": 0.8967185212319725,
    "estado": "ok",
    "ref": "Placa sándwich axisimétrica (rev. M2)"
   },
@@ -2530,10 +2530,10 @@
    "grp": "Mesa",
    "nombre": "Plancha inferior: global + local",
    "formula": "σ = M_glob/(t·h_c) + σvm_local",
-   "dem": 173.16837679478056,
+   "dem": 181.8043210451014,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.8365622067380704,
+   "fu": 0.8782817441792339,
    "estado": "ok",
    "ref": "Placa sándwich axisimétrica (rev. M2)"
   },
@@ -3007,11 +3007,11 @@
   {
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
-   "formula": "MITC4 × k_malla, φ_izaje",
-   "dem": 133.1683049810646,
+   "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
+   "dem": 81.58364399686721,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.643325144836061,
+   "fu": 0.39412388404283677,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -3019,10 +3019,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 6.916243632808104,
+   "dem": 7.7817340450629,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.8104973007196997,
+   "fu": 0.9119219584058086,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
