@@ -308,9 +308,10 @@ table(["Dato", "Valor", "Fuente"], [
     ["Espesor mínimo constructivo del disco", n(P["ss_tmin"], unit="mm"), "Avellanado de fijaciones y rectificado de la cara"],
     ["UHMW: presión admisible sostenida", n(P["p_uhmw"], unit="MPa"), "≈ ¼ del esfuerzo a 10 % de deformación (≈ 21 MPa); datos de catálogo"],
     ["UHMW: módulo aparente con fluencia (1.000 h)", n(P["E_uhmw"], unit="MPa"), "Datos de catálogo del proveedor"],
-    ["Planitud local exigida a discos y respaldos", n(P["d_flat"], unit="mm") + f" en una ventana de Ø{pint(P['ss_void'])}", "Requisito de fabricación (de pico a valle); rectificado de los discos"],
+    ["Variación del hueco entre las dos caras de la lámina", n(P["d_flat"], unit="mm") + f" en una ventana de Ø{pint(P['ss_void'])}", "Requisito de fabricación: suma de las planitudes de discos y respaldos y de la tolerancia de espesor de la lámina; rectificar y medir en obra. ν del UHMW = 0,45 (con 0,42 el módulo confinado baja ≈ 15 %)"],
     ["μ de diseño: A / B", f"{n(P['muA_d'])} / {n(P['muB_d'])}", "Hipótesis; B sin película de grasa tras reposo bajo carga; confirmar con ensayo"],
-    ["μ respaldo / pegado estructural", f"{n(P['mu_back'])} / {n(P['tau_bond'], unit='MPa')}", "Clase A de AISC (superficie limpia); adhesivo epóxico estructural de diseño al corte (≈ 3 % de su resistencia)"],
+    ["μ respaldo / pegado estructural", f"{n(P['mu_back'])} / {n(P['tau_bond'], unit='MPa')}", "Clase A de AISC (superficie limpia); adhesivo epóxico estructural de diseño al corte (≈ 3 % de su resistencia). La capacidad es la mayor de las dos, no su suma"],
+    ["Adhesivo: G, espesor de línea, cortante cíclico admisible", f"{n(P['G_ad'], unit='MPa')} / {n(P['t_ad'], unit='mm')} / {n(P['tau_cyc'], unit='MPa')}", "Epóxico tenaz con línea ≥ 1 mm; el rígido (G ≈ 1.000) da un cortante térmico de borde de 7 a 14 MPa; ensayo de arrancamiento y de fatiga térmica"],
 ], widths=(65, 30, 75), size=8)
 T("Desarrollo.", bold=True, size=9.5, after=1)
 table(["Ecuación", "Expresión", "Referencia"], [
@@ -319,7 +320,7 @@ table(["Ecuación", "Expresión", "Referencia"], [
     ["Lámina UHMW: conformidad con la planitud", "t ≥ E_c(S)·δ/(p_adm − q_máx): la sobrepresión local E_c·δ/t se suma a q_máx y no debe pasar de p_adm. E_c = E[1 + (M/E − 1)·S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45", "Hipótesis de diseño; datos de catálogo del UHMW; módulo de láminas delgadas (factor de forma)"],
     ["Lámina UHMW: PV y desgaste", "PV = q_máx·v ≤ PV_adm; h = k·q·s ≤ 0,20·t", "Proveedor de UHMW-PE (ASTM D4020)"],
     ["Dilatación diferencial", "σ = E·(α_inox − α_acero)·ΔT; Δr = (α − α_acero)·ΔT·R; junta UHMW = (α_UHMW − α_acero)·ΔT·cuerda", "α: inox 17,3; acero 11,7; UHMW 180 (×10⁻⁶/K)"],
-    ["Retención de los discos", "T_calado ≤ μ_respaldo·N·r_u + τ_adhesivo·A·r_u (respaldo granallado sin pintura, discos pegados con epóxico estructural)", "Equilibrio"],
+    ["Retención de los discos", "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u) (respaldo granallado sin pintura, discos pegados con epóxico estructural); cortante térmico del borde τ = ε·√(G·E·t/t_ad)", "Equilibrio"],
 ], widths=(48, 72, 50), size=8)
 T("Resultado.", bold=True, size=9.5, after=1)
 table(["Alternativa", "Disco inox: t_flex / t_req → adoptado (mm)", "UHMW: t_req → adoptado (mm)", "Altura agregada (mm)", "Δ masa total (kg)", "Masa total (kg)", "μ diseño", "F por cilindro (kN)", "p diseño (bar)", "FS diseño"],

@@ -23,6 +23,9 @@
   "ss_tmin": 4,
   "mu_back": 0.3,
   "tau_bond": 0.5,
+  "G_ad": 100,
+  "t_ad": 1,
+  "tau_cyc": 4,
   "dT": 40,
   "muA_nom": 0.15,
   "muA_d": 0.2,
@@ -603,6 +606,21 @@
      "u": "MPa"
     },
     {
+     "id": "G_ad",
+     "lab": "Adhesivo: módulo de corte (epóxico tenaz ≈ 100; rígido ≈ 1.000)",
+     "u": "MPa"
+    },
+    {
+     "id": "t_ad",
+     "lab": "Adhesivo: espesor de la línea de pegado",
+     "u": "mm"
+    },
+    {
+     "id": "tau_cyc",
+     "lab": "Adhesivo: cortante admisible sostenido o cíclico en el borde (criterio del proyecto; confirmar con el proveedor)",
+     "u": "MPa"
+    },
+    {
      "id": "dT",
      "lab": "Diferencia térmica de diseño entre disco o lámina y plancha de acero",
      "u": "K"
@@ -659,7 +677,7 @@
     },
     {
      "id": "d_flat",
-     "lab": "Planitud local exigida a los discos y respaldos, en una ventana de Ø = vacío local (pico a valle)",
+     "lab": "Variación máxima del hueco entre las dos caras de la lámina en una ventana de Ø = vacío local (suma de las planitudes de ambas caras y de la tolerancia de espesor de la lámina)",
      "u": "mm"
     },
     {
@@ -1596,14 +1614,24 @@
     "ref": "ASTM A240 (plancha inoxidable)"
    },
    {
-    "nombre": "Retención de los discos sobre su plancha de respaldo (fricción más pegado)",
-    "formula": "T_calado ≤ μ_respaldo·N·r_u + τ_adhesivo·A·r_u (los pasadores no bastan: 656 kN·m exigen ≈ 1 m de borde en aplastamiento)",
+    "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
+    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
     "dem": 656.4906300230158,
-    "cap": 1641.6362852310826,
+    "cap": 1046.7557647296867,
     "unidad": "kN·m",
-    "fu": 0.3999001702929622,
+    "fu": 0.6271669592309791,
     "estado": "ok",
     "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
+   },
+   {
+    "nombre": "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)",
+    "formula": "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico",
+    "dem": 2.4104731485747775,
+    "cap": 4,
+    "unidad": "MPa",
+    "fu": 0.6026182871436944,
+    "estado": "ok",
+    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
    },
    {
     "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
@@ -1693,14 +1721,24 @@
     "ref": "ASTM A240 (plancha inoxidable)"
    },
    {
-    "nombre": "Retención de los discos sobre su plancha de respaldo (fricción más pegado)",
-    "formula": "T_calado ≤ μ_respaldo·N·r_u + τ_adhesivo·A·r_u (los pasadores no bastan: 656 kN·m exigen ≈ 1 m de borde en aplastamiento)",
+    "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
+    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
     "dem": 656.4906300230158,
-    "cap": 1641.6375980369567,
+    "cap": 1046.7557647296867,
     "unidad": "kN·m",
-    "fu": 0.3998998504956493,
+    "fu": 0.6271669592309791,
     "estado": "ok",
     "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
+   },
+   {
+    "nombre": "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)",
+    "formula": "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico",
+    "dem": 2.4104731485747775,
+    "cap": 4,
+    "unidad": "MPa",
+    "fu": 0.6026182871436944,
+    "estado": "ok",
+    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
    },
    {
     "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
@@ -1781,12 +1819,12 @@
    },
    {
     "nombre": "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)",
-    "formula": "arrastre ≈ μ·N (los pernos no bastan: aplastamiento del UHMW)",
-    "dem": 591.7852824109337,
+    "formula": "arrastre ≈ μ_máx·N, con μ_máx = máx(μ_diseño; μ_contaminado; μ_seco) (los pernos no bastan: aplastamiento del UHMW)",
+    "dem": 739.7316030136672,
     "unidad": "kN",
     "fu": null,
     "estado": "pend",
-    "ref": "Equilibrio; decisión del proyectista"
+    "ref": "Equilibrio con el μ máximo; decisión del proyectista"
    },
    {
     "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",

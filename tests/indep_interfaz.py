@@ -111,9 +111,44 @@ def geom(P):
     return Ro, Ri, A, I, ru
 
 
-def conf_q(q, P, E=None, d=None):
-    E = P["E_uhmw"] if E is None else E; d = P["d_flat"] if d is None else d
-    return E * d / (P["p_uhmw"] - q) if P["p_uhmw"] > q else math.inf
+nu_uh = 0.45
+
+
+def Mcon(E, nu_u=nu_uh):
+    """módulo de deformación plana unidimensional (confinamiento total): E(1−ν)/((1+ν)(1−2ν))"""
+    return E * (1 - nu_u) / ((1 + nu_u) * (1 - 2 * nu_u))
+
+
+def Ec(t, Dc, E, mode="coord", nu_u=nu_uh):
+    """módulo efectivo de la lámina; S = D_carga/(4t).
+    'coord': E[1 + (M/E − 1)·S²/(1 + S²)]  (modelo adoptado en el núcleo; E en S→0, M en S→∞)
+    'inc'  : E + 1/[1/(2S²E) + 1/(M−E)]    (variante propia: E(1+2S²) de Lindley acotada por M)
+    'gent' : 1/E_c = 1/[E(1+2S²)] + 1/K, K = E/(3(1−2ν))   (Gent 1994)
+    'uni'  : E (módulo uniaxial, modelo anterior)"""
+    S = Dc / (4 * t)
+    if mode == "uni":
+        return E, S
+    if mode == "gent":
+        K = E / (3 * (1 - 2 * nu_u)); return 1 / (1 / (E * (1 + 2 * S * S)) + 1 / K), S
+    M = Mcon(E, nu_u)
+    if mode == "inc":
+        return E + 1 / (1 / (2 * S * S * E) + 1 / (M - E)), S
+    return E * (1 + (M / E - 1) * S * S / (1 + S * S)), S
+
+
+def t_conf_S(q, Dc, E, d, p=None, mode="coord", nu_u=nu_uh):
+    """t = E_c(S(t))·d/(p_adm − q) resuelto por bisección (el lado derecho decrece con t)"""
+    p = P["p_uhmw"] if p is None else p
+    if not (p > q):
+        return math.inf
+    lo, hi = 1e-3, 1e4
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if Ec(mid, Dc, E, mode, nu_u)[0] * d / (p - q) > mid:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
 
 
 def iface(P, k):
@@ -136,7 +171,7 @@ def iface(P, k):
         tfl = a * math.sqrt(0.75 * q / sad)
         treq = max(tfl + P["ss_allow"], P["ss_tmin"])
         t_d_new = (P["t_ss"] if P["t_ss"] > 0 else com(treq, COM_SS)) if k else 0.0
-        tconf = conf_q(q, P) if k == 2 else None
+        tconf = t_conf_S(q, P["ss_void"], P["E_uhmw"], P["d_flat"], p=P["p_uhmw"]) if k == 2 else None
         tuhreq = max(tconf, P["uh_tmin"]) if k == 2 else 0.0
         t_u_new = (P["t_uhmw"] if P["t_uhmw"] > 0 else com(tuhreq, COM_UH)) if k == 2 else 0.0
         out = dict(k=k, q=q, tflex=tfl if k else None, tssReq=treq if k else 0.0, tss=t_d, tconf=tconf, tuhReq=tuhreq, tuh=t_u,
@@ -218,7 +253,15 @@ print(f"R_o = {s3(Ro)}, R_i = {s3(Ri)}, A = {s3(Ac)} mm², r_u = {s3(ru)} mm, a 
 # 1. Espesores, q_máx, masa agregada: interfazChecks y escenarios.ifaces
 # ======================================================================================
 tCyc = n * (A_b + A_ann) * P["stroke"] * 1e-6 / P["Q_pump"]          # min por pasada (V_ext + V_ret)/Q
-v_edge = Ro / 1000 * (2 * math.pi / P["N_pin"]) / (tCyc * 60)         # m/s
+v_avg = Ro / 1000 * (2 * math.pi / P["N_pin"]) / (tCyc * 60)          # m/s, promedio del ciclo completo (modelo anterior)
+a_min = R_ * math.cos(ph)
+v_cil = P["Q_pump"] * 1e6 / 60 / (n * A_b)                              # mm/s, velocidad del vástago con los n cilindros en paralelo
+v_edge = Ro * v_cil / a_min / 1000                                      # m/s, pico en el borde (ω = v_cil/a_mín)
+
+
+def cap_ret(N_kN):
+    """capacidad de retención de los discos [kN·m]: fricción μ_resp·N·r_u + adhesivo τ·A_c·r_u (A_c en mm², r_u en mm)"""
+    return P["mu_back"] * N_kN * ru / 1e3 + P.get("tau_bond", 0.0) * Ac * ru / 1e6
 
 
 def expected_rows(P, k):
@@ -231,9 +274,10 @@ def expected_rows(P, k):
         "Disco inoxidable: espesor adoptado": (r["tssReq"], r["tss"], r["tssReq"] / r["tss"]),
         "espesor mínimo por flexión": (r["tflex"], None, None),
         "espesor requerido / comercial adoptado (cada": (r["tssReq"], r["tss"], None),
-        "Retención de los discos": (Tmax, P["mu_back"] * r["N"] * ru / 1e3, Tmax / (P["mu_back"] * r["N"] * ru / 1e3)),
+        "Retención de los discos": (Tmax, cap_ret(r["N"]), Tmax / cap_ret(r["N"])),
         "tensión si el disco quedara restringido": (E_SS * (AL_SS - AL_S) * P["dT"], sad, E_SS * (AL_SS - AL_S) * P["dT"] / sad),
         "Dilatación diferencial radial": ((AL_SS - AL_S) * P["dT"] * Ro, None, None),
+        "Opción A: par inox–inox": (0.0, None, None),
         "Altura que agrega": (r["delta"], None, None),
         "Masa agregada": (r["mAdd"], None, None),
     }
@@ -247,6 +291,9 @@ def expected_rows(P, k):
             "espesor por conformidad": (r["tconf"], r["tuh"], None),
             "valor PV": (q * v_edge, P["PV_uh"], q * v_edge / P["PV_uh"]),
             "desgaste en la vida": (h, 0.2 * r["tuh"], h / (0.2 * r["tuh"])),
+            "factor de forma y módulo confinado": (Ec(r["tuh"], P["ss_void"], P["E_uhmw"])[1], Ec(r["tuh"], P["ss_void"], P["E_uhmw"])[0], None),
+            "crecimiento radial del sector": ((AL_UH - AL_S) * P["dT"] * Ro, None, None),
+            "retención de los sectores de UHMW": (max(P["muB_d"], P["muB_cont"], P["muB_dry"]) * r["N"], None, None),
             "junta de dilatación": (s, None, None),
         })
     return rows
@@ -290,6 +337,11 @@ for k in (0, 1, 2):
         tabla2.append([k, nm, s3(mine), s3(core), f"{d:+.4f}", "coincide" if abs(d) <= TOL * 100 else "DISCREPA"])
 table("1b. escenarios.ifaces (espesores, q_máx, masa agregada)", ["Op.", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], tabla2)
 
+def soldadura_mejilla(Delta):
+    aw = 0.707 * P["w_br"]; hax = P["h_disc"] / 2 + Delta
+    return math.hypot(F_st / (4 * aw * P["L_ch"]), F_st * hax / (4 * aw * P["L_ch"] ** 2 / 6))
+
+
 # ---------------- barridos ----------------
 SW = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], "mm"), ("Fy_ss", [170, 185, 205, 225, 250], "MPa"),
       ("E_uhmw", [200, 250, 300, 400, 500], "MPa"), ("d_flat", [0.05, 0.1, 0.15, 0.2, 0.3], "mm"), ("W_tf", [200, 240, 280, 300, 320, 360], "tf")]
@@ -332,13 +384,13 @@ for key, vals, u in SW:
     for v in vals:
         res = cmp_sweep({key: v})
         if res[0] is None:
-            rows.append([s3(v), "rechazado por el núcleo", "", "", "", "", "", "", ""]); continue
+            rows.append([s3(v), "rechazado por el núcleo", "", "", "", "", "", "", "", ""]); continue
         DD, ra, rb, ok, bad = res
         ca, cb = DD["escenarios"]["ifaces"][1], DD["escenarios"]["ifaces"][2]
         rows.append([s3(v), s3(ra["q"]), f"{s3(ra['tflex'])} / {s3(ca['tFlex'])}", f"{s3(ra['tss'])} / {s3(ca['tss'])}",
                      f"{s3(rb['tconf'])} / {s3(cb['tuhConf'])}", f"{s3(rb['tuh'])} / {s3(cb['tuh'])}", f"{s3(rb['mAdd'])} / {s3(cb['mAdd'])}",
-                     f"{s3(casos(dict(P, **{key: v}), 2, rb['N'])['dis']['FS'])} / {s3(cb['FS'])}", "coincide" if ok else "DISCREPA " + ",".join(bad)])
-    table(f"1c. Barrido de {key} ({u}); cada celda «propio / núcleo»", [key, "q_máx", "t_flex", "t_disco", "t_conf", "t_UHMW", "mAdd B kg", "FS dis. B", "Veredicto"], rows)
+                     f"{s3(casos(dict(P, **{key: v}), 2, rb['N'])['dis']['FS'])} / {s3(cb['FS'])}", s3(soldadura_mejilla(rb['delta']) / (0.6 * P['FEXX'] / (1.2 * P['Nd']))) if math.isfinite(rb['delta']) else "—", "coincide" if ok else "DISCREPA " + ",".join(bad)])
+    table(f"1c. Barrido de {key} ({u}); cada celda «propio / núcleo»", [key, "q_máx", "t_flex", "t_disco", "t_conf", "t_UHMW", "mAdd B kg", "FS dis. B", "FU sold. mejillas B", "Veredicto"], rows)
 print(f"\nBarridos: {sw_n} comparaciones, {sw_bad} discrepancias (tolerancia 0,1 %)")
 
 # ---------------- umbrales de espesor comercial ----------------
@@ -434,11 +486,6 @@ def retencionT(Delta):
     return V / (ala * L_s)
 
 
-def soldadura_mejilla(Delta):
-    aw = 0.707 * P["w_br"]; hax = hd2 + Delta
-    return math.hypot(F_st / (4 * aw * P["L_ch"]), F_st * hax / (4 * aw * P["L_ch"] ** 2 / 6))
-
-
 def vv(DD, sub):
     return next(v for v in DD["verificaciones"] if sub in v["nombre"])
 
@@ -514,81 +561,60 @@ if sig_fd is not None:
 c_ov = teff * math.sqrt(sad / (3 * q))
 print(f"Voladizo en el borde del disco (sin respaldo en una franja c): σ = 3 q c²/t² → c_máx = {s3(c_ov)} mm con t_ef = {s3(teff)} mm")
 
-# ---- (b) conformidad de la lámina UHMW
-nu_uh = 0.45
-
-
-def Mcon(E, nu_u=nu_uh):
-    return E * (1 - nu_u) / ((1 + nu_u) * (1 - 2 * nu_u))
-
-
-def Ec(t, Dc, E, mode="inc", nu_u=nu_uh):
-    """módulo efectivo de la lámina; S = D_carga/(4t).
-    'inc': E + 1/[1/(2S²E) + 1/(M−E)]  → E (S→0), M deformación plana (S→∞), E(1+2S²) si M ≫ E.
-    'gent': 1/E_c = 1/[E(1+2S²)] + 1/K  (Gent 1994, compresibilidad por el módulo volumétrico K = E/(3(1−2ν)))."""
-    S = Dc / (4 * t)
-    if mode == "gent":
-        K = E / (3 * (1 - 2 * nu_u)); return 1 / (1 / (E * (1 + 2 * S * S)) + 1 / K), S
-    M = Mcon(E, nu_u)
-    return E + 1 / (1 / (2 * S * S * E) + 1 / (M - E)), S
-
-
-def t_conf_S(q, Dc, E, d, p=None, mode="inc", nu_u=nu_uh):
-    p = P["p_uhmw"] if p is None else p
-    if p <= q:
-        return math.inf
-    t = 10.0
-    for _ in range(400):
-        Ee, _ = Ec(t, Dc, E, mode, nu_u); tn = Ee * d / (p - q)
-        if abs(tn - t) < 1e-9:
-            break
-        t = 0.5 * (t + tn)
-    return t
-
-
+# ---- (b) conformidad de la lámina UHMW con módulo confinado (modelo nuevo del núcleo)
 qB = IF[2]["q"]; tconf0 = IF[2]["tconf"]; tuh0 = IF[2]["tuh"]
 M_c = Mcon(P["E_uhmw"])
+tcore_conf = ifc_core[2]["tuhConf"]
 rows = []
-for Dc in (25, 50, 100, 200):
+for Dc, d in ((50, 0.05), (100, 0.05), (100, 0.075), (100, 0.10), (200, 0.05), (200, 0.10)):
     for E in (P["E_uhmw"], 700.0):
-        tc = t_conf_S(qB, Dc, E, P["d_flat"]); Ee, S = Ec(tc, Dc, E)
-        tg = t_conf_S(qB, Dc, E, P["d_flat"], mode="gent")
-        rows.append([s3(Dc), s3(E), s3(S), s3(Ee), s3(Ee / E), s3(tc), s3(com(max(tc, P["uh_tmin"]), COM_UH)), s3(tg), f"{(tc/tconf0-1)*100:+.0f}"])
-table(f"3b. Módulo confinado de la lámina (S = D_carga/(4t); ν_UHMW = {nu_uh}; d_flat = {P['d_flat']} mm); núcleo: t_conf = {s3(tconf0)} mm → {s3(tuh0)} mm con E uniaxial",
-      ["D_carga mm", "E MPa", "S", "E_c MPa", "E_c/E", "t_conf mm", "comercial mm", "t_conf Gent mm", "Δ vs núcleo %"], rows)
-print(f"Módulo de deformación plana unidimensional (λ ≫ t, sin rozamiento): M = E(1−ν)/((1+ν)(1−2ν)) = {s3(M_c)} MPa ({s3(M_c/P['E_uhmw'])}×E)")
-tc_main = t_conf_S(qB, P["ss_void"], P["E_uhmw"], P["d_flat"]); tc_main_c = com(max(tc_main, P["uh_tmin"]), COM_UH)
-# efecto en cascada de un t_UHMW mayor: soldadura de mejillas
-DC = export({"opt_uhmw": 1, "t_uhmw": tc_main_c}) if math.isfinite(tc_main_c) else None
-if DC is not None:
-    w_c = vv(DC, "Soldadura mejillas–base (4"); dl_c = [i for i in DC["escenarios"]["ifaces"] if i["k"] == 2][0]["delta"]
-    comp("3b", "Soldadura de mejillas con t_UHMW = %s (Δ = %s): propio" % (s3(tc_main_c), s3(dl_c)), soldadura_mejilla(dl_c), w_c["dem"])
-    print(f"Con t_UHMW = {s3(tc_main_c)} mm (Δ = {s3(dl_c)} mm) el núcleo da soldadura de mejillas FU = {s3(w_c['fu'])} (propio {s3(soldadura_mejilla(dl_c)/ (0.6*P['FEXX']/(1.2*P['Nd'])))})")
-    fu_weld_conf = w_c["fu"]
-else:
-    fu_weld_conf = None
-# Δ máximo admisible por la soldadura de mejillas
+        tt = {m: t_conf_S(qB, Dc, E, d, mode=m) for m in ("coord", "inc", "gent", "uni")}
+        Ee, S = Ec(tt["coord"], Dc, E)
+        rows.append([s3(Dc), s3(d), s3(E), s3(S), s3(Ee / E), s3(tt["coord"]), s3(com(max(tt["coord"], P["uh_tmin"]), COM_UH)), s3(tt["inc"]), s3(tt["gent"]), s3(tt["uni"])])
+table(f"3b. t_conf [mm] con el módulo confinado (ν_UHMW = {nu_uh}, q = {s3(qB)} MPa, p_adm = {s3(P['p_uhmw'])}): modelo del núcleo («coord») frente a mis variantes",
+      ["D_carga mm", "d mm", "E MPa", "S", "E_c/E", "t_conf coord", "comercial", "t_conf «E→M»", "t_conf Gent", "t_conf uniaxial"], rows)
+t_tuh = IF[2]["tuh"]
+print(f"M (deformación plana) = {s3(M_c)} MPa ({s3(M_c/P['E_uhmw'])}×E). En el espesor adoptado t = {s3(t_tuh)} mm (S = {s3(P['ss_void']/(4*t_tuh))}): "
+      f"E_c coord = {s3(Ec(t_tuh, P['ss_void'], P['E_uhmw'])[0])}, «E→M» = {s3(Ec(t_tuh, P['ss_void'], P['E_uhmw'], 'inc')[0])}, Gent = {s3(Ec(t_tuh, P['ss_void'], P['E_uhmw'], 'gent')[0])} MPa")
+t_g = t_conf_S(qB, P["ss_void"], P["E_uhmw"], P["d_flat"], mode="gent"); t_i = t_conf_S(qB, P["ss_void"], P["E_uhmw"], P["d_flat"], mode="inc")
+print(f"t_conf: núcleo {s3(tcore_conf)}; propio con el modelo del núcleo {s3(tconf0)}; «E→M» {s3(t_i)}; Gent {s3(t_g)}; uniaxial {s3(t_conf_S(qB, P['ss_void'], P['E_uhmw'], P['d_flat'], mode='uni'))} mm")
+# d_flat máximo que mantiene el comercial adoptado y que mantiene la soldadura de mejillas
+def d_max_for(tcom, mode="coord"):
+    lo, hi = 1e-4, 2.0
+    for _ in range(80):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if t_conf_S(qB, P["ss_void"], P["E_uhmw"], mid, mode=mode) <= tcom else (lo, mid)
+    return lo
 cap_w = 0.6 * P["FEXX"] / (1.2 * P["Nd"])
 lo_, hi_ = 0.0, 200.0
 for _ in range(60):
     mid = (lo_ + hi_) / 2
     lo_, hi_ = (mid, hi_) if soldadura_mejilla(mid) <= cap_w else (lo_, mid)
 Dmax_w = lo_
-print(f"Δ máximo que admite la soldadura de mejillas (FU = 1): {s3(Dmax_w)} mm (B adoptada: Δ = {s3(IF[2]['delta'])} mm)")
+t_uh_wmax = Dmax_w - 2 * IF[2]["tss"]
+d_adm_w = d_max_for(max(c for c in COM_UH if c <= t_uh_wmax))
+print(f"Soldadura de mejillas B: Δ = {s3(IF[2]['delta'])} mm → FU {s3(soldadura_mejilla(IF[2]['delta'])/cap_w)} (núcleo {s3(vv(DB,'Soldadura mejillas–base (4')['fu'])}); Δ_máx (FU = 1) = {s3(Dmax_w)} mm "
+      f"→ t_UHMW comercial ≤ {s3(max(c for c in COM_UH if c <= t_uh_wmax))} mm → d_flat ≤ {s3(d_adm_w)} mm (con D = ss_void); d_flat que mantiene {s3(tuh0)} mm: {s3(d_max_for(tuh0))} mm")
+rows = []
+for dd in (0.05, 0.06, 0.075, 0.10, 0.15):
+    tc_ = t_conf_S(qB, P["ss_void"], P["E_uhmw"], dd); tcm = com(max(tc_, P["uh_tmin"]), COM_UH)
+    Dl = 2 * IF[2]["tss"] + tcm
+    rows.append([s3(dd), s3(tc_), s3(tcm), s3(Dl), s3(soldadura_mejilla(Dl) / cap_w), "no cumple" if soldadura_mejilla(Dl) > cap_w else "ok"])
+table("3b'. Sensibilidad a d_flat (D = ss_void): t_UHMW y soldadura de mejillas en cascada", ["d_flat mm", "t_conf mm", "t_UHMW mm", "Δ mm", "FU soldadura mejillas", "veredicto"], rows)
 
 # ---- (c) valores de partida y fluencia
-v_ext = Ro / 1000 * (2 * math.pi / P["N_pin"]) / (n * A_b * P["stroke"] * 1e-6 / P["Q_pump"] * 60)
+v_ext = v_avg * tCyc * 60 / (n * A_b * P["stroke"] * 1e-6 / P["Q_pump"] * 60)     # promedio solo en carrera (informativo)
 sl = P["life"] * P["turns_yr"] * 2 * math.pi * P["r_ef"] / 1000
 h_w = P["k_wear"] * 1e-7 * qB * sl
-rows = [["p_uhmw (sostenida)", s3(P["p_uhmw"]) + " MPa", "5–7 MPa (cargas estáticas continuas; fluencia limita antes que fluencia plástica ~20 MPa)", f"q_máx/p = {s3(qB/P['p_uhmw'])}", "razonable; es un límite de deformación, no de resistencia"],
-        ["E_uhmw", s3(P["E_uhmw"]) + " MPa", "600–800 MPa corto plazo; 100–200 MPa tras 1 año bajo carga", "300 es intermedio", "un defecto que se desplaza (disco rotatorio) ve el módulo de corto plazo (≈ 60–100 s por pasada)"],
-        ["k_wear", s3(P["k_wear"]) + "e-7 mm³/N·m", "1e-7–1e-6 (limpio); 1e-5 con arena incrustada", f"h = {s3(h_w)} mm en {s3(P['life'])} años", f"con k×100 → h = {s3(h_w*100)} mm ≪ 0,2 t = {s3(0.2*tuh0)} mm"],
-        ["PV_uh", s3(P["PV_uh"]) + " MPa·m/s", "0,05–0,10 (seco, UHMW-PE)", f"PV = {s3(qB*v_edge)} (núcleo, v = {s3(v_edge*1e3)} mm/s); con v solo en carrera = {s3(qB*v_ext)}", "no gobierna (v ≈ 1–2 mm/s: el criterio relevante es la presión estática)"],
-        ["μ B (nom / dis / cont / seco)", f"{P['muB_nom']} / {P['muB_d']} / {P['muB_cont']} / {P['muB_dry']}", "UHMW sobre inox: 0,05–0,10 con grasa; 0,10–0,22 seco; estático hasta 0,25", "dis < seco; cont = seco", "inconsistente: ver H2"],
+mu_max_B = ifc_core[2]["muMax"]
+rows = [["p_uhmw (sostenida)", s3(P["p_uhmw"]) + " MPa", "5–7 MPa (cargas estáticas continuas)", f"q_máx/p = {s3(qB/P['p_uhmw'])}", "razonable; límite de deformación"],
+        ["E_uhmw", s3(P["E_uhmw"]) + " MPa", "600–800 MPa corto plazo; 100–200 MPa tras 1 año", "300 es intermedio", "el defecto del disco rotatorio ve el módulo de corto plazo (≈ 60–100 s por pasada): E = 700 daría t_conf = " + s3(t_conf_S(qB, P['ss_void'], 700.0, P['d_flat'])) + " mm"],
+        ["k_wear", s3(P["k_wear"]) + "e-7 mm³/N·m", "1e-7–1e-6 (limpio); 1e-5 con arena", f"h = {s3(h_w)} mm", f"con k×100 → {s3(h_w*100)} mm ≪ 0,2 t = {s3(0.2*tuh0)} mm"],
+        ["PV_uh", s3(P["PV_uh"]) + " MPa·m/s", "0,05–0,10 (seco, UHMW-PE)", f"PV pico = q·R_o·v_cil/a_mín = {s3(qB*v_edge)} (v = {s3(v_edge*1e3)} mm/s; promedio en carrera {s3(qB*v_ext)})", f"FU {s3(qB*v_edge/P['PV_uh'])}; no gobierna"],
+        ["μ B (nom / dis / cont / seco)", f"{P['muB_nom']} / {P['muB_d']} / {P['muB_cont']} / {P['muB_dry']}", "UHMW sobre inox: 0,05–0,10 con grasa; 0,10–0,22 seco; estático hasta 0,25", f"μ_máx que gira {s3(mu_max_B)}: margen de {s3((mu_max_B/P['muB_cont']-1)*100)} % sobre μ_cont", "monótono (cont = seco); consistente con la literatura; arena incrustada podría pasar de 0,25"],
         ["μ A (nom / dis / cont / seco)", f"{P['muA_nom']} / {P['muA_d']} / {P['muA_cont']} / {P['muA_dry']}", "inox–inox con grasa 0,10–0,20; seco 0,5–1 (gripado)", "monótono", "razonable"]]
 table("3c. Valores de partida frente a la literatura de UHMW-PE (órdenes de magnitud de fichas técnicas; confirmar con el proveedor)",
       ["Parámetro", "Núcleo", "Rango de literatura", "Resultado propio", "Comentario"], rows)
-# fluencia: estimación con módulo de fluencia (isócronas típicas)
 rows = []
 tU = tuh0
 qmin = D0["apoyo"]["q_min"]
@@ -598,87 +624,82 @@ for lab, Ecr in (("1 mes", 160.0), ("1 año", 120.0), ("25 años", 80.0)):
 table(f"3c'. Fluencia de la lámina (uniaxial, cota superior; E_fluencia supuesto de isócronas típicas), t = {s3(tU)} mm, q_máx = {s3(qB)}, q_mín = {s3(qmin)} MPa",
       ["Tiempo", "E_fl MPa", "asentamiento en el borde mm", "diferencial q_máx−q_mín mm", "inclinación mm/m"], rows)
 
-# ---- (d) gripado inox-inox
-print(f"\n3d. Inox–inox (opción A): presión nominal {s3(q)} MPa; el núcleo no tiene verificación ni requisito de pareja de aleaciones (solo rotula μ_seco «riesgo de gripado»); "
-      f"con μ_seco = {P['muA_dry']} el caso seco no gira (FS = {s3(casos(P, 1, IF[1]['N'])['seco']['FS'])})")
-
-# ---- (e) retención de los discos por fricción
+# ---- (e) retención de los discos: fricción + adhesivo
 rows = []
-mb_req_all = []
+tau = P.get("tau_bond", 0.0)
+cap_ad = tau * Ac * ru / 1e6
 for k, lab in ((1, "A"), (2, "B")):
-    N_ = IF[k]["N"]; cap = P["mu_back"] * N_ * ru / 1e3; cs = casos(P, k, N_)
-    for cid in ("nom", "dis", "borde", "cont", "seco"):
+    N_ = IF[k]["N"]; cap_fr = P["mu_back"] * N_ * ru / 1e3; cs = casos(P, k, N_)
+    for cid in ("dis", "borde", "cont", "seco"):
         c = cs[cid]
-        T_int = c["mu"] * N_ * c["r"] / 1e3                      # par que transmite la interfaz (sin el buje)
+        T_int = c["mu"] * N_ * c["r"] / 1e3
         T_real = min(T_int, Tmax)
-        mb = T_real / (N_ * ru / 1e3)
-        rows.append([lab, cid, s3(c["mu"]), s3(c["T"]), s3(T_int), s3(T_real), s3(T_real / cap), s3(mb), "sí" if c["F"] <= F_st / 1e3 else "NO gira"])
-        if cid in ("cont", "seco"):
-            mb_req_all.append((lab, cid, mb))
-    rows.append([lab, "T_calado", "—", s3(Tmax), s3(Tmax), s3(Tmax), s3(Tmax / cap), s3(Tmax / (N_ * ru / 1e3)), "cota del núcleo"])
-table(f"3e. Par que transmiten los discos [kN·m] frente a la capacidad de retención μ_resp·N·r_u (μ_resp = {P['mu_back']}); μ_resp requerido = T/(N·r_u)",
-      ["Op.", "Caso", "μ interfaz", "T cilindros (con buje)", "μ·N·r (interfaz)", "T discos = mín(T_int, T_alivio)", "FU retención", "μ_resp requerido", "gira"], rows)
-mb_calado = Tmax / (IF[1]["N"] * ru / 1e3)
-print(f"μ_resp mínimo con T_calado: {s3(mb_calado)} (A) / {s3(Tmax/(IF[2]['N']*ru/1e3))} (B). "
-      f"Con μ_resp = 0,30 (superficie limpia clase A de AISC) FU = {s3(Tmax/(0.30*IF[1]['N']*ru/1e3))}; con 0,20 (película de grasa) FU = {s3(Tmax/(0.20*IF[1]['N']*ru/1e3))}")
+        rows.append([lab, cid, s3(c["mu"]), s3(T_real), s3(T_real / cap_fr), s3(T_real / cap_ad), s3(T_real / (cap_fr + cap_ad))])
+    rows.append([lab, "T_calado", "—", s3(Tmax), s3(Tmax / cap_fr), s3(Tmax / cap_ad), s3(Tmax / (cap_fr + cap_ad))])
+table(f"3e. Retención de los discos: capacidad por fricción {s3(P['mu_back']*IF[1]['N']*ru/1e3)} kN·m (μ_resp = {P['mu_back']}), por adhesivo {s3(cap_ad)} kN·m (τ = {s3(tau)} MPa), suma {s3(cap_ret(IF[1]['N']))} kN·m (núcleo)",
+      ["Op.", "Caso", "μ interfaz", "T discos kN·m", "FU solo fricción", "FU solo adhesivo", "FU suma (núcleo)"], rows)
+f_ad_min = Tmax / cap_ad
+tau_req = Tmax * 1e6 / (Ac * ru)
+print(f"Adhesivo solo: τ requerido para T_calado = {s3(tau_req)} MPa; fracción mínima de área adherida (τ de diseño) = {s3(f_ad_min)}; "
+      f"fricción sola con μ_resp {P['mu_back']}: FU {s3(Tmax/(P['mu_back']*IF[1]['N']*ru/1e3))}")
+# cortante térmico en el borde del pegado (decaimiento de cortante / shear-lag, sustrato rígido)
+eps_th = (AL_SS - AL_S) * P["dT"]
+t_dsk = IF[1]["tss"]
+rows = []
+for nm, Ga in (("epóxico rígido", 1000.0), ("epóxico tenaz", 100.0), ("PU / MS polímero", 10.0)):
+    for ta in (0.3, 1.0):
+        lam = math.sqrt(Ga / (E_SS * t_dsk * ta)); tmax = eps_th * math.sqrt(Ga * E_SS * t_dsk / ta)
+        rows.append([nm, s3(Ga), s3(ta), s3(tmax), s3(tmax / tau), s3(1 / lam)])
+table(f"3e'. Cortante térmico en el borde del pegado, ΔT = {P['dT']} K, ε = {s3(eps_th*1e6)}e-6: τ_máx = ε·√(G_a·E·t/t_a) (disco t = {s3(t_dsk)} mm)",
+      ["Adhesivo", "G_a MPa", "t_a mm", "τ_máx borde MPa", "τ_máx/τ_diseño", "longitud de transferencia 1/λ mm"], rows)
 
-# ---- (b') retención de la lámina UHMW contra arrastre
+# ---- (b') arrastre de la lámina UHMW
 mu_top_max = max(P["muB_cont"], P["muB_dry"], P["muB_d"])
-Fdrag = mu_top_max * IF[2]["N"]                                  # kN, fuerza tangencial total que la cara superior transmite a la lámina
+Fdrag = mu_top_max * IF[2]["N"]
 db_ = 8.0
 n_bolts = Fdrag * 1e3 / (P["p_uhmw"] * db_ * IF[2]["tuh"])
-print(f"\n3b'. Arrastre de la lámina UHMW por la cara superior: μ·N = {s3(mu_top_max)}·{s3(IF[2]['N'])} = {s3(Fdrag)} kN; aplastamiento admisible de un bulón M8 en la lámina "
-      f"= p_uhmw·d·t = {s3(P['p_uhmw']*db_*IF[2]['tuh']/1e3)} kN → harían falta {s3(n_bolts)} bulones")
+print(f"\n3f'. Arrastre de la lámina UHMW: μ_máx·N = {s3(mu_top_max)}·{s3(IF[2]['N'])} = {s3(Fdrag)} kN (el núcleo usa μ_d: {s3(P['muB_d']*IF[2]['N'])} kN); "
+      f"un bulón M8 resiste {s3(P['p_uhmw']*db_*IF[2]['tuh']/1e3)} kN por aplastamiento del UHMW → {s3(n_bolts)} bulones")
 
 # ---- (f) otros
-dRad = (AL_UH - AL_S) * P["dT"] * (Ro - Ri)
 bolt = {"M6": 3.3, "M8": 4.4, "M10": 5.5}
 rows = [[b_, s3(k_), s3(IF[1]["tss"] - P["ss_allow"] - k_), "ok" if IF[1]["tss"] - P["ss_allow"] - k_ >= 1.5 else "queda < 1,5 mm bajo la cabeza"] for b_, k_ in bolt.items()]
 table(f"3f. Pernos avellanados (ISO 10642 / DIN 7991, altura de cabeza k) en el disco de {s3(IF[1]['tss'])} mm menos {s3(P['ss_allow'])} mm de relapeado", ["Perno", "k mm", "espesor restante bajo la cabeza mm", "veredicto"], rows)
-print(f"Crecimiento radial de un sector UHMW (R_o − R_i) con ΔT = {P['dT']} K: {s3(dRad)} mm (la junta circunferencial {s3(IF[2]['delta'] and (AL_UH-AL_S)*P['dT']*2*Ro*math.sin(math.pi/P['n_seg']))} mm no lo cubre)")
 mt = [D0["derivados"]["masas"]["total"], DA["derivados"]["masas"]["total"], DB["derivados"]["masas"]["total"]]
-print(f"Masa total del conjunto: {s3(mt[0])} → {s3(mt[1])} (A, +{s3(mt[1]-mt[0])} kg frente a mAdd = {s3(IF[1]['mAdd'])}) → {s3(mt[2])} (B, +{s3(mt[2]-mt[0])} kg frente a mAdd = {s3(IF[2]['mAdd'])}); "
-      f"el resto crece por ménsulas, patines y pivote (Δ)")
+for k, lab in ((1, "A"), (2, "B")):
+    comp("3g", f"op. {lab} · dTot (masa total − op. 0)", ifc_core[k].get("dTot"), mt[k] - mt[0])
+    comp("3g", f"op. {lab} · dTot ≥ mAdd", 1.0 if ifc_core[k].get("dTot", 0) >= IF[k]["mAdd"] else 0.0, 1.0)
+print(f"Masa total: {s3(mt[0])} → A {s3(mt[1])} (dTot {s3(ifc_core[1].get('dTot'))}, mAdd {s3(IF[1]['mAdd'])}) → B {s3(mt[2])} (dTot {s3(ifc_core[2].get('dTot'))}, mAdd {s3(IF[2]['mAdd'])})")
 
 # ======================================================================================
 # Hallazgos
 # ======================================================================================
-fs_B = {m: casos(dict(P, muB_d=m), 2, IF[2]["N"])["dis"]["FS"] for m in (0.15, 0.20, 0.25, 0.30)}
+has_pend = {"A": any(r["estado"] == "pend" and "Opción A" in r["nombre"] for r in DA["interfazChecks"]["A"]),
+            "B": any(r["estado"] == "pend" and "Opción B" in r["nombre"] for r in DB["interfazChecks"]["B"])}
 if np is not None and sig_fd is not None and sig_fd > sig_cl * 1.001:
     FIND.append(("H0", "importante", "El modelo empotrado no acota al de fundación unilateral", f"σ {s3(sig_cl)}", f"σ {s3(sig_fd)}"))
-if com(max(tc_main, P["uh_tmin"]), COM_UH) > tuh0:
-    FIND.append(("H1", "importante", "Conformidad de la lámina UHMW con módulo uniaxial E: una lámina delgada confinada (S = D/(4t)) es mucho más rígida; la sobrepresión E_c·δ/t sube y el espesor requerido también",
-                 f"t_conf {s3(tconf0)} mm → {s3(tuh0)} mm; Δ = {s3(IF[2]['delta'])} mm; soldadura de mejillas FU {s3(vv(DB,'Soldadura mejillas–base (4')['fu'])}",
-                 f"t_conf {s3(tc_main)} mm (D_carga = ss_void, ν = 0,45) → {s3(tc_main_c)} mm; Δ = {s3(2*IF[2]['tss']+tc_main_c)} mm; soldadura de mejillas FU {s3(fu_weld_conf)}. Usar E_c(S) iterado (con Gent: {s3(t_conf_S(qB, P['ss_void'], P['E_uhmw'], P['d_flat'], mode='gent'))} mm), o garantizar d_flat ≤ 0,05 mm en 100 mm; revisar la soldadura de mejillas con el Δ nuevo (Δ_máx = {s3(Dmax_w)} mm)"))
-if P["muB_d"] < P["muB_dry"] or P["muB_cont"] <= P["muB_dry"]:
-    FIND.append(("H2", "importante", "μ de la opción B: el μ de diseño (arranque tras reposo) es menor que el seco, y el contaminado coincide con el seco; la lámina trabaja sin lubricación efectiva a largo plazo (la grasa puede expulsarse bajo 1,7 MPa tras meses de reposo)",
-                 f"μ_d {P['muB_d']}: FS {s3(fs_B[0.15])}; ventaja frente a la base {s3((1-ifc_core[2]['F']/ifc_core[0]['F'])*100)} % en F",
-                 f"μ_d = 0,20 (seco estático): FS {s3(fs_B[0.20])} (= base); 0,25: FS {s3(fs_B[0.25])} < 1,25; 0,30: FS {s3(fs_B[0.30])} (no gira). Fijar μ_d ≥ 0,20 y μ_cont ≥ 0,25–0,30"))
-mb_rq = Tmax / (IF[1]["N"] * ru / 1e3)
-Tcont_A = P["muA_cont"] * IF[1]["N"] * P["r_ef"] / 1e3
-Tcont_B = P["muB_cont"] * IF[2]["N"] * P["r_ef"] / 1e3
-if mb_rq > 0.30:
-    FIND.append(("H3", "importante", "Retención de los discos solo por fricción con μ_resp = 0,40 sin respaldo normativo: el valor requerido para T_calado supera 0,30 (superficie limpia clase A de AISC) y no hay redundancia mecánica; el respaldo está junto a la grasa (A) y a la pintura. T_calado es una cota válida, pero conservadora: el par que realmente transmite la interfaz es menor (conclusión: criterio suficiente en demanda, frágil en capacidad)",
-                 f"T_calado {s3(Tmax)} kN·m; μ_resp = {P['mu_back']}: FU {s3(Tmax/(P['mu_back']*IF[1]['N']*ru/1e3))}",
-                 f"par resistente (contaminado) A {s3(Tcont_A)} / B {s3(Tcont_B)} kN·m → μ_resp requerido {s3(Tcont_A/(IF[1]['N']*ru/1e3))} / {s3(Tcont_B/(IF[2]['N']*ru/1e3))}; con T_calado {s3(mb_rq)}. Con μ_resp = 0,30: FU {s3(Tmax/(0.30*IF[1]['N']*ru/1e3))} (T_calado) / {s3(Tcont_A/(0.30*IF[1]['N']*ru/1e3))} (contaminado A). Prever pasadores radiales o chavetas periféricas (el propio núcleo lo sugiere) o respaldo granallado sin pintura"))
-FIND.append(("H4", "importante", "Opción A: inox–inox sin requisito de pareja de aleaciones ni advertencia de gripado en las verificaciones (solo la etiqueta de μ_seco)",
-             f"presión {s3(q)} MPa; caso seco sin giro (FS {s3(casos(P,1,IF[1]['N'])['seco']['FS'])})",
-             "exigir aleaciones o durezas distintas (diferencia ≥ 50 HB; p. ej. 304 contra 17-4PH o dúplex) o recubrimiento; la presión nominal es ≈ 1/8 de los umbrales de gripado publicados para 304/304 (ASTM G98, del orden de 10–15 MPa; confirmar con el proveedor), pero la grasa puede expulsarse tras reposo largo y el arranque es de baja velocidad con microdeslizamiento"))
-FIND.append(("H5", "importante", "Opción B: la retención de la lámina UHMW contra el arrastre de la cara superior no se verifica; la misma pareja UHMW/inox está en ambas caras de la lámina y los bulones avellanados no pueden resistir el arrastre por aplastamiento del UHMW",
-             "sin verificación",
-             f"fuerza tangencial {s3(Fdrag)} kN frente a {s3(P['p_uhmw']*db_*IF[2]['tuh']/1e3)} kN por bulón M8 ({s3(n_bolts)} bulones); prever alojamiento (rebaje perimetral/cola de milano) o pegado, y verificar el aplastamiento del borde del rebaje con p_uhmw"))
+if tuh0 < com(max(t_g, P["uh_tmin"]), COM_UH):
+    FIND.append(("H1", "importante", "t_UHMW por debajo del requerido con la variante de Gent", f"{s3(tuh0)} mm", f"{s3(com(t_g, COM_UH))} mm"))
+if P["muB_d"] < 0.20 or P["muB_cont"] < P["muB_dry"]:
+    FIND.append(("H2", "importante", "μ de B por debajo del rango seco o contaminado menor que el seco", f"μ_d {P['muB_d']}", "μ_d ≥ 0,20; μ_cont ≥ μ_seco"))
+FIND.append(("N1", "importante", "d_flat = 0,05 mm es el parámetro que gobierna a B y no se puede verificar en el cálculo: debe ser la variación del hueco relativo entre las dos caras (suma de las dos planitudes y del espesor de la lámina) en una ventana de Ø = ss_void; cada sector UHMW comercial tiene tolerancia de espesor muy superior y los escalones en juntas cuentan",
+             f"t_UHMW {s3(tuh0)} mm, Δ {s3(IF[2]['delta'])} mm, soldadura de mejillas FU {s3(soldadura_mejilla(IF[2]['delta'])/cap_w)}",
+             f"con d = 0,06 mm t_conf supera 15 mm → 20 mm → soldadura FU 1,01; d_flat admisible ≤ {s3(d_adm_w)} mm; con dos caras de 0,05 mm (hueco 0,10) → t_UHMW {s3(com(t_conf_S(qB, P['ss_void'], P['E_uhmw'], 0.10), COM_UH))} mm. Escribir en planos «hueco relativo ≤ 0,05 mm en Ø100» (rectificado in situ de la lámina y de los respaldos) y medirlo"))
+if tau > 0 and Tmax / (P["mu_back"] * IF[1]["N"] * ru / 1e3) > 1.0:
+    FIND.append(("N2", "importante", "Retención con adhesivo: la capacidad suma fricción y adhesivo, pero el adhesivo rígido falla con deslizamientos de centésimas de mm y la fricción no se moviliza antes; sin adhesivo la retención no cumple (FU>1). Además el pegado no tiene verificación térmica de borde (cortante ε·√(G·E·t/t_a))",
+                 f"capacidad {s3(cap_ret(IF[1]['N']))} kN·m, FU {s3(Tmax/cap_ret(IF[1]['N']))}",
+                 f"solo adhesivo FU {s3(Tmax/cap_ad)} (τ requerido {s3(tau_req)} MPa; área adherida mínima {s3(f_ad_min*100)} %); solo fricción FU {s3(Tmax/(P['mu_back']*IF[1]['N']*ru/1e3))}; cortante térmico de borde 14 MPa con epóxico rígido de 0,3 mm frente a ≈ 4–5 MPa sostenido admisible. Usar solo el adhesivo en la capacidad y especificar adhesivo tenaz con espesor de línea ≥ 1 mm (τ_borde ≈ 2,4 MPa) y ensayo de arrancamiento/fatiga térmica"))
+FIND.append(("N3", "menor" if has_pend["B"] else "importante", "Opción B: retención de los sectores UHMW contra el arrastre sigue pendiente (fila «pend» del núcleo); la fuerza que usa el núcleo es μ_d·N, pero el máximo es con μ_cont = μ_seco",
+             f"{s3(P['muB_d']*IF[2]['N'])} kN", f"{s3(Fdrag)} kN con μ = {s3(mu_top_max)} (+{s3((mu_top_max/P['muB_d']-1)*100)} %); {s3(n_bolts)} bulones M8 por aplastamiento del UHMW: resolver con rebaje perimetral/cola de milano o pegado antes de emitir"))
+FIND.append(("N4", "menor" if has_pend["A"] else "importante", "Opción A: gripado inox–inox pendiente (fila «pend» del núcleo)", f"presión {s3(q)} MPa; caso seco FS {s3(casos(P,1,IF[1]['N'])['seco']['FS'])}",
+             "exigir aleaciones o durezas distintas (≥ 50 HB) o recubrimiento; la presión nominal es ≈ 1/8 de los umbrales ASTM G98 publicados para 304/304 (confirmar), pero la grasa puede expulsarse tras reposo largo"))
+FIND.append(("N5", "menor", "μ de B: μ_cont = μ_seco = 0,25 sin margen para arena incrustada", f"μ_máx que gira {s3(mu_max_B)}", f"margen {s3((mu_max_B/P['muB_cont']-1)*100)} %; con μ = 0,30 no gira"))
 FIND.append(("H6", "menor", "Modelo de la placa: empotrada es adecuada y conservadora (≈ 11 %) para un vacío interior con q > 0 alrededor; la apoyada daría t = 8 mm; no cubre un vacío contiguo al borde del disco",
              f"σ empotrada {s3(sig_cl)} MPa", f"unilateral {s3(sig_fd) if sig_fd else '—'} MPa (−11 %); apoyada {s3(sig_ss)} MPa (t_req {s3(tfl_ss + P['ss_allow'])} → {s3(com(tfl_ss + P['ss_allow'], COM_SS))} mm); la carga uniforme gobierna para δ_v ≥ {s3(wc_fd if wc_fd else wc_cl)} mm (empotrada {s3(wc_cl)}); voladizo máx. c = {s3(c_ov)} mm (cantear el respaldo ≤ 3 mm). σ_δ cerrada subestima ≈ 2× a δ_v = 0,01 mm y 8 % a 0,03 mm: no usarla para reducir t"))
-FIND.append(("H7", "menor", "PV con la velocidad media del ciclo completo (carrera + retorno); la mesa solo se mueve en la carrera",
-             f"v = {s3(v_edge*1e3)} mm/s, PV = {s3(qB*v_edge)}", f"v = {s3(v_ext*1e3)} mm/s, PV = {s3(qB*v_ext)}; no gobierna (FU {s3(qB*v_ext/P['PV_uh'])})"))
 FIND.append(("H8", "menor", "Fluencia de la lámina: asentamiento y diferencia de borde pequeños; sin efecto sobre la verticalidad, pero relaja bulones y desplaza material a las juntas",
-             "no evaluada", "≈ 0,1–0,2 mm de asentamiento y ≈ 0,1 mm de diferencia a 1–25 años (≈ 0,05 mm/m); usar arandelas elásticas y rebajes con holgura"))
-FIND.append(("H9", "menor", "Dilatación de la lámina UHMW: solo se da la junta circunferencial; el crecimiento radial del sector no se considera",
-             f"junta {s3(ifc_core[2].get('F') and (AL_UH-AL_S)*P['dT']*2*Ro*math.sin(math.pi/P['n_seg']))} mm", f"crecimiento radial {s3(dRad)} mm; fijar cada sector en el centro con agujeros ranurados"))
-FIND.append(("H10", "menor", "Pernos avellanados en el disco de 6 mm no evaluados: M8 deja ≈ 1,1 mm bajo la cabeza tras el relapeado; hay corrosión galvánica y de resquicio inox/acero al carbono",
+             "no evaluada", f"≈ 0,2–0,4 mm de asentamiento y ≈ 0,1–0,3 mm de diferencia con t = {s3(tU)} mm (≈ 0,05–0,15 mm/m); arandelas elásticas y rebajes con holgura"))
+FIND.append(("H10", "menor", "Pernos avellanados en el disco de 6 mm no evaluados: M8 deja ≈ 1,1 mm bajo la cabeza tras el relapeado; corrosión galvánica y de resquicio inox/acero al carbono",
              "sin verificación", "usar M6 (k = 3,3 mm) o discos de 8 mm; sellar el perímetro y proteger el respaldo con imprimante de zinc"))
-FIND.append(("H11", "menor", "La masa agregada informada excluye el crecimiento por Δ de ménsulas, patines y pivote",
-             f"A {s3(IF[1]['mAdd'])} kg; B {s3(IF[2]['mAdd'])} kg", f"A +{s3(mt[1]-mt[0])} kg; B +{s3(mt[2]-mt[0])} kg en el total del conjunto"))
 
 # ======================================================================================
 # Resumen
