@@ -38,7 +38,7 @@ const out = {
   almas: TT.parseRings(P.rings),
   cilindros: { horario: cw, antihorario: ccw },
   grupos: TT.PARAM_GROUPS.map((g) => ({ id: g.id, titulo: g.t, p: g.p.map(([id, lab, u]) => ({ id, lab, u })) })),
-  apoyo: { r_u: R.r_u, Ro: R.Ro, Ri: R.Ri, Ac: R.Ac, T_piv_d: R.T_piv(P.mu_d), H_ecc_d: R.H_ecc(P.mu_d), q_min: R.q_min, Wd: R.Wd },
+  apoyo: { r_u: R.r_u, Ro: R.Ro, Ri: R.Ri, Ac: R.Ac, T_piv_d: R.T_piv(R.mu.d), H_ecc_d: R.H_ecc(R.mu.d), mu: R.mu, interfaz: R.ifc, Tmax: R.Tmax, q_min: R.q_min, Wd: R.Wd },
   carrera: (() => {
     const st = R.stroke, thX = Math.asin(P.d_pin / 2 / P.R_pin), pick = [];
     pick.push(["Inicio (toma)", st[0]]);
@@ -48,7 +48,9 @@ const out = {
     return pick.map(([pos, q]) => ({ pos, th: q.th / D2R, s: q.s, arm: P.R_pin * Math.cos(q.th), Delta: P.x_g - P.R_pin * Math.cos(q.th), F: q.F, p: q.F * 1e3 / R.A * 10,
       Fpin: q.Fp, H: q.H, Ft: q.Fp * Math.cos(q.th) - q.H * Math.sin(q.th), Fr: q.Fp * Math.sin(q.th) + q.H * Math.cos(q.th), Rf: q.Rf, Rr: q.Rr }));
   })(),
-  escenarios: (() => { const sc = AG.scenarios(A); return { mus: sc.mus, rs: sc.rs, grid: sc.grid, loads: sc.loads, classes: sc.classes }; })(),
+  escenarios: (() => { const sc = AG.scenarios(A); return { mus: sc.mus, rs: sc.rs, grid: sc.grid, loads: sc.loads, classes: sc.classes, ifaces: sc.ifaces }; })(),
+  interfazChecks: (() => { const chk = (k) => TT.analyze(Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0 }), { noFEA: true }).checks.filter((c) => c.grp === "Interfaz inox")
+    .map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })); return { A: chk(1), B: chk(2) }; })(),
   revisionCruzada: AG.crossCheck(A),
   auditoria: AG.audit(A.checks),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),

@@ -40,6 +40,10 @@ summary::after{content:"▸";color:var(--ink2)}details[open] summary::after{cont
 .prm label .u{color:var(--steel);font-size:11px;margin-left:3px}
 .prm input{width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12.5px var(--mono);text-align:right}
 .prm input.txt{text-align:left}
+.prm.chk{grid-template-columns:1fr 22px;padding:6px 10px;margin:2px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.prm.chk label{color:var(--ink);font-weight:600;cursor:pointer}
+.prm.chk input{width:18px;height:18px;padding:0;accent-color:var(--acc);cursor:pointer}
+.prm.chk.chg{border-color:var(--acc)}
 .prm input:focus{outline:2px solid var(--acc);outline-offset:-1px}
 .prm.chg input{border-color:var(--acc)}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}

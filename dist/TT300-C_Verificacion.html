@@ -40,6 +40,10 @@ summary::after{content:"▸";color:var(--ink2)}details[open] summary::after{cont
 .prm label .u{color:var(--steel);font-size:11px;margin-left:3px}
 .prm input{width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12.5px var(--mono);text-align:right}
 .prm input.txt{text-align:left}
+.prm.chk{grid-template-columns:1fr 22px;padding:6px 10px;margin:2px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.prm.chk label{color:var(--ink);font-weight:600;cursor:pointer}
+.prm.chk input{width:18px;height:18px;padding:0;accent-color:var(--acc);cursor:pointer}
+.prm.chk.chg{border-color:var(--acc)}
 .prm input:focus{outline:2px solid var(--acc);outline-offset:-1px}
 .prm.chg input{border-color:var(--acc)}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
@@ -357,6 +361,10 @@ if (false) module.exports = FEA;
 const TT = (() => {
   const FEA_ = (typeof FEA !== "undefined") ? FEA : require("./fea.js");
   const G = 9.80665, RHO = 7.85e-6, D2R = Math.PI / 180;
+  const RHO_SS = 7.93e-6, RHO_UH = 0.94e-6;                       // kg/mm³: inoxidable austenítico y UHMW-PE
+  const AL_SS = 17.3e-6, AL_S = 11.7e-6, AL_UH = 180e-6, E_SS = 193000;   // 1/K y MPa
+  const SS_COMM = [3, 4, 5, 6, 8, 10, 12, 15, 20, 25];           // espesores comerciales de plancha inoxidable (mm)
+  const UH_COMM = [3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]; // espesores comerciales de plancha UHMW (mm)
 
   /* ---------------- Parámetros ---------------- */
   // [id, etiqueta, unidad, valor por defecto, mín, máx, paso, nota]
@@ -375,6 +383,33 @@ const TT = (() => {
       ["mu_dry", "μ acero seco (referencial)", "–", 0.50, 0.1, 0.9, 0.01],
       ["q_adm", "Presión de contacto admisible", "MPa", 10, 1, 50, 0.5],
       ["FS_min", "FS mínimo del accionamiento (calado / diseño)", "–", 1.25, 1, 3, 0.05],
+    ] },
+    { id: "inox", t: "Interfaz alternativa: discos de acero inoxidable (A) o discos con lámina UHMW (B)", p: [
+      ["opt_ss", "Opción A: dos discos de acero inoxidable con grasa entre sí", "–", 0, 0, 1, "chk"],
+      ["opt_uhmw", "Opción B: dos discos de acero inoxidable con una lámina de UHMW entre ellos", "–", 0, 0, 1, "chk"],
+      ["t_ss", "Espesor de cada disco inoxidable (0 = automático, según cálculo)", "mm", 0, 0, 40, 1],
+      ["t_uhmw", "Espesor de la lámina UHMW (0 = automático, según cálculo)", "mm", 0, 0, 60, 1],
+      ["Fy_ss", "Fy del acero inoxidable (ASTM A240 304: 205; 316L: 170)", "MPa", 205, 100, 600, 5],
+      ["ss_void", "Ø del vacío local supuesto bajo el disco (pérdida de contacto con el respaldo)", "mm", 100, 20, 400, 5],
+      ["ss_allow", "Sobreespesor por disco: desgaste y relapeado", "mm", 0.5, 0, 5, 0.1],
+      ["ss_tmin", "Espesor mínimo constructivo del disco (avellanado y rectificado)", "mm", 4, 2, 20, 0.5],
+      ["mu_back", "μ disco–plancha de respaldo (acero–inox seco bajo la carga)", "–", 0.40, 0.1, 0.8, 0.01],
+      ["dT", "Diferencia térmica de diseño entre disco o lámina y plancha de acero", "K", 40, 0, 100, 1],
+      ["muA_nom", "Opción A · μ nominal (inox–inox con grasa limpia)", "–", 0.15, 0.03, 0.6, 0.01],
+      ["muA_d", "Opción A · μ estático de diseño", "–", 0.20, 0.05, 0.6, 0.01],
+      ["muA_cont", "Opción A · μ contaminado", "–", 0.25, 0.05, 0.8, 0.01],
+      ["muA_dry", "Opción A · μ seco (referencial; riesgo de gripado)", "–", 0.60, 0.1, 1.0, 0.01],
+      ["muB_nom", "Opción B · μ nominal (UHMW sobre inox con grasa limpia)", "–", 0.08, 0.02, 0.6, 0.01],
+      ["muB_d", "Opción B · μ estático de diseño (arranque tras reposo bajo carga)", "–", 0.15, 0.03, 0.6, 0.01],
+      ["muB_cont", "Opción B · μ contaminado", "–", 0.20, 0.05, 0.8, 0.01],
+      ["muB_dry", "Opción B · μ seco (UHMW autolubricado)", "–", 0.20, 0.05, 0.8, 0.01],
+      ["p_uhmw", "UHMW: presión admisible sostenida (≈ ¼ del esfuerzo a 10 % de deformación)", "MPa", 5, 1, 20, 0.5],
+      ["E_uhmw", "UHMW: módulo aparente con fluencia (1.000 h)", "MPa", 300, 100, 1000, 10],
+      ["d_flat", "Tolerancia de planitud de los discos rectificados (de pico a valle)", "mm", 0.10, 0.01, 1, 0.01],
+      ["uh_tmin", "Espesor mínimo constructivo de la lámina UHMW (fijación avellanada)", "mm", 6, 2, 30, 1],
+      ["k_wear", "UHMW sobre inox con grasa: tasa de desgaste específico (×10⁻⁷ mm³/N·m)", "–", 2, 0.1, 100, 0.1],
+      ["PV_uh", "UHMW: valor PV admisible", "MPa·m/s", 0.05, 0.01, 0.5, 0.01],
+      ["n_seg", "N° de sectores de la lámina UHMW (juntas de dilatación)", "–", 12, 4, 48, 1],
     ] },
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
@@ -505,7 +540,7 @@ const TT = (() => {
   }
 
   /* ---------------- Masas ---------------- */
-  function masses(P) {
+  function massesMesa(P) {
     const rings = parseRings(P.rings);
     const hw = P.h_disc - P.t_top - P.t_bot;
     const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15;
@@ -521,6 +556,55 @@ const TT = (() => {
     m.hub = RHO * Math.PI / 4 * (P.D_hub ** 2 - d_bush ** 2) * hw;
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins;
+    return m;
+  }
+
+  /* ---------------- Interfaz de giro: acero–acero (por defecto), discos inoxidables (A) o discos + UHMW (B) ---------------- */
+  function ifOpt(P) { return P.opt_uhmw > 0.5 ? 2 : (P.opt_ss > 0.5 ? 1 : 0); }
+  function muSet(P) {
+    const o = ifOpt(P);
+    if (o === 1) return { nom: P.muA_nom, d: P.muA_d, cont: P.muA_cont, dry: P.muA_dry };
+    if (o === 2) return { nom: P.muB_nom, d: P.muB_d, cont: P.muB_cont, dry: P.muB_dry };
+    return { nom: P.mu_nom, d: P.mu_d, cont: P.mu_cont, dry: P.mu_dry };
+  }
+  const commercial = (list, t) => list.find((v) => v >= t - 1e-9) || Math.ceil(t);
+  // Presión máxima de contacto con la masa rotatoria adicional mTop (kg): misma distribución lineal que compute()
+  function ifaceLoad(P, mTop) {
+    const m = massesMesa(P), Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15;
+    const mPiv = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
+    const ND = P.phi_d * P.W_tf * G + (m.disc + mTop + mPiv * 0.5) * G / 1e3;
+    const Ac = Math.PI * (Ro * Ro - Ri * Ri), kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri);
+    return { Ac, Ro, Ri, ND, q_avg: ND * 1e3 / Ac, q_max: ND * 1e3 / Ac * (1 + kq) };
+  }
+  function ifaceDesign(P) {
+    const o = ifOpt(P);
+    if (o === 0) return { o, tss: 0, tuh: 0, delta: 0, mTop: 0, mUH: 0 };
+    const sad = 0.6 * P.Fy_ss, a = P.ss_void / 2;
+    // Disco inoxidable: placa circular empotrada de radio a sobre un vacío local, carga uniforme q:
+    //   σ_máx = 3·q·a²/(4·t²) ≤ 0,6·Fy  →  t_flex = a·√(0,75·q/σ_adm); espesor requerido = t_flex + sobreespesor, no menor que el mínimo constructivo.
+    const A_ss = Math.PI * ((P.D_top / 2) ** 2 - (P.D_piv / 2 + 15) ** 2);
+    const calc = (mTop) => { const L = ifaceLoad(P, mTop), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin) }; };
+    let c = calc(0), t = P.t_ss > 0 ? P.t_ss : commercial(SS_COMM, c.treq);
+    for (let i = 0; i < 4; i++) {                                       // el disco rotatorio también carga la interfaz
+      c = calc(RHO_SS * A_ss * t);
+      const tn = P.t_ss > 0 ? P.t_ss : commercial(SS_COMM, c.treq);
+      if (tn === t) break; t = tn;
+    }
+    const q = c.L.q_max;
+    // Lámina UHMW: la falta de planitud d_flat comprime localmente la lámina; la sobrepresión E·d/t se suma a q y no debe pasar de p_adm
+    let tuhConf = Infinity, tuhReq = 0, tuh = 0;
+    if (o === 2) {
+      tuhConf = P.p_uhmw > q ? P.E_uhmw * P.d_flat / (P.p_uhmw - q) : Infinity;
+      tuhReq = Math.max(tuhConf, P.uh_tmin);
+      tuh = P.t_uhmw > 0 ? P.t_uhmw : commercial(UH_COMM, tuhReq);
+    }
+    return { o, tss: t, tssReq: c.treq, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf,
+      delta: 2 * t + tuh, mTop: RHO_SS * A_ss * t, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0 };
+  }
+
+  function masses(P) {
+    const m = massesMesa(P), ifc = ifaceDesign(P);
+    m.ssTop = ifc.mTop; m.ss = 2 * ifc.mTop; m.uhmw = ifc.mUH;       // disco rotatorio, ambos discos y lámina UHMW
     m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
     m.rim = RHO * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t;
     const bg = bracketGeo(P);
@@ -538,9 +622,9 @@ const TT = (() => {
     m.shoes = RHO * P.n_cyl * shoeV;
     // bancadas: una por lado de cilindro (sirve a ambos sentidos de giro)
     m.beds = RHO * P.n_cyl * (g.L_bed * P.w_bed * P.t_bed - g.L_bed * P.w_slot * P.h_slot - g.L_bed * P.w_tee * P.h_tee);
-    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
+    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + ifc.delta + P.h_disc - P.t_top + 3);
     m.cyl = P.n_cyl * P.m_cyl;
-    m.total = m.disc + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl;
+    m.total = m.disc + m.ss + m.uhmw + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl;
     return m;
   }
   function bracketGeo(P) {
@@ -567,7 +651,7 @@ const TT = (() => {
   }
   function TT_lugF(P) { return P.d_pp / 2 + 25; }
   function forkH(P) { return P.b_eye + 2 * P.g_ch + 2 * P.t_ch; }       // alto de la horquilla de la uña
-  function hAxis(P) { return P.h_disc / 2; }                         // eje del cilindro sobre la base = mitad de la luz del pasador
+  function hAxis(P) { return P.h_disc / 2 + ifaceDesign(P).delta; }   // eje del cilindro sobre la base = mitad de la luz del pasador + discos de la interfaz
   function prIn(P) { return Math.max(P.D_hub / 2, P.R_pin - (P.D_top / 2 - P.R_pin)); }   // radio interior del anillo de pasadores
   function pinClear(P) { return P.h_disc - 2 * Math.max(P.t_pr, P.t_top, P.t_bot); }
 
@@ -609,7 +693,8 @@ const TT = (() => {
   function compute(P) {
     const m = masses(P);
     const W = P.W_tf * G;                             // kN
-    const Wd = (m.disc + m.pivot * 0.5) * G / 1e3;     // kN (mesa + medio pivote)
+    const Wd = (m.disc + m.ssTop + m.pivot * 0.5) * G / 1e3;     // kN (mesa + disco inoxidable rotatorio + medio pivote)
+    const mu = muSet(P), ifc = ifaceDesign(P), oi = ifc.o;
     const N = W + Wd, ND = P.phi_d * W + Wd;
     const Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15;
     const Ac = Math.PI * (Ro * Ro - Ri * Ri);
@@ -648,11 +733,11 @@ const TT = (() => {
     const stall = dpts.map((d) => { const Fp = Fstall * P.eta_c; return { Fp, H: Math.abs(d.h) * Fp, R: Math.max(Math.abs(d.rf), Math.abs(d.rr)) * Fp, Rsum: (Math.abs(d.rf) + Math.abs(d.rr)) * Fp }; });
     const stallMax = { Fp: Math.max(...stall.map((x) => x.Fp)), H: Math.max(...stall.map((x) => x.H)), R: Math.max(...stall.map((x) => x.R)), Rsum: Math.max(...stall.map((x) => x.Rsum)) };
     const caseDef = [
-      ["nom", "Nominal: grasa grafitada limpia", P.mu_nom, r_u],
-      ["dis", "Diseño: μ límite superior, r efectivo", P.mu_d, P.r_ef],
-      ["borde", "Borde: μ de diseño con contacto en el borde (r = R)", P.mu_d, Ro],
-      ["cont", "Contaminado: arena / película degradada", P.mu_cont, P.r_ef],
-      ["seco", "Acero seco, sin lubricación (referencial)", P.mu_dry, r_u],
+      ["nom", ["Nominal: grasa grafitada limpia", "Nominal: inox–inox con grasa limpia", "Nominal: UHMW sobre inox con grasa limpia"][oi], mu.nom, r_u],
+      ["dis", "Diseño: μ límite superior, r efectivo", mu.d, P.r_ef],
+      ["borde", "Borde: μ de diseño con contacto en el borde (r = R)", mu.d, Ro],
+      ["cont", "Contaminado: arena / película degradada", mu.cont, P.r_ef],
+      ["seco", ["Acero seco, sin lubricación (referencial)", "Inox seco, sin lubricación (referencial; gripado)", "UHMW seco sobre inox (autolubricado)"][oi], mu.dry, r_u],
     ];
     const cases = K.ok ? caseDef.map(([id, name, mu, r]) => {
       const T = torque(mu, r), F = Fcyl(T);
@@ -669,7 +754,7 @@ const TT = (() => {
     const N_tot = ND + (m.total - m.disc) * G / 1e3;
     const g_rigid = N_tot * 1e3 / (P.B * P.B) * (1 + 6 * P.e * Math.SQRT2 / P.B);
     return { m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
-      cases, cd, muMax, curve, stroke, stallMax, tCycle, tRev: tCycle * P.N_pin, Vext, g_rigid, hax: hAxis(P), torque, Fcyl, Kg, Kguide: Kg(),
+      mu, ifc, Tmax, cases, cd, muMax, curve, stroke, stallMax, tCycle, tRev: tCycle * P.N_pin, Vext, g_rigid, hax: hAxis(P), torque, Fcyl, Kg, Kguide: Kg(),
       Rguide: stallMax.R };
   }
 
@@ -860,7 +945,7 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Ménsula del ojal dentro de la base (y)", formula: "|y_ojal| + saliente trasera ≤ B/2 − t_marco − 5", dem: Math.abs(K.y_eye) + bgv.rear, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro detrás del patín", formula: "saliente trasera del patín + 10 ≤ c_vástago", dem: K.rear + 10, cap: P.c_rod, unit: "mm", ref: "Geometría (cilindro retraído)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Fondo del alojamiento de la uña sobre la bancada", formula: "z_eje − h_uña/2 − 1 − z_bancada ≥ t_alojamiento", dem: P.t_pk, cap: K.zc0 - P.dog_h / 2 - 1 - zBed, unit: "mm", ref: "Geometría (alzado)" });
-    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Patín bajo la cara superior de la mesa", formula: "z_sup_patín ≤ t_base + h_mesa", dem: K.shoeTop, cap: P.t_base + P.h_disc, unit: "mm", ref: "Geometría (alzado)" });
+    add({ grp: "Giro", sys: "giro", kind: "geo", name: "Patín bajo la cara superior de la mesa", formula: "z_sup_patín ≤ z_eje + h_mesa/2", dem: K.shoeTop, cap: K.zc0 + P.h_disc / 2, unit: "mm", ref: "Geometría (alzado)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Horquilla del patín sobre la bancada", formula: "z_bancada + 5 ≤ z_eje − h_horquilla/2", dem: zBed + 5, cap: K.zc0 - forkH(P) / 2, unit: "mm", ref: "Geometría (alzado)" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Orejas de la ménsula libres del cuerpo del cilindro", formula: "d_pp/2 + 25 + 10 ≤ e_cuerpo", dem: TT_lugF(P) + 10, cap: P.e_body, unit: "mm", ref: "Geometría" });
     add({ grp: "Giro", sys: "giro", kind: "geo", name: "Cuerpo del cilindro libre sobre la base", formula: "D_cuerpo/2 + 5 ≤ h_eje", dem: P.D_body / 2 + 5, cap: R.hax, unit: "mm", ref: "Geometría" });
@@ -874,6 +959,37 @@ const TT = (() => {
     add({ grp: "Interfaz", sys: "est", name: "Presión de contacto máxima", formula: "q = N_D/A · (1 + 4eR/(R²+r²))", dem: R.q_max, cap: P.q_adm, unit: "MPa", ref: "Criterio acero/acero lubricado" });
     add({ grp: "Interfaz", sys: "est", kind: "geo", name: "Sin despegue de la mesa (q_mín ≥ 0)", formula: "1 − 4eR/(R²+r²) ≥ 0", dem: 4 * P.e * R.Ro / (R.Ro ** 2 + R.Ri ** 2), cap: 1, unit: "–", ref: "Núcleo central" });
     add({ grp: "Interfaz", sys: "est", kind: "info", name: "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)", formula: "σ ≈ q_max ≤ q_losa (verificar por terceros)", dem: R.q_max, cap: P.q_floor, unit: "MPa", ref: "Referencial (rev. M7)" });
+
+    /* --- Interfaz con discos de acero inoxidable (A) o discos + lámina UHMW (B) --- */
+    const I = R.ifc;
+    if (I.o > 0) {
+      const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)";
+      const tEnd = I.tss - P.ss_allow;                                       // espesor útil al final de la vida (sin sobreespesor)
+      add({ grp: "Interfaz inox", sys: "est", name: "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor", dem: 0.75 * I.q * (I.a / tEnd) ** 2, cap: I.sad, unit: "MPa", ref: REFD });
+      add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Disco inoxidable: espesor adoptado frente al requerido", formula: "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor mínimo por flexión sobre el vacío local", formula: "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))", dem: I.tFlex, unit: "mm", ref: REFD });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)", formula: "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "ASTM A240 (plancha inoxidable)" });
+      const Ttot = R.Tmax, Tret = P.mu_back * R.N * R.r_u / 1e3;
+      add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos por fricción sobre su plancha de respaldo", formula: "T_calado ≤ μ_respaldo·N·r_u (si no cumple: pasadores radiales o chaveteros)", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; μ acero–inox seco bajo la carga" });
+      const dr = (AL_SS - AL_S) * P.dT * R.Ro, sth = E_SS * (AL_SS - AL_S) * P.dT;
+      add({ grp: "Interfaz inox", sys: "est", name: "Dilatación diferencial inox–acero: tensión si el disco quedara restringido", formula: "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox", dem: sth, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)", formula: "Δr = (α_inox − α_acero)·ΔT·R", dem: dr, unit: "mm", ref: "Termoelasticidad" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: I.o === 2 ? "Δ = 2·t_disco + t_UHMW" : "Δ = 2·t_disco", dem: I.delta, unit: "mm", ref: "Geometría (eje de los cilindros sube Δ)" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)", formula: "m = ρ·A·t", dem: R.m.ss + R.m.uhmw, unit: "kg", ref: "Geometría" });
+    }
+    if (I.o === 2) {
+      const REFU = "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo";
+      add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida", formula: "q_máx ≤ p_adm,UHMW", dem: I.q, cap: P.p_uhmw, unit: "MPa", ref: REFU });
+      add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: espesor adoptado frente al requerido", formula: "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)", dem: I.tuhReq, cap: I.tuh, unit: "mm", ref: REFU });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: espesor por conformidad de planitud / mínimo constructivo / comercial adoptado", formula: "t_conf = E_ap·δ_planitud/(p_adm − q_máx)", dem: I.tuhConf, cap: I.tuh, unit: "mm", ref: REFU });
+      const vmax = R.Ro / 1000 * (2 * Math.PI / P.N_pin) / (R.tCycle * 60);     // m/s en el borde (un paso por ciclo de bomba)
+      add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: valor PV en el borde de la mesa", formula: "PV = q_máx·v; v = R·(2π/N)/t_ciclo", dem: I.q * vmax, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
+      const dist = P.life * P.turns_yr * 2 * Math.PI * P.r_ef / 1000;              // m deslizados en la vida
+      const wear = P.k_wear * 1e-7 * I.q * dist;                                   // mm
+      add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor", formula: "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef", dem: wear, cap: 0.2 * I.tuh, unit: "mm", ref: REFU });
+      const gap = (AL_UH - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.n_seg);
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: junta de dilatación entre sectores (ancho a dejar en frío)", formula: "j = (α_UHMW − α_acero)·ΔT·cuerda del sector; α_UHMW = 180×10⁻⁶/K", dem: gap, unit: "mm", ref: REFU });
+    }
 
     /* --- Mesa --- */
     const sAll = 0.6 * Fy;
@@ -994,7 +1110,7 @@ const TT = (() => {
 
     /* --- Pivote --- */
     const Hasym = R.Fstall * P.eta_c * Math.max(...[-1, 1].map((e) => Math.abs(1 / asymF(P, P.mu_g - 0.05, e) - 1 / asymF(P, P.mu_g + 0.05, e))));
-    const H = Math.max(R.H_ecc(P.mu_d), P.Ch * R.N) + Hasym;
+    const H = Math.max(R.H_ecc(R.mu.d), P.Ch * R.N) + Hasym;
     add({ grp: "Pivote", sys: "est", kind: "info", name: "Empuje neto al pivote por fricción desigual de los patines (μg ± 0,05)", formula: "H_asim = F_calado·η·|1/f(μg−0,05) − 1/f(μg+0,05)|", dem: Hasym, unit: "kN", ref: "Equilibrio (revisión independiente H10)" });
     add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
     add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd", dem: H * 1e3 * P.e_piv / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
@@ -1093,6 +1209,7 @@ const AG = (() => {
     if (!rings.length) E("Defina al menos un radio de alma anular");
     if (P.D_bore <= P.d_rod) E("El émbolo debe ser mayor que el vástago");
     if (P.p_alarm > P.p_relief) E("La presión de alarma no puede superar la de alivio");
+    if (P.opt_ss > 0.5 && P.opt_uhmw > 0.5) E("Elija una sola opción de interfaz: A (discos inoxidables con grasa) o B (discos inoxidables con lámina UHMW)");
     if (P.p_relief > P.p_rated * TT_.PSI_CAT + 1e-6) E(`El alivio (${P.p_relief} bar) supera la presión nominal del cilindro (${P.p_rated} psi ≙ ${Math.round(P.p_rated * TT_.PSI_CAT)} bar)`);
     if (P.s_free >= P.stroke) E("El recorrido libre debe ser menor que la carrera");
     if (P.N_pin % P.N_rib !== 0) {
@@ -1218,7 +1335,14 @@ const AG = (() => {
       const Amin = Math.max(P.FS_min * F * 1e3 / (pr / 10), F * 1e3 / (pa / 10));
       return { psi, pr, pa, Dmin: Math.sqrt(4 * Amin / Math.PI), FScur: R.A * pr / 10 / 1e3 / F, pcur: F * 1e3 / R.A * 10 };
     });
-    return { mus, rs, grid, loads, classes };
+    // alternativas de interfaz de giro: acero–acero (actual), A: discos inoxidables con grasa, B: discos inoxidables con lámina UHMW
+    const ifaces = [0, 1, 2].map((k) => {
+      const Q = Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0 }), RR = TT_.compute(Q), I = RR.ifc;
+      return { k, name: ["Acero–acero con grasa (base)", "A · Discos inoxidables con grasa", "B · Discos inoxidables con lámina UHMW"][k],
+        tss: I.tss, tuh: I.tuh, tssReq: I.tssReq, tuhReq: I.tuhReq, delta: I.delta, mass: RR.m.total, mu_d: RR.mu.d, F: RR.cd.F, p: RR.cd.p, FS: RR.cd.FS,
+        muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg };
+    });
+    return { mus, rs, grid, loads, classes, ifaces };
   }
 
   /* ---------- 5. Optimizador de peso ---------- */
@@ -1372,6 +1496,7 @@ if (false) module.exports = AG;
   function buildForm() {
     $("#form").innerHTML = TT.PARAM_GROUPS.map((g, gi) => `<details ${gi < 5 ? "open" : ""}><summary>${esc(g.t)}</summary>${g.p.map(([id, lab, u, def, mn, mx, st]) => {
       const txt = typeof def === "string";
+      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
@@ -1380,7 +1505,11 @@ if (false) module.exports = AG;
   $("#form").addEventListener("input", (e) => {
     const row = e.target.closest(".prm"); if (!row) return;
     const id = row.dataset.id, txt = typeof DEF[id] === "string";
-    P[id] = txt ? e.target.value : parseFloat(e.target.value);
+    if (e.target.type === "checkbox") {
+      P[id] = e.target.checked ? 1 : 0;
+      const other = id === "opt_ss" ? "opt_uhmw" : id === "opt_uhmw" ? "opt_ss" : null;      // una sola opción de interfaz a la vez
+      if (other && P[id]) { P[other] = 0; const ob = $("#p_" + other); if (ob) { ob.checked = false; ob.closest(".prm").classList.remove("chg"); } }
+    } else P[id] = txt ? e.target.value : parseFloat(e.target.value);
     row.classList.toggle("chg", P[id] !== DEF[id]);
     clearTimeout(tmr); $("#busy").textContent = "Calculando…";
     tmr = setTimeout(recalc, 380);
@@ -1443,9 +1572,9 @@ if (false) module.exports = AG;
     <div class="grid" style="margin-top:10px">
       <div class="card"><h3>¿Gira?</h3><div class="big" style="color:var(${A.verdict.gira ? "--ok" : "--fail"})">${A.verdict.gira ? "Sí, con margen" : "No asegurado"}</div>
         <div class="kv" style="margin-top:6px">
-          <span>FS diseño (μ ${fmt(P.mu_d)}, r ${fmt(P.r_ef)} mm)</span><span>${fmt(c("dis").FS)}</span>
+          <span>FS diseño (μ ${fmt(R.mu.d)}, r ${fmt(P.r_ef)} mm)</span><span>${fmt(c("dis").FS)}</span>
           <span>Presión de diseño / alarma</span><span>${fmt(c("dis").p)} / ${fmt(P.p_alarm)} bar</span>
-          <span>FS contaminado (μ ${fmt(P.mu_cont)})</span><span>${fmt(c("cont").FS)}</span>
+          <span>FS contaminado (μ ${fmt(R.mu.cont)})</span><span>${fmt(c("cont").FS)}</span>
           <span>FS contacto en el borde</span><span>${fmt(c("borde").FS)}</span>
           <span>Margen de carrera</span><span>${fmt(K.margin)} mm</span>
           <span>μ máx vencible (r_ef, alivio)</span><span>${fmt(R.muMax(P.r_ef))}</span>
@@ -1473,7 +1602,15 @@ if (false) module.exports = AG;
           <span>Brazo mínimo de la fuerza</span><span>${fmt(K.armMin, 4)} mm</span>
         </div></div>
     </div>
-    <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>`;
+    <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>
+    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A o B en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>`;
+  }
+  function ifaceTable() {
+    const rows = (SC && SC.ifaces) || [], act = A.R.ifc.o;
+    const g = (v, d) => (v ? fmt(v, d || 3) : "—");
+    return `<div class="scroll"><table><tr><th>Alternativa</th><th class="n">Disco inox req. → adoptado (mm)</th><th class="n">UHMW req. → adoptado (mm)</th><th class="n">Altura agregada (mm)</th><th class="n">Masa agregada (kg)</th><th class="n">Masa total (kg)</th><th class="n">μ diseño</th><th class="n">F/cil diseño (kN)</th><th class="n">p diseño (bar)</th><th class="n">FS diseño</th></tr>
+      ${rows.map((r) => `<tr${r.k === act ? ' class="grp"' : ""}><td>${r.k === act ? "● " : ""}${esc(r.name)}</td><td class="n">${r.k ? g(r.tssReq, 3) + " → " + fmt(r.tss, 3) : "—"}</td><td class="n">${r.k === 2 ? g(r.tuhReq, 3) + " → " + fmt(r.tuh, 3) : "—"}</td><td class="n">${g(r.delta)}</td><td class="n">${g(r.mAdd, 3)}</td><td class="n">${fmt(r.mass, 4)}</td><td class="n">${fmt(r.mu_d)}</td><td class="n">${fmt(r.F)}</td><td class="n">${fmt(r.p)}</td><td class="n">${fmt(r.FS)}</td></tr>`).join("")}</table></div>
+      <div class="note">● alternativa activa. Disco inoxidable: placa circular empotrada sobre un vacío local de Ø${fmt(P.ss_void, 3)} mm bajo q = ${fmt(A.R.q_max)} MPa, σ = 3qa²/(4t²) ≤ 0,6·Fy (${fmt(P.Fy_ss, 3)} MPa), más ${fmt(P.ss_allow)} mm de sobreespesor; mínimo constructivo ${fmt(P.ss_tmin)} mm. Lámina UHMW: t ≥ E_ap·δ/(p_adm − q) con E_ap = ${fmt(P.E_uhmw, 3)} MPa, δ = ${fmt(P.d_flat)} mm, p_adm = ${fmt(P.p_uhmw)} MPa (mínimo constructivo ${fmt(P.uh_tmin)} mm). Los μ de cada alternativa son datos de entrada: confirmarlos con ensayo del proveedor. Al activar A o B el eje de los cilindros sube la altura agregada.</div>`;
   }
   function casesTable() {
     const R = A.R;
@@ -1533,20 +1670,25 @@ if (false) module.exports = AG;
     return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
   }
   function sectionSVG() {
-    const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot);
-    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tb + hd + 160;
+    const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot), ifc = R.ifc, dl = ifc.delta, tm = tb + dl;   // tm: cara inferior de la mesa (sobre los discos de la interfaz)
+    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tm + hd + 160;
     const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
     const Rt = P.D_top / 2, rpr = TT.prIn(P);
+    if (ifc.o > 0) {                                                  // discos inoxidables (A y B) y lámina UHMW (B) entre la base y la mesa
+      const rI = R.Ri, zs = [[tb, ifc.tss, "var(--acc)", "disco inox"], ...(ifc.o === 2 ? [[tb + ifc.tss, ifc.tuh, "var(--warn)", "UHMW"]] : []), [tb + ifc.tss + (ifc.o === 2 ? ifc.tuh : 0), ifc.tss, "var(--acc)", "disco inox"]];
+      zs.forEach(([z0, t, c, n], k) => o.push(`<rect x="${X(rI)}" y="${Z(z0 + t)}" width="${X(Rt) - X(rI)}" height="${t}" fill="${c}" opacity="${n === "UHMW" ? 0.85 : 0.7}" stroke="var(--ink)" stroke-width=".6"><title>${n} ${fmt(t, 3)} mm</title></rect>`));
+      o.push(`<text x="${X(r0) + 250}" y="${Z(tb) + 14}" font-size="13" fill="var(--ink)">${ifc.o === 2 ? "inox " + fmt(ifc.tss, 3) + " + UHMW " + fmt(ifc.tuh, 3) + " + inox " + fmt(ifc.tss, 3) : "2 × inox " + fmt(ifc.tss, 3)} mm</text>`);
+    }
     // plancha inferior y superior con anillo
-    o.push(`<rect x="${X(r0)}" y="${Z(tb + P.t_bot)}" width="${X(rpr) - X(r0)}" height="${P.t_bot}" fill="var(--ink2)"/>`);
-    o.push(`<rect x="${X(rpr)}" y="${Z(tb + tpr)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
-    o.push(`<rect x="${X(r0)}" y="${Z(tb + hd)}" width="${X(rpr) - X(r0)}" height="${P.t_top}" fill="var(--ink2)"/>`);
-    o.push(`<rect x="${X(rpr)}" y="${Z(tb + hd)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
-    TT.parseRings(P.rings).filter((r) => r > r0).forEach((r) => o.push(`<rect x="${X(r - P.t_web / 2)}" y="${Z(tb + hd - P.t_top)}" width="${P.t_web}" height="${hd - P.t_top - P.t_bot}" fill="var(--ink2)" opacity=".75"/>`));
-    o.push(`<rect x="${X(P.R_pin - P.d_pin / 2)}" y="${Z(tb + hd)}" width="${P.d_pin}" height="${hd}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
+    o.push(`<rect x="${X(r0)}" y="${Z(tm + P.t_bot)}" width="${X(rpr) - X(r0)}" height="${P.t_bot}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(rpr)}" y="${Z(tm + tpr)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(r0)}" y="${Z(tm + hd)}" width="${X(rpr) - X(r0)}" height="${P.t_top}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(rpr)}" y="${Z(tm + hd)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
+    TT.parseRings(P.rings).filter((r) => r > r0).forEach((r) => o.push(`<rect x="${X(r - P.t_web / 2)}" y="${Z(tm + hd - P.t_top)}" width="${P.t_web}" height="${hd - P.t_top - P.t_bot}" fill="var(--ink2)" opacity=".75"/>`));
+    o.push(`<rect x="${X(P.R_pin - P.d_pin / 2)}" y="${Z(tm + hd)}" width="${P.d_pin}" height="${hd}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
     const zc = tb + R.hax;
     o.push(`<line x1="${X(r0)}" y1="${Z(zc)}" x2="${X(r1)}" y2="${Z(zc)}" stroke="var(--load)" stroke-width="1.5" stroke-dasharray="10 6"/>`);
     const K = A.R.K, zb = tb + P.t_bed, fh = TT.forkH(P);
@@ -1560,11 +1702,11 @@ if (false) module.exports = AG;
     o.push(`<rect x="${X(K.tipX)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.tipX}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
     o.push(`<line x1="${X(P.x_g)}" y1="${Z(tb)}" x2="${X(P.x_g)}" y2="${Z(zc + fh / 2 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
     const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
-    o.push(dim(r0 + 8, tb, tb + hd, `h ${fmt(hd, 3)}`, 6));
+    o.push(dim(r0 + 8, tm, tm + hd, `h ${fmt(hd, 3)}`, 6));
     o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
-    o.push(dim(P.R_pin, tb + tpr, tb + hd - tpr, `libre ${fmt(TT.pinClear(P))}`, -P.d_pin / 2 - 8));
-    o.push(`<text x="${X(Rt) + 8}" y="${Z(tb + hd) + 14}" font-size="13">anillo ${fmt(tpr)}</text>`);
-    o.push(`<text x="${X(r0) + 4}" y="${Z(tb + hd) - 8}" font-size="13">sup. ${fmt(P.t_top)} · inf. ${fmt(P.t_bot)} · almas ${fmt(P.t_web)}</text>`);
+    o.push(dim(P.R_pin, tm + tpr, tm + hd - tpr, `libre ${fmt(TT.pinClear(P))}`, -P.d_pin / 2 - 8));
+    o.push(`<text x="${X(Rt) + 8}" y="${Z(tm + hd) + 14}" font-size="13">anillo ${fmt(tpr)}</text>`);
+    o.push(`<text x="${X(r0) + 4}" y="${Z(tm + hd) - 8}" font-size="13">sup. ${fmt(P.t_top)} · inf. ${fmt(P.t_bot)} · almas ${fmt(P.t_web)}</text>`);
     o.push(`<text x="${X(r1) - 4}" y="${Z(zc) - 6}" font-size="13" text-anchor="end" fill="var(--load)">eje cilindro +${fmt(R.hax)}</text>`);
     o.push(`<text x="${X(P.R_pin)}" y="${Z(-10) + 22}" font-size="13" text-anchor="middle">R${fmt(P.R_pin, 4)}</text>`);
     return `<svg viewBox="0 0 ${W} ${Hs + 20}" role="img" aria-label="Corte radial en el borde">${o.join("")}</svg>`;
@@ -1607,7 +1749,7 @@ if (false) module.exports = AG;
     const el = document.querySelector('section[data-t="giro"]');
     if (!A) { el.innerHTML = msgs(); return; }
     const R = A.R, K = R.K;
-    const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(P.mu_cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(P.mu_d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
+    const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(R.mu.cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(R.mu.d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
       const cs = R.cases.find((x) => x.id === id);
       return { n, c, pts: K.pts.map((q) => [q.s, R.Fcyl(cs.T, q.arm)]) };
     });
@@ -1699,13 +1841,13 @@ if (false) module.exports = AG;
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
     const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
-      ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+      ["Discos de acero inoxidable (opción A o B)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
     const mx = Math.max(...parts.map((p) => p[1]));
     el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
       ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}
       <tr class="grp"><td>Total</td><td class="n">${fmt(m.total, 4)}</td><td class="n">100</td><td></td></tr></table>
       <div class="note">Masas de acero con ρ = 7850 kg/m³, sin soldadura ni pintura (agregar ≈ 2 %). No incluye bomba, mangueras ni plancha diamantada.</div></div>
-      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + P.h_disc, 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
+      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.ssTop + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + A.R.ifc.delta + P.h_disc, 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
       <div class="note">Use el optimizador para reducir la masa manteniendo todas las verificaciones (FU ≤ 0,90 en estructura y giro asegurado).</div></div></div>`;
   }
 

@@ -13,6 +13,31 @@
   "mu_dry": 0.5,
   "q_adm": 10,
   "FS_min": 1.25,
+  "opt_ss": 0,
+  "opt_uhmw": 0,
+  "t_ss": 0,
+  "t_uhmw": 0,
+  "Fy_ss": 205,
+  "ss_void": 100,
+  "ss_allow": 0.5,
+  "ss_tmin": 4,
+  "mu_back": 0.4,
+  "dT": 40,
+  "muA_nom": 0.15,
+  "muA_d": 0.2,
+  "muA_cont": 0.25,
+  "muA_dry": 0.6,
+  "muB_nom": 0.08,
+  "muB_d": 0.15,
+  "muB_cont": 0.2,
+  "muB_dry": 0.2,
+  "p_uhmw": 5,
+  "E_uhmw": 300,
+  "d_flat": 0.1,
+  "uh_tmin": 6,
+  "k_wear": 2,
+  "PV_uh": 0.05,
+  "n_seg": 12,
   "D_top": 2000,
   "t_top": 20,
   "t_bot": 16,
@@ -251,6 +276,9 @@
    "hub": 72.41233621845878,
    "pins": 261.92365087856825,
    "disc": 1567.233598614737,
+   "ssTop": 0,
+   "ss": 0,
+   "uhmw": 0,
    "base": 1027.139571832191,
    "rim": 36.031499999999994,
    "brackets": 152.56033977370586,
@@ -515,6 +543,137 @@
     {
      "id": "FS_min",
      "lab": "FS mínimo del accionamiento (calado / diseño)",
+     "u": "–"
+    }
+   ]
+  },
+  {
+   "id": "inox",
+   "titulo": "Interfaz alternativa: discos de acero inoxidable (A) o discos con lámina UHMW (B)",
+   "p": [
+    {
+     "id": "opt_ss",
+     "lab": "Opción A: dos discos de acero inoxidable con grasa entre sí",
+     "u": "–"
+    },
+    {
+     "id": "opt_uhmw",
+     "lab": "Opción B: dos discos de acero inoxidable con una lámina de UHMW entre ellos",
+     "u": "–"
+    },
+    {
+     "id": "t_ss",
+     "lab": "Espesor de cada disco inoxidable (0 = automático, según cálculo)",
+     "u": "mm"
+    },
+    {
+     "id": "t_uhmw",
+     "lab": "Espesor de la lámina UHMW (0 = automático, según cálculo)",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_ss",
+     "lab": "Fy del acero inoxidable (ASTM A240 304: 205; 316L: 170)",
+     "u": "MPa"
+    },
+    {
+     "id": "ss_void",
+     "lab": "Ø del vacío local supuesto bajo el disco (pérdida de contacto con el respaldo)",
+     "u": "mm"
+    },
+    {
+     "id": "ss_allow",
+     "lab": "Sobreespesor por disco: desgaste y relapeado",
+     "u": "mm"
+    },
+    {
+     "id": "ss_tmin",
+     "lab": "Espesor mínimo constructivo del disco (avellanado y rectificado)",
+     "u": "mm"
+    },
+    {
+     "id": "mu_back",
+     "lab": "μ disco–plancha de respaldo (acero–inox seco bajo la carga)",
+     "u": "–"
+    },
+    {
+     "id": "dT",
+     "lab": "Diferencia térmica de diseño entre disco o lámina y plancha de acero",
+     "u": "K"
+    },
+    {
+     "id": "muA_nom",
+     "lab": "Opción A · μ nominal (inox–inox con grasa limpia)",
+     "u": "–"
+    },
+    {
+     "id": "muA_d",
+     "lab": "Opción A · μ estático de diseño",
+     "u": "–"
+    },
+    {
+     "id": "muA_cont",
+     "lab": "Opción A · μ contaminado",
+     "u": "–"
+    },
+    {
+     "id": "muA_dry",
+     "lab": "Opción A · μ seco (referencial; riesgo de gripado)",
+     "u": "–"
+    },
+    {
+     "id": "muB_nom",
+     "lab": "Opción B · μ nominal (UHMW sobre inox con grasa limpia)",
+     "u": "–"
+    },
+    {
+     "id": "muB_d",
+     "lab": "Opción B · μ estático de diseño (arranque tras reposo bajo carga)",
+     "u": "–"
+    },
+    {
+     "id": "muB_cont",
+     "lab": "Opción B · μ contaminado",
+     "u": "–"
+    },
+    {
+     "id": "muB_dry",
+     "lab": "Opción B · μ seco (UHMW autolubricado)",
+     "u": "–"
+    },
+    {
+     "id": "p_uhmw",
+     "lab": "UHMW: presión admisible sostenida (≈ ¼ del esfuerzo a 10 % de deformación)",
+     "u": "MPa"
+    },
+    {
+     "id": "E_uhmw",
+     "lab": "UHMW: módulo aparente con fluencia (1.000 h)",
+     "u": "MPa"
+    },
+    {
+     "id": "d_flat",
+     "lab": "Tolerancia de planitud de los discos rectificados (de pico a valle)",
+     "u": "mm"
+    },
+    {
+     "id": "uh_tmin",
+     "lab": "Espesor mínimo constructivo de la lámina UHMW (fijación avellanada)",
+     "u": "mm"
+    },
+    {
+     "id": "k_wear",
+     "lab": "UHMW sobre inox con grasa: tasa de desgaste específico (×10⁻⁷ mm³/N·m)",
+     "u": "–"
+    },
+    {
+     "id": "PV_uh",
+     "lab": "UHMW: valor PV admisible",
+     "u": "MPa·m/s"
+    },
+    {
+     "id": "n_seg",
+     "lab": "N° de sectores de la lámina UHMW (juntas de dilatación)",
      "u": "–"
     }
    ]
@@ -1068,6 +1227,21 @@
   "Ac": 3123921.1949133505,
   "T_piv_d": 1.4190253907940291,
   "H_ecc_d": 118.25211589950241,
+  "mu": {
+   "nom": 0.15,
+   "d": 0.2,
+   "cont": 0.25,
+   "dry": 0.5
+  },
+  "interfaz": {
+   "o": 0,
+   "tss": 0,
+   "tuh": 0,
+   "delta": 0,
+   "mTop": 0,
+   "mUH": 0
+  },
+  "Tmax": 656.4906300230158,
   "q_min": 0.41984912158779925,
   "Wd": 15.462035403005277
  },
@@ -1308,6 +1482,303 @@
     "Dmin": 120.99506975738699,
     "FScur": 0.6916074826185376,
     "pcur": 506.0673992057511
+   }
+  ],
+  "ifaces": [
+   {
+    "k": 0,
+    "name": "Acero–acero con grasa (base)",
+    "tss": 0,
+    "tuh": 0,
+    "delta": 0,
+    "mass": 3285.494698078743,
+    "mu_d": 0.2,
+    "F": 321.94616877213133,
+    "p": 506.0673992057511,
+    "FS": 1.383214965237075,
+    "muMax": 0.27664299304741513,
+    "q": 1.661929727825973,
+    "mAdd": 0,
+    "turns": true
+   },
+   {
+    "k": 1,
+    "name": "A · Discos inoxidables con grasa",
+    "tss": 6,
+    "tuh": 0,
+    "tssReq": 5.534446469847977,
+    "tuhReq": 0,
+    "delta": 12,
+    "mass": 3625.3610695503385,
+    "mu_d": 0.2,
+    "F": 322.1054129856428,
+    "p": 506.31771529206344,
+    "FS": 1.3825311239528983,
+    "muMax": 0.2765062247905796,
+    "q": 1.6626773924521028,
+    "mAdd": 297.27234090795446,
+    "turns": true,
+    "tFlex": 5.034446469847977,
+    "tuhConf": null,
+    "qAvg": 1.041356025113886
+   },
+   {
+    "k": 2,
+    "name": "B · Discos inoxidables con lámina UHMW",
+    "tss": 6,
+    "tuh": 10,
+    "tssReq": 5.534446469847977,
+    "tuhReq": 8.989234643186265,
+    "delta": 22,
+    "mass": 3690.2209542522255,
+    "mu_d": 0.15,
+    "F": 241.5794151567181,
+    "p": 379.73884515003294,
+    "FS": 1.843372119919503,
+    "muMax": 0.2765058179879254,
+    "q": 1.6626796174043819,
+    "mAdd": 326.63720014013995,
+    "turns": true,
+    "tFlex": 5.034446469847977,
+    "tuhConf": 8.989234643186265,
+    "qAvg": 1.041356025113886
+   }
+  ]
+ },
+ "interfazChecks": {
+  "A": [
+   {
+    "nombre": "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)",
+    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor",
+    "dem": 103.05835056876252,
+    "cap": 123,
+    "unidad": "MPa",
+    "fu": 0.8378727688517278,
+    "estado": "ok",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
+   },
+   {
+    "nombre": "Disco inoxidable: espesor adoptado frente al requerido",
+    "formula": "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
+    "dem": 5.534446469847977,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 0.9224077449746629,
+    "estado": "ok",
+    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)"
+   },
+   {
+    "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
+    "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
+    "dem": 5.034446469847977,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
+   },
+   {
+    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)",
+    "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
+    "dem": 5.534446469847977,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "ASTM A240 (plancha inoxidable)"
+   },
+   {
+    "nombre": "Retención de los discos por fricción sobre su plancha de respaldo",
+    "formula": "T_calado ≤ μ_respaldo·N·r_u (si no cumple: pasadores radiales o chaveteros)",
+    "dem": 656.4906300230158,
+    "cap": 793.1740273351948,
+    "unidad": "kN·m",
+    "fu": 0.8276753995949786,
+    "estado": "ok",
+    "ref": "Equilibrio; μ acero–inox seco bajo la carga"
+   },
+   {
+    "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
+    "formula": "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox",
+    "dem": 43.232000000000006,
+    "cap": 123,
+    "unidad": "MPa",
+    "fu": 0.351479674796748,
+    "estado": "ok",
+    "ref": "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)"
+   },
+   {
+    "nombre": "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)",
+    "formula": "Δr = (α_inox − α_acero)·ΔT·R",
+    "dem": 0.22400000000000003,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Altura que agrega la interfaz sobre la plancha base",
+    "formula": "Δ = 2·t_disco",
+    "dem": 12,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (eje de los cilindros sube Δ)"
+   },
+   {
+    "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
+    "formula": "m = ρ·A·t",
+    "dem": 297.27234090795446,
+    "unidad": "kg",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría"
+   }
+  ],
+  "B": [
+   {
+    "nombre": "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)",
+    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor",
+    "dem": 103.05835056876252,
+    "cap": 123,
+    "unidad": "MPa",
+    "fu": 0.8378727688517278,
+    "estado": "ok",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
+   },
+   {
+    "nombre": "Disco inoxidable: espesor adoptado frente al requerido",
+    "formula": "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
+    "dem": 5.534446469847977,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 0.9224077449746629,
+    "estado": "ok",
+    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)"
+   },
+   {
+    "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
+    "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
+    "dem": 5.034446469847977,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
+   },
+   {
+    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)",
+    "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
+    "dem": 5.534446469847977,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "ASTM A240 (plancha inoxidable)"
+   },
+   {
+    "nombre": "Retención de los discos por fricción sobre su plancha de respaldo",
+    "formula": "T_calado ≤ μ_respaldo·N·r_u (si no cumple: pasadores radiales o chaveteros)",
+    "dem": 656.4906300230158,
+    "cap": 793.1751942737494,
+    "unidad": "kN·m",
+    "fu": 0.8276741818988863,
+    "estado": "ok",
+    "ref": "Equilibrio; μ acero–inox seco bajo la carga"
+   },
+   {
+    "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
+    "formula": "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox",
+    "dem": 43.232000000000006,
+    "cap": 123,
+    "unidad": "MPa",
+    "fu": 0.351479674796748,
+    "estado": "ok",
+    "ref": "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)"
+   },
+   {
+    "nombre": "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)",
+    "formula": "Δr = (α_inox − α_acero)·ΔT·R",
+    "dem": 0.22400000000000003,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Altura que agrega la interfaz sobre la plancha base",
+    "formula": "Δ = 2·t_disco + t_UHMW",
+    "dem": 22,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (eje de los cilindros sube Δ)"
+   },
+   {
+    "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
+    "formula": "m = ρ·A·t",
+    "dem": 326.63720014013995,
+    "unidad": "kg",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida",
+    "formula": "q_máx ≤ p_adm,UHMW",
+    "dem": 1.6626747225093683,
+    "cap": 5,
+    "unidad": "MPa",
+    "fu": 0.33253494450187365,
+    "estado": "ok",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW: espesor adoptado frente al requerido",
+    "formula": "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)",
+    "dem": 8.989234643186265,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.8989234643186265,
+    "estado": "ok",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW: espesor por conformidad de planitud / mínimo constructivo / comercial adoptado",
+    "formula": "t_conf = E_ap·δ_planitud/(p_adm − q_máx)",
+    "dem": 8.989234643186265,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW: valor PV en el borde de la mesa",
+    "formula": "PV = q_máx·v; v = R·(2π/N)/t_ciclo",
+    "dem": 0.0024791378762907775,
+    "cap": 0.05,
+    "unidad": "MPa·m/s",
+    "fu": 0.04958275752581555,
+    "estado": "ok",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor",
+    "formula": "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef",
+    "dem": 0.0020893786774179514,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 0.0010446893387089757,
+    "estado": "ok",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW: junta de dilatación entre sectores (ancho a dejar en frío)",
+    "formula": "j = (α_UHMW − α_acero)·ΔT·cuerda del sector; α_UHMW = 180×10⁻⁶/K",
+    "dem": 3.4847396232603396,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    }
   ]
  },
@@ -1833,7 +2304,7 @@
   {
    "grp": "Giro",
    "nombre": "Patín bajo la cara superior de la mesa",
-   "formula": "z_sup_patín ≤ t_base + h_mesa",
+   "formula": "z_sup_patín ≤ z_eje + h_mesa/2",
    "dem": 189,
    "cap": 230,
    "unidad": "mm",

@@ -249,12 +249,16 @@ table(["Elemento", "Material", "Fy (MPa)"], [
 ], widths=(80, 60, 30))
 T(f"E = {pint(P['E'])} MPa; ν = {n(P['nu'])}. Factor de malla FEA k = {n(P['kFEA'])} aplicado a las tensiones locales.")
 H("4.3 Fricción en la interfaz de giro", 2)
+MU = D["apoyo"]["mu"]
+OPT = D["apoyo"]["interfaz"]["o"]
+T("Interfaz verificada: " + ["acero–acero con grasa grafitada (base)", "opción A: dos discos de acero inoxidable con grasa entre sí",
+  "opción B: dos discos de acero inoxidable con lámina de UHMW entre ellos"][OPT] + ". Las tres alternativas se comparan en 6.1.", size=9)
 table(["Caso", "μ", "Radio de fricción", "Justificación"], [
-    ["Nominal (grasa grafitada limpia)", n(P["mu_nom"]), f"r_u = {n(D['apoyo']['r_u'])} mm (presión uniforme)", "Valor esperado de operación"],
-    ["Diseño", n(P["mu_d"]), f"r_ef = {pint(P['r_ef'])} mm", "Límite superior con excentricidad"],
-    ["Contacto en el borde", n(P["mu_d"]), f"R = {pint(D['apoyo']['Ro'])} mm", "Mesa apoyada solo en el borde (revisión M1)"],
-    ["Grasa contaminada", n(P["mu_cont"]), f"r_ef = {pint(P['r_ef'])} mm", "Arena o película degradada"],
-    ["Acero seco (referencial)", n(P["mu_dry"]), f"r_u = {n(D['apoyo']['r_u'])} mm", "No es condición de operación"],
+    ["Nominal (grasa limpia)", n(MU["nom"]), f"r_u = {n(D['apoyo']['r_u'])} mm (presión uniforme)", "Valor esperado de operación"],
+    ["Diseño", n(MU["d"]), f"r_ef = {pint(P['r_ef'])} mm", "Límite superior con excentricidad"],
+    ["Contacto en el borde", n(MU["d"]), f"R = {pint(D['apoyo']['Ro'])} mm", "Mesa apoyada solo en el borde (revisión M1)"],
+    ["Contaminado", n(MU["cont"]), f"r_ef = {pint(P['r_ef'])} mm", "Arena o película degradada"],
+    ["Seco (referencial)", n(MU["dry"]), f"r_u = {n(D['apoyo']['r_u'])} mm", "No es condición de operación"],
 ], widths=(52, 15, 55, 48))
 H("4.4 Parámetros de entrada", 2)
 T("Valores de la configuración verificada (todos editables en la herramienta HTML; la herramienta repite las verificaciones de esta memoria).", size=9)
@@ -289,6 +293,55 @@ table(["Magnitud", "Expresión", "Valor"], [
 ], widths=(60, 75, 35))
 T(f"Resultado: q_mín > 0, la mesa no despega. La presión máxima {n(DV['q_max'], unit='MPa')} se transmite a la losa o a los mats a través de la base delgada; "
   "su verificación corresponde a un tercero.")
+
+# ---- 6.1 alternativas de interfaz inoxidable
+IF = D["escenarios"]["ifaces"]
+H("6.1 Alternativas de interfaz: discos de acero inoxidable (A) y con lámina de UHMW (B)", 2)
+T("Hipótesis. Dos discos anulares de acero inoxidable (R_i = {0} a R_o = {1} mm) se interponen entre la plancha base y la plancha inferior de la mesa: "
+  "uno fijo a la base y otro a la mesa, apoyados sobre sus planchas de respaldo. En A deslizan entre sí con grasa; en B se agrega una lámina de UHMW fijada al disco de la base, "
+  "que desliza sobre el disco de la mesa. La interfaz no se oxida y se lubrica con facilidad. Los discos y la lámina no cumplen función estructural: transmiten la presión de contacto "
+  "q_máx = {2} a la plancha de respaldo. La mesa y la base conservan sus espesores.".format(n(D["apoyo"]["Ri"]), pint(D["apoyo"]["Ro"]), n(IF[1]["q"], unit="MPa")), size=9)
+table(["Dato", "Valor", "Fuente"], [
+    ["Fy del inoxidable", n(P["Fy_ss"], unit="MPa"), "ASTM A240, tipo 304 recocido (316L: 170 MPa)"],
+    ["Ø del vacío local supuesto bajo el disco", n(P["ss_void"], unit="mm"), "Hipótesis de diseño (pérdida de contacto con el respaldo por polvo, soldadura o alabeo)"],
+    ["Sobreespesor por desgaste y relapeado", n(P["ss_allow"], unit="mm"), "Hipótesis de diseño"],
+    ["Espesor mínimo constructivo del disco", n(P["ss_tmin"], unit="mm"), "Avellanado de fijaciones y rectificado de la cara"],
+    ["UHMW: presión admisible sostenida", n(P["p_uhmw"], unit="MPa"), "≈ ¼ del esfuerzo a 10 % de deformación (≈ 21 MPa); datos de catálogo"],
+    ["UHMW: módulo aparente con fluencia (1.000 h)", n(P["E_uhmw"], unit="MPa"), "Datos de catálogo del proveedor"],
+    ["Planitud de los discos rectificados", n(P["d_flat"], unit="mm"), "Hipótesis de fabricación (de pico a valle)"],
+    ["μ de diseño: A / B", f"{n(P['muA_d'])} / {n(P['muB_d'])}", "Hipótesis; confirmar con ensayo (arranque tras reposo bajo carga)"],
+], widths=(65, 30, 75), size=8)
+T("Desarrollo.", bold=True, size=9.5, after=1)
+table(["Ecuación", "Expresión", "Referencia"], [
+    ["Disco inoxidable: flexión sobre un vacío local (placa circular empotrada, carga uniforme)", "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy   →   t_flex = a·√(0,75·q/(0,6·Fy)), a = Ø_vacío/2", "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy: AISC 360-22 F11 (criterio del proyecto)"],
+    ["Espesor requerido del disco", "t_req = máx(t_flex + sobreespesor; t_mín constructivo); espesor comercial ≥ t_req", "ASTM A240 (planchas 3, 4, 5, 6, 8, 10, 12, 15, 20, 25 mm)"],
+    ["Lámina UHMW: conformidad con la planitud", "t ≥ E_ap·δ/(p_adm − q_máx): la sobrepresión local E_ap·δ/t se suma a q_máx y no debe pasar de p_adm", "Hipótesis de diseño; datos de catálogo del UHMW"],
+    ["Lámina UHMW: PV y desgaste", "PV = q_máx·v ≤ PV_adm; h = k·q·s ≤ 0,20·t", "Proveedor de UHMW-PE (ASTM D4020)"],
+    ["Dilatación diferencial", "σ = E·(α_inox − α_acero)·ΔT; Δr = (α − α_acero)·ΔT·R; junta UHMW = (α_UHMW − α_acero)·ΔT·cuerda", "α: inox 17,3; acero 11,7; UHMW 180 (×10⁻⁶/K)"],
+    ["Retención por fricción", "T_calado ≤ μ_respaldo·N·r_u", "Equilibrio"],
+], widths=(48, 72, 50), size=8)
+T("Resultado.", bold=True, size=9.5, after=1)
+table(["Alternativa", "Disco inox: t_flex / t_req → adoptado (mm)", "UHMW: t_req → adoptado (mm)", "Altura agregada (mm)", "Masa agregada (kg)", "Masa total (kg)", "μ diseño", "F por cilindro (kN)", "p diseño (bar)", "FS diseño"],
+      [[r["name"], "—" if r["k"] == 0 else f"{n(r['tFlex'])} / {n(r['tssReq'])} → {n(r['tss'])}", "—" if r["k"] != 2 else f"{n(r['tuhReq'])} → {n(r['tuh'])}",
+        "—" if r["k"] == 0 else n(r["delta"]), "—" if r["k"] == 0 else n(r["mAdd"]), n(r["mass"]), n(r["mu_d"]), n(r["F"]), n(r["p"]), n(r["FS"])] for r in IF],
+      widths=(32, 25, 19, 14, 14, 14, 11, 14, 13, 12), size=7, num_cols=tuple(range(3, 10)))
+def ifrows(L, only=None):
+    out = []
+    for c in L:
+        if only and not any(k in c["nombre"] for k in only): continue
+        info = c["estado"] == "info"
+        out.append([c["nombre"], c["formula"], n(c["dem"]), "—" if c.get("cap") is None else n(c["cap"]), c["unidad"], "—" if info or c.get("fu") is None else n(c["fu"]), EST.get(c["estado"], c["estado"]), c["ref"]])
+    return out
+T("Verificaciones de la opción A (los discos de la opción B tienen las mismas, con q levemente mayor por el peso del disco y la lámina):", size=9, after=1)
+table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["A"]),
+      widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
+T("Verificaciones adicionales de la opción B (lámina de UHMW):", size=9, after=1)
+table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["B"], ("UHMW", "Masa agregada", "Altura")),
+      widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
+T("Conclusión. Con los datos de entrada, cada disco inoxidable debe tener {0} (requerido {1}; el espesor comercial inmediato es {2}) y la lámina de UHMW de la opción B {3} (requerido {4}). "
+  "La opción A agrega {5} y {6} de altura; la B, {7} y {8}. Con UHMW la fuerza de diseño baja a {9} por cilindro (FS {10}), pero los μ de B son hipótesis que deben confirmarse con el proveedor.".format(
+      n(IF[1]["tss"], unit="mm"), n(IF[1]["tssReq"], unit="mm"), n(IF[1]["tss"], unit="mm"), n(IF[2]["tuh"], unit="mm"), n(IF[2]["tuhReq"], unit="mm"),
+      n(IF[1]["mAdd"], unit="kg"), n(IF[1]["delta"], unit="mm"), n(IF[2]["mAdd"], unit="kg"), n(IF[2]["delta"], unit="mm"), n(IF[2]["F"], unit="kN"), n(IF[2]["FS"])), bold=True, size=9)
 
 # ================================================================= 7. ACCIONAMIENTO
 H("7. Accionamiento")
@@ -423,6 +476,7 @@ table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["7", "Losa o mats de apoyo", f"q ≈ {n(DV['q_max'], unit='MPa')}", "Tercero"],
     ["8", "Artículo de ISO 4413:2010 (sobrepresión)", "Criterio confirmado; numeral por citar", "Revisor"],
     ["9", "Guía de retorno tipo KIET", "No adoptada; evaluar con fotos del equipo existente", "Mandante / proyectista"],
+    ["12", "Interfaz inoxidable (A) o con UHMW (B), si se adopta", "μ, p_adm y E_ap del UHMW son datos de catálogo; par inox–inox de aleaciones distintas o tratada contra el gripado; fijación y retención de los discos; sectores de UHMW con juntas de dilatación; no dibujada aún en planos ni en el 3D", "Proveedor / proyectista"],
     ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
     ["11", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
 ], widths=(9, 45, 85, 31), size=8)

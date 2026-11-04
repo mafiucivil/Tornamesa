@@ -18,6 +18,7 @@ const AG = (() => {
     if (!rings.length) E("Defina al menos un radio de alma anular");
     if (P.D_bore <= P.d_rod) E("El émbolo debe ser mayor que el vástago");
     if (P.p_alarm > P.p_relief) E("La presión de alarma no puede superar la de alivio");
+    if (P.opt_ss > 0.5 && P.opt_uhmw > 0.5) E("Elija una sola opción de interfaz: A (discos inoxidables con grasa) o B (discos inoxidables con lámina UHMW)");
     if (P.p_relief > P.p_rated * TT_.PSI_CAT + 1e-6) E(`El alivio (${P.p_relief} bar) supera la presión nominal del cilindro (${P.p_rated} psi ≙ ${Math.round(P.p_rated * TT_.PSI_CAT)} bar)`);
     if (P.s_free >= P.stroke) E("El recorrido libre debe ser menor que la carrera");
     if (P.N_pin % P.N_rib !== 0) {
@@ -143,7 +144,14 @@ const AG = (() => {
       const Amin = Math.max(P.FS_min * F * 1e3 / (pr / 10), F * 1e3 / (pa / 10));
       return { psi, pr, pa, Dmin: Math.sqrt(4 * Amin / Math.PI), FScur: R.A * pr / 10 / 1e3 / F, pcur: F * 1e3 / R.A * 10 };
     });
-    return { mus, rs, grid, loads, classes };
+    // alternativas de interfaz de giro: acero–acero (actual), A: discos inoxidables con grasa, B: discos inoxidables con lámina UHMW
+    const ifaces = [0, 1, 2].map((k) => {
+      const Q = Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0 }), RR = TT_.compute(Q), I = RR.ifc;
+      return { k, name: ["Acero–acero con grasa (base)", "A · Discos inoxidables con grasa", "B · Discos inoxidables con lámina UHMW"][k],
+        tss: I.tss, tuh: I.tuh, tssReq: I.tssReq, tuhReq: I.tuhReq, delta: I.delta, mass: RR.m.total, mu_d: RR.mu.d, F: RR.cd.F, p: RR.cd.p, FS: RR.cd.FS,
+        muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg };
+    });
+    return { mus, rs, grid, loads, classes, ifaces };
   }
 
   /* ---------- 5. Optimizador de peso ---------- */

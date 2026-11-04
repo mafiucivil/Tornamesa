@@ -60,6 +60,32 @@ test("Detecta fallas de diseño del accionamiento: autobloqueo del chaflán y pa
   assert.ok(noT && noT.st === "fail", "sin ranura T el patín vuelca");
 });
 
+test("Interfaz alternativa: discos inoxidables (A) y discos con UHMW (B)", () => {
+  const base = TT.analyze(TT.defaults(), { noFEA: true }), P0 = TT.defaults();
+  assert.equal(base.R.ifc.o, 0); assert.equal(base.R.ifc.delta, 0); assert.equal(base.R.m.ss + base.R.m.uhmw, 0);
+  // A: espesor por flexión sobre vacío local de una placa empotrada, σ = 3qa²/(4t²) = 0,6Fy
+  const A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }), I = A.R.ifc;
+  const a = P0.ss_void / 2, tf = a * Math.sqrt(0.75 * I.q / (0.6 * P0.Fy_ss));
+  near(I.tFlex, tf, 1e-9, "t_flex"); near(I.tssReq, Math.max(tf + P0.ss_allow, P0.ss_tmin), 1e-9, "t_req");
+  assert.ok(I.tss >= I.tssReq && [3, 4, 5, 6, 8, 10, 12, 15, 20, 25].includes(I.tss), "espesor comercial ≥ requerido");
+  assert.ok(A.checks.filter((c) => c.grp === "Interfaz inox" && c.st !== "info").every((c) => c.st !== "fail"), "A cumple");
+  near(A.R.hax, P0.h_disc / 2 + 2 * I.tss, 1e-12, "el eje de los cilindros sube 2·t_disco");
+  const Aarea = Math.PI * (A.R.Ro ** 2 - A.R.Ri ** 2);
+  near(A.R.m.ss, 2 * 7.93e-6 * Aarea * I.tss, 1e-9, "masa de los discos");
+  assert.deepEqual([A.R.mu.nom, A.R.mu.d, A.R.mu.cont, A.R.mu.dry], [P0.muA_nom, P0.muA_d, P0.muA_cont, P0.muA_dry]);
+  // B: lámina UHMW t ≥ E·δ/(p_adm − q)
+  const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), J = B.R.ifc;
+  near(J.tuhConf, P0.E_uhmw * P0.d_flat / (P0.p_uhmw - J.q), 1e-9, "t_conf UHMW");
+  assert.ok(J.tuh >= J.tuhReq, "UHMW comercial ≥ requerido");
+  near(B.R.hax, P0.h_disc / 2 + 2 * J.tss + J.tuh, 1e-12, "el eje sube 2·t_disco + t_UHMW");
+  assert.ok(B.R.cd.F < A.R.cd.F, "con UHMW baja la fuerza de diseño (μ menor)");
+  // espesor manual: un disco de 3 mm no cumple el mínimo constructivo ni la flexión
+  const thin = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, t_ss: 3 }), { noFEA: true });
+  assert.ok(thin.checks.some((c) => c.grp === "Interfaz inox" && c.st === "fail"), "3 mm no cumple");
+  // las dos opciones a la vez son un error de validación
+  assert.ok(AG.validate(Object.assign(TT.defaults(), { opt_ss: 1, opt_uhmw: 1 })).some((v) => v.lvl === "error"), "A y B excluyentes");
+});
+
 test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
   const P = TT.defaults();
   assert.equal(AG.validate(P).filter((v) => v.lvl === "error").length, 0);

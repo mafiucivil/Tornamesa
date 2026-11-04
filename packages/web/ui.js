@@ -50,6 +50,7 @@
   function buildForm() {
     $("#form").innerHTML = TT.PARAM_GROUPS.map((g, gi) => `<details ${gi < 5 ? "open" : ""}><summary>${esc(g.t)}</summary>${g.p.map(([id, lab, u, def, mn, mx, st]) => {
       const txt = typeof def === "string";
+      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
@@ -58,7 +59,11 @@
   $("#form").addEventListener("input", (e) => {
     const row = e.target.closest(".prm"); if (!row) return;
     const id = row.dataset.id, txt = typeof DEF[id] === "string";
-    P[id] = txt ? e.target.value : parseFloat(e.target.value);
+    if (e.target.type === "checkbox") {
+      P[id] = e.target.checked ? 1 : 0;
+      const other = id === "opt_ss" ? "opt_uhmw" : id === "opt_uhmw" ? "opt_ss" : null;      // una sola opción de interfaz a la vez
+      if (other && P[id]) { P[other] = 0; const ob = $("#p_" + other); if (ob) { ob.checked = false; ob.closest(".prm").classList.remove("chg"); } }
+    } else P[id] = txt ? e.target.value : parseFloat(e.target.value);
     row.classList.toggle("chg", P[id] !== DEF[id]);
     clearTimeout(tmr); $("#busy").textContent = "Calculando…";
     tmr = setTimeout(recalc, 380);
@@ -121,9 +126,9 @@
     <div class="grid" style="margin-top:10px">
       <div class="card"><h3>¿Gira?</h3><div class="big" style="color:var(${A.verdict.gira ? "--ok" : "--fail"})">${A.verdict.gira ? "Sí, con margen" : "No asegurado"}</div>
         <div class="kv" style="margin-top:6px">
-          <span>FS diseño (μ ${fmt(P.mu_d)}, r ${fmt(P.r_ef)} mm)</span><span>${fmt(c("dis").FS)}</span>
+          <span>FS diseño (μ ${fmt(R.mu.d)}, r ${fmt(P.r_ef)} mm)</span><span>${fmt(c("dis").FS)}</span>
           <span>Presión de diseño / alarma</span><span>${fmt(c("dis").p)} / ${fmt(P.p_alarm)} bar</span>
-          <span>FS contaminado (μ ${fmt(P.mu_cont)})</span><span>${fmt(c("cont").FS)}</span>
+          <span>FS contaminado (μ ${fmt(R.mu.cont)})</span><span>${fmt(c("cont").FS)}</span>
           <span>FS contacto en el borde</span><span>${fmt(c("borde").FS)}</span>
           <span>Margen de carrera</span><span>${fmt(K.margin)} mm</span>
           <span>μ máx vencible (r_ef, alivio)</span><span>${fmt(R.muMax(P.r_ef))}</span>
@@ -151,7 +156,15 @@
           <span>Brazo mínimo de la fuerza</span><span>${fmt(K.armMin, 4)} mm</span>
         </div></div>
     </div>
-    <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>`;
+    <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>
+    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A o B en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>`;
+  }
+  function ifaceTable() {
+    const rows = (SC && SC.ifaces) || [], act = A.R.ifc.o;
+    const g = (v, d) => (v ? fmt(v, d || 3) : "—");
+    return `<div class="scroll"><table><tr><th>Alternativa</th><th class="n">Disco inox req. → adoptado (mm)</th><th class="n">UHMW req. → adoptado (mm)</th><th class="n">Altura agregada (mm)</th><th class="n">Masa agregada (kg)</th><th class="n">Masa total (kg)</th><th class="n">μ diseño</th><th class="n">F/cil diseño (kN)</th><th class="n">p diseño (bar)</th><th class="n">FS diseño</th></tr>
+      ${rows.map((r) => `<tr${r.k === act ? ' class="grp"' : ""}><td>${r.k === act ? "● " : ""}${esc(r.name)}</td><td class="n">${r.k ? g(r.tssReq, 3) + " → " + fmt(r.tss, 3) : "—"}</td><td class="n">${r.k === 2 ? g(r.tuhReq, 3) + " → " + fmt(r.tuh, 3) : "—"}</td><td class="n">${g(r.delta)}</td><td class="n">${g(r.mAdd, 3)}</td><td class="n">${fmt(r.mass, 4)}</td><td class="n">${fmt(r.mu_d)}</td><td class="n">${fmt(r.F)}</td><td class="n">${fmt(r.p)}</td><td class="n">${fmt(r.FS)}</td></tr>`).join("")}</table></div>
+      <div class="note">● alternativa activa. Disco inoxidable: placa circular empotrada sobre un vacío local de Ø${fmt(P.ss_void, 3)} mm bajo q = ${fmt(A.R.q_max)} MPa, σ = 3qa²/(4t²) ≤ 0,6·Fy (${fmt(P.Fy_ss, 3)} MPa), más ${fmt(P.ss_allow)} mm de sobreespesor; mínimo constructivo ${fmt(P.ss_tmin)} mm. Lámina UHMW: t ≥ E_ap·δ/(p_adm − q) con E_ap = ${fmt(P.E_uhmw, 3)} MPa, δ = ${fmt(P.d_flat)} mm, p_adm = ${fmt(P.p_uhmw)} MPa (mínimo constructivo ${fmt(P.uh_tmin)} mm). Los μ de cada alternativa son datos de entrada: confirmarlos con ensayo del proveedor. Al activar A o B el eje de los cilindros sube la altura agregada.</div>`;
   }
   function casesTable() {
     const R = A.R;
@@ -211,20 +224,25 @@
     return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
   }
   function sectionSVG() {
-    const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot);
-    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tb + hd + 160;
+    const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot), ifc = R.ifc, dl = ifc.delta, tm = tb + dl;   // tm: cara inferior de la mesa (sobre los discos de la interfaz)
+    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tm + hd + 160;
     const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
     const Rt = P.D_top / 2, rpr = TT.prIn(P);
+    if (ifc.o > 0) {                                                  // discos inoxidables (A y B) y lámina UHMW (B) entre la base y la mesa
+      const rI = R.Ri, zs = [[tb, ifc.tss, "var(--acc)", "disco inox"], ...(ifc.o === 2 ? [[tb + ifc.tss, ifc.tuh, "var(--warn)", "UHMW"]] : []), [tb + ifc.tss + (ifc.o === 2 ? ifc.tuh : 0), ifc.tss, "var(--acc)", "disco inox"]];
+      zs.forEach(([z0, t, c, n], k) => o.push(`<rect x="${X(rI)}" y="${Z(z0 + t)}" width="${X(Rt) - X(rI)}" height="${t}" fill="${c}" opacity="${n === "UHMW" ? 0.85 : 0.7}" stroke="var(--ink)" stroke-width=".6"><title>${n} ${fmt(t, 3)} mm</title></rect>`));
+      o.push(`<text x="${X(r0) + 250}" y="${Z(tb) + 14}" font-size="13" fill="var(--ink)">${ifc.o === 2 ? "inox " + fmt(ifc.tss, 3) + " + UHMW " + fmt(ifc.tuh, 3) + " + inox " + fmt(ifc.tss, 3) : "2 × inox " + fmt(ifc.tss, 3)} mm</text>`);
+    }
     // plancha inferior y superior con anillo
-    o.push(`<rect x="${X(r0)}" y="${Z(tb + P.t_bot)}" width="${X(rpr) - X(r0)}" height="${P.t_bot}" fill="var(--ink2)"/>`);
-    o.push(`<rect x="${X(rpr)}" y="${Z(tb + tpr)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
-    o.push(`<rect x="${X(r0)}" y="${Z(tb + hd)}" width="${X(rpr) - X(r0)}" height="${P.t_top}" fill="var(--ink2)"/>`);
-    o.push(`<rect x="${X(rpr)}" y="${Z(tb + hd)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
-    TT.parseRings(P.rings).filter((r) => r > r0).forEach((r) => o.push(`<rect x="${X(r - P.t_web / 2)}" y="${Z(tb + hd - P.t_top)}" width="${P.t_web}" height="${hd - P.t_top - P.t_bot}" fill="var(--ink2)" opacity=".75"/>`));
-    o.push(`<rect x="${X(P.R_pin - P.d_pin / 2)}" y="${Z(tb + hd)}" width="${P.d_pin}" height="${hd}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
+    o.push(`<rect x="${X(r0)}" y="${Z(tm + P.t_bot)}" width="${X(rpr) - X(r0)}" height="${P.t_bot}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(rpr)}" y="${Z(tm + tpr)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(r0)}" y="${Z(tm + hd)}" width="${X(rpr) - X(r0)}" height="${P.t_top}" fill="var(--ink2)"/>`);
+    o.push(`<rect x="${X(rpr)}" y="${Z(tm + hd)}" width="${X(Rt) - X(rpr)}" height="${tpr}" fill="var(--ink2)"/>`);
+    TT.parseRings(P.rings).filter((r) => r > r0).forEach((r) => o.push(`<rect x="${X(r - P.t_web / 2)}" y="${Z(tm + hd - P.t_top)}" width="${P.t_web}" height="${hd - P.t_top - P.t_bot}" fill="var(--ink2)" opacity=".75"/>`));
+    o.push(`<rect x="${X(P.R_pin - P.d_pin / 2)}" y="${Z(tm + hd)}" width="${P.d_pin}" height="${hd}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`);
     const zc = tb + R.hax;
     o.push(`<line x1="${X(r0)}" y1="${Z(zc)}" x2="${X(r1)}" y2="${Z(zc)}" stroke="var(--load)" stroke-width="1.5" stroke-dasharray="10 6"/>`);
     const K = A.R.K, zb = tb + P.t_bed, fh = TT.forkH(P);
@@ -238,11 +256,11 @@
     o.push(`<rect x="${X(K.tipX)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.tipX}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
     o.push(`<line x1="${X(P.x_g)}" y1="${Z(tb)}" x2="${X(P.x_g)}" y2="${Z(zc + fh / 2 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
     const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
-    o.push(dim(r0 + 8, tb, tb + hd, `h ${fmt(hd, 3)}`, 6));
+    o.push(dim(r0 + 8, tm, tm + hd, `h ${fmt(hd, 3)}`, 6));
     o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
-    o.push(dim(P.R_pin, tb + tpr, tb + hd - tpr, `libre ${fmt(TT.pinClear(P))}`, -P.d_pin / 2 - 8));
-    o.push(`<text x="${X(Rt) + 8}" y="${Z(tb + hd) + 14}" font-size="13">anillo ${fmt(tpr)}</text>`);
-    o.push(`<text x="${X(r0) + 4}" y="${Z(tb + hd) - 8}" font-size="13">sup. ${fmt(P.t_top)} · inf. ${fmt(P.t_bot)} · almas ${fmt(P.t_web)}</text>`);
+    o.push(dim(P.R_pin, tm + tpr, tm + hd - tpr, `libre ${fmt(TT.pinClear(P))}`, -P.d_pin / 2 - 8));
+    o.push(`<text x="${X(Rt) + 8}" y="${Z(tm + hd) + 14}" font-size="13">anillo ${fmt(tpr)}</text>`);
+    o.push(`<text x="${X(r0) + 4}" y="${Z(tm + hd) - 8}" font-size="13">sup. ${fmt(P.t_top)} · inf. ${fmt(P.t_bot)} · almas ${fmt(P.t_web)}</text>`);
     o.push(`<text x="${X(r1) - 4}" y="${Z(zc) - 6}" font-size="13" text-anchor="end" fill="var(--load)">eje cilindro +${fmt(R.hax)}</text>`);
     o.push(`<text x="${X(P.R_pin)}" y="${Z(-10) + 22}" font-size="13" text-anchor="middle">R${fmt(P.R_pin, 4)}</text>`);
     return `<svg viewBox="0 0 ${W} ${Hs + 20}" role="img" aria-label="Corte radial en el borde">${o.join("")}</svg>`;
@@ -285,7 +303,7 @@
     const el = document.querySelector('section[data-t="giro"]');
     if (!A) { el.innerHTML = msgs(); return; }
     const R = A.R, K = R.K;
-    const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(P.mu_cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(P.mu_d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
+    const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(R.mu.cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(R.mu.d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
       const cs = R.cases.find((x) => x.id === id);
       return { n, c, pts: K.pts.map((q) => [q.s, R.Fcyl(cs.T, q.arm)]) };
     });
@@ -377,13 +395,13 @@
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
     const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
-      ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+      ["Discos de acero inoxidable (opción A o B)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
     const mx = Math.max(...parts.map((p) => p[1]));
     el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
       ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}
       <tr class="grp"><td>Total</td><td class="n">${fmt(m.total, 4)}</td><td class="n">100</td><td></td></tr></table>
       <div class="note">Masas de acero con ρ = 7850 kg/m³, sin soldadura ni pintura (agregar ≈ 2 %). No incluye bomba, mangueras ni plancha diamantada.</div></div>
-      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + P.h_disc, 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
+      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.ssTop + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + A.R.ifc.delta + P.h_disc, 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
       <div class="note">Use el optimizador para reducir la masa manteniendo todas las verificaciones (FU ≤ 0,90 en estructura y giro asegurado).</div></div></div>`;
   }
 
