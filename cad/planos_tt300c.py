@@ -56,7 +56,7 @@ VER = {v["nombre"]: v for v in D["verificaciones"]}
 z_hard = next(v["dem"] for v in D["verificaciones"] if v["nombre"].startswith("Profundidad mínima de temple"))
 z_hard = math.ceil(z_hard * 10) / 10                   # profundidad efectiva de temple exigida (redondeo hacia arriba)
 pk_top, pk_bot = zc + P["dog_h"] / 2 + 1, zc - P["dog_h"] / 2 - 1   # alojamiento de la uña en el patín (alto h_uña + 2)
-HRC = "≥ 50 HRC"
+HRC = "≥ 55 HRC"
 def f(v, n=0):
     s = f"{v:,.{n}f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return s
@@ -618,7 +618,7 @@ def sheet_f03():
     s.line(T(Vc), T((0, -b / 2 - 4)), "FINA")
     s.arc(T(Vc), 40 * sc, 270, 270 + P["beta_ch"], "COTA")
     s.text(f"β = {P['beta_ch']:.0f}°", T((6, Vc[1] - 50)), 2.3, "MIDDLE_LEFT")
-    s.leader(T((L * 0.55, b / 2 + 4)), T((L * 0.55 + 30, b / 2 + 60)), "", lines=[f"Cara de empuje plana: temple ind. {HRC},", f"prof. efectiva ≥ {f1(z_hard)} mm; Ra 0,8; planitud 0,05"])
+    s.leader(T((L * 0.55, b / 2 + 4)), T((L * 0.55 + 30, b / 2 + 60)), "", lines=[f"Cara de empuje plana: temple ind. {HRC},", f"prof. efectiva ≥ {f1(z_hard)} mm; Ra 0,8; planitud 0,05;", "alivio de borde: bombeo 10 mm en ambos extremos (caída 0,02–0,03)"])
     s.leader(T((ch_dx * 0.7, -b / 2 + ch_dy * 0.3)), T((L + 45, -b / 2 - 22)), "", lines=[f"Chaflán de retorno β = {P['beta_ch']:.0f}° (normal respecto del eje", "radial = ángulo con la cara de la punta), Ra 1,6"])
     s.text(f"Pasador Ø{f(d_pin)} (fantasma) en la toma: contacto a {f(ct)} de la punta. El resorte actúa en la cara extrema (x = {f(L)}).", (40, 392), 2.2)
     s.view_title((150, 405), "UÑA POS 10 – PLANTA", "ESC 1:2,5")
@@ -631,6 +631,7 @@ def sheet_f03():
     s.mtext([f"Material 34CrNiMo6+QT (forja), Re ≥ {f(P['Fy_dog'])} MPa medido en probeta de la propia forja, certificado EN 10204 3.1;",
              "  dureza del núcleo QT 280–330 HB. UT EN 10228-3 clase 3.",
              f"Cara de empuje: temple por inducción {HRC} (Fy sup. ≥ {f(P['Fy_surf'])} MPa), profundidad efectiva ≥ {f1(z_hard)} mm (550 HV);",
+             f"  alivio de borde en la cara: bombeo (perfil logarítmico) en 10 mm de cada extremo de la altura, caída 0,02–0,03 mm;",
              "  revenido 180 °C; MT de la cara templada (sin grietas). Rectificar después del temple.",
              f"Ajuste en el alojamiento del patín: {f(b)} H9/f8 × {f(hdg)} H9/f8; retorno radial {f1(KG['travel'])} mm.",
              f"Resorte pos 12: compresión, carrera ≥ {f(KG['travel'] + 5)} mm, fuerza 150–300 N (vence grasa y peso).",

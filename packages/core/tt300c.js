@@ -83,7 +83,8 @@ const TT = (() => {
       ["e_dog", "Excentricidad accidental de la uña", "mm", 10, 0, 50, 1],
       ["Fy_dog", "Fy uña (34CrNiMo6+QT, Re ≥ 900 certificado 3.1)", "MPa", 900, 235, 1200, 5],
       ["mu_s", "μ cara de la uña–pasador (deslizamiento radial)", "–", 0.15, 0.05, 0.6, 0.01],
-      ["Fy_surf", "Límite elástico superficial de las caras de contacto (temple por inducción)", "MPa", 1300, 235, 2000, 10],
+      ["Fy_surf", "Límite elástico superficial de las caras de contacto (temple por inducción ≥ 55 HRC)", "MPa", 1500, 235, 2000, 10],
+      ["k_edge", "Concentración de la carga lineal en los bordes de la cara (flexión del pasador bajo uña rígida)", "–", 1.32, 1, 3, 0.01],
       ["beta_ch", "Chaflán de retorno: ángulo de la normal respecto del eje radial", "°", 54, 20, 80, 1],
       ["mu_ret", "μ de retorno (chaflán y alojamiento), verificación de autobloqueo", "–", 0.20, 0.05, 0.6, 0.01],
       ["b_tip", "Ancho mínimo de la punta de la uña tras el chaflán", "mm", 20, 5, 100, 1],
@@ -573,9 +574,10 @@ const TT = (() => {
     add({ grp: "Uña", sys: "est", name: "Flexión en la boca del patín (voladizo) con fricción radial", formula: "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd", dem: (Fs * lev + Hs * P.dog_b / 2) * 1e3 / Sdog + Hs * 1e3 / Adog, cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
     add({ grp: "Uña", sys: "est", name: "Corte en la boca del patín", formula: "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)", dem: 1.5 * Fs * 1e3 / Adog, cap: P.Fy_dog / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
     const Es = P.E / (2 * (1 - P.nu ** 2)), rp = P.d_pin / 2;
-    const p0 = Math.sqrt(Fs * 1e3 * Es / (Math.PI * rp * P.dog_h)), bH = Math.sqrt(4 * Fs * 1e3 * rp / (Math.PI * P.dog_h * Es));
-    add({ grp: "Uña", sys: "est", name: "Contacto de Hertz cara plana–pasador (a calado; ambas caras templadas)", formula: "p₀ = √(F·E*/(π·r·h)), E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
-    add({ grp: "Uña", sys: "est", kind: "info", name: "Profundidad mínima de temple (3 × profundidad del corte máximo)", formula: "z = 3·0,78·b, b = √(4F·r/(π·h·E*))", dem: 3 * 0.78 * bH, unit: "mm", ref: "Hertz, contacto lineal" });
+    const qE = P.k_edge * Fs * 1e3 / P.dog_h;                          // carga lineal máxima (borde de la cara)
+    const p0 = Math.sqrt(qE * Es / (Math.PI * rp)), bH = Math.sqrt(4 * qE * rp / (Math.PI * Es));
+    add({ grp: "Uña", sys: "est", name: "Contacto de Hertz cara plana–pasador (a calado; ambas caras templadas)", formula: "p₀ = √(q·E*/(π·r)), q = k_borde·F/h, E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup (cara con alivio de borde)", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
+    add({ grp: "Uña", sys: "est", kind: "info", name: "Profundidad mínima de temple (3 × profundidad del corte máximo)", formula: "z = 3·0,78·b, b = √(4q·r/(π·E*))", dem: 3 * 0.78 * bH, unit: "mm", ref: "Hertz, contacto lineal" });
     const ch = chamferGeo(P);
     add({ grp: "Uña", sys: "est", kind: "geo", name: "Chaflán de retorno: cabe en la uña dejando la punta", formula: "Δy = recorrido/tan β; Δy + b_punta ≤ b_uña", dem: ch.dy + P.b_tip, cap: P.dog_b, unit: "mm", ref: "Geometría (retorno del trinquete)" });
     // flexión y corte en la zona del chaflán: ancho w(u) = b − Δy·(1 − u/Δx), u medido desde la punta; carga en u = c_punta

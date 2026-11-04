@@ -64,7 +64,8 @@
   "e_dog": 10,
   "Fy_dog": 900,
   "mu_s": 0.15,
-  "Fy_surf": 1300,
+  "Fy_surf": 1500,
+  "k_edge": 1.32,
   "beta_ch": 54,
   "mu_ret": 0.2,
   "b_tip": 20,
@@ -803,8 +804,13 @@
     },
     {
      "id": "Fy_surf",
-     "lab": "Límite elástico superficial de las caras de contacto (temple por inducción)",
+     "lab": "Límite elástico superficial de las caras de contacto (temple por inducción ≥ 55 HRC)",
      "u": "MPa"
+    },
+    {
+     "id": "k_edge",
+     "lab": "Concentración de la carga lineal en los bordes de la cara (flexión del pasador bajo uña rígida)",
+     "u": "–"
     },
     {
      "id": "beta_ch",
@@ -2132,19 +2138,19 @@
   {
    "grp": "Uña",
    "nombre": "Contacto de Hertz cara plana–pasador (a calado; ambas caras templadas)",
-   "formula": "p₀ = √(F·E*/(π·r·h)), E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup",
-   "dem": 1825.3663072083825,
-   "cap": 2171,
+   "formula": "p₀ = √(q·E*/(π·r)), q = k_borde·F/h, E* = E/(2(1−ν²)) ≤ 1,67·Fy_sup (cara con alivio de borde)",
+   "dem": 2097.1862209276665,
+   "cap": 2505,
    "unidad": "MPa",
-   "fu": 0.8407951668394208,
+   "fu": 0.8372000881946772,
    "estado": "ok",
    "ref": "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)"
   },
   {
    "grp": "Uña",
    "nombre": "Profundidad mínima de temple (3 × profundidad del corte máximo)",
-   "formula": "z = 3·0,78·b, b = √(4F·r/(π·h·E*))",
-   "dem": 3.3038947623841,
+   "formula": "z = 3·0,78·b, b = √(4q·r/(π·E*))",
+   "dem": 3.7958860880168674,
    "unidad": "mm",
    "fu": null,
    "estado": "info",

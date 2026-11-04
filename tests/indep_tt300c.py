@@ -127,7 +127,7 @@ chk("Uña: FU flexión en la boca + μ_s·F (axial y excéntrica b/2)", (F1 * (l
     fu["Uña · Flexión en la boca del patín (voladizo) con fricción radial"])
 chk("Uña: FU corte en la boca", 1.5 * F1 / (hd * b) / fv, fu["Uña · Corte en la boca del patín"])
 Es = P["E"] / (2 * (1 - P["nu"]**2))
-chk("Uña: FU Hertz cara plana–pasador (ambas caras templadas)", math.sqrt(F1 / hd * Es / (math.pi * rp)) / (1.67 * P["Fy_surf"]), fu["Uña · Contacto de Hertz cara plana–pasador"])
+chk("Uña: FU Hertz cara plana–pasador (ambas caras templadas)", math.sqrt(P.get("k_edge", 1.0) * F1 / hd * Es / (math.pi * rp)) / (1.67 * P["Fy_surf"]), fu["Uña · Contacto de Hertz cara plana–pasador"])  # carga lineal de borde k·F/h (N8)
 tip = armmin - P["c_tip"]
 travel = (P["R_pin"] + rp + 5) - tip                  # punta retraída 5 mm fuera del pasador en a = R (cota del núcleo)
 beta = math.radians(P["beta_ch"])

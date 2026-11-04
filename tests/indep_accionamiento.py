@@ -298,9 +298,9 @@ tau_m = 1.5 * F_st / A_d
 comp("4", "Uña: corte en la boca (MPa)", tau_m, ver("Corte en la boca")["dem"])
 Es = P["E"] / (2 * (1 - P["nu"] ** 2))
 pH = math.sqrt(F_st / h_d * Es / (math.pi * r_p))
-comp("4", "Hertz cara plana–pasador p0 (MPa)", pH, ver("Contacto de Hertz")["dem"])
+comp("4", "Hertz cara plana–pasador p0 con q = k_borde·F/h (MPa)", pH * math.sqrt(P.get("k_edge", 1.0)), ver("Contacto de Hertz")["dem"])
 bH = math.sqrt(4 * F_st * r_p / (math.pi * h_d * Es))
-comp("4", "Profundidad de temple 3·0,78·b (mm)", 3 * 0.78 * bH, ver("Profundidad mínima de temple")["dem"])
+comp("4", "Profundidad de temple 3·0,78·b con q de borde (mm)", 3 * 0.78 * bH * math.sqrt(P.get("k_edge", 1.0)), ver("Profundidad mínima de temple")["dem"])
 fu_pin_H = pH / (1.67 * P["Fy_pin"])
 F_dd = eM["F"]
 fu_pin_Hd = math.sqrt(F_dd / h_d * Es / (math.pi * r_p)) / (1.67 * P["Fy_pin"])
@@ -334,13 +334,73 @@ comp("4", "Marco de boca: corte (MPa)", 1.5 * V_fw / ((h_d + 20) * t_fw), ver("m
 # PRUEBA 5 – Pasador de empuje
 # ======================================================================================
 tpr = max(P["t_pr"], P["t_top"], P["t_bot"])
-Ls_ = P["h_disc"] - tpr
-S_p, A_p = math.pi * P["d_pin"] ** 3 / 32, math.pi / 4 * P["d_pin"] ** 2
+Ls_ = P["h_disc"] - tpr                               # luz entre planos medios de los anillos
+d_pin = P["d_pin"]
+S_p, A_p, I_p = math.pi * d_pin ** 3 / 32, math.pi / 4 * d_pin ** 2, math.pi * d_pin ** 4 / 64
 Fr = F_st * math.sqrt(1 + mu_s ** 2)
-comp("5", "Pasador: flexión F_r·L/4/S (MPa)", Fr * Ls_ / 4 / S_p, ver("Flexión (biapoyado entre planchas")["dem"])
-comp("5", "Pasador: corte 4F_r/3A (MPa)", 4 * Fr / (3 * A_p), ver("Corte (carga junto a una plancha)")["dem"])
-comp("5", "Pasador: aplastamiento F_r/(d t) (MPa)", Fr / (P["d_pin"] * tpr), ver("Aplastamiento en el agujero de la plancha")["dem"])
-comp("5", "Pasador–uña aplastamiento F/(d h) (MPa)", F_st / (P["d_pin"] * h_d), ver("Aplastamiento pasador–uña")["dem"])
+c_d = h_d
+M_uni = Fr * (Ls_ - c_d / 2) / 4                      # = F(2L − c)/8
+V_p = Fr * (0.5 + P["e_dog"] / Ls_)
+comp("5", "Pasador: flexión, carga repartida en h_uña (MPa)", M_uni / S_p, ver("Flexión (biapoyado entre anillos")["dem"])
+comp("5", "Pasador: corte en el apoyo 4V/3A (MPa)", 4 * V_p / (3 * A_p), ver("Corte en el apoyo")["dem"])
+comp("5", "Pasador: aplastamiento V/(d t) (MPa)", V_p / (d_pin * tpr), ver("Aplastamiento en el agujero del anillo")["dem"])
+comp("5", "Pasador–uña aplastamiento F/(d h) (MPa)", F_st / (d_pin * h_d), ver("Aplastamiento pasador–uña")["dem"])
+M_e = (Fb - V_p / (d_pin * tpr)) * d_pin * tpr ** 2 / 6
+M_emp = Fr * (3 * Ls_ ** 2 - c_d ** 2) / (24 * Ls_)
+comp("5", "Empotramiento disponible / perfecto (info)", M_e / M_emp, ver("Empotramiento disponible")["dem"])
+# Reparto real de la carga: uña rígida contra un pasador que flecta (Timoshenko) con rigidez de contacto de Hertz.
+q_m = F_st / h_d
+b_h = math.sqrt(4 * q_m * r_p / (math.pi * Es))
+k_c = q_m / (q_m / (math.pi * Es) * (2 * math.log(4 * r_p / b_h) - 1))
+def reparto(kc, nel=111):
+    Gs = P["E"] / (2 * (1 + P["nu"])); ks = 0.9
+    xs = [(Ls_ - c_d) / 2 + c_d * (i + 0.5) / nel for i in range(nel)]; dx = c_d / nel
+    def w(x, a):
+        bb = Ls_ - a
+        if x <= a:
+            return bb * x * (Ls_ ** 2 - bb ** 2 - x * x) / (6 * P["E"] * I_p * Ls_) + bb * x / (Ls_ * ks * Gs * A_p)
+        return a * (Ls_ - x) * (Ls_ ** 2 - a * a - (Ls_ - x) ** 2) / (6 * P["E"] * I_p * Ls_) + a * (Ls_ - x) / (Ls_ * ks * Gs * A_p)
+    N = nel + 1; M = [[0.0] * N for _ in range(N)]; rhs = [0.0] * N
+    for i in range(nel):
+        for j in range(nel):
+            M[i][j] = w(xs[i], xs[j]) * dx
+        M[i][i] += 1 / kc; M[i][nel] = -1.0
+    for j in range(nel):
+        M[nel][j] = dx
+    rhs[nel] = 1.0
+    for k in range(N):
+        pv = max(range(k, N), key=lambda r: abs(M[r][k])); M[k], M[pv] = M[pv], M[k]; rhs[k], rhs[pv] = rhs[pv], rhs[k]
+        for r in range(k + 1, N):
+            f = M[r][k] / M[k][k]
+            if f:
+                for cc in range(k, N):
+                    M[r][cc] -= f * M[k][cc]
+                rhs[r] -= f * rhs[k]
+    x = [0.0] * N
+    for k in range(N - 1, -1, -1):
+        x[k] = (rhs[k] - sum(M[k][cc] * x[cc] for cc in range(k + 1, N))) / M[k][k]
+    q = x[:nel]
+    Mmid = 0.5 * Ls_ / 2 - sum(q[j] * dx * (Ls_ / 2 - xs[j]) for j in range(nel) if xs[j] < Ls_ / 2)
+    return q[0] * c_d, q[nel // 2] * c_d, Mmid / ((Ls_ - c_d / 2) / 4)
+kq_end, kq_mid, kM = reparto(k_c)
+pH_edge = pH * math.sqrt(kq_end)
+if kq_end > P.get("k_edge", 1.0) * 1.02:
+    FIND.append(("N9", "importante", "Factor de borde del núcleo menor que el reparto elástico propio",
+                 f"k_borde = {s3(P.get('k_edge', 1.0))}", f"reparto elástico {s3(kq_end)}: subir k_borde"))
+table("Prueba 5 – Pasador de empuje Ø%s a F_calado (MPa)" % s3(d_pin), ["Chequeo", "Propio", "Núcleo", "Adm.", "FU"],
+      [["Flexión, carga uniforme en h_uña (modelo del núcleo)", s3(M_uni / S_p), s3(ver("Flexión (biapoyado entre anillos")["dem"]), s3(P["Fy_pin"] / Nd), s3(M_uni / S_p / (P["Fy_pin"] / Nd))],
+       ["Flexión con reparto elástico (uña rígida, Hertz)", s3(kM * M_uni / S_p), "—", s3(P["Fy_pin"] / Nd), s3(kM * M_uni / S_p / (P["Fy_pin"] / Nd))],
+       ["Flexión con carga puntual (cota superior)", s3(Fr * Ls_ / 4 / S_p), "—", s3(P["Fy_pin"] / Nd), s3(Fr * Ls_ / 4 / S_p / (P["Fy_pin"] / Nd))],
+       ["Corte en el apoyo, V = F_r(1/2 + e/L)", s3(4 * V_p / (3 * A_p)), s3(ver("Corte en el apoyo")["dem"]), s3(P["Fy_pin"] / (Nd * 3 ** .5)), s3(4 * V_p / (3 * A_p) / (P["Fy_pin"] / (Nd * 3 ** .5)))],
+       ["Aplastamiento en el anillo V/(d t)", s3(V_p / (d_pin * tpr)), s3(ver("Aplastamiento en el agujero del anillo")["dem"]), s3(Fb), s3(V_p / (d_pin * tpr) / Fb)],
+       ["Empotramiento disponible / perfecto", s3(M_e / M_emp), s3(ver("Empotramiento disponible")["dem"]), "info", "biapoyado justificado"],
+       [f"Línea de carga en el borde de la uña / media (k_c = {s3(k_c)} N/mm²)", s3(kq_end), "1 (uniforme)", "—", f"centro {s3(kq_mid)}"],
+       ["Hertz en el borde de la cara (sin singularidad de arista)", s3(pH_edge), s3(pH), s3(1.67 * P["Fy_surf"]), s3(pH_edge / (1.67 * P["Fy_surf"]))]])
+planos_txt = (ROOT / "cad" / "planos_tt300c.py").read_text()
+if not any(k in planos_txt.lower() for k in ("alivio de borde", "bombeo", "abombad", "perfil logar", "alivio de extremos")):
+    FIND.append(("N8", "importante", "Hertz uña–pasador: el pasador flecta bajo la uña rígida y la carga se concentra en los bordes superior e inferior de la cara (aristas 0,5×45°, sin alivio de borde en planos); la verificación supone carga lineal uniforme F/h",
+                 f"p0 {s3(pH)} MPa, FU {s3(ver('Contacto de Hertz')['fu'])}",
+                 f"q_borde = {s3(kq_end)}·F/h → p0 {s3(pH_edge)} MPa, FU {s3(pH_edge/(1.67*P['Fy_surf']))} sin contar la singularidad de arista. Especificar alivio de borde (bombeo o perfil logarítmico de ~10 mm en ambos extremos de la cara) y verificar Hertz con q = {s3(kq_end)}·F/h"))
 
 # ======================================================================================
 # PRUEBA 6 – Giro: casos y barridos

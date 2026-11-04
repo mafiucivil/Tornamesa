@@ -239,8 +239,8 @@ table(["Magnitud", "Símbolo", "Valor", "Origen"], [
 H("4.2 Materiales", 2)
 table(["Elemento", "Material", "Fy (MPa)"], [
     ["Planchas de mesa, base, ménsulas, bancadas", "ASTM A572 Gr.50", pint(P["Fy"])],
-    ["Pasadores de empuje (pos 3)", "34CrNiMo6+QT (EN 10083-3); zona de contacto templada por inducción ≥ 50 HRC", pint(P["Fy_pin"])],
-    ["Uña (pos 10)", "34CrNiMo6+QT, certificado 3.1; cara de empuje templada por inducción ≥ 50 HRC", pint(P["Fy_dog"])],
+    ["Pasadores de empuje (pos 3)", "34CrNiMo6+QT (EN 10083-3); zona de contacto templada por inducción ≥ 55 HRC", pint(P["Fy_pin"])],
+    ["Uña (pos 10)", "34CrNiMo6+QT, certificado 3.1; cara de empuje templada por inducción ≥ 55 HRC", pint(P["Fy_dog"])],
     ["Superficies de contacto uña–pasador", "Temple por inducción", pint(P["Fy_surf"])],
     ["Patín (pos 16)", "S460 o 34CrNiMo6+QT", pint(P["Fy_shoe"])],
     ["Pasadores de articulación (pos 11)", "42CrMo4+QT", pint(P["Fy_pp"])],
@@ -424,7 +424,7 @@ table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["8", "Artículo de ISO 4413:2010 (sobrepresión)", "Criterio confirmado; numeral por citar", "Revisor"],
     ["9", "Guía de retorno tipo KIET", "No adoptada; evaluar con fotos del equipo existente", "Mandante / proyectista"],
     ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
-    ["11", "Temple por inducción de caras de contacto", f"≥ 50 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
+    ["11", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
 ], widths=(9, 45, 85, 31), size=8)
 
 # ================================================================= ANEXO A
