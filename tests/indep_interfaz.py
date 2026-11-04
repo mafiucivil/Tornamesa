@@ -260,8 +260,15 @@ v_edge = Ro * v_cil / a_min / 1000                                      # m/s, p
 
 
 def cap_ret(N_kN):
-    """capacidad de retención de los discos [kN·m]: fricción μ_resp·N·r_u + adhesivo τ·A_c·r_u (A_c en mm², r_u en mm)"""
-    return P["mu_back"] * N_kN * ru / 1e3 + P.get("tau_bond", 0.0) * Ac * ru / 1e6
+    """capacidad de retención de los discos [kN·m]: máx(fricción μ_resp·N·r_u; adhesivo τ·A_c·r_u) (A_c en mm², r_u en mm); no se suman"""
+    return max(P["mu_back"] * N_kN * ru / 1e3, P.get("tau_bond", 0.0) * Ac * ru / 1e6)
+
+
+def tau_th(t_disco):
+    """cortante térmico en el borde del pegado: ε·√(G_ad·E_inox·t_disco/t_ad), ε = (α_inox − α_acero)·ΔT"""
+    if not P.get("G_ad") or not P.get("t_ad"):
+        return None
+    return (AL_SS - AL_S) * P["dT"] * math.sqrt(P["G_ad"] * E_SS * t_disco / P["t_ad"])
 
 
 def expected_rows(P, k):
@@ -278,6 +285,7 @@ def expected_rows(P, k):
         "tensión si el disco quedara restringido": (E_SS * (AL_SS - AL_S) * P["dT"], sad, E_SS * (AL_SS - AL_S) * P["dT"] / sad),
         "Dilatación diferencial radial": ((AL_SS - AL_S) * P["dT"] * Ro, None, None),
         "Opción A: par inox–inox": (0.0, None, None),
+        "cortante térmico en el borde": (tau_th(r["tss"]), P.get("tau_cyc"), tau_th(r["tss"]) / P["tau_cyc"] if P.get("tau_cyc") else None),
         "Altura que agrega": (r["delta"], None, None),
         "Masa agregada": (r["mAdd"], None, None),
     }
@@ -634,10 +642,10 @@ for k, lab in ((1, "A"), (2, "B")):
         c = cs[cid]
         T_int = c["mu"] * N_ * c["r"] / 1e3
         T_real = min(T_int, Tmax)
-        rows.append([lab, cid, s3(c["mu"]), s3(T_real), s3(T_real / cap_fr), s3(T_real / cap_ad), s3(T_real / (cap_fr + cap_ad))])
-    rows.append([lab, "T_calado", "—", s3(Tmax), s3(Tmax / cap_fr), s3(Tmax / cap_ad), s3(Tmax / (cap_fr + cap_ad))])
-table(f"3e. Retención de los discos: capacidad por fricción {s3(P['mu_back']*IF[1]['N']*ru/1e3)} kN·m (μ_resp = {P['mu_back']}), por adhesivo {s3(cap_ad)} kN·m (τ = {s3(tau)} MPa), suma {s3(cap_ret(IF[1]['N']))} kN·m (núcleo)",
-      ["Op.", "Caso", "μ interfaz", "T discos kN·m", "FU solo fricción", "FU solo adhesivo", "FU suma (núcleo)"], rows)
+        rows.append([lab, cid, s3(c["mu"]), s3(T_real), s3(T_real / cap_fr), s3(T_real / cap_ad), s3(T_real / max(cap_fr, cap_ad))])
+    rows.append([lab, "T_calado", "—", s3(Tmax), s3(Tmax / cap_fr), s3(Tmax / cap_ad), s3(Tmax / max(cap_fr, cap_ad))])
+table(f"3e. Retención de los discos: capacidad por fricción {s3(P['mu_back']*IF[1]['N']*ru/1e3)} kN·m (μ_resp = {P['mu_back']}), por adhesivo {s3(cap_ad)} kN·m (τ = {s3(tau)} MPa), máx {s3(cap_ret(IF[1]['N']))} kN·m (núcleo; no se suman)",
+      ["Op.", "Caso", "μ interfaz", "T discos kN·m", "FU solo fricción", "FU solo adhesivo", "FU máx (núcleo)"], rows)
 f_ad_min = Tmax / cap_ad
 tau_req = Tmax * 1e6 / (Ac * ru)
 print(f"Adhesivo solo: τ requerido para T_calado = {s3(tau_req)} MPa; fracción mínima de área adherida (τ de diseño) = {s3(f_ad_min)}; "
@@ -658,7 +666,7 @@ mu_top_max = max(P["muB_cont"], P["muB_dry"], P["muB_d"])
 Fdrag = mu_top_max * IF[2]["N"]
 db_ = 8.0
 n_bolts = Fdrag * 1e3 / (P["p_uhmw"] * db_ * IF[2]["tuh"])
-print(f"\n3f'. Arrastre de la lámina UHMW: μ_máx·N = {s3(mu_top_max)}·{s3(IF[2]['N'])} = {s3(Fdrag)} kN (el núcleo usa μ_d: {s3(P['muB_d']*IF[2]['N'])} kN); "
+print(f"\n3f'. Arrastre de la lámina UHMW: μ_máx·N = {s3(mu_top_max)}·{s3(IF[2]['N'])} = {s3(Fdrag)} kN (μ_d·N daría {s3(P['muB_d']*IF[2]['N'])} kN); "
       f"un bulón M8 resiste {s3(P['p_uhmw']*db_*IF[2]['tuh']/1e3)} kN por aplastamiento del UHMW → {s3(n_bolts)} bulones")
 
 # ---- (f) otros
@@ -682,15 +690,20 @@ if tuh0 < com(max(t_g, P["uh_tmin"]), COM_UH):
     FIND.append(("H1", "importante", "t_UHMW por debajo del requerido con la variante de Gent", f"{s3(tuh0)} mm", f"{s3(com(t_g, COM_UH))} mm"))
 if P["muB_d"] < 0.20 or P["muB_cont"] < P["muB_dry"]:
     FIND.append(("H2", "importante", "μ de B por debajo del rango seco o contaminado menor que el seco", f"μ_d {P['muB_d']}", "μ_d ≥ 0,20; μ_cont ≥ μ_seco"))
-FIND.append(("N1", "importante", "d_flat = 0,05 mm es el parámetro que gobierna a B y no se puede verificar en el cálculo: debe ser la variación del hueco relativo entre las dos caras (suma de las dos planitudes y del espesor de la lámina) en una ventana de Ø = ss_void; cada sector UHMW comercial tiene tolerancia de espesor muy superior y los escalones en juntas cuentan",
+lab_d = next((x["lab"] for g_ in D0["grupos"] for x in g_["p"] if x["id"] == "d_flat"), "")
+d_def_ok = "hueco" in lab_d.lower() and "espesor" in lab_d.lower()
+FIND.append(("N1", "menor" if d_def_ok else "importante",
+             "d_flat gobierna a B (t_conf ∝ d) y no se verifica en el cálculo; " + ("su definición ya es el hueco relativo entre las dos caras con la tolerancia de espesor de la lámina, pero queda por exigir y medir en obra" if d_def_ok else "debe ser la variación del hueco relativo entre las dos caras (suma de las planitudes y del espesor de la lámina)"),
              f"t_UHMW {s3(tuh0)} mm, Δ {s3(IF[2]['delta'])} mm, soldadura de mejillas FU {s3(soldadura_mejilla(IF[2]['delta'])/cap_w)}",
-             f"con d = 0,06 mm t_conf supera 15 mm → 20 mm → soldadura FU 1,01; d_flat admisible ≤ {s3(d_adm_w)} mm; con dos caras de 0,05 mm (hueco 0,10) → t_UHMW {s3(com(t_conf_S(qB, P['ss_void'], P['E_uhmw'], 0.10), COM_UH))} mm. Escribir en planos «hueco relativo ≤ 0,05 mm en Ø100» (rectificado in situ de la lámina y de los respaldos) y medirlo"))
-if tau > 0 and Tmax / (P["mu_back"] * IF[1]["N"] * ru / 1e3) > 1.0:
-    FIND.append(("N2", "importante", "Retención con adhesivo: la capacidad suma fricción y adhesivo, pero el adhesivo rígido falla con deslizamientos de centésimas de mm y la fricción no se moviliza antes; sin adhesivo la retención no cumple (FU>1). Además el pegado no tiene verificación térmica de borde (cortante ε·√(G·E·t/t_a))",
-                 f"capacidad {s3(cap_ret(IF[1]['N']))} kN·m, FU {s3(Tmax/cap_ret(IF[1]['N']))}",
-                 f"solo adhesivo FU {s3(Tmax/cap_ad)} (τ requerido {s3(tau_req)} MPa; área adherida mínima {s3(f_ad_min*100)} %); solo fricción FU {s3(Tmax/(P['mu_back']*IF[1]['N']*ru/1e3))}; cortante térmico de borde 14 MPa con epóxico rígido de 0,3 mm frente a ≈ 4–5 MPa sostenido admisible. Usar solo el adhesivo en la capacidad y especificar adhesivo tenaz con espesor de línea ≥ 1 mm (τ_borde ≈ 2,4 MPa) y ensayo de arrancamiento/fatiga térmica"))
-FIND.append(("N3", "menor" if has_pend["B"] else "importante", "Opción B: retención de los sectores UHMW contra el arrastre sigue pendiente (fila «pend» del núcleo); la fuerza que usa el núcleo es μ_d·N, pero el máximo es con μ_cont = μ_seco",
-             f"{s3(P['muB_d']*IF[2]['N'])} kN", f"{s3(Fdrag)} kN con μ = {s3(mu_top_max)} (+{s3((mu_top_max/P['muB_d']-1)*100)} %); {s3(n_bolts)} bulones M8 por aplastamiento del UHMW: resolver con rebaje perimetral/cola de milano o pegado antes de emitir"))
+             f"d_flat ≤ {s3(d_adm_w)} mm mantiene t_UHMW = {s3(tuh0)} mm; con d = 0,06 mm → 20 mm y soldadura FU 1,01 (margen de la soldadura 2,3 %). Planos: «variación máxima del hueco ≤ 0,05 mm en Ø100» con rectificado in situ y medición; reforzar el filete de mejillas si se quiere holgura"))
+has_th = any("cortante térmico" in r["nombre"] for r in DA["interfazChecks"]["A"])
+tau_t = tau_th(IF[1]["tss"])
+FIND.append(("N2", "menor" if has_th and cap_ad >= Tmax else "importante",
+             "Retención de los discos descansa en el adhesivo (la fricción sola con μ_resp = 0,30 no cumple); su durabilidad depende de G_ad = 100 MPa y t_ad = 1 mm, que son supuestos de diseño a especificar y ensayar",
+             f"máx(fricción; adhesivo) = {s3(cap_ret(IF[1]['N']))} kN·m, FU {s3(Tmax/cap_ret(IF[1]['N']))}; τ_borde {s3(tau_t) if tau_t else '—'} / {s3(P.get('tau_cyc'))} MPa",
+             f"solo fricción FU {s3(Tmax/(P['mu_back']*IF[1]['N']*ru/1e3))}; área adherida mínima {s3(f_ad_min*100)} %; sensibilidad del cortante de borde: epóxico rígido 0,3 mm {s3(eps_th*math.sqrt(1000*E_SS*IF[1]['tss']/0.3))} MPa (> τ_cyc), tenaz 1 mm {s3(eps_th*math.sqrt(100*E_SS*IF[1]['tss']/1.0))} MPa; ensayo de arrancamiento y de fatiga térmica"))
+FIND.append(("N3", "menor" if has_pend["B"] else "importante", "Opción B: retención de los sectores UHMW contra el arrastre sigue pendiente (fila «pend» del núcleo)",
+             f"{s3(Fdrag)} kN (μ_máx = {s3(mu_top_max)})", f"fila pendiente del núcleo: {s3(next((r['dem'] for r in DB['interfazChecks']['B'] if 'retención de los sectores' in r['nombre']), 0))} kN; {s3(n_bolts)} bulones M8 por aplastamiento del UHMW: resolver con rebaje perimetral/cola de milano o pegado antes de emitir"))
 FIND.append(("N4", "menor" if has_pend["A"] else "importante", "Opción A: gripado inox–inox pendiente (fila «pend» del núcleo)", f"presión {s3(q)} MPa; caso seco FS {s3(casos(P,1,IF[1]['N'])['seco']['FS'])}",
              "exigir aleaciones o durezas distintas (≥ 50 HB) o recubrimiento; la presión nominal es ≈ 1/8 de los umbrales ASTM G98 publicados para 304/304 (confirmar), pero la grasa puede expulsarse tras reposo largo"))
 FIND.append(("N5", "menor", "μ de B: μ_cont = μ_seco = 0,25 sin margen para arena incrustada", f"μ_máx que gira {s3(mu_max_B)}", f"margen {s3((mu_max_B/P['muB_cont']-1)*100)} %; con μ = 0,30 no gira"))
