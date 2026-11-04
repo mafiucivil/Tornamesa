@@ -101,11 +101,16 @@ SRcal = max(abs(g[1]) + abs(g[2]) for g in gc)
 
 # --- cadena de empuje (BTH-1, Nd) ---
 Nd = P["Nd"]; tpr = max(P["t_pr"], P["t_top"], P["t_bot"])
-Ls = P["h_disc"] - tpr
-Fr = Fst * math.sqrt(1 + mu_s**2)
-sig = Fr * 1e3 * Ls / 4 / (math.pi * P["d_pin"]**3 / 32)
-chk("Pasador de empuje: FU flexión (F·√(1+μs²))", sig / (P["Fy_pin"] / Nd), fu["Pasadores de empuje · Flexión (biapoyado entre planchas, carga al centro)"])
-chk("Pasador de empuje: FU aplastamiento", Fr * 1e3 / (P["d_pin"] * tpr) / (1.25 * P["Fy"] / Nd), fu["Pasadores de empuje · Aplastamiento en el agujero de la plancha"])
+Ls = P["h_disc"] - tpr                                  # luz entre planos medios de los anillos
+Fr = Fst * math.sqrt(1 + mu_s**2)                      # kN, resultante normal + fricción de la cara
+c = P["dog_h"]                                         # carga repartida en la altura de la uña, centrada
+M_p = Fr * 1e3 * (Ls - c / 2) / 4                      # = F(2L − c)/8, viga biapoyada con carga parcial centrada
+S_p = math.pi * P["d_pin"]**3 / 32; A_p = math.pi / 4 * P["d_pin"]**2
+chk("Pasador de empuje: FU flexión (repartida en h_uña)", M_p / S_p / (P["Fy_pin"] / Nd), fu["Pasadores de empuje · Flexión (biapoyado entre anillos"])
+V_p = Fr * 1e3 * (0.5 + P["e_dog"] / Ls)               # reacción máx. con excentricidad accidental e
+chk("Pasador de empuje: FU corte en el apoyo", 4 * V_p / (3 * A_p) / (P["Fy_pin"] / (Nd * 3**.5)), fu["Pasadores de empuje · Corte en el apoyo"])
+chk("Pasador de empuje: FU aplastamiento en el anillo", V_p / (P["d_pin"] * tpr) / (1.25 * P["Fy"] / Nd), fu["Pasadores de empuje · Aplastamiento en el agujero del anillo"])
+chk("Pasador–uña: FU aplastamiento", Fst * 1e3 / (P["d_pin"] * P["dog_h"]) / (1.25 * min(P["Fy_pin"], P["Fy_dog"]) / Nd), fu["Pasadores de empuje · Aplastamiento pasador–uña"])
 Mpp = Fst / 2 * (P["t_ch"] / 2 + P["g_ch"] + P["b_eye"] / 4) * 1e3
 chk("Pasador articulación: FU flexión", Mpp / (math.pi * P["d_pp"]**3 / 32) / (P["Fy_pp"] / Nd), fu["Articulaciones · Pasador: flexión (horquilla)"])
 hax = P["h_disc"] / 2; aw = 0.707 * P["w_br"]
