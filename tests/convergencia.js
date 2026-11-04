@@ -760,7 +760,7 @@ runSection("G", "Verificaciones de aceptación del diseño por defecto", () => {
   const fuMesa = A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && c.fu != null).sort((a, b) => b.fu - a.fu).slice(0, 5);
   chk("G3 · Estructura: FU máximo de las verificaciones con FU (kind = fu)", "≤ 0,90 (veredicto «ok», sin advertencias)", fuMesa.map((c) => `${c.name.slice(0, 38)} ${f(c.fu, 3)}`).join("; "), V(fuMesa[0].fu <= 0.9));
   const lift = A.checks.find((c) => /Izaje del conjunto/.test(c.name));
-  chk("G3 · Verificación de izaje (σ_vm × k_FEA en la plancha base)", "no usar tensiones singulares como verificación", `FU = ${f(lift.fu, 3)} con el máximo global en la esquina del apoyo (ver B3)`, "OK");
+  chk("G3 · Verificación de izaje (σ_vm × k_FEA en la plancha base)", "no usar tensiones singulares como verificación", `FU = ${f(lift.fu, 3)} con σ a ≥ 2·pad del cáncamo (el máximo global singular, vmAll, ya no se usa; ver B3)`, "OK");
 });
 
 /* =================================================================================================================================================
