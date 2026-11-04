@@ -727,16 +727,16 @@
   "1c_menuslas": 152.56,
   "1d_puntos_izaje": 4.6,
   "1e_bancadas": 87.39,
-  "2_mesa": 1271.16,
-  "3_pasadores": 362.52,
-  "4_arandelas_pernos": 32.28,
+  "2_mesa": 1304.7,
+  "3_pasadores": 261.92,
+  "4_arandelas_pernos": 25.94,
   "5_pivote": 18.91,
   "6_buje": 4.0,
   "7_tapa_retenedora": 1.6,
   "8_tapa_inspeccion": 1.93,
   "9_cilindros": 80.67,
-  "10_unas": 27.67,
-  "10b_patines": 251.2,
+  "10_unas": 27.21,
+  "10b_patines": 258.23,
   "11_pasadores_articulacion": 18.61
  },
  "comparacion": [
@@ -760,15 +760,15 @@
   },
   {
    "pieza": "Mesa (planchas, almas, nervios, cubo)",
-   "modelo3d": 1271.2,
-   "nucleo": 1271.8,
+   "modelo3d": 1304.7,
+   "nucleo": 1305.3,
    "dif_%": -0.0
   },
   {
    "pieza": "Pasadores de empuje",
-   "modelo3d": 362.5,
-   "nucleo": 362.5,
-   "dif_%": -0.0
+   "modelo3d": 261.9,
+   "nucleo": 261.9,
+   "dif_%": 0.0
   },
   {
    "pieza": "Pivote",
@@ -778,14 +778,14 @@
   },
   {
    "pieza": "Uñas",
-   "modelo3d": 27.7,
-   "nucleo": 27.7,
+   "modelo3d": 27.2,
+   "nucleo": 27.2,
    "dif_%": 0.0
   },
   {
    "pieza": "Patines",
-   "modelo3d": 251.2,
-   "nucleo": 252.0,
+   "modelo3d": 258.2,
+   "nucleo": 259.0,
    "dif_%": -0.3
   },
   {
