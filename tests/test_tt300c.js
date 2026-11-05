@@ -118,6 +118,17 @@ test("Interfaz alternativa C: placa de bronce con tapones de grafito", () => {
   [{}, { opt_ss: 1 }, { opt_uhmw: 1 }, { opt_bz: 1 }].forEach((o) => { const A = TT.analyze(Object.assign(TT.defaults(), o)); assert.ok(A.checks.filter((c) => /Izaje/.test(c.name)).every((c) => c.st !== "fail"), "izaje " + JSON.stringify(o)); });
 });
 
+test("Un cilindro (n° impar): el pivote reacciona con la fuerza tangencial del pasador", () => {
+  const two = TT.analyze(TT.defaults(), { noFEA: true });
+  assert.ok(!two.checks.some((c) => /empuje no equilibrado/.test(c.name)), "con 2 cilindros el par es puro");
+  const one = TT.analyze(Object.assign(TT.defaults(), { n_cyl: 1, W_tf: 150 }), { noFEA: true });
+  const row = one.checks.find((c) => /empuje no equilibrado/.test(c.name));
+  assert.ok(row && row.dem > 200, "reacción de diseño ≈ F_pas");
+  const bush = one.checks.find((c) => /Presión en el buje/.test(c.name));
+  near(bush.dem, (TT.compute(Object.assign(TT.defaults(), { n_cyl: 1, W_tf: 150 })).H_ecc(0.2) + row.dem + 0) * 1e3 / (TT.defaults().D_piv * TT.defaults().L_bush), 0.25, "presión del buje con la reacción");
+  assert.equal(bush.st, "fail", "con 1 cilindro y 150 tf el buje no cumple (antes daba 0,33 por omitir la reacción)");
+});
+
 test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
   const P = TT.defaults();
   assert.equal(AG.validate(P).filter((v) => v.lvl === "error").length, 0);
