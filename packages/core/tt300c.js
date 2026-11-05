@@ -98,7 +98,8 @@ const TT = (() => {
       ["opt_wood", "Cubierta de madera dura sobre la plancha superior de la mesa", "–", 0, 0, 1, "chk"],
       ["t_wood", "Espesor de los tablones", "mm", 50, 20, 150, 5],
       ["rho_wood", "Densidad de la madera dura (seca al aire)", "kg/m³", 900, 500, 1300, 10],
-      ["p_wood", "Presión admisible de aplastamiento perpendicular a la fibra (sostenida)", "MPa", 6, 1, 20, 0.5],
+      ["p_wood", "Presión admisible de aplastamiento perpendicular a la fibra (sostenida; confirmar con NCh1198 y el proveedor)", "MPa", 6, 1, 20, 0.5],
+      ["f_apoyo", "Fracción del círculo de apoyo de la carga que toca realmente la madera (SUPUESTO: patines o vigas cubren el 50 %)", "–", 0.5, 0.05, 1, 0.05],
       ["h_skid", "Altura de los rieles de skidding o de la superficie de llegada (0 = no aplica)", "mm", 0, 0, 800, 5],
       ["tol_skid", "Tolerancia de enrase con los rieles", "mm", 10, 1, 50, 1],
     ] },
@@ -509,6 +510,7 @@ const TT = (() => {
       PhExt: pExt * P.Q_pump / 600, PhRet: P.p_ret * Qr / 600, vExt: P.Q_pump * 1e6 / 60 / (P.n_cyl * A) / 1000, vRet: Qr * 1e6 / 60 / (P.n_cyl * Aann) / 1000,
       Qreq: P.t_vuelta_obj > 0 ? (Vext + Vret) / 1e6 / (P.t_vuelta_obj / P.N_pin) : 0 };
     pump.Pmotor = Math.max(pump.PhExt, pump.PhRet) / P.eta_pump;
+    pump.PmotorAlarm = Math.max(P.p_alarm * P.Q_pump / 600, pump.PhRet) / P.eta_pump;               // a la presión de alarma
     return { pump, m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, qc, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
       mu, ifc, Tmax, cases, cd, muMax, curve, stroke, stallMax, tCycle, tRev: tCycle * P.N_pin, Vext, g_rigid, hax: hAxis(P), torque, Fcyl, Kg, Kguide: Kg(),
       Rguide: stallMax.R };
@@ -716,7 +718,7 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", name: "Pandeo del vástago (biarticulado, longitud extendida)", formula: "F_calado ≤ Pcr / 3; Pcr = π²EI/L²", dem: Fs, cap: Pcr / 3, unit: "kN", ref: "Euler, FS 3 (conservador frente a ISO/TS 13725)" });
     add({ grp: "Giro", sys: "giro", kind: "info", name: "Retorno: fuerza disponible en el puerto B", formula: "F_ret = A_anular · p_ret", dem: R.Fret, unit: "kN", ref: "Hidráulica" });
     add({ grp: "Giro", sys: "giro", name: "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)", formula: "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx", dem: R.pump.vRet, cap: P.v_ret_max, unit: "m/s", ref: "Criterio del proyecto" });
-    add({ grp: "Giro", sys: "giro", kind: "info", name: "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)", formula: "P = p·Q/(600·η)", dem: R.pump.Pmotor, unit: "kW", ref: "Hidráulica" });
+    add({ grp: "Giro", sys: "giro", kind: "info", name: "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)", formula: "P = p·Q/(600·η) a la presión de diseño (dem) y a la de alarma (cap)", dem: R.pump.Pmotor, cap: R.pump.PmotorAlarm, unit: "kW", ref: "Hidráulica" });
     if (P.t_vuelta_obj > 0) {
       add({ grp: "Giro", sys: "giro", kind: "geo", name: "Tiempo por vuelta frente al objetivo", formula: "t_vuelta ≤ t_objetivo", dem: R.tRev, cap: P.t_vuelta_obj, unit: "min", ref: "Criterio de operación" });
       add({ grp: "Giro", sys: "giro", kind: "info", name: "Caudal de bomba requerido para el tiempo objetivo (avance y retorno al mismo caudal)", formula: "Q = (V_avance + V_retorno)·N_pas/t_objetivo", dem: R.pump.Qreq, unit: "L/min", ref: "Hidráulica" });
@@ -880,8 +882,9 @@ const TT = (() => {
     /* --- Cubierta de madera dura y altura de skidding --- */
     const Htop = P.t_base + R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0);
     if (P.opt_wood > 0.5) {
-      const RLw = P.D_load / 2, qTopW = P.phi_d * R.W * 1e3 / (Math.PI * RLw * RLw) * (1 + 4 * P.e / RLw);
-      add({ grp: "Cubierta", sys: "est", name: "Madera: aplastamiento perpendicular a la fibra bajo la carga", formula: "q = φd·W/A_apoyo·(1 + 4e/D_carga) ≤ p_adm,madera (sin acreditar reparto sobre la plancha)", dem: qTopW, cap: P.p_wood, unit: "MPa", ref: "Madera dura (datos de proveedor); criterio conservador" });
+      const RLw = P.D_load / 2, Aw = Math.PI * (RLw * RLw - ((P.D_piv + 80) / 2) ** 2), qTopW = P.phi_d * R.W * 1e3 / (P.f_apoyo * Aw) * (1 + 4 * P.e / RLw);
+      add({ grp: "Cubierta", sys: "est", name: "Madera: aplastamiento perpendicular a la fibra bajo la carga (área de contacto efectiva)", formula: "q = φd·W/(f_apoyo·A_círculo)·(1 + 4e/R_carga) ≤ p_adm,madera (sin acreditar reparto sobre la plancha)", dem: qTopW, cap: P.p_wood, unit: "MPa", ref: "Madera dura (datos de proveedor); criterio conservador" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: la ley lineal de presiones no admite tracción (q mín ≥ 0)", formula: "4e/R_carga ≤ 1 (e ≤ D_carga/8)", dem: 4 * P.e / RLw, cap: 1, unit: "–", ref: "Estática del apoyo" });
       add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: espesor mínimo (desgaste y fijación)", formula: "t_madera ≥ 30 mm", dem: 30, cap: P.t_wood, unit: "mm", ref: "Práctica constructiva" });
       add({ grp: "Cubierta", sys: "est", kind: "info", name: "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)", formula: "m = ρ·A·t", dem: R.m.wood, unit: "kg", ref: "Geometría" });
       add({ grp: "Cubierta", sys: "est", kind: "pend", name: "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
@@ -1010,12 +1013,16 @@ const TT = (() => {
     const Hasym = R.Fstall * P.eta_c * Math.max(...[-1, 1].map((e) => Math.abs(1 / asymF(P, P.mu_g - 0.05, e) - 1 / asymF(P, P.mu_g + 0.05, e))));
     // Con un número impar de cilindros el empuje no es un par puro: la fuerza tangencial sobre el pasador (F_pas) no se equilibra y el pivote
     // reacciona con una fuerza igual. Diseño para la presión del buje y calado para la flexión del pivote (cadena BTH-1).
-    const odd = P.n_cyl % 2 === 1, HcilD = odd ? Math.max(...R.stroke.map((q) => q.Fp)) : 0, HcilS = odd ? R.stallMax.Fp : 0;
+    const rs = Math.hypot(1, P.mu_s);                                                              // resultante de F_pas y la fricción H = μ_s·F_pas de la cara
+    const odd = P.n_cyl % 2 === 1, HcilD = odd ? Math.max(...R.stroke.map((q) => q.Fp)) * rs : 0, HcilS = odd ? R.stallMax.Fp * rs : 0;
     const H = Math.max(R.H_ecc(R.mu.d), P.Ch * R.N) + Hasym + HcilD, Hf = Math.max(R.H_ecc(R.mu.d), P.Ch * R.N) + Hasym + HcilS;
-    if (odd) add({ grp: "Pivote", sys: "est", kind: "info", name: "Reacción del pivote por empuje no equilibrado (n° impar de cilindros): F_pas de diseño / de calado", formula: "H_cil = F_pas (el par no es puro con 1 o 3 cilindros)", dem: HcilD, cap: HcilS, unit: "kN", ref: "Equilibrio de la mesa" });
+    if (odd) add({ grp: "Pivote", sys: "est", kind: "info", name: "Reacción del pivote por empuje no equilibrado (n° impar de cilindros): F_pas de diseño / de calado", formula: "H_cil = F_pas·√(1 + μ_s²) (el par no es puro con 1 o 3 cilindros; el n° 3 se trata como un cilindro: geometría no definida)", dem: HcilD, cap: HcilS, unit: "kN", ref: "Equilibrio de la mesa" });
     add({ grp: "Pivote", sys: "est", kind: "info", name: "Empuje neto al pivote por fricción desigual de los patines (μg ± 0,05)", formula: "H_asim = F_calado·η·|1/f(μg−0,05) − 1/f(μg+0,05)|", dem: Hasym, unit: "kN", ref: "Equilibrio (revisión independiente H10)" });
     add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim + H_cil", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
     add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd (H con la F_pas de calado si el n° de cilindros es impar)", dem: Hf * 1e3 * P.e_piv / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    // camino de fuerza del pivote: la misma reacción atraviesa el cubo (buje), el vástago y el agujero de la plancha base (calado, BTH-1)
+    add({ grp: "Pivote", sys: "est", name: "Aplastamiento del pivote en el agujero de la plancha base (ajuste H7/p6)", formula: "σ = H/(D_piv·t_base) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar", dem: Hf * 1e3 / (P.D_piv * P.t_base), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
+    add({ grp: "Pivote", sys: "est", name: "Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)", formula: "σ = H/((D_piv + 30)·L_buje) ≤ 1,25·Fy/Nd", dem: Hf * 1e3 / ((P.D_piv + 30) * P.L_bush), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
     if (!(P.Ch > 0)) add({ grp: "Pivote", sys: "est", kind: "info", name: "Caso sísmico: no aplica", formula: "Sin requerimiento sísmico (decisión del mandante, 31-10-2026); si se instala en forma permanente, ingresar Ch", dem: 0, unit: "–", ref: "Decisión del mandante" });
 
     /* --- Base --- */
@@ -1103,8 +1110,8 @@ const TT = (() => {
     return ns.map((n) => {
       const Q = Object.assign({}, P, { n_cyl: n }), mu = muSet(Q), R0 = compute(Q);
       const wGiro = capacityW(Q, mu.d, P.r_ef, P.FS_min), wNom = capacityW(Q, mu.nom, R0.r_u, 1);
-      const ok = (W) => { const A2 = analyze(Object.assign({}, Q, { W_tf: W }), { noFEA: true }); return A2.verdict.gira && !A2.checks.some((c) => c.grp === "Pivote" && c.st === "fail"); };
-      let wPiv = 0, lo = 20, hi = Math.min(1500, Math.max(20, wGiro));
+      const ok = (W) => { const A2 = analyze(Object.assign({}, Q, { W_tf: W }), { noFEA: true }); return !A2.checks.some((c) => c.grp === "Pivote" && c.st === "fail"); };   // solo las verificaciones del pivote
+      let wPiv = 0, lo = 20, hi = 1500;
       if (ok(lo)) { if (ok(hi)) wPiv = hi; else { for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } wPiv = lo; } }
       return { n, wGiro, wNom, wPiv, wCap: Math.min(wGiro, wPiv) };
     });

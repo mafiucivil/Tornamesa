@@ -108,6 +108,8 @@
   "Articulaciones · Soldadura mejillas–base (4 filetes)": 0.8087994309009179,
   "Pivote · Presión en el buje": 0.5358294758263494,
   "Pivote · Flexión del pivote": 0.1679358222416793,
+  "Pivote · Aplastamiento del pivote en el agujero de la plancha base (ajuste H7/p6)": 0.44730112764634394,
+  "Pivote · Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)": 0.08946022552926879,
   "Base · Izaje del conjunto: σvm en la plancha base": 0.2704788398839212,
   "Base · Izaje: flecha de la base": 0.6135936929232104,
   "Base · Punto de izaje fuera de la mesa": 0.8167802279326097,

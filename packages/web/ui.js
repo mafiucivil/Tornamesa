@@ -314,7 +314,7 @@
     const r = (x) => x == null ? "—" : fmt(x, 3), rows = [MK.ours, ...MK.refs];
     return `<div class="scroll"><table><tr><th>Equipo</th><th class="n">Capacidad (kN)</th><th class="n">Masa (kg)</th><th class="n">kg por kN</th><th class="n">Altura (mm)</th><th class="n">Ø plataforma (mm)</th><th class="n">Cilindros</th><th class="n">F por cilindro (kN)</th><th class="n">kN de cilindro por tf</th><th class="n">μ implícito*</th><th class="n">Giro por carrera (°)</th></tr>
       ${rows.map((x, i) => `<tr${i === 0 ? ' class="grp"' : ""}><td>${esc(x.name)}</td><td class="n">${r(x.capKN)}</td><td class="n">${r(x.mass)}</td><td class="n">${x.massPerKN == null ? "—" : fmt(x.massPerKN, 3)}</td><td class="n">${r(x.h)}</td><td class="n">${r(x.D)}</td><td class="n">${x.nCyl == null ? "—" : x.nCyl}</td><td class="n">${r(x.Fcyl)}</td><td class="n">${x.FcylPerTon == null ? "—" : fmt(x.FcylPerTon, 3)}</td><td class="n">${x.muImpl == null ? "—" : fmt(x.muImpl, 3)}</td><td class="n">${r(x.rot)}</td></tr>`).join("")}</table></div>
-      <div class="note">* μ implícito = n·F·a/(N·r_u) con la fuerza de calado y el brazo mínimo: es la fricción que el equipo vence al límite del alivio, sin factor de seguridad. Datos de los equipos comerciales: fichas y planos públicos (Enerpac, KIET); el brazo y el radio de fricción son estimaciones.</div>
+      <div class="note">* μ implícito = n·F·a/(N·r_u) con la fuerza de calado y el brazo mínimo: es la fricción que el equipo vence al límite del alivio, sin factor de seguridad. Datos de los equipos comerciales: fichas y planos públicos (Enerpac, KIET); el brazo y el radio de fricción son estimaciones. En Enerpac el brazo igual al radio de la plataforma es una cota superior (el μ implícito baja ≈ 10 % con un brazo 10 % menor); 12,5° por carrera es un valor nominal; KIET declara 400 t en el plano y 500 t en el manual (con 500 t el μ implícito baja de 0,26 a 0,21). La masa por kN no mide eficiencia estructural: los ETT200 y ETT400 pesan casi lo mismo.</div>
       <div class="kv" style="margin-top:8px"><span>W máx. que gira, FS ≥ ${fmt(P.FS_min)} (μ de diseño, r_ef) · criterio de este proyecto</span><span>${fmt(MK.capacity.design, 3)} tf</span>
         <span>W máx. que gira con FS = 1 (μ de diseño)</span><span>${fmt(MK.capacity.designFS1, 3)} tf</span>
         <span>W máx. que gira con FS = 1 (μ nominal, r_u) · rotulado comercial</span><span>${fmt(MK.capacity.nominal, 3)} tf</span></div>
@@ -343,11 +343,11 @@
           <span>Área émbolo / anular</span><span>${fmt(R.A, 4)} / ${fmt(R.Aann, 4)} mm²</span>
           <span>F calado / alarma / retorno</span><span>${fmt(R.Fstall)} / ${fmt(R.Falarm)} / ${fmt(R.Fret)} kN</span>
           <span>Volumen por carrera (n cilindros)</span><span>${fmt(R.Vext / 1e6)} L</span>
-          <span>Tiempo por ciclo / por vuelta</span><span>${fmt(R.tCycle)} / ${fmt(R.tRev)} min</span>
+          <span>Tiempo por ciclo / por vuelta (mínimo teórico, ± 5 %)</span><span>${fmt(R.tCycle)} / ${fmt(R.tRev)} min</span>
           <span>Avance (Q ${fmt(P.Q_pump)} L/min) / retorno (Q ${fmt(R.pump.Qr)} L/min)</span><span>${fmt(R.pump.tExt)} / ${fmt(R.pump.tRet)} min</span>
           <span>Velocidad del vástago: avance / retorno</span><span>${fmt(R.pump.vExt * 1000)} / ${fmt(R.pump.vRet * 1000)} mm/s</span>
           <span>Potencia hidráulica: avance / retorno</span><span>${fmt(R.pump.PhExt)} / ${fmt(R.pump.PhRet)} kW</span>
-          <span>Potencia del motor (η ${fmt(P.eta_pump)})</span><span>${fmt(R.pump.Pmotor)} kW</span>
+          <span>Potencia del motor (η ${fmt(P.eta_pump)}): a presión de diseño / de alarma</span><span>${fmt(R.pump.Pmotor)} / ${fmt(R.pump.PmotorAlarm)} kW</span>
           ${R.pump.Qreq ? `<span>Caudal para ${fmt(P.t_vuelta_obj, 3)} min por vuelta</span><span>${fmt(R.pump.Qreq)} L/min</span>` : ""}
         </div>
         <h3 style="margin-top:14px">Control y seguridad: umbrales de presión</h3>

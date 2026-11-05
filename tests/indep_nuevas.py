@@ -635,7 +635,7 @@ table("Prueba 2d – Fuera del núcleo de la huella (4e/R_carga > 1): la ley lin
       ["D_carga", "e", "4e/R", "q núcleo", "q sin tracción", "Δ", "veredicto núcleo→propio"], rows)
 flip_nt = any((PL / (math.pi * (dl / 2) ** 2) * (1 + 4 * ee / (dl / 2)) <= PWc["p_wood"]) and not (q_wood_nt(PL, dl / 2, ee) <= PWc["p_wood"])
               for dl in (800, 1000, 1200, 1600, 2000) for ee in (0, 50, 100, 150, 200, 250, 300) if ee < dl / 2)
-finding("M1", "importante", "El aplastamiento de la madera supone que la carga apoya sobre TODO el círculo D_carga (sin factor de área de contacto). "
+finding("M1", "importante", "El aplastamiento de la madera usa como área de apoyo TODO el círculo D_carga (contradice su rótulo «sin acreditar reparto»: equivale a acreditar reparto total en la huella) y no tiene factor de área de contacto. "
         "Una carga apoyada en patines o vigas concentra la presión en una fracción f del círculo y q aumenta como 1/f; el chequeo puede dar «ok» y estar subestimando q",
         f"q = {s3(q_core)} MPa, FU {s3(q_core / PWc['p_wood'])}",
         f"q/f: falla si f < {f_crit * 100:.0f} % del círculo (A_contacto < {A_req:.2f} m²). Agregar parámetro «área de apoyo efectiva» (o ancho×largo de patines) y calcular q = φd·W/A_ef·(1+4e/R)")
@@ -725,7 +725,6 @@ if not fallas(lo):
 else:
     W_struct, nm_struct = 0.0, "falla en la línea base"
 print(f"Primera verificación no-giro que falla al subir W (núcleo): W = {s3(W_struct)} tf → {nm_struct}")
-comp("3", "W estructural (primer fallo de Mesa/otras) ≥ W de giro (info: se espera W_struct > W_giro)", 1.0 if W_struct > W_des * 0.99 else 0.0, 1.0)
 if Wmin_other < W_des * 0.999 or W_struct < W_des * 0.999:
     finding("C1", "importante", "El «capacity»/capCil (FS de giro) es mayor que otro límite del propio modelo (alarma, contaminado, q_adm, madera o estructura)",
             f"capacity.design = {s3(W_des)} tf", f"mín. de otros límites = {s3(min(Wmin_other, W_struct if W_struct > 0 else 1e9))} tf")
@@ -826,7 +825,7 @@ if D3:
 # camino de fuerza no verificado
 M_piv_n1 = Rc1 * P["e_piv"] / 1e3; M_piv_n2 = (hecc_kN(P, Nkn(P)) + s * Has) * P["e_piv"] / 1e3
 finding("P4", "importante", "Con n = 1 la reacción del pivote pasa de %s kN (n = 2) a %s kN a calado, y el núcleo no verifica el camino de fuerza pasador → anillos/cubo de la mesa → buje → pivote → soldadura/empotramiento en la base "
-        "(las verificaciones de Mesa, Base y Soldaduras no cambian con n_cyl; solo cambian Giro, Pivote y Fatiga). Momento en la raíz del pivote: %s → %s kN·m" % (s3(hecc_kN(P, Nkn(P)) + s * Has), s3(Rc1), s3(M_piv_n2), s3(M_piv_n1)),
+        "(al pasar de n = 2 a n = 1 con el mismo W no cambia ninguna verificación de Mesa, Mesa (FEA) ni Soldaduras; Base solo cambia por la masa de los cilindros; cambian Giro, Pivote y Fatiga de uña y articulación; no hay fatiga del pivote/buje: N = 35.000 reacciones de ≈ 500 kN a calado). Momento en la raíz del pivote: %s → %s kN·m" % (s3(hecc_kN(P, Nkn(P)) + s * Has), s3(Rc1), s3(M_piv_n2), s3(M_piv_n1)),
         "sin verificación (solo buje y flexión del vástago del pivote)", "agregar: aplastamiento del cubo, soldadura/empotramiento del pivote en la base y cortante de la plancha con R = s·η·F_calado + H_ecc + H_asim")
 finding("P5", "importante", "wPiv/wCap del núcleo no son «solo Pivote»: la búsqueda incluye las verificaciones de Giro que dependen de W (alarma, contaminado, borde) y las que NO dependen (tiempo objetivo, v_ret): "
         "si el tiempo objetivo no se cumple, wPiv = wCap = 0 tf aunque el pivote y el giro cumplan. Con n = 2 wPiv aparece igual a wGiro (tope de la búsqueda), no es la capacidad del pivote",
@@ -910,6 +909,12 @@ SWEEPS = [
     ("t_vuelta_obj", [30, 60, 70, 71, 100], {}),
     ("h_skid", [230, 270, 280, 285, 300], {"opt_wood": 1}),
     ("W_tf", [60, 100, 116, 117, 120], {"n_cyl": 1}),
+    ("p_alarm", [600, 500, 450, 400], {}),
+    ("mu_cont", [0.25, 0.3, 0.35, 0.4], {}),
+    ("p_bush", [10, 14, 20, 30], {}),
+    ("p_bush", [10, 14, 20, 30], {"n_cyl": 1, "W_tf": 100}),
+    ("mu_bush", [0.1, 0.2, 0.4], {"n_cyl": 1, "W_tf": 100}),
+    ("e", [0, 100, 150, 250, 300], {"n_cyl": 1, "W_tf": 100}),
 ]
 ALL = []
 for key, vals, base in SWEEPS:
