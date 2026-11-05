@@ -15,6 +15,7 @@ con 2 si no puede ejecutar el núcleo.
 Unidades internas: N, mm, MPa (salvo donde se indique kN, kN·m).
 """
 import json, math, pathlib, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     import numpy as np
@@ -37,6 +38,25 @@ def export(over=None):
             f = pathlib.Path(td) / "p.json"; f.write_text(json.dumps(over)); args.append(str(f))
         r = subprocess.run(args, cwd=ROOT, capture_output=True, text=True)
     return json.loads(r.stdout) if r.returncode == 0 else None
+
+
+_EXP = {}
+
+
+def export_c(over):
+    k = json.dumps(over, sort_keys=True)
+    if k not in _EXP:
+        _EXP[k] = export(over)
+    return _EXP[k]
+
+
+def prefetch(lst):
+    todo = [o for o in lst if json.dumps(o, sort_keys=True) not in _EXP]
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        res = list(ex.map(export, todo))
+    for o, r in zip(todo, res):
+        _EXP[json.dumps(o, sort_keys=True)] = r
+
 
 
 def s3(x):
@@ -154,34 +174,40 @@ def t_conf_S(q, Dc, E, d, p=None, mode="coord", nu_u=nu_uh):
 
 
 def iface(P, k):
-    """Opción k ∈ {0,1,2}. Devuelve espesores, q_máx (con el peso del disco rotatorio, iterado), N, masa agregada."""
+    """Opción k ∈ {0,1,2}. Devuelve espesores, q_máx (con el peso del disco rotatorio, iterado), N, masa agregada.
+    Con ranuras de engrase (A con h_gr > 0), el disco de la mesa es el ranurado: t_req2 = t_flex + sobreespesor + h_gr; el de la base queda liso.
+    B es simétrico y sin ranuras. t_ss > 0 fija ambos discos."""
     Ro, Ri, A, I, ru = geom(P)
     m_mesa, rho_piv = mesa(P)
     W = P["W_tf"] * g0
     a = P["ss_void"] / 2
     sad = 0.6 * P["Fy_ss"]
+    gr = P["h_gr"] if k == 1 else 0.0
     t_d = com(P["ss_tmin"], COM_SS) if k else 0.0
+    t_d2 = t_d
     t_u = com(P["uh_tmin"], COM_UH) if k == 2 else 0.0
     out = None
     for _ in range(60):
-        Delta = 2 * t_d + t_u if k else 0.0
-        m_rot = RHO_SS * A * t_d if k else 0.0
+        Delta = t_d + t_d2 + t_u if k else 0.0
+        m_rot = RHO_SS * A * t_d2 if k else 0.0
         m_piv = rho_piv * (P["t_base"] + P["h_disc"] - P["t_top"] + 3 + Delta)
         Wd = (m_mesa + 0.5 * m_piv + m_rot) * g0 / 1e3
         N = W + Wd; ND = P["phi_d"] * W + Wd
         q = ND * 1e3 / A + ND * 1e3 * P["e"] * Ro / I
         tfl = a * math.sqrt(0.75 * q / sad)
         treq = max(tfl + P["ss_allow"], P["ss_tmin"])
+        treq2 = max(tfl + P["ss_allow"] + gr, P["ss_tmin"])
         t_d_new = (P["t_ss"] if P["t_ss"] > 0 else com(treq, COM_SS)) if k else 0.0
+        t_d2_new = (P["t_ss"] if P["t_ss"] > 0 else com(treq2, COM_SS)) if k else 0.0
         tconf = t_conf_S(q, P["ss_void"], P["E_uhmw"], P["d_flat"], p=P["p_uhmw"]) if k == 2 else None
         tuhreq = max(tconf, P["uh_tmin"]) if k == 2 else 0.0
         t_u_new = (P["t_uhmw"] if P["t_uhmw"] > 0 else com(tuhreq, COM_UH)) if k == 2 else 0.0
-        out = dict(k=k, q=q, tflex=tfl if k else None, tssReq=treq if k else 0.0, tss=t_d, tconf=tconf, tuhReq=tuhreq, tuh=t_u,
-                   delta=Delta, mTop=m_rot, mUH=RHO_UH * A * t_u, N=N, ND=ND, Wd=Wd, m_piv=m_piv)
-        if t_d_new == t_d and t_u_new == t_u:
+        out = dict(k=k, q=q, tflex=tfl if k else None, tssReq=treq if k else 0.0, tss2Req=treq2 if k else 0.0, tss=t_d, tss2=t_d2, tconf=tconf, tuhReq=tuhreq, tuh=t_u,
+                   delta=Delta, mTop=m_rot, mUH=RHO_UH * A * t_u, N=N, ND=ND, Wd=Wd, m_piv=m_piv, gr=gr)
+        if t_d_new == t_d and t_d2_new == t_d2 and t_u_new == t_u:
             break
-        t_d, t_u = t_d_new, t_u_new
-    out["mAdd"] = 2 * RHO_SS * A * out["tss"] + out["mUH"] if k else 0.0
+        t_d, t_d2, t_u = t_d_new, t_d2_new, t_u_new
+    out["mAdd"] = RHO_SS * A * (out["tss"] + out["tss2"]) + out["mUH"] if k else 0.0
     return out
 
 
@@ -273,40 +299,130 @@ def tau_th(t_disco):
     return (AL_SS - AL_S) * P["dT"] * math.sqrt(P["G_ad"] * E_SS * t_disco / P["t_ad"])
 
 
-def expected_rows(P, k):
-    """Valores propios de cada fila de interfazChecks (nombre-clave → (dem, cap, fu))."""
-    r = IF[k]; q = r["q"]; a = P["ss_void"] / 2
-    teff = r["tss"] - P["ss_allow"]; sad = 0.6 * P["Fy_ss"]
-    sig = 3 * q * a ** 2 / (4 * teff ** 2)
-    rows = {
-        "flexión sobre un vacío local (placa": (sig, sad, sig / sad),
-        "Disco inoxidable: espesor adoptado": (r["tssReq"], r["tss"], r["tssReq"] / r["tss"]),
-        "espesor mínimo por flexión": (r["tflex"], None, None),
-        "espesor requerido / comercial adoptado (cada": (r["tssReq"], r["tss"], None),
-        "Retención de los discos": (Tmax, cap_ret(r["N"]), Tmax / cap_ret(r["N"])),
-        "tensión si el disco quedara restringido": (E_SS * (AL_SS - AL_S) * P["dT"], sad, E_SS * (AL_SS - AL_S) * P["dT"] / sad),
-        "Dilatación diferencial radial": ((AL_SS - AL_S) * P["dT"] * Ro, None, None),
-        "Opción A: par inox–inox": (0.0, None, None),
-        "cortante térmico en el borde": (tau_th(r["tss"]), P.get("tau_cyc"), tau_th(r["tss"]) / P["tau_cyc"] if P.get("tau_cyc") else None),
-        "Altura que agrega": (r["delta"], None, None),
-        "Masa agregada": (r["mAdd"], None, None),
-    }
+# ---------------- fijación desmontable por sectores con topes (fix_mode = 1) y ranuras de engrase ----------------
+def q_ratio(PP):
+    """q_máx/q_med = 1 + e·R_o·A/I (la razón no depende de las cargas)"""
+    Ro_, Ri_, A_, I_, ru_ = geom(PP)
+    return 1 + PP["e"] * Ro_ * A_ / I_
+
+
+def F_tope(PP, n_):
+    """fuerza por tope [N] = (T_calado/r_u)/n·(q_máx/q_med)"""
+    Ro_, Ri_, A_, I_, ru_ = geom(PP)
+    return (Tmax * 1e3 / (ru_ / 1e3)) / n_ * q_ratio(PP)
+
+
+def tope_calc(PP, F, t, Fy):
+    """L = máx(L_aplastamiento; L_soldadura)/0,9 redondeado a múltiplos de 5 mm; L_tope > 0 lo fija"""
+    adm = 1.25 * Fy / PP["Nd"]; Fw = 0.6 * PP["FEXX"] / (1.2 * PP["Nd"])
+    Lap = F / (adm * t); Lsol = F / (2 * 0.707 * PP["w_tope"] * Fw)
+    L = PP["L_tope"] if PP["L_tope"] > 0 else math.ceil(max(Lap, Lsol) / 0.9 / 5 - 1e-9) * 5
+    return dict(L=L, adm=adm, Fw=Fw, sig=F / (L * t), fw=F / (2 * 0.707 * PP["w_tope"] * L), Lap=Lap, Lsol=Lsol, F=F)
+
+
+def chord_of(PP, n_):
+    return 2 * PP["D_top"] / 2 * math.sin(math.pi / n_)
+
+
+def groove_area(PP):
+    """área de las ranuras de engrase [mm²]: w·(n_rad·(R_o − R_i) + n_circ·2π·r_m)"""
+    Ro_, Ri_ = geom(PP)[:2]
+    return PP["w_gr"] * (PP["n_gr_rad"] * (Ro_ - Ri_) + PP["n_gr_circ"] * 2 * math.pi * (Ro_ + Ri_) / 2)
+
+
+def vedge_of(PP):
+    a_m = PP["R_pin"] * math.cos(math.pi / PP["N_pin"])
+    return geom(PP)[0] * (PP["Q_pump"] * 1e6 / 60 / (PP["n_cyl"] * math.pi / 4 * PP["D_bore"] ** 2)) / a_m / 1000
+
+
+def piece_rows(PP, R, label, n_, unit, t, Fy, allow, gr_x=0.0):
+    """filas de tope (aplastamiento, largo, soldadura) y cabeza del tornillo de una pieza en sectores"""
+    Ro_, Ri_ = geom(PP)[:2]; F = F_tope(PP, n_); c = tope_calc(PP, F, t, Fy); Lmax = Ro_ - Ri_ - 100
+    head = f"{label} ({n_} {unit})"
+    R[f"{head}: aplastamiento del tope"] = (c["sig"], c["adm"], c["sig"] / c["adm"])
+    R[f"{head}: largo del tope"] = (c["L"], Lmax, c["L"] / Lmax)
+    R[f"{head}: soldadura del tope"] = (c["fw"], c["Fw"], c["fw"] / c["Fw"])
+    hs = 0.55 * PP["d_tor"] + 2; hc = t - allow - gr_x
+    R[f"{label}: cabeza del tornillo avellanado"] = (hs, hc, hs / hc if hc > 0 else math.inf)
+    return c
+
+
+def grease_rows(PP, R, where):
+    if PP["h_gr"] > 0:
+        Ac_ = geom(PP)[2]; Ag = groove_area(PP)
+        R[f"Engrase: área de las ranuras frente al área de contacto ({where})"] = (Ag / Ac_, 0.25, Ag / Ac_ / 0.25)
+        R["Engrase: volumen de grasa"] = (Ag * PP["h_gr"] / 1000, PP["n_greaser"], None)
+
+
+def rowsAB(PP, k):
+    """Valores propios de cada fila de interfazChecks.A (k = 1) y .B (k = 2): clave (subcadena del nombre) → (dem, cap, fu). Con fix_mode 1 (sectores con topes) o 2 (pegado)."""
+    r = iface(PP, k); q = r["q"]; a = PP["ss_void"] / 2; sad = 0.6 * PP["Fy_ss"]; Ro_, Ri_, A_, I_, ru_ = geom(PP)
+    fu = lambda d, c: (d / c if c and c > 0 else math.inf)
+    t1, t2, gr = r["tss"], r["tss2"], r["gr"]
+    sig = lambda t_, ex: 3 * q * a ** 2 / (4 * (t_ - PP["ss_allow"] - ex) ** 2) if t_ - PP["ss_allow"] - ex > 0 else math.inf
+    R = {}
+    s1 = sig(t1, 0.0)
+    R["Disco de la base (liso): flexión sobre un vacío local"] = (s1, sad, s1 / sad)
+    R["Disco de la base (liso): espesor adoptado"] = (r["tssReq"], t1, r["tssReq"] / t1)
+    if gr > 0:
+        s2 = sig(t2, gr)
+        R["Disco de la mesa (con ranuras de engrase): flexión sobre un vacío local"] = (s2, sad, s2 / sad)
+        R["Disco de la mesa (con ranuras de engrase): espesor adoptado"] = (r["tss2Req"], t2, r["tss2Req"] / t2)
+    R["Disco inoxidable: espesor mínimo por flexión"] = (r["tflex"], None, None)
+    R["Disco inoxidable: espesor requerido / comercial adoptado"] = (r["tssReq"], t1, None)
+    R["Altura que agrega"] = (r["delta"], None, None)
+    R["Masa agregada"] = (r["mAdd"], None, None)
+    R["Dilatación diferencial radial del disco"] = ((AL_SS - AL_S) * PP["dT"] * Ro_, None, None)
+    if k == 1:
+        R["Opción A: par inox–inox"] = (0.0, None, None)
+    grease_rows(PP, R, "disco de la mesa")
+    if PP["fix_mode"] == 1:
+        ns = PP["n_sec"]
+        piece_rows(PP, R, "Disco de la base (liso)", ns, "sectores", t1, PP["Fy_ss"], PP["ss_allow"])
+        if gr > 0:
+            piece_rows(PP, R, "Disco de la mesa (con ranuras de engrase)", ns, "sectores", t2, PP["Fy_ss"], PP["ss_allow"])
+        R["Sectores de disco: crecimiento por dilatación de la cuerda"] = ((AL_SS - AL_S) * PP["dT"] * chord_of(PP, ns), None, None)
+        mm = RHO_SS * A_ * max(t1, t2) / ns
+        R["Disco inoxidable: masa del sector"] = (mm, 25.0, mm / 25.0)
+        R["Soldar los topes antes del alivio"] = (0.0, None, None)
+    else:
+        Nn = r["N"]; cap = max(PP["mu_back"] * Nn * ru_ / 1e3, PP["tau_bond"] * A_ * ru_ / 1e6)
+        R["Retención de los discos sobre su plancha de respaldo"] = (Tmax, cap, Tmax / cap)
+        tau = (AL_SS - AL_S) * PP["dT"] * math.sqrt(PP["G_ad"] * E_SS * max(t1, t2) / PP["t_ad"])
+        R["Adhesivo: cortante térmico en el borde del disco"] = (tau, PP["tau_cyc"], tau / PP["tau_cyc"])
+        ds = E_SS * (AL_SS - AL_S) * PP["dT"]
+        R["Dilatación diferencial inox–acero: tensión si el disco quedara restringido"] = (ds, sad, ds / sad)
+        R["Fijación permanente (pegado)"] = (0.0, None, None)
     if k == 2:
-        s = (AL_UH - AL_S) * P["dT"] * 2 * Ro * math.sin(math.pi / P["n_seg"])
-        sl = P["life"] * P["turns_yr"] * 2 * math.pi * P["r_ef"] / 1000
-        h = P["k_wear"] * 1e-7 * q * sl
-        rows.update({
-            "presión de contacto máxima frente a la admisible": (q, P["p_uhmw"], q / P["p_uhmw"]),
-            "Lámina UHMW: espesor adoptado": (r["tuhReq"], r["tuh"], r["tuhReq"] / r["tuh"]),
-            "espesor por conformidad": (r["tconf"], r["tuh"], None),
-            "valor PV": (q * v_edge, P["PV_uh"], q * v_edge / P["PV_uh"]),
-            "desgaste en la vida": (h, 0.2 * r["tuh"], h / (0.2 * r["tuh"])),
-            "factor de forma y módulo confinado": (Ec(r["tuh"], P["ss_void"], P["E_uhmw"])[1], Ec(r["tuh"], P["ss_void"], P["E_uhmw"])[0], None),
-            "crecimiento radial del sector": ((AL_UH - AL_S) * P["dT"] * Ro, None, None),
-            "retención de los sectores de UHMW": (max(P["muB_d"], P["muB_cont"], P["muB_dry"]) * r["N"], None, None),
-            "junta de dilatación": (s, None, None),
-        })
-    return rows
+        sl = PP["life"] * PP["turns_yr"] * 2 * math.pi * PP["r_ef"] / 1000
+        h = PP["k_wear"] * 1e-7 * q * sl; ve = vedge_of(PP); tu = r["tuh"]
+        R["Lámina UHMW: presión de contacto máxima frente a la admisible"] = (q, PP["p_uhmw"], q / PP["p_uhmw"])
+        R["Lámina UHMW: espesor adoptado"] = (r["tuhReq"], tu, r["tuhReq"] / tu)
+        R["Lámina UHMW: espesor por conformidad"] = (r["tconf"], tu, None)
+        R["Lámina UHMW: factor de forma y módulo confinado"] = (Ec(tu, PP["ss_void"], PP["E_uhmw"])[1], Ec(tu, PP["ss_void"], PP["E_uhmw"])[0], None)
+        R["Lámina UHMW: valor PV"] = (q * ve, PP["PV_uh"], q * ve / PP["PV_uh"])
+        R["Lámina UHMW: desgaste en la vida"] = (h, 0.2 * tu, h / (0.2 * tu))
+        R["Lámina UHMW: crecimiento radial del sector"] = ((AL_UH - AL_S) * PP["dT"] * Ro_, None, None)
+        R["Lámina UHMW: junta de dilatación entre sectores"] = ((AL_UH - AL_S) * PP["dT"] * chord_of(PP, PP["n_seg"]), None, None)
+        mum = max(PP["muB_d"], PP["muB_cont"], PP["muB_dry"])
+        if PP["fix_mode"] == 1:
+            Fs = mum * r["N"] * 1e3 / PP["n_seg"] * q_ratio(PP); Lc = Ro_ - Ri_ - 100
+            R[f"Lámina UHMW ({PP['n_seg']} sectores): aplastamiento del canto contra el tope del rebaje"] = (Fs / (Lc * tu), PP["p_uhmw"], Fs / (Lc * tu) / PP["p_uhmw"])
+            fw_ = Fs / (2 * 0.707 * PP["w_tope"] * Lc); Fw_ = 0.6 * PP["FEXX"] / (1.2 * PP["Nd"])
+            R["Tope del rebaje del sector UHMW: soldadura"] = (fw_, Fw_, fw_ / Fw_)
+            mu_ = RHO_UH * A_ * tu / PP["n_seg"]
+            R["Lámina UHMW: masa del sector"] = (mu_, 25.0, mu_ / 25.0)
+        else:
+            R["Opción B: retención de los sectores de UHMW"] = (mum * r["N"], None, None)
+    return R, r
+
+
+def est_mine(fu):
+    return "info" if fu is None else ("ok" if fu <= 1 + 1e-9 else "fail")
+
+
+def expected_rows(P, k):
+    return rowsAB(P, k)[0]
 
 
 tabla1 = []
@@ -315,7 +431,8 @@ for k, DD, lab in ((1, DA, "A"), (2, DB, "B")):
     for row in DD["interfazChecks"]["A" if k == 1 else "B"]:
         key = next((kk for kk in exp if kk in row["nombre"]), None)
         if key is None:
-            tabla1.append([lab, row["nombre"][:58], "—", "—", "—", "sin fórmula propia"]); continue
+            COMP.append(("1" + lab, f"{lab} · {row['nombre'][:70]} [fila sin cálculo propio]", "—", "—", "—", "discrepa"))
+            tabla1.append([lab, row["nombre"][:58], "—", "—", "—", "DISCREPA: sin fórmula propia"]); continue
         dem, cap, fu = exp[key]
         worst = 0.0; bad = False
         for nm, mine, core in (("dem", dem, row["dem"]), ("cap", cap, row.get("cap")), ("FU", fu, row.get("fu"))):
@@ -329,15 +446,17 @@ for k, DD, lab in ((1, DA, "A"), (2, DB, "B")):
                 worst = max(worst, dd * 100); bad = bad or dd > TOL
             elif abs(mine) > 1e-12:
                 bad = True
+        if row["estado"] in ("ok", "fail") and est_mine(fu) != row["estado"]:
+            bad = True
         tabla1.append([lab, row["nombre"][:58], f"{s3(dem)} / {s3(cap)} / {s3(fu)}",
-                       f"{s3(row['dem'])} / {s3(row.get('cap'))} / {s3(row.get('fu'))}", f"{worst:.4f}", "DISCREPA" if bad else "coincide"])
+                       f"{s3(row['dem'])} / {s3(row.get('cap'))} / {s3(row.get('fu'))}", f"{worst:.4f}", ("DISCREPA" if bad else ("pend. (núcleo)" if row["estado"] == "pend" else "coincide")) + f" [{row['estado']}]"])
 table("1a. interfazChecks A y B: dem / cap / FU (propio frente a núcleo; Δ máx en %)", ["Op.", "Fila", "Propio dem / cap / FU", "Núcleo dem / cap / FU", "Δ %", "Veredicto"], tabla1)
 
 tabla2 = []
 for k in (0, 1, 2):
     c = ifc_core[k]; r = IF[k]
     for nm, mine, core in (("q_máx (MPa)", r["q"], c["q"]), ("t_flex (mm)", r["tflex"], c.get("tFlex")), ("t_req disco (mm)", r["tssReq"] or None, c.get("tssReq") or None),
-                           ("t_disco adoptado (mm)", r["tss"] or None, c["tss"] or None), ("t_conf UHMW (mm)", r["tconf"], c.get("tuhConf") or None),
+                           ("t_disco adoptado (mm)", r["tss"] or None, c["tss"] or None), ("t_req disco mesa (mm)", r["tss2Req"] or None, c.get("tss2Req") or None), ("t_disco mesa adoptado (mm)", r["tss2"] or None, c.get("tss2") or None), ("t_conf UHMW (mm)", r["tconf"], c.get("tuhConf") or None),
                            ("t_UHMW adoptado (mm)", r["tuh"] or None, c["tuh"] or None), ("Δ altura (mm)", r["delta"] or None, c["delta"] or None),
                            ("masa agregada (kg)", r["mAdd"] or None, c["mAdd"] or None)):
         if mine is None and core is None:
@@ -354,22 +473,47 @@ def soldadura_mejilla(Delta):
 
 # ---------------- barridos ----------------
 SW = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], "mm"), ("Fy_ss", [170, 185, 205, 225, 250], "MPa"),
-      ("E_uhmw", [200, 250, 300, 400, 500], "MPa"), ("d_flat", [0.05, 0.1, 0.15, 0.2, 0.3], "mm"), ("W_tf", [200, 240, 280, 300, 320, 360], "tf")]
+      ("E_uhmw", [200, 250, 300, 400, 500], "MPa"), ("d_flat", [0.05, 0.1, 0.15, 0.2, 0.3], "mm"), ("W_tf", [200, 240, 280, 300, 320, 360], "tf"),
+      ("n_sec", [12, 18, 24, 36, 48], "sectores"), ("n_seg", [12, 16, 24, 48], "sectores UHMW"), ("w_tope", [3, 4, 6, 8, 12, 16], "mm"), ("d_tor", [4, 6, 8, 10, 12], "mm"),
+      ("h_gr", [0, 0.5, 1, 2, 3, 5], "mm"), ("L_tope", [0, 100, 200, 400], "mm"), ("fix_mode", [1, 2], "")]
 sw_bad = 0; sw_n = 0
+SW_BADLIST = []
+
+
+def row_diffs(core_rows, R, tag):
+    """compara todas las filas del núcleo con las propias (dem, cap, FU, estado); las filas sin cálculo propio cuentan como discrepancia"""
+    global sw_n
+    bad = []
+    for row in core_rows:
+        key = next((kk for kk in R if kk in row["nombre"]), None)
+        sw_n += 1
+        if key is None:
+            bad.append(f"{tag}:fila sin cálculo propio «{row['nombre'][:40]}»"); continue
+        dem, cap, fu = R[key]
+        for nm, mv, cv in (("dem", dem, row["dem"]), ("cap", cap, row.get("cap")), ("fu", fu, row.get("fu"))):
+            if cv is None and (mv is None or not math.isfinite(mv)):
+                continue
+            sw_n += 1
+            if cv is None or mv is None or not math.isfinite(mv) or (abs(mv - cv) > TOL * abs(cv) if cv else abs(mv) > 1e-9):
+                bad.append(f"{tag}:{key[:30]}.{nm}")
+        sw_n += 1
+        if row["estado"] in ("ok", "fail") and est_mine(fu) != row["estado"]:
+            bad.append(f"{tag}:{key[:30]}.estado")
+    return bad
 
 
 def cmp_sweep(over):
-    """compara propio y núcleo para P+over; devuelve (fila, ok)"""
+    """compara propio y núcleo para P+over (campos de ifaces y todas las filas de interfazChecks A y B); devuelve (DD, ra, rb, ok, malos)"""
     global sw_n, sw_bad
-    DD = export(over)
+    DD = export_c(over)
     PP = dict(P); PP.update(over)
     ra, rb = iface(PP, 1), iface(PP, 2)
     if DD is None:
         return None, ra, rb, False, []
     ca, cb = DD["escenarios"]["ifaces"][1], DD["escenarios"]["ifaces"][2]
     bad = []
-    for lab, r, c, keys in (("A", ra, ca, (("q", "q"), ("tFlex", "tflex"), ("tssReq", "tssReq"), ("tss", "tss"), ("mAdd", "mAdd"), ("delta", "delta"))),
-                            ("B", rb, cb, (("q", "q"), ("tuhConf", "tconf"), ("tuhReq", "tuhReq"), ("tuh", "tuh"), ("mAdd", "mAdd"), ("delta", "delta")))):
+    for lab, r, c, keys in (("A", ra, ca, (("q", "q"), ("tFlex", "tflex"), ("tssReq", "tssReq"), ("tss", "tss"), ("tss2Req", "tss2Req"), ("tss2", "tss2"), ("mAdd", "mAdd"), ("delta", "delta"))),
+                            ("B", rb, cb, (("q", "q"), ("tuhConf", "tconf"), ("tuhReq", "tuhReq"), ("tuh", "tuh"), ("tss2", "tss2"), ("mAdd", "mAdd"), ("delta", "delta")))):
         for kc, km in keys:
             sw_n += 1
             cv, mv = c.get(kc), r[km]
@@ -379,16 +523,20 @@ def cmp_sweep(over):
                 bad.append(f"{lab}.{kc}")
     # F y FS de diseño de B y A
     for lab, r, c, N_ in (("A", ra, ca, ra["N"]), ("B", rb, cb, rb["N"])):
-        PPP = PP
-        cs = casos(PPP, 1 if lab == "A" else 2, N_)["dis"]
+        cs = casos(PP, 1 if lab == "A" else 2, N_)["dis"]
         for kc, mv in (("F", cs["F"]), ("FS", cs["FS"])):
             sw_n += 1
             if abs(mv - c[kc]) > TOL * abs(c[kc]):
                 bad.append(f"{lab}.{kc}")
+    for k_, tag in ((1, "A"), (2, "B")):
+        bad += row_diffs(DD["interfazChecks"][tag], rowsAB(PP, k_)[0], tag)
     sw_bad += len(bad)
+    if bad:
+        SW_BADLIST.append((over, bad))
     return DD, ra, rb, not bad, bad
 
 
+prefetch([{k_: v_} for k_, vals_, u_ in SW for v_ in vals_])
 for key, vals, u in SW:
     rows = []
     for v in vals:
@@ -397,7 +545,7 @@ for key, vals, u in SW:
             rows.append([s3(v), "rechazado por el núcleo", "", "", "", "", "", "", "", ""]); continue
         DD, ra, rb, ok, bad = res
         ca, cb = DD["escenarios"]["ifaces"][1], DD["escenarios"]["ifaces"][2]
-        rows.append([s3(v), s3(ra["q"]), f"{s3(ra['tflex'])} / {s3(ca['tFlex'])}", f"{s3(ra['tss'])} / {s3(ca['tss'])}",
+        rows.append([s3(v), s3(ra["q"]), f"{s3(ra['tflex'])} / {s3(ca['tFlex'])}", f"{s3(ra['tss'])}+{s3(ra['tss2'])} / {s3(ca['tss'])}+{s3(ca.get('tss2'))}",
                      f"{s3(rb['tconf'])} / {s3(cb['tuhConf'])}", f"{s3(rb['tuh'])} / {s3(cb['tuh'])}", f"{s3(rb['mAdd'])} / {s3(cb['mAdd'])}",
                      f"{s3(casos(dict(P, **{key: v}), 2, rb['N'])['dis']['FS'])} / {s3(cb['FS'])}", s3(soldadura_mejilla(rb['delta']) / (0.6 * P['FEXX'] / (1.2 * P['Nd']))) if math.isfinite(rb['delta']) else "—", "coincide" if ok else "DISCREPA " + ",".join(bad)])
     table(f"1c. Barrido de {key} ({u}); cada celda «propio / núcleo»", [key, "q_máx", "t_flex", "t_disco", "t_conf", "t_UHMW", "mAdd B kg", "FS dis. B", "FU sold. mejillas B", "Veredicto"], rows)
@@ -406,8 +554,28 @@ print(f"\nBarridos: {sw_n} comparaciones, {sw_bad} discrepancias (tolerancia 0,1
 # ---------------- umbrales de espesor comercial ----------------
 
 
+def _fails(R):
+    return tuple(sorted(kk[:28] for kk, (d_, c_, f_) in R.items() if f_ is not None and f_ > 1 + 1e-9))
+
+
 def thick_pair(PP):
-    return (iface(PP, 1)["tss"], iface(PP, 2)["tuh"])
+    ra_, rb_ = iface(PP, 1), iface(PP, 2)
+    return (ra_["tss"], ra_["tss2"], rb_["tuh"], _fails(rowsAB(PP, 1)[0]), _fails(rowsAB(PP, 2)[0]))
+
+
+def core_pair(DD, PP):
+    if DD is None:
+        return None
+    out = []
+    for k_, tag in ((1, "A"), (2, "B")):
+        R_ = rowsAB(PP, k_)[0]; fs_ = []
+        for row in DD["interfazChecks"][tag]:
+            kk = next((x for x in R_ if x in row["nombre"]), None)
+            if kk and row.get("fu") is not None and row["fu"] > 1 + 1e-9:
+                fs_.append(kk[:28])
+        out.append(tuple(sorted(fs_)))
+    ic = DD["escenarios"]["ifaces"]
+    return (ic[1]["tss"], ic[1]["tss2"], ic[2]["tuh"], out[0], out[1])
 
 
 def umbrales(key, lo, hi, npts=600):
@@ -429,24 +597,26 @@ def umbrales(key, lo, hi, npts=600):
     return out
 
 
+def fmt_pair(t):
+    return f"{s3(t[0])}+{s3(t[1])} / {s3(t[2])}" + (" ✗A:" + ",".join(x[:14] for x in t[3]) if t[3] else "") + (" ✗B:" + ",".join(x[:14] for x in t[4]) if t[4] else "")
+
+
+UMB_AB = (("ss_void", 60, 200), ("Fy_ss", 170, 250), ("E_uhmw", 200, 500), ("d_flat", 0.05, 0.3), ("W_tf", 200, 360), ("h_gr", 0, 5), ("n_sec", 12, 48), ("w_tope", 3, 16), ("n_seg", 6, 48))
+UMA = [(key, v, p0, p1) for key, lo, hi in UMB_AB for v, p0, p1 in umbrales(key, lo, hi)]
+prefetch([{key: v * fac} for key, v, p0, p1 in UMA for fac in (1 - 2e-4, 1 + 2e-4)])
 rows = []
-for key, lo, hi in (("ss_void", 60, 200), ("Fy_ss", 170, 250), ("E_uhmw", 200, 500), ("d_flat", 0.05, 0.3), ("W_tf", 200, 360)):
-    for v, p0, p1 in umbrales(key, lo, hi):
-        res = []
-        for fac in (1 - 2e-4, 1 + 2e-4):
-            DD = export({key: v * fac})
-            res.append(None if DD is None else (DD["escenarios"]["ifaces"][1]["tss"], DD["escenarios"]["ifaces"][2]["tuh"]))
-        ok = res[0] == p0 and res[1] == p1
-        comp("1u", f"umbral {key} = {s3(v)}", 1.0 if ok else 0.0, 1.0)
-        rows.append([key, s3(v), f"{s3(p0[0])} / {s3(p0[1])}", f"{s3(p1[0])} / {s3(p1[1])}",
-                     f"{res[0] and s3(res[0][0])} / {res[0] and s3(res[0][1])}", f"{res[1] and s3(res[1][0])} / {res[1] and s3(res[1][1])}", "coincide" if ok else "DISCREPA"])
+for key, v, p0, p1 in UMA:
+    res = [core_pair(export_c({key: v * fac}), dict(P, **{key: v * fac})) for fac in (1 - 2e-4, 1 + 2e-4)]
+    ok = res[0] == p0 and res[1] == p1
+    comp("1u", f"umbral {key} = {s3(v)}", 1.0 if ok else 0.0, 1.0)
+    rows.append([key, s3(v), fmt_pair(p0), fmt_pair(p1), "coincide" if ok else "DISCREPA núcleo: " + (fmt_pair(res[0]) if res[0] else "—") + " | " + (fmt_pair(res[1]) if res[1] else "—")])
 DD = export({"p_uhmw": 1.5}); PPd = dict(P, p_uhmw=1.5); rb_ = iface(PPd, 2)
 cb_ = DD["escenarios"]["ifaces"][2] if DD else {}
 ok_deg = DD is not None and cb_.get("tuh") is None and not math.isfinite(rb_["tuh"]) and cb_.get("tuhConf") is None
 comp("1u", "p_uhmw = 1,5 MPa ≤ q_máx: B inviable (sin espesor)", 1.0 if ok_deg else 0.0, 1.0)
-rows.append(["p_uhmw", "1.50 (≤ q_máx)", "—", "B inviable", "t_UHMW = " + str(cb_.get("tuh")), "FS = " + str(cb_.get("FS")), "coincide" if ok_deg else "DISCREPA"])
-table("1d. Umbrales donde cambian los espesores comerciales (t_disco / t_UHMW en mm): propio y verificación en el núcleo a ±0,02 %",
-      ["Parámetro", "Valor umbral", "Debajo (propio)", "Encima (propio)", "Núcleo debajo", "Núcleo encima", "Veredicto"], rows)
+rows.append(["p_uhmw", "1.50 (≤ q_máx)", "—", "B inviable", "t_UHMW = " + str(cb_.get("tuh")) + ", FS = " + str(cb_.get("FS")) + (": coincide" if ok_deg else ": DISCREPA")])
+table("1d. Umbrales donde cambian los espesores comerciales (t_disco base + t_disco mesa / t_UHMW en mm) o el cumplimiento de A y B: propio y verificación en el núcleo a ±0,02 %",
+      ["Parámetro", "Valor umbral", "Debajo (propio)", "Encima (propio)", "Núcleo (±0,02 %)"], rows)
 
 # ======================================================================================
 # 2. F por cilindro, p y FS de las tres opciones
@@ -646,7 +816,7 @@ for k, lab in ((1, "A"), (2, "B")):
         T_real = min(T_int, Tmax)
         rows.append([lab, cid, s3(c["mu"]), s3(T_real), s3(T_real / cap_fr), s3(T_real / cap_ad), s3(T_real / max(cap_fr, cap_ad))])
     rows.append([lab, "T_calado", "—", s3(Tmax), s3(Tmax / cap_fr), s3(Tmax / cap_ad), s3(Tmax / max(cap_fr, cap_ad))])
-table(f"3e. Retención de los discos: capacidad por fricción {s3(P['mu_back']*IF[1]['N']*ru/1e3)} kN·m (μ_resp = {P['mu_back']}), por adhesivo {s3(cap_ad)} kN·m (τ = {s3(tau)} MPa), máx {s3(cap_ret(IF[1]['N']))} kN·m (núcleo; no se suman)",
+table(f"3e. (solo fix_mode = 2, pegado) Retención de los discos: capacidad por fricción {s3(P['mu_back']*IF[1]['N']*ru/1e3)} kN·m (μ_resp = {P['mu_back']}), por adhesivo {s3(cap_ad)} kN·m (τ = {s3(tau)} MPa), máx {s3(cap_ret(IF[1]['N']))} kN·m (núcleo; no se suman)",
       ["Op.", "Caso", "μ interfaz", "T discos kN·m", "FU solo fricción", "FU solo adhesivo", "FU máx (núcleo)"], rows)
 f_ad_min = Tmax / cap_ad
 tau_req = Tmax * 1e6 / (Ac * ru)
@@ -687,29 +857,10 @@ print(f"Masa total: {s3(mt[0])} → A {s3(mt[1])} (dTot {s3(ifc_core[1].get('dTo
 # 4. OPCIÓN C: placa de bronce con tapones de grafito (bz_conf 1, 2 y 3)
 #    Todo se deriva aquí desde el enunciado de la opción (mecánica de placas, AISC 360-22 ASD 0,6 Fy, Archard, PV).
 # ======================================================================================
-from concurrent.futures import ThreadPoolExecutor
 RHO_GR, AL_BZ, E_BZ = 1.8e-6, 18e-6, 110000.0
 COM_BZ = [4, 5, 6, 8, 10, 12, 15, 20, 25, 30]
 COM_CARA = [3, 4, 5, 6, 8, 10, 12, 15, 20, 25]
 CONF_NAME = {1: "C1 bronce + disco duro", 2: "C2 bronce + 2.ª placa de bronce", 3: "C3 pastillas + disco duro"}
-_EXP = {}
-
-
-def export_c(over):
-    k = json.dumps(over, sort_keys=True)
-    if k not in _EXP:
-        _EXP[k] = export(over)
-    return _EXP[k]
-
-
-def prefetch(lst):
-    todo = [o for o in lst if json.dumps(o, sort_keys=True) not in _EXP]
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        res = list(ex.map(export, todo))
-    for o, r in zip(todo, res):
-        _EXP[json.dumps(o, sort_keys=True)] = r
-
-
 def fg_of(PP):
     return math.pi * PP["bz_plug_d"] ** 2 / (2 * math.sqrt(3) * PP["bz_plug_p"] ** 2)
 
@@ -731,6 +882,7 @@ def ifaceC(PP, conf):
     else:
         Fy_r, alw, tmn, lst, rho_r = PP["Fy_cara"], PP["ss_allow"], PP["cara_tmin"], COM_CARA, RHO_SS
     sr = 0.6 * Fy_r
+    gr = PP["h_gr"]; fgr = groove_area(PP) / A_ if gr > 0 else 0.0           # ranuras de engrase en la placa de bronce
     t_b, t_r = com(PP["bz_tmin"], COM_BZ), com(tmn, lst)
     out = None
     for _ in range(80):
@@ -742,13 +894,13 @@ def ifaceC(PP, conf):
         q = ND * 1e3 / A_ + ND * 1e3 * PP["e"] * Ro_ / I_
         qloc = q / cov; qc = qloc if conf == 3 else q
         tfB = a * math.sqrt(0.75 * qloc / sb)
-        tbReq = max(tfB / math.sqrt(eta) + PP["bz_allow"], PP["bz_tmin"])
+        tbReq = max(tfB / math.sqrt(eta) + PP["bz_allow"] + gr, PP["bz_tmin"])
         tfR = a * math.sqrt(0.75 * qc / sr)
         trReq = max(tfR + alw, tmn)
         tb_n = PP["t_bz"] if PP["t_bz"] > 0 else com(tbReq, COM_BZ)
         tr_n = PP["t_cara"] if PP["t_cara"] > 0 else com(trReq, lst)
         mBz = A_ * cov * t_b * (PP["rho_bz"] * 1e-6 * (1 - 0.7 * fg) + RHO_GR * 0.7 * fg) if math.isfinite(t_b) else math.inf
-        out = dict(conf=conf, q=q, qloc=qloc, qc=qc, qnet=qloc / (1 - fg), cov=cov, eta=eta, fg=fg, a=a, tfB=tfB, tbReq=tbReq, tb=t_b,
+        out = dict(conf=conf, q=q, qloc=qloc, qc=qc, qnet=qloc / (1 - fg - fgr), gr=gr, fgr=fgr, cov=cov, eta=eta, fg=fg, a=a, tfB=tfB, tbReq=tbReq, tb=t_b,
                    tfR=tfR, trReq=trReq, tr=t_r, delta=Delta, N=N, ND=ND, Wd=Wd, m_rot=m_rot, mBz=mBz, mAdd=mBz + m_rot, m_piv=m_piv,
                    Fy_r=Fy_r, alw=alw, sr=sr, sb=sb)
         if tb_n == t_b and tr_n == t_r:
@@ -778,7 +930,7 @@ def rowsC(PP, conf):
     """Valores propios de cada fila de interfazChecks.C: clave (subcadena del nombre) → (dem, cap, fu)."""
     r = ifaceC(PP, conf); a = r["a"]; fu = lambda d, c: (d / c if c and c > 0 else math.inf)
     tb, tr = r["tb"], r["tr"]
-    sigb = 3 * r["qloc"] * a ** 2 / (4 * (tb - PP["bz_allow"]) ** 2 * r["eta"]) if tb > PP["bz_allow"] else math.inf
+    sigb = 3 * r["qloc"] * a ** 2 / (4 * (tb - PP["bz_allow"] - r["gr"]) ** 2 * r["eta"]) if tb > PP["bz_allow"] + r["gr"] else math.inf
     sigr = 3 * r["qc"] * a ** 2 / (4 * (tr - r["alw"]) ** 2) if tr > r["alw"] else math.inf
     Tret = Tmax; cret = cap_retC(r, PP)
     v_e = Ro * vcil(PP) / a_min / 1000
@@ -796,9 +948,6 @@ def rowsC(PP, conf):
         "valor PV en el borde": (PVv, PP["PV_bz"], fu(PVv, PP["PV_bz"])),
         "desgaste en la vida de diseño": (hw, reserva, fu(hw, reserva)),
         "profundidad restante tras el desgaste": (hw + 2, 0.7 * tb, fu(hw + 2, 0.7 * tb)),
-        "Retención de la placa de bronce": (Tret, cret, fu(Tret, cret)),
-        "Adhesivo de la placa de bronce: cortante": (tauC(PP, AL_BZ, E_BZ, tb), PP["tau_cyc"], fu(tauC(PP, AL_BZ, E_BZ, tb), PP["tau_cyc"])),
-        "Dilatación diferencial bronce–acero: tensión": (E_BZ * ep, 0.6 * PP["Fy_bz"], fu(E_BZ * ep, 0.6 * PP["Fy_bz"])),
         "Dilatación diferencial radial": (ep * Ro, None, None),
         "Altura que agrega": (r["delta"], None, None),
         "Masa agregada": (r["mAdd"], None, None),
@@ -808,20 +957,49 @@ def rowsC(PP, conf):
     if conf == 2:
         R["2.ª placa de bronce (maciza, aleación distinta): flexión"] = (sigr, r["sr"], fu(sigr, r["sr"]))
         R["2.ª placa de bronce: espesor adoptado"] = (r["trReq"], tr, fu(r["trReq"], tr))
-        R["Adhesivo de la 2.ª placa de bronce"] = (tauC(PP, AL_BZ, E_BZ, tr), PP["tau_cyc"], fu(tauC(PP, AL_BZ, E_BZ, tr), PP["tau_cyc"]))
         R["Bronce contra bronce"] = (0.0, None, None)
-        R["Dilatación diferencial bronce–acero de la 2.ª placa"] = (E_BZ * ep, 0.6 * PP["Fy_bz2"], fu(E_BZ * ep, 0.6 * PP["Fy_bz2"]))
-        R["Retención de la 2.ª placa de bronce sobre la mesa"] = (Tret, cap_ret_mesa(r, PP), fu(Tret, cap_ret_mesa(r, PP)))
     else:
         R["Disco duro: flexión sobre un vacío local"] = (sigr, r["sr"], fu(sigr, r["sr"]))
         R["Disco duro: espesor adoptado"] = (r["trReq"], tr, fu(r["trReq"], tr))
         R["Pareja bronce–disco duro: diferencia de dureza"] = (100.0, PP["HB_cara"] - PP["HB_bz"], fu(100.0, PP["HB_cara"] - PP["HB_bz"]))
-        R["Adhesivo del disco duro"] = (tauC(PP, AL_SS, E_SS, tr), PP["tau_cyc"], fu(tauC(PP, AL_SS, E_SS, tr), PP["tau_cyc"]))
-        R["Retención del disco duro sobre la mesa"] = (Tret, cap_ret_mesa(r, PP), fu(Tret, cap_ret_mesa(r, PP)))
-    if conf == 3:
-        R["crecimiento por dilatación de la cuerda de la pastilla"] = ((AL_BZ - AL_S) * PP["dT"] * 2 * Ro * math.sin(math.pi / PP["bz_npad"]), None, None)
-        mum = max(PP["muC_d"], PP["muC_cont"], PP["muC_dry"])
-        R["Retención de las pastillas"] = (mum * r["N"], None, None)
+    if PP["fix_mode"] == 1:
+        ns = PP["n_sec"]; nb = PP["bz_npad"] if conf == 3 else ns
+        piece_rows(PP, R, "Pastillas de bronce" if conf == 3 else "Placa de bronce", nb, "pastillas" if conf == 3 else "sectores", tb, PP["Fy_bz"], PP["bz_allow"], r["gr"])
+        if conf == 3 or conf == 1:
+            piece_rows(PP, R, "Disco duro", ns, "sectores", tr, PP["Fy_cara"], PP["ss_allow"])
+        else:
+            piece_rows(PP, R, "2.ª placa de bronce", ns, "sectores", tr, PP["Fy_bz2"], PP["bz_allow"])
+        if conf == 3:                      # la cabeza del tornillo de las pastillas se rotula «Placa de bronce»
+            R["Placa de bronce: cabeza del tornillo avellanado"] = R.pop("Pastillas de bronce: cabeza del tornillo avellanado")
+        R["Placa de bronce con grafito: masa del sector"] = (r["mBz"] / nb, 25.0, r["mBz"] / nb / 25.0)
+        if conf == 2:
+            R["2.ª placa de bronce: masa del sector"] = (r["m_rot"] / ns, 25.0, r["m_rot"] / ns / 25.0)
+            R["Sectores de la 2.ª placa: crecimiento por dilatación de la cuerda"] = (ep * chord_of(PP, ns), None, None)
+        else:
+            R["Disco duro: masa del sector"] = (r["m_rot"] / ns, 25.0, r["m_rot"] / ns / 25.0)
+            R["Sectores del disco duro: crecimiento por dilatación de la cuerda"] = ((AL_SS - AL_S) * PP["dT"] * chord_of(PP, ns), None, None)
+        if conf == 3:
+            R["Pastillas de bronce: crecimiento por dilatación de la cuerda de la pastilla"] = (ep * chord_of(PP, nb), None, None)
+        else:
+            R["Sectores de bronce: crecimiento por dilatación de la cuerda"] = (ep * chord_of(PP, ns), None, None)
+        R["Soldar los topes antes del alivio"] = (0.0, None, None)
+    else:
+        R["Retención de la placa de bronce"] = (Tret, cret, fu(Tret, cret))
+        R["Adhesivo de la placa de bronce: cortante"] = (tauC(PP, AL_BZ, E_BZ, tb), PP["tau_cyc"], fu(tauC(PP, AL_BZ, E_BZ, tb), PP["tau_cyc"]))
+        R["Dilatación diferencial bronce–acero: tensión"] = (E_BZ * ep, 0.6 * PP["Fy_bz"], fu(E_BZ * ep, 0.6 * PP["Fy_bz"]))
+        R["Fijación permanente (pegado)"] = (0.0, None, None)
+        if conf == 2:
+            R["Adhesivo de la 2.ª placa de bronce"] = (tauC(PP, AL_BZ, E_BZ, tr), PP["tau_cyc"], fu(tauC(PP, AL_BZ, E_BZ, tr), PP["tau_cyc"]))
+            R["Dilatación diferencial bronce–acero de la 2.ª placa"] = (E_BZ * ep, 0.6 * PP["Fy_bz2"], fu(E_BZ * ep, 0.6 * PP["Fy_bz2"]))
+            R["Retención de la 2.ª placa de bronce sobre la mesa"] = (Tret, cap_ret_mesa(r, PP), fu(Tret, cap_ret_mesa(r, PP)))
+        else:
+            R["Adhesivo del disco duro"] = (tauC(PP, AL_SS, E_SS, tr), PP["tau_cyc"], fu(tauC(PP, AL_SS, E_SS, tr), PP["tau_cyc"]))
+            R["Retención del disco duro sobre la mesa"] = (Tret, cap_ret_mesa(r, PP), fu(Tret, cap_ret_mesa(r, PP)))
+        if conf == 3:
+            R["crecimiento por dilatación de la cuerda de la pastilla"] = (ep * chord_of(PP, PP["bz_npad"]), None, None)
+            mum = max(PP["muC_d"], PP["muC_cont"], PP["muC_dry"])
+            R["Retención de las pastillas"] = (mum * r["N"], None, None)
+    grease_rows(PP, R, "placa de bronce")
     # plancha inferior de la mesa y losa: solo escalamiento lineal con q del FEA de referencia (conf. 1, q_c = q_máx)
     sl_, sg_ = PL_LOC1 * r["qc"], PL_GLO1 * r["q"]
     R["Plancha inferior: global + local"] = (sl_ + sg_, PL_CAP, (sl_ + sg_) / PL_CAP)
@@ -843,10 +1021,6 @@ def casos_c(PP, N_kN):
 
 def match_row(rows_mine, name):
     return next((k for k in rows_mine if k in name), None)
-
-
-def est_mine(fu):
-    return "info" if fu is None else ("ok" if fu <= 1 + 1e-9 else "fail")
 
 
 cap_w = 0.6 * P["FEXX"] / (1.2 * P["Nd"])
@@ -912,7 +1086,7 @@ for c in (1, 2, 3):
     ic = DC[c]["escenarios"]["ifaces"][3]; ia = DC[c]["apoyo"]["interfaz"]; r = ifaceC(PC[c], c)
     cs = casos_c(PC[c], r["N"])["dis"]
     for nm, mine, core in (("q_máx (MPa)", r["q"], ic["q"]), ("q_máx (apoyo.interfaz)", r["q"], ia["q"]), ("q_loc (MPa)", r["qloc"], ia["qLoc"]), ("q_neto (MPa)", r["qnet"], ia["qNet"]),
-                           ("f_g", r["fg"], ia["fg"]), ("η", r["eta"], ia["eta"]),
+                           ("f_g", r["fg"], ia["fg"]), ("f_ranuras", r["fgr"], ia.get("fgr")), ("η", r["eta"], ia["eta"]),
                            ("t_flex bronce (mm)", r["tfB"], ic["tFlexB"]), ("t_req bronce (mm)", r["tbReq"], ic["tbzReq"]), ("t_bronce adoptado (mm)", r["tb"], ic["tbz"]),
                            ("t_flex pieza rot. (mm)", r["tfR"], ic["tFlex"]), ("t_req pieza rot. (mm)", r["trReq"], ic["tssReq"]), ("t_rot adoptado (mm)", r["tr"], ic["tss"]),
                            ("Δ altura (mm)", r["delta"], ic["delta"]), ("masa de bronce (kg; en conf. 2 el núcleo suma las dos placas)", r["mBz"] + (r["m_rot"] if c == 2 else 0.0), ia["mBz"]), ("masa pieza rot. (kg)", r["m_rot"], ia["mTop"]), ("masa agregada (kg)", r["mAdd"], ic["mAdd"]),
@@ -961,7 +1135,7 @@ def cmp_c(over, conf):
     R, r = rowsC(PP, conf)
     ic = DD["escenarios"]["ifaces"][3]; bad = []
     cs = casos_c(PP, r["N"])["dis"]
-    pairs = [("tbz", r["tb"]), ("tbzReq", r["tbReq"]), ("tFlexB", r["tfB"]), ("tss", r["tr"]), ("tssReq", r["trReq"]), ("tFlex", r["tfR"]), ("delta", r["delta"]), ("mAdd", r["mAdd"]),
+    pairs = [("tbz", r["tb"]), ("tbzReq", r["tbReq"]), ("tFlexB", r["tfB"]), ("tss", r["tr"]), ("tssReq", r["trReq"]), ("tss2Req", r["trReq"]), ("tss2", r["tr"]), ("tFlex", r["tfR"]), ("delta", r["delta"]), ("mAdd", r["mAdd"]),
              ("q", r["q"]), ("F", cs["F"]), ("p", cs["p"]), ("FS", cs["FS"])]
     for kc, mv in pairs:
         swC_n += 1
@@ -1155,9 +1329,9 @@ for cv_ in COVS:
     mine = Rc["Plancha inferior: global + local"]
     fu_pl.append((cv_, pl["fu"], mine[2]))
     rows.append([s3(cv_), s3(rc["qc"]), s3(lo_["fu"]), s3(pl["fu"]), s3(mine[2]), f"{(mine[2] / pl['fu'] - 1) * 100:+.4f}", pl["estado"], s3(ls["dem"] / ls["cap"]),
-                 s3(Rc["Retención de la placa de bronce"][2]), s3(rc["tb"]), "cumple" if pl["fu"] <= 1 else "NO cumple"])
+                 s3(max(v_[2] for k_, v_ in Rc.items() if "del tope" in k_ and v_[2] is not None)), s3(rc["tb"]), "cumple" if pl["fu"] <= 1 else "NO cumple"])
 table(f"5b. Opción C3: respaldo bajo pastillas con q_c = q_máx/cobertura. FU «Plancha inferior» del núcleo (FEA) frente a mi escalamiento lineal con q (σ_local ∝ q_c = {s3(PL_LOC1)}·q_c, σ_global ∝ q_máx = {s3(PL_GLO1)}·q_máx, cap {s3(PL_CAP)} MPa; calibrado con C1 a cobertura 1, no es un FEA propio)",
-      ["cobertura", "q_c MPa", "FU σ_local núcleo", "FU global+local núcleo", "FU propio (escalado)", "Δ %", "estado núcleo", "q_c/q_losa", "FU retención pastillas", "t_bz mm", "veredicto"], rows)
+      ["cobertura", "q_c MPa", "FU σ_local núcleo", "FU global+local núcleo", "FU propio (escalado)", "Δ %", "estado núcleo", "q_c/q_losa", "FU máx. topes", "t_bz mm", "veredicto"], rows)
 PL_AGREE = max(abs(a_[2] / a_[1] - 1) for a_ in fu_pl) <= TOL
 FU_PL_VARIES = max(x[1] for x in fu_pl) - min(x[1] for x in fu_pl) > 0.05
 FU_PL_DEF = next(x[1] for x in fu_pl if abs(x[0] - 0.9) < 1e-9)
@@ -1241,7 +1415,7 @@ for cv_ in (1.0, 0.8, 0.7, 0.627, 0.6, 0.5, 0.4):
     fr = P["mu_back"] * N3 * ru / 1e3; ad = P["tau_bond"] * Ac * cv_ * ru / 1e6
     tau_req = Tmax * 1e6 / (Ac * cv_ * ru)
     rows.append([s3(cv_), s3(fr), s3(ad), s3(max(fr, ad)), s3(Tmax / max(fr, ad)), s3(tau_req), s3(Tmax / (N3 * ru / 1e3)), "cumple" if Tmax <= max(fr, ad) + 1e-9 else "NO cumple"])
-table(f"5e. Retención de las pastillas con T_calado = {s3(Tmax)} kN·m (μ_resp = {P['mu_back']}, τ_pegado = {P['tau_bond']} MPa, N = {s3(N3)} kN, r_u = {s3(ru)} mm)",
+table(f"5e. (solo fix_mode = 2, pegado) Retención de las pastillas con T_calado = {s3(Tmax)} kN·m (μ_resp = {P['mu_back']}, τ_pegado = {P['tau_bond']} MPa, N = {s3(N3)} kN, r_u = {s3(ru)} mm)",
       ["cobertura", "fricción kN·m", "pegado kN·m", "máx (núcleo)", "FU", "τ necesaria MPa (solo pegado)", "μ_resp necesario (solo fricción)", "veredicto"], rows)
 cover_min = Tmax / (P["tau_bond"] * Ac * ru / 1e6)
 cover_min_core = None
@@ -1406,20 +1580,12 @@ FIND.append(("C5", "menor", "η = (p−d)/p es un criterio de sección neta (est
 FIND.append(("C6", "menor", "Soldadura mejillas–base cerca del límite con la altura agregada Δ (la altura del eje h_disc/2 + Δ sube el momento de las mejillas); en conf. 2 con ss_void ≥ 191 mm incumple",
              f"FU {s3(sold_fu(rr1['delta']))} (C1, C3, Δ = 16), {s3(sold_fu(rC[2]['delta']))} (C2, Δ = 20), «warn»",
              f"Δ_máx con FU = 1: {s3(Dmax_w2)} mm; op. 0 {s3(sold_fu(0))}, A {s3(sold_fu(12))}, B {s3(sold_fu(27))}; reforzar los filetes de las mejillas o limitar Δ ≤ 26 mm (ss_void ≤ 180 en C1/C3)"))
-cl_c7 = all(any("2.ª placa" in r_["nombre"] and "Dilatación" in r_["nombre"] for r_ in DC[2]["interfazChecks"]["C"]) for _ in (0,))
-CIERRES.append(("C7", "fila de dilatación restringida de la 2.ª placa con Fy_bz2", cl_c7, f"FU {s3(RC[2]['Dilatación diferencial bronce–acero de la 2.ª placa'][2])} (cap {s3(RC[2]['Dilatación diferencial bronce–acero de la 2.ª placa'][1])} MPa)"))
-FIND.append(("C7", "menor" if cl_c7 else "importante", "Conf. 2: sigue sin verificación de dureza ni de desgaste de la 2.ª placa maciza (bronce–bronce «pend»); la fila de dilatación con Fy_bz2 ya existe",
-             f"dilatación 2.ª placa FU {s3(RC[2]['Dilatación diferencial bronce–acero de la 2.ª placa'][2])}; sin fila de dureza",
+FIND.append(("C7", "menor", "Conf. 2: sigue sin verificación de dureza ni de desgaste de la 2.ª placa maciza (bronce–bronce «pend»)",
+             "sin fila de dureza ni de desgaste de la 2.ª placa",
              f"aleaciones con ≥ 50 HB de diferencia (placa con tapones la más dura, p. ej. bronce al aluminio/manganeso; placa maciza reemplazable de bronce al plomo-estaño), Ra ≤ 0,4–0,8 µm, rodaje con grafito; "
              f"una 2.ª placa de Fy ≥ 275 MPa reduce a 6 mm (Δ {s3(ifaceC(dict(PC[2], Fy_bz2=275), 2)['delta'])} mm, −{s3(rC[2]['mAdd']-ifaceC(dict(PC[2], Fy_bz2=275), 2)['mAdd'])} kg)"))
-FIND.append(("C8", "menor", "HB_bz es un dato independiente de Fy_bz: con Fy_bz = 415 MPa (HB real ≈ 200–225) la fila de dureza sigue en 330 − 100; el disco duro usa α y E del inoxidable en el cortante térmico (conservador si es acero martensítico)",
+FIND.append(("C8", "menor", "HB_bz es un dato independiente de Fy_bz: con Fy_bz = 415 MPa (HB real ≈ 200–225) la fila de dureza sigue en 330 − 100",
              f"HB_cara − HB_bz = {s3(hb_diff_c1)} (cap) frente a 100", f"con HB_bz = 225: {s3(P['HB_cara']-225)} (límite 100); ligar HB_bz a la aleación; un disco de Ø2000 × 6 mm templado a 330 HB se deforma: segmentar o usar tratamiento superficial"))
-cl_c9 = any("Retención del disco duro" in r_["nombre"] for r_ in DC[1]["interfazChecks"]["C"]) and any("Retención de la 2.ª placa" in r_["nombre"] for r_ in DC[2]["interfazChecks"]["C"]) \
-    and any("Retención del disco duro" in r_["nombre"] for r_ in DC[3]["interfazChecks"]["C"])
-CIERRES.append(("C9", "fila de retención del disco duro / 2.ª placa sobre la mesa", cl_c9, f"FU {s3(RC[1]['Retención del disco duro sobre la mesa'][2])} (área completa, independiente de la cobertura)"))
-FIND.append(("C9", "menor" if cl_c9 else "importante", "Retención de las pastillas: con cobertura < 0,627 incumple (T_calado = 656 kN·m); el disco duro conserva la capacidad de área completa",
-             f"retención pastillas FU {s3(RC[3]['Retención de la placa de bronce'][2])} (cobertura {P['bz_cover']:g}); disco FU {s3(RC[1]['Retención del disco duro sobre la mesa'][2])}",
-             f"cobertura 0,5: FU {s3(Tmax/max(P['mu_back']*N3*ru/1e3, P['tau_bond']*Ac*0.5*ru/1e6))} («fail» en el núcleo, verificado); mínima {s3(cover_min)} (pegado solo; la fricción sola exige μ_resp {s3(Tmax/(N3*ru/1e3))} > 0,30): con cobertura < 0,7 añadir retención mecánica (alojamientos, topes o espigas)"))
 FIND.append(("C10", "menor", "Desgaste: la reserva t_bz − t_flex/√η no descuenta el sobreespesor de relapeado (bz_allow) y s se mide en r_ef, no en R_o; no limita en el rango admitido de p_bz [5; 60] ni de k_bz [0,1; 500]",
              f"FU desgaste {s3(RC[1]['desgaste en la vida de diseño'][2])} (C1), {s3(RC[3]['desgaste en la vida de diseño'][2])} (C3)",
              f"con corrección {s3(FUW[1])} (C1)/{s3(FUW[3])} (C3); k_bz crítico ≈ {s3(float(rows[0][4]))} (C1) frente a 500; p_bz crítico = q_neto = {s3(rr1['qnet'])}–{s3(rr3['qnet'])} MPa (< 5 MPa mínimo del rango): sin efecto numérico"))
