@@ -61,8 +61,8 @@
     const id = row.dataset.id, txt = typeof DEF[id] === "string";
     if (e.target.type === "checkbox") {
       P[id] = e.target.checked ? 1 : 0;
-      const other = id === "opt_ss" ? "opt_uhmw" : id === "opt_uhmw" ? "opt_ss" : null;      // una sola opción de interfaz a la vez
-      if (other && P[id]) { P[other] = 0; const ob = $("#p_" + other); if (ob) { ob.checked = false; ob.closest(".prm").classList.remove("chg"); } }
+      const OPTS = ["opt_ss", "opt_uhmw", "opt_bz"];                                    // una sola opción de interfaz a la vez
+      if (OPTS.includes(id) && P[id]) OPTS.filter((k) => k !== id).forEach((other) => { P[other] = 0; const ob = $("#p_" + other); if (ob) { ob.checked = false; ob.closest(".prm").classList.remove("chg"); } });
     } else P[id] = txt ? e.target.value : parseFloat(e.target.value);
     row.classList.toggle("chg", P[id] !== DEF[id]);
     clearTimeout(tmr); $("#busy").textContent = "Calculando…";
@@ -157,14 +157,14 @@
         </div></div>
     </div>
     <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>
-    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A o B en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>`;
+    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A, B o C en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>`;
   }
   function ifaceTable() {
     const rows = (SC && SC.ifaces) || [], act = A.R.ifc.o;
     const g = (v, d) => (v ? fmt(v, d || 3) : "—");
-    return `<div class="scroll"><table><tr><th>Alternativa</th><th class="n">Disco inox req. → adoptado (mm)</th><th class="n">UHMW req. → adoptado (mm)</th><th class="n">Altura agregada (mm)</th><th class="n">Δ masa total (kg)</th><th class="n">Masa total (kg)</th><th class="n">μ diseño</th><th class="n">F/cil diseño (kN)</th><th class="n">p diseño (bar)</th><th class="n">FS diseño</th></tr>
-      ${rows.map((r) => `<tr${r.k === act ? ' class="grp"' : ""}><td>${r.k === act ? "● " : ""}${esc(r.name)}</td><td class="n">${r.k ? g(r.tssReq, 3) + " → " + fmt(r.tss, 3) : "—"}</td><td class="n">${r.k === 2 ? g(r.tuhReq, 3) + " → " + fmt(r.tuh, 3) : "—"}</td><td class="n">${g(r.delta)}</td><td class="n">${r.k ? "+" + fmt(r.dTot, 3) : "—"}</td><td class="n">${fmt(r.mass, 4)}</td><td class="n">${fmt(r.mu_d)}</td><td class="n">${fmt(r.F)}</td><td class="n">${fmt(r.p)}</td><td class="n">${fmt(r.FS)}</td></tr>`).join("")}</table></div>
-      <div class="note">● alternativa activa. Disco inoxidable: placa circular empotrada sobre un vacío local de Ø${fmt(P.ss_void, 3)} mm bajo q = ${fmt(A.R.q_max)} MPa, σ = 3qa²/(4t²) ≤ 0,6·Fy (${fmt(P.Fy_ss, 3)} MPa), más ${fmt(P.ss_allow)} mm de sobreespesor; mínimo constructivo ${fmt(P.ss_tmin)} mm. Lámina UHMW: t ≥ E_c(S)·δ/(p_adm − q), con el módulo E_c aumentado por el factor de forma de la lámina delgada (E = ${fmt(P.E_uhmw, 3)} MPa, δ = ${fmt(P.d_flat)} mm en una ventana de Ø${fmt(P.ss_void, 3)} mm, p_adm = ${fmt(P.p_uhmw)} MPa; mínimo constructivo ${fmt(P.uh_tmin)} mm). La Δ de masa total incluye el crecimiento de ménsulas, patines y pivote por la altura agregada. Los μ de cada alternativa son datos de entrada: confirmarlos con ensayo del proveedor. Al activar A o B el eje de los cilindros sube la altura agregada.</div>`;
+    return `<div class="scroll"><table><tr><th>Alternativa</th><th class="n">Disco inox o duro req. → adoptado (mm)</th><th class="n">UHMW req. → adoptado (mm)</th><th class="n">Bronce req. → adoptado (mm)</th><th class="n">Altura agregada (mm)</th><th class="n">Δ masa total (kg)</th><th class="n">Masa total (kg)</th><th class="n">μ diseño</th><th class="n">F/cil diseño (kN)</th><th class="n">p diseño (bar)</th><th class="n">FS diseño</th></tr>
+      ${rows.map((r) => `<tr${r.k === act ? ' class="grp"' : ""}><td>${r.k === act ? "● " : ""}${esc(r.name)}</td><td class="n">${r.k ? g(r.tssReq, 3) + " → " + fmt(r.tss, 3) : "—"}</td><td class="n">${r.k === 2 ? g(r.tuhReq, 3) + " → " + fmt(r.tuh, 3) : "—"}</td><td class="n">${r.k === 3 ? g(r.tbzReq, 3) + " → " + fmt(r.tbz, 3) : "—"}</td><td class="n">${g(r.delta)}</td><td class="n">${r.k ? "+" + fmt(r.dTot, 3) : "—"}</td><td class="n">${fmt(r.mass, 4)}</td><td class="n">${fmt(r.mu_d)}</td><td class="n">${fmt(r.F)}</td><td class="n">${fmt(r.p)}</td><td class="n">${fmt(r.FS)}</td></tr>`).join("")}</table></div>
+      <div class="note">● alternativa activa. Disco inoxidable: placa circular empotrada sobre un vacío local de Ø${fmt(P.ss_void, 3)} mm bajo q = ${fmt(A.R.q_max)} MPa, σ = 3qa²/(4t²) ≤ 0,6·Fy (${fmt(P.Fy_ss, 3)} MPa), más ${fmt(P.ss_allow)} mm de sobreespesor; mínimo constructivo ${fmt(P.ss_tmin)} mm. Lámina UHMW: t ≥ E_c(S)·δ/(p_adm − q), con el módulo E_c aumentado por el factor de forma de la lámina delgada (E = ${fmt(P.E_uhmw, 3)} MPa, δ = ${fmt(P.d_flat)} mm en una ventana de Ø${fmt(P.ss_void, 3)} mm, p_adm = ${fmt(P.p_uhmw)} MPa; mínimo constructivo ${fmt(P.uh_tmin)} mm). La Δ de masa total incluye el crecimiento de ménsulas, patines y pivote por la altura agregada. Bronce (C): t ≥ t_flex/√η + sobreespesor, con la eficiencia de ligamento η = (p − d)/p de los tapones de grafito y el disco duro por el mismo método (Fy ${fmt(P.Fy_cara, 4)} MPa); la configuración 3 (pastillas) concentra la presión en ${fmt(P.bz_cover * 100, 3)} % del área. Los μ de cada alternativa son datos de entrada: confirmarlos con ensayo del proveedor. Al activar A o B el eje de los cilindros sube la altura agregada.</div>`;
   }
   function casesTable() {
     const R = A.R;
@@ -232,9 +232,11 @@
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
     const Rt = P.D_top / 2, rpr = TT.prIn(P);
     if (ifc.o > 0) {                                                  // discos inoxidables (A y B) y lámina UHMW (B) entre la base y la mesa
-      const rI = R.Ri, zs = [[tb, ifc.tss, "var(--acc)", "disco inox"], ...(ifc.o === 2 ? [[tb + ifc.tss, ifc.tuh, "var(--warn)", "UHMW"]] : []), [tb + ifc.tss + (ifc.o === 2 ? ifc.tuh : 0), ifc.tss, "var(--acc)", "disco inox"]];
-      zs.forEach(([z0, t, c, n], k) => o.push(`<rect x="${X(rI)}" y="${Z(z0 + t)}" width="${X(Rt) - X(rI)}" height="${t}" fill="${c}" opacity="${n === "UHMW" ? 0.85 : 0.7}" stroke="var(--ink)" stroke-width=".6"><title>${n} ${fmt(t, 3)} mm</title></rect>`));
-      o.push(`<text x="${X(r0) + 250}" y="${Z(tb) + 14}" font-size="13" fill="var(--ink)">${ifc.o === 2 ? "inox " + fmt(ifc.tss, 3) + " + UHMW " + fmt(ifc.tuh, 3) + " + inox " + fmt(ifc.tss, 3) : "2 × inox " + fmt(ifc.tss, 3)} mm</text>`);
+      const BR = "#b87333", rI = R.Ri;                                 // bronce: color cobre
+      const zs = ifc.o === 3 ? [[tb, ifc.tbz, BR, "bronce con grafito"], [tb + ifc.tbz, ifc.tss, ifc.conf === 2 ? BR : "var(--acc)", ifc.conf === 2 ? "2.ª placa de bronce" : "disco duro"]]
+        : [[tb, ifc.tss, "var(--acc)", "disco inox"], ...(ifc.o === 2 ? [[tb + ifc.tss, ifc.tuh, "var(--warn)", "UHMW"]] : []), [tb + ifc.tss + (ifc.o === 2 ? ifc.tuh : 0), ifc.tss, "var(--acc)", "disco inox"]];
+      zs.forEach(([z0, t, c, n], k) => o.push(`<rect x="${X(rI)}" y="${Z(z0 + t)}" width="${X(Rt) - X(rI)}" height="${t}" fill="${c}" opacity="${n === "UHMW" ? 0.85 : 0.75}" stroke="var(--ink)" stroke-width=".6"><title>${n} ${fmt(t, 3)} mm</title></rect>`));
+      o.push(`<text x="${X(r0) + 250}" y="${Z(tb) + 14}" font-size="13" fill="var(--ink)">${ifc.o === 3 ? "bronce " + fmt(ifc.tbz, 3) + " + " + (ifc.conf === 2 ? "bronce " : "disco duro ") + fmt(ifc.tss, 3) : ifc.o === 2 ? "inox " + fmt(ifc.tss, 3) + " + UHMW " + fmt(ifc.tuh, 3) + " + inox " + fmt(ifc.tss, 3) : "2 × inox " + fmt(ifc.tss, 3)} mm</text>`);
     }
     // plancha inferior y superior con anillo
     o.push(`<rect x="${X(r0)}" y="${Z(tm + P.t_bot)}" width="${X(rpr) - X(r0)}" height="${P.t_bot}" fill="var(--ink2)"/>`);
@@ -395,7 +397,7 @@
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
     const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
-      ["Discos de acero inoxidable (opción A o B)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
     const mx = Math.max(...parts.map((p) => p[1]));
     el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
       ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}

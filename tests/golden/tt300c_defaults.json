@@ -36,7 +36,7 @@
  "fea": {
   "top": 131.62870002855718,
   "bot": 123.37063214744117,
-  "lift": 66.87183934169444,
+  "lift": 45.89272119341941,
   "glob": 96129.48426308569
  },
  "fu": {
@@ -107,10 +107,10 @@
   "Articulaciones · Soldadura mejillas–base (4 filetes)": 0.8087994309009179,
   "Pivote · Presión en el buje": 0.5358294758263494,
   "Pivote · Flexión del pivote": 0.1679358222416793,
-  "Base · Izaje del conjunto: σvm en la plancha base": 0.39412388404283677,
-  "Base · Izaje: flecha de la base": 0.9119219584058086,
-  "Base · Punto de izaje fuera de la mesa": 0.7635878257706301,
-  "Base · Punto de izaje dentro del marco": 0.9,
+  "Base · Izaje del conjunto: σvm en la plancha base": 0.2704788398839212,
+  "Base · Izaje: flecha de la base": 0.6135936929232104,
+  "Base · Punto de izaje fuera de la mesa": 0.8167802279326097,
+  "Base · Punto de izaje dentro del marco": 0.3,
   "Fatiga · Uña (boca del patín) (cat. A, N = 35000)": 0.25146358954752696,
   "Fatiga · Pasadores de articulación (cat. A, N = 35000)": 0.20941032463578296,
   "Fatiga · Pie de soldadura mejilla–base (cat. E, N = 35000)": 0.17649995553252049,

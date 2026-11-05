@@ -7,8 +7,8 @@ import cadquery as cq
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "cad" / "out"
 D = json.load(open(sys.argv[1] if len(sys.argv) > 1 else OUT / "TT300-C_design.json", encoding="utf-8"))
-if D["P"].get("opt_ss", 0) or D["P"].get("opt_uhmw", 0):
-    raise SystemExit("La interfaz alternativa (discos inoxidables / UHMW) aún no está dibujada en el modelo 3D ni en los planos: desactive las opciones A y B para emitirlos.")
+if D["P"].get("opt_ss", 0) or D["P"].get("opt_uhmw", 0) or D["P"].get("opt_bz", 0):
+    raise SystemExit("La interfaz alternativa (discos inoxidables / UHMW / bronce) aún no está dibujada en el modelo 3D ni en los planos: desactive las opciones A, B y C para emitirlos.")
 P, DV = D["P"], D["derivados"]
 RHO = 7.85e-6
 

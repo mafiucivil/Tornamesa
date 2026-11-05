@@ -49,8 +49,8 @@ const out = {
       Fpin: q.Fp, H: q.H, Ft: q.Fp * Math.cos(q.th) - q.H * Math.sin(q.th), Fr: q.Fp * Math.sin(q.th) + q.H * Math.cos(q.th), Rf: q.Rf, Rr: q.Rr }));
   })(),
   escenarios: (() => { const sc = AG.scenarios(A); return { mus: sc.mus, rs: sc.rs, grid: sc.grid, loads: sc.loads, classes: sc.classes, ifaces: sc.ifaces }; })(),
-  interfazChecks: (() => { const chk = (k) => TT.analyze(Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0 }), { noFEA: true }).checks.filter((c) => c.grp === "Interfaz inox")
-    .map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })); return { A: chk(1), B: chk(2) }; })(),
+  interfazChecks: (() => { const chk = (k) => TT.analyze(Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0, opt_bz: k === 3 ? 1 : 0 }), { noFEA: true }).checks.filter((c) => c.grp === (k === 3 ? "Interfaz bronce" : "Interfaz inox"))
+    .map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })); return { A: chk(1), B: chk(2), C: chk(3) }; })(),
   revisionCruzada: AG.crossCheck(A),
   auditoria: AG.audit(A.checks),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),

@@ -1,6 +1,6 @@
 {
  "proyecto": "TT300-C",
- "fecha": "2026-11-04",
+ "fecha": "2026-11-05",
  "P": {
   "W_tf": 300,
   "e": 150,
@@ -15,6 +15,8 @@
   "FS_min": 1.25,
   "opt_ss": 0,
   "opt_uhmw": 0,
+  "opt_bz": 0,
+  "bz_conf": 1,
   "t_ss": 0,
   "t_uhmw": 0,
   "Fy_ss": 205,
@@ -42,6 +44,28 @@
   "k_wear": 2,
   "PV_uh": 0.05,
   "n_seg": 12,
+  "t_bz": 0,
+  "t_cara": 0,
+  "Fy_bz": 170,
+  "rho_bz": 7.45,
+  "Fy_bz2": 97,
+  "Fy_cara": 1000,
+  "HB_cara": 330,
+  "HB_bz": 100,
+  "p_bz": 20,
+  "PV_bz": 0.5,
+  "k_bz": 10,
+  "bz_plug_d": 12,
+  "bz_plug_p": 30,
+  "bz_allow": 1,
+  "bz_tmin": 6,
+  "cara_tmin": 6,
+  "bz_cover": 0.7,
+  "bz_npad": 24,
+  "muC_nom": 0.08,
+  "muC_d": 0.15,
+  "muC_cont": 0.2,
+  "muC_dry": 0.2,
   "D_top": 2000,
   "t_top": 20,
   "t_bot": 16,
@@ -118,7 +142,7 @@
   "t_base_min": 16,
   "rim_h": 45,
   "rim_t": 10,
-  "c_lug": 50,
+  "c_lug": 150,
   "x_lug": 600,
   "phi_lift": 1.3,
   "q_floor": 2,
@@ -283,6 +307,7 @@
    "ssTop": 0,
    "ss": 0,
    "uhmw": 0,
+   "bz": 0,
    "base": 1027.139571832191,
    "rim": 36.031499999999994,
    "brackets": 152.56033977370586,
@@ -553,7 +578,7 @@
   },
   {
    "id": "inox",
-   "titulo": "Interfaz alternativa: discos de acero inoxidable (A) o discos con lámina UHMW (B)",
+   "titulo": "Interfaz alternativa: discos inoxidables (A), discos con lámina UHMW (B) o placa de bronce con grafito (C)",
    "p": [
     {
      "id": "opt_ss",
@@ -563,6 +588,16 @@
     {
      "id": "opt_uhmw",
      "lab": "Opción B: dos discos de acero inoxidable con una lámina de UHMW entre ellos",
+     "u": "–"
+    },
+    {
+     "id": "opt_bz",
+     "lab": "Opción C: placa de bronce con tapones de grafito (fija a la base) y disco duro rotatorio",
+     "u": "–"
+    },
+    {
+     "id": "bz_conf",
+     "lab": "Opción C · configuración: 1 = placa de bronce + disco duro; 2 = dos placas de bronce de aleaciones distintas; 3 = como 1 con pastillas segmentadas",
      "u": "–"
     },
     {
@@ -698,6 +733,116 @@
     {
      "id": "n_seg",
      "lab": "N° de sectores de la lámina UHMW (juntas de dilatación)",
+     "u": "–"
+    },
+    {
+     "id": "t_bz",
+     "lab": "Opción C · espesor de la placa de bronce con grafito (0 = automático)",
+     "u": "mm"
+    },
+    {
+     "id": "t_cara",
+     "lab": "Opción C · espesor del disco duro o de la 2.ª placa de bronce (0 = automático)",
+     "u": "mm"
+    },
+    {
+     "id": "Fy_bz",
+     "lab": "Opción C · Fy del bronce con grafito (C95400 aluminio-bronce ≈ 170; C93200 ≈ 97; C86300 ≈ 415)",
+     "u": "MPa"
+    },
+    {
+     "id": "rho_bz",
+     "lab": "Opción C · densidad del bronce",
+     "u": "g/cm³"
+    },
+    {
+     "id": "Fy_bz2",
+     "lab": "Opción C (2 placas) · Fy de la 2.ª placa de bronce, aleación distinta (C93200 ≈ 97)",
+     "u": "MPa"
+    },
+    {
+     "id": "Fy_cara",
+     "lab": "Opción C · Fy del disco duro (17-4PH o inoxidable nitrurado)",
+     "u": "MPa"
+    },
+    {
+     "id": "HB_cara",
+     "lab": "Opción C · dureza del disco duro",
+     "u": "HB"
+    },
+    {
+     "id": "HB_bz",
+     "lab": "Opción C · dureza del bronce",
+     "u": "HB"
+    },
+    {
+     "id": "p_bz",
+     "lab": "Opción C · presión admisible sostenida sobre el bronce neto (sin tapones)",
+     "u": "MPa"
+    },
+    {
+     "id": "PV_bz",
+     "lab": "Opción C · valor PV admisible del bronce con grafito",
+     "u": "MPa·m/s"
+    },
+    {
+     "id": "k_bz",
+     "lab": "Opción C · desgaste específico del bronce con grafito (×10⁻⁷ mm³/N·m)",
+     "u": "–"
+    },
+    {
+     "id": "bz_plug_d",
+     "lab": "Opción C · diámetro de los tapones de grafito",
+     "u": "mm"
+    },
+    {
+     "id": "bz_plug_p",
+     "lab": "Opción C · paso de los tapones (patrón escalonado)",
+     "u": "mm"
+    },
+    {
+     "id": "bz_allow",
+     "lab": "Opción C · sobreespesor del bronce por desgaste y relapeado",
+     "u": "mm"
+    },
+    {
+     "id": "bz_tmin",
+     "lab": "Opción C · espesor mínimo constructivo del bronce",
+     "u": "mm"
+    },
+    {
+     "id": "cara_tmin",
+     "lab": "Opción C · espesor mínimo del disco duro (distorsión del temple y rectificado)",
+     "u": "mm"
+    },
+    {
+     "id": "bz_cover",
+     "lab": "Opción C (configuración 3) · fracción del área cubierta por las pastillas de bronce",
+     "u": "–"
+    },
+    {
+     "id": "bz_npad",
+     "lab": "Opción C (configuración 3) · N° de pastillas por vuelta (junta de dilatación)",
+     "u": "–"
+    },
+    {
+     "id": "muC_nom",
+     "lab": "Opción C · μ nominal (bronce con grafito y grasa sobre acero duro)",
+     "u": "–"
+    },
+    {
+     "id": "muC_d",
+     "lab": "Opción C · μ estático de diseño (arranque tras reposo bajo carga)",
+     "u": "–"
+    },
+    {
+     "id": "muC_cont",
+     "lab": "Opción C · μ contaminado",
+     "u": "–"
+    },
+    {
+     "id": "muC_dry",
+     "lab": "Opción C · μ seco (solo grafito)",
      "u": "–"
     }
    ]
@@ -1263,7 +1408,10 @@
    "tuh": 0,
    "delta": 0,
    "mTop": 0,
-   "mUH": 0
+   "mUH": 0,
+   "mSS": 0,
+   "mBz": 0,
+   "tbz": 0
   },
   "Tmax": 656.4906300230158,
   "q_min": 0.41984912158779925,
@@ -1512,6 +1660,7 @@
    {
     "k": 0,
     "name": "Acero–acero con grasa (base)",
+    "tbz": 0,
     "tss": 0,
     "tuh": 0,
     "delta": 0,
@@ -1529,6 +1678,7 @@
    {
     "k": 1,
     "name": "A · Discos inoxidables con grasa",
+    "tbz": 0,
     "tss": 6,
     "tuh": 0,
     "tssReq": 5.534446469847977,
@@ -1551,6 +1701,7 @@
    {
     "k": 2,
     "name": "B · Discos inoxidables con lámina UHMW",
+    "tbz": 0,
     "tss": 6,
     "tuh": 15,
     "tssReq": 5.534446469847977,
@@ -1569,6 +1720,31 @@
     "tuhConf": 14.0388456990431,
     "qAvg": 1.041356025113886,
     "dTot": 437.15619852442524
+   },
+   {
+    "k": 3,
+    "name": "C · Placa de bronce con tapones de grafito (bronce + disco duro)",
+    "tbz": 10,
+    "tbzReq": 8.1372115908502,
+    "tFlexB": 5.528460325944273,
+    "tss": 6,
+    "tuh": 0,
+    "tssReq": 6,
+    "tuhReq": 0,
+    "delta": 16,
+    "mass": 3705.7272882040625,
+    "mu_d": 0.15,
+    "F": 241.5792019062265,
+    "p": 379.73850994144175,
+    "FS": 1.843373747129162,
+    "muMax": 0.2765060620693743,
+    "q": 1.6626782824330144,
+    "mAdd": 363.44054937379764,
+    "turns": true,
+    "tFlex": 2.2794425870904877,
+    "tuhConf": 0,
+    "qAvg": 1.041356025113886,
+    "dTot": 420.23259012531935
    }
   ]
  },
@@ -1864,6 +2040,203 @@
     "estado": "info",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    }
+  ],
+  "C": [
+   {
+    "nombre": "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)",
+    "formula": "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura",
+    "dem": 64.14640133137995,
+    "cap": 102,
+    "unidad": "MPa",
+    "fu": 0.6288862875625485,
+    "estado": "ok",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
+   },
+   {
+    "nombre": "Placa de bronce: espesor adoptado frente al requerido",
+    "formula": "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)",
+    "dem": 8.1372115908502,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.81372115908502,
+    "estado": "ok",
+    "ref": "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)"
+   },
+   {
+    "nombre": "Placa de bronce: espesor por flexión / requerido / comercial adoptado",
+    "formula": "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor",
+    "dem": 5.528460325944273,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
+   },
+   {
+    "nombre": "Tapones de grafito: fracción de área y eficiencia de ligamento",
+    "formula": "f_g = π·d²/(2√3·p²); η = (p − d)/p",
+    "dem": 0.14510394913873745,
+    "cap": 0.6,
+    "unidad": "– / –",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría del patrón escalonado"
+   },
+   {
+    "nombre": "Disco duro: flexión sobre un vacío local (empotrado, carga uniforme)",
+    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_cara; t = t_disco − sobreespesor",
+    "dem": 103.05835056876252,
+    "cap": 600,
+    "unidad": "MPa",
+    "fu": 0.1717639176146042,
+    "estado": "ok",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
+   },
+   {
+    "nombre": "Disco duro: espesor adoptado frente al requerido",
+    "formula": "t ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Cálculo de espesor"
+   },
+   {
+    "nombre": "Presión de contacto sobre el bronce neto (sin tapones de grafito)",
+    "formula": "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce",
+    "dem": 1.944885253399301,
+    "cap": 20,
+    "unidad": "MPa",
+    "fu": 0.09724426266996505,
+    "estado": "ok",
+    "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
+   },
+   {
+    "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
+    "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
+    "dem": 0.0049621143427927205,
+    "cap": 0.5,
+    "unidad": "MPa·m/s",
+    "fu": 0.009924228685585441,
+    "estado": "ok",
+    "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
+   },
+   {
+    "nombre": "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva",
+    "formula": "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef",
+    "dem": 0.012220074448308735,
+    "cap": 2.8627884091498013,
+    "unidad": "mm",
+    "fu": 0.004268591562426329,
+    "estado": "ok",
+    "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
+   },
+   {
+    "nombre": "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)",
+    "formula": "h + 2 ≤ 0,70·t_placa",
+    "dem": 2.0122200744483085,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 0.28746001063547266,
+    "estado": "ok",
+    "ref": "Criterio de proyecto (el grafito debe seguir lubricando)"
+   },
+   {
+    "nombre": "Pareja bronce–disco duro: diferencia de dureza",
+    "formula": "HB_disco − HB_bronce ≥ 100 (acabado Ra ≤ 0,4 µm)",
+    "dem": 100,
+    "cap": 230,
+    "unidad": "HB",
+    "fu": 0.43478260869565216,
+    "estado": "ok",
+    "ref": "Práctica de pares deslizantes con bronce"
+   },
+   {
+    "nombre": "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)",
+    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)",
+    "dem": 656.4906300230158,
+    "cap": 1046.7557647296867,
+    "unidad": "kN·m",
+    "fu": 0.6271669592309791,
+    "estado": "ok",
+    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
+   },
+   {
+    "nombre": "Adhesivo de la placa de bronce: cortante térmico en el borde",
+    "formula": "τ = ε·√(G_ad·E_bz·t/t_adhesivo), ε = (α_bz − α_acero)·ΔT ≤ τ_adm,cíclico",
+    "dem": 2.6429982973887824,
+    "cap": 4,
+    "unidad": "MPa",
+    "fu": 0.6607495743471956,
+    "estado": "ok",
+    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
+   },
+   {
+    "nombre": "Adhesivo del disco duro: cortante térmico en el borde",
+    "formula": "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico",
+    "dem": 2.4104731485747775,
+    "cap": 4,
+    "unidad": "MPa",
+    "fu": 0.6026182871436944,
+    "estado": "ok",
+    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
+   },
+   {
+    "nombre": "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida",
+    "formula": "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz",
+    "dem": 27.720000000000002,
+    "cap": 102,
+    "unidad": "MPa",
+    "fu": 0.27176470588235296,
+    "estado": "ok",
+    "ref": "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)"
+   },
+   {
+    "nombre": "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)",
+    "formula": "Δr = (α_bz − α_acero)·ΔT·R",
+    "dem": 0.25200000000000006,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Altura que agrega la interfaz sobre la plancha base",
+    "formula": "Δ = t_bronce + t_disco (o 2.ª placa)",
+    "dem": 16,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (el eje de los cilindros sube Δ)"
+   },
+   {
+    "nombre": "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)",
+    "formula": "m = ρ·A·t (bronce descontando los tapones, más el grafito)",
+    "dem": 363.44054937379764,
+    "unidad": "kg",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Arranque con adherencia–deslizamiento (stick-slip) a 2,5 mm/s: diferencia entre μ estático y cinético",
+    "formula": "Sin verificación numérica; ensayo de arranque tras reposo bajo carga",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Ensayo del proveedor"
+   },
+   {
+    "nombre": "Par galvánico bronce–acero en contacto con grasa: sellado perimetral y protección del respaldo",
+    "formula": "Sin verificación numérica",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Decisión del proyectista"
+   }
   ]
  },
  "revisionCruzada": [
@@ -1923,9 +2296,9 @@
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 42.115041057714,
+   "tool": 42.1150410572537,
    "indep": 42.11504105695602,
-   "d": 1.7997980180090739e-9,
+   "d": 7.068303192299197e-10,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
@@ -3008,10 +3381,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
-   "dem": 81.58364399686721,
+   "dem": 55.98911985597168,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.39412388404283677,
+   "fu": 0.2704788398839212,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -3019,10 +3392,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 7.7817340450629,
+   "dem": 5.235999512944729,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.9119219584058086,
+   "fu": 0.6135936929232104,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -3031,9 +3404,9 @@
    "nombre": "Punto de izaje fuera de la mesa",
    "formula": "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)",
    "dem": 1045,
-   "cap": 1368.5393673548454,
+   "cap": 1279.4139283281231,
    "unidad": "mm",
-   "fu": 0.7635878257706301,
+   "fu": 0.8167802279326097,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -3042,9 +3415,9 @@
    "nombre": "Punto de izaje dentro del marco",
    "formula": "t_marco + 35 ≤ c",
    "dem": 45,
-   "cap": 50,
+   "cap": 150,
    "unidad": "mm",
-   "fu": 0.9,
+   "fu": 0.3,
    "estado": "ok",
    "ref": "Geometría"
   },

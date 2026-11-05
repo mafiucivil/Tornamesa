@@ -18,7 +18,10 @@ const AG = (() => {
     if (!rings.length) E("Defina al menos un radio de alma anular");
     if (P.D_bore <= P.d_rod) E("El émbolo debe ser mayor que el vástago");
     if (P.p_alarm > P.p_relief) E("La presión de alarma no puede superar la de alivio");
-    if (P.opt_ss > 0.5 && P.opt_uhmw > 0.5) E("Elija una sola opción de interfaz: A (discos inoxidables con grasa) o B (discos inoxidables con lámina UHMW)");
+    if ((P.opt_ss > 0.5) + (P.opt_uhmw > 0.5) + (P.opt_bz > 0.5) > 1) E("Elija una sola opción de interfaz: A (discos inoxidables con grasa), B (discos inoxidables con lámina UHMW) o C (placa de bronce con grafito)");
+    if (P.opt_bz > 0.5 && P.bz_plug_d >= P.bz_plug_p) E("El diámetro de los tapones de grafito debe ser menor que su paso");
+    if (P.opt_bz > 0.5 && ![1, 2, 3].includes(Math.round(P.bz_conf))) E("La configuración de la opción C debe ser 1, 2 o 3");
+    if (P.opt_bz > 0.5 && !(P.muC_nom <= P.muC_d && P.muC_d <= P.muC_cont && P.muC_d <= P.muC_dry)) W("Opción C: los μ deben estar ordenados (nominal ≤ diseño ≤ contaminado y seco)");
     if (P.p_relief > P.p_rated * TT_.PSI_CAT + 1e-6) E(`El alivio (${P.p_relief} bar) supera la presión nominal del cilindro (${P.p_rated} psi ≙ ${Math.round(P.p_rated * TT_.PSI_CAT)} bar)`);
     if (P.s_free >= P.stroke) E("El recorrido libre debe ser menor que la carrera");
     if (P.N_pin % P.N_rib !== 0) {
@@ -145,12 +148,12 @@ const AG = (() => {
       return { psi, pr, pa, Dmin: Math.sqrt(4 * Amin / Math.PI), FScur: R.A * pr / 10 / 1e3 / F, pcur: F * 1e3 / R.A * 10 };
     });
     // alternativas de interfaz de giro: acero–acero (actual), A: discos inoxidables con grasa, B: discos inoxidables con lámina UHMW
-    const R0m = TT_.compute(Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0 })).m.total;
-    const ifaces = [0, 1, 2].map((k) => {
-      const Q = Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0 }), RR = TT_.compute(Q), I = RR.ifc;
-      return { k, name: ["Acero–acero con grasa (base)", "A · Discos inoxidables con grasa", "B · Discos inoxidables con lámina UHMW"][k],
+    const R0m = TT_.compute(Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0 })).m.total;
+    const ifaces = [0, 1, 2, 3].map((k) => {
+      const Q = Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0, opt_bz: k === 3 ? 1 : 0 }), RR = TT_.compute(Q), I = RR.ifc;
+      return { k, name: ["Acero–acero con grasa (base)", "A · Discos inoxidables con grasa", "B · Discos inoxidables con lámina UHMW", "C · Placa de bronce con tapones de grafito (" + ["", "bronce + disco duro", "dos placas de bronce", "pastillas + disco duro"][Math.round(P.bz_conf) || 1] + ")"][k], tbz: I.tbz, tbzReq: I.tbzReq, tFlexB: I.tFlexB,
         tss: I.tss, tuh: I.tuh, tssReq: I.tssReq, tuhReq: I.tuhReq, delta: I.delta, mass: RR.m.total, mu_d: RR.mu.d, F: RR.cd.F, p: RR.cd.p, FS: RR.cd.FS,
-        muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg, dTot: RR.m.total - R0m };
+        muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw + RR.m.bz, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg, dTot: RR.m.total - R0m };
     });
     return { mus, rs, grid, loads, classes, ifaces };
   }

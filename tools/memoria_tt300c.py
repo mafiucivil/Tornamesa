@@ -296,7 +296,7 @@ T(f"Resultado: q_mín > 0, la mesa no despega. La presión máxima {n(DV['q_max'
 
 # ---- 6.1 alternativas de interfaz inoxidable
 IF = D["escenarios"]["ifaces"]
-H("6.1 Alternativas de interfaz: discos de acero inoxidable (A) y con lámina de UHMW (B)", 2)
+H("6.1 Alternativas de interfaz: discos de acero inoxidable (A), con lámina de UHMW (B) y placa de bronce con grafito (C)", 2)
 T("Hipótesis. Dos discos anulares de acero inoxidable (R_i = {0} a R_o = {1} mm) se interponen entre la plancha base y la plancha inferior de la mesa: "
   "uno fijo a la base y otro a la mesa, apoyados sobre sus planchas de respaldo. En A deslizan entre sí con grasa; en B se agrega una lámina de UHMW fijada al disco de la base, "
   "que desliza sobre el disco de la mesa. La interfaz no se oxida y se lubrica con facilidad. Los discos y la lámina no cumplen función estructural: transmiten la presión de contacto "
@@ -323,10 +323,10 @@ table(["Ecuación", "Expresión", "Referencia"], [
     ["Retención de los discos", "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u) (respaldo granallado sin pintura, discos pegados con epóxico estructural); cortante térmico del borde τ = ε·√(G·E·t/t_ad)", "Equilibrio"],
 ], widths=(48, 72, 50), size=8)
 T("Resultado.", bold=True, size=9.5, after=1)
-table(["Alternativa", "Disco inox: t_flex / t_req → adoptado (mm)", "UHMW: t_req → adoptado (mm)", "Altura agregada (mm)", "Δ masa total (kg)", "Masa total (kg)", "μ diseño", "F por cilindro (kN)", "p diseño (bar)", "FS diseño"],
-      [[r["name"], "—" if r["k"] == 0 else f"{n(r['tFlex'])} / {n(r['tssReq'])} → {n(r['tss'])}", "—" if r["k"] != 2 else f"{n(r['tuhReq'])} → {n(r['tuh'])}",
+table(["Alternativa", "Disco inox o duro: t_flex / t_req → adoptado (mm)", "UHMW: t_req → adoptado (mm)", "Bronce: t_flex / t_req → adoptado (mm)", "Altura agregada (mm)", "Δ masa total (kg)", "Masa total (kg)", "μ diseño", "F por cilindro (kN)", "p diseño (bar)", "FS diseño"],
+      [[r["name"], "—" if r["k"] == 0 else f"{n(r['tFlex'])} / {n(r['tssReq'])} → {n(r['tss'])}", "—" if r["k"] != 2 else f"{n(r['tuhReq'])} → {n(r['tuh'])}", "—" if r["k"] != 3 else f"{n(r['tFlexB'])} / {n(r['tbzReq'])} → {n(r['tbz'])}",
         "—" if r["k"] == 0 else n(r["delta"]), "—" if r["k"] == 0 else "+" + n(r["dTot"]), n(r["mass"]), n(r["mu_d"]), n(r["F"]), n(r["p"]), n(r["FS"])] for r in IF],
-      widths=(32, 25, 19, 14, 14, 14, 11, 14, 13, 12), size=7, num_cols=tuple(range(3, 10)))
+      widths=(30, 22, 16, 22, 12, 12, 12, 10, 12, 11, 11), size=6.5, num_cols=tuple(range(4, 11)))
 def ifrows(L, only=None):
     out = []
     for c in L:
@@ -339,6 +339,13 @@ table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Est
       widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
 T("Verificaciones adicionales de la opción B (lámina de UHMW):", size=9, after=1)
 table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["B"], ("UHMW", "Masa agregada", "Altura")),
+      widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
+T("Opción C. La placa de bronce con tapones de grafito va fija a la base y desliza contra un disco duro (≥ 100 HB sobre el bronce) fijo a la mesa; el desgaste queda en el bronce, que se reemplaza. "
+  "Espesor: t_flex = a·√(0,75q_loc/(0,6Fy_bz)); t_req = t_flex/√η + sobreespesor, con η = (p − d)/p = {0} por los tapones de grafito (f_g = {1} del área). "
+  "Verificaciones de C a continuación; la configuración 3 (pastillas) cubre {2} del área y concentra la presión local en 1/cobertura.".format(
+      n(D["interfazChecks"]["C"] and IF[3]["tbz"] and (P["bz_plug_p"] - P["bz_plug_d"]) / P["bz_plug_p"]), n(math.pi * P["bz_plug_d"] ** 2 / (2 * math.sqrt(3) * P["bz_plug_p"] ** 2)), n(P["bz_cover"])), size=9)
+T("Verificaciones de la opción C (bronce con tapones de grafito):", size=9, after=1)
+table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["C"]),
       widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
 T("Conclusión. Con los datos de entrada, cada disco inoxidable debe tener {0} (requerido {1}; espesor comercial inmediato) y la lámina de UHMW de la opción B {2} (requerido {3}). "
   "La opción A agrega {4} de masa total y {5} de altura; la B, {6} y {7}. Con los μ de diseño adoptados la fuerza por cilindro es {8} (A) y {9} (B), frente a {10} con acero–acero: "
@@ -480,6 +487,7 @@ table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["7", "Losa o mats de apoyo", f"q ≈ {n(DV['q_max'], unit='MPa')}", "Tercero"],
     ["8", "Artículo de ISO 4413:2010 (sobrepresión)", "Criterio confirmado; numeral por citar", "Revisor"],
     ["9", "Guía de retorno tipo KIET", "No adoptada; evaluar con fotos del equipo existente", "Mandante / proyectista"],
+    ["13", "Interfaz con placa de bronce y grafito (C), si se adopta", f"Aleación (C95400, Fy {pint(P['Fy_bz'])} MPa), p_adm {pint(P['p_bz'])} MPa, PV, desgaste y μ de catálogo; ensayo de arranque (stick-slip); disco duro (≥ 100 HB sobre el bronce, Ra ≤ 0,4 µm); retención por pegado y, con pastillas, alojamientos; par galvánico y sellado; aún no dibujada", "Proveedor / proyectista"],
     ["12", "Interfaz inoxidable (A) o con UHMW (B), si se adopta", "μ, p_adm y E_ap del UHMW son datos de catálogo; par inox–inox de aleaciones distintas o tratada contra el gripado; fijación y retención de los discos; sectores de UHMW con juntas de dilatación; no dibujada aún en planos ni en el 3D; discos pegados con epóxico estructural y respaldo granallado sin pintura; respaldo canteado ≤ 3 mm en el borde; tornillos avellanados M6; sellado perimetral; retención de los sectores de UHMW por rebaje o cola de milano; fluencia de la lámina (asentamiento 0,1 a 0,2 mm)", "Proveedor / proyectista"],
     ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
     ["11", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],

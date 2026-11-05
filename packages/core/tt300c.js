@@ -6,6 +6,8 @@ const TT = (() => {
   const G = 9.80665, RHO = 7.85e-6, D2R = Math.PI / 180;
   const RHO_SS = 7.93e-6, RHO_UH = 0.94e-6;                       // kg/mm³: inoxidable austenítico y UHMW-PE
   const AL_SS = 17.3e-6, AL_S = 11.7e-6, AL_UH = 180e-6, E_SS = 193000;   // 1/K y MPa
+  const AL_BZ = 18e-6, E_BZ = 110000, RHO_GR = 1.8e-6, PLUG_DEPTH = 0.7;   // bronce: 1/K y MPa; grafito kg/mm³; profundidad del tapón (fracción del espesor)
+  const BZ_COMM = [4, 5, 6, 8, 10, 12, 15, 20, 25, 30];            // espesores comerciales de plancha de bronce (mm)
   const SS_COMM = [3, 4, 5, 6, 8, 10, 12, 15, 20, 25];           // espesores comerciales de plancha inoxidable (mm)
   const UH_COMM = [3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]; // espesores comerciales de plancha UHMW (mm)
 
@@ -27,9 +29,11 @@ const TT = (() => {
       ["q_adm", "Presión de contacto admisible", "MPa", 10, 1, 50, 0.5],
       ["FS_min", "FS mínimo del accionamiento (calado / diseño)", "–", 1.25, 1, 3, 0.05],
     ] },
-    { id: "inox", t: "Interfaz alternativa: discos de acero inoxidable (A) o discos con lámina UHMW (B)", p: [
+    { id: "inox", t: "Interfaz alternativa: discos inoxidables (A), discos con lámina UHMW (B) o placa de bronce con grafito (C)", p: [
       ["opt_ss", "Opción A: dos discos de acero inoxidable con grasa entre sí", "–", 0, 0, 1, "chk"],
       ["opt_uhmw", "Opción B: dos discos de acero inoxidable con una lámina de UHMW entre ellos", "–", 0, 0, 1, "chk"],
+      ["opt_bz", "Opción C: placa de bronce con tapones de grafito (fija a la base) y disco duro rotatorio", "–", 0, 0, 1, "chk"],
+      ["bz_conf", "Opción C · configuración: 1 = placa de bronce + disco duro; 2 = dos placas de bronce de aleaciones distintas; 3 = como 1 con pastillas segmentadas", "–", 1, 1, 3, 1],
       ["t_ss", "Espesor de cada disco inoxidable (0 = automático, según cálculo)", "mm", 0, 0, 40, 1],
       ["t_uhmw", "Espesor de la lámina UHMW (0 = automático, según cálculo)", "mm", 0, 0, 60, 1],
       ["Fy_ss", "Fy del acero inoxidable (ASTM A240 304: 205; 316L: 170)", "MPa", 205, 100, 600, 5],
@@ -57,6 +61,28 @@ const TT = (() => {
       ["k_wear", "UHMW sobre inox con grasa: tasa de desgaste específico (×10⁻⁷ mm³/N·m)", "–", 2, 0.1, 100, 0.1],
       ["PV_uh", "UHMW: valor PV admisible", "MPa·m/s", 0.05, 0.01, 0.5, 0.01],
       ["n_seg", "N° de sectores de la lámina UHMW (juntas de dilatación)", "–", 12, 4, 48, 1],
+      ["t_bz", "Opción C · espesor de la placa de bronce con grafito (0 = automático)", "mm", 0, 0, 60, 1],
+      ["t_cara", "Opción C · espesor del disco duro o de la 2.ª placa de bronce (0 = automático)", "mm", 0, 0, 60, 1],
+      ["Fy_bz", "Opción C · Fy del bronce con grafito (C95400 aluminio-bronce ≈ 170; C93200 ≈ 97; C86300 ≈ 415)", "MPa", 170, 50, 600, 5],
+      ["rho_bz", "Opción C · densidad del bronce", "g/cm³", 7.45, 7, 9, 0.05],
+      ["Fy_bz2", "Opción C (2 placas) · Fy de la 2.ª placa de bronce, aleación distinta (C93200 ≈ 97)", "MPa", 97, 50, 600, 5],
+      ["Fy_cara", "Opción C · Fy del disco duro (17-4PH o inoxidable nitrurado)", "MPa", 1000, 200, 1500, 10],
+      ["HB_cara", "Opción C · dureza del disco duro", "HB", 330, 100, 700, 10],
+      ["HB_bz", "Opción C · dureza del bronce", "HB", 100, 50, 300, 5],
+      ["p_bz", "Opción C · presión admisible sostenida sobre el bronce neto (sin tapones)", "MPa", 20, 5, 60, 1],
+      ["PV_bz", "Opción C · valor PV admisible del bronce con grafito", "MPa·m/s", 0.5, 0.05, 3, 0.05],
+      ["k_bz", "Opción C · desgaste específico del bronce con grafito (×10⁻⁷ mm³/N·m)", "–", 10, 0.1, 500, 0.1],
+      ["bz_plug_d", "Opción C · diámetro de los tapones de grafito", "mm", 12, 4, 40, 1],
+      ["bz_plug_p", "Opción C · paso de los tapones (patrón escalonado)", "mm", 30, 10, 100, 1],
+      ["bz_allow", "Opción C · sobreespesor del bronce por desgaste y relapeado", "mm", 1.0, 0, 6, 0.1],
+      ["bz_tmin", "Opción C · espesor mínimo constructivo del bronce", "mm", 6, 3, 30, 1],
+      ["cara_tmin", "Opción C · espesor mínimo del disco duro (distorsión del temple y rectificado)", "mm", 6, 3, 30, 1],
+      ["bz_cover", "Opción C (configuración 3) · fracción del área cubierta por las pastillas de bronce", "–", 0.7, 0.1, 1, 0.05],
+      ["bz_npad", "Opción C (configuración 3) · N° de pastillas por vuelta (junta de dilatación)", "–", 24, 6, 96, 1],
+      ["muC_nom", "Opción C · μ nominal (bronce con grafito y grasa sobre acero duro)", "–", 0.08, 0.02, 0.6, 0.01],
+      ["muC_d", "Opción C · μ estático de diseño (arranque tras reposo bajo carga)", "–", 0.15, 0.03, 0.6, 0.01],
+      ["muC_cont", "Opción C · μ contaminado", "–", 0.20, 0.05, 0.8, 0.01],
+      ["muC_dry", "Opción C · μ seco (solo grafito)", "–", 0.20, 0.05, 0.8, 0.01],
     ] },
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
@@ -149,7 +175,7 @@ const TT = (() => {
       ["t_base_min", "Espesor mínimo de base por planitud (criterio de fabricación)", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
-      ["c_lug", "Puntos de izaje (lados y): distancia al borde", "mm", 50, 30, 600, 5],
+      ["c_lug", "Puntos de izaje (lados y): distancia al borde", "mm", 150, 30, 600, 5],
       ["x_lug", "Puntos de izaje: distancia al eje y", "mm", 600, 0, 2000, 5],
       ["phi_lift", "Factor dinámico de izaje", "–", 1.30, 1, 2, 0.05],
       ["q_floor", "Presión admisible de la losa / mats (referencial)", "MPa", 2.0, 0.1, 20, 0.1],
@@ -207,11 +233,12 @@ const TT = (() => {
   }
 
   /* ---------------- Interfaz de giro: acero–acero (por defecto), discos inoxidables (A) o discos + UHMW (B) ---------------- */
-  function ifOpt(P) { return P.opt_uhmw > 0.5 ? 2 : (P.opt_ss > 0.5 ? 1 : 0); }
+  function ifOpt(P) { return P.opt_bz > 0.5 ? 3 : (P.opt_uhmw > 0.5 ? 2 : (P.opt_ss > 0.5 ? 1 : 0)); }
   function muSet(P) {
     const o = ifOpt(P);
     if (o === 1) return { nom: P.muA_nom, d: P.muA_d, cont: P.muA_cont, dry: P.muA_dry };
     if (o === 2) return { nom: P.muB_nom, d: P.muB_d, cont: P.muB_cont, dry: P.muB_dry };
+    if (o === 3) return { nom: P.muC_nom, d: P.muC_d, cont: P.muC_cont, dry: P.muC_dry };
     return { nom: P.mu_nom, d: P.mu_d, cont: P.mu_cont, dry: P.mu_dry };
   }
   const commercial = (list, t) => list.find((v) => v >= t - 1e-9) || Math.ceil(t);
@@ -236,7 +263,8 @@ const TT = (() => {
   }
   function ifaceDesign(P) {
     const o = ifOpt(P);
-    if (o === 0) return { o, tss: 0, tuh: 0, delta: 0, mTop: 0, mUH: 0 };
+    if (o === 0) return { o, tss: 0, tuh: 0, delta: 0, mTop: 0, mUH: 0, mSS: 0, mBz: 0, tbz: 0 };
+    if (o === 3) return ifaceDesignBz(P);
     const sad = 0.6 * P.Fy_ss, a = P.ss_void / 2;
     // Disco inoxidable: placa circular empotrada de radio a sobre un vacío local, carga uniforme q:
     //   σ_máx = 3·q·a²/(4·t²) ≤ 0,6·Fy  →  t_flex = a·√(0,75·q/σ_adm); espesor requerido = t_flex + sobreespesor, no menor que el mínimo constructivo.
@@ -259,12 +287,40 @@ const TT = (() => {
       EcU = uc.Ec(tuh); SU = uc.S(tuh);
     }
     return { o, tss: t, tssReq: c.treq, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf, EcU, SU,
-      delta: 2 * t + tuh, mTop: RHO_SS * A_ss * t, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0 };
+      delta: 2 * t + tuh, mTop: RHO_SS * A_ss * t, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0, mSS: 2 * RHO_SS * A_ss * t, mBz: 0, tbz: 0 };
+  }
+  // Opción C: placa de bronce con tapones de grafito, fija a la base, contra un disco duro rotatorio (configuraciones 1 y 3, esta con pastillas
+  // que cubren la fracción bz_cover) o contra una 2.ª placa de bronce de aleación distinta (configuración 2).
+  //   Bronce: σ = 3·q_loc·a²/(4·t²)/η ≤ 0,6·Fy_bz, η = (p − d)/p (ligamento entre tapones)  →  t_req = t_flex/√η + sobreespesor, ≥ mínimo constructivo.
+  function ifaceDesignBz(P) {
+    const conf = Math.min(3, Math.max(1, Math.round(P.bz_conf))), a = P.ss_void / 2;
+    const A_ss = Math.PI * ((P.D_top / 2) ** 2 - (P.D_piv / 2 + 15) ** 2);
+    const cov = conf === 3 ? Math.min(1, Math.max(0.05, P.bz_cover)) : 1;
+    const eta = (P.bz_plug_p - P.bz_plug_d) / P.bz_plug_p, fg = Math.PI * P.bz_plug_d ** 2 / (2 * Math.sqrt(3) * P.bz_plug_p ** 2);
+    const rBz = P.rho_bz * 1e-6;
+    const mPlate = (t) => A_ss * cov * t * (rBz * (1 - PLUG_DEPTH * fg) + RHO_GR * PLUG_DEPTH * fg);   // placa con tapones (parte cubierta)
+    const mSolid = (t) => A_ss * t * rBz;                                                              // 2.ª placa de bronce maciza (configuración 2)
+    const FyC = conf === 2 ? P.Fy_bz2 : P.Fy_cara;
+    const calc = (mTop) => {
+      const L = ifaceLoad(P, mTop), qLoc = L.q_max / cov, qC = conf === 3 ? qLoc : L.q_max;
+      const tfB = a * Math.sqrt(0.75 * qLoc / (0.6 * P.Fy_bz)), treqB = Math.max(tfB / Math.sqrt(eta) + P.bz_allow, P.bz_tmin);
+      const tfC = a * Math.sqrt(0.75 * qC / (0.6 * FyC)), treqC = Math.max(tfC + (conf === 2 ? P.bz_allow : P.ss_allow), conf === 2 ? P.bz_tmin : P.cara_tmin);
+      return { L, qLoc, qC, tfB, treqB, tfC, treqC };
+    };
+    const rot = (tC) => conf === 2 ? mSolid(tC) : RHO_SS * A_ss * tC;                                  // masa rotatoria (fija a la mesa)
+    const pickC = (c) => P.t_cara > 0 ? P.t_cara : commercial(conf === 2 ? BZ_COMM : SS_COMM, c.treqC);
+    const pickB = (c) => P.t_bz > 0 ? P.t_bz : commercial(BZ_COMM, c.treqB);
+    let c = calc(0), tB = pickB(c), tC = pickC(c);
+    for (let i = 0; i < 4; i++) { c = calc(rot(tC)); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
+    return { o: 3, conf, cov, eta, fg, a, A_ss, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, qNet: c.qLoc / (1 - fg),
+      tbz: tB, tbzReq: c.treqB, tFlexB: c.tfB, tss: tC, tssReq: c.treqC, tFlex: c.tfC, sad: 0.6 * P.Fy_bz, sadC: 0.6 * FyC, FyC,
+      tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0,
+      mSS: conf === 2 ? 0 : RHO_SS * A_ss * tC, mBz: conf === 2 ? mPlate(tB) + mSolid(tC) : mPlate(tB) };
   }
 
   function masses(P) {
     const m = massesMesa(P), ifc = ifaceDesign(P);
-    m.ssTop = ifc.mTop; m.ss = 2 * ifc.mTop; m.uhmw = ifc.mUH;       // disco rotatorio, ambos discos y lámina UHMW
+    m.ssTop = ifc.mTop; m.ss = ifc.mSS; m.uhmw = ifc.mUH; m.bz = ifc.mBz;   // pieza rotatoria, discos inoxidables o duros, lámina UHMW y bronce
     m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
     m.rim = RHO * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t;
     const bg = bracketGeo(P);
@@ -284,7 +340,7 @@ const TT = (() => {
     m.beds = RHO * P.n_cyl * (g.L_bed * P.w_bed * P.t_bed - g.L_bed * P.w_slot * P.h_slot - g.L_bed * P.w_tee * P.h_tee);
     m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + ifc.delta + P.h_disc - P.t_top + 3);
     m.cyl = P.n_cyl * P.m_cyl;
-    m.total = m.disc + m.ss + m.uhmw + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl;
+    m.total = m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl;
     return m;
   }
   function bracketGeo(P) {
@@ -537,7 +593,7 @@ const TT = (() => {
     for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) nodes.push([i * h, j * h]);
     const id = (i, j) => i * (n + 1) + j;
     const Rd = P.D_top / 2;
-    const mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl + R.m.ss + R.m.uhmw;   // apoyado sobre la huella de la mesa (con discos de la interfaz)
+    const mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl + R.m.ss + R.m.uhmw + R.m.bz;   // apoyado sobre la huella de la mesa (con las piezas de la interfaz)
     const qDisc = mOther * G / (Math.PI * Rd * Rd);
     const qOwn = (R.m.base + R.m.rim + R.m.brackets + R.m.shoes + R.m.beds) * G / (P.B * P.B);   // peso propio repartido sobre la base
     const q = [];
@@ -628,7 +684,7 @@ const TT = (() => {
 
     /* --- Interfaz con discos de acero inoxidable (A) o discos + lámina UHMW (B) --- */
     const I = R.ifc;
-    if (I.o > 0) {
+    if (I.o === 1 || I.o === 2) {
       const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)";
       const tEnd = I.tss - P.ss_allow;                                       // espesor útil al final de la vida (sin sobreespesor)
       add({ grp: "Interfaz inox", sys: "est", name: "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor", dem: 0.75 * I.q * (I.a / tEnd) ** 2, cap: I.sad, unit: "MPa", ref: REFD });
@@ -664,6 +720,49 @@ const TT = (() => {
       const gap = (AL_UH - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.n_seg);
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: crecimiento radial del sector (fijar al centro con agujeros ranurados)", formula: "Δr = (α_UHMW − α_acero)·ΔT·R", dem: (AL_UH - AL_S) * P.dT * R.Ro, unit: "mm", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: junta de dilatación entre sectores (ancho a dejar en frío)", formula: "j = (α_UHMW − α_acero)·ΔT·cuerda del sector; α_UHMW = 180×10⁻⁶/K", dem: gap, unit: "mm", ref: REFU });
+    }
+
+    /* --- Opción C: placa de bronce con tapones de grafito --- */
+    if (I.o === 3) {
+      const G3 = "Interfaz bronce", REFB = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)";
+      const REFC = "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo", conf = I.conf;
+      const tEffB = I.tbz - P.bz_allow;
+      add({ grp: G3, sys: "est", name: "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)", formula: "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura", dem: 0.75 * I.qLoc * (I.a / tEffB) ** 2 / I.eta, cap: I.sad, unit: "MPa", ref: REFB });
+      add({ grp: G3, sys: "est", kind: "geo", name: "Placa de bronce: espesor adoptado frente al requerido", formula: "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)", dem: I.tbzReq, cap: I.tbz, unit: "mm", ref: "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)" });
+      add({ grp: G3, sys: "est", kind: "info", name: "Placa de bronce: espesor por flexión / requerido / comercial adoptado", formula: "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor", dem: I.tFlexB, cap: I.tbz, unit: "mm", ref: REFB });
+      add({ grp: G3, sys: "est", kind: "info", name: "Tapones de grafito: fracción de área y eficiencia de ligamento", formula: "f_g = π·d²/(2√3·p²); η = (p − d)/p", dem: I.fg, cap: I.eta, unit: "– / –", ref: "Geometría del patrón escalonado" });
+      if (conf === 2) {
+        add({ grp: G3, sys: "est", name: "2.ª placa de bronce (maciza, aleación distinta): flexión sobre un vacío local", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_bz2; t = t_placa − sobreespesor", dem: 0.75 * I.qC * (I.a / (I.tss - P.bz_allow)) ** 2, cap: I.sadC, unit: "MPa", ref: REFB });
+      } else {
+        add({ grp: G3, sys: "est", name: "Disco duro: flexión sobre un vacío local (empotrado, carga uniforme)", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_cara; t = t_disco − sobreespesor", dem: 0.75 * I.qC * (I.a / (I.tss - P.ss_allow)) ** 2, cap: I.sadC, unit: "MPa", ref: REFB });
+      }
+      add({ grp: G3, sys: "est", kind: "geo", name: conf === 2 ? "2.ª placa de bronce: espesor adoptado frente al requerido" : "Disco duro: espesor adoptado frente al requerido", formula: "t ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "Cálculo de espesor" });
+      add({ grp: G3, sys: "est", name: "Presión de contacto sobre el bronce neto (sin tapones de grafito)", formula: "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce", dem: I.qNet, cap: P.p_bz, unit: "MPa", ref: REFC });
+      const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A), vmax = R.Ro / R.K.armMin * vcyl / 1000;     // m/s en el borde durante la carrera
+      add({ grp: G3, sys: "est", name: "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)", formula: "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)", dem: I.qNet * vmax, cap: P.PV_bz, unit: "MPa·m/s", ref: REFC });
+      const dist = P.life * P.turns_yr * 2 * Math.PI * P.r_ef / 1000, wear = P.k_bz * 1e-7 * I.qNet * dist;   // mm
+      const tSpare = Math.max(0, I.tbz - I.tbzReq + P.bz_allow);
+      add({ grp: G3, sys: "est", name: "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva", formula: "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef", dem: wear, cap: Math.max(0, I.tbz - I.tFlexB / Math.sqrt(I.eta)), unit: "mm", ref: REFC });
+      add({ grp: G3, sys: "est", kind: "geo", name: "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)", formula: "h + 2 ≤ 0,70·t_placa", dem: wear + 2, cap: PLUG_DEPTH * I.tbz, unit: "mm", ref: "Criterio de proyecto (el grafito debe seguir lubricando)" });
+      if (conf !== 2) add({ grp: G3, sys: "est", kind: "geo", name: "Pareja bronce–disco duro: diferencia de dureza", formula: "HB_disco − HB_bronce ≥ 100 (acabado Ra ≤ 0,4 µm)", dem: 100, cap: P.HB_cara - P.HB_bz, unit: "HB", ref: "Práctica de pares deslizantes con bronce" });
+      // retención: la placa de bronce fija a la base (la menor área pegada es la de las pastillas)
+      const TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * I.cov * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
+      add({ grp: G3, sys: "giro", name: "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)", dem: R.Tmax, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
+      if (P.tau_bond > 0) {
+        const tb1 = (AL_BZ - AL_S) * P.dT * Math.sqrt(P.G_ad * E_BZ * I.tbz / P.t_ad);
+        add({ grp: G3, sys: "est", name: "Adhesivo de la placa de bronce: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E_bz·t/t_adhesivo), ε = (α_bz − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb1, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
+        const epsC = ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT, EC = conf === 2 ? E_BZ : E_SS;
+        add({ grp: G3, sys: "est", name: conf === 2 ? "Adhesivo de la 2.ª placa de bronce: cortante térmico en el borde" : "Adhesivo del disco duro: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico", dem: epsC * Math.sqrt(P.G_ad * EC * I.tss / P.t_ad), cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
+      }
+      add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)" });
+      add({ grp: G3, sys: "est", kind: "info", name: "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)", formula: "Δr = (α_bz − α_acero)·ΔT·R", dem: (AL_BZ - AL_S) * P.dT * R.Ro, unit: "mm", ref: "Termoelasticidad" });
+      if (conf === 3) add({ grp: G3, sys: "est", kind: "info", name: "Pastillas de bronce: junta de dilatación entre pastillas (ancho a dejar en frío)", formula: "j = (α_bz − α_acero)·ΔT·cuerda de la pastilla", dem: (AL_BZ - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.bz_npad), unit: "mm", ref: "Termoelasticidad" });
+      add({ grp: G3, sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: "Δ = t_bronce + t_disco (o 2.ª placa)", dem: I.delta, unit: "mm", ref: "Geometría (el eje de los cilindros sube Δ)" });
+      add({ grp: G3, sys: "est", kind: "info", name: "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)", formula: "m = ρ·A·t (bronce descontando los tapones, más el grafito)", dem: R.m.ss + R.m.bz, unit: "kg", ref: "Geometría" });
+      add({ grp: G3, sys: "est", kind: "pend", name: "Arranque con adherencia–deslizamiento (stick-slip) a 2,5 mm/s: diferencia entre μ estático y cinético", formula: "Sin verificación numérica; ensayo de arranque tras reposo bajo carga", dem: 0, unit: "–", ref: "Ensayo del proveedor" });
+      add({ grp: G3, sys: "est", kind: "pend", name: "Par galvánico bronce–acero en contacto con grasa: sellado perimetral y protección del respaldo", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
+      if (conf === 2) add({ grp: G3, sys: "est", kind: "pend", name: "Bronce contra bronce (aleaciones distintas): riesgo de gripado; el grafito va solo en una placa", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
+      if (conf === 3) add({ grp: G3, sys: "est", kind: "pend", name: "Retención de las pastillas de bronce: alojamientos soldados o pegado; la mesa apoya solo en las pastillas", formula: "Arrastre ≈ μ_máx·N", dem: Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N, unit: "kN", ref: "Equilibrio; decisión del proyectista" });
     }
 
     /* --- Mesa --- */
@@ -842,7 +941,7 @@ const TT = (() => {
   /* ---------------- Análisis completo ---------------- */
   function analyze(P, opts) {
     opts = opts || {};
-    if (P.opt_ss > 0.5 && P.opt_uhmw > 0.5) throw new Error("Las opciones de interfaz A (opt_ss) y B (opt_uhmw) son excluyentes");
+    if ((P.opt_ss > 0.5) + (P.opt_uhmw > 0.5) + (P.opt_bz > 0.5) > 1) throw new Error("Las opciones de interfaz A (opt_ss), B (opt_uhmw) y C (opt_bz) son excluyentes");
     const R = compute(P);
     let fea = null;
     if (R.K.ok && !opts.noFEA) {
