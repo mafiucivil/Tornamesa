@@ -60,7 +60,17 @@ const TT = (() => {
       ["uh_tmin", "Espesor mínimo constructivo de la lámina UHMW (fijación avellanada)", "mm", 6, 2, 30, 1],
       ["k_wear", "UHMW sobre inox con grasa: tasa de desgaste específico (×10⁻⁷ mm³/N·m)", "–", 2, 0.1, 100, 0.1],
       ["PV_uh", "UHMW: valor PV admisible", "MPa·m/s", 0.05, 0.01, 0.5, 0.01],
-      ["n_seg", "N° de sectores de la lámina UHMW (juntas de dilatación)", "–", 12, 4, 48, 1],
+      ["n_seg", "N° de sectores de la lámina UHMW (juntas de dilatación y rebajes de retención)", "–", 24, 4, 96, 1],
+      ["fix_mode", "Fijación de discos, bronce y UHMW: 1 = sectores desmontables con topes soldados al respaldo; 2 = pegado permanente (no desmontable)", "–", 1, 1, 2, 1],
+      ["n_sec", "Fijación desmontable: N° de sectores de cada disco o placa de bronce", "–", 24, 6, 96, 1],
+      ["L_tope", "Fijación desmontable: largo de cada tope sobre el canto radial del sector (0 = automático)", "mm", 0, 0, 800, 5],
+      ["w_tope", "Fijación desmontable: filete de soldadura del tope al respaldo", "mm", 6, 3, 16, 1],
+      ["d_tor", "Fijación desmontable: tornillo avellanado de posición (ISO 10642)", "mm", 6, 4, 12, 1],
+      ["h_gr", "Engrase: profundidad de las ranuras en el disco de la mesa (A) o en el bronce (C); 0 = sin ranuras", "mm", 1.0, 0, 5, 0.5],
+      ["w_gr", "Engrase: ancho de las ranuras", "mm", 8, 3, 25, 1],
+      ["n_gr_rad", "Engrase: N° de ranuras radiales", "–", 12, 0, 48, 1],
+      ["n_gr_circ", "Engrase: N° de ranuras circunferenciales", "–", 3, 0, 12, 1],
+      ["n_greaser", "Engrase: N° de graseras M10×1 en el borde de la mesa", "–", 4, 1, 16, 1],
       ["t_bz", "Opción C · espesor de la placa de bronce con grafito (0 = automático)", "mm", 0, 0, 60, 1],
       ["t_cara", "Opción C · espesor del disco duro o de la 2.ª placa de bronce (0 = automático)", "mm", 0, 0, 60, 1],
       ["Fy_bz", "Opción C · Fy del bronce con grafito (C95400 aluminio-bronce ≈ 170; C93200 ≈ 97; C86300 ≈ 415)", "MPa", 170, 50, 600, 5],
@@ -254,6 +264,13 @@ const TT = (() => {
     if (o === 3) return { nom: P.muC_nom, d: P.muC_d, cont: P.muC_cont, dry: P.muC_dry };
     return { nom: P.mu_nom, d: P.mu_d, cont: P.mu_cont, dry: P.mu_dry };
   }
+  // Ranuras de engrase: área perdida y volumen de grasa para llenarlas
+  function grooveFrac(P) {
+    if (!(P.h_gr > 0)) return { Ag: 0, f: 0, V: 0 };
+    const Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15, rm = (Ro + Ri) / 2, Ac = Math.PI * (Ro * Ro - Ri * Ri);
+    const Ag = P.w_gr * (P.n_gr_rad * (Ro - Ri) + P.n_gr_circ * 2 * Math.PI * rm);
+    return { Ag, f: Math.min(0.9, Ag / Ac), V: Ag * P.h_gr / 1000 };   // V en cm³
+  }
   const commercial = (list, t) => list.find((v) => v >= t - 1e-9) || Math.ceil(t);
   // Presión máxima de contacto con la masa rotatoria adicional mTop (kg): misma distribución lineal que compute()
   function ifaceLoad(P, mTop) {
@@ -278,16 +295,17 @@ const TT = (() => {
     const o = ifOpt(P);
     if (o === 0) return { o, tss: 0, tuh: 0, delta: 0, mTop: 0, mUH: 0, mSS: 0, mBz: 0, tbz: 0 };
     if (o === 3) return ifaceDesignBz(P);
-    const sad = 0.6 * P.Fy_ss, a = P.ss_void / 2;
+    const sad = 0.6 * P.Fy_ss, a = P.ss_void / 2, gr = o === 1 ? P.h_gr : 0;     // ranuras de engrase solo en el disco de la mesa de la opción A
     // Disco inoxidable: placa circular empotrada de radio a sobre un vacío local, carga uniforme q:
-    //   σ_máx = 3·q·a²/(4·t²) ≤ 0,6·Fy  →  t_flex = a·√(0,75·q/σ_adm); espesor requerido = t_flex + sobreespesor, no menor que el mínimo constructivo.
+    //   σ_máx = 3·q·a²/(4·t²) ≤ 0,6·Fy  →  t_flex = a·√(0,75·q/σ_adm); espesor requerido = t_flex + sobreespesor (+ ranura en el disco ranurado), ≥ mínimo constructivo.
     const A_ss = Math.PI * ((P.D_top / 2) ** 2 - (P.D_piv / 2 + 15) ** 2);
-    const calc = (mTop) => { const L = ifaceLoad(P, mTop), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin) }; };
-    let c = calc(0), t = P.t_ss > 0 ? P.t_ss : commercial(SS_COMM, c.treq);
+    const calc = (mTop) => { const L = ifaceLoad(P, mTop), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin), treq2: Math.max(tFlex + P.ss_allow + gr, P.ss_tmin) }; };
+    const pick = (c) => P.t_ss > 0 ? [P.t_ss, P.t_ss] : [commercial(SS_COMM, c.treq), commercial(SS_COMM, c.treq2)];   // [disco de la base (liso), disco de la mesa (ranurado)]
+    let c = calc(0), [t1, t2] = pick(c);
     for (let i = 0; i < 4; i++) {                                       // el disco rotatorio también carga la interfaz
-      c = calc(RHO_SS * A_ss * t);
-      const tn = P.t_ss > 0 ? P.t_ss : commercial(SS_COMM, c.treq);
-      if (tn === t) break; t = tn;
+      c = calc(RHO_SS * A_ss * t2);
+      const [n1, n2] = pick(c);
+      if (n1 === t1 && n2 === t2) break; t1 = n1; t2 = n2;
     }
     const q = c.L.q_max;
     // Lámina UHMW: la falta de planitud d_flat comprime localmente la lámina; la sobrepresión E·d/t se suma a q y no debe pasar de p_adm
@@ -299,8 +317,8 @@ const TT = (() => {
       tuh = P.t_uhmw > 0 ? P.t_uhmw : commercial(UH_COMM, tuhReq);
       EcU = uc.Ec(tuh); SU = uc.S(tuh);
     }
-    return { o, tss: t, tssReq: c.treq, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf, EcU, SU,
-      delta: 2 * t + tuh, mTop: RHO_SS * A_ss * t, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0, mSS: 2 * RHO_SS * A_ss * t, mBz: 0, tbz: 0 };
+    return { o, tss: t1, tss2: t2, tssReq: c.treq, tss2Req: c.treq2, gr, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf, EcU, SU,
+      delta: t1 + t2 + tuh, mTop: RHO_SS * A_ss * t2, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0, mSS: RHO_SS * A_ss * (t1 + t2), mBz: 0, tbz: 0 };
   }
   // Opción C: placa de bronce con tapones de grafito, fija a la base, contra un disco duro rotatorio (configuraciones 1 y 3, esta con pastillas
   // que cubren la fracción bz_cover) o contra una 2.ª placa de bronce de aleación distinta (configuración 2).
@@ -316,7 +334,7 @@ const TT = (() => {
     const FyC = conf === 2 ? P.Fy_bz2 : P.Fy_cara;
     const calc = (mTop) => {
       const L = ifaceLoad(P, mTop), qLoc = L.q_max / cov, qC = conf === 3 ? qLoc : L.q_max;
-      const tfB = a * Math.sqrt(0.75 * qLoc / (0.6 * P.Fy_bz)), treqB = Math.max(tfB / Math.sqrt(eta) + P.bz_allow, P.bz_tmin);
+      const tfB = a * Math.sqrt(0.75 * qLoc / (0.6 * P.Fy_bz)), treqB = Math.max(tfB / Math.sqrt(eta) + P.bz_allow + P.h_gr, P.bz_tmin);   // + ranuras de engrase
       const tfC = a * Math.sqrt(0.75 * qC / (0.6 * FyC)), treqC = Math.max(tfC + (conf === 2 ? P.bz_allow : P.ss_allow), conf === 2 ? P.bz_tmin : P.cara_tmin);
       return { L, qLoc, qC, tfB, treqB, tfC, treqC };
     };
@@ -325,7 +343,7 @@ const TT = (() => {
     const pickB = (c) => P.t_bz > 0 ? P.t_bz : commercial(BZ_COMM, c.treqB);
     let c = calc(0), tB = pickB(c), tC = pickC(c);
     for (let i = 0; i < 4; i++) { c = calc(rot(tC)); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
-    return { o: 3, conf, cov, eta, fg, a, A_ss, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, qNet: c.qLoc / (1 - fg),
+    return { o: 3, conf, cov, eta, fg, a, A_ss, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, gr: P.h_gr, fgr: grooveFrac(P).f, qNet: c.qLoc / (1 - fg - grooveFrac(P).f), tss2: tC, tss2Req: c.treqC,
       tbz: tB, tbzReq: c.treqB, tFlexB: c.tfB, tss: tC, tssReq: c.treqC, tFlex: c.tfC, sad: 0.6 * P.Fy_bz, sadC: 0.6 * FyC, FyC,
       tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0,
       mSS: conf === 2 ? 0 : RHO_SS * A_ss * tC, mBz: conf === 2 ? mPlate(tB) + mSolid(tC) : mPlate(tB) };
@@ -710,25 +728,64 @@ const TT = (() => {
     add({ grp: "Interfaz", sys: "est", kind: "geo", name: "Sin despegue de la mesa (q_mín ≥ 0)", formula: "1 − 4eR/(R²+r²) ≥ 0", dem: 4 * P.e * R.Ro / (R.Ro ** 2 + R.Ri ** 2), cap: 1, unit: "–", ref: "Núcleo central" });
     add({ grp: "Interfaz", sys: "est", kind: "info", name: "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)", formula: "σ ≈ q_máx (÷ cobertura con pastillas) ≤ q_losa (verificar por terceros)", dem: R.qc, cap: P.q_floor, unit: "MPa", ref: "Referencial (rev. M7)" });
 
-    /* --- Interfaz con discos de acero inoxidable (A) o discos + lámina UHMW (B) --- */
+    /* --- Fijación desmontable por sectores con topes y engrase (A, B y C) --- */
     const I = R.ifc;
+    const Ftot = R.Tmax / (R.r_u / 1000), kpk = R.q_max / R.q_avg, Lav = R.Ro - R.Ri - 100;   // kN en el radio de fricción (T_calado); sector más cargado; canto radial disponible (mm)
+    const removable = P.fix_mode < 1.5;
+    // Tope soldado al respaldo que toma el par por aplastamiento sobre el canto del sector (el tornillo avellanado solo da posición)
+    const stopRows = (grp, nombre, n, t, FyP) => {
+      const Fst = Ftot / n * kpk, adm = 1.25 * FyP / Nd, LreqB = Fst * 1e3 / (adm * t), LreqW = Fst * 1e3 / (2 * 0.707 * P.w_tope * Fw), Lreq = Math.max(LreqB, LreqW);
+      const Lt = P.L_tope > 0 ? P.L_tope : Math.ceil(Lreq / 0.9 / 5) * 5;                          // largo: el mayor entre aplastamiento y soldadura, con FU objetivo 0,90
+      add({ grp, sys: "giro", name: nombre + ": aplastamiento del tope sobre el canto del sector", formula: "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)", dem: Fst * 1e3 / (Lt * t), cap: adm, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto" });
+      add({ grp, sys: "giro", kind: "geo", name: nombre + ": largo del tope frente al canto radial disponible", formula: "L_tope ≤ R_o − R_i − 100", dem: Lt, cap: Lav, unit: "mm", ref: "Geometría" });
+      add({ grp, sys: "est", name: nombre + ": soldadura del tope al respaldo (2 filetes)", formula: "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)", dem: Fst * 1e3 / (2 * 0.707 * P.w_tope * Lt), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
+      return { Fst, Lt, Lreq };
+    };
+    // Tornillo avellanado de posición: la cabeza (k = 0,55·d, ISO 10642) debe dejar ≥ 2 mm de material bajo ella
+    const screwRow = (grp, nombre, tEf) => add({ grp, sys: "est", kind: "geo", name: nombre + ": cabeza del tornillo avellanado dentro del espesor útil", formula: "0,55·d_tornillo + 2 ≤ t − sobreespesor", dem: 0.55 * P.d_tor + 2, cap: tEf, unit: "mm", ref: "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto" });
+    // Manipulación manual de cada sector (ISO 11228-1: 25 kg en condiciones ideales)
+    const handRow = (grp, nombre, mass, n) => add({ grp, sys: "est", kind: "geo", name: nombre + ": masa del sector (manipulación manual al desmontar)", formula: "m_sector = m_pieza/n ≤ 25 kg", dem: mass / n, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
+    const gf = grooveFrac(P);
+    const groovesRows = (grp, donde) => {
+      if (!(P.h_gr > 0)) return;
+      add({ grp, sys: "est", kind: "geo", name: "Engrase: área de las ranuras frente al área de contacto (" + donde + ")", formula: "f_ranuras = A_ranuras/A_contacto ≤ 0,25", dem: gf.f, cap: 0.25, unit: "–", ref: "Criterio del proyecto (la presión neta sube 1/(1 − f))" });
+      add({ grp, sys: "est", kind: "info", name: "Engrase: volumen de grasa para llenar las ranuras y N° de graseras", formula: "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable", dem: gf.V, cap: P.n_greaser, unit: "cm³ / graseras", ref: "Diseño de engrase" });
+    };
+
+    /* --- Interfaz con discos de acero inoxidable (A) o discos + lámina UHMW (B) --- */
     if (I.o === 1 || I.o === 2) {
       const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)";
-      const tEnd = I.tss - P.ss_allow;                                       // espesor útil al final de la vida (sin sobreespesor)
-      add({ grp: "Interfaz inox", sys: "est", name: "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor", dem: 0.75 * I.q * (I.a / tEnd) ** 2, cap: I.sad, unit: "MPa", ref: REFD });
-      add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Disco inoxidable: espesor adoptado frente al requerido", formula: "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)" });
+      // disco de la base (liso) y disco de la mesa (con ranuras de engrase en la opción A)
+      const discs = [{ n: "Disco de la base (liso)", t: I.tss, req: I.tssReq, g: 0 }, { n: I.gr > 0 ? "Disco de la mesa (con ranuras de engrase)" : "Disco de la mesa", t: I.tss2, req: I.tss2Req, g: I.gr }];
+      if (I.tss === I.tss2 && I.gr === 0) discs.pop();
+      discs.forEach((d) => {
+        const tEnd = d.t - P.ss_allow - d.g;                                  // espesor útil al final de la vida, sin sobreespesor ni ranura
+        add({ grp: "Interfaz inox", sys: "est", name: d.n + ": flexión sobre un vacío local (placa empotrada, carga uniforme)", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura", dem: 0.75 * I.q * (I.a / tEnd) ** 2, cap: I.sad, unit: "MPa", ref: REFD });
+        add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: d.n + ": espesor adoptado frente al requerido", formula: "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)", dem: d.req, cap: d.t, unit: "mm", ref: "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)" });
+      });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor mínimo por flexión sobre el vacío local", formula: "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))", dem: I.tFlex, unit: "mm", ref: REFD });
-      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)", formula: "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "ASTM A240 (plancha inoxidable)" });
-      const Ttot = R.Tmax, TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
-      add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
-      if (P.tau_bond > 0) {
-        const eps = (AL_SS - AL_S) * P.dT, tb2 = eps * Math.sqrt(P.G_ad * E_SS * I.tss / P.t_ad);
-        add({ grp: "Interfaz inox", sys: "est", name: "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)", formula: "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb2, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)", formula: "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240", dem: I.tssReq, cap: I.tss, unit: "mm", ref: "ASTM A240 (plancha inoxidable)" });
+      if (removable) {
+        // sectores desmontables: topes soldados al respaldo toman el par; cada sector es libre de dilatarse
+        discs.forEach((d) => { stopRows("Interfaz inox", d.n + " (" + P.n_sec + " sectores)", P.n_sec, d.t, P.Fy_ss); screwRow("Interfaz inox", d.n, d.t - P.ss_allow); });
+        const chord = 2 * R.Ro * Math.sin(Math.PI / P.n_sec);
+        add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Sectores de disco: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes)", formula: "j = (α_inox − α_acero)·ΔT·cuerda del sector", dem: (AL_SS - AL_S) * P.dT * chord, unit: "mm", ref: "Termoelasticidad" });
+        handRow("Interfaz inox", "Disco inoxidable", RHO_SS * I.A_ss * Math.max(I.tss, I.tss2), P.n_sec);
+        add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Soldar los topes antes del alivio de tensiones y del rectificado de las caras; el sector entra por el borde de la mesa izada y se asegura con los tornillos de posición", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
+      } else {
+        const Ttot = R.Tmax, TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
+        add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
+        if (P.tau_bond > 0) {
+          const eps = (AL_SS - AL_S) * P.dT, tb2 = eps * Math.sqrt(P.G_ad * E_SS * Math.max(I.tss, I.tss2) / P.t_ad);
+          add({ grp: "Interfaz inox", sys: "est", name: "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)", formula: "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb2, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
+        }
+        const sth = E_SS * (AL_SS - AL_S) * P.dT;
+        add({ grp: "Interfaz inox", sys: "est", name: "Dilatación diferencial inox–acero: tensión si el disco quedara restringido", formula: "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox", dem: sth, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)" });
+        add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Fijación permanente (pegado): los discos NO son desmontables sin destruir la unión; no admite limpieza ni cambio", formula: "Alternativa: fijación desmontable por sectores (fix_mode = 1)", dem: 0, unit: "–", ref: "Requisito de mantenimiento del mandante" });
       }
-      const dr = (AL_SS - AL_S) * P.dT * R.Ro, sth = E_SS * (AL_SS - AL_S) * P.dT;
-      add({ grp: "Interfaz inox", sys: "est", name: "Dilatación diferencial inox–acero: tensión si el disco quedara restringido", formula: "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox", dem: sth, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)" });
-      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)", formula: "Δr = (α_inox − α_acero)·ΔT·R", dem: dr, unit: "mm", ref: "Termoelasticidad" });
-      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: I.o === 2 ? "Δ = 2·t_disco + t_UHMW" : "Δ = 2·t_disco", dem: I.delta, unit: "mm", ref: "Geometría (eje de los cilindros sube Δ)" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Dilatación diferencial radial del disco respecto de su respaldo", formula: "Δr = (α_inox − α_acero)·ΔT·R", dem: (AL_SS - AL_S) * P.dT * R.Ro, unit: "mm", ref: "Termoelasticidad" });
+      if (I.o === 1) groovesRows("Interfaz inox", "disco de la mesa");
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: I.o === 2 ? "Δ = t_disco base + t_disco mesa + t_UHMW" : "Δ = t_disco base + t_disco mesa", dem: I.delta, unit: "mm", ref: "Geometría (eje de los cilindros sube Δ)" });
       if (I.o === 1) add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción A: par inox–inox con riesgo de gripado si la película de grasa se expulsa: exigir aleaciones o durezas distintas (≥ 50 HB de diferencia) o recubrimiento", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)", formula: "m = ρ·A·t", dem: R.m.ss + R.m.uhmw, unit: "kg", ref: "Geometría" });
     }
@@ -738,7 +795,13 @@ const TT = (() => {
       add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: espesor adoptado frente al requerido", formula: "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)", dem: I.tuhReq, cap: I.tuh, unit: "mm", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado", formula: "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45", dem: I.tuhConf, cap: I.tuh, unit: "mm", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: factor de forma y módulo confinado en el espesor adoptado", formula: "S = D/(4t); E_c(S)", dem: I.SU, cap: I.EcU, unit: "– / MPa", ref: REFU });
-      add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)", formula: "arrastre ≈ μ_máx·N, con μ_máx = máx(μ_diseño; μ_contaminado; μ_seco) (los pernos no bastan: aplastamiento del UHMW)", dem: Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N, unit: "kN", ref: "Equilibrio con el μ máximo; decisión del proyectista" });
+      const Fdrag = Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N;                     // kN, arrastre de la lámina con el μ máximo
+      if (removable) {
+        const Fs = Fdrag / P.n_seg * kpk, sigU = Fs * 1e3 / (Lav * I.tuh);
+        add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW (" + P.n_seg + " sectores): aplastamiento del canto contra el tope del rebaje", formula: "σ = F_sector/(L_canto·t_UHMW) ≤ p_adm,UHMW; F_sector = μ_máx·N/n·(q_máx/q_med)", dem: sigU, cap: P.p_uhmw, unit: "MPa", ref: REFU });
+        add({ grp: "Interfaz inox", sys: "est", name: "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, a lo largo del canto)", formula: "f = F_sector/(2·0,707·w·L_canto) ≤ 0,60FEXX/(1,20Nd)", dem: Fs * 1e3 / (2 * 0.707 * P.w_tope * Lav), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
+        add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: masa del sector (manipulación manual)", formula: "m_sector = m_UHMW/n ≤ 25 kg", dem: R.m.uhmw / P.n_seg, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
+      } else add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)", formula: "arrastre ≈ μ_máx·N (los pernos no bastan: aplastamiento del UHMW)", dem: Fdrag, unit: "kN", ref: "Equilibrio con el μ máximo; decisión del proyectista" });
       const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A);                          // mm/s, velocidad del vástago
       const vmax = R.Ro / R.K.armMin * vcyl / 1000;                                 // m/s en el borde de la mesa durante la carrera
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)", formula: "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)", dem: I.q * vmax, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
@@ -754,7 +817,7 @@ const TT = (() => {
     if (I.o === 3) {
       const G3 = "Interfaz bronce", REFB = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)";
       const REFC = "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo", conf = I.conf;
-      const tEffB = I.tbz - P.bz_allow;
+      const tEffB = I.tbz - P.bz_allow - P.h_gr;
       add({ grp: G3, sys: "est", name: "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)", formula: "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura", dem: 0.75 * I.qLoc * (I.a / tEffB) ** 2 / I.eta, cap: I.sad, unit: "MPa", ref: REFB });
       add({ grp: G3, sys: "est", kind: "geo", name: "Placa de bronce: espesor adoptado frente al requerido", formula: "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)", dem: I.tbzReq, cap: I.tbz, unit: "mm", ref: "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)" });
       add({ grp: G3, sys: "est", kind: "info", name: "Placa de bronce: espesor por flexión / requerido / comercial adoptado", formula: "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor", dem: I.tFlexB, cap: I.tbz, unit: "mm", ref: REFB });
@@ -773,22 +836,37 @@ const TT = (() => {
       add({ grp: G3, sys: "est", name: "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva", formula: "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef", dem: wear, cap: Math.max(0, I.tbz - I.tFlexB / Math.sqrt(I.eta)), unit: "mm", ref: REFC });
       add({ grp: G3, sys: "est", kind: "geo", name: "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)", formula: "h + 2 ≤ 0,70·t_placa", dem: wear + 2, cap: PLUG_DEPTH * I.tbz, unit: "mm", ref: "Criterio de proyecto (el grafito debe seguir lubricando)" });
       if (conf !== 2) add({ grp: G3, sys: "est", kind: "geo", name: "Pareja bronce–disco duro: diferencia de dureza", formula: "HB_disco − HB_bronce ≥ 100 (acabado Ra ≤ 0,4 µm)", dem: 100, cap: P.HB_cara - P.HB_bz, unit: "HB", ref: "Práctica de pares deslizantes con bronce" });
-      // retención: la placa de bronce fija a la base (la menor área pegada es la de las pastillas)
-      const TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * I.cov * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
-      add({ grp: G3, sys: "giro", name: "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)", dem: R.Tmax, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
-      if (P.tau_bond > 0) {
-        const tb1 = (AL_BZ - AL_S) * P.dT * Math.sqrt(P.G_ad * E_BZ * I.tbz / P.t_ad);
-        add({ grp: G3, sys: "est", name: "Adhesivo de la placa de bronce: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E_bz·t/t_adhesivo), ε = (α_bz − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb1, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
-        const epsC = ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT, EC = conf === 2 ? E_BZ : E_SS;
-        add({ grp: G3, sys: "est", name: conf === 2 ? "Adhesivo de la 2.ª placa de bronce: cortante térmico en el borde" : "Adhesivo del disco duro: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico", dem: epsC * Math.sqrt(P.G_ad * EC * I.tss / P.t_ad), cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
-      }
-      add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)" });
-      if (conf === 2) add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero de la 2.ª placa: tensión si quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz2", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sadC, unit: "MPa", ref: "Termoelasticidad" });
-      {
-        // retención de la pieza rotatoria (disco duro o 2.ª placa) sobre la mesa: área completa
+      const nB = conf === 3 ? P.bz_npad : P.n_sec;                                  // sectores de bronce: pastillas o sectores de la placa
+      const FyC2 = conf === 2 ? P.Fy_bz2 : P.Fy_cara;
+      if (removable) {
+        stopRows(G3, (conf === 3 ? "Pastillas de bronce (" : "Placa de bronce (") + nB + (conf === 3 ? " pastillas)" : " sectores)"), nB, I.tbz, P.Fy_bz);
+        stopRows(G3, (conf === 2 ? "2.ª placa de bronce" : "Disco duro") + " (" + P.n_sec + " sectores)", P.n_sec, I.tss, FyC2);
+        screwRow(G3, "Placa de bronce", I.tbz - P.bz_allow - P.h_gr);
+        screwRow(G3, conf === 2 ? "2.ª placa de bronce" : "Disco duro", I.tss - (conf === 2 ? P.bz_allow : P.ss_allow));
+        const chordB = 2 * R.Ro * Math.sin(Math.PI / nB), chordC = 2 * R.Ro * Math.sin(Math.PI / P.n_sec);
+        add({ grp: G3, sys: "est", kind: "info", name: "Sectores de bronce: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda del sector", dem: (AL_BZ - AL_S) * P.dT * chordB, unit: "mm", ref: "Termoelasticidad" });
+        add({ grp: G3, sys: "est", kind: "info", name: (conf === 2 ? "Sectores de la 2.ª placa" : "Sectores del disco duro") + ": crecimiento por dilatación de la cuerda (junta en frío ≥ 1 mm)", formula: "j = (α − α_acero)·ΔT·cuerda del sector", dem: ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT * chordC, unit: "mm", ref: "Termoelasticidad" });
+        const mBzPlate = R.m.bz - (conf === 2 ? R.ifc.mTop : 0);
+        handRow(G3, "Placa de bronce con grafito", mBzPlate, nB);
+        handRow(G3, conf === 2 ? "2.ª placa de bronce" : "Disco duro", conf === 2 ? R.ifc.mTop : R.m.ss, P.n_sec);
+        add({ grp: G3, sys: "est", kind: "pend", name: "Soldar los topes antes del alivio de tensiones y del rectificado; sectores atornillados con tornillos de posición, sacables con la mesa izada", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
+      } else {
+        // retención: la placa de bronce fija a la base (la menor área pegada es la de las pastillas)
+        const TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * I.cov * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
+        add({ grp: G3, sys: "giro", name: "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)", dem: R.Tmax, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
+        if (P.tau_bond > 0) {
+          const tb1 = (AL_BZ - AL_S) * P.dT * Math.sqrt(P.G_ad * E_BZ * I.tbz / P.t_ad);
+          add({ grp: G3, sys: "est", name: "Adhesivo de la placa de bronce: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E_bz·t/t_adhesivo), ε = (α_bz − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb1, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
+          const epsC = ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT, EC = conf === 2 ? E_BZ : E_SS;
+          add({ grp: G3, sys: "est", name: conf === 2 ? "Adhesivo de la 2.ª placa de bronce: cortante térmico en el borde" : "Adhesivo del disco duro: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico", dem: epsC * Math.sqrt(P.G_ad * EC * I.tss / P.t_ad), cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
+        }
+        add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)" });
+        if (conf === 2) add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero de la 2.ª placa: tensión si quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz2", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sadC, unit: "MPa", ref: "Termoelasticidad" });
         const TretR = Math.max(P.mu_back * R.N * R.r_u / 1e3, P.tau_bond * R.Ac * R.r_u / 1e6);
         add({ grp: G3, sys: "giro", name: conf === 2 ? "Retención de la 2.ª placa de bronce sobre la mesa (la mayor entre fricción y pegado)" : "Retención del disco duro sobre la mesa (la mayor entre fricción y pegado)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)", dem: R.Tmax, cap: TretR, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
+        add({ grp: G3, sys: "est", kind: "pend", name: "Fijación permanente (pegado): la placa y el disco NO son desmontables sin destruir la unión; no admite limpieza ni cambio", formula: "Alternativa: fijación desmontable por sectores (fix_mode = 1)", dem: 0, unit: "–", ref: "Requisito de mantenimiento del mandante" });
       }
+      groovesRows(G3, "placa de bronce");
       add({ grp: G3, sys: "est", kind: "info", name: "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)", formula: "Δr = (α_bz − α_acero)·ΔT·R", dem: (AL_BZ - AL_S) * P.dT * R.Ro, unit: "mm", ref: "Termoelasticidad" });
       if (conf === 3) add({ grp: G3, sys: "est", kind: "info", name: "Pastillas de bronce: crecimiento por dilatación de la cuerda de la pastilla (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda de la pastilla", dem: (AL_BZ - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.bz_npad), unit: "mm", ref: "Termoelasticidad" });
       add({ grp: G3, sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: "Δ = t_bronce + t_disco (o 2.ª placa)", dem: I.delta, unit: "mm", ref: "Geometría (el eje de los cilindros sube Δ)" });
@@ -796,7 +874,7 @@ const TT = (() => {
       add({ grp: G3, sys: "est", kind: "pend", name: "Arranque con adherencia–deslizamiento (stick-slip) a 2,5 mm/s: diferencia entre μ estático y cinético", formula: "Sin verificación numérica; ensayo de arranque tras reposo bajo carga", dem: 0, unit: "–", ref: "Ensayo del proveedor" });
       add({ grp: G3, sys: "est", kind: "pend", name: "Par galvánico bronce–acero en contacto con grasa: sellado perimetral y protección del respaldo", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
       if (conf === 2) add({ grp: G3, sys: "est", kind: "pend", name: "Bronce contra bronce (aleaciones distintas): riesgo de gripado; el grafito va solo en una placa", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
-      if (conf === 3) add({ grp: G3, sys: "est", kind: "pend", name: "Retención de las pastillas de bronce: alojamientos soldados o pegado; la mesa apoya solo en las pastillas", formula: "Arrastre ≈ μ_máx·N", dem: Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N, unit: "kN", ref: "Equilibrio; decisión del proyectista" });
+      if (conf === 3 && !removable) add({ grp: G3, sys: "est", kind: "pend", name: "Retención de las pastillas de bronce: alojamientos soldados o pegado; la mesa apoya solo en las pastillas", formula: "Arrastre ≈ μ_máx·N", dem: Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N, unit: "kN", ref: "Equilibrio; decisión del proyectista" });
     }
 
     /* --- Cubierta de madera dura y altura de skidding --- */

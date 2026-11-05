@@ -152,7 +152,7 @@ const AG = (() => {
     const ifaces = [0, 1, 2, 3].map((k) => {
       const Q = Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0, opt_bz: k === 3 ? 1 : 0 }), RR = TT_.compute(Q), I = RR.ifc;
       return { k, name: ["Acero–acero con grasa (base)", "A · Discos inoxidables con grasa", "B · Discos inoxidables con lámina UHMW", "C · Placa de bronce con tapones de grafito (" + ["", "bronce + disco duro", "dos placas de bronce", "pastillas + disco duro"][Math.round(P.bz_conf) || 1] + ")"][k], tbz: I.tbz, tbzReq: I.tbzReq, tFlexB: I.tFlexB,
-        tss: I.tss, tuh: I.tuh, tssReq: I.tssReq, tuhReq: I.tuhReq, delta: I.delta, mass: RR.m.total, mu_d: RR.mu.d, F: RR.cd.F, p: RR.cd.p, FS: RR.cd.FS,
+        tss: I.tss, tss2: I.tss2, tss2Req: I.tss2Req, tuh: I.tuh, tssReq: I.tssReq, tuhReq: I.tuhReq, delta: I.delta, mass: RR.m.total, mu_d: RR.mu.d, F: RR.cd.F, p: RR.cd.p, FS: RR.cd.FS,
         muMax: RR.muMax(P.r_ef), q: RR.q_max, mAdd: RR.m.ss + RR.m.uhmw + RR.m.bz, turns: RR.cd.turns, tFlex: I.tFlex, tuhConf: I.tuhConf, qAvg: I.qAvg, dTot: RR.m.total - R0m };
     });
     return { mus, rs, grid, loads, classes, ifaces };

@@ -43,7 +43,17 @@
   "uh_tmin": 6,
   "k_wear": 2,
   "PV_uh": 0.05,
-  "n_seg": 12,
+  "n_seg": 24,
+  "fix_mode": 1,
+  "n_sec": 24,
+  "L_tope": 0,
+  "w_tope": 6,
+  "d_tor": 6,
+  "h_gr": 1,
+  "w_gr": 8,
+  "n_gr_rad": 12,
+  "n_gr_circ": 3,
+  "n_greaser": 4,
   "t_bz": 0,
   "t_cara": 0,
   "Fy_bz": 170,
@@ -743,7 +753,57 @@
     },
     {
      "id": "n_seg",
-     "lab": "N° de sectores de la lámina UHMW (juntas de dilatación)",
+     "lab": "N° de sectores de la lámina UHMW (juntas de dilatación y rebajes de retención)",
+     "u": "–"
+    },
+    {
+     "id": "fix_mode",
+     "lab": "Fijación de discos, bronce y UHMW: 1 = sectores desmontables con topes soldados al respaldo; 2 = pegado permanente (no desmontable)",
+     "u": "–"
+    },
+    {
+     "id": "n_sec",
+     "lab": "Fijación desmontable: N° de sectores de cada disco o placa de bronce",
+     "u": "–"
+    },
+    {
+     "id": "L_tope",
+     "lab": "Fijación desmontable: largo de cada tope sobre el canto radial del sector (0 = automático)",
+     "u": "mm"
+    },
+    {
+     "id": "w_tope",
+     "lab": "Fijación desmontable: filete de soldadura del tope al respaldo",
+     "u": "mm"
+    },
+    {
+     "id": "d_tor",
+     "lab": "Fijación desmontable: tornillo avellanado de posición (ISO 10642)",
+     "u": "mm"
+    },
+    {
+     "id": "h_gr",
+     "lab": "Engrase: profundidad de las ranuras en el disco de la mesa (A) o en el bronce (C); 0 = sin ranuras",
+     "u": "mm"
+    },
+    {
+     "id": "w_gr",
+     "lab": "Engrase: ancho de las ranuras",
+     "u": "mm"
+    },
+    {
+     "id": "n_gr_rad",
+     "lab": "Engrase: N° de ranuras radiales",
+     "u": "–"
+    },
+    {
+     "id": "n_gr_circ",
+     "lab": "Engrase: N° de ranuras circunferenciales",
+     "u": "–"
+    },
+    {
+     "id": "n_greaser",
+     "lab": "Engrase: N° de graseras M10×1 en el borde de la mesa",
      "u": "–"
     },
     {
@@ -1747,29 +1807,33 @@
     "name": "A · Discos inoxidables con grasa",
     "tbz": 0,
     "tss": 6,
+    "tss2": 8,
+    "tss2Req": 6.534822419892798,
     "tuh": 0,
-    "tssReq": 5.534446469847977,
+    "tssReq": 5.534822419892798,
     "tuhReq": 0,
-    "delta": 12,
-    "mass": 3625.3610695503385,
+    "delta": 14,
+    "mass": 3682.0054647956053,
     "mu_d": 0.2,
-    "F": 322.1054129856428,
-    "p": 506.31771529206344,
-    "FS": 1.3825311239528983,
-    "muMax": 0.2765062247905796,
-    "q": 1.6626773924521028,
-    "mAdd": 297.27234090795446,
+    "F": 322.1583996121505,
+    "p": 506.4010050059051,
+    "FS": 1.3823037337610287,
+    "muMax": 0.27646074675220583,
+    "q": 1.6629261690036905,
+    "mAdd": 346.81773105928016,
     "turns": true,
-    "tFlex": 5.034446469847977,
+    "tFlex": 5.034822419892798,
     "tuhConf": 0,
-    "qAvg": 1.041356025113886,
-    "dTot": 339.86637147159536
+    "qAvg": 1.0415115585828858,
+    "dTot": 396.51076671686224
    },
    {
     "k": 2,
     "name": "B · Discos inoxidables con lámina UHMW",
     "tbz": 0,
     "tss": 6,
+    "tss2": 6,
+    "tss2Req": 5.534446469847977,
     "tuh": 15,
     "tssReq": 5.534446469847977,
     "tuhReq": 14.0388456990431,
@@ -1792,9 +1856,11 @@
     "k": 3,
     "name": "C · Placa de bronce con tapones de grafito (bronce + disco duro)",
     "tbz": 10,
-    "tbzReq": 8.1372115908502,
+    "tbzReq": 9.1372115908502,
     "tFlexB": 5.528460325944273,
     "tss": 6,
+    "tss2": 6,
+    "tss2Req": 6,
     "tuh": 0,
     "tssReq": 6,
     "tuhReq": 0,
@@ -1818,38 +1884,58 @@
  "interfazChecks": {
   "A": [
    {
-    "nombre": "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)",
-    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor",
-    "dem": 103.05835056876252,
+    "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
+    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
+    "dem": 103.07374302089876,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.8378727688517278,
+    "fu": 0.8379979107390143,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
-    "nombre": "Disco inoxidable: espesor adoptado frente al requerido",
-    "formula": "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
-    "dem": 5.534446469847977,
+    "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
+    "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
+    "dem": 5.534822419892798,
     "cap": 6,
     "unidad": "mm",
-    "fu": 0.9224077449746629,
+    "fu": 0.9224704033154664,
     "estado": "ok",
-    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)"
+    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase): flexión sobre un vacío local (placa empotrada, carga uniforme)",
+    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
+    "dem": 73.79836038774407,
+    "cap": 123,
+    "unidad": "MPa",
+    "fu": 0.5999866698190575,
+    "estado": "ok",
+    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase): espesor adoptado frente al requerido",
+    "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
+    "dem": 6.534822419892798,
+    "cap": 8,
+    "unidad": "mm",
+    "fu": 0.8168528024865997,
+    "estado": "ok",
+    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.034446469847977,
+    "dem": 5.034822419892798,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
-    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)",
+    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.534446469847977,
+    "dem": 5.534822419892798,
     "cap": 6,
     "unidad": "mm",
     "fu": null,
@@ -1857,37 +1943,115 @@
     "ref": "ASTM A240 (plancha inoxidable)"
    },
    {
-    "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
-    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
-    "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
-    "unidad": "kN·m",
-    "fu": 0.6271669592309791,
-    "estado": "ok",
-    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
-   },
-   {
-    "nombre": "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)",
-    "formula": "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico",
-    "dem": 2.4104731485747775,
-    "cap": 4,
+    "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope sobre el canto del sector",
+    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 74.90844993289681,
+    "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.6026182871436944,
+    "fu": 0.8769769748241578,
     "estado": "ok",
-    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
+    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
-    "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
-    "formula": "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox",
-    "dem": 43.232000000000006,
-    "cap": 123,
+    "nombre": "Disco de la base (liso) (24 sectores): largo del tope frente al canto radial disponible",
+    "formula": "L_tope ≤ R_o − R_i − 100",
+    "dem": 145,
+    "cap": 825,
+    "unidad": "mm",
+    "fu": 0.17575757575757575,
+    "estado": "ok",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): soldadura del tope al respaldo (2 filetes)",
+    "formula": "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)",
+    "dem": 52.97627293698501,
+    "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.351479674796748,
+    "fu": 0.648689056371245,
     "estado": "ok",
-    "ref": "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)"
+    "ref": "ASME BTH-1 §3-3.4"
    },
    {
-    "nombre": "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)",
+    "nombre": "Disco de la base (liso): cabeza del tornillo avellanado dentro del espesor útil",
+    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
+    "dem": 5.300000000000001,
+    "cap": 5.5,
+    "unidad": "mm",
+    "fu": 0.9636363636363637,
+    "estado": "ok",
+    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): aplastamiento del tope sobre el canto del sector",
+    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 74.0572175472957,
+    "cap": 85.41666666666667,
+    "unidad": "MPa",
+    "fu": 0.867011327382974,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): largo del tope frente al canto radial disponible",
+    "formula": "L_tope ≤ R_o − R_i − 100",
+    "dem": 110,
+    "cap": 825,
+    "unidad": "mm",
+    "fu": 0.13333333333333333,
+    "estado": "ok",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): soldadura del tope al respaldo (2 filetes)",
+    "formula": "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)",
+    "dem": 69.83235978057115,
+    "cap": 81.66666666666667,
+    "unidad": "MPa",
+    "fu": 0.8550901197620957,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-3.4"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase): cabeza del tornillo avellanado dentro del espesor útil",
+    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
+    "dem": 5.300000000000001,
+    "cap": 7.5,
+    "unidad": "mm",
+    "fu": 0.7066666666666668,
+    "estado": "ok",
+    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
+   },
+   {
+    "nombre": "Sectores de disco: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes)",
+    "formula": "j = (α_inox − α_acero)·ΔT·cuerda del sector",
+    "dem": 0.05847573411458311,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Disco inoxidable: masa del sector (manipulación manual al desmontar)",
+    "formula": "m_sector = m_pieza/n ≤ 25 kg",
+    "dem": 8.257565025220957,
+    "cap": 25,
+    "unidad": "kg",
+    "fu": 0.3303026010088383,
+    "estado": "ok",
+    "ref": "ISO 11228-1 (carga manual)"
+   },
+   {
+    "nombre": "Soldar los topes antes del alivio de tensiones y del rectificado de las caras; el sector entra por el borde de la mesa izada y se asegura con los tornillos de posición",
+    "formula": "Sin verificación numérica",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Decisión del proyectista"
+   },
+   {
+    "nombre": "Dilatación diferencial radial del disco respecto de su respaldo",
     "formula": "Δr = (α_inox − α_acero)·ΔT·R",
     "dem": 0.22400000000000003,
     "unidad": "mm",
@@ -1896,9 +2060,29 @@
     "ref": "Termoelasticidad"
    },
    {
+    "nombre": "Engrase: área de las ranuras frente al área de contacto (disco de la mesa)",
+    "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
+    "dem": 0.05437175903770771,
+    "cap": 0.25,
+    "unidad": "–",
+    "fu": 0.21748703615083084,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
+   },
+   {
+    "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
+    "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
+    "dem": 169.85309046261665,
+    "cap": 4,
+    "unidad": "cm³ / graseras",
+    "fu": null,
+    "estado": "info",
+    "ref": "Diseño de engrase"
+   },
+   {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
-    "formula": "Δ = 2·t_disco",
-    "dem": 12,
+    "formula": "Δ = t_disco base + t_disco mesa",
+    "dem": 14,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -1916,7 +2100,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 297.27234090795446,
+    "dem": 346.81773105928016,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -1925,8 +2109,8 @@
   ],
   "B": [
    {
-    "nombre": "Disco inoxidable: flexión sobre un vacío local (placa empotrada, carga uniforme)",
-    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor",
+    "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
+    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
     "dem": 103.05835056876252,
     "cap": 123,
     "unidad": "MPa",
@@ -1935,14 +2119,14 @@
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
-    "nombre": "Disco inoxidable: espesor adoptado frente al requerido",
-    "formula": "t_disco ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
+    "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
+    "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
     "dem": 5.534446469847977,
     "cap": 6,
     "unidad": "mm",
     "fu": 0.9224077449746629,
     "estado": "ok",
-    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, fabricación)"
+    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
@@ -1954,7 +2138,7 @@
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
-    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (cada disco)",
+    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
     "dem": 5.534446469847977,
     "cap": 6,
@@ -1964,37 +2148,75 @@
     "ref": "ASTM A240 (plancha inoxidable)"
    },
    {
-    "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
-    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
-    "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
-    "unidad": "kN·m",
-    "fu": 0.6271669592309791,
-    "estado": "ok",
-    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
-   },
-   {
-    "nombre": "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)",
-    "formula": "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico",
-    "dem": 2.4104731485747775,
-    "cap": 4,
+    "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope sobre el canto del sector",
+    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 74.90844993289681,
+    "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.6026182871436944,
+    "fu": 0.8769769748241578,
     "estado": "ok",
-    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
+    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
-    "nombre": "Dilatación diferencial inox–acero: tensión si el disco quedara restringido",
-    "formula": "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox",
-    "dem": 43.232000000000006,
-    "cap": 123,
+    "nombre": "Disco de la base (liso) (24 sectores): largo del tope frente al canto radial disponible",
+    "formula": "L_tope ≤ R_o − R_i − 100",
+    "dem": 145,
+    "cap": 825,
+    "unidad": "mm",
+    "fu": 0.17575757575757575,
+    "estado": "ok",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): soldadura del tope al respaldo (2 filetes)",
+    "formula": "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)",
+    "dem": 52.97627293698501,
+    "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.351479674796748,
+    "fu": 0.648689056371245,
     "estado": "ok",
-    "ref": "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)"
+    "ref": "ASME BTH-1 §3-3.4"
    },
    {
-    "nombre": "Dilatación diferencial radial del disco respecto de su respaldo (fijar el disco solo al centro y con pasadores radiales)",
+    "nombre": "Disco de la base (liso): cabeza del tornillo avellanado dentro del espesor útil",
+    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
+    "dem": 5.300000000000001,
+    "cap": 5.5,
+    "unidad": "mm",
+    "fu": 0.9636363636363637,
+    "estado": "ok",
+    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
+   },
+   {
+    "nombre": "Sectores de disco: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes)",
+    "formula": "j = (α_inox − α_acero)·ΔT·cuerda del sector",
+    "dem": 0.05847573411458311,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Disco inoxidable: masa del sector (manipulación manual al desmontar)",
+    "formula": "m_sector = m_pieza/n ≤ 25 kg",
+    "dem": 6.193173768915718,
+    "cap": 25,
+    "unidad": "kg",
+    "fu": 0.2477269507566287,
+    "estado": "ok",
+    "ref": "ISO 11228-1 (carga manual)"
+   },
+   {
+    "nombre": "Soldar los topes antes del alivio de tensiones y del rectificado de las caras; el sector entra por el borde de la mesa izada y se asegura con los tornillos de posición",
+    "formula": "Sin verificación numérica",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Decisión del proyectista"
+   },
+   {
+    "nombre": "Dilatación diferencial radial del disco respecto de su respaldo",
     "formula": "Δr = (α_inox − α_acero)·ΔT·R",
     "dem": 0.22400000000000003,
     "unidad": "mm",
@@ -2004,7 +2226,7 @@
    },
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
-    "formula": "Δ = 2·t_disco + t_UHMW",
+    "formula": "Δ = t_disco base + t_disco mesa + t_UHMW",
     "dem": 27,
     "unidad": "mm",
     "fu": null,
@@ -2061,13 +2283,34 @@
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
-    "nombre": "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)",
-    "formula": "arrastre ≈ μ_máx·N, con μ_máx = máx(μ_diseño; μ_contaminado; μ_seco) (los pernos no bastan: aplastamiento del UHMW)",
-    "dem": 739.7316030136672,
-    "unidad": "kN",
-    "fu": null,
-    "estado": "pend",
-    "ref": "Equilibrio con el μ máximo; decisión del proyectista"
+    "nombre": "Lámina UHMW (24 sectores): aplastamiento del canto contra el tope del rebaje",
+    "formula": "σ = F_sector/(L_canto·t_UHMW) ≤ p_adm,UHMW; F_sector = μ_máx·N/n·(q_máx/q_med)",
+    "dem": 3.976727055393611,
+    "cap": 5,
+    "unidad": "MPa",
+    "fu": 0.7953454110787221,
+    "estado": "ok",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, a lo largo del canto)",
+    "formula": "f = F_sector/(2·0,707·w·L_canto) ≤ 0,60FEXX/(1,20Nd)",
+    "dem": 7.030988428913739,
+    "cap": 81.66666666666667,
+    "unidad": "MPa",
+    "fu": 0.08609373586424986,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-3.4"
+   },
+   {
+    "nombre": "Lámina UHMW: masa del sector (manipulación manual)",
+    "formula": "m_sector = m_UHMW/n ≤ 25 kg",
+    "dem": 1.8353037020115934,
+    "cap": 25,
+    "unidad": "kg",
+    "fu": 0.07341214808046374,
+    "estado": "ok",
+    "ref": "ISO 11228-1 (carga manual)"
    },
    {
     "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",
@@ -2101,7 +2344,7 @@
    {
     "nombre": "Lámina UHMW: junta de dilatación entre sectores (ancho a dejar en frío)",
     "formula": "j = (α_UHMW − α_acero)·ΔT·cuerda del sector; α_UHMW = 180×10⁻⁶/K",
-    "dem": 3.4847396232603396,
+    "dem": 1.7574046520507747,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2112,20 +2355,20 @@
    {
     "nombre": "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)",
     "formula": "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura",
-    "dem": 64.14640133137995,
+    "dem": 81.18528918502774,
     "cap": 102,
     "unidad": "MPa",
-    "fu": 0.6288862875625485,
+    "fu": 0.7959342076963504,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
    {
     "nombre": "Placa de bronce: espesor adoptado frente al requerido",
     "formula": "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)",
-    "dem": 8.1372115908502,
+    "dem": 9.1372115908502,
     "cap": 10,
     "unidad": "mm",
-    "fu": 0.81372115908502,
+    "fu": 0.9137211590850199,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)"
    },
@@ -2172,40 +2415,40 @@
    {
     "nombre": "Presión de contacto sobre el bronce neto (sin tapones de grafito)",
     "formula": "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce",
-    "dem": 1.944885253399301,
+    "dem": 2.076982222140789,
     "cap": 20,
     "unidad": "MPa",
-    "fu": 0.09724426266996505,
+    "fu": 0.10384911110703945,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.0049621143427927205,
+    "dem": 0.005299142073393238,
     "cap": 0.5,
     "unidad": "MPa·m/s",
-    "fu": 0.009924228685585441,
+    "fu": 0.010598284146786477,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva",
     "formula": "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.012220074448308735,
+    "dem": 0.013050064181428213,
     "cap": 2.8627884091498013,
     "unidad": "mm",
-    "fu": 0.004268591562426329,
+    "fu": 0.004558515096581607,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)",
     "formula": "h + 2 ≤ 0,70·t_placa",
-    "dem": 2.0122200744483085,
+    "dem": 2.0130500641814284,
     "cap": 7,
     "unidad": "mm",
-    "fu": 0.28746001063547266,
+    "fu": 0.2875785805973469,
     "estado": "ok",
     "ref": "Criterio de proyecto (el grafito debe seguir lubricando)"
    },
@@ -2220,54 +2463,151 @@
     "ref": "Práctica de pares deslizantes con bronce"
    },
    {
-    "nombre": "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)",
-    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)",
-    "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
-    "unidad": "kN·m",
-    "fu": 0.6271669592309791,
+    "nombre": "Placa de bronce (24 sectores): aplastamiento del tope sobre el canto del sector",
+    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 62.06700137297164,
+    "cap": 70.83333333333333,
+    "unidad": "MPa",
+    "fu": 0.8762400193831291,
     "estado": "ok",
-    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
+    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
-    "nombre": "Adhesivo de la placa de bronce: cortante térmico en el borde",
-    "formula": "τ = ε·√(G_ad·E_bz·t/t_adhesivo), ε = (α_bz − α_acero)·ΔT ≤ τ_adm,cíclico",
-    "dem": 2.6429982973887824,
+    "nombre": "Placa de bronce (24 sectores): largo del tope frente al canto radial disponible",
+    "formula": "L_tope ≤ R_o − R_i − 100",
+    "dem": 105,
+    "cap": 825,
+    "unidad": "mm",
+    "fu": 0.12727272727272726,
+    "estado": "ok",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): soldadura del tope al respaldo (2 filetes)",
+    "formula": "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)",
+    "dem": 73.15771024631263,
+    "cap": 81.66666666666667,
+    "unidad": "MPa",
+    "fu": 0.895808696893624,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-3.4"
+   },
+   {
+    "nombre": "Disco duro (24 sectores): aplastamiento del tope sobre el canto del sector",
+    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 103.44500228828606,
+    "cap": 416.6666666666667,
+    "unidad": "MPa",
+    "fu": 0.24826800549188655,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
+   },
+   {
+    "nombre": "Disco duro (24 sectores): largo del tope frente al canto radial disponible",
+    "formula": "L_tope ≤ R_o − R_i − 100",
+    "dem": 105,
+    "cap": 825,
+    "unidad": "mm",
+    "fu": 0.12727272727272726,
+    "estado": "ok",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Disco duro (24 sectores): soldadura del tope al respaldo (2 filetes)",
+    "formula": "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)",
+    "dem": 73.15771024631263,
+    "cap": 81.66666666666667,
+    "unidad": "MPa",
+    "fu": 0.895808696893624,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-3.4"
+   },
+   {
+    "nombre": "Placa de bronce: cabeza del tornillo avellanado dentro del espesor útil",
+    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
+    "dem": 5.300000000000001,
+    "cap": 8,
+    "unidad": "mm",
+    "fu": 0.6625000000000001,
+    "estado": "ok",
+    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
+   },
+   {
+    "nombre": "Disco duro: cabeza del tornillo avellanado dentro del espesor útil",
+    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
+    "dem": 5.300000000000001,
+    "cap": 5.5,
+    "unidad": "mm",
+    "fu": 0.9636363636363637,
+    "estado": "ok",
+    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
+   },
+   {
+    "nombre": "Sectores de bronce: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)",
+    "formula": "j = (α_bz − α_acero)·ΔT·cuerda del sector",
+    "dem": 0.065785200878906,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Sectores del disco duro: crecimiento por dilatación de la cuerda (junta en frío ≥ 1 mm)",
+    "formula": "j = (α − α_acero)·ΔT·cuerda del sector",
+    "dem": 0.05847573411458311,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Termoelasticidad"
+   },
+   {
+    "nombre": "Placa de bronce con grafito: masa del sector (manipulación manual al desmontar)",
+    "formula": "m_sector = m_pieza/n ≤ 25 kg",
+    "dem": 8.950182454992516,
+    "cap": 25,
+    "unidad": "kg",
+    "fu": 0.3580072981997007,
+    "estado": "ok",
+    "ref": "ISO 11228-1 (carga manual)"
+   },
+   {
+    "nombre": "Disco duro: masa del sector (manipulación manual al desmontar)",
+    "formula": "m_sector = m_pieza/n ≤ 25 kg",
+    "dem": 6.193173768915718,
+    "cap": 25,
+    "unidad": "kg",
+    "fu": 0.2477269507566287,
+    "estado": "ok",
+    "ref": "ISO 11228-1 (carga manual)"
+   },
+   {
+    "nombre": "Soldar los topes antes del alivio de tensiones y del rectificado; sectores atornillados con tornillos de posición, sacables con la mesa izada",
+    "formula": "Sin verificación numérica",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Decisión del proyectista"
+   },
+   {
+    "nombre": "Engrase: área de las ranuras frente al área de contacto (placa de bronce)",
+    "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
+    "dem": 0.05437175903770771,
+    "cap": 0.25,
+    "unidad": "–",
+    "fu": 0.21748703615083084,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
+   },
+   {
+    "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
+    "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
+    "dem": 169.85309046261665,
     "cap": 4,
-    "unidad": "MPa",
-    "fu": 0.6607495743471956,
-    "estado": "ok",
-    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
-   },
-   {
-    "nombre": "Adhesivo del disco duro: cortante térmico en el borde",
-    "formula": "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico",
-    "dem": 2.4104731485747775,
-    "cap": 4,
-    "unidad": "MPa",
-    "fu": 0.6026182871436944,
-    "estado": "ok",
-    "ref": "Línea de pegado elástica (corte); criterio del proyecto"
-   },
-   {
-    "nombre": "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida",
-    "formula": "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz",
-    "dem": 27.720000000000002,
-    "cap": 102,
-    "unidad": "MPa",
-    "fu": 0.27176470588235296,
-    "estado": "ok",
-    "ref": "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)"
-   },
-   {
-    "nombre": "Retención del disco duro sobre la mesa (la mayor entre fricción y pegado)",
-    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)",
-    "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
-    "unidad": "kN·m",
-    "fu": 0.6271669592309791,
-    "estado": "ok",
-    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
+    "unidad": "cm³ / graseras",
+    "fu": null,
+    "estado": "info",
+    "ref": "Diseño de engrase"
    },
    {
     "nombre": "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)",

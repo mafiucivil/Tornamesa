@@ -297,6 +297,7 @@ T(f"Resultado: q_mín > 0, la mesa no despega. La presión máxima {n(DV['q_max'
 # ---- 6.1 alternativas de interfaz inoxidable
 IF = D["escenarios"]["ifaces"]
 H("6.1 Alternativas de interfaz: discos de acero inoxidable (A), con lámina de UHMW (B) y placa de bronce con grafito (C)", 2)
+T("Mantenimiento. La fijación por defecto es DESMONTABLE: cada disco o placa de bronce va en {0} sectores retenidos por topes soldados al respaldo y asegurados con tornillos avellanados de posición; con la mesa izada (4 cáncamos M30) los sectores se sacan a mano (cada uno < 25 kg), lo que permite limpiar, engrasar y cambiar piezas. Las ranuras de engrase ({1} radiales y {2} circunferenciales, {3} de profundidad) van en el disco de la mesa (A) o en el bronce (C) y se alimentan por {4} graseras M10×1 del borde. La fijación permanente por pegado no es desmontable y queda solo como alternativa (parámetro de fijación = 2).".format(pint(P["n_sec"]), pint(P["n_gr_rad"]), pint(P["n_gr_circ"]), n(P["h_gr"], unit="mm"), pint(P["n_greaser"])), size=9)
 T("Hipótesis. Dos discos anulares de acero inoxidable (R_i = {0} a R_o = {1} mm) se interponen entre la plancha base y la plancha inferior de la mesa: "
   "uno fijo a la base y otro a la mesa, apoyados sobre sus planchas de respaldo. En A deslizan entre sí con grasa; en B se agrega una lámina de UHMW fijada al disco de la base, "
   "que desliza sobre el disco de la mesa. La interfaz no se oxida y se lubrica con facilidad. Los discos y la lámina no cumplen función estructural: transmiten la presión de contacto "
@@ -310,7 +311,7 @@ table(["Dato", "Valor", "Fuente"], [
     ["UHMW: módulo aparente con fluencia (1.000 h)", n(P["E_uhmw"], unit="MPa"), "Datos de catálogo del proveedor"],
     ["Variación del hueco entre las dos caras de la lámina", n(P["d_flat"], unit="mm") + f" en una ventana de Ø{pint(P['ss_void'])}", "Requisito de fabricación: suma de las planitudes de discos y respaldos y de la tolerancia de espesor de la lámina; rectificar y medir en obra. ν del UHMW = 0,45 (con 0,42 el módulo confinado baja ≈ 15 %)"],
     ["μ de diseño: A / B", f"{n(P['muA_d'])} / {n(P['muB_d'])}", "Hipótesis; B sin película de grasa tras reposo bajo carga; confirmar con ensayo"],
-    ["μ respaldo / pegado estructural", f"{n(P['mu_back'])} / {n(P['tau_bond'], unit='MPa')}", "Clase A de AISC (superficie limpia); adhesivo epóxico estructural de diseño al corte (≈ 3 % de su resistencia). La capacidad es la mayor de las dos, no su suma"],
+    ["μ respaldo / pegado estructural (solo en la fijación permanente, no desmontable)", f"{n(P['mu_back'])} / {n(P['tau_bond'], unit='MPa')}", "Clase A de AISC (superficie limpia); adhesivo epóxico estructural de diseño al corte (≈ 3 % de su resistencia). La capacidad es la mayor de las dos, no su suma"],
     ["Adhesivo: G, espesor de línea, cortante cíclico admisible", f"{n(P['G_ad'], unit='MPa')} / {n(P['t_ad'], unit='mm')} / {n(P['tau_cyc'], unit='MPa')}", "Epóxico tenaz con línea ≥ 1 mm; el rígido (G ≈ 1.000) da un cortante térmico de borde de 7 a 14 MPa; ensayo de arrancamiento y de fatiga térmica"],
 ], widths=(65, 30, 75), size=8)
 T("Desarrollo.", bold=True, size=9.5, after=1)
@@ -320,11 +321,11 @@ table(["Ecuación", "Expresión", "Referencia"], [
     ["Lámina UHMW: conformidad con la planitud", "t ≥ E_c(S)·δ/(p_adm − q_máx): la sobrepresión local E_c·δ/t se suma a q_máx y no debe pasar de p_adm. E_c = E[1 + (M/E − 1)·S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45", "Hipótesis de diseño; datos de catálogo del UHMW; módulo de láminas delgadas (factor de forma)"],
     ["Lámina UHMW: PV y desgaste", "PV = q_máx·v ≤ PV_adm; h = k·q·s ≤ 0,20·t", "Proveedor de UHMW-PE (ASTM D4020)"],
     ["Dilatación diferencial", "σ = E·(α_inox − α_acero)·ΔT; Δr = (α − α_acero)·ΔT·R; junta UHMW = (α_UHMW − α_acero)·ΔT·cuerda", "α: inox 17,3; acero 11,7; UHMW 180 (×10⁻⁶/K)"],
-    ["Retención de los discos", "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u) (respaldo granallado sin pintura, discos pegados con epóxico estructural); cortante térmico del borde τ = ε·√(G·E·t/t_ad)", "Equilibrio"],
+    ["Fijación desmontable (por defecto): topes soldados al respaldo", "F_tope = (T_calado/r_u)/n·(q_máx/q_med); σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; soldadura f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd); L_tope = máx(aplastamiento; soldadura)/0,9. Los tornillos avellanados (ISO 10642) solo dan posición. Alternativa permanente: T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)", "ASME BTH-1 §3-3.3 y §3-3.4 (Nd del proyecto); Equilibrio"],
 ], widths=(48, 72, 50), size=8)
 T("Resultado.", bold=True, size=9.5, after=1)
 table(["Alternativa", "Disco inox o duro: t_flex / t_req → adoptado (mm)", "UHMW: t_req → adoptado (mm)", "Bronce: t_flex / t_req → adoptado (mm)", "Altura agregada (mm)", "Δ masa total (kg)", "Masa total (kg)", "μ diseño", "F por cilindro (kN)", "p diseño (bar)", "FS diseño"],
-      [[r["name"], "—" if r["k"] == 0 else f"{n(r['tFlex'])} / {n(r['tssReq'])} → {n(r['tss'])}", "—" if r["k"] != 2 else f"{n(r['tuhReq'])} → {n(r['tuh'])}", "—" if r["k"] != 3 else f"{n(r['tFlexB'])} / {n(r['tbzReq'])} → {n(r['tbz'])}",
+      [[r["name"], "—" if r["k"] == 0 else f"{n(r['tFlex'])} / {n(r['tssReq'])} → {n(r['tss'])}" + ("" if (r['tss2'] == r['tss'] and r['tss2Req'] == r['tssReq']) else f" · mesa {n(r['tss2Req'])} → {n(r['tss2'])}"), "—" if r["k"] != 2 else f"{n(r['tuhReq'])} → {n(r['tuh'])}", "—" if r["k"] != 3 else f"{n(r['tFlexB'])} / {n(r['tbzReq'])} → {n(r['tbz'])}",
         "—" if r["k"] == 0 else n(r["delta"]), "—" if r["k"] == 0 else "+" + n(r["dTot"]), n(r["mass"]), n(r["mu_d"]), n(r["F"]), n(r["p"]), n(r["FS"])] for r in IF],
       widths=(30, 22, 16, 22, 12, 12, 12, 10, 12, 11, 11), size=6.5, num_cols=tuple(range(4, 11)))
 def ifrows(L, only=None):
@@ -521,7 +522,7 @@ table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["7", "Losa o mats de apoyo", f"q ≈ {n(DV['q_max'], unit='MPa')}", "Tercero"],
     ["8", "Artículo de ISO 4413:2010 (sobrepresión)", "Criterio confirmado; numeral por citar", "Revisor"],
     ["9", "Guía de retorno tipo KIET", "No adoptada; evaluar con fotos del equipo existente", "Mandante / proyectista"],
-    ["13", "Interfaz con placa de bronce y grafito (C), si se adopta", f"Aleación (C95400, Fy {pint(P['Fy_bz'])} MPa), p_adm {pint(P['p_bz'])} MPa, PV, desgaste y μ de catálogo; ensayo de arranque (stick-slip); disco duro (≥ 100 HB sobre el bronce, Ra ≤ 0,4 µm); retención por pegado y, con pastillas, alojamientos; par galvánico y sellado; aún no dibujada", "Proveedor / proyectista"],
+    ["13", "Interfaz con placa de bronce y grafito (C), si se adopta", f"Aleación (C95400, Fy {pint(P['Fy_bz'])} MPa), p_adm {pint(P['p_bz'])} MPa, PV, desgaste y μ de catálogo; ensayo de arranque (stick-slip); disco duro (≥ 100 HB sobre el bronce, Ra ≤ 0,4 µm); fijación desmontable por sectores con topes (verificada) y ranuras de engrase; par galvánico y sellado; aún no dibujada", "Proveedor / proyectista"],
     ["12", "Interfaz inoxidable (A) o con UHMW (B), si se adopta", "μ, p_adm y E_ap del UHMW son datos de catálogo; par inox–inox de aleaciones distintas o tratada contra el gripado; fijación y retención de los discos; sectores de UHMW con juntas de dilatación; no dibujada aún en planos ni en el 3D; discos pegados con epóxico estructural y respaldo granallado sin pintura; respaldo canteado ≤ 3 mm en el borde; tornillos avellanados M6; sellado perimetral; retención de los sectores de UHMW por rebaje o cola de milano; fluencia de la lámina (asentamiento 0,1 a 0,2 mm)", "Proveedor / proyectista"],
     ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
     ["11", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
