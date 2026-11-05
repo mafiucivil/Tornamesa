@@ -434,12 +434,12 @@ const TT = (() => {
       ["bz_allow", "Opción C · sobreespesor del bronce por desgaste y relapeado", "mm", 1.0, 0, 6, 0.1],
       ["bz_tmin", "Opción C · espesor mínimo constructivo del bronce", "mm", 6, 3, 30, 1],
       ["cara_tmin", "Opción C · espesor mínimo del disco duro (distorsión del temple y rectificado)", "mm", 6, 3, 30, 1],
-      ["bz_cover", "Opción C (configuración 3) · fracción del área cubierta por las pastillas de bronce", "–", 0.7, 0.1, 1, 0.05],
+      ["bz_cover", "Opción C (configuración 3) · fracción del área cubierta por las pastillas de bronce", "–", 0.9, 0.1, 1, 0.05],
       ["bz_npad", "Opción C (configuración 3) · N° de pastillas por vuelta (junta de dilatación)", "–", 24, 6, 96, 1],
       ["muC_nom", "Opción C · μ nominal (bronce con grafito y grasa sobre acero duro)", "–", 0.08, 0.02, 0.6, 0.01],
       ["muC_d", "Opción C · μ estático de diseño (arranque tras reposo bajo carga)", "–", 0.15, 0.03, 0.6, 0.01],
       ["muC_cont", "Opción C · μ contaminado", "–", 0.20, 0.05, 0.8, 0.01],
-      ["muC_dry", "Opción C · μ seco (solo grafito)", "–", 0.20, 0.05, 0.8, 0.01],
+      ["muC_dry", "Opción C · μ seco (solo grafito; referencial)", "–", 0.25, 0.05, 0.8, 0.01],
     ] },
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
@@ -826,7 +826,9 @@ const TT = (() => {
     // tierra / losa (base delgada: sin reparto, se toma q_max de la interfaz como presión de apoyo)
     const N_tot = ND + (m.total - m.disc) * G / 1e3;
     const g_rigid = N_tot * 1e3 / (P.B * P.B) * (1 + 6 * P.e * Math.SQRT2 / P.B);
-    return { m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
+    // presión bajo las pastillas de bronce (configuración 3): el respaldo y la losa reciben q_máx/cobertura
+    const qc = q_max / (ifc.o === 3 && ifc.cov ? ifc.cov : 1);
+    return { m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, qc, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
       mu, ifc, Tmax, cases, cd, muMax, curve, stroke, stallMax, tCycle, tRev: tCycle * P.N_pin, Vext, g_rigid, hax: hAxis(P), torque, Fcyl, Kg, Kguide: Kg(),
       Rguide: stallMax.R };
   }
@@ -869,7 +871,7 @@ const TT = (() => {
     for (let i = 0; i < rs.length - 1; i++) for (let j = 0; j < nT - 1; j++) {
       elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]);
       const rc = (rs[i] + rs[i + 1]) / 2;
-      q.push(which === "top" ? (rc <= RL ? q_top : 0) : R.q_max);
+      q.push(which === "top" ? (rc <= RL ? q_top : 0) : R.qc);
     }
     const wFix = new Set(), clamp = [], betaN = [], groups = { ring: rings.map(() => []), rib: [], pin: pinAng.map(() => []), hub: [] };
     const near = (a, b, tol) => Math.abs(a - b) < tol;
@@ -1037,7 +1039,7 @@ const TT = (() => {
     /* --- Interfaz y apoyo --- */
     add({ grp: "Interfaz", sys: "est", name: "Presión de contacto máxima", formula: "q = N_D/A · (1 + 4eR/(R²+r²))", dem: R.q_max, cap: P.q_adm, unit: "MPa", ref: "Criterio acero/acero lubricado" });
     add({ grp: "Interfaz", sys: "est", kind: "geo", name: "Sin despegue de la mesa (q_mín ≥ 0)", formula: "1 − 4eR/(R²+r²) ≥ 0", dem: 4 * P.e * R.Ro / (R.Ro ** 2 + R.Ri ** 2), cap: 1, unit: "–", ref: "Núcleo central" });
-    add({ grp: "Interfaz", sys: "est", kind: "info", name: "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)", formula: "σ ≈ q_max ≤ q_losa (verificar por terceros)", dem: R.q_max, cap: P.q_floor, unit: "MPa", ref: "Referencial (rev. M7)" });
+    add({ grp: "Interfaz", sys: "est", kind: "info", name: "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)", formula: "σ ≈ q_máx (÷ cobertura con pastillas) ≤ q_losa (verificar por terceros)", dem: R.qc, cap: P.q_floor, unit: "MPa", ref: "Referencial (rev. M7)" });
 
     /* --- Interfaz con discos de acero inoxidable (A) o discos + lámina UHMW (B) --- */
     const I = R.ifc;
@@ -1112,8 +1114,14 @@ const TT = (() => {
         add({ grp: G3, sys: "est", name: conf === 2 ? "Adhesivo de la 2.ª placa de bronce: cortante térmico en el borde" : "Adhesivo del disco duro: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico", dem: epsC * Math.sqrt(P.G_ad * EC * I.tss / P.t_ad), cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
       }
       add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)" });
+      if (conf === 2) add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero de la 2.ª placa: tensión si quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz2", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sadC, unit: "MPa", ref: "Termoelasticidad" });
+      {
+        // retención de la pieza rotatoria (disco duro o 2.ª placa) sobre la mesa: área completa
+        const TretR = Math.max(P.mu_back * R.N * R.r_u / 1e3, P.tau_bond * R.Ac * R.r_u / 1e6);
+        add({ grp: G3, sys: "giro", name: conf === 2 ? "Retención de la 2.ª placa de bronce sobre la mesa (la mayor entre fricción y pegado)" : "Retención del disco duro sobre la mesa (la mayor entre fricción y pegado)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)", dem: R.Tmax, cap: TretR, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
+      }
       add({ grp: G3, sys: "est", kind: "info", name: "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)", formula: "Δr = (α_bz − α_acero)·ΔT·R", dem: (AL_BZ - AL_S) * P.dT * R.Ro, unit: "mm", ref: "Termoelasticidad" });
-      if (conf === 3) add({ grp: G3, sys: "est", kind: "info", name: "Pastillas de bronce: junta de dilatación entre pastillas (ancho a dejar en frío)", formula: "j = (α_bz − α_acero)·ΔT·cuerda de la pastilla", dem: (AL_BZ - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.bz_npad), unit: "mm", ref: "Termoelasticidad" });
+      if (conf === 3) add({ grp: G3, sys: "est", kind: "info", name: "Pastillas de bronce: crecimiento por dilatación de la cuerda de la pastilla (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda de la pastilla", dem: (AL_BZ - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.bz_npad), unit: "mm", ref: "Termoelasticidad" });
       add({ grp: G3, sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: "Δ = t_bronce + t_disco (o 2.ª placa)", dem: I.delta, unit: "mm", ref: "Geometría (el eje de los cilindros sube Δ)" });
       add({ grp: G3, sys: "est", kind: "info", name: "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)", formula: "m = ρ·A·t (bronce descontando los tapones, más el grafito)", dem: R.m.ss + R.m.bz, unit: "kg", ref: "Geometría" });
       add({ grp: G3, sys: "est", kind: "pend", name: "Arranque con adherencia–deslizamiento (stick-slip) a 2,5 mm/s: diferencia entre μ estático y cinético", formula: "Sin verificación numérica; ensayo de arranque tras reposo bajo carga", dem: 0, unit: "–", ref: "Ensayo del proveedor" });
@@ -1289,7 +1297,7 @@ const TT = (() => {
   function discCached(P, R, which, opts) {
     if (!opts.cache) return runDisc(P, R, which, opts.coarse);
     const RL = Math.min(P.D_load / 2, P.D_top / 2);
-    const q = which === "top" ? P.phi_d * R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P.e / RL) : R.q_max;
+    const q = which === "top" ? P.phi_d * R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P.e / RL) : R.qc;
     const t = which === "top" ? P.t_top : P.t_bot;
     const key = which + JSON.stringify([P.N_rib, P.D_hub, P.D_top, P.rings, P.R_rib, P.R_pin, P.d_pin, P.N_pin, P.D_load, P.E, P.nu, !!opts.coarse]);
     let c = opts.cache.get(key);

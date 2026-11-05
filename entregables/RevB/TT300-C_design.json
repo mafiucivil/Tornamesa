@@ -60,12 +60,12 @@
   "bz_allow": 1,
   "bz_tmin": 6,
   "cara_tmin": 6,
-  "bz_cover": 0.7,
+  "bz_cover": 0.9,
   "bz_npad": 24,
   "muC_nom": 0.08,
   "muC_d": 0.15,
   "muC_cont": 0.2,
-  "muC_dry": 0.2,
+  "muC_dry": 0.25,
   "D_top": 2000,
   "t_top": 20,
   "t_bot": 16,
@@ -842,7 +842,7 @@
     },
     {
      "id": "muC_dry",
-     "lab": "Opción C · μ seco (solo grafito)",
+     "lab": "Opción C · μ seco (solo grafito; referencial)",
      "u": "–"
     }
    ]
@@ -2193,6 +2193,16 @@
     "ref": "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)"
    },
    {
+    "nombre": "Retención del disco duro sobre la mesa (la mayor entre fricción y pegado)",
+    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)",
+    "dem": 656.4906300230158,
+    "cap": 1046.7557647296867,
+    "unidad": "kN·m",
+    "fu": 0.6271669592309791,
+    "estado": "ok",
+    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
+   },
+   {
     "nombre": "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)",
     "formula": "Δr = (α_bz − α_acero)·ΔT·R",
     "dem": 0.25200000000000006,
@@ -2858,7 +2868,7 @@
   {
    "grp": "Interfaz",
    "nombre": "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)",
-   "formula": "σ ≈ q_max ≤ q_losa (verificar por terceros)",
+   "formula": "σ ≈ q_máx (÷ cobertura con pastillas) ≤ q_losa (verificar por terceros)",
    "dem": 1.661929727825973,
    "cap": 2,
    "unidad": "MPa",
@@ -3348,7 +3358,7 @@
   {
    "grp": "Pivote",
    "nombre": "Presión en el buje",
-   "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim",
+   "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim + H_cil",
    "dem": 16.074884274790485,
    "cap": 30,
    "unidad": "MPa",
@@ -3359,7 +3369,7 @@
   {
    "grp": "Pivote",
    "nombre": "Flexión del pivote",
-   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd",
+   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd (H con la F_pas de calado si el n° de cilindros es impar)",
    "dem": 36.38609481903051,
    "cap": 216.66666666666666,
    "unidad": "MPa",

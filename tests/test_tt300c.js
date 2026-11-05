@@ -107,6 +107,10 @@ test("Interfaz alternativa C: placa de bronce con tapones de grafito", () => {
   // configuración 3: la presión local sube con 1/cobertura
   const C3 = run({ bz_conf: 3 }); near(C3.R.ifc.qLoc, C3.R.ifc.q / P0.bz_cover, 1e-9, "q local con pastillas");
   assert.ok(C3.R.m.bz < C1.R.m.bz * 1.05 || C3.R.ifc.tbz > C1.R.ifc.tbz, "pastillas: menos bronce o más espesor");
+  // las pastillas cargan el respaldo con q/cobertura: la plancha inferior y la losa lo reciben (hallazgo C1)
+  near(C3.R.qc, C3.R.q_max / P0.bz_cover, 1e-9, "presión bajo las pastillas");
+  const full = (o) => TT.analyze(Object.assign(TT.defaults(), { opt_bz: 1, bz_conf: 3 }, o)).checks.find((c) => /Plancha inferior: σvm local/.test(c.name));
+  assert.ok(full({ bz_cover: 0.6 }).fu > full({}).fu, "menos cobertura = más tensión en la plancha inferior");
   // con 40 % de cobertura el pegado no alcanza para el par de calado
   assert.ok(run({ bz_conf: 3, bz_cover: 0.4 }).checks.some((c) => /Retención de la placa de bronce/.test(c.name) && c.st === "fail"), "retención falla con 40 %");
   // espesor manual insuficiente, exclusión con A y B, y tapones mayores que el paso
