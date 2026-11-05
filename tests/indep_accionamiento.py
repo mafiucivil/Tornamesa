@@ -325,7 +325,7 @@ l_eq = lev + P["e_dog"]
 c_pl = -l_eq + math.sqrt(l_eq ** 2 + l_eq * L_in + L_in ** 2 / 2)
 sig_al = F_st / (h_d * (2 * c_pl - L_in))
 comp("4", "Alojamiento bloque rígido-plástico (MPa)", sig_al, ver("Aplastamiento del alojamiento")["dem"])
-V_fw = sig_al * h_d * min(inset, c_pl)
+V_fw = min(F_st, sig_al * h_d * min(inset, c_pl))   # el cortante del marco no puede superar la fuerza total del empuje
 t_fw = P["t_fw"]
 comp("4", "Marco de boca: flexión (MPa)", 6 * V_fw * inset / 2 / ((h_d + 20) * t_fw ** 2), ver("marco de boca: flexión")["dem"])
 comp("4", "Marco de boca: corte (MPa)", 1.5 * V_fw / ((h_d + 20) * t_fw), ver("marco de boca: corte")["dem"])

@@ -963,8 +963,8 @@ const TT = (() => {
     const lL = lev, cL = -lL + Math.sqrt(lL * lL + lL * P.L_in + P.L_in ** 2 / 2), sLip = Fs * 1e3 / (P.dog_h * (2 * cL - P.L_in));
     add({ grp: "Patín y guía", sys: "est", name: "Aplastamiento del alojamiento de la uña (bloque rígido-plástico)", formula: "c = −l + √(l² + l·L_in + L_in²/2); σ = F/(h·(2c − L_in)) ≤ 1,25Fy_patín/Nd", dem: sLip, cap: 1.25 * P.Fy_shoe / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.5 (aplastamiento)" });
     if (K.inset > 0) {
-      const Vw = sLip * P.dog_h * Math.min(K.inset, cL) / 1e3, Hw = P.dog_h + 20;
-      add({ grp: "Patín y guía", sys: "est", name: "Pared del marco de boca: flexión (voladizo del marco)", formula: "σ = 6V·(i/2)/((h+20)·t²), V = σ_al·h·mín(i, c)", dem: 6 * Vw * 1e3 * K.inset / 2 / (Hw * P.t_fw ** 2), cap: P.Fy_shoe / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+      const Vw = Math.min(Fs, sLip * P.dog_h * Math.min(K.inset, cL) / 1e3), Hw = P.dog_h + 20;
+      add({ grp: "Patín y guía", sys: "est", name: "Pared del marco de boca: flexión (voladizo del marco)", formula: "σ = 6V·(i/2)/((h+20)·t²), V = mín(F; σ_al·h·mín(i, c))", dem: 6 * Vw * 1e3 * K.inset / 2 / (Hw * P.t_fw ** 2), cap: P.Fy_shoe / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
       add({ grp: "Patín y guía", sys: "est", name: "Pared del marco de boca: corte", formula: "τ = 1,5V/((h+20)·t) ≤ Fy/(Nd·√3)", dem: 1.5 * Vw * 1e3 / (Hw * P.t_fw), cap: P.Fy_shoe / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
     }
 

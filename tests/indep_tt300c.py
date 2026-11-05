@@ -148,7 +148,7 @@ sal = F1 / (hd * (2 * c - Lin))
 fb_sh = 1.25 * P["Fy_shoe"] / Nd
 chk("Alojamiento: FU bloque rígido-plástico", sal / fb_sh, fu["Patín y guía · Aplastamiento del alojamiento de la uña (bloque rígido-plástico)"])
 inset = (P["x_g"] - P["w_s"] / 2) - mouth
-V = sal * hd * min(inset, c)
+V = min(F1, sal * hd * min(inset, c))
 chk("Marco de boca: FU flexión", 6 * V * inset / 2 / ((hd + 20) * P["t_fw"]**2) / (P["Fy_shoe"] / Nd), fu["Patín y guía · Pared del marco de boca: flexión (voladizo del marco)"])
 chk("Marco de boca: FU corte", 1.5 * V / ((hd + 20) * P["t_fw"]) / (P["Fy_shoe"] / (Nd * 3**.5)), fu["Patín y guía · Pared del marco de boca: corte"])
 
