@@ -84,6 +84,14 @@ const TT = (() => {
       ["muC_cont", "Opción C · μ contaminado", "–", 0.20, 0.05, 0.8, 0.01],
       ["muC_dry", "Opción C · μ seco (solo grafito; referencial)", "–", 0.25, 0.05, 0.8, 0.01],
     ] },
+    { id: "cubierta", t: "Cubierta de madera dura y altura de skidding", p: [
+      ["opt_wood", "Cubierta de madera dura sobre la plancha superior de la mesa", "–", 0, 0, 1, "chk"],
+      ["t_wood", "Espesor de los tablones", "mm", 50, 20, 150, 5],
+      ["rho_wood", "Densidad de la madera dura (seca al aire)", "kg/m³", 900, 500, 1300, 10],
+      ["p_wood", "Presión admisible de aplastamiento perpendicular a la fibra (sostenida)", "MPa", 6, 1, 20, 0.5],
+      ["h_skid", "Altura de los rieles de skidding o de la superficie de llegada (0 = no aplica)", "mm", 0, 0, 800, 5],
+      ["tol_skid", "Tolerancia de enrase con los rieles", "mm", 10, 1, 50, 1],
+    ] },
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
       ["t_top", "Espesor plancha superior", "mm", 20, 6, 60, 1],
@@ -119,7 +127,11 @@ const TT = (() => {
       ["c_rod", "Retraído: eje del ojal del vástago → cara frontal del cuerpo", "mm", 110, 30, 400, 1],
       ["eta_c", "Rendimiento del cilindro (sellos)", "–", 0.95, 0.8, 1, 0.01],
       ["m_cyl", "Masa por cilindro", "kg", 55, 5, 500, 1],
-      ["Q_pump", "Caudal de la bomba", "L/min", 1.8, 0.2, 50, 0.1],
+      ["Q_pump", "Caudal de la bomba en el avance (a la presión de trabajo)", "L/min", 1.8, 0.2, 50, 0.1],
+      ["Q_ret", "Caudal de retorno, bomba de dos etapas o válvula de alto caudal (0 = igual al de avance)", "L/min", 0, 0, 100, 0.1],
+      ["eta_pump", "Rendimiento global de la bomba y el motor", "–", 0.85, 0.5, 0.95, 0.01],
+      ["t_vuelta_obj", "Tiempo por vuelta objetivo (0 = sin objetivo)", "min", 0, 0, 240, 1],
+      ["v_ret_max", "Velocidad máxima de retorno del vástago (rebote de la uña sobre el pasador)", "m/s", 0.25, 0.02, 1, 0.01],
     ] },
     { id: "cinematica", t: "Accionamiento guiado (patín y uña)", p: [
       ["x_g", "Eje del cilindro y de la guía: distancia al centro", "mm", 1140, 500, 2500, 5],
@@ -228,7 +240,8 @@ const TT = (() => {
     m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
     m.hub = RHO * Math.PI / 4 * Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw;
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
-    m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins;
+    m.wood = P.opt_wood > 0.5 ? P.rho_wood * 1e-9 * Math.PI / 4 * (P.D_top ** 2 - hole_top ** 2) * P.t_wood : 0;   // cubierta de madera (kg/m³ → kg/mm³)
+    m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood;
     return m;
   }
 
@@ -465,13 +478,20 @@ const TT = (() => {
     const curve = K.ok ? K.pts.map((q) => ({ s: q.s, arm: q.arm, F: cd ? Fcyl(cd.T, q.arm) : 0 })) : [];
     const stroke = K.ok && cd ? dpts.map((d) => Object.assign({ th: d.th, s: P.s_free + P.R_pin * (Math.sin(d.th) + Math.sin(K.pitch / 2)) }, atPt(d, cd.T))) : [];
     const Vext = P.n_cyl * A * P.stroke, Vret = P.n_cyl * Aann * P.stroke;
-    const tCycle = (Vext + Vret) / 1e6 / P.Q_pump;    // min
+    const Qr = P.Q_ret > 0 ? P.Q_ret : P.Q_pump;
+    const tCycle = Vext / 1e6 / P.Q_pump + Vret / 1e6 / Qr;    // min (avance a Q_pump, retorno a Q_ret)
     // tierra / losa (base delgada: sin reparto, se toma q_max de la interfaz como presión de apoyo)
     const N_tot = ND + (m.total - m.disc) * G / 1e3;
     const g_rigid = N_tot * 1e3 / (P.B * P.B) * (1 + 6 * P.e * Math.SQRT2 / P.B);
     // presión bajo las pastillas de bronce (configuración 3): el respaldo y la losa reciben q_máx/cobertura
     const qc = q_max / (ifc.o === 3 && ifc.cov ? ifc.cov : 1);
-    return { m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, qc, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
+    // bomba y control: potencia hidráulica p·Q/600 (kW con bar y L/min), velocidad del vástago y caudal para el tiempo objetivo
+    const pExt = cd ? cd.p : P.p_relief, pump = {
+      Qr, tExt: Vext / 1e6 / P.Q_pump, tRet: Vret / 1e6 / Qr,
+      PhExt: pExt * P.Q_pump / 600, PhRet: P.p_ret * Qr / 600, vExt: P.Q_pump * 1e6 / 60 / (P.n_cyl * A) / 1000, vRet: Qr * 1e6 / 60 / (P.n_cyl * Aann) / 1000,
+      Qreq: P.t_vuelta_obj > 0 ? (Vext + Vret) / 1e6 / (P.t_vuelta_obj / P.N_pin) : 0 };
+    pump.Pmotor = Math.max(pump.PhExt, pump.PhRet) / P.eta_pump;
+    return { pump, m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, qc, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
       mu, ifc, Tmax, cases, cd, muMax, curve, stroke, stallMax, tCycle, tRev: tCycle * P.N_pin, Vext, g_rigid, hax: hAxis(P), torque, Fcyl, Kg, Kguide: Kg(),
       Rguide: stallMax.R };
   }
@@ -677,6 +697,12 @@ const TT = (() => {
     const Pcr = Math.PI ** 2 * P.E * Ir / (Lext * Lext) / 1e3;
     add({ grp: "Giro", sys: "giro", name: "Pandeo del vástago (biarticulado, longitud extendida)", formula: "F_calado ≤ Pcr / 3; Pcr = π²EI/L²", dem: Fs, cap: Pcr / 3, unit: "kN", ref: "Euler, FS 3 (conservador frente a ISO/TS 13725)" });
     add({ grp: "Giro", sys: "giro", kind: "info", name: "Retorno: fuerza disponible en el puerto B", formula: "F_ret = A_anular · p_ret", dem: R.Fret, unit: "kN", ref: "Hidráulica" });
+    add({ grp: "Giro", sys: "giro", name: "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)", formula: "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx", dem: R.pump.vRet, cap: P.v_ret_max, unit: "m/s", ref: "Criterio del proyecto" });
+    add({ grp: "Giro", sys: "giro", kind: "info", name: "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)", formula: "P = p·Q/(600·η)", dem: R.pump.Pmotor, unit: "kW", ref: "Hidráulica" });
+    if (P.t_vuelta_obj > 0) {
+      add({ grp: "Giro", sys: "giro", kind: "geo", name: "Tiempo por vuelta frente al objetivo", formula: "t_vuelta ≤ t_objetivo", dem: R.tRev, cap: P.t_vuelta_obj, unit: "min", ref: "Criterio de operación" });
+      add({ grp: "Giro", sys: "giro", kind: "info", name: "Caudal de bomba requerido para el tiempo objetivo (avance y retorno al mismo caudal)", formula: "Q = (V_avance + V_retorno)·N_pas/t_objetivo", dem: R.pump.Qreq, unit: "L/min", ref: "Hidráulica" });
+    }
     add({ grp: "Giro", sys: "giro", kind: "info", name: "Tiempo por vuelta", formula: "N_pas · (V_ext + V_ret) / Q", dem: R.tRev, unit: "min", ref: "Hidráulica" });
 
     /* --- Interfaz y apoyo --- */
@@ -772,6 +798,18 @@ const TT = (() => {
       if (conf === 2) add({ grp: G3, sys: "est", kind: "pend", name: "Bronce contra bronce (aleaciones distintas): riesgo de gripado; el grafito va solo en una placa", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
       if (conf === 3) add({ grp: G3, sys: "est", kind: "pend", name: "Retención de las pastillas de bronce: alojamientos soldados o pegado; la mesa apoya solo en las pastillas", formula: "Arrastre ≈ μ_máx·N", dem: Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N, unit: "kN", ref: "Equilibrio; decisión del proyectista" });
     }
+
+    /* --- Cubierta de madera dura y altura de skidding --- */
+    const Htop = P.t_base + R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0);
+    if (P.opt_wood > 0.5) {
+      const RLw = P.D_load / 2, qTopW = P.phi_d * R.W * 1e3 / (Math.PI * RLw * RLw) * (1 + 4 * P.e / RLw);
+      add({ grp: "Cubierta", sys: "est", name: "Madera: aplastamiento perpendicular a la fibra bajo la carga", formula: "q = φd·W/A_apoyo·(1 + 4e/D_carga) ≤ p_adm,madera (sin acreditar reparto sobre la plancha)", dem: qTopW, cap: P.p_wood, unit: "MPa", ref: "Madera dura (datos de proveedor); criterio conservador" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: espesor mínimo (desgaste y fijación)", formula: "t_madera ≥ 30 mm", dem: 30, cap: P.t_wood, unit: "mm", ref: "Práctica constructiva" });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)", formula: "m = ρ·A·t", dem: R.m.wood, unit: "kg", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "pend", name: "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
+    }
+    add({ grp: "Geometría", sys: "est", kind: "info", name: "Altura total sobre el piso (base + interfaz + mesa + cubierta)", formula: "H = t_base + Δ_interfaz + h_mesa + t_madera", dem: Htop, unit: "mm", ref: "Geometría" });
+    if (P.h_skid > 0) add({ grp: "Geometría", sys: "est", kind: "geo", name: "Enrase de la superficie superior con los rieles de skidding", formula: "|H − h_riel| ≤ tolerancia", dem: Math.abs(Htop - P.h_skid), cap: P.tol_skid, unit: "mm", ref: "Compatibilidad con el sistema de skidding" });
 
     /* --- Mesa --- */
     const sAll = 0.6 * Fy;
@@ -972,6 +1010,45 @@ const TT = (() => {
     return { P, R, fea, checks, verdict };
   }
 
-  return { prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
+  /* ---------------- Mercado y capacidad ---------------- */
+  // W máxima (tf) que gira con el μ y el radio dados y el FS indicado (bisección sobre compute: FS = F_calado/F(T(μ, r)))
+  function capacityW(P, mu, r, FS) {
+    const f = (W) => { const R = compute(Object.assign({}, P, { W_tf: W })); return R.K.ok ? R.Fstall / R.Fcyl(R.torque(mu, r)) - FS : NaN; };
+    let lo = 20, hi = 1500;
+    if (!(f(lo) >= 0)) return 0;
+    if (f(hi) >= 0) return hi;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (f(mid) >= 0) lo = mid; else hi = mid; }
+    return lo;
+  }
+  // Capacidad con n cilindros: la menor entre el giro (μ de diseño, FS_mín) y el pivote (reacción del empuje no equilibrado con n impar)
+  function capacityByCyl(P, ns) {
+    return ns.map((n) => {
+      const Q = Object.assign({}, P, { n_cyl: n }), mu = muSet(Q), R0 = compute(Q);
+      const wGiro = capacityW(Q, mu.d, P.r_ef, P.FS_min), wNom = capacityW(Q, mu.nom, R0.r_u, 1);
+      const ok = (W) => { const A2 = analyze(Object.assign({}, Q, { W_tf: W }), { noFEA: true }); return A2.verdict.gira && !A2.checks.some((c) => c.grp === "Pivote" && c.st === "fail"); };
+      let wPiv = 0, lo = 20, hi = Math.min(1500, Math.max(20, wGiro));
+      if (ok(lo)) { if (ok(hi)) wPiv = hi; else { for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } wPiv = lo; } }
+      return { n, wGiro, wNom, wPiv, wCap: Math.min(wGiro, wPiv) };
+    });
+  }
+  // Equipos comerciales de referencia (datos públicos; brazo y radio de fricción estimados para μ implícito = n·F·a/(N·r_u))
+  const MARKET = [
+    { id: "ett200", name: "Enerpac ETT200", mass: 1700, capKN: 2000, h: 150, D: 1790, nCyl: 1, Fcyl: 222, p: 700, rot: 12.5, arm: 0.895, ru: 0.596, src: "Enerpac, ficha ETT-Series (EN-GB)" },
+    { id: "ett400", name: "Enerpac ETT400", mass: 1725, capKN: 4000, h: 150, D: 1790, nCyl: 2, Fcyl: 222, p: 700, rot: 12.5, arm: 0.895, ru: 0.596, src: "Enerpac, ficha ETT-Series (EN-GB)" },
+    { id: "kiet", name: "KIET 400T (equipo del cliente)", mass: 2158, capKN: 3924, h: 200, D: 2000, nCyl: 2, Fcyl: 397, p: 700, rot: 12.857, arm: 0.869, ru: 0.670, src: "Plano y manual KIET (análisis del 30-10-2026); capacidad declarada 400 t (el manual dice 500 t)" },
+    { id: "hydra", name: "Hydra-Slide 8′×8′×6″ (250/500 t)", mass: null, capKN: null, h: 152, D: null, nCyl: null, Fcyl: null, p: null, rot: null, arm: null, ru: null, src: "Texto en el video del fabricante; sin ficha de masa ni de cilindros" },
+  ];
+  function market(P) {
+    const R = compute(P), mu = R.mu, kN = R.W, Htop = P.t_base + R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0);
+    const ours = { name: "TT300-C (este diseño)", mass: R.m.total, capKN: kN, h: Htop, D: P.D_top, nCyl: P.n_cyl, Fcyl: R.Fstall, p: P.p_relief, rot: 360 / P.N_pin, arm: R.K.armMin / 1000, ru: R.r_u / 1000 };
+    const impl = (r) => r.Fcyl && r.arm ? r.nCyl * r.Fcyl * r.arm / (r.capKN * r.ru) : null;
+    const withK = (r) => Object.assign({}, r, { massPerKN: r.mass && r.capKN ? r.mass / r.capKN : null, muImpl: impl(r), FcylPerTon: r.Fcyl && r.capKN ? r.nCyl * r.Fcyl / (r.capKN / G) : null });
+    return {
+      ours: withK(ours), refs: MARKET.map(withK),
+      capacity: { design: capacityW(P, mu.d, P.r_ef, P.FS_min), designFS1: capacityW(P, mu.d, P.r_ef, 1), nominal: capacityW(P, mu.nom, R.r_u, 1), nominalFS: capacityW(P, mu.nom, R.r_u, P.FS_min) },
+    };
+  }
+
+  return { capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
 })();
 if (typeof module !== "undefined") module.exports = TT;

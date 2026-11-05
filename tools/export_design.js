@@ -51,6 +51,10 @@ const out = {
   escenarios: (() => { const sc = AG.scenarios(A); return { mus: sc.mus, rs: sc.rs, grid: sc.grid, loads: sc.loads, classes: sc.classes, ifaces: sc.ifaces }; })(),
   interfazChecks: (() => { const chk = (k) => TT.analyze(Object.assign({}, P, { opt_ss: k === 1 ? 1 : 0, opt_uhmw: k === 2 ? 1 : 0, opt_bz: k === 3 ? 1 : 0 }), { noFEA: true }).checks.filter((c) => c.grp === (k === 3 ? "Interfaz bronce" : "Interfaz inox"))
     .map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })); return { A: chk(1), B: chk(2), C: chk(3) }; })(),
+  bombaBarrido: [[1.8, 0], [5, 0], [10, 0], [10, 20], [20, 0]].map(([q, qr]) => { const RR = TT.compute(Object.assign({}, P, { Q_pump: q, Q_ret: qr })); return { Q: q, Qr: RR.pump.Qr, tRev: RR.tRev, tCycle: RR.tCycle, Pmotor: RR.pump.Pmotor, vRet: RR.pump.vRet }; }),
+  cubierta: (() => { const A1 = TT.analyze(Object.assign({}, P, { opt_wood: 1, opt_bz: 0 }), { noFEA: true }), A0 = TT.analyze(Object.assign({}, P, { opt_wood: 0 }), { noFEA: true });
+    return { dMasa: A1.R.m.total - A0.R.m.total, mWood: A1.R.m.wood, checks: A1.checks.filter((c) => c.grp === "Cubierta").map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })) }; })(),
+  mercado: TT.market(P), capCil: TT.capacityByCyl(P, [1, 2]), bomba: R.pump,
   revisionCruzada: AG.crossCheck(A),
   auditoria: AG.audit(A.checks),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),

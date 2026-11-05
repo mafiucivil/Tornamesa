@@ -354,6 +354,18 @@ T("Conclusión. Con los datos de entrada, cada disco inoxidable debe tener {0} (
       n(IF[1]["dTot"], unit="kg"), n(IF[1]["delta"], unit="mm"), n(IF[2]["dTot"], unit="kg"), n(IF[2]["delta"], unit="mm"),
       n(IF[1]["F"], unit="kN"), n(IF[2]["F"], unit="kN"), n(IF[0]["F"], unit="kN"), n(P["muB_nom"]), n(P["mu_nom"])), bold=True, size=9)
 
+# ---- 6.2 cubierta de madera dura y altura
+CUB = D["cubierta"]
+H("6.2 Cubierta de madera dura y altura total", 2)
+T("Hipótesis. Una cubierta de tablones de madera dura (e = {0}, ρ = {1}) sobre la plancha superior de la mesa protege la plancha y da un apoyo antideslizante a la carga, como en los equipos comerciales. "
+  "No se acredita reparto de la carga sobre la plancha (criterio conservador: las verificaciones de la mesa no cambian); la cubierta gira con la mesa, suma su peso a la presión de contacto y sube la altura total. "
+  "Los resultados se muestran con la cubierta activada aunque la opción esté apagada en este diseño.".format(n(P["t_wood"], unit="mm"), n(P["rho_wood"], unit="kg/m³")), size=9)
+table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado"],
+      [[c["nombre"], c["formula"], n(c["dem"]), "—" if c.get("cap") is None else n(c["cap"]), c["unidad"], "—" if c.get("fu") is None else n(c["fu"]), EST.get(c["estado"], c["estado"])] for c in CUB["checks"]],
+      widths=(52, 55, 14, 14, 11, 12, 12), size=7, num_cols=(2, 3, 5))
+T(f"Resultado: la cubierta de {n(P['t_wood'], unit='mm')} agrega {n(CUB['mWood'], unit='kg')} (+{n(CUB['dMasa'], unit='kg')} de masa total con el efecto sobre la interfaz) y {n(P['t_wood'], unit='mm')} de altura. "
+  "La presión de aplastamiento perpendicular a la fibra queda muy bajo la admisible; la madera se atornilla con tornillos avellanados y se deja desmontable sobre la tapa de inspección.", size=9)
+
 # ================================================================= 7. ACCIONAMIENTO
 H("7. Accionamiento")
 H("7.1 Par resistente", 2)
@@ -411,6 +423,28 @@ table(["μ"] + [f"{a} = {n(b)} mm" for a, b in sc["rs"]],
       [[n(row[0]["mu"])] + [n(c["FS"]) for c in row] for row in sc["grid"]], widths=(20, 45, 45, 45), num_cols=(1, 2, 3))
 table(["W (tf)", "FS diseño", "p diseño (bar)", "μ máx (r_ef)"],
       [[n(l["W"]), n(l["FS"]), n(l["p"]), n(l["muMax"])] for l in sc["loads"]], widths=(30, 30, 35, 35), num_cols=(0, 1, 2, 3))
+
+H("7.7 Bomba, tiempos, control y capacidad según el número de cilindros", 2)
+BM = D["bomba"]
+table(["Magnitud", "Valor"], [
+    ["Caudal de avance / de retorno", f"{n(P['Q_pump'], unit='L/min')} / {n(BM['Qr'], unit='L/min')}"],
+    ["Tiempo de avance / de retorno por ciclo", f"{n(BM['tExt'], unit='min')} / {n(BM['tRet'], unit='min')}"],
+    ["Velocidad del vástago: avance / retorno", f"{n(BM['vExt'] * 1000, unit='mm/s')} / {n(BM['vRet'] * 1000, unit='mm/s')} (máx. de retorno {n(P['v_ret_max'], unit='m/s')})"],
+    ["Potencia hidráulica: avance / retorno", f"{n(BM['PhExt'], unit='kW')} / {n(BM['PhRet'], unit='kW')}"],
+    ["Potencia del motor (η = {0})".format(n(P["eta_pump"])), n(BM["Pmotor"], unit="kW")],
+], widths=(75, 95))
+T("Tiempo por vuelta según el caudal (28 ciclos; el retorno rápido usa una bomba de dos etapas o una válvula de alto caudal):", size=9, after=1)
+table(["Caudal de avance (L/min)", "Caudal de retorno (L/min)", "Tiempo por ciclo (min)", "Tiempo por vuelta (min)", "Potencia del motor (kW)", "Velocidad de retorno (mm/s)"],
+      [[n(b["Q"]), n(b["Qr"]), n(b["tCycle"]), n(b["tRev"]), n(b["Pmotor"]), n(b["vRet"] * 1000)] for b in D["bombaBarrido"]], widths=(30, 30, 28, 28, 28, 26), size=8, num_cols=(0, 1, 2, 3, 4, 5))
+T("Umbrales de presión para el control (calculados por cilindro):", size=9, after=1)
+table(["Condición", "p (bar)"], [["Gira con μ nominal (esperada en operación)", n(casos["nom"]["p"])], ["Gira con μ de diseño", n(casos["dis"]["p"])], ["Gira contaminado", n(casos["cont"]["p"])],
+      ["Alarma y detención automática", n(P["p_alarm"])], ["Válvula de alivio (calado)", n(P["p_relief"])]], widths=(110, 40), num_cols=(1,))
+T("Sistema de control: transductor de presión en el puerto A con registro por ciclo y detención a la presión de alarma; válvulas de bloqueo en ambos cilindros; mando remoto con parada de emergencia; "
+  f"encoder de ángulo (un paso = {n(360 / P['N_pin'])}°, resolución ≤ 0,1°); conteo de carreras. La presión de despegue medida permite calcular el μ real (ensayo de aceptación, lámina F-04).", size=9)
+T("Capacidad según el número de cilindros (la menor entre el giro, con μ de diseño y FS mínimo, y el pivote):", size=9, after=1)
+table(["Cilindros", "W máx. giro (tf)", "W máx. por pivote (tf)", "Capacidad adoptada (tf)", "W que gira con FS = 1 y μ nominal (tf)"],
+      [[pint(c["n"]), n(c["wGiro"]), n(c["wPiv"]), n(c["wCap"]), n(c["wNom"])] for c in D["capCil"]], widths=(25, 35, 40, 40, 40), size=8, num_cols=(0, 1, 2, 3, 4))
+T("Con un número impar de cilindros el empuje no es un par puro: el pivote reacciona con la fuerza tangencial del pasador y limita la capacidad (la verificación del pivote la incluye).", size=9)
 
 # ================================================================= 8. VERIFICACIONES (horizontal)
 ls = doc.add_section()
@@ -492,6 +526,30 @@ table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
     ["11", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
 ], widths=(9, 45, 85, 31), size=8)
+
+# ================================================================= 11. MERCADO
+MK = D["mercado"]
+H("11. Comparación con equipos comerciales")
+T("Referencias: fichas y planos públicos de los fabricantes. El brazo de la fuerza y el radio de fricción de los equipos comerciales son estimaciones; el μ implícito es la fricción que el equipo vence al límite del alivio, "
+  "sin factor de seguridad (μ = n·F·a/(N·r_u)).", size=9)
+rows = []
+for r in [MK["ours"]] + MK["refs"]:
+    rows.append([r["name"], n(r["capKN"]) if r.get("capKN") else "—", n(r["mass"]) if r.get("mass") else "—", n(r["massPerKN"], 3) if r.get("massPerKN") else "—", n(r["h"]) if r.get("h") else "—",
+                 n(r["D"]) if r.get("D") else "—", pint(r["nCyl"]) if r.get("nCyl") else "—", n(r["Fcyl"]) if r.get("Fcyl") else "—", n(r["FcylPerTon"], 3) if r.get("FcylPerTon") else "—",
+                 n(r["muImpl"], 3) if r.get("muImpl") else "—", n(r["rot"]) if r.get("rot") else "—"])
+table(["Equipo", "Capac. (kN)", "Masa (kg)", "kg por kN", "Altura (mm)", "Ø (mm)", "Cil.", "F cil. (kN)", "kN cil. por tf", "μ implícito", "Giro por carrera (°)"], rows,
+      widths=(36, 14, 13, 12, 12, 12, 8, 13, 14, 13, 14), size=6.5, num_cols=tuple(range(1, 11)))
+CAP = MK["capacity"]
+table(["Capacidad de giro del TT300-C", "W (tf)"], [
+    [f"FS ≥ {n(P['FS_min'])} con μ de diseño y r_ef (criterio de este proyecto)", n(CAP["design"])],
+    ["FS = 1 con μ de diseño", n(CAP["designFS1"])],
+    ["FS = 1 con μ nominal y r_u (rotulado tipo comercial)", n(CAP["nominal"])]], widths=(135, 35), num_cols=(1,))
+T("Lectura. Los equipos comerciales rotulan su capacidad con una fricción implícita de 0,15 a 0,26 y sin margen; este diseño exige FS ≥ 1,25 con μ de 0,20 y verifica la cadena de empuje a la fuerza de calado con BTH-1 Categoría B. "
+  "La capacidad estructural es la de la carga de diseño (300 tf); la de giro es una cota de los cilindros.", size=9)
+H("Fuentes", 3)
+bullets(["Enerpac, ETT-Series Hydraulic Turntables, ficha técnica (EN-GB): https://assets.partbase.com/supplier-docs/enerpac/ETT-Series_Hydraulic_Turntables_EN-GB.pdf",
+         "KIET: plano de conjunto KIET-1024-REF-TT-400T y manual de la bomba (análisis del 30-10-2026, docs/referencias).",
+         "Hydra-Slide: texto del video del fabricante (8′ × 8′ × 6″, 250 y 500 ton); sin ficha técnica de masa ni cilindros."])
 
 # ================================================================= ANEXO A
 H("Anexo A. Control de calidad del cálculo")

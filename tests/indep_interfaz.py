@@ -761,6 +761,11 @@ def cap_retC(r, PP):
     return max(PP["mu_back"] * r["N"] * ru / 1e3, PP["tau_bond"] * Ac * r["cov"] * ru / 1e6)
 
 
+def cap_ret_mesa(r, PP):
+    """retención del disco duro / 2.ª placa sobre la mesa: área completa (sin cobertura)"""
+    return max(PP["mu_back"] * r["N"] * ru / 1e3, PP["tau_bond"] * Ac * ru / 1e6)
+
+
 def tauC(PP, al, E_, t):
     return (al - AL_S) * PP["dT"] * math.sqrt(PP["G_ad"] * E_ * t / PP["t_ad"])
 
@@ -793,7 +798,7 @@ def rowsC(PP, conf):
         "profundidad restante tras el desgaste": (hw + 2, 0.7 * tb, fu(hw + 2, 0.7 * tb)),
         "Retención de la placa de bronce": (Tret, cret, fu(Tret, cret)),
         "Adhesivo de la placa de bronce: cortante": (tauC(PP, AL_BZ, E_BZ, tb), PP["tau_cyc"], fu(tauC(PP, AL_BZ, E_BZ, tb), PP["tau_cyc"])),
-        "Dilatación diferencial bronce–acero": (E_BZ * ep, 0.6 * PP["Fy_bz"], fu(E_BZ * ep, 0.6 * PP["Fy_bz"])),
+        "Dilatación diferencial bronce–acero: tensión": (E_BZ * ep, 0.6 * PP["Fy_bz"], fu(E_BZ * ep, 0.6 * PP["Fy_bz"])),
         "Dilatación diferencial radial": (ep * Ro, None, None),
         "Altura que agrega": (r["delta"], None, None),
         "Masa agregada": (r["mAdd"], None, None),
@@ -805,15 +810,22 @@ def rowsC(PP, conf):
         R["2.ª placa de bronce: espesor adoptado"] = (r["trReq"], tr, fu(r["trReq"], tr))
         R["Adhesivo de la 2.ª placa de bronce"] = (tauC(PP, AL_BZ, E_BZ, tr), PP["tau_cyc"], fu(tauC(PP, AL_BZ, E_BZ, tr), PP["tau_cyc"]))
         R["Bronce contra bronce"] = (0.0, None, None)
+        R["Dilatación diferencial bronce–acero de la 2.ª placa"] = (E_BZ * ep, 0.6 * PP["Fy_bz2"], fu(E_BZ * ep, 0.6 * PP["Fy_bz2"]))
+        R["Retención de la 2.ª placa de bronce sobre la mesa"] = (Tret, cap_ret_mesa(r, PP), fu(Tret, cap_ret_mesa(r, PP)))
     else:
         R["Disco duro: flexión sobre un vacío local"] = (sigr, r["sr"], fu(sigr, r["sr"]))
         R["Disco duro: espesor adoptado"] = (r["trReq"], tr, fu(r["trReq"], tr))
         R["Pareja bronce–disco duro: diferencia de dureza"] = (100.0, PP["HB_cara"] - PP["HB_bz"], fu(100.0, PP["HB_cara"] - PP["HB_bz"]))
         R["Adhesivo del disco duro"] = (tauC(PP, AL_SS, E_SS, tr), PP["tau_cyc"], fu(tauC(PP, AL_SS, E_SS, tr), PP["tau_cyc"]))
+        R["Retención del disco duro sobre la mesa"] = (Tret, cap_ret_mesa(r, PP), fu(Tret, cap_ret_mesa(r, PP)))
     if conf == 3:
-        R["junta de dilatación entre pastillas"] = ((AL_BZ - AL_S) * PP["dT"] * 2 * Ro * math.sin(math.pi / PP["bz_npad"]), None, None)
+        R["crecimiento por dilatación de la cuerda de la pastilla"] = ((AL_BZ - AL_S) * PP["dT"] * 2 * Ro * math.sin(math.pi / PP["bz_npad"]), None, None)
         mum = max(PP["muC_d"], PP["muC_cont"], PP["muC_dry"])
         R["Retención de las pastillas"] = (mum * r["N"], None, None)
+    # plancha inferior de la mesa y losa: solo escalamiento lineal con q del FEA de referencia (conf. 1, q_c = q_máx)
+    sl_, sg_ = PL_LOC1 * r["qc"], PL_GLO1 * r["q"]
+    R["Plancha inferior: global + local"] = (sl_ + sg_, PL_CAP, (sl_ + sg_) / PL_CAP)
+    R["Presión sobre losa"] = (r["qc"], PP["q_floor"], None)
     return R, r
 
 
@@ -853,6 +865,12 @@ DC = {c: export_c({"opt_bz": 1, "bz_conf": c}) for c in (1, 2, 3)}
 if any(v is None for v in DC.values()):
     print("El núcleo rechazó la opción C con los defaults"); sys.exit(2)
 PC = {c: dict(DC[c]["P"]) for c in DC}
+_vv = lambda DD, sub: next(v for v in DD["verificaciones"] if sub in v["nombre"])
+_rq = ifaceC(PC[1], 1)                                              # conf. 1: q_c = q_máx (cobertura 1)
+_l1, _t1 = _vv(DC[1], "Plancha inferior: σvm local"), _vv(DC[1], "Plancha inferior: global + local")
+PL_LOC1 = _l1["dem"] / _rq["qc"]                                     # σ_local por unidad de q_c [MPa/MPa] (FEA ∝ q: no se replica)
+PL_GLO1 = (_t1["dem"] - _l1["dem"]) / _rq["q"]                       # σ_global (momento de la placa) por unidad de q_máx
+PL_CAP = _t1["cap"]
 
 
 def cmp_val(prueba, name, mine, core, tol=TOL):
@@ -927,6 +945,7 @@ SWC = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], (1, 2, 3)), ("Fy_bz",
        ("bz_cover", [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], (3,)), ("W_tf", [200, 240, 280, 300, 320, 360], (1, 2, 3)),
        ("k_bz", [1, 5, 10, 50, 200, 500], (1, 2, 3)), ("p_bz", [5, 10, 20, 40, 60], (1, 2, 3))]
 swC_n = swC_bad = 0
+PLANCHA_DEV = []
 swC_rej = []
 prefetch([dict(opt_bz=1, bz_conf=c, **{k: v}) for k, vals, cs in SWC for c in cs for v in vals] + [dict(opt_bz=1, bz_conf=c, bz_cover=0.5) for c in (1, 2)])
 
@@ -969,6 +988,16 @@ def cmp_c(over, conf):
     swC_n += 1
     if abs(sold_fu(r["delta"]) - sw["fu"]) > TOL * sw["fu"]:
         bad.append("soldadura mejillas")
+    # plancha inferior (escalamiento lineal con q) y losa
+    pl, lo_ = _vv(DD, "Plancha inferior: global + local"), _vv(DD, "Plancha inferior: σvm local")
+    for nm, mv, cv in (("plancha inf. σ_loc", PL_LOC1 * r["qc"], lo_["dem"]), ("plancha inf. σ_tot", R["Plancha inferior: global + local"][0], pl["dem"]),
+                       ("plancha inf. FU", R["Plancha inferior: global + local"][2], pl["fu"]), ("losa q", r["qc"], _vv(DD, "Presión sobre losa")["dem"])):
+        swC_n += 1
+        if abs(mv - cv) > TOL * abs(cv):
+            bad.append(nm); PLANCHA_DEV.append((conf, over, nm, mv, cv))
+    swC_n += 1
+    if (R["Plancha inferior: global + local"][2] > 1 + 1e-9) != (pl["fu"] > 1 + 1e-9):
+        bad.append("plancha inf. estado")
     swC_bad += len(bad)
     return DD, R, r, not bad, bad
 
@@ -1019,6 +1048,7 @@ def core_state(DD, conf):
             fs_.append(k)
     sw = next(v for v in DD["verificaciones"] if "Soldadura mejillas–base (4" in v["nombre"])
     if sw["fu"] > 1 + 1e-9: fs_.append("soldadura mejillas")
+    if _vv(DD, "Plancha inferior: global + local")["fu"] > 1 + 1e-9: fs_.append("Plancha inferior: global + local")
     ic = DD["escenarios"]["ifaces"][3]
     return (ic["tbz"], ic["tss"], tuple(sorted(fs_)))
 
@@ -1114,21 +1144,35 @@ for d_ in (6, 8, 10, 12, 14, 16, 18, 20):
 table(f"5a''. Ligamento y área de grafito con paso {P['bz_plug_p']:g} mm (η = (p−d)/p; f_g = π d²/(2√3 p²) del patrón hexagonal)", ["Ø tapón mm", "η", "f_g", "Kt celda vacía", "ligamento mm", "1/η"], rows)
 print(f"Tapón de grafito prensado (E_g/E_bz = {10000/E_BZ:.3f}): Kt de la celda baja de {s3(Kt_eq0)} a {s3(Kt_eqg)} ({(Kt_eqg/Kt_eq0-1)*100:+.1f} %): el tapón casi no colabora en resistencia; sí en rigidez (módulo de membrana de la placa llena ≈ (1−f_g) + f_g·E_g/E ≈ {(1-fgC)+fgC*10000/E_BZ:.2f} frente a ≈ 0,5–0,67 de la placa vacía)")
 
-# ---- (b) pastillas: presión local, respaldo
-vlist = DC[3]["verificaciones"]
-v_loc = next(v for v in vlist if "Plancha inferior: σvm local" in v["nombre"]); v_gl = next(v for v in vlist if "Plancha inferior: global + local" in v["nombre"])
-sig_loc, sig_tot, cap_pl = v_loc["dem"], v_gl["dem"], v_gl["cap"]; sig_glob = sig_tot - sig_loc
-fu_pl = []
-for cv_ in (0.4, 0.5, 0.6, 0.7, 0.8, 1.0):
-    DD = export_c({"opt_bz": 1, "bz_conf": 3, "bz_cover": cv_})
-    pl = next(v for v in DD["verificaciones"] if "Plancha inferior: global + local" in v["nombre"])
-    fu_pl.append((cv_, pl["fu"], (sig_loc / cv_ + sig_glob) / cap_pl, rC[3]["q"] / cv_ / P["q_floor"] if True else 0))
-rows = [[s3(a_), s3(b_), s3((sig_loc / a_ + sig_glob) / cap_pl), s3((sig_loc + sig_glob) / cap_pl * 0 + (sig_loc / a_ + sig_glob) / cap_pl / b_), s3(q_ := (rC[3]["q"] / a_) / P["q_floor"]), s3(rC[3]["q"] / P["q_floor"])]
-        for a_, b_, _, _ in fu_pl]
-table(f"5b. Respaldo bajo pastillas (conf 3): FU de «Plancha inferior: global + local» del núcleo (no depende de la cobertura) frente a la cota con σ_local/cobertura (σ_local {s3(sig_loc)}, σ_global {s3(sig_glob)} MPa, cap {s3(cap_pl)}); presión sobre la losa q_loc/q_losa frente a q_máx/q_losa (q_losa = {P['q_floor']:g} MPa)",
-      ["cobertura", "FU núcleo plancha inf.", "FU cota con q_loc", "cota / núcleo", "q_loc/q_losa", "q_máx/q_losa (núcleo)"], rows)
-FU_PL_CONST = max(x[1] for x in fu_pl) - min(x[1] for x in fu_pl) < 0.01
-FU_PL_BOUND = (sig_loc / P["bz_cover"] + sig_glob) / cap_pl
+# ---- (b) pastillas: presión local q_c = q_máx/cobertura sobre el respaldo (FEA de la plancha inferior y losa)
+COVS = (0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 1.0)
+TBOT = (16, 18, 20, 22, 25); COVT = (0.5, 0.6, 0.7, 0.8, 0.9)
+prefetch([{"opt_bz": 1, "bz_conf": 3, "bz_cover": cv_} for cv_ in COVS] + [{"opt_bz": 1, "bz_conf": 3, "bz_cover": cv_, "t_bot": tb_} for cv_ in COVT for tb_ in TBOT])
+rows = []; fu_pl = []
+for cv_ in COVS:
+    DD = export_c({"opt_bz": 1, "bz_conf": 3, "bz_cover": cv_}); Rc, rc = rowsC(dict(PC[3], bz_cover=cv_), 3)
+    pl, lo_, ls = _vv(DD, "Plancha inferior: global + local"), _vv(DD, "Plancha inferior: σvm local"), _vv(DD, "Presión sobre losa")
+    mine = Rc["Plancha inferior: global + local"]
+    fu_pl.append((cv_, pl["fu"], mine[2]))
+    rows.append([s3(cv_), s3(rc["qc"]), s3(lo_["fu"]), s3(pl["fu"]), s3(mine[2]), f"{(mine[2] / pl['fu'] - 1) * 100:+.4f}", pl["estado"], s3(ls["dem"] / ls["cap"]),
+                 s3(Rc["Retención de la placa de bronce"][2]), s3(rc["tb"]), "cumple" if pl["fu"] <= 1 else "NO cumple"])
+table(f"5b. Opción C3: respaldo bajo pastillas con q_c = q_máx/cobertura. FU «Plancha inferior» del núcleo (FEA) frente a mi escalamiento lineal con q (σ_local ∝ q_c = {s3(PL_LOC1)}·q_c, σ_global ∝ q_máx = {s3(PL_GLO1)}·q_máx, cap {s3(PL_CAP)} MPa; calibrado con C1 a cobertura 1, no es un FEA propio)",
+      ["cobertura", "q_c MPa", "FU σ_local núcleo", "FU global+local núcleo", "FU propio (escalado)", "Δ %", "estado núcleo", "q_c/q_losa", "FU retención pastillas", "t_bz mm", "veredicto"], rows)
+PL_AGREE = max(abs(a_[2] / a_[1] - 1) for a_ in fu_pl) <= TOL
+FU_PL_VARIES = max(x[1] for x in fu_pl) - min(x[1] for x in fu_pl) > 0.05
+FU_PL_DEF = next(x[1] for x in fu_pl if abs(x[0] - 0.9) < 1e-9)
+q3_ = rC[3]["q"]
+cov_crit = PL_LOC1 * q3_ / (PL_CAP - PL_GLO1 * q3_)
+rows = []
+for tb_ in TBOT:
+    r_ = [tb_]
+    for cv_ in COVT:
+        DD = export_c({"opt_bz": 1, "bz_conf": 3, "bz_cover": cv_, "t_bot": tb_})
+        r_.append(s3(_vv(DD, "Plancha inferior: global + local")["fu"]))
+    rows.append(r_)
+table("5b'. FU «Plancha inferior: global + local» del núcleo (C3) según t_bot (columnas: cobertura); solo datos del núcleo (el FEA no se replica)", ["t_bot mm"] + [f"cob. {c_}" for c_ in COVT], rows)
+print(f"Cobertura crítica (FU = 1) por escalamiento lineal: {s3(cov_crit)}; con la cobertura de proyecto {P['bz_cover']:g}: FU núcleo {s3(FU_PL_DEF)} (escalado {s3(next(x[2] for x in fu_pl if abs(x[0]-0.9)<1e-9))}); "
+      f"el término global no se divide por la cobertura (es el momento de la placa completa, que depende de la presión media q_máx)")
 Apad = Ac * P["bz_cover"] / P["bz_npad"]
 q3 = rC[3]["ND"] * 1e3 / (3 * Apad * (1 - fgC))
 Lp = sorted(float(x) for x in P["rings"].replace(";", ",").split(",") if x.strip()); Lpan = Lp[-1] - Lp[-2]
@@ -1326,48 +1370,65 @@ table("5h. Límites analíticos: valor del parámetro con FU = 1 frente al rango
 # 6. Hallazgos de la opción C
 # ======================================================================================
 rr1, rr3 = rC[1], rC[3]
-FIND.append(("C1", "importante" if (FU_PL_CONST and FU_PL_BOUND > 1) else "menor",
-             "Conf. 3 (pastillas): el FEA de la plancha inferior de la mesa («contacto q_máx») y la presión sobre la losa usan q_máx; las pastillas cargan el respaldo con q_loc = q_máx/cobertura. El núcleo no cambia con la cobertura (FU plancha inferior global + local = "
-             f"{s3(fu_pl[0][1])} de 0,4 a 1) y el respaldo bajo pastillas rígidas no se verifica",
-             f"FU plancha inferior {s3(v_gl['fu'])}; presión sobre losa q_máx/q_losa {s3(rr3['q']/P['q_floor'])} (fila informativa)",
-             f"cota con q_loc: plancha inferior {s3(FU_PL_BOUND)} (σ_loc {s3(sig_loc)}/cobertura + σ_glob {s3(sig_glob)} frente a {s3(cap_pl)} MPa); losa q_loc/q_losa {s3(rr3['qloc']/P['q_floor'])}. "
-             "Aplicar q_loc a la carga del FEA de la plancha inferior (o hacer coincidir las juntas entre pastillas con almas y nervios), exigir rectificado en conjunto (planitud 0,20 mm ≈ flecha del panel entre anillos "
-             f"{s3(dpan)} mm: el reparto lo gobierna el respaldo) y verificar la losa/mortero con q_loc; con 3 pastillas en contacto q_neto = {s3(q3)} MPa (FU {s3(q3/P['p_bz'])}) cumple"))
+# --- cierres verificados (hallazgos de la revisión anterior que el núcleo ya corrigió): si la comprobación falla, reaparecen como hallazgo
+CIERRES = []
+rr3 = rC[3]
+cl_c1 = FU_PL_VARIES and PL_AGREE
+CIERRES.append(("C1", "q_c = q_máx/cobertura en FEA plancha inferior, flexión global y losa", cl_c1,
+                f"FU plancha inferior C3 con cobertura 0,5–1,0: {', '.join(s3(x[1]) for x in fu_pl)}; mi escalamiento coincide ≤ 0,1 %: {PL_AGREE}"))
+FIND.append(("C1", "menor" if cl_c1 else "importante",
+             ("Plancha inferior de la mesa en C3: corregida (q_c = q_máx/cobertura en el FEA, en la flexión global y en la losa); el margen con cobertura 0,9 es estrecho y el FU depende de t_bot, W_tf y la cobertura"
+              if cl_c1 else "Plancha inferior de la mesa en C3: el núcleo no escala con q_loc o no coincide con mi cota lineal"),
+             f"FU plancha inferior {s3(FU_PL_DEF)} (cobertura {P['bz_cover']:g}, «warn»); cobertura 0,5/0,6/0,7/0,8: {', '.join(s3(x[1]) for x in fu_pl[:4])}; losa q_c/q_losa {s3(rr3['qloc']/P['q_floor'])}",
+             f"cobertura crítica {s3(cov_crit)} (FU = 1); con 0,7 se necesita t_bot ≥ 20 (tabla 5b'); σ_global no se divide por la cobertura (correcto); 3 pastillas en contacto: q_neto {s3(q3)} MPa (FU {s3(q3/P['p_bz'])}); "
+             "FU = 1 también con W_tf ≥ " + ", ".join(f"{s3(u[2])} tf en C{u[1]}" for u in UM if u[0] == "W_tf" and any("Plancha" in x for x in u[4][2]) and not any("Plancha" in x for x in u[3][2])) + f"; exigir rectificado en conjunto (planitud 0,20 mm ≈ flecha del panel entre anillos {s3(dpan)} mm) y no bajar la cobertura de 0,85 sin subir t_bot"))
 FIND.append(("C2", "menor", "Adherencia–deslizamiento (fila «pend» del núcleo con dem = 0) y μ de arranque: no hay cota. Con la rigidez del aceite el sistema es inestable para Δμ = μ_est − μ_cin mayor que Δμ_c; no existe μ_est entre los μ de C",
-             "pend; μ_d = 0,15, μ_cont = μ_seco = 0,20",
+             f"pend; μ = {P['muC_nom']} / {P['muC_d']} / {P['muC_cont']} / {P['muC_dry']}",
              f"Δμ_c = 2ζ·V·√(k·m)/N a 2,5 mm/s: {s3(SS_OUT[3][4][0.5])} (aceite blando) a {s3(SS_OUT[0][4][0.5])} (vástago Ø63 solo) con ζ = 0,5; {s3(SS_OUT[3][4][0.1])}–{s3(SS_OUT[0][4][0.1])} con ζ = 0,1 (J = {s3(J)} kg·m², k_lin = {s3(SS_OUT[3][2]/1e6)}–{s3(SS_OUT[0][2]/1e6)} kN/mm en r_ef); "
              f"el bronce–grafito suele dar Δμ ≈ 0,01–0,05 → adherencia–deslizamiento probable con saltos de {s3(SS_OUT[3][6])} mm (Δμ = 0,02, aceite blando). μ máx que gira {s3(mu_stall)}; con FS_mín {s3(mu_lim_fsmin)}: "
-             "subir μ_d de proyecto a 0,20 (FS 1,38 ≥ 1,25), exigir ensayo de μ_est tras reposo y a 2,5 mm/s en el prototipo, mangueras cortas y contrapresión/estrangulación en la línea de empuje"))
-FIND.append(("C3", "menor", "μ_seco = μ_cont = 0,20: el caso «seco» (r_u) resulta menos severo que el «contaminado» (r_ef) y no hay margen frente al calado; el valor de μ_dry no es una cota para bronce sin película de grafito",
-             f"FS cont {s3(casos_c(P, Nc)['cont']['FS'])}, FS seco {s3(casos_c(P, Nc)['seco']['FS'])}; μ máx que gira {s3(mu_stall)}",
-             f"con μ = 0,25 FS {s3(F_st/1e3/(FU_*par(P, Nc, 0.25, P['r_ef'])/n/1e3))} (< FS_mín), con 0,28 no gira; proponer μ_d 0,20, μ_cont 0,25, μ_seco 0,30 (informativo: no gira) y mantener el aviso"))
+             "subir μ_d de proyecto a 0,20 (FS 1,38 ≥ 1,25; μ_cont ya es 0,20), exigir ensayo de μ_est tras reposo y a 2,5 mm/s en el prototipo, mangueras cortas y contrapresión/estrangulación en la línea de empuje"))
+cs_c = casos_c(P, Nc)
+cl_c3 = P["muC_nom"] <= P["muC_d"] <= P["muC_cont"] <= P["muC_dry"]
+CIERRES.append(("C3", "μ de C monótonos (nom ≤ diseño ≤ contaminado ≤ seco)", cl_c3, f"μ = {P['muC_nom']} / {P['muC_d']} / {P['muC_cont']} / {P['muC_dry']}; FS cont {s3(cs_c['cont']['FS'])}, seco {s3(cs_c['seco']['FS'])}"))
+FIND.append(("C3", "menor" if cl_c3 else "importante",
+             ("μ de C ya monótonos (0,08 / 0,15 / 0,20 / 0,25); el caso «seco» (r_u) es ahora " + ("el más severo" if cs_c['seco']['FS'] < cs_c['cont']['FS'] else "menos exigente que el «contaminado» (r_ef)") + f" con FS {s3(cs_c['seco']['FS'])} frente a {s3(cs_c['cont']['FS'])}" if cl_c3
+              else "μ de C no monótonos: μ_seco o μ_cont menores que el anterior"),
+             f"FS dis {s3(cs_c['dis']['FS'])}, cont {s3(cs_c['cont']['FS'])}, seco {s3(cs_c['seco']['FS'])}; μ máx que gira {s3(F_st / (FU_ * par(P, Nc, 1.0, P['r_ef']) / n))}",
+             f"con μ = 0,25 en r_ef FS {s3(F_st/1e3/(FU_*par(P, Nc, 0.25, P['r_ef'])/n/1e3))} (< FS_mín) y 0,28 no gira; el μ de arranque tras reposo sigue sin cota (C2)"))
 FIND.append(("C4", "menor", "Área de grafito f_g = 14,5 % por debajo del 25–35 % usual de los bronces con insertos de grafito (confirmar con el proveedor); el μ = 0,15 depende de la película de transferencia",
              f"Ø{P['bz_plug_d']:g}, paso {P['bz_plug_p']:g}, f_g {s3(fgC)}, η {s3(etaC)}",
              f"Ø12 con paso 20: f_g {s3(fg_of(dict(P, bz_plug_p=20)))}, η {s3(eta_of(dict(P, bz_plug_p=20)))}: t_bz C1 {s3(com(ifaceC(dict(PC[1], bz_plug_p=20), 1)['tbReq'], COM_BZ))} mm (igual Δ), C3 {s3(com(ifaceC(dict(PC[3], bz_plug_p=20), 3)['tbReq'], COM_BZ))} mm (+2 mm)"))
-FIND.append(("C5", "menor", "η = (p−d)/p es un criterio de sección neta (estado límite de un bronce dúctil): no cubre la tensión elástica en el borde del agujero (Kt bruto 2,0–3,7); el tapón prensado casi no ayuda a resistencia; en C3 el espesor adoptado tiene 4,7 % de holgura",
+FIND.append(("C5", "menor", "η = (p−d)/p es un criterio de sección neta (estado límite de un bronce dúctil): no cubre la tensión elástica en el borde del agujero (Kt bruto 2,0–3,7); el tapón prensado casi no ayuda a resistencia; en C3 el espesor adoptado tiene " + f"{s3((rC[3]['tb']/rC[3]['tbReq']-1)*100)} % de holgura sobre el requerido",
              f"σ núcleo {s3(RC[1]['Placa de bronce: flexión sobre un vacío local'][0])} (C1), {s3(RC[3]['Placa de bronce: flexión sobre un vacío local'][0])} MPa (C3); t_req C3 {s3(rr3['tbReq'])} → {s3(rr3['tb'])} mm",
              f"σ pico/Fy C1 {s3(Kt_eq0*RC[1]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}–{s3(Kt_net_row/etaC*RC[1]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}, C3 {s3(Kt_eq0*RC[3]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}–{s3(Kt_net_row/etaC*RC[3]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}; "
-             f"pico ≤ Fy con Kt = 3: t_req {s3(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/P['Fy_bz'])+P['bz_allow'])} (C1) / {s3(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/P['Fy_bz'])+P['bz_allow'])} mm (C3), cubierto por el espesor adoptado; pico ≤ 0,6 Fy pediría 12 / 15 mm. "
-             "razonable con Ø12 y paso 30 (η = 0,6); mantener d/p ≤ 0,4; en C3 pasa a 12 mm con W_tf ≥ 334 tf o ss_void ≥ 106 mm (Δ +2 mm)"))
+             f"pico ≤ Fy con Kt = 3: t_req {s3(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/P['Fy_bz'])+P['bz_allow'])} (C1) / {s3(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/P['Fy_bz'])+P['bz_allow'])} mm (C3), cubierto por el espesor adoptado; pico ≤ 0,6 Fy pediría {s3(com(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/(0.6*P['Fy_bz']))+P['bz_allow'], COM_BZ))} / {s3(com(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/(0.6*P['Fy_bz']))+P['bz_allow'], COM_BZ))} mm. "
+             "razonable con Ø12 y paso 30 (η = 0,6); mantener d/p ≤ 0,4; en C3 el espesor comercial sube con " + "; ".join((f"{k_} ≥ {s3(v_)}" if v_ == v_ else f"{k_}: sin cambio en el rango barrido") for k_ in ("W_tf", "ss_void") for v_ in [min([u[2] for u in UM if u[0] == k_ and u[1] == 3 and u[4][0] > u[3][0] and u[2] > P[k_]] or [math.nan])])))
 FIND.append(("C6", "menor", "Soldadura mejillas–base cerca del límite con la altura agregada Δ (la altura del eje h_disc/2 + Δ sube el momento de las mejillas); en conf. 2 con ss_void ≥ 191 mm incumple",
              f"FU {s3(sold_fu(rr1['delta']))} (C1, C3, Δ = 16), {s3(sold_fu(rC[2]['delta']))} (C2, Δ = 20), «warn»",
              f"Δ_máx con FU = 1: {s3(Dmax_w2)} mm; op. 0 {s3(sold_fu(0))}, A {s3(sold_fu(12))}, B {s3(sold_fu(27))}; reforzar los filetes de las mejillas o limitar Δ ≤ 26 mm (ss_void ≤ 180 en C1/C3)"))
-FIND.append(("C7", "menor", "Conf. 2: no hay verificación de dureza ni de desgaste de la 2.ª placa maciza; la fila de dilatación restringida usa Fy_bz (102 MPa) y no Fy_bz2 (58,2 MPa); bronce–bronce queda «pend»",
-             f"dilatación FU {s3(RC[2]['Dilatación diferencial bronce–acero'][2])}; sin fila de dureza",
-             f"con Fy_bz2: FU {s3(RC[2]['Dilatación diferencial bronce–acero'][0]/(0.6*P['Fy_bz2']))}; aleaciones con ≥ 50 HB de diferencia (placa con tapones la más dura, p. ej. bronce al aluminio/manganeso; placa maciza reemplazable de bronce al plomo-estaño), Ra ≤ 0,4–0,8 µm, rodaje con grafito; "
+cl_c7 = all(any("2.ª placa" in r_["nombre"] and "Dilatación" in r_["nombre"] for r_ in DC[2]["interfazChecks"]["C"]) for _ in (0,))
+CIERRES.append(("C7", "fila de dilatación restringida de la 2.ª placa con Fy_bz2", cl_c7, f"FU {s3(RC[2]['Dilatación diferencial bronce–acero de la 2.ª placa'][2])} (cap {s3(RC[2]['Dilatación diferencial bronce–acero de la 2.ª placa'][1])} MPa)"))
+FIND.append(("C7", "menor" if cl_c7 else "importante", "Conf. 2: sigue sin verificación de dureza ni de desgaste de la 2.ª placa maciza (bronce–bronce «pend»); la fila de dilatación con Fy_bz2 ya existe",
+             f"dilatación 2.ª placa FU {s3(RC[2]['Dilatación diferencial bronce–acero de la 2.ª placa'][2])}; sin fila de dureza",
+             f"aleaciones con ≥ 50 HB de diferencia (placa con tapones la más dura, p. ej. bronce al aluminio/manganeso; placa maciza reemplazable de bronce al plomo-estaño), Ra ≤ 0,4–0,8 µm, rodaje con grafito; "
              f"una 2.ª placa de Fy ≥ 275 MPa reduce a 6 mm (Δ {s3(ifaceC(dict(PC[2], Fy_bz2=275), 2)['delta'])} mm, −{s3(rC[2]['mAdd']-ifaceC(dict(PC[2], Fy_bz2=275), 2)['mAdd'])} kg)"))
 FIND.append(("C8", "menor", "HB_bz es un dato independiente de Fy_bz: con Fy_bz = 415 MPa (HB real ≈ 200–225) la fila de dureza sigue en 330 − 100; el disco duro usa α y E del inoxidable en el cortante térmico (conservador si es acero martensítico)",
              f"HB_cara − HB_bz = {s3(hb_diff_c1)} (cap) frente a 100", f"con HB_bz = 225: {s3(P['HB_cara']-225)} (límite 100); ligar HB_bz a la aleación; un disco de Ø2000 × 6 mm templado a 330 HB se deforma: segmentar o usar tratamiento superficial"))
-FIND.append(("C9", "menor", "La retención del disco duro (y de la 2.ª placa) sobre la mesa no tiene fila propia: con cobertura < 1 solo se verifica la de las pastillas; el pegado exige τ ≥ T_calado/(cobertura·A·r_u)",
-             f"FU {s3(RC[1]['Retención de la placa de bronce'][2])} (C1/C2), {s3(RC[3]['Retención de la placa de bronce'][2])} (C3)",
-             f"cobertura 0,5: FU {s3(Tmax/max(P['mu_back']*N3*ru/1e3, P['tau_bond']*Ac*0.5*ru/1e6))} («fail» en el núcleo, verificado); mínima {s3(cover_min)} (pegado solo; fricción sola exige μ_resp {s3(Tmax/(N3*ru/1e3))} > 0,30): "
-             "con cobertura < 0,7 añadir retención mecánica (alojamientos, topes o espigas) y fila para el disco duro"))
+cl_c9 = any("Retención del disco duro" in r_["nombre"] for r_ in DC[1]["interfazChecks"]["C"]) and any("Retención de la 2.ª placa" in r_["nombre"] for r_ in DC[2]["interfazChecks"]["C"]) \
+    and any("Retención del disco duro" in r_["nombre"] for r_ in DC[3]["interfazChecks"]["C"])
+CIERRES.append(("C9", "fila de retención del disco duro / 2.ª placa sobre la mesa", cl_c9, f"FU {s3(RC[1]['Retención del disco duro sobre la mesa'][2])} (área completa, independiente de la cobertura)"))
+FIND.append(("C9", "menor" if cl_c9 else "importante", "Retención de las pastillas: con cobertura < 0,627 incumple (T_calado = 656 kN·m); el disco duro conserva la capacidad de área completa",
+             f"retención pastillas FU {s3(RC[3]['Retención de la placa de bronce'][2])} (cobertura {P['bz_cover']:g}); disco FU {s3(RC[1]['Retención del disco duro sobre la mesa'][2])}",
+             f"cobertura 0,5: FU {s3(Tmax/max(P['mu_back']*N3*ru/1e3, P['tau_bond']*Ac*0.5*ru/1e6))} («fail» en el núcleo, verificado); mínima {s3(cover_min)} (pegado solo; la fricción sola exige μ_resp {s3(Tmax/(N3*ru/1e3))} > 0,30): con cobertura < 0,7 añadir retención mecánica (alojamientos, topes o espigas)"))
 FIND.append(("C10", "menor", "Desgaste: la reserva t_bz − t_flex/√η no descuenta el sobreespesor de relapeado (bz_allow) y s se mide en r_ef, no en R_o; no limita en el rango admitido de p_bz [5; 60] ni de k_bz [0,1; 500]",
              f"FU desgaste {s3(RC[1]['desgaste en la vida de diseño'][2])} (C1), {s3(RC[3]['desgaste en la vida de diseño'][2])} (C3)",
              f"con corrección {s3(FUW[1])} (C1)/{s3(FUW[3])} (C3); k_bz crítico ≈ {s3(float(rows[0][4]))} (C1) frente a 500; p_bz crítico = q_neto = {s3(rr1['qnet'])}–{s3(rr3['qnet'])} MPa (< 5 MPa mínimo del rango): sin efecto numérico"))
-FIND.append(("C11", "menor", "Junta entre pastillas calculada solo por dilatación (0,066 mm): inferior a la tolerancia de fabricación; galvánico y gripado siguen «pend»; el grafito es el cátodo más noble del par con acero y bronce",
-             f"junta {s3((AL_BZ-AL_S)*P['dT']*2*Ro*math.sin(math.pi/P['bz_npad']))} mm, bz_npad = {P['bz_npad']}",
-             "adoptar ≥ 1 mm en frío (y descontarla de la cobertura), biselar 1 × 45° los bordes de pastilla, sellar el perímetro y la grasa, aislar tornillería inoxidable y pintar el respaldo con imprimante de zinc"))
+nm_j = next(r_["nombre"] for r_ in DC[3]["interfazChecks"]["C"] if "pastilla" in r_["nombre"] and "dilatación" in r_["nombre"])
+cl_c11 = "≥ 1 mm" in nm_j
+CIERRES.append(("C11", "texto de la junta entre pastillas (≥ 1 mm en frío)", cl_c11, f"junta térmica {s3((AL_BZ-AL_S)*P['dT']*2*Ro*math.sin(math.pi/P['bz_npad']))} mm; fila: «{nm_j[:90]}…»"))
+FIND.append(("C11", "menor", "Junta entre pastillas: el texto exige ≥ 1 mm, pero el cálculo sigue dando solo la dilatación (0,066 mm) y no descuenta la junta de la cobertura; galvánico y gripado siguen «pend» (el grafito es el cátodo más noble del par)",
+             f"junta térmica {s3((AL_BZ-AL_S)*P['dT']*2*Ro*math.sin(math.pi/P['bz_npad']))} mm, bz_npad = {P['bz_npad']}; texto «≥ 1 mm» presente: {cl_c11}",
+             f"24 juntas de 1 mm × 925 mm = {s3(P['bz_npad']*1.0*(Ro-Ri)/Ac*100)} % del área: compatible con cobertura 0,9; biselar bordes, sellar el perímetro y la grasa, aislar tornillería inoxidable y pintar el respaldo con imprimante de zinc"))
 FIND.append(("C12", "menor", "c_lug 50 → 150: la corrección es necesaria (A, B y C pasan de ≈ 1,00–1,05 a 0,67–0,70); mi plancha de Mindlin converge a una flecha ≈ 5 % menor que la del núcleo (el núcleo es conservador y su malla influye)",
              f"FU flecha c_lug 150: 0 {s3(LIFT[('0 acero–acero',150)][1])}, A {s3(LIFT[('A inox–inox',150)][1])}, B {s3(LIFT[('B inox + UHMW',150)][1])}, C {s3(LIFT[('C1 bronce + disco',150)][1])}/{s3(LIFT[('C2 bronce + 2.ª placa',150)][1])}/{s3(LIFT[('C3 pastillas + disco',150)][1])}",
              f"c_lug 50: A {s3(LIFT[('A inox–inox',50)][1])}, B {s3(LIFT[('B inox + UHMW',50)][1])}, C {s3(LIFT[('C1 bronce + disco',50)][1])}/{s3(LIFT[('C2 bronce + 2.ª placa',50)][1])}/{s3(LIFT[('C3 pastillas + disco',50)][1])} (núcleo, sobre B/300); propio converge a {s3(LIFT[('A inox–inox',50)][3])}–{s3(LIFT[('C2 bronce + 2.ª placa',50)][3])}; sin cambios necesarios con c_lug = 150"))
@@ -1414,6 +1475,7 @@ FIND.append(("H10", "menor", "Pernos avellanados en el disco de 6 mm no evaluado
 bad = [c for c in COMP if c[5] == "discrepa"]
 nco = sum(1 for c in COMP if c[5] == "coincide")
 table("Discrepancias numéricas entre el cálculo propio y el núcleo", ["Prueba", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], bad if bad else [["—", "ninguna", "", "", "", ""]])
+table("Cierres de la revisión anterior verificados contra el núcleo actual", ["Id", "Cambio del núcleo", "Cerrado", "Evidencia"], [[a_, b_, "sí" if c_ else "NO", d_] for a_, b_, c_, d_ in CIERRES])
 table("Hallazgos", ["Id", "Severidad", "Hallazgo", "Núcleo", "Corregido / efecto"], FIND)
 if bad or sw_bad or swC_bad or um_bad:
     FIND.append(("D0", "crítica", "Discrepancias numéricas entre el cálculo propio y el núcleo (tolerancia 0,1 %)",

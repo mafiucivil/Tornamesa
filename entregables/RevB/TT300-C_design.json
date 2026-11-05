@@ -66,6 +66,12 @@
   "muC_d": 0.15,
   "muC_cont": 0.2,
   "muC_dry": 0.25,
+  "opt_wood": 0,
+  "t_wood": 50,
+  "rho_wood": 900,
+  "p_wood": 6,
+  "h_skid": 0,
+  "tol_skid": 10,
   "D_top": 2000,
   "t_top": 20,
   "t_bot": 16,
@@ -97,6 +103,10 @@
   "eta_c": 0.95,
   "m_cyl": 55,
   "Q_pump": 1.8,
+  "Q_ret": 0,
+  "eta_pump": 0.85,
+  "t_vuelta_obj": 0,
+  "v_ret_max": 0.25,
   "x_g": 1140,
   "l_p": 300,
   "s_free": 10,
@@ -196,8 +206,8 @@
    "aReq": 67.07114605570445,
    "Wout": 200
   },
-  "tRev": 70.23203164695927,
-  "tCycle": 2.50828684453426,
+  "tRev": 70.23203164695929,
+  "tCycle": 2.5082868445342603,
   "muMax_ref": 0.27664299304741513,
   "Kguide": 1.2537703025810694,
   "Rguide": 280.75146601067763,
@@ -303,6 +313,7 @@
    "ribs": 103.10905919999999,
    "hub": 72.41233621845878,
    "pins": 261.92365087856825,
+   "wood": 0,
    "disc": 1567.233598614737,
    "ssTop": 0,
    "ss": 0,
@@ -848,6 +859,42 @@
    ]
   },
   {
+   "id": "cubierta",
+   "titulo": "Cubierta de madera dura y altura de skidding",
+   "p": [
+    {
+     "id": "opt_wood",
+     "lab": "Cubierta de madera dura sobre la plancha superior de la mesa",
+     "u": "–"
+    },
+    {
+     "id": "t_wood",
+     "lab": "Espesor de los tablones",
+     "u": "mm"
+    },
+    {
+     "id": "rho_wood",
+     "lab": "Densidad de la madera dura (seca al aire)",
+     "u": "kg/m³"
+    },
+    {
+     "id": "p_wood",
+     "lab": "Presión admisible de aplastamiento perpendicular a la fibra (sostenida)",
+     "u": "MPa"
+    },
+    {
+     "id": "h_skid",
+     "lab": "Altura de los rieles de skidding o de la superficie de llegada (0 = no aplica)",
+     "u": "mm"
+    },
+    {
+     "id": "tol_skid",
+     "lab": "Tolerancia de enrase con los rieles",
+     "u": "mm"
+    }
+   ]
+  },
+  {
    "id": "mesa",
    "titulo": "Mesa giratoria (cajón)",
    "p": [
@@ -1015,8 +1062,28 @@
     },
     {
      "id": "Q_pump",
-     "lab": "Caudal de la bomba",
+     "lab": "Caudal de la bomba en el avance (a la presión de trabajo)",
      "u": "L/min"
+    },
+    {
+     "id": "Q_ret",
+     "lab": "Caudal de retorno, bomba de dos etapas o válvula de alto caudal (0 = igual al de avance)",
+     "u": "L/min"
+    },
+    {
+     "id": "eta_pump",
+     "lab": "Rendimiento global de la bomba y el motor",
+     "u": "–"
+    },
+    {
+     "id": "t_vuelta_obj",
+     "lab": "Tiempo por vuelta objetivo (0 = sin objetivo)",
+     "u": "min"
+    },
+    {
+     "id": "v_ret_max",
+     "lab": "Velocidad máxima de retorno del vástago (rebote de la uña sobre el pasador)",
+     "u": "m/s"
     }
    ]
   },
@@ -2249,6 +2316,217 @@
    }
   ]
  },
+ "bombaBarrido": [
+  {
+   "Q": 1.8,
+   "Qr": 1.8,
+   "tRev": 70.23203164695929,
+   "tCycle": 2.5082868445342603,
+   "Pmotor": 1.7861202324908863,
+   "vRet": 0.004623237272095726
+  },
+  {
+   "Q": 5,
+   "Qr": 5,
+   "tRev": 25.283531392905346,
+   "tCycle": 0.9029832640323338,
+   "Pmotor": 4.961445090252462,
+   "vRet": 0.01284232575582146
+  },
+  {
+   "Q": 10,
+   "Qr": 10,
+   "tRev": 12.641765696452673,
+   "tCycle": 0.4514916320161669,
+   "Pmotor": 9.922890180504924,
+   "vRet": 0.02568465151164292
+  },
+  {
+   "Q": 10,
+   "Qr": 20,
+   "tRev": 10.506897979502057,
+   "tCycle": 0.37524635641078774,
+   "Pmotor": 9.922890180504924,
+   "vRet": 0.05136930302328584
+  },
+  {
+   "Q": 20,
+   "Qr": 20,
+   "tRev": 6.320882848226336,
+   "tCycle": 0.22574581600808344,
+   "Pmotor": 19.845780361009847,
+   "vRet": 0.05136930302328584
+  }
+ ],
+ "cubierta": {
+  "dMasa": 139.95795271742463,
+  "mWood": 139.95795271742531,
+  "checks": [
+   {
+    "nombre": "Madera: aplastamiento perpendicular a la fibra bajo la carga",
+    "formula": "q = φd·W/A_apoyo·(1 + 4e/D_carga) ≤ p_adm,madera (sin acreditar reparto sobre la plancha)",
+    "dem": 2.816714422166119,
+    "cap": 6,
+    "unidad": "MPa",
+    "fu": 0.4694524036943532,
+    "estado": "ok",
+    "ref": "Madera dura (datos de proveedor); criterio conservador"
+   },
+   {
+    "nombre": "Madera: espesor mínimo (desgaste y fijación)",
+    "formula": "t_madera ≥ 30 mm",
+    "dem": 30,
+    "cap": 50,
+    "unidad": "mm",
+    "fu": 0.6,
+    "estado": "ok",
+    "ref": "Práctica constructiva"
+   },
+   {
+    "nombre": "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)",
+    "formula": "m = ρ·A·t",
+    "dem": 139.95795271742531,
+    "unidad": "kg",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría"
+   },
+   {
+    "nombre": "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante",
+    "formula": "Sin verificación numérica",
+    "dem": 0,
+    "unidad": "–",
+    "fu": null,
+    "estado": "pend",
+    "ref": "Decisión del proyectista"
+   }
+  ]
+ },
+ "mercado": {
+  "ours": {
+   "name": "TT300-C (este diseño)",
+   "mass": 3285.494698078743,
+   "capKN": 2941.995,
+   "h": 230,
+   "D": 2000,
+   "nCyl": 2,
+   "Fcyl": 445.32075864635317,
+   "p": 700,
+   "rot": 12.857142857142858,
+   "arm": 0.9241523552007156,
+   "ru": 0.6701550387596898,
+   "massPerKN": 1.116757403761306,
+   "muImpl": 0.4174738652984492,
+   "FcylPerTon": 2.9688050576423546
+  },
+  "refs": [
+   {
+    "id": "ett200",
+    "name": "Enerpac ETT200",
+    "mass": 1700,
+    "capKN": 2000,
+    "h": 150,
+    "D": 1790,
+    "nCyl": 1,
+    "Fcyl": 222,
+    "p": 700,
+    "rot": 12.5,
+    "arm": 0.895,
+    "ru": 0.596,
+    "src": "Enerpac, ficha ETT-Series (EN-GB)",
+    "massPerKN": 0.85,
+    "muImpl": 0.16668624161073825,
+    "FcylPerTon": 1.0885381499999998
+   },
+   {
+    "id": "ett400",
+    "name": "Enerpac ETT400",
+    "mass": 1725,
+    "capKN": 4000,
+    "h": 150,
+    "D": 1790,
+    "nCyl": 2,
+    "Fcyl": 222,
+    "p": 700,
+    "rot": 12.5,
+    "arm": 0.895,
+    "ru": 0.596,
+    "src": "Enerpac, ficha ETT-Series (EN-GB)",
+    "massPerKN": 0.43125,
+    "muImpl": 0.16668624161073825,
+    "FcylPerTon": 1.0885381499999998
+   },
+   {
+    "id": "kiet",
+    "name": "KIET 400T (equipo del cliente)",
+    "mass": 2158,
+    "capKN": 3924,
+    "h": 200,
+    "D": 2000,
+    "nCyl": 2,
+    "Fcyl": 397,
+    "p": 700,
+    "rot": 12.857,
+    "arm": 0.869,
+    "ru": 0.67,
+    "src": "Plano y manual KIET (análisis del 30-10-2026); capacidad declarada 400 t (el manual dice 500 t)",
+    "massPerKN": 0.5499490316004078,
+    "muImpl": 0.2624438967243294,
+    "FcylPerTon": 1.9843221457696227
+   },
+   {
+    "id": "hydra",
+    "name": "Hydra-Slide 8′×8′×6″ (250/500 t)",
+    "mass": null,
+    "capKN": null,
+    "h": 152,
+    "D": null,
+    "nCyl": null,
+    "Fcyl": null,
+    "p": null,
+    "rot": null,
+    "arm": null,
+    "ru": null,
+    "src": "Texto en el video del fabricante; sin ficha de masa ni de cilindros",
+    "massPerKN": null,
+    "muImpl": null,
+    "FcylPerTon": null
+   }
+  ],
+  "capacity": {
+   "design": 332.1396224928685,
+   "designFS1": 415.5687003212006,
+   "nominal": 661.9973264605142,
+   "nominalFS": 529.282523405127
+  }
+ },
+ "capCil": [
+  {
+   "n": 1,
+   "wGiro": 165.2814668375504,
+   "wNom": 330.2103188213732,
+   "wPiv": 116.3385465672084,
+   "wCap": 116.3385465672084
+  },
+  {
+   "n": 2,
+   "wGiro": 332.1396224928685,
+   "wNom": 661.9973264605142,
+   "wPiv": 332.1396224928685,
+   "wCap": 332.1396224928685
+  }
+ ],
+ "bomba": {
+  "Qr": 1.8,
+  "tExt": 1.6611171155856028,
+  "tRet": 0.8471697289486574,
+  "PhExt": 1.5182021976172533,
+  "PhRet": 0.6,
+  "vExt": 0.00235785100876882,
+  "vRet": 0.004623237272095726,
+  "Qreq": 0,
+  "Pmotor": 1.7861202324908863
+ },
  "revisionCruzada": [
   {
    "name": "Fuerza de diseño por cilindro (potencia virtual con fricción en guía y cara de la uña)",
@@ -2351,11 +2629,15 @@
    ],
    [
     "Geometría",
-    6
+    7
    ],
    [
     "ASME BTH-1 §3-2.2",
     5
+   ],
+   [
+    "Hidráulica",
+    4
    ],
    [
     "Geometría (alzado)",
@@ -2370,15 +2652,11 @@
     4
    ],
    [
-    "Hidráulica",
+    "Criterio del proyecto",
     3
    ],
    [
     "Criterio de operación",
-    2
-   ],
-   [
-    "Criterio del proyecto",
     2
    ],
    [
@@ -2835,9 +3113,30 @@
   },
   {
    "grp": "Giro",
+   "nombre": "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)",
+   "formula": "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx",
+   "dem": 0.004623237272095726,
+   "cap": 0.25,
+   "unidad": "m/s",
+   "fu": 0.018492949088382903,
+   "estado": "ok",
+   "ref": "Criterio del proyecto"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)",
+   "formula": "P = p·Q/(600·η)",
+   "dem": 1.7861202324908863,
+   "unidad": "kW",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
+  },
+  {
+   "grp": "Giro",
    "nombre": "Tiempo por vuelta",
    "formula": "N_pas · (V_ext + V_ret) / Q",
-   "dem": 70.23203164695927,
+   "dem": 70.23203164695929,
    "unidad": "min",
    "fu": null,
    "estado": "info",
@@ -2875,6 +3174,16 @@
    "fu": null,
    "estado": "info",
    "ref": "Referencial (rev. M7)"
+  },
+  {
+   "grp": "Geometría",
+   "nombre": "Altura total sobre el piso (base + interfaz + mesa + cubierta)",
+   "formula": "H = t_base + Δ_interfaz + h_mesa + t_madera",
+   "dem": 230,
+   "unidad": "mm",
+   "fu": null,
+   "estado": "info",
+   "ref": "Geometría"
   },
   {
    "grp": "Mesa (FEA)",

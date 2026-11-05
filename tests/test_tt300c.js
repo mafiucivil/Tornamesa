@@ -133,6 +133,55 @@ test("Un cilindro (n° impar): el pivote reacciona con la fuerza tangencial del 
   assert.equal(bush.st, "fail", "con 1 cilindro y 150 tf el buje no cumple (antes daba 0,33 por omitir la reacción)");
 });
 
+test("Bomba, retorno rápido, potencia y tiempo por vuelta", () => {
+  const P = Object.assign(TT.defaults(), { Q_pump: 10, Q_ret: 20 }), R = TT.compute(P);
+  const A = Math.PI / 4 * P.D_bore ** 2, Aa = A - Math.PI / 4 * P.d_rod ** 2;
+  near(R.tCycle, P.n_cyl * A * P.stroke / 1e6 / 10 + P.n_cyl * Aa * P.stroke / 1e6 / 20, 1e-12, "tiempo de ciclo con retorno rápido");
+  near(R.tRev, R.tCycle * P.N_pin, 1e-12, "tiempo por vuelta");
+  near(R.pump.vRet, 20e6 / 60 / (P.n_cyl * Aa) / 1000, 1e-12, "velocidad de retorno");
+  near(R.pump.Pmotor, Math.max(R.pump.PhExt, R.pump.PhRet) / P.eta_pump, 1e-12, "potencia del motor");
+  near(R.pump.PhRet, P.p_ret * 20 / 600, 1e-12, "potencia hidráulica del retorno");
+  assert.equal(TT.compute(TT.defaults()).tRev > 70 && TT.compute(TT.defaults()).tRev < 70.5, true, "por defecto 70 min por vuelta (sin cambios)");
+  const obj = TT.analyze(Object.assign(TT.defaults(), { t_vuelta_obj: 30 }), { noFEA: true });
+  assert.equal(obj.checks.find((c) => /Tiempo por vuelta frente al objetivo/.test(c.name)).st, "fail", "70 min no cumple un objetivo de 30 min");
+  const need = obj.checks.find((c) => /Caudal de bomba requerido/.test(c.name)).dem;
+  near(TT.compute(Object.assign(TT.defaults(), { Q_pump: need, Q_ret: need })).tRev, 30, 1e-9, "el caudal requerido da el tiempo objetivo");
+});
+
+test("Cubierta de madera dura y enrase con los rieles de skidding", () => {
+  const P0 = TT.defaults(), A0 = TT.analyze(P0, { noFEA: true }), W = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1 }), { noFEA: true });
+  const hole = P0.D_piv + 80, area = Math.PI / 4 * (P0.D_top ** 2 - hole ** 2);
+  near(W.R.m.wood, P0.rho_wood * 1e-9 * area * P0.t_wood, 1e-9, "masa de la madera");
+  near(W.R.m.total - A0.R.m.total, W.R.m.wood, 0.02, "la madera suma su masa (más el efecto sobre la interfaz)");
+  assert.ok(W.R.q_max > A0.R.q_max, "la madera rotatoria carga la interfaz");
+  const row = W.checks.find((c) => /Madera: aplastamiento/.test(c.name));
+  const RL = P0.D_load / 2; near(row.dem, P0.phi_d * W.R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P0.e / RL), 1e-9, "presión sobre la madera");
+  assert.ok(W.verdict.estructura && W.verdict.gira, "con madera cumple");
+  assert.ok(TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1, p_wood: 2 }), { noFEA: true }).checks.some((c) => /Madera: aplastamiento/.test(c.name) && c.st === "fail"), "con p_adm de 2 MPa no cumple");
+  const H = W.checks.find((c) => /Altura total sobre el piso/.test(c.name)).dem; near(H, P0.t_base + P0.h_disc + P0.t_wood, 1e-12, "altura total con madera");
+  assert.ok(!A0.checks.some((c) => /Enrase/.test(c.name)), "sin h_skid no hay verificación");
+  const sk = TT.analyze(Object.assign(TT.defaults(), { h_skid: 235 }), { noFEA: true }).checks.find((c) => /Enrase/.test(c.name));
+  near(sk.dem, 5, 1e-9, "desnivel de 5 mm"); assert.equal(sk.st, "ok");
+  assert.equal(TT.analyze(Object.assign(TT.defaults(), { h_skid: 300 }), { noFEA: true }).checks.find((c) => /Enrase/.test(c.name)).st, "fail");
+});
+
+test("Capacidad de giro y capacidad según el número de cilindros", () => {
+  const P = TT.defaults(), R = TT.compute(P);
+  const W = TT.capacityW(P, R.mu.d, P.r_ef, P.FS_min), RW = TT.compute(Object.assign({}, P, { W_tf: W }));
+  near(RW.Fstall / RW.Fcyl(RW.torque(R.mu.d, P.r_ef)), P.FS_min, 1e-6, "FS exacto en la capacidad de giro");
+  assert.ok(TT.capacityW(P, R.mu.d, P.r_ef, 1) > W && TT.capacityW(P, R.mu.nom, R.r_u, 1) > TT.capacityW(P, R.mu.d, P.r_ef, 1), "monótona en μ y FS");
+  const cc = TT.capacityByCyl(P, [1, 2]);
+  assert.ok(cc[0].wPiv < cc[0].wGiro, "con 1 cilindro limita el pivote"); assert.ok(cc[0].wCap < cc[1].wCap, "2 cilindros admiten más");
+  near(cc[1].wCap, cc[1].wGiro, 1e-9, "con 2 cilindros limita el giro");
+  const ok = (W2) => TT.analyze(Object.assign(TT.defaults(), { n_cyl: 1, W_tf: W2 }), { noFEA: true });
+  const below = ok(cc[0].wCap * 0.98), above = ok(cc[0].wCap * 1.03);
+  assert.ok(below.verdict.gira && !below.checks.some((c) => c.grp === "Pivote" && c.st === "fail"), "bajo la capacidad cumple");
+  assert.ok(!above.verdict.gira || above.checks.some((c) => c.grp === "Pivote" && c.st === "fail"), "sobre la capacidad falla");
+  const M = TT.market(P);
+  near(M.ours.massPerKN, TT.compute(P).m.total / TT.compute(P).W, 1e-12, "kg por kN");
+  near(M.refs.find((r) => r.id === "ett400").muImpl, 2 * 222 * 0.895 / (4000 * 0.596), 1e-12, "μ implícito de la referencia");
+});
+
 test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
   const P = TT.defaults();
   assert.equal(AG.validate(P).filter((v) => v.lvl === "error").length, 0);

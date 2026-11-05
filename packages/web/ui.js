@@ -5,7 +5,7 @@
   const DEF = TT.defaults();
   let P = Object.assign({}, DEF);
   try { const s = JSON.parse(store.get(LS) || "null"); if (s) Object.keys(DEF).forEach((k) => { if (k in s) P[k] = s[k]; }); } catch (e) { }
-  let A = null, X = null, AU = null, SC = null, VAL = [], optRes = null, optRunning = false;
+  let A = null, X = null, AU = null, SC = null, MK = null, CN = null, VAL = [], optRes = null, optRunning = false;
   const $ = (s) => document.querySelector(s);
   const D2R = Math.PI / 180;
   const REF = { KIET: 2158, TT300B: 5354 };
@@ -88,7 +88,7 @@
     const t0 = performance.now();
     if (VAL.some((v) => v.lvl === "error")) { A = null; }
     else {
-      try { A = TT.analyze(P); X = AG.crossCheck(A); AU = AG.audit(A.checks); SC = AG.scenarios(A); }
+      try { A = TT.analyze(P); X = AG.crossCheck(A); AU = AG.audit(A.checks); SC = AG.scenarios(A); MK = TT.market(P); CN = TT.capacityByCyl(P, [1, 2]); }
       catch (err) { A = null; VAL.push({ lvl: "error", msg: "Error de cálculo: " + err.message }); }
     }
     $("#busy").textContent = A ? `Recalculado en ${fmt(performance.now() - t0, 3)} ms` : "Corrija los datos marcados";
@@ -157,7 +157,8 @@
         </div></div>
     </div>
     <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>
-    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A, B o C en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>`;
+    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A, B o C en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>
+    <div class="card" style="margin-top:12px"><h3>Comparación con equipos comerciales</h3>${marketTable()}</div>`;
   }
   function ifaceTable() {
     const rows = (SC && SC.ifaces) || [], act = A.R.ifc.o;
@@ -225,12 +226,13 @@
   }
   function sectionSVG() {
     const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot), ifc = R.ifc, dl = ifc.delta, tm = tb + dl;   // tm: cara inferior de la mesa (sobre los discos de la interfaz)
-    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tm + hd + 160;
+    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tm + hd + (P.opt_wood > 0.5 ? P.t_wood : 0) + 160;
     const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
     const Rt = P.D_top / 2, rpr = TT.prIn(P);
+    if (P.opt_wood > 0.5) o.push(`<rect x="${X(r0)}" y="${Z(tm + hd + P.t_wood)}" width="${X(Rt) - X(r0)}" height="${P.t_wood}" fill="#8b5a2b" opacity=".85" stroke="var(--ink)" stroke-width=".6"><title>Madera dura ${fmt(P.t_wood, 3)} mm</title></rect>`);
     if (ifc.o > 0) {                                                  // discos inoxidables (A y B) y lámina UHMW (B) entre la base y la mesa
       const BR = "#b87333", rI = R.Ri;                                 // bronce: color cobre
       const zs = ifc.o === 3 ? [[tb, ifc.tbz, BR, "bronce con grafito"], [tb + ifc.tbz, ifc.tss, ifc.conf === 2 ? BR : "var(--acc)", ifc.conf === 2 ? "2.ª placa de bronce" : "disco duro"]]
@@ -301,6 +303,23 @@
     const leg = series.map((s, i) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:16px;height:3px;background:${s.c};display:inline-block"></i>${s.n}</span>`).join("");
     return `<svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${opt.yl} vs ${opt.xl}">${o.join("")}</svg><div class="note">${leg}</div>`;
   }
+  function cylCapTable() {
+    if (!CN) return "";
+    return `<table><tr><th class="n">Cilindros</th><th class="n">W máx. giro (FS ≥ ${fmt(P.FS_min)}, μ diseño)</th><th class="n">W máx. por pivote</th><th class="n">Capacidad adoptada</th><th class="n">W que gira (FS = 1, μ nominal)</th></tr>
+      ${CN.map((c) => `<tr${c.n === P.n_cyl ? ' class="grp"' : ""}><td class="n">${c.n}</td><td class="n">${fmt(c.wGiro, 3)} tf</td><td class="n">${fmt(c.wPiv, 3)} tf</td><td class="n"><b>${fmt(c.wCap, 3)} tf</b></td><td class="n">${fmt(c.wNom, 3)} tf</td></tr>`).join("")}</table>
+      <div class="note">Con un solo cilindro el empuje no es un par puro: el pivote reacciona con la fuerza tangencial del pasador y limita la capacidad (como en el modo de un cilindro de los equipos comerciales). La capacidad estructural de la cadena de empuje se verifica con la carga indicada en «Carga».</div>`;
+  }
+  function marketTable() {
+    if (!MK) return "";
+    const r = (x) => x == null ? "—" : fmt(x, 3), rows = [MK.ours, ...MK.refs];
+    return `<div class="scroll"><table><tr><th>Equipo</th><th class="n">Capacidad (kN)</th><th class="n">Masa (kg)</th><th class="n">kg por kN</th><th class="n">Altura (mm)</th><th class="n">Ø plataforma (mm)</th><th class="n">Cilindros</th><th class="n">F por cilindro (kN)</th><th class="n">kN de cilindro por tf</th><th class="n">μ implícito*</th><th class="n">Giro por carrera (°)</th></tr>
+      ${rows.map((x, i) => `<tr${i === 0 ? ' class="grp"' : ""}><td>${esc(x.name)}</td><td class="n">${r(x.capKN)}</td><td class="n">${r(x.mass)}</td><td class="n">${x.massPerKN == null ? "—" : fmt(x.massPerKN, 3)}</td><td class="n">${r(x.h)}</td><td class="n">${r(x.D)}</td><td class="n">${x.nCyl == null ? "—" : x.nCyl}</td><td class="n">${r(x.Fcyl)}</td><td class="n">${x.FcylPerTon == null ? "—" : fmt(x.FcylPerTon, 3)}</td><td class="n">${x.muImpl == null ? "—" : fmt(x.muImpl, 3)}</td><td class="n">${r(x.rot)}</td></tr>`).join("")}</table></div>
+      <div class="note">* μ implícito = n·F·a/(N·r_u) con la fuerza de calado y el brazo mínimo: es la fricción que el equipo vence al límite del alivio, sin factor de seguridad. Datos de los equipos comerciales: fichas y planos públicos (Enerpac, KIET); el brazo y el radio de fricción son estimaciones.</div>
+      <div class="kv" style="margin-top:8px"><span>W máx. que gira, FS ≥ ${fmt(P.FS_min)} (μ de diseño, r_ef) · criterio de este proyecto</span><span>${fmt(MK.capacity.design, 3)} tf</span>
+        <span>W máx. que gira con FS = 1 (μ de diseño)</span><span>${fmt(MK.capacity.designFS1, 3)} tf</span>
+        <span>W máx. que gira con FS = 1 (μ nominal, r_u) · rotulado comercial</span><span>${fmt(MK.capacity.nominal, 3)} tf</span></div>
+      <div class="note">La capacidad de giro es una cota de los cilindros; la capacidad estructural de la mesa se verifica con la carga indicada en «Carga» (${fmt(P.W_tf, 3)} tf).</div>`;
+  }
   function renderGiro() {
     const el = document.querySelector('section[data-t="giro"]');
     if (!A) { el.innerHTML = msgs(); return; }
@@ -319,12 +338,22 @@
       <div class="card"><h3>Fricción máxima vencible</h3><table><tr><th>Radio</th><th class="n">mm</th><th class="n">μ máx a alivio</th><th class="n">μ máx a alarma</th></tr>
         ${mm.map(([n, r]) => `<tr><td>${n}</td><td class="n">${fmt(r, 4)}</td><td class="n">${fmt(R.muMax(r))}</td><td class="n">${fmt(R.muMax(r) * P.p_alarm / P.p_relief)}</td></tr>`).join("")}</table>
         <div class="note">μ_máx = (n·F_calado·η_c·brazo_mín − T_pivote)/(N·r). Aproximación a alarma: proporcional a la presión.</div>
+        <h3 style="margin-top:14px">Capacidad según el número de cilindros</h3>${cylCapTable()}
         <h3 style="margin-top:14px">Hidráulica</h3><div class="kv">
           <span>Área émbolo / anular</span><span>${fmt(R.A, 4)} / ${fmt(R.Aann, 4)} mm²</span>
           <span>F calado / alarma / retorno</span><span>${fmt(R.Fstall)} / ${fmt(R.Falarm)} / ${fmt(R.Fret)} kN</span>
           <span>Volumen por carrera (n cilindros)</span><span>${fmt(R.Vext / 1e6)} L</span>
           <span>Tiempo por ciclo / por vuelta</span><span>${fmt(R.tCycle)} / ${fmt(R.tRev)} min</span>
+          <span>Avance (Q ${fmt(P.Q_pump)} L/min) / retorno (Q ${fmt(R.pump.Qr)} L/min)</span><span>${fmt(R.pump.tExt)} / ${fmt(R.pump.tRet)} min</span>
+          <span>Velocidad del vástago: avance / retorno</span><span>${fmt(R.pump.vExt * 1000)} / ${fmt(R.pump.vRet * 1000)} mm/s</span>
+          <span>Potencia hidráulica: avance / retorno</span><span>${fmt(R.pump.PhExt)} / ${fmt(R.pump.PhRet)} kW</span>
+          <span>Potencia del motor (η ${fmt(P.eta_pump)})</span><span>${fmt(R.pump.Pmotor)} kW</span>
+          ${R.pump.Qreq ? `<span>Caudal para ${fmt(P.t_vuelta_obj, 3)} min por vuelta</span><span>${fmt(R.pump.Qreq)} L/min</span>` : ""}
         </div>
+        <h3 style="margin-top:14px">Control y seguridad: umbrales de presión</h3>
+        <table><tr><th>Condición</th><th class="n">p (bar)</th></tr>
+          ${[["Gira con μ nominal (esperada en operación)", R.cases.find((c) => c.id === "nom").p], ["Gira con μ de diseño", R.cases.find((c) => c.id === "dis").p], ["Gira contaminado", R.cases.find((c) => c.id === "cont").p], ["Alarma / detención", P.p_alarm], ["Válvula de alivio (calado)", P.p_relief]].map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v)}</td></tr>`).join("")}</table>
+        <div class="note">Instalar transductor de presión en el puerto A (lectura y registro por ciclo), detención automática a la presión de alarma, válvulas de bloqueo en ambos cilindros, mando remoto con parada de emergencia y encoder de ángulo (un paso = ${fmt(360 / P.N_pin)}°; resolución recomendada ≤ 0,1°).</div>
         <div class="note">Ensayo de aceptación: con la presión de despegue medida p, μ_real = (n·p·A·η_c·brazo_mín − T_piv)/(N·${fmt(P.r_ef, 4)} mm). Aceptar si μ_real ≤ ${fmt(P.mu_d)}.</div></div></div>`;
   }
 
@@ -397,13 +426,13 @@
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
     const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
-      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Cubierta de madera dura", m.wood], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
     const mx = Math.max(...parts.map((p) => p[1]));
     el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
       ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}
       <tr class="grp"><td>Total</td><td class="n">${fmt(m.total, 4)}</td><td class="n">100</td><td></td></tr></table>
       <div class="note">Masas de acero con ρ = 7850 kg/m³, sin soldadura ni pintura (agregar ≈ 2 %). No incluye bomba, mangueras ni plancha diamantada.</div></div>
-      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.ssTop + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + A.R.ifc.delta + P.h_disc, 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
+      <div class="card"><h3>Transporte</h3><div class="kv"><span>Masa total</span><span>${fmt(m.total, 4)} kg</span><span>Mesa (izable por separado)</span><span>${fmt(m.disc + m.ssTop + m.pivot, 4)} kg</span><span>Base + ménsulas</span><span>${fmt(m.base + m.rim + m.brackets, 4)} kg</span><span>Dimensiones en planta</span><span>${fmt(P.B, 4)} × ${fmt(P.B, 4)} mm</span><span>Alto total</span><span>${fmt(P.t_base + A.R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0), 3)} mm</span><span>Referencia KIET 400T</span><span>${fmt(REF.KIET, 4)} kg</span></div>
       <div class="note">Use el optimizador para reducir la masa manteniendo todas las verificaciones (FU ≤ 0,90 en estructura y giro asegurado).</div></div></div>`;
   }
 
