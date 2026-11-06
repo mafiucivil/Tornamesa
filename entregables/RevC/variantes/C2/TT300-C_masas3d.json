@@ -4,10 +4,10 @@
    {
     "grupo": "base",
     "pieza": "Plancha base + collar + orejas de izaje",
-    "modelo3d": 950.4817685255709,
-    "nucleo": 950.6202675226602,
-    "dif": -0.13849899708930025,
-    "dif_pct": -0.014569329291729919
+    "modelo3d": 958.076955767696,
+    "nucleo": 958.1941472267716,
+    "dif": -0.11719145907568418,
+    "dif_pct": -0.012230450312691066
    },
    {
     "grupo": "rim",
@@ -20,10 +20,10 @@
    {
     "grupo": "brackets",
     "pieza": "Ménsulas de cilindro",
-    "modelo3d": 176.8335125452992,
-    "nucleo": 176.83351254529921,
-    "dif": -2.842170943040401e-14,
-    "dif_pct": -1.607258093859514e-14
+    "modelo3d": 181.6881470996177,
+    "nucleo": 181.6881470996179,
+    "dif": -1.9895196601282805e-13,
+    "dif_pct": -1.0950189607236434e-13
    },
    {
     "grupo": "beds",
@@ -36,18 +36,18 @@
    {
     "grupo": "mesa",
     "pieza": "Mesa (planchas, almas, nervios, cubo, pasadores)",
-    "modelo3d": 1413.403323571621,
-    "nucleo": 1414.8020015216673,
-    "dif": -1.398677950046249,
-    "dif_pct": -0.098860331589998
+    "modelo3d": 1424.6240635446188,
+    "nucleo": 1426.0014287963058,
+    "dif": -1.3773652516870243,
+    "dif_pct": -0.09658933181081483
    },
    {
     "grupo": "pivot",
     "pieza": "Pivote",
-    "modelo3d": 20.508505338193388,
-    "nucleo": 20.50850533819338,
-    "dif": 7.105427357601002e-15,
-    "dif_pct": 3.464624671778703e-14
+    "modelo3d": 20.863630971755175,
+    "nucleo": 20.86363097175517,
+    "dif": 3.552713678800501e-15,
+    "dif_pct": 1.7028261684699584e-14
    },
    {
     "grupo": "cyl",
@@ -60,10 +60,10 @@
    {
     "grupo": "shoes",
     "pieza": "Patines",
-    "modelo3d": 297.73584041351234,
-    "nucleo": 298.5222127820345,
-    "dif": -0.7863723685221657,
-    "dif_pct": -0.26342172704459155
+    "modelo3d": 306.54432541351235,
+    "nucleo": 307.33069778203446,
+    "dif": -0.7863723685221089,
+    "dif_pct": -0.25587172846619477
    },
    {
     "grupo": "dogs",
@@ -76,21 +76,29 @@
    {
     "grupo": "bz",
     "pieza": "Bronce con grafito (o 2.ª placa)",
-    "modelo3d": 432.0015032291062,
-    "nucleo": 447.536507940865,
-    "dif": -15.535004711758802,
-    "dif_pct": -3.471226243247961
+    "modelo3d": 481.33158300909497,
+    "nucleo": 530.8134262362893,
+    "dif": -49.481843227194304,
+    "dif_pct": -9.321889911120612
+   },
+   {
+    "grupo": "stopBars",
+    "pieza": "Barras de los topes (m.stopBars)",
+    "modelo3d": 35.04239999999999,
+    "nucleo": 35.0424,
+    "dif": -1.4210854715202004e-14,
+    "dif_pct": -4.055331459946238e-14
    }
   ],
-  "total_3d": 3545.177377809744,
-  "total_nucleo": 3563.03593183716,
-  "dif": -17.858554027416176,
-  "dif_pct": -0.5012173429923287,
+  "total_3d": 3662.3840299927365,
+  "total_nucleo": 3714.146802299216,
+  "dif": -51.76277230647929,
+  "dif_pct": -1.3936652227756836,
   "fuera": [
    [
     "TT300C-MES-013-B",
     "Perno ISO 4762 M20×45 con arandela",
-    25.937735076292597
+    25.937735076292604
    ],
    [
     "TT300C-PIV-002-B",
@@ -115,27 +123,17 @@
    [
     "TT300C-ACC-006-B",
     "Pasador del ojal trasero (ménsula)",
-    11.600770696351807
-   ],
-   [
-    "TT300C-INT-004-B",
-    "Tope de sector (placa de bronce)",
-    4.06944
-   ],
-   [
-    "TT300C-INT-005-B",
-    "Tope de sector (disco duro / 2.ª placa)",
-    6.104160000000001
+    11.842453419192472
    ],
    [
     "TT300C-INT-006-B",
     "Tornillo avellanado de posición M6×20",
-    0.2652788482706578
+    0.26527884827065734
    ],
    [
     "TT300C-INT-007-B",
     "Tornillo avellanado de posición M6×20",
-    0.26527884827065795
+    0.2652788482706576
    ],
    [
     "TT300C-INT-008-B",
@@ -143,15 +141,15 @@
     0.029593802796815935
    ]
   ],
-  "masa_fuera": 64.74931635073094,
-  "masa_ensamble": 3609.926694160475,
+  "masa_fuera": 54.81739907357161,
+  "masa_ensamble": 3717.2014290663083,
   "tol_pct": 0.5
  },
- "masa_total_ensamble": 3609.9266941604756,
+ "masa_total_ensamble": 3717.2014290663083,
  "cg": [
-  0.021394854037846613,
-  -0.0019733301948437515,
-  89.6644877654602
+  0.020777417723257866,
+  -0.0019163810398268213,
+  90.9361749026976
  ],
  "interferencias": [
   {
@@ -238,7 +236,7 @@
    "a": "TT300C-BAS-001-B",
    "b": "TT300C-INT-004-B",
    "na": "Plancha base",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -326,7 +324,7 @@
    "a": "TT300C-BAS-002-B",
    "b": "TT300C-MES-006-B",
    "na": "Collar de asiento del pivote",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -388,14 +386,6 @@
   },
   {
    "a": "TT300C-BAS-002-B",
-   "b": "TT300C-ACC-002-B",
-   "na": "Collar de asiento del pivote",
-   "nb": "Cilindro hidráulico doble efecto",
-   "vol_mm3": 0.0,
-   "ok": true
-  },
-  {
-   "a": "TT300C-BAS-002-B",
    "b": "TT300C-ACC-003-B",
    "na": "Collar de asiento del pivote",
    "nb": "Patín guiado",
@@ -438,7 +428,7 @@
    "a": "TT300C-BAS-002-B",
    "b": "TT300C-INT-004-B",
    "na": "Collar de asiento del pivote",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -446,7 +436,7 @@
    "a": "TT300C-BAS-002-B",
    "b": "TT300C-INT-005-B",
    "na": "Collar de asiento del pivote",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -542,7 +532,7 @@
    "a": "TT300C-BAS-003-B",
    "b": "TT300C-MES-006-B",
    "na": "Marco perimetral largo",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -646,7 +636,7 @@
    "a": "TT300C-BAS-003-B",
    "b": "TT300C-INT-004-B",
    "na": "Marco perimetral largo",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -654,7 +644,7 @@
    "a": "TT300C-BAS-003-B",
    "b": "TT300C-INT-005-B",
    "na": "Marco perimetral largo",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -742,7 +732,7 @@
    "a": "TT300C-BAS-004-B",
    "b": "TT300C-MES-006-B",
    "na": "Marco perimetral corto",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -846,7 +836,7 @@
    "a": "TT300C-BAS-004-B",
    "b": "TT300C-INT-004-B",
    "na": "Marco perimetral corto",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -854,7 +844,7 @@
    "a": "TT300C-BAS-004-B",
    "b": "TT300C-INT-005-B",
    "na": "Marco perimetral corto",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -942,7 +932,7 @@
    "a": "TT300C-BAS-005-B",
    "b": "TT300C-MES-006-B",
    "na": "Mejilla de ménsula",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1078,7 +1068,7 @@
    "a": "TT300C-BAS-005-B",
    "b": "TT300C-INT-004-B",
    "na": "Mejilla de ménsula",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1086,7 +1076,7 @@
    "a": "TT300C-BAS-005-B",
    "b": "TT300C-INT-005-B",
    "na": "Mejilla de ménsula",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1116,6 +1106,14 @@
   },
   {
    "a": "TT300C-BAS-006-B",
+   "b": "TT300C-IZA-001-B",
+   "na": "Oreja superior de ménsula",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-B",
    "b": "TT300C-MES-005-B",
    "na": "Oreja superior de ménsula",
    "nb": "Alma anular R300",
@@ -1126,7 +1124,7 @@
    "a": "TT300C-BAS-006-B",
    "b": "TT300C-MES-006-B",
    "na": "Oreja superior de ménsula",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1270,7 +1268,7 @@
    "a": "TT300C-BAS-007-B",
    "b": "TT300C-MES-006-B",
    "na": "Oreja inferior (bloque) de ménsula",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1406,7 +1404,7 @@
    "a": "TT300C-BAS-007-B",
    "b": "TT300C-INT-004-B",
    "na": "Oreja inferior (bloque) de ménsula",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1414,7 +1412,7 @@
    "a": "TT300C-BAS-007-B",
    "b": "TT300C-INT-005-B",
    "na": "Oreja inferior (bloque) de ménsula",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1478,7 +1476,7 @@
    "a": "TT300C-IZA-001-B",
    "b": "TT300C-MES-006-B",
    "na": "Oreja de izaje",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1614,7 +1612,7 @@
    "a": "TT300C-IZA-001-B",
    "b": "TT300C-INT-004-B",
    "na": "Oreja de izaje",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1622,7 +1620,7 @@
    "a": "TT300C-IZA-001-B",
    "b": "TT300C-INT-005-B",
    "na": "Oreja de izaje",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1678,7 +1676,7 @@
    "a": "TT300C-ACC-001-B",
    "b": "TT300C-MES-006-B",
    "na": "Bancada de guía con ranura T",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1782,7 +1780,7 @@
    "a": "TT300C-ACC-001-B",
    "b": "TT300C-INT-004-B",
    "na": "Bancada de guía con ranura T",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1790,7 +1788,7 @@
    "a": "TT300C-ACC-001-B",
    "b": "TT300C-INT-005-B",
    "na": "Bancada de guía con ranura T",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1838,7 +1836,7 @@
    "a": "TT300C-MES-001-B",
    "b": "TT300C-MES-006-B",
    "na": "Plancha superior de la mesa",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1934,7 +1932,7 @@
    "a": "TT300C-MES-002-B",
    "b": "TT300C-MES-006-B",
    "na": "Anillo superior de pasadores",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -2038,7 +2036,7 @@
    "a": "TT300C-MES-003-B",
    "b": "TT300C-MES-006-B",
    "na": "Plancha inferior de la mesa",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -2126,7 +2124,7 @@
    "a": "TT300C-MES-003-B",
    "b": "TT300C-INT-005-B",
    "na": "Plancha inferior de la mesa",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -2158,7 +2156,7 @@
    "a": "TT300C-MES-004-B",
    "b": "TT300C-MES-006-B",
    "na": "Anillo inferior de pasadores",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -2246,7 +2244,7 @@
    "a": "TT300C-MES-004-B",
    "b": "TT300C-INT-005-B",
    "na": "Anillo inferior de pasadores",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -2270,7 +2268,7 @@
    "a": "TT300C-MES-005-B",
    "b": "TT300C-MES-006-B",
    "na": "Alma anular R300",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -2389,7 +2387,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-007-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Alma anular R840",
    "vol_mm3": 0.0,
    "ok": true
@@ -2397,7 +2395,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-008-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Nervio radial, tramo 1",
    "vol_mm3": 0.0,
    "ok": true
@@ -2405,7 +2403,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-009-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Nervio radial, tramo 2",
    "vol_mm3": 0.0,
    "ok": true
@@ -2413,7 +2411,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-010-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Nervio radial, tramo 3",
    "vol_mm3": 0.0,
    "ok": true
@@ -2421,7 +2419,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-011-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Cubo de la mesa",
    "vol_mm3": 0.0,
    "ok": true
@@ -2429,7 +2427,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-012-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pasador de empuje",
    "vol_mm3": 0.0,
    "ok": true
@@ -2437,7 +2435,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-PIV-001-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pivote",
    "vol_mm3": 0.0,
    "ok": true
@@ -2445,7 +2443,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-PIV-002-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Buje autolubricado",
    "vol_mm3": 0.0,
    "ok": true
@@ -2453,7 +2451,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-002-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Cilindro hidráulico doble efecto",
    "vol_mm3": 0.0,
    "ok": true
@@ -2461,7 +2459,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-003-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Patín guiado",
    "vol_mm3": 0.0,
    "ok": true
@@ -2469,7 +2467,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-004-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Uña de empuje",
    "vol_mm3": 0.0,
    "ok": true
@@ -2477,7 +2475,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-005-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pasador del vástago (patín)",
    "vol_mm3": 0.0,
    "ok": true
@@ -2485,7 +2483,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-006-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pasador del ojal trasero (ménsula)",
    "vol_mm3": 0.0,
    "ok": true
@@ -2493,7 +2491,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-INT-008-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Grasera recta M10×1",
    "vol_mm3": 0.0,
    "ok": true
@@ -3030,7 +3028,7 @@
    "a": "TT300C-MES-012-B",
    "b": "TT300C-INT-005-B",
    "na": "Pasador de empuje",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3142,7 +3140,7 @@
    "a": "TT300C-PIV-001-B",
    "b": "TT300C-INT-004-B",
    "na": "Pivote",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3150,7 +3148,7 @@
    "a": "TT300C-PIV-001-B",
    "b": "TT300C-INT-005-B",
    "na": "Pivote",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3286,7 +3284,7 @@
    "a": "TT300C-ACC-003-B",
    "b": "TT300C-INT-005-B",
    "na": "Patín guiado",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3358,7 +3356,7 @@
    "a": "TT300C-ACC-006-B",
    "b": "TT300C-INT-004-B",
    "na": "Pasador del ojal trasero (ménsula)",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3366,7 +3364,7 @@
    "a": "TT300C-ACC-006-B",
    "b": "TT300C-INT-005-B",
    "na": "Pasador del ojal trasero (ménsula)",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3414,7 +3412,7 @@
    "a": "TT300C-INT-001-B",
    "b": "TT300C-INT-004-B",
    "na": "Sector de placa de bronce con tapones de grafito",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3438,7 +3436,7 @@
    "a": "TT300C-INT-002-B",
    "b": "TT300C-INT-004-B",
    "na": "Tapón de grafito",
-   "nb": "Tope de sector (placa de bronce)",
+   "nb": "Barra de tope (placa de bronce)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3454,7 +3452,7 @@
    "a": "TT300C-INT-003-B",
    "b": "TT300C-INT-005-B",
    "na": "2.ª placa de bronce (sector)",
-   "nb": "Tope de sector (disco duro / 2.ª placa)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -3469,7 +3467,7 @@
   {
    "a": "TT300C-INT-004-B",
    "b": "TT300C-INT-006-B",
-   "na": "Tope de sector (placa de bronce)",
+   "na": "Barra de tope (placa de bronce)",
    "nb": "Tornillo avellanado de posición M6×20",
    "vol_mm3": 0.0,
    "ok": true
@@ -3477,7 +3475,7 @@
   {
    "a": "TT300C-INT-005-B",
    "b": "TT300C-INT-007-B",
-   "na": "Tope de sector (disco duro / 2.ª placa)",
+   "na": "Barra de tope (disco duro / 2.ª placa)",
    "nb": "Tornillo avellanado de posición M6×20",
    "vol_mm3": 0.0,
    "ok": true
@@ -3497,8 +3495,8 @@
   "TT300C-BAS-001-B": {
    "nombre": "Plancha base",
    "qty": 1,
-   "masa_unit": 924.2871156518826,
-   "masa_total": 924.2871156518826
+   "masa_unit": 924.3084231898962,
+   "masa_total": 924.3084231898962
   },
   "TT300C-BAS-002-B": {
    "nombre": "Collar de asiento del pivote",
@@ -3521,8 +3519,8 @@
   "TT300C-BAS-005-B": {
    "nombre": "Mejilla de ménsula",
    "qty": 8,
-   "masa_unit": 11.289281250000002,
-   "masa_total": 90.31425000000002
+   "masa_unit": 11.544406249999973,
+   "masa_total": 92.35524999999978
   },
   "TT300C-BAS-006-B": {
    "nombre": "Oreja superior de ménsula",
@@ -3533,14 +3531,14 @@
   "TT300C-BAS-007-B": {
    "nombre": "Oreja inferior (bloque) de ménsula",
    "qty": 4,
-   "masa_unit": 17.23351164520187,
-   "masa_total": 68.93404658080748
+   "masa_unit": 17.93692028378155,
+   "masa_total": 71.7476811351262
   },
   "TT300C-IZA-001-B": {
    "nombre": "Oreja de izaje",
    "qty": 4,
-   "masa_unit": 2.1003447355257054,
-   "masa_total": 8.401378942102822
+   "masa_unit": 3.9938146615535484,
+   "masa_total": 15.975258646214193
   },
   "TT300C-ACC-001-B": {
    "nombre": "Bancada de guía con ranura T",
@@ -3551,26 +3549,26 @@
   "TT300C-MES-001-B": {
    "nombre": "Plancha superior de la mesa",
    "qty": 1,
-   "masa_unit": 358.99255712724073,
-   "masa_total": 358.99255712724073
+   "masa_unit": 358.9925571272408,
+   "masa_total": 358.9925571272408
   },
   "TT300C-MES-002-B": {
    "nombre": "Anillo superior de pasadores",
    "qty": 1,
-   "masa_unit": 139.71419261644223,
-   "masa_total": 139.71419261644223
+   "masa_unit": 139.71419261644235,
+   "masa_total": 139.71419261644235
   },
   "TT300C-MES-003-B": {
    "nombre": "Plancha inferior de la mesa",
    "qty": 1,
-   "masa_unit": 285.599728899118,
-   "masa_total": 285.599728899118
+   "masa_unit": 285.3108933838219,
+   "masa_total": 285.3108933838219
   },
   "TT300C-MES-004-B": {
    "nombre": "Anillo inferior de pasadores",
    "qty": 1,
-   "masa_unit": 139.5981392223279,
-   "masa_total": 139.5981392223279
+   "masa_unit": 139.6087930703111,
+   "masa_total": 139.6087930703111
   },
   "TT300C-MES-005-B": {
    "nombre": "Alma anular R300",
@@ -3579,10 +3577,10 @@
    "masa_total": 15.447965059937902
   },
   "TT300C-MES-006-B": {
-   "nombre": "Alma anular R580",
+   "nombre": "Alma anular R590",
    "qty": 1,
-   "masa_unit": 29.86606578254686,
-   "masa_total": 29.86606578254686
+   "masa_unit": 30.38099795121101,
+   "masa_total": 30.38099795121101
   },
   "TT300C-MES-007-B": {
    "nombre": "Alma anular R840",
@@ -3593,26 +3591,26 @@
   "TT300C-MES-008-B": {
    "nombre": "Nervio radial, tramo 1",
    "qty": 14,
-   "masa_unit": 1.2046824084574126,
-   "masa_total": 16.865553718403778
+   "masa_unit": 1.1637054084574125,
+   "masa_total": 16.291875718403777
   },
   "TT300C-MES-009-B": {
    "nombre": "Nervio radial, tramo 2",
    "qty": 14,
-   "masa_unit": 2.2455182947142993,
-   "masa_total": 31.43725612600019
+   "masa_unit": 2.3274726576692166,
+   "masa_total": 32.584617207369035
   },
   "TT300C-MES-010-B": {
    "nombre": "Nervio radial, tramo 3",
    "qty": 14,
-   "masa_unit": 2.0816169128749196,
-   "masa_total": 29.142636780248875
+   "masa_unit": 1.9996629128749202,
+   "masa_total": 27.995280780248883
   },
   "TT300C-MES-011-B": {
    "nombre": "Cubo de la mesa",
    "qty": 1,
-   "masa_unit": 61.56127519295963,
-   "masa_total": 61.56127519295963
+   "masa_unit": 73.11893758323743,
+   "masa_total": 73.11893758323743
   },
   "TT300C-MES-012-B": {
    "nombre": "Pasador de empuje",
@@ -3623,14 +3621,14 @@
   "TT300C-MES-013-B": {
    "nombre": "Perno ISO 4762 M20×45 con arandela",
    "qty": 28,
-   "masa_unit": 0.9263476812961642,
-   "masa_total": 25.937735076292597
+   "masa_unit": 0.9263476812961644,
+   "masa_total": 25.937735076292604
   },
   "TT300C-PIV-001-B": {
    "nombre": "Pivote",
    "qty": 1,
-   "masa_unit": 20.508505338193388,
-   "masa_total": 20.508505338193388
+   "masa_unit": 20.863630971755175,
+   "masa_total": 20.863630971755175
   },
   "TT300C-PIV-002-B": {
    "nombre": "Buje autolubricado",
@@ -3659,8 +3657,8 @@
   "TT300C-ACC-003-B": {
    "nombre": "Patín guiado",
    "qty": 2,
-   "masa_unit": 148.86792020675617,
-   "masa_total": 297.73584041351234
+   "masa_unit": 153.27216270675618,
+   "masa_total": 306.54432541351235
   },
   "TT300C-ACC-004-B": {
    "nombre": "Uña de empuje",
@@ -3677,50 +3675,50 @@
   "TT300C-ACC-006-B": {
    "nombre": "Pasador del ojal trasero (ménsula)",
    "qty": 2,
-   "masa_unit": 5.800385348175904,
-   "masa_total": 11.600770696351807
+   "masa_unit": 5.921226709596236,
+   "masa_total": 11.842453419192472
   },
   "TT300C-INT-001-B": {
    "nombre": "Sector de placa de bronce con tapones de grafito",
    "qty": 24,
-   "masa_unit": 8.609586874132885,
-   "masa_total": 206.63008497918923
+   "masa_unit": 9.838922892892874,
+   "masa_total": 236.134149429429
   },
   "TT300C-INT-002-B": {
    "nombre": "Tapón de grafito",
-   "qty": 2724,
-   "masa_unit": 0.0014250264276684304,
-   "masa_total": 3.8817719889688043
+   "qty": 2496,
+   "masa_unit": 0.0017100317132021216,
+   "masa_total": 4.268239156152496
   },
   "TT300C-INT-003-B": {
    "nombre": "2.ª placa de bronce (sector)",
    "qty": 24,
-   "masa_unit": 9.22873526087284,
-   "masa_total": 221.48964626094815
+   "masa_unit": 10.038716434313061,
+   "masa_total": 240.92919442351348
   },
   "TT300C-INT-004-B": {
-   "nombre": "Tope de sector (placa de bronce)",
+   "nombre": "Barra de tope (placa de bronce)",
    "qty": 24,
-   "masa_unit": 0.16956000000000002,
-   "masa_total": 4.06944
+   "masa_unit": 0.5337999999999995,
+   "masa_total": 12.811199999999989
   },
   "TT300C-INT-005-B": {
-   "nombre": "Tope de sector (disco duro / 2.ª placa)",
+   "nombre": "Barra de tope (disco duro / 2.ª placa)",
    "qty": 24,
-   "masa_unit": 0.25434000000000007,
-   "masa_total": 6.104160000000001
+   "masa_unit": 0.9262999999999999,
+   "masa_total": 22.231199999999998
   },
   "TT300C-INT-006-B": {
    "nombre": "Tornillo avellanado de posición M6×20",
    "qty": 48,
-   "masa_unit": 0.00552664267230537,
-   "masa_total": 0.2652788482706578
+   "masa_unit": 0.005526642672305362,
+   "masa_total": 0.26527884827065734
   },
   "TT300C-INT-007-B": {
    "nombre": "Tornillo avellanado de posición M6×20",
    "qty": 48,
-   "masa_unit": 0.005526642672305374,
-   "masa_total": 0.26527884827065795
+   "masa_unit": 0.005526642672305367,
+   "masa_total": 0.2652788482706576
   },
   "TT300C-INT-008-B": {
    "nombre": "Grasera recta M10×1",

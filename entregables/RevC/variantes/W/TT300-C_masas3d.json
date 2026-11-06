@@ -4,10 +4,10 @@
    {
     "grupo": "base",
     "pieza": "Plancha base + collar + orejas de izaje",
-    "modelo3d": 950.6202675226604,
-    "nucleo": 950.6202675226602,
+    "modelo3d": 958.1941472267717,
+    "nucleo": 958.1941472267716,
     "dif": 1.1368683772161603e-13,
-    "dif_pct": 1.1959227212553201e-14
+    "dif_pct": 1.1864697572057937e-14
    },
    {
     "grupo": "rim",
@@ -36,10 +36,10 @@
    {
     "grupo": "mesa",
     "pieza": "Mesa (planchas, almas, nervios, cubo, pasadores)",
-    "modelo3d": 1413.5886264642809,
-    "nucleo": 1414.8020015216673,
-    "dif": -1.213375057386429,
-    "dif_pct": -0.08576288809892856
+    "modelo3d": 1418.4200643344693,
+    "nucleo": 1419.633434310487,
+    "dif": -1.2133699760177024,
+    "dif_pct": -0.08547065366962378
    },
    {
     "grupo": "pivot",
@@ -82,10 +82,10 @@
     "dif_pct": -8.562370707070304
    }
   ],
-  "total_3d": 3171.3826845027183,
-  "total_nucleo": 3185.3661506743197,
-  "dif": -13.983466171601322,
-  "dif_pct": -0.43899085725642933,
+  "total_3d": 3183.788002077018,
+  "total_nucleo": 3197.77146316725,
+  "dif": -13.98346109023214,
+  "dif_pct": -0.4372876939861782,
   "fuera": [
    [
     "TT300C-MES-013-B",
@@ -124,14 +124,14 @@
    ]
   ],
   "masa_fuera": 77.34534605621604,
-  "masa_ensamble": 3248.7280305589343,
+  "masa_ensamble": 3261.133348133234,
   "tol_pct": 0.5
  },
- "masa_total_ensamble": 3248.7280305589347,
+ "masa_total_ensamble": 3261.1333481332344,
  "cg": [
-  0.02376834000435292,
-  -0.0019515342716493879,
-  94.16601806119147
+  0.023677925484239633,
+  -0.0019441106553833858,
+  94.28996816046919
  ],
  "interferencias": [
   {
@@ -306,7 +306,7 @@
    "a": "TT300C-BAS-002-B",
    "b": "TT300C-MES-006-B",
    "na": "Collar de asiento del pivote",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -474,7 +474,7 @@
    "a": "TT300C-BAS-003-B",
    "b": "TT300C-MES-006-B",
    "na": "Marco perimetral largo",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -626,7 +626,7 @@
    "a": "TT300C-BAS-004-B",
    "b": "TT300C-MES-006-B",
    "na": "Marco perimetral corto",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -778,7 +778,7 @@
    "a": "TT300C-BAS-005-B",
    "b": "TT300C-MES-006-B",
    "na": "Mejilla de ménsula",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -906,7 +906,7 @@
    "a": "TT300C-BAS-006-B",
    "b": "TT300C-MES-006-B",
    "na": "Oreja superior de ménsula",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1058,7 +1058,7 @@
    "a": "TT300C-BAS-007-B",
    "b": "TT300C-MES-006-B",
    "na": "Oreja inferior (bloque) de ménsula",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1202,7 +1202,7 @@
    "a": "TT300C-IZA-001-B",
    "b": "TT300C-MES-006-B",
    "na": "Oreja de izaje",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1338,7 +1338,7 @@
    "a": "TT300C-ACC-001-B",
    "b": "TT300C-MES-006-B",
    "na": "Bancada de guía con ranura T",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1442,7 +1442,7 @@
    "a": "TT300C-MES-001-B",
    "b": "TT300C-MES-006-B",
    "na": "Plancha superior de la mesa",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1554,7 +1554,7 @@
    "a": "TT300C-MES-002-B",
    "b": "TT300C-MES-006-B",
    "na": "Anillo superior de pasadores",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1674,7 +1674,7 @@
    "a": "TT300C-MES-003-B",
    "b": "TT300C-MES-006-B",
    "na": "Plancha inferior de la mesa",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1762,7 +1762,7 @@
    "a": "TT300C-MES-004-B",
    "b": "TT300C-MES-006-B",
    "na": "Anillo inferior de pasadores",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1842,7 +1842,7 @@
    "a": "TT300C-MES-005-B",
    "b": "TT300C-MES-006-B",
    "na": "Alma anular R300",
-   "nb": "Alma anular R580",
+   "nb": "Alma anular R590",
    "vol_mm3": 0.0,
    "ok": true
   },
@@ -1953,7 +1953,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-007-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Alma anular R840",
    "vol_mm3": 0.0,
    "ok": true
@@ -1961,7 +1961,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-008-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Nervio radial, tramo 1",
    "vol_mm3": 0.0,
    "ok": true
@@ -1969,7 +1969,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-009-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Nervio radial, tramo 2",
    "vol_mm3": 0.0,
    "ok": true
@@ -1977,7 +1977,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-010-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Nervio radial, tramo 3",
    "vol_mm3": 0.0,
    "ok": true
@@ -1985,7 +1985,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-011-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Cubo de la mesa",
    "vol_mm3": 0.0,
    "ok": true
@@ -1993,7 +1993,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-MES-012-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pasador de empuje",
    "vol_mm3": 0.0,
    "ok": true
@@ -2001,7 +2001,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-PIV-001-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pivote",
    "vol_mm3": 0.0,
    "ok": true
@@ -2009,7 +2009,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-PIV-002-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Buje autolubricado",
    "vol_mm3": 0.0,
    "ok": true
@@ -2017,7 +2017,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-002-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Cilindro hidráulico doble efecto",
    "vol_mm3": 0.0,
    "ok": true
@@ -2025,7 +2025,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-003-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Patín guiado",
    "vol_mm3": 0.0,
    "ok": true
@@ -2033,7 +2033,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-004-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Uña de empuje",
    "vol_mm3": 0.0,
    "ok": true
@@ -2041,7 +2041,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-005-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pasador del vástago (patín)",
    "vol_mm3": 0.0,
    "ok": true
@@ -2049,7 +2049,7 @@
   {
    "a": "TT300C-MES-006-B",
    "b": "TT300C-ACC-006-B",
-   "na": "Alma anular R580",
+   "na": "Alma anular R590",
    "nb": "Pasador del ojal trasero (ménsula)",
    "vol_mm3": 0.0,
    "ok": true
@@ -2823,8 +2823,8 @@
   "TT300C-IZA-001-B": {
    "nombre": "Oreja de izaje",
    "qty": 4,
-   "masa_unit": 2.1003447355257054,
-   "masa_total": 8.401378942102822
+   "masa_unit": 3.9938146615535484,
+   "masa_total": 15.975258646214193
   },
   "TT300C-ACC-001-B": {
    "nombre": "Bancada de guía con ranura T",
@@ -2847,8 +2847,8 @@
   "TT300C-MES-003-B": {
    "nombre": "Plancha inferior de la mesa",
    "qty": 1,
-   "masa_unit": 285.66897839766335,
-   "masa_total": 285.66897839766335
+   "masa_unit": 285.36948911335963,
+   "masa_total": 285.36948911335963
   },
   "TT300C-MES-004-B": {
    "nombre": "Anillo inferior de pasadores",
@@ -2863,10 +2863,10 @@
    "masa_total": 15.447965059937902
   },
   "TT300C-MES-006-B": {
-   "nombre": "Alma anular R580",
+   "nombre": "Alma anular R590",
    "qty": 1,
-   "masa_unit": 29.86606578254686,
-   "masa_total": 29.86606578254686
+   "masa_unit": 30.38099795121101,
+   "masa_total": 30.38099795121101
   },
   "TT300C-MES-007-B": {
    "nombre": "Alma anular R840",
@@ -2877,26 +2877,26 @@
   "TT300C-MES-008-B": {
    "nombre": "Nervio radial, tramo 1",
    "qty": 14,
-   "masa_unit": 1.2046824084574126,
-   "masa_total": 16.865553718403778
+   "masa_unit": 1.1637054084574125,
+   "masa_total": 16.291875718403777
   },
   "TT300C-MES-009-B": {
    "nombre": "Nervio radial, tramo 2",
    "qty": 14,
-   "masa_unit": 2.2455182947142993,
-   "masa_total": 31.43725612600019
+   "masa_unit": 2.3274726576692166,
+   "masa_total": 32.584617207369035
   },
   "TT300C-MES-010-B": {
    "nombre": "Nervio radial, tramo 3",
    "qty": 14,
-   "masa_unit": 2.0816169128749196,
-   "masa_total": 29.142636780248875
+   "masa_unit": 1.9996629128749202,
+   "masa_total": 27.995280780248883
   },
   "TT300C-MES-011-B": {
    "nombre": "Cubo de la mesa",
    "qty": 1,
-   "masa_unit": 61.56127519295964,
-   "masa_total": 61.56127519295964
+   "masa_unit": 66.7509430974186,
+   "masa_total": 66.7509430974186
   },
   "TT300C-MES-012-B": {
    "nombre": "Pasador de empuje",

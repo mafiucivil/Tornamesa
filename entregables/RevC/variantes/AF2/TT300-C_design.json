@@ -49,6 +49,9 @@
   "L_tope": 0,
   "w_tope": 6,
   "b_tope": 20,
+  "a_sup": 2,
+  "a_inf": 0,
+  "hc_min": 3,
   "d_tor": 6,
   "h_gr": 1,
   "w_gr": 8,
@@ -88,12 +91,12 @@
   "t_top": 20,
   "t_bot": 16,
   "h_disc": 210,
-  "rings": "300, 580, 840",
+  "rings": "300, 590, 840",
   "t_web": 6,
   "N_rib": 14,
   "t_rib": 6,
   "R_rib": 840,
-  "D_hub": 300,
+  "D_hub": 310,
   "w_web": 6,
   "N_pin": 28,
   "d_pin": 85,
@@ -114,10 +117,10 @@
   "c_rod": 110,
   "eta_c": 0.95,
   "m_cyl": 55,
-  "Q_pump": 1.8,
-  "Q_ret": 0,
+  "Q_pump": 10,
+  "Q_ret": 20,
   "eta_pump": 0.85,
-  "t_vuelta_obj": 0,
+  "t_vuelta_obj": 15,
   "v_ret_max": 0.25,
   "x_g": 1140,
   "l_p": 300,
@@ -157,7 +160,7 @@
   "g_ch": 2,
   "b_eye": 50,
   "L_ch": 325,
-  "w_br": 16,
+  "w_br": 20,
   "n_br": 4,
   "B": 2560,
   "t_base": 18,
@@ -167,8 +170,10 @@
   "c_lug": 150,
   "x_lug": 600,
   "t_ear": 18,
-  "R_ear": 60,
+  "R_ear": 92,
   "d_ear": 45,
+  "g_ear": 3,
+  "ear_gira": 0,
   "h_ear": 90,
   "w_ear": 8,
   "phi_lift": 1.3,
@@ -177,9 +182,14 @@
   "L_bush": 80,
   "p_bush": 30,
   "mu_bush": 0.2,
-  "e_piv": 40,
+  "e_piv": 0,
+  "g_bush": 2,
   "h_boss": 60,
   "D_boss": 250,
+  "w_collar": 10,
+  "c_boss_r": 3,
+  "c_boss_a": 2,
+  "m_ri": 3,
   "Fy_piv": 650,
   "Ch": 0,
   "Fy": 345,
@@ -202,10 +212,10 @@
  "validacion": [],
  "derivados": {
   "W": 2941.995,
-  "N": 2957.9109131718737,
-  "ND": 3252.110413171874,
-  "q_max": 1.6621617058804412,
-  "q_avg": 1.041034715749953,
+  "N": 2957.972174735906,
+  "ND": 3252.171674735906,
+  "q_max": 1.674575635076271,
+  "q_avg": 1.0532736243019805,
   "Fstall": 445.32075864635317,
   "Falarm": 381.7035074111599,
   "Fret": 64.88959625989716,
@@ -225,9 +235,9 @@
    "aReq": 67.07114605570445,
    "Wout": 200
   },
-  "tRev": 70.23203164695929,
-  "tCycle": 2.5082868445342603,
-  "muMax_ref": 0.27660054345777463,
+  "tRev": 10.506897979502057,
+  "tCycle": 0.37524635641078774,
+  "muMax_ref": 0.2765961087196411,
   "Kguide": 1.2537703025810694,
   "Rguide": 280.75146601067763,
   "stallMax": {
@@ -273,11 +283,11 @@
     "id": "nom",
     "nombre": "Nominal: inox–inox con grasa limpia",
     "mu": 0.15,
-    "r": 670.1550387596899,
-    "T": 298.40326777498854,
-    "F": 202.4174657046514,
-    "p": 318.1801504694269,
-    "FS": 2.200011531100402,
+    "r": 676.7821986442675,
+    "T": 301.34822584152107,
+    "F": 204.4151346741597,
+    "p": 321.32028766605447,
+    "FS": 2.178511680929106,
     "gira": true
    },
    {
@@ -285,10 +295,10 @@
     "nombre": "Diseño: μ límite superior, r efectivo",
     "mu": 0.2,
     "r": 800,
-    "T": 474.68498927460325,
-    "F": 321.9955775064015,
-    "p": 506.1450648283784,
-    "FS": 1.383002717288873,
+    "T": 474.69260002384004,
+    "F": 322.00074014615444,
+    "p": 506.1531799852779,
+    "FS": 1.3829805435982054,
     "gira": true
    },
    {
@@ -296,10 +306,10 @@
     "nombre": "Borde: μ de diseño con contacto en el borde (r = R)",
     "mu": 0.2,
     "r": 1000,
-    "T": 593.0014258014783,
-    "F": 402.25379120342546,
-    "p": 632.303004913386,
-    "FS": 1.107064167907738,
+    "T": 593.0114870132763,
+    "F": 402.2606160783984,
+    "p": 632.3137329389458,
+    "FS": 1.107045385123068,
     "gira": true
    },
    {
@@ -307,38 +317,38 @@
     "nombre": "Contaminado: arena / película degradada",
     "mu": 0.25,
     "r": 800,
-    "T": 593.3562365932539,
-    "F": 402.49447188300184,
-    "p": 632.6813310354729,
-    "FS": 1.1064021738310985,
+    "T": 593.3657500298001,
+    "F": 402.50092518269315,
+    "p": 632.6914749815976,
+    "FS": 1.106384434878564,
     "gira": true
    },
    {
     "id": "seco",
     "nombre": "Inox seco, sin lubricación (referencial; gripado)",
     "mu": 0.6,
-    "r": 670.1550387596899,
-    "T": 1193.6130710999541,
-    "F": 809.6698628186056,
-    "p": 1272.7206018777076,
-    "FS": 0.5500028827751005,
+    "r": 676.7821986442675,
+    "T": 1205.3929033660843,
+    "F": 817.6605386966388,
+    "p": 1285.2811506642179,
+    "FS": 0.5446279202322765,
     "gira": false
    }
   ],
   "masas": {
    "top": 499.57483462572316,
-   "bot": 429.3290113870146,
-   "webs": 88.56833301031047,
-   "ribs": 77.79073679999999,
-   "hub": 57.61543482005085,
+   "bot": 425.08368172980204,
+   "webs": 89.08326517897508,
+   "ribs": 77.21705879999999,
+   "hub": 70.46560654747957,
    "pins": 261.92365087856825,
    "wood": 0,
-   "disc": 1414.8020015216673,
-   "ssTop": 198.18156060530296,
-   "ss": 346.81773105928016,
+   "disc": 1423.3480977605482,
+   "ssTop": 195.88240537398403,
+   "ss": 342.79420940447204,
    "uhmw": 0,
    "bz": 0,
-   "base": 950.6202675226602,
+   "base": 958.1941472267716,
    "rim": 36.031499999999994,
    "brackets": 169.55156071382123,
    "dogs": 27.21338756535056,
@@ -346,7 +356,8 @@
    "beds": 80.96803662109073,
    "pivot": 19.975816887850698,
    "cyl": 110,
-   "total": 3441.289787173756
+   "stopBars": 0,
+   "total": 3453.38624146194
   }
  },
  "pasadores": [
@@ -397,7 +408,7 @@
  ],
  "almas": [
   300,
-  580,
+  590,
   840
  ],
  "cilindros": {
@@ -791,6 +802,21 @@
      "u": "mm"
     },
     {
+     "id": "a_sup",
+     "lab": "Fijación desmontable · tope: alivio de la cara superior de la barra bajo la superficie de deslizamiento (≥ 1 mm más el sobreespesor de desgaste y relapeado)",
+     "u": "mm"
+    },
+    {
+     "id": "a_inf",
+     "lab": "Fijación desmontable · tope: alivio inferior en el canto del sector (chaflán 45° que libra el filete delantero; 0 = automático, w_tope + 1 mm)",
+     "u": "mm"
+    },
+    {
+     "id": "hc_min",
+     "lab": "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (tolerancia de corte y rebabas del canto)",
+     "u": "mm"
+    },
+    {
      "id": "d_tor",
      "lab": "Fijación desmontable: tornillo avellanado de posición (ISO 10642)",
      "u": "mm"
@@ -1024,7 +1050,7 @@
     },
     {
      "id": "D_hub",
-     "lab": "Diámetro exterior del cubo",
+     "lab": "Diámetro exterior del cubo (pared ≥ 25 mm junto al rebaje del collar: D_cubo ≥ D_collar + 2·c_boss_r + 50)",
      "u": "mm"
     },
     {
@@ -1436,13 +1462,23 @@
     },
     {
      "id": "R_ear",
-     "lab": "Orejas de izaje: radio exterior (ancho = 2R)",
+     "lab": "Orejas de izaje: radio exterior (ancho = 2R; AISC 360-22 D5.2(3): a = R − d/2 ≥ 1,33·b_e)",
      "u": "mm"
     },
     {
      "id": "d_ear",
-     "lab": "Orejas de izaje: diámetro del agujero (grillete: pasador ≤ d − 3)",
+     "lab": "Orejas de izaje: diámetro del agujero (grillete: pasador = d − g_ear)",
      "u": "mm"
+    },
+    {
+     "id": "g_ear",
+     "lab": "Orejas de izaje: holgura diametral agujero–pasador del grillete",
+     "u": "mm"
+    },
+    {
+     "id": "ear_gira",
+     "lab": "Orejas de izaje: el pasador gira bajo la carga plena (AISC D5.2(2) exige holgura ≤ 1 mm; 0 = izaje estático)",
+     "u": "–"
     },
     {
      "id": "h_ear",
@@ -1492,7 +1528,12 @@
     },
     {
      "id": "e_piv",
-     "lab": "Brazo de flexión del pivote (desde la cara superior del asiento)",
+     "lab": "Brazo de flexión del pivote desde la cara superior del asiento: mínimo de ingreso (0 = automático); el brazo efectivo es máx(e_piv; g_bush + L_buje/2)",
+     "u": "mm"
+    },
+    {
+     "id": "g_bush",
+     "lab": "Holgura axial del buje sobre el collar (el buje reacciona a media altura: e = g_bush + L_buje/2)",
      "u": "mm"
     },
     {
@@ -1503,6 +1544,26 @@
     {
      "id": "D_boss",
      "lab": "Collar de asiento del pivote: diámetro exterior (entra en un rebaje del cubo)",
+     "u": "mm"
+    },
+    {
+     "id": "w_collar",
+     "lab": "Collar de asiento del pivote: filete perimetral a la base",
+     "u": "mm"
+    },
+    {
+     "id": "c_boss_r",
+     "lab": "Rebaje del cubo: holgura radial con el collar (el cubo gira, el collar es fijo)",
+     "u": "mm"
+    },
+    {
+     "id": "c_boss_a",
+     "lab": "Rebaje del cubo: holgura axial sobre el collar (profundidad del rebaje desde la cara inferior de la mesa = h_collar − δ + c_boss_a, δ = altura que suma la interfaz)",
+     "u": "mm"
+    },
+    {
+     "id": "m_ri",
+     "lab": "Interfaz de giro: margen de borde entre el rebaje del collar y el radio interior R_i del anillo de contacto (con collar: R_i = D_collar/2 + c_boss_r + m_ri; sin collar: D_piv/2 + 15)",
      "u": "mm"
     },
     {
@@ -1571,12 +1632,12 @@
   }
  ],
  "apoyo": {
-  "r_u": 670.1550387596899,
+  "r_u": 676.7821986442675,
   "Ro": 1000,
-  "Ri": 75,
-  "Ac": 3123921.1949133505,
-  "T_piv_d": 1.4192431671034165,
-  "H_ecc_d": 118.2702639252847,
+  "Ri": 131,
+  "Ac": 3087679.7820615387,
+  "T_piv_d": 1.4170520660951014,
+  "H_ecc_d": 118.08767217459176,
   "mu": {
    "nom": 0.15,
    "d": 0.2,
@@ -1587,30 +1648,33 @@
    "o": 1,
    "tss": 6,
    "tss2": 8,
-   "tssReq": 5.533665006591732,
-   "tss2Req": 6.533665006591732,
+   "tssReq": 5.552427116782491,
+   "tss2Req": 6.552427116782491,
+   "tTope": 0,
+   "tuhTope": 0,
    "gr": 1,
-   "tFlex": 5.033665006591732,
-   "q": 1.6621585909472507,
-   "qAvg": 1.0410327648244944,
+   "tFlex": 5.052427116782491,
+   "q": 1.6745724969381768,
+   "qAvg": 1.0532716504776785,
    "a": 50,
    "sad": 123,
-   "A_ss": 3123921.1949133505,
+   "A_ss": 3087679.7820615387,
    "tuh": 0,
    "tuhReq": 0,
    "tuhConf": 0,
    "EcU": 0,
    "SU": 0,
    "delta": 14,
-   "mTop": 198.18156060530296,
+   "mTop": 195.88240537398403,
    "mUH": 0,
-   "mSS": 346.81773105928016,
+   "mSS": 342.79420940447204,
    "mBz": 0,
-   "tbz": 0
+   "tbz": 0,
+   "topes": []
   },
   "Tmax": 656.4906300230158,
-  "q_min": 0.41990772561946516,
-  "Wd": 15.915913171874074
+  "q_min": 0.4319716135276898,
+  "Wd": 15.977174735905878
  },
  "carrera": [
   {
@@ -1619,14 +1683,14 @@
    "s": 10,
    "arm": 924.1523552007156,
    "Delta": 215.84764479928435,
-   "F": 321.9955775064015,
-   "p": 506.1450648283784,
-   "Fpin": 263.0829775662816,
-   "H": -39.46244663494224,
-   "Ft": 257.010374859448,
-   "Fr": -68.67026280830962,
-   "Rf": 122.97818023186163,
-   "Rr": -162.44062686680385
+   "F": 322.00074014615444,
+   "p": 506.1531799852779,
+   "Fpin": 263.0871956448305,
+   "H": -39.46307934672458,
+   "Ft": 257.0144955743611,
+   "Fr": -68.67136381668797,
+   "Rf": 122.9801519733586,
+   "Rr": -162.44323132008319
   },
   {
    "pos": "Cambio de sentido de la fricción (antes)",
@@ -1634,14 +1698,14 @@
    "s": 156.6269627760763,
    "arm": 929.0283903089291,
    "Delta": 210.97160969107085,
-   "F": 311.6518848154598,
-   "p": 489.88580733122404,
-   "Fpin": 255.47388767998606,
-   "H": -38.32108315199791,
-   "Ft": 256.95821577555006,
-   "Fr": -26.60616555827509,
-   "Rf": 116.15746807300356,
-   "Rr": -154.47855122500144
+   "F": 311.6568816120683,
+   "p": 489.8936617991733,
+   "Fpin": 255.4779837599962,
+   "H": -38.32169756399943,
+   "Ft": 256.96233565418277,
+   "Fr": -26.606592141922754,
+   "Rf": 116.15933045622918,
+   "Rr": -154.4810280202286
   },
   {
    "pos": "Cambio de sentido de la fricción (después)",
@@ -1649,14 +1713,14 @@
    "s": 156.6269627760763,
    "arm": 929.0283903089291,
    "Delta": 210.97160969107085,
-   "F": 315.3774233521858,
-   "p": 495.741983862575,
-   "Fpin": 255.47388767998606,
-   "H": 38.32108315199791,
-   "Ft": 253.45575118638894,
-   "Fr": 49.95592948601575,
-   "Rf": 166.276089924634,
-   "Rr": -127.95500677263608
+   "F": 315.3824798813332,
+   "p": 495.74993222414236,
+   "Fpin": 255.4779837599962,
+   "H": 38.32169756399943,
+   "Ft": 253.45981490908605,
+   "Fr": 49.95673044256757,
+   "Rf": 166.27875587290092,
+   "Rr": -127.95705830890148
   },
   {
    "pos": "Final",
@@ -1664,14 +1728,14 @@
    "s": 218.25392555215262,
    "arm": 924.1523552007156,
    "Delta": 215.84764479928435,
-   "F": 321.29134022294556,
-   "p": 505.0380737689056,
-   "Fpin": 259.41669983721107,
-   "H": 38.91250497558166,
-   "Ft": 253.42872384498864,
-   "Fr": 67.71328620148947,
-   "Rf": 172.156497069748,
-   "Rr": -133.24399209416637
+   "F": 321.2964915714769,
+   "p": 505.0461711771263,
+   "Fpin": 259.4208591333651,
+   "H": 38.91312887000477,
+   "Ft": 253.43278713434924,
+   "Fr": 67.71437186641023,
+   "Rf": 172.15925730012876,
+   "Rr": -133.24612843012397
   }
  ],
  "escenarios": {
@@ -1685,7 +1749,7 @@
   "rs": [
    [
     "r_u",
-    670.1550387596899
+    676.7821986442675
    ],
    [
     "r_ef",
@@ -1700,137 +1764,137 @@
    [
     {
      "mu": 0.1,
-     "r": 670.1550387596899,
-     "F": 134.94497713643426,
-     "p": 212.12010031295125,
-     "FS": 3.3000172966506027
+     "r": 676.7821986442675,
+     "F": 136.27675644943983,
+     "p": 214.213525110703,
+     "FS": 3.2677675213936577
     },
     {
      "mu": 0.1,
      "r": 800,
-     "F": 160.99778875320075,
-     "p": 253.0725324141892,
-     "FS": 2.766005434577746
+     "F": 161.0003700730772,
+     "p": 253.07658999263893,
+     "FS": 2.7659610871964113
     },
     {
      "mu": 0.1,
      "r": 1000,
-     "F": 201.12689560171268,
-     "p": 316.1515024566929,
-     "FS": 2.2141283358154764
+     "F": 201.13030803919915,
+     "p": 316.1568664694728,
+     "FS": 2.2140907702461368
     }
    ],
    [
     {
      "mu": 0.15,
-     "r": 670.1550387596899,
-     "F": 202.4174657046514,
-     "p": 318.1801504694269,
-     "FS": 2.200011531100402
+     "r": 676.7821986442675,
+     "F": 204.41513467415967,
+     "p": 321.32028766605436,
+     "FS": 2.178511680929106
     },
     {
      "mu": 0.15,
      "r": 800,
-     "F": 241.49668312980106,
-     "p": 379.60879862128365,
-     "FS": 1.844003623051831
+     "F": 241.50055510961582,
+     "p": 379.61488498895847,
+     "FS": 1.8439740581309407
     },
     {
      "mu": 0.15,
      "r": 1000,
-     "F": 301.69034340256894,
-     "p": 474.2272536850393,
-     "FS": 1.476085557210318
+     "F": 301.69546205879874,
+     "p": 474.2352997042093,
+     "FS": 1.4760605134974243
     }
    ],
    [
     {
      "mu": 0.2,
-     "r": 670.1550387596899,
-     "F": 269.8899542728685,
-     "p": 424.2402006259025,
-     "FS": 1.6500086483253014
+     "r": 676.7821986442675,
+     "F": 272.55351289887966,
+     "p": 428.427050221406,
+     "FS": 1.6338837606968288
     },
     {
      "mu": 0.2,
      "r": 800,
-     "F": 321.9955775064015,
-     "p": 506.1450648283784,
-     "FS": 1.383002717288873
+     "F": 322.0007401461544,
+     "p": 506.15317998527786,
+     "FS": 1.3829805435982057
     },
     {
      "mu": 0.2,
      "r": 1000,
-     "F": 402.25379120342535,
-     "p": 632.3030049133858,
-     "FS": 1.1070641679077382
+     "F": 402.2606160783983,
+     "p": 632.3137329389456,
+     "FS": 1.1070453851230684
     }
    ],
    [
     {
      "mu": 0.25,
-     "r": 670.1550387596899,
-     "F": 337.36244284108557,
-     "p": 530.300250782378,
-     "FS": 1.3200069186602414
+     "r": 676.7821986442675,
+     "F": 340.69189112359953,
+     "p": 535.5338127767575,
+     "FS": 1.3071070085574632
     },
     {
      "mu": 0.25,
      "r": 800,
-     "F": 402.4944718830018,
-     "p": 632.6813310354728,
-     "FS": 1.1064021738310985
+     "F": 402.50092518269304,
+     "p": 632.6914749815975,
+     "FS": 1.1063844348785643
     },
     {
      "mu": 0.25,
      "r": 1000,
-     "F": 502.81723900428165,
-     "p": 790.3787561417322,
-     "FS": 0.8856513343261907
+     "F": 502.8257700979979,
+     "p": 790.3921661736821,
+     "FS": 0.8856363080984546
     }
    ],
    [
     {
      "mu": 0.3,
-     "r": 670.1550387596899,
-     "F": 404.8349314093028,
-     "p": 636.3603009388538,
-     "FS": 1.100005765550201
+     "r": 676.7821986442675,
+     "F": 408.83026934831935,
+     "p": 642.6405753321087,
+     "FS": 1.089255840464553
     },
     {
      "mu": 0.3,
      "r": 800,
-     "F": 482.9933662596021,
-     "p": 759.2175972425673,
-     "FS": 0.9220018115259155
+     "F": 483.00111021923163,
+     "p": 759.2297699779169,
+     "FS": 0.9219870290654704
     },
     {
      "mu": 0.3,
      "r": 1000,
-     "F": 603.3806868051379,
-     "p": 948.4545073700785,
-     "FS": 0.738042778605159
+     "F": 603.3909241175975,
+     "p": 948.4705994084186,
+     "FS": 0.7380302567487121
     }
    ]
   ],
   "loads": [
    {
     "W": 240,
-    "FS": 1.7264310036488024,
-    "p": 405.46074446100306,
-    "muMax": 0.3452862007297606
+    "FS": 1.7263944451179734,
+    "p": 405.4693305921553,
+    "muMax": 0.3452788890235946
    },
    {
     "W": 300,
-    "FS": 1.383002717288873,
-    "p": 506.1450648283784,
-    "muMax": 0.27660054345777463
+    "FS": 1.3829805435982054,
+    "p": 506.1531799852779,
+    "muMax": 0.2765961087196411
    },
    {
     "W": 360,
-    "FS": 1.15353647206535,
-    "p": 606.82953417735,
-    "muMax": 0.23070729441307
+    "FS": 1.1535202485320615,
+    "p": 606.8380688512412,
+    "muMax": 0.23070404970641234
    }
   ],
   "classes": [
@@ -1838,17 +1902,17 @@
     "psi": 10000,
     "pr": 700,
     "pa": 590,
-    "Dmin": 85.56299919096648,
-    "FScur": 1.383002717288873,
-    "pcur": 506.1450648283784
+    "Dmin": 85.56368511524818,
+    "FScur": 1.3829805435982054,
+    "pcur": 506.1531799852779
    },
    {
     "psi": 5000,
     "pr": 350,
     "pa": 290,
-    "Dmin": 121.00435389318295,
-    "FScur": 0.6915013586444365,
-    "pcur": 506.1450648283784
+    "Dmin": 121.0053239366049,
+    "FScur": 0.6914902717991027,
+    "pcur": 506.1531799852779
    }
   ],
   "ifaces": [
@@ -1859,13 +1923,13 @@
     "tss": 0,
     "tuh": 0,
     "delta": 0,
-    "mass": 3045.408197956894,
+    "mass": 3057.8135104498247,
     "mu_d": 0.2,
-    "F": 321.7833466663824,
-    "p": 505.8114590282244,
-    "FS": 1.383914870858906,
-    "muMax": 0.27678297417178127,
-    "q": 1.661165264702724,
+    "F": 321.7869991896703,
+    "p": 505.8172004320371,
+    "FS": 1.3838991623893064,
+    "muMax": 0.2767798324778612,
+    "q": 1.6735646231751644,
     "mAdd": 0,
     "turns": true,
     "dTot": 0
@@ -1876,24 +1940,24 @@
     "tbz": 0,
     "tss": 6,
     "tss2": 8,
-    "tss2Req": 6.533665006591732,
+    "tss2Req": 6.552427116782491,
     "tuh": 0,
-    "tssReq": 5.533665006591732,
+    "tssReq": 5.552427116782491,
     "tuhReq": 0,
     "delta": 14,
-    "mass": 3441.289787173756,
+    "mass": 3453.38624146194,
     "mu_d": 0.2,
-    "F": 321.9955775064015,
-    "p": 506.1450648283784,
-    "FS": 1.383002717288873,
-    "muMax": 0.27660054345777463,
-    "q": 1.6621617058804412,
-    "mAdd": 346.81773105928016,
+    "F": 322.00074014615444,
+    "p": 506.1531799852779,
+    "FS": 1.3829805435982054,
+    "muMax": 0.2765961087196411,
+    "q": 1.674575635076271,
+    "mAdd": 342.79420940447204,
     "turns": true,
-    "tFlex": 5.033665006591732,
+    "tFlex": 5.052427116782491,
     "tuhConf": 0,
-    "qAvg": 1.0410327648244944,
-    "dTot": 395.8815892168618
+    "qAvg": 1.0532716504776785,
+    "dTot": 395.5727310121151
    },
    {
     "k": 2,
@@ -1901,31 +1965,31 @@
     "tbz": 0,
     "tss": 6,
     "tss2": 6,
-    "tss2Req": 5.533288970096563,
+    "tss2Req": 5.552050021920227,
     "tuh": 15,
-    "tssReq": 5.533288970096563,
-    "tuhReq": 14.03642087808881,
+    "tssReq": 5.552050021920227,
+    "tuhReq": 14.075895108661385,
     "delta": 27,
-    "mass": 3481.350982731319,
+    "mass": 3496.960552252608,
     "mu_d": 0.2,
-    "F": 321.94330171486604,
-    "p": 506.0628924765076,
-    "FS": 1.3832272834201043,
-    "muMax": 0.27664545668402096,
-    "q": 1.661916266757272,
-    "mAdd": 341.3196297562327,
+    "F": 321.9527605004332,
+    "p": 506.07776074790183,
+    "FS": 1.383186645003946,
+    "muMax": 0.2766373290007892,
+    "q": 1.6743486874962052,
+    "mAdd": 337.3598929880437,
     "turns": true,
-    "tFlex": 5.033288970096563,
-    "tuhConf": 14.03642087808881,
-    "qAvg": 1.0408772313554944,
-    "dTot": 435.94278477442504
+    "tFlex": 5.052050021920227,
+    "tuhConf": 14.075895108661385,
+    "qAvg": 1.0531144315820384,
+    "dTot": 439.1470418027834
    },
    {
     "k": 3,
     "name": "C · Placa de bronce con tapones de grafito (bronce + disco duro)",
     "tbz": 10,
-    "tbzReq": 9.135570631771245,
-    "tFlexB": 5.527189244507354,
+    "tbzReq": 9.162179178421837,
+    "tFlexB": 5.547800136116258,
     "tss": 6,
     "tss2": 6,
     "tss2Req": 6,
@@ -1933,19 +1997,19 @@
     "tssReq": 6,
     "tuhReq": 0,
     "delta": 16,
-    "mass": 3464.9217280822136,
+    "mass": 3477.3560029890373,
     "mu_d": 0.15,
-    "F": 241.4570853269149,
-    "p": 379.54655480829683,
-    "FS": 1.8443060307939279,
-    "muMax": 0.2766459046190893,
-    "q": 1.6619138193097653,
-    "mAdd": 363.44054937379764,
+    "F": 241.461842578625,
+    "p": 379.5540327354593,
+    "FS": 1.8442696945019272,
+    "muMax": 0.27664045417528904,
+    "q": 1.674331483899398,
+    "mAdd": 359.22418213047786,
     "turns": true,
-    "tFlex": 2.2789185067881697,
+    "tFlex": 2.287416595102337,
     "tuhConf": 0,
-    "qAvg": 1.0408772313554944,
-    "dTot": 419.51353012531945
+    "qAvg": 1.0531178024353183,
+    "dTot": 419.5424925392126
    }
   ]
  },
@@ -1954,47 +2018,47 @@
    {
     "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 103.02635894301143,
+    "dem": 103.79581592592007,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.8376126743334262,
+    "fu": 0.8438684221619518,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 5.533665006591732,
+    "dem": 5.552427116782491,
     "cap": 6,
     "unidad": "mm",
-    "fu": 0.9222775010986219,
+    "fu": 0.9254045194637485,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 73.76443450949337,
+    "dem": 74.31534749725635,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.5997108496706778,
+    "fu": 0.6041898170508647,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 6.533665006591732,
+    "dem": 6.552427116782491,
     "cap": 8,
     "unidad": "mm",
-    "fu": 0.8167081258239665,
+    "fu": 0.8190533895978114,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.033665006591732,
+    "dem": 5.052427116782491,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2003,7 +2067,7 @@
    {
     "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.533665006591732,
+    "dem": 5.552427116782491,
     "cap": 6,
     "unidad": "mm",
     "fu": null,
@@ -2014,9 +2078,9 @@
     "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
     "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
     "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
+    "cap": 1044.8433558065306,
     "unidad": "kN·m",
-    "fu": 0.6271669592309791,
+    "fu": 0.6283148822018978,
     "estado": "ok",
     "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
    },
@@ -2061,17 +2125,17 @@
    {
     "nombre": "Engrase: área de las ranuras frente al área de contacto (disco de la mesa)",
     "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
-    "dem": 0.05437175903770771,
+    "dem": 0.05463629744545807,
     "cap": 0.25,
     "unidad": "–",
-    "fu": 0.21748703615083084,
+    "fu": 0.21854518978183227,
     "estado": "ok",
     "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
    },
    {
     "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
     "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
-    "dem": 169.85309046261665,
+    "dem": 168.69939098904138,
     "cap": 4,
     "unidad": "cm³ / graseras",
     "fu": null,
@@ -2099,7 +2163,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 346.81773105928016,
+    "dem": 342.79420940447204,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2110,27 +2174,27 @@
    {
     "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 103.01096649087516,
+    "dem": 103.78032261653068,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.8374875324461395,
+    "fu": 0.8437424602969974,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 5.533288970096563,
+    "dem": 5.552050021920227,
     "cap": 6,
     "unidad": "mm",
-    "fu": 0.9222148283494271,
+    "fu": 0.9253416703200378,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.033288970096563,
+    "dem": 5.052050021920227,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2139,7 +2203,7 @@
    {
     "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.533288970096563,
+    "dem": 5.552050021920227,
     "cap": 6,
     "unidad": "mm",
     "fu": null,
@@ -2150,9 +2214,9 @@
     "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
     "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
     "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
+    "cap": 1044.8433558065306,
     "unidad": "kN·m",
-    "fu": 0.6271669592309791,
+    "fu": 0.6283148822018978,
     "estado": "ok",
     "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
    },
@@ -2206,7 +2270,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 341.3196297562327,
+    "dem": 337.3598929880437,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2215,27 +2279,27 @@
    {
     "nombre": "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida",
     "formula": "q_máx ≤ p_adm,UHMW",
-    "dem": 1.6619102593861188,
+    "dem": 1.6743225382133613,
     "cap": 5,
     "unidad": "MPa",
-    "fu": 0.33238205187722375,
+    "fu": 0.3348645076426723,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: espesor adoptado frente al requerido",
     "formula": "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)",
-    "dem": 14.03642087808881,
+    "dem": 14.075895108661385,
     "cap": 15,
     "unidad": "mm",
-    "fu": 0.9357613918725873,
+    "fu": 0.9383930072440924,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado",
     "formula": "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45",
-    "dem": 14.03642087808881,
+    "dem": 14.075895108661385,
     "cap": 15,
     "unidad": "mm",
     "fu": null,
@@ -2255,7 +2319,7 @@
    {
     "nombre": "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)",
     "formula": "arrastre ≈ μ_máx·N (los pernos no bastan: aplastamiento del UHMW)",
-    "dem": 739.3576745212093,
+    "dem": 739.3828556942434,
     "unidad": "kN",
     "fu": null,
     "estado": "pend",
@@ -2264,20 +2328,20 @@
    {
     "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.004240141530262885,
+    "dem": 0.023732276655192168,
     "cap": 0.05,
     "unidad": "MPa·m/s",
-    "fu": 0.0848028306052577,
+    "fu": 0.47464553310384333,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor",
     "formula": "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.002088418024725175,
+    "dem": 0.0021040157543163645,
     "cap": 3,
     "unidad": "mm",
-    "fu": 0.0006961393415750583,
+    "fu": 0.0007013385847721215,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
@@ -2304,27 +2368,27 @@
    {
     "nombre": "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)",
     "formula": "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura",
-    "dem": 81.14796188408783,
+    "dem": 81.754291867962,
     "cap": 102,
     "unidad": "MPa",
-    "fu": 0.7955682537655671,
+    "fu": 0.8015126653721765,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
    {
     "nombre": "Placa de bronce: espesor adoptado frente al requerido",
     "formula": "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)",
-    "dem": 9.135570631771245,
+    "dem": 9.162179178421837,
     "cap": 10,
     "unidad": "mm",
-    "fu": 0.9135570631771245,
+    "fu": 0.9162179178421838,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)"
    },
    {
     "nombre": "Placa de bronce: espesor por flexión / requerido / comercial adoptado",
     "formula": "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor",
-    "dem": 5.527189244507354,
+    "dem": 5.547800136116258,
     "cap": 10,
     "unidad": "mm",
     "fu": null,
@@ -2344,10 +2408,10 @@
    {
     "nombre": "Disco duro: flexión sobre un vacío local (empotrado, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_cara; t = t_disco − sobreespesor",
-    "dem": 103.01096649087516,
+    "dem": 103.7806548009832,
     "cap": 600,
     "unidad": "MPa",
-    "fu": 0.1716849441514586,
+    "fu": 0.17296775800163866,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
@@ -2364,40 +2428,40 @@
    {
     "nombre": "Presión de contacto sobre el bronce neto (sin tapones de grafito)",
     "formula": "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce",
-    "dem": 2.0760272690793298,
+    "dem": 2.092230541782479,
     "cap": 20,
     "unidad": "MPa",
-    "fu": 0.10380136345396648,
+    "fu": 0.10461152708912395,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.00529670563850605,
+    "dem": 0.02965581177507687,
     "cap": 0.5,
     "unidad": "MPa·m/s",
-    "fu": 0.0105934112770121,
+    "fu": 0.05931162355015374,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva",
     "formula": "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.013044064034383403,
-    "cap": 2.8644293682287554,
+    "dem": 0.013145872199360057,
+    "cap": 2.8378208215781635,
     "unidad": "mm",
-    "fu": 0.004553808929297954,
+    "fu": 0.004632382742209003,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)",
     "formula": "h + 2 ≤ 0,70·t_placa",
-    "dem": 2.0130440640343834,
+    "dem": 2.01314587219936,
     "cap": 7,
     "unidad": "mm",
-    "fu": 0.28757772343348337,
+    "fu": 0.2875922674570514,
     "estado": "ok",
     "ref": "Criterio de proyecto (el grafito debe seguir lubricando)"
    },
@@ -2415,9 +2479,9 @@
     "nombre": "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)",
     "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)",
     "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
+    "cap": 1044.8433558065306,
     "unidad": "kN·m",
-    "fu": 0.6271669592309791,
+    "fu": 0.6283148822018978,
     "estado": "ok",
     "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
    },
@@ -2455,9 +2519,9 @@
     "nombre": "Retención del disco duro sobre la mesa (la mayor entre fricción y pegado)",
     "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)",
     "dem": 656.4906300230158,
-    "cap": 1046.7557647296867,
+    "cap": 1044.8433558065306,
     "unidad": "kN·m",
-    "fu": 0.6271669592309791,
+    "fu": 0.6283148822018978,
     "estado": "ok",
     "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
    },
@@ -2473,17 +2537,17 @@
    {
     "nombre": "Engrase: área de las ranuras frente al área de contacto (placa de bronce)",
     "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
-    "dem": 0.05437175903770771,
+    "dem": 0.05463629744545807,
     "cap": 0.25,
     "unidad": "–",
-    "fu": 0.21748703615083084,
+    "fu": 0.21854518978183227,
     "estado": "ok",
     "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
    },
    {
     "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
     "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
-    "dem": 169.85309046261665,
+    "dem": 168.69939098904138,
     "cap": 4,
     "unidad": "cm³ / graseras",
     "fu": null,
@@ -2511,7 +2575,7 @@
    {
     "nombre": "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)",
     "formula": "m = ρ·A·t (bronce descontando los tapones, más el grafito)",
-    "dem": 363.44054937379764,
+    "dem": 359.22418213047786,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2543,7 +2607,7 @@
    "Qr": 1.8,
    "tRev": 70.23203164695929,
    "tCycle": 2.5082868445342603,
-   "Pmotor": 1.7863943464531002,
+   "Pmotor": 1.786422988183334,
    "vRet": 0.004623237272095726
   },
   {
@@ -2551,7 +2615,7 @@
    "Qr": 5,
    "tRev": 25.283531392905346,
    "tCycle": 0.9029832640323338,
-   "Pmotor": 4.962206517925279,
+   "Pmotor": 4.962286078287038,
    "vRet": 0.01284232575582146
   },
   {
@@ -2559,7 +2623,7 @@
    "Qr": 10,
    "tRev": 12.641765696452673,
    "tCycle": 0.4514916320161669,
-   "Pmotor": 9.924413035850558,
+   "Pmotor": 9.924572156574076,
    "vRet": 0.02568465151164292
   },
   {
@@ -2567,7 +2631,7 @@
    "Qr": 20,
    "tRev": 10.506897979502057,
    "tCycle": 0.37524635641078774,
-   "Pmotor": 9.924413035850558,
+   "Pmotor": 9.924572156574076,
    "vRet": 0.05136930302328584
   },
   {
@@ -2575,7 +2639,7 @@
    "Qr": 20,
    "tRev": 6.320882848226336,
    "tCycle": 0.22574581600808344,
-   "Pmotor": 19.848826071701115,
+   "Pmotor": 19.84914431314815,
    "vRet": 0.05136930302328584
   }
  ],
@@ -2636,7 +2700,7 @@
  "mercado": {
   "ours": {
    "name": "TT300-C (este diseño)",
-   "mass": 3441.289787173756,
+   "mass": 3453.38624146194,
    "capKN": 2941.995,
    "h": 242,
    "D": 2000,
@@ -2645,9 +2709,9 @@
    "p": 700,
    "rot": 12.857142857142858,
    "arm": 0.9241523552007156,
-   "ru": 0.6701550387596898,
-   "massPerKN": 1.1697129965121478,
-   "muImpl": 0.4174738652984492,
+   "ru": 0.6767821986442675,
+   "massPerKN": 1.1738246466978834,
+   "muImpl": 0.4133858942222187,
    "FcylPerTon": 2.9688050576423546
   },
   "refs": [
@@ -2725,48 +2789,48 @@
    }
   ],
   "capacity": {
-   "design": 332.0933398408306,
-   "designFS1": 415.52232888760045,
-   "nominal": 661.901320855759,
-   "nominalFS": 529.1865178003718
+   "design": 332.08865394251916,
+   "designFS1": 415.5175025839344,
+   "nominal": 655.4233477099115,
+   "nominalFS": 524.002792586507
   }
  },
  "capCil": [
   {
    "n": 1,
-   "wGiro": 165.28486274677562,
-   "wNom": 330.1640361693353,
+   "wGiro": 165.27961753821728,
+   "wNom": 326.92216939678474,
    "wPiv": 0,
    "wWood": null,
    "wCap": 0
   },
   {
    "n": 2,
-   "wGiro": 332.0933398408306,
-   "wNom": 661.901320855759,
-   "wPiv": 391.2694437429309,
+   "wGiro": 332.08865394251916,
+   "wNom": 655.4233477099115,
+   "wPiv": 381.545706987381,
    "wWood": null,
-   "wCap": 332.0933398408306
+   "wCap": 332.08865394251916
   }
  ],
  "bomba": {
-  "Qr": 1.8,
-  "tExt": 1.6611171155856028,
-  "tRet": 0.8471697289486574,
-  "PhExt": 1.518435194485135,
-  "PhRet": 0.6,
-  "vExt": 0.00235785100876882,
-  "vRet": 0.004623237272095726,
-  "Qreq": 0,
-  "Pmotor": 1.7863943464531002,
-  "PmotorAlarm": 2.1176470588235294
+  "Qr": 20,
+  "tExt": 0.29900108080540855,
+  "tRet": 0.07624527560537916,
+  "PhExt": 8.435886333087964,
+  "PhRet": 6.666666666666667,
+  "vExt": 0.013099172270937888,
+  "vRet": 0.05136930302328584,
+  "Qreq": 8.427843797635115,
+  "Pmotor": 9.924572156574076,
+  "PmotorAlarm": 11.764705882352942
  },
  "revisionCruzada": [
   {
    "name": "Fuerza de diseño por cilindro (potencia virtual con fricción en guía y cara de la uña)",
-   "tool": 321.9955775064015,
-   "indep": 321.9955774852346,
-   "d": 6.573660959367502e-9,
+   "tool": 322.00074014615444,
+   "indep": 322.0007401249873,
+   "d": 6.57362617660321e-9,
    "tol": 0.1,
    "ok": true,
    "note": "kN"
@@ -2782,63 +2846,63 @@
   },
   {
    "name": "Radio de fricción con presión uniforme r_u",
-   "tool": 670.1550387596899,
-   "indep": 670.1542096656976,
-   "d": 0.0001237168968415966,
+   "tool": 676.7821986442675,
+   "indep": 676.7815031305263,
+   "d": 0.00010276784132004075,
    "tol": 0.05,
    "ok": true,
    "note": "mm"
   },
   {
    "name": "Presión de contacto máxima (Navier)",
-   "tool": 1.6621617058804412,
-   "indep": 1.6621633573819763,
-   "d": -0.00009935855749364342,
+   "tool": 1.674575635076271,
+   "indep": 1.6745770765397423,
+   "d": -0.00008607925496214573,
    "tol": 0.2,
    "ok": true,
    "note": "MPa"
   },
   {
    "name": "Equilibrio FEA plancha superior ΣR/ΣF",
-   "tool": 390.2843191746528,
-   "indep": 390.28431917465645,
-   "d": -9.321355300118214e-13,
+   "tool": 389.32045911515667,
+   "indep": 389.3204591151568,
+   "d": -2.92013520121707e-14,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
   },
   {
    "name": "Equilibrio FEA plancha inferior ΣR/ΣF",
-   "tool": 364.57875852601944,
-   "indep": 364.5787585260296,
-   "d": -2.7908844764356116e-12,
+   "tool": 366.7286032034379,
+   "indep": 366.72860320344387,
+   "d": -1.6275138967204486e-12,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 44.12723835871224,
-   "indep": 44.1272383590705,
-   "d": -8.118857334382857e-10,
+   "tool": 44.282053863475824,
+   "indep": 44.28205386383487,
+   "d": -8.108123234549596e-10,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
   },
   {
    "name": "Plancha inferior: FEA / Roark (paño empotrado)",
-   "tool": 123.38785265848027,
-   "indep": 171.20864672782866,
-   "d": -27.93129610174968,
+   "tool": 115.5219892369717,
+   "indep": 165.66298122479733,
+   "d": -30.266865667343346,
    "tol": null,
    "ok": true,
    "note": "MPa; aceptable si 0,5 < razón < 2,0"
   },
   {
    "name": "Flexión global: desequilibrio en el borde",
-   "tool": -0.5547387563126085,
+   "tool": -0.5268706013273041,
    "indep": 0,
-   "d": -0.01705780818713213,
+   "d": -0.016200577768394987,
    "tol": 0.1,
    "ok": true,
    "note": "kN"
@@ -2867,11 +2931,11 @@
    ],
    [
     "ASME BTH-1 §3-2.2",
-    5
+    6
    ],
    [
     "Hidráulica",
-    4
+    5
    ],
    [
     "Geometría (alzado)",
@@ -2886,16 +2950,16 @@
     4
    ],
    [
+    "Criterio de operación",
+    3
+   ],
+   [
     "Criterio del proyecto",
     3
    ],
    [
     "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)",
     3
-   ],
-   [
-    "Criterio de operación",
-    2
    ],
    [
     "Geometría (retorno del trinquete)",
@@ -2934,7 +2998,11 @@
     2
    ],
    [
-    "Criterio de fabricación",
+    "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4",
+    2
+   ],
+   [
+    "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)",
     2
    ],
    [
@@ -3098,11 +3166,39 @@
     1
    ],
    [
+    "Estática del pivote; ASME BTH-1 §3-2.3",
+    1
+   ],
+   [
     "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente",
     1
    ],
    [
-    "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico)",
+    "Criterio de fabricación",
+    1
+   ],
+   [
+    "Criterio de fabricación (holgura de giro cubo–collar)",
+    1
+   ],
+   [
+    "Geometría (holgura de giro cubo–collar; la interfaz sube la cara inferior de la mesa δ)",
+    1
+   ],
+   [
+    "Geometría (la interfaz no puede ocupar el espacio del collar)",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-3.3 (aplastamiento); estática del pie del cubo",
+    1
+   ],
+   [
+    "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico; resultante vectorial de corte y flexión)",
+    1
+   ],
+   [
+    "Equilibrio del collar",
     1
    ],
    [
@@ -3130,11 +3226,27 @@
     1
    ],
    [
-    "AISC 360-22 D5 (distancia al borde)",
+    "AISC 360-22 D2; ASME BTH-1 §3-2.1 y §3-2.3",
+    1
+   ],
+   [
+    "AISC 360-22 §D5.2(3) (extensión mínima más allá del extremo de apoyo del agujero, paralela a la fuerza)",
+    1
+   ],
+   [
+    "AISC 360-22 §D5.2(3)",
+    1
+   ],
+   [
+    "AISC 360-22 §D5.2(2)",
     1
    ],
    [
     "ASME B30.9; B30.26",
+    1
+   ],
+   [
+    "ASME B30.9 (factor de ángulo 1/sen θ); B30.26",
     1
    ],
    [
@@ -3155,7 +3267,13 @@
   "sector_masa": [],
   "hole_top": 200,
   "d_bush": 150,
-  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30)"
+  "Ri": 131,
+  "m_ri": 3,
+  "D_rebaje_bot": 256,
+  "h_rebaje": 48,
+  "h_rebaje_plancha": 16,
+  "h_rebaje_cubo": 32,
+  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo"
  },
  "verificaciones": [
   {
@@ -3163,9 +3281,9 @@
    "nombre": "FS del accionamiento en el caso de diseño",
    "formula": "FS = F_calado / F_dis ≥ FS_min",
    "dem": 1.25,
-   "cap": 1.383002717288873,
+   "cap": 1.3829805435982054,
    "unidad": "–",
-   "fu": 0.9038304729078184,
+   "fu": 0.9038449642594248,
    "estado": "ok",
    "ref": "Criterio del proyecto (μ_d, r_ef)"
   },
@@ -3173,10 +3291,10 @@
    "grp": "Giro",
    "nombre": "Presión de diseño frente a la alarma",
    "formula": "p_dis = F_dis / A ≤ p_alarma",
-   "dem": 506.1450648283784,
+   "dem": 506.1531799852779,
    "cap": 600,
    "unidad": "bar",
-   "fu": 0.8435751080472973,
+   "fu": 0.8435886333087965,
    "estado": "ok",
    "ref": "Criterio de operación"
   },
@@ -3217,7 +3335,7 @@
    "grp": "Giro",
    "nombre": "Émbolo mínimo con las presiones elegidas",
    "formula": "A ≥ máx(FS_min·F_dis/p_alivio; F_dis/p_alarma)",
-   "dem": 85.56299919096648,
+   "dem": 85.56368511524818,
    "cap": 90,
    "unidad": "mm",
    "fu": null,
@@ -3228,10 +3346,10 @@
    "grp": "Giro",
    "nombre": "Gira con grasa contaminada",
    "formula": "F_cont ≤ F_calado",
-   "dem": 402.49447188300184,
+   "dem": 402.50092518269315,
    "cap": 445.32075864635317,
    "unidad": "kN",
-   "fu": 0.9038304729078184,
+   "fu": 0.9038449642594251,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -3239,10 +3357,10 @@
    "grp": "Giro",
    "nombre": "Gira con contacto en el borde (r = R)",
    "formula": "F(μ_d, R) ≤ F_calado",
-   "dem": 402.25379120342546,
+   "dem": 402.2606160783984,
    "cap": 445.32075864635317,
    "unidad": "kN",
-   "fu": 0.9032900070191229,
+   "fu": 0.9033053327699225,
    "estado": "ok",
    "ref": "Revisión independiente M1"
   },
@@ -3447,10 +3565,10 @@
    "grp": "Giro",
    "nombre": "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)",
    "formula": "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx",
-   "dem": 0.004623237272095726,
+   "dem": 0.05136930302328584,
    "cap": 0.25,
    "unidad": "m/s",
-   "fu": 0.018492949088382903,
+   "fu": 0.20547721209314335,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -3458,9 +3576,30 @@
    "grp": "Giro",
    "nombre": "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)",
    "formula": "P = p·Q/(600·η) a la presión de diseño (dem) y a la de alarma (cap)",
-   "dem": 1.7863943464531002,
-   "cap": 2.1176470588235294,
+   "dem": 9.924572156574076,
+   "cap": 11.764705882352942,
    "unidad": "kW",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Tiempo por vuelta frente al objetivo",
+   "formula": "t_vuelta ≤ t_objetivo",
+   "dem": 10.506897979502057,
+   "cap": 15,
+   "unidad": "min",
+   "fu": 0.7004598653001372,
+   "estado": "ok",
+   "ref": "Criterio de operación"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Caudal de bomba requerido para el tiempo objetivo (avance y retorno al mismo caudal)",
+   "formula": "Q = (V_avance + V_retorno)·N_pas/t_objetivo",
+   "dem": 8.427843797635115,
+   "unidad": "L/min",
    "fu": null,
    "estado": "info",
    "ref": "Hidráulica"
@@ -3469,7 +3608,7 @@
    "grp": "Giro",
    "nombre": "Tiempo por vuelta",
    "formula": "N_pas · (V_ext + V_ret) / Q",
-   "dem": 70.23203164695929,
+   "dem": 10.506897979502057,
    "unidad": "min",
    "fu": null,
    "estado": "info",
@@ -3479,10 +3618,10 @@
    "grp": "Interfaz",
    "nombre": "Presión de contacto máxima",
    "formula": "q = N_D/A · (1 + 4eR/(R²+r²))",
-   "dem": 1.6621617058804412,
+   "dem": 1.674575635076271,
    "cap": 10,
    "unidad": "MPa",
-   "fu": 0.1662161705880441,
+   "fu": 0.1674575635076271,
    "estado": "ok",
    "ref": "Criterio acero/acero lubricado"
   },
@@ -3490,10 +3629,10 @@
    "grp": "Interfaz",
    "nombre": "Sin despegue de la mesa (q_mín ≥ 0)",
    "formula": "1 − 4eR/(R²+r²) ≥ 0",
-   "dem": 0.5966438781852083,
+   "dem": 0.5898771187648759,
    "cap": 1,
    "unidad": "–",
-   "fu": 0.5966438781852083,
+   "fu": 0.5898771187648759,
    "estado": "ok",
    "ref": "Núcleo central"
   },
@@ -3501,7 +3640,7 @@
    "grp": "Interfaz",
    "nombre": "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)",
    "formula": "σ ≈ q_máx (÷ cobertura con pastillas) ≤ q_losa (verificar por terceros)",
-   "dem": 1.6621617058804412,
+   "dem": 1.674575635076271,
    "cap": 2,
    "unidad": "MPa",
    "fu": null,
@@ -3512,10 +3651,10 @@
    "grp": "Interfaz inox",
    "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-   "dem": 103.02635894301143,
+   "dem": 103.79581592592007,
    "cap": 123,
    "unidad": "MPa",
-   "fu": 0.8376126743334262,
+   "fu": 0.8438684221619518,
    "estado": "ok",
    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
   },
@@ -3523,10 +3662,10 @@
    "grp": "Interfaz inox",
    "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
    "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-   "dem": 5.533665006591732,
+   "dem": 5.552427116782491,
    "cap": 6,
    "unidad": "mm",
-   "fu": 0.9222775010986219,
+   "fu": 0.9254045194637485,
    "estado": "ok",
    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
   },
@@ -3534,10 +3673,10 @@
    "grp": "Interfaz inox",
    "nombre": "Disco de la mesa (con ranuras de engrase): flexión sobre un vacío local (placa empotrada, carga uniforme)",
    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-   "dem": 73.76443450949337,
+   "dem": 74.31534749725635,
    "cap": 123,
    "unidad": "MPa",
-   "fu": 0.5997108496706778,
+   "fu": 0.6041898170508647,
    "estado": "ok",
    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
   },
@@ -3545,10 +3684,10 @@
    "grp": "Interfaz inox",
    "nombre": "Disco de la mesa (con ranuras de engrase): espesor adoptado frente al requerido",
    "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-   "dem": 6.533665006591732,
+   "dem": 6.552427116782491,
    "cap": 8,
    "unidad": "mm",
-   "fu": 0.8167081258239665,
+   "fu": 0.8190533895978114,
    "estado": "ok",
    "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
   },
@@ -3556,7 +3695,7 @@
    "grp": "Interfaz inox",
    "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
    "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-   "dem": 5.033665006591732,
+   "dem": 5.052427116782491,
    "unidad": "mm",
    "fu": null,
    "estado": "info",
@@ -3566,7 +3705,7 @@
    "grp": "Interfaz inox",
    "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
    "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-   "dem": 5.533665006591732,
+   "dem": 5.552427116782491,
    "cap": 6,
    "unidad": "mm",
    "fu": null,
@@ -3578,9 +3717,9 @@
    "nombre": "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)",
    "formula": "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo",
    "dem": 656.4906300230158,
-   "cap": 1046.7557647296867,
+   "cap": 1044.8433558065306,
    "unidad": "kN·m",
-   "fu": 0.6271669592309791,
+   "fu": 0.6283148822018978,
    "estado": "ok",
    "ref": "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural"
   },
@@ -3630,10 +3769,10 @@
    "grp": "Interfaz inox",
    "nombre": "Engrase: área de las ranuras frente al área de contacto (disco de la mesa)",
    "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
-   "dem": 0.05437175903770771,
+   "dem": 0.05463629744545807,
    "cap": 0.25,
    "unidad": "–",
-   "fu": 0.21748703615083084,
+   "fu": 0.21854518978183227,
    "estado": "ok",
    "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
   },
@@ -3641,7 +3780,7 @@
    "grp": "Interfaz inox",
    "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
    "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
-   "dem": 169.85309046261665,
+   "dem": 168.69939098904138,
    "cap": 4,
    "unidad": "cm³ / graseras",
    "fu": null,
@@ -3672,7 +3811,7 @@
    "grp": "Interfaz inox",
    "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
    "formula": "m = ρ·A·t",
-   "dem": 346.81773105928016,
+   "dem": 342.79420940447204,
    "unidad": "kg",
    "fu": null,
    "estado": "info",
@@ -3692,10 +3831,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Plancha superior: σvm local (carga con e)",
    "formula": "MITC4 × k_malla",
-   "dem": 160.58701403483974,
+   "dem": 149.04191835918297,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.7757826764968103,
+   "fu": 0.7200092674356665,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
   },
@@ -3703,10 +3842,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Plancha inferior: σvm local (contacto q_max)",
    "formula": "MITC4 × k_malla",
-   "dem": 150.53318024334592,
+   "dem": 140.9368268691055,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.727213431127275,
+   "fu": 0.6808542360826352,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
   },
@@ -3714,10 +3853,10 @@
    "grp": "Mesa",
    "nombre": "Plancha superior: global + local",
    "formula": "σ = M_glob/(t·h_c) + σvm_local",
-   "dem": 185.62092175967888,
+   "dem": 176.0367011222112,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.8967194287907192,
+   "fu": 0.8504188460010204,
    "estado": "ok",
    "ref": "Placa sándwich axisimétrica (rev. M2)"
   },
@@ -3725,10 +3864,10 @@
    "grp": "Mesa",
    "nombre": "Plancha inferior: global + local",
    "formula": "σ = M_glob/(t·h_c) + σvm_local",
-   "dem": 181.82556489939483,
+   "dem": 174.6803053228908,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.8783843714946611,
+   "fu": 0.8438662092893275,
    "estado": "ok",
    "ref": "Placa sándwich axisimétrica (rev. M2)"
   },
@@ -3736,10 +3875,10 @@
    "grp": "Mesa",
    "nombre": "Corte en nervios radiales",
    "formula": "τ = V/(N·t·h_w) ≤ 0,6Fy/1,50 (h/t ≤ 2,24√(E/Fy))",
-   "dem": 80.14890945439842,
+   "dem": 81.09274011338356,
    "cap": 138,
    "unidad": "MPa",
-   "fu": 0.5807891989449161,
+   "fu": 0.5876285515462577,
    "estado": "ok",
    "ref": "AISC 360-22 G2.1(a), Ec. G2-1"
   },
@@ -3747,10 +3886,10 @@
    "grp": "Mesa",
    "nombre": "Soldadura alma/nervio–plancha (2 filetes)",
    "formula": "f = √(q_h² + q_v²)/(2·0,707·w) ≤ 0,6FEXX/2,0",
-   "dem": 72.171901394721,
+   "dem": 72.82715360027105,
    "cap": 147,
    "unidad": "MPa",
-   "fu": 0.49096531561034695,
+   "fu": 0.495422813607286,
    "estado": "ok",
    "ref": "AISC 360-22 J2.4, Ec. J2-4"
   },
@@ -3758,10 +3897,10 @@
    "grp": "Mesa",
    "nombre": "Fluencia local de almas por carga de línea",
    "formula": "σ = q_v / t ≤ Fy/1,50",
-   "dem": 63.17098154995967,
+   "dem": 63.469304487918066,
    "cap": 230,
    "unidad": "MPa",
-   "fu": 0.27465644152156377,
+   "fu": 0.2759534977735568,
    "estado": "ok",
    "ref": "AISC 360-22 J10.2"
   },
@@ -3769,10 +3908,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Equilibrio FEA (ΣF = ΣR)",
    "formula": "|ΣF − ΣR| / ΣF ≤ 0,5 %",
-   "dem": 0.00010000000279088449,
+   "dem": 0.0001000000016275139,
    "cap": 0.5,
    "unidad": "%",
-   "fu": 0.00020000000558176897,
+   "fu": 0.0002000000032550278,
    "estado": "ok",
    "ref": "Control numérico"
   },
@@ -3803,9 +3942,9 @@
    "nombre": "Filete mínimo mejillas–base",
    "formula": "w_mín(T = 25) ≤ w ≤ t_mín",
    "dem": 8,
-   "cap": 16,
+   "cap": 18,
    "unidad": "mm",
-   "fu": 0.5,
+   "fu": 0.4444444444444444,
    "estado": "ok",
    "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
   },
@@ -4150,10 +4289,10 @@
    "grp": "Articulaciones",
    "nombre": "Soldadura mejillas–base (4 filetes)",
    "formula": "f = √(fV² + fM²) ≤ 0,60FEXX/(1,20Nd)",
-   "dem": 73.09589470725238,
+   "dem": 58.47671576580191,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.8950517719255393,
+   "fu": 0.7160414175404315,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4"
   },
@@ -4171,21 +4310,32 @@
    "grp": "Pivote",
    "nombre": "Presión en el buje",
    "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim + H_cil",
-   "dem": 16.076774694142806,
+   "dem": 16.05775472011229,
    "cap": 30,
    "unidad": "MPa",
-   "fu": 0.5358924898047602,
+   "fu": 0.5352584906704096,
    "estado": "ok",
    "ref": "Fabricante del buje"
   },
   {
    "grp": "Pivote",
+   "nombre": "Brazo efectivo del pivote e (desde la cara superior del asiento hasta la reacción del buje)",
+   "formula": "e = máx(e_piv; g_buje + L_buje/2); el buje apoya a media altura con holgura axial g_buje sobre el collar",
+   "dem": 42,
+   "cap": 42,
+   "unidad": "mm (efectivo / geométrico)",
+   "fu": null,
+   "estado": "info",
+   "ref": "Estática del pivote; ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Pivote",
    "nombre": "Flexión del pivote",
-   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd (H con la F_pas de calado si el n° de cilindros es impar)",
-   "dem": 36.3903738531203,
+   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd, e = brazo efectivo (H con la F_pas de calado si el n° de cilindros es impar)",
+   "dem": 38.16468751070207,
    "cap": 216.66666666666666,
    "unidad": "MPa",
-   "fu": 0.16795557162978603,
+   "fu": 0.17614471158785572,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -4193,21 +4343,21 @@
    "grp": "Pivote",
    "nombre": "Aplastamiento del pivote en el asiento (plancha base + collar, ajuste H7/p6)",
    "formula": "σ = H/(D_piv·L_asiento) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar",
-   "dem": 16.488999686300314,
+   "dem": 16.46949202062799,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.11470608477426306,
+   "fu": 0.11457037927393383,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento)"
   },
   {
    "grp": "Pivote",
-   "nombre": "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima 68 mm)",
-   "formula": "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)",
-   "dem": 116.69138239535606,
+   "nombre": "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima 69 mm)",
+   "formula": "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, e = brazo efectivo, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)",
+   "dem": 119.08709614915622,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.8117661384024769,
+   "fu": 0.8284319732115215,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente"
   },
@@ -4224,19 +4374,52 @@
   },
   {
    "grp": "Pivote",
-   "nombre": "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 50 ≤ D_cubo)",
-   "formula": "D_collar + 50 ≤ D_cubo",
-   "dem": 300,
-   "cap": 300,
+   "nombre": "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 2·c_r + 50 ≤ D_cubo)",
+   "formula": "D_rebaje = D_collar + 2·c_boss_r (el cubo gira, el collar es fijo; mismo Ø en el agujero de la plancha inferior); D_rebaje + 50 ≤ D_cubo: pared del cubo y ligamento de la plancha ≥ 25 mm",
+   "dem": 306,
+   "cap": 310,
+   "unidad": "mm",
+   "fu": 0.9870967741935484,
+   "estado": "ok",
+   "ref": "Criterio de fabricación (holgura de giro cubo–collar)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Rebaje del cubo para el collar: Ø D_collar + 2·c_boss_r × (h_collar − δ + c_boss_a) desde la cara inferior de la mesa",
+   "formula": "Ø rebaje = D_collar + 2·c_boss_r (agujero de la plancha inferior); profundidad = h_collar − δ + c_boss_a = 48,0 mm, δ = 14 mm que suma la interfaz (la plancha inferior, t_bot = 16 mm, lleva un agujero pasante de ese Ø y el resto, si lo hay, se rebaja en el cubo; negativo: el collar queda bajo la mesa y no hay rebaje)",
+   "dem": 256,
+   "cap": 48,
+   "unidad": "mm (Ø / profundidad)",
+   "fu": null,
+   "estado": "info",
+   "ref": "Geometría (holgura de giro cubo–collar; la interfaz sube la cara inferior de la mesa δ)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Interfaz: R_i libre del rebaje del collar y del agujero de la plancha (R_i ≥ D_collar/2 + c_boss_r + m_ri)",
+   "formula": "R_i = D_collar/2 + c_boss_r + m_ri; el anillo de contacto, los discos y la plancha de bronce arrancan fuera del rebaje con un margen de borde m_ri = 3 mm",
+   "dem": 131,
+   "cap": 131,
    "unidad": "mm",
    "fu": 1,
    "estado": "ok",
-   "ref": "Criterio de fabricación"
+   "ref": "Geometría (la interfaz no puede ocupar el espacio del collar)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Plancha inferior y pared del cubo junto al rebaje: aplastamiento de la pared del cubo bajo la presión de contacto del anillo interior",
+   "formula": "σ = q_máx·(r_cubo² − R_i²)/(r_cubo² − r_rebaje²) ≤ Fy/Nd (la presión sobre R_i … r_cubo entra por el pie del cubo; ligamento = (D_cubo − Ø rebaje)/2 = 27 mm)",
+   "dem": 1.5042909513366738,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.013080790881188468,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3 (aplastamiento); estática del pie del cubo"
   },
   {
    "grp": "Pivote",
    "nombre": "Buje sobre el collar: el buje cabe bajo la plancha superior",
-   "formula": "h_collar + 2 + L_buje ≤ δ + h_disc − t_top",
+   "formula": "h_collar + g_buje + L_buje ≤ δ + h_disc − t_top",
    "dem": 142,
    "cap": 204,
    "unidad": "mm",
@@ -4246,23 +4429,56 @@
   },
   {
    "grp": "Pivote",
-   "nombre": "Soldadura del collar a la base (filete perimetral): par H·e",
-   "formula": "f = H·(e+L/2)/(π·D_collar²/4·a) ≤ 0,60FEXX/(1,2·Nd), a = 0,707·w (w = 10 mm); el cortante H/(π·D_c·a) se combina",
-   "dem": 44.797628730753495,
+   "nombre": "Soldadura del collar a la base (filete perimetral): V_c y M_c del asiento rígido-lineal",
+   "formula": "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,85·H)",
+   "dem": 66.49437356166503,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.5485423926214713,
+   "fu": 0.8142168191224288,
    "estado": "ok",
-   "ref": "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico)"
+   "ref": "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico; resultante vectorial de corte y flexión)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Carga del collar sobre su filete: V_c y M_c (respecto de la cara superior de la base)",
+   "formula": "V_c y M_c de la distribución rígido-lineal del asiento; la plancha base toma la reacción de signo contrario",
+   "dem": 289.0834386389992,
+   "cap": 14.355939695519233,
+   "unidad": "kN / kN·m",
+   "fu": null,
+   "estado": "info",
+   "ref": "Equilibrio del collar"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Collar: filete mínimo según la parte más gruesa (pared del collar o plancha base)",
+   "formula": "w_mín(T = máx(pared del collar = 65; t_base = 18)) ≤ w_collar; no más que la parte más delgada",
+   "dem": 8,
+   "cap": 10,
+   "unidad": "mm",
+   "fu": 0.8,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Collar: filete máximo según el borde del collar",
+   "formula": "w_collar ≤ w_máx(t) con t = mín(pared del collar; h_collar) = 60 (t < 6: t; t ≥ 6: t − 2 mm)",
+   "dem": 10,
+   "cap": 58,
+   "unidad": "mm",
+   "fu": 0.1724137931034483,
+   "estado": "ok",
+   "ref": "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)"
   },
   {
    "grp": "Pivote",
    "nombre": "Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)",
    "formula": "σ = H/((D_piv + 30)·L_buje) ≤ 1,25·Fy/Nd",
-   "dem": 12.861419755314245,
+   "dem": 12.846203776089832,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.08947074612392518,
+   "fu": 0.0893648958336684,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento)"
   },
@@ -4280,10 +4496,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
-   "dem": 73.20122935052741,
+   "dem": 73.44735064191018,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.3536291272972339,
+   "fu": 0.35481811904304433,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -4291,10 +4507,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 7.432275285025638,
+   "dem": 7.4593794687155075,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.870969759963942,
+   "fu": 0.8741460314900985,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -4322,12 +4538,12 @@
   },
   {
    "grp": "Orejas de izaje",
-   "nombre": "Oreja: aplastamiento del agujero (pasador del grillete d − 3)",
+   "nombre": "Oreja: aplastamiento del agujero (pasador del grillete d − g)",
    "formula": "σ = T/(d_p·t) ≤ 1,25·Fy/Nd",
-   "dem": 22.336318390178032,
+   "dem": 22.414832630792162,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.1553830844534124,
+   "fu": 0.1559292704750759,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3; ASME B30.26 (grillete)"
   },
@@ -4335,10 +4551,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: tracción en la sección neta del agujero",
    "formula": "σ = T/(2(R − d/2)·t) ≤ Fy/Nd",
-   "dem": 12.508338298499698,
+   "dem": 6.772827125850869,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.10876815911738869,
+   "fu": 0.058894148920442334,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.1; AISC 360-22 D2"
   },
@@ -4346,10 +4562,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: desgarro por corte detrás del agujero",
    "formula": "τ = T/(2(R − d/2)·t) ≤ Fy/(Nd·√3)",
-   "dem": 12.508338298499698,
+   "dem": 6.772827125850869,
    "cap": 66.39528095680696,
    "unidad": "MPa",
-   "fu": 0.18839197783705322,
+   "fu": 0.10200765819873388,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.2; AISC 360-22 D5"
   },
@@ -4357,39 +4573,116 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: soldadura a la base (filete a ambos lados, T vertical + T horizontal con brazo h)",
    "formula": "f = √[(Tv/(2aL) + Th·h/S)² + (Th/(2aL))²] ≤ 0,60FEXX/(1,2Nd); L = 2R, a = 0,707w, S = 2aL²/6",
-   "dem": 39.25852739587023,
+   "dem": 19.428559122367286,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.4807166619902477,
+   "fu": 0.2379007239473545,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4"
   },
   {
    "grp": "Orejas de izaje",
-   "nombre": "Oreja: relación de bordes (R − d/2 ≥ 0,5·d para evitar desgarro prematuro)",
-   "formula": "R − d/2 ≥ 0,5·d",
-   "dem": 22.5,
-   "cap": 37.5,
-   "unidad": "mm",
-   "fu": 0.6,
+   "nombre": "Oreja: placa en la base: flexión Th·h + tracción Tv",
+   "formula": "σ = Th·h/(t·(2R)²/6) + Tv/(2R·t) ≤ Fy/Nd",
+   "dem": 11.938761352002752,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.10381531610437175,
    "estado": "ok",
-   "ref": "AISC 360-22 D5 (distancia al borde)"
+   "ref": "AISC 360-22 D2; ASME BTH-1 §3-2.1 y §3-2.3"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: placa en la base: corte Th",
+   "formula": "τ = Th/(2R·t) ≤ Fy/(Nd·√3)",
+   "dem": 2.5582145937317144,
+   "cap": 66.39528095680696,
+   "unidad": "MPa",
+   "fu": 0.03853006654789134,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: extensión a tras el agujero ≥ 1,33·b_e (AISC D5.2(3))",
+   "formula": "a = R − d/2 ≥ 1,33·b_e; b_e = mín(2t + 16; (2R − d)/2) = 52,0 mm",
+   "dem": 69.16,
+   "cap": 69.5,
+   "unidad": "mm",
+   "fu": 0.9951079136690647,
+   "estado": "ok",
+   "ref": "AISC 360-22 §D5.2(3) (extensión mínima más allá del extremo de apoyo del agujero, paralela a la fuerza)"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: ancho de la placa en el agujero ≥ 2·b_e + d (AISC D5.2(3))",
+   "formula": "2R ≥ 2·b_e + d",
+   "dem": 149,
+   "cap": 184,
+   "unidad": "mm",
+   "fu": 0.8097826086956522,
+   "estado": "ok",
+   "ref": "AISC 360-22 §D5.2(3)"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: holgura agujero–pasador ≤ 1 mm si el pasador gira bajo carga plena (AISC D5.2(2))",
+   "formula": "g = d − d_pasador = 3 mm; no aplica el límite de 1 mm (izaje estático: el pasador no gira bajo la carga plena); con ear_gira = 1 exige ≤ 1 mm",
+   "dem": 3,
+   "cap": 1,
+   "unidad": "mm",
+   "fu": null,
+   "estado": "info",
+   "ref": "AISC 360-22 §D5.2(2)"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: filete mínimo según la parte más gruesa (oreja o plancha base)",
+   "formula": "w_mín(T = máx(t_oreja; t_base) = 18) ≤ w_oreja; no más que la parte más delgada",
+   "dem": 6,
+   "cap": 8,
+   "unidad": "mm",
+   "fu": 0.75,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: filete máximo según el borde de la placa",
+   "formula": "w_oreja ≤ w_máx(t_oreja) (t < 6: t; t ≥ 6: t − 2 mm)",
+   "dem": 8,
+   "cap": 16,
+   "unidad": "mm",
+   "fu": 0.5,
+   "estado": "ok",
+   "ref": "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)"
   },
   {
    "grp": "Orejas de izaje",
    "nombre": "Tensión por oreja (3 ramales efectivos a 60°) y WLL mínimo del grillete",
    "formula": "T = m·φ·g/(3·sen 60°)",
-   "dem": 16.886256702974592,
+   "dem": 16.945613468878875,
    "unidad": "kN",
    "fu": null,
    "estado": "info",
    "ref": "ASME B30.9; B30.26"
   },
   {
+   "grp": "Orejas de izaje",
+   "nombre": "Ramales: longitud mínima para un ángulo ≥ 60° sobre la horizontal (el 60° es una cota mínima)",
+   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1279 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
+   "dem": 2558.827856656246,
+   "cap": 2216.009927775595,
+   "unidad": "mm (longitud mínima / altura del vértice)",
+   "fu": null,
+   "estado": "info",
+   "ref": "ASME B30.9 (factor de ángulo 1/sen θ); B30.26"
+  },
+  {
    "grp": "Base",
    "nombre": "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)",
    "formula": "m·φ / (3·sin 60°)",
-   "dem": 1.7219189736530407,
+   "dem": 1.7279716793072941,
    "unidad": "t",
    "fu": null,
    "estado": "info",
@@ -4409,10 +4702,10 @@
    "grp": "Fatiga",
    "nombre": "Uña (boca del patín) (cat. A, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 155.01248608903995,
+   "dem": 155.01497144498512,
    "cap": 616.3464874490833,
    "unidad": "MPa",
-   "fu": 0.25150218139572933,
+   "fu": 0.2515062137963283,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -4420,10 +4713,10 @@
    "grp": "Fatiga",
    "nombre": "Pasadores de articulación (cat. A, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 129.0891261550628,
+   "dem": 129.0911958749624,
    "cap": 616.3464874490833,
    "unidad": "MPa",
-   "fu": 0.20944246261438607,
+   "fu": 0.20944582066045556,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -4431,10 +4724,10 @@
    "grp": "Fatiga",
    "nombre": "Pie de soldadura mejilla–base (cat. E, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 43.532277839445335,
+   "dem": 43.532975803901394,
    "cap": 217.5917795949937,
    "unidad": "MPa",
-   "fu": 0.20006398183089685,
+   "fu": 0.20006718950931815,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -4442,10 +4735,10 @@
    "grp": "Fatiga",
    "nombre": "Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)",
    "formula": "Δτ ≤ F_SR = (Cf/N)^0,167 ≥ F_TH",
-   "dem": 52.85303766470082,
+   "dem": 42.28310805707982,
    "cap": 128.98468269408576,
    "unidad": "MPa",
-   "fu": 0.4097621249342675,
+   "fu": 0.3278149558065207,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   }

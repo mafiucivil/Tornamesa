@@ -71,7 +71,7 @@ def deducciones(ctx):
             lst.append((f"muescas de las barras en el {nm} ({fm(b2, 0)}×{fm(L, 0)}×{fm(t, 0)}, {nn} u.)", rho * nn * b2 * L * t))
             lst.append((f"chaflanes de alivio {fm(tp['a_inf'], 0)}×45° del {nm} ({nn} u., 2 cantos)", rho * nn * tp["a_inf"] ** 2 * L))
         if g.opt == 3 and g.conf == 3 and "bronce" in nm:
-            lst.append((f"hueco entre pastillas (cubrimiento {fm(g.I['cov'], 2)})", rho * t * Aring * (1 - g.I["cov"])))
+            pass                      # el hueco entre pastillas ya está en el núcleo (A_ss·cov): no se descuenta de nuevo
         else:
             lst.append((f"juntas de {fm(j, 1)} mm entre {nn} sectores del {nm}", rho * nn * j * (g.Ro - g.Ri) * t))
     if g.opt == 2 and ctx.m.has("int_uhmw"):

@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461351.0498842592
+2461351.372511574
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461351.0503703705
+2461351.373090278
   9
 $TDUUPDATE
  40
@@ -553,7 +553,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-195
+194
   9
 $SURFTAB1
  70
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{F952A446-B75A-41DF-BBC8-5EFDA13B3AF8}
+{CF072C8C-51D2-43F1-955E-27DB4A92BDBB}
   9
 $VERSIONGUID
   2
-{FFBA02E0-C061-4052-9AAA-5A8EBE88CBE3}
+{AEE2C844-650D-4C7A-9640-A52B340A95B8}
   9
 $EXTNAMES
 290
@@ -2115,7 +2115,7 @@ ACAD
   0
 APPID
   5
-192
+191
 330
 3
 100
@@ -2129,7 +2129,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-193
+192
 330
 3
 100
@@ -5449,7 +5449,7 @@ AcDbText
  40
 2.2
   1
-z16
+z20
   7
 STD
  72
@@ -5513,7 +5513,7 @@ AcDbText
  40
 2.2
   1
-z16
+z20
   7
 STD
  72
@@ -14967,11 +14967,11 @@ AcDbPolyline
  10
 831.0
  20
-126.0
+123.0
  10
 651.0
  20
-126.0
+123.0
   0
 LINE
   5
@@ -14987,13 +14987,13 @@ AcDbLine
  10
 651.0
  20
-121.0
+118.0
  30
 0.0
  11
 831.0
  21
-121.0
+118.0
  31
 0.0
   0
@@ -15011,7 +15011,7 @@ AcDbText
  10
 656.0
  20
-123.5
+120.5
  30
 0.0
  40
@@ -15025,7 +15025,7 @@ STDB
  11
 656.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -15053,7 +15053,7 @@ AcDbLine
  11
 661.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -15071,7 +15071,7 @@ AcDbText
  10
 671.0
  20
-123.5
+120.5
  30
 0.0
  40
@@ -15085,7 +15085,7 @@ STDB
  11
 671.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -15113,7 +15113,7 @@ AcDbLine
  11
 681.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -15131,7 +15131,7 @@ AcDbText
  10
 730.0
  20
-123.5
+120.5
  30
 0.0
  40
@@ -15145,7 +15145,7 @@ STDB
  11
 730.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -15173,7 +15173,7 @@ AcDbLine
  11
 779.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -15191,7 +15191,7 @@ AcDbText
  10
 787.5
  20
-123.5
+120.5
  30
 0.0
  40
@@ -15205,7 +15205,7 @@ STDB
  11
 787.5
  21
-123.5
+120.5
  31
 0.0
 100
@@ -15233,7 +15233,7 @@ AcDbLine
  11
 796.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -15251,7 +15251,7 @@ AcDbText
  10
 804.5
  20
-123.5
+120.5
  30
 0.0
  40
@@ -15265,7 +15265,7 @@ STDB
  11
 804.5
  21
-123.5
+120.5
  31
 0.0
 100
@@ -15293,7 +15293,7 @@ AcDbLine
  11
 813.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -15311,7 +15311,7 @@ AcDbText
  10
 822.0
  20
-123.5
+120.5
  30
 0.0
  40
@@ -15325,7 +15325,7 @@ STDB
  11
 822.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -15371,7 +15371,7 @@ AcDbText
  10
 656.0
  20
-108.0
+106.5
  30
 0.0
  40
@@ -15385,7 +15385,7 @@ STDB
  11
 656.0
  21
-108.0
+106.5
  31
 0.0
 100
@@ -15407,7 +15407,7 @@ AcDbText
  10
 671.0
  20
-108.0
+106.5
  30
 0.0
  40
@@ -15421,7 +15421,7 @@ STD
  11
 671.0
  21
-108.0
+106.5
  31
 0.0
 100
@@ -15443,19 +15443,19 @@ AcDbText
  10
 682.0
  20
-118.8
+115.8
  30
 0.0
  40
 1.9
   1
-VIGENTE – EMITIDO PARA REVISIÓN. Cambios de la actualización C del
+B VIGENTE – EMITIDO PARA REVISIÓN. Cambios C respecto de la B
   7
 STD
  11
 682.0
  21
-118.8
+115.8
  31
 0.0
 100
@@ -15477,19 +15477,19 @@ AcDbText
  10
 682.0
  20
-115.8
+112.8
  30
 0.0
  40
 1.9
   1
-cálculo respecto de la Rev. B anterior: paquete de reducción de
+anterior: R_i 131 (Ø262 de discos); rebaje del collar con holguras
   7
 STD
  11
 682.0
  21
-115.8
+112.8
  31
 0.0
 100
@@ -15511,19 +15511,19 @@ AcDbText
  10
 682.0
  20
-112.8
+109.8
  30
 0.0
  40
 1.9
   1
-masa (t_pr 27, t_web 6, t_rib 6, t_base 18, w_bed 160, w_s 245);
+3/2 (Ø256, plancha inferior con agujero pasante), D_hub 310;
   7
 STD
  11
 682.0
  21
-112.8
+109.8
  31
 0.0
 100
@@ -15545,19 +15545,19 @@ AcDbText
  10
 682.0
  20
-109.8
+106.8
  30
 0.0
  40
 1.9
   1
-collar soldado de asiento del pivote (h 60, Ø250) y rebaje del
+barras de tope verificadas (h = t − a_sup, chaflán a_inf, h_c) en
   7
 STD
  11
 682.0
  21
-109.8
+106.8
  31
 0.0
 100
@@ -15579,19 +15579,19 @@ AcDbText
  10
 682.0
  20
-106.8
+103.8
  30
 0.0
  40
 1.9
   1
-cubo; 4 orejas de izaje de la base; interfaz según alternativa
+despiece y masa; orejas de izaje R92; filete del collar z10; almas
   7
 STD
  11
 682.0
  21
-106.8
+103.8
  31
 0.0
 100
@@ -15613,19 +15613,19 @@ AcDbText
  10
 682.0
  20
-103.8
+100.8
  30
 0.0
  40
 1.9
   1
-elegida (Acero-acero con grasa grafitada (sin interfaz
+en R300/590/840; w_br 20; brazo del pivote 42; temple ≥ 55 HRC y
   7
 STD
  11
 682.0
  21
-103.8
+100.8
  31
 0.0
 100
@@ -15647,19 +15647,19 @@ AcDbText
  10
 682.0
  20
-100.8
+97.8
  30
 0.0
  40
 1.9
   1
-alternativa)); f_apoyo 0,9 de la cubierta de madera. Sin
+alivio de borde uña–pasador. Sin viento ni anclaje (mandante).
   7
 STD
  11
 682.0
  21
-100.8
+97.8
  31
 0.0
 100
@@ -15679,43 +15679,9 @@ TXT
 100
 AcDbText
  10
-682.0
- 20
-97.8
- 30
-0.0
- 40
-1.9
-  1
-consideración de viento ni anclaje (decisión del mandante).
-  7
-STD
- 11
-682.0
- 21
-97.8
- 31
-0.0
-100
-AcDbText
- 73
-3
-  0
-TEXT
-  5
-185
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
 787.5
  20
-108.0
+106.5
  30
 0.0
  40
@@ -15729,7 +15695,43 @@ STD
  11
 787.5
  21
-108.0
+106.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+185
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+804.5
+ 20
+106.5
+ 30
+0.0
+ 40
+2.2
+  1
+A DEFINIR
+  7
+STD
+ 72
+1
+ 11
+804.5
+ 21
+106.5
  31
 0.0
 100
@@ -15749,45 +15751,9 @@ TXT
 100
 AcDbText
  10
-804.5
- 20
-108.0
- 30
-0.0
- 40
-2.2
-  1
-A DEFINIR
-  7
-STD
- 72
-1
- 11
-804.5
- 21
-108.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-187
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
 822.0
  20
-108.0
+106.5
  30
 0.0
  40
@@ -15801,7 +15767,7 @@ STD
  11
 822.0
  21
-108.0
+106.5
  31
 0.0
 100
@@ -15811,7 +15777,7 @@ AcDbText
   0
 LINE
   5
-188
+187
 330
 17
 100
@@ -15835,7 +15801,7 @@ AcDbLine
   0
 TEXT
   5
-189
+188
 330
 17
 100
@@ -15871,7 +15837,7 @@ AcDbText
   0
 TEXT
   5
-18A
+189
 330
 17
 100
@@ -15907,6 +15873,40 @@ AcDbText
   0
 TEXT
   5
+18A
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+682.0
+ 20
+92.8
+ 30
+0.0
+ 40
+1.9
+  1
+Emisión Rev. B anterior (uña guiada, patín con lengüeta T, 6
+  7
+STD
+ 11
+682.0
+ 21
+92.8
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
 18B
 330
 17
@@ -15919,19 +15919,19 @@ AcDbText
  10
 682.0
  20
-92.8
+89.8
  30
 0.0
  40
 1.9
   1
-Emisión Rev. B anterior (uña guiada de cara plana, patín con
+láminas); reemplazada por esta emisión.
   7
 STD
  11
 682.0
  21
-92.8
+89.8
  31
 0.0
 100
@@ -15942,40 +15942,6 @@ AcDbText
 TEXT
   5
 18C
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-682.0
- 20
-89.8
- 30
-0.0
- 40
-1.9
-  1
-lengüeta T, 6 láminas); reemplazada por esta emisión.
-  7
-STD
- 11
-682.0
- 21
-89.8
- 31
-0.0
-100
-AcDbText
- 73
-3
-  0
-TEXT
-  5
-18D
 330
 17
 100
@@ -16000,6 +15966,42 @@ STD
 1
  11
 787.5
+ 21
+91.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+18D
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+804.5
+ 20
+91.0
+ 30
+0.0
+ 40
+2.2
+  1
+—
+  7
+STD
+ 72
+1
+ 11
+804.5
  21
 91.0
  31
@@ -16021,7 +16023,7 @@ TXT
 100
 AcDbText
  10
-804.5
+822.0
  20
 91.0
  30
@@ -16035,7 +16037,7 @@ STD
  72
 1
  11
-804.5
+822.0
  21
 91.0
  31
@@ -16057,29 +16059,27 @@ TXT
 100
 AcDbText
  10
-822.0
+651.0
  20
-91.0
+124.5
  30
 0.0
  40
-2.2
+2.0
   1
-—
+Tolerancias generales ISO 2768-m; soldadura ISO 2553 / ISO 5817; rugosidad ISO 1302.
   7
 STD
- 72
-1
  11
-822.0
+651.0
  21
-91.0
+124.5
  31
 0.0
 100
 AcDbText
  73
-2
+1
   0
 TEXT
   5
@@ -16095,41 +16095,7 @@ AcDbText
  10
 651.0
  20
-127.5
- 30
-0.0
- 40
-2.0
-  1
-Tolerancias generales ISO 2768-m; soldadura ISO 2553 / ISO 5817; rugosidad ISO 1302.
-  7
-STD
- 11
-651.0
- 21
-127.5
- 31
-0.0
-100
-AcDbText
- 73
-1
-  0
-TEXT
-  5
-191
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-651.0
- 20
-130.6
+127.6
  30
 0.0
  40
@@ -16141,7 +16107,7 @@ STD
  11
 651.0
  21
-130.6
+127.6
  31
 0.0
 100
@@ -17139,7 +17105,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-194
+193
   0
 DICTIONARYVAR
   5
@@ -17151,11 +17117,11 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:11:50.314914+00:00
+1.4.2 @ 2026-11-06T11:56:25.673590+00:00
   0
 DICTIONARYVAR
   5
-194
+193
 330
 2D
 100
@@ -17163,7 +17129,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:12:32.437504+00:00
+1.4.2 @ 2026-11-06T11:57:15.290219+00:00
   0
 ENDSEC
   0

@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461351.0499189813
+2461351.3725578706
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461351.050648148
+2461351.373425926
   9
 $TDUUPDATE
  40
@@ -553,7 +553,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-111
+114
   9
 $SURFTAB1
  70
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{ED2BD21E-ACD6-4997-88C6-679E007ACCC7}
+{584717F4-E205-47BF-AC5F-25522652F5C0}
   9
 $VERSIONGUID
   2
-{BC805F7F-9F82-44A3-AFD2-E82A6B834191}
+{AE41F315-FE72-42D6-8B10-E0B4327B09C8}
   9
 $EXTNAMES
 290
@@ -2115,7 +2115,7 @@ ACAD
   0
 APPID
   5
-10E
+111
 330
 3
 100
@@ -2129,7 +2129,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-10F
+112
 330
 3
 100
@@ -5621,7 +5621,7 @@ AcDbText
  40
 2.0
   1
-≥ 55 HRC, profundidad efectiva ≥ 3,8 mm (control 10 % de los pasadores)
+Control 10 % de los pasadores; profundidad efectiva del cálculo ≥ 3,8 mm
   7
 STD
  11
@@ -6143,7 +6143,7 @@ AcDbText
  40
 2.0
   1
-Núcleo QT 280–330 HB; certificado 3.1 por colada. Chaflanes 2×45°.
+Pasador y uña: temple por inducción ≥ 55 HRC (Fy_sup 1.500 MPa supuesto del cálculo), profundidad efectiva
   7
 STD
  11
@@ -6177,7 +6177,7 @@ AcDbText
  40
 2.0
   1
-Perno M20×45 10.9 con arandela Ø115×10 S355J2 sobre cada pasador (28 juegos); torque A DEFINIR.
+según el cálculo. Certificado 3.1 por colada. Chaflanes 2×45°.
   7
 STD
  11
@@ -6194,6 +6194,142 @@ AcDbText
 TEXT
   5
 71
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+300.0
+ 20
+232.84000000000003
+ 30
+0.0
+ 40
+2.0
+  1
+Alivio de borde: bombeo / perfil logarítmico ~10 mm en ambos extremos de la cara de contacto uña–pasador
+  7
+STD
+ 11
+300.0
+ 21
+232.84000000000003
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
+72
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+300.0
+ 20
+229.74000000000004
+ 30
+0.0
+ 40
+2.0
+  1
+(concentración 1,32 considerada en Hertz) (cota de 10 mm en ACC-003; en el pasador, extremos de la franja
+  7
+STD
+ 11
+300.0
+ 21
+229.74000000000004
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
+73
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+300.0
+ 20
+226.64000000000004
+ 30
+0.0
+ 40
+2.0
+  1
+templada).
+  7
+STD
+ 11
+300.0
+ 21
+226.64000000000004
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
+74
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+300.0
+ 20
+223.54000000000005
+ 30
+0.0
+ 40
+2.0
+  1
+Perno M20×45 10.9 con arandela Ø115×10 S355J2 sobre cada pasador (28 juegos); torque A DEFINIR.
+  7
+STD
+ 11
+300.0
+ 21
+223.54000000000005
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
+75
 330
 17
 100
@@ -6227,7 +6363,7 @@ AcDbText
   0
 LINE
   5
-72
+76
 330
 17
 100
@@ -6251,7 +6387,7 @@ AcDbLine
   0
 TEXT
   5
-73
+77
 330
 17
 100
@@ -6287,7 +6423,7 @@ AcDbText
   0
 TEXT
   5
-74
+78
 330
 17
 100
@@ -6323,7 +6459,7 @@ AcDbText
   0
 TEXT
   5
-75
+79
 330
 17
 100
@@ -6359,7 +6495,7 @@ AcDbText
   0
 TEXT
   5
-76
+7A
 330
 17
 100
@@ -6395,7 +6531,7 @@ AcDbText
   0
 TEXT
   5
-77
+7B
 330
 17
 100
@@ -6431,7 +6567,7 @@ AcDbText
   0
 TEXT
   5
-78
+7C
 330
 17
 100
@@ -6467,7 +6603,7 @@ AcDbText
   0
 LINE
   5
-79
+7D
 330
 17
 100
@@ -6491,7 +6627,7 @@ AcDbLine
   0
 TEXT
   5
-7A
+7E
 330
 17
 100
@@ -6527,7 +6663,7 @@ AcDbText
   0
 TEXT
   5
-7B
+7F
 330
 17
 100
@@ -6561,7 +6697,7 @@ AcDbText
   0
 TEXT
   5
-7C
+80
 330
 17
 100
@@ -6595,7 +6731,7 @@ AcDbText
   0
 TEXT
   5
-7D
+81
 330
 17
 100
@@ -6631,7 +6767,7 @@ AcDbText
   0
 TEXT
   5
-7E
+82
 330
 17
 100
@@ -6665,7 +6801,7 @@ AcDbText
   0
 TEXT
   5
-7F
+83
 330
 17
 100
@@ -6701,7 +6837,7 @@ AcDbText
   0
 LINE
   5
-80
+84
 330
 17
 100
@@ -6725,7 +6861,7 @@ AcDbLine
   0
 TEXT
   5
-81
+85
 330
 17
 100
@@ -6761,7 +6897,7 @@ AcDbText
   0
 TEXT
   5
-82
+86
 330
 17
 100
@@ -6795,7 +6931,7 @@ AcDbText
   0
 TEXT
   5
-83
+87
 330
 17
 100
@@ -6829,7 +6965,7 @@ AcDbText
   0
 TEXT
   5
-84
+88
 330
 17
 100
@@ -6865,7 +7001,7 @@ AcDbText
   0
 TEXT
   5
-85
+89
 330
 17
 100
@@ -6899,7 +7035,7 @@ AcDbText
   0
 TEXT
   5
-86
+8A
 330
 17
 100
@@ -6935,7 +7071,7 @@ AcDbText
   0
 LINE
   5
-87
+8B
 330
 17
 100
@@ -6959,7 +7095,7 @@ AcDbLine
   0
 LINE
   5
-88
+8C
 330
 17
 100
@@ -6983,102 +7119,6 @@ AcDbLine
   0
 LINE
   5
-89
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-655.0
- 20
-554.0
- 30
-0.0
- 11
-655.0
- 21
-538.8199999999999
- 31
-0.0
-  0
-LINE
-  5
-8A
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-678.0
- 20
-554.0
- 30
-0.0
- 11
-678.0
- 21
-538.8199999999999
- 31
-0.0
-  0
-LINE
-  5
-8B
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-756.0
- 20
-554.0
- 30
-0.0
- 11
-756.0
- 21
-538.8199999999999
- 31
-0.0
-  0
-LINE
-  5
-8C
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-764.0
- 20
-554.0
- 30
-0.0
- 11
-764.0
- 21
-538.8199999999999
- 31
-0.0
-  0
-LINE
-  5
 8D
 330
 17
@@ -7089,6 +7129,102 @@ FINA
 100
 AcDbLine
  10
+655.0
+ 20
+554.0
+ 30
+0.0
+ 11
+655.0
+ 21
+538.8199999999999
+ 31
+0.0
+  0
+LINE
+  5
+8E
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+678.0
+ 20
+554.0
+ 30
+0.0
+ 11
+678.0
+ 21
+538.8199999999999
+ 31
+0.0
+  0
+LINE
+  5
+8F
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+756.0
+ 20
+554.0
+ 30
+0.0
+ 11
+756.0
+ 21
+538.8199999999999
+ 31
+0.0
+  0
+LINE
+  5
+90
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+764.0
+ 20
+554.0
+ 30
+0.0
+ 11
+764.0
+ 21
+538.8199999999999
+ 31
+0.0
+  0
+LINE
+  5
+91
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
 810.0
  20
 554.0
@@ -7103,7 +7239,7 @@ AcDbLine
   0
 LINE
   5
-8E
+92
 330
 17
 100
@@ -7127,7 +7263,7 @@ AcDbLine
   0
 TEXT
   5
-8F
+93
 330
 17
 100
@@ -7161,7 +7297,7 @@ AcDbText
   0
 TEXT
   5
-90
+94
 330
 17
 100
@@ -7195,7 +7331,7 @@ AcDbText
   0
 TEXT
   5
-91
+95
 330
 17
 100
@@ -7229,7 +7365,7 @@ AcDbText
   0
 TEXT
   5
-92
+96
 330
 17
 100
@@ -7263,7 +7399,7 @@ AcDbText
   0
 TEXT
   5
-93
+97
 330
 17
 100
@@ -7297,7 +7433,7 @@ AcDbText
   0
 TEXT
   5
-94
+98
 330
 17
 100
@@ -7331,7 +7467,7 @@ AcDbText
   0
 TEXT
   5
-95
+99
 330
 17
 100
@@ -7365,7 +7501,7 @@ AcDbText
   0
 TEXT
   5
-96
+9A
 330
 17
 100
@@ -7399,7 +7535,7 @@ AcDbText
   0
 TEXT
   5
-97
+9B
 330
 17
 100
@@ -7433,7 +7569,7 @@ AcDbText
   0
 TEXT
   5
-98
+9C
 330
 17
 100
@@ -7467,7 +7603,7 @@ AcDbText
   0
 TEXT
   5
-99
+9D
 330
 17
 100
@@ -7501,7 +7637,7 @@ AcDbText
   0
 LWPOLYLINE
   5
-9A
+9E
 330
 17
 100
@@ -7533,7 +7669,7 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-9B
+9F
 330
 17
 100
@@ -7565,102 +7701,6 @@ AcDbPolyline
   0
 LINE
   5
-9C
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-121.375
- 20
-584.0
- 30
-0.0
- 11
-121.375
- 21
-589.0
- 31
-0.0
-  0
-LINE
-  5
-9D
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-121.375
- 20
-10.0
- 30
-0.0
- 11
-121.375
- 21
-5.0
- 31
-0.0
-  0
-LINE
-  5
-9E
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-222.75
- 20
-584.0
- 30
-0.0
- 11
-222.75
- 21
-589.0
- 31
-0.0
-  0
-LINE
-  5
-9F
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-222.75
- 20
-10.0
- 30
-0.0
- 11
-222.75
- 21
-5.0
- 31
-0.0
-  0
-LINE
-  5
 A0
 330
 17
@@ -7671,13 +7711,13 @@ FINA
 100
 AcDbLine
  10
-324.125
+121.375
  20
 584.0
  30
 0.0
  11
-324.125
+121.375
  21
 589.0
  31
@@ -7695,13 +7735,13 @@ FINA
 100
 AcDbLine
  10
-324.125
+121.375
  20
 10.0
  30
 0.0
  11
-324.125
+121.375
  21
 5.0
  31
@@ -7719,13 +7759,13 @@ FINA
 100
 AcDbLine
  10
-425.5
+222.75
  20
 584.0
  30
 0.0
  11
-425.5
+222.75
  21
 589.0
  31
@@ -7743,13 +7783,13 @@ FINA
 100
 AcDbLine
  10
-425.5
+222.75
  20
 10.0
  30
 0.0
  11
-425.5
+222.75
  21
 5.0
  31
@@ -7767,13 +7807,13 @@ FINA
 100
 AcDbLine
  10
-526.875
+324.125
  20
 584.0
  30
 0.0
  11
-526.875
+324.125
  21
 589.0
  31
@@ -7791,13 +7831,13 @@ FINA
 100
 AcDbLine
  10
-526.875
+324.125
  20
 10.0
  30
 0.0
  11
-526.875
+324.125
  21
 5.0
  31
@@ -7815,13 +7855,13 @@ FINA
 100
 AcDbLine
  10
-628.25
+425.5
  20
 584.0
  30
 0.0
  11
-628.25
+425.5
  21
 589.0
  31
@@ -7839,6 +7879,102 @@ FINA
 100
 AcDbLine
  10
+425.5
+ 20
+10.0
+ 30
+0.0
+ 11
+425.5
+ 21
+5.0
+ 31
+0.0
+  0
+LINE
+  5
+A8
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+526.875
+ 20
+584.0
+ 30
+0.0
+ 11
+526.875
+ 21
+589.0
+ 31
+0.0
+  0
+LINE
+  5
+A9
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+526.875
+ 20
+10.0
+ 30
+0.0
+ 11
+526.875
+ 21
+5.0
+ 31
+0.0
+  0
+LINE
+  5
+AA
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+628.25
+ 20
+584.0
+ 30
+0.0
+ 11
+628.25
+ 21
+589.0
+ 31
+0.0
+  0
+LINE
+  5
+AB
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
 628.25
  20
 10.0
@@ -7853,7 +7989,7 @@ AcDbLine
   0
 LINE
   5
-A8
+AC
 330
 17
 100
@@ -7877,7 +8013,7 @@ AcDbLine
   0
 LINE
   5
-A9
+AD
 330
 17
 100
@@ -7901,7 +8037,7 @@ AcDbLine
   0
 TEXT
   5
-AA
+AE
 330
 17
 100
@@ -7937,7 +8073,7 @@ AcDbText
   0
 TEXT
   5
-AB
+AF
 330
 17
 100
@@ -7973,7 +8109,7 @@ AcDbText
   0
 TEXT
   5
-AC
+B0
 330
 17
 100
@@ -8009,7 +8145,7 @@ AcDbText
   0
 TEXT
   5
-AD
+B1
 330
 17
 100
@@ -8045,7 +8181,7 @@ AcDbText
   0
 TEXT
   5
-AE
+B2
 330
 17
 100
@@ -8081,7 +8217,7 @@ AcDbText
   0
 TEXT
   5
-AF
+B3
 330
 17
 100
@@ -8117,7 +8253,7 @@ AcDbText
   0
 TEXT
   5
-B0
+B4
 330
 17
 100
@@ -8153,7 +8289,7 @@ AcDbText
   0
 TEXT
   5
-B1
+B5
 330
 17
 100
@@ -8189,7 +8325,7 @@ AcDbText
   0
 TEXT
   5
-B2
+B6
 330
 17
 100
@@ -8225,7 +8361,7 @@ AcDbText
   0
 TEXT
   5
-B3
+B7
 330
 17
 100
@@ -8261,7 +8397,7 @@ AcDbText
   0
 TEXT
   5
-B4
+B8
 330
 17
 100
@@ -8297,7 +8433,7 @@ AcDbText
   0
 TEXT
   5
-B5
+B9
 330
 17
 100
@@ -8333,7 +8469,7 @@ AcDbText
   0
 TEXT
   5
-B6
+BA
 330
 17
 100
@@ -8369,7 +8505,7 @@ AcDbText
   0
 TEXT
   5
-B7
+BB
 330
 17
 100
@@ -8405,7 +8541,7 @@ AcDbText
   0
 LWPOLYLINE
   5
-B8
+BC
 330
 17
 100
@@ -8437,7 +8573,7 @@ AcDbPolyline
   0
 TEXT
   5
-B9
+BD
 330
 17
 100
@@ -8473,7 +8609,7 @@ AcDbText
   0
 LWPOLYLINE
   5
-BA
+BE
 330
 17
 100
@@ -8505,102 +8641,6 @@ AcDbPolyline
   0
 LINE
   5
-BB
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-651.0
- 20
-20.0
- 30
-0.0
- 11
-831.0
- 21
-20.0
- 31
-0.0
-  0
-LINE
-  5
-BC
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-651.0
- 20
-30.0
- 30
-0.0
- 11
-831.0
- 21
-30.0
- 31
-0.0
-  0
-LINE
-  5
-BD
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-651.0
- 20
-40.0
- 30
-0.0
- 11
-831.0
- 21
-40.0
- 31
-0.0
-  0
-LINE
-  5
-BE
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-651.0
- 20
-50.0
- 30
-0.0
- 11
-831.0
- 21
-50.0
- 31
-0.0
-  0
-LINE
-  5
 BF
 330
 17
@@ -8613,13 +8653,13 @@ AcDbLine
  10
 651.0
  20
-62.0
+20.0
  30
 0.0
  11
 831.0
  21
-62.0
+20.0
  31
 0.0
   0
@@ -8637,6 +8677,102 @@ AcDbLine
  10
 651.0
  20
+30.0
+ 30
+0.0
+ 11
+831.0
+ 21
+30.0
+ 31
+0.0
+  0
+LINE
+  5
+C1
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+651.0
+ 20
+40.0
+ 30
+0.0
+ 11
+831.0
+ 21
+40.0
+ 31
+0.0
+  0
+LINE
+  5
+C2
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+651.0
+ 20
+50.0
+ 30
+0.0
+ 11
+831.0
+ 21
+50.0
+ 31
+0.0
+  0
+LINE
+  5
+C3
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+651.0
+ 20
+62.0
+ 30
+0.0
+ 11
+831.0
+ 21
+62.0
+ 31
+0.0
+  0
+LINE
+  5
+C4
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+651.0
+ 20
 76.0
  30
 0.0
@@ -8649,7 +8785,7 @@ AcDbLine
   0
 LINE
   5
-C1
+C5
 330
 17
 100
@@ -8673,7 +8809,7 @@ AcDbLine
   0
 LINE
   5
-C2
+C6
 330
 17
 100
@@ -8697,7 +8833,7 @@ AcDbLine
   0
 LINE
   5
-C3
+C7
 330
 17
 100
@@ -8721,7 +8857,7 @@ AcDbLine
   0
 TEXT
   5
-C4
+C8
 330
 17
 100
@@ -8755,7 +8891,7 @@ AcDbText
   0
 TEXT
   5
-C5
+C9
 330
 17
 100
@@ -8791,7 +8927,7 @@ AcDbText
   0
 TEXT
   5
-C6
+CA
 330
 17
 100
@@ -8825,7 +8961,7 @@ AcDbText
   0
 TEXT
   5
-C7
+CB
 330
 17
 100
@@ -8861,7 +8997,7 @@ AcDbText
   0
 TEXT
   5
-C8
+CC
 330
 17
 100
@@ -8895,7 +9031,7 @@ AcDbText
   0
 TEXT
   5
-C9
+CD
 330
 17
 100
@@ -8931,7 +9067,7 @@ AcDbText
   0
 LINE
   5
-CA
+CE
 330
 17
 100
@@ -8955,7 +9091,7 @@ AcDbLine
   0
 LINE
   5
-CB
+CF
 330
 17
 100
@@ -8979,7 +9115,7 @@ AcDbLine
   0
 TEXT
   5
-CC
+D0
 330
 17
 100
@@ -9013,7 +9149,7 @@ AcDbText
   0
 TEXT
   5
-CD
+D1
 330
 17
 100
@@ -9049,7 +9185,7 @@ AcDbText
   0
 TEXT
   5
-CE
+D2
 330
 17
 100
@@ -9083,7 +9219,7 @@ AcDbText
   0
 TEXT
   5
-CF
+D3
 330
 17
 100
@@ -9119,7 +9255,7 @@ AcDbText
   0
 TEXT
   5
-D0
+D4
 330
 17
 100
@@ -9153,7 +9289,7 @@ AcDbText
   0
 TEXT
   5
-D1
+D5
 330
 17
 100
@@ -9189,7 +9325,7 @@ AcDbText
   0
 LINE
   5
-D2
+D6
 330
 17
 100
@@ -9213,7 +9349,7 @@ AcDbLine
   0
 LINE
   5
-D3
+D7
 330
 17
 100
@@ -9237,7 +9373,7 @@ AcDbLine
   0
 TEXT
   5
-D4
+D8
 330
 17
 100
@@ -9271,7 +9407,7 @@ AcDbText
   0
 TEXT
   5
-D5
+D9
 330
 17
 100
@@ -9307,7 +9443,7 @@ AcDbText
   0
 TEXT
   5
-D6
+DA
 330
 17
 100
@@ -9341,7 +9477,7 @@ AcDbText
   0
 TEXT
   5
-D7
+DB
 330
 17
 100
@@ -9377,7 +9513,7 @@ AcDbText
   0
 TEXT
   5
-D8
+DC
 330
 17
 100
@@ -9411,7 +9547,7 @@ AcDbText
   0
 TEXT
   5
-D9
+DD
 330
 17
 100
@@ -9447,7 +9583,7 @@ AcDbText
   0
 LINE
   5
-DA
+DE
 330
 17
 100
@@ -9471,7 +9607,7 @@ AcDbLine
   0
 LINE
   5
-DB
+DF
 330
 17
 100
@@ -9495,7 +9631,7 @@ AcDbLine
   0
 TEXT
   5
-DC
+E0
 330
 17
 100
@@ -9529,7 +9665,7 @@ AcDbText
   0
 TEXT
   5
-DD
+E1
 330
 17
 100
@@ -9563,7 +9699,7 @@ AcDbText
   0
 TEXT
   5
-DE
+E2
 330
 17
 100
@@ -9597,7 +9733,7 @@ AcDbText
   0
 TEXT
   5
-DF
+E3
 330
 17
 100
@@ -9633,7 +9769,7 @@ AcDbText
   0
 TEXT
   5
-E0
+E4
 330
 17
 100
@@ -9667,7 +9803,7 @@ AcDbText
   0
 TEXT
   5
-E1
+E5
 330
 17
 100
@@ -9701,7 +9837,7 @@ AcDbText
   0
 TEXT
   5
-E2
+E6
 330
 17
 100
@@ -9735,7 +9871,7 @@ AcDbText
   0
 TEXT
   5
-E3
+E7
 330
 17
 100
@@ -9769,7 +9905,7 @@ AcDbText
   0
 TEXT
   5
-E4
+E8
 330
 17
 100
@@ -9803,7 +9939,7 @@ AcDbText
   0
 TEXT
   5
-E5
+E9
 330
 17
 100
@@ -9837,7 +9973,7 @@ AcDbText
   0
 TEXT
   5
-E6
+EA
 330
 17
 100
@@ -9871,7 +10007,7 @@ AcDbText
   0
 TEXT
   5
-E7
+EB
 330
 17
 100
@@ -9905,7 +10041,7 @@ AcDbText
   0
 TEXT
   5
-E8
+EC
 330
 17
 100
@@ -9941,7 +10077,7 @@ AcDbText
   0
 LWPOLYLINE
   5
-E9
+ED
 330
 17
 100
@@ -9965,131 +10101,11 @@ AcDbPolyline
  10
 831.0
  20
-126.0
+123.0
  10
 651.0
  20
-126.0
-  0
-LINE
-  5
-EA
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-651.0
- 20
-121.0
- 30
-0.0
- 11
-831.0
- 21
-121.0
- 31
-0.0
-  0
-TEXT
-  5
-EB
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-656.0
- 20
-123.5
- 30
-0.0
- 40
-2.0
-  1
-REV
-  7
-STDB
- 72
-1
- 11
-656.0
- 21
-123.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-LINE
-  5
-EC
-330
-17
-100
-AcDbEntity
-  8
-FINA
-100
-AcDbLine
- 10
-661.0
- 20
-87.0
- 30
-0.0
- 11
-661.0
- 21
-126.0
- 31
-0.0
-  0
-TEXT
-  5
-ED
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-671.0
- 20
-123.5
- 30
-0.0
- 40
-2.0
-  1
-FECHA
-  7
-STDB
- 72
-1
- 11
-671.0
- 21
-123.5
- 31
-0.0
-100
-AcDbText
- 73
-2
+123.0
   0
 LINE
   5
@@ -10103,15 +10119,15 @@ FINA
 100
 AcDbLine
  10
-681.0
+651.0
  20
-87.0
+118.0
  30
 0.0
  11
-681.0
+831.0
  21
-126.0
+118.0
  31
 0.0
   0
@@ -10127,23 +10143,23 @@ TXT
 100
 AcDbText
  10
-730.0
+656.0
  20
-123.5
+120.5
  30
 0.0
  40
 2.0
   1
-DESCRIPCIÓN
+REV
   7
 STDB
  72
 1
  11
-730.0
+656.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -10163,15 +10179,15 @@ FINA
 100
 AcDbLine
  10
-779.0
+661.0
  20
 87.0
  30
 0.0
  11
-779.0
+661.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -10187,23 +10203,23 @@ TXT
 100
 AcDbText
  10
-787.5
+671.0
  20
-123.5
+120.5
  30
 0.0
  40
 2.0
   1
-DIB.
+FECHA
   7
 STDB
  72
 1
  11
-787.5
+671.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -10223,15 +10239,15 @@ FINA
 100
 AcDbLine
  10
-796.0
+681.0
  20
 87.0
  30
 0.0
  11
-796.0
+681.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -10247,23 +10263,23 @@ TXT
 100
 AcDbText
  10
-804.5
+730.0
  20
-123.5
+120.5
  30
 0.0
  40
 2.0
   1
-REV.
+DESCRIPCIÓN
   7
 STDB
  72
 1
  11
-804.5
+730.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -10283,15 +10299,15 @@ FINA
 100
 AcDbLine
  10
-813.0
+779.0
  20
 87.0
  30
 0.0
  11
-813.0
+779.0
  21
-126.0
+123.0
  31
 0.0
   0
@@ -10307,9 +10323,129 @@ TXT
 100
 AcDbText
  10
+787.5
+ 20
+120.5
+ 30
+0.0
+ 40
+2.0
+  1
+DIB.
+  7
+STDB
+ 72
+1
+ 11
+787.5
+ 21
+120.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LINE
+  5
+F6
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+796.0
+ 20
+87.0
+ 30
+0.0
+ 11
+796.0
+ 21
+123.0
+ 31
+0.0
+  0
+TEXT
+  5
+F7
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+804.5
+ 20
+120.5
+ 30
+0.0
+ 40
+2.0
+  1
+REV.
+  7
+STDB
+ 72
+1
+ 11
+804.5
+ 21
+120.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LINE
+  5
+F8
+330
+17
+100
+AcDbEntity
+  8
+FINA
+100
+AcDbLine
+ 10
+813.0
+ 20
+87.0
+ 30
+0.0
+ 11
+813.0
+ 21
+123.0
+ 31
+0.0
+  0
+TEXT
+  5
+F9
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
 822.0
  20
-123.5
+120.5
  30
 0.0
  40
@@ -10323,7 +10459,7 @@ STDB
  11
 822.0
  21
-123.5
+120.5
  31
 0.0
 100
@@ -10333,7 +10469,7 @@ AcDbText
   0
 LINE
   5
-F6
+FA
 330
 17
 100
@@ -10357,7 +10493,7 @@ AcDbLine
   0
 TEXT
   5
-F7
+FB
 330
 17
 100
@@ -10369,7 +10505,7 @@ AcDbText
  10
 656.0
  20
-108.0
+106.5
  30
 0.0
  40
@@ -10383,151 +10519,13 @@ STDB
  11
 656.0
  21
-108.0
+106.5
  31
 0.0
 100
 AcDbText
  73
 2
-  0
-TEXT
-  5
-F8
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-671.0
- 20
-108.0
- 30
-0.0
- 40
-2.2
-  1
-06-11-2026
-  7
-STD
- 72
-1
- 11
-671.0
- 21
-108.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-F9
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-682.0
- 20
-118.8
- 30
-0.0
- 40
-1.9
-  1
-VIGENTE – EMITIDO PARA REVISIÓN. Cambios de la actualización C del
-  7
-STD
- 11
-682.0
- 21
-118.8
- 31
-0.0
-100
-AcDbText
- 73
-3
-  0
-TEXT
-  5
-FA
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-682.0
- 20
-115.8
- 30
-0.0
- 40
-1.9
-  1
-cálculo respecto de la Rev. B anterior: paquete de reducción de
-  7
-STD
- 11
-682.0
- 21
-115.8
- 31
-0.0
-100
-AcDbText
- 73
-3
-  0
-TEXT
-  5
-FB
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-682.0
- 20
-112.8
- 30
-0.0
- 40
-1.9
-  1
-masa (t_pr 27, t_web 6, t_rib 6, t_base 18, w_bed 160, w_s 245);
-  7
-STD
- 11
-682.0
- 21
-112.8
- 31
-0.0
-100
-AcDbText
- 73
-3
   0
 TEXT
   5
@@ -10541,27 +10539,29 @@ TXT
 100
 AcDbText
  10
-682.0
+671.0
  20
-109.8
+106.5
  30
 0.0
  40
-1.9
+2.2
   1
-collar soldado de asiento del pivote (h 60, Ø250) y rebaje del
+06-11-2026
   7
 STD
+ 72
+1
  11
-682.0
+671.0
  21
-109.8
+106.5
  31
 0.0
 100
 AcDbText
  73
-3
+2
   0
 TEXT
   5
@@ -10577,19 +10577,19 @@ AcDbText
  10
 682.0
  20
-106.8
+115.8
  30
 0.0
  40
 1.9
   1
-cubo; 4 orejas de izaje de la base; interfaz según alternativa
+B VIGENTE – EMITIDO PARA REVISIÓN. Cambios C respecto de la B
   7
 STD
  11
 682.0
  21
-106.8
+115.8
  31
 0.0
 100
@@ -10611,19 +10611,19 @@ AcDbText
  10
 682.0
  20
-103.8
+112.8
  30
 0.0
  40
 1.9
   1
-elegida (Acero-acero con grasa grafitada (sin interfaz
+anterior: R_i 131 (Ø262 de discos); rebaje del collar con holguras
   7
 STD
  11
 682.0
  21
-103.8
+112.8
  31
 0.0
 100
@@ -10645,19 +10645,19 @@ AcDbText
  10
 682.0
  20
-100.8
+109.8
  30
 0.0
  40
 1.9
   1
-alternativa)); f_apoyo 0,9 de la cubierta de madera. Sin
+3/2 (Ø256, plancha inferior con agujero pasante), D_hub 310;
   7
 STD
  11
 682.0
  21
-100.8
+109.8
  31
 0.0
 100
@@ -10679,19 +10679,19 @@ AcDbText
  10
 682.0
  20
-97.8
+106.8
  30
 0.0
  40
 1.9
   1
-consideración de viento ni anclaje (decisión del mandante).
+barras de tope verificadas (h = t − a_sup, chaflán a_inf, h_c) en
   7
 STD
  11
 682.0
  21
-97.8
+106.8
  31
 0.0
 100
@@ -10711,29 +10711,27 @@ TXT
 100
 AcDbText
  10
-787.5
+682.0
  20
-108.0
+103.8
  30
 0.0
  40
-2.2
+1.9
   1
-A DEFINIR
+despiece y masa; orejas de izaje R92; filete del collar z10; almas
   7
 STD
- 72
-1
  11
-787.5
+682.0
  21
-108.0
+103.8
  31
 0.0
 100
 AcDbText
  73
-2
+3
   0
 TEXT
   5
@@ -10747,29 +10745,27 @@ TXT
 100
 AcDbText
  10
-804.5
+682.0
  20
-108.0
+100.8
  30
 0.0
  40
-2.2
+1.9
   1
-A DEFINIR
+en R300/590/840; w_br 20; brazo del pivote 42; temple ≥ 55 HRC y
   7
 STD
- 72
-1
  11
-804.5
+682.0
  21
-108.0
+100.8
  31
 0.0
 100
 AcDbText
  73
-2
+3
   0
 TEXT
   5
@@ -10783,9 +10779,115 @@ TXT
 100
 AcDbText
  10
+682.0
+ 20
+97.8
+ 30
+0.0
+ 40
+1.9
+  1
+alivio de borde uña–pasador. Sin viento ni anclaje (mandante).
+  7
+STD
+ 11
+682.0
+ 21
+97.8
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
+104
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+787.5
+ 20
+106.5
+ 30
+0.0
+ 40
+2.2
+  1
+A DEFINIR
+  7
+STD
+ 72
+1
+ 11
+787.5
+ 21
+106.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+105
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+804.5
+ 20
+106.5
+ 30
+0.0
+ 40
+2.2
+  1
+A DEFINIR
+  7
+STD
+ 72
+1
+ 11
+804.5
+ 21
+106.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+106
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
 822.0
  20
-108.0
+106.5
  30
 0.0
  40
@@ -10799,7 +10901,7 @@ STD
  11
 822.0
  21
-108.0
+106.5
  31
 0.0
 100
@@ -10809,7 +10911,7 @@ AcDbText
   0
 LINE
   5
-104
+107
 330
 17
 100
@@ -10833,7 +10935,7 @@ AcDbLine
   0
 TEXT
   5
-105
+108
 330
 17
 100
@@ -10869,110 +10971,6 @@ AcDbText
   0
 TEXT
   5
-106
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-671.0
- 20
-91.0
- 30
-0.0
- 40
-2.2
-  1
-—
-  7
-STD
- 72
-1
- 11
-671.0
- 21
-91.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-TEXT
-  5
-107
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-682.0
- 20
-92.8
- 30
-0.0
- 40
-1.9
-  1
-Emisión Rev. B anterior (uña guiada de cara plana, patín con
-  7
-STD
- 11
-682.0
- 21
-92.8
- 31
-0.0
-100
-AcDbText
- 73
-3
-  0
-TEXT
-  5
-108
-330
-17
-100
-AcDbEntity
-  8
-TXT
-100
-AcDbText
- 10
-682.0
- 20
-89.8
- 30
-0.0
- 40
-1.9
-  1
-lengüeta T, 6 láminas); reemplazada por esta emisión.
-  7
-STD
- 11
-682.0
- 21
-89.8
- 31
-0.0
-100
-AcDbText
- 73
-3
-  0
-TEXT
-  5
 109
 330
 17
@@ -10983,7 +10981,7 @@ TXT
 100
 AcDbText
  10
-787.5
+671.0
  20
 91.0
  30
@@ -10997,7 +10995,7 @@ STD
  72
 1
  11
-787.5
+671.0
  21
 91.0
  31
@@ -11019,29 +11017,27 @@ TXT
 100
 AcDbText
  10
-804.5
+682.0
  20
-91.0
+92.8
  30
 0.0
  40
-2.2
+1.9
   1
-—
+Emisión Rev. B anterior (uña guiada, patín con lengüeta T, 6
   7
 STD
- 72
-1
  11
-804.5
+682.0
  21
-91.0
+92.8
  31
 0.0
 100
 AcDbText
  73
-2
+3
   0
 TEXT
   5
@@ -11055,6 +11051,112 @@ TXT
 100
 AcDbText
  10
+682.0
+ 20
+89.8
+ 30
+0.0
+ 40
+1.9
+  1
+láminas); reemplazada por esta emisión.
+  7
+STD
+ 11
+682.0
+ 21
+89.8
+ 31
+0.0
+100
+AcDbText
+ 73
+3
+  0
+TEXT
+  5
+10C
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+787.5
+ 20
+91.0
+ 30
+0.0
+ 40
+2.2
+  1
+—
+  7
+STD
+ 72
+1
+ 11
+787.5
+ 21
+91.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+10D
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
+804.5
+ 20
+91.0
+ 30
+0.0
+ 40
+2.2
+  1
+—
+  7
+STD
+ 72
+1
+ 11
+804.5
+ 21
+91.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+TEXT
+  5
+10E
+330
+17
+100
+AcDbEntity
+  8
+TXT
+100
+AcDbText
+ 10
 822.0
  20
 91.0
@@ -11081,7 +11183,7 @@ AcDbText
   0
 TEXT
   5
-10C
+10F
 330
 17
 100
@@ -11093,7 +11195,7 @@ AcDbText
  10
 651.0
  20
-127.5
+124.5
  30
 0.0
  40
@@ -11105,7 +11207,7 @@ STD
  11
 651.0
  21
-127.5
+124.5
  31
 0.0
 100
@@ -11115,7 +11217,7 @@ AcDbText
   0
 TEXT
   5
-10D
+110
 330
 17
 100
@@ -11127,7 +11229,7 @@ AcDbText
  10
 651.0
  20
-130.6
+127.6
  30
 0.0
  40
@@ -11139,7 +11241,7 @@ STD
  11
 651.0
  21
-130.6
+127.6
  31
 0.0
 100
@@ -12137,7 +12239,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-110
+113
   0
 DICTIONARYVAR
   5
@@ -12149,11 +12251,11 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:11:53.653366+00:00
+1.4.2 @ 2026-11-06T11:56:29.793531+00:00
   0
 DICTIONARYVAR
   5
-110
+113
 330
 2D
 100
@@ -12161,7 +12263,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:12:56.445716+00:00
+1.4.2 @ 2026-11-06T11:57:44.217566+00:00
   0
 ENDSEC
   0

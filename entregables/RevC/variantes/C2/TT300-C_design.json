@@ -49,6 +49,9 @@
   "L_tope": 0,
   "w_tope": 6,
   "b_tope": 20,
+  "a_sup": 2,
+  "a_inf": 0,
+  "hc_min": 3,
   "d_tor": 6,
   "h_gr": 1,
   "w_gr": 8,
@@ -88,12 +91,12 @@
   "t_top": 20,
   "t_bot": 16,
   "h_disc": 210,
-  "rings": "300, 580, 840",
+  "rings": "300, 590, 840",
   "t_web": 6,
   "N_rib": 14,
   "t_rib": 6,
   "R_rib": 840,
-  "D_hub": 300,
+  "D_hub": 310,
   "w_web": 6,
   "N_pin": 28,
   "d_pin": 85,
@@ -114,10 +117,10 @@
   "c_rod": 110,
   "eta_c": 0.95,
   "m_cyl": 55,
-  "Q_pump": 1.8,
-  "Q_ret": 0,
+  "Q_pump": 10,
+  "Q_ret": 20,
   "eta_pump": 0.85,
-  "t_vuelta_obj": 0,
+  "t_vuelta_obj": 15,
   "v_ret_max": 0.25,
   "x_g": 1140,
   "l_p": 300,
@@ -157,7 +160,7 @@
   "g_ch": 2,
   "b_eye": 50,
   "L_ch": 325,
-  "w_br": 16,
+  "w_br": 20,
   "n_br": 4,
   "B": 2560,
   "t_base": 18,
@@ -167,8 +170,10 @@
   "c_lug": 150,
   "x_lug": 600,
   "t_ear": 18,
-  "R_ear": 60,
+  "R_ear": 92,
   "d_ear": 45,
+  "g_ear": 3,
+  "ear_gira": 0,
   "h_ear": 90,
   "w_ear": 8,
   "phi_lift": 1.3,
@@ -177,9 +182,14 @@
   "L_bush": 80,
   "p_bush": 30,
   "mu_bush": 0.2,
-  "e_piv": 40,
+  "e_piv": 0,
+  "g_bush": 2,
   "h_boss": 60,
   "D_boss": 250,
+  "w_collar": 10,
+  "c_boss_r": 3,
+  "c_boss_a": 2,
+  "m_ri": 3,
   "Fy_piv": 650,
   "Ch": 0,
   "Fy": 345,
@@ -195,39 +205,39 @@
   "gira": true,
   "estructura": true,
   "warnGiro": 0,
-  "warnEst": 1,
+  "warnEst": 0,
   "pend": 4,
   "fuMax": 0.9999999999999999
  },
  "validacion": [],
  "derivados": {
   "W": 2941.995,
-  "N": 2958.2523504482238,
-  "ND": 3252.451850448224,
-  "q_max": 1.6623362153200378,
-  "q_avg": 1.041144013409864,
+  "N": 2958.7886117422067,
+  "ND": 3252.988111742207,
+  "q_max": 1.6749960266346093,
+  "q_avg": 1.0535380419436815,
   "Fstall": 445.32075864635317,
   "Falarm": 381.7035074111599,
   "Fret": 64.88959625989716,
   "A": 6361.725123519331,
   "Aann": 3244.4798129948585,
-  "hax": 125,
+  "hax": 129,
   "prIn": 860,
   "pinClear": 156,
   "forkH": 104,
   "bracket": {
    "Win": 150,
-   "H": 177,
-   "spacer": 73,
+   "H": 181,
+   "spacer": 77,
    "rear": 115,
    "lugF": 60,
    "Llug": 175,
    "aReq": 67.07114605570445,
    "Wout": 200
   },
-  "tRev": 70.23203164695929,
-  "tCycle": 2.5082868445342603,
-  "muMax_ref": 0.2765686186166836,
+  "tRev": 10.506897979502057,
+  "tCycle": 0.37524635641078774,
+  "muMax_ref": 0.27651978582923203,
   "Kguide": 1.2537703025810694,
   "Rguide": 280.75146601067763,
   "stallMax": {
@@ -259,25 +269,25 @@
    "y_rp1": -195.8730372239237,
    "L_bed": 1023.2539255521526,
    "Y_bed": 511.6269627760763,
-   "zc0": 143,
+   "zc0": 147,
    "lever": 58.34764479928435,
    "mouthX": 982.5,
    "inset": 35,
    "tipX": 909.1523552007156,
    "travel": 68.34764479928435,
    "pocketEnd": 1230.8476447992844,
-   "shoeTop": 207
+   "shoeTop": 211
   },
   "casos": [
    {
     "id": "nom",
     "nombre": "Nominal: bronce con grafito sobre acero con grasa limpia",
     "mu": 0.08,
-    "r": 670.1550387596899,
-    "T": 159.1667802832613,
-    "F": 107.96844327321833,
-    "p": 169.71566859130462,
-    "FS": 4.1245455166881655,
+    "r": 676.7821986442675,
+    "T": 160.76341423429696,
+    "F": 109.0514964195074,
+    "p": 171.41812056032325,
+    "FS": 4.0835822823857475,
     "gira": true
    },
    {
@@ -285,10 +295,10 @@
     "nombre": "Diseño: μ límite superior, r efectivo",
     "mu": 0.15,
     "r": 800,
-    "T": 356.0548372985658,
-    "F": 241.52455955074683,
-    "p": 379.65261758611564,
-    "FS": 1.8437907907778903,
+    "T": 356.11771580159495,
+    "F": 241.56721225802232,
+    "p": 379.7196634053664,
+    "FS": 1.8434652388615471,
     "gira": true
    },
    {
@@ -296,10 +306,10 @@
     "nombre": "Borde: μ de diseño con contacto en el borde (r = R)",
     "mu": 0.15,
     "r": 1000,
-    "T": 444.8024078120125,
-    "F": 301.7251680920801,
-    "p": 474.2819946379019,
-    "FS": 1.4759151895159464,
+    "T": 444.8813741538612,
+    "F": 301.778733748087,
+    "p": 474.36619452860276,
+    "FS": 1.4756532149084083,
     "gira": true
    },
    {
@@ -307,46 +317,47 @@
     "nombre": "Contaminado: arena / película degradada",
     "mu": 0.2,
     "r": 800,
-    "T": 474.73978306475436,
-    "F": 322.0327460676624,
-    "p": 506.2034901148206,
-    "FS": 1.382843093083418,
+    "T": 474.82362106879333,
+    "F": 322.08961634402976,
+    "p": 506.29288454048856,
+    "FS": 1.3825989291461602,
     "gira": true
    },
    {
     "id": "seco",
     "nombre": "Bronce con grafito seco sobre acero (autolubricado)",
     "mu": 0.25,
-    "r": 670.1550387596899,
-    "T": 497.3961883851915,
-    "F": 337.4013852288072,
-    "p": 530.361464347827,
-    "FS": 1.3198545653402132,
+    "r": 676.7821986442675,
+    "T": 502.385669482178,
+    "F": 340.7859263109606,
+    "p": 535.6816267510101,
+    "FS": 1.3067463303634392,
     "gira": true
    }
   ],
   "masas": {
    "top": 499.57483462572316,
-   "bot": 429.3290113870146,
-   "webs": 88.56833301031047,
-   "ribs": 77.79073679999999,
-   "hub": 57.61543482005085,
+   "bot": 425.08368172980204,
+   "webs": 89.08326517897508,
+   "ribs": 77.21705879999999,
+   "hub": 73.11893758323741,
    "pins": 261.92365087856825,
    "wood": 0,
-   "disc": 1414.8020015216673,
-   "ssTop": 232.7321290210446,
+   "disc": 1426.0014287963058,
+   "ssTop": 276.03857251630154,
    "ss": 0,
    "uhmw": 0,
-   "bz": 447.536507940865,
-   "base": 950.6202675226602,
+   "bz": 530.8134262362893,
+   "base": 958.1941472267716,
    "rim": 36.031499999999994,
-   "brackets": 176.83351254529921,
+   "brackets": 181.6881470996179,
    "dogs": 27.21338756535056,
-   "shoes": 298.5222127820345,
+   "shoes": 307.33069778203446,
    "beds": 80.96803662109073,
-   "pivot": 20.50850533819338,
+   "pivot": 20.86363097175517,
    "cyl": 110,
-   "total": 3563.03593183716
+   "stopBars": 35.0424,
+   "total": 3714.146802299216
   }
  },
  "pasadores": [
@@ -397,7 +408,7 @@
  ],
  "almas": [
   300,
-  580,
+  590,
   840
  ],
  "cilindros": {
@@ -791,6 +802,21 @@
      "u": "mm"
     },
     {
+     "id": "a_sup",
+     "lab": "Fijación desmontable · tope: alivio de la cara superior de la barra bajo la superficie de deslizamiento (≥ 1 mm más el sobreespesor de desgaste y relapeado)",
+     "u": "mm"
+    },
+    {
+     "id": "a_inf",
+     "lab": "Fijación desmontable · tope: alivio inferior en el canto del sector (chaflán 45° que libra el filete delantero; 0 = automático, w_tope + 1 mm)",
+     "u": "mm"
+    },
+    {
+     "id": "hc_min",
+     "lab": "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (tolerancia de corte y rebabas del canto)",
+     "u": "mm"
+    },
+    {
      "id": "d_tor",
      "lab": "Fijación desmontable: tornillo avellanado de posición (ISO 10642)",
      "u": "mm"
@@ -1024,7 +1050,7 @@
     },
     {
      "id": "D_hub",
-     "lab": "Diámetro exterior del cubo",
+     "lab": "Diámetro exterior del cubo (pared ≥ 25 mm junto al rebaje del collar: D_cubo ≥ D_collar + 2·c_boss_r + 50)",
      "u": "mm"
     },
     {
@@ -1436,13 +1462,23 @@
     },
     {
      "id": "R_ear",
-     "lab": "Orejas de izaje: radio exterior (ancho = 2R)",
+     "lab": "Orejas de izaje: radio exterior (ancho = 2R; AISC 360-22 D5.2(3): a = R − d/2 ≥ 1,33·b_e)",
      "u": "mm"
     },
     {
      "id": "d_ear",
-     "lab": "Orejas de izaje: diámetro del agujero (grillete: pasador ≤ d − 3)",
+     "lab": "Orejas de izaje: diámetro del agujero (grillete: pasador = d − g_ear)",
      "u": "mm"
+    },
+    {
+     "id": "g_ear",
+     "lab": "Orejas de izaje: holgura diametral agujero–pasador del grillete",
+     "u": "mm"
+    },
+    {
+     "id": "ear_gira",
+     "lab": "Orejas de izaje: el pasador gira bajo la carga plena (AISC D5.2(2) exige holgura ≤ 1 mm; 0 = izaje estático)",
+     "u": "–"
     },
     {
      "id": "h_ear",
@@ -1492,7 +1528,12 @@
     },
     {
      "id": "e_piv",
-     "lab": "Brazo de flexión del pivote (desde la cara superior del asiento)",
+     "lab": "Brazo de flexión del pivote desde la cara superior del asiento: mínimo de ingreso (0 = automático); el brazo efectivo es máx(e_piv; g_bush + L_buje/2)",
+     "u": "mm"
+    },
+    {
+     "id": "g_bush",
+     "lab": "Holgura axial del buje sobre el collar (el buje reacciona a media altura: e = g_bush + L_buje/2)",
      "u": "mm"
     },
     {
@@ -1503,6 +1544,26 @@
     {
      "id": "D_boss",
      "lab": "Collar de asiento del pivote: diámetro exterior (entra en un rebaje del cubo)",
+     "u": "mm"
+    },
+    {
+     "id": "w_collar",
+     "lab": "Collar de asiento del pivote: filete perimetral a la base",
+     "u": "mm"
+    },
+    {
+     "id": "c_boss_r",
+     "lab": "Rebaje del cubo: holgura radial con el collar (el cubo gira, el collar es fijo)",
+     "u": "mm"
+    },
+    {
+     "id": "c_boss_a",
+     "lab": "Rebaje del cubo: holgura axial sobre el collar (profundidad del rebaje desde la cara inferior de la mesa = h_collar − δ + c_boss_a, δ = altura que suma la interfaz)",
+     "u": "mm"
+    },
+    {
+     "id": "m_ri",
+     "lab": "Interfaz de giro: margen de borde entre el rebaje del collar y el radio interior R_i del anillo de contacto (con collar: R_i = D_collar/2 + c_boss_r + m_ri; sin collar: D_piv/2 + 15)",
      "u": "mm"
     },
     {
@@ -1571,12 +1632,12 @@
   }
  ],
  "apoyo": {
-  "r_u": 670.1550387596899,
+  "r_u": 676.7821986442675,
   "Ro": 1000,
-  "Ri": 75,
-  "Ac": 3123921.1949133505,
-  "T_piv_d": 1.0645552447789282,
-  "H_ecc_d": 88.71293706491068,
+  "Ri": 131,
+  "Ac": 3087679.7820615387,
+  "T_piv_d": 1.0630823925301853,
+  "H_ecc_d": 88.59019937751545,
   "mu": {
    "nom": 0.08,
    "d": 0.15,
@@ -1590,37 +1651,98 @@
    "eta": 0.6,
    "fg": 0.14510394913873745,
    "a": 50,
-   "A_ss": 3123921.1949133505,
-   "q": 1.66233176541548,
-   "qAvg": 1.0411412263734943,
-   "qLoc": 1.66233176541548,
-   "qC": 1.66233176541548,
+   "A_ss": 3087679.7820615387,
+   "tTope": 12,
+   "q": 1.6749906469693054,
+   "qAvg": 1.0535346582448784,
+   "qLoc": 1.6749906469693054,
+   "qC": 1.6749906469693054,
    "gr": 1,
-   "fgr": 0.05437175903770771,
-   "qNet": 2.076553806541923,
-   "tss2": 10,
-   "tss2Req": 8.318094202166803,
-   "tbz": 10,
-   "tbzReq": 9.136475462625828,
-   "tFlexB": 5.527890123473541,
-   "tss": 10,
-   "tssReq": 8.318094202166803,
-   "tFlex": 7.318094202166803,
+   "fgr": 0.05463629744545807,
+   "qNet": 2.0930587097749527,
+   "tss2": 12,
+   "tss2Req": 8.345905495179899,
+   "tbz": 12,
+   "tbzReq": 9.163596541514522,
+   "tFlexB": 5.548898020846958,
+   "tss": 12,
+   "tssReq": 8.345905495179899,
+   "tFlex": 7.345905495179898,
    "sad": 102,
    "sadC": 58.199999999999996,
    "FyC": 97,
    "tuh": 0,
    "tuhReq": 0,
    "tuhConf": 0,
-   "delta": 20,
-   "mTop": 232.7321290210446,
+   "delta": 24,
+   "mTop": 276.03857251630154,
    "mUH": 0,
    "mSS": 0,
-   "mBz": 447.536507940865
+   "mBz": 530.8134262362893,
+   "topes": [
+    {
+     "id": "bz0",
+     "grp": "Interfaz bronce",
+     "nombre": "Placa de bronce (24 sectores)",
+     "n": 24,
+     "t": 12,
+     "tResp": 18,
+     "allow": 1,
+     "capas": 1,
+     "F": 64.25869808681638,
+     "L": 340,
+     "Lreq": 302.3938733497241,
+     "adm": 70.83333333333333,
+     "uh": false,
+     "pieza": "Placa de bronce (24 sectores)",
+     "a_sup": 2,
+     "a_inf": 7,
+     "h_barra": 10,
+     "h_c": 3,
+     "h_c_min": 3,
+     "z": 8.5,
+     "w_tope": 6,
+     "b_tope": 20,
+     "w_min": 6,
+     "Tw": 20,
+     "Lav": 769,
+     "m_barra": 0.5337999999999999,
+     "m_barras": 12.8112
+    },
+    {
+     "id": "bz1",
+     "grp": "Interfaz bronce",
+     "nombre": "2.ª placa de bronce (24 sectores)",
+     "n": 24,
+     "t": 12,
+     "tResp": 16,
+     "allow": 1,
+     "capas": 1,
+     "F": 64.25869808681638,
+     "L": 590,
+     "Lreq": 529.9686440149804,
+     "adm": 40.416666666666664,
+     "uh": false,
+     "pieza": "2.ª placa de bronce (24 sectores)",
+     "a_sup": 2,
+     "a_inf": 7,
+     "h_barra": 10,
+     "h_c": 3,
+     "h_c_min": 3,
+     "z": 8.5,
+     "w_tope": 6,
+     "b_tope": 20,
+     "w_min": 6,
+     "Tw": 20,
+     "Lav": 769,
+     "m_barra": 0.9262999999999999,
+     "m_barras": 22.231199999999998
+    }
+   ]
   },
   "Tmax": 656.4906300230158,
-  "q_min": 0.41995181149969024,
-  "Wd": 16.25735044822408
+  "q_min": 0.43208005725275367,
+  "Wd": 16.79361174220686
  },
  "carrera": [
   {
@@ -1629,14 +1751,14 @@
    "s": 10,
    "arm": 924.1523552007156,
    "Delta": 215.84764479928435,
-   "F": 241.52455955074683,
-   "p": 379.65261758611564,
-   "Fpin": 197.33500930065395,
-   "H": -29.60025139509809,
-   "Ft": 192.78003154147805,
-   "Fr": -51.50864216040756,
-   "Rf": 92.24428187763615,
-   "Rr": -121.84453327273424
+   "F": 241.56721225802232,
+   "p": 379.7196634053664,
+   "Fpin": 197.36985823031378,
+   "H": -29.605478734547066,
+   "Ft": 192.81407607205992,
+   "Fr": -51.517738473595394,
+   "Rf": 92.26057201541794,
+   "Rr": -121.866050749965
   },
   {
    "pos": "Cambio de sentido de la fricción (antes)",
@@ -1644,14 +1766,14 @@
    "s": 156.6269627760763,
    "arm": 929.0283903089291,
    "Delta": 210.97160969107085,
-   "F": 233.7658945384663,
-   "p": 367.4567668355122,
-   "Fpin": 191.6275331371559,
-   "H": -28.744129970573383,
-   "Ft": 192.74090771293794,
-   "Fr": -19.95692756888528,
-   "Rf": 87.12815726267038,
-   "Rr": -115.87228723324377
+   "F": 233.80717708252433,
+   "p": 367.5216588942801,
+   "Fpin": 191.66137413904832,
+   "H": -28.74920612085725,
+   "Ft": 192.77494533433753,
+   "Fr": -19.96045191850545,
+   "Rf": 87.14354390407071,
+   "Rr": -115.89275002492795
   },
   {
    "pos": "Cambio de sentido de la fricción (después)",
@@ -1659,14 +1781,14 @@
    "s": 156.6269627760763,
    "arm": 929.0283903089291,
    "Delta": 210.97160969107085,
-   "F": 236.56037097550436,
-   "p": 371.84940622621286,
-   "Fpin": 191.6275331371559,
-   "H": 28.744129970573383,
-   "Ft": 190.1137560489608,
-   "Fr": 37.47127199539953,
-   "Rf": 124.72146261719759,
-   "Rr": -95.97733264662419
+   "F": 236.60214701796966,
+   "p": 371.91507401545897,
+   "Fpin": 191.66137413904832,
+   "H": 28.74920612085725,
+   "Ft": 190.14732972114092,
+   "Fr": 37.47788933981632,
+   "Rf": 124.74348815383816,
+   "Rr": -95.9942820329809
   },
   {
    "pos": "Final",
@@ -1674,14 +1796,14 @@
    "s": 218.25392555215262,
    "arm": 924.1523552007156,
    "Delta": 215.84764479928435,
-   "F": 240.99632061956913,
-   "p": 378.82227845495004,
-   "Fpin": 194.58498359979822,
-   "H": 29.18774753996973,
-   "Ft": 190.09348320304753,
-   "Fr": 50.79082685607153,
-   "Rf": 129.13227706595964,
-   "Rr": -99.94452952598992
+   "F": 241.0388800410084,
+   "p": 378.8891776381322,
+   "Fpin": 194.61934688095326,
+   "H": 29.19290203214299,
+   "Ft": 190.12705329508753,
+   "Fr": 50.799796404651616,
+   "Rf": 129.1550815427539,
+   "Rr": -99.9621795106109
   }
  ],
  "escenarios": {
@@ -1695,7 +1817,7 @@
   "rs": [
    [
     "r_u",
-    670.1550387596899
+    676.7821986442675
    ],
    [
     "r_ef",
@@ -1710,137 +1832,137 @@
    [
     {
      "mu": 0.1,
-     "r": 670.1550387596899,
-     "F": 134.96055409152285,
-     "p": 212.14458573913072,
-     "FS": 3.299636413350534
+     "r": 676.7821986442675,
+     "F": 136.31437052438423,
+     "p": 214.27265070040403,
+     "FS": 3.266865825908598
     },
     {
      "mu": 0.1,
      "r": 800,
-     "F": 161.0163730338312,
-     "p": 253.1017450574103,
-     "FS": 2.765686186166836
+     "F": 161.04480817201488,
+     "p": 253.14644227024428,
+     "FS": 2.7651978582923205
     },
     {
      "mu": 0.1,
      "r": 1000,
-     "F": 201.15011206138666,
-     "p": 316.1879964252678,
-     "FS": 2.2138727842739203
+     "F": 201.18582249872463,
+     "p": 316.24412968573506,
+     "FS": 2.213479822362613
     }
    ],
    [
     {
      "mu": 0.15,
-     "r": 670.1550387596899,
-     "F": 202.44083113728433,
-     "p": 318.21687860869616,
-     "FS": 2.1997576089003554
+     "r": 676.7821986442675,
+     "F": 204.47155578657637,
+     "p": 321.4089760506061,
+     "FS": 2.177910550605732
     },
     {
      "mu": 0.15,
      "r": 800,
-     "F": 241.5245595507468,
-     "p": 379.6526175861155,
-     "FS": 1.8437907907778905
+     "F": 241.5672122580223,
+     "p": 379.7196634053664,
+     "FS": 1.8434652388615473
     },
     {
      "mu": 0.15,
      "r": 1000,
-     "F": 301.72516809208,
-     "p": 474.2819946379018,
-     "FS": 1.4759151895159468
+     "F": 301.778733748087,
+     "p": 474.36619452860276,
+     "FS": 1.4756532149084083
     }
    ],
    [
     {
      "mu": 0.2,
-     "r": 670.1550387596899,
-     "F": 269.9211081830457,
-     "p": 424.28917147826144,
-     "FS": 1.649818206675267
+     "r": 676.7821986442675,
+     "F": 272.62874104876846,
+     "p": 428.54530140080806,
+     "FS": 1.633432912954299
     },
     {
      "mu": 0.2,
      "r": 800,
-     "F": 322.0327460676624,
-     "p": 506.2034901148206,
-     "FS": 1.382843093083418
+     "F": 322.08961634402976,
+     "p": 506.29288454048856,
+     "FS": 1.3825989291461602
     },
     {
      "mu": 0.2,
      "r": 1000,
-     "F": 402.30022412277333,
-     "p": 632.3759928505356,
-     "FS": 1.1069363921369602
+     "F": 402.37164499744927,
+     "p": 632.4882593714701,
+     "FS": 1.1067399111813065
     }
    ],
    [
     {
      "mu": 0.25,
-     "r": 670.1550387596899,
-     "F": 337.4013852288072,
-     "p": 530.361464347827,
-     "FS": 1.3198545653402132
+     "r": 676.7821986442675,
+     "F": 340.7859263109605,
+     "p": 535.68162675101,
+     "FS": 1.3067463303634395
     },
     {
      "mu": 0.25,
      "r": 800,
-     "F": 402.540932584578,
-     "p": 632.7543626435258,
-     "FS": 1.1062744744667343
+     "F": 402.61202043003726,
+     "p": 632.8661056756108,
+     "FS": 1.1060791433169281
     },
     {
      "mu": 0.25,
      "r": 1000,
-     "F": 502.87528015346675,
-     "p": 790.4699910631698,
-     "FS": 0.885549113709568
+     "F": 502.96455624681164,
+     "p": 790.6103242143378,
+     "FS": 0.885391928945045
     }
    ],
    [
     {
      "mu": 0.3,
-     "r": 670.1550387596899,
-     "F": 404.88166227456867,
-     "p": 636.4337572173923,
-     "FS": 1.0998788044501777
+     "r": 676.7821986442675,
+     "F": 408.94311157315275,
+     "p": 642.8179521012122,
+     "FS": 1.088955275302866
     },
     {
      "mu": 0.3,
      "r": 800,
-     "F": 483.0491191014936,
-     "p": 759.305235172231,
-     "FS": 0.9218953953889453
+     "F": 483.1344245160446,
+     "p": 759.4393268107328,
+     "FS": 0.9217326194307737
     },
     {
      "mu": 0.3,
      "r": 1000,
-     "F": 603.45033618416,
-     "p": 948.5639892758036,
-     "FS": 0.7379575947579734
+     "F": 603.557467496174,
+     "p": 948.7323890572055,
+     "FS": 0.7378266074542041
     }
    ]
   ],
   "loads": [
    {
     "W": 240,
-    "FS": 2.3020206015996205,
-    "p": 304.0806843837915,
-    "muMax": 0.345303090239943
+    "FS": 2.30106642716732,
+    "p": 304.2067763605245,
+    "muMax": 0.345159964075098
    },
    {
     "W": 300,
-    "FS": 1.8437907907778903,
-    "p": 379.65261758611564,
-    "muMax": 0.2765686186166836
+    "FS": 1.8434652388615471,
+    "p": 379.7196634053664,
+    "muMax": 0.27651978582923203
    },
    {
     "W": 360,
-    "FS": 1.5379009385470495,
-    "p": 455.1658578616471,
-    "muMax": 0.23068514078205743
+    "FS": 1.5376756326139802,
+    "p": 455.2325504502085,
+    "muMax": 0.23065134489209704
    }
   ],
   "classes": [
@@ -1848,17 +1970,17 @@
     "psi": 10000,
     "pr": 700,
     "pa": 590,
-    "Dmin": 74.10400753631363,
-    "FScur": 1.8437907907778903,
-    "pcur": 379.65261758611564
+    "Dmin": 74.1105505500237,
+    "FScur": 1.8434652388615471,
+    "pcur": 379.7196634053664
    },
    {
     "psi": 5000,
     "pr": 350,
     "pa": 290,
-    "Dmin": 104.79889248405279,
-    "FScur": 0.9218953953889452,
-    "pcur": 379.65261758611564
+    "Dmin": 104.80814570278037,
+    "FScur": 0.9217326194307736,
+    "pcur": 379.7196634053664
    }
   ],
   "ifaces": [
@@ -1869,13 +1991,13 @@
     "tss": 0,
     "tuh": 0,
     "delta": 0,
-    "mass": 3045.408197956894,
+    "mass": 3057.8135104498247,
     "mu_d": 0.2,
-    "F": 321.7833466663824,
-    "p": 505.8114590282244,
-    "FS": 1.383914870858906,
-    "muMax": 0.27678297417178127,
-    "q": 1.661165264702724,
+    "F": 321.7869991896703,
+    "p": 505.8172004320371,
+    "FS": 1.3838991623893064,
+    "muMax": 0.2767798324778612,
+    "q": 1.6735646231751644,
     "mAdd": 0,
     "turns": true,
     "dTot": 0
@@ -1884,78 +2006,78 @@
     "k": 1,
     "name": "A · Discos inoxidables con grasa",
     "tbz": 0,
-    "tss": 6,
-    "tss2": 8,
-    "tss2Req": 6.533665006591732,
+    "tss": 12,
+    "tss2": 12,
+    "tss2Req": 6.553193347466879,
     "tuh": 0,
-    "tssReq": 5.533665006591732,
+    "tssReq": 5.553193347466879,
     "tuhReq": 0,
-    "delta": 14,
-    "mass": 3441.289787173756,
+    "delta": 24,
+    "mass": 3757.0389921848787,
     "mu_d": 0.2,
-    "F": 321.9955775064015,
-    "p": 506.1450648283784,
-    "FS": 1.383002717288873,
-    "muMax": 0.27660054345777463,
-    "q": 1.6621617058804412,
-    "mAdd": 346.81773105928016,
+    "F": 322.1086025504693,
+    "p": 506.3227289711592,
+    "FS": 1.382517433934657,
+    "muMax": 0.2765034867869315,
+    "q": 1.6750858329168625,
+    "mAdd": 587.647216121952,
     "turns": true,
-    "tFlex": 5.033665006591732,
+    "tFlex": 5.053193347466879,
     "tuhConf": 0,
-    "qAvg": 1.0410327648244944,
-    "dTot": 395.8815892168618
+    "qAvg": 1.0535911445488784,
+    "dTot": 699.225481735054
    },
    {
     "k": 2,
     "name": "B · Discos inoxidables con lámina UHMW",
     "tbz": 0,
-    "tss": 6,
-    "tss2": 6,
-    "tss2Req": 5.533288970096563,
-    "tuh": 15,
-    "tssReq": 5.533288970096563,
-    "tuhReq": 14.03642087808881,
-    "delta": 27,
-    "mass": 3481.350982731319,
+    "tss": 12,
+    "tss2": 12,
+    "tss2Req": 5.553193347466879,
+    "tuh": 25,
+    "tssReq": 5.553193347466879,
+    "tuhReq": 14.078312632496859,
+    "delta": 49,
+    "mass": 3989.6954437662444,
     "mu_d": 0.2,
-    "F": 321.94330171486604,
-    "p": 506.0628924765076,
-    "FS": 1.3832272834201043,
-    "muMax": 0.27664545668402096,
-    "q": 1.661916266757272,
-    "mAdd": 341.3196297562327,
+    "F": 322.1160188413317,
+    "p": 506.3343866437535,
+    "FS": 1.382485603318318,
+    "muMax": 0.27649712066366366,
+    "q": 1.67512091256864,
+    "mAdd": 660.2076910003982,
     "turns": true,
-    "tFlex": 5.033288970096563,
-    "tuhConf": 14.03642087808881,
-    "qAvg": 1.0408772313554944,
-    "dTot": 435.94278477442504
+    "tFlex": 5.053193347466879,
+    "tuhConf": 14.078312632496859,
+    "qAvg": 1.0535911445488784,
+    "dTot": 931.8819333164197
    },
    {
     "k": 3,
     "name": "C · Placa de bronce con tapones de grafito (dos placas de bronce)",
-    "tbz": 10,
-    "tbzReq": 9.136475462625828,
-    "tFlexB": 5.527890123473541,
-    "tss": 10,
-    "tss2": 10,
-    "tss2Req": 8.318094202166803,
+    "tbz": 12,
+    "tbzReq": 9.163596541514522,
+    "tFlexB": 5.548898020846958,
+    "tss": 12,
+    "tss2": 12,
+    "tss2Req": 8.345905495179899,
     "tuh": 0,
-    "tssReq": 8.318094202166803,
+    "tssReq": 8.345905495179899,
     "tuhReq": 0,
-    "delta": 20,
-    "mass": 3563.03593183716,
+    "delta": 24,
+    "mass": 3714.146802299216,
     "mu_d": 0.15,
-    "F": 241.52455955074683,
-    "p": 379.65261758611564,
-    "FS": 1.8437907907778903,
-    "muMax": 0.2765686186166836,
-    "q": 1.6623362153200378,
-    "mAdd": 447.536507940865,
+    "F": 241.56721225802232,
+    "p": 379.7196634053664,
+    "FS": 1.8434652388615471,
+    "muMax": 0.27651978582923203,
+    "q": 1.6749960266346093,
+    "mAdd": 530.8134262362893,
     "turns": true,
-    "tFlex": 7.318094202166803,
+    "tFlex": 7.345905495179898,
     "tuhConf": 0,
-    "qAvg": 1.0411412263734943,
-    "dTot": 517.6277338802661
+    "qAvg": 1.0535346582448784,
+    "dTot": 656.3332918493911
    }
   ]
  },
@@ -1964,47 +2086,47 @@
    {
     "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 103.02635894301143,
+    "dem": 23.748777692602438,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.8376126743334262,
+    "fu": 0.19307949343579217,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 5.533665006591732,
-    "cap": 6,
+    "dem": 5.553193347466879,
+    "cap": 12,
     "unidad": "mm",
-    "fu": 0.9222775010986219,
+    "fu": 0.4627661122889066,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 73.76443450949337,
+    "dem": 28.487762810400657,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.5997108496706778,
+    "fu": 0.2316078277268346,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 6.533665006591732,
-    "cap": 8,
+    "dem": 6.553193347466879,
+    "cap": 12,
     "unidad": "mm",
-    "fu": 0.8167081258239665,
+    "fu": 0.5460994456222399,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.033665006591732,
+    "dem": 5.053193347466879,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2013,8 +2135,8 @@
    {
     "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.533665006591732,
-    "cap": 6,
+    "dem": 5.553193347466879,
+    "cap": 12,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2022,81 +2144,221 @@
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope sobre el canto del sector",
-    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 74.90844993289681,
+    "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 76.49845010335284,
     "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.8769769748241578,
+    "fu": 0.895591610966082,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 145,
-    "cap": 825,
+    "dem": 280,
+    "cap": 769,
     "unidad": "mm",
-    "fu": 0.17575757575757575,
+    "fu": 0.3641092327698309,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-    "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-    "dem": 55.30885271618265,
+    "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+    "dem": 35.50200218466039,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.6772512577491753,
+    "fu": 0.4347183940978823,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+    "dem": 3,
+    "cap": 3,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+    "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (0,50 mm)",
+    "dem": 1.5,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 0.75,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): alivio inferior del canto libra el filete del tope",
+    "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+    "dem": 7,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): filete del tope dentro de la altura de barra",
+    "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+    "dem": 9,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.9,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): filete mínimo del tope según la parte más gruesa",
+    "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+    "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+    "dem": 29.260657164532457,
+    "cap": 115,
+    "unidad": "MPa",
+    "fu": 0.2544404970828909,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+    "dem": 10.5504,
+    "cap": 0.4396,
+    "unidad": "kg / kg por barra",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
    },
    {
     "nombre": "Disco de la base (liso): cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 5.5,
+    "cap": 11.5,
     "unidad": "mm",
-    "fu": 0.9636363636363637,
+    "fu": 0.46086956521739136,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): aplastamiento del tope sobre el canto del sector",
-    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 70.83733852350024,
+    "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 76.49845010335284,
     "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.8293151827141491,
+    "fu": 0.895591610966082,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 115,
-    "cap": 825,
+    "dem": 280,
+    "cap": 769,
     "unidad": "mm",
-    "fu": 0.1393939393939394,
+    "fu": 0.3641092327698309,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-    "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-    "dem": 71.94167702929312,
+    "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+    "dem": 35.50200218466039,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.8809184942362422,
+    "fu": 0.4347183940978823,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+    "dem": 3,
+    "cap": 3,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+    "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (0,50 mm)",
+    "dem": 1.5,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 0.75,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): alivio inferior del canto libra el filete del tope",
+    "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+    "dem": 7,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): filete del tope dentro de la altura de barra",
+    "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+    "dem": 9,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.9,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): filete mínimo del tope según la parte más gruesa",
+    "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+    "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+    "dem": 29.260657164532457,
+    "cap": 115,
+    "unidad": "MPa",
+    "fu": 0.2544404970828909,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+    "dem": 10.5504,
+    "cap": 0.4396,
+    "unidad": "kg / kg por barra",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 7.5,
+    "cap": 11.5,
     "unidad": "mm",
-    "fu": 0.7066666666666668,
+    "fu": 0.46086956521739136,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -2112,10 +2374,10 @@
    {
     "nombre": "Disco inoxidable: masa del sector (manipulación manual al desmontar)",
     "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 8.257565025220957,
+    "dem": 12.242650335874002,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.3303026010088383,
+    "fu": 0.48970601343496006,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
@@ -2140,17 +2402,17 @@
    {
     "nombre": "Engrase: área de las ranuras frente al área de contacto (disco de la mesa)",
     "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
-    "dem": 0.05437175903770771,
+    "dem": 0.05463629744545807,
     "cap": 0.25,
     "unidad": "–",
-    "fu": 0.21748703615083084,
+    "fu": 0.21854518978183227,
     "estado": "ok",
     "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
    },
    {
     "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
     "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
-    "dem": 169.85309046261665,
+    "dem": 168.69939098904138,
     "cap": 4,
     "unidad": "cm³ / graseras",
     "fu": null,
@@ -2160,7 +2422,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = t_disco base + t_disco mesa",
-    "dem": 14,
+    "dem": 24,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2178,7 +2440,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 346.81773105928016,
+    "dem": 587.647216121952,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2189,27 +2451,27 @@
    {
     "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 103.01096649087516,
+    "dem": 23.748777692602438,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.8374875324461395,
+    "fu": 0.19307949343579217,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 5.533288970096563,
-    "cap": 6,
+    "dem": 5.553193347466879,
+    "cap": 12,
     "unidad": "mm",
-    "fu": 0.9222148283494271,
+    "fu": 0.4627661122889066,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.033288970096563,
+    "dem": 5.053193347466879,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2218,8 +2480,8 @@
    {
     "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.533288970096563,
-    "cap": 6,
+    "dem": 5.553193347466879,
+    "cap": 12,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2227,41 +2489,111 @@
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope sobre el canto del sector",
-    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 74.90844993289681,
+    "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 76.49845010335284,
     "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.8769769748241578,
+    "fu": 0.895591610966082,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 145,
-    "cap": 825,
+    "dem": 280,
+    "cap": 769,
     "unidad": "mm",
-    "fu": 0.17575757575757575,
+    "fu": 0.3641092327698309,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-    "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-    "dem": 55.30885271618265,
+    "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+    "dem": 35.50200218466039,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.6772512577491753,
+    "fu": 0.4347183940978823,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+    "dem": 3,
+    "cap": 3,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+    "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (0,50 mm)",
+    "dem": 1.5,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 0.75,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): alivio inferior del canto libra el filete del tope",
+    "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+    "dem": 7,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): filete del tope dentro de la altura de barra",
+    "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+    "dem": 9,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.9,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): filete mínimo del tope según la parte más gruesa",
+    "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+    "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+    "dem": 29.260657164532457,
+    "cap": 115,
+    "unidad": "MPa",
+    "fu": 0.2544404970828909,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+    "dem": 21.1008,
+    "cap": 0.4396,
+    "unidad": "kg / kg por barra",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
    },
    {
     "nombre": "Disco de la base (liso): cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 5.5,
+    "cap": 11.5,
     "unidad": "mm",
-    "fu": 0.9636363636363637,
+    "fu": 0.46086956521739136,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -2277,10 +2609,10 @@
    {
     "nombre": "Disco inoxidable: masa del sector (manipulación manual al desmontar)",
     "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 6.193173768915718,
+    "dem": 12.242650335874002,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.2477269507566287,
+    "fu": 0.48970601343496006,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
@@ -2305,7 +2637,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = t_disco base + t_disco mesa + t_UHMW",
-    "dem": 27,
+    "dem": 49,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2314,7 +2646,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 341.3196297562327,
+    "dem": 660.2076910003982,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2323,28 +2655,28 @@
    {
     "nombre": "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida",
     "formula": "q_máx ≤ p_adm,UHMW",
-    "dem": 1.6619102593861188,
+    "dem": 1.6750804532515586,
     "cap": 5,
     "unidad": "MPa",
-    "fu": 0.33238205187722375,
+    "fu": 0.33501609065031174,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: espesor adoptado frente al requerido",
     "formula": "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)",
-    "dem": 14.03642087808881,
-    "cap": 15,
+    "dem": 14.078312632496859,
+    "cap": 25,
     "unidad": "mm",
-    "fu": 0.9357613918725873,
+    "fu": 0.5631325052998744,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado",
     "formula": "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45",
-    "dem": 14.03642087808881,
-    "cap": 15,
+    "dem": 14.078312632496859,
+    "cap": 25,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2353,8 +2685,8 @@
    {
     "nombre": "Lámina UHMW: factor de forma y módulo confinado en el espesor adoptado",
     "formula": "S = D/(4t); E_c(S)",
-    "dem": 1.6666666666666667,
-    "cap": 916.1257606490876,
+    "dem": 1,
+    "cap": 718.9655172413794,
     "unidad": "– / MPa",
     "fu": null,
     "estado": "info",
@@ -2362,51 +2694,121 @@
    },
    {
     "nombre": "Lámina UHMW (24 sectores): aplastamiento del canto contra el tope del rebaje",
-    "formula": "σ = F_sector/(L_canto·t_UHMW) ≤ p_adm,UHMW; F_sector = μ_máx·N/n·(q_máx/q_med)",
-    "dem": 3.9747168512240427,
+    "formula": "σ = F_sector/(L_canto·h_c) ≤ p_adm,UHMW; h_c = t − a_sup − a_inf; F_sector = μ_máx·N/n·(q_máx/q_med)",
+    "dem": 3.982864584048376,
     "cap": 5,
     "unidad": "MPa",
-    "fu": 0.7949433702448085,
+    "fu": 0.7965729168096752,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, corte + par de excentricidad)",
-    "formula": "f = √[(F/(2aL))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd)",
-    "dem": 8.784292899628808,
+    "formula": "f = √[(F/(2aL))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); z = a_inf + h_c/2",
+    "dem": 13.54118102877508,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.10756277019953642,
+    "fu": 0.16581037994418465,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2"
    },
    {
+    "nombre": "Lámina UHMW (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 25; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+    "dem": 3,
+    "cap": 16,
+    "unidad": "mm",
+    "fu": 0.1875,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+    "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (0,00 mm)",
+    "dem": 1.0021049681784429,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 0.5010524840892214,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): alivio inferior del canto libra el filete del tope",
+    "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+    "dem": 7,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): filete del tope dentro de la altura de barra",
+    "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+    "dem": 9,
+    "cap": 23,
+    "unidad": "mm",
+    "fu": 0.391304347826087,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): filete mínimo del tope según la parte más gruesa",
+    "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+    "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+    "dem": 14.338312502574153,
+    "cap": 115,
+    "unidad": "MPa",
+    "fu": 0.1246809782832535,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+    "dem": 66.64461599999998,
+    "cap": 2.7768589999999995,
+    "unidad": "kg / kg por barra",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
+   },
+   {
     "nombre": "Lámina UHMW: masa del sector (manipulación manual)",
     "formula": "m_sector = m_UHMW/n ≤ 25 kg",
-    "dem": 1.8353037020115934,
+    "dem": 3.0233531199352566,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.07341214808046374,
+    "fu": 0.12093412479741027,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
    {
     "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.004240141530262885,
+    "dem": 0.023743019537138213,
     "cap": 0.05,
     "unidad": "MPa·m/s",
-    "fu": 0.0848028306052577,
+    "fu": 0.47486039074276426,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor",
     "formula": "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.002088418024725175,
-    "cap": 3,
+    "dem": 0.0021049681784427827,
+    "cap": 5,
     "unidad": "mm",
-    "fu": 0.0006961393415750583,
+    "fu": 0.0004209936356885565,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
@@ -2433,28 +2835,28 @@
    {
     "nombre": "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)",
     "formula": "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura",
-    "dem": 81.16854323317773,
+    "dem": 52.34345771779079,
     "cap": 102,
     "unidad": "MPa",
-    "fu": 0.7957700316978209,
+    "fu": 0.5131711540959881,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
    {
     "nombre": "Placa de bronce: espesor adoptado frente al requerido",
     "formula": "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)",
-    "dem": 9.136475462625828,
-    "cap": 10,
+    "dem": 9.163596541514522,
+    "cap": 12,
     "unidad": "mm",
-    "fu": 0.9136475462625828,
+    "fu": 0.7636330451262102,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)"
    },
    {
     "nombre": "Placa de bronce: espesor por flexión / requerido / comercial adoptado",
     "formula": "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor",
-    "dem": 5.527890123473541,
-    "cap": 10,
+    "dem": 5.548898020846958,
+    "cap": 12,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2473,130 +2875,270 @@
    {
     "nombre": "2.ª placa de bronce (maciza, aleación distinta): flexión sobre un vacío local",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_bz2; t = t_placa − sobreespesor",
-    "dem": 38.479901977210176,
+    "dem": 25.95543357906982,
     "cap": 58.199999999999996,
     "unidad": "MPa",
-    "fu": 0.6611667006393501,
+    "fu": 0.445969649124911,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
    {
     "nombre": "2.ª placa de bronce: espesor adoptado frente al requerido",
     "formula": "t ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
-    "dem": 8.318094202166803,
-    "cap": 10,
+    "dem": 8.345905495179899,
+    "cap": 12,
     "unidad": "mm",
-    "fu": 0.8318094202166803,
+    "fu": 0.6954921245983249,
     "estado": "ok",
     "ref": "Cálculo de espesor"
    },
    {
     "nombre": "Presión de contacto sobre el bronce neto (sin tapones de grafito)",
     "formula": "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce",
-    "dem": 2.076553806541923,
+    "dem": 2.0930587097749527,
     "cap": 20,
     "unidad": "MPa",
-    "fu": 0.10382769032709616,
+    "fu": 0.10465293548874763,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.005298049028349017,
+    "dem": 0.029667550440397192,
     "cap": 0.5,
     "unidad": "MPa·m/s",
-    "fu": 0.010596098056698033,
+    "fu": 0.059335100880794384,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva",
     "formula": "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.01304737236683205,
-    "cap": 2.863524537374172,
+    "dem": 0.013151075732322243,
+    "cap": 4.836403458485479,
     "unidad": "mm",
-    "fu": 0.004556403200510509,
+    "fu": 0.0027191849987718984,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)",
     "formula": "h + 2 ≤ 0,70·t_placa",
-    "dem": 2.013047372366832,
-    "cap": 7,
+    "dem": 2.0131510757323223,
+    "cap": 8.399999999999999,
     "unidad": "mm",
-    "fu": 0.28757819605240453,
+    "fu": 0.23966084234908602,
     "estado": "ok",
     "ref": "Criterio de proyecto (el grafito debe seguir lubricando)"
    },
    {
     "nombre": "Placa de bronce (24 sectores): aplastamiento del tope sobre el canto del sector",
-    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 54.30862620135019,
+    "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 62.998723614525865,
     "cap": 70.83333333333333,
     "unidad": "MPa",
-    "fu": 0.766710016960238,
+    "fu": 0.8893937451462476,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Placa de bronce (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 120,
-    "cap": 825,
+    "dem": 340,
+    "cap": 769,
     "unidad": "mm",
-    "fu": 0.14545454545454545,
+    "fu": 0.44213263979193757,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Placa de bronce (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-    "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-    "dem": 71.56870577018222,
+    "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+    "dem": 29.236942975602677,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.876351499226721,
+    "fu": 0.35800338337472665,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
    },
    {
+    "nombre": "Placa de bronce (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+    "dem": 3,
+    "cap": 3,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+    "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (1,00 mm)",
+    "dem": 2,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): alivio inferior del canto libra el filete del tope",
+    "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+    "dem": 7,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): filete del tope dentro de la altura de barra",
+    "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+    "dem": 9,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.9,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): filete mínimo del tope según la parte más gruesa",
+    "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+    "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+    "dem": 24.09701178255614,
+    "cap": 115,
+    "unidad": "MPa",
+    "fu": 0.20953923289179252,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+    "dem": 12.8112,
+    "cap": 0.5337999999999999,
+    "unidad": "kg / kg por barra",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
+   },
+   {
     "nombre": "2.ª placa de bronce (24 sectores): aplastamiento del tope sobre el canto del sector",
-    "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 36.20575080090013,
+    "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+    "dem": 36.30434920159117,
     "cap": 40.416666666666664,
     "unidad": "MPa",
-    "fu": 0.8958123909501062,
+    "fu": 0.8982519390084415,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "2.ª placa de bronce (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 180,
-    "cap": 825,
+    "dem": 590,
+    "cap": 769,
     "unidad": "mm",
-    "fu": 0.21818181818181817,
+    "fu": 0.7672301690507152,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "2.ª placa de bronce (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-    "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-    "dem": 47.71247051345482,
+    "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+    "dem": 16.848407816449,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.5842343328178141,
+    "fu": 0.2063070344871306,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+    "dem": 3,
+    "cap": 3,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+    "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (1,00 mm)",
+    "dem": 2,
+    "cap": 2,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): alivio inferior del canto libra el filete del tope",
+    "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+    "dem": 7,
+    "cap": 7,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): filete del tope dentro de la altura de barra",
+    "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+    "dem": 9,
+    "cap": 10,
+    "unidad": "mm",
+    "fu": 0.9,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): filete mínimo del tope según la parte más gruesa",
+    "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+    "dem": 6,
+    "cap": 6,
+    "unidad": "mm",
+    "fu": 1,
+    "estado": "ok",
+    "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+    "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+    "dem": 13.886413569608624,
+    "cap": 115,
+    "unidad": "MPa",
+    "fu": 0.12075142234442282,
+    "estado": "ok",
+    "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+   },
+   {
+    "nombre": "2.ª placa de bronce (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+    "dem": 22.231199999999998,
+    "cap": 0.9262999999999999,
+    "unidad": "kg / kg por barra",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
    },
    {
     "nombre": "Placa de bronce: cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 8,
+    "cap": 10,
     "unidad": "mm",
-    "fu": 0.6625000000000001,
+    "fu": 0.53,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -2604,9 +3146,9 @@
     "nombre": "2.ª placa de bronce: cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 9,
+    "cap": 11,
     "unidad": "mm",
-    "fu": 0.588888888888889,
+    "fu": 0.48181818181818187,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -2631,20 +3173,20 @@
    {
     "nombre": "Placa de bronce con grafito: masa del sector (manipulación manual al desmontar)",
     "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 8.950182454992516,
+    "dem": 10.615618904999488,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.3580072981997007,
+    "fu": 0.4246247561999795,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
    {
     "nombre": "2.ª placa de bronce: masa del sector (manipulación manual al desmontar)",
     "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 9.697172042543526,
+    "dem": 11.50160718817923,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.38788688170174107,
+    "fu": 0.4600642875271692,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
@@ -2660,17 +3202,17 @@
    {
     "nombre": "Engrase: área de las ranuras frente al área de contacto (placa de bronce)",
     "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
-    "dem": 0.05437175903770771,
+    "dem": 0.05463629744545807,
     "cap": 0.25,
     "unidad": "–",
-    "fu": 0.21748703615083084,
+    "fu": 0.21854518978183227,
     "estado": "ok",
     "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
    },
    {
     "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
     "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
-    "dem": 169.85309046261665,
+    "dem": 168.69939098904138,
     "cap": 4,
     "unidad": "cm³ / graseras",
     "fu": null,
@@ -2689,7 +3231,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = t_bronce + t_disco (o 2.ª placa)",
-    "dem": 20,
+    "dem": 24,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2698,7 +3240,7 @@
    {
     "nombre": "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)",
     "formula": "m = ρ·A·t (bronce descontando los tapones, más el grafito)",
-    "dem": 447.536507940865,
+    "dem": 530.8134262362893,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2739,7 +3281,7 @@
    "Qr": 1.8,
    "tRev": 70.23203164695929,
    "tCycle": 2.5082868445342603,
-   "Pmotor": 1.3399504150098198,
+   "Pmotor": 1.340187047313058,
    "vRet": 0.004623237272095726
   },
   {
@@ -2747,7 +3289,7 @@
    "Qr": 5,
    "tRev": 25.283531392905346,
    "tCycle": 0.9029832640323338,
-   "Pmotor": 3.722084486138389,
+   "Pmotor": 3.722741798091828,
    "vRet": 0.01284232575582146
   },
   {
@@ -2755,7 +3297,7 @@
    "Qr": 10,
    "tRev": 12.641765696452673,
    "tCycle": 0.4514916320161669,
-   "Pmotor": 7.444168972276778,
+   "Pmotor": 7.445483596183656,
    "vRet": 0.02568465151164292
   },
   {
@@ -2771,12 +3313,12 @@
    "Qr": 20,
    "tRev": 6.320882848226336,
    "tCycle": 0.22574581600808344,
-   "Pmotor": 14.888337944553555,
+   "Pmotor": 14.890967192367311,
    "vRet": 0.05136930302328584
   }
  ],
  "cubierta": {
-  "dMasa": -377.66978116284054,
+  "dMasa": -516.3753391319656,
   "mWood": 139.95795271742531,
   "checks": [
    {
@@ -2832,18 +3374,18 @@
  "mercado": {
   "ours": {
    "name": "TT300-C (este diseño)",
-   "mass": 3563.03593183716,
+   "mass": 3714.146802299216,
    "capKN": 2941.995,
-   "h": 248,
+   "h": 252,
    "D": 2000,
    "nCyl": 2,
    "Fcyl": 445.32075864635317,
    "p": 700,
    "rot": 12.857142857142858,
    "arm": 0.9241523552007156,
-   "ru": 0.6701550387596898,
-   "massPerKN": 1.211095169039091,
-   "muImpl": 0.4174738652984492,
+   "ru": 0.6767821986442675,
+   "massPerKN": 1.262458570561546,
+   "muImpl": 0.4133858942222187,
    "FcylPerTon": 2.9688050576423546
   },
   "refs": [
@@ -2921,48 +3463,48 @@
    }
   ],
   "capacity": {
-   "design": 443.29720458459633,
-   "designFS1": 554.4893398150452,
-   "nominal": 1242.3098703234427,
-   "nominalFS": 993.5864245649645
+   "design": 443.2446913222884,
+   "designFS1": 554.4839821074856,
+   "nominal": 1230.166251172559,
+   "nominalFS": 983.870823624602
   }
  },
  "capCil": [
   {
    "n": 1,
-   "wGiro": 220.86638769793353,
-   "wNom": 620.3959937809122,
+   "wGiro": 220.76610975324002,
+   "wNom": 614.3204511545991,
    "wPiv": 0,
    "wWood": null,
    "wCap": 0
   },
   {
    "n": 2,
-   "wGiro": 443.29720458459633,
-   "wNom": 1242.3098703234427,
-   "wPiv": 522.1521586924791,
+   "wGiro": 443.2446913222884,
+   "wNom": 1230.166251172559,
+   "wPiv": 509.1882551461458,
    "wWood": null,
-   "wCap": 443.29720458459633
+   "wCap": 443.2446913222884
   }
  ],
  "bomba": {
-  "Qr": 1.8,
-  "tExt": 1.6611171155856028,
-  "tRet": 0.8471697289486574,
-  "PhExt": 1.1389578527583468,
-  "PhRet": 0.6,
-  "vExt": 0.00235785100876882,
-  "vRet": 0.004623237272095726,
-  "Qreq": 0,
-  "Pmotor": 1.3399504150098198,
-  "PmotorAlarm": 2.1176470588235294
+  "Qr": 20,
+  "tExt": 0.29900108080540855,
+  "tRet": 0.07624527560537916,
+  "PhExt": 6.328661056756107,
+  "PhRet": 6.666666666666667,
+  "vExt": 0.013099172270937888,
+  "vRet": 0.05136930302328584,
+  "Qreq": 8.427843797635115,
+  "Pmotor": 7.843137254901961,
+  "PmotorAlarm": 11.764705882352942
  },
  "revisionCruzada": [
   {
    "name": "Fuerza de diseño por cilindro (potencia virtual con fricción en guía y cara de la uña)",
-   "tool": 241.52455955074683,
-   "indep": 241.52455953486984,
-   "d": 6.573655364906658e-9,
+   "tool": 241.56721225802232,
+   "indep": 241.56721224214255,
+   "d": 6.573647700598428e-9,
    "tol": 0.1,
    "ok": true,
    "note": "kN"
@@ -2978,63 +3520,63 @@
   },
   {
    "name": "Radio de fricción con presión uniforme r_u",
-   "tool": 670.1550387596899,
-   "indep": 670.1542096656976,
-   "d": 0.0001237168968415966,
+   "tool": 676.7821986442675,
+   "indep": 676.7815031305263,
+   "d": 0.00010276784132004075,
    "tol": 0.05,
    "ok": true,
    "note": "mm"
   },
   {
    "name": "Presión de contacto máxima (Navier)",
-   "tool": 1.6623362153200378,
-   "indep": 1.6623378669949633,
-   "d": -0.00009935855750441058,
+   "tool": 1.6749960266346093,
+   "indep": 1.6749974684599507,
+   "d": -0.00008607925495358529,
    "tol": 0.2,
    "ok": true,
    "note": "MPa"
   },
   {
    "name": "Equilibrio FEA plancha superior ΣR/ΣF",
-   "tool": 390.2843191746528,
-   "indep": 390.28431917465645,
-   "d": -9.321355300118214e-13,
+   "tool": 389.32045911515667,
+   "indep": 389.3204591151568,
+   "d": -2.92013520121707e-14,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
   },
   {
    "name": "Equilibrio FEA plancha inferior ΣR/ΣF",
-   "tool": 364.61703544854413,
-   "indep": 364.61703544855453,
-   "d": -2.8529510802288285e-12,
+   "tool": 366.8206680858826,
+   "indep": 366.82066808588837,
+   "d": -1.5806166959067998e-12,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 45.692816634219106,
-   "indep": 45.69281663459254,
-   "d": -8.172681565954602e-10,
+   "tool": 47.185157544733,
+   "indep": 47.18515754511985,
+   "d": -8.19850790340826e-10,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
   },
   {
    "name": "Plancha inferior: FEA / Roark (paño empotrado)",
-   "tool": 123.40080708099194,
-   "indep": 171.2266218291012,
-   "d": -27.93129610174959,
+   "tool": 115.55099029733614,
+   "indep": 165.7045698621675,
+   "d": -30.266865667343346,
    "tol": null,
    "ok": true,
    "note": "MPa; aceptable si 0,5 < razón < 2,0"
   },
   {
    "name": "Flexión global: desequilibrio en el borde",
-   "tool": -0.5547332810638721,
+   "tool": -0.5268505131593743,
    "indep": 0,
-   "d": -0.017055849143083356,
+   "d": -0.016195894207470935,
    "tol": 0.1,
    "ok": true,
    "note": "kN"
@@ -3063,11 +3605,11 @@
    ],
    [
     "ASME BTH-1 §3-2.2",
-    5
+    6
    ],
    [
     "Hidráulica",
-    4
+    5
    ],
    [
     "Geometría (alzado)",
@@ -3078,8 +3620,16 @@
     4
    ],
    [
+    "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)",
+    4
+   ],
+   [
     "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1",
     4
+   ],
+   [
+    "Criterio de operación",
+    3
    ],
    [
     "Criterio del proyecto",
@@ -3098,10 +3648,6 @@
     3
    ],
    [
-    "Criterio de operación",
-    2
-   ],
-   [
     "Geometría (retorno del trinquete)",
     2
    ],
@@ -3111,6 +3657,26 @@
    ],
    [
     "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente",
+    2
+   ],
+   [
+    "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)",
+    2
+   ],
+   [
+    "Criterio del proyecto (la barra no debe rozar la pieza contraria)",
+    2
+   ],
+   [
+    "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría",
+    2
+   ],
+   [
+    "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)",
+    2
+   ],
+   [
+    "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)",
     2
    ],
    [
@@ -3154,7 +3720,11 @@
     2
    ],
    [
-    "Criterio de fabricación",
+    "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4",
+    2
+   ],
+   [
+    "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)",
     2
    ],
    [
@@ -3314,11 +3884,39 @@
     1
    ],
    [
+    "Estática del pivote; ASME BTH-1 §3-2.3",
+    1
+   ],
+   [
     "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente",
     1
    ],
    [
-    "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico)",
+    "Criterio de fabricación",
+    1
+   ],
+   [
+    "Criterio de fabricación (holgura de giro cubo–collar)",
+    1
+   ],
+   [
+    "Geometría (holgura de giro cubo–collar; la interfaz sube la cara inferior de la mesa δ)",
+    1
+   ],
+   [
+    "Geometría (la interfaz no puede ocupar el espacio del collar)",
+    1
+   ],
+   [
+    "ASME BTH-1 §3-3.3 (aplastamiento); estática del pie del cubo",
+    1
+   ],
+   [
+    "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico; resultante vectorial de corte y flexión)",
+    1
+   ],
+   [
+    "Equilibrio del collar",
     1
    ],
    [
@@ -3346,11 +3944,27 @@
     1
    ],
    [
-    "AISC 360-22 D5 (distancia al borde)",
+    "AISC 360-22 D2; ASME BTH-1 §3-2.1 y §3-2.3",
+    1
+   ],
+   [
+    "AISC 360-22 §D5.2(3) (extensión mínima más allá del extremo de apoyo del agujero, paralela a la fuerza)",
+    1
+   ],
+   [
+    "AISC 360-22 §D5.2(3)",
+    1
+   ],
+   [
+    "AISC 360-22 §D5.2(2)",
     1
    ],
    [
     "ASME B30.9; B30.26",
+    1
+   ],
+   [
+    "ASME B30.9 (factor de ángulo 1/sen θ); B30.26",
     1
    ],
    [
@@ -3366,16 +3980,62 @@
  "interfazGeom": {
   "topes": [
    {
+    "id": "bz0",
+    "grp": "Interfaz bronce",
+    "nombre": "Placa de bronce (24 sectores)",
+    "n": 24,
+    "t": 12,
+    "tResp": 18,
+    "allow": 1,
+    "capas": 1,
+    "F": 64.25869808681638,
+    "L": 340,
+    "Lreq": 302.3938733497241,
+    "adm": 70.83333333333333,
+    "uh": false,
     "pieza": "Placa de bronce (24 sectores)",
-    "L": 120,
-    "Lav": 825,
-    "n": 24
+    "a_sup": 2,
+    "a_inf": 7,
+    "h_barra": 10,
+    "h_c": 3,
+    "h_c_min": 3,
+    "z": 8.5,
+    "w_tope": 6,
+    "b_tope": 20,
+    "w_min": 6,
+    "Tw": 20,
+    "Lav": 769,
+    "m_barra": 0.5337999999999999,
+    "m_barras": 12.8112
    },
    {
+    "id": "bz1",
+    "grp": "Interfaz bronce",
+    "nombre": "2.ª placa de bronce (24 sectores)",
+    "n": 24,
+    "t": 12,
+    "tResp": 16,
+    "allow": 1,
+    "capas": 1,
+    "F": 64.25869808681638,
+    "L": 590,
+    "Lreq": 529.9686440149804,
+    "adm": 40.416666666666664,
+    "uh": false,
     "pieza": "2.ª placa de bronce (24 sectores)",
-    "L": 180,
-    "Lav": 825,
-    "n": 24
+    "a_sup": 2,
+    "a_inf": 7,
+    "h_barra": 10,
+    "h_c": 3,
+    "h_c_min": 3,
+    "z": 8.5,
+    "w_tope": 6,
+    "b_tope": 20,
+    "w_min": 6,
+    "Tw": 20,
+    "Lav": 769,
+    "m_barra": 0.9262999999999999,
+    "m_barras": 22.231199999999998
    }
   ],
   "juntas": [
@@ -3388,21 +4048,27 @@
     "j": 0.065785200878906
    }
   ],
-  "tapon_prof_max": 7,
-  "tapon_prof_frac": 0.7,
+  "tapon_prof_max": 8.399999999999999,
+  "tapon_prof_frac": 0.6999999999999998,
   "sector_masa": [
    {
     "pieza": "Placa de bronce con grafito",
-    "m": 8.950182454992516
+    "m": 10.615618904999488
    },
    {
     "pieza": "2.ª placa de bronce",
-    "m": 9.697172042543526
+    "m": 11.50160718817923
    }
   ],
   "hole_top": 200,
   "d_bush": 150,
-  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30)"
+  "Ri": 131,
+  "m_ri": 3,
+  "D_rebaje_bot": 256,
+  "h_rebaje": 38,
+  "h_rebaje_plancha": 16,
+  "h_rebaje_cubo": 22,
+  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo"
  },
  "verificaciones": [
   {
@@ -3410,9 +4076,9 @@
    "nombre": "FS del accionamiento en el caso de diseño",
    "formula": "FS = F_calado / F_dis ≥ FS_min",
    "dem": 1.25,
-   "cap": 1.8437907907778903,
+   "cap": 1.8434652388615471,
    "unidad": "–",
-   "fu": 0.6779511028323492,
+   "fu": 0.6780708275095828,
    "estado": "ok",
    "ref": "Criterio del proyecto (μ_d, r_ef)"
   },
@@ -3420,10 +4086,10 @@
    "grp": "Giro",
    "nombre": "Presión de diseño frente a la alarma",
    "formula": "p_dis = F_dis / A ≤ p_alarma",
-   "dem": 379.65261758611564,
+   "dem": 379.7196634053664,
    "cap": 600,
    "unidad": "bar",
-   "fu": 0.632754362643526,
+   "fu": 0.6328661056756107,
    "estado": "ok",
    "ref": "Criterio de operación"
   },
@@ -3464,7 +4130,7 @@
    "grp": "Giro",
    "nombre": "Émbolo mínimo con las presiones elegidas",
    "formula": "A ≥ máx(FS_min·F_dis/p_alivio; F_dis/p_alarma)",
-   "dem": 74.10400753631365,
+   "dem": 74.11055055002372,
    "cap": 90,
    "unidad": "mm",
    "fu": null,
@@ -3475,10 +4141,10 @@
    "grp": "Giro",
    "nombre": "Gira con grasa contaminada",
    "formula": "F_cont ≤ F_calado",
-   "dem": 322.0327460676624,
+   "dem": 322.08961634402976,
    "cap": 445.32075864635317,
    "unidad": "kN",
-   "fu": 0.7231478430211724,
+   "fu": 0.723275549343555,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -3486,10 +4152,10 @@
    "grp": "Giro",
    "nombre": "Gira con contacto en el borde (r = R)",
    "formula": "F(μ_d, R) ≤ F_calado",
-   "dem": 301.7251680920801,
+   "dem": 301.778733748087,
    "cap": 445.32075864635317,
    "unidad": "kN",
-   "fu": 0.6775457066255741,
+   "fu": 0.6776659921837181,
    "estado": "ok",
    "ref": "Revisión independiente M1"
   },
@@ -3619,9 +4285,9 @@
    "nombre": "Fondo del alojamiento de la uña sobre la bancada",
    "formula": "z_eje − h_uña/2 − 1 − z_bancada ≥ t_alojamiento",
    "dem": 8,
-   "cap": 29,
+   "cap": 33,
    "unidad": "mm",
-   "fu": 0.27586206896551724,
+   "fu": 0.24242424242424243,
    "estado": "ok",
    "ref": "Geometría (alzado)"
   },
@@ -3629,10 +4295,10 @@
    "grp": "Giro",
    "nombre": "Patín bajo la cara superior de la mesa",
    "formula": "z_sup_patín ≤ z_eje + h_mesa/2",
-   "dem": 207,
-   "cap": 248,
+   "dem": 211,
+   "cap": 252,
    "unidad": "mm",
-   "fu": 0.8346774193548387,
+   "fu": 0.8373015873015873,
    "estado": "ok",
    "ref": "Geometría (alzado)"
   },
@@ -3641,9 +4307,9 @@
    "nombre": "Horquilla del patín sobre la bancada",
    "formula": "z_bancada + 5 ≤ z_eje − h_horquilla/2",
    "dem": 63,
-   "cap": 91,
+   "cap": 95,
    "unidad": "mm",
-   "fu": 0.6923076923076923,
+   "fu": 0.6631578947368421,
    "estado": "ok",
    "ref": "Geometría (alzado)"
   },
@@ -3663,9 +4329,9 @@
    "nombre": "Cuerpo del cilindro libre sobre la base",
    "formula": "D_cuerpo/2 + 5 ≤ h_eje",
    "dem": 70,
-   "cap": 125,
+   "cap": 129,
    "unidad": "mm",
-   "fu": 0.56,
+   "fu": 0.5426356589147286,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -3694,10 +4360,10 @@
    "grp": "Giro",
    "nombre": "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)",
    "formula": "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx",
-   "dem": 0.004623237272095726,
+   "dem": 0.05136930302328584,
    "cap": 0.25,
    "unidad": "m/s",
-   "fu": 0.018492949088382903,
+   "fu": 0.20547721209314335,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -3705,9 +4371,30 @@
    "grp": "Giro",
    "nombre": "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)",
    "formula": "P = p·Q/(600·η) a la presión de diseño (dem) y a la de alarma (cap)",
-   "dem": 1.3399504150098198,
-   "cap": 2.1176470588235294,
+   "dem": 7.843137254901961,
+   "cap": 11.764705882352942,
    "unidad": "kW",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Tiempo por vuelta frente al objetivo",
+   "formula": "t_vuelta ≤ t_objetivo",
+   "dem": 10.506897979502057,
+   "cap": 15,
+   "unidad": "min",
+   "fu": 0.7004598653001372,
+   "estado": "ok",
+   "ref": "Criterio de operación"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Caudal de bomba requerido para el tiempo objetivo (avance y retorno al mismo caudal)",
+   "formula": "Q = (V_avance + V_retorno)·N_pas/t_objetivo",
+   "dem": 8.427843797635115,
+   "unidad": "L/min",
    "fu": null,
    "estado": "info",
    "ref": "Hidráulica"
@@ -3716,7 +4403,7 @@
    "grp": "Giro",
    "nombre": "Tiempo por vuelta",
    "formula": "N_pas · (V_ext + V_ret) / Q",
-   "dem": 70.23203164695929,
+   "dem": 10.506897979502057,
    "unidad": "min",
    "fu": null,
    "estado": "info",
@@ -3726,10 +4413,10 @@
    "grp": "Interfaz",
    "nombre": "Presión de contacto máxima",
    "formula": "q = N_D/A · (1 + 4eR/(R²+r²))",
-   "dem": 1.6623362153200378,
+   "dem": 1.6749960266346093,
    "cap": 10,
    "unidad": "MPa",
-   "fu": 0.16623362153200377,
+   "fu": 0.16749960266346092,
    "estado": "ok",
    "ref": "Criterio acero/acero lubricado"
   },
@@ -3737,10 +4424,10 @@
    "grp": "Interfaz",
    "nombre": "Sin despegue de la mesa (q_mín ≥ 0)",
    "formula": "1 − 4eR/(R²+r²) ≥ 0",
-   "dem": 0.5966438781852083,
+   "dem": 0.5898771187648759,
    "cap": 1,
    "unidad": "–",
-   "fu": 0.5966438781852083,
+   "fu": 0.5898771187648759,
    "estado": "ok",
    "ref": "Núcleo central"
   },
@@ -3748,7 +4435,7 @@
    "grp": "Interfaz",
    "nombre": "Presión sobre losa / mats bajo la mesa (base delgada, sin reparto)",
    "formula": "σ ≈ q_máx (÷ cobertura con pastillas) ≤ q_losa (verificar por terceros)",
-   "dem": 1.6623362153200378,
+   "dem": 1.6749960266346093,
    "cap": 2,
    "unidad": "MPa",
    "fu": null,
@@ -3759,10 +4446,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)",
    "formula": "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura",
-   "dem": 81.16854323317773,
+   "dem": 52.34345771779079,
    "cap": 102,
    "unidad": "MPa",
-   "fu": 0.7957700316978209,
+   "fu": 0.5131711540959881,
    "estado": "ok",
    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
   },
@@ -3770,10 +4457,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce: espesor adoptado frente al requerido",
    "formula": "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)",
-   "dem": 9.136475462625828,
-   "cap": 10,
+   "dem": 9.163596541514522,
+   "cap": 12,
    "unidad": "mm",
-   "fu": 0.9136475462625828,
+   "fu": 0.7636330451262102,
    "estado": "ok",
    "ref": "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)"
   },
@@ -3781,8 +4468,8 @@
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce: espesor por flexión / requerido / comercial adoptado",
    "formula": "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor",
-   "dem": 5.527890123473541,
-   "cap": 10,
+   "dem": 5.548898020846958,
+   "cap": 12,
    "unidad": "mm",
    "fu": null,
    "estado": "info",
@@ -3803,10 +4490,10 @@
    "grp": "Interfaz bronce",
    "nombre": "2.ª placa de bronce (maciza, aleación distinta): flexión sobre un vacío local",
    "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_bz2; t = t_placa − sobreespesor",
-   "dem": 38.479901977210176,
+   "dem": 25.95543357906982,
    "cap": 58.199999999999996,
    "unidad": "MPa",
-   "fu": 0.6611667006393501,
+   "fu": 0.445969649124911,
    "estado": "ok",
    "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
   },
@@ -3814,10 +4501,10 @@
    "grp": "Interfaz bronce",
    "nombre": "2.ª placa de bronce: espesor adoptado frente al requerido",
    "formula": "t ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
-   "dem": 8.318094202166803,
-   "cap": 10,
+   "dem": 8.345905495179899,
+   "cap": 12,
    "unidad": "mm",
-   "fu": 0.8318094202166803,
+   "fu": 0.6954921245983249,
    "estado": "ok",
    "ref": "Cálculo de espesor"
   },
@@ -3825,10 +4512,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Presión de contacto sobre el bronce neto (sin tapones de grafito)",
    "formula": "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce",
-   "dem": 2.076553806541923,
+   "dem": 2.0930587097749527,
    "cap": 20,
    "unidad": "MPa",
-   "fu": 0.10382769032709616,
+   "fu": 0.10465293548874763,
    "estado": "ok",
    "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
   },
@@ -3836,10 +4523,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
    "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-   "dem": 0.005298049028349017,
+   "dem": 0.029667550440397192,
    "cap": 0.5,
    "unidad": "MPa·m/s",
-   "fu": 0.010596098056698033,
+   "fu": 0.059335100880794384,
    "estado": "ok",
    "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
   },
@@ -3847,10 +4534,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva",
    "formula": "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef",
-   "dem": 0.01304737236683205,
-   "cap": 2.863524537374172,
+   "dem": 0.013151075732322243,
+   "cap": 4.836403458485479,
    "unidad": "mm",
-   "fu": 0.004556403200510509,
+   "fu": 0.0027191849987718984,
    "estado": "ok",
    "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
   },
@@ -3858,21 +4545,21 @@
    "grp": "Interfaz bronce",
    "nombre": "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)",
    "formula": "h + 2 ≤ 0,70·t_placa",
-   "dem": 2.013047372366832,
-   "cap": 7,
+   "dem": 2.0131510757323223,
+   "cap": 8.399999999999999,
    "unidad": "mm",
-   "fu": 0.28757819605240453,
+   "fu": 0.23966084234908602,
    "estado": "ok",
    "ref": "Criterio de proyecto (el grafito debe seguir lubricando)"
   },
   {
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce (24 sectores): aplastamiento del tope sobre el canto del sector",
-   "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-   "dem": 54.30862620135019,
+   "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+   "dem": 62.998723614525865,
    "cap": 70.83333333333333,
    "unidad": "MPa",
-   "fu": 0.766710016960238,
+   "fu": 0.8893937451462476,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
   },
@@ -3880,32 +4567,109 @@
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce (24 sectores): largo del tope frente al canto radial disponible",
    "formula": "L_tope ≤ R_o − R_i − 100",
-   "dem": 120,
-   "cap": 825,
+   "dem": 340,
+   "cap": 769,
    "unidad": "mm",
-   "fu": 0.14545454545454545,
+   "fu": 0.44213263979193757,
    "estado": "ok",
    "ref": "Geometría"
   },
   {
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-   "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-   "dem": 71.56870577018222,
+   "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+   "dem": 29.236942975602677,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.876351499226721,
+   "fu": 0.35800338337472665,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
   },
   {
    "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+   "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+   "dem": 3,
+   "cap": 3,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+   "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (1,00 mm)",
+   "dem": 2,
+   "cap": 2,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): alivio inferior del canto libra el filete del tope",
+   "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+   "dem": 7,
+   "cap": 7,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): filete del tope dentro de la altura de barra",
+   "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+   "dem": 9,
+   "cap": 10,
+   "unidad": "mm",
+   "fu": 0.9,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): filete mínimo del tope según la parte más gruesa",
+   "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+   "dem": 6,
+   "cap": 6,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+   "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+   "dem": 24.09701178255614,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.20953923289179252,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "Placa de bronce (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+   "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+   "dem": 12.8112,
+   "cap": 0.5337999999999999,
+   "unidad": "kg / kg por barra",
+   "fu": null,
+   "estado": "info",
+   "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
+  },
+  {
+   "grp": "Interfaz bronce",
    "nombre": "2.ª placa de bronce (24 sectores): aplastamiento del tope sobre el canto del sector",
-   "formula": "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-   "dem": 36.20575080090013,
+   "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
+   "dem": 36.30434920159117,
    "cap": 40.416666666666664,
    "unidad": "MPa",
-   "fu": 0.8958123909501062,
+   "fu": 0.8982519390084415,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
   },
@@ -3913,32 +4677,109 @@
    "grp": "Interfaz bronce",
    "nombre": "2.ª placa de bronce (24 sectores): largo del tope frente al canto radial disponible",
    "formula": "L_tope ≤ R_o − R_i − 100",
-   "dem": 180,
-   "cap": 825,
+   "dem": 590,
+   "cap": 769,
    "unidad": "mm",
-   "fu": 0.21818181818181817,
+   "fu": 0.7672301690507152,
    "estado": "ok",
    "ref": "Geometría"
   },
   {
    "grp": "Interfaz bronce",
    "nombre": "2.ª placa de bronce (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
-   "formula": "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope",
-   "dem": 47.71247051345482,
+   "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
+   "dem": 16.848407816449,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.5842343328178141,
+   "fu": 0.2063070344871306,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
+   "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
+   "dem": 3,
+   "cap": 3,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
+   "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (1,00 mm)",
+   "dem": 2,
+   "cap": 2,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): alivio inferior del canto libra el filete del tope",
+   "formula": "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)",
+   "dem": 7,
+   "cap": 7,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): filete del tope dentro de la altura de barra",
+   "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
+   "dem": 9,
+   "cap": 10,
+   "unidad": "mm",
+   "fu": 0.9,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): filete mínimo del tope según la parte más gruesa",
+   "formula": "w_mín(T = máx(b_tope; t_respaldo) = 20) ≤ w_tope",
+   "dem": 6,
+   "cap": 6,
+   "unidad": "mm",
+   "fu": 1,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
+   "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
+   "dem": 13.886413569608624,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.12075142234442282,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
+  },
+  {
+   "grp": "Interfaz bronce",
+   "nombre": "2.ª placa de bronce (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
+   "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
+   "dem": 22.231199999999998,
+   "cap": 0.9262999999999999,
+   "unidad": "kg / kg por barra",
+   "fu": null,
+   "estado": "info",
+   "ref": "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)"
   },
   {
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce: cabeza del tornillo avellanado dentro del espesor útil",
    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
    "dem": 5.300000000000001,
-   "cap": 8,
+   "cap": 10,
    "unidad": "mm",
-   "fu": 0.6625000000000001,
+   "fu": 0.53,
    "estado": "ok",
    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
   },
@@ -3947,9 +4788,9 @@
    "nombre": "2.ª placa de bronce: cabeza del tornillo avellanado dentro del espesor útil",
    "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
    "dem": 5.300000000000001,
-   "cap": 9,
+   "cap": 11,
    "unidad": "mm",
-   "fu": 0.588888888888889,
+   "fu": 0.48181818181818187,
    "estado": "ok",
    "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
   },
@@ -3977,10 +4818,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Placa de bronce con grafito: masa del sector (manipulación manual al desmontar)",
    "formula": "m_sector = m_pieza/n ≤ 25 kg",
-   "dem": 8.950182454992516,
+   "dem": 10.615618904999488,
    "cap": 25,
    "unidad": "kg",
-   "fu": 0.3580072981997007,
+   "fu": 0.4246247561999795,
    "estado": "ok",
    "ref": "ISO 11228-1 (carga manual)"
   },
@@ -3988,10 +4829,10 @@
    "grp": "Interfaz bronce",
    "nombre": "2.ª placa de bronce: masa del sector (manipulación manual al desmontar)",
    "formula": "m_sector = m_pieza/n ≤ 25 kg",
-   "dem": 9.697172042543526,
+   "dem": 11.50160718817923,
    "cap": 25,
    "unidad": "kg",
-   "fu": 0.38788688170174107,
+   "fu": 0.4600642875271692,
    "estado": "ok",
    "ref": "ISO 11228-1 (carga manual)"
   },
@@ -4009,10 +4850,10 @@
    "grp": "Interfaz bronce",
    "nombre": "Engrase: área de las ranuras frente al área de contacto (placa de bronce)",
    "formula": "f_ranuras = A_ranuras/A_contacto ≤ 0,25",
-   "dem": 0.05437175903770771,
+   "dem": 0.05463629744545807,
    "cap": 0.25,
    "unidad": "–",
-   "fu": 0.21748703615083084,
+   "fu": 0.21854518978183227,
    "estado": "ok",
    "ref": "Criterio del proyecto (la presión neta sube 1/(1 − f))"
   },
@@ -4020,7 +4861,7 @@
    "grp": "Interfaz bronce",
    "nombre": "Engrase: volumen de grasa para llenar las ranuras y N° de graseras",
    "formula": "V = A_ranuras·h; graseras M10×1 en el borde de la plancha inferior de la mesa, taladro Ø6 hasta la ranura exterior, purga por el perímetro bajo el faldón desmontable",
-   "dem": 169.85309046261665,
+   "dem": 168.69939098904138,
    "cap": 4,
    "unidad": "cm³ / graseras",
    "fu": null,
@@ -4041,7 +4882,7 @@
    "grp": "Interfaz bronce",
    "nombre": "Altura que agrega la interfaz sobre la plancha base",
    "formula": "Δ = t_bronce + t_disco (o 2.ª placa)",
-   "dem": 20,
+   "dem": 24,
    "unidad": "mm",
    "fu": null,
    "estado": "info",
@@ -4051,7 +4892,7 @@
    "grp": "Interfaz bronce",
    "nombre": "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)",
    "formula": "m = ρ·A·t (bronce descontando los tapones, más el grafito)",
-   "dem": 447.536507940865,
+   "dem": 530.8134262362893,
    "unidad": "kg",
    "fu": null,
    "estado": "info",
@@ -4091,7 +4932,7 @@
    "grp": "Geometría",
    "nombre": "Altura total sobre el piso (base + interfaz + mesa + cubierta)",
    "formula": "H = t_base + Δ_interfaz + h_mesa + t_madera",
-   "dem": 248,
+   "dem": 252,
    "unidad": "mm",
    "fu": null,
    "estado": "info",
@@ -4101,10 +4942,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Plancha superior: σvm local (carga con e)",
    "formula": "MITC4 × k_malla",
-   "dem": 160.58701403483974,
+   "dem": 149.04191835918297,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.7757826764968103,
+   "fu": 0.7200092674356665,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
   },
@@ -4112,10 +4953,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Plancha inferior: σvm local (contacto q_max)",
    "formula": "MITC4 × k_malla",
-   "dem": 150.54898463881017,
+   "dem": 140.9722081627501,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.7272897808638172,
+   "fu": 0.6810251602065222,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy), criterio conservador"
   },
@@ -4123,10 +4964,10 @@
    "grp": "Mesa",
    "nombre": "Plancha superior: global + local",
    "formula": "σ = M_glob/(t·h_c) + σvm_local",
-   "dem": 185.62106308406314,
+   "dem": 176.03753131269096,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.8967201115172132,
+   "fu": 0.8504228565830481,
    "estado": "ok",
    "ref": "Placa sándwich axisimétrica (rev. M2)"
   },
@@ -4134,10 +4975,10 @@
    "grp": "Mesa",
    "nombre": "Plancha inferior: global + local",
    "formula": "σ = M_glob/(t·h_c) + σvm_local",
-   "dem": 181.84154595033942,
+   "dem": 174.71672435463506,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.8784615746393208,
+   "fu": 0.8440421466407491,
    "estado": "ok",
    "ref": "Placa sándwich axisimétrica (rev. M2)"
   },
@@ -4145,10 +4986,10 @@
    "grp": "Mesa",
    "nombre": "Corte en nervios radiales",
    "formula": "τ = V/(N·t·h_w) ≤ 0,6Fy/1,50 (h/t ≤ 2,24√(E/Fy))",
-   "dem": 80.14895666300333,
+   "dem": 81.09308993807525,
    "cap": 138,
    "unidad": "MPa",
-   "fu": 0.580789541036256,
+   "fu": 0.5876310865077917,
    "estado": "ok",
    "ref": "AISC 360-22 G2.1(a), Ec. G2-1"
   },
@@ -4156,10 +4997,10 @@
    "grp": "Mesa",
    "nombre": "Soldadura alma/nervio–plancha (2 filetes)",
    "formula": "f = √(q_h² + q_v²)/(2·0,707·w) ≤ 0,6FEXX/2,0",
-   "dem": 72.17192761587897,
+   "dem": 72.8273484234548,
    "cap": 147,
    "unidad": "MPa",
-   "fu": 0.4909654939855712,
+   "fu": 0.49542413893506665,
    "estado": "ok",
    "ref": "AISC 360-22 J2.4, Ec. J2-4"
   },
@@ -4167,10 +5008,10 @@
    "grp": "Mesa",
    "nombre": "Fluencia local de almas por carga de línea",
    "formula": "σ = q_v / t ≤ Fy/1,50",
-   "dem": 63.17098154995967,
+   "dem": 63.469304487918066,
    "cap": 230,
    "unidad": "MPa",
-   "fu": 0.27465644152156377,
+   "fu": 0.2759534977735568,
    "estado": "ok",
    "ref": "AISC 360-22 J10.2"
   },
@@ -4178,10 +5019,10 @@
    "grp": "Mesa (FEA)",
    "nombre": "Equilibrio FEA (ΣF = ΣR)",
    "formula": "|ΣF − ΣR| / ΣF ≤ 0,5 %",
-   "dem": 0.00010000000285295109,
+   "dem": 0.0001000000015806167,
    "cap": 0.5,
    "unidad": "%",
-   "fu": 0.00020000000570590218,
+   "fu": 0.0002000000031612334,
    "estado": "ok",
    "ref": "Control numérico"
   },
@@ -4212,9 +5053,9 @@
    "nombre": "Filete mínimo mejillas–base",
    "formula": "w_mín(T = 25) ≤ w ≤ t_mín",
    "dem": 8,
-   "cap": 16,
+   "cap": 18,
    "unidad": "mm",
-   "fu": 0.5,
+   "fu": 0.4444444444444444,
    "estado": "ok",
    "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
   },
@@ -4451,10 +5292,10 @@
    "grp": "Patín y guía",
    "nombre": "Retención vertical del patín: aplastamiento en la cabeza T",
    "formula": "V = M_vuelco/((w_b + w_T)/2) + M_cabeceo/L_patín; σ = V/(ala·L_patín) ≤ 1,25Fy/Nd",
-   "dem": 9.537965335395644,
+   "dem": 9.943836200731626,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.0663510632027523,
+   "fu": 0.06917451270074175,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.5"
   },
@@ -4462,10 +5303,10 @@
    "grp": "Patín y guía",
    "nombre": "Retención vertical: flexión del ala de la cabeza T",
    "formula": "σ = 6V·(ala/2)/(L_patín·h_T²) ≤ Fy/Nd",
-   "dem": 41.20401024890918,
+   "dem": 42.957372387160625,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.3582957412948624,
+   "fu": 0.3735423685840054,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -4473,10 +5314,10 @@
    "grp": "Patín y guía",
    "nombre": "Retención vertical: flexión del labio de la bancada sobre la cabeza T",
    "formula": "σ = 6V·(ala/2)/(L_patín·h_ranura²) ≤ Fy/Nd",
-   "dem": 12.717287113860857,
+   "dem": 13.258448267642168,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.1105851053379205,
+   "fu": 0.11529085450123625,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -4548,10 +5389,10 @@
    "grp": "Articulaciones",
    "nombre": "Mejilla de la ménsula: flexión en la base",
    "formula": "σ = (F/2)·h_eje/(t·L²/6) ≤ Fy/Nd",
-   "dem": 63.24081779593181,
+   "dem": 65.26452396540162,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.5499201547472331,
+   "fu": 0.5675175996991445,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -4559,11 +5400,11 @@
    "grp": "Articulaciones",
    "nombre": "Soldadura mejillas–base (4 filetes)",
    "formula": "f = √(fV² + fM²) ≤ 0,60FEXX/(1,20Nd)",
-   "dem": 76.16153558412566,
+   "dem": 62.574769915439724,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.932590231642355,
-   "estado": "warn",
+   "fu": 0.7662216724339558,
+   "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4"
   },
   {
@@ -4580,21 +5421,32 @@
    "grp": "Pivote",
    "nombre": "Presión en el buje",
    "formula": "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim + H_cil",
-   "dem": 12.997886479520512,
+   "dem": 12.985101303750175,
    "cap": 30,
    "unidad": "MPa",
-   "fu": 0.43326288265068374,
+   "fu": 0.43283671012500585,
    "estado": "ok",
    "ref": "Fabricante del buje"
   },
   {
    "grp": "Pivote",
+   "nombre": "Brazo efectivo del pivote e (desde la cara superior del asiento hasta la reacción del buje)",
+   "formula": "e = máx(e_piv; g_buje + L_buje/2); el buje apoya a media altura con holgura axial g_buje sobre el collar",
+   "dem": 42,
+   "cap": 42,
+   "unidad": "mm (efectivo / geométrico)",
+   "fu": null,
+   "estado": "info",
+   "ref": "Estática del pivote; ASME BTH-1 §3-2.3"
+  },
+  {
+   "grp": "Pivote",
    "nombre": "Flexión del pivote",
-   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd (H con la F_pas de calado si el n° de cilindros es impar)",
-   "dem": 29.42119655769604,
+   "formula": "σ = H·e/(πD³/32) ≤ Fy/Nd, e = brazo efectivo (H con la F_pas de calado si el n° de cilindros es impar)",
+   "dem": 30.861869681676772,
    "cap": 216.66666666666666,
    "unidad": "MPa",
-   "fu": 0.1357901379585971,
+   "fu": 0.14243939853081589,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -4602,21 +5454,21 @@
    "grp": "Pivote",
    "nombre": "Aplastamiento del pivote en el asiento (plancha base + collar, ajuste H7/p6)",
    "formula": "σ = H/(D_piv·L_asiento) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar",
-   "dem": 13.331165620021038,
+   "dem": 13.318052619230949,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.09273854344362462,
+   "fu": 0.09264732256856312,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento)"
   },
   {
    "grp": "Pivote",
-   "nombre": "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima 59 mm)",
-   "formula": "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)",
-   "dem": 94.34363361861041,
+   "nombre": "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima 60 mm)",
+   "formula": "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, e = brazo efectivo, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)",
+   "dem": 96.29976509290071,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.6563035382164203,
+   "fu": 0.6699114093419181,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente"
   },
@@ -4633,45 +5485,111 @@
   },
   {
    "grp": "Pivote",
-   "nombre": "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 50 ≤ D_cubo)",
-   "formula": "D_collar + 50 ≤ D_cubo",
-   "dem": 300,
-   "cap": 300,
+   "nombre": "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 2·c_r + 50 ≤ D_cubo)",
+   "formula": "D_rebaje = D_collar + 2·c_boss_r (el cubo gira, el collar es fijo; mismo Ø en el agujero de la plancha inferior); D_rebaje + 50 ≤ D_cubo: pared del cubo y ligamento de la plancha ≥ 25 mm",
+   "dem": 306,
+   "cap": 310,
+   "unidad": "mm",
+   "fu": 0.9870967741935484,
+   "estado": "ok",
+   "ref": "Criterio de fabricación (holgura de giro cubo–collar)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Rebaje del cubo para el collar: Ø D_collar + 2·c_boss_r × (h_collar − δ + c_boss_a) desde la cara inferior de la mesa",
+   "formula": "Ø rebaje = D_collar + 2·c_boss_r (agujero de la plancha inferior); profundidad = h_collar − δ + c_boss_a = 38,0 mm, δ = 24 mm que suma la interfaz (la plancha inferior, t_bot = 16 mm, lleva un agujero pasante de ese Ø y el resto, si lo hay, se rebaja en el cubo; negativo: el collar queda bajo la mesa y no hay rebaje)",
+   "dem": 256,
+   "cap": 38,
+   "unidad": "mm (Ø / profundidad)",
+   "fu": null,
+   "estado": "info",
+   "ref": "Geometría (holgura de giro cubo–collar; la interfaz sube la cara inferior de la mesa δ)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Interfaz: R_i libre del rebaje del collar y del agujero de la plancha (R_i ≥ D_collar/2 + c_boss_r + m_ri)",
+   "formula": "R_i = D_collar/2 + c_boss_r + m_ri; el anillo de contacto, los discos y la plancha de bronce arrancan fuera del rebaje con un margen de borde m_ri = 3 mm",
+   "dem": 131,
+   "cap": 131,
    "unidad": "mm",
    "fu": 1,
    "estado": "ok",
-   "ref": "Criterio de fabricación"
+   "ref": "Geometría (la interfaz no puede ocupar el espacio del collar)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Plancha inferior y pared del cubo junto al rebaje: aplastamiento de la pared del cubo bajo la presión de contacto del anillo interior",
+   "formula": "σ = q_máx·(r_cubo² − R_i²)/(r_cubo² − r_rebaje²) ≤ Fy/Nd (la presión sobre R_i … r_cubo entra por el pie del cubo; ligamento = (D_cubo − Ø rebaje)/2 = 27 mm)",
+   "dem": 1.5046685940086322,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.013084074730509845,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-3.3 (aplastamiento); estática del pie del cubo"
   },
   {
    "grp": "Pivote",
    "nombre": "Buje sobre el collar: el buje cabe bajo la plancha superior",
-   "formula": "h_collar + 2 + L_buje ≤ δ + h_disc − t_top",
+   "formula": "h_collar + g_buje + L_buje ≤ δ + h_disc − t_top",
    "dem": 142,
-   "cap": 210,
+   "cap": 214,
    "unidad": "mm",
-   "fu": 0.6761904761904762,
+   "fu": 0.6635514018691588,
    "estado": "ok",
    "ref": "Geometría"
   },
   {
    "grp": "Pivote",
-   "nombre": "Soldadura del collar a la base (filete perimetral): par H·e",
-   "formula": "f = H·(e+L/2)/(π·D_collar²/4·a) ≤ 0,60FEXX/(1,2·Nd), a = 0,707·w (w = 10 mm); el cortante H/(π·D_c·a) se combina",
-   "dem": 36.218364931504475,
+   "nombre": "Soldadura del collar a la base (filete perimetral): V_c y M_c del asiento rígido-lineal",
+   "formula": "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,85·H)",
+   "dem": 53.77066668892237,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.44349018283474867,
+   "fu": 0.658416326803131,
    "estado": "ok",
-   "ref": "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico)"
+   "ref": "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico; resultante vectorial de corte y flexión)"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Carga del collar sobre su filete: V_c y M_c (respecto de la cara superior de la base)",
+   "formula": "V_c y M_c de la distribución rígido-lineal del asiento; la plancha base toma la reacción de signo contrario",
+   "dem": 233.76728573779104,
+   "cap": 11.608928801444675,
+   "unidad": "kN / kN·m",
+   "fu": null,
+   "estado": "info",
+   "ref": "Equilibrio del collar"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Collar: filete mínimo según la parte más gruesa (pared del collar o plancha base)",
+   "formula": "w_mín(T = máx(pared del collar = 65; t_base = 18)) ≤ w_collar; no más que la parte más delgada",
+   "dem": 8,
+   "cap": 10,
+   "unidad": "mm",
+   "fu": 0.8,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+  },
+  {
+   "grp": "Pivote",
+   "nombre": "Collar: filete máximo según el borde del collar",
+   "formula": "w_collar ≤ w_máx(t) con t = mín(pared del collar; h_collar) = 60 (t < 6: t; t ≥ 6: t − 2 mm)",
+   "dem": 10,
+   "cap": 58,
+   "unidad": "mm",
+   "fu": 0.1724137931034483,
+   "estado": "ok",
+   "ref": "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)"
   },
   {
    "grp": "Pivote",
    "nombre": "Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)",
    "formula": "σ = H/((D_piv + 30)·L_buje) ≤ 1,25·Fy/Nd",
-   "dem": 10.398309183616409,
+   "dem": 10.38808104300014,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.07233606388602719,
+   "fu": 0.07226491160347924,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3 (aplastamiento)"
   },
@@ -4689,10 +5607,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
-   "dem": 75.95974293809356,
+   "dem": 78.58222437215913,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.36695527989417176,
+   "fu": 0.37962427232927115,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -4700,10 +5618,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 7.680513901980259,
+   "dem": 7.9179239550435865,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.9000602228883116,
+   "fu": 0.9278817134816703,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -4731,12 +5649,12 @@
   },
   {
    "grp": "Orejas de izaje",
-   "nombre": "Oreja: aplastamiento del agujero (pasador del grillete d − 3)",
+   "nombre": "Oreja: aplastamiento del agujero (pasador del grillete d − g)",
    "formula": "σ = T/(d_p·t) ≤ 1,25·Fy/Nd",
-   "dem": 23.126533925095774,
+   "dem": 24.107346563263466,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.16088023600066625,
+   "fu": 0.16770328044009367,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3; ASME B30.26 (grillete)"
   },
@@ -4744,10 +5662,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: tracción en la sección neta del agujero",
    "formula": "σ = T/(2(R − d/2)·t) ≤ Fy/Nd",
-   "dem": 12.950858998053635,
+   "dem": 7.284234213360184,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.11261616520046638,
+   "fu": 0.06334116707269725,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.1; AISC 360-22 D2"
   },
@@ -4755,10 +5673,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: desgarro por corte detrás del agujero",
    "formula": "τ = T/(2(R − d/2)·t) ≤ Fy/(Nd·√3)",
-   "dem": 12.950858998053635,
+   "dem": 7.284234213360184,
    "cap": 66.39528095680696,
    "unidad": "MPa",
-   "fu": 0.19505691988077792,
+   "fu": 0.10971011958062046,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.2; AISC 360-22 D5"
   },
@@ -4766,39 +5684,116 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: soldadura a la base (filete a ambos lados, T vertical + T horizontal con brazo h)",
    "formula": "f = √[(Tv/(2aL) + Th·h/S)² + (Th/(2aL))²] ≤ 0,60FEXX/(1,2Nd); L = 2R, a = 0,707w, S = 2aL²/6",
-   "dem": 40.6474177977841,
+   "dem": 20.895583549633198,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.4977234832381726,
+   "fu": 0.25586428836285546,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4"
   },
   {
    "grp": "Orejas de izaje",
-   "nombre": "Oreja: relación de bordes (R − d/2 ≥ 0,5·d para evitar desgarro prematuro)",
-   "formula": "R − d/2 ≥ 0,5·d",
-   "dem": 22.5,
-   "cap": 37.5,
-   "unidad": "mm",
-   "fu": 0.6,
+   "nombre": "Oreja: placa en la base: flexión Th·h + tracción Tv",
+   "formula": "σ = Th·h/(t·(2R)²/6) + Tv/(2R·t) ≤ Fy/Nd",
+   "dem": 12.840241200527522,
+   "cap": 115,
+   "unidad": "MPa",
+   "fu": 0.11165427130893497,
    "estado": "ok",
-   "ref": "AISC 360-22 D5 (distancia al borde)"
+   "ref": "AISC 360-22 D2; ASME BTH-1 §3-2.1 y §3-2.3"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: placa en la base: corte Th",
+   "formula": "τ = Th/(2R·t) ≤ Fy/(Nd·√3)",
+   "dem": 2.7513819447202876,
+   "cap": 66.39528095680696,
+   "unidad": "MPa",
+   "fu": 0.04143942016768002,
+   "estado": "ok",
+   "ref": "ASME BTH-1 §3-2.2"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: extensión a tras el agujero ≥ 1,33·b_e (AISC D5.2(3))",
+   "formula": "a = R − d/2 ≥ 1,33·b_e; b_e = mín(2t + 16; (2R − d)/2) = 52,0 mm",
+   "dem": 69.16,
+   "cap": 69.5,
+   "unidad": "mm",
+   "fu": 0.9951079136690647,
+   "estado": "ok",
+   "ref": "AISC 360-22 §D5.2(3) (extensión mínima más allá del extremo de apoyo del agujero, paralela a la fuerza)"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: ancho de la placa en el agujero ≥ 2·b_e + d (AISC D5.2(3))",
+   "formula": "2R ≥ 2·b_e + d",
+   "dem": 149,
+   "cap": 184,
+   "unidad": "mm",
+   "fu": 0.8097826086956522,
+   "estado": "ok",
+   "ref": "AISC 360-22 §D5.2(3)"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: holgura agujero–pasador ≤ 1 mm si el pasador gira bajo carga plena (AISC D5.2(2))",
+   "formula": "g = d − d_pasador = 3 mm; no aplica el límite de 1 mm (izaje estático: el pasador no gira bajo la carga plena); con ear_gira = 1 exige ≤ 1 mm",
+   "dem": 3,
+   "cap": 1,
+   "unidad": "mm",
+   "fu": null,
+   "estado": "info",
+   "ref": "AISC 360-22 §D5.2(2)"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: filete mínimo según la parte más gruesa (oreja o plancha base)",
+   "formula": "w_mín(T = máx(t_oreja; t_base) = 18) ≤ w_oreja; no más que la parte más delgada",
+   "dem": 6,
+   "cap": 8,
+   "unidad": "mm",
+   "fu": 0.75,
+   "estado": "ok",
+   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+  },
+  {
+   "grp": "Orejas de izaje",
+   "nombre": "Oreja: filete máximo según el borde de la placa",
+   "formula": "w_oreja ≤ w_máx(t_oreja) (t < 6: t; t ≥ 6: t − 2 mm)",
+   "dem": 8,
+   "cap": 16,
+   "unidad": "mm",
+   "fu": 0.5,
+   "estado": "ok",
+   "ref": "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)"
   },
   {
    "grp": "Orejas de izaje",
    "nombre": "Tensión por oreja (3 ramales efectivos a 60°) y WLL mínimo del grillete",
    "formula": "T = m·φ·g/(3·sen 60°)",
-   "dem": 17.483659647372406,
+   "dem": 18.225154001827182,
    "unidad": "kN",
    "fu": null,
    "estado": "info",
    "ref": "ASME B30.9; B30.26"
   },
   {
+   "grp": "Orejas de izaje",
+   "nombre": "Ramales: longitud mínima para un ángulo ≥ 60° sobre la horizontal (el 60° es una cota mínima)",
+   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1279 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
+   "dem": 2558.827856656246,
+   "cap": 2216.009927775595,
+   "unidad": "mm (longitud mínima / altura del vértice)",
+   "fu": null,
+   "estado": "info",
+   "ref": "ASME B30.9 (factor de ángulo 1/sen θ); B30.26"
+  },
+  {
    "grp": "Base",
    "nombre": "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)",
    "formula": "m·φ / (3·sin 60°)",
-   "dem": 1.7828371204613611,
+   "dem": 1.8584485019682748,
    "unidad": "t",
    "fu": null,
    "estado": "info",
@@ -4818,10 +5813,10 @@
    "grp": "Fatiga",
    "nombre": "Uña (boca del patín) (cat. A, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 116.27278460610944,
+   "dem": 116.29331812475093,
    "cap": 616.3464874490833,
    "unidad": "MPa",
-   "fu": 0.18864840957776172,
+   "fu": 0.1886817244729702,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -4829,10 +5824,10 @@
    "grp": "Fatiga",
    "nombre": "Pasadores de articulación (cat. A, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 96.82802036861048,
+   "dem": 96.84511998455234,
    "cap": 616.3464874490833,
    "unidad": "MPa",
-   "fu": 0.15709997921681917,
+   "fu": 0.15712772272844788,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -4840,10 +5835,10 @@
    "grp": "Fatiga",
    "nombre": "Pie de soldadura mejilla–base (cat. E, N = 35000)",
    "formula": "Δσ ≤ F_SR = (Cf/N)^0,333 ≥ F_TH",
-   "dem": 34.2993457350173,
+   "dem": 35.40317581779111,
    "cap": 217.5917795949937,
    "unidad": "MPa",
-   "fu": 0.15763162468204955,
+   "fu": 0.1627045648676962,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   },
@@ -4851,10 +5846,10 @@
    "grp": "Fatiga",
    "nombre": "Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)",
    "formula": "Δτ ≤ F_SR = (Cf/N)^0,167 ≥ F_TH",
-   "dem": 41.307037634130566,
+   "dem": 33.94410081422718,
    "cap": 128.98468269408576,
    "unidad": "MPa",
-   "fu": 0.3202476198828885,
+   "fu": 0.26316381220809554,
    "estado": "ok",
    "ref": "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1"
   }
