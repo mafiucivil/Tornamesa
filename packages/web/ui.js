@@ -500,8 +500,51 @@
     setTimeout(step, 30);
   }
 
+  /* ---------- Paquete de dibujo (checkbox «Exportar paquete de dibujo») ---------- */
+  const LSK = "tt300c-pkg";
+  let pkgSelId = "";
+  const SHEET_IDS = (typeof PLANOS !== "undefined") ? PLANOS.SHEETS.map((x) => x.id) : [];
+  function download(name, data, type) {
+    const blob = new Blob([data], { type });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  }
+  function renderPkg() {
+    const on = $("#pkgChk").checked, el = $("#pkgPanel");
+    el.hidden = !on; $("#pkgRow").classList.toggle("chg", on);
+    if (!on) return;
+    if (typeof PLANOS === "undefined") { el.innerHTML = `<div class="msg error">Módulo de planos no disponible.</div>`; return; }
+    if (!A) { el.innerHTML = `<div class="msg error">Corrija los datos marcados para exportar.</div>`; return; }
+    const R = A.R, v = A.verdict, ok = v.gira && v.estructura;
+    el.innerHTML = `<div class="kv"><span>Interfaz de giro</span><span>${esc(PLANOS.ifaceName(P, R.ifc))}</span>
+        <span>Fijación</span><span>${esc(PLANOS.fixText(P, R.ifc))}</span>
+        <span>Cubierta</span><span>${esc(PLANOS.woodText(P))}</span>
+        <span>Masa total</span><span>${fmt(R.m.total, 4)} kg</span></div>
+      ${ok ? "" : `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador completo se negará a emitir planos hasta corregirlo.</div>`}
+      <ul>${SHEET_IDS.map((id) => `<li>TT300C-${esc(id)}-${PLANOS.REV}</li>`).join("")}<li>Lista de materiales (CSV) · JSON de diseño · láminas SVG</li></ul>
+      <div class="btns"><button class="pri" id="bPkgZip">Descargar paquete (.zip)</button><button id="bPkgPrint" title="Abre las láminas en una página de impresión; use Imprimir → Guardar como PDF">Láminas imprimibles (PDF)</button></div>
+      <div class="btns"><select id="pkgSel" aria-label="Lámina DXF">${SHEET_IDS.map((id) => `<option value="${esc(id)}"${id === pkgSelId ? " selected" : ""}>${esc(id)}</option>`).join("")}</select><button id="bPkgDxf">DXF</button><button id="bPkgCsv">Lista CSV</button><button id="bPkgJson">JSON de diseño</button></div>
+      <div class="adv">${esc(PLANOS.ADVERTENCIA)}</div>
+      <div class="note">${PLANOS.NOTAS.map(esc).join(" · ")}. Lo que el núcleo no define se rotula «A DEFINIR». El JSON de diseño alimenta el generador completo (PDF, DXF, STEP y Excel).</div>`;
+    const run = (fn) => () => { try { fn(PLANOS.buildPackage(P, A)); } catch (err) { alert("No se pudo generar el paquete: " + err.message); } };
+    const find = (pk, kind, id) => pk.files.find((f) => f.kind === kind && (!id || f.sheet === id));
+    const stamp = new Date().toISOString().slice(0, 10);
+    $("#bPkgZip").onclick = run((pk) => download(`TT300C_paquete_dibujo_Rev${PLANOS.REV}_${stamp}.zip`, pk.zip(), "application/zip"));
+    $("#bPkgPrint").onclick = run((pk) => {
+      const f = find(pk, "html"), url = URL.createObjectURL(new Blob([f.data], { type: "text/html" })), w = window.open(url, "_blank");
+      if (!w) download("TT300C_laminas_impresion.html", f.data, "text/html");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
+    $("#pkgSel").onchange = () => { pkgSelId = $("#pkgSel").value; };
+    $("#bPkgDxf").onclick = run((pk) => { const f = find(pk, "dxf", $("#pkgSel").value); download(f.name.split("/").pop(), f.data, f.mime); });
+    $("#bPkgCsv").onclick = run((pk) => { const f = find(pk, "csv"); download("TT300C_lista_materiales.csv", f.data, "text/csv"); });
+    $("#bPkgJson").onclick = run((pk) => { const f = find(pk, "json"); download("TT300-C_design.json", f.data, "application/json"); });
+  }
+  $("#pkgChk").checked = store.get(LSK) === "1";
+  $("#pkgChk").addEventListener("change", () => { store.set(LSK, $("#pkgChk").checked ? "1" : "0"); renderPkg(); });
+
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt();
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg();
   }
   buildForm(); recalc();
 })();

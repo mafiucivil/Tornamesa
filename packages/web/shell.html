@@ -80,6 +80,13 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 .prog{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin:8px 0}
 .prog i{display:block;height:100%;background:var(--acc);width:0}
 .busy{color:var(--ink2);font-size:12px}
+.pkg{border:1px solid var(--acc);border-radius:8px;padding:8px 10px;margin:6px 0;background:var(--bg);font-size:12.5px}
+.pkg[hidden]{display:none}
+.pkg .kv{font-size:12.5px;margin:4px 0;grid-template-columns:auto 1fr}
+.pkg .kv span:nth-child(even){font-family:var(--sans);text-align:right}
+.pkg ul{margin:4px 0 6px;padding-left:16px;color:var(--ink2);font-size:12px}
+.pkg select{font:12.5px var(--sans);padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);max-width:100%}
+.pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
 <body>
@@ -97,6 +104,8 @@ svg text{font-family:var(--sans);fill:var(--ink)}
       <button id="bTheme" title="Tema claro / oscuro">◐</button>
     </div>
     <input type="file" id="fImp" accept=".json,application/json" hidden>
+    <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera láminas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Exportar paquete de dibujo (DXF · CSV · JSON · láminas)</label><input id="pkgChk" type="checkbox"></div>
+    <div class="pkg" id="pkgPanel" hidden></div>
     <div class="busy" id="busy"></div>
     <div id="form"></div>
   </aside>
@@ -116,6 +125,7 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 /*@@FEA@@*/
 /*@@CORE@@*/
 /*@@AGENTS@@*/
+/*@@PLANOS@@*/
 /*@@UI@@*/
 </script>
 </body>
