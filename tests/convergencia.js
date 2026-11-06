@@ -610,8 +610,8 @@ runSection("D", "Las tres interfaces: acero–acero, A (discos inoxidables), B (
   table(["opción", "t_disco [mm]", "t_UHMW [mm]", "Δ [mm]", "μ_d", "m_discos [kg]", "m_UHMW [kg]", "m_total [kg]", "h_eje [mm]", "F_dis [kN]", "FS", "q_máx [MPa]", "gira", "estructura"],
     rows_.map((x, i) => [OPT[i][0], x.R.ifc.tss, x.R.ifc.tuh, x.R.ifc.delta, x.R.mu.d, f(x.R.m.ss, 1), f(x.R.m.uhmw, 1), f(x.R.m.total, 1), f(x.R.hax, 1), f(x.R.cd.F, 2), f(x.R.cd.FS, 3), f(x.R.q_max, 3), x.A.verdict.gira, x.A.verdict.estructura]));
   { const Ao = Math.PI * ((dA.P.D_top / 2) ** 2 - dA.R.Ri ** 2), e = [];
-    e.push(rel(dA.R.m.ss, 2 * 7.93e-6 * Ao * dA.R.ifc.tss), rel(dB.R.m.uhmw, 0.94e-6 * Ao * dB.R.ifc.tuh), rel(dA.R.hax, dA.P.h_disc / 2 + 2 * dA.R.ifc.tss), rel(dB.R.hax, dB.P.h_disc / 2 + 2 * dB.R.ifc.tss + dB.R.ifc.tuh));
-    const sum = (x) => x.R.m.disc + x.R.m.ss + x.R.m.uhmw + x.R.m.base + x.R.m.rim + x.R.m.brackets + x.R.m.dogs + x.R.m.shoes + x.R.m.beds + x.R.m.pivot + x.R.m.cyl;
+    e.push(rel(dA.R.ifc.mSS, 2 * 7.93e-6 * Ao * dA.R.ifc.tss), rel(dB.R.ifc.mUH, 0.94e-6 * Ao * dB.R.ifc.tuh), rel(dA.R.hax, dA.P.h_disc / 2 + 2 * dA.R.ifc.tss), rel(dB.R.hax, dB.P.h_disc / 2 + 2 * dB.R.ifc.tss + dB.R.ifc.tuh));   // coronas brutas (R.m.ss/uhmw son netas desde la 4.ª pasada)
+    const sum = (x) => x.R.m.disc + x.R.m.ss + x.R.m.uhmw + x.R.m.base + x.R.m.rim + x.R.m.brackets + x.R.m.dogs + x.R.m.shoes + x.R.m.beds + x.R.m.pivot + x.R.m.cyl + x.R.m.stopBars;   // total = piezas netas + barras de los topes
     e.push(rel(sum(d0), d0.R.m.total), rel(sum(dA), dA.R.m.total), rel(sum(dB), dB.R.m.total));
     chk("D1 · Masas: m_disco = 2ρ_inox·A·t; m_UHMW = ρ·A·t; h_eje = h/2 + Δ; suma de componentes = total", "< 1e-12", sci(maxOf(e)), V(maxOf(e) < 1e-12)); }
   { const wr = rows_.map((x, i) => `${OPT[i][0]}: ` + (x.A.checks.filter((c) => c.st === "warn").map((c) => `${c.name.slice(0, 40)} FU ${f(c.fu, 3)}`).join(", ") || "sin advertencias") + `; FU est. máx ${f(maxOf(x.A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && c.fu != null).map((c) => c.fu)), 3)} (sin FEA)`);

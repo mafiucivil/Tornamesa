@@ -426,7 +426,7 @@
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
     const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
-      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Cubierta de madera dura", m.wood], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Cubierta de madera dura", m.wood], ["Anillo de acero de la madera", m.ring], ["Barras de los topes soldados", m.stopBars], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
     const mx = Math.max(...parts.map((p) => p[1]));
     el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
       ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}

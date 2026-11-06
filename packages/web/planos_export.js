@@ -78,10 +78,14 @@ const PLANOS = (() => {
         const tap = byName(/Tapones de grafito: profundidad restante/)[0];
         const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));
         const ifc = R.ifc;
-        return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
+        // 4.ª pasada: material descontado de las coronas (R.ifc.cortes: junta, muesca y chaflán por sector, masa bruta/descontada/neta), juntas efectivas y anillo de acero de la madera
+    const cortes = (R.ifc.cortes || []).map((c) => Object.assign({}, c)), jS = cortes.filter((c) => !c.strip).map((c) => c.j), jU = cortes.filter((c) => c.strip).map((c) => c.j);
+    const anillo = R.m.ring > 0 ? { t_ring: P.t_ring, h_ring: P.t_wood, D_ext: P.D_top, D_int: P.D_top - 2 * P.t_ring, m: R.m.ring, m_madera: R.m.wood } : null;
+    return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
+      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, t_ring: P.t_ring, anillo_madera: anillo,
           hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
           Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
-          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo" };
+          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total" };
       })(),
       verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
     };
@@ -122,6 +126,7 @@ const PLANOS = (() => {
   const SUBS = [["BASE", "Base"], ["MESA", "Mesa giratoria"], ["INTER", "Interfaz de giro"], ["PIVOTE", "Pivote y collar"], ["IZAJE", "Orejas de izaje"], ["CIL", "Cilindros hidráulicos"]];
   function buildBOM(P, A) {
     const R = A.R, m = R.m, ifc = R.ifc, items = [], steel = `Acero ASTM A572 Gr.50 (Fy ${nf(P.Fy)} MPa)`;
+    const cz = (id) => (ifc.cortes || []).find((c) => c.id === id);
     const add = (sub, pos, desc, mat, qty, mTot, nota) => items.push({ sub, pos, code: `TT300C-${sub}-${String(pos).padStart(2, "0")}-${REV}`, desc, mat, qty, mUnit: mTot / qty, mTot, nota: nota || "" });
     // Base
     const plate = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
@@ -142,20 +147,22 @@ const PLANOS = (() => {
     add("MESA", 5, `Cubo Ø${nf(P.D_hub)}`, steel, 1, m.hub);
     add("MESA", 6, `Pasador de empuje Ø${nf(P.d_pin)} x ${nf(P.h_disc)}`, `34CrNiMo6+QT (Fy ${nf(P.Fy_pin)} MPa)`, P.N_pin, m.pins);
     if (m.wood > 0) add("MESA", 7, `Cubierta de madera dura t = ${nf(P.t_wood)} (tablones: disposición A DEFINIR)`, `Madera dura ${nf(P.rho_wood)} kg/m3`, 1, m.wood, "Opcional");
+    if (m.ring > 0) add("MESA", 8, `Anillo de acero de contención de la madera: pletina ${nf(P.t_ring)} x ${nf(P.t_wood)} rolada a Ø${nf(P.D_top)}`, steel, 1, m.ring, "Opcional; soldada a la plancha superior; en la masa total");
     // Interfaz
     const nS = P.fix_mode < 1.5 ? P.n_sec : 1, sect = P.fix_mode < 1.5 ? "sector" : "disco completo";
     if (ifc.o === 1 || ifc.o === 2) {
-      const t1 = ifc.tss, t2 = ifc.tss2, mA = m.ss * t1 / (t1 + t2), mB = m.ss * t2 / (t1 + t2);
+      const t1 = ifc.tss, t2 = ifc.tss2, c0 = cz("disc0"), c1 = cz("disc1");   // masa neta de cada disco (sin muescas, chaflanes ni juntas); con pegado, la corona entera repartida por espesor
+      const mA = c0 ? c0.m_neta / c0.capas : m.ss * t1 / (t1 + t2), mB = c1 ? c1.m_neta : (c0 ? c0.m_neta / c0.capas : m.ss * t2 / (t1 + t2));
       add("INTER", 1, `Disco inoxidable de la base (liso) t = ${nf(t1)} (${sect})`, `Inox (Fy ${nf(P.Fy_ss)} MPa)`, nS, mA);
       add("INTER", 2, `Disco inoxidable de la mesa t = ${nf(t2)}${ifc.o === 1 ? " con ranuras de engrase" : ""} (${sect})`, `Inox (Fy ${nf(P.Fy_ss)} MPa)`, nS, mB);
       if (ifc.o === 2) add("INTER", 3, `Lámina UHMW t = ${nf(ifc.tuh)} (${P.n_seg} sectores)`, "UHMW-PE", P.fix_mode < 1.5 ? P.n_seg : 1, m.uhmw);
     } else if (ifc.o === 3) {
-      const nB = ifc.conf === 3 ? P.bz_npad : nS, solid = ifc.conf === 2 ? ifc.A_ss * ifc.tss * P.rho_bz * 1e-6 : 0;
+      const nB = ifc.conf === 3 ? P.bz_npad : nS, solid = ifc.conf === 2 ? (cz("bz1") ? cz("bz1").m_neta : ifc.A_ss * ifc.tss * P.rho_bz * 1e-6) : 0;
       add("INTER", 1, `${ifc.conf === 3 ? "Pastillas de bronce con tapones de grafito" : "Placa de bronce con tapones de grafito"} t = ${nf(ifc.tbz)}${P.h_gr > 0 ? " (ranuras de engrase)" : ""}`, `Bronce Fy ${nf(P.Fy_bz)} MPa + grafito`, P.fix_mode < 1.5 || ifc.conf === 3 ? nB : 1, m.bz - solid);
       if (ifc.conf === 2) add("INTER", 2, `2.ª placa de bronce t = ${nf(ifc.tss)} (${sect})`, `Bronce Fy ${nf(P.Fy_bz2)} MPa`, nS, solid);
       else add("INTER", 2, `Disco duro t = ${nf(ifc.tss)} (${sect})`, `17-4PH o inox nitrurado (Fy ${nf(P.Fy_cara)} MPa)`, nS, m.ss);
     }
-    if (m.stopBars > 0) add("INTER", 4, `Barras de los topes soldados (${(ifc.topes || []).map((s) => `${nf(s.capas * s.n)} x ${nf(s.L)} x ${nf(s.b_tope)} x ${nf(s.h_barra)}`).join("; ")})`, steel, ifc.topes.reduce((q, s) => q + s.capas * s.n, 0), m.stopBars, "Soldadas al respaldo (filete w_tope); suman a la masa total");
+    if (m.stopBars > 0) add("INTER", 4, `Barras de los topes soldados (${(ifc.topes || []).map((s) => `${nf(s.capas * s.n)} x ${nf(s.L)} x ${nf(s.b_tope)} x ${nf(s.h_barra)}`).join("; ")})`, (ifc.topes || []).some((s) => s.uh) ? `${steel}; barras del rebaje de la lámina UHMW en acero inoxidable (ρ 7,93)` : steel, ifc.topes.reduce((q, s) => q + s.capas * s.n, 0), m.stopBars, "Soldadas al respaldo (filete w_tope); suman a la masa total");
     // Pivote, orejas, cilindros
     add("PIVOTE", 1, `Pivote Ø${nf(P.D_piv)} x ${nf(P.t_base + ifc.delta + P.h_disc - P.t_top + 3)}`, `Acero Fy ${nf(P.Fy_piv)} MPa`, 1, m.pivot);
     if (collar > 0) add("PIVOTE", 2, `Collar de asiento Ø${nf(P.D_boss)}/Ø${nf(P.D_piv)} x ${nf(P.h_boss)} soldado a la base`, steel, 1, collar);

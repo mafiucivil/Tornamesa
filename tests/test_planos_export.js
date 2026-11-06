@@ -225,6 +225,13 @@ test("interfazGeom.topes: geometría resuelta de cada tope (R.ifc.topes), idént
     assert.equal(IG.h_rebaje, P.h_boss - Rr.ifc.delta + P.c_boss_a, nombre + ": profundidad h_collar − δ + c_boss_a"); assert.equal(IG.h_rebaje_plancha, IG.h_rebaje > 0 ? P.t_bot : 0, nombre + ": agujero pasante en la plancha inferior"); assert.equal(IG.h_rebaje_cubo, Math.min(Math.max(0, IG.h_rebaje - P.t_bot), P.h_disc - P.t_top - P.t_bot)); assert.equal(IG.m_ri, P.m_ri);
     for (const k of ["Ri", "D_rebaje_bot", "h_rebaje", "h_rebaje_plancha", "h_rebaje_cubo", "m_ri", "d_bush", "hole_top"]) assert.equal(IG2[k], IG[k], `${nombre}: ${k} igual en tools/export_design.js`);
     assert.equal(IG.d_bush, P.D_piv + 30);
+    // 4.ª pasada: descuentos de masa de las coronas (cortes), juntas efectivas, tolerancia h_c y anillo de acero de la madera: claves nuevas, iguales en los dos exportadores
+    for (const k of ["cortes", "junta_sector", "junta_uhmw", "j_sec", "tol_hc", "t_ring", "anillo_madera"]) { assert.ok(k in IG, `${nombre}: falta interfazGeom.${k}`); assert.deepEqual(IG2[k], IG[k], `${nombre}: ${k} igual en tools/export_design.js`); }
+    assert.deepEqual(IG.cortes, JSON.parse(JSON.stringify(A.R.ifc.cortes || [])), nombre + ": cortes = R.ifc.cortes");
+    assert.equal(IG.j_sec, P.j_sec); assert.equal(IG.tol_hc, P.tol_hc); assert.equal(IG.t_ring, P.t_ring);
+    if (A.R.ifc.o > 0 && P.fix_mode < 1.5) { assert.ok(IG.cortes.length >= 2 && IG.cortes.every((c) => c.m_desc > 0 && Math.abs(c.m_neta - (c.m_bruta - c.m_desc)) < 1e-9), nombre + ": cortes con masa bruta, descontada y neta"); assert.ok(IG.junta_sector >= 1 || A.R.ifc.o === 2 && IG.junta_sector == null, nombre + ": junta en frío ≥ 1 mm"); }
+    if (A.R.ifc.o === 2) assert.ok(IG.junta_uhmw >= 1, nombre + ": junta de la lámina UHMW ≥ 1 mm");
+    if (A.R.m.ring > 0) { assert.ok(IG.anillo_madera && IG.anillo_madera.m === A.R.m.ring && IG.anillo_madera.h_ring === P.t_wood, nombre + ": anillo de la madera"); const rg = pk.bom.items.find((i) => /Anillo de acero de contención/.test(i.desc)); assert.ok(rg && Math.abs(rg.mTot - A.R.m.ring) < 1e-9, nombre + ": anillo en la lista de materiales"); } else assert.equal(IG.anillo_madera, null);
     // lista de materiales: las barras de los topes son una línea más y la lista cierra con m.total
     const bars = pk.bom.items.find((i) => /Barras de los topes/.test(i.desc));
     const mb = A.R.m.stopBars;

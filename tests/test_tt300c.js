@@ -72,7 +72,7 @@ test("Interfaz alternativa: discos inoxidables (A) y discos con UHMW (B)", () =>
   near(A.R.hax, P0.h_disc / 2 + I.tss + I.tss2, 1e-12, "el eje de los cilindros sube t_disco base + t_disco mesa");
   assert.ok(I.tss2 >= I.tss && I.tss2Req > I.tssReq, "el disco de la mesa lleva las ranuras de engrase: más espesor");
   const Aarea = Math.PI * (A.R.Ro ** 2 - A.R.Ri ** 2);
-  near(A.R.m.ss, 7.93e-6 * Aarea * (I.tss + I.tss2), 1e-9, "masa de los discos");
+  near(A.R.ifc.mSS, 7.93e-6 * Aarea * (I.tss + I.tss2), 1e-9, "masa bruta de la corona de los discos (R.m.ss es la neta: descuenta muescas, chaflanes y juntas, ver 4.ª pasada)");
   assert.deepEqual([A.R.mu.nom, A.R.mu.d, A.R.mu.cont, A.R.mu.dry], [P0.muA_nom, P0.muA_d, P0.muA_cont, P0.muA_dry]);
   // B: lámina UHMW t ≥ E·δ/(p_adm − q)
   const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), J = B.R.ifc;
@@ -154,8 +154,10 @@ test("Bomba, retorno rápido, potencia y tiempo por vuelta", () => {
 test("Cubierta de madera dura y enrase con los rieles de skidding", () => {
   const P0 = TT.defaults(), A0 = TT.analyze(P0, { noFEA: true }), W = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1 }), { noFEA: true });
   const hole = P0.D_piv + 80, area = Math.PI / 4 * (P0.D_top ** 2 - hole ** 2);
-  near(W.R.m.wood, P0.rho_wood * 1e-9 * area * P0.t_wood, 1e-9, "masa de la madera");
-  near(W.R.m.total - A0.R.m.total, W.R.m.wood, 0.02, "la madera suma su masa (más el efecto sobre la interfaz)");
+  const Rw = P0.D_top / 2 - P0.t_ring, areaIn = Math.PI / 4 * ((2 * Rw) ** 2 - hole ** 2);   // 4.ª pasada: los tablones van dentro del anillo de acero
+  near(W.R.m.wood, P0.rho_wood * 1e-9 * areaIn * P0.t_wood, 1e-9, "masa de la madera (dentro del anillo de acero)");
+  assert.ok(W.R.m.wood < P0.rho_wood * 1e-9 * area * P0.t_wood, "la madera ya no ocupa la franja del anillo");
+  near(W.R.m.total - A0.R.m.total, W.R.m.wood + W.R.m.ring, 0.02, "la cubierta suma madera + anillo de acero (más el efecto sobre la interfaz)");
   assert.ok(W.R.q_max > A0.R.q_max, "la madera rotatoria carga la interfaz");
   const row = W.checks.find((c) => /Madera: aplastamiento/.test(c.name));
   const RL = P0.D_load / 2, Aw = Math.PI * (RL * RL - ((P0.D_piv + 80) / 2) ** 2);
@@ -205,7 +207,7 @@ test("Fijación desmontable por sectores con topes (y pegado como alternativa) y
   const Fst = R.Tmax / (R.r_u / 1000) / P0.n_sec * R.q_max / R.q_avg, adm = 1.25 * P0.Fy_ss / Nd, tB = R.ifc.tss;
   const aInf = P0.w_tope + 1, hC = tB - P0.a_sup - aInf, z = aInf + hC / 2, aw = 0.707 * P0.w_tope;
   const Fw = 0.60 * P0.FEXX / (1.2 * Nd), wf = (L) => Math.hypot(Fst * 1e3 / (2 * aw * L), Fst * 1e3 * z / (P0.b_tope * aw * L));
-  const Lreq = Math.max(Fst * 1e3 / (adm * hC), wf(1) / Fw), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;
+  const Lreq = Math.max(Fst * 1e3 / (adm * (hC - P0.tol_hc)), wf(1) / Fw), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;   // 4.ª pasada: el largo se dimensiona con h_c − tol_hc (el tope tolera 1 mm menos de contacto)
   const row = A.checks.find((c) => /Disco de la base \(liso\).*aplastamiento del tope/.test(c.name));
   near(row.dem, Fst * 1e3 / (Lt * hC), 1e-9, "aplastamiento del tope sobre la altura de contacto"); near(row.cap, adm, 1e-12, "admisible");
   assert.ok(row.fu <= 0.9 + 1e-9, "FU del tope ≤ 0,90");
@@ -231,7 +233,7 @@ test("Geometría del tope: barra bajo la superficie, alivio inferior, altura de 
     for (const s of T) {
       assert.ok(s.t >= tMin - 1e-9, ctx + s.pieza + ": t ≥ a_sup + a_inf + h_c,mín = " + tMin);
       near(s.h_barra, s.t - P0.a_sup, 1e-12, "altura de barra"); near(s.a_inf, aInf, 1e-12, "alivio inferior = w + 1"); near(s.h_c, s.t - P0.a_sup - aInf, 1e-12, "h_c");
-      near(s.z, aInf + s.h_c / 2, 1e-12, "brazo de la excentricidad"); near(s.m_barra, RHO * s.L * P0.b_tope * s.h_barra, 1e-12, "masa de una barra"); near(s.m_barras, s.capas * s.n * s.m_barra, 1e-12, "masa de las barras de la capa");
+      near(s.z, aInf + s.h_c / 2, 1e-12, "brazo de la excentricidad"); near(s.m_barra, (s.uh ? 7.93e-6 : RHO) * s.L * P0.b_tope * s.h_barra, 1e-12, "masa de una barra (UHMW: inoxidable)"); near(s.m_barras, s.capas * s.n * s.m_barra, 1e-12, "masa de las barras de la capa");
       assert.ok(s.a_sup - s.allow >= 1 - 1e-9, ctx + s.pieza + ": la barra queda ≥ 1 mm bajo la cara al final de la vida");
       assert.ok(s.w_min <= P0.w_tope && P0.w_tope + P0.hc_min <= s.h_barra, "AWS Tabla 5.8 y filete dentro de la barra");
     }
@@ -249,9 +251,9 @@ test("Geometría del tope: barra bajo la superficie, alivio inferior, altura de 
     assert.ok(A.checks.some((c) => /masa de las barras del tope/.test(c.name) && c.kind === "info" && c.dem > 0 && /incluida en la masa total/.test(c.name)), ctx + "fila informativa: masa incluida");
   }
   assert.equal(TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }).R.ifc.topes[0].capas, 2, "B: la fila del disco representa los dos discos iguales (masa de barras ×2)");
-  // espesores automáticos de los sectores con tope: A 12/12, B discos 12 y UHMW ≥ 25, C bronce 12 y disco duro 12 (con 6 mm el filete de 6 mm no cabe)
+  // espesores automáticos de los sectores con tope (4.ª pasada, h_c,mín = 6): t ≥ 2 + 7 + 6 = 15 → A 15/15, B discos 15 y UHMW ≥ 25, C bronce 15 y disco duro 15
   const I_A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }).R.ifc, I_B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }).R.ifc;
-  assert.deepEqual([I_A.tss, I_A.tss2], [12, 12]); assert.deepEqual([I_B.tss, I_B.tss2, I_B.tuh], [12, 12, 25]);
+  assert.equal(tMin, 15); assert.deepEqual([I_A.tss, I_A.tss2], [15, 15]); assert.deepEqual([I_B.tss, I_B.tss2], [15, 15]); assert.ok(I_B.tuh >= 25 && I_B.tuh >= I_B.tuhTope, "UHMW ≥ tope del rebaje");
   // B: aplastamiento del canto de la UHMW sobre h_c = t − a_sup − a_inf, no sobre t completo
   const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), RB = B.R;
   const Lav = RB.Ro - RB.Ri - 100, Fs = Math.max(RB.mu.d, RB.mu.cont, RB.mu.dry) * RB.N / P0.n_seg * RB.q_max / RB.q_avg, hcU = RB.ifc.tuh - P0.a_sup - aInf;
@@ -262,8 +264,8 @@ test("Geometría del tope: barra bajo la superficie, alivio inferior, altura de 
   assert.equal(P0.w_br, 20);
   const Bd = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1, w_br: 16 }), { noFEA: true });
   assert.deepEqual(Bd.checks.filter((c) => c.st === "fail").map((c) => c.name), ["Soldadura mejillas–base (4 filetes)"], "B con w_br = 16: solo falla la soldadura mejillas–base");
-  // con sectores finos el tope no es realizable: 6 mm (el filete no cabe: h_c < 0) y 10 mm (h_c = 1 < h_c,mín)
-  for (const t of [6, 10]) {
+  // con sectores finos el tope no es realizable: 6 mm (el filete no cabe: h_c < 0), 10 mm (h_c = 1) y 12 mm (h_c = 3 < h_c,mín = 6: el antiguo espesor automático)
+  for (const t of [6, 10, 12]) {
     const X = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, t_ss: t }), { noFEA: true });
     assert.ok(X.checks.some((c) => /altura de contacto efectiva del tope/.test(c.name) && c.st === "fail"), "t = " + t + " no cumple la altura de contacto");
     assert.ok(!X.verdict.estructura, "t = " + t + ": estructura no cumple");
@@ -342,8 +344,8 @@ test("Radio interior real de la interfaz: R_i = D_collar/2 + c_boss_r + m_ri par
   }
   // masas con el área del anillo real
   const A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }), B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true });
-  near(A.R.m.ss, RHO_SS * Math.PI * (A.R.Ro ** 2 - Ri ** 2) * (A.R.ifc.tss + A.R.ifc.tss2), 1e-12, "masa de los discos (A)");
-  near(B.R.m.uhmw, RHO_UH * Math.PI * (B.R.Ro ** 2 - Ri ** 2) * B.R.ifc.tuh, 1e-12, "masa de la lámina UHMW (B)");
+  near(A.R.ifc.mSS, RHO_SS * Math.PI * (A.R.Ro ** 2 - Ri ** 2) * (A.R.ifc.tss + A.R.ifc.tss2), 1e-12, "masa bruta de la corona de los discos (A)");
+  near(B.R.ifc.mUH, RHO_UH * Math.PI * (B.R.Ro ** 2 - Ri ** 2) * B.R.ifc.tuh, 1e-12, "masa bruta de la corona de UHMW (B)");
   // la lámina UHMW usa todo el canto disponible (R_o − R_i − 100) y su espesor de tope lo ve
   near(B.R.ifc.topes.find((s) => s.id === "uhmw").L, B.R.Ro - Ri - 100, 1e-12, "largo del tope UHMW = canto disponible");
   // sin collar vuelve al borde del buje (D_piv/2 + 15); m_ri mueve R_i milímetro a milímetro
@@ -380,9 +382,9 @@ test("Rebaje del collar en la mesa: h_collar − δ + c_boss_a desde la cara inf
   }
   // defaults sin interfaz (δ = 0): 60 + 2 = 62 mm, 16 en la plancha (agujero pasante) y 46 en el cubo
   const D0 = TT.compute(TT.defaults()).hubG; assert.deepEqual([D0.hRec, D0.hPl, D0.hHub], [62, 16, 46]);
-  // con interfaz el rebaje es menos profundo: A 60 − 24 + 2 = 38; B 60 − 49 + 2 = 13 (menos que t_bot = 16: el cubo queda sin rebaje y el agujero de la plancha sigue siendo pasante, sin labio de 3 mm)
+  // con interfaz el rebaje es menos profundo (4.ª pasada, sectores de 15 mm): A 60 − 30 + 2 = 32; B 60 − 55 + 2 = 7 (menos que t_bot = 16: el cubo queda sin rebaje y el agujero de la plancha sigue siendo pasante, sin labio de 7 mm)
   const HA = TT.compute(Object.assign(TT.defaults(), { opt_ss: 1 })).hubG, HB = TT.compute(Object.assign(TT.defaults(), { opt_uhmw: 1 })).hubG;
-  assert.deepEqual([HA.hRec, HA.hPl, HA.hHub], [38, 16, 22]); assert.deepEqual([HB.hRec, HB.hPl, HB.hHub], [13, 16, 0]);
+  assert.deepEqual([HA.hRec, HA.hPl, HA.hHub], [32, 16, 16]); assert.deepEqual([HB.hRec, HB.hPl, HB.hHub], [7, 16, 0]);
   // la masa total (plancha + cubo) del default es la misma que con el modelo anterior (62 mm, todo en el cubo): solo se reparte entre las dos piezas
   const m0 = TT.masses(TT.defaults()), P0 = TT.defaults(), d_b = P0.D_piv + 30, Drb = P0.D_boss + 2 * P0.c_boss_r, hw0 = P0.h_disc - P0.t_top - P0.t_bot;
   const hubOld = RHO * Math.PI / 4 * ((P0.D_hub ** 2 - d_b ** 2) * hw0 - (Drb ** 2 - d_b ** 2) * 62);
@@ -390,7 +392,7 @@ test("Rebaje del collar en la mesa: h_collar − δ + c_boss_a desde la cara inf
   near(m0.hub + m0.bot, hubOld + RHO * ((Math.PI * rpr0 * rpr0 - Math.PI / 4 * d_b ** 2) * P0.t_bot + aR0 * Math.max(P0.t_pr, P0.t_bot)), 1e-12, "plancha + cubo = modelo anterior (δ = 0)");
   // collar bajo la cara inferior (h − δ + c_a < 0): no hay rebaje; el agujero de la plancha es solo el del buje; se informa la profundidad negativa
   const N = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, h_boss: 20 }), { noFEA: true }), HN = N.R.hubG;
-  near(HN.hRaw, 20 - 24 + 2, 1e-12, "profundidad cruda negativa (−2)"); assert.equal(HN.hRec, 0); assert.equal(HN.hPl, 0);
+  near(HN.hRaw, 20 - 30 + 2, 1e-12, "profundidad cruda negativa (−8)"); assert.equal(HN.hRec, 0); assert.equal(HN.hPl, 0);
   near(N.R.m.hub, RHO * Math.PI / 4 * (P0.D_hub ** 2 - d_b ** 2) * hw0, 1e-12, "sin rebaje: cubo macizo salvo el buje");
   assert.ok(N.checks.find((c) => /Rebaje del cubo para el collar/.test(c.name)).dem < 0 || N.checks.find((c) => /Rebaje del cubo para el collar/.test(c.name)).cap < 0, "profundidad negativa reportada");
   assert.equal(TT.compute(Object.assign(TT.defaults(), { h_boss: 0 })).hubG.hRec, 0, "sin collar no hay rebaje");
@@ -405,6 +407,140 @@ test("e_piv: mínimo de ingreso con default 0 = automático (rige g_buje + L_buj
   near(TT.compute(Object.assign(TT.defaults(), { e_piv: 60 })).ePiv, 60, 1e-12, "un mínimo de ingreso mayor manda");
   near(TT.compute(Object.assign(TT.defaults(), { e_piv: 40 })).ePiv, 42, 1e-12, "el antiguo 40 nunca regía");
   assert.equal(AG.validate(TT.defaults()).filter((v) => v.lvl === "error").length, 0, "0 es un valor válido");
+});
+
+/* ===================================================================================================================================== */
+/* 4.ª pasada                                                                                                                              */
+/* ===================================================================================================================================== */
+const RHO_S = 7.85e-6, RHO_SSx = 7.93e-6, RHO_UHx = 0.94e-6, ALS = 11.7e-6;
+const rnd01 = (x) => Math.ceil(x * 10 - 1e-9) / 10;
+
+test("4.ª pasada · hc_min = 6: sectores con tope de 15 mm y el largo del tope tolera 1 mm menos de contacto (T6)", () => {
+  const P0 = TT.defaults(), aInf = P0.w_tope + 1;
+  assert.equal(P0.hc_min, 6); assert.equal(P0.tol_hc, 1); assert.equal(P0.a_sup + aInf + P0.hc_min, 15, "espesor mínimo del sector con tope");
+  for (const [nm, o] of [["A", { opt_ss: 1 }], ["B", { opt_uhmw: 1 }], ["C1", { opt_bz: 1 }], ["C2", { opt_bz: 1, bz_conf: 2 }], ["C3", { opt_bz: 1, bz_conf: 3 }]]) {
+    const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), T = A.R.ifc.topes, I = A.R.ifc;
+    assert.ok(A.verdict.gira && A.verdict.estructura, nm + " cumple");
+    if (nm !== "B") assert.deepEqual([I.tss, I.tss2], [15, 15], nm + ": sectores de 15 mm"); else assert.deepEqual([I.tss, I.tss2], [15, 15]);
+    if (I.o === 3) assert.equal(I.tbz, 15, nm + ": bronce de 15 mm");
+    for (const s of T) {
+      assert.ok(s.t >= 15 - 1e-9 && s.h_c >= P0.hc_min - 1e-9, nm + " " + s.pieza + ": t ≥ 15 y h_c ≥ 6");
+      const adm = s.adm, sig = (hc) => s.F * 1e3 / (s.L * hc);
+      assert.ok(sig(s.h_c - P0.tol_hc) <= 0.9 * adm + 1e-9, nm + " " + s.pieza + ": con 1 mm menos de contacto el aplastamiento sigue ≤ 0,90 (σ/adm = " + (sig(s.h_c - 1) / adm).toFixed(3) + ")");
+      assert.ok(sig(s.h_c) <= 0.9 * adm * (s.h_c - 1) / s.h_c + 1e-9, nm + " " + s.pieza + ": con h_c nominal queda con margen");
+    }
+    const rows = A.checks.filter((c) => /aplastamiento del tope con la altura de contacto reducida/.test(c.name));
+    assert.equal(rows.length, T.length, nm + ": una fila de aplastamiento con h_c − tol por tope");
+    assert.ok(rows.every((c) => c.fu <= 0.9 + 1e-9 && /tol_hc|tolerancia/.test(c.formula)), nm + ": FU ≤ 0,90 con h_c − tol");
+  }
+  // B: la lámina de UHMW se dimensiona con h_c ≥ F_s/(0,9·L·p_adm) + tol (T7: el 0,9 es margen de proyecto)
+  const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), RB = B.R, IB = RB.ifc;
+  const Lav = RB.Ro - RB.Ri - 100, Fs = Math.max(RB.mu.d, RB.mu.cont, RB.mu.dry) * RB.N / P0.n_seg * RB.q_max / RB.q_avg;
+  const hcNeed = Math.max(P0.hc_min, Fs * 1e3 / (0.9 * Lav * P0.p_uhmw) + P0.tol_hc), tTope = P0.a_sup + aInf + hcNeed;
+  near(IB.tuhTope, tTope, 1e-4, "espesor del sector de UHMW por el tope del rebaje (N del bucle de la interfaz vs N final: < 0,01 %)");
+  const UH = [3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50], tExp = UH.find((v) => v >= Math.max(IB.tuhReq, tTope) - 1e-9);
+  assert.equal(IB.tuh, tExp, "UHMW comercial = menor espesor ≥ máx(planitud; tope)");
+  const row = B.checks.find((c) => /Lámina UHMW: espesor mínimo por el tope del rebaje/.test(c.name));
+  assert.ok(row && row.kind === "info", "fila informativa del espesor por el tope");
+  assert.ok(/0,9/.test(row.formula) && /margen de proyecto/.test(row.formula) && /no lo exige la norma/.test(row.formula), "T7: el 0,9 se documenta como margen de proyecto, no de norma");
+  near(row.dem, tTope, 1e-4, "dem = espesor mínimo por el tope"); near(row.cap, IB.tuh, 1e-12, "cap = espesor adoptado");
+  // A con t manual de 12 (el antiguo automático): h_c = 3 < 6 no cumple
+  assert.ok(TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, t_ss: 12 }), { noFEA: true }).checks.some((c) => /altura de contacto efectiva del tope/.test(c.name) && c.st === "fail"), "12 mm ya no cumple");
+  // tol_hc = 0 reproduce el dimensionamiento sin tolerancia (A: L = 150 con FU 0,836, que con 1 mm menos de contacto pasa de 0,90): la tolerancia es lo que protege contra el hallazgo T6
+  const A0 = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, tol_hc: 0 }), { noFEA: true }).R.ifc.topes[0], A1 = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }).R.ifc.topes[0];
+  assert.ok(A1.L > A0.L, "con tol_hc = 1 el tope es más largo (" + A1.L + " vs " + A0.L + " mm)");
+  assert.ok(A0.F * 1e3 / (A0.L * (A0.h_c - 1)) > 0.9 * A0.adm, "sin tolerancia, 1 mm menos de contacto pasa de FU 0,90");
+  // con hc_min = 3 (valor anterior) vuelven los 12 mm
+  assert.deepEqual([TT.compute(Object.assign(TT.defaults(), { opt_ss: 1, hc_min: 3 })).ifc.tss, TT.compute(Object.assign(TT.defaults(), { opt_ss: 1, hc_min: 3 })).ifc.tss2], [12, 12]);
+});
+
+test("4.ª pasada · masa de sectores: muescas, chaflanes y juntas descontadas con fórmula explícita; barras de UHMW en inoxidable", () => {
+  const P0 = TT.defaults(), a2 = (P0.w_tope + 1) ** 2, b2 = P0.b_tope + 2;
+  assert.equal(P0.j_sec, 1, "junta en frío mínima 1 mm (parámetro)");
+  const variants = [["A", { opt_ss: 1 }], ["B", { opt_uhmw: 1 }], ["C1", { opt_bz: 1 }], ["C2", { opt_bz: 1, bz_conf: 2 }], ["C3", { opt_bz: 1, bz_conf: 3 }]];
+  for (const [nm, o] of variants) {
+    const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), R = A.R, I = R.ifc, m = R.m, Ro = R.Ro, Ri = R.Ri, Aan = Math.PI * (Ro ** 2 - Ri ** 2), P = A.P, ctx = nm + ": ";
+    const jOf = (al, n) => rnd01(Math.max(P.j_sec, (al - ALS) * P.dT * 2 * Ro * Math.sin(Math.PI / n)));
+    const top = (id) => I.topes.find((x) => x.id === id);
+    const rBz = P.rho_bz * 1e-6, fg = Math.PI * P.bz_plug_d ** 2 / (2 * Math.sqrt(3) * P.bz_plug_p ** 2), rEff = rBz * (1 - 0.7 * fg) + 1.8e-6 * 0.7 * fg;
+    const exp = { ss: I.mSS, uhmw: I.mUH, bz: I.mBz }, desc = { ss: 0, uhmw: 0, bz: 0 };
+    const sub = (tgt, rho, n, capas, t, L, joint, jj, strip) => {   // volumen por sector: junta (o franja libre) + muesca (no en la franja) + 2 chaflanes de a_inf²/2
+      const Vj = joint ? (strip ? P.b_tope + jj : jj) * (Ro - Ri) * t : 0, Vn = strip ? 0 : b2 * L * t, Vc = a2 * L;
+      desc[tgt] += rho * capas * n * (Vj + Vn + Vc);
+    };
+    if (I.o === 1 || I.o === 2) { const d = top("disc0"), d1 = top("disc1"); for (const x of [d, d1].filter(Boolean)) sub("ss", RHO_SSx, x.n, x.capas, x.t, x.L, true, jOf(17.3e-6, x.n)); }
+    if (I.o === 2) { const u = top("uhmw"); sub("uhmw", RHO_UHx, u.n, 1, u.t, u.L, true, jOf(180e-6, u.n), true); }
+    if (I.o === 3) {
+      const z0 = top("bz0"), z1 = top("bz1");
+      sub("bz", rEff, z0.n, 1, z0.t, z0.L, I.conf !== 3, jOf(18e-6, z0.n));            // pastillas: la junta ya está en la fracción de cobertura
+      if (I.conf === 2) sub("bz", rBz, z1.n, 1, z1.t, z1.L, true, jOf(18e-6, z1.n)); else sub("ss", RHO_SSx, z1.n, 1, z1.t, z1.L, true, jOf(17.3e-6, z1.n));
+    }
+    near(m.ss, exp.ss - desc.ss, 1e-9, ctx + "m.ss neta"); near(m.uhmw, exp.uhmw - desc.uhmw, 1e-9, ctx + "m.uhmw neta"); near(m.bz, exp.bz - desc.bz, 1e-9, ctx + "m.bz neta");
+    assert.ok(desc.ss + desc.uhmw + desc.bz > 5, ctx + "el descuento es apreciable (> 5 kg)");
+    near(m.total, m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl + m.stopBars, 1e-12, ctx + "m.total con piezas netas");
+    // la fila informativa de cada pieza y las claves de interfazGeom
+    const rows = A.checks.filter((c) => /descuento de masa por muescas, chaflanes y juntas/.test(c.name));
+    assert.equal(rows.length, I.cortes.length, ctx + "una fila por pieza"); assert.ok(rows.every((c) => c.kind === "info" && c.dem > 0 && /a_inf²|a_inf\^2|a_inf²/.test(c.formula) && /junta/.test(c.formula)), ctx + "filas info con la fórmula");
+    near(rows.reduce((q, c) => q + c.dem, 0), desc.ss + desc.uhmw + desc.bz, 1e-9, ctx + "las filas suman el descuento");
+    near(I.cortes.reduce((q, c) => q + c.m_desc, 0), desc.ss + desc.uhmw + desc.bz, 1e-9, ctx + "R.ifc.cortes");
+    // cada sector pesa menos (manipulación manual): masa neta por sector en la fila de ISO 11228-1
+    const ms = A.checks.filter((c) => /masa del sector/.test(c.name));
+    assert.ok(ms.length > 0 && ms.every((c) => c.dem <= 25), ctx + "sectores ≤ 25 kg");
+  }
+  // barras de UHMW en B: acero inoxidable (ρ 7,93); las demás, acero estructural (ρ 7,85)
+  const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), u = B.R.ifc.topes.find((x) => x.id === "uhmw"), d = B.R.ifc.topes.find((x) => x.id === "disc0");
+  near(u.m_barra, RHO_SSx * u.L * P0.b_tope * u.h_barra, 1e-12, "barra de UHMW en inoxidable"); near(d.m_barra, RHO_S * d.L * P0.b_tope * d.h_barra, 1e-12, "barra del disco en acero estructural");
+  near(B.R.m.stopBars, d.capas * d.n * d.m_barra + u.n * u.m_barra, 1e-12, "m.stopBars con ambas densidades");
+  // con pegado (fix_mode = 2) no hay muescas, chaflanes ni juntas en los discos; la lámina UHMW conserva sus juntas
+  const G = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, fix_mode: 2 }), { noFEA: true }); near(G.R.m.ss, G.R.ifc.mSS, 1e-12, "pegado: disco entero");
+  const GB = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1, fix_mode: 2 }), { noFEA: true }), ju = rnd01(Math.max(P0.j_sec, (180e-6 - ALS) * P0.dT * 2 * GB.R.Ro * Math.sin(Math.PI / P0.n_seg)));
+  near(GB.R.m.ss, GB.R.ifc.mSS, 1e-12, "pegado: discos enteros"); near(GB.R.m.uhmw, GB.R.ifc.mUH - RHO_UHx * P0.n_seg * ju * (GB.R.Ro - GB.R.Ri) * GB.R.ifc.tuh, 1e-9, "pegado: la lámina UHMW sigue en sectores con junta");
+  // más junta o barra más ancha, más descuento
+  const A0 = TT.compute(Object.assign(TT.defaults(), { opt_ss: 1 })), A1 = TT.compute(Object.assign(TT.defaults(), { opt_ss: 1, j_sec: 3 }));
+  assert.ok(A1.m.ss < A0.m.ss, "una junta de 3 mm quita más material que una de 1 mm");
+  // ambos sentidos de giro: la muesca tiene las dos paredes (chaflán en ambas) y el par de calado es el mismo en los dos sentidos (cilindros en espejo)
+  const cw = TT.compute(Object.assign(TT.defaults(), { opt_ss: 1 })); assert.ok(cw.ifc.topes.every((x) => x.F > 0 && x.a_inf === P0.w_tope + 1));
+});
+
+test("4.ª pasada · anillo de acero de la cubierta de madera (t_ring)", () => {
+  const P0 = TT.defaults(), W = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1 }), { noFEA: true }), A0 = TT.analyze(TT.defaults(), { noFEA: true }), m = W.R.m;
+  assert.equal(P0.t_ring, 10, "pletina de 10 mm (mandante)");
+  const q = TT.PARAM_GROUPS.find((g) => g.id === "cubierta").p.find((x) => x[0] === "t_ring"); assert.ok(q && /el alto es t_madera/.test(q[1]) && /anillo/i.test(q[1]), "parámetro documentado");
+  const Rt = P0.D_top / 2, Rw = Rt - P0.t_ring;
+  near(m.ring, RHO_S * Math.PI * (Rt ** 2 - Rw ** 2) * P0.t_wood, 1e-12, "m.ring = ρ·π·(R² − (R − t_ring)²)·t_madera (altura = espesor de los tablones)");
+  assert.ok(m.ring > 24 && m.ring < 25, "≈ 24,5 kg"); assert.equal(A0.R.m.ring, 0, "sin madera no hay anillo");
+  near(m.disc, A0.R.m.disc + m.wood + m.ring, 1e-12, "el anillo gira con la mesa: en m.disc");
+  near(m.total - A0.R.m.total, m.wood + m.ring, 0.02, "m.total incluye el anillo");
+  assert.ok(m.total > A0.R.m.total + m.wood, "más que solo la madera");
+  const r = W.checks.find((c) => /Anillo de acero de contención de la madera/.test(c.name)); assert.ok(r && r.kind === "info"); near(r.dem, m.ring, 1e-12, "fila informativa");
+  assert.ok(/R² − \(R − t_anillo\)²/.test(r.formula), "fórmula explícita");
+  const g = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1, t_ring: 20 }), { noFEA: true }).R.m; assert.ok(g.ring > 2 * m.ring * 0.99 && g.wood < m.wood, "más ancho: más anillo y menos madera");
+  // capacidad: la madera sigue cumpliendo
+  assert.ok(W.verdict.gira && W.verdict.estructura, "madera con anillo cumple");
+});
+
+test("4.ª pasada · filete mejillas–base: mínimo AWS D1.1 T5.8 (parte más gruesa) y máximo AISC 360-22 J2.2b (borde de la mejilla)", () => {
+  const P = TT.defaults(), g = (re, o) => TT.analyze(Object.assign(TT.defaults(), o || {}), { noFEA: true }).checks.find((c) => re.test(c.name));
+  const mn = g(/Filete mínimo mejillas–base/), mx = g(/Filete máximo mejillas–base/);
+  assert.ok(mn && mx, "ambas filas");
+  assert.equal(mn.dem, 8, "T = máx(t_base 18; t_mejilla 25) = 25 → 8 mm"); assert.equal(mn.cap, P.w_br); assert.equal(mn.st, "ok");
+  assert.equal(mx.dem, P.w_br); assert.equal(mx.cap, P.t_ch - 2, "t ≥ 6: w ≤ t − 2 = 23 mm (la mejilla termina en el borde)"); assert.equal(mx.st, "ok");
+  assert.ok(/J2\.2b/.test(mx.ref) && /Tabla 5\.8/.test(mn.ref) && /se aplica la regla de AWS \(parte más gruesa\)/i.test(mn.ref), "citas");
+  assert.equal(g(/Filete máximo mejillas–base/, { w_br: 24 }).st, "fail", "24 > 23");
+  assert.equal(g(/Filete máximo mejillas–base/, { t_ch: 12, w_br: 12 }).st, "fail", "mejilla de 12: máx 10");
+  assert.equal(g(/Filete máximo mejillas–base/, { t_ch: 12, w_br: 10 }).st, "ok");
+  assert.equal(g(/Filete mínimo mejillas–base/, { w_br: 6 }).st, "fail", "6 < 8");
+  assert.ok(/plancha base/.test(mx.formula) && /cara/.test(mx.formula), "aclara que la plancha base se suelda por su cara");
+  // K2: la cita del filete mínimo aclara cuál regla se aplica en collar, oreja y almas
+  for (const re of [/Collar: filete mínimo/, /Oreja: filete mínimo/, /Filete mínimo almas\/nervios–planchas/]) { const c = g(re); assert.ok(/se aplica la regla de AWS \(parte más gruesa\)/i.test(c.ref), "K2: " + c.name); }
+});
+
+test("4.ª pasada · flecha al izar la base (C12): margen ≥ 10 % del límite B/300 en todas las variantes, incluso B con madera", () => {
+  const P0 = TT.defaults(); assert.equal(P0.c_lug, 200, "puntos de izaje a 200 mm del borde (150 dejaba B sin margen con hc_min = 6)");
+  for (const [nm, o] of [...IFC_VARIANTS, ["B+madera", { opt_uhmw: 1, opt_wood: 1 }]]) {
+    const P = Object.assign(TT.defaults(), o), R = TT.compute(P), L = TT.runLift(P, R, false);
+    assert.ok(L.wMax <= 0.90 * P.B / 300, nm + ": flecha " + L.wMax.toFixed(2) + " mm vs límite " + (P.B / 300).toFixed(2));
+  }
 });
 
 test("Golden file: resultados por defecto sin cambios no justificados", () => {
@@ -500,13 +636,14 @@ test("Collar y pivote: equilibrio con el asiento rígido-lineal, filete (V_c, M_
     if (z < hb) { Vc += w * dz; Mc += w * (hb - z) * dz; }                                         // collar: z ∈ [0, h_collar]; momento respecto del plano de la soldadura (cara superior de la base)
   }
   near(tot, Hf, 1e-6, "ΣF = H"); near(mom, Hf * (e + L / 2), 1e-6, "ΣM respecto del centro del asiento = H·(e + L/2)");
-  assert.ok(Vc / Hf > 1.8 && Vc / Hf < 1.95, "V_c ≈ 1,85·H (la plancha base toma la reacción de signo contrario): " + Vc / Hf);
+  assert.ok(Vc / Hf > 1.87 && Vc / Hf < 1.88, "V_c ≈ 1,875·H (la plancha base toma la reacción de signo contrario): " + Vc / Hf);
   assert.ok(Mc * 1e-6 > 13 && Mc * 1e-6 < 15.5, "M_c ≈ 14 kN·m respecto de la cara superior de la base: " + Mc * 1e-6);
   const aw = 0.707 * P.w_collar, f = Math.hypot(Mc / (Math.PI * P.D_boss ** 2 / 4 * aw), Vc / (Math.PI * P.D_boss * aw)), Fw = P.FEXX * 0.6 / (1.2 * P.Nd);
   const wc = g(/Soldadura del collar/);
   near(wc.dem, f, 1e-5, "grupo circular: f = √(f_b² + f_v²) con V_c y M_c"); near(wc.cap, Fw, 1e-12, "0,60 FEXX/(1,2 Nd)");
   assert.equal(P.w_collar, 10); assert.equal(wc.kind, "fu", "el filete del collar usa la banda warn como el resto (H8)");
   assert.ok(wc.fu <= 0.9 && wc.st === "ok", "con w = 10 mm cumple con FU ≤ 0,90: " + wc.fu);
+  assert.ok(/V_c ≈ 1,875·H/.test(wc.formula) && !/1,85/.test(wc.formula), "K1: el rótulo dice 1,875·H (la integración da " + (Vc / Hf).toFixed(3) + ")");
   assert.ok(wc.dem > 60, "mayor que el modelo anterior (V = H, M = H(e + L/2): 44,8 MPa): " + wc.dem);
   const w9 = g(/Soldadura del collar/, { w_collar: 9 });
   assert.ok(w9.fu > 0.9 && w9.fu <= 1 && w9.st === "warn", "w = 9: banda warn (0,9–1): FU " + w9.fu);

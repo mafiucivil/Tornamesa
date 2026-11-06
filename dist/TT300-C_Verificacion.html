@@ -434,7 +434,9 @@ const TT = (() => {
       ["b_tope", "Fijación desmontable: espesor de la barra del tope (separa los dos filetes: brazo del par de excentricidad)", "mm", 20, 6, 40, 1],
       ["a_sup", "Fijación desmontable · tope: alivio de la cara superior de la barra bajo la superficie de deslizamiento (≥ 1 mm más el sobreespesor de desgaste y relapeado)", "mm", 2, 1, 8, 0.5],
       ["a_inf", "Fijación desmontable · tope: alivio inferior en el canto del sector (chaflán 45° que libra el filete delantero; 0 = automático, w_tope + 1 mm)", "mm", 0, 0, 24, 0.5],
-      ["hc_min", "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (tolerancia de corte y rebabas del canto)", "mm", 3, 1, 20, 0.5],
+      ["hc_min", "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (con h_c = 3 mm el aplastamiento pasaba de FU 0,90 a 1,31 por 1 mm de error de corte: 4.ª pasada, hallazgo T6; espesor mínimo del sector con tope = a_sup + a_inf + h_c,mín = 15 mm)", "mm", 6, 1, 20, 0.5],
+      ["tol_hc", "Fijación desmontable · tope: tolerancia de la altura de contacto (corte y rebabas del canto): el largo del tope y el espesor de la lámina UHMW se dimensionan con h_c − tol_hc, de modo que 1 mm menos de contacto no pasa de FU 0,90", "mm", 1, 0, 3, 0.5],
+      ["j_sec", "Fijación desmontable · junta en frío entre sectores contiguos de disco, placa o lámina (mínimo 1 mm; la junta efectiva es la mayor entre este valor y la dilatación calculada, redondeada a 0,1 mm; se descuenta de la masa)", "mm", 1, 1, 10, 0.5],
       ["d_tor", "Fijación desmontable: tornillo avellanado de posición (ISO 10642)", "mm", 6, 4, 12, 1],
       ["h_gr", "Engrase: profundidad de las ranuras en el disco de la mesa (A) o en el bronce (C); 0 = sin ranuras", "mm", 1.0, 0, 5, 0.5],
       ["w_gr", "Engrase: ancho de las ranuras", "mm", 8, 3, 25, 1],
@@ -472,6 +474,7 @@ const TT = (() => {
       ["f_apoyo", "Fracción del círculo de apoyo de la carga que toca realmente la madera (tablones contiguos dentro del anillo de acero: 0,90, definido por el mandante)", "–", 0.9, 0.05, 1, 0.05],
       ["h_skid", "Altura de los rieles de skidding o de la superficie de llegada (0 = no aplica)", "mm", 0, 0, 800, 5],
       ["tol_skid", "Tolerancia de enrase con los rieles", "mm", 10, 1, 50, 1],
+      ["t_ring", "Anillo de acero de contención de la madera (pletina soldada a la plancha superior en el borde): ancho radial; el alto es t_madera y el acero va en el borde exterior, los tablones dentro (Ø D_mesa − 2·t_anillo)", "mm", 10, 4, 40, 1],
     ] },
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
@@ -568,7 +571,7 @@ const TT = (() => {
       ["t_base_min", "Espesor mínimo de base por planitud (criterio de fabricación)", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
-      ["c_lug", "Puntos de izaje (lados y): distancia al borde", "mm", 150, 30, 600, 5],
+      ["c_lug", "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite)", "mm", 200, 30, 600, 5],
       ["x_lug", "Puntos de izaje: distancia al eje y", "mm", 600, 0, 2000, 5],
       ["t_ear", "Orejas de izaje (4, soldadas a la base): espesor de la placa", "mm", 18, 6, 50, 1],
       ["R_ear", "Orejas de izaje: radio exterior (ancho = 2R; AISC 360-22 D5.2(3): a = R − d/2 ≥ 1,33·b_e)", "mm", 92, 30, 150, 1],
@@ -651,8 +654,12 @@ const TT = (() => {
     m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
     m.hub = RHO * Math.PI / 4 * (Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw - Math.max(0, hg.Drb ** 2 - d_bush ** 2) * hg.hHub);   // rebaje del collar: solo la parte que pasa de la plancha inferior (h_collar − δ + c_boss_a − t_bot)
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
-    m.wood = P.opt_wood > 0.5 ? P.rho_wood * 1e-9 * Math.PI / 4 * (P.D_top ** 2 - hole_top ** 2) * P.t_wood : 0;   // cubierta de madera (kg/m³ → kg/mm³)
-    m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood;
+    // cubierta de madera (kg/m³ → kg/mm³): los tablones van dentro del anillo de acero de contención (Ø D_mesa − 2·t_anillo, hasta la abertura de la tapa)
+    // y el anillo es una pletina t_anillo × t_madera en el borde, soldada a la plancha superior (gira con la mesa y carga la interfaz)
+    const wood_on = P.opt_wood > 0.5, Rw = Rt - P.t_ring;
+    m.wood = wood_on ? P.rho_wood * 1e-9 * Math.PI / 4 * ((2 * Rw) ** 2 - hole_top ** 2) * P.t_wood : 0;
+    m.ring = wood_on ? RHO * Math.PI * (Rt * Rt - Rw * Rw) * P.t_wood : 0;
+    m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood + m.ring;
     return m;
   }
 
@@ -716,13 +723,13 @@ const TT = (() => {
     const Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), aInf = stopAInf(P);
     const Ftot = R.Tmax / (R.r_u / 1000), kpk = R.q_max / R.q_avg, Lav = R.Ro - R.Ri - 100;   // kN en el radio de fricción (T_calado); sector más cargado; canto radial disponible (mm)
     const push = (o) => {
-      const g = stopGeo(P, o.t), Tw = Math.max(P.b_tope, o.tResp), mB = g.hB > 0 && isFinite(o.L) ? RHO * o.L * P.b_tope * g.hB : 0;
-      out.push(Object.assign(o, { pieza: o.nombre, a_sup: P.a_sup, a_inf: aInf, h_barra: g.hB, h_c: g.hC, h_c_min: P.hc_min, z: g.z, w_tope: P.w_tope, b_tope: P.b_tope, w_min: wMin(Tw), Tw, Lav, m_barra: mB, m_barras: o.capas * o.n * mB }));
+      const g = stopGeo(P, o.t), Tw = Math.max(P.b_tope, o.tResp), rho = o.uh ? RHO_SS : RHO, mB = g.hB > 0 && isFinite(o.L) ? rho * o.L * P.b_tope * g.hB : 0;   // las barras del rebaje de la lámina UHMW son de acero inoxidable (7,93)
+      out.push(Object.assign(o, { pieza: o.nombre, a_sup: P.a_sup, a_inf: aInf, h_barra: g.hB, h_c: g.hC, h_c_min: P.hc_min, tol_hc: P.tol_hc, z: g.z, w_tope: P.w_tope, b_tope: P.b_tope, w_min: wMin(Tw), Tw, Lav, rho_barra: rho, m_barra: mB, m_barras: o.capas * o.n * mB }));
     };
     const sized = (id, grp, nombre, n, t, FyP, tResp, allow, capas) => {
       const g = stopGeo(P, t), Fst = Ftot / n * kpk, adm = 1.25 * Math.min(FyP, P.Fy) / Nd;       // el menor Fy entre el canto del sector y la barra
-      const LreqB = g.hC > 0 ? Fst * 1e3 / (adm * g.hC) : Infinity, LreqW = weldStop(P, Fst, 1, g.z) / Fw, Lreq = Math.max(LreqB, LreqW);
-      const L = P.L_tope > 0 ? P.L_tope : (isFinite(Lreq) ? Math.ceil(Lreq / 0.9 / 5) * 5 : Lav);   // largo: el mayor entre aplastamiento y soldadura, con FU objetivo 0,90
+      const hCd = g.hC - P.tol_hc, LreqB = hCd > 0 ? Fst * 1e3 / (adm * hCd) : Infinity, LreqW = weldStop(P, Fst, 1, g.z) / Fw, Lreq = Math.max(LreqB, LreqW);
+      const L = P.L_tope > 0 ? P.L_tope : (isFinite(Lreq) ? Math.ceil(Lreq / 0.9 / 5) * 5 : Lav);   // largo: el mayor entre aplastamiento (con h_c − tol_hc) y soldadura, con FU objetivo 0,90
       push({ id, grp, nombre, n, t, tResp, allow, capas: capas || 1, F: Fst, L, Lreq, adm, uh: false });
     };
     if (I.o === 1 || I.o === 2) {
@@ -737,6 +744,36 @@ const TT = (() => {
       const nB = I.conf === 3 ? P.bz_npad : P.n_sec, FyC2 = I.conf === 2 ? P.Fy_bz2 : P.Fy_cara;
       sized("bz0", "Interfaz bronce", (I.conf === 3 ? "Pastillas de bronce (" : "Placa de bronce (") + nB + (I.conf === 3 ? " pastillas)" : " sectores)"), nB, I.tbz, P.Fy_bz, P.t_base, P.bz_allow);   // placa de bronce soldada a la base
       sized("bz1", "Interfaz bronce", (I.conf === 2 ? "2.ª placa de bronce" : "Disco duro") + " (" + P.n_sec + " sectores)", P.n_sec, I.tss, FyC2, P.t_bot, I.conf === 2 ? P.bz_allow : P.ss_allow);   // disco duro o 2.ª placa soldados al fondo de la mesa
+    }
+    return out;
+  }
+  // Material que el 3D real quita a las coronas de la interfaz (4.ª pasada); R.m.ss, R.m.uhmw y R.m.bz son netos y R.ifc.mSS/mUH/mBz la corona bruta.
+  // Por sector (mm³):  V_junta = j·(R_o − R_i)·t  (junta en frío con el sector vecino; en la lámina UHMW la franja libre entre sectores es (b_tope + j)·(R_o − R_i)·t porque la barra del rebaje va dentro);
+  //                    V_muesca = (b_tope + 2)·L_tope·t  (muesca pasante de la barra, 1 mm de holgura por lado; no hay en la lámina UHMW: su rebaje es la franja; con pegado, fix_mode = 2, no hay barras ni muescas ni chaflanes);
+  //                    V_chaflán = a_inf²·L_tope  (chaflán 45° de cateto a_inf: a_inf²/2 por canto, en los DOS cantos de la muesca, porque el par se invierte con el sentido de giro).
+  // La junta es j = máx(j_sec; (α − α_acero)·ΔT·cuerda) redondeada hacia arriba a 0,1 mm. Las pastillas de bronce (conf. 3) ya llevan sus juntas en la fracción de cobertura.
+  // No se descuentan los tornillos de posición, las ranuras y graseras ni la distribución de tapones de grafito (conservador, < 0,2 % de la masa total).
+  function cortesOf(P, R) {
+    const I = R.ifc, out = [];
+    if (!(I.o > 0)) return out;
+    const Ro = R.Ro, Ri = R.Ri, rem = P.fix_mode < 1.5, aInf = stopAInf(P), top = (id) => (I.topes || []).find((x) => x.id === id);
+    const jOf = (al, n) => Math.ceil(Math.max(P.j_sec, (al - AL_S) * P.dT * 2 * Ro * Math.sin(Math.PI / n)) * 10 - 1e-9) / 10;
+    const add = (o) => {
+      const tp = top(o.id), L = rem && tp ? tp.L : 0, cov = o.cov || 1;
+      const j = o.joint ? jOf(o.alpha, o.n) : 0;
+      const Vj = o.joint ? (o.strip && rem ? P.b_tope + j : j) * (Ro - Ri) * o.t : 0, Vn = rem && !o.strip ? (P.b_tope + 2) * L * o.t : 0, Vc = rem ? aInf * aInf * L : 0;
+      const mB = o.rho * o.capas * I.A_ss * cov * o.t, mD = o.rho * o.capas * o.n * (Vj + Vn + Vc);
+      if (mD > 0) out.push({ id: o.id, pieza: o.pieza, tgt: o.tgt, rho: o.rho, n: o.n, capas: o.capas, t: o.t, L, j, strip: !!o.strip, V_junta: Vj, V_muesca: Vn, V_chaflan: Vc, V_sector: Vj + Vn + Vc, m_bruta: mB, m_desc: mD, m_neta: mB - mD });
+    };
+    if ((I.o === 1 || I.o === 2) && rem) {
+      const discs = discList(P, I);
+      discs.forEach((d) => add({ id: d.id, pieza: (top(d.id) || {}).pieza || d.n, tgt: "ss", rho: RHO_SS, n: P.n_sec, capas: discs.length === 1 ? 2 : 1, t: d.t, joint: true, alpha: AL_SS }));
+    }
+    if (I.o === 2) add({ id: "uhmw", pieza: (top("uhmw") || {}).pieza || "Lámina UHMW (" + P.n_seg + " sectores)", tgt: "uhmw", rho: RHO_UH, n: P.n_seg, capas: 1, t: I.tuh, joint: true, strip: true, alpha: AL_UH });
+    if (I.o === 3 && rem) {
+      const nB = I.conf === 3 ? P.bz_npad : P.n_sec;
+      add({ id: "bz0", pieza: (top("bz0") || {}).pieza || "Placa de bronce", tgt: "bz", rho: I.rhoPl, n: nB, capas: 1, t: I.tbz, joint: I.conf !== 3, alpha: AL_BZ, cov: I.cov });
+      add({ id: "bz1", pieza: (top("bz1") || {}).pieza || "Disco duro", tgt: I.conf === 2 ? "bz" : "ss", rho: I.conf === 2 ? I.rhoSolid : RHO_SS, n: P.n_sec, capas: 1, t: I.tss, joint: true, alpha: I.conf === 2 ? AL_BZ : AL_SS });
     }
     return out;
   }
@@ -767,7 +804,7 @@ const TT = (() => {
       if (P.fix_mode < 1.5) {                                           // tope del rebaje: σ = F_sector/(L·h_c) ≤ p_adm (FU objetivo 0,90) con h_c = t − a_sup − a_inf
         const Lav = P.D_top / 2 - riOf(P) - 100, ms = muSet(P), Nn = c.L.ND - (P.phi_d - 1) * P.W_tf * G;
         const Fs = Math.max(ms.d, ms.cont, ms.dry) * Nn / P.n_seg * c.L.q_max / c.L.q_avg;
-        tuhTope = P.a_sup + stopAInf(P) + Math.max(P.hc_min, Fs * 1e3 / (P.p_uhmw * Lav * 0.9));
+        tuhTope = P.a_sup + stopAInf(P) + Math.max(P.hc_min, Fs * 1e3 / (P.p_uhmw * Lav * 0.9) + P.tol_hc);   // h_c ≥ F_s/(0,9·L·p_adm) + tol_hc; el 0,9 es margen de proyecto (no lo exige la norma)
       }
       tuh = P.t_uhmw > 0 ? P.t_uhmw : commercial(UH_COMM, Math.max(tuhReq, tuhTope));
       EcU = uc.Ec(tuh); SU = uc.S(tuh);
@@ -801,7 +838,7 @@ const TT = (() => {
     for (let i = 0; i < 4; i++) { c = calc(rot(tC), tB + tC); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
     return { o: 3, conf, cov, eta, fg, a, A_ss, tTope: tS, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, gr: P.h_gr, fgr: grooveFrac(P).f, qNet: c.qLoc / (1 - fg - grooveFrac(P).f), tss2: tC, tss2Req: c.treqC,
       tbz: tB, tbzReq: c.treqB, tFlexB: c.tfB, tss: tC, tssReq: c.treqC, tFlex: c.tfC, sad: 0.6 * P.Fy_bz, sadC: 0.6 * FyC, FyC,
-      tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0,
+      tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0, rhoPl: rBz * (1 - PLUG_DEPTH * fg) + RHO_GR * PLUG_DEPTH * fg, rhoSolid: rBz,
       mSS: conf === 2 ? 0 : RHO_SS * A_ss * tC, mBz: conf === 2 ? mPlate(tB) + mSolid(tC) : mPlate(tB) };
   }
 
@@ -974,7 +1011,13 @@ const TT = (() => {
     // Las barras de la mesa giran y cargan la interfaz, pero no se realimentan a N (< 0,01 %; evita la dependencia circular con el par de calado).
     ifc.topes = stopsOf(P, res);
     m.stopBars = ifc.topes.reduce((s, t) => s + t.m_barras, 0);
-    m.total += m.stopBars;
+    // muescas, chaflanes y juntas entre sectores: las coronas brutas de massesBase pasan a netas (la masa rotatoria m.ssTop queda bruta: no se realimenta a N, conservador, < 0,01 %)
+    ifc.cortes = cortesOf(P, res);
+    const dsc = { ss: 0, uhmw: 0, bz: 0 };
+    ifc.cortes.forEach((c) => { dsc[c.tgt] += c.m_desc; });
+    m.ss -= dsc.ss; m.uhmw -= dsc.uhmw; m.bz -= dsc.bz;
+    m.sectorCuts = dsc.ss + dsc.uhmw + dsc.bz;                           // kg descontados (informativo: ya no están en ss, uhmw ni bz)
+    m.total += m.stopBars - m.sectorCuts;
     // tierra / losa (base delgada: sin reparto, se toma q_max de la interfaz como presión de apoyo)
     res.g_rigid = (ND + (m.total - m.disc) * G / 1e3) * 1e3 / (P.B * P.B) * (1 + 6 * P.e * Math.SQRT2 / P.B);
     return res;
@@ -1203,16 +1246,20 @@ const TT = (() => {
     // El dimensionamiento y la geometría resuelta (R.ifc.topes: la consume el dibujo vía apoyo.interfaz.topes e interfazGeom.topes) salen de stopsOf(), la misma fuente de m.stopBars.
     const aInf = stopAInf(P), topeOf = (id) => R.ifc.topes.find((x) => x.id === id);
     const REFW = "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)";
+    // K2: AWS (mínimo por la parte más gruesa, sin exceder la más delgada) y AISC Tabla J2.4 (por la más delgada) no coinciden; el proyecto aplica AWS
+    const REFWMIN = "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa";
     // Verificaciones geométricas y de la barra comunes a todos los topes
     const stopCommon = (s) => {
       const { grp, pieza: nombre, t, allow, L, F } = s, g = stopGeo(P, t);
       add({ grp, sys: "est", kind: "geo", name: nombre + ": altura de contacto efectiva del tope sobre el canto del sector", formula: "h_c,mín ≤ h_c = t − a_sup − a_inf (t = " + t + "; barra h = t − a_sup; espesor mínimo del sector " + tStopMin(P) + " mm)", dem: P.hc_min, cap: g.hC, unit: "mm", ref: "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)" });
+      const hcd = g.hC - P.tol_hc;
+      add({ grp, sys: "giro", name: nombre + ": aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)", formula: "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = " + P.tol_hc + " mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90", dem: hcd > 0 ? F * 1e3 / (L * hcd) : Infinity, cap: s.adm, unit: "MPa", ref: "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3" });
       add({ grp, sys: "est", kind: "geo", name: nombre + ": barra del tope bajo la superficie de deslizamiento al final de la vida", formula: "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (" + allow.toFixed(2).replace(".", ",") + " mm)", dem: 1 + allow, cap: P.a_sup, unit: "mm", ref: "Criterio del proyecto (la barra no debe rozar la pieza contraria)" });
       add({ grp, sys: "est", kind: "geo", name: nombre + ": alivio inferior del canto libra el filete del tope", formula: "a_inf ≥ w_tope + 1 mm (chaflán 45° en el canto del sector sobre el triángulo del filete)", dem: P.w_tope + 1, cap: aInf, unit: "mm", ref: "AWS D1.1/D1.1M:2020 (perfil del filete de cateto w); geometría" });
       add({ grp, sys: "est", kind: "geo", name: nombre + ": filete del tope dentro de la altura de barra", formula: "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)", dem: P.w_tope + P.hc_min, cap: g.hB, unit: "mm", ref: REFW });
       add({ grp, sys: "est", kind: "geo", name: nombre + ": filete mínimo del tope según la parte más gruesa", formula: "w_mín(T = máx(b_tope; t_respaldo) = " + s.Tw + ") ≤ w_tope", dem: s.w_min, cap: P.w_tope, unit: "mm", ref: REFW });
       add({ grp, sys: "est", name: nombre + ": flexión de la barra del tope en la raíz (voladizo de altura z)", formula: "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2", dem: 6 * F * 1e3 * g.z / (L * P.b_tope ** 2), cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)" });
-      add({ grp, sys: "est", kind: "info", name: nombre + ": masa de las barras del tope (incluida en la masa total, m.stopBars)", formula: "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa", dem: s.m_barras, cap: s.m_barra, unit: "kg / kg por barra", ref: "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)" });
+      add({ grp, sys: "est", kind: "info", name: nombre + ": masa de las barras del tope (incluida en la masa total, m.stopBars)", formula: "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = " + (s.rho_barra * 1e6).toFixed(2).replace(".", ",") + " g/cm³ (" + (s.uh ? "acero inoxidable: barras del rebaje de la lámina UHMW" : "acero estructural") + ")", dem: s.m_barras, cap: s.m_barra, unit: "kg / kg por barra", ref: "Geometría (suma a m.total desde la 2.ª pasada; antes no se contaban)" });
     };
     const stopRows = (s) => {
       const { grp, pieza: nombre, F: Fst, L: Lt, adm } = s, g = stopGeo(P, s.t);
@@ -1224,7 +1271,8 @@ const TT = (() => {
     // Tornillo avellanado de posición: la cabeza (k = 0,55·d, ISO 10642) debe dejar ≥ 2 mm de material bajo ella
     const screwRow = (grp, nombre, tEf) => add({ grp, sys: "est", kind: "geo", name: nombre + ": cabeza del tornillo avellanado dentro del espesor útil", formula: "0,55·d_tornillo + 2 ≤ t − sobreespesor", dem: 0.55 * P.d_tor + 2, cap: tEf, unit: "mm", ref: "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto" });
     // Manipulación manual de cada sector (ISO 11228-1: 25 kg en condiciones ideales)
-    const handRow = (grp, nombre, mass, n) => add({ grp, sys: "est", kind: "geo", name: nombre + ": masa del sector (manipulación manual al desmontar)", formula: "m_sector = m_pieza/n ≤ 25 kg", dem: mass / n, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
+    const handRow = (grp, nombre, mass, n) => add({ grp, sys: "est", kind: "geo", name: nombre + ": masa del sector (manipulación manual al desmontar)", formula: "m_sector = m_neta_pieza/n ≤ 25 kg (neta: sin muescas, chaflanes ni juntas)", dem: mass / n, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
+    const cutOf = (id) => (R.ifc.cortes || []).find((c) => c.id === id), perSec = (id, fb) => { const c = cutOf(id); return c ? c.m_neta / (c.capas * c.n) : fb; };   // masa neta de un sector (kg)
     const gf = grooveFrac(P);
     const groovesRows = (grp, donde) => {
       if (!(P.h_gr > 0)) return;
@@ -1249,7 +1297,7 @@ const TT = (() => {
         discs.forEach((d) => { stopRows(topeOf(d.id)); screwRow("Interfaz inox", d.n, d.t - P.ss_allow); });
         const chord = 2 * R.Ro * Math.sin(Math.PI / P.n_sec);
         add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Sectores de disco: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes)", formula: "j = (α_inox − α_acero)·ΔT·cuerda del sector", dem: (AL_SS - AL_S) * P.dT * chord, unit: "mm", ref: "Termoelasticidad" });
-        handRow("Interfaz inox", "Disco inoxidable", RHO_SS * I.A_ss * Math.max(I.tss, I.tss2), P.n_sec);
+        handRow("Interfaz inox", "Disco inoxidable", Math.max(...discs.map((d) => perSec(d.id, RHO_SS * I.A_ss * d.t / P.n_sec))) * P.n_sec, P.n_sec);
         add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Soldar los topes antes del alivio de tensiones y del rectificado de las caras; el sector entra por el borde de la mesa izada y se asegura con los tornillos de posición", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
       } else {
         const Ttot = R.Tmax, TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
@@ -1272,6 +1320,7 @@ const TT = (() => {
       const REFU = "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo";
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida", formula: "q_máx ≤ p_adm,UHMW", dem: I.q, cap: P.p_uhmw, unit: "MPa", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: espesor adoptado frente al requerido", formula: "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)", dem: I.tuhReq, cap: I.tuh, unit: "mm", ref: REFU });
+      if (removable) add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: espesor mínimo por el tope del rebaje / comercial adoptado", formula: "t ≥ a_sup + a_inf + máx(h_c,mín; F_s/(0,9·L·p_adm) + tol_hc); el 0,9 es un margen de proyecto sobre la presión admisible (no lo exige la norma) y tol_hc = " + P.tol_hc + " mm la tolerancia de la altura de contacto", dem: I.tuhTope, cap: I.tuh, unit: "mm", ref: REFU + "; criterio del proyecto (margen 0,9 y tolerancia)" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado", formula: "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45", dem: I.tuhConf, cap: I.tuh, unit: "mm", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: factor de forma y módulo confinado en el espesor adoptado", formula: "S = D/(4t); E_c(S)", dem: I.SU, cap: I.EcU, unit: "– / MPa", ref: REFU });
       const Fdrag = Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N;                     // kN, arrastre de la lámina con el μ máximo
@@ -1279,10 +1328,10 @@ const TT = (() => {
       const wear = P.k_wear * 1e-7 * I.q * dist;                                   // mm de desgaste de la cara de la lámina en la vida
       if (removable) {
         const sU = topeOf("uhmw"), Fs = sU.F, gU = stopGeo(P, I.tuh), sigU = gU.hC > 0 ? Fs * 1e3 / (Lav * gU.hC) : Infinity;
-        add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW (" + P.n_seg + " sectores): aplastamiento del canto contra el tope del rebaje", formula: "σ = F_sector/(L_canto·h_c) ≤ p_adm,UHMW; h_c = t − a_sup − a_inf; F_sector = μ_máx·N/n·(q_máx/q_med)", dem: sigU, cap: P.p_uhmw, unit: "MPa", ref: REFU });
+        add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW (" + P.n_seg + " sectores): aplastamiento del canto contra el tope del rebaje", formula: "σ = F_sector/(L_canto·h_c) ≤ p_adm,UHMW; h_c = t − a_sup − a_inf; F_sector = μ_máx·N/n·(q_máx/q_med); el espesor se dimensiona con h_c ≥ F_s/(0,9·L·p_adm) + tol_hc (0,9: margen de proyecto, no lo exige la norma)", dem: sigU, cap: P.p_uhmw, unit: "MPa", ref: REFU });
         add({ grp: "Interfaz inox", sys: "est", name: "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, corte + par de excentricidad)", formula: "f = √[(F/(2aL))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); z = a_inf + h_c/2", dem: weldStop(P, Fs, Lav, gU.z), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2" });
         stopCommon(sU);                                                  // el tope del rebaje se suelda al disco de la base
-        add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: masa del sector (manipulación manual)", formula: "m_sector = m_UHMW/n ≤ 25 kg", dem: R.m.uhmw / P.n_seg, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
+        add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: masa del sector (manipulación manual)", formula: "m_sector = m_UHMW_neta/n ≤ 25 kg", dem: R.m.uhmw / P.n_seg, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
       } else add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)", formula: "arrastre ≈ μ_máx·N (los pernos no bastan: aplastamiento del UHMW)", dem: Fdrag, unit: "kN", ref: "Equilibrio con el μ máximo; decisión del proyectista" });
       const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A);                          // mm/s, velocidad del vástago
       const vmax = R.Ro / R.K.armMin * vcyl / 1000;                                 // m/s en el borde de la mesa durante la carrera
@@ -1326,9 +1375,8 @@ const TT = (() => {
         const chordB = 2 * R.Ro * Math.sin(Math.PI / nB), chordC = 2 * R.Ro * Math.sin(Math.PI / P.n_sec);
         add({ grp: G3, sys: "est", kind: "info", name: "Sectores de bronce: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda del sector", dem: (AL_BZ - AL_S) * P.dT * chordB, unit: "mm", ref: "Termoelasticidad" });
         add({ grp: G3, sys: "est", kind: "info", name: (conf === 2 ? "Sectores de la 2.ª placa" : "Sectores del disco duro") + ": crecimiento por dilatación de la cuerda (junta en frío ≥ 1 mm)", formula: "j = (α − α_acero)·ΔT·cuerda del sector", dem: ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT * chordC, unit: "mm", ref: "Termoelasticidad" });
-        const mBzPlate = R.m.bz - (conf === 2 ? R.ifc.mTop : 0);
-        handRow(G3, "Placa de bronce con grafito", mBzPlate, nB);
-        handRow(G3, conf === 2 ? "2.ª placa de bronce" : "Disco duro", conf === 2 ? R.ifc.mTop : R.m.ss, P.n_sec);
+        handRow(G3, "Placa de bronce con grafito", perSec("bz0", R.m.bz) * nB, nB);
+        handRow(G3, conf === 2 ? "2.ª placa de bronce" : "Disco duro", perSec("bz1", R.m.ss) * P.n_sec, P.n_sec);
         add({ grp: G3, sys: "est", kind: "pend", name: "Soldar los topes antes del alivio de tensiones y del rectificado; sectores atornillados con tornillos de posición, sacables con la mesa izada", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
       } else {
         // retención: la placa de bronce fija a la base (la menor área pegada es la de las pastillas)
@@ -1357,6 +1405,14 @@ const TT = (() => {
       if (conf === 3 && !removable) add({ grp: G3, sys: "est", kind: "pend", name: "Retención de las pastillas de bronce: alojamientos soldados o pegado; la mesa apoya solo en las pastillas", formula: "Arrastre ≈ μ_máx·N", dem: Math.max(R.mu.d, R.mu.cont, R.mu.dry) * R.N, unit: "kN", ref: "Equilibrio; decisión del proyectista" });
     }
 
+    /* --- Masa descontada de las coronas por muescas, chaflanes y juntas entre sectores (4.ª pasada) --- */
+    (R.ifc.cortes || []).forEach((c) => {
+      const f2 = (v) => v.toFixed(1).replace(".", ",");
+      add({ grp: I.o === 3 ? "Interfaz bronce" : "Interfaz inox", sys: "est", kind: "info", name: c.pieza + ": descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+        formula: "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = " + c.capas + "·" + c.n + "·" + (c.rho * 1e6).toFixed(3).replace(".", ",") + " g/cm³·[" + f2(c.V_junta) + " + " + f2(c.V_muesca) + " + " + f2(c.V_chaflan) + "] mm³; V_junta = " + (c.strip ? "(b_tope + j)" : "j") + "·(R_o − R_i)·t, j = máx(j_sec; dilatación) = " + c.j.toFixed(1).replace(".", ",") + " mm" + (c.strip ? " (franja libre entre sectores, con la barra del rebaje dentro)" : "") + "; V_muesca = " + (c.strip ? "0 (sin muesca)" : "(b_tope + 2)·L_tope·t, L_tope = " + c.L) + "; V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+        dem: c.m_desc, cap: c.m_neta, unit: "kg (descuento / neta)", ref: "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D" });
+    });
+
     /* --- Cubierta de madera dura y altura de skidding --- */
     const Htop = P.t_base + R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0);
     if (P.opt_wood > 0.5) {
@@ -1364,7 +1420,8 @@ const TT = (() => {
       add({ grp: "Cubierta", sys: "est", name: "Madera: aplastamiento perpendicular a la fibra bajo la carga (área de contacto efectiva)", formula: "q = φd·W/(f_apoyo·A_círculo)·(1 + 4e/R_carga) ≤ p_adm,madera (sin acreditar reparto sobre la plancha)", dem: qTopW, cap: P.p_wood, unit: "MPa", ref: "Madera dura (datos de proveedor); criterio conservador" });
       add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: la ley lineal de presiones no admite tracción (q mín ≥ 0)", formula: "4e/R_carga ≤ 1 (e ≤ D_carga/8)", dem: 4 * P.e / RLw, cap: 1, unit: "–", ref: "Estática del apoyo" });
       add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: espesor mínimo (desgaste y fijación)", formula: "t_madera ≥ 30 mm", dem: 30, cap: P.t_wood, unit: "mm", ref: "Práctica constructiva" });
-      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)", formula: "m = ρ·A·t", dem: R.m.wood, unit: "kg", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)", formula: "m = ρ·A·t, A = π/4·((D − 2·t_anillo)² − Ø_abertura²): los tablones van dentro del anillo de acero; Ø_abertura = D_piv + 80 (el 3D usa una abertura mayor y N_pin bolsillos de perno y arandela que el núcleo no descuenta: conservador)", dem: R.m.wood, unit: "kg", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Anillo de acero de contención de la madera (pletina t_anillo × t_madera en el borde, soldada a la plancha superior; incluida en la masa total y en m.disc)", formula: "m = ρ_acero·π·(R² − (R − t_anillo)²)·t_madera (alto del anillo = espesor de los tablones; ancho radial t_anillo = " + P.t_ring + " mm)", dem: R.m.ring, cap: R.m.wood, unit: "kg (anillo / madera)", ref: "Geometría; anillo adoptado por el mandante (pletina de 10 mm)" });
       add({ grp: "Cubierta", sys: "est", kind: "pend", name: "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
     }
     add({ grp: "Geometría", sys: "est", kind: "info", name: "Altura total sobre el piso (base + interfaz + mesa + cubierta)", formula: "H = t_base + Δ_interfaz + h_mesa + t_madera", dem: Htop, unit: "mm", ref: "Geometría" });
@@ -1394,8 +1451,9 @@ const TT = (() => {
     /* --- Tamaño mínimo de filete según espesor de la parte más gruesa (wMin definido arriba, junto a los topes) --- */
     add({ grp: "Base", sys: "est", kind: "geo", name: "Espesor de la plancha base frente al mínimo por planitud", formula: "t_base_mín ≤ t_base", dem: P.t_base_min, cap: P.t_base, unit: "mm", ref: "Criterio de fabricación (planitud 0,20 de la cara de giro)" });
     const Tw = Math.max(P.t_top, P.t_bot), Tb = Math.max(P.t_base, P.t_ch);
-    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo almas/nervios–planchas", formula: "w_mín(T = " + Tw + ") ≤ w ≤ t_alma", dem: wMin(Tw), cap: Math.min(P.w_web, Math.min(P.t_web, P.t_rib)), unit: "mm", ref: "AWS D1.1/D1.1M:2020, tamaño mínimo de filete" });
-    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo mejillas–base", formula: "w_mín(T = " + Tb + ") ≤ w ≤ t_mín", dem: wMin(Tb), cap: Math.min(P.w_br, Math.min(P.t_base, P.t_ch)), unit: "mm", ref: "AWS D1.1/D1.1M:2020, tamaño mínimo de filete" });
+    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo almas/nervios–planchas", formula: "w_mín(T = " + Tw + ") ≤ w ≤ t_alma", dem: wMin(Tw), cap: Math.min(P.w_web, Math.min(P.t_web, P.t_rib)), unit: "mm", ref: REFWMIN });
+    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo mejillas–base", formula: "w_mín(T = máx(t_base; t_mejilla) = " + Tb + ") ≤ w_br; el mínimo no excede la parte más delgada (" + Math.min(P.t_base, P.t_ch) + " mm)", dem: Math.min(wMin(Tb), Math.min(P.t_base, P.t_ch)), cap: P.w_br, unit: "mm", ref: REFWMIN });
+    add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete máximo mejillas–base según el borde de la mejilla", formula: "w_br ≤ w_máx(t_mejilla = " + P.t_ch + ") (t < 6: t; t ≥ 6: t − 2 mm): la mejilla es la parte que termina en el borde; la plancha base (" + P.t_base + " mm) se suelda por su cara, donde J2.2b no limita el cateto", dem: P.w_br, cap: wMax(P.t_ch), unit: "mm", ref: "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)" });
 
     /* --- Pasadores de empuje (cadena de empuje a fuerza de calado) --- */
     const tpr = Math.max(P.t_pr, P.t_top, P.t_bot), Ls = P.h_disc - tpr;
@@ -1524,10 +1582,10 @@ const TT = (() => {
       const Lc = Lseat, hc = P.h_boss, kc = 6 * (eP + Lc / 2) / Lc;
       const Vc = Math.abs(Hf * 1e3 / Lc * (hc + kc * (hc - hc * hc / Lc))), Mc = Math.abs(Hf * 1e3 / Lc * ((1 + kc) * hc * hc / 2 - kc * hc ** 3 / (3 * Lc)));   // N y N·mm
       const awc = 0.707 * P.w_collar, fbC = Mc / (Math.PI * P.D_boss ** 2 / 4 * awc), fvC = Vc / (Math.PI * P.D_boss * awc);
-      add({ grp: "Pivote", sys: "est", name: "Soldadura del collar a la base (filete perimetral): V_c y M_c del asiento rígido-lineal", formula: "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,85·H)", dem: Math.hypot(fbC, fvC), cap: Fw, unit: "MPa", ref: "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico; resultante vectorial de corte y flexión)" });
+      add({ grp: "Pivote", sys: "est", name: "Soldadura del collar a la base (filete perimetral): V_c y M_c del asiento rígido-lineal", formula: "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,875·H)", dem: Math.hypot(fbC, fvC), cap: Fw, unit: "MPa", ref: "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico; resultante vectorial de corte y flexión)" });
       add({ grp: "Pivote", sys: "est", kind: "info", name: "Carga del collar sobre su filete: V_c y M_c (respecto de la cara superior de la base)", formula: "V_c y M_c de la distribución rígido-lineal del asiento; la plancha base toma la reacción de signo contrario", dem: Vc / 1e3, cap: Mc / 1e6, unit: "kN / kN·m", ref: "Equilibrio del collar" });
       const wallE = Math.min(wallC, P.h_boss);
-      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar: filete mínimo según la parte más gruesa (pared del collar o plancha base)", formula: "w_mín(T = máx(pared del collar = " + wallC + "; t_base = " + P.t_base + ")) ≤ w_collar; no más que la parte más delgada", dem: Math.min(wMin(Math.max(wallC, P.t_base)), Math.min(wallC, P.t_base)), cap: P.w_collar, unit: "mm", ref: "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar: filete mínimo según la parte más gruesa (pared del collar o plancha base)", formula: "w_mín(T = máx(pared del collar = " + wallC + "; t_base = " + P.t_base + ")) ≤ w_collar; no más que la parte más delgada", dem: Math.min(wMin(Math.max(wallC, P.t_base)), Math.min(wallC, P.t_base)), cap: P.w_collar, unit: "mm", ref: REFWMIN });
       add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar: filete máximo según el borde del collar", formula: "w_collar ≤ w_máx(t) con t = mín(pared del collar; h_collar) = " + wallE + " (t < 6: t; t ≥ 6: t − 2 mm)", dem: P.w_collar, cap: wMax(wallE), unit: "mm", ref: "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)" });
     }
     add({ grp: "Pivote", sys: "est", name: "Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)", formula: "σ = H/((D_piv + 30)·L_buje) ≤ 1,25·Fy/Nd", dem: Hf * 1e3 / ((P.D_piv + 30) * P.L_bush), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
@@ -1557,7 +1615,7 @@ const TT = (() => {
       add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: ancho de la placa en el agujero ≥ 2·b_e + d (AISC D5.2(3))", formula: "2R ≥ 2·b_e + d", dem: 2 * be + P.d_ear, cap: Ln, unit: "mm", ref: "AISC 360-22 §D5.2(3)" });
       add({ grp: "Orejas de izaje", sys: "est", kind: P.ear_gira > 0.5 ? "geo" : "info", name: "Oreja: holgura agujero–pasador ≤ 1 mm si el pasador gira bajo carga plena (AISC D5.2(2))", formula: P.ear_gira > 0.5 ? "g = d − d_pasador ≤ 1 mm" : "g = d − d_pasador = " + P.g_ear + " mm; no aplica el límite de 1 mm (izaje estático: el pasador no gira bajo la carga plena); con ear_gira = 1 exige ≤ 1 mm", dem: P.g_ear, cap: 1, unit: "mm", ref: "AISC 360-22 §D5.2(2)" });
       // filete: mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa (AISC J2.4 lo da por la más delgada; el mínimo no excede la parte más delgada), máximo AISC J2.2b en el borde de la oreja
-      add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: filete mínimo según la parte más gruesa (oreja o plancha base)", formula: "w_mín(T = máx(t_oreja; t_base) = " + Math.max(P.t_ear, P.t_base) + ") ≤ w_oreja; no más que la parte más delgada", dem: Math.min(wMin(Math.max(P.t_ear, P.t_base)), Math.min(P.t_ear, P.t_base)), cap: P.w_ear, unit: "mm", ref: "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4" });
+      add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: filete mínimo según la parte más gruesa (oreja o plancha base)", formula: "w_mín(T = máx(t_oreja; t_base) = " + Math.max(P.t_ear, P.t_base) + ") ≤ w_oreja; no más que la parte más delgada", dem: Math.min(wMin(Math.max(P.t_ear, P.t_base)), Math.min(P.t_ear, P.t_base)), cap: P.w_ear, unit: "mm", ref: REFWMIN });
       add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: filete máximo según el borde de la placa", formula: "w_oreja ≤ w_máx(t_oreja) (t < 6: t; t ≥ 6: t − 2 mm)", dem: P.w_ear, cap: wMax(P.t_ear), unit: "mm", ref: "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)" });
       add({ grp: "Orejas de izaje", sys: "est", kind: "info", name: "Tensión por oreja (3 ramales efectivos a 60°) y WLL mínimo del grillete", formula: "T = m·φ·g/(3·sen 60°)", dem: T, unit: "kN", ref: "ASME B30.9; B30.26" });
       const dLug = Math.hypot(P.x_lug, P.B / 2 - P.c_lug);
@@ -2009,10 +2067,14 @@ const PLANOS = (() => {
         const tap = byName(/Tapones de grafito: profundidad restante/)[0];
         const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));
         const ifc = R.ifc;
-        return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
+        // 4.ª pasada: material descontado de las coronas (R.ifc.cortes: junta, muesca y chaflán por sector, masa bruta/descontada/neta), juntas efectivas y anillo de acero de la madera
+    const cortes = (R.ifc.cortes || []).map((c) => Object.assign({}, c)), jS = cortes.filter((c) => !c.strip).map((c) => c.j), jU = cortes.filter((c) => c.strip).map((c) => c.j);
+    const anillo = R.m.ring > 0 ? { t_ring: P.t_ring, h_ring: P.t_wood, D_ext: P.D_top, D_int: P.D_top - 2 * P.t_ring, m: R.m.ring, m_madera: R.m.wood } : null;
+    return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
+      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, t_ring: P.t_ring, anillo_madera: anillo,
           hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
           Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
-          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo" };
+          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total" };
       })(),
       verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
     };
@@ -2053,6 +2115,7 @@ const PLANOS = (() => {
   const SUBS = [["BASE", "Base"], ["MESA", "Mesa giratoria"], ["INTER", "Interfaz de giro"], ["PIVOTE", "Pivote y collar"], ["IZAJE", "Orejas de izaje"], ["CIL", "Cilindros hidráulicos"]];
   function buildBOM(P, A) {
     const R = A.R, m = R.m, ifc = R.ifc, items = [], steel = `Acero ASTM A572 Gr.50 (Fy ${nf(P.Fy)} MPa)`;
+    const cz = (id) => (ifc.cortes || []).find((c) => c.id === id);
     const add = (sub, pos, desc, mat, qty, mTot, nota) => items.push({ sub, pos, code: `TT300C-${sub}-${String(pos).padStart(2, "0")}-${REV}`, desc, mat, qty, mUnit: mTot / qty, mTot, nota: nota || "" });
     // Base
     const plate = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
@@ -2073,20 +2136,22 @@ const PLANOS = (() => {
     add("MESA", 5, `Cubo Ø${nf(P.D_hub)}`, steel, 1, m.hub);
     add("MESA", 6, `Pasador de empuje Ø${nf(P.d_pin)} x ${nf(P.h_disc)}`, `34CrNiMo6+QT (Fy ${nf(P.Fy_pin)} MPa)`, P.N_pin, m.pins);
     if (m.wood > 0) add("MESA", 7, `Cubierta de madera dura t = ${nf(P.t_wood)} (tablones: disposición A DEFINIR)`, `Madera dura ${nf(P.rho_wood)} kg/m3`, 1, m.wood, "Opcional");
+    if (m.ring > 0) add("MESA", 8, `Anillo de acero de contención de la madera: pletina ${nf(P.t_ring)} x ${nf(P.t_wood)} rolada a Ø${nf(P.D_top)}`, steel, 1, m.ring, "Opcional; soldada a la plancha superior; en la masa total");
     // Interfaz
     const nS = P.fix_mode < 1.5 ? P.n_sec : 1, sect = P.fix_mode < 1.5 ? "sector" : "disco completo";
     if (ifc.o === 1 || ifc.o === 2) {
-      const t1 = ifc.tss, t2 = ifc.tss2, mA = m.ss * t1 / (t1 + t2), mB = m.ss * t2 / (t1 + t2);
+      const t1 = ifc.tss, t2 = ifc.tss2, c0 = cz("disc0"), c1 = cz("disc1");   // masa neta de cada disco (sin muescas, chaflanes ni juntas); con pegado, la corona entera repartida por espesor
+      const mA = c0 ? c0.m_neta / c0.capas : m.ss * t1 / (t1 + t2), mB = c1 ? c1.m_neta : (c0 ? c0.m_neta / c0.capas : m.ss * t2 / (t1 + t2));
       add("INTER", 1, `Disco inoxidable de la base (liso) t = ${nf(t1)} (${sect})`, `Inox (Fy ${nf(P.Fy_ss)} MPa)`, nS, mA);
       add("INTER", 2, `Disco inoxidable de la mesa t = ${nf(t2)}${ifc.o === 1 ? " con ranuras de engrase" : ""} (${sect})`, `Inox (Fy ${nf(P.Fy_ss)} MPa)`, nS, mB);
       if (ifc.o === 2) add("INTER", 3, `Lámina UHMW t = ${nf(ifc.tuh)} (${P.n_seg} sectores)`, "UHMW-PE", P.fix_mode < 1.5 ? P.n_seg : 1, m.uhmw);
     } else if (ifc.o === 3) {
-      const nB = ifc.conf === 3 ? P.bz_npad : nS, solid = ifc.conf === 2 ? ifc.A_ss * ifc.tss * P.rho_bz * 1e-6 : 0;
+      const nB = ifc.conf === 3 ? P.bz_npad : nS, solid = ifc.conf === 2 ? (cz("bz1") ? cz("bz1").m_neta : ifc.A_ss * ifc.tss * P.rho_bz * 1e-6) : 0;
       add("INTER", 1, `${ifc.conf === 3 ? "Pastillas de bronce con tapones de grafito" : "Placa de bronce con tapones de grafito"} t = ${nf(ifc.tbz)}${P.h_gr > 0 ? " (ranuras de engrase)" : ""}`, `Bronce Fy ${nf(P.Fy_bz)} MPa + grafito`, P.fix_mode < 1.5 || ifc.conf === 3 ? nB : 1, m.bz - solid);
       if (ifc.conf === 2) add("INTER", 2, `2.ª placa de bronce t = ${nf(ifc.tss)} (${sect})`, `Bronce Fy ${nf(P.Fy_bz2)} MPa`, nS, solid);
       else add("INTER", 2, `Disco duro t = ${nf(ifc.tss)} (${sect})`, `17-4PH o inox nitrurado (Fy ${nf(P.Fy_cara)} MPa)`, nS, m.ss);
     }
-    if (m.stopBars > 0) add("INTER", 4, `Barras de los topes soldados (${(ifc.topes || []).map((s) => `${nf(s.capas * s.n)} x ${nf(s.L)} x ${nf(s.b_tope)} x ${nf(s.h_barra)}`).join("; ")})`, steel, ifc.topes.reduce((q, s) => q + s.capas * s.n, 0), m.stopBars, "Soldadas al respaldo (filete w_tope); suman a la masa total");
+    if (m.stopBars > 0) add("INTER", 4, `Barras de los topes soldados (${(ifc.topes || []).map((s) => `${nf(s.capas * s.n)} x ${nf(s.L)} x ${nf(s.b_tope)} x ${nf(s.h_barra)}`).join("; ")})`, (ifc.topes || []).some((s) => s.uh) ? `${steel}; barras del rebaje de la lámina UHMW en acero inoxidable (ρ 7,93)` : steel, ifc.topes.reduce((q, s) => q + s.capas * s.n, 0), m.stopBars, "Soldadas al respaldo (filete w_tope); suman a la masa total");
     // Pivote, orejas, cilindros
     add("PIVOTE", 1, `Pivote Ø${nf(P.D_piv)} x ${nf(P.t_base + ifc.delta + P.h_disc - P.t_top + 3)}`, `Acero Fy ${nf(P.Fy_piv)} MPa`, 1, m.pivot);
     if (collar > 0) add("PIVOTE", 2, `Collar de asiento Ø${nf(P.D_boss)}/Ø${nf(P.D_piv)} x ${nf(P.h_boss)} soldado a la base`, steel, 1, collar);
@@ -3103,7 +3168,7 @@ if (false) module.exports = PLANOS;
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
     const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
-      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Cubierta de madera dura", m.wood], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
+      ["Discos de acero inoxidable o disco duro (opción A, B o C)", m.ss], ["Lámina UHMW (opción B)", m.uhmw], ["Bronce con grafito (opción C)", m.bz], ["Cubierta de madera dura", m.wood], ["Anillo de acero de la madera", m.ring], ["Barras de los topes soldados", m.stopBars], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]];
     const mx = Math.max(...parts.map((p) => p[1]));
     el.innerHTML = `<div class="grid"><div class="card scroll"><h3>Desglose</h3><table><tr><th>Pieza</th><th class="n">kg</th><th class="n">%</th><th></th></tr>
       ${parts.map(([n, v]) => `<tr><td>${n}</td><td class="n">${fmt(v, 3)}</td><td class="n">${fmt(v / m.total * 100, 2)}</td><td style="width:40%"><div class="fu"><i style="width:${v / mx * 100}%;background:var(--acc)"></i></div></td></tr>`).join("")}

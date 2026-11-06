@@ -36,7 +36,7 @@
  "fea": {
   "top": 122.16550685178933,
   "bot": 115.45224374234509,
-  "lift": 52.79162155871446,
+  "lift": 47.854347477666934,
   "glob": 103652.29906083253
  },
  "fu": {
@@ -78,7 +78,8 @@
   "Mesa (FEA) · Equilibrio FEA (ΣF = ΣR)": 0.00020000000375329806,
   "Base · Espesor de la plancha base frente al mínimo por planitud": 0.8888888888888888,
   "Soldaduras · Filete mínimo almas/nervios–planchas": 1,
-  "Soldaduras · Filete mínimo mejillas–base": 0.4444444444444444,
+  "Soldaduras · Filete mínimo mejillas–base": 0.4,
+  "Soldaduras · Filete máximo mejillas–base según el borde de la mejilla": 0.8695652173913043,
   "Pasadores de empuje · Flexión (biapoyado entre anillos, carga repartida en la altura de la uña)": 0.896250009190507,
   "Pasadores de empuje · Corte en el apoyo": 0.3811732806558239,
   "Pasadores de empuje · Aplastamiento en el agujero del anillo": 0.7570577468587617,
@@ -120,10 +121,10 @@
   "Pivote · Collar: filete mínimo según la parte más gruesa (pared del collar o plancha base)": 0.8,
   "Pivote · Collar: filete máximo según el borde del collar": 0.1724137931034483,
   "Pivote · Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)": 0.0893194549947398,
-  "Base · Izaje del conjunto: σvm en la plancha base": 0.31113902561174706,
-  "Base · Izaje: flecha de la base": 0.7805955175461909,
-  "Base · Punto de izaje fuera de la mesa": 0.8167802279326097,
-  "Base · Punto de izaje dentro del marco": 0.3,
+  "Base · Izaje del conjunto: σvm en la plancha base": 0.2820401155688582,
+  "Base · Izaje: flecha de la base": 0.652819464248621,
+  "Base · Punto de izaje fuera de la mesa": 0.8458281051361174,
+  "Base · Punto de izaje dentro del marco": 0.225,
   "Orejas de izaje · Oreja: aplastamiento del agujero (pasador del grillete d − g)": 0.13806814430679631,
   "Orejas de izaje · Oreja: tracción en la sección neta del agujero": 0.0521480401158763,
   "Orejas de izaje · Oreja: desgarro por corte detrás del agujero": 0.09032305499583777,
