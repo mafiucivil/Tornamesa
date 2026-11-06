@@ -1022,6 +1022,11 @@ const TT = (() => {
     add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd (H con la F_pas de calado si el n° de cilindros es impar)", dem: Hf * 1e3 * P.e_piv / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
     // camino de fuerza del pivote: la misma reacción atraviesa el cubo (buje), el vástago y el agujero de la plancha base (calado, BTH-1)
     add({ grp: "Pivote", sys: "est", name: "Aplastamiento del pivote en el agujero de la plancha base (ajuste H7/p6)", formula: "σ = H/(D_piv·t_base) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar", dem: Hf * 1e3 / (P.D_piv * P.t_base), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
+    {   // momento H·(e_piv + L/2) sobre el asiento (modelo lineal rígido): σ = H/(D·L)·(1 + 6(e_piv + L/2)/L); L mínimo por bisección
+      const sM = (L) => Hf * 1e3 / (P.D_piv * L) * (1 + 6 * (P.e_piv + L / 2) / L), cap = 1.25 * Fy / Nd;
+      let lo = P.t_base, hi = 2000; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (sM(m) > cap) lo = m; else hi = m; }
+      add({ grp: "Pivote", sys: "est", kind: "pend", name: "Asiento del pivote en la base con momento H·e (profundidad del asiento " + P.t_base + " mm; mínima " + (sM(P.t_base) <= cap ? P.t_base : Math.ceil(hi)) + " mm): FU " + (sM(P.t_base) / cap).toFixed(1) + (sM(P.t_base) > cap ? " — NO CUMPLE con el detalle actual (decisión de diseño pendiente: collar o cubo soldado, brida o pivote pasante con tuerca)" : ""), formula: "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)", dem: sM(P.t_base), cap, unit: "MPa", ref: "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente" });
+    }
     add({ grp: "Pivote", sys: "est", name: "Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)", formula: "σ = H/((D_piv + 30)·L_buje) ≤ 1,25·Fy/Nd", dem: Hf * 1e3 / ((P.D_piv + 30) * P.L_bush), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
     if (!(P.Ch > 0)) add({ grp: "Pivote", sys: "est", kind: "info", name: "Caso sísmico: no aplica", formula: "Sin requerimiento sísmico (decisión del mandante, 31-10-2026); si se instala en forma permanente, ingresar Ch", dem: 0, unit: "–", ref: "Decisión del mandante" });
 
@@ -1113,7 +1118,9 @@ const TT = (() => {
       const ok = (W) => { const A2 = analyze(Object.assign({}, Q, { W_tf: W }), { noFEA: true }); return !A2.checks.some((c) => c.grp === "Pivote" && c.st === "fail"); };   // solo las verificaciones del pivote
       let wPiv = 0, lo = 20, hi = 1500;
       if (ok(lo)) { if (ok(hi)) wPiv = hi; else { for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } wPiv = lo; } }
-      return { n, wGiro, wNom, wPiv, wCap: Math.min(wGiro, wPiv) };
+      let wWood = Infinity;                                                                       // aplastamiento de la madera (si la cubierta está activa): q ∝ W
+      if (P.opt_wood > 0.5) { const A2 = analyze(Object.assign({}, Q, { W_tf: 100 }), { noFEA: true }), rw = A2.checks.find((c) => /Madera: aplastamiento/.test(c.name)); if (rw && rw.dem > 0) wWood = 100 * rw.cap / rw.dem; }
+      return { n, wGiro, wNom, wPiv, wWood: isFinite(wWood) ? wWood : null, wCap: Math.min(wGiro, wPiv, wWood) };
     });
   }
   // Equipos comerciales de referencia (datos públicos; brazo y radio de fricción estimados para μ implícito = n·F·a/(N·r_u))
