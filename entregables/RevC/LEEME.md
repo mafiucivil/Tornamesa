@@ -16,7 +16,7 @@ node tools/export_design.js parametros.json > diseno.json
 python3 cad/generar_paquete.py diseno.json --out cad/out/variante_B --sin-dxf
 ```
 
-Memoria de cálculo: `TT300-C_Memoria_RevC.docx/.pdf` (sin cambios en esta pasada).
+Memoria de cálculo: `TT300-C_Memoria_RevC.docx/.pdf` (texto negro, hipótesis → desarrollo → resultado, formato para insertar en documento) y `TT300-C_alternativas.json` (datos de los capítulos 9 y 10, incluida la clave `tapones`). Actualizada con el núcleo v1.2 (commit c5a9f15, `Tornamesa_v1.2.html`): cap. 9.7 «Opción C: tapones de grafito, cantidad real frente a ideal» (N_real 2.640 / 2.640 / 2.364 frente a ideal 3.961 / 3.961 / 3.565; f_g real 0,0967 frente a 0,145; hallazgos G1 a G4 y recomendación al proveedor); cap. 10 «Exposición solar a 80 °C» con alcance solo placas y disco (`term_alcance` = 1; cilindros, aceite atrapado, válvula de alivio térmico, sellos, viscosidad/bomba y accionamiento fuera del escenario, 51 filas informativas en la nota 10.12); cap. 14 con el juego de planos Rev. C leído de `informe_paquete.md`; Anexo C con los parámetros nuevos de la v1.2. Regenerar: `npm run memoria` (necesita `python-docx` y LibreOffice `soffice`); el .docx y el .pdf se copian a esta carpeta.
 
 ## Reglas del juego de planos
 - Cada pieza del despiece tiene plano propio (código de la pieza = número de plano) o referencia a catálogo; cada ítem aparece con globo en un plano de conjunto o subconjunto.

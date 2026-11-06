@@ -1,5 +1,7 @@
 /* Exporta, para la memoria de cálculo, el análisis completo de cada alternativa de interfaz (base, A, B, C1, C2, C3 y cubierta de madera)
-   más el escenario térmico de la cubierta de madera (TT.thermal con wood = 1). Fuente única: TT.analyze / TT.thermal; la memoria solo redacta.
+   más el escenario térmico de la cubierta de madera (TT.thermal con wood = 1), los tapones de grafito de la opción C (TT.tapones: cantidad real frente a ideal),
+   las medidas recomendadas del escenario solar (alcance placas y disco, term_alcance = 1) y la nota informativa del accionamiento fuera de alcance.
+   Fuente única: TT.analyze / TT.thermal / TT.tapones; la memoria solo redacta.
    Uso: node tools/export_alternativas.js [parametros.json] > cad/out/TT300-C_alternativas.json */
 const fs = require("fs");
 const TT = require("../packages/core/tt300c.js");
@@ -39,17 +41,41 @@ ALTS.forEach((a) => {
 out.termica_madera = TT.thermal(P, { alts: ["base"], wood: 1 }).alternativas.filter((x) => x.madera);
 // Tapones de grafito (opción C): ideal frente a real, barridos de f_g, de (Ø, paso), de la franja de borde y de los tornillos, y patrón recomendado (TT.tapones)
 out.tapones = TT.tapones(P);
-// Medidas recomendadas, cuantificadas con el mismo núcleo (T de escenario = 80 °C): (1) válvula de alivio térmico en el tramo aislado; (2) junta en frío de los sectores j_sec ≥ junta requerida de la lámina UHMW (B)
+// Cota de viabilidad de bz_fg_min: patrón de perforaciones minúsculas (Ø5,5 · paso 10) que llegaría al f_g mínimo con η = bz_eta_min; mismo núcleo (TT.analyze, cuenta real)
+out.tapones.patron_minusculo = [[1, "C1"], [3, "C3"]].map(([conf, id]) => {
+  const Pm = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 1, bz_conf: conf, bz_plug_d: 5.5, bz_plug_p: 10 }), A = TT.analyze(Pm, { noFEA: true }), I = A.R.ifc;
+  return { id, d: Pm.bz_plug_d, p: Pm.bz_plug_p, eta: I.eta, N: I.Nreal, fg: I.fgReal, cumple_fg: I.fgReal >= P.bz_fg_min - 1e-12, estructura: A.verdict.estructura, gira: A.verdict.gira };
+});
+// Empates geométricos del conteo (hallazgo G2 de la réplica): un tapón con su borde a exactamente bz_edge cumple «≥ bz_edge»; si N cambia con ±1e-6 mm, el conteo depende de la coma flotante
+{
+  const Nat = (conf, d, p, e) => TT.analyze(Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 1, bz_conf: conf, bz_plug_d: d, bz_plug_p: p, bz_edge: e }), { noFEA: true }).R.ifc.Nreal;
+  const eps = 1e-6, ej = [];
+  let tot = 0;
+  [1, 3].forEach((conf) => out.tapones.barridos.d.forEach((d) => out.tapones.barridos.p.forEach((p) => {
+    tot++; const a = Nat(conf, d, p, P.bz_edge - eps), b = Nat(conf, d, p, P.bz_edge + eps);
+    if (a !== b) ej.push({ conf, d, p, N_con_empate: a, N_sin_empate: b, dif_pct: (a / b - 1) * 100 });
+  })));
+  const act = [1, 3].map((conf) => ({ conf, N_menos: Nat(conf, P.bz_plug_d, P.bz_plug_p, P.bz_edge - eps), N_mas: Nat(conf, P.bz_plug_d, P.bz_plug_p, P.bz_edge + eps) }));
+  out.tapones.empates = { eps, n_patrones: tot, n_con_empate: ej.length, max_dif_pct: ej.reduce((m, x) => Math.max(m, Math.abs(x.dif_pct)), 0), ejemplos: ej.slice(0, 6), patron_actual: act };
+}
+// Parámetros añadidos en la v1.2 (definición del núcleo: etiqueta, unidad, valor por defecto, mínimo, máximo)
+const NEW_IDS = ["term_alcance", "bz_fg_modo", "bz_edge", "bz_fg_min", "bz_fg_estricto", "bz_eta_min", "bz_n_tor", "d_tor"];
+const allP = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []);
+out.parametros_v12 = NEW_IDS.map((id) => { const q = allP.find((x) => x[0] === id); return { id, lab: q[1], u: q[2], def: q[3], min: q[4], max: q[5], valor: P[id] }; });
+// Medidas recomendadas del alcance 1 (placas y disco), cuantificadas con el mismo núcleo (T de escenario = 80 °C): junta en frío de los sectores j_sec ≥ junta requerida de la lámina UHMW (B),
+// plancha inferior y gradiente de C3. El circuito hidráulico y el accionamiento quedan fuera del alcance (term_alcance = 1): sus filas se informan aparte en `fuera_alcance`, sin medida asociada.
 const Tsc = 80, t80 = (Pp, alt) => TT.thermal(Pp, { alts: [alt], T: [20, Tsc] }).alternativas[0];
-const oilRows = (a) => a.byT[1].filas.filter((r) => r.sub === "e").map((r) => ({ nombre: r.nombre, dem: r.dem, cap: r.cap == null ? null : r.cap, unidad: r.unidad, fu: r.fu, estado: r.estado }));
 const resumen = (a) => { const b = a.byT[1]; return { FS: b.FS, gira: b.gira, estructura: b.estructura, termico: b.termico, fuEst: b.fuEst, gobernante: b.gobernante, fuTerm: b.fuTerm, gobernanteTerm: b.gobernanteTerm, nFail: b.nFail, nWarn: b.nWarn }; };
-const altRelief = [0, P.p_max_cil].map((ar) => { const a = t80(Object.assign({}, P, { alivio_term: ar }), "base"); return { alivio_term: ar, filas: oilRows(a), resumen: resumen(a) }; });
+const fb = t80(P, "base").byT[1].fuera_alcance;
+const porGrupo = []; fb.forEach((f) => { let g = porGrupo.find((x) => x.grp === f.grp); if (!g) porGrupo.push(g = { grp: f.grp, n: 0, fail: 0, warn: 0 }); g.n++; if (f.estado_informativo === "fail") g.fail++; if (f.estado_informativo === "warn") g.warn++; });
+const fueraAlcance = { alcance: P.term_alcance, n: fb.length, fail: fb.filter((f) => f.estado_informativo === "fail").length, warn: fb.filter((f) => f.estado_informativo === "warn").length, por_grupo: porGrupo,
+  filas_aviso: fb.filter((f) => f.estado_informativo === "fail" || f.estado_informativo === "warn").map((f) => ({ grp: f.grp, nombre: f.nombre, dem: f.dem, cap: f.cap, unidad: f.unidad, fu: f.fu, estado_informativo: f.estado_informativo, ref: f.ref })) };
 const jB = (t80(P, "B").juntas.find((j) => /UHMW/.test(j.pieza)) || {}).j_req;
 const jNew = jB ? Math.ceil(jB * 10 - 1e-9) / 10 : null;
 const aJ = jNew ? t80(Object.assign({}, P, { j_sec: jNew }), "B") : null;
 const tBots = [P.t_bot, P.t_bot + 2, P.t_bot + 4].map((tb) => { const a = t80(Object.assign({}, P, { t_bot: tb }), "C3"); return Object.assign({ t_bot: tb, masa20: a.geometria.masa20 }, resumen(a)); });
 const grads = [0, 5, 10, 15].map((g) => { const a = TT.thermal(P, { alts: ["base", "C3"], gradient: g, T: [20, Tsc] }).alternativas; const o = {}; a.forEach((x) => { o[x.id] = resumen(x); }); return { gradiente: g, alts: o }; });
 const vg68 = TT.oilViscosity(Tsc);
-out.medidas = { c3_t_bot: tBots, gradiente: grads, viscosidad: vg68, alivio_termico: altRelief, p_max_cil: P.p_max_cil, p_relief: P.p_relief,
+out.medidas = { c3_t_bot: tBots, gradiente: grads, viscosidad: vg68, fuera_alcance: fueraAlcance, p_max_cil: P.p_max_cil, p_relief: P.p_relief,
   junta_B: aJ ? { j_req: jB, j_sec_actual: P.j_sec, j_sec_nuevo: jNew, juntas: aJ.juntas, masa20: aJ.geometria.masa20, masa20_actual: t80(P, "B").geometria.masa20, resumen: resumen(aJ) } : null };
 process.stdout.write(JSON.stringify(out, null, 1));
