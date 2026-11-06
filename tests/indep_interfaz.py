@@ -122,6 +122,8 @@ def mesa(P):
     nin = sum(1 for r in rings if P["D_hub"] / 2 < r < P["R_rib"])
     m += RHO * P["N_rib"] * (P["R_rib"] - P["D_hub"] / 2 - nin * P["t_web"]) * hw * P["t_rib"]
     m += RHO * math.pi / 4 * (P["D_hub"] ** 2 - db ** 2) * hw
+    if P.get("h_boss", 0) > 0 and P.get("D_boss", 0) > db:           # rebaje inferior del cubo para el collar soldado del pivote: anillo D_boss–(D_piv + 30) de altura h_boss
+        m -= RHO * math.pi / 4 * (P["D_boss"] ** 2 - db ** 2) * min(P["h_boss"], hw)
     m += RHO * P["N_pin"] * math.pi / 4 * P["d_pin"] ** 2 * P["h_disc"]
     return m, RHO * math.pi / 4 * P["D_piv"] ** 2
 
@@ -482,7 +484,7 @@ def soldadura_mejilla(Delta):
 SW = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], "mm"), ("Fy_ss", [170, 185, 205, 225, 250], "MPa"),
       ("E_uhmw", [200, 250, 300, 400, 500], "MPa"), ("d_flat", [0.05, 0.1, 0.15, 0.2, 0.3], "mm"), ("W_tf", [200, 240, 280, 300, 320, 360], "tf"),
       ("n_sec", [12, 18, 24, 36, 48], "sectores"), ("n_seg", [12, 16, 24, 48], "sectores UHMW"), ("w_tope", [3, 4, 6, 8, 12, 16], "mm"), ("d_tor", [4, 6, 8, 10, 12], "mm"),
-      ("h_gr", [0, 0.5, 1, 2, 3, 5], "mm"), ("L_tope", [0, 100, 200, 400], "mm"), ("b_tope", [6, 12, 20, 30, 40], "mm"), ("fix_mode", [1, 2], "")]
+      ("h_gr", [0, 0.5, 1, 2, 3, 5], "mm"), ("L_tope", [0, 100, 200, 400], "mm"), ("b_tope", [6, 12, 20, 30, 40], "mm"), ("h_boss", [0, 30, 60, 100], "mm"), ("D_boss", [160, 200, 250, 300], "mm"), ("fix_mode", [1, 2], "")]
 sw_bad = 0; sw_n = 0
 SW_BADLIST = []
 
