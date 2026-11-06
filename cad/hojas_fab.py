@@ -565,3 +565,259 @@ def sheet_pivote(ctx):
         "Pivote: barra Ø120 de 42CrMo4+QT, rectificada o torneada en torno horizontal; zona de asiento p6 y zona del buje f7; sin torno vertical.",
         "El buje se corta de tubo fundido autolubricado o se pide a medida; Ø interior en mandrinadora."])
     return h
+
+
+# ======================================================================================================
+def int_keys(ctx):
+    """Claves de interfaz por lado: (base, mesa, extras)."""
+    g, m = ctx.g, ctx.m
+    if g.opt in (1, 2):
+        base, mesa = "int_disco_base", "int_disco_mesa"
+    else:
+        base, mesa = "int_bronce", "int_cara"
+    return base, mesa
+
+
+def int_all(ctx):
+    return [p.key for p in ctx.m.parts if p.sub == "INT"]
+
+
+def int_title(ctx):
+    return {1: "A (INOX)", 2: "B (INOX + UHMW)", 3: "C (BRONCE)"}[ctx.g.opt]
+
+
+def sheet_int_conj(ctx):
+    g, P, I = ctx.g, ctx.P, ctx.g.I
+    lay = ctx.m.layout
+    keys = int_all(ctx)
+    base_k, mesa_k = int_keys(ctx)
+    th = lay.th
+    base_side = [k for k in ("int_disco_base", "int_bronce", "int_tope_base", "int_tornillo_base", "int_uhmw", "int_tope_uhmw", "int_tapones") if k in ctx.shapes]
+    mesa_side = [k for k in ("int_disco_mesa", "int_cara", "int_tope_mesa", "int_tornillo_mesa") if k in ctx.shapes]
+    h = Hoja(ctx, "INT", 1, f"INTERFAZ {int_title(ctx)}: CONJUNTO Y CORTE", "1:10 / 1:4 / 1,2:1", material="Ver despiece de la interfaz", masa=f"{f(ctx.mass_of(*keys), 1)} kg",
+             trat="Ver despiece")
+    s = h.begin()
+    tb, z0 = g.tb, g.z0
+    zt = z0 - 0.0
+    V1 = View(s, ctx.sh(*base_side), "top", (125, 450), 0.1, center=(0, 0, tb), label="Base: sectores"); V1.draw()
+    V1.dim_dia((0, 0, tb + 1), g.Ro, 135, text=f"Ø{f(2 * g.Ro)}", on=[base_k], ext=18) if False else None
+    s.line(V1.P(-g.Ro - 40, 0, tb), V1.P(g.Ro + 40, 0, tb), "EJE"); s.line(V1.P(0, -g.Ro - 40, tb), V1.P(0, g.Ro + 40, tb), "EJE")
+    title_view(s, (125, 338), "LADO BASE: SECTORES SOBRE LA PLANCHA BASE", "ESC 1:10")
+    V2 = View(s, ctx.sh(*mesa_side), "bottom", (390, 450), 0.1, center=(0, 0, z0), label="Mesa: sectores"); V2.draw()
+    s.line(V2.P(-g.Ro - 40, 0, z0), V2.P(g.Ro + 40, 0, z0), "EJE"); s.line(V2.P(0, -g.Ro - 40, z0), V2.P(0, g.Ro + 40, z0), "EJE")
+    title_view(s, (390, 338), "LADO MESA: VISTA DESDE ABAJO", "ESC 1:10")
+    s.text(f"{g.n_sec} sectores de {fm(th, 2)}° por pieza; junta en frío {fm(g.junta('disc'), 1)} mm; Ø interior {f(2 * g.Ri_if)}, Ø exterior {f(2 * g.Ro)}." + ("" if g.removable else " FIJACIÓN PEGADA: NO DESMONTABLE."), (30, 322), 2.1)
+    # corte radial por la bisectriz del sector 0
+    a0 = th / 2
+    allk = base_side + mesa_side + ["base_plancha", "mesa_plancha_inf", "mesa_anillo_inf"]
+    rk = ctx.rotated(allk, -a0)
+    VR = View(s, ctx.sh(*rk), "front", (40, 235), 0.25, center=(g.Ri_if - 30, 0, tb), cut=((0, 0, 0), (0, 1, 0)), win=(-30, -tb - 5, g.Ro - g.Ri_if + 90, g.delta + g.tbo + 12), label="Corte radial", hatch_scale=0.3); VR.draw()
+    title_view(s, (200, 195), "CORTE RADIAL POR LA BISECTRIZ DE UN SECTOR", "ESC 1:4")
+    # detalle del tope (1:1,5)
+    rr = g.r_u
+    VD = View(s, ctx.sh(*rk), "front", (520, 235), 1.2, center=(rr, 0, tb), cut=((0, 0, 0), (0, 1, 0)), win=(-100, -tb - 3, 100, g.delta + g.tbo + 8), label="Detalle del tope", hatch_scale=0.2); VD.draw()
+    on = [k + "_r" for k in base_side + mesa_side]
+    lays = g.stack
+    for l in lays:
+        if l["id"] in ("disc_base", "bronce"):
+            VD.dim((rr + 60, 0, l["z0"]), (rr + 60, 0, l["z0"] + l["t"]), 10, orient="v", on=on, text=f"{fm(l['t'], 1)}", outside=True) if False else None
+    zs = [(l["z0"], l["z0"] + l["t"], l["id"]) for l in lays]
+    for i, (za, zb_, idn) in enumerate(zs):
+        xa = rr + 70 + 6 * i
+        VD.dim((xa, 0, za), (xa, 0, zb_), 8 + 10 * i, orient="v", on=on, text=f"{fm(zb_ - za, 1)}", outside=True)
+    title_view(s, (520, 195), "DETALLE DEL TOPE (corte por la muesca, escala ampliada)", "ESC 1,2:1")
+    if g.removable:
+        Lb, Lm = lay.L_base, lay.L_mesa
+        s.text(f"Tope lado base: barra {fm(lay.b_tope, 0)}×{f(Lb)}×{fm(ctx.m.info['tope_h'][0], 0)} en muesca {fm(lay.b_tope + 2, 0)}×{f(Lb)}; filetes z{fm(lay.w_tope, 0)} (2).", (430, 175), 2.0)
+        s.text(f"Tope lado mesa: barra {fm(lay.b_tope, 0)}×{f(Lm)}×{fm(ctx.m.info['tope_h'][1], 0)}; centrado en r_u = {f(g.r_u)}; tornillos de posición M{fm(lay.d_tor, 0)} ISO 10642.", (430, 171), 2.0)
+    # tabla de capas
+    rows = []
+    for l in g.stack:
+        nm = {"disc_base": "Disco de la base (liso)", "disc_mesa": "Disco de la mesa", "uhmw": "Lámina UHMW", "bronce": "Placa de bronce con grafito", "cara": "Disco duro / 2.ª placa"}[l["id"]]
+        rows.append([nm, f"{fm(l['z0'], 1)}", f"{fm(l['z0'] + l['t'], 1)}", f"{fm(l['t'], 1)}", "base" if l["lado"] == "base" else "mesa"])
+    s.text("CAPAS DE LA INTERFAZ (z desde la cara inferior de la base)", (30, 150), 2.8, "TOP_LEFT", bold=True)
+    s.table(30, 144, [("Capa", 70, "L"), ("z inf.", 22, "R"), ("z sup.", 22, "R"), ("e", 18, "R"), ("fija a", 22, "C")], rows, rh=5.0, h=2.0)
+    s.text(f"Altura que agrega la interfaz Δ = {fm(g.delta, 1)} mm; plano de deslizamiento en z = {fm(tb + (g.stack[0]['t'] + (g.stack[1]['t'] if g.opt == 2 else 0)), 1)} ({'entre disco de la base y lámina UHMW / lámina y disco de la mesa' if g.opt == 2 else 'entre las dos capas'}).", (30, 100), 2.0)
+    notas = interfaz_notas(ctx)
+    y = despiece_tabla(ctx, s, 648, 560, keys, "DESPIECE DE LA INTERFAZ")
+    s.notes_block(648, y - 8, "NOTAS", notas, h=1.9, wrap_chars=118)
+    return h
+
+
+def interfaz_notas(ctx):
+    g, P, lay = ctx.g, ctx.P, ctx.m.layout
+    n = [f"Alternativa elegida en el cálculo: {g.interfaz_nombre}.",
+         ("Fijación DESMONTABLE por sectores: topes soldados al respaldo (barra b_tope = %s, filete w_tope = z%s) toman el par; tornillos avellanados ISO 10642 M%s solo dan posición." % (fm(lay.b_tope, 0), fm(lay.w_tope, 0), fm(lay.d_tor, 0))
+          if g.removable else "FIJACIÓN PEGADA (fix_mode = 2): NO DESMONTABLE sin destruir la unión; no admite limpieza ni cambio de piezas. No se dibujan topes ni tornillos."),
+         "Soldar los topes ANTES del alivio de tensiones y del rectificado de las caras; el sector se baja sobre el tope y se asegura con los tornillos (S01–S03, PROVISORIO).",
+         f"Rugosidad de las caras deslizantes Ra 0,4; planitud de cada sector 0,05; de la plancha de respaldo 0,20 en Ø{f(P['D_top'] + 20)}.",
+         f"Junta en frío entre sectores {fm(g.junta('disc'), 1)} mm (bordes biselados 0,5×45°); sobreespesor de relapeado {fm(P['ss_allow'], 1)} mm."]
+    if g.opt in (1, 3):
+        n.append(f"Ranuras de engrase {fm(g.w_gr, 0)}×{fm(g.h_gr, 1)}: {g.n_gr_rad} radiales y {g.n_gr_circ} circunferenciales; {g.n_greaser} graseras M10×1 en el canto de la plancha inferior de la mesa.")
+    if g.opt == 1:
+        n.append("Opción A: aleaciones o durezas distintas entre ambos discos (≥ 50 HB, ASTM G98) para evitar el gripado inox–inox.")
+    n.append("Limpieza y engrase de discos desmontables: ver notas generales TT300C-GEN-001-B, punto de mantenimiento.")
+    return n
+
+
+def sheet_int_sect(ctx):
+    g, P, lay = ctx.g, ctx.P, ctx.m.layout
+    base_k, mesa_k = int_keys(ctx)
+    th = lay.th
+    nB = int(P["bz_npad"]) if g.opt == 3 and g.conf == 3 else g.n_sec
+    a_b, a_m = 180.0 / nB, th / 2
+    kb = ctx.local_ang(base_k, "sb_L", a_b, 360.0 / nB * 0.9)
+    km = ctx.local_ang(mesa_k, "sm_L", a_m, th * 0.9)
+    h = Hoja(ctx, "INT", 2, f"INTERFAZ {int_title(ctx)}: SECTORES", "1:2,5 / 1:1", material=ctx.m.get(base_k).material[:60], masa=f"{f(ctx.m.get(base_k).mass_unit, 2)} / {f(ctx.m.get(mesa_k).mass_unit, 2)} kg",
+             trat=ctx.m.get(mesa_k).tratamiento[:60])
+    s = h.begin()
+    tb, z0 = g.tb, g.z0
+    Ri, Ro = g.Ri_if, g.Ro
+    for i, (key, nm, zf, th_s, face, t_key) in enumerate(((kb, "SECTOR DEL LADO BASE", None, 360.0 / nB, "top", base_k), (km, "SECTOR DEL LADO MESA", None, th, "bot", mesa_k))):
+        oy = 470 - i * 215
+        lay_ = g.stack[0] if i == 0 else g.stack[-1]
+        zf = lay_["z0"] + lay_["t"] if i == 0 else lay_["z0"]
+        V = View(s, ctx.sh(key), "top", (60 + 0, oy), 0.42, center=(Ri, 0, zf), label=nm); V.draw()
+        s.line(V.P(Ri - 20, 0, zf), V.P(Ro + 20, 0, zf), "EJE")
+        V.dim((Ri, 0, zf), (Ro, 0, zf), 12 + (th_s and 0), orient="h", on=[key], text=f"{fm(Ro - Ri, 0)} (R_i {fm(Ri, 1)} → R_o {f(Ro)})")
+        if g.removable:
+            xa, xb = g.r_u - (lay.L_base if i == 0 else lay.L_mesa) / 2, g.r_u + (lay.L_base if i == 0 else lay.L_mesa) / 2
+            yb = (lay.b_tope + 2) / 2
+            V.dim((xa, yb, zf), (xb, yb, zf), -26, orient="h", on=[key], text=f"{fm(xb - xa, 0)} (muesca del tope)")
+            V.dim((xa, -yb, zf), (xa, yb, zf), 6, orient="v", on=[key], text=f"{fm(lay.b_tope + 2, 0)}", outside=True)
+            for r_ in ctx.m.info.get("radii_screw" if i == 0 else "radii_screw_m", [])[:1]:
+                V.dim_dia((r_, 0, zf), lay.d_clear / 2, 60, text=f"Ø{fm(lay.d_clear, 1)} + avellanado Ø{fm(lay.dk, 0)} × 90° (M{fm(lay.d_tor, 0)})", on=[key], ext=30)
+            s.text(f"Tornillos de posición: 2 por sector en la bisectriz a r = " + " y ".join(f(r_) for r_ in ctx.m.info.get("radii_screw" if i == 0 else "radii_screw_m", [])) + " (PROVISORIO S01)", (30, oy - 70), 2.0)
+        s.text(f"Ángulo del sector {fm(th_s, 2)}° (centro en la bisectriz); junta {fm(g.junta('disc'), 1)} entre bordes paralelos (S04); e = {fm(lay_['t'], 1)}.", (30, oy - 75), 2.0)
+        s.finish((V.P(Ro - 80, 0, zf)[0], V.P(0, 0, zf)[1] + 4 + 20), "Ra 0,4 (cara deslizante)")
+        title_view(s, (150, oy - 88), nm, "ESC 1:2,4")
+    s.gdt((330, 440), "flat", "0,05"); s.text("Planitud de la cara deslizante de cada sector (ISO 1101).", (362, 442), 2.0)
+    s.gdt((330, 425), "par", "0,05", "A"); s.text("Cara deslizante paralela a la cara de asiento (A).", (362, 427), 2.0)
+    s.notes_block(330, 405, "DETALLE POR OPCIÓN", sect_notes(ctx), h=1.9, wrap_chars=105)
+    right_col(ctx, s, [base_k, mesa_k] + [k for k in ("int_uhmw", "int_tapones") if ctx.m.has(k)], notas=[], extra_proc=True)
+    return h
+
+
+def sect_notes(ctx):
+    g, P, lay = ctx.g, ctx.P, ctx.m.layout
+    n = []
+    if g.opt == 1:
+        n += [f"Disco de la base liso e = {fm(g.I['tss'], 1)}; disco de la mesa e = {fm(g.I['tss2'], 1)} con ranuras en la cara deslizante ({g.n_gr_rad} radiales a {fm(360 / max(g.n_gr_rad, 1), 1)}°, {g.n_gr_circ} circunferenciales en R " + " / ".join(f(r) for r in lay.r_circ) + ")."]
+    if g.opt == 2:
+        n += [f"Discos e = {fm(g.I['tss'], 1)} (base) y {fm(g.I['tss2'], 1)} (mesa), ambos lisos; lámina UHMW e = {fm(g.I['tuh'], 1)} entre ellos (INT-003). Sin ranuras de engrase (el cálculo no las define para B)."]
+    if g.opt == 3:
+        n += [f"{'Pastillas' if g.conf == 3 else 'Sectores'} de bronce e = {fm(g.I['tbz'], 1)} con {ctx.m.info.get('n_plugs', 0)} tapones de grafito Ø{fm(P['bz_plug_d'], 0)} × {fm(ctx.m.info.get('plug_prof', 0), 1)}; ranuras de engrase {fm(g.w_gr, 0)}×{fm(g.h_gr, 1)} solo en el bronce.",
+              f"Disco duro / 2.ª placa e = {fm(g.I['tss2'], 1)}; Ra 0,4; dureza ≥ {f(P['HB_cara'])} HB (diferencia con el bronce ≥ 100 HB)."]
+    n += ["Sectores montados con la mesa izada: bajar el sector sobre su tope y atornillar; rotular cada sector (número y sentido) para su reposición."]
+    return n
+
+
+def sheet_int_topes(ctx):
+    g, P, lay, m = ctx.g, ctx.P, ctx.m.layout, ctx.m
+    h = Hoja(ctx, "INT", 3, "INTERFAZ: TOPES, TORNILLOS, ENGRASE Y ESPECIALES", "1:1 / 1:2", material="ASTM A572 Gr.50 (topes); 10.9 (tornillos)",
+             masa=f"{f(ctx.mass_of(*[k for k in ('int_tope_base', 'int_tope_mesa', 'int_tornillo_base', 'int_tornillo_mesa', 'int_tope_uhmw', 'graseras') if m.has(k)]), 2)} kg", trat="—")
+    s = h.begin()
+    tb, z0 = g.tb, g.z0
+    base_k, mesa_k = int_keys(ctx)
+    th = lay.th
+    nB = int(P["bz_npad"]) if g.opt == 3 and g.conf == 3 else g.n_sec
+    if g.removable and m.has("int_tope_base"):
+        ctx.local_ang("int_tope_base", "tb_L", 180.0 / nB, 360.0 / nB * 0.9)
+        ctx.local_ang("int_tope_mesa", "tm_L", th / 2, th * 0.9)
+        Lb, Lm = lay.L_base, lay.L_mesa
+        hb, hm = m.info["tope_h"]
+        for i, (key, L_, hh, nm, zz) in enumerate((("tb_L", Lb, hb, "TOPE LADO BASE", tb), ("tm_L", Lm, hm, "TOPE LADO MESA", z0 - hm))):
+            ox = 130 + i * 230
+            V = View(s, ctx.sh(key), "top", (ox, 480), 0.9, center=(g.r_u, 0, zz + hh), label=nm); V.draw()
+            V.dim((g.r_u - L_ / 2, lay.b_tope / 2, zz + hh), (g.r_u + L_ / 2, lay.b_tope / 2, zz + hh), 8, orient="h", on=[key], text=f"{fm(L_, 0)}")
+            V.dim((g.r_u + L_ / 2, -lay.b_tope / 2, zz + hh), (g.r_u + L_ / 2, lay.b_tope / 2, zz + hh), 8, orient="v", on=[key], text=f"{fm(lay.b_tope, 0)}")
+            VE = View(s, ctx.sh(key), "front", (ox, 400), 0.9, center=(g.r_u, 0, zz), label=nm + " elev."); VE.draw()
+            VE.dim((g.r_u + L_ / 2, 0, zz), (g.r_u + L_ / 2, 0, zz + hh), 8, orient="v", on=[key], text=f"{fm(hh, 0)} (= t − 1)")
+            s.weld_iso(VE.P(g.r_u + L_ / 2 - 3, 0, zz + 1 if i == 0 else zz + hh - 1), VE.P(g.r_u + L_ / 2 + 12, 0, zz - 30), "fillet", f"z{fm(lay.w_tope, 0)}", other=True, tail=["111/135 · ISO 5817-B", "WPS-08 A DEFINIR POR EL FABRICANTE"])
+            title_view(s, (ox, 365), nm, "ESC 1,1:1")
+        s.text(f"Altura del tope h = t − 1 (S02). Filete z{fm(lay.w_tope, 0)} en el frente y el dorso: el brazo del par es b_tope = {fm(lay.b_tope, 0)} (verificación del núcleo).", (30, 345), 2.0)
+        s.text("ALERTA PARA EL CALCULISTA: el filete z%s no cabe en una barra de h = %s mm si h ≤ w_tope; contacto efectivo menor que t (ver informe de brechas B-02)." % (fm(lay.w_tope, 0), fm(min(hb, hm), 0)), (30, 340), 2.0)
+        # tornillo
+        L_ = m.info["screw_L"][0]
+        ctx.local_ang("int_tornillo_base", "tor_L", th / 2, th * 0.9) if g.opt != 3 else ctx.local_ang("int_tornillo_base", "tor_L", 180.0 / nB, 360.0 / nB * 0.9)
+        r1 = m.info["radii_screw"][0]
+        if "tor_L" in ctx.shapes:
+            tt_ = g.stack[0]["t"]
+            ctx.local("tor_L", "tor_L", near=(r1, 0, tb + tt_ / 2), r=40)
+            VS = View(s, ctx.sh("tor_L", ), "front", (560, 480), 3.0, center=(r1, 0, tb + tt_), label="Tornillo"); VS.draw()
+            VS.dim((r1 - lay.dk / 2, 0, tb + tt_ - 0.5), (r1 + lay.dk / 2, 0, tb + tt_ - 0.5), 8, orient="h", on=["tor_L"], text=f"Ø{fm(lay.dk, 0)} (cabeza)") if False else None
+            title_view(s, (560, 440), f"TORNILLO ISO 10642 M{fm(lay.d_tor, 0)}×{L_}", "ESC 3:1")
+            s.text(f"Cabeza recesada {fm(P['ss_allow'] if g.opt != 3 else P['bz_allow'], 1)} bajo la cara deslizante; engrane ≥ 1,5·d en el respaldo (S11); torque A DEFINIR.", (470, 425), 2.0)
+    else:
+        s.text("FIJACIÓN PEGADA (fix_mode = 2): no hay topes ni tornillos. Adhesivo epóxico estructural (A DEFINIR POR EL PROVEEDOR): τ de diseño %s MPa, línea de pegado %s mm." % (fm(P["tau_bond"], 1), fm(P["t_ad"], 1)), (30, 480), 2.2)
+        s.text("NO DESMONTABLE: los discos/placas no se pueden limpiar ni reemplazar sin destruir la unión. Superficie de respaldo granallada, sin pintura.", (30, 474), 2.2)
+    if g.opt == 2 and m.has("int_uhmw"):
+        th_u = 360.0 / g.n_seg
+        a_u = m.info["uhmw_off"] + th_u / 2
+        ctx.local_ang("int_uhmw", "uh_L", a_u, th_u * 0.9)
+        ctx.local_ang("int_tope_uhmw", "uhb_L", m.info["uhmw_off"], th_u * 0.2) if m.has("int_tope_uhmw") else None
+        V = View(s, ctx.sh(*[k for k in ("uh_L", "uhb_L") if k in ctx.shapes]), "top", (60, 250), 0.35, center=(g.Ri_if, 0, g.stack[1]["z0"] + g.stack[1]["t"]), label="UHMW"); V.draw()
+        zU = g.stack[1]["z0"] + g.stack[1]["t"]
+        V.dim((g.Ri_if, 0, zU), (g.Ro, 0, zU), 10, orient="h", on=["uh_L"], text=f"{fm(g.Ro - g.Ri_if, 0)} (sector de UHMW)")
+        title_view(s, (150, 195), "SECTOR DE UHMW Y BARRAS DE REBAJE", "ESC 1:3")
+        s.text(f"UHMW e = {fm(g.I['tuh'], 1)}; {g.n_seg} sectores de {fm(th_u, 2)}°; junta en frío {fm(g.junta('uhmw'), 1)} mm + barra {fm(lay.b_tope, 0)} entre sectores; barras {fm(lay.b_tope, 0)}×{f(m.info.get('uhmw_bar_L', 0))}×{fm(m.info.get('uhmw_bar_h', 0), 0)} (inox) soldadas al disco de la base.", (30, 180), 2.0)
+    if g.opt == 3 and m.has("int_tapones"):
+        ctx.local_ang("int_bronce", "bz_L", 180.0 / nB, 360.0 / nB * 0.9)
+        zB = g.stack[0]["z0"] + g.stack[0]["t"]
+        V = View(s, ctx.sh("bz_L"), "top", (60, 250), 0.35, center=(g.Ri_if, 0, zB), label="Bronce"); V.draw()
+        V.dim((g.Ri_if, 0, zB), (g.Ro, 0, zB), 10, orient="h", on=["bz_L"], text=f"{fm(g.Ro - g.Ri_if, 0)} (R_i → R_o)")
+        title_view(s, (150, 195), "PASTILLA / SECTOR DE BRONCE CON TAPONES", "ESC 1:3")
+        s.text(f"Tapones Ø{fm(P['bz_plug_d'], 0)} × {fm(m.info.get('plug_prof', 0), 1)} (70 % de e = {fm(g.I['tbz'], 1)}) en malla escalonada de paso {fm(P['bz_plug_p'], 0)}; {m.info.get('n_plugs')} tapones en total (S09).", (30, 180), 2.0)
+        if g.conf == 3:
+            s.text(f"Pastillas: {int(P['bz_npad'])} por vuelta, cubrimiento {fm(g.I['cov'], 2)} del área; hueco entre pastillas = junta de dilatación y canal de grasa.", (30, 176), 2.0)
+    if g.opt in (1, 3) and m.has("graseras"):
+        gp = m.info["grease_pts"][0]
+        ang = math.degrees(math.atan2(gp[1], gp[0]))
+        gk = ctx.rotated([k for k in ("mesa_anillo_inf", base_k if False else mesa_k, "graseras") if k in ctx.shapes], -ang)
+        V = View(s, ctx.sh(*gk), "front", (480, 250), 1.6, center=(g.Rt - 30, 0, g.z0), cut=((0, 0, 0), (0, 1, 0)), win=(-55, -14, 40, g.tpr + 8), label="Grasera", hatch_scale=0.25); V.draw()
+        title_view(s, (480, 195), "GRASERA M10×1 Y CONDUCTO Ø6", "ESC 1,6:1")
+        s.text(f"{g.n_greaser} graseras DIN 71412 M10×1 a {fm(360 / g.n_greaser, 1)}° (primera a {fm(360 / g.n_greaser / 2, 1)}°): taladro Ø6 radial hasta R{f(g.Ro - 30)} y axial hasta la cara deslizante.", (400, 180), 2.0)
+        s.text(f"Volumen de grasa para llenar las ranuras ≈ " + (f"{fm(ctx.D['verificaciones'][0]['dem'], 0)}" if False else "ver verificaciones (Engrase)") + "; grasa grafitada NLGI 2.", (400, 176), 2.0)
+    right_col(ctx, s, [k for k in ("int_tope_base", "int_tope_mesa", "int_tope_uhmw", "int_tornillo_base", "int_tornillo_mesa", "graseras", "int_tapones") if m.has(k)], notas=[], extra_proc=False)
+    return h
+
+
+def sheet_madera(ctx):
+    g, P, D = ctx.g, ctx.P, ctx.D
+    h = Hoja(ctx, "MAD", 1, "CUBIERTA DE MADERA Y ANILLO DE ACERO", "1:10 / 1:2", material=f"Madera dura ρ ≥ {f(P['rho_wood'])} kg/m³; anillo ASTM A572 Gr.50", masa=f"{f(ctx.mass_of('madera', 'madera_anillo'), 1)} kg",
+             trat="Madera: secado al aire y sellado; anillo: pintura de la mesa")
+    s = h.begin()
+    z0, hd, tW = g.z0, g.hd, P["t_wood"]
+    zt = z0 + hd + tW
+    V = View(s, ctx.sh("madera", "madera_anillo"), "top", (150, 430), 0.1, center=(0, 0, zt), label="Planta"); V.draw()
+    Rw = g.Rt - 10.0
+    wp = 200.0
+    ys = [-Rw + k * wp for k in range(int(2 * Rw // wp) + 2) if -Rw + k * wp < Rw]
+    cut_rows = []
+    for k, y in enumerate(ys):
+        y1 = min(y + wp, Rw)
+        yn = min(abs(y), abs(y1)) if y * y1 > 0 else 0.0
+        yf = max(abs(y), abs(y1))
+        Lmax = 2 * math.sqrt(max(Rw ** 2 - yn ** 2, 0))
+        Lmin = 2 * math.sqrt(max(Rw ** 2 - yf ** 2, 0))
+        hole = yn < g.cb_D / 2
+        s.line(V.P(-math.sqrt(max(Rw ** 2 - y ** 2, 0)), y, zt), V.P(math.sqrt(max(Rw ** 2 - y ** 2, 0)), y, zt), "FINA")
+        cut_rows.append([str(k + 1), f"{fm(y1 - y, 0)}", f"{fm(Lmax, 0)}", f"{fm(Lmin, 0)}", "2 (parte la abertura)" if hole else "1", f"{fm(tW, 0)}"])
+    V.dim_dia((0, 0, zt), g.Rt, 130, text=f"Ø{f(P['D_top'])}", on=["madera_anillo"], ext=18)
+    V.dim_dia((0, 0, zt), g.cb_D / 2, 60, text=f"Ø{f(g.cb_D)} (abertura)", on=["madera"], ext=40)
+    title_view(s, (150, 308), "PLANTA (despiece de tablones PROVISORIO)", "ESC 1:10")
+    a0 = D["pasadores"][0]
+    rk = ctx.rotated(["madera", "madera_anillo", "mesa_anillo_sup", "pernos_pasador", "pasadores"], -a0)
+    VR = View(s, ctx.sh(*rk), "front", (500, 420), 1.0, center=(g.R_pin + 40, 0, z0 + hd), cut=((0, 0, 0), (0, 1, 0)), win=(-130, -30, 130, tW + 12), label="Corte", hatch_scale=0.3); VR.draw()
+    VR.dim((g.Rt, 0, z0 + hd), (g.Rt, 0, z0 + hd + tW), 10, orient="v", on=["madera_anillo_r"], text=f"{f(tW)}")
+    VR.dim((g.Rt - 10, 0, z0 + hd + tW), (g.Rt, 0, z0 + hd + tW), 10, orient="h", on=["madera_anillo_r"], text="10 (provisorio)")
+    VR.dim((g.R_pin - g.washer_D / 2 - 2, 0, z0 + hd), (g.R_pin + g.washer_D / 2 + 2, 0, z0 + hd), -25, orient="h", on=["madera_r"], text=f"Ø{f(g.washer_D + 4)} (bolsillo) × 31") if False else None
+    s.weld_iso(VR.P(g.Rt - 10, 0, z0 + hd + 2), VR.P(g.Rt - 70, 0, z0 + hd + 50), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-10 A DEFINIR POR EL FABRICANTE"])
+    title_view(s, (500, 350), "CORTE POR UN PASADOR (bolsillo sobre el perno)", "ESC 1:1")
+    s.text(f"f_apoyo = {fm(P['f_apoyo'], 2)}: fracción del círculo de carga Ø{f(P['D_load'])} que toca realmente la madera (tablones contiguos dentro del anillo); p adm. {fm(P['p_wood'], 1)} MPa.", (30, 290), 2.1)
+    s.text("PROVISORIO (S06): ancho de tablón 200, anillo 10×t, abertura Ø%s para acceso a la tapa de inspección, bolsillos sobre los pernos de pasador." % f(g.cb_D), (30, 285), 2.1)
+    s.text("Fijación de los tablones (tornillos avellanados) y acabado antideslizante: A DEFINIR POR EL CALCULISTA (verificación pendiente del núcleo).", (30, 280), 2.1)
+    s.text("LISTA DE CORTE DE TABLONES (ancho 200 provisorio)", (30, 265), 2.8, "TOP_LEFT", bold=True)
+    s.table(30, 259, [("N°", 10, "C"), ("Ancho", 18, "R"), ("L máx.", 20, "R"), ("L mín.", 20, "R"), ("Piezas", 40, "L"), ("e", 12, "R")], cut_rows, rh=4.4, h=1.9)
+    right_col(ctx, s, ["madera", "madera_anillo"], notas=["La madera gira con la mesa y carga la interfaz; masa incluida en el cálculo (m.wood). El anillo de acero NO está en el cálculo de masas (ver informe)."])
+    return h

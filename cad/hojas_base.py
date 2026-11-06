@@ -45,6 +45,19 @@ class Ctx:
         self.shapes[newkey] = c
         return newkey
 
+    def local_ang(self, key, newkey, a_deg, span_deg):
+        """Sólidos de 'key' cuyo centro está a menos de span/2 del ángulo a (grados); se giran −a para llevar la bisectriz a +x."""
+        sol = []
+        for x in self.shapes[key].Solids():
+            c = x.Center()
+            d = ((math.degrees(math.atan2(c.y, c.x)) - a_deg + 180) % 360) - 180
+            if abs(d) < span_deg / 2:
+                sol.append(x)
+        c = cq.Compound.makeCompound(sol).rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), -a_deg) if sol else None
+        if c is not None:
+            self.shapes[newkey] = c
+        return newkey if sol else None
+
     def rotated(self, keys, deg, suffix="_r"):
         out = []
         for k in keys:

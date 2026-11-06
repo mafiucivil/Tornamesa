@@ -554,6 +554,7 @@ def build_interfaz(m, g, D, log):
             m.info["screw_L"] = (Lb, Lm)
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii
+        m.info["radii_screw_m"] = radii_m
         m.info["tope_h"] = (t1 - 1.0, t2 - 1.0)
         # UHMW (opción B)
         if g.opt == 2:
@@ -693,6 +694,7 @@ def build_interfaz(m, g, D, log):
             m.info["screw_L"] = (Lb, Lm)
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii_b
+        m.info["radii_screw_m"] = radii_c
         m.info["tope_h"] = (tB - 1.0, tC - 1.0)
     # --- ductos de engrase (graseras) ---
     if g.opt in (1, 3) and g.n_greaser > 0:
