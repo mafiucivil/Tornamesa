@@ -78,7 +78,7 @@
   "t_wood": 50,
   "rho_wood": 900,
   "p_wood": 6,
-  "f_apoyo": 0.5,
+  "f_apoyo": 0.9,
   "h_skid": 0,
   "tol_skid": 10,
   "D_top": 2000,

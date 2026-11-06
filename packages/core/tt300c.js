@@ -100,7 +100,7 @@ const TT = (() => {
       ["t_wood", "Espesor de los tablones", "mm", 50, 20, 150, 5],
       ["rho_wood", "Densidad de la madera dura (seca al aire)", "kg/m³", 900, 500, 1300, 10],
       ["p_wood", "Presión admisible de aplastamiento perpendicular a la fibra (sostenida; confirmar con NCh1198 y el proveedor)", "MPa", 6, 1, 20, 0.5],
-      ["f_apoyo", "Fracción del círculo de apoyo de la carga que toca realmente la madera (SUPUESTO: patines o vigas cubren el 50 %)", "–", 0.5, 0.05, 1, 0.05],
+      ["f_apoyo", "Fracción del círculo de apoyo de la carga que toca realmente la madera (tablones contiguos dentro del anillo de acero: 0,90, definido por el mandante)", "–", 0.9, 0.05, 1, 0.05],
       ["h_skid", "Altura de los rieles de skidding o de la superficie de llegada (0 = no aplica)", "mm", 0, 0, 800, 5],
       ["tol_skid", "Tolerancia de enrase con los rieles", "mm", 10, 1, 50, 1],
     ] },
