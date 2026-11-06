@@ -94,6 +94,7 @@ def table(title, head, rows):
 
 
 COMP, FIND = [], []
+TIES = []                                                           # (conf, override, N sin empates, N con empates, N del núcleo)
 
 
 def comp(prueba, name, mine, core, tol=TOL):
@@ -1187,7 +1188,7 @@ def plug_fractions(PP, conf, t_b, tie=None):
     fgI = fg_of(PP); Nid = fgI * A_ / ap
     L = stop_L_bronze(PP, conf, t_b)
     N_hi, N_lo = plug_count(PP, conf, L, 1e-6), plug_count(PP, conf, L, -1e-6)
-    N = N_lo if tie == "lo" else N_hi
+    N = tie if isinstance(tie, int) and N_lo <= tie <= N_hi and N_lo != N_hi else (N_lo if tie == "lo" else N_hi)    # tie = N del núcleo dentro de [N_lo, N_hi]: empate resuelto por el ruido de coma flotante
     fgR = N * ap / A_
     return (fgR if PP.get("bz_fg_modo", 1) == 1 else fgI), fgR, fgI, N, Nid, (N_lo != N_hi, N_lo, N_hi)
 
@@ -1451,7 +1452,7 @@ for c in (1, 2, 3):
     Lb = stop_L_bronze(PPt, c, rr_c["tb"]); Nm, per_m, loss_m, rad_m, nmesh = plug_count(PPt, c, Lb, 1e-6, True)
     for nm_, mv, cv in (("N_real (tapones)", float(Nm), float(tp_["N_real"])), ("N_ideal", rr_c["Nideal"], tp_["N_ideal"]), ("f_g real", rr_c["fgR"], tp_["fg_real"]), ("f_g ideal", rr_c["fgI"], tp_["fg_ideal"]),
                         ("f_g usada", rr_c["fg"], tp_["fg_usado"]), ("cobertura de grafito", rr_c["fg"], tp_["cobertura"]), ("cobertura ideal", rr_c["fgI"], tp_["cobertura_ideal"]), ("η", rr_c["eta"], tp_["eta"]),
-                        ("nodos de la malla en la corona (N_malla)", float(nmesh), float(tp_["N_malla"])), ("largo de la muesca L (mm)", Lb, tp_["L_muesca"]), ("junta (mm)", 0.0 if c == 3 else junta_mm(PPt, AL_BZ, PPt["n_sec"]), tp_["junta"]),
+                        ("nodos de la malla en la corona (N_malla)", float(nmesh), float(tp_["N_malla"])), ("largo de la muesca L (mm)", Lb, tp_["L_muesca"]), ("junta (mm; en C3 solo informativa: las pastillas no llevan junta en el conteo)", junta_mm(PPt, AL_BZ, PPt["n_sec"]), tp_["junta"]),
                         ("tornillos por sector", float(2 if PPt["bz_n_tor"] >= 2 else 0), float(tp_["n_tornillos_sector"])), ("Ø cabeza (mm)", DK_ISO10642[int(PPt["d_tor"])], tp_["d_cabeza"])):
         ok, d_ = cmp_val("4t", f"C{c} · {nm_}", mv, cv)
         tab.append([c, nm_, s3(mv), s3(cv), f"{d_:+.4f}", "coincide" if ok else "DISCREPA"])
@@ -1486,8 +1487,8 @@ for c in (1, 3):
             tab.append([c, d_, p_, "rechazado", "", "", ""]); continue
         PPg = dict(PC[c], bz_plug_d=d_, bz_plug_p=p_); rg_ = ifaceC(PPg, c); Nc_ = DDg["interfazGeom"]["tapones"]["N_real"]
         tie_ = rg_["tie"]; mine_ = rg_["Nreal"]
-        if tie_[0] and Nc_ == tie_[1]:
-            mine_ = tie_[1]
+        if tie_[0] and tie_[1] <= Nc_ <= tie_[2]:
+            mine_ = Nc_; TIES.append((c, dict(bz_plug_d=d_, bz_plug_p=p_), tie_[1], tie_[2], Nc_))
         ok = mine_ == Nc_; n_dp_bad += 0 if ok else 1
         comp("4t", f"C{c} · barrido (d, p) = ({d_}, {p_}): N_real", float(mine_), float(Nc_))
         comp("4t", f"C{c} · barrido (d, p) = ({d_}, {p_}): f_g usada", rg_["fg"] if mine_ == rg_["Nreal"] else mine_ * math.pi * d_ ** 2 / 4 / (geom(PPg)[2] * (PPg["bz_cover"] if c == 3 else 1)), DDg["interfazGeom"]["tapones"]["fg_usado"])
@@ -1665,7 +1666,6 @@ SWC = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], (1, 2, 3)), ("Fy_bz",
        ("tol_hc", [0, 0.5, 1, 2, 3], (1, 2, 3)), ("hc_min", [3, 4, 6, 8, 10], (1, 2, 3)), ("j_sec", [1, 1.5, 2, 3, 4.7], (1, 2, 3)), ("dT", [20, 30, 40, 70, 100], (1, 2, 3)),
        ("a_inf", [0, 5, 9, 12], (1, 2, 3)), ("a_sup", [1, 2, 3], (1, 2, 3)), ("rho_bz", [7.0, 7.45, 8.0, 9.0], (1, 2, 3)), ("Fy_cara", [250, 400, 600, 1000], (1, 3))]
 swC_n = swC_bad = 0
-TIES = []                                                           # (conf, override, N sin empates, N con empates, N del núcleo)
 PLANCHA_DEV = []
 swC_rej = []
 prefetch([dict(opt_bz=1, bz_conf=c, **{k: v}) for k, vals, cs in SWC for c in cs for v in vals] + [dict(opt_bz=1, bz_conf=c, bz_cover=0.5) for c in (1, 2)])
@@ -1683,8 +1683,8 @@ def cmp_c(over, conf):
     tapC = DD["interfazGeom"]["tapones"]
     if r["tie"][0]:                                                 # empate geométrico (borde del tapón exactamente a bz_edge): el núcleo lo resuelve con el ruido de coma flotante
         TIES.append((conf, dict(over), r["tie"][1], r["tie"][2], tapC["N_real"]))
-        if tapC["N_real"] == r["tie"][1]:
-            PP["_tie"] = "lo"; R, r = rowsC(PP, conf)
+        if r["tie"][1] <= tapC["N_real"] <= r["tie"][2]:
+            PP["_tie"] = int(tapC["N_real"]); R, r = rowsC(PP, conf)
     ic = DD["escenarios"]["ifaces"][3]; bad = []
     cs = casos_c(PP, r["N"])["dis"]
     pairs = [("tbz", r["tb"]), ("tbzReq", r["tbReq"]), ("tFlexB", r["tfB"]), ("tss", r["tr"]), ("tssReq", r["trReq"]), ("tss2Req", r["trReq"]), ("tss2", r["tr"]), ("tFlex", r["tfR"]), ("delta", r["delta"]), ("mAdd", r["mAdd"]),
