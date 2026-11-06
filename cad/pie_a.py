@@ -62,6 +62,7 @@ def sheet_base_plancha(ctx):
     for sx in (1, -1):
         rows.append(["Bancada (eje de guía)", f(sx * P["x_g"]), "0", "90°", f"largo {f(g.KG['L_bed'], 1)}"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
+    add_prep(p, "det_j9", wd(ctx, jids(ctx, "Collar")[0]), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False)
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS (origen: centro de la plancha)", [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
     p.tables(jids(ctx, "Collar", "Marco perimetral largo", "Marco corto – plancha"))
     nz = [
@@ -159,7 +160,8 @@ def sheet_marcos(ctx):
     p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {f(B)} y 2 cortas de {f(B - 2 * rt)} (entre las largas); corte a sierra o plasma con borde recto.",
              "Armado: pletinas largas sobre la plancha, cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo exterior e interior.",
              f"Las esquinas se sueldan con filete exterior de esquina continuo ({ids[1]}); el tamaño z indicado es el mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
-             "El marco contiene la interfaz y protege el borde; no tiene función estructural en el cálculo."])
+             "El marco contiene la interfaz y protege el borde; no tiene función estructural en el cálculo."],
+            gd=[("straight", "2,0", None, "Rectitud del canto en todo el largo (pletinas largas y cortas)"), ("perp", "0,5", "A", "Pletina perpendicular a la cara mayor (A) tras soldar")])
     p.build()
     return p.h
 
@@ -230,7 +232,7 @@ def sheet_orejas(ctx):
         w_sym(p, jid, V, (R, tE / 2, tb + 3), (36, 40))
         s.roughness((V.P(-R, 0, tb + hE)[0] - 30, V.P(0, 0, tb + hE)[1] + 8), "Ra 12,5")
     p.vs("perfil", on, "front", center=(0, 0, tb), lv=(1, 2, 2, 1), extra=(0, 0, 30, 0), draw=perfil, hatch=False, title="PERFIL",
-         auto=dict(tol={round(hE, 1): " ±1 (al centro del agujero)", round(2 * R, 1): " (= 2R)"}, fits={}, hole_pos=True), w=1.5)
+         auto=dict(tol={round(hE, 1): " ±1 (al centro del agujero)", round(2 * R, 1): " (= 2R)"}, fits={round(dE, 1): "H12"}, hole_pos=True), w=1.5)
     p.vs("planta", on, "top", center=(0, 0, tb), lv=(1, 2, 1, 1), title="PLANTA (espesor)", auto=dict(tol={round(tE, 1): ""}), w=0.7, maxs=2.0)
     p.vs("corte", on, "right", cut=((0, 0, 0), (-1, 0, 0)), center=(0, 0, tb), lv=(1, 2, 1, 1), title="CORTE B-B (espesor y agujero)", auto=dict(), w=0.7, maxs=2.0, hs=0.4) if False else None
     add_prep(p, "det_j", wd(ctx, jid), t1=tE, t2=tb)

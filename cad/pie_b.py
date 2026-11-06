@@ -19,7 +19,7 @@ def sheet_mesa_sup(ctx):
         s.centerlines(V.P(0, 0, zt), g.prIn * V.scale, 8)
         p.cut_mark("planta", "A", (-g.prIn - 22, 0, zt), (g.prIn + 22, 0, zt), 90)
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), draw=planta, title="PLANTA", w=1.5,
-         auto=dict(text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn)} ±1,5"}, hole_rmin=20, tol={}))
+         auto=dict(text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn)} ±1,5"}, hole_rmin=4.0, fits={round(g.hole_top, 1): "H12", round(g.cb_D, 1): "H12"}, hole_txt={8.5: f"6 × M10-6H prof. {fm(g.insp_tap, 0)} (broca Ø8,5) en el fondo del rebaje, PCD Ø{fm(g.insp_pcd, 0)}, a 30° + 60°·k"}, tol={}))
     x_a, x_b = g.hole_top / 2 - 25, g.prIn + 25
 
     def corte(V, p):
@@ -159,7 +159,8 @@ def sheet_almas(ctx):
              f"Cada alma tiene 1 empalme a tope V 60° ({ids[1]}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios.",
              "Altura h = h_disc − t_top − t_bot ±0,5: cortar a medida y verificar con plantilla antes de armar la mesa.",
              f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else "Cumple mínimo AWS y máximo AISC J2.2b."),
-             "Las almas son continuas; los nervios se cortan entre almas (ver MES-008…010)."])
+             "Las almas son continuas; los nervios se cortan entre almas (ver MES-008…010)."],
+            gd=[("perp", "0,5", "A", "Alma perpendicular a la cara de la plancha inferior (A); altura h ±0,5"), ("circ", "2,0", None, "Redondez del anillo rolado (desviación radial máx.)")])
     p.build()
     return p.h
 
@@ -201,7 +202,8 @@ def sheet_nervios(ctx):
     p.notes([f"Pletina {fm(P['t_rib'], 0)} × {f(g.hw)}; {int(P['N_rib'])} nervios por tramo, 3 tramos (entre cubo, almas A1…A3 y borde R_rib = {f(P['R_rib'])}).",
              "Corte por plasma anidado en plancha; largos de la tabla (entre caras de almas/cubo); ajuste con 1–2 mm de holgura de armado.",
              f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha inferior con plantilla angular ±0,1°.",
-             "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior."])
+             "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior."],
+            gd=[("straight", "1,0", None, "Rectitud del canto de apoyo de cada nervio"), ("pos", "±0,1°", "A", "Posición angular de cada nervio respecto de +x (A = eje de la mesa)")])
     p.build()
     return p.h
 

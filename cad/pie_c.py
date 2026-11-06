@@ -128,7 +128,8 @@ def sheet_cilindro(ctx):
     p.notes(["Elemento comercial: este plano fija solo las dimensiones de interfaz que el cálculo exige; el diseño interno es del fabricante.",
              f"Prueba hidráulica a 1,5 × {f(P['p_relief'])} bar con certificado de fábrica (EN 10204 3.1 / certificado de prueba).",
              "Ojales con rótula esférica autolubricada; sellos NBR/PU según el fabricante; protección de vástago (cromo duro) y pintura del fabricante.",
-             f"Pasadores de articulación Ø{f(P['d_pp'])} f8 con placa de retención (ACC-005).", "Capacidad y velocidad: ver memoria de cálculo (capítulo de cilindros y bomba)."])
+             f"Pasadores de articulación Ø{f(P['d_pp'])} f8 con placa de retención (ACC-005).", "Capacidad y velocidad: ver memoria de cálculo (capítulo de cilindros y bomba)."],
+            gd=[("par", "0,10", "A", "Ejes de los dos ojales paralelos entre sí (A = eje del ojal trasero)"), ("coax", "Ø0,20", "A", "Vástago coaxial con la camisa en la posición de empuje")])
     p.build()
     return p.h
 
