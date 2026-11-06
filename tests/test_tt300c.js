@@ -202,7 +202,7 @@ test("Fijación desmontable por sectores con topes (y pegado como alternativa) y
   // tope: F = (T_calado/r_u)/n·(q_máx/q_med); L = máx(aplastamiento; soldadura)/0,9, múltiplo de 5 mm
   const A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }), R = A.R, Nd = P0.Nd;
   const Fst = R.Tmax / (R.r_u / 1000) / P0.n_sec * R.q_max / R.q_avg, adm = 1.25 * P0.Fy_ss / Nd, tB = R.ifc.tss;
-  const Fw = 0.60 * P0.FEXX / (1.2 * Nd), Lreq = Math.max(Fst * 1e3 / (adm * tB), Fst * 1e3 / (2 * 0.707 * P0.w_tope * Fw)), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;
+  const Fw = 0.60 * P0.FEXX / (1.2 * Nd), Lreq = Math.max(Fst * 1e3 / (adm * tB), Math.hypot(Fst * 1e3 / (2 * 0.707 * P0.w_tope), Fst * 1e3 * (tB / 2) / (P0.b_tope * 0.707 * P0.w_tope)) / Fw), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;
   const row = A.checks.find((c) => /Disco de la base \(liso\).*aplastamiento del tope/.test(c.name));
   near(row.dem, Fst * 1e3 / (Lt * tB), 1e-9, "aplastamiento del tope"); near(row.cap, adm, 1e-12, "admisible");
   assert.ok(row.fu <= 0.9 + 1e-9, "FU del tope ≤ 0,90");

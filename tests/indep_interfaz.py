@@ -1309,7 +1309,7 @@ for c in (1, 3):
             treq = r["tbReq"]
         else:
             lim = P["Fy_bz"] if "≤ Fy" in nm else 0.6 * P["Fy_bz"]
-            treq = r["a"] * math.sqrt(0.75 * r["qloc"] * kt / lim) + P["bz_allow"]; treq = max(treq, P["bz_tmin"])
+            treq = r["a"] * math.sqrt(0.75 * r["qloc"] * kt / lim) + P["bz_allow"] + r["gr"]; treq = max(treq, P["bz_tmin"])
         rows.append([c, nm, s3(treq), s3(com(treq, COM_BZ)), s3(r["tb"]), "cubre" if com(treq, COM_BZ) <= r["tb"] else f"NO cubre (pide {s3(com(treq, COM_BZ))})"])
 table("5a'. Espesor de la placa de bronce con distintos criterios del borde del agujero (q_loc, a = ss_void/2, sobreespesor incluido)", ["conf", "Criterio", "t_req mm", "comercial", "adoptado núcleo", "veredicto"], rows)
 rows = []
@@ -1338,12 +1338,13 @@ FU_PL_VARIES = max(x[1] for x in fu_pl) - min(x[1] for x in fu_pl) > 0.05
 FU_PL_DEF = next(x[1] for x in fu_pl if abs(x[0] - 0.9) < 1e-9)
 q3_ = rC[3]["q"]
 cov_crit = PL_LOC1 * q3_ / (PL_CAP - PL_GLO1 * q3_)
-rows = []
+rows = []; TBOT_FU = {}
 for tb_ in TBOT:
     r_ = [tb_]
     for cv_ in COVT:
         DD = export_c({"opt_bz": 1, "bz_conf": 3, "bz_cover": cv_, "t_bot": tb_})
-        r_.append(s3(_vv(DD, "Plancha inferior: global + local")["fu"]))
+        TBOT_FU[(cv_, tb_)] = _vv(DD, "Plancha inferior: global + local")["fu"]
+        r_.append(s3(TBOT_FU[(cv_, tb_)]))
     rows.append(r_)
 table("5b'. FU «Plancha inferior: global + local» del núcleo (C3) según t_bot (columnas: cobertura); solo datos del núcleo (el FEA no se replica)", ["t_bot mm"] + [f"cob. {c_}" for c_ in COVT], rows)
 print(f"Cobertura crítica (FU = 1) por escalamiento lineal: {s3(cov_crit)}; con la cobertura de proyecto {P['bz_cover']:g}: FU núcleo {s3(FU_PL_DEF)} (escalado {s3(next(x[2] for x in fu_pl if abs(x[0]-0.9)<1e-9))}); "
@@ -1666,7 +1667,7 @@ FIND.append(("C1", "menor" if cl_c1 else "importante",
              ("Plancha inferior de la mesa en C3: corregida (q_c = q_máx/cobertura en el FEA, en la flexión global y en la losa); el margen con cobertura 0,9 es estrecho y el FU depende de t_bot, W_tf y la cobertura"
               if cl_c1 else "Plancha inferior de la mesa en C3: el núcleo no escala con q_loc o no coincide con mi cota lineal"),
              f"FU plancha inferior {s3(FU_PL_DEF)} (cobertura {P['bz_cover']:g}, «warn»); cobertura 0,5/0,6/0,7/0,8: {', '.join(s3(x[1]) for x in fu_pl[:4])}; losa q_c/q_losa {s3(rr3['qloc']/P['q_floor'])}",
-             f"cobertura crítica {s3(cov_crit)} (FU = 1); con 0,7 se necesita t_bot ≥ 20 (tabla 5b'); σ_global no se divide por la cobertura (correcto); 3 pastillas en contacto: q_neto {s3(q3)} MPa (FU {s3(q3/P['p_bz'])}); "
+             f"cobertura crítica {s3(cov_crit)} (FU = 1); con cobertura 0,7: t_bot mínimo {min([t_ for t_ in TBOT if TBOT_FU[(0.7, t_)] <= 1] or [math.nan])} mm para FU ≤ 1 y {min([t_ for t_ in TBOT if TBOT_FU[(0.7, t_)] <= 0.9] or [math.nan])} mm para FU ≤ 0,9 (tabla 5b'); σ_global no se divide por la cobertura (correcto); 3 pastillas en contacto: q_neto {s3(q3)} MPa (FU {s3(q3/P['p_bz'])}); "
              "FU = 1 también con W_tf ≥ " + ", ".join(f"{s3(u[2])} tf en C{u[1]}" for u in UM if u[0] == "W_tf" and any("Plancha" in x for x in u[4][2]) and not any("Plancha" in x for x in u[3][2])) + f"; exigir rectificado en conjunto (planitud 0,20 mm ≈ flecha del panel entre anillos {s3(dpan)} mm) y no bajar la cobertura de 0,85 sin subir t_bot"))
 FIND.append(("C2", "menor", "Adherencia–deslizamiento (fila «pend» del núcleo con dem = 0) y μ de arranque: no hay cota. Con la rigidez del aceite el sistema es inestable para Δμ = μ_est − μ_cin mayor que Δμ_c; no existe μ_est entre los μ de C",
              f"pend; μ = {P['muC_nom']} / {P['muC_d']} / {P['muC_cont']} / {P['muC_dry']}",
@@ -1687,18 +1688,18 @@ FIND.append(("C4", "menor", "Área de grafito f_g = 14,5 % por debajo del 25–3
 FIND.append(("C5", "menor", "η = (p−d)/p es un criterio de sección neta (estado límite de un bronce dúctil): no cubre la tensión elástica en el borde del agujero (Kt bruto 2,0–3,7); el tapón prensado casi no ayuda a resistencia; en C3 el espesor adoptado tiene " + f"{s3((rC[3]['tb']/rC[3]['tbReq']-1)*100)} % de holgura sobre el requerido",
              f"σ núcleo {s3(RC[1]['Placa de bronce: flexión sobre un vacío local'][0])} (C1), {s3(RC[3]['Placa de bronce: flexión sobre un vacío local'][0])} MPa (C3); t_req C3 {s3(rr3['tbReq'])} → {s3(rr3['tb'])} mm",
              f"σ pico/Fy C1 {s3(Kt_eq0*RC[1]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}–{s3(Kt_net_row/etaC*RC[1]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}, C3 {s3(Kt_eq0*RC[3]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}–{s3(Kt_net_row/etaC*RC[3]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}; "
-             f"pico ≤ Fy con Kt = 3: t_req {s3(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/P['Fy_bz'])+P['bz_allow'])} (C1) / {s3(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/P['Fy_bz'])+P['bz_allow'])} mm (C3), cubierto por el espesor adoptado; pico ≤ 0,6 Fy pediría {s3(com(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/(0.6*P['Fy_bz']))+P['bz_allow'], COM_BZ))} / {s3(com(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/(0.6*P['Fy_bz']))+P['bz_allow'], COM_BZ))} mm. "
+             f"pico ≤ Fy con Kt = 3: t_req {s3(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/P['Fy_bz'])+P['bz_allow']+rC[1]['gr'])} (C1) / {s3(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/P['Fy_bz'])+P['bz_allow']+rC[3]['gr'])} mm (C3), {'cubierto' if com(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/P['Fy_bz'])+P['bz_allow']+rC[3]['gr'], COM_BZ) <= rC[3]['tb'] else 'NO cubierto'} por el espesor adoptado; pico ≤ 0,6 Fy pediría {s3(com(rC[1]['a']*math.sqrt(0.75*rC[1]['qloc']*3/(0.6*P['Fy_bz']))+P['bz_allow']+rC[1]['gr'], COM_BZ))} / {s3(com(rC[3]['a']*math.sqrt(0.75*rC[3]['qloc']*3/(0.6*P['Fy_bz']))+P['bz_allow']+rC[3]['gr'], COM_BZ))} mm. "
              "razonable con Ø12 y paso 30 (η = 0,6); mantener d/p ≤ 0,4; en C3 el espesor comercial sube con " + "; ".join((f"{k_} ≥ {s3(v_)}" if v_ == v_ else f"{k_}: sin cambio en el rango barrido") for k_ in ("W_tf", "ss_void") for v_ in [min([u[2] for u in UM if u[0] == k_ and u[1] == 3 and u[4][0] > u[3][0] and u[2] > P[k_]] or [math.nan])])))
 FIND.append(("C6", "menor", "Soldadura mejillas–base cerca del límite con la altura agregada Δ (la altura del eje h_disc/2 + Δ sube el momento de las mejillas); en conf. 2 con ss_void ≥ 191 mm incumple",
              f"FU {s3(sold_fu(rr1['delta']))} (C1, C3, Δ = 16), {s3(sold_fu(rC[2]['delta']))} (C2, Δ = 20), «warn»",
-             f"Δ_máx con FU = 1: {s3(Dmax_w2)} mm; op. 0 {s3(sold_fu(0))}, A {s3(sold_fu(IF[1]['delta']))} (Δ = {s3(IF[1]['delta'])}), B {s3(sold_fu(IF[2]['delta']))} (Δ = {s3(IF[2]['delta'])}); reforzar los filetes de las mejillas o limitar Δ ≤ 26 mm (ss_void ≤ 180 en C1/C3)"))
+             f"Δ_máx con FU = 1: {s3(Dmax_w2)} mm; op. 0 {s3(sold_fu(0))}, A {s3(sold_fu(IF[1]['delta']))} (Δ = {s3(IF[1]['delta'])}), B {s3(sold_fu(IF[2]['delta']))} (Δ = {s3(IF[2]['delta'])}); reforzar los filetes de las mejillas o limitar Δ ≤ " + s3(Dmax_w2) + " mm"))
 FIND.append(("C7", "menor", "Conf. 2: sigue sin verificación de dureza ni de desgaste de la 2.ª placa maciza (bronce–bronce «pend»)",
              "sin fila de dureza ni de desgaste de la 2.ª placa",
              f"aleaciones con ≥ 50 HB de diferencia (placa con tapones la más dura, p. ej. bronce al aluminio/manganeso; placa maciza reemplazable de bronce al plomo-estaño), Ra ≤ 0,4–0,8 µm, rodaje con grafito; "
              f"una 2.ª placa de Fy ≥ 275 MPa reduce a 6 mm (Δ {s3(ifaceC(dict(PC[2], Fy_bz2=275), 2)['delta'])} mm, −{s3(rC[2]['mAdd']-ifaceC(dict(PC[2], Fy_bz2=275), 2)['mAdd'])} kg)"))
 FIND.append(("C8", "menor", "HB_bz es un dato independiente de Fy_bz: con Fy_bz = 415 MPa (HB real ≈ 200–225) la fila de dureza sigue en 330 − 100",
              f"HB_cara − HB_bz = {s3(hb_diff_c1)} (cap) frente a 100", f"con HB_bz = 225: {s3(P['HB_cara']-225)} (límite 100); ligar HB_bz a la aleación; un disco de Ø2000 × 6 mm templado a 330 HB se deforma: segmentar o usar tratamiento superficial"))
-FIND.append(("C10", "menor", "Desgaste: la reserva t_bz − t_flex/√η no descuenta el sobreespesor de relapeado ni la ranura de engrase (que desaparece con h = h_gr) y s se mide en r_ef, no en R_o; el k_bz crítico queda dentro del rango admitido [0,1; 500]",
+FIND.append(("C10", "menor", "Desgaste: la reserva t_bz − t_flex/√η no descuenta el sobreespesor de relapeado ni la ranura de engrase (que desaparece con h = h_gr) y s se mide en r_ef, no en R_o; el k_bz crítico corregido queda " + ("dentro" if min(KCRIT2.values()) < 500 else "fuera") + " del rango admitido [0,1; 500]",
              f"FU desgaste {s3(RC[1]['desgaste en la vida de diseño'][2])} (C1), {s3(RC[3]['desgaste en la vida de diseño'][2])} (C3); k_bz crítico núcleo > 500",
              f"con corrección FU {s3(FUW[1])} (C1)/{s3(FUW[3])} (C3); k_bz crítico ≈ {s3(KCRIT2[1])} (C1) / {s3(KCRIT2[3])} (C3) (×1e-7) frente a 500; p_bz crítico = q_neto = {s3(rr1['qnet'])}–{s3(rr3['qnet'])} MPa (< 5 MPa mínimo del rango)"))
 nm_j = next(r_["nombre"] for r_ in DC[3]["interfazChecks"]["C"] if "pastilla" in r_["nombre"] and "dilatación" in r_["nombre"])
@@ -1719,14 +1720,15 @@ FIND.append(("T1", "menor", "Fuerza por tope F = (T_calado/r_u)/n·(q_máx/q_med
              f"F = {s3(F_tope(P, nsec)/1e3)} kN por tope (n = {nsec})",
              f"el sector más cargado tiene presión media {s3(ratio_sec(nsec))}·q_med y no {s3(qr_core)} (q_máx del borde exterior): F real {s3((ratio_sec(nsec)/qr_core-1)*100)} %; con μ_máx·N (C {s3(max(P['muC_d'], P['muC_cont'], P['muC_dry']))}) sería {s3(max(P['muC_d'], P['muC_cont'], P['muC_dry'])*r1_['N']*1e3/nsec*ratio_sec(nsec)/1e3)} kN; "
              "si la interfaz se gripa, T_calado llega íntegro a los topes, por lo que conviene mantenerlo; falta el tope en ambos sentidos de giro (un tope compartido entre sectores vecinos o dos por sector) y centrarlo radialmente en el sector (guiñada)"))
-FIND.append(("T2", "importante" if n_over else "menor",
+_t2_core = any(("excentricidad" in r_["nombre"].lower() or "momento" in r_["nombre"].lower()) and "tope" in r_["nombre"].lower() for DDx_ in (DA, DC[1], DC[3]) for r_ in DDx_["interfazChecks"]["A" if DDx_ is DA else "C"])
+FIND.append(("T2", "importante" if (n_over and not _t2_core) else "menor",
              "Soldadura del tope al respaldo: el núcleo verifica solo el corte de dos filetes (f = F/(2·0,707·w·L)); falta el momento de excentricidad entre la fuerza de apoyo (a h_c/2 sobre el respaldo) y la soldadura, que tracciona el filete trasero",
              f"FU corte (núcleo) máx {s3(max(float(r_[3]) for r_ in rows2))}",
              f"con barra de espesor b = 2·w = {bt_:g} mm y h_c = t − sobreespesor: FU combinado hasta {s3(v_e_)} ({k_e}); incumplen: {', '.join(n_over) if n_over else 'ninguna'}; "
              "espesor de barra necesario (tabla 5i.2) hasta " + s3(max(float(r_[5]) for r_ in rows2 if r_[5] not in ('inf', '—'))) + " mm; corregir con barra ≥ 20 mm de espesor, filetes de 8 mm o L mayor, o con tope bajo (h_c ≤ 3 mm)"))
 FIND.append(("T3", "menor", "Aplastamiento del tope: el núcleo usa el espesor completo t del canto; el tope no puede alcanzar la cara de deslizamiento, así que la altura de apoyo es h_c = t − sobreespesor de relapeado (y menos con una holgura)",
              "σ_aplast. con t completo: FU " + f"{s3(max(float(r_[9]) for r_ in rows1))} máx",
-             "con h_c = t − sobreespesor: FU " + ", ".join(f"{k_.split(' · ')[0]} {k_.split(' · ')[1][:10]} {s3(v_[0])}" for k_, v_ in FU_HC.items() if v_[0] > 0.9) + "; con 1 mm más de holgura: " + ", ".join(f"{k_.split(' · ')[0]} {k_.split(' · ')[1][:10]} {s3(v_[1])}" for k_, v_ in FU_HC.items() if v_[1] > 1) + ": subir L_tope o espesor del canto"))
+             "con h_c = t − sobreespesor: FU " + ", ".join(f"{k_} {s3(v_[0])}" for k_, v_ in FU_HC.items() if v_[0] > 0.9) + "; con 1 mm más de holgura: " + ", ".join(f"{k_} {s3(v_[1])}" for k_, v_ in FU_HC.items() if v_[1] > 1) + ": subir L_tope o espesor del canto"))
 FIND.append(("T4", "menor", "Modos de falla del sector suelto sin fila en el núcleo (vuelco por el tope, flexión local del respaldo, tensión en el plano del sector, peso sobre los tornillos de posición): cubiertos con mis cotas, sin que haya fila de verificación",
              "sin filas",
              f"vuelco FU máx {s3(max(FU_OV.values()))} (q_mín); respaldo (flexión local con dispersión 45°) {s3(max(FU_BK.values()))}; tornillos de posición al izar {s3(max(FU_SC.values()))}; tensión en el plano p95/Fy " + ", ".join(f"{s3(v_)}" for v_ in IP.values()) + "; levantamiento por succión no gobierna con N > 0 (q_mín = " + s3(r1_['ND']*1e3/A_p*(2-qr_core)) + " MPa)"))

@@ -65,6 +65,7 @@ const TT = (() => {
       ["n_sec", "Fijación desmontable: N° de sectores de cada disco o placa de bronce", "–", 24, 6, 96, 1],
       ["L_tope", "Fijación desmontable: largo de cada tope sobre el canto radial del sector (0 = automático)", "mm", 0, 0, 800, 5],
       ["w_tope", "Fijación desmontable: filete de soldadura del tope al respaldo", "mm", 6, 3, 16, 1],
+      ["b_tope", "Fijación desmontable: espesor de la barra del tope (separa los dos filetes: brazo del par de excentricidad)", "mm", 20, 6, 40, 1],
       ["d_tor", "Fijación desmontable: tornillo avellanado de posición (ISO 10642)", "mm", 6, 4, 12, 1],
       ["h_gr", "Engrase: profundidad de las ranuras en el disco de la mesa (A) o en el bronce (C); 0 = sin ranuras", "mm", 1.0, 0, 5, 0.5],
       ["w_gr", "Engrase: ancho de las ranuras", "mm", 8, 3, 25, 1],
@@ -735,12 +736,13 @@ const TT = (() => {
     const Ftot = R.Tmax / (R.r_u / 1000), kpk = R.q_max / R.q_avg, Lav = R.Ro - R.Ri - 100;   // kN en el radio de fricción (T_calado); sector más cargado; canto radial disponible (mm)
     const removable = P.fix_mode < 1.5;
     // Tope soldado al respaldo que toma el par por aplastamiento sobre el canto del sector (el tornillo avellanado solo da posición)
+    const weldStop = (F, L, t) => { const aw = 0.707 * P.w_tope; return Math.hypot(F * 1e3 / (2 * aw * L), F * 1e3 * (t / 2) / (P.b_tope * aw * L)); };   // MPa: corte + tracción del filete trasero por el par F·t/2
     const stopRows = (grp, nombre, n, t, FyP) => {
-      const Fst = Ftot / n * kpk, adm = 1.25 * FyP / Nd, LreqB = Fst * 1e3 / (adm * t), LreqW = Fst * 1e3 / (2 * 0.707 * P.w_tope * Fw), Lreq = Math.max(LreqB, LreqW);
+      const Fst = Ftot / n * kpk, adm = 1.25 * FyP / Nd, LreqB = Fst * 1e3 / (adm * t), LreqW = weldStop(Fst, 1, t) / Fw, Lreq = Math.max(LreqB, LreqW);
       const Lt = P.L_tope > 0 ? P.L_tope : Math.ceil(Lreq / 0.9 / 5) * 5;                          // largo: el mayor entre aplastamiento y soldadura, con FU objetivo 0,90
       add({ grp, sys: "giro", name: nombre + ": aplastamiento del tope sobre el canto del sector", formula: "σ = F_tope/(L_tope·t) ≤ 1,25·Fy/Nd; F_tope = (T_calado/r_u)/n·(q_máx/q_med)", dem: Fst * 1e3 / (Lt * t), cap: adm, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto" });
       add({ grp, sys: "giro", kind: "geo", name: nombre + ": largo del tope frente al canto radial disponible", formula: "L_tope ≤ R_o − R_i − 100", dem: Lt, cap: Lav, unit: "mm", ref: "Geometría" });
-      add({ grp, sys: "est", name: nombre + ": soldadura del tope al respaldo (2 filetes)", formula: "f = F_tope/(2·0,707·w·L_tope) ≤ 0,60FEXX/(1,20Nd)", dem: Fst * 1e3 / (2 * 0.707 * P.w_tope * Lt), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
+      add({ grp, sys: "est", name: nombre + ": soldadura del tope al respaldo (2 filetes): corte + par de excentricidad", formula: "f = √[(F/(2·a·L))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; F a t/2 sobre el respaldo; el filete trasero toma el par con el brazo b_tope", dem: weldStop(Fst, Lt, t), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente" });
       return { Fst, Lt, Lreq };
     };
     // Tornillo avellanado de posición: la cabeza (k = 0,55·d, ISO 10642) debe dejar ≥ 2 mm de material bajo ella
@@ -801,7 +803,7 @@ const TT = (() => {
       if (removable) {
         const Fs = Fdrag / P.n_seg * kpk, sigU = Fs * 1e3 / (Lav * I.tuh);
         add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW (" + P.n_seg + " sectores): aplastamiento del canto contra el tope del rebaje", formula: "σ = F_sector/(L_canto·t_UHMW) ≤ p_adm,UHMW; F_sector = μ_máx·N/n·(q_máx/q_med)", dem: sigU, cap: P.p_uhmw, unit: "MPa", ref: REFU });
-        add({ grp: "Interfaz inox", sys: "est", name: "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, a lo largo del canto)", formula: "f = F_sector/(2·0,707·w·L_canto) ≤ 0,60FEXX/(1,20Nd)", dem: Fs * 1e3 / (2 * 0.707 * P.w_tope * Lav), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4" });
+        add({ grp: "Interfaz inox", sys: "est", name: "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, corte + par de excentricidad)", formula: "f = √[(F/(2aL))² + (F·t/2/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd)", dem: weldStop(Fs, Lav, I.tuh), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2" });
         add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: masa del sector (manipulación manual)", formula: "m_sector = m_UHMW/n ≤ 25 kg", dem: R.m.uhmw / P.n_seg, cap: 25, unit: "kg", ref: "ISO 11228-1 (carga manual)" });
       } else add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción B: retención de los sectores de UHMW contra el arrastre por fricción (rebaje perimetral o cola de milano en el disco de la base)", formula: "arrastre ≈ μ_máx·N (los pernos no bastan: aplastamiento del UHMW)", dem: Fdrag, unit: "kN", ref: "Equilibrio con el μ máximo; decisión del proyectista" });
       const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A);                          // mm/s, velocidad del vástago

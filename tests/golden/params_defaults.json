@@ -45,6 +45,7 @@
   "n_sec": 24,
   "L_tope": 0,
   "w_tope": 6,
+  "b_tope": 20,
   "d_tor": 6,
   "h_gr": 1,
   "w_gr": 8,
