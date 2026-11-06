@@ -30,11 +30,12 @@ class Ctx:
         self.hojas = []
         g = self.g
         self.revs = [
-            ("B", g.FECHA, "VIGENTE – EMITIDO PARA REVISIÓN. Cambios de la actualización C del cálculo respecto de la Rev. B anterior: paquete de reducción de masa "
-             f"(t_pr {fm(self.P['t_pr'], 0)}, t_web {fm(self.P['t_web'], 0)}, t_rib {fm(self.P['t_rib'], 0)}, t_base {fm(self.P['t_base'], 0)}, w_bed {fm(self.P['w_bed'], 0)}, w_s {fm(self.P['w_s'], 0)}); "
-             f"collar soldado de asiento del pivote (h {fm(g.h_boss, 0)}, Ø{fm(g.D_boss, 0)}) y rebaje del cubo; 4 orejas de izaje de la base; interfaz según alternativa elegida ({g.interfaz_nombre}); "
-             f"f_apoyo {fm(self.P['f_apoyo'], 2)} de la cubierta de madera. Sin consideración de viento ni anclaje (decisión del mandante).", "A DEFINIR", "A DEFINIR", "A DEFINIR"),
-            ("B ant.", "—", "Emisión Rev. B anterior (uña guiada de cara plana, patín con lengüeta T, 6 láminas); reemplazada por esta emisión.", "—", "—", "—"),
+            ("B", g.FECHA, "B VIGENTE – EMITIDO PARA REVISIÓN. Cambios C respecto de la B anterior: "
+             f"R_i {fm(g.Ri, 0)} (Ø{f(2 * g.Ri)} de discos); rebaje del collar con holguras {fm(g.c_boss_r, 0)}/{fm(g.c_boss_a, 0)} (Ø{f(g.Drb)}, plancha inferior con agujero pasante), D_hub {fm(self.P['D_hub'], 0)}; "
+             f"barras de tope verificadas (h = t − a_sup, chaflán a_inf, h_c) en despiece y masa; orejas de izaje R{fm(self.P['R_ear'], 0)}; filete del collar z{fm(g.w_collar, 0)}; "
+             f"almas en R" + "/".join(fm(r, 0) for r in self.D["almas"]) + f"; w_br {fm(self.P['w_br'], 0)}; brazo del pivote {fm(g.e_piv, 0)}; temple ≥ 55 HRC y alivio de borde uña–pasador. "
+             f"Sin viento ni anclaje (mandante).", "A DEFINIR", "A DEFINIR", "A DEFINIR"),
+            ("B ant.", "—", "Emisión Rev. B anterior (uña guiada, patín con lengüeta T, 6 láminas); reemplazada por esta emisión.", "—", "—", "—"),
         ]
 
     def local(self, key, newkey, near=None, r=1e9, shift=(0, 0, 0), rot=0.0):
@@ -127,8 +128,10 @@ def soldaduras(ctx):
     add(juntas="Oreja inferior (bloque) – plancha base", tipo="Filete todo alrededor", size=fillet_min(P["t_ch"]), nota="mín. AWS", calidad="B", end="MT 100 %", wps=ws(2), proc=proc)
     add(juntas="Bancada – plancha base", tipo="Filete ambos lados, continuo, precalentar 65 °C", size=P["w_bed_f"], nota="w_bed_f (P)", calidad="B", end="MT 100 %", wps=ws(3), proc=proc)
     if g.boss:
-        add(juntas="Collar del pivote – plancha base", tipo="Filete perimetral continuo", size=g.w_collar, nota="10 mm: dato de la verificación del núcleo", calidad="B", end="MT 100 % + UT de la unión", wps=ws(4), proc=proc)
-    add(juntas="Orejas de izaje – plancha base", tipo="Filete ambos lados (L = 2R), biselar la base de la oreja", size=P["w_ear"], nota="w_ear (P)", calidad="B", end="MT 100 % + UT 100 %", wps=ws(5), proc=proc)
+        fc = g.fila("Collar: filete mínimo")
+        add(juntas="Collar del pivote – plancha base", tipo="Filete perimetral continuo", size=g.w_collar, nota=f"w_collar (P); mín. AWS D1.1 T5.8 = {fm(fc['dem'], 0) if fc else '—'} (núcleo)", calidad="B", end="MT 100 % + UT de la unión", wps=ws(4), proc=proc)
+    fo = g.fila("Oreja: filete mínimo")
+    add(juntas="Orejas de izaje – plancha base", tipo="Filete ambos lados (L = 2R), biselar la base de la oreja", size=P["w_ear"], nota=f"w_ear (P); mín. AWS D1.1 T5.8 = {fm(fo['dem'], 0) if fo else '—'} (núcleo)", calidad="B", end="MT 100 % + UT 100 %", wps=ws(5), proc=proc)
     add(juntas="Segmentos de los anillos de la mesa (4 × 90°)", tipo="CJP a tope en V 60°, raíz 3, con respaldo", size=f"t = {fm(g.tpr, 0)}", nota="empalme", calidad="B", end="UT 100 %", wps=ws(6), proc=proc)
     add(juntas="Discos centrales – anillos de la mesa", tipo="CJP a tope en V 60°, raíz 3, con respaldo", size=f"t = {fm(g.tbo, 0)}–{fm(g.tt, 0)}", nota="a tope de planchas de distinto espesor (transición 1:4)", calidad="B", end="UT 100 %", wps=ws(6), proc=proc)
     add(juntas="Almas anulares – planchas superior e inferior", tipo="Filete ambos lados, continuo", size=P["w_web"], nota="w_web (P)", calidad="B", end="MT 100 %", wps=ws(7), proc=proc)
@@ -138,11 +141,12 @@ def soldaduras(ctx):
     add(juntas="Cierre de la plancha superior (ranuras de tapón)", tipo="Soldadura en ranura 22×80 c/250, relleno completo", size="c/250", nota="tapones sobre almas/nervios", calidad="C", end="MT 100 %", wps=ws(7), proc=proc)
     if g.opt and g.removable:
         if g.opt in (1, 2, 3):
-            add(juntas="Topes de sector – plancha base y plancha inferior de la mesa", tipo="2 filetes (frente y dorso de la barra b_tope), continuos", size=P["w_tope"], nota="w_tope (P); soldar antes del alivio y del rectificado de las caras", calidad="B", end="MT 100 %", wps=ws(8), proc=proc)
+            tp = g.tope("base")
+            add(juntas="Barras de tope – plancha base y plancha inferior de la mesa", tipo="2 filetes (frente y dorso de la barra b_tope), continuos", size=P["w_tope"], nota=f"w_tope (P) ≥ w_mín {fm(tp['w_min'], 0)} (AWS D1.1 T5.8, núcleo); el filete cabe bajo a_inf = {fm(tp['a_inf'], 0)}; soldar antes del alivio y del rectificado de las caras", calidad="B", end="MT 100 %", wps=ws(8), proc=proc)
         if g.opt == 2:
-            add(juntas="Barras del rebaje UHMW – disco inoxidable de la base", tipo="2 filetes, electrodo inoxidable (309L), continuos", size=P["w_tope"], nota="w_tope (P)", calidad="B", end="PT 100 %", wps=ws(9), proc="135 (GMAW) / 141 (GTAW), ER309L")
+            add(juntas="Barras del rebaje UHMW – disco inoxidable de la base", tipo="2 filetes, electrodo inoxidable (309L), continuos", size=P["w_tope"], nota="w_tope (P); w_mín del núcleo", calidad="B", end="PT 100 %", wps=ws(9), proc="135 (GMAW) / 141 (GTAW), ER309L")
     if g.wood:
-        add(juntas="Anillo de contención – plancha superior de la mesa", tipo="Filete ambos lados, continuo", size=P["w_web"], nota="PROVISORIO (S06)", calidad="C", end="MT 10 %", wps=ws(10), proc=proc)
+        add(juntas="Anillo de contención – plancha superior de la mesa", tipo="Filete ambos lados, continuo", size=P["w_web"], nota="adoptado por el mandante (S06); tamaño A DEFINIR", calidad="C", end="MT 10 %", wps=ws(10), proc=proc)
     for w in W:
         w["tamano"] = (f"z{fm(w['size'], 0)}" if isinstance(w["size"], (int, float)) else w["size"])
     return W
@@ -163,7 +167,7 @@ def ajustes(ctx):
         ("Lengüeta del patín (cuello) en ranura", f"{f(g.neck_w)} f7 / {f(P['w_slot'])} H8", "Deslizante guiado, 1 mm de holgura por lado en cabeza T", "ISO 286-2"),
         ("Cabeza T del patín", f"{f(g.head_w)} h11 / {f(P['w_tee'])} +0,2/0", "Retención vertical con juego", "ISO 286-1"),
         ("Uña en alojamiento del patín", f"{f(P['dog_b'])} f8 / H9 × {f(P['dog_h'])} f8 / H9", "Deslizante con retorno de resorte", "ISO 286-2"),
-        ("Collar en rebaje del cubo", f"Ø{f(g.D_boss)} con holgura radial ≥ 25 mm", "Sin contacto", "Criterio del núcleo"),
+        ("Collar en rebaje del cubo y de la plancha inferior", f"Ø{f(g.D_boss)} en Ø{f(g.Drb)}: holgura radial c_boss_r = {fm(g.c_boss_r, 0)} mm, axial c_boss_a = {fm(g.c_boss_a, 0)} mm", "Sin contacto (el cubo gira, el collar es fijo)", "Núcleo (c_boss_r, c_boss_a)"),
     ]
 
 
@@ -171,7 +175,7 @@ def inspecciones(ctx):
     g, P = ctx.g, ctx.P
     L = [
         ("Recepción", "Certificados EN 10204 3.1 de todas las planchas, barras y forjas; trazabilidad por colada; UT ASTM A578 nivel B de las planchas de la mesa."),
-        ("Recepción", f"Dureza del núcleo QT de pasadores y uñas 280–330 HB; Re ≥ {f(P['Fy_dog'])} MPa en probeta de la forja (uñas)."),
+        ("Recepción", f"Pasador y uña: temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo; Re ≥ {f(P['Fy_dog'])} MPa en probeta de la forja (uñas)."),
         ("Soldadura", "WPS/PQR calificados AWS D1.1 y calificación de soldadores; registro de precalentamiento e interpase (≤ 250 °C)."),
         ("Soldadura", "Inspección visual 100 % (ISO 17637) antes de cualquier END; niveles de calidad ISO 5817 según el programa de soldaduras."),
         ("END", "MT 100 % en filetes críticos (ménsulas, collar, orejas, bancadas, topes, almas y nervios) según el programa; PT en uniones inoxidables."),
@@ -181,7 +185,7 @@ def inspecciones(ctx):
         ("Dimensional", f"Pivote: perpendicularidad ≤ 0,05 respecto de la cara de apoyo; coaxialidad collar–plancha base 0,05; altura del eje de ménsulas {f(g.hax)} ±0,5."),
         ("Dimensional", f"Ranura T de bancadas: ancho {f(P['w_slot'])} H8, paralelismo ±0,10 en todo el largo, coaxial con el ojal de la ménsula ±0,2."),
         ("Dimensional", f"Orejas de izaje: posición (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±2; plano vertical radial; agujero Ø{f(P['d_ear'])} a {f(P['h_ear'])} sobre la base ±1."),
-        ("Dureza", f"Uñas: dureza superficial 100 % (≥ 55 HRC) y profundidad de temple ≥ {fm(g.z_hard, 1)} mm en probeta testigo por lote; MT de caras templadas; pasadores: 10 % de la franja."),
+        ("Dureza", f"Uñas: dureza superficial 100 % (≥ 55 HRC) y profundidad de temple ≥ {fm(g.z_hard, 1)} mm en probeta testigo por lote; MT de caras templadas; pasadores: 10 % de la franja. Alivio de borde de 10 mm verificado con plantilla."),
         ("Torque", f"Pernos M20×45 de los {g.N_pin} pasadores: torque de apriete A DEFINIR POR EL CALCULISTA/proveedor (ISO 898-1, VDI 2230); registro por perno."),
         ("Torque", "Tornillos de posición, tapas retenedora e inspección: torque según catálogo del tornillo (A DEFINIR); marcar con pintura de control."),
         ("Prueba", f"Prueba hidráulica de cilindros y circuito a 1,5·{f(P['p_relief'])} bar según certificado del fabricante; presión máxima de trabajo {fm(P['p_rated'] * 0.0689476, 0)} bar (p_rated)."),

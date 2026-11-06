@@ -25,6 +25,20 @@ def load(path=None):
     return json.load(open(p, encoding="utf-8"))
 
 
+RELIEF = 10.0          # alivio de borde de la cara de contacto uña–pasador: ~10 mm en cada extremo (dato del mandante, hallazgo N8)
+
+
+def temple_txt(P):
+    """Hallazgo N2: el contacto uña–pasador se calcula con Fy_sup = P.Fy_surf (templado); la nota «Dureza 280–330 HB» queda reemplazada por esta."""
+    return (f"Pasador y uña: temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo")
+
+
+def alivio_txt(P):
+    """Hallazgo N8: la concentración de borde k_edge de la fila de Hertz del núcleo presupone el alivio de borde."""
+    return (f"Alivio de borde: bombeo / perfil logarítmico ~{fm(RELIEF, 0)} mm en ambos extremos de la cara de contacto uña–pasador "
+            f"(concentración {fm(P['k_edge'], 2)} considerada en Hertz)")
+
+
 def f(v, n=0):
     """Formato numérico chileno: miles con punto, decimales con coma."""
     return f"{v:,.{n}f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -65,12 +79,7 @@ class G:
         self.B, self.tb = P["B"], P["t_base"]
         self.boss = P["h_boss"] > 0
         self.h_boss, self.D_boss = (P["h_boss"], P["D_boss"]) if self.boss else (0.0, 0.0)
-        self.w_collar = 10.0                         # filete del collar: el núcleo lo fija en 10 mm (texto de la verificación)
-        for v in D["verificaciones"]:
-            if v["nombre"].startswith("Soldadura del collar a la base"):
-                m = re.search(r"w = (\d+) mm", v["formula"])
-                if m:
-                    self.w_collar = float(m.group(1))
+        self.w_collar = float(P["w_collar"])         # filete del collar: parámetro del JSON (mínimo AWS D1.1 T5.8 y máximo AISC J2.2b verificados por el núcleo)
         # --- mesa ---
         self.hd, self.tt, self.tbo = P["h_disc"], P["t_top"], P["t_bot"]
         self.tpr = max(P["t_pr"], self.tt, self.tbo)
@@ -88,7 +97,7 @@ class G:
         self.cb_D = self.cap_D + 60
         self.cap_t = self.tt - 3 - self.cb_t - 1
         self.L_piv = self.tb + self.delta + self.hd - self.tt + 3
-        self.z_bush0 = self.tb + self.h_boss + 2     # el buje arranca 2 mm sobre el collar
+        self.z_bush0 = self.tb + self.h_boss + P["g_bush"]     # el buje arranca g_bush (2 mm) sobre el collar
         self.washer_D = self.d_pin + 30
         # --- accionamiento ---
         self.BR = DV["bracket"]
@@ -112,10 +121,19 @@ class G:
         # --- izaje ---
         self.cl_lug = self.B / 2 - P["c_lug"]
         self.ear_pos = [(P["x_lug"], self.cl_lug), (-P["x_lug"], self.cl_lug), (P["x_lug"], -self.cl_lug), (-P["x_lug"], -self.cl_lug)]
-        # --- interfaz ---
-        self.Ri_core = P["D_piv"] / 2 + 15
+        # --- interfaz: R_i, rebaje del collar y topes salen del JSON (interfazGeom); este módulo no los recalcula ---
         self.Ro = self.Rt
-        self.Ri_if = max(self.Ri_core, self.D_boss / 2 + CL1) if self.boss else self.Ri_core   # el collar Ø D_boss obliga a un agujero central mayor
+        self.Ri = float(self.IG["Ri"])               # radio interior efectivo = D_collar/2 + c_boss_r + m_ri (con collar)
+        self.Ri_if = self.Ri                         # alias histórico: mismo valor
+        self.m_ri = float(self.IG.get("m_ri", P.get("m_ri", 0)))
+        self.c_boss_r, self.c_boss_a = float(P.get("c_boss_r", 0)), float(P.get("c_boss_a", 0))
+        self.Drb = float(self.IG["D_rebaje_bot"])    # Ø del agujero pasante de la plancha inferior y del rebaje del cubo (D_boss + 2 c_boss_r)
+        self.h_rebaje = float(self.IG["h_rebaje"])   # profundidad del rebaje desde la cara inferior de la mesa (h_collar − δ + c_boss_a)
+        self.hPl = float(self.IG["h_rebaje_plancha"])   # parte del rebaje en la plancha inferior (agujero pasante si > 0)
+        self.hHub = float(self.IG["h_rebaje_cubo"])     # parte del rebaje en el cubo
+        self.rebaje = self.boss and self.hPl > 0
+        self.z_techo = self.z0 + self.hPl + self.hHub   # techo del rebaje (cara inferior del cubo o fondo del rebaje del cubo)
+        self.e_piv = max(P["e_piv"], P["g_bush"] + P["L_bush"] / 2)   # brazo efectivo de flexión (fila «Brazo efectivo del pivote e» del núcleo)
         self.r_u = D["apoyo"]["r_u"]
         self.n_sec = int(P["n_sec"])
         self.n_seg = int(P["n_seg"])
@@ -157,20 +175,27 @@ class G:
                     2: "Opción C-2: dos placas de bronce de aleaciones distintas",
                     3: "Opción C-3: pastillas de bronce con tapones de grafito + disco duro"}.get(self.conf, "Opción C")}[self.opt]
 
-    def tope_L(self, which):
-        """Largo del tope (mm) entregado por el núcleo para la pieza 'which' ('base'|'mesa'|'uhmw')."""
-        T = self.IG.get("topes", [])
-        if which == "uhmw":
-            return self.Ro - self.Ri_if - 100.0
+    def tope(self, which):
+        """Geometría resuelta del tope (interfazGeom.topes, ya calculada por el núcleo) de la pieza 'which' ('base'|'mesa'|'uhmw'); None si no hay topes."""
+        T = {t["id"]: t for t in self.IG.get("topes", [])}
         if not T:
             return None
+        if which == "uhmw":
+            return T.get("uhmw")
         if self.opt in (1, 2):
-            if which == "base":
-                return T[0]["L"]
-            return T[1]["L"] if len(T) > 1 else T[0]["L"]
+            return T.get("disc0") if which == "base" else T.get("disc1", T.get("disc0"))
         if self.opt == 3:
-            return T[0]["L"] if which == "base" else T[1]["L"]
+            return T.get("bz0") if which == "base" else T.get("bz1")
         return None
+
+    def tope_L(self, which):
+        """Largo del tope (mm) entregado por el núcleo para la pieza 'which'."""
+        t = self.tope(which)
+        return t["L"] if t else None
+
+    def fila(self, prefijo):
+        """Fila de verificación del núcleo cuyo nombre empieza con 'prefijo' (o None)."""
+        return next((v for v in self.D["verificaciones"] if v["nombre"].startswith(prefijo)), None)
 
     def junta(self, which):
         """Junta en frío (mm) entre sectores: la mayor entre 1 mm (regla del núcleo) y la dilatación calculada."""
@@ -185,23 +210,22 @@ class G:
 
 
 def supuestos(g):
-    """Decisiones de dibujo que el cálculo no fija. Cada una se rotula PROVISORIO en las láminas donde interviene."""
+    """Decisiones de dibujo que el cálculo no fija. Las adoptadas por el mandante se rotulan «ADOPTADO»; el resto, PROVISORIO en las láminas donde intervienen.
+    Lo que el núcleo ya resuelve (R_i, rebaje del collar, geometría de topes) NO es un supuesto: se lee del JSON."""
     P = g.P
     S = []
 
     def add(id_, tema, valor, motivo):
         S.append(dict(id=id_, tema=tema, valor=valor, motivo=motivo))
     if g.opt:
-        add("S01", "Tornillos de posición por sector", "2 por sector (en la bisectriz, fuera del tope y de las ranuras)",
+        add("S01", "Tornillos de posición por sector", "2 por sector (ADOPTADO por el mandante); posición radial en la bisectriz, fuera del tope y de las ranuras (PROVISORIO)",
             f"El cálculo fija solo el diámetro d_tor = M{fm(P['d_tor'], 0)} ISO 10642 y la verificación de la cabeza; no entrega la cantidad ni la posición.")
-        add("S02", "Altura de la barra del tope", "h_tope = t_pieza − 1 mm (cara superior 1 mm bajo la cara deslizante)",
-            "El cálculo usa el espesor completo t como altura de contacto; una barra enrasada rozaría la pieza contraria. Se informa el FU recalculado con la altura dibujada.")
-        add("S03", "Alojamiento del tope", "Muesca pasante en la bisectriz del sector, ancho b_tope + 2 mm, centrada radialmente en r_u",
-            "El cálculo fija L_tope, b_tope y w_tope pero no dónde se aloja la barra respecto del sector.")
+    if g.opt and g.removable:
+        add("S03", "Alojamiento del tope", f"Muesca pasante en la bisectriz del sector, ancho b_tope + 2 = {fm(P['b_tope'] + 2, 0)} mm (1 mm de holgura por lado, coherente con a_inf = w_tope + 1), centrada radialmente en r_u",
+            "El cálculo fija L_tope, b_tope, w_tope, a_sup y a_inf (interfazGeom.topes) pero no dónde se aloja la barra respecto del sector.")
+    if g.opt:
         add("S04", "Junta entre sectores", "Junta de ancho constante j = máx(1 mm; dilatación calculada) entre bordes paralelos a la bisectriz",
             "El núcleo exige junta en frío ≥ 1 mm y entrega la dilatación.")
-        add("S07", "Diámetro interior de los discos/placas", f"Ø{f(2 * g.Ri_if)} (collar Ø{f(g.D_boss)} + holgura) en lugar de Ø{f(2 * g.Ri_core)} del núcleo" if g.boss else f"Ø{f(2 * g.Ri_core)} (igual al núcleo)",
-            "El collar del pivote atraviesa el plano de la interfaz; el núcleo calcula el área y la masa con R_i = D_piv/2 + 15.")
     if g.opt == 1 or g.opt == 3:
         add("S05", "Posición de las ranuras de engrase",
             f"{g.n_gr_rad} radiales a k·360°/{g.n_gr_rad} de R_i a R_o (extremos abiertos: purga por el perímetro); {g.n_gr_circ} circunferenciales, la exterior a R_o − 30 y el resto equiespaciadas hasta R_i + 30",
@@ -212,16 +236,14 @@ def supuestos(g):
         add("S09", "Patrón de tapones de grafito", f"Malla triangular (escalonada) de paso {fm(P['bz_plug_p'], 0)} mm, Ø{fm(P['bz_plug_d'], 0)} mm, profundidad {fm(g.IG.get('tapon_prof_frac') or 0.7, 2)}·t; se omiten los tapones a menos de 4 mm de bordes, muescas, tornillos y ranuras",
             "El núcleo usa la fracción de área f_g y la profundidad; no entrega la distribución ni el origen de la malla.")
     if g.opt == 2:
-        add("S10", "Sujeción de los sectores de UHMW", "Sin tornillos: rebaje formado por barras (largo R_o − R_i − 100) soldadas al disco de la base, y retención superior por el disco de la mesa",
+        add("S10", "Sujeción de los sectores de UHMW", "Sin tornillos: rebaje formado por las barras del núcleo (L = L_av = R_o − R_i − 100, interfazGeom.topes «uhmw») soldadas al disco de la base, y retención superior por el disco de la mesa",
             "El núcleo no define tornillos para la lámina UHMW (solo el rebaje con topes).")
-    if g.opt:
+    if g.opt and g.removable:
         add("S11", "Largo del tornillo de posición", "ISO 10642 con largo normalizado ≥ t − 0,55·d + 1,5·d (1,5 d de rosca en el respaldo)",
             "Criterio de engrane mínimo en acero; el núcleo verifica solo la cabeza.")
     if g.wood:
-        add("S06", "Anillo de acero de la cubierta de madera", f"Pletina de 10 × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior; tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección",
-            "El núcleo calcula la madera como anulo Ø D_top / Ø(D_piv + 80) sin anillo; ancho del anillo, ancho de tablón y abertura no se entregan. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador.")
-    add("S12", "Collar y mesa con interfaz", "Rebaje inferior de la mesa Ø D_boss × h_boss medido desde la cara inferior de la mesa (atraviesa la plancha inferior y el cubo)",
-        "La masa total coincide con la del núcleo (la parte del rebaje en la plancha inferior se descuenta allí en lugar de en el cubo).") if g.boss else None
-    add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa", "El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista.")
-    add("S14", "Retención axial del pivote", "Ajuste H7/p6 sin soldadura ni tope inferior", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
-    return [s for s in S if s]
+        add("S06", "Anillo de acero y tablones de la cubierta de madera", f"ADOPTADO por el mandante: pletina de 10 × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior, 24,5 kg fuera del núcleo; tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección (PROVISORIA)",
+            "El núcleo calcula la madera como anulo Ø D_top / Ø(D_piv + 80) sin anillo; el anillo y el ancho de tablón los fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
+    add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista.")
+    add("S14", "Retención axial del pivote", "Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
+    return S

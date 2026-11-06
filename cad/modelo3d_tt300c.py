@@ -144,13 +144,16 @@ class Layout:
         self.d_tor = P["d_tor"]
         self.L_base = g.tope_L("base")
         self.L_mesa = g.tope_L("mesa")
+        self.tp_base, self.tp_mesa, self.tp_uhmw = g.tope("base"), g.tope("mesa"), g.tope("uhmw")   # geometría resuelta por el núcleo (interfazGeom.topes)
+        self.a_inf = (self.tp_base or {}).get("a_inf", 0.0)
+        self.a_sup = (self.tp_base or {}).get("a_sup", 0.0)
         # ranuras circunferenciales (S05)
         n = g.n_gr_circ
         rg = []
         if n >= 1:
             rg.append(g.Ro - 30.0)
         if n >= 2:
-            r_in = g.Ri_if + 30.0
+            r_in = g.Ri + 30.0
             rg += [g.Ro - 30.0 - k * (g.Ro - 30.0 - r_in) / (n - 1) for k in range(1, n)]
         self.r_circ = rg
         self.phi_rad = [k * 360.0 / g.n_gr_rad for k in range(g.n_gr_rad)]
@@ -165,9 +168,11 @@ class Layout:
         """Dos radios sobre la bisectriz, entre la muesca y cada borde, libres de ranuras circunferenciales."""
         g = self.g
         a, b = g.r_u - L_notch / 2, g.r_u + L_notch / 2
-        c1, c2 = (g.Ri_if + a) / 2, (b + g.Ro) / 2
+        c1, c2 = (g.Ri + a) / 2, (b + g.Ro) / 2
         out = []
-        for c, step in ((c1, -8.0), (c2, 8.0)):
+        r_lim = g.R_pin - g.d_pin / 2 - self.dk / 2 - 4.0                 # el tornillo exterior no debe caer sobre los pasadores de empuje (Ø d_pin en R_pin) de la plancha inferior de la mesa
+        c2 = min(c2, r_lim) if r_lim > b + self.dk else c2
+        for c, step in ((c1, -8.0), (c2, -8.0 if c2 >= r_lim - 1e-9 else 8.0)):
             r = c
             for _ in range(60):
                 if not grooves or all(abs(r - rg) > g.w_gr / 2 + self.dk / 2 + 3 for rg in self.r_circ):
@@ -175,6 +180,20 @@ class Layout:
                 r += step
             out.append(r)
         return out
+
+
+def chamfer_cutters(x0, x1, hw, a, z_back, sgn, sides=(1, -1)):
+    """Cuñas que dejan en el canto del sector el chaflán 45° de a_inf = w_tope + 1 mm que libra el filete del tope (núcleo: stopsOf).
+    Marco local: la barra va sobre el eje x, entre x0 y x1; el canto (pared de la muesca) está a la distancia hw del eje; z_back = cara del respaldo; sgn = +1 si
+    el sector está sobre el respaldo (cuña hacia +z), −1 si está bajo él. Sección triangular (hw, z_back)-(hw + a, z_back)-(hw, z_back + sgn·a), con 1 mm de sobrecorte."""
+    out = []
+    e = 1.0
+    for sd in sides:
+        pts = [(hw - 0.5, -e), (hw + a + e, -e), (hw - 0.5, a + 0.5)]
+        pts = [(sd * y, sgn * z + z_back) for (y, z) in pts]
+        w = cq.Workplane("YZ").workplane(offset=x0).polyline(pts).close().extrude(x1 - x0)
+        out.append(w)
+    return out
 
 
 def sector_features(g, lay, idx, a_deg, t, z_face, face, L_notch, grooves, plugs=None, rec=0.0, span=None, with_notch=True):
@@ -223,7 +242,7 @@ def screw_solid(lay, x, y, z_slide, rec, s, L):
 
 
 def make_sector_set(g, lay, M, key_prefix, r0, r1, n, t, z_base, face, L_notch, rho, groove_depth=0.0, plug=None, mode="parallel", span_deg=None,
-                    gap=None, screw_rec=0.0, with_screws=True, angle0=0.0, notch=True, greaser=False):
+                    gap=None, screw_rec=0.0, with_screws=True, angle0=0.0, notch=True, greaser=False, chamfer=0.0):
     """Genera n sectores, devuelve (compuesto_de_sectores, lista_de_sectores_locales_info, tornillos, topes).
     face: cara deslizante 'top' (z = z_base + t) o 'bot' (z = z_base)."""
     th = 360.0 / n
@@ -238,6 +257,8 @@ def make_sector_set(g, lay, M, key_prefix, r0, r1, n, t, z_base, face, L_notch, 
         cuts = []
         if notch and L_notch:
             cuts.append(box(g.r_u - L_notch / 2, g.r_u + L_notch / 2, -(lay.b_tope + 2) / 2, (lay.b_tope + 2) / 2, z_base - 1, z_base + t + 1))
+            if chamfer > 0:                                    # alivio inferior del canto: chaflán 45° a_inf en el lado del respaldo (base: abajo; mesa: arriba)
+                cuts.extend(chamfer_cutters(g.r_u - L_notch / 2, g.r_u + L_notch / 2, (lay.b_tope + 2) / 2, chamfer, z_base if face == "top" else z_base + t, +1 if face == "top" else -1))
         # tornillos de posición (S01): agujero pasante con avellanado
         if with_screws and g.removable:
             sg = -1 if face == "top" else 1
@@ -337,7 +358,7 @@ def build(D, verbose=True):
 
     # ===================== MES: mesa =====================
     pins_cut = lambda wp, z, h: wp.cut(cq.Workplane("XY").workplane(offset=z - 1).pushPoints(pin_xy).circle(d_pin / 2).extrude(h + 2))
-    ri_bot = g.D_boss / 2 if g.boss else d_bush / 2                      # el rebaje del collar atraviesa la plancha inferior (S12)
+    ri_bot = g.Drb / 2 if g.rebaje else d_bush / 2                       # agujero pasante Ø D_rebaje_bot (= D_boss + 2 c_boss_r) en la plancha inferior en TODOS los casos con collar y rebaje (núcleo: hPl)
     disc_bot = ring(ri_bot, prIn, tbo, z0)
     ring_bot = pins_cut(ring(prIn, Rt, tpr, z0), z0, tpr)
     disc_top = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt).cut(cyl(g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t)) if False else None
@@ -348,7 +369,7 @@ def build(D, verbose=True):
                top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; soldadura", core="top", color=(0.22, 0.4, 0.7)))
     m.add(Part("mesa_anillo_sup", "MES", "Anillo superior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°, empalmes CJP)", ring_top, 1, A572Z,
                "Plasma por segmentos de 90°; soldadura CJP de empalmes (UT 100 %); agujeros Ø80 en taladro radial y mandrinado a Ø85 H7 en línea con el anillo inferior", core="top", color=(0.22, 0.4, 0.7)))
-    m.add(Part("mesa_plancha_inf", "MES", "Plancha inferior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tbo)}, agujero central Ø{f(2 * ri_bot)}" + (" (rebaje del collar)" if g.boss else ""), disc_bot, 1, A572Z,
+    m.add(Part("mesa_plancha_inf", "MES", "Plancha inferior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tbo)}, agujero central Ø{f(2 * ri_bot)}" + (f" PASANTE (rebaje del collar: Ø{f(g.D_boss)} + 2×{fm(g.c_boss_r, 0)} de holgura radial)" if g.rebaje else ""), disc_bot, 1, A572Z,
                "Oxicorte/plasma; cara inferior de apoyo de la interfaz planeada en mandrinadora (fresa de planear) o esmerilada; planitud 0,20", core="bot", color=(0.22, 0.4, 0.7)))
     m.add(Part("mesa_anillo_inf", "MES", "Anillo inferior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°)", ring_bot, 1, A572Z,
                "Plasma por segmentos; soldadura CJP de empalmes (UT); agujeros como el anillo superior (en línea)", core="bot", color=(0.22, 0.4, 0.7)))
@@ -373,14 +394,14 @@ def build(D, verbose=True):
             rb = rb.cut(ring(r_ - tw / 2, r_ + tw / 2, hw + 2, z0 + tbo - 1))
         m.add(Part(f"mesa_nervio{i}", "MES", f"Nervio radial, tramo {i + 1}", f"Pletina e={f(P['t_rib'])}, h={f(hw)}, L={f(a1 - a0, 1)} (R{f(a0, 1)}–R{f(a1, 1)})", rb, int(P["N_rib"]), A572, "Plasma (anidado en plancha)", core="ribs", color=(0.3, 0.45, 0.7)))
     hub = ring(d_bush / 2, P["D_hub"] / 2, hw, z0 + tbo)
-    if g.boss:
-        hub = hub.cut(ring(0, g.D_boss / 2, g.h_boss - tbo + 1, z0 + tbo - 1))     # rebaje: de la cara inferior de la mesa hasta z0 + h_boss
-    m.add(Part("mesa_cubo", "MES", "Cubo de la mesa", f"Anillo Ø{f(P['D_hub'])}/Ø{f(d_bush)} H7 × {f(hw)}" + (f", rebaje inferior Ø{f(g.D_boss)} (hasta {f(g.h_boss)} desde la cara inferior de la mesa)" if g.boss else ""),
+    if g.rebaje and g.hHub > 0:
+        hub = hub.cut(ring(0, g.Drb / 2, g.hHub + 1, z0 + tbo - 1))                 # rebaje del cubo Ø D_rebaje: de la cara inferior del cubo hasta z0 + h_rebaje (h_collar − δ + c_boss_a)
+    m.add(Part("mesa_cubo", "MES", "Cubo de la mesa", f"Anillo Ø{f(P['D_hub'])}/Ø{f(d_bush)} H7 × {f(hw)}" + (f", rebaje inferior Ø{f(g.Drb)} × {f(g.hHub)} sobre la plancha (h_rebaje {f(g.h_rebaje)} desde la cara inferior de la mesa)" if g.rebaje and g.hHub > 0 else ""),
                hub, 1, "S355J2+N (EN 10025) o ASTM A572 Gr.50", "Anillo cortado a llama de plancha gruesa o tubo; Ø150 H7 y rebaje en mandrinadora (sin torno vertical)", core="hub", color=(0.3, 0.45, 0.7), cert="EN 10204 3.1"))
     pins = cq.Workplane("XY").workplane(offset=z0).pushPoints(pin_xy).circle(d_pin / 2).extrude(hd)
-    m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa; núcleo 280–330 HB",
+    m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa",
                "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción de la franja de contacto", core="pins", color=(0.75, 0.75, 0.78),
-               tratamiento=f"Temple por inducción de la franja de contacto ≥ 55 HRC, prof. ef. ≥ {fm(g.z_hard, 1)} mm"))
+               tratamiento=f"Temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm)"))
     wsh = cq.Workplane("XY").workplane(offset=z0 + hd).pushPoints(pin_xy).circle(g.washer_D / 2).extrude(10).union(
         cq.Workplane("XY").workplane(offset=z0 + hd + 10).pushPoints(pin_xy).circle(15).extrude(20))
     m.add(Part("pernos_pasador", "MES", "Perno ISO 4762 M20×45 con arandela", f"Perno M20×45 10.9 + arandela Ø{f(g.washer_D)}×10 (S355J2) por pasador", wsh, g.N_pin, "10.9 / S355J2", "Comercial (perno); arandela por plasma",
@@ -442,7 +463,7 @@ def build(D, verbose=True):
                f"S460 (EN 10025-3) o 34CrNiMo6+QT, Fy ≥ {f(P['Fy_shoe'])} MPa", "Bloque de plancha gruesa cortado a llama con sobremetal; fresado del alojamiento, lengüeta T y ojales en mandrinadora; taladros con radial; sin soldadura", core="shoes", color=(0.25, 0.25, 0.28)))
     m.add(Part("una", "ACC", "Uña de empuje", f"Forja/bloque {f(g.paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])}, cara de empuje plana templada, chaflán de retorno {fm(P['beta_ch'], 0)}° ({fm(g.ch_dx, 1)}×{fm(g.ch_dy, 1)})", compound(dogs), nc,
                f"34CrNiMo6+QT (EN 10083-3), Re ≥ {f(P['Fy_dog'])} MPa medido en la propia forja (3.1)", "Corte de bloque forjado; fresado en mandrinadora/fresadora; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
-               tratamiento=f"Temple por inducción de la cara de empuje ≥ 55 HRC, profundidad efectiva ≥ {fm(g.z_hard, 1)} mm; núcleo QT 280–330 HB"))
+               tratamiento=f"Temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm); alivio de borde 10 mm (k_borde {fm(P['k_edge'], 2)})"))
     m.add(Part("pasador_vastago", "ACC", "Pasador del vástago (patín)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(KG['shoeTop'] + 10 - max(zb, zc - g.forkH / 2 - 10))}, placa de retención", compound(apins_s), nc, f"42CrMo4+QT (EN 10083-3), Fy ≥ {f(P['Fy_pp'])} MPa",
                "Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal", in_core=False, color=(0.3, 0.3, 0.32), tratamiento="Bonificado 28–34 HRC"))
     m.add(Part("pasador_ojal", "ACC", "Pasador del ojal trasero (ménsula)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(BR['H'] + 15)}, placa de retención", compound(apins_b), nc, f"42CrMo4+QT (EN 10083-3), Fy ≥ {f(P['Fy_pp'])} MPa",
@@ -459,11 +480,11 @@ def build(D, verbose=True):
         wood = ring(g.cb_D / 2, Rt - w_ring, tW, zw0)
         for (x, y) in pin_xy:                                                  # bolsillos sobre perno y arandela de cada pasador (S06)
             wood = wood.cut(cyl(g.washer_D / 2 + 2, 31, zw0 - 0.5, x, y))
-        m.add(Part("madera", "MAD", "Tablones de madera dura", f"Tablones contiguos e={f(tW)}, ancho 200 (provisorio), dentro del anillo; conjunto Ø{f(2 * (Rt - w_ring))} con abertura central Ø{f(g.cb_D)}; {g.N_pin} bolsillos Ø{f(g.washer_D + 4)}×31",
+        m.add(Part("madera", "MAD", "Tablones de madera dura", f"Tablones contiguos e={f(tW)}, ancho 200 (adoptado por el mandante), dentro del anillo; conjunto Ø{f(2 * (Rt - w_ring))} con abertura central Ø{f(g.cb_D)}; {g.N_pin} bolsillos Ø{f(g.washer_D + 4)}×31",
                    wood, 1, f"Madera dura seca al aire, ρ ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor)", "Aserrado y cepillado de tablones; corte a medida; bolsillos con fresa; fijación con tornillos avellanados (a definir)",
-                   rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Tablones, ancho y fijación: PROVISORIO (S06)"))
+                   rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Ancho de tablón 200 adoptado por el mandante (S06); fijación A DEFINIR"))
         m.add(Part("madera_anillo", "MAD", "Anillo de acero de contención", f"Pletina {fm(w_ring, 0)}×{f(tW)} rolada a Ø{f(P['D_top'])}, soldada a la plancha superior (filete {f(P['w_web'])} a ambos lados)", ring_st, 1, A572,
-                   "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", in_core=False, color=(0.4, 0.4, 0.45), obs="Dimensiones PROVISORIAS (S06): el cálculo no define el anillo"))
+                   "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", in_core=False, color=(0.4, 0.4, 0.45), obs="Pletina 10×t_wood adoptada por el mandante (S06); el cálculo no incluye su masa (fuera del núcleo)"))
     log(f"  modelo construido en {time.time() - t0:.0f} s, {len(m.parts)} ítems")
     return m
 
@@ -501,9 +522,8 @@ def build_interfaz(m, g, D, log):
                 holes.append(cyl(lay.d_tor / 2, hh, min(zback, ztip) - (2 if sg < 0 else 0), x, y))
         return out, holes, L
 
-    def stop_bars(a_list, L_t, t, z_attach, direction):
-        """Barras b_tope × L_tope × (t − 1) centradas en r_u sobre el respaldo. direction +1: crecen hacia +z desde z_attach; −1: hacia −z."""
-        h = t - 1.0
+    def stop_bars(a_list, L_t, h, z_attach, direction):
+        """Barras b_tope × L_tope × h_barra (h_barra = t − a_sup, del núcleo) centradas en r_u sobre el respaldo. direction +1: crecen hacia +z desde z_attach; −1: hacia −z."""
         out = []
         for a in a_list:
             b_ = box(g.r_u - L_t / 2, g.r_u + L_t / 2, -lay.b_tope / 2, lay.b_tope / 2, z_attach if direction > 0 else z_attach - h, z_attach + h if direction > 0 else z_attach)
@@ -518,13 +538,13 @@ def build_interfaz(m, g, D, log):
         rec = P["ss_allow"]
         # disco de la base (liso)
         zb0 = tb
-        sec_b, radii = make_sector_set(g, lay, m, "db", g.Ri_if, g.Ro, n, t1, zb0, "top", lay.L_base if g.removable else None, RHO_SS, gap=gap, with_screws=g.removable, screw_rec=rec,
-                                       notch=g.removable)
+        sec_b, radii = make_sector_set(g, lay, m, "db", g.Ri, g.Ro, n, t1, zb0, "top", lay.L_base if g.removable else None, RHO_SS, gap=gap, with_screws=g.removable, screw_rec=rec,
+                                       notch=g.removable, chamfer=lay.a_inf if g.removable else 0.0)
         # disco de la mesa
         zm0 = z0 - t2
         gr = g.h_gr if g.opt == 1 else 0.0
-        sec_m, radii_m = make_sector_set(g, lay, m, "dm", g.Ri_if, g.Ro, n, t2, zm0, "bot", lay.L_mesa if g.removable else None, RHO_SS, groove_depth=gr, gap=gap, with_screws=g.removable, screw_rec=rec,
-                                         notch=g.removable)
+        sec_m, radii_m = make_sector_set(g, lay, m, "dm", g.Ri, g.Ro, n, t2, zm0, "bot", lay.L_mesa if g.removable else None, RHO_SS, groove_depth=gr, gap=gap, with_screws=g.removable, screw_rec=rec,
+                                         notch=g.removable, chamfer=lay.a_inf if g.removable else 0.0)
         # conductos de engrase: Ø6 axial en el disco de la mesa (opción A)
         grease_pts = []
         if g.opt == 1 and g.n_greaser > 0:
@@ -540,12 +560,16 @@ def build_interfaz(m, g, D, log):
                    compound(sec_m), n, ss_mat, "Corte por plasma/láser (subcontrato); ranuras fresadas en mandrinadora/fresadora; rectificado/lapeado de la cara deslizante (subcontrato)", rho=RHO_SS, core="ss",
                    color=(0.8, 0.82, 0.85), obs=tor_note + "; rugosidad Ra 0,4 en la cara deslizante", tratamiento="Decapado y pasivado; dureza distinta del disco de la base (≥ 50 HB de diferencia, ASTM G98)" if g.opt == 1 else "Decapado y pasivado"))
         if g.removable:
-            bb = stop_bars(a_list, lay.L_base, t1, tb, +1)
-            m.add(Part("int_tope_base", "INT", "Tope de sector (disco de la base)", f"Barra {fm(lay.b_tope, 0)}×{f(lay.L_base)}×{fm(t1 - 1, 0)}, soldada a la plancha base con 2 filetes de {fm(lay.w_tope, 0)}", compound(bb), n, A572, "Corte de barra a sierra; soldadura a la plancha base antes del rectificado",
-                       in_core=False, color=(0.55, 0.57, 0.6), obs="Altura = t − 1 (supuesto S02)"))
-            bm = stop_bars(a_list, lay.L_mesa, t2, z0, -1)
-            m.add(Part("int_tope_mesa", "INT", "Tope de sector (disco de la mesa)", f"Barra {fm(lay.b_tope, 0)}×{f(lay.L_mesa)}×{fm(t2 - 1, 0)}, soldada a la plancha inferior de la mesa con 2 filetes de {fm(lay.w_tope, 0)}", compound(bm), n, A572, "Corte de barra; soldadura a la plancha inferior de la mesa",
-                       in_core=False, color=(0.55, 0.57, 0.6), obs="Altura = t − 1 (supuesto S02)"))
+            tpb, tpm = lay.tp_base, lay.tp_mesa
+            assert abs(tpb["t"] - t1) < 1e-6 and abs(tpm["t"] - t2) < 1e-6, "espesor de sector distinto del de interfazGeom.topes"
+            bb = stop_bars(a_list, tpb["L"], tpb["h_barra"], tb, +1)
+            m.add(Part("int_tope_base", "INT", "Barra de tope (disco de la base)", f"Barra {fm(lay.b_tope, 0)}×{f(tpb['L'])}×{fm(tpb['h_barra'], 0)} (h = t − a_sup), soldada a la plancha base con filetes z{fm(lay.w_tope, 0)} frente y dorso", compound(bb), n, A572,
+                       "Corte de barra a sierra; soldadura a la plancha base antes del rectificado", core="stopBars", color=(0.55, 0.57, 0.6),
+                       obs=f"Cara superior a_sup = {fm(tpb['a_sup'], 0)} bajo la cara deslizante; contacto útil h_c = {fm(tpb['h_c'], 0)}; chaflán {fm(tpb['a_inf'], 0)}×45° en el canto del sector"))
+            bm = stop_bars(a_list, tpm["L"], tpm["h_barra"], z0, -1)
+            m.add(Part("int_tope_mesa", "INT", "Barra de tope (disco de la mesa)", f"Barra {fm(lay.b_tope, 0)}×{f(tpm['L'])}×{fm(tpm['h_barra'], 0)} (h = t − a_sup), soldada a la plancha inferior de la mesa con filetes z{fm(lay.w_tope, 0)} frente y dorso", compound(bm), n, A572,
+                       "Corte de barra; soldadura a la plancha inferior de la mesa", core="stopBars", color=(0.55, 0.57, 0.6),
+                       obs=f"Cara inferior a_sup = {fm(tpm['a_sup'], 0)} sobre la cara deslizante; contacto útil h_c = {fm(tpm['h_c'], 0)}; chaflán {fm(tpm['a_inf'], 0)}×45° en el canto del sector"))
             sb, hb, Lb = make_screws(radii, a_list, t1, tb + t1, "top", rec)
             sm, hm, Lm = make_screws(radii_m, a_list, t2, zm0, "bot", rec)
             for nm, sol, qty, L, t_ in (("int_tornillo_base", sb, len(sb), Lb, t1), ("int_tornillo_mesa", sm, len(sm), Lm, t2)):
@@ -555,18 +579,26 @@ def build_interfaz(m, g, D, log):
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii
         m.info["radii_screw_m"] = radii_m
-        m.info["tope_h"] = (t1 - 1.0, t2 - 1.0)
+        m.info["tope_h"] = ((lay.tp_base or {}).get("h_barra", 0.0), (lay.tp_mesa or {}).get("h_barra", 0.0))
         # UHMW (opción B)
         if g.opt == 2:
             tuh = I["tuh"]
             ju = g.junta("uhmw")
-            L_u = g.tope_L("uhmw")
+            tpu = lay.tp_uhmw if g.removable else None
+            L_u = tpu["L"] if tpu else None
             zu0 = tb + t1
             n_u = g.n_seg
             th_u = 360.0 / n_u
             off_u = (th / 4.0) if n_u == n else 0.0
             sec_u = []
-            base_u, _ = ring_sector_local(g.Ri_if, g.Ro, th_u, (lay.b_tope + ju) if g.removable else ju, zu0, tuh, "parallel")
+            base_u, _ = ring_sector_local(g.Ri, g.Ro, th_u, (lay.b_tope + ju) if g.removable else ju, zu0, tuh, "parallel")
+            if tpu:                                                    # alivio inferior del canto del sector de UHMW sobre el filete de la barra (chaflán 45° a_inf)
+                r_in = g.Ri + 50
+                hu = math.radians(th_u / 2)
+                hw_u = (lay.b_tope + ju) / 2
+                for sd, ang in ((-1, th_u / 2), (1, -th_u / 2)):
+                    for cu in chamfer_cutters(r_in, r_in + L_u, hw_u, tpu["a_inf"], zu0, +1, sides=(sd,)):
+                        base_u = base_u.cut(rotz(cu, ang))
             a_u = [off_u + k * th_u for k in range(n_u)]               # líneas de las barras (frontera entre sectores de UHMW)
             for k in range(n_u):
                 sec_u.append(rotz(base_u, a_u[k] + th_u / 2))
@@ -574,13 +606,14 @@ def build_interfaz(m, g, D, log):
                        compound(sec_u), n_u, "UHMW-PE PE1000 (ASTM D4020), natural", "Corte por CNC/ruteador o plasma de agua (subcontrato) desde plancha; sin mecanizado de precisión (taller sin torno vertical)", rho=RHO_UH, core="uhmw",
                        color=(0.95, 0.95, 0.85), cert="Certificado del proveedor (EN 10204 2.1/3.1)", tratamiento="Sin tratamiento; no pintar", obs="Sin tornillos: rebaje por barras (S10)"))
             if g.removable:
-                h_u = tuh - 1.0
+                h_u = tpu["h_barra"]
                 bars = []
-                r_in = g.Ri_if + 50
+                r_in = g.Ri + 50
                 for a in a_u:
                     bars.append(rotz(box(r_in, r_in + L_u, -lay.b_tope / 2, lay.b_tope / 2, zu0, zu0 + h_u), a))
-                m.add(Part("int_tope_uhmw", "INT", "Barra de rebaje del sector UHMW", f"Barra inoxidable {fm(lay.b_tope, 0)}×{f(L_u)}×{fm(h_u, 0)}, soldada al disco de la base con 2 filetes de {fm(lay.w_tope, 0)}", compound(bars), n_u,
-                           ss_mat, "Corte de barra; soldadura con electrodo inoxidable al disco de la base antes del rectificado", rho=RHO_SS, in_core=False, color=(0.8, 0.82, 0.85), obs="Largo R_o − R_i − 100 con R_i del collar; altura = t_UHMW − 1 (S02)"))
+                m.add(Part("int_tope_uhmw", "INT", "Barra de rebaje del sector UHMW", f"Barra inoxidable {fm(lay.b_tope, 0)}×{f(L_u)}×{fm(h_u, 0)} (h = t_UHMW − a_sup), soldada al disco de la base con filetes z{fm(lay.w_tope, 0)} frente y dorso", compound(bars), n_u,
+                           ss_mat, "Corte de barra; soldadura con electrodo inoxidable al disco de la base antes del rectificado", rho=RHO_SS, core="stopBars", color=(0.8, 0.82, 0.85),
+                           obs=f"L = L_av = R_o − R_i − 100 (núcleo); cara superior a_sup = {fm(tpu['a_sup'], 0)} bajo la cara de la lámina; contacto útil h_c = {fm(tpu['h_c'], 0)}; chaflán {fm(tpu['a_inf'], 0)}×45° en el canto de la lámina"))
                 m.info["uhmw_bar_L"] = L_u
                 m.info["uhmw_bar_h"] = h_u
             m.info["uhmw_off"] = off_u
@@ -612,7 +645,7 @@ def build_interfaz(m, g, D, log):
                 x = i * pl + (j % 2) * pl / 2
                 y = j * pl * math.sqrt(3) / 2
                 r = math.hypot(x, y)
-                if g.Ri_if + m_ <= r <= g.Ro - m_:
+                if g.Ri + m_ <= r <= g.Ro - m_:
                     pts.append((x, y, r, math.degrees(math.atan2(y, x)) % 360))
         plug_sets = {}
         total_plugs = 0
@@ -650,8 +683,8 @@ def build_interfaz(m, g, D, log):
         for i, ps in plug_sets.items():
             if ps["pts"]:
                 plug_sets_h[i] = {"holes": cq.Workplane("XY").workplane(offset=tb + tB - prof_t).pushPoints(ps["pts"]).circle(r_plug).extrude(prof_t + 1), "pts": ps["pts"]}
-        sec_bz, _ = make_sector_set(g, lay, m, "bz", g.Ri_if, g.Ro, nB, tB, tb, "top", L_b if g.removable else None, rho_bz, groove_depth=g.h_gr, plug=plug_sets_h, mode=mode, span_deg=span_b,
-                                    gap=gap_b, with_screws=g.removable, screw_rec=rec_b, notch=g.removable)
+        sec_bz, _ = make_sector_set(g, lay, m, "bz", g.Ri, g.Ro, nB, tB, tb, "top", L_b if g.removable else None, rho_bz, groove_depth=g.h_gr, plug=plug_sets_h, mode=mode, span_deg=span_b,
+                                    gap=gap_b, with_screws=g.removable, screw_rec=rec_b, notch=g.removable, chamfer=lay.a_inf if g.removable else 0.0)
         plugs = []
         for i, ps in plug_sets_h.items():
             plugs.append(rotz(cq.Workplane("XY").workplane(offset=tb + tB - prof_t).pushPoints(ps["pts"]).circle(r_plug).extrude(prof_t), a_b[i]))
@@ -668,7 +701,7 @@ def build_interfaz(m, g, D, log):
         # 2) disco duro / 2.ª placa de bronce (sobre la mesa)
         zm0 = z0 - tC
         L_m = lay.L_mesa
-        sec_c, radii_c = make_sector_set(g, lay, m, "dc", g.Ri_if, g.Ro, n, tC, zm0, "bot", L_m if g.removable else None, RHO_SS, gap=gap, with_screws=g.removable, screw_rec=rec_c, notch=g.removable)
+        sec_c, radii_c = make_sector_set(g, lay, m, "dc", g.Ri, g.Ro, n, tC, zm0, "bot", L_m if g.removable else None, RHO_SS, gap=gap, with_screws=g.removable, screw_rec=rec_c, notch=g.removable, chamfer=lay.a_inf if g.removable else 0.0)
         grease_pts = []
         if g.n_greaser > 0:
             for k in range(g.n_greaser):
@@ -680,12 +713,14 @@ def build_interfaz(m, g, D, log):
                    compound(sec_c), n, mat_cara, "Corte por plasma de agua/láser (subcontrato); tratamiento térmico; rectificado/lapeado de la cara deslizante (subcontrato)" if conf != 2 else "Corte por plasma de agua/aserrado; rectificado de la cara deslizante (subcontrato)",
                    rho=(RHO_SS if conf != 2 else rho_bz), core="ss" if conf != 2 else "bz", color=(0.7, 0.72, 0.78), obs=tor_note + "; Ra 0,4 en la cara deslizante", tratamiento=("Temple y revenido a ≥ HB indicado; nitrurado si es inoxidable" if conf != 2 else "—")))
         if g.removable:
-            bbz = stop_bars(a_b, L_b, tB, tb, +1)
-            m.add(Part("int_tope_base", "INT", "Tope de sector (placa de bronce)", f"Barra {fm(lay.b_tope, 0)}×{f(L_b)}×{fm(tB - 1, 0)}, soldada a la plancha base con 2 filetes de {fm(lay.w_tope, 0)}", compound(bbz), nB, A572, "Corte de barra; soldadura a la plancha base",
-                       in_core=False, color=(0.55, 0.57, 0.6), obs="Altura = t − 1 (S02)"))
-            bmc = stop_bars(a_list, L_m, tC, z0, -1)
-            m.add(Part("int_tope_mesa", "INT", "Tope de sector (disco duro / 2.ª placa)", f"Barra {fm(lay.b_tope, 0)}×{f(L_m)}×{fm(tC - 1, 0)}, soldada a la plancha inferior de la mesa con 2 filetes de {fm(lay.w_tope, 0)}", compound(bmc), n, A572, "Corte de barra; soldadura a la mesa",
-                       in_core=False, color=(0.55, 0.57, 0.6), obs="Altura = t − 1 (S02)"))
+            tpb, tpm = lay.tp_base, lay.tp_mesa
+            assert abs(tpb["t"] - tB) < 1e-6 and abs(tpm["t"] - tC) < 1e-6, "espesor de sector distinto del de interfazGeom.topes"
+            bbz = stop_bars(a_b, L_b, tpb["h_barra"], tb, +1)
+            m.add(Part("int_tope_base", "INT", "Barra de tope (placa de bronce)", f"Barra {fm(lay.b_tope, 0)}×{f(L_b)}×{fm(tpb['h_barra'], 0)} (h = t − a_sup), soldada a la plancha base con filetes z{fm(lay.w_tope, 0)} frente y dorso", compound(bbz), nB, A572, "Corte de barra; soldadura a la plancha base antes del rectificado",
+                       core="stopBars", color=(0.55, 0.57, 0.6), obs=f"Cara superior a_sup = {fm(tpb['a_sup'], 0)} bajo la cara deslizante; contacto útil h_c = {fm(tpb['h_c'], 0)}; chaflán {fm(tpb['a_inf'], 0)}×45° en el canto del sector"))
+            bmc = stop_bars(a_list, L_m, tpm["h_barra"], z0, -1)
+            m.add(Part("int_tope_mesa", "INT", "Barra de tope (disco duro / 2.ª placa)", f"Barra {fm(lay.b_tope, 0)}×{f(L_m)}×{fm(tpm['h_barra'], 0)} (h = t − a_sup), soldada a la plancha inferior de la mesa con filetes z{fm(lay.w_tope, 0)} frente y dorso", compound(bmc), n, A572, "Corte de barra; soldadura a la mesa",
+                       core="stopBars", color=(0.55, 0.57, 0.6), obs=f"Cara inferior a_sup = {fm(tpm['a_sup'], 0)} sobre la cara deslizante; contacto útil h_c = {fm(tpm['h_c'], 0)}; chaflán {fm(tpm['a_inf'], 0)}×45° en el canto del sector"))
             sb, hb, Lb = make_screws(radii_b, a_b, tB, tb + tB, "top", rec_b)
             sm, hm, Lm = make_screws(radii_c, a_list, tC, zm0, "bot", rec_c)
             for nm, sol, qty, L in (("int_tornillo_base", sb, len(sb), Lb), ("int_tornillo_mesa", sm, len(sm), Lm)):
@@ -695,7 +730,7 @@ def build_interfaz(m, g, D, log):
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii_b
         m.info["radii_screw_m"] = radii_c
-        m.info["tope_h"] = (tB - 1.0, tC - 1.0)
+        m.info["tope_h"] = ((lay.tp_base or {}).get("h_barra", 0.0), (lay.tp_mesa or {}).get("h_barra", 0.0))
     # --- ductos de engrase (graseras) ---
     if g.opt in (1, 3) and g.n_greaser > 0:
         pts = m.info["grease_pts"]
@@ -753,12 +788,12 @@ def masas(m, tol_pct=0.5):
     D, g = m.D, m.g
     M = D["derivados"]["masas"]
     core_keys = {"base": ["base"], "rim": ["rim"], "brackets": ["brackets"], "beds": ["beds"], "dogs": ["dogs"], "shoes": ["shoes"], "pivot": ["pivot"], "cyl": ["cyl"],
-                 "mesa": ["top", "bot", "webs", "ribs", "hub", "pins"], "ss": ["ss"], "uhmw": ["uhmw"], "bz": ["bz"], "wood": ["wood"]}
+                 "mesa": ["top", "bot", "webs", "ribs", "hub", "pins"], "ss": ["ss"], "uhmw": ["uhmw"], "bz": ["bz"], "wood": ["wood"], "stopBars": ["stopBars"]}
     groups = {"base": "base", "rim": "rim", "brackets": "brackets", "beds": "beds", "dogs": "dogs", "shoes": "shoes", "pivot": "pivot", "cyl": "cyl",
-              "top": "mesa", "bot": "mesa", "webs": "mesa", "ribs": "mesa", "hub": "mesa", "pins": "mesa", "ss": "ss", "uhmw": "uhmw", "bz": "bz", "wood": "wood"}
+              "top": "mesa", "bot": "mesa", "webs": "mesa", "ribs": "mesa", "hub": "mesa", "pins": "mesa", "ss": "ss", "uhmw": "uhmw", "bz": "bz", "wood": "wood", "stopBars": "stopBars"}
     nombres = {"base": "Plancha base + collar + orejas de izaje", "rim": "Marco perimetral", "brackets": "Ménsulas de cilindro", "beds": "Bancadas de guía", "dogs": "Uñas", "shoes": "Patines",
                "pivot": "Pivote", "cyl": "Cilindros (masa de catálogo)", "mesa": "Mesa (planchas, almas, nervios, cubo, pasadores)", "ss": "Discos de interfaz (inox / duro)", "uhmw": "Lámina UHMW",
-               "bz": "Bronce con grafito (o 2.ª placa)", "wood": "Cubierta de madera"}
+               "bz": "Bronce con grafito (o 2.ª placa)", "wood": "Cubierta de madera", "stopBars": "Barras de los topes (m.stopBars)"}
     mod = {}
     for p in m.parts:
         if p.core:

@@ -22,7 +22,7 @@ def extras(ctx):
         ("Tornillo ISO 10642 M10×25 cl. 10.9 (tapa retenedora)", 4, "10.9", "A DEFINIR POR CATÁLOGO"),
         ("Tornillo avellanado M10 (tapa de inspección)", 6, "10.9", "A DEFINIR POR CATÁLOGO"),
         ("Placa y tornillo de retención de pasador de articulación", 2 * n, "S355J2 / 8.8", "A DEFINIR POR CATÁLOGO"),
-        ("Grillete de izaje (pasador ≤ d_oreja − 3 = %s mm)" % fm(P["d_ear"] - 3, 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
+        ("Grillete de izaje (pasador ≤ d_oreja − g_ear = %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
         ("Faldón de sello perimetral (opcional) y fleje", 1, "NBR 70 / S235 galvanizado; dimensiones A DEFINIR", "A DEFINIR POR CATÁLOGO"),
         ("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, "Cantidad A DEFINIR (llenado de ranuras y película de 0,3–0,5 mm por cara)", "A DEFINIR POR CATÁLOGO"),
         ("Bomba, válvulas, mangueras y manómetro (circuito hidráulico)", 1, f"Fuera de los planos mecánicos: ver especificación en {CODE}-ACC-004-{REV}", "A DEFINIR POR CATÁLOGO"),
@@ -53,7 +53,7 @@ def cut_rows(ctx):
     add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")
     add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
     add("mesa_anillo_sup", "Segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", "Empalmes CJP", qty=4)
-    add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada")
+    add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
     add("mesa_anillo_inf", "Segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", "Empalmes CJP", qty=4)
     for i, r in enumerate(D["almas"]):
         add(f"mesa_alma{i}", "Pletina rolada", f"{f(g.hw)}×{f(P['t_web'])}×{f(2 * math.pi * r + 20)}", f"R{f(r)}; 1 empalme CJP")
@@ -74,7 +74,7 @@ def cut_rows(ctx):
     add("pasador_ojal", "Barra", f"Ø{f(P['d_pp'] + 5)}×{fm(m.get('pasador_ojal').solid.val().BoundingBox().zlen + 10, 0)}")
     if g.opt:
         th = 360.0 / g.n_sec
-        env = f"{f(g.Ro - g.Ri_if * math.cos(math.radians(th / 2)) + 10)}×{f(2 * g.Ro * math.sin(math.radians(th / 2)) + 10)}"
+        env = f"{f(g.Ro - g.Ri * math.cos(math.radians(th / 2)) + 10)}×{f(2 * g.Ro * math.sin(math.radians(th / 2)) + 10)}"
         for k, nm in (("int_disco_base", "Sector (bruto rectangular envolvente)"), ("int_disco_mesa", "Sector (bruto rectangular envolvente)"), ("int_cara", "Sector (bruto rectangular envolvente)"), ("int_bronce", "Sector/pastilla (bruto envolvente)")):
             p = m.get(k)
             if p:
@@ -82,11 +82,11 @@ def cut_rows(ctx):
                 add(k, "Sector anular", f"{env}×{fm(t + 1, 1)}", "Corte por plasma de agua/láser; rectificado de caras (subcontrato)")
         lay = m.layout
         if m.has("int_tope_base") and "tope_h" in m.info:
-            add("int_tope_base", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_base)}×{fm(m.info['tope_h'][0], 0)}", "Soldada con 2 filetes")
-            add("int_tope_mesa", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_mesa)}×{fm(m.info['tope_h'][1], 0)}", "Soldada con 2 filetes")
+            add("int_tope_base", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_base)}×{fm(m.info['tope_h'][0], 0)}", "h = t − a_sup (núcleo); soldada con 2 filetes")
+            add("int_tope_mesa", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_mesa)}×{fm(m.info['tope_h'][1], 0)}", "h = t − a_sup (núcleo); soldada con 2 filetes")
         if m.has("int_tope_uhmw"):
-            add("int_tope_uhmw", "Barra", f"{fm(P['b_tope'], 0)}×{f(m.info['uhmw_bar_L'])}×{fm(m.info['uhmw_bar_h'], 0)}", "Inoxidable; 2 filetes")
+            add("int_tope_uhmw", "Barra", f"{fm(P['b_tope'], 0)}×{f(m.info['uhmw_bar_L'])}×{fm(m.info['uhmw_bar_h'], 0)}", "L = L_av; h = t_UHMW − a_sup; inoxidable; 2 filetes")
         add("int_uhmw", "Sector", f"{env}×{fm(g.I['tuh'] + 1, 0)}", "CNC/plasma de agua")
     if g.wood:
-        add("madera_anillo", "Pletina rolada", f"10×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - 10) + 20)}", "PROVISORIO; 1 empalme CJP")
+        add("madera_anillo", "Pletina rolada", f"10×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - 10) + 20)}", "Adoptado por el mandante (S06); 1 empalme CJP")
     return R

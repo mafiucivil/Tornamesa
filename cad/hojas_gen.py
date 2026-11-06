@@ -53,7 +53,7 @@ def sheet_notas(ctx):
         "2. " + NOTA_VIENTO + " (el cálculo no considera viento: decisión del mandante).",
         f"3. {NOTA_ANCLAJE.replace('q_losa', 'q_losa = ' + fm(P['q_floor'], 1) + ' MPa')} Presión de contacto máxima de la interfaz {fm(DV['q_max'], 2)} MPa.",
         f"4. Capacidad nominal {f(P['W_tf'])} tf; excentricidad del CG ≤ {f(P['e'])} mm; carga solo sobre parrilla de reparto Ø{f(P['D_load'])} o ≥ 8 apoyos simétricos.",
-        f"5. Velocidad de operación: tiempo por vuelta calculado {fm(tr, 1)} min (bomba {fm(P['Q_pump'], 1)} L/min; D['bomba']); ciclo {fm(DV['tCycle'], 2)} min." + ("" if abs(tr - 15) < 1 else " El mandante indicó 15 min/vuelta: NO coincide (ver brechas)."),
+        f"5. Velocidad de operación: tiempo por vuelta calculado {fm(tr, 1)} min (bomba {fm(P['Q_pump'], 1)} L/min; D['bomba']); ciclo {fm(DV['tCycle'], 2)} min." + (f" Cumple el objetivo de {fm(P['t_vuelta_obj'], 0)} min por vuelta." if tr <= P["t_vuelta_obj"] + 1e-9 else f" NO cumple el objetivo de {fm(P['t_vuelta_obj'], 0)} min por vuelta (ver brechas)."),
         "6. Altura libre no es restricción de diseño (decisión del mandante). Sin requerimiento sísmico (Ch = 0).",
         "NORMAS APLICABLES",
         "AISC 360-22 (ASD) · ASME BTH-1 Categoría de diseño B, Nd = 3,0 (cadena de empuje) · AWS D1.1/D1.1M:2020 · ISO 2768-m (tolerancias generales) · ISO 286 (ajustes) ·",
@@ -64,12 +64,13 @@ def sheet_notas(ctx):
         f"9. Cadena de empuje verificada a la fuerza de calado {fm(DV['Fstall'], 1)} kN. Detener y relubricar si la presión supera {f(P['p_alarm'])} bar.",
         "MATERIALES Y FABRICACIÓN",
         "10. Materiales con certificado EN 10204 3.1; planchas de la mesa con UT ASTM A578 nivel B y Z35. Soldadura con WPS/PQR calificados AWS D1.1 (WPS-xx A DEFINIR POR EL FABRICANTE).",
-        f"11. Uñas y pasadores: contacto templado ≥ 55 HRC, profundidad efectiva ≥ {fm(g.z_hard, 1)} mm (verificación del núcleo).",
-        "12. Taller sin torno vertical: corte a llama/plasma, soldadura, taladro radial y mandrinadora. Ajustes largos H7/p6 (pivote, buje, cubo) por mandrinadora o taladro; evitar piezas torneadas de gran diámetro.",
-        "13. Sin anclaje: la base apoya sobre losa o mats; verificar la superficie de apoyo por terceros (planitud, capacidad).",
+        "11. " + temple_txt(P) + f" (≥ {fm(g.z_hard, 1)} mm, fila «Profundidad mínima de temple» del núcleo).",
+        "12. " + alivio_txt(P) + f": cota de {fm(RELIEF, 0)} mm en TT300C-ACC-003-B.",
+        "13. Taller sin torno vertical: corte a llama/plasma, soldadura, taladro radial y mandrinadora. Ajustes largos H7/p6 (pivote, buje, cubo) por mandrinadora o taladro; evitar piezas torneadas de gran diámetro.",
+        "14. Sin anclaje: la base apoya sobre losa o mats; verificar la superficie de apoyo por terceros (planitud, capacidad).",
     ]
     if g.opt:
-        nt += ["INTERFAZ DE GIRO", f"14. {g.interfaz_nombre}. " + ("Fijación DESMONTABLE por sectores (topes soldados al respaldo, tornillos avellanados de posición)." if g.removable else "Fijación PEGADA: NO DESMONTABLE (fix_mode = 2); no admite limpieza ni cambio.")]
+        nt += ["INTERFAZ DE GIRO", f"15. {g.interfaz_nombre}. " + ("Fijación DESMONTABLE por sectores (topes soldados al respaldo, tornillos avellanados de posición)." if g.removable else "Fijación PEGADA: NO DESMONTABLE (fix_mode = 2); no admite limpieza ni cambio.")]
         nt += ["PROCEDIMIENTO DE LIMPIEZA Y ENGRASE DE LOS DISCOS DESMONTABLES",
                "a) Despresurizar el circuito, calzar la mesa y, con medios de izaje del montajista, elevarla lo mínimo para liberar los sectores del lado mesa (el cálculo no define puntos de izaje de la mesa).",
                "b) Retirar los tornillos de posición y extraer cada sector marcado; limpiar con solvente desengrasante y paño sin pelusa; inspeccionar rayas, gripado y desgaste (reponer si el espesor baja del mínimo constructivo).",
@@ -77,7 +78,7 @@ def sheet_notas(ctx):
                "d) Recolocar cada sector en su posición, apretar tornillos (torque A DEFINIR) y reponer grasa grafitada NLGI 2 en las ranuras; engrasar por las graseras M10×1 antes de cada operación.",
                "e) Limpiar y aislar la grasa grafitada de equipos energizados (el grafito es conductor). Registrar el procedimiento y la presión de despegue."]
     else:
-        nt += ["LUBRICACIÓN", "14. Interfaz acero-acero con grasa grafitada NLGI 2 (≥ 10 % grafito, EP) en ambas caras; lubricar antes de cada operación. Acero seco no gira."]
+        nt += ["LUBRICACIÓN", "15. Interfaz acero-acero con grasa grafitada NLGI 2 (≥ 10 % grafito, EP) en ambas caras; lubricar antes de cada operación. Acero seco no gira."]
     y = s.notes_block(30, 566, "NOTAS GENERALES", nt, h=2.9, wrap_chars=195, ls=1.5)
     # índice de láminas (se completa en el empaquetado)
     ctx.indice_y = y
@@ -89,7 +90,7 @@ def sheet_supuestos(ctx, gaps):
     h = Hoja(ctx, "GEN", 9, "SUPUESTOS DEL DIBUJANTE Y BRECHAS CON EL CÁLCULO", "S/E")
     s = h.begin()
     rows = [[x["id"], x["tema"], x["valor"], x["motivo"]] for x in ctx.sup]
-    s.text("SUPUESTOS DE DIBUJO (rotulados PROVISORIO en las láminas donde intervienen)", (30, 566), 3.0, "TOP_LEFT", bold=True)
+    s.text("SUPUESTOS DE DIBUJO (PROVISORIO) Y DECISIONES ADOPTADAS POR EL MANDANTE (ADOPTADO)", (30, 566), 3.0, "TOP_LEFT", bold=True)
     y = wtable(s, 30, 560, [("Id", 10), ("Tema", 55), ("Valor adoptado", 190), ("Motivo", 520)], rows, h=1.9)
     s.text("BRECHAS: DATOS QUE EL CÁLCULO DEBE ENTREGAR O CONFIRMAR", (30, y - 8), 3.0, "TOP_LEFT", bold=True)
     wtable(s, 30, y - 14, [("Id", 10), ("Tema", 55), ("Descripción", 600), ("Decisión requerida", 110)], [[x["id"], x["tema"], x["desc"], x["decision"]] for x in gaps], h=1.9)
