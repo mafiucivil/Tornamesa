@@ -149,7 +149,7 @@ def sheet_materiales(ctx):
     for p in ctx.m.parts:
         rows.append([p.code.replace(CODE + "-", ""), p.name, str(p.qty), p.material, p.cert, "Comercial" if p.comercial else ("Núcleo" if p.core else "Adoptado"), p.tratamiento if p.tratamiento != "—" else "—"])
     out, last, y = c.table_pages([("Código", 0.07 * w, "L"), ("Pieza", 0.18 * w, "L"), ("Cant", 0.04 * w, "C"), ("Material (norma, grado, Fy del cálculo)", 0.33 * w, "L"), ("Certificado", 0.14 * w, "L"),
-                                  ("Origen", 0.07 * w, "L"), ("Tratamiento", 0.17 * w, "L")], rows, "MATERIALES POR PIEZA (certificado EN 10204 3.1; grados no definidos por el cálculo: «SEGÚN CÁLCULO Fy ≥ …, A DEFINIR»)", "MATERIALES Y CERTIFICADOS", 5)
+                                  ("Origen", 0.07 * w, "L"), ("Tratamiento", 0.17 * w, "L")], rows, "MATERIALES POR PIEZA (certificado EN 10204 3.1; donde el cálculo solo fija Fy el grado es PROPUESTO por Fy, a confirmar)", "MATERIALES Y CERTIFICADOS", 5)
 
     g, P = ctx.g, ctx.P
     gr = [["Plancha, pletinas y barras soldadas (Fy = %s MPa)" % f(P["Fy"]), propuestas.grado(P["Fy"], 20, "plancha")], ["Pivote (Fy_piv, Ø%s)" % f(P["D_piv"]), propuestas.grado(P["Fy_piv"], P["D_piv"], "barra")],

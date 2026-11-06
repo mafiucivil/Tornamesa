@@ -113,6 +113,7 @@ def sheet_collar(ctx):
         ra(s, V, (-g.D_boss / 2 + 10, 0, zt), "Ra 3,2", dy=2)
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A", w=1.6,
          auto=dict(rev=(0, 0), fits={P["D_piv"]: "H7"}, rev_side="top", tol={round(g.h_boss, 1): " ±0,5"}, hole_notes=False))
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(g.h_boss, 1): " ±0,5"}, holes=False), maxs=2.0)
     add_prep(p, "det_j", wd(ctx, jc), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False)
     p.tables([jc])
     p.notes([f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: oxicorte/plasma desde plancha de {f(g.h_boss + 5)} (sobremetal 5); caras planeadas.",
@@ -134,6 +135,7 @@ def sheet_marcos(ctx):
     ctx.local("marco_corto", "mc1", near=(B / 2 - 5, 0, tb + 20), r=300)
     p = Pieza(ctx, ["marco_largo", "marco_corto"], "MARCO PERIMETRAL: PLETINAS LARGA Y CORTA", fmt="auto")
     s = p.s
+    p.iso_keys = ["ml1", "mc1"]
     ids = jids(ctx, "Marco perimetral largo", "Marco largo – marco corto", "Marco corto – plancha")
     p.vs("larga", ["ml1"], "front", breaks=[(-900, 900)], lv=(1, 2, 1, 1), title="PLETINA LARGA (BAS-003) — 2 unidades, con rotura", mat={"ml1": "acero"},
          auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5)
@@ -172,6 +174,7 @@ def sheet_mensula_piezas(ctx):
     tb, H_, rear, Llug, Win, Wout, tc = g.tb, BR["H"], BR["rear"], BR["Llug"], BR["Win"], BR["Wout"], P["t_ch"]
     p = Pieza(ctx, ["mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf"], "MÉNSULA DE CILINDRO: MEJILLA Y OREJAS (PIEZAS)", fmt="auto")
     s = p.s
+    p.iso_keys = [k + "_L" for k in ("mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf")]
     zt = tb + H_
     hb = BR["spacer"] + tc
     ids = jids(ctx, "Mejillas de ménsula", "Oreja superior", "Oreja inferior (bloque) – mejillas", "Oreja inferior (bloque) – plancha")
@@ -217,6 +220,7 @@ def sheet_orejas(ctx):
     tb, R, hE, tE, dE = g.tb, P["R_ear"], P["h_ear"], P["t_ear"], P["d_ear"]
     p = Pieza(ctx, ["orejas"], "OREJA DE IZAJE (4 UNIDADES)", fmt="auto")
     s = p.s
+    p.iso_keys = ["oreja_L"]
     on = ["oreja_L"]
     jid = jids(ctx, "Orejas de izaje")[0]
 
@@ -253,6 +257,7 @@ def sheet_bancada(ctx):
     Yb = KG["Y_bed"]
     p = Pieza(ctx, ["bancada"], "BANCADA DE GUÍA CON RANURA T (2 UNIDADES)", fmt="auto")
     s = p.s
+    p.iso_keys = ["bancada_L"]
     on = ["bancada_L"]
     jid = jids(ctx, "Bancada")[0]
 

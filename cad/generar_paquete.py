@@ -220,6 +220,11 @@ def main():
         fh.write("\n\n## Cobertura y métricas del juego de planos\n\n")
         fh.write(f"- Láminas: {total}; cotas verificadas: {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas).\n- Ítems del despiece sin globo en un plano de conjunto/subconjunto: {sin_globo or 'ninguno'}.\n")
         fh.write(f"- Juntas sin símbolo ISO 2553 en un plano de pieza/subconjunto: {sin_simbolo or 'ninguna'}. Piezas fabricables sin plano: {sin_plano or 'ninguna'}.\n- Errores de generación: {errores or 'ninguno'}.\n")
+        vs_ = [r for r in mrows if r[6] > 0]
+        if vs_:
+            fh.write(f"- Ocupación de las {len(vs_)} láminas con vistas: media {sum(r[6] for r in vs_) / len(vs_):.1f} % del área útil del marco; {sum(r[7] for r in vs_) / len(vs_):.1f} % de la zona de vistas (área de dibujo: marco menos cajetín, banda de notas y franja de tablas) contando solo las vistas; "
+                     f"{sum(r[9] for r in vs_) / len(vs_):.1f} % contando también cotas, títulos y símbolos (huella); {sum(r[8] for r in vs_) / len(vs_):.1f} % de tinta (celdas de 8 mm con trazo).\n")
+        fh.write(f"- Cotas totales: {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas). A DEFINIR en el cuerpo de las láminas (sin contar las firmas del cajetín): {sum(r[11] for r in mrows)}.\n")
         fh.write("- Textos «A DEFINIR» por causa: " + "; ".join(f"{k}: {v}" for k, v in ad_tot.items()) + ".\n\n")
         fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR |\n|---|---|---|---|---|---|---|---|---|---|\n")
         for r in mrows:

@@ -416,7 +416,7 @@ def build(D, verbose=True):
                "Corte de barra redonda laminada/rectificada Ø120 con sobrematerial; extremos y Ø p6 en torno horizontal o rectificado externo; sin torno vertical", core="pivot", color=(0.35, 0.35, 0.38),
                tratamiento="Bonificado (QT)", obs="Calado Ø120 p6 en el agujero H7 de la plancha base y el collar (prensa o contracción con hielo seco)"))
     bush = ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], g.z_bush0)
-    m.add(Part("buje", "PIV", "Buje autolubricado", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])}×{f(P['L_bush'])}", bush, 1, "Buje autolubricado: aleación A DEFINIR POR CATÁLOGO (p_bush y mu_bush del cálculo)", "Buje comercial o cortado de tubo fundido; Ø exterior s6 y Ø interior en mandrinadora", rho=7.6e-6, in_core=False,
+    m.add(Part("buje", "PIV", "Buje autolubricado", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])}×{f(P['L_bush'])}", bush, 1, "Buje autolubricado: bronce con lubricante sólido (p_bush y mu_bush del cálculo); marca/modelo por catálogo (GEN-008)", "Buje comercial o cortado de tubo fundido; Ø exterior s6 y Ø interior en mandrinadora", rho=7.6e-6, in_core=False,
                comercial=True, catalogo="A DEFINIR POR CATÁLOGO (buje autolubricado a medida)", color=(0.8, 0.55, 0.2), cert="EN 10204 3.1"))
     m.add(Part("tapa_ret", "PIV", "Tapa retenedora", f"Disco Ø{f(g.cap_D)}×{f(g.cap_t)} + 4 × M10×25 ISO 10642 10.9", cyl(g.cap_D / 2, g.cap_t, g.L_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - 1).pushPoints(cap_xy).circle(g.clear_m10 / 2).extrude(g.cap_t + 2)), 1, A572, "Oxicorte/plasma y mecanizado de agujeros en taladro radial", in_core=False, color=(0.35, 0.35, 0.38)))
     m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M10 avellanados", cyl(g.cb_D / 2 - 1, g.cb_t, z0 + hd - g.cb_t).cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - 1).pushPoints(insp_xy).circle(g.clear_m10 / 2).extrude(g.cb_t + 2)), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
@@ -486,7 +486,7 @@ def build(D, verbose=True):
             wood = wood.cut(cyl(g.washer_D / 2 + 2, 31, zw0 - 0.5, x, y))
         m.add(Part("madera", "MAD", "Tablones de madera dura", f"Tablones contiguos e={f(tW)}, ancho 200 (adoptado por el mandante), dentro del anillo; conjunto Ø{f(2 * (Rt - w_ring))} con abertura central Ø{f(g.cb_D)}; {g.N_pin} bolsillos Ø{f(g.washer_D + 4)}×31",
                    wood, 1, f"Madera dura seca al aire, ρ ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor)", "Aserrado y cepillado de tablones; corte a medida; bolsillos con fresa; fijación con tornillos avellanados (a definir)",
-                   rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Ancho de tablón 200 adoptado por el mandante (S06); fijación A DEFINIR"))
+                   rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Ancho de tablón 200 adoptado por el mandante (S06); fijación PROPUESTA en MAD-001 (confirmar)"))
         m.add(Part("madera_anillo", "MAD", "Anillo de acero de contención", f"Pletina {fm(w_ring, 0)}×{f(tW)} rolada a Ø{f(P['D_top'])}, soldada a la plancha superior (filete {f(P['w_web'])} a ambos lados)", ring_st, 1, A572,
                    "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", core="ring", color=(0.4, 0.4, 0.45), obs="Pletina t_ring × t_wood adoptada por el mandante (S06); incluida en el núcleo (m.ring) y en m.total"))
     log(f"  modelo construido en {time.time() - t0:.0f} s, {len(m.parts)} ítems")
@@ -577,7 +577,7 @@ def build_interfaz(m, g, D, log):
             sb, hb, Lb = make_screws(radii, a_list, t1, tb + t1, "top", rec)
             sm, hm, Lm = make_screws(radii_m, a_list, t2, zm0, "bot", rec)
             for nm, sol, qty, L, t_ in (("int_tornillo_base", sb, len(sb), Lb, t1), ("int_tornillo_mesa", sm, len(sm), Lm, t2)):
-                m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9, cabeza {fm(rec, 1)} bajo la cara deslizante", compound(sol), qty, "10.9 (ISO 10642), inoxidable A4-80 si se exige contacto con grasa y humedad (A DEFINIR)",
+                m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9, cabeza {fm(rec, 1)} bajo la cara deslizante", compound(sol), qty, "10.9 (ISO 10642), inoxidable A4-80 si se exige contacto con grasa y humedad (opción a confirmar)",
                            "Comercial", in_core=False, comercial=True, catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs="Solo posición: el par lo toman los topes"))
             m.info["screw_L"] = (Lb, Lm)
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm

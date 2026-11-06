@@ -55,6 +55,7 @@ def sheet_buje(ctx):
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 30, 0), title="CORTE A-A", hs=0.35, w=1.4,
          auto=dict(rev=(0, 0), fits={g.d_bush: "s6", P["D_piv"]: "F7"}, rev_side="top", tol={round(P["L_bush"], 1): " ±0,2"}, hole_notes=False))
     p.detail("det_ch", "corte", (-(g.d_bush / 2 - 1.5), 0, zt - 1.5), 12, "B", lv=(1, 1, 1, 1), title="DETALLE B: EXTREMO DEL BUJE", maxs=5.0)
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(P["L_bush"], 1): " ±0,2"}, holes=False), maxs=2.0)
     p.tables()
     p.notes([f"Buje autolubricado Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}: comercial o a medida (marca/modelo A DEFINIR POR CATÁLOGO; tipo exigido: bronce con lubricante sólido, p_bush = {fm(P['p_bush'], 0)} MPa y μ = {fm(P['mu_bush'], 2)} del cálculo).",
              f"Ø exterior {f(g.d_bush)} s6 (aprieto en el cubo H7, prensado) y Ø interior {f(P['D_piv'])} F7 (juego con el pivote p6/f7), Ra 1,6; mecanizar en mandrinadora (sin torno vertical).",
@@ -142,6 +143,7 @@ def sheet_patin(ctx):
     yF = P["l_p"] - g.d_pin / 2
     p = Pieza(ctx, ["patin"], "PATÍN GUIADO CON LENGÜETA T Y MARCO DE BOCA (2 UNIDADES)", fmt="auto")
     s = p.s
+    p.iso_keys = ["patin_L"]
     on = ["patin_L"]
     yc = yF - P["dog_b"] / 2
     pe = KG["pocketEnd"] - X
@@ -173,6 +175,7 @@ def sheet_una(ctx):
     zt = zc + hd_ / 2
     p = Pieza(ctx, ["una"], "UÑA DE EMPUJE (CARA PLANA TEMPLADA, CHAFLÁN DE RETORNO) (2 UNIDADES)", fmt="auto")
     s = p.s
+    p.iso_keys = ["una_L"]
     on = ["una_L"]
 
     def planta(V, p):
@@ -190,6 +193,8 @@ def sheet_una(ctx):
     p.vs("elev", on, "front", center=(0, 0, zc), lv=(1, 2, 3, 2), draw=elev, hatch=False, title="ELEVACIÓN (cara de empuje)", w=1.3, auto=dict(tol={round(hd_, 1): " f8"}))
     p.vs("lateral", on, "right", center=(0, 0, zc), lv=(1, 2, 1, 1), hatch=False, title="VISTA LATERAL (sección de la uña)", w=0.8, auto=dict(tol={round(b, 1): " f8", round(hd_, 1): " f8"}), maxs=2.0)
     p.detail("det_ch", "planta", (g.ch_dx / 2, -b + g.ch_dy / 2, zt), 30, "A", lv=(1, 2, 1, 1), title="DETALLE A: CHAFLÁN DE RETORNO", maxs=2.0, hatch=False)
+    p.vs("corte_b", on, "right", cut=((L / 2, 0, 0), (-1, 0, 0)), center=(L / 2, -b / 2, zc), lv=(1, 2, 2, 1), title="CORTE B-B (sección transversal de la uña)", hs=0.5, w=0.8, maxs=2.0, auto=dict(tol={round(b, 1): " f8", round(hd_, 1): " f8"}))
+    p.vs("corte_c", on, "front", cut=((0, -b / 2, 0), (0, 1, 0)), center=(0, 0, zc), lv=(1, 2, 2, 1), title="CORTE C-C (longitudinal por el eje)", hs=0.5, w=0.8, maxs=2.0, auto=dict(tol={round(L, 1): " ±0,2"}))
     p.tables()
     p.notes([f"Forja o bloque; 34CrNiMo6+QT (EN 10083-3), Re ≥ {f(P['Fy_dog'])} MPa medido en la propia forja, certificado 3.1; UT EN 10228-3.",
              temple_txt(P) + f" (fila «Profundidad mínima de temple» del núcleo: ≥ {fm(g.z_hard, 1)} mm); revenido; MT de la cara.",
@@ -227,6 +232,7 @@ def sheet_pasadores_art(ctx):
              auto=dict(rev=(0, 0), fits={P["d_pp"]: "f8"}, rev_side="top", tol={round(z1_ - z0_, 1): " ±0,2"}, hole_notes=False))
     p.vs("extremo", ["pv1"], "top", lv=(1, 1, 1, 1), title="VISTA DE EXTREMO", hatch=False, w=0.7, maxs=2.0, auto=dict(hole_rmin=5.0))
     p.detail("det_ch", "el0", (r - 1, 0, ctx.shapes["pv1"].BoundingBox().zmax - 1), 8, "A", lv=(1, 1, 1, 1), title="DETALLE A: CHAFLÁN (5:1)", maxs=5.0, hatch=False)
+    p.vs("corte", ["po1"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title="CORTE A-A DEL PASADOR DEL OJAL", hs=0.5, w=0.8, maxs=2.0, auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={}))
     p.table_block("VARIANTES DE LONGITUD", [("Pieza", 16, "C"), ("Aplicación", 40, "L"), ("Diámetro", 26, "L"), ("Largo [mm]", 20, "R"), ("Chaflán", 18, "C"), ("Cant", 10, "C")], rows)
     p.tables()
     p.notes([f"Barra rectificada Ø{f(P['d_pp'] + 5)}; corte y chaflanes {fm(g.ch_pp, 0)}×45° en torno horizontal; Ø{f(P['d_pp'])} f8 ({iso286.fmt_dev(P['d_pp'], 'f8')} mm), Ra 0,8.",

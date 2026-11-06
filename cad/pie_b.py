@@ -29,6 +29,7 @@ def sheet_mesa_sup(ctx):
          draw=corte, title="CORTE A-A (radial, con rotura)", hs=0.5, w=1.2,
          auto=dict(tol={round(tt, 1): " (t_top)"}, text={}))
     p.detail("det_c", "corte", (g.hole_top / 2 + 10, 0, zt - tt / 2), 38, "B", lv=(1, 2, 1, 1), title="DETALLE B: AGUJERO CENTRAL Y REBAJE DE LA TAPA", maxs=2.0)
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(tt, 1): " (t_top)"}, holes=False), maxs=5.0)
     for i, j_ in enumerate(jj):
         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tt)
     p.tables(jj)
@@ -114,6 +115,7 @@ def sheet_mesa_inf(ctx):
     p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, z0 - 6, x_b, z0 + tbo + 14), breaks=[(ri + 150, g.prIn - 150)], lv=(1, 3, 1, 2), extra=(0, 0, 90, 0), draw=corte,
          title="CORTE A-A (radial, con rotura)", hs=0.5, w=1.2, auto=dict(tol={round(tbo, 1): " (t_bot)"}))
     p.detail("det_c", "corte", (ri + 6, 0, z0 + tbo / 2), 30, "B", lv=(1, 2, 1, 1), title="DETALLE B: BORDE DEL AGUJERO (REBAJE DEL COLLAR)", maxs=5.0)
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(tbo, 1): " (t_bot)"}, holes=False), maxs=5.0)
     for i, j_ in enumerate(jj):
         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tbo)
     p.tables(jids(ctx, "Plancha inferior – anillo", "Barras de tope – plancha inferior"))
@@ -146,6 +148,7 @@ def sheet_almas(ctx):
         w_out(p, ids[0], V, (r + P["t_web"] / 2, 0, z0 + 2), "right", other=None, dy=14)
     p.vs("corte", [k0], "front", cut=CUT_Y, center=(r, 0, z0), win=(-14, -6, 14, g.hw + 8), lv=(1, 2, 1, 2), extra=(0, 0, 90, 0), draw=corte, title="CORTE DE UNA ALMA (todas iguales en sección)", hs=0.35, maxs=2.0, w=1.0,
          auto=dict(tol={round(g.hw, 1): " (h = h_disc − t_top − t_bot) ±0,5", round(P["t_web"], 1): " (t_web)"}))
+    p.vs("elev", ks, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DE LAS 3 ALMAS", w=0.8, auto=dict(tol={round(g.hw, 1): " ±0,5"}, holes=False), maxs=5.0)
     rows = [[f"A{i + 1}", f"{ctx.code(k).replace(CODE + '-', '')}", f(2 * r_), f(r_), f(2 * math.pi * r_, 0), f"{math.ceil(2 * math.pi * r_ / 3000)} pletina(s) rolada(s)", f"{fm(g.hw, 0)} × {fm(P['t_web'], 0)}"]
             for i, (k, r_) in enumerate(zip(ks, D["almas"]))]
     p.table_block("DESARROLLO DE LAS ALMAS (pletina rolada)", [("Alma", 14, "C"), ("Código", 24, "L"), ("Ø eje [mm]", 22, "R"), ("R eje [mm]", 22, "R"), ("Desarrollo [mm]", 26, "R"), ("Suministro", 26, "L"), ("h × t", 16, "C")], rows)
@@ -172,6 +175,7 @@ def sheet_nervios(ctx):
         loc.append(k + "_1")
     p = Pieza(ctx, ks, "MESA: NERVIOS RADIALES (TRAMOS ENTRE ALMAS)", fmt="auto")
     s = p.s
+    p.iso_keys = list(loc)
     rows = []
     jn = jids(ctx, "Nervios radiales")
     for i, (k, kl) in enumerate(zip(ks, loc)):
@@ -222,6 +226,7 @@ def sheet_cubo(ctx):
             w_out(p, jc[0], V, (P["D_hub"] / 2, 0, z0), "right", prep="45°", dy=-12)
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 90, 0), draw=corte, title="CORTE A-A", hs=0.6, w=1.4,
          auto=dict(rev=(0, 0), fits={g.d_bush: "H7"}, rev_side="top", tol={round(g.hw, 1): " ±0,5"}, text={round(g.Drb, 1): f"Ø{f(g.Drb)} (rebaje del collar)"}))
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(g.hw, 1): " ±0,5"}, holes=False), maxs=5.0)
     if g.rebaje and g.hHub > 0:
         p.detail("det_r", "corte", (g.Drb / 2, 0, z0 + g.hHub / 2), 25, "B", lv=(1, 2, 1, 1), title="DETALLE B: REBAJE DEL COLLAR", maxs=5.0)
     if jc:
@@ -244,6 +249,7 @@ def sheet_pasador(ctx):
     z0, zt, r = g.z0, g.z0 + g.hd, g.d_pin / 2
     p = Pieza(ctx, ["pasadores"], f"MESA: PASADOR DE EMPUJE Ø{f(g.d_pin)} ({g.N_pin} UNIDADES)", fmt="auto")
     s = p.s
+    p.iso_keys = ["pin1"]
     on = ["pin1"]
     zc0, zc1 = g.zc - P["dog_h"] / 2, g.zc + P["dog_h"] / 2
 
@@ -259,6 +265,7 @@ def sheet_pasador(ctx):
          win=(-r - 4, zt - 60, r + 4, zt + 4), maxs=2.0)
     p.detail("det_ch", "elev", (r - 1, 0, zt - 1), 9, "B", lv=(1, 1, 1, 1), title="DETALLE B: CHAFLÁN DE EXTREMO (5:1)", maxs=5.0, hatch=False)
     p.vs("extremo", on, "top", lv=(1, 1, 1, 1), title="VISTA DE EXTREMO", hatch=False, w=0.8, auto=dict(fits={}, hole_rmin=5), maxs=2.0)
+    p.vs("lateral", on, "right", lv=(1, 2, 2, 1), title="VISTA LATERAL (zona templada y chaflanes)", hatch=False, w=0.8, auto=dict(tol={round(g.hd, 1): " ±0,1", round(P["dog_h"], 1): " (franja templada)"}), maxs=2.0)
     p.tables()
     p.notes([f"Barra Ø{f(g.d_pin + 5)} laminada/rectificada; torno horizontal o rectificado externo: Ø{f(g.d_pin)} m6 ({iso286.fmt_dev(g.d_pin, 'm6')} mm), Ra 0,8; largo {f(g.hd)} ±0,1.",
              f"Tratamiento: bonificado y temple por inducción de la franja de contacto ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa del cálculo), profundidad efectiva ≥ {fm(g.z_hard, 1)} mm; Fy ≥ {f(P['Fy_pin'])} MPa (34CrNiMo6+QT, EN 10083-3).",
@@ -280,6 +287,7 @@ def sheet_pernos(ctx):
     ctx.local("pernos_pasador", "perno1", near=(xy[0], xy[1], zt + 15), r=80, shift=(-xy[0], -xy[1], 0))
     p = Pieza(ctx, ["pernos_pasador"], "MESA: PERNO ISO 4762 M20×45 CON ARANDELA (28 UNIDADES)", fmt="auto")
     s = p.s
+    p.iso_keys = ["perno1"]
     on = ["perno1"]
 
     def elev(V, p):
