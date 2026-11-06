@@ -3,7 +3,7 @@ import math, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import cadquery as cq
 import draw
-from draw import Sheet, wrap, wrapw, tw, T_N, T_S, T_T
+from draw import Sheet, wrap, wrapw, tw, T_N, T_S, T_T, T_MIN
 from geom import *
 import vistas
 import iso286
@@ -167,7 +167,7 @@ class Hoja:
                 for j in range(int(y0 // 4), int(y1 // 4) + 1):
                     cells.add((i, j))
         A = len(cells) * 16.0
-        a = s.area
+        a = self.R["all"]
         tot = (a[2] - a[0]) * (a[3] - a[1])
         avail = (self.R["main"][2] - self.R["main"][0]) * (self.R["main"][3] - self.R["main"][1])
         return A / tot, A / avail

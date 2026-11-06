@@ -253,8 +253,8 @@ def sheet_explosionada(ctx):
 
 
 STEPS = [
-    ("Base soldada", "Armar sobre caballetes nivelados: plancha base, collar, marco, ménsulas, bancadas y orejas de izaje según BAS-001; soldar en secuencia simétrica (J01…J09), alivio de tensiones y mandrinar Ø%s H7 en línea." ),
-    ("Mesa soldada", "Armar sobre la plancha inferior: almas y nervios; cerrar con anillos y plancha superior; soldar con control de distorsión (J10…J16); mandrinar los %d agujeros Ø%s H7 de los pasadores en línea y el cubo H7; planear la cara inferior."),
+    ("Base soldada", "Armar sobre caballetes nivelados: plancha base, collar, marco, ménsulas, bancadas y orejas de izaje según BAS-001; soldar en secuencia simétrica (ver tabla de soldaduras), alivio de tensiones y mandrinar Ø%s H7 en línea." ),
+    ("Mesa soldada", "Armar sobre la plancha inferior: almas y nervios; cerrar con anillos y plancha superior; soldar con control de distorsión (ver tabla de soldaduras); mandrinar los %d agujeros Ø%s H7 de los pasadores en línea y el cubo H7; planear la cara inferior."),
     ("Pivote y buje", "Calar el pivote Ø%s p6 en la plancha base y el collar (prensa o hielo seco); montar el buje s6 en el cubo de la mesa."),
     ("Accionamiento", "Montar bancadas ya soldadas: introducir patines por el extremo de la ranura T, uñas con resorte, cilindros y pasadores de articulación con grasa grafitada; conectar el circuito hidráulico."),
     ("Interfaz", "Montar la interfaz de deslizamiento (según opción) sobre la base y bajo la mesa: sectores con tornillos de posición y topes soldados, grasa grafitada; verificar juntas en frío."),
@@ -368,8 +368,6 @@ def sheet_base_soldada(ctx):
         a = Vp.P(ex, ey, tb)
         c.h.weld(ow[0], a, (a[0] - 20, a[1] + 20), sh=-1, L=44) if False else None
     ws = [w["id"] for w in ctx.welds if any(t in w["piezas"] for t in ("BAS", "IZA", "ACC-001"))]
-    for w in ws:
-        ctx.weld_by_id(w)["sheets"].add(c.h.plano)           # las juntas BAS se indican en detalles D1…D4 y en las láminas de pieza
     sub_sheet_tail(c, ks, ws, ["Soldar en secuencia simétrica; alivio de tensiones antes del mecanizado. Mandrinar Ø%s H7 (plancha + collar) y los ojales Ø%s H9 de las ménsulas en línea." % (f(P["D_piv"]), f(P["d_pp"])),
                                "Tamaños de filete: ver tabla (núcleo o mínimo AWS a confirmar). Todas las juntas tienen símbolo ISO 2553 en las láminas de pieza y en los detalles D1–D3.",
                                f"Posiciones: bancadas en x = ±{f(xg)}; orejas de izaje en (±{f(P['x_lug'])}, ±{f(g.cl_lug)}); ménsulas según BAS-001 (tabla de posiciones).", "Cara de apoyo de la interfaz (Ø%s): planitud 0,20, sin pintura." % f(P["D_top"] + 20)])
@@ -427,8 +425,6 @@ def sheet_mensula_conj(ctx):
         c.compact_table(ks) if False else None
     finally:
         ctx.m.get = orig
-    for jid in ids:
-        ctx.weld_by_id(jid)["sheets"].add(c.h.plano)
     sub_sheet_tail(c, ks, ids, [f"Armar en plantilla sobre la base: mejillas {f(tc)} × {f(H_)} a {f(Win)} de luz; orejas entre mejillas; eje del ojal a {f(g.hax)} ±0,5 de la cara de apoyo.",
                                 f"Mandrinar Ø{f(P['d_pp'])} H9 de ambas orejas en línea después de soldar (coaxialidad 0,10). Se fabrican {int(P['n_br'])} ménsulas.",
                                 "Filetes: ver tabla; secuencia alternada por lados; MT 100 %."])
@@ -479,8 +475,6 @@ def sheet_mesa_conj1(ctx):
     Vr.dimv((-g.Rt, 0, g.z0), (-g.Rt, 0, g.z0 + g.hd), "left", 0, on=["mesa_anillo_inf_R", "mesa_anillo_sup_R"], text=f"{f(g.hd)} (h_disc)")
     Vr.title("CORTE POR UN PASADOR (plano a %s° del eje x)" % fm(a0, 3))
     ids = [w["id"] for w in ctx.welds if "MES" in w["piezas"] or "INT tope mesa" in w["piezas"]]
-    for jid in ids:
-        ctx.weld_by_id(jid)["sheets"].add(c.h.plano)
     sub_sheet_tail(c, ks, ids, [f"Armado sobre la plancha inferior: cubo, almas (R {', '.join(f(x) for x in D['almas'])}), {int(P['N_rib'])} nervios por tramo, anillos y plancha superior; cerrar con la superior en último lugar.",
                                 f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: mandrinar en línea con la mesa armada y aliviada (ver MES-002/004 y tabla de pasadores en CON-009).",
                                 f"Cubo H7 Ø{f(g.d_bush)} y rebaje del collar Ø{f(g.Drb)}: mandrinar después de aliviar; cara inferior planeada (planitud 0,20).",
@@ -642,7 +636,7 @@ def sheet_interfaz_conj(ctx):
     Vp = c.V(sh, "top", (x0, y0 + 0.30 * Ht, x0 + 0.52 * Wd, y1), label="Planta de la interfaz", margin=(30, 30, 30, 30), mat=mm, hatch=False)
     ztop = g.z0
     c3 = (0, 0, ztop)
-    Vp.dim_dia(c3, g.Ro, 35, on=[ks[0]] if False else [k for k in ks if k.startswith("int_disco") or k in ("int_cara", "int_bronce")], text=f"Ø{f(2 * g.Ro)} (R_o = {fm(g.Ro, 0)})", ext=26)
+    Vp.dim_dia(c3, g.Ro, 3, on=[ks[0]] if False else [k for k in ks if k.startswith("int_disco") or k in ("int_cara", "int_bronce")], text=f"Ø{f(2 * g.Ro)} (R_o = {fm(g.Ro, 0)})", ext=26)
     for i in range(g.n_sec):
         a = (i + 0.5) * th
         pxy = polar(g.Ro + 12, a)
@@ -682,8 +676,6 @@ def sheet_interfaz_conj(ctx):
         s.table(x0 + j * (wcol + 4), y0 + 0.28 * Ht, [("Sector", 18 * sc, "C"), ("Bisectriz", 26 * sc, "R"), ("Inicio", 24 * sc, "R"), ("Fin", 24 * sc, "R"), ("x tope", 19 * sc, "R"), ("y tope", 19 * sc, "R")], rows[j * per:(j + 1) * per], h=T_S,
                 title=f"COORDENADAS DE LOS SECTORES (tope en r_u = {fm(g.r_u, 1)} sobre la bisectriz)" if j == 0 else None)
     ids = [w["id"] for w in ctx.welds if "INT" in w["piezas"]]
-    for jid in ids:
-        ctx.weld_by_id(jid)["sheets"].add(c.h.plano)
     notes = [f"{g.interfaz_nombre}.", f"Juntas en frío entre sectores {fm(g.junta('disc'), 2)} mm" + (f" (UHMW {fm(g.junta('uhmw'), 2)} mm)" if g.opt == 2 else "") + "; muescas de tope en la bisectriz.",
              "Los tornillos de posición solo posicionan (no transmiten carga): el par lo toman los topes soldados.", "Ver láminas de sector, tope, tornillos y notas de la interfaz (INT)."]
     if g.opt in (1, 3):

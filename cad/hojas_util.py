@@ -86,13 +86,59 @@ class Pieza:
         y = s.notes_block(x0, y - 2, "PLAN DE INSPECCIÓN", [insp, "Punzonar código de la pieza y marca de colada (trazabilidad EN 10204 3.1)."], h=T_N, width=wdt)
         return y
 
+    def fill_iso(self, keys=None, min_size=70.0, infl=24.0):
+        """Rellena el mayor rectángulo libre del área de vistas con una isométrica de la pieza (a la mayor escala normalizada que quepa)."""
+        x0, y0, x1, y1 = self.views
+        st = 4.0
+        nx, ny = int((x1 - x0) / st), int((y1 - y0) / st)
+        occ = [[False] * ny for _ in range(nx)]
+        for (a, b, c, d) in getattr(self.s, "views", []):
+            for i in range(max(0, int((a - infl - x0) / st)), min(nx, int((c + infl - x0) / st) + 1)):
+                for j in range(max(0, int((b - infl - y0) / st)), min(ny, int((d + infl - y0) / st) + 1)):
+                    occ[i][j] = True
+        best = (0, None)
+        hist = [0] * nx
+        for j in range(ny):
+            for i in range(nx):
+                hist[i] = 0 if occ[i][j] else hist[i] + 1
+            stack = []
+            for i in range(nx + 1):
+                hcur = hist[i] if i < nx else 0
+                start = i
+                while stack and stack[-1][1] >= hcur:
+                    s_, hh = stack.pop()
+                    area = (i - s_) * hh
+                    if area > best[0]:
+                        best = (area, (s_, j - hh + 1, i, j + 1))
+                    start = s_
+                stack.append((start, hcur))
+        if not best[1]:
+            return None
+        a, b, c, d = best[1]
+        box = (x0 + a * st, y0 + b * st, x0 + c * st, y0 + d * st)
+        if box[2] - box[0] < min_size or box[3] - box[1] < min_size:
+            return None
+        ks = [k for k in (keys or self.keys) if k in self.ctx.shapes]
+        V = self.V(ks, "iso", box, label="Isométrica", margin=(8, 14, 8, 8), hatch=False)
+        V.title("VISTA ISOMÉTRICA", h=T_N + 1.0)
+        return V
+
     def finish_scale(self):
+        if getattr(self, "iso_fill", True) and isinstance(self, Pieza) and not hasattr(self, "_filled"):
+            self._filled = True
+            try:
+                self.fill_iso()
+            except Exception as ex:
+                print("   (isométrica de relleno falló:", ex, ")")
         self.h.escala = self.fit_scale_txt() or "S/E"
 
 
 def gd_column(s, x, y, items, step=14.0):
     """Columna de recuadros GD&T con su leyenda; items = [(sym, tol, datum, texto)]; devuelve y final."""
     for sym, tol, datum, txt in items:
+        if not hasattr(s, "views"):
+            s.views = []
+        s.views.append((x, y - 7 - 6, x + 14 + 7 + tw(txt, T_N) + 3, y))
         wd = s.gdt((x, y - 7), sym, tol, datum)
         s.text(txt, (x + wd + 3, y - 3.5), T_N, "MIDDLE_LEFT")
         y -= step

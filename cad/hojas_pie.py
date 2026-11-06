@@ -129,7 +129,15 @@ def tol_dim(V, a, b, code, d, **kw):
 def w_sym(p, jid, V, pt3, off, **kw):
     """Símbolo de soldadura de la junta jid apuntando a un punto 3D de la vista V."""
     a = V.P(pt3)
-    p.h.weld(jid, a, (a[0] + off[0], a[1] + off[1]), **kw)
+    if "sh" not in kw:
+        kw["sh"] = 1 if a[0] < p.views[2] - 190 else -1
+    sg = kw["sh"]
+    p.h.weld(jid, a, (a[0] + abs(off[0]) * sg, a[1] + off[1]), **kw)
+
+
+def J(ctx, frag):
+    w = ctx.weld_find(frag)
+    return w["id"] if w else "J??"
 
 
 def jids(ctx, *frags):
@@ -171,7 +179,7 @@ def sheet_collar(ctx):
     p.tables(jids(ctx, "Collar"))
     p.notes([f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: oxicorte/plasma desde plancha de {f(g.h_boss + 5)} (sobremetal 5); caras planeadas.",
              f"Agujero Ø{f(P['D_piv'])} H7: NO se mecaniza antes de soldar; se mandrina en línea con la plancha base (BAS-001) en un solo montaje, Ra 1,6.",
-             f"Soldar a la plancha base con filete perimetral continuo z{fm(g.w_collar, 0)} (J08): secuencia simétrica por tramos opuestos para limitar la distorsión; alivio de tensiones antes de mandrinar.",
+             f"Soldar a la plancha base con filete perimetral continuo z{fm(g.w_collar, 0)} ({J(ctx, "Collar")}): secuencia simétrica por tramos opuestos para limitar la distorsión; alivio de tensiones antes de mandrinar.",
              "Arista exterior superior e interior de la boca del agujero: 1×45° (ISO 13715).",
              "Sin pintura en la cara superior (asiento del cubo de la mesa: holgura axial c_boss_a)."])
     p.finish_scale()
@@ -196,6 +204,9 @@ def sheet_marcos(ctx):
     on2 = ["mc1"]
     Vc.dimh((B / 2, -B / 2 + rt, tb), (B / 2, B / 2 - rt, tb), "bottom", 0, on=on2, text=f"{f(B - 2 * rt)} ±2 (= B − 2·t)")
     Vc.dimv((B / 2, B / 2 - rt, tb), (B / 2, B / 2 - rt, tb + rh), "right", 0, on=on2, text=f"{f(rh)} ±0,5")
+    j2 = jids(ctx, "Marco corto – plancha")
+    if j2:
+        w_sym(p, j2[0], Vc, (B / 2 - 600, -B / 2 + rt + 0, tb + 1) if False else (0, B / 2 if False else 0, tb + 0.5), (30, 34)) if False else None
     Vc.title("PLETINA CORTA (BAS-004) — 2 unidades")
     # sección de junta: pletina sobre la plancha, con soldadura
     kd = ["base_plancha", "marco_largo"]
@@ -211,11 +222,14 @@ def sheet_marcos(ctx):
     Ve = p.V(kc, "top", (x0 + 0.52 * (x1 - x0), y0, x1, y0 + 0.28 * (y1 - y0)), label="Esquina", center=(B / 2, -B / 2, tb), win=(-60, -20, 25, 60), margin=(16, 6, 40, 4), hatch=False)
     Ve.dimh((B / 2 - rt, -B / 2, tb + rh), (B / 2, -B / 2, tb + rh), "bottom", 0, on=kc, text=f"{f(rt)}")
     w_sym(p, ids[1], Ve, (B / 2, -B / 2, tb + rh), (-5, 30), kind="fillet")
+    j2 = jids(ctx, "Marco corto – plancha")
+    if j2:
+        w_sym(p, j2[0], Vj, (0, -B / 2 + rt, tb + rh - 6), (30, 60), other=None)
     Ve.title("ESQUINA (vista en planta)")
     p.tables(ids)
     p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {f(B)} y 2 cortas de {f(B - 2 * rt)} (entre las largas); corte a sierra o plasma con borde recto.",
              "Armado: pletinas largas sobre la plancha, cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo exterior e interior.",
-             "Las esquinas se sueldan con filete exterior de esquina continuo (J03); el tamaño z indicado es el mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
+             f"Las esquinas se sueldan con filete exterior de esquina continuo ({J(ctx, "Marco largo – marco corto")}); el tamaño z indicado es el mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
              "El marco contiene la interfaz y protege el borde; no tiene función estructural en el cálculo."])
     p.finish_scale()
     return p.h
@@ -273,6 +287,11 @@ def sheet_mensula_piezas(ctx):
     V3b.dimv((Llug - rear, 0, tb), (Llug - rear, 0, tb + hb), "right", 0, on=k3, text=f"{f(hb)} (= {f(BR['spacer'])} + {f(tc)})")
     V3b.title("ELEVACIÓN")
     ids = jids(ctx, "Mejillas de ménsula", "Oreja superior", "Oreja inferior (bloque) – mejillas", "Oreja inferior (bloque) – plancha")
+    if len(ids) >= 4:
+        w_sym(p, ids[0], V1, (P["L_ch"] / 2 - rear, -Wout / 2, tb + 0.5), (30, -34))
+        w_sym(p, ids[1], V2, ((Llug - rear) / 2, -Win / 2, zt), (30, -30))
+        w_sym(p, ids[2], V3, ((Llug - rear) / 2, -Win / 2, tb + hb), (30, -30))
+        w_sym(p, ids[3], V3b, ((Llug - rear) / 2, -Win / 2, tb + 0.5), (30, -30))
     s.gdt((xa + 10, y0 + 0.40 * (y1 - y0) + 2), "coax", "Ø0,10", "A") if False else None
     p.tables(ids)
     p.notes([f"Mejillas: plancha {f(tc)} × {f(H_)} × {f(P['L_ch'])}, 2 por ménsula ({int(P['n_br'])} ménsulas, {int(2 * P['n_br'])} mejillas); plasma, borde recto.",
@@ -315,7 +334,7 @@ def sheet_orejas(ctx):
     p.tables(jids(ctx, "Orejas de izaje"))
     p.notes([f"Plancha e = {f(tE)}; perfil 2R × h + semicírculo R{f(R)}; agujero Ø{f(dE)} de corte (sin mecanizar, aristas esmeriladas); grillete con pasador ≤ d − g_ear = {fm(dE - P['g_ear'], 0)} mm.",
              f"Posición en la base: (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±2, plano vertical radial hacia el centro (plano BAS-001, tabla de posiciones).",
-             f"Soldadura a la base: filete z{fm(P['w_ear'], 0)} a ambos lados (L = 2R) (J09); MT 100 % y UT 100 % antes de la prueba de carga y MT después.",
+             f"Soldadura a la base: filete z{fm(P['w_ear'], 0)} a ambos lados (L = 2R) ({J(ctx, "Orejas de izaje")}); MT 100 % y UT 100 % antes de la prueba de carga y MT después.",
              ramales_txt_short(ctx),
              f"Factor dinámico del cálculo φ_lift = {fm(P['phi_lift'], 2)}; uso: eslinga de 4 ramales con grillete certificado ASME B30.26 (a definir por catálogo)."])
     p.finish_scale()
@@ -371,7 +390,7 @@ def sheet_bancada(ctx):
     p.tables(jids(ctx, "Bancada"))
     p.notes([f"Plancha {f(P['w_bed'])} × {f(P['t_bed'])} × {f(2 * Yb, 1)} (largo de carrera del patín); sobremetal 5 mm en el largo.",
              f"Ranura T pasante: cuello {f(P['w_slot'])} H8 × {f(P['h_slot'])}, cabeza {f(P['w_tee'])} × {f(P['h_tee'])}, fondo {f(g.fondo)}; mecanizar DESPUÉS de soldar y aliviar tensiones (fresado/cepillo); flancos Ra 1,6; el patín entra por el extremo.",
-             f"Soldadura a la base: filete continuo z{fm(P['w_bed_f'], 0)} ambos lados, precalentar 65 °C (J07); eje de guía en x = ±{f(X)} ±0,5 respecto del centro.",
+             f"Soldadura a la base: filete continuo z{fm(P['w_bed_f'], 0)} ambos lados, precalentar 65 °C ({J(ctx, "Bancada")}); eje de guía en x = ±{f(X)} ±0,5 respecto del centro.",
              "Paralelismo de la ranura 0,10 (datum A = eje de la bancada) y coaxialidad con el ojal ±0,2: verificar antes de montar el patín.",
              "Flancos de la ranura con grasa grafitada en montaje."])
     p.finish_scale()
@@ -385,10 +404,13 @@ def rot_key(ctx, key, new, deg):
     return new
 
 
-def joint_schematic(p, x, y, t, kind, angle=60, root=3, face=2, title="", jid=None, k=3.0):
+def joint_schematic(p, x, y, t, kind, angle=60, root=3, face=2, title="", jid=None, k=2.0):
     """Esquema 2D de la preparación de junta a tope (ISO 9692-1) a escala k: espesor t, ángulo, abertura de raíz y cara de raíz. Dibuja cotas desde el registro."""
     s = p.s
     L = 40
+    if not hasattr(s, "views"):
+        s.views = []
+    s.views.append((x - L - 30, y - 34, x + L + 70, y + t * k + 30))
     tt_, r_, c_ = t * k, root * k, face * k
     half = math.tan(math.radians(angle / 2)) * (t - face) * k
     for sd in (-1, 1):
@@ -426,7 +448,7 @@ def sheet_mesa_sup(ctx):
     s.cut_line(Vt.P(-g.prIn - 22, 0, zt), Vt.P(g.prIn + 22, 0, zt), "A", 90)
     Vt.title("PLANTA")
     xa = x0 + 0.58 * (x1 - x0)
-    Vs = p.V(on, "front", (xa, y0 + 0.35 * (y1 - y0), x1, y1), label="Corte A-A", cut=CUT_Y, center=(g.hole_top / 2 + 100, 0, zt), win=(-170, -tt - 8, 160, 14), margin=(24, 34, 30, 24), hatch_scale=0.5)
+    Vs = p.V(on, "front", (xa, y0 + 0.35 * (y1 - y0), x1, y1), label="Corte A-A", cut=CUT_Y, center=((g.hole_top / 2 + g.prIn) / 2, 0, zt), win=(-(g.prIn - g.hole_top / 2) / 2 - 20, -tt - 8, (g.prIn - g.hole_top / 2) / 2 + 20, 14), margin=(24, 34, 30, 24), hatch_scale=0.5)
     Vs.dimv((g.prIn, 0, zt - tt), (g.prIn, 0, zt), "right", 0, on=on, text=f"{f(tt)} (t_top)")
     Vs.dimh((g.hole_top / 2, 0, zt), (g.cb_D / 2, 0, zt), "top", 0, on=on, text=f"{fm((g.cb_D - g.hole_top) / 2, 0)}") if False else None
     Vs.dimv((g.cb_D / 2, 0, zt - g.cb_t), (g.cb_D / 2, 0, zt), "left", 0, on=on, text=f"{f(g.cb_t)} (rebaje)")
@@ -434,12 +456,15 @@ def sheet_mesa_sup(ctx):
     s.roughness((Vs.P(g.hole_top / 2 + 20, 0, zt)[0], Vs.P(0, 0, zt)[1] + 3), "Ra 6,3")
     Vs.title("CORTE A-A (parcial)")
     gd_column(s, xa, y0 + 0.35 * (y1 - y0) - 4, [("flat", "0,5", None, "Planitud de la cara superior (apoyo de tapa/madera)"), ("par", "0,5", "A", "Cara superior paralela a la inferior de la mesa (A)")], 12)
+    jj = jids(ctx, "Plancha superior – anillo", "Cierre de la plancha")
+    w_sym(p, jj[0], Vs, (g.prIn, 0, zt - tt / 2), (40, -34), prep="60°")
+    w_sym(p, jj[1], Vs, (g.prIn - 120, 0, zt), (40, 40))
     p.tables(jids(ctx, "Plancha superior – anillo", "Cierre de la plancha"))
     p.notes([f"Disco Ø{f(2 * g.prIn)} × {f(tt)}; oxicorte/plasma (ISO 9013 clase 3), con sobremetal 3 mm para empalme con el anillo superior (MES-002).",
              f"Agujero central Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)} × {f(g.cb_t)} (apoyo de la tapa de inspección PIV-004): mecanizar en mandrinadora/fresadora; Ra 6,3.",
-             "Si el disco se obtiene de dos mitades: empalme CJP V 60° con respaldo, UT 100 %, esmerilar al ras (junta J11 familia).",
-             f"Unión con el anillo: soldadura a tope circunferencial, transición 1:4 desde t = {fm(g.tt, 0)} hasta {fm(g.tpr, 0)} (J11).",
-             "Soldadura de cierre sobre almas y nervios por ranuras (J16): ubicación y cantidad A DEFINIR POR EL FABRICANTE; no modeladas en 3D.",
+             f"Si el disco se obtiene de dos mitades: empalme CJP V 60° con respaldo, UT 100 %, esmerilar al ras (junta {J(ctx, "Plancha superior – anillo")} familia).",
+             f"Unión con el anillo: soldadura a tope circunferencial, transición 1:4 desde t = {fm(g.tt, 0)} hasta {fm(g.tpr, 0)} ({J(ctx, "Plancha superior – anillo")}).",
+             f"Soldadura de cierre sobre almas y nervios por ranuras ({J(ctx, "Cierre de la plancha")}): ubicación y cantidad A DEFINIR POR EL FABRICANTE; no modeladas en 3D.",
              "Distorsión: soldar la plancha superior en último lugar, con la mesa apoyada plana; verificar planitud 0,5."])
     p.finish_scale()
     return p.h
@@ -469,30 +494,33 @@ def sheet_mesa_anillos(ctx):
         pa = polar(g.prIn - 14, ang - a0)
         pb = polar(g.Rt + 14, ang - a0)
         s.line(Vt.P(pa + (zt,)), Vt.P(pb + (zt,)), "FANT")
-    s.text("4 empalmes (J10) a 90°, entre agujeros", (Vt.P(c3)[0] - 70, Vt.P(c3)[1] + 6), T_N, "BOTTOM_LEFT")
+    s.text(f"4 empalmes ({J(ctx, 'Empalmes de los anillos')}) a 90°, entre agujeros", (Vt.P(c3)[0] - 70, Vt.P(c3)[1] + 6), T_N, "BOTTOM_LEFT")
     s.dim_ang(Vt.P(c3), g.R_pin * Vt.scale * 0.9, 0, pitch, f"{fm(pitch, 3)}° (paso)")
     s.dim_ang(Vt.P(c3), g.R_pin * Vt.scale * 0.8, -(a0), 0, f"{fm(a0, 3)}° (arranque)") if False else None
-    s.text(f"Primer agujero a {fm(a0, 3)}° del eje x (sentido antihorario); paso {fm(pitch, 3)}° ({g.N_pin} agujeros)", (Vt.P(c3)[0] - 120, Vt.ext[1] + 2 if False else Vt.P(c3)[1] - g.Rt * Vt.scale - 22), T_N, "BOTTOM_LEFT")
+    s.text(f"Primer agujero a {fm(a0, 3)}° del eje x (sentido antihorario); paso {fm(pitch, 3)}° ({g.N_pin} agujeros)", (Vt.ext[0], Vt.ext[3] + 14), T_N, "BOTTOM_LEFT")
     s.cut_line(Vt.P(g.prIn - 40, 0, zt), Vt.P(g.Rt + 40, 0, zt), "A", 90) if False else None
     Vt.title("PLANTA (anillo; superior e inferior idénticos)")
     # sección radial por un pasador
     xa = x0 + 0.55 * (x1 - x0)
     Vs = p.V(on, "front", (xa, y0 + 0.50 * (y1 - y0), x1, y1), label="Corte radial", cut=CUT_Y, center=(g.R_pin, 0, zt), win=(-g.R_pin + g.prIn - 40, -g.tpr - 10, g.Rt - g.R_pin + 40, 14), margin=(24, 34, 30, 24), hatch_scale=0.5)
-    Vs.dimv((g.Rt, 0, zt - g.tpr), (g.Rt, 0, zt), "right", 0, on=on, text=f"{f(g.tpr)} (t_pr = máx(t_pr, t_top, t_bot))")
+    Vs.dimv((g.Rt, 0, zt - g.tpr), (g.Rt, 0, zt), "right", 0, on=on, text=f"{f(g.tpr)} (t_pr)")
     Vs.dimh((g.prIn, 0, zt - g.tpr), (g.Rt, 0, zt - g.tpr), "bottom", 0, on=on, text=f"{f(g.Rt - g.prIn)} (ancho)")
     Vs.dimh((g.prIn, 0, zt), (g.R_pin - g.d_pin / 2, 0, zt), "top", 0, on=on, text=f"{fm(g.R_pin - g.d_pin / 2 - g.prIn, 1)}")
     Vs.dimh((g.R_pin - g.d_pin / 2, 0, zt), (g.R_pin + g.d_pin / 2, 0, zt), "top", 1, on=on, text=tol_txt(g.d_pin, "H7"))
     Vs.dimh((g.R_pin + g.d_pin / 2, 0, zt), (g.Rt, 0, zt), "top", 0, on=on, text=f"{fm(g.Rt - g.R_pin - g.d_pin / 2, 1)}")
-    s.roughness((Vs.P(g.R_pin - g.d_pin / 2 - 2, 0, zt - g.tpr / 2)[0] - 40, Vs.P(0, 0, zt - g.tpr / 2)[1] + 8), "Ra 3,2")
+    s.roughness((Vs.P(g.R_pin - g.d_pin / 2, 0, zt)[0] + 3, Vs.P(0, 0, zt - g.tpr / 2)[1] - 4), "Ra 3,2")
     Vs.title("CORTE RADIAL POR UN PASADOR")
-    joint_schematic(p, xa + 0.28 * (x1 - xa), y0 + 0.26 * (y1 - y0), g.tpr, "V", 60, 3, 2, "EMPALME DEL ANILLO (J10)", jids(ctx, "Empalmes de los anillos")[0])
+    joint_schematic(p, xa + 0.28 * (x1 - xa), y0 + 0.26 * (y1 - y0), g.tpr, "V", 60, 3, 2, f"EMPALME DEL ANILLO ({J(ctx, 'Empalmes de los anillos')})", jids(ctx, "Empalmes de los anillos")[0])
     gd_column(s, xa, y0 + 0.50 * (y1 - y0) - 4, [("pos", "Ø0,3", "A", "PCD y agujeros: posición (A = eje de la mesa)"), ("coax", "Ø0,05", None, "Agujeros superior e inferior coaxiales (mandrinar en línea)"),
                                                  ("flat", "0,3", None, "Planitud de las caras del anillo")], 12)
+    jj = jids(ctx, "Plancha superior – anillo", "Plancha inferior – anillo")
+    w_sym(p, jj[0], Vs, (g.prIn, 0, zt - 3), (40, 60), prep="60°")
+    w_sym(p, jj[1], Vs, (g.prIn, 0, zt - g.tpr + 3), (40, -60), prep="60°")
     p.tables(jids(ctx, "Empalmes de los anillos", "Plancha superior – anillo", "Plancha inferior – anillo"))
     p.notes([f"Anillo Ø{f(2 * g.Rt)} / Ø{f(2 * g.prIn)} × {f(g.tpr)} en 4 segmentos de 90° (plasma); 2 anillos iguales (superior e inferior, MES-002 y MES-004).",
              f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: taladrar Ø80 en taladro radial por segmentos y MANDRINAR a Ø{f(g.d_pin)} H7 en línea con el otro anillo ya armado (plantilla común).",
              f"Posición angular: primer agujero a {fm(a0, 3)}°, paso {fm(pitch, 3)}°; los empalmes quedan entre agujeros (a {fm((0.5) * pitch, 2)}° de ellos).",
-             "Empalmes CJP V 60°, raíz 3, respaldo, UT 100 % (J10); esmerilar al ras antes de armar. Soldar los empalmes ANTES de unir con las planchas (J11).",
+             f"Empalmes CJP V 60°, raíz 3, respaldo, UT 100 % ({J(ctx, "Empalmes de los anillos")}); esmerilar al ras antes de armar. Soldar los empalmes ANTES de unir con las planchas (J11).",
              "UT de recepción de la plancha ASTM A578 nivel B y Z35 (EN 10164) por el esfuerzo en espesor de los pasadores.",
              "Rugosidad Ra 3,2 en los agujeros; aristas rotas 1×45°."])
     p.finish_scale()
@@ -526,11 +554,13 @@ def sheet_mesa_inf(ctx):
     s.text("Cara inferior (interfaz): planeada, Ra 3,2", (Vs.P(ri + 60, 0, z0)[0] + 20, Vs.P(0, 0, z0)[1] - 14), T_N, "MIDDLE_LEFT")
     Vs.title("CORTE A-A (parcial)")
     gd_column(s, xa, y0 + 0.3 * (y1 - y0) - 4, [("flat", "0,20", None, "Planitud de la cara inferior (antes de montar la interfaz)"), ("par", "0,30", "A", "Paralela a la cara superior de la mesa")], 12)
+    jj = jids(ctx, "Plancha inferior – anillo")
+    w_sym(p, jj[0], Vs, (g.prIn, 0, z0 + tbo / 2), (40, -36), prep="60°")
     p.tables(jids(ctx, "Plancha inferior – anillo", "Barras de tope – plancha inferior"))
     p.notes([f"Disco Ø{f(2 * g.prIn)} × {f(tbo)} (+3 mm de sobremetal para planear); oxicorte/plasma ISO 9013 clase 3.",
              f"Agujero central Ø{f(2 * ri)}: " + (f"PASANTE por el rebaje del collar (D_boss {f(g.D_boss)} + 2 × c_boss_r {fm(g.c_boss_r, 0)}); holgura radial {fm(g.c_boss_r, 0)}, axial {fm(g.c_boss_a, 0)}." if g.rebaje else "mandrinado para el buje."),
              f"Cara inferior planeada después de soldar la mesa y aliviar tensiones: planitud 0,20, Ra 3,2 (apoyo de la interfaz, {g.interfaz_nombre}).",
-             f"Unión con el anillo inferior: soldadura a tope circunferencial con transición 1:4 (J12). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."])
+             f"Unión con el anillo inferior: soldadura a tope circunferencial con transición 1:4 ({J(ctx, "Plancha inferior – anillo")}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."])
     p.finish_scale()
     return p.h
 
@@ -563,11 +593,13 @@ def sheet_almas(ctx):
     s.table(xa, y0 + 0.30 * (y1 - y0) - 8, [("Alma", 14 * sc, "C"), ("Código", 24 * sc, "L"), ("Ø eje [mm]", 22 * sc, "R"), ("R eje [mm]", 22 * sc, "R"), ("Desarrollo [mm]", 26 * sc, "R"), ("Suministro", 26 * sc, "L"), ("h × t", 16 * sc, "C")],
             rows, h=T_S, title="DESARROLLO DE LAS ALMAS (pletina rolada)")
     joint_schematic(p, xa + 40, y0 + 0.08 * (y1 - y0), P["t_web"], "V", 60, 2, 1, "") if False else None
+    if len(ids) > 1:
+        w_sym(p, ids[1], Vs, (r - P["t_web"] / 2, 0, z0 + g.hw / 2), (60, 30), prep="60°")
     p.tables(ids)
     p.notes([f"Pletina {fm(P['t_web'], 0)} × {f(g.hw)} rolada a los radios de eje R = {', '.join(f(x) for x in D['almas'])} mm; desarrollo = 2πR.",
-             "Cada alma tiene 1 empalme a tope V 60° (J14), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios.",
+             f"Cada alma tiene 1 empalme a tope V 60° ({J(ctx, "Empalme de cada alma")}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios.",
              "Altura h = h_disc − t_top − t_bot ±0,5: cortar a medida y verificar con plantilla antes de armar la mesa.",
-             f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo (J12). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else ""),
+             f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({J(ctx, "Almas anulares")}). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else ""),
              "Las almas son continuas; los nervios se cortan entre almas (ver MES-008…010)."])
     p.finish_scale()
     return p.h
@@ -595,6 +627,9 @@ def sheet_nervios(ctx):
         V.dimv((bb.xmax, bb.ymin, z0), (bb.xmax, bb.ymin, z0 + g.hw), "right", 0, on=[kl], text=f"{f(g.hw)} ±0,5")
         V.title(f"NERVIO TRAMO {i + 1} ({ctx.code(k).replace(CODE + '-', '')}) — {int(P['N_rib'])} unidades")
         rows.append([f"{i + 1}", ctx.code(k).replace(CODE + "-", ""), fm(bb.xmin, 1), fm(bb.xmax, 1), fm(L, 1), f"{fm(g.hw, 0)} × {fm(P['t_rib'], 0)}", f"{int(P['N_rib'])}"])
+    jn = jids(ctx, "Nervios radiales")
+    if jn:
+        w_sym(p, jn[0], V, (bb.xmax, bb.ymin, z0 + g.hw / 2), (30, 40))
     xa = x0 + 0.64 * (x1 - x0)
     sc = (x1 - xa - 4) / 150.0
     s.table(xa, y1 - 6, [("Tramo", 14 * sc, "C"), ("Código", 22 * sc, "L"), ("R interior", 22 * sc, "R"), ("R exterior", 22 * sc, "R"), ("Largo", 24 * sc, "R"), ("h × t", 26 * sc, "C"), ("Cant", 14 * sc, "C")], rows, h=T_S, title="TRAMOS DE NERVIO")
@@ -606,7 +641,7 @@ def sheet_nervios(ctx):
     p.tables(jids(ctx, "Nervios radiales"))
     p.notes([f"Pletina {fm(P['t_rib'], 0)} × {f(g.hw)}; {int(P['N_rib'])} nervios por tramo, 3 tramos (entre cubo, almas A1…A3 y borde R_rib = {f(P['R_rib'])}).",
              "Corte por plasma anidado en plancha; largos de la tabla (entre caras de almas/cubo); ajuste con 1–2 mm de holgura de armado.",
-             f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo (J13); armar sobre la plancha inferior con plantilla angular ±0,1°.",
+             f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({J(ctx, "Nervios radiales")}); armar sobre la plancha inferior con plantilla angular ±0,1°.",
              "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior."])
     p.finish_scale()
     return p.h
@@ -636,10 +671,13 @@ def sheet_cubo(ctx):
     s.roughness((Vs.P(-g.d_bush / 2, 0, zt - g.hw / 2)[0] + 2, Vs.P(0, 0, zt - g.hw / 2)[1] - 3), "Ra 1,6")
     gd_column(s, Vs.ext[0], Vs.ext[1] - 24, [("coax", "Ø0,05", "A", "Ø%s H7 coaxial con el eje de la mesa (A)" % f(g.d_bush)), ("perp", "0,10", "A", "Caras inferior y superior ⟂ al eje")], 12)
     Vs.title("CORTE A-A")
+    jc = jids(ctx, "Cubo")
+    if jc:
+        w_sym(p, jc[0], Vs, (P["D_hub"] / 2, 0, z0), (40, -34), prep="45°")
     p.tables(jids(ctx, "Cubo"))
     p.notes([f"Anillo Ø{f(P['D_hub'])} / Ø{f(g.d_bush)} × {f(g.hw)} de plancha gruesa o tubo, corte a llama; agujero Ø{f(g.d_bush)} H7 y rebaje Ø{f(g.Drb)} en mandrinadora (sin torno vertical).",
              f"Ajuste del buje (PIV-002): {f(g.d_bush)} H7 / s6, prensado. Holgura radial del collar c_boss_r = {fm(g.c_boss_r, 0)} y axial c_boss_a = {fm(g.c_boss_a, 0)} mm (núcleo).",
-             "Soldar a las planchas inferior y superior (J15) y luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.",
+             f"Soldar a las planchas inferior y superior ({J(ctx, "Cubo")}) y luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.",
              "Perpendicularidad de las caras 0,10; coaxialidad del agujero con el eje de la mesa 0,05."])
     p.finish_scale()
     return p.h
@@ -666,7 +704,7 @@ def sheet_pasador(ctx):
     # franja de contacto: de la cara inferior de la mesa hasta h_c de la uña
     zc0, zc1 = g.zc - P["dog_h"] / 2, g.zc + P["dog_h"] / 2
     s.line(V.P(-r - 6, 0, zc0), V.P(r + 6, 0, zc0), "TRAT"); s.line(V.P(-r - 6, 0, zc1), V.P(r + 6, 0, zc1), "TRAT")
-    V.dimv((-r, 0, zc0), (-r, 0, zc1), "left", 0, on=on, text=f"{f(P['dog_h'])} (franja de contacto con la uña, temple ≥ 55 HRC)")
+    V.dimv((-r, 0, zc0), (-r, 0, zc1), "left", 0, on=on, text=f"{f(P['dog_h'])} (franja templada)")
     V.note_pt((0, 0, zt), (36, 22), f"Rosca M20 prof. 40 (retención con perno ISO 4762 M20×45)", on=on) if False else None
     s.leader(V.P(0, 0, zt), (V.P(0, 0, zt)[0] + 40, V.P(0, 0, zt)[1] + 24), "Rosca M20-6H prof. 40 (perno ISO 4762 M20×45 cl. 10.9)", dot=True)
     s.roughness((V.P(r, 0, z0 + g.hd / 2)[0] + 30, V.P(0, 0, z0 + g.hd / 2)[1]), "Ra 0,8")
@@ -893,7 +931,7 @@ def sheet_pasadores_art(ctx):
     X, ye, yr = c["x"], c["eye"][1], c["rodEngage"][1]
     ctx.local("pasador_ojal", "po1", near=(X, ye, g.tb + 80), r=200, shift=(-X, -ye, 0))
     ctx.local("pasador_vastago", "pv1", near=(X, yr, g.zc), r=200, shift=(-X, -yr, 0))
-    p = Pieza(ctx, ["pasador_vastago", "pasador_ojal"], f"PASADORES DE ARTICULACIÓN Ø{f(P['d_pp'])} f8 (VÁSTAGO Y OJAL TRASERO)", fmt="A1")
+    p = Pieza(ctx, ["pasador_vastago", "pasador_ojal"], f"PASADORES DE ARTICULACIÓN Ø{f(P['d_pp'])} f8 (VÁSTAGO Y OJAL TRASERO)", fmt="A2")
     s = p.s
     x0, y0, x1, y1 = p.views
     r = P["d_pp"] / 2
@@ -946,8 +984,8 @@ def int_sector_sheet(ctx, key, titulo, face, z_of):
     V = p.V(on, "top", (x0, y0, x0 + 0.62 * (x1 - x0), y1), label="Planta del sector", margin=(40, 40, 50, 30), hatch=False)
     c3 = (0, 0, ztop)
     s.line(V.P(g.Ri - 10, 0, ztop), V.P(g.Ro + 10, 0, ztop), "EJE")
-    V.dim_rad(c3, g.Ro, 14, on=on, text=f"R{fm(g.Ro, 0)} (R_o)", ext=30)
-    V.dim_rad(c3, g.Ri, -14, on=on, text=f"R{fm(g.Ri, 0)} (R_i)", ext=30)
+    V.dim_rad(c3, g.Ro, 3, on=on, text=f"R{fm(g.Ro, 0)} (R_o)", ext=30)
+    V.dim_rad(c3, g.Ri, 0.5, on=on, text=f"R{fm(g.Ri, 0)} (R_i)", ext=30)
     Ln = lay.L_base if face == "top" else lay.L_mesa
     if g.removable and Ln and key != "int_uhmw":
         nb = lay.b_tope + 2

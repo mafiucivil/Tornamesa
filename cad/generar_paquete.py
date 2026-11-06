@@ -168,8 +168,8 @@ def main():
     for n, h in enumerate(hojas, 1):
         s = h.s
         txts = s.texts
-        n_ad = sum(1 for t in txts if "A DEFINIR" in t or "A DECIDIR" in t)
-        n_ad_body = sum(1 for t in txts if ("A DEFINIR" in t or "A DECIDIR" in t) and t != "A DEFINIR")
+        n_ad = sum(1 for t in txts if "A DEFINIR" in t or "A DECIDIR" in t) + 6
+        n_ad_body = sum(1 for t in txts if ("A DEFINIR" in t or "A DECIDIR" in t))
         for t in txts:
             if "A DEFINIR" in t or "A DECIDIR" in t:
                 for k, pat in causas.items():
@@ -181,7 +181,7 @@ def main():
                       min((e.dxf.height for e in s.m if e.dxftype() == "TEXT"), default=0)])
     with open(out / "metricas_laminas.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")
-        wr.writerow(["n", "lámina", "título", "formato", "escala", "cotas", "% vistas / área útil del marco", "% vistas / área de dibujo", "textos A DEFINIR", "A DEFINIR sin contar firmas", "clases de achurado", "altura mínima de texto [mm]"])
+        wr.writerow(["n", "lámina", "título", "formato", "escala", "cotas", "% vistas / área útil del marco", "% vistas / área de dibujo", "textos A DEFINIR", "A DEFINIR sin contar el cajetín (6 por lámina)", "clases de achurado", "altura mínima de texto [mm]"])
         wr.writerows(mrows)
     with open(out / "soldaduras.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")

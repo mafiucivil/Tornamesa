@@ -493,15 +493,20 @@ class View:
         txt = text if text is not None else f"{prefix}{numtxt(2 * r)}{suffix}"
         a = math.radians(ang_deg)
         keys = on or self.keys
-        ok = COTAS.axis_ok(c3, r, keys)
+        ok = COTAS.axis_ok(c3, r, keys) or self._arc_pt_ok(c3, r, ang_deg, on) or self._arc_pt_ok(c3, r, ang_deg + 180, on)
         COTAS.add(vista=self.label, texto=txt, valor_dibujo=round(2 * r, 3), tipo="diámetro", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
         if not ok:
             print(f"   DIÁMETRO NO VERIFICADO [{COTAS.sheet}] {txt}")
         self.S.dim_dia(self.P(c3), r * self.scale, ang_deg, txt, ext=ext, **kw)
 
+    def _arc_pt_ok(self, c3, r, ang_deg, on):
+        """Respaldo para arcos que el B-rep no reporta como CYLINDER: el punto del arco a ese ángulo cae sobre la superficie."""
+        a = math.radians(ang_deg)
+        return COTAS.dist_to_surface((c3[0] + r * math.cos(a), c3[1] + r * math.sin(a), c3[2]), on or self.keys) < 0.05
+
     def dim_rad(self, c3, r, ang_deg, text=None, on=None, ext=8.0, **kw):
         txt = text if text is not None else f"R{numtxt(r)}"
-        ok = COTAS.axis_ok(c3, r, on or self.keys)
+        ok = COTAS.axis_ok(c3, r, on or self.keys) or self._arc_pt_ok(c3, r, ang_deg, on)
         COTAS.add(vista=self.label, texto=txt, valor_dibujo=round(r, 3), tipo="radio", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
         if not ok:
             print(f"   RADIO NO VERIFICADO [{COTAS.sheet}] {txt}")
