@@ -1,299 +1,367 @@
-"""Láminas generales: notas, conjunto, explosionada, secuencia, despiece, lista de corte, soldaduras, tolerancias e inspección, supuestos."""
-import math, sys, pathlib
+"""Láminas generales: notas y normas con índice, programa de soldaduras, inspección, tolerancias y ajustes, materiales, tratamientos, torques y compras,
+supuestos y brechas, lista de cortes (nesting) y lista de verificación del revisor."""
+import math, sys, pathlib, re
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from hojas_base import *
-from hojas_fab import title_view, int_title
+from hojas_util import *
 import lista
 
-
-def wtable(s, x, y, cols, rows, h=1.8, bold_first=False, rpad=1.6):
-    """Tabla con celdas de texto que se parten en varias líneas. cols: [(titulo, ancho)]. Devuelve y final."""
-    cw = h * 0.72
-    widths = [c[1] for c in cols]
-    W_ = sum(widths)
-    lines_of = []
-    for r in rows:
-        ls = [wrap(str(c), max(4, int((w - 2) / cw))) for c, w in zip(r, widths)]
-        lines_of.append(ls)
-    # encabezado
-    hh = 5.0
-    s.rect(x, y - hh, x + W_, y, "VIS")
-    xx = x
-    for (t, w) in cols:
-        s.text(t, (xx + w / 2, y - hh / 2), h + 0.3, "MIDDLE_CENTER", bold=True)
-        xx += w
-    yy = y - hh
-    ytop = y
-    for r, ls in zip(rows, lines_of):
-        n = max(len(l) for l in ls)
-        rh = n * h * 1.25 + rpad
-        s.line((x, yy), (x + W_, yy), "FINA")
-        xx = x
-        for l, w in zip(ls, widths):
-            for i, t in enumerate(l):
-                s.text(t, (xx + 1.0, yy - 1.0 - h * 0.6 - i * h * 1.25), h, "MIDDLE_LEFT")
-            xx += w
-        yy -= rh
-    s.line((x, yy), (x + W_, yy), "VIS")
-    xx = x
-    for w in widths + [0]:
-        s.line((xx, ytop), (xx, yy), "FINA" if 0 < xx - x < W_ else "VIS")
-        xx += w
-    return yy
+PLAN_GEN = []
 
 
+def gen(fn):
+    PLAN_GEN.append(fn.__name__)
+    return fn
+
+
+class Gen(Pieza):
+    def __init__(self, ctx, num, titulo, fmt="A1"):
+        self.ctx = ctx
+        h = Hoja(ctx, f"GEN-{num:03d}", titulo, "S/E", fmt=fmt, material="No aplica (lámina de información)", masa="—", trat="—", serie="GEN")
+        self.h = h
+        self.s = h.begin()
+        self.R = h.R
+        self.scales, self.vlist = [], []
+        self.dims_n0 = len(vistas.COTAS.rows)
+
+    def table_pages(self, cols, rows, title, titulo_hoja, num0, widths=None, hh=T_S):
+        """Tabla que continúa en hojas siguientes si no cabe. Devuelve lista de Hoja."""
+        out = []
+        n = 0
+        pend = rows
+        while True:
+            g = self if n == 0 else Gen(self.ctx, num0 + n, f"{titulo_hoja} (HOJA {n + 1})")
+            R = g.R["main"]
+            y, left = g.s.table(R[0], R[3], cols, pend, h=hh, ymin=R[1] + 4, title=title + (f" — hoja {n + 1}" if n else ""))
+            out.append(g.h)
+            if not left:
+                return out, g, y
+            pend = left
+            n += 1
+
+
+@gen
 def sheet_notas(ctx):
-    g, P, DV = ctx.g, ctx.P, ctx.DV
-    h = Hoja(ctx, "GEN", 1, "NOTAS GENERALES, NORMAS Y ÍNDICE DE LÁMINAS", "S/E")
-    s = h.begin()
-    tr = DV["tRev"]
-    nt = [
-        "ADVERTENCIAS",
-        "1. " + ADVERTENCIA,
-        "2. " + NOTA_VIENTO + " (el cálculo no considera viento: decisión del mandante).",
-        f"3. {NOTA_ANCLAJE.replace('q_losa', 'q_losa = ' + fm(P['q_floor'], 1) + ' MPa')} Presión de contacto máxima de la interfaz {fm(DV['q_max'], 2)} MPa.",
-        f"4. Capacidad nominal {f(P['W_tf'])} tf; excentricidad del CG ≤ {f(P['e'])} mm; carga solo sobre parrilla de reparto Ø{f(P['D_load'])} o ≥ 8 apoyos simétricos.",
-        f"5. Velocidad de operación: tiempo por vuelta calculado {fm(tr, 1)} min (bomba {fm(P['Q_pump'], 1)} L/min; D['bomba']); ciclo {fm(DV['tCycle'], 2)} min." + (f" Cumple el objetivo de {fm(P['t_vuelta_obj'], 0)} min por vuelta." if tr <= P["t_vuelta_obj"] + 1e-9 else f" NO cumple el objetivo de {fm(P['t_vuelta_obj'], 0)} min por vuelta (ver brechas)."),
-        "6. Altura libre no es restricción de diseño (decisión del mandante). Sin requerimiento sísmico (Ch = 0).",
-        "NORMAS APLICABLES",
-        "AISC 360-22 (ASD) · ASME BTH-1 Categoría de diseño B, Nd = 3,0 (cadena de empuje) · AWS D1.1/D1.1M:2020 · ISO 2768-m (tolerancias generales) · ISO 286 (ajustes) ·",
-        "ISO 1101 (tolerancias geométricas) · ISO 1302 (rugosidad) · ISO 2553 (símbolos de soldadura) · ISO 5817 (niveles de calidad de soldaduras) · EN 10204 3.1 (certificados) · ISO 12944 (pintura).",
-        "PRESIÓN Y CIRCUITO HIDRÁULICO",
-        f"7. Presión máxima de trabajo del cilindro y de la bomba: {fm(P['p_rated'] * 0.0689476, 0)} bar (p_rated = {f(P['p_rated'])} psi). Alivio {f(P['p_relief'])} bar (prohibido subirlo); alarma/detención {f(P['p_alarm'])} bar; retorno {f(P['p_ret'])} bar.",
-        "8. Operar siempre con ambos cilindros en par (circuito en paralelo con válvula de bloqueo). Prohibido empujar con un solo cilindro.",
-        f"9. Cadena de empuje verificada a la fuerza de calado {fm(DV['Fstall'], 1)} kN. Detener y relubricar si la presión supera {f(P['p_alarm'])} bar.",
-        "MATERIALES Y FABRICACIÓN",
-        "10. Materiales con certificado EN 10204 3.1; planchas de la mesa con UT ASTM A578 nivel B y Z35. Soldadura con WPS/PQR calificados AWS D1.1 (WPS-xx A DEFINIR POR EL FABRICANTE).",
-        "11. " + temple_txt(P) + f" (≥ {fm(g.z_hard, 1)} mm, fila «Profundidad mínima de temple» del núcleo).",
-        "12. " + alivio_txt(P) + f": cota de {fm(RELIEF, 0)} mm en TT300C-ACC-003-B.",
-        "13. Taller sin torno vertical: corte a llama/plasma, soldadura, taladro radial y mandrinadora. Ajustes largos H7/p6 (pivote, buje, cubo) por mandrinadora o taladro; evitar piezas torneadas de gran diámetro.",
-        "14. Sin anclaje: la base apoya sobre losa o mats; verificar la superficie de apoyo por terceros (planitud, capacidad).",
-    ]
-    if g.opt:
-        nt += ["INTERFAZ DE GIRO", f"15. {g.interfaz_nombre}. " + ("Fijación DESMONTABLE por sectores (topes soldados al respaldo, tornillos avellanados de posición)." if g.removable else "Fijación PEGADA: NO DESMONTABLE (fix_mode = 2); no admite limpieza ni cambio.")]
-        nt += ["PROCEDIMIENTO DE LIMPIEZA Y ENGRASE DE LOS DISCOS DESMONTABLES",
-               "a) Despresurizar el circuito, calzar la mesa y, con medios de izaje del montajista, elevarla lo mínimo para liberar los sectores del lado mesa (el cálculo no define puntos de izaje de la mesa).",
-               "b) Retirar los tornillos de posición y extraer cada sector marcado; limpiar con solvente desengrasante y paño sin pelusa; inspeccionar rayas, gripado y desgaste (reponer si el espesor baja del mínimo constructivo).",
-               "c) Verificar planitud de las caras (0,05) y rugosidad Ra 0,4; relapear solo hasta el sobreespesor del cálculo.",
-               "d) Recolocar cada sector en su posición, apretar tornillos (torque A DEFINIR) y reponer grasa grafitada NLGI 2 en las ranuras; engrasar por las graseras M10×1 antes de cada operación.",
-               "e) Limpiar y aislar la grasa grafitada de equipos energizados (el grafito es conductor). Registrar el procedimiento y la presión de despegue."]
-    else:
-        nt += ["LUBRICACIÓN", "15. Interfaz acero-acero con grasa grafitada NLGI 2 (≥ 10 % grafito, EP) en ambas caras; lubricar antes de cada operación. Acero seco no gira."]
-    y = s.notes_block(30, 566, "NOTAS GENERALES", nt, h=2.9, wrap_chars=195, ls=1.5)
-    # índice de láminas (se completa en el empaquetado)
-    ctx.indice_y = y
-    h.indice_pos = (30, y - 6)
-    return h
+    g = ctx.g
+    c = Gen(ctx, 1, "NOTAS GENERALES, NORMAS APLICABLES E ÍNDICE DE PLANOS")
+    s = c.s
+    R = c.R["main"]
+    notas = [ADVERTENCIA, "ESTADO DE TODAS LAS LÁMINAS: EMITIDO PARA REVISIÓN. No fabricar hasta la aprobación por un ingeniero calculista habilitado; los campos DIBUJÓ/REVISÓ/APROBÓ están A DEFINIR.",
+             NOTA_VIENTO + " (sin análisis de viento en el cálculo).", NOTA_ANCLAJE,
+             "Fuente única: todos los valores salen del JSON de diseño del núcleo de cálculo (exportado por la herramienta TT300-C); si el JSON cambia, regenerar el juego completo.",
+             "Unidades: mm, kg, MPa, grados. Cotas en mm salvo indicación. No medir sobre el plano. Método de proyección E (ISO 5456-2).",
+             "Tolerancias generales ISO 2768-mK (lineal y angular) y ISO 13920 para piezas soldadas (clase B/F); rugosidad no indicada: Ra 12,5.",
+             "Soldadura: ISO 2553 (símbolos), ISO 5817 (calidad), ISO 4063 (procesos 111/135/141), AWS D1.1 (calificación, END). WPS/PQR: A DEFINIR POR EL FABRICANTE.",
+             "Materiales con certificado EN 10204 3.1; trazabilidad por colada; punzonar el código de la pieza.",
+             "Aristas vivas rotas 1×45° (ISO 13715) salvo indicación. Rosca métrica ISO 262 / ISO 724; tornillería ISO 4762 / ISO 10642, clase 10.9 (ISO 898-1).",
+             "Taller sin torno vertical: gran diámetro por oxicorte/plasma, soldadura y mandrinadora; ajustes largos H7 en mandrinadora.", pintura(ctx),
+             "Sin viento ni anclaje (mandante): el equipo apoya sobre losa/mats con presión ≤ q_losa; la verificación de la losa es de terceros."]
+    y = s.notes_block(R[0], R[3], "NOTAS GENERALES DE FABRICACIÓN", notas, h=T_N, width=0.46 * (R[2] - R[0]), numbered=True)
+    nor = [("ISO 128", "Dibujo técnico: tipos de línea, vistas, cortes y achurado"), ("ISO 129-1", "Acotado"), ("ISO 1101", "Tolerancias geométricas"), ("ISO 1302", "Indicación de la textura superficial"),
+           ("ISO 2553 / ISO 4063", "Símbolos de soldadura / procesos"), ("ISO 5817 / ISO 9692-1", "Niveles de calidad / preparación de juntas"), ("ISO 5457 / ISO 7200 / ISO 5456-2", "Formatos, cajetín, método de proyección"),
+           ("ISO 3098", "Escritura"), ("ISO 286-1/-2", "Sistema de tolerancias y ajustes ISO"), ("ISO 2768-1", "Tolerancias generales"), ("ISO 13715", "Aristas de forma indefinida"),
+           ("AWS D1.1", "Código de soldadura de acero estructural (T5.8 filete mínimo)"), ("AISC 360-22", "Especificación (J2.2b filete máximo, D5.2 orejas)"), ("BTH-1 Cat. B", "Diseño de dispositivos de izaje bajo el gancho"),
+           ("ASME B30.26", "Grilletes de izaje"), ("ISO 898-1 / VDI 2230", "Propiedades de tornillos / uniones atornilladas"), ("EN 10204 3.1", "Certificados de inspección"),
+           ("ASTM A572 Gr.50, A36 (ref.), A240, A578, EN 10164", "Aceros estructurales, inoxidable, UT de planchas, propiedades en espesor"), ("EN 10083-3 (34CrNiMo6+QT)", "Aceros bonificados (pasadores, uña)"),
+           ("ISO 12944", "Protección anticorrosiva (referencia; sistema A DEFINIR)")]
+    x2 = R[0] + 0.48 * (R[2] - R[0])
+    s.table(x2, R[3], [("Norma", 70, "L"), ("Aplicación", 130, "L")], [list(n) for n in nor], h=T_S, title="NORMAS APLICABLES")
+    c.h.indice_pos = (R[0], y - 8, R[2] - R[0], R[1])
+    return c.h
 
 
-def sheet_supuestos(ctx, gaps):
-    h = Hoja(ctx, "GEN", 9, "SUPUESTOS DEL DIBUJANTE Y BRECHAS CON EL CÁLCULO", "S/E")
-    s = h.begin()
-    rows = [[x["id"], x["tema"], x["valor"], x["motivo"]] for x in ctx.sup]
-    s.text("SUPUESTOS DE DIBUJO (PROVISORIO) Y DECISIONES ADOPTADAS POR EL MANDANTE (ADOPTADO)", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    y = wtable(s, 30, 560, [("Id", 12), ("Tema", 60), ("Valor adoptado", 240), ("Motivo", 483)], rows, h=2.5)
-    s.text("BRECHAS: DATOS QUE EL CÁLCULO DEBE ENTREGAR O CONFIRMAR", (30, y - 8), 3.0, "TOP_LEFT", bold=True)
-    wtable(s, 30, y - 14, [("Id", 12), ("Tema", 60), ("Descripción", 490), ("Decisión requerida", 233)], [[x["id"], x["tema"], x["desc"], x["decision"]] for x in gaps], h=2.5)
-    return h
+def tabla_indice(ctx, h, hojas):
+    """Índice de planos en GEN-001 (se llama al final, con todas las láminas)."""
+    s = h.s
+    x, y, w, ymin = h.indice_pos
+    rows = [[hh.plano.replace(CODE + "-", "").replace("-" + REV, ""), hh.titulo, hh.fmt, hh.escala, REV] for hh in hojas]
+    half = (len(rows) + 1) // 2
+    wc = (w - 6) / 2
+    sc = wc / 190.0
+    cols = [("Plano", 30 * sc, "L"), ("Título", 105 * sc, "L"), ("Fmt", 12 * sc, "C"), ("Escala", 30 * sc, "L"), ("Rev", 13 * sc, "C")]
+    y1, l1 = s.table(x, y, cols, rows[:half], h=T_S, ymin=ymin, title="ÍNDICE DE PLANOS")
+    y2, l2 = s.table(x + wc + 6, y, cols, rows[half:], h=T_S, ymin=ymin)
+    return bool(l1 or l2)
 
 
-def sheet_bom(ctx):
-    rep = ctx.rep
-    h = Hoja(ctx, "GEN", 5, "DESPIECE (LISTA DE MATERIALES), MASA Y CENTRO DE GRAVEDAD", "S/E", masa=f"{f(rep['masa_total_ensamble'], 1)} kg")
-    s = h.begin()
-    rows = []
-    for r in lista.bom_rows(ctx):
-        rows.append([r["pos"], r["code"].replace(CODE + "-", ""), r["desc"], r["qty"], r["material"], f(r["unit"], 2 if r["unit"] < 10 else 1), f(r["total"], 1), r["proceso"], r["obs"] or "—"])
-    cols = [("Pos", 8), ("Código", 22), ("Descripción", 150), ("Cant", 10), ("Material / norma", 92), ("kg/u", 14), ("kg tot.", 16), ("Proceso", 120), ("Observación", 112)]
-    s.text("DESPIECE", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    y = wtable(s, 30, 560, cols, rows, h=1.6)
-    ms = rep["masas"]
-    cg = rep["cg"]
-    s.text(f"MASA TOTAL del ensamble (3D): {f(rep['masa_total_ensamble'], 1)} kg · CENTRO DE GRAVEDAD (x, y, z desde el centro de la mesa y la cara inferior de la base): ({fm(cg[0], 1)}; {fm(cg[1], 1)}; {fm(cg[2], 1)}) mm.", (30, y - 6), 2.4, "TOP_LEFT", bold=True)
-    s.text(f"Comparable con el núcleo: 3D {f(ms['total_3d'], 1)} kg frente a {f(ms['total_nucleo'], 1)} kg (D['derivados'].masas.total): diferencia {fm(ms['dif'], 1)} kg ({fm(ms['dif_pct'], 2)} %); tolerancia {fm(ms['tol_pct'], 1)} %. Piezas fuera del núcleo: {f(ms['masa_fuera'], 1)} kg.", (30, y - 11), 2.0, "TOP_LEFT")
-    ex = lista.extras(ctx)
-    s.text("ELEMENTOS NO MODELADOS (comerciales o sin geometría en el cálculo); códigos de catálogo: A DEFINIR, no se inventan", (30, y - 18), 2.4, "TOP_LEFT", bold=True)
-    wtable(s, 30, y - 22, [("Descripción", 200), ("Cant", 12), ("Especificación", 330), ("Código de catálogo", 90)], [[d, q, e, c] for (d, q, e, c) in ex], h=1.7)
-    return h
+@gen
+def sheet_soldaduras_global(ctx):
+    c = Gen(ctx, 7, "PROGRAMA DE SOLDADURAS: TABLA GLOBAL DE JUNTAS")
+    R = c.R["main"]
+    sc = (R[2] - R[0]) / sum(w for _, w, _ in WELD_COLS)
+    cols = [(t, w * sc, a) for t, w, a in WELD_COLS]
+    out, last, y = c.table_pages(cols, weld_rows(ctx), "PROGRAMA DE SOLDADURAS (Junta N°, piezas, tipo, preparación, garganta a, cateto z, longitud, pasadas, proceso, aporte, WPS, END)", "PROGRAMA DE SOLDADURAS", 7)
+    last.s.notes_block(R[0], y - 6, "NOTAS", ["Tamaños: parámetros w_* del núcleo; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa y se rotula «mínimo AWS, a confirmar».",
+                                              "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte compatible con FEXX = %s MPa (E70xx)." % f(ctx.P["FEXX"]),
+                                              "Todas las juntas llevan símbolo ISO 2553 con su número J## en las láminas de pieza o de subconjunto; la tabla de cada lámina repite las juntas que contiene.",
+                                              "END: VT 100 % de todas las juntas; MT/UT/PT según columna (AWS D1.1 y BTH-1 Cat. B). Soldadores y WPS calificados por el fabricante."], h=T_N, width=700, numbered=True)
+    return out
 
 
-def sheet_corte(ctx):
-    h = Hoja(ctx, "GEN", 6, "LISTA DE CORTE", "S/E")
-    s = h.begin()
-    s.text("LISTA DE CORTE (dimensiones brutas con sobremetal; corte a llama/plasma/sierra)", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    rows = lista.cut_rows(ctx)
-    wtable(s, 30, 560, [("Pos", 30), ("Pieza", 100), ("Forma", 55), ("Dimensión bruta (mm)", 120), ("Cant", 18), ("Material", 190), ("Observación", 282)], rows, h=2.4)
-    return h
+@gen
+def sheet_inspeccion(ctx):
+    c = Gen(ctx, 3, "PLAN DE INSPECCIÓN Y ENSAYOS")
+    R = c.R["main"]
+    w = R[2] - R[0]
+    rows = [[str(n), t, d, q, m_] for (n, t, d, q, m_) in inspecciones(ctx)]
+    out, last, y = c.table_pages([("N°", 0.04 * w, "C"), ("Etapa", 0.09 * w, "L"), ("Verificación / criterio", 0.56 * w, "L"), ("Alcance", 0.17 * w, "L"), ("Método", 0.14 * w, "L")], rows,
+                                 "PLAN DE INSPECCIÓN Y ENSAYOS (VT 100 %, MT/UT según AWS D1.1 y BTH-1 Cat. B)", "PLAN DE INSPECCIÓN", 3)
+    return out
 
 
-def sheet_soldaduras(ctx):
-    h = Hoja(ctx, "GEN", 7, "PROGRAMA DE SOLDADURAS (ISO 2553 / ISO 5817 / AWS D1.1)", "S/E")
-    s = h.begin()
-    W_ = soldaduras(ctx)
-    rows = [[w["id"], w["juntas"], w["tipo"], w["tamano"], w["nota"], w["proc"], "ISO 5817-" + w["calidad"], w["end"], w["wps"]] for w in W_]
-    s.text("PROGRAMA DE SOLDADURAS (tipo, tamaño, END)", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    y = wtable(s, 30, 560, [("Id", 12), ("Juntas", 150), ("Tipo y preparación", 140), ("Tamaño", 24), ("Origen del tamaño", 170), ("Proceso ISO 4063", 85), ("Calidad", 28), ("END", 50), ("WPS", 136)], rows, h=2.4)
-    s.notes_block(30, y - 8, "CONTROL", [
-        "Precalentamiento AWS D1.1: t ≤ 20: 10 °C (se exige 50 °C mín.); 20 < t ≤ 38: 50 °C; 38 < t ≤ 65: 65 °C; interpase ≤ 250 °C. Electrodos E7018 / alambre ER70S-6 (FEXX del núcleo: %s MPa)." % f(ctx.P["FEXX"]),
-        "42CrMo4 y 34CrNiMo6 (pivote, pasadores, uñas): NO se sueldan. Soldar los topes de la interfaz antes del alivio de tensiones y del rectificado de las caras.",
-        "Tamaños marcados «mín. AWS» no los fija el cálculo: se adopta el mínimo de AWS D1.1 por la parte más gruesa (criterio del registro de normas del proyecto); el calculista debe confirmarlos.",
-        "END propuestos por criticidad: a confirmar por el calculista. Inspección visual 100 % (ISO 17637) previa a todo END. Registro: WPS/PQR, calificación de soldadores e informes END.",
-    ], h=2.0, wrap_chars=190)
-    return h
-
-
+@gen
 def sheet_tolerancias(ctx):
-    g, P = ctx.g, ctx.P
-    h = Hoja(ctx, "GEN", 8, "TOLERANCIAS, AJUSTES, MATERIALES E INSPECCIÓN", "S/E")
-    s = h.begin()
-    s.text("TOLERANCIAS GENERALES (ISO 2768-m)", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    rows = [["0,5–3", "±0,1", "3–6", "±0,1", "6–30", "±0,2", "30–120", "±0,3", "120–400", "±0,5", "400–1000", "±0,8", "1000–2000", "±1,2", "2000–4000", "±2"]]
-    s.table(30, 560, [(t, w, "C") for t, w in zip(["Rango", "Tol.", "Rango", "Tol.", "Rango", "Tol.", "Rango", "Tol.", "Rango", "Tol.", "Rango", "Tol.", "Rango", "Tol.", "Rango", "Tol."], [17, 11] * 8)], rows, rh=5.0, h=1.9)
-    s.text("Lineales ISO 2768-m (mm). Angulares: ±1° hasta 10 mm, ±0°30' hasta 50 mm, ±0°20' hasta 120 mm. Geométricas: ISO 2768-K salvo indicación (ISO 1101) en cada plano.", (30, 543), 1.9)
-    s.text("AJUSTES (ISO 286)", (30, 534), 3.0, "TOP_LEFT", bold=True)
-    y = wtable(s, 30, 528, [("Unión", 130), ("Ajuste", 110), ("Tipo / método", 220), ("Norma", 40)], [list(a) for a in ajustes(ctx)], h=1.9)
-    s.text("TOLERANCIAS GEOMÉTRICAS Y RUGOSIDAD PRINCIPALES", (30, y - 6), 3.0, "TOP_LEFT", bold=True)
-    geo = [["Cara de apoyo de la base (zona Ø%s)" % f(P["D_top"] + 20), "Planitud 0,20", "Ra 1,6–3,2", "BAS-001"], ["Cara inferior de la mesa", "Planitud 0,20; paralelismo cara superior 0,30", "Ra 1,6–3,2", "MES-001/002"],
-           ["Pivote / agujero H7", "Perpendicularidad 0,05; coaxialidad collar–base 0,05", "Ra 0,8 (pivote), Ra 1,6 (H7)", "BAS-001, PIV-001"],
-           ["Agujeros de pasadores (28)", "Posición ±0,05°; coaxialidad entre anillos 0,05", "Ra 1,6", "MES-002"], ["Ranura T de la bancada", "Paralelismo 0,10; posición ±0,2", "Ra 1,6", "ACC-001"],
-           ["Cara de empuje de la uña", "Planitud 0,05", "Ra 0,8", "ACC-003"], ["Caras deslizantes de la interfaz", "Planitud 0,05 por sector", "Ra 0,4", "INT-001/002"]]
-    y = wtable(s, 30, y - 12, [("Elemento", 110), ("Tolerancia geométrica (ISO 1101)", 200), ("Rugosidad (ISO 1302)", 100), ("Plano", 90)], geo, h=1.9)
-    s.text("MATERIALES CON CERTIFICADO (EN 10204 3.1)", (30, y - 6), 3.0, "TOP_LEFT", bold=True)
-    mats = {}
+    P, g = ctx.P, ctx.g
+    c = Gen(ctx, 4, "TOLERANCIAS Y AJUSTES (ISO 286) Y TOLERANCIAS GEOMÉTRICAS")
+    s = c.s
+    R = c.R["main"]
+    w = R[2] - R[0]
+    rows = []
+    for (desc, d, ho, sh_, app) in ajustes(ctx):
+        t = ajuste_txt(d, ho, sh_)
+        rows.append([desc, f"Ø{fm(d, 0)}", ho, sh_, t["h_lim"], t["s_lim"], t["juego"], t["tipo"], app])
+    rows.append(["Collar en rebaje (núcleo)", f"Ø{f(g.D_boss)}", "—", "—", f"Ø{fm(g.Drb, 1)}", f"Ø{fm(g.D_boss, 1)}", f"{fm(g.c_boss_r * 1000, 0)} (radial)", "con juego", f"c_boss_r = {fm(g.c_boss_r, 0)} y c_boss_a = {fm(g.c_boss_a, 0)} mm del núcleo"])
+    y, _ = s.table(R[0], R[3], [("Ajuste", 0.17 * w, "L"), ("Nominal", 0.05 * w, "C"), ("Agujero", 0.05 * w, "C"), ("Eje", 0.05 * w, "C"), ("Límites agujero [mm]", 0.11 * w, "C"), ("Límites eje [mm]", 0.11 * w, "C"),
+                                      ("Juego mín/máx [µm]", 0.10 * w, "C"), ("Tipo", 0.08 * w, "L"), ("Aplicación", 0.28 * w, "L")], rows, h=T_S, title="TABLA DE AJUSTES ISO 286-1/-2 (límites calculados)")
+    gd = [["Planitud", "Cara de apoyo de la base (Ø%s)" % f(P["D_top"] + 20), "0,20", "—"], ["Planitud", "Cara inferior de la mesa", "0,20", "—"], ["Perpendicularidad", "Agujero Ø%s H7 respecto de la cara de apoyo" % f(P["D_piv"]), "0,05", "A"],
+          ["Coaxialidad", "Collar – agujero de la base", "Ø0,05", "A"], ["Coaxialidad", "Ojales de ménsula (Ø%s H9)" % f(P["d_pp"]), "Ø0,10", "A"], ["Paralelismo", "Ranura T de la bancada", "0,10", "A"],
+          ["Posición", "PCD de %d pasadores Ø%s" % (g.N_pin, f(g.d_pin)), "Ø0,3", "A"], ["Coaxialidad", "Agujeros de pasadores superior/inferior", "Ø0,05", "—"], ["Planitud", "Cara de empuje de la uña", "0,05", "—"],
+          ["Cilindricidad", "Pasadores y pivote", "0,02", "—"]]
+    y2, _ = s.table(R[0], y - 8, [("Característica (ISO 1101)", 0.16 * w, "L"), ("Elemento", 0.40 * w, "L"), ("Tolerancia [mm]", 0.10 * w, "C"), ("Datum", 0.07 * w, "C")], gd, h=T_S, title="TOLERANCIAS GEOMÉTRICAS PRINCIPALES")
+    gen_t = [["0,5 a 3", "±0,1", "±0,2", "±0,3"], ["3 a 6", "±0,1", "±0,3", "±0,5"], ["6 a 30", "±0,2", "±0,5", "±1,0"], ["30 a 120", "±0,3", "±0,8", "±1,5"], ["120 a 400", "±0,5", "±1,2", "±2,5"],
+             ["400 a 1.000", "±0,8", "±2,0", "±4,0"], ["1.000 a 2.000", "±1,2", "±3,0", "±6,0"], ["2.000 a 4.000", "—", "±4,0", "±8,0"]]
+    s.table(R[0] + 0.62 * w, y - 8, [("Rango [mm]", 0.12 * w, "L"), ("f (fina)", 0.08 * w, "C"), ("m (media)", 0.08 * w, "C"), ("c (basta)", 0.08 * w, "C")], gen_t, h=T_S, title="ISO 2768-1 (se aplica «m»; piezas soldadas ISO 13920 clase B)")
+    return c.h
+
+
+@gen
+def sheet_materiales(ctx):
+    c = Gen(ctx, 5, "MATERIALES Y CERTIFICADOS")
+    R = c.R["main"]
+    w = R[2] - R[0]
+    rows = []
     for p in ctx.m.parts:
-        mats.setdefault((p.material, p.cert), []).append(p.code.replace(CODE + "-", ""))
-    rows = [[m_[0], m_[1], ", ".join(v)] for m_, v in mats.items()]
-    y = wtable(s, 30, y - 12, [("Material / norma", 230), ("Certificado", 80), ("Ítems", 290)], rows, h=1.8)
-    s.text("PUNTOS DE INSPECCIÓN (END, dimensional, dureza, torque)", (30, y - 6), 3.0, "TOP_LEFT", bold=True)
-    wtable(s, 30, y - 12, [("N°", 10), ("Tipo", 28), ("Punto de inspección", 560)], [[a, b, c] for (a, b, c) in inspecciones(ctx)], h=1.8)
-    return h
+        rows.append([p.code.replace(CODE + "-", ""), p.name, str(p.qty), p.material, p.cert, "Comercial" if p.comercial else ("Núcleo" if p.core else "Adoptado"), p.tratamiento if p.tratamiento != "—" else "—"])
+    out, last, y = c.table_pages([("Código", 0.07 * w, "L"), ("Pieza", 0.18 * w, "L"), ("Cant", 0.04 * w, "C"), ("Material (norma, grado, Fy del cálculo)", 0.33 * w, "L"), ("Certificado", 0.14 * w, "L"),
+                                  ("Origen", 0.07 * w, "L"), ("Tratamiento", 0.17 * w, "L")], rows, "MATERIALES POR PIEZA (certificado EN 10204 3.1; grados no definidos por el cálculo: «SEGÚN CÁLCULO Fy ≥ …, A DEFINIR»)", "MATERIALES Y CERTIFICADOS", 5)
+    return out
 
 
-# ----------------------------------------------------------------------------------------------
-EXPL = {"base_plancha": 0, "collar": 0, "marco_largo": 0, "marco_corto": 0, "mensula_mejilla": 0, "mensula_oreja_sup": 0, "mensula_oreja_inf": 0, "orejas": 0, "bancada": 0,
-        "int_tope_base": 100, "int_disco_base": 200, "int_bronce": 200, "int_tornillo_base": 300, "int_uhmw": 380, "int_tope_uhmw": 380, "int_tapones": 260,
-        "int_disco_mesa": 520, "int_cara": 520, "int_tope_mesa": 600, "int_tornillo_mesa": 680, "graseras": 1100,
-        "buje": 520, "pernos_pasador": 1250, "tapa_ret": 1450, "tapa_insp": 1550, "madera": 1750, "madera_anillo": 1750,
-        "cilindro": 500, "patin": 250, "una": 420, "pasador_vastago": 650, "pasador_ojal": 650}
-EXPL_DOWN = {"pivote": -450}
+@gen
+def sheet_tratamientos(ctx):
+    g, P = ctx.g, ctx.P
+    c = Gen(ctx, 6, "TRATAMIENTOS TÉRMICOS Y SUPERFICIALES, PINTURA")
+    R = c.R["main"]
+    w = R[2] - R[0]
+    rows = [["Base soldada, mesa soldada", "Alivio de tensiones 590–620 °C (2 h/25 mm), enfriamiento lento; antes del mecanizado final", "Fabricante (registro de horno)"],
+            ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa), profundidad ≥ {fm(g.z_hard, 1)} mm", "Dureza 10 % por lote; macrografía"],
+            ["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. ≥ {fm(g.z_hard, 1)} mm; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"],
+            ["Pivote (PIV-001)", f"Bonificado según Fy ≥ {f(P['Fy_piv'])} MPa (grado A DEFINIR POR EL FABRICANTE)", "Certificado 3.1"],
+            ["Pasadores de articulación (ACC-005/006)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa (grado A DEFINIR); 28–34 HRC de referencia", "Certificado 3.1"],
+            ["Discos de interfaz inoxidables", "Decapado y pasivado; rectificado/lapeado de la cara deslizante Ra 0,4", "Rugosidad 100 % de caras"],
+            ["Disco duro 17-4PH (opción C)", f"Condición H1025 o inoxidable nitrurado; ≥ {f(P['HB_cara'])} HB, Fy ≥ {f(P['Fy_cara'])} MPa", "Dureza 100 %"],
+            ["Bronce C95400 con tapones de grafito (opción C)", f"≥ {f(P['HB_bz'])} HB, Fy ≥ {f(P['Fy_bz'])} MPa; tapones encastrados al {fm((g.IG.get('tapon_prof_frac') or 0.7) * 100, 0)} % del espesor", "Certificado del proveedor"],
+            ["UHMW-PE (opción B)", "Sin tratamiento ni pintura; UHMW-PE (grado A DEFINIR POR CATÁLOGO según proveedor)", "Certificado del proveedor"],
+            ["Estructura de acero (base, mesa, soldaduras)", pintura(ctx), "Medición de EPS y adherencia (a definir)"],
+            ["Zonas sin pintura", f"Cara de apoyo de la interfaz (Ø{f(P['D_top'] + 20)}), caras deslizantes, agujeros H7/H9, ranura T, superficies de contacto de pasadores", "VT"],
+            ["Tornillería", "Pernos 10.9 con recubrimiento (zincado/dacromet) A DEFINIR POR CATÁLOGO", "Certificado del lote"]]
+    out, last, y = c.table_pages([("Elemento", 0.22 * w, "L"), ("Tratamiento / especificación", 0.58 * w, "L"), ("Control", 0.20 * w, "L")], rows, "TRATAMIENTOS TÉRMICOS Y SUPERFICIALES", "TRATAMIENTOS", 6)
+    return out
 
 
-def expl_dz(key):
-    if key.startswith("mesa_") or key == "pasadores":
-        return 850
-    return EXPL_DOWN.get(key, EXPL.get(key, 0))
+# --------------------------------------------------------------------------- torques y compras
+AS_M = {6: 20.1, 8: 36.6, 10: 58.0, 12: 84.3, 16: 157.0, 20: 245.0}
 
 
-def sheet_explosionada(ctx):
-    m = ctx.m
-    h = Hoja(ctx, "GEN", 3, "ISOMÉTRICA EXPLOSIONADA CON GLOBOS", "1:20", masa=f"{f(ctx.rep['masa_total_ensamble'], 1)} kg")
-    s = h.begin()
-    parts = {}
+def torque_rows(ctx):
+    g, P = ctx.g, ctx.P
+    rows = []
+    items = [("Perno ISO 4762 M20×45 cl. 10.9 (retención de pasador)", 20, 10.9, g.N_pin), ("Tornillo ISO 10642 M10×25 cl. 10.9 (tapa retenedora)", 10, 10.9, 4), ("Tornillo M10 avellanado cl. 10.9 (tapa de inspección)", 10, 10.9, 6)]
+    if g.opt and g.removable:
+        items.append((f"Tornillo ISO 10642 M{fm(P['d_tor'], 0)} cl. 10.9 (posición de sectores; no transmiten carga)", int(P["d_tor"]), 10.9, None))
+    for nm, d, cl, n in items:
+        As = AS_M.get(d, math.pi / 4 * (0.9 * d) ** 2)
+        rp = 940.0 if cl == 10.9 else 640.0
+        F = 0.7 * rp * As / 1000.0          # kN, precarga 70 % de la carga de prueba
+        K = 0.20
+        T = K * F * 1000 * d / 1000.0       # N·m
+        rows.append([nm, str(n if n is not None else "según cantidad"), f"M{d}", f(As, 1), f(rp, 0), f(F, 1), fm(K, 2), f(T, 0), "PROPUESTA, A CONFIRMAR POR EL CALCULISTA"])
+    return rows
+
+
+@gen
+def sheet_torques_compras(ctx):
+    P, g = ctx.P, ctx.g
+    c = Gen(ctx, 8, "TORQUES DE APRIETE (PROPUESTA) Y LISTA DE COMPRAS DE ELEMENTOS COMERCIALES")
+    s = c.s
+    R = c.R["main"]
+    w = R[2] - R[0]
+    y, _ = s.table(R[0], R[3], [("Elemento", 0.30 * w, "L"), ("Cant", 0.07 * w, "C"), ("Rosca", 0.05 * w, "C"), ("A_s [mm²]", 0.07 * w, "R"), ("Rp0,2 [MPa]", 0.07 * w, "R"), ("F_pre = 0,7·Rp0,2·A_s [kN]", 0.11 * w, "R"),
+                                      ("K (lubric.)", 0.06 * w, "R"), ("T = K·F·d [N·m]", 0.09 * w, "R"), ("Estado", 0.18 * w, "L")], torque_rows(ctx), h=T_S,
+                   title="TORQUES DE APRIETE ORIENTATIVOS (ISO 898-1, VDI 2230 simplificado, rosca lubricada): el núcleo no los entrega")
+    y = s.notes_block(R[0], y - 5, "NOTA", ["Método simplificado: precarga al 70 % de la carga de prueba (Rp0,2 de ISO 898-1 clase 10.9 = 940 MPa), factor de torque K = 0,20 (lubricado con grasa); T = K·F·d. Sin cálculo de la unión (rigidez, asentamiento): PROPUESTA, A CONFIRMAR POR EL CALCULISTA; usar llave dinamométrica calibrada y marca de pintura de control."], h=T_N, width=w)
+    rows = []
+    for p in ctx.m.parts:
+        if p.comercial:
+            rows.append([p.code.replace(CODE + "-", ""), p.name, str(p.qty), p.desc, p.catalogo or "A DEFINIR POR CATÁLOGO", p.cert])
+    for (d, q, e, cat) in lista.extras(ctx):
+        rows.append(["—", d, str(q), e, cat, "A DEFINIR"])
+    s.table(R[0], y - 6, [("Código", 0.07 * w, "L"), ("Elemento", 0.22 * w, "L"), ("Cant", 0.05 * w, "C"), ("Especificación", 0.36 * w, "L"), ("Catálogo / proveedor", 0.20 * w, "L"), ("Certificado", 0.10 * w, "L")], rows, h=T_S, ymin=R[1] + 3,
+            title="COMPRAS DE ELEMENTOS COMERCIALES (cilindro, buje, pernos, tornillos, arandelas, graseras, grillete B30.26, resortes, grasa)")
+    return c.h
+
+
+# --------------------------------------------------------------------------- nesting
+STOCK = [(1500, 6000), (2000, 6000), (2440, 6000), (2440, 12000), (3000, 12000)]
+
+
+def shelf_pack(items, W_, H_):
+    """Empaque por estantes (rectángulos w×h con rotación). Devuelve (n_planchas, posiciones[(plancha,x,y,w,h,label)])."""
+    items = sorted(items, key=lambda r: -max(r[0], r[1]))
+    sheets, pos = [], []
+    for (w, h, lab) in items:
+        placed = False
+        for rot in ((w, h), (h, w)):
+            if rot[0] > W_ or rot[1] > H_:
+                continue
+            for si, sh in enumerate(sheets):
+                for shelf in sh["shelves"]:
+                    if shelf["h"] >= rot[1] and shelf["x"] + rot[0] <= W_:
+                        pos.append((si, shelf["x"], shelf["y"], rot[0], rot[1], lab)); shelf["x"] += rot[0]; placed = True; break
+                if placed: break
+                if sh["y"] + rot[1] <= H_:
+                    sh["shelves"].append(dict(y=sh["y"], h=rot[1], x=rot[0])); pos.append((si, 0, sh["y"], rot[0], rot[1], lab)); sh["y"] += rot[1]; placed = True; break
+            if placed: break
+        if not placed:
+            r = rot if rot[0] <= W_ and rot[1] <= H_ else None
+            r = (w, h) if (w <= W_ and h <= H_) else (h, w) if (h <= W_ and w <= H_) else None
+            if r is None:
+                return None, None
+            sheets.append(dict(y=r[1], shelves=[dict(y=0, h=r[1], x=r[0])])); pos.append((len(sheets) - 1, 0, 0, r[0], r[1], lab))
+    return len(sheets), pos
+
+
+def nest_items(ctx):
+    """Piezas de plancha: (clave, etiqueta, ancho, alto, espesor, cantidad, masa neta unitaria)."""
+    g, P, D, BR, KG, m = ctx.g, ctx.P, ctx.D, ctx.g.BR, ctx.g.KG, ctx.m
+    B = g.B
+    L = []
+
+    def add(k, lab, w, h, t, q=None):
+        p = m.get(k)
+        if p:
+            L.append((k, lab, w, h, t, q if q is not None else p.qty, p.mass_unit if q is None else p.mass_total / q))
+    add("base_plancha", "Plancha base", B + 10, B + 10, g.tb)
+    add("collar", "Collar (disco)", g.D_boss + 10, g.D_boss + 10, g.h_boss + 5)
+    add("mensula_mejilla", "Mejilla", P["L_ch"], BR["H"] + 5, P["t_ch"])
+    add("mensula_oreja_sup", "Oreja sup. ménsula", BR["Win"] - 1, BR["Llug"] + 5, P["t_ch"])
+    add("mensula_oreja_inf", "Oreja inf. ménsula", BR["Win"] - 1, BR["Llug"] + 5, BR["spacer"] + P["t_ch"] + 2)
+    add("orejas", "Oreja de izaje", 2 * P["R_ear"] + 10, P["h_ear"] + P["R_ear"] + 10, P["t_ear"])
+    add("bancada", "Bancada", P["w_bed"] + 10, KG["L_bed"] + 10, P["t_bed"] + 5)
+    add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)
+    add("mesa_plancha_inf", "Mesa: plancha inferior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tbo + 3)
+    add("mesa_anillo_sup", "Anillo sup. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
+    add("mesa_anillo_inf", "Anillo inf. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
     for p in m.parts:
-        dz = expl_dz(p.key)
-        parts[p.key] = ctx.shapes[p.key].translate(cq.Vector(0, 0, dz))
-    sc = 0.085
-    V = View(s, parts, "iso", (320, 290), sc, center=(0, 0, 700), hidden=False, tol=3.0, label="Explosionada")
-    COTAS_sh = vistas.COTAS.shapes
-    V.draw()
-    # globos
-    ancl = []
-    for p in m.parts:
-        sh = parts[p.key]
-        vs = sh.Vertices()
-        pts = [(V.uv((v.X, v.Y, v.Z)), v) for v in vs]
-        cx = V.uv(tuple(sh.Center().toTuple()))
-        left = cx[0] < 0
-        u, v = (min(pts, key=lambda t: t[0][0]) if left else max(pts, key=lambda t: t[0][0]))[0]
-        ancl.append((p, (u, v), left))
-    # columnas de globos: izquierda y derecha, ordenados por v
-    for side, xcol in ((True, 70), (False, 560)):
-        grp = sorted([a for a in ancl if a[2] == side], key=lambda a: -a[1][1])
-        n = len(grp)
-        y0, y1 = 540, 110
-        for i, (p, uv, _) in enumerate(grp):
-            yb = y0 - (y0 - y1) * (i / max(n - 1, 1))
-            s.balloon(V.Pt2(uv), (xcol, yb), p.pos, r=4.0)
-    # lista de posiciones
-    rows = [[str(p.pos), p.code.replace(CODE + "-", ""), p.name, str(p.qty)] for p in m.parts]
-    wtable(s, 618, 560, [("Pos", 8), ("Código", 22), ("Descripción", 108), ("Cant", 10)], rows, h=1.6)
-    s.text("Cilindros, patines y uñas dibujados para giro antihorario; ménsulas de ambos sentidos.", (30, 30), 2.0)
-    s.text("Desplazamientos verticales solo ilustrativos (no a escala de ensamble).", (30, 26), 2.0)
-    return h
+        if p.key.startswith("mesa_nervio"):
+            bb = p.solid.vals()[0].BoundingBox()
+            L.append((p.key, p.name, max(bb.xlen, bb.ylen) + 4, g.hw + 4, P["t_rib"], p.qty, p.mass_unit))
+    add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
+    add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
+    add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
+    if g.opt:
+        env = (g.Ro - g.Ri * math.cos(math.radians(180.0 / g.n_sec)) + 10, 2 * g.Ro * math.sin(math.radians(180.0 / g.n_sec)) + 10)
+        for k in ("int_disco_base", "int_disco_mesa", "int_cara", "int_bronce", "int_uhmw"):
+            p = m.get(k)
+            if p:
+                t = p.solid.vals()[0].BoundingBox().zlen
+                L.append((k, p.name, env[0], env[1], t + 1, p.qty, p.mass_unit))
+    return L
 
 
-def sheet_secuencia(ctx):
-    g, P, m = ctx.g, ctx.P, ctx.m
-    h = Hoja(ctx, "GEN", 4, "SECUENCIA DE ENSAMBLAJE", "S/E")
-    s = h.begin()
-    base = ["base_plancha", "collar", "marco_largo", "marco_corto", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "orejas", "bancada"]
-    int_b = [k for k in ("int_tope_base", "int_disco_base", "int_bronce", "int_tapones", "int_tornillo_base", "int_uhmw", "int_tope_uhmw") if m.has(k)]
-    piv = ["pivote", "buje"]
-    mesa = [p.key for p in m.parts if p.key.startswith("mesa_")] + ["pasadores", "pernos_pasador"] + [k for k in ("int_tope_mesa", "int_disco_mesa", "int_cara", "int_tornillo_mesa", "graseras") if m.has(k)]
-    acc = ["cilindro", "patin", "una", "pasador_vastago", "pasador_ojal"]
-    top = ["tapa_ret", "tapa_insp"] + [k for k in ("madera", "madera_anillo") if m.has(k)]
-    steps = [
-        ("Fabricar y soldar la base (BAS-001): marco, collar, ménsulas, orejas de izaje y bancadas; alivio de tensiones; mandrinar el agujero H7 y planear la cara de apoyo.", base),
-        ("Soldar los topes del lado base sobre la plancha base (antes del rectificado) y colocar los sectores de la interfaz del lado base con sus tornillos de posición." if g.opt and g.removable else
-         ("Colocar/pegar la interfaz del lado base." if g.opt else "Limpiar la cara de apoyo y aplicar grasa grafitada NLGI 2."), base + int_b),
-        ("Calar el pivote (p6/H7) en la plancha base y el collar; prensar el buje en el cubo de la mesa (s6/H7).", base + int_b + piv),
-        ("Fabricar la mesa (MES-001…004): soldar almas, nervios, cubo y planchas; alivio; mandrinar agujeros; soldar topes del lado mesa y fijar los sectores de la interfaz del lado mesa.", mesa),
-        ("Izar la mesa con medios del montajista (sin puntos definidos por el cálculo), centrarla en el pivote y bajarla sobre la interfaz; verificar giro libre a mano.", base + int_b + piv + mesa),
-        ("Colocar tapa retenedora (juego vertical 3 mm) y tapa de inspección" + ("; colocar tablones y anillo de la cubierta de madera." if g.wood else "."), base + int_b + piv + mesa + top),
-        ("Insertar los patines por el extremo de la ranura T de cada bancada; montar uñas con su resorte y los cilindros entre ménsula y patín con los pasadores de articulación.", base + int_b + piv + mesa + top + acc),
-        ("Conectar mangueras (A: avance, B: retorno) al colector común; llenar de aceite y purgar; engrasar por las %d graseras y llenar las ranuras." % g.n_greaser if g.opt in (1, 3) else "Conectar mangueras (A: avance, B: retorno) al colector común; llenar de aceite y purgar; aplicar grasa grafitada.", None),
-        ("Prueba en vacío: 2 ciclos completos con ambos cilindros; registrar presión; luego ensayo de aceptación: giro 360° con 1,0 WLL (μ real) y MT de soldaduras de ménsulas y orejas.", None),
-    ]
-    y = 560
-    pos = [(110, 470), (290, 470), (470, 470), (110, 330), (290, 330), (470, 330), (110, 190), (290, 190), (470, 190)]
-    for i, (txt, keys) in enumerate(steps):
-        cx, cy = pos[i]
-        s.circle((cx - 80, cy + 85), 6, "FINA"); s.text(str(i + 1), (cx - 80, cy + 85), 4.0, "MIDDLE_CENTER", bold=True)
-        for j, ln in enumerate(wrap(txt, 54)):
-            s.text(ln, (cx - 72, cy + 88 - j * 3.2), 2.0, "TOP_LEFT")
-        if keys:
-            shp = {k: ctx.shapes[k] for k in keys if k in ctx.shapes}
-            V = View(s, shp, "iso", (cx, cy - 10), 0.034, center=(0, 0, 100), tol=6.0, label=f"Paso {i + 1}"); V.draw()
-    s.text("Rótulos: cada sector de interfaz lleva número de posición y sentido para su reposición. Torques y tolerancias: ver GEN-008.", (30, 60), 2.0)
-    s.text(NOTA_ANCLAJE, (30, 52), 2.0); s.text(NOTA_VIENTO, (30, 46), 2.0)
-    return h
+@gen
+def sheet_cortes(ctx):
+    c = Gen(ctx, 10, "LISTA DE CORTES DE PLANCHA (NESTING SIMPLE) Y APROVECHAMIENTO")
+    s = c.s
+    R = c.R["main"]
+    w = R[2] - R[0]
+    items = nest_items(ctx)
+    groups = {}
+    for it in items:
+        groups.setdefault(round(it[4], 1), []).append(it)
+    rows, nests = [], []
+    tot_buy = tot_net = 0.0
+    for t in sorted(groups):
+        its = groups[t]
+        rects = [(a[2], a[3], f"{ctx.code(a[0]).replace(CODE + '-', '')}") for a in its for _ in range(int(a[5]))]
+        best = None
+        for (SW, SH) in STOCK:
+            n, pos = shelf_pack(rects, SW, SH)
+            if n is None:
+                continue
+            area = n * SW * SH
+            if best is None or area < best[0]:
+                best = (area, n, SW, SH, pos)
+        net = sum(a[6] * a[5] for a in its)
+        if best is None:
+            rows.append([fm(t, 1), ", ".join(a[1] for a in its), "no cabe en plancha comercial: A DEFINIR (plancha especial)", "—", "—", f(net, 0), "—"])
+            continue
+        area, n, SW, SH, pos = best
+        buy = n * SW * SH * t * RHO
+        tot_buy += buy; tot_net += net
+        rows.append([fm(t, 1), "; ".join(f"{a[1]} ×{a[5]} ({fm(a[2], 0)}×{fm(a[3], 0)})" for a in its), f"{SW}×{SH}", str(n), f(buy, 0), f(net, 0), f(net / buy * 100, 1) + " %"])
+        nests.append((t, SW, SH, n, pos))
+    rows.append(["", "TOTAL (planchas)", "", "", f(tot_buy, 0), f(tot_net, 0), f(tot_net / max(tot_buy, 1) * 100, 1) + " %"])
+    y, _ = s.table(R[0], R[3], [("Espesor [mm]", 0.06 * w, "R"), ("Piezas (cant., rectángulo envolvente)", 0.47 * w, "L"), ("Plancha comercial [mm]", 0.12 * w, "C"), ("N° planchas", 0.07 * w, "C"),
+                                ("Masa comprada [kg]", 0.10 * w, "R"), ("Masa neta [kg]", 0.09 * w, "R"), ("Aprovech.", 0.09 * w, "R")], rows, h=T_S, title="PLANCHAS: NESTING POR ESTANTES SOBRE PLANCHAS COMERCIALES (rectángulos envolventes; los discos y anillos se anidan como cuadrados)", bold_rows=(len(rows) - 1,))
+    # esquema de la primera plancha de cada grupo (hasta 6)
+    y -= 10
+    cw = (w - 10) / 3
+    for i, (t, SW, SH, n, pos) in enumerate(nests[:6]):
+        col, row = i % 3, i // 3
+        bx, by = R[0] + col * (cw + 5), y - row * 100
+        sc = min((cw - 10) / SH, 80 / SW) if SH > SW else min((cw - 10) / SW, 80 / SH)
+        Wd, Hd = SW * sc, SH * sc
+        s.text(f"e = {fm(t, 1)} mm: plancha {SW}×{SH} (1.ª de {n})", (bx, by), T_N, "TOP_LEFT", bold=True)
+        s.rect(bx, by - 8 - Hd, bx + Wd, by - 8, "VIS")
+        for (si, px, py, pw, ph, lab) in pos:
+            if si == 0:
+                s.rect(bx + px * sc, by - 8 - (py + ph) * sc, bx + (px + pw) * sc, by - 8 - py * sc, "FINA")
+    s.notes_block(R[0], R[1] + 24, "NOTAS", ["Nesting orientativo por estantes con rectángulos envolventes (sin kerf ni sobremetal adicional al de la tabla de partida); el fabricante optimiza con su software de anidado.",
+                                              "Pletinas y barras (marco, almas, barras de topes) se compran en largos comerciales de 6 m: ver tabla de partida en el despiece."], h=T_N, width=w)
+    return c.h
 
 
-def sheet_conjunto(ctx):
-    g, P, DV, m = ctx.g, ctx.P, ctx.DV, ctx.m
-    allk = [p.key for p in m.parts if p.key not in ("madera", "madera_anillo")] if False else [p.key for p in m.parts]
-    h = Hoja(ctx, "GEN", 2, "CONJUNTO GENERAL: PLANTA, CORTES Y VISTAS", "1:10 / 1:5", masa=f"{f(ctx.rep['masa_total_ensamble'], 1)} kg")
-    s = h.begin()
-    B, tb = g.B, g.tb
-    shp = ctx.sh(*allk)
-    V = View(s, shp, "top", (160, 430), 0.1, tol=3.0, label="Planta"); V.draw()
-    s.line(V.P(-B / 2 - 40, 0, 0), V.P(B / 2 + 40, 0, 0), "EJE"); s.line(V.P(0, -B / 2 - 40, 0), V.P(0, B / 2 + 40, 0), "EJE")
-    V.dim((-B / 2, -B / 2, 0), (B / 2, -B / 2, 0), -9, orient="h", on=["base_plancha"])
-    V.dim_dia((0, 0, g.z0 + g.hd + (P["t_wood"] if g.wood else 0)), g.Rt, 130, text=f"Ø{f(P['D_top'])}", on=["mesa_anillo_sup"], ext=22) if not g.wood else None
-    s.section_mark(V.P(-B / 2 - 25, 0, 0), 90, "A"); s.section_mark(V.P(B / 2 + 25, 0, 0), 90, "A")
-    title_view(s, (160, 283), "PLANTA", "ESC 1:10")
-    zt = g.z0 + g.hd + (P["t_wood"] if g.wood else 0)
-    VA = View(s, shp, "front", (460, 400), 0.1, center=(0, 0, 0), cut=((0, 0, 0), (0, 1, 0)), tol=3.0, label="Corte A-A", hatch_scale=1.0); VA.draw()
-    VA.dim((B / 2, 0, 0), (B / 2, 0, tb + P["rim_h"]), 12, orient="v", on=["marco_largo", "marco_corto", "base_plancha"], text=f"{f(tb + P['rim_h'])}") if False else None
-    VA.dim((g.Rt, 0, g.z0), (g.Rt, 0, g.z0 + g.hd), 10, orient="v", on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)} (mesa)")
-    VA.dim((-B / 2, 0, 0), (-B / 2, 0, tb), -8, orient="v", on=["base_plancha"], text=f"{f(tb)}", outside=True)
-    title_view(s, (460, 330), "CORTE A-A (plano y = 0)", "ESC 1:10")
-    VF = View(s, shp, "front", (460, 230), 0.1, tol=3.0, label="Elevación frontal"); VF.draw()
-    s.text(f"Altura total sobre el piso H = {f(zt)} mm (base + interfaz {fm(g.delta, 0)} + mesa {f(g.hd)}" + (f" + madera {f(P['t_wood'])}" if g.wood else "") + ").", (390, 185), 2.0)
-    title_view(s, (460, 195), "ELEVACIÓN", "ESC 1:10")
-    c = {x["id"]: x for x in DV["casos"]}
-    rows = [["Capacidad nominal (WLL)", f"{f(P['W_tf'])} tf ({f(DV['W'])} kN)"], ["Excentricidad máx. del CG", f"{f(P['e'])} mm"], ["Diámetro de mesa / apoyo de carga", f"Ø{f(P['D_top'])} / Ø{f(P['D_load'])}"],
-            ["Base / altura total", f"{f(B)}×{f(B)} / {f(zt)} mm"], ["Masa total del ensamble (3D)", f"{f(ctx.rep['masa_total_ensamble'], 1)} kg"],
-            ["Centro de gravedad (x, y, z)", f"({fm(ctx.rep['cg'][0], 1)}; {fm(ctx.rep['cg'][1], 1)}; {fm(ctx.rep['cg'][2], 1)}) mm"],
-            ["Accionamiento", f"{P['n_cyl']:.0f} cil. Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, patín guiado"], ["Giro por carrera / pasadores", f"{fm(360 / g.N_pin, 2)}° / {g.N_pin}"],
-            ["F diseño por cilindro (μ de diseño)", f"{fm(c['dis']['F'], 1)} kN · {f(c['dis']['p'])} bar"], ["F de calado (alivio %s bar)" % f(P["p_relief"]), f"{fm(DV['Fstall'], 1)} kN · FS {fm(c['dis']['FS'], 2)}"],
-            ["Presión máxima de trabajo del cilindro", f"{fm(P['p_rated'] * 0.0689476, 0)} bar (p_rated)"], ["Presión de contacto máx. interfaz", f"{fm(DV['q_max'], 2)} MPa"],
-            ["Tiempo por vuelta", f"{fm(DV['tRev'], 1)} min (bomba {fm(P['Q_pump'], 1)} L/min)"], ["Interfaz de giro", g.interfaz_nombre]]
-    s.text("DATOS TÉCNICOS", (30, 270), 3.0, "TOP_LEFT", bold=True)
-    s.table(30, 264, [("Ítem", 85, "L"), ("Valor", 130, "L")], rows, rh=4.8, h=1.9)
-    notas = [ADVERTENCIA, NOTA_VIENTO, NOTA_ANCLAJE] + (["INTERFAZ NO DESMONTABLE (fijación pegada, fix_mode = 2)."] if g.opt and not g.removable else []) + [
-             "Cilindros, patines y uñas dibujados para giro antihorario; ménsulas de ambos sentidos. Lista de posiciones: GEN-005 y GEN-003.",
-             "Normas: AISC 360-22 ASD; ASME BTH-1 Cat. B Nd 3,0; AWS D1.1; ISO 2768-m, 286, 1101, 1302, 2553, 5817."]
-    s.notes_block(648, 560, "NOTAS DEL CONJUNTO", notas, h=2.1, wrap_chars=95)
-    s.notes_block(648, 470, "ÍNDICE DE PLANOS DE FABRICACIÓN", [f"{hh.plano} {hh.titulo[:46]}" for hh in ctx.hojas if not hh.plano.startswith(CODE + "-GEN")][:0] or ["Ver índice en TT300C-GEN-001-B."], h=2.0, wrap_chars=110)
-    return h
+@gen
+def sheet_supuestos(ctx):
+    c = Gen(ctx, 9, "SUPUESTOS DEL DIBUJANTE Y BRECHAS CON EL CÁLCULO (GEN-009)")
+    R = c.R["main"]
+    w = R[2] - R[0]
+    rows = [[x["id"], x["tema"], x["valor"], x["motivo"]] for x in ctx.sup]
+    out, last, y = c.table_pages([("Id", 0.05 * w, "L"), ("Tema", 0.2 * w, "L"), ("Valor adoptado", 0.38 * w, "L"), ("Motivo", 0.37 * w, "L")], rows, "SUPUESTOS DEL DIBUJANTE (PROVISORIO) Y DECISIONES ADOPTADAS (ADOPTADO)", "SUPUESTOS Y BRECHAS", 9)
+    rows2 = [[x["id"], x["tema"], x["desc"], x["decision"]] for x in ctx.gaps]
+    y2, left = last.s.table(R[0], y - 8, [("Id", 0.05 * w, "L"), ("Tema", 0.2 * w, "L"), ("Descripción", 0.40 * w, "L"), ("Decisión requerida", 0.35 * w, "L")], rows2, h=T_S, ymin=R[1] + 3, title="BRECHAS CON EL CÁLCULO Y DECISIONES REQUERIDAS")
+    pend = left
+    n = 0
+    while pend:
+        n += 1
+        g2 = Gen(ctx, 20 + n, f"BRECHAS CON EL CÁLCULO (CONTINUACIÓN {n})")
+        R2 = g2.R["main"]
+        _, pend = g2.s.table(R2[0], R2[3], [("Id", 0.05 * w, "L"), ("Tema", 0.2 * w, "L"), ("Descripción", 0.40 * w, "L"), ("Decisión requerida", 0.35 * w, "L")], pend, h=T_S, ymin=R2[1] + 3, title="BRECHAS (continuación)")
+        out.append(g2.h)
+    return out
+
+
+@gen
+def sheet_verificacion(ctx):
+    c = Gen(ctx, 11, "LISTA DE VERIFICACIÓN DEL REVISOR")
+    R = c.R["main"]
+    w = R[2] - R[0]
+    ver = ["Cotas de cada lámina verificadas contra el sólido 3D (chequeo_cotas.csv): 0 fallas.", "Masa 3D frente al núcleo ≤ 0,5 % y 0 interferencias (informe_paquete.md).",
+           "Cada pieza del despiece tiene plano o referencia a catálogo; cada código del despiece aparece con globo en un plano de conjunto/subconjunto.",
+           "Cada junta soldada J## tiene símbolo ISO 2553 y fila en la tabla de soldaduras (GEN-007).", "Cada plano de pieza trae material, dimensión de partida y masa.",
+           "Tamaños de filete: confirmar los marcados «mínimo AWS, a confirmar» y el caso w_web > t − 2 (AISC J2.2b).", "Materiales «SEGÚN CÁLCULO Fy ≥ …, A DEFINIR POR EL FABRICANTE»: aprobar o fijar el grado.",
+           "Torques propuestos (GEN-008): confirmar o reemplazar por cálculo VDI 2230.", "Pintura (sistema y EPS), WPS/PQR, grillete, lista de compras: A DEFINIR.", "Supuestos S## y brechas B-## (GEN-009): aceptar o corregir antes de aprobar.",
+           "Texto negro sobre fondo blanco; letra ≥ 3,5 mm en el plot A1 (tablas densas 3,0 mm; mínimo absoluto 2,5 mm).", "Estado EMITIDO PARA REVISIÓN en todas las láminas hasta su aprobación; completar DIBUJÓ/REVISÓ/APROBÓ."]
+    rows = [[str(i + 1), v, "", ""] for i, v in enumerate(ver)]
+    c.s.table(R[0], R[3], [("N°", 0.04 * w, "C"), ("Verificación", 0.74 * w, "L"), ("Cumple (sí/no)", 0.10 * w, "C"), ("Observación", 0.12 * w, "L")], rows, h=T_S, title="VERIFICACIONES TRANSVERSALES DEL JUEGO DE PLANOS")
+    return c.h

@@ -112,6 +112,7 @@ class Hoja:
         self.plano = plano if plano.startswith(CODE) else f"{CODE}-{plano}-{REV}"
         self.titulo, self.escala, self.material, self.masa, self.trat = titulo, escala, material, masa, trat
         self.serie, self.items, self.grupo = serie, list(items), grupo
+        self.tag = self.plano.replace(CODE + "-", "")
         ctx.hojas.append(self)
         ctx.balloons[self.plano] = set()
         COTAS.sheet = self.plano

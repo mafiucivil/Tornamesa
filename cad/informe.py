@@ -33,8 +33,8 @@ def brechas(ctx, rep):
     if g.boss and ev < P["L_bush"] - 1e-6:
         add("Buje parcialmente sin guía en el cubo", f"El buje arranca en z = {fm(g.z_bush0, 0)} y el alesaje del cubo (Ø{fm(g.d_bush, 0)} H7) empieza en z = {fm(g.z_techo if g.rebaje else g.z0 + g.tbo, 0)}: engrane {fm(ev, 0)} de {fm(P['L_bush'], 0)} mm (con rebaje de {fm(g.h_rebaje, 0)} < t_bot, el agujero de la plancha inferior es pasante).", "Verificar la presión del buje con el engrane real o subir el buje.")
     add("Izaje de la mesa", "El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible).", "A DEFINIR: orejas o cáncamos verificados para la mesa.")
-    add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
-    add("Torque de pernos y tornillos", "El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición).", "A DEFINIR: torques de apriete (ISO 898-1 / VDI 2230).")
+    add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
+    add("Torque de pernos y tornillos", "El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición).", "Torques PROPUESTOS en GEN-008 (ISO 898-1, VDI 2230 simplificado): A CONFIRMAR POR EL CALCULISTA.")
     add("Tamaño de soldaduras sin parámetro", "Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f.", "A DEFINIR: confirmar o parametrizar tamaños y END de las soldaduras sin parámetro.")
     add("Filetes máximos AISC J2.2b de almas y nervios", f"Almas y nervios de la mesa: w_web = {fm(P['w_web'], 0)} sobre t = {fm(P['t_web'], 0)} superan el máximo de borde t − 2 = {fm(P['t_web'] - 2, 0)} mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión.",
         "PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma.")
@@ -191,9 +191,8 @@ def escribir_bom(ctx, rep, out):
             w3.append(r)
         w4 = wb.create_sheet("Soldaduras")
         w4.append(["Id", "Juntas", "Tipo", "Tamaño", "Origen", "Proceso", "Calidad ISO 5817", "END", "WPS"])
-        from hojas_base import soldaduras
-        for w in soldaduras(ctx):
-            w4.append([w["id"], w["juntas"], w["tipo"], w["tamano"], w["nota"], w["proc"], w["calidad"], w["end"], w["wps"]])
+        for w in ctx.welds:
+            w4.append([w["id"], w["desc"], w["tipo"] + ("" if w["prep"] == "Sin preparación" else ". " + w["prep"]), w["size_txt"] + (f" (a = {w['a']})" if w["a"] else ""), w["origen"], w["proceso"], w["nivel"], w["end"], w["wps"]])
         w5 = wb.create_sheet("Supuestos y brechas")
         w5.append(["Id", "Tema", "Valor / descripción", "Motivo / decisión"])
         for x in ctx.sup:
@@ -349,14 +348,21 @@ def escribir_informe(ctx, rep, hojas, gaps, fuera, cr, out, dt):
     (out / "informe_paquete.md").write_text("\n".join(L), encoding="utf-8")
 
 
-def copiar_entrega(out, dest, pdfs):
+def copiar_entrega(out, dest, pdfs, con_dxf=True, extra=()):
     dest.mkdir(parents=True, exist_ok=True)
+    if (dest / "planos").exists():
+        shutil.rmtree(dest / "planos")                     # elimina láminas obsoletas
+    for old in list(dest.glob("TT300-C_Planos_Rev*.pdf")) + list(dest.glob("TT300-C_DXF_Rev*.zip")):
+        old.unlink()
     for nm in (f"TT300-C_Planos_Rev{REV}.pdf", f"TT300-C_DXF_Rev{REV}.zip", "TT300-C.step", "TT300-C.glb", "TT300-C_despiece.csv", "TT300-C_despiece.xlsx", "lista_verificacion_revisor.md",
-               "lista_verificacion_revisor.pdf", "informe_paquete.md", "chequeo_cotas.csv", "TT300-C_masas3d.json", "TT300-C_design.json"):
+               "lista_verificacion_revisor.pdf", "informe_paquete.md", "chequeo_cotas.csv", "TT300-C_masas3d.json", "TT300-C_design.json", "metricas_laminas.csv", "soldaduras.csv", "lista_de_cortes.csv", *extra):
         if (out / nm).exists():
             shutil.copy(out / nm, dest / nm)
     pd = dest / "planos"
     pd.mkdir(exist_ok=True)
     for p in pdfs:
         shutil.copy(p, pd / pathlib.Path(p).name)
-        shutil.copy(str(p).replace(".pdf", ".dxf"), pd / pathlib.Path(p).name.replace(".pdf", ".dxf"))
+        if con_dxf:
+            shutil.copy(str(p).replace(".pdf", ".dxf"), pd / pathlib.Path(p).name.replace(".pdf", ".dxf"))
+    if not con_dxf and (dest / f"TT300-C_DXF_Rev{REV}.zip").exists():
+        (dest / f"TT300-C_DXF_Rev{REV}.zip").unlink()
