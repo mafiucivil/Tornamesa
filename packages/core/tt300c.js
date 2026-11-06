@@ -257,6 +257,7 @@ const TT = (() => {
     { id: "temperatura", t: "Temperatura de servicio (escenario solar; no cambia el cálculo a 20 °C)", p: [
       ["T_serv", "Temperatura del cuerpo en servicio (escenario térmico aparte; solar: 80)", "°C", 20, 20, 120, 5],
       ["T_ref", "Temperatura de referencia del diseño y del montaje", "°C", 20, 0, 40, 1],
+      ["term_alcance", "Alcance de la verificación térmica: 1 = sistema de placas y disco (plancha base, mesa, interfaz con sus topes y juntas, madera, pivote y collar); 2 = además el accionamiento mecánico (uña–pasador, patín–guía, pasadores de empuje) y el circuito hidráulico (cilindros, aceite atrapado, alivio térmico, sellos, viscosidad y bomba)", "–", 1, 1, 2, 1],
       ["dT_grad", "Gradiente plancha superior–inferior a 80 °C (hipótesis EN 1991-1-5 T6.1 de otra tipología, confianza C; escenario solar 15–18; 0 = sin gradiente; a otra T se escala con ΔT/60)", "K", 0, 0, 40, 1],
       ["kT_Fy", "Acero estructural y aleado: Fy a 80 °C / Fy a 20 °C (AISC 360-22 App. 4 y EN 1993-1-2: 1,00, confianza B; sensibilidad ASME II-D Tabla Y-1: 0,92, confianza C)", "–", 1.00, 0.5, 1, 0.01],
       ["kT_E", "Acero: E a 80 °C / E a 20 °C (EN 1993-1-2 k_E,θ = 1,00 a 100 °C, confianza B)", "–", 1.00, 0.5, 1, 0.005],
@@ -999,6 +1000,10 @@ const TT = (() => {
   const walther = (n1, n2) => { const f = (n) => Math.log10(Math.log10(n + 0.7)), t = (c) => Math.log10(c + 273.15), B = (f(n1) - f(n2)) / (t(100) - t(40)), A = f(n1) + B * t(40); return (c) => Math.pow(10, Math.pow(10, A - B * t(c))) - 0.7; };
   const VISC_LO = walther(46, 6.8), VISC_HI = walther(47.4, 9.5);
   const oilViscosity = (T) => ({ lo: VISC_LO(T), hi: VISC_HI(T) });
+  // Alcance de la verificación térmica (term_alcance): 1 (default) = sistema de placas y disco; 2 = además accionamiento mecánico y circuito hidráulico.
+  // Fuera de alcance (con 1): las filas se calculan igual pero se marcan `fuera` y no entran al estado, al FU térmico, al veredicto ni a los cambios de estado (sección informativa).
+  const alcanceOf = (P) => (Math.round(P.term_alcance) === 2 ? 2 : 1);
+  const ACC_GRPS = ["Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga"];   // grupos de verificación estándar del accionamiento mecánico (cadena de empuje, ménsula del cilindro y su fatiga)
   // Copia de P con las capacidades reducidas a T (geometría congelada: frozen). ov: sobrescribe parámetros kT_* (sensibilidades); grad: gradiente plancha superior–inferior a T (K)
   function thermalP(P, T, ov, frozen, grad) {
     const th = thermalFactors(P, T, ov), k = th.k, Q = Object.assign({}, P);
@@ -1007,7 +1012,7 @@ const TT = (() => {
     ["Fy_bz", "Fy_bz2", "p_bz", "PV_bz", "p_bush"].forEach((id) => { Q[id] = P[id] * k.bz; });
     Q.p_uhmw = P.p_uhmw * k.p_uh; Q.PV_uh = P.PV_uh * k.p_uh; Q.E_uhmw = P.E_uhmw * k.E_uh; Q.p_wood = P.p_wood * k.wood; Q.FEXX = P.FEXX * k.weld; Q.Fy_surf = P.Fy_surf * k.hertz;
     if (Math.abs(k.mu - 1) > 1e-12) ["mu_d", "mu_nom", "mu_cont", "mu_dry", "muA_nom", "muA_d", "muA_cont", "muA_dry", "muB_nom", "muB_d", "muB_cont", "muB_dry", "muC_nom", "muC_d", "muC_cont", "muC_dry"].forEach((id) => { Q[id] = P[id] * k.mu; });
-    Q.__th = { T, dT: th.dT, grad: grad || 0, k, alpha: th.alpha, notes: th.notes, extrap: th.extrap, Fy0: P.Fy, P0: P, frozen: frozen || null };
+    Q.__th = { T, dT: th.dT, grad: grad || 0, k, alpha: th.alpha, notes: th.notes, extrap: th.extrap, Fy0: P.Fy, P0: P, frozen: frozen || null, alc: alcanceOf(P) };
     return Q;
   }
 
@@ -1017,7 +1022,7 @@ const TT = (() => {
     const th = P.__th, I = R.ifc, K = R.K, T = th.T, dT = th.dT, al = th.alpha, k = th.k, Ro = R.Ro, Ri = R.Ri;
     const nf = (v, d) => (+v).toFixed(d == null ? 2 : d).replace(".", ",");
     const REG = "docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)»";
-    const tadd = (o) => add(Object.assign({ grp: "Temperatura", sys: "est" }, o));
+    const tadd = (o) => add(Object.assign({ grp: "Temperatura", sys: "est" }, o, o.acc && th.alc !== 2 ? { fuera: true } : {}));   // acc: accionamiento o circuito hidráulico (fuera de alcance con term_alcance = 1)
     const eps = al.st * dT;                                                   // dilatación libre del acero (α medio 20–T)
     const pd = R.cd ? R.cd.p : P.p_relief;
 
@@ -1046,10 +1051,10 @@ const TT = (() => {
     /* (c) Uña–pasador: la mesa a T y la base a la sombra (a T_ref) es el caso desfavorable; con ambas a T el efecto relativo es el de la escala uniforme */
     {
       const dR = eps * P.R_pin;
-      tadd({ sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente, base a la sombra): holgura radial de la uña en el patín con el crecimiento del círculo de pasadores", formula: "R·(1 − cos π/N)·(1 + ε) + 2 + α·ΔT·R_pin ≤ holgura radial del patín; ε = α·ΔT; α·ΔT·R_pin = " + nf(dR, 2) + " mm", dem: K.radial * (1 + eps) + 2 + dR, cap: P.slot, unit: "mm", ref: REG + " (EN 1993-1-1 §3.2.6; EN 1993-1-2 §3.4.1.1)" });
-      tadd({ sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente): luz de la uña entre pasadores (la cuerda y el pasador crecen con la mesa)", formula: "(cuerda − d_pas)·(1 + ε) ≥ b_uña + 2·10", dem: P.dog_b + 20, cap: K.gap * (1 + eps), unit: "mm", ref: REG });
-      tadd({ sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente): carrera requerida con el crecimiento de la cuerda", formula: "s_libre + cuerda·(1 + ε) + margen ≤ carrera", dem: P.s_free + K.chord * (1 + eps) + P.s_margin, cap: P.stroke, unit: "mm", ref: REG });
-      tadd({ sub: "c", kind: "info", conf: "B", name: "Uña–pasador, caso uniforme (mesa y base calientes): desplazamiento relativo por escala uniforme", formula: "(x_g − a_mín)·α·ΔT; sin efecto relativo apreciable", dem: (P.x_g - K.armMin) * eps, unit: "mm", ref: REG });
+      tadd({ acc: true, sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente, base a la sombra): holgura radial de la uña en el patín con el crecimiento del círculo de pasadores", formula: "R·(1 − cos π/N)·(1 + ε) + 2 + α·ΔT·R_pin ≤ holgura radial del patín; ε = α·ΔT; α·ΔT·R_pin = " + nf(dR, 2) + " mm", dem: K.radial * (1 + eps) + 2 + dR, cap: P.slot, unit: "mm", ref: REG + " (EN 1993-1-1 §3.2.6; EN 1993-1-2 §3.4.1.1)" });
+      tadd({ acc: true, sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente): luz de la uña entre pasadores (la cuerda y el pasador crecen con la mesa)", formula: "(cuerda − d_pas)·(1 + ε) ≥ b_uña + 2·10", dem: P.dog_b + 20, cap: K.gap * (1 + eps), unit: "mm", ref: REG });
+      tadd({ acc: true, sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente): carrera requerida con el crecimiento de la cuerda", formula: "s_libre + cuerda·(1 + ε) + margen ≤ carrera", dem: P.s_free + K.chord * (1 + eps) + P.s_margin, cap: P.stroke, unit: "mm", ref: REG });
+      tadd({ acc: true, sub: "c", kind: "info", conf: "B", name: "Uña–pasador, caso uniforme (mesa y base calientes): desplazamiento relativo por escala uniforme", formula: "(x_g − a_mín)·α·ΔT; sin efecto relativo apreciable", dem: (P.x_g - K.armMin) * eps, unit: "mm", ref: REG });
     }
 
     /* (d) Gradiente plancha superior (al sol) – inferior (a la sombra) */
@@ -1073,26 +1078,26 @@ const TT = (() => {
       const o = oilTrapped(P, T), sel = o.sel, dp = sel.hi.bar, dpLo = sel.lo.bar, pMax = P.p_max_cil, pTest = 1.5 * pMax, rel = P.alivio_term, lim = (p) => (rel > 0 ? Math.min(p, rel) : p);
       const OREF = REG + ", «Presión por aceite atrapado»; ISO 4413:2010 (cláusula por confirmar); prueba 1,5 × (ISO 10100 de memoria)";
       const TRAMO = "tramo aislado = cilindro + válvulas de retención/bloqueo y tapones; un alivio de sistema aguas arriba de la retención NO lo protege";
-      tadd({ sub: "e", sys: "term", kind: "info", conf: "C", name: "Aceite atrapado: sobrepresión térmica Δp (cota alta K = 1,9 GPa / cota baja K = 1,4 GPa)", formula: "Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c); α_v = 7,5×10⁻⁴/K, 3α_s = " + nf(o.as3 * 1e5, 2) + "×10⁻⁵/K; contenedor: " + ["rígido", "cilindro b/a " + nf(P.ba_cil, 2) + " (Lamé, K_c = " + nf(o.Kc_lame / 1000, 1) + " GPa)", "manguera (K combinado 327 MPa)"][Math.min(3, Math.max(1, Math.round(P.oil_cont))) - 1] + "; aire libre no se cuenta", dem: dp, cap: dpLo, unit: "bar (K alta / K baja)", ref: OREF });
-      tadd({ sub: "e", sys: "term", conf: "C", name: "Aceite atrapado en la carrera de diseño: p_hold + Δp térmico frente a la presión máxima de trabajo del cilindro", formula: "p_hold = F_dis/A (presión de diseño, ≡ W/A del pistón que sostiene la carga) + Δp ≤ p_max_cil" + (rel > 0 ? " (limitada por la apertura del alivio térmico " + rel + " bar)" : " (sin alivio térmico)") + "; la sobrepresión aparece solo con movimiento restringido (tope, fin de carrera, calado); " + TRAMO, dem: lim(pd + dp), cap: pMax, unit: "bar", ref: OREF });
-      tadd({ sub: "e", sys: "term", conf: "C", name: "Aceite atrapado tras el calado: p_alivio + Δp térmico frente a la presión de prueba del cilindro (1,5 × p_max)", formula: "p_alivio (700 bar: el calado deja la presión atrapada en el alivio del sistema) + Δp ≤ 1,5·p_max_cil; " + TRAMO, dem: lim(P.p_relief + dp), cap: pTest, unit: "bar", ref: OREF });
-      tadd({ sub: "e", sys: "term", conf: "C", name: "Aceite atrapado en la cámara anular (lado vástago): p_retorno + Δp térmico frente a la presión máxima de trabajo", formula: "p_ret + Δp ≤ p_max_cil (la cámara anular también queda aislada entre retención y tope)", dem: lim(P.p_ret + dp), cap: pMax, unit: "bar", ref: OREF });
+      tadd({ acc: true, sub: "e", sys: "term", kind: "info", conf: "C", name: "Aceite atrapado: sobrepresión térmica Δp (cota alta K = 1,9 GPa / cota baja K = 1,4 GPa)", formula: "Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c); α_v = 7,5×10⁻⁴/K, 3α_s = " + nf(o.as3 * 1e5, 2) + "×10⁻⁵/K; contenedor: " + ["rígido", "cilindro b/a " + nf(P.ba_cil, 2) + " (Lamé, K_c = " + nf(o.Kc_lame / 1000, 1) + " GPa)", "manguera (K combinado 327 MPa)"][Math.min(3, Math.max(1, Math.round(P.oil_cont))) - 1] + "; aire libre no se cuenta", dem: dp, cap: dpLo, unit: "bar (K alta / K baja)", ref: OREF });
+      tadd({ acc: true, sub: "e", sys: "term", conf: "C", name: "Aceite atrapado en la carrera de diseño: p_hold + Δp térmico frente a la presión máxima de trabajo del cilindro", formula: "p_hold = F_dis/A (presión de diseño, ≡ W/A del pistón que sostiene la carga) + Δp ≤ p_max_cil" + (rel > 0 ? " (limitada por la apertura del alivio térmico " + rel + " bar)" : " (sin alivio térmico)") + "; la sobrepresión aparece solo con movimiento restringido (tope, fin de carrera, calado); " + TRAMO, dem: lim(pd + dp), cap: pMax, unit: "bar", ref: OREF });
+      tadd({ acc: true, sub: "e", sys: "term", conf: "C", name: "Aceite atrapado tras el calado: p_alivio + Δp térmico frente a la presión de prueba del cilindro (1,5 × p_max)", formula: "p_alivio (700 bar: el calado deja la presión atrapada en el alivio del sistema) + Δp ≤ 1,5·p_max_cil; " + TRAMO, dem: lim(P.p_relief + dp), cap: pTest, unit: "bar", ref: OREF });
+      tadd({ acc: true, sub: "e", sys: "term", conf: "C", name: "Aceite atrapado en la cámara anular (lado vástago): p_retorno + Δp térmico frente a la presión máxima de trabajo", formula: "p_ret + Δp ≤ p_max_cil (la cámara anular también queda aislada entre retención y tope)", dem: lim(P.p_ret + dp), cap: pMax, unit: "bar", ref: OREF });
       if (rel > 0) {
-        tadd({ sub: "e", sys: "term", kind: "geo", conf: "C", name: "Válvula de alivio térmico: apertura bajo la presión máxima de trabajo del cilindro", formula: "p_apertura ≤ p_max_cil", dem: rel, cap: pMax, unit: "bar", ref: OREF });
-        tadd({ sub: "e", sys: "term", kind: "geo", conf: "C", name: "Válvula de alivio térmico: apertura sobre el alivio del sistema (no gotea en operación ni a calado)", formula: "p_alivio ≤ p_apertura; con p_alivio = p_max_cil la ventana de ajuste es nula: bajar el alivio del sistema o usar un cilindro de mayor presión", dem: P.p_relief, cap: rel, unit: "bar", ref: OREF });
+        tadd({ acc: true, sub: "e", sys: "term", kind: "geo", conf: "C", name: "Válvula de alivio térmico: apertura bajo la presión máxima de trabajo del cilindro", formula: "p_apertura ≤ p_max_cil", dem: rel, cap: pMax, unit: "bar", ref: OREF });
+        tadd({ acc: true, sub: "e", sys: "term", kind: "geo", conf: "C", name: "Válvula de alivio térmico: apertura sobre el alivio del sistema (no gotea en operación ni a calado)", formula: "p_alivio ≤ p_apertura; con p_alivio = p_max_cil la ventana de ajuste es nula: bajar el alivio del sistema o usar un cilindro de mayor presión", dem: P.p_relief, cap: rel, unit: "bar", ref: OREF });
       } else {
         const risk = pd + dp > pMax + 1e-9 || P.p_relief + dp > pTest + 1e-9 || P.p_ret + dp > pMax + 1e-9;
-        tadd({ sub: "e", sys: "term", conf: "C", stFix: risk ? "fail" : "ok", name: "Válvula de alivio térmico del tramo aislado (cilindro + retenciones): no hay" + (risk ? " y hay riesgo: instalar válvula de alivio térmico en el tramo aislado" : ""), formula: "alivio_term = 0 (no hay): " + (risk ? "instalar válvula de alivio térmico en el tramo aislado (cilindro + retenciones), con apertura entre el alivio del sistema y la presión máxima de trabajo; " : "") + TRAMO, dem: pd + dp, cap: pMax, unit: "bar", ref: OREF });
+        tadd({ acc: true, sub: "e", sys: "term", conf: "C", stFix: risk ? "fail" : "ok", name: "Válvula de alivio térmico del tramo aislado (cilindro + retenciones): no hay" + (risk ? " y hay riesgo: instalar válvula de alivio térmico en el tramo aislado" : ""), formula: "alivio_term = 0 (no hay): " + (risk ? "instalar válvula de alivio térmico en el tramo aislado (cilindro + retenciones), con apertura entre el alivio del sistema y la presión máxima de trabajo; " : "") + TRAMO, dem: pd + dp, cap: pMax, unit: "bar", ref: OREF });
       }
-      tadd({ sub: "e", sys: "term", kind: "info", conf: "C", name: "Aceite: dilatación libre (si el pistón puede moverse bajo carga la presión se mantiene en p_hold y la expansión sale como carrera)", formula: "ΔV/V = (α_v − 3α_s)·ΔT; 1 m de columna de aceite se alarga ΔV/V·1 000 mm", dem: o.expansion_free_pct, cap: o.expansion_1m_mm, unit: "% / mm por m de columna", ref: OREF });
+      tadd({ acc: true, sub: "e", sys: "term", kind: "info", conf: "C", name: "Aceite: dilatación libre (si el pistón puede moverse bajo carga la presión se mantiene en p_hold y la expansión sale como carrera)", formula: "ΔV/V = (α_v − 3α_s)·ΔT; 1 m de columna de aceite se alarga ΔV/V·1 000 mm", dem: o.expansion_free_pct, cap: o.expansion_1m_mm, unit: "% / mm por m de columna", ref: OREF });
     }
 
     /* (f) Aceite, sellos y bomba */
     {
       const v = oilViscosity(T), SREF = REG + ", «Viscosidad a 80 °C» y sellos NBR (Ulman -30 a +80; Machine Design 90–100; Power & Motion -40 a 120)";
-      tadd({ sub: "f", sys: "term", conf: "C", name: "Aceite VG 46: viscosidad a T_serv frente al mínimo de la bomba", formula: "ν_mín,bomba = " + P.nu_min + " mm²/s (supuesto) ≤ ν(T) (Walther ASTM D341 con ν40 = 46 y ν100 = 6,8 → " + nf(v.lo, 1) + " mm²/s; con IV 185 → " + nf(v.hi, 1) + " mm²/s)", dem: P.nu_min, cap: v.lo, unit: "mm²/s", ref: SREF });
-      tadd({ sub: "f", sys: "term", conf: "C", stFix: T <= P.T_seal ? (T > 0.9 * P.T_seal ? "warn" : "ok") : (T <= 120 ? "warn" : "fail"), name: "Sellos NBR: temperatura de servicio frente al límite de las fuentes (80–120 °C)", formula: "T ≤ T_seal = " + P.T_seal + " °C (el menor de 80–120 °C); entre ese valor y 120 °C solo monitoreo; PU/FKM: FKM hasta 200 °C", dem: T, cap: P.T_seal, unit: "°C", ref: SREF });
-      tadd({ sub: "f", sys: "term", kind: "info", conf: "C", name: "Bomba con viscosidad baja: más fugas internas (menor caudal útil y rendimiento volumétrico); potencia del motor sin cambio apreciable", formula: "solo nota: Pmotor = p·Q/(600·η) con η a 20 °C; confirmar con la curva de la bomba a ν(T)", dem: R.pump.Pmotor, cap: v.lo, unit: "kW / mm²/s", ref: SREF });
+      tadd({ acc: true, sub: "f", sys: "term", conf: "C", name: "Aceite VG 46: viscosidad a T_serv frente al mínimo de la bomba", formula: "ν_mín,bomba = " + P.nu_min + " mm²/s (supuesto) ≤ ν(T) (Walther ASTM D341 con ν40 = 46 y ν100 = 6,8 → " + nf(v.lo, 1) + " mm²/s; con IV 185 → " + nf(v.hi, 1) + " mm²/s)", dem: P.nu_min, cap: v.lo, unit: "mm²/s", ref: SREF });
+      tadd({ acc: true, sub: "f", sys: "term", conf: "C", stFix: T <= P.T_seal ? (T > 0.9 * P.T_seal ? "warn" : "ok") : (T <= 120 ? "warn" : "fail"), name: "Sellos NBR: temperatura de servicio frente al límite de las fuentes (80–120 °C)", formula: "T ≤ T_seal = " + P.T_seal + " °C (el menor de 80–120 °C); entre ese valor y 120 °C solo monitoreo; PU/FKM: FKM hasta 200 °C", dem: T, cap: P.T_seal, unit: "°C", ref: SREF });
+      tadd({ acc: true, sub: "f", sys: "term", kind: "info", conf: "C", name: "Bomba con viscosidad baja: más fugas internas (menor caudal útil y rendimiento volumétrico); potencia del motor sin cambio apreciable", formula: "solo nota: Pmotor = p·Q/(600·η) con η a 20 °C; confirmar con la curva de la bomba a ν(T)", dem: R.pump.Pmotor, cap: v.lo, unit: "kW / mm²/s", ref: SREF });
     }
 
     /* (g) Lubricación */
@@ -1131,8 +1136,8 @@ const TT = (() => {
     {
       const Dm = P.D_top * eps, Db = P.B * eps;
       tadd({ sub: "k", kind: "info", conf: "B", name: "Dilatación global: crecimiento del diámetro de la mesa (y de la base)", formula: "ΔD = α·ΔT·D (≈ 0,7 mm/m a ΔT = 60 K); la base: ΔB = α·ΔT·B", dem: Dm, cap: Db, unit: "mm (mesa / base)", ref: REG + ", «Dilatación libre»" });
-      tadd({ sub: "k", sys: "giro", kind: "geo", conf: "B", name: "Patín fuera de la mesa con la mesa caliente (base a la sombra)", formula: "(D/2)(1 + ε) + 15 ≤ x_g − w_s/2", dem: Ro * (1 + eps) + 15, cap: P.x_g - P.w_s / 2, unit: "mm", ref: REG });
-      tadd({ sub: "k", sys: "giro", kind: "geo", conf: "B", name: "Bancada de guía fuera de la mesa con la mesa caliente (base a la sombra)", formula: "(D/2)(1 + ε) + 10 ≤ x_g − w_bancada/2", dem: Ro * (1 + eps) + 10, cap: P.x_g - P.w_bed / 2, unit: "mm", ref: REG });
+      tadd({ acc: true, sub: "k", sys: "giro", kind: "geo", conf: "B", name: "Patín fuera de la mesa con la mesa caliente (base a la sombra)", formula: "(D/2)(1 + ε) + 15 ≤ x_g − w_s/2", dem: Ro * (1 + eps) + 15, cap: P.x_g - P.w_s / 2, unit: "mm", ref: REG });
+      tadd({ acc: true, sub: "k", sys: "giro", kind: "geo", conf: "B", name: "Bancada de guía fuera de la mesa con la mesa caliente (base a la sombra)", formula: "(D/2)(1 + ε) + 10 ≤ x_g − w_bancada/2", dem: Ro * (1 + eps) + 10, cap: P.x_g - P.w_bed / 2, unit: "mm", ref: REG });
     }
   }
 
@@ -1611,6 +1616,7 @@ const TT = (() => {
       else if (c.kind === "geo" || c.sys === "giro") c.st = c.fu <= 1 ? "ok" : "fail";   // límites con margen propio
       else c.st = c.fu <= 0.9 ? "ok" : c.fu <= 1 ? "warn" : "fail";
       if (c.stFix) c.st = c.stFix;                                   // filas térmicas con criterio de estado propio (monitoreo, aviso de falta de alivio)
+      if (P.__th && P.__th.alc !== 2 && c.grp !== "Temperatura" && ACC_GRPS.includes(c.grp)) c.fuera = true;   // accionamiento mecánico: fuera del alcance térmico (se calcula, no entra al veredicto)
     });
     return out;
   }
@@ -1640,14 +1646,14 @@ const TT = (() => {
       fea = opts.fea || { top: discCached(P, R, "top", opts), bot: discCached(P, R, "bot", opts), glob: globalBending(P, R), lift: runLift(P, R, opts.coarse) };   // opts.fea: FEA ya resuelto (escenario térmico: la tensión FEA no depende de Fy)
     }
     const checks = verifs(P, R, fea);
-    const bad = (sys) => checks.filter((c) => c.sys === sys && c.st === "fail");
-    const warn = (sys) => checks.filter((c) => c.sys === sys && c.st === "warn");
+    const bad = (sys) => checks.filter((c) => c.sys === sys && c.st === "fail" && !c.fuera);   // fuera: filas del accionamiento y del circuito hidráulico con term_alcance = 1
+    const warn = (sys) => checks.filter((c) => c.sys === sys && c.st === "warn" && !c.fuera);
     const verdict = {
       gira: R.K.ok && bad("giro").length === 0,
       estructura: bad("est").length === 0,
       warnGiro: warn("giro").length, warnEst: warn("est").length,
       pend: checks.filter((c) => c.st === "pend").length,
-      fuMax: Math.max(0, ...checks.filter((c) => c.fu != null && isFinite(c.fu) && c.kind === "fu").map((c) => c.fu)),
+      fuMax: Math.max(0, ...checks.filter((c) => c.fu != null && isFinite(c.fu) && c.kind === "fu" && !c.fuera).map((c) => c.fu)),
     };
     return { P, R, fea, checks, verdict };
   }
@@ -1721,8 +1727,8 @@ const TT = (() => {
     const woodMode = opts.wood == null ? "form" : opts.wood;
     const ids = opts.alts || TH_ALTS.map((a) => a[0]);
     const cache = new Map(), alts = [];
-    const fuEstOf = (A) => { let best = null; A.checks.forEach((c) => { if (c.grp !== "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
-    const fuTermOf = (A) => { let best = null; A.checks.forEach((c) => { if (c.grp === "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
+    const fuEstOf = (A) => { let best = null; A.checks.forEach((c) => { if (!c.fuera && c.grp !== "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
+    const fuTermOf = (A) => { let best = null; A.checks.forEach((c) => { if (!c.fuera && c.grp === "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
     const brief = (c) => (c ? { grp: c.grp, nombre: c.name, fu: c.fu } : null);
     const woods = woodMode === "both" ? [0, 1] : [woodMode === true || woodMode === 1 ? 1 : woodMode === false || woodMode === 0 ? 0 : (P.opt_wood > 0.5 ? 1 : 0)];
     TH_ALTS.filter((a) => ids.includes(a[0])).forEach(([id, nombre, flags]) => woods.forEach((w) => {
@@ -1732,9 +1738,13 @@ const TT = (() => {
       const ref = thermalRun(Pa, Tref, null, frozen, 0, A20, cache);
       const byT = Ts.map((T) => {
         const run = T === Tref ? ref : thermalRun(Pa, T, null, frozen, gradAt(T), A20, cache), A = run.A, R = A.R, cur = A.checks;
-        const eu = fuEstOf(A), tt = fuTermOf(A), rows = [], chg = [];
+        const eu = fuEstOf(A), tt = fuTermOf(A), rows = [], chg = [], fuera = [];
         cur.forEach((c, i) => {
           const r0 = ref.A.checks[i]; if (!r0) return;
+          if (c.fuera) {   // accionamiento y circuito hidráulico (term_alcance = 1): se informan aparte, sin estado que afecte el veredicto
+            if (c.kind !== "pend") fuera.push({ grp: c.grp === "Temperatura" ? "Temperatura · " + ({ c: "uña–pasador", e: "aceite atrapado", f: "aceite, sellos y bomba", k: "patín y guía" }[c.sub] || "") : c.grp, sub: c.sub || null, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, fu20: r0.fu, estado_informativo: c.st, estado20: r0.st, ref: c.ref });
+            return;
+          }
           if (r0.st !== c.st && ST_RANK[r0.st] != null && ST_RANK[c.st] != null) chg.push({ grp: c.grp, nombre: c.name, de: r0.st, a: c.st, fu20: r0.fu, fuT: c.fu, empeora: ST_RANK[c.st] > ST_RANK[r0.st], conf: confOf(c) });
           if (c.fu != null && r0.fu != null && c.kind !== "info") {
             const f0 = isFinite(r0.fu) ? r0.fu : 99, f1 = isFinite(c.fu) ? c.fu : 99;
@@ -1742,17 +1752,18 @@ const TT = (() => {
           }
         });
         rows.sort((a, b) => b.delta - a.delta);
-        const th = cur.filter((c) => c.grp === "Temperatura").map((c) => ({ sub: c.sub, sys: c.sys, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, conf: c.conf, ref: c.ref }));
+        const th = cur.filter((c) => c.grp === "Temperatura" && !c.fuera).map((c) => ({ sub: c.sub, sys: c.sys, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, conf: c.conf, ref: c.ref }));
         return { T, dT: Math.max(0, T - Tref), gradiente: gradAt(T), k: run.Pt.__th.k, notas: run.Pt.__th.notes, extrapolado: run.Pt.__th.extrap,
-          FS: R.cd ? R.cd.FS : null, FS_min: P.FS_min, gira: A.verdict.gira, estructura: A.verdict.estructura, termico: !cur.some((c) => c.grp === "Temperatura" && c.st === "fail"),
+          FS: R.cd ? R.cd.FS : null, FS_min: P.FS_min, gira: A.verdict.gira, estructura: A.verdict.estructura, termico: !cur.some((c) => c.grp === "Temperatura" && !c.fuera && c.st === "fail"),
           fuEst: eu ? eu.fu : 0, gobernante: brief(eu), fuTerm: tt ? tt.fu : 0, gobernanteTerm: brief(tt), masa: R.m.total,
-          nFail: cur.filter((c) => c.st === "fail").length, nWarn: cur.filter((c) => c.st === "warn").length,
+          nFail: cur.filter((c) => !c.fuera && c.st === "fail").length, nWarn: cur.filter((c) => !c.fuera && c.st === "warn").length,
+          fuera_alcance: fuera, fuera_resumen: { n: fuera.length, fail: fuera.filter((x) => x.estado_informativo === "fail").length, warn: fuera.filter((x) => x.estado_informativo === "warn").length },
           sensibles: rows.filter((r) => r.delta > 1e-9).slice(0, 10), sensibles_est: rows.filter((r) => r.delta > 1e-9 && r.sys !== "term").slice(0, 10), cambian: chg, filas: th };
       });
       // sensibilidades a T_scn: Fy del acero 0,92 (ASME II-D), bronce 0,90, μ, UHMW y madera
       const sc = Tscn, g0 = gradAt(sc), base = thermalRun(Pa, sc, null, frozen, g0, A20, cache), eb = fuEstOf(base.A);
       const sumSens = (run) => { const e = fuEstOf(run.A); const wr = [];
-        run.A.checks.forEach((c, i) => { const r0 = base.A.checks[i]; if (r0 && r0.st !== c.st && ST_RANK[c.st] > ST_RANK[r0.st]) wr.push({ grp: c.grp, nombre: c.name, de: r0.st, a: c.st, fu: c.fu }); });
+        run.A.checks.forEach((c, i) => { const r0 = base.A.checks[i]; if (r0 && !c.fuera && r0.st !== c.st && ST_RANK[c.st] > ST_RANK[r0.st]) wr.push({ grp: c.grp, nombre: c.name, de: r0.st, a: c.st, fu: c.fu }); });
         const tm = fuTermOf(run.A); return { fuEst: e ? e.fu : 0, gobernante: brief(e), fuTerm: tm ? tm.fu : 0, gobernanteTerm: brief(tm), gira: run.A.verdict.gira, estructura: run.A.verdict.estructura, empeoran: wr, dFu: (e ? e.fu : 0) - (eb ? eb.fu : 0) }; };
       const sens = { T: sc, kFy092: Object.assign(sumSens(thermalRun(Pa, sc, { kT_Fy: 0.92 }, frozen, g0, A20, cache)), { k: 0.92, ref: "ASME II-D Tabla Y-1 (de memoria; confianza C)" }) };
       if (I.o === 3) sens.bz090 = Object.assign(sumSens(thermalRun(Pa, sc, { kT_bz: 0.90 }, frozen, g0, A20, cache)), { k: 0.90 });
@@ -1770,20 +1781,111 @@ const TT = (() => {
         FS20: A20.R.cd ? A20.R.cd.FS : null, byT, sens, juntas: jun });
     }));
     const oil = Ts.map((T) => { const o = oilTrapped(P, T); return { T, dT: o.dT, rigido: { bajo: o.rigid.lo.bar, alto: o.rigid.hi.bar }, cilindro: { bajo: o.cyl.lo.bar, alto: o.cyl.hi.bar }, manguera: o.hose.hi.bar, Kc_lame_MPa: o.Kc_lame, seleccion_bar: o.sel.hi.bar }; });
+    const alc = alcanceOf(P);
     return {
       version: 1, T: Ts, T_ref: Tref, T_scn: Tscn, gradiente_scn: grad, fuente: "docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)»",
-      alternativas: alts, aceite: oil, viscosidad: Ts.map((T) => Object.assign({ T }, oilViscosity(T))), factores: Ts.map((T) => { const f = thermalFactors(P, T); return { T, k: f.k, alpha: f.alpha, extrapolado: f.extrap }; }),
+      aceite_fuera_de_alcance: alc !== 2, alternativas: alts, aceite: oil, viscosidad: Ts.map((T) => Object.assign({ T }, oilViscosity(T))), factores: Ts.map((T) => { const f = thermalFactors(P, T); return { T, k: f.k, alpha: f.alpha, extrapolado: f.extrap }; }),
+      alcance: alc, alcance_texto: alc === 2 ? "Alcance 2: sistema de placas y disco más accionamiento mecánico (uña–pasador, patín–guía, pasadores de empuje) y circuito hidráulico (cilindros, aceite atrapado, alivio térmico, sellos, viscosidad y bomba)."
+        : "Alcance 1 (por defecto): sistema de placas y disco: plancha base, mesa (planchas, almas, nervios, cubo), interfaz (discos inox, lámina UHMW, bronce, disco duro, pastillas, grasa y ranuras), topes y sus soldaduras, madera, pivote, buje y collar, gradiente, juntas y holguras. Los cilindros, el aceite, las válvulas, los sellos, la viscosidad, la bomba y el accionamiento mecánico están fuera de alcance (term_alcance = 2 los reactiva).",
       avisos: [
         "Los datos de UHMW-PE, acero inoxidable y bronce son de ficha de fabricante o supuestos (confianza C): confirmar con el proveedor; el UHMW-PE no tiene curva publicada a 80 °C y 80 °C es su límite de servicio continuo",
         "ASME BTH-1: 80 °C (176 °F) excede el rango estándar (−4 a 66 °C); la sección de BTH-1 sobre temperatura no está confirmada y exige decisión de persona calificada",
-        "Aceite atrapado: un tramo aislado (cilindro + retenciones) exige válvula de alivio térmico; un alivio de sistema aguas arriba no lo protege",
+        alc === 2 ? "Aceite atrapado: un tramo aislado (cilindro + retenciones) exige válvula de alivio térmico; un alivio de sistema aguas arriba no lo protege"
+          : "Nota informativa (fuera de alcance): un tramo aislado de aceite (cilindro + retenciones) con válvulas de retención o bloqueo exige válvula de alivio térmico; el circuito hidráulico y el accionamiento mecánico no entran en este escenario (term_alcance = 2 los reactiva)",
         "Geometría congelada: el escenario evalúa la geometría dimensionada a 20 °C con las capacidades reducidas; no re-dimensiona",
       ],
       supuestos_C: ["UHMW-PE: k_p y k_E (0,40)", "Inoxidable: Fy a 80 °C (0,82)", "Bronce: sin reducción (1,00) y α", "Madera: C_t 0,70 extrapolado a 80 °C (fuera de la tabla NDS)", "Pernos 10.9: 0,94", "Soldadura: sin reducción", "Gradiente plancha superior–inferior 15–18 K (EN 1991-1-5, otra tipología)",
-        "Módulo volumétrico del aceite 1,4–1,9 GPa y rigidez del contenedor (b/a = 1,4 por Lamé)", "Viscosidad mínima de la bomba 10 mm²/s", "Límite del sello NBR 80–120 °C", "μ a T_serv (dato de entrada)", "Holgura buje–pivote en frío"],
+        "μ a T_serv (dato de entrada)", "Holgura buje–pivote en frío"].concat(alc === 2 ? ["Módulo volumétrico del aceite 1,4–1,9 GPa y rigidez del contenedor (b/a = 1,4 por Lamé)", "Viscosidad mínima de la bomba 10 mm²/s", "Límite del sello NBR 80–120 °C"] : []),
+      supuestos_fuera_alcance: alc === 2 ? [] : ["Módulo volumétrico del aceite 1,4–1,9 GPa y rigidez del contenedor (b/a = 1,4 por Lamé)", "Viscosidad mínima de la bomba 10 mm²/s", "Límite del sello NBR 80–120 °C"],
     };
   }
 
-  return { thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
+
+  /* ---------------- Tapones de grafito (opción C): ideal frente a real, barridos y patrón ---------------- */
+  // API pura (UI y exportadores): para C1, C2 y C3 compara el cálculo con la fracción ideal (bz_fg_modo = 0) y la real (1), barre f_g,real, el patrón (d, p),
+  // la franja de borde y los tornillos, y concluye el patrón recomendado. Todo sale del mismo núcleo (analyze / ifaceDesign): la memoria y la UI solo redactan.
+  const TAP_ALTS = [["C1", 1, "C1 · Placa de bronce con grafito + disco duro"], ["C2", 2, "C2 · Dos placas de bronce de aleaciones distintas"], ["C3", 3, "C3 · Bronce en pastillas + disco duro"]];
+  const TAP_D = [10, 12, 14, 16, 18, 20], TAP_P = Array.from({ length: 19 }, (_, i) => 22 + i), TAP_FG = Array.from({ length: 11 }, (_, i) => Math.round((0.05 + 0.025 * i) * 1e6) / 1e6);
+  const TAP_LIG_MIN = 8, TAP_PROF_D = 3;          // fabricación (broca/mandrinadora, sin torno vertical): ligamento ≥ 8 mm y profundidad ≤ 3·d (criterio de taller, por confirmar)
+  function tapones(P, opts) {
+    opts = opts || {};
+    const base = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 1 }); delete base.__th;
+    const cache = new Map(), nf = (v, d) => (+v).toFixed(d == null ? 3 : d).replace(".", ",");
+    const run = (conf, over) => analyze(Object.assign({}, base, { bz_conf: conf }, over || {}), { noFEA: true, cache });
+    const pick = (A, re) => A.checks.find((c) => re.test(c.name));
+    const RPV = /Bronce con grafito: valor PV/, RWE = /Bronce con grafito: desgaste/, RQN = /Presión de contacto sobre el bronce neto/, RLUB = /cobertura mínima de lubricante sólido/;
+    const grpFails = (A) => A.checks.filter((c) => c.grp === "Interfaz bronce" && c.st === "fail" && !RLUB.test(c.name));
+    const met = (A, modo) => {
+      const R = A.R, I = R.ifc, pv = pick(A, RPV), we = pick(A, RWE), qn = pick(A, RQN);
+      return { N: modo === 0 ? I.Nideal : I.Nreal, fg: modo === 0 ? I.fgIdeal : I.fgReal, cobertura: modo === 0 ? I.fgIdeal : I.fgReal, masa_bz: R.m.bz, masa_total: R.m.total, qNet: I.qNet, fuQ: I.qNet / A.P.p_bz,
+        tbz: I.tbz, tbzReq: I.tbzReq, PV: pv.dem, fuPV: pv.fu, desgaste: we.dem, fuDesgaste: we.fu, FS: R.cd.FS, mu: R.mu.d, gira: A.verdict.gira, estructura: A.verdict.estructura, cumple_lub: (modo === 0 ? I.fgIdeal : I.fgReal) >= A.P.bz_fg_min - 1e-12 };
+    };
+    const dpct = (a, b) => { const o = {}; Object.keys(a).forEach((k) => { if (typeof a[k] === "number" && typeof b[k] === "number") o[k] = Math.abs(a[k]) > 1e-12 ? (b[k] / a[k] - 1) * 100 : null; }); return o; };
+    // estado de un patrón (d, p): fabricación, η, y todas las verificaciones del bronce (sin la de lubricación, que se informa aparte)
+    const patron = (conf, d, p, over) => {
+      const A = run(conf, Object.assign({ bz_plug_d: d, bz_plug_p: p }, over || {})), I = A.R.ifc, m = met(A, 1), fails = grpFails(A);
+      const lig = p - d, prof = PLUG_DEPTH * I.tbz, fab = lig >= TAP_LIG_MIN - 1e-9 && prof / d <= TAP_PROF_D + 1e-9, motivos = fails.map((c) => c.name);
+      if (!fab) motivos.push("no fabricable (ligamento p − d ≥ " + TAP_LIG_MIN + " mm; profundidad ≤ " + TAP_PROF_D + "·d)");
+      const estado = motivos.length ? "no cumple" : (m.cumple_lub ? "cumple" : "cumple sin lubricación");
+      return Object.assign({ d, p, eta: I.eta, N: I.Nreal, n_agujeros: I.Nreal, fg_ideal: I.fgIdeal, fab, estado, motivos }, m, { fg: I.fgReal, A });
+    };
+    const strip = (o) => { const q = Object.assign({}, o); delete q.A; return q; };
+    const alternativas = TAP_ALTS.map(([id, conf, nombre]) => {
+      const A1 = run(conf, { bz_fg_modo: 1 }), A0 = run(conf, { bz_fg_modo: 0 }), I = A1.R.ifc, T = I.tap;
+      const ideal = met(A0, 0), real = met(A1, 1);
+      const geom = { N_real: T.N, N_ideal: I.Nideal, N_malla: T.N_malla, fg_real: I.fgReal, fg_ideal: I.fgIdeal, cobertura: I.cobGrafito, cobertura_total: I.fgReal * I.cov, area_contacto: T.Acont, cov: I.cov, n_sectores: T.n, junta: T.junta, L_muesca: T.L, radios_tornillos: T.radios,
+        n_tornillos_sector: T.radios.length ? (T.nTor >= 4 ? 4 : 2) : 0, d_cabeza: T.dk, bz_edge: T.edge, perdidas: T.perdidas, por_sector_min: Math.min(...T.porSector), por_sector_max: Math.max(...T.porSector), d: T.d, p: T.p, eta: I.eta };
+      // (b) barrido de f_g,real objetivo: con Ø fijo (el actual) se elige el mayor paso cuyo f_g,real alcanza el objetivo (monótono por construcción)
+      const dB = base.bz_plug_d, scan = [];
+      for (let p = Math.max(Math.ceil(dB + 1), 14); p <= 60; p++) { const q = run(conf, { bz_plug_p: p }).R.ifc; scan.push({ p, fg: q.fgReal }); }
+      const fgmaxScan = scan.reduce((b, x) => (x.fg > b.fg ? x : b), scan[0]);
+      const barrido_fg = TAP_FG.map((T0) => {
+        let c = null; scan.forEach((x) => { if (x.fg >= T0 - 1e-12 && (!c || x.p > c.p)) c = x; });
+        const alc = !!c, pp = alc ? c.p : fgmaxScan.p, r = patron(conf, dB, pp);
+        return Object.assign(strip(r), { fg_obj: T0, estado: alc ? r.estado : "inalcanzable", alcanzable: alc });
+      });
+      // (c) barrido (d, p)
+      const barrido_dp = []; TAP_D.forEach((d) => TAP_P.forEach((p) => { if (p > d) barrido_dp.push(strip(patron(conf, d, p))); }));
+      // (d) sensibilidad a bz_edge y a los tornillos de posición
+      const sen = (over) => { const A = run(conf, over), q = A.R.ifc, m = met(A, 1); return Object.assign({ N: q.Nreal, fg: q.fgReal, masa_bz: m.masa_bz, qNet: m.qNet, fuQ: m.fuQ, cumple_lub: m.cumple_lub, estructura: m.estructura, gira: m.gira, n_fallan: grpFails(A).length, n_tor: over.bz_n_tor }, over); };
+      const sens_borde = [2, 4, 6, 8].map((e) => sen({ bz_edge: e }));
+      const sens_tornillos = [[6, 0], [6, 2], [6, 4], [8, 2], [10, 2]].map(([dt, nt]) => sen({ d_tor: dt, bz_n_tor: nt }));
+      // (e) conclusión automática
+      const cand = barrido_dp.filter((x) => x.eta >= P.bz_eta_min - 1e-12 && x.fab && x.estado !== "no cumple");
+      const fgMaxAlc = cand.reduce((b, x) => Math.max(b, x.fg), 0), ok = cand.filter((x) => x.fg >= P.bz_fg_min - 1e-12);
+      const byMass = (x, y) => x.masa_bz - y.masa_bz || x.N - y.N || x.d - y.d;
+      const rec = ok.length ? strip(ok.slice().sort(byMass)[0]) : null;
+      const mejor = cand.length ? strip(cand.reduce((b, x) => (x.fg > b.fg + 1e-12 || (Math.abs(x.fg - b.fg) <= 1e-12 && x.masa_bz < b.masa_bz) ? x : b), cand[0])) : null;
+      const act = barrido_dp.find((x) => x.d === base.bz_plug_d && x.p === base.bz_plug_p);
+      // límites de f_g: la lubricación pone el mínimo; q_neto, PV y desgaste ponen el máximo (q_neto = q_loc/(1 − f_g − f_ranuras))
+      const pvR = pick(A1, RPV), weR = pick(A1, RWE), qnR = pick(A1, RQN), qlim = (row) => I.qNet * row.cap / row.dem, fgOf = (qn) => 1 - I.fgr - I.qLoc / qn;
+      const lim = { q_neto: fgOf(qlim(qnR)), PV: fgOf(qlim(pvR)), desgaste: fgOf(qlim(weR)) };
+      const fgMaxFis = Math.min(lim.q_neto, lim.PV, lim.desgaste);
+      const dM = real.masa_bz - ideal.masa_bz, texto = [];
+      texto.push(id + ": con el patrón Ø" + base.bz_plug_d + " · paso " + base.bz_plug_p + " caben " + T.N + " tapones (ideal " + Math.round(I.Nideal) + "): f_g,real = " + nf(I.fgReal) + " frente a " + nf(I.fgIdeal) + " ideal; el bronce pesa " + nf(dM, 1) + " kg más (" + nf((real.masa_bz / ideal.masa_bz - 1) * 100, 1) + " %) y q_neto baja de " + nf(ideal.qNet, 2) + " a " + nf(real.qNet, 2) + " MPa (FU " + nf(real.fuQ, 2) + ").");
+      texto.push("f_g mínimo para cumplir: " + nf(P.bz_fg_min, 2) + " (lubricación, supuesto C por confirmar con el catálogo); el máximo admisible por q_neto, PV y desgaste es " + nf(fgMaxFis, 2) + ". El espesor del bronce lo fija el tope (" + I.tTope + " mm) y no la flexión (requerido " + nf(I.tbzReq, 1) + " mm), así que f_g no cambia el espesor mientras η ≥ " + nf(P.bz_eta_min, 2) + ".");
+      if (rec) texto.push("Patrón recomendado: Ø" + rec.d + " · paso " + rec.p + " (η " + nf(rec.eta, 2) + ", " + rec.N + " tapones, f_g " + nf(rec.fg) + ", bronce " + nf(rec.masa_bz, 1) + " kg, " + (act ? nf(rec.masa_bz - act.masa_bz, 1) + " kg frente al actual" : "") + ").");
+      else texto.push("Ningún patrón del barrido (Ø10–20, paso 22–40) cumple f_g,real ≥ " + nf(P.bz_fg_min, 2) + " con η ≥ " + nf(P.bz_eta_min, 2) + " y fabricable: el máximo alcanzable es " + nf(fgMaxAlc) + (mejor ? " (Ø" + mejor.d + " · paso " + mejor.p + ", " + mejor.N + " tapones, η " + nf(mejor.eta, 3) + ")" : "") + ". El criterio queda como aviso hasta que la ficha del proveedor fije el valor; se conserva el patrón actual.");
+      return { id, conf, nombre, geom, comparacion: { ideal, real, delta_pct: dpct(ideal, real), delta_abs: { masa_bz: dM, masa_total: real.masa_total - ideal.masa_total, qNet: real.qNet - ideal.qNet } },
+        barrido_fg, barrido_dp, sens_borde, sens_tornillos, limites_fg: Object.assign({ fg_min_lubricacion: P.bz_fg_min, fg_max: fgMaxFis }, lim),
+        conclusion: { fg_min_criterio: P.bz_fg_min, fg_max_fisico: fgMaxFis, fg_max_alcanzable: fgMaxAlc, cumple_criterio: !!rec, patron_recomendado: rec, mejor_alcanzable: mejor, patron_actual: act ? strip(act) : null,
+          costo_masa: rec && act ? { delta_kg: rec.masa_bz - act.masa_bz, delta_pct: (rec.masa_bz / act.masa_bz - 1) * 100, delta_espesor: rec.tbz - act.tbz, delta_agujeros: rec.N - act.N } : null, texto } };
+    });
+    return { version: 1, parametros: { bz_plug_d: base.bz_plug_d, bz_plug_p: base.bz_plug_p, bz_edge: base.bz_edge, bz_fg_modo: base.bz_fg_modo, bz_fg_min: base.bz_fg_min, bz_eta_min: base.bz_eta_min, bz_n_tor: base.bz_n_tor, d_tor: base.d_tor, bz_fg_estricto: base.bz_fg_estricto, p_bz: base.p_bz, PV_bz: base.PV_bz, k_bz: base.k_bz, bz_cover: base.bz_cover, n_sec: base.n_sec, bz_npad: base.bz_npad },
+      alternativas,
+      barridos: { d: TAP_D, p: TAP_P, fg: TAP_FG, ligamento_min_fab: TAP_LIG_MIN, prof_max_d: TAP_PROF_D },
+      notas: [
+        "Cantidad real: conteo determinista de los centros de la malla escalonada (paso p, fila alterna p·√3/2, anclada al centro de la mesa) cuyo borde queda a ≥ bz_edge del borde del bronce, de la muesca del tope ((b_tope + 2) × L_tope), de los tornillos de posición (cabeza ISO 10642) y de las ranuras de engrase; es el mismo patrón S09 que coloca el dibujante (cad/modelo3d_tt300c.py) y reproduce su conteo (C1/C2 2 640; C3 2 364).",
+        "bz_fg_min = " + nf(P.bz_fg_min, 2) + " es un supuesto de confianza C (orden de magnitud de bronces autolubricados comerciales): confirmar con el catálogo del proveedor; el valor lo fija la ficha. Por defecto el criterio avisa y no cambia el veredicto (bz_fg_estricto = 0).",
+        "η ≥ " + nf(P.bz_eta_min, 2) + " es criterio de proyecto; la fabricabilidad (ligamento ≥ " + TAP_LIG_MIN + " mm, profundidad ≤ " + TAP_PROF_D + "·d, taladro con broca o mandrinadora, sin torno vertical) es un criterio de taller por confirmar.",
+        "p_bz, PV_bz y k_bz son datos de catálogo del bronce con grafito (confianza C): q_neto, PV y desgaste dependen de ellos y de f_g,usada; el μ es un dato de entrada y no se modifica con f_g (con menos grafito el μ real podría subir: no modelado).",
+        "La masa del bronce se calcula como mezcla ρ_bz(1 − 0,7 f_g) + ρ_grafito·0,7 f_g sobre el área cubierta (el tapón ocupa el 70 % del espesor): con menos tapones hay más bronce y más masa. El conteo no depende de la masa; sí del largo de la muesca (tope) y por eso del espesor del bronce.",
+        "Los tornillos de posición están en la bisectriz de cada sector o pastilla, a mitad de camino entre la muesca y cada borde (2 por sector; 4 = dos radios × dos lados, hipótesis de sensibilidad); el parámetro d_tor fija el Ø de su cabeza.",
+      ],
+      supuestos: ["bz_fg_min " + nf(P.bz_fg_min, 2) + " (confianza C, catálogo del proveedor)", "bz_eta_min " + nf(P.bz_eta_min, 2) + " (criterio de proyecto)", "ligamento mínimo de fabricación " + TAP_LIG_MIN + " mm y profundidad ≤ " + TAP_PROF_D + "·d (criterio de taller por confirmar)", "bz_edge " + P.bz_edge + " mm (franja de borde del dibujante, S09)", "p_bz, PV_bz, k_bz del bronce con grafito (catálogo, confianza C)", "tornillos de posición: " + P.bz_n_tor + " por sector con cabeza ISO 10642 de M" + P.d_tor],
+    };
+  }
+
+  return { tapones, tapInfo, thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
 })();
 if (typeof module !== "undefined") module.exports = TT;

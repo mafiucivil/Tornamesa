@@ -241,6 +241,21 @@ test("interfazGeom.topes: geometría resuelta de cada tope (R.ifc.topes), idént
   assert.deepEqual(JSON.parse(PL.designJSON(PL.buildDesign(TT.defaults()))).interfazGeom.topes, [], "sin interfaz: sin topes");
 });
 
+/* ---- interfazGeom.tapones: cantidad real colocable de tapones de grafito (R.ifc.tap), idéntica en los dos exportadores ---- */
+test("interfazGeom.tapones: N_real, f_g real e ideal y cobertura de grafito, idénticos en tools/export_design.js y planos_export.js; null sin la opción C", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tt300c-")), script = path.join(__dirname, "..", "tools", "export_design.js");
+  for (const [nombre, over] of VARIANTS) {
+    const { P, A } = pack(over), I = A.R.ifc, IG = JSON.parse(PL.designJSON(PL.buildDesign(P, A))).interfazGeom, pf = path.join(tmp, "p.json"); fs.writeFileSync(pf, JSON.stringify(P));
+    const IG2 = JSON.parse(execFileSync(process.execPath, [script, pf], { maxBuffer: 1 << 28 }).toString()).interfazGeom;
+    assert.ok("tapones" in IG, nombre + ": falta interfazGeom.tapones"); assert.deepEqual(IG2.tapones, IG.tapones, nombre + ": igual en tools/export_design.js");
+    if (I.o !== 3) { assert.equal(IG.tapones, null, nombre + ": sin opción C no hay tapones"); continue; }
+    const t = IG.tapones;
+    assert.equal(t.N_real, I.Nreal); assert.equal(t.fg_real, I.fgReal); assert.equal(t.fg_ideal, I.fgIdeal); assert.equal(t.cobertura, I.cobGrafito); assert.equal(t.fg_usado, I.fgUsed);
+    assert.ok(Number.isInteger(t.N_real) && t.N_real > 0 && t.fg_real <= t.fg_ideal && t.N_real <= t.N_ideal, nombre + ": N_real entero y menor que el ideal");
+    assert.equal(t.por_sector.reduce((a, b) => a + b, 0), t.N_real); assert.equal(t.d, P.bz_plug_d); assert.equal(t.p, P.bz_plug_p); assert.equal(t.bz_edge, P.bz_edge);
+  }
+});
+
 /* ---- ZIP ---- */
 function readZip(u8) {
   const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); let e = u8.length - 22; assert.equal(dv.getUint32(e, true), 0x06054b50, "fin de directorio central");

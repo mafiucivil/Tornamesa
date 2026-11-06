@@ -13,6 +13,22 @@ from shapely.geometry import LineString, Polygon, box as sbox
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from geom import f, fm
+import draw
+
+HLR_CACHE = {}
+STD_SCALES = [1/100, 1/50, 1/25, 1/20, 1/10, 1/5, 1/2.5, 1/2, 1/1, 2/1, 5/1]
+
+
+def snap_scale(s):
+    """Mayor escala normalizada (ISO 5455) que no excede s."""
+    ok = [x for x in STD_SCALES if x <= s * 1.0001]
+    return ok[-1] if ok else STD_SCALES[0]
+
+
+def scale_txt(sc):
+    if sc >= 1:
+        return f"{sc:g}:1"
+    return f"1:{1 / sc:g}".replace(".", ",")
 
 VIEWS = {
     "top": ((0, 0, 1), (1, 0, 0)),
@@ -226,6 +242,9 @@ class View:
         self.keys = list(shapes) if only is None else list(only)
         self.tol = tol or max(0.6, 1.2 / scale / 10 * 10 / 10)
         self.label = label
+        self.lv = {"top": 0, "bottom": 0, "left": 0, "right": 0}
+        self.ext = None
+        self.mat = {}
 
     # -- coordenadas --
     def uv(self, p):
@@ -246,7 +265,9 @@ class View:
         parts = [(k, self.shapes[k]) for k in self.keys]
         hatches = []
         kept = []
-        if self.cut:
+        ck = (tuple((k, id(self.shapes[k])) for k in self.keys), self.view, self.cut, tuple(sorted(self.nocut)), self.hidden, round(self.tol, 3))
+        cached = HLR_CACHE.get(ck)
+        if cached is None and self.cut:
             plane_pt, keep_dir = self.cut
             big = 40000
             nx, ny, nz = keep_dir
@@ -271,30 +292,172 @@ class View:
                         hatches.append((k, outer, holes))
                 except Exception as ex:
                     print("   sección falló", k, ex)
-        else:
+        elif cached is None:
             kept = [s for _, s in parts]
-        comp = cq.Compound.makeCompound([cq.Compound.makeCompound(list(s.Solids())) if hasattr(s, "Solids") else s for s in kept])
-        vis, hid = hlr(comp, self.view, self.tol, self.hidden)
-        vis = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in vis]
-        hid = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in hid]
+        if cached is None:
+            comp = cq.Compound.makeCompound([cq.Compound.makeCompound(list(s.Solids())) if hasattr(s, "Solids") else s for s in kept])
+            vis, hid = hlr(comp, self.view, self.tol, self.hidden)
+            vis = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in vis]
+            hid = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in hid]
+            HLR_CACHE[ck] = (vis, hid, hatches)
+        else:
+            vis, hid, hatches = cached
         if self.win:
             vis, hid = clip_polys(vis, self.win), clip_polys(hid, self.win)
+        xs, ys = [], []
         for pl in vis:
-            S.pline([self.Pt2(p) for p in pl], layer_vis)
+            pp = [self.Pt2(p) for p in pl]
+            S.pline(pp, layer_vis)
+            xs += [p[0] for p in pp]; ys += [p[1] for p in pp]
         for pl in hid:
             S.pline([self.Pt2(p) for p in pl], layer_hid)
+        if xs:
+            self.ext = (min(xs), min(ys), max(xs), max(ys))
+            if not hasattr(S, "views"):
+                S.views = []
+            S.views.append(self.ext)
         if hatch:
-            for (k, outer, holes) in hatches:
+            used = set()
+            for n_, (k, outer, holes) in enumerate(hatches):
                 try:
                     pg = Polygon(outer, holes).buffer(0)
                     if self.win:
                         pg = pg.intersection(sbox(*self.win))
+                    cls = self.mat.get(k, "acero")
+                    pat, ang0, sc0 = draw.HATCH_MAT[cls]
+                    ang = ang0 + (90.0 if (self.keys.index(k) % 2) else 0.0) if cls == "acero" else ang0
                     for gg in getattr(pg, "geoms", [pg]):
                         if gg.geom_type == "Polygon" and gg.area > 0.3:
-                            S.hatch_poly([self.Pt2(p) for p in list(gg.exterior.coords)[:-1]], [[self.Pt2(p) for p in list(i.coords)[:-1]] for i in gg.interiors], scale=self.hatch_scale)
+                            S.hatch_poly([self.Pt2(p) for p in list(gg.exterior.coords)[:-1]], [[self.Pt2(p) for p in list(i.coords)[:-1]] for i in gg.interiors],
+                                         scale=self.hatch_scale * sc0, angle=ang, pattern=pat)
+                            used.add(cls)
                 except Exception:
                     pass
+            S.hatch_classes = getattr(S, "hatch_classes", set()) | used
         return self
+
+    # -- fitting automático --
+    @classmethod
+    def auto(cls, S, shapes, view, box, margin=(14, 14, 14, 14), cut=None, win=None, center=(0, 0, 0), max_scale=None, std=True, **kw):
+        """Vista que llena la caja de papel 'box' (x0,y0,x1,y1) descontando margin=(izq,abajo,der,arriba) para cotas. Escala normalizada ISO 5455."""
+        keys = kw.get("only") or list(shapes)
+        if win is not None:
+            u0, v0, u1, v1 = win
+            u0, u1, v0, v1 = u0, u1, v0, v1
+            cu = cv = 0.0
+            eu0, eu1, ev0, ev1 = u0, u1, v0, v1
+        else:
+            eu0 = ev0 = 1e18; eu1 = ev1 = -1e18
+            for k in keys:
+                b = shapes[k].BoundingBox()
+                for x_ in (b.xmin, b.xmax):
+                    for y_ in (b.ymin, b.ymax):
+                        for z_ in (b.zmin, b.zmax):
+                            u, v = proj_pt((x_, y_, z_), view)
+                            eu0, eu1, ev0, ev1 = min(eu0, u), max(eu1, u), min(ev0, v), max(ev1, v)
+            cu, cv = proj_pt(center, view)
+            eu0, eu1, ev0, ev1 = eu0 - cu, eu1 - cu, ev0 - cv, ev1 - cv
+        bw = box[2] - box[0] - margin[0] - margin[2]
+        bh = box[3] - box[1] - margin[1] - margin[3]
+        sc = min(bw / max(eu1 - eu0, 1e-6), bh / max(ev1 - ev0, 1e-6))
+        if max_scale:
+            sc = min(sc, max_scale)
+        sc = snap_scale(sc) if std else sc
+        ox = box[0] + margin[0] + bw / 2 - (eu0 + eu1) / 2 * sc
+        oy = box[1] + margin[1] + bh / 2 - (ev0 + ev1) / 2 * sc
+        v = cls(S, shapes, view, (ox, oy), sc, center=center, win=win, cut=cut, **kw)
+        v.box = box
+        return v
+
+    @property
+    def esc(self):
+        return "ESC " + scale_txt(self.scale)
+
+    def title(self, text, dy=0.0, h=draw.T_T):
+        """Título de la vista (debajo de su extensión) con escala."""
+        x0, y0, x1, y1 = self.ext or (self.origin[0], self.origin[1], self.origin[0], self.origin[1])
+        low = y0 - 8 * (max(self.lv["bottom"], 0) + 1) - 6 + dy
+        self.S.view_title(((x0 + x1) / 2, low - 2), text, self.esc, h)
+        return low
+
+    def circles(self, keys=None, rmin=0.0, rmax=1e9, axis_tol=1e-3):
+        """Cilindros cuyo eje es paralelo a la dirección de mirada: [(u, v, r)] (coordenadas del modelo relativas al centro, sin duplicados)."""
+        d, _, _ = basis(self.view)
+        out = {}
+        for k in keys or self.keys:
+            for (rr, loc, dr) in COTAS.cylinders(k):
+                if abs(abs(sum(a * b for a, b in zip(dr, d))) - 1) > axis_tol or not (rmin <= rr <= rmax):
+                    continue
+                u, v = self.uv(loc)
+                out[(round(u, 1), round(v, 1), round(rr, 2))] = (u, v, rr)
+        return sorted(out.values(), key=lambda t: (t[2], t[1], t[0]))
+
+    # -- cotas con apilado automático --
+    def _lvl(self, side, level):
+        if level is None:
+            level = self.lv[side]
+            self.lv[side] += 1
+        else:
+            self.lv[side] = max(self.lv[side], level + 1)
+        return level
+
+    def dimh(self, a, b, side="bottom", level=None, gap=8.0, step=8.5, **kw):
+        """Cota horizontal con la línea de cota apilada fuera de la vista (side top|bottom)."""
+        lv = self._lvl(side, level)
+        pa, pb = self.P(a), self.P(b)
+        x0, y0, x1, y1 = self.ext or (0, 0, 0, 0)
+        if side == "top":
+            off = (y1 + gap + lv * step) - max(pa[1], pb[1])
+        else:
+            off = (y0 - gap - lv * step) - min(pa[1], pb[1])
+        return self.dim(a, b, off, orient="h", **kw)
+
+    def dimv(self, a, b, side="right", level=None, gap=8.0, step=8.5, **kw):
+        lv = self._lvl(side, level)
+        pa, pb = self.P(a), self.P(b)
+        x0, y0, x1, y1 = self.ext or (0, 0, 0, 0)
+        if side == "right":
+            off = (x1 + gap + lv * step) - max(pa[0], pb[0])
+        else:
+            off = (x0 - gap - lv * step) - min(pa[0], pb[0])
+        return self.dim(a, b, off, orient="v", **kw)
+
+    def chain_h(self, pts, side="bottom", level=None, on=None, **kw):
+        """Cadena de cotas horizontales entre puntos 3D consecutivos (ordenados por u) en una misma línea de cota."""
+        lv = self._lvl(side, level)
+        pts = sorted(pts, key=lambda p: self.uv(p)[0])
+        for a, b in zip(pts, pts[1:]):
+            if abs(self.uv(b)[0] - self.uv(a)[0]) > 0.05:
+                self.dimh(a, b, side, lv, on=on, **kw)
+
+    def chain_v(self, pts, side="right", level=None, on=None, **kw):
+        lv = self._lvl(side, level)
+        pts = sorted(pts, key=lambda p: self.uv(p)[1])
+        for a, b in zip(pts, pts[1:]):
+            if abs(self.uv(b)[1] - self.uv(a)[1]) > 0.05:
+                self.dimv(a, b, side, lv, on=on, **kw)
+
+    def note_hole(self, c3, r, ang_deg, text, ext=14.0, on=None):
+        """Llamada «n × Ø… » apuntando a un agujero (radio r del modelo), verificada contra el eje del cilindro."""
+        ok = COTAS.axis_ok(c3, r, on or self.keys)
+        COTAS.add(vista=self.label, texto=text, valor_dibujo=round(2 * r, 3), tipo="agujero", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
+        if not ok:
+            print(f"   AGUJERO NO VERIFICADO [{COTAS.sheet}] {text}")
+        a = math.radians(ang_deg)
+        c = self.P(c3)
+        p1 = (c[0] + r * self.scale * math.cos(a), c[1] + r * self.scale * math.sin(a))
+        q = (c[0] + (r * self.scale + ext) * math.cos(a), c[1] + (r * self.scale + ext) * math.sin(a))
+        self.S.leader(p1, q, text)
+
+    def note_pt(self, p3, off, text, on=None, lines=None, dot=False):
+        """Llamada de texto con flecha hacia un punto 3D de la superficie (verificada)."""
+        d = COTAS.dist_to_surface(p3, on or self.keys)
+        ok = d < 0.05
+        COTAS.add(vista=self.label, texto=text if lines is None else " | ".join(lines), valor_dibujo=0.0, tipo="llamada", extremo_a=f"{d:.3f}", extremo_b="", ok=bool(ok))
+        if not ok:
+            print(f"   LLAMADA NO SOBRE LA SUPERFICIE [{COTAS.sheet}] {text}: {d:.2f}")
+        p = self.P(p3)
+        self.S.leader(p, (p[0] + off[0], p[1] + off[1]), text, lines=lines, dot=dot)
 
     # -- acotado con verificación --
     def _check(self, p3a, p3b, value, text, on, virt_a=None, virt_b=None, tipo="lineal"):

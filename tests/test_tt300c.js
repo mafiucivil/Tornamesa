@@ -462,7 +462,7 @@ test("4.ª pasada · masa de sectores: muescas, chaflanes y juntas descontadas c
     const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), R = A.R, I = R.ifc, m = R.m, Ro = R.Ro, Ri = R.Ri, Aan = Math.PI * (Ro ** 2 - Ri ** 2), P = A.P, ctx = nm + ": ";
     const jOf = (al, n) => rnd01(Math.max(P.j_sec, (al - ALS) * P.dT * 2 * Ro * Math.sin(Math.PI / n)));
     const top = (id) => I.topes.find((x) => x.id === id);
-    const rBz = P.rho_bz * 1e-6, fg = Math.PI * P.bz_plug_d ** 2 / (2 * Math.sqrt(3) * P.bz_plug_p ** 2), rEff = rBz * (1 - 0.7 * fg) + 1.8e-6 * 0.7 * fg;
+    const rBz = P.rho_bz * 1e-6, fg = I.fgUsed ?? 0, rEff = rBz * (1 - 0.7 * fg) + 1.8e-6 * 0.7 * fg;
     const exp = { ss: I.mSS, uhmw: I.mUH, bz: I.mBz }, desc = { ss: 0, uhmw: 0, bz: 0 };
     const sub = (tgt, rho, n, capas, t, L, joint, jj, strip) => {   // volumen por sector: junta (o franja libre) + muesca (no en la franja) + 2 chaflanes de a_inf²/2
       const Vj = joint ? (strip ? P.b_tope + jj : jj) * (Ro - Ri) * t : 0, Vn = strip ? 0 : b2 * L * t, Vc = a2 * L;
@@ -733,6 +733,7 @@ test("Temperatura · viscosidad del aceite (Walther) y mínimo de la bomba", () 
   assert.ok(TT.oilViscosity(60).lo > TT.oilViscosity(80).lo, "la viscosidad baja con T");
 });
 
+const ACC_GRPS = ["Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga"];   // grupos del accionamiento mecánico (fuera del alcance térmico con term_alcance = 1)
 test("Temperatura · a 20 °C el escenario reproduce el cálculo estándar (factores = 1) y la geometría queda congelada a T_serv", () => {
   for (const [id, fl] of Object.entries(THALTS)) {
     const Pa = Object.assign(TT.defaults(), fl), A0 = TT.analyze(Pa, { noFEA: true });
@@ -745,7 +746,7 @@ test("Temperatura · a 20 °C el escenario reproduce el cálculo estándar (fact
   for (const a of r.alternativas) {
     const Pa = Object.assign(TT.defaults(), THALTS[a.alt]), A = TT.analyze(Pa), I = A.R.ifc, [b20, b80] = a.byT;
     near(b20.FS, A.R.cd.FS, 1e-9, a.id + ": FS a 20 °C"); near(a.FS20, A.R.cd.FS, 1e-9, a.id + ": FS20");
-    near(b20.fuEst, Math.max(...A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && isFinite(c.fu)).map((c) => c.fu)), 1e-9, a.id + ": FU estructura máx. a 20 °C = el del análisis estándar");
+    near(b20.fuEst, Math.max(...A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && !ACC_GRPS.includes(c.grp)).map((c) => c.fu)), 1e-9, a.id + ": FU estructura máx. a 20 °C = el del análisis estándar sin el accionamiento (fuera de alcance)");
     near(b20.masa, A.R.m.total, 1e-9, a.id + ": masa a 20 °C"); assert.equal(b80.masa, b20.masa, a.id + ": la masa no cambia (geometría congelada)");
     assert.deepEqual([a.geometria.tss, a.geometria.tss2, a.geometria.tuh, a.geometria.tbz], [I.tss, I.tss2, I.tuh, I.tbz || 0].map((x, i) => (i === 3 ? I.tbz : x)), a.id + ": espesores del escenario = los de 20 °C");
     assert.equal(b20.FS, b80.FS, a.id + ": con μ constante el FS del giro no depende de la temperatura");
@@ -773,10 +774,12 @@ test("Temperatura · filas de juntas, buje de bronce, gradiente y uña: fórmula
   const D = P.D_piv, bu = row(/Buje de bronce–pivote: holgura con el buje libre/);
   near(bu.dem, (18e-6 - as) * 60 * D, 1e-9, "Δ holgura libre = (α_bz − α_acero)·ΔT·D (afloja)"); near(bu.cap, (18e-6 - as) * 60 * (D + 30), 1e-9, "Δ interferencia en el cubo (aprieta)");
   const bc = row(/cierre de la holgura diametral/); assert.ok(bc.dem > 0 && bc.dem < 0.05 && bc.estado === "ok", "con el buje retenido la holgura se reduce unas centésimas de mm y no se cierra: " + bc.dem); near(bc.cap, P.c_bush_d, 1e-12, "holgura en frío");
-  // (c) uña–pasador con la mesa caliente y la base a la sombra
+  // (c) uña–pasador con la mesa caliente y la base a la sombra (accionamiento: solo con term_alcance = 2)
   const eps = as * 60, dR = eps * P.R_pin, K = R.K;
-  near(row(/holgura radial de la uña en el patín/).dem, K.radial * (1 + eps) + 2 + dR, 1e-9, "holgura radial + α·ΔT·R_pin"); near(dR, 0.69, 0.02, "registro: 0,69 mm para 60 K y R_pin 930");
-  near(row(/caso uniforme/).dem, (P.x_g - K.armMin) * eps, 1e-9, "escala uniforme: ≈ 0,16 mm"); assert.ok(row(/caso uniforme/).dem < 0.2);
+  const f2 = TT.thermal(Object.assign(TT.defaults(), { term_alcance: 2 }), { T: [20, 80], alts: ["B"] }).alternativas[0].byT[1].filas, row2 = (re) => { const x = f2.find((q) => re.test(q.nombre)); assert.ok(x, "fila (alcance 2) " + re); return x; };
+  assert.ok(!f.some((q) => /Uña–pasador/.test(q.nombre)), "con term_alcance = 1 las filas de la uña no están en el escenario");
+  near(row2(/holgura radial de la uña en el patín/).dem, K.radial * (1 + eps) + 2 + dR, 1e-9, "holgura radial + α·ΔT·R_pin"); near(dR, 0.69, 0.02, "registro: 0,69 mm para 60 K y R_pin 930");
+  near(row2(/caso uniforme/).dem, (P.x_g - K.armMin) * eps, 1e-9, "escala uniforme: ≈ 0,16 mm"); assert.ok(row2(/caso uniforme/).dem < 0.2);
   // (d) gradiente de 15 K a 80 °C: κ = α·ΔT/h, flecha κ·(D/2)²/2, σ = E·α·ΔT/(2(1 − ν))
   const kap = as * 15 / P.h_disc, sig = P.E * as * 15 / (2 * (1 - P.nu));
   near(row(/curvatura térmica/).dem, kap * 1e3, 1e-9, "κ (1/m)"); near(row(/flecha en el diámetro/).dem, kap * (P.D_top / 2) ** 2 / 2, 1e-9, "flecha"); near(row(/tensión de flexión térmica/).dem, sig, 1e-9, "σ restringida");
@@ -789,7 +792,7 @@ test("Temperatura · filas de juntas, buje de bronce, gradiente y uña: fórmula
 const AL_UH_ = 180e-6;
 
 test("Temperatura · aceite atrapado: p_hold + Δp contra el cilindro, alivio térmico y recomendación", () => {
-  const P = TT.defaults(), g = (o, T) => TT.thermal(Object.assign(TT.defaults(), o), { T: [20, T || 80], alts: ["base"] }).alternativas[0].byT[1].filas;
+  const P = TT.defaults(), g = (o, T) => TT.thermal(Object.assign(TT.defaults(), { term_alcance: 2 }, o), { T: [20, T || 80], alts: ["base"] }).alternativas[0].byT[1].filas;   // el aceite atrapado es del circuito hidráulico: term_alcance = 2
   const rows = g({}), A = TT.analyze(P, { noFEA: true }), pd = A.R.cd.p, o = TT.oilTrapped(P, 80), dp = o.sel.hi.bar;
   assert.equal(P.oil_cont, 2, "contenedor por defecto: cilindro (Lamé)");
   const ho = rows.find((x) => /carrera de diseño: p_hold/.test(x.nombre)), cal = rows.find((x) => /tras el calado/.test(x.nombre)), ann = rows.find((x) => /cámara anular/.test(x.nombre)), vv = rows.find((x) => /Válvula de alivio térmico del tramo/.test(x.nombre));
@@ -807,11 +810,11 @@ test("Temperatura · aceite atrapado: p_hold + Δp contra el cilindro, alivio t�
   const dpOf = (c) => g({ oil_cont: c }).find((x) => /carrera de diseño: p_hold/.test(x.nombre)).dem - pd;
   assert.ok(dpOf(1) > dpOf(2) && dpOf(2) > dpOf(3), "rígido > cilindro > manguera"); near(dpOf(3), 140, 0.03, "manguera ≈ 140 bar");
   // a 20 °C no hay sobrepresión y la verificación pasa; a 40 K (T = 60) el aceite ya excede
-  assert.equal(TT.thermal(P, { T: [20, 80], alts: ["base"] }).alternativas[0].byT[0].filas.find((x) => /carrera de diseño: p_hold/.test(x.nombre)).estado, "ok");
+  assert.equal(TT.thermal(Object.assign(TT.defaults(), { term_alcance: 2 }), { T: [20, 80], alts: ["base"] }).alternativas[0].byT[0].filas.find((x) => /carrera de diseño: p_hold/.test(x.nombre)).estado, "ok");
 });
 
 test("Temperatura · aceite, sellos, grasa y sensibilidades (μ, Fy 0,92, UHMW k_p/k_E, madera)", () => {
-  const P = TT.defaults(), r = TT.thermal(P, { T: [20, 40, 60, 80, 100] }), by = (id) => r.alternativas.find((a) => a.id === id);
+  const P = Object.assign(TT.defaults(), { term_alcance: 2 }), r = TT.thermal(P, { T: [20, 40, 60, 80, 100] }), by = (id) => r.alternativas.find((a) => a.id === id);   // alcance 2: aceite, sellos y accionamiento incluidos (comportamiento anterior)
   const row = (a, T, re) => a.byT.find((b) => b.T === T).filas.find((x) => re.test(x.nombre));
   const bs = by("base");
   const v80 = row(bs, 80, /viscosidad a T_serv/), v100 = row(bs, 100, /viscosidad a T_serv/);
@@ -891,7 +894,7 @@ const thSnap = (P) => {
     filas: Object.fromEntries(b.filas.map((x) => [x.nombre, x.fu == null ? -1 : (isFinite(x.fu) ? x.fu : 1e9)])), estados: b.filas.map((x) => x.estado).join(",") }]))]));
 };
 test("Temperatura · golden del escenario anterior (term_alcance = 2 reproduce el comportamiento previo en las siete alternativas)", () => {
-  const snap = thSnap(Object.assign(TT.defaults(), { term_alcance: 2 }));
+  const snap = thSnap(Object.assign(TT.defaults(), { term_alcance: 2, bz_fg_modo: 0, bz_fg_min: 0.1 }));   // el golden se generó con f_g ideal y sin el criterio de lubricación (anteriores a los tapones reales)
   const f = path.join(__dirname, "golden", "tt300c_termica_alcance2.json");
   if (process.env.UPDATE_GOLDEN || !fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(snap, null, 1));
   const g = JSON.parse(fs.readFileSync(f, "utf8"));
@@ -1005,7 +1008,7 @@ test("Tapones · criterio de lubricación f_g ≥ bz_fg_min (supuesto C): aviso 
     assert.equal(lub(bzA(conf, { bz_fg_modo: 0, bz_fg_min: 0.14 })).st, "ok");
   }
   // ligamento mínimo (criterio de proyecto): η ≥ bz_eta_min
-  const eta = (o) => bzA(1, o).checks.find((c) => /Ligamento entre tapones/.test(c.name));
+  const eta = (o) => bzA(1, o).checks.find((c) => /ligamento mínimo entre tapones/.test(c.name));
   assert.equal(eta({}).st, "ok"); assert.equal(eta({ bz_plug_d: 18, bz_plug_p: 30 }).st, "fail", "η = 0,40 < 0,45");
 });
 
@@ -1052,4 +1055,45 @@ test("Tapones · interfazGeom y apoyo.interfaz exponen N_real, f_g real e ideal 
   const A = bzA(1), I = A.R.ifc;
   for (const k of ["Nreal", "Nideal", "fgReal", "fgIdeal", "fgUsed", "cobGrafito", "tap"]) assert.ok(k in I, "R.ifc." + k);
   assert.ok(!("tap" in TT.compute(TT.defaults()).ifc) || TT.compute(TT.defaults()).ifc.tap == null, "sin opción C no hay tapones");
+});
+
+test("Temperatura · alcance (term_alcance): 1 = sistema de placas y disco, sin filas del circuito hidráulico ni del accionamiento en el escenario; 2 las reactiva", () => {
+  const P1 = TT.defaults(), P2 = Object.assign(TT.defaults(), { term_alcance: 2 });
+  assert.equal(P1.term_alcance, 1, "default: placas y disco");
+  const prm = TT.PARAM_GROUPS.find((g) => g.id === "temperatura").p.find((q) => q[0] === "term_alcance"); assert.ok(prm && /placas y disco/.test(prm[1]) && prm[4] === 1 && prm[5] === 2);
+  const HID = /Aceite|aceite|Sellos NBR|viscosidad|Bomba con viscosidad|Válvula de alivio térmico|Uña–pasador|Patín fuera de la mesa|Bancada de guía fuera/;
+  const r1 = TT.thermal(P1, { T: [20, 80] }), r2 = TT.thermal(P2, { T: [20, 80] });
+  assert.equal(r1.alcance, 1); assert.equal(r2.alcance, 2); assert.ok(/placas y disco/.test(r1.alcance_texto) && /Alcance 2/.test(r2.alcance_texto));
+  assert.equal(r1.aceite_fuera_de_alcance, true); assert.equal(r2.aceite_fuera_de_alcance, false);
+  assert.ok(r1.avisos.some((x) => /Nota informativa \(fuera de alcance\)/.test(x) && /alivio térmico/.test(x)) && r2.avisos.some((x) => /exige válvula de alivio térmico/.test(x) && !/fuera de alcance/.test(x)), "el aviso de la válvula pasa a nota informativa");
+  assert.ok(r1.supuestos_fuera_alcance.length === 3 && r2.supuestos_fuera_alcance.length === 0);
+  for (const a of r1.alternativas) for (const b of a.byT) {
+    assert.ok(!b.filas.some((x) => HID.test(x.nombre) || x.sub === "c" || x.sub === "e" || x.sub === "f"), a.id + " " + b.T + ": ninguna fila hidráulica ni de accionamiento en el escenario");
+    if (b.T === 80) { const malas = b.filas.filter((x) => x.estado === "fail");   // lo térmico solo falla por filas del sistema de placas y disco (juntas, gradiente)
+      assert.equal(b.termico, ["base", "A", "C1", "C2"].includes(a.id), a.id + ": el aceite atrapado ya no hace fallar lo térmico; B y C3 fallan por la junta de la lámina / el gradiente");
+      assert.equal(malas.length > 0, !b.termico); }
+    assert.ok(b.fuera_alcance.length >= 15 && b.fuera_alcance.every((x) => x.estado_informativo && "fu" in x), "las filas movidas quedan en la sección informativa");
+    assert.ok(b.fuera_alcance.some((x) => /Aceite atrapado/.test(x.nombre)) && b.fuera_alcance.some((x) => x.grp === "Uña") && b.fuera_alcance.some((x) => x.grp === "Pasadores de empuje") && b.fuera_alcance.some((x) => x.grp === "Patín y guía"));
+    assert.ok(!b.sensibles.concat(b.sensibles_est, b.cambian).some((x) => ACC_GRPS.includes(x.grp) || HID.test(x.nombre)), "ni sensibles ni cambios de estado incluyen filas fuera de alcance");
+    if (b.T === 80) assert.ok(b.fuera_resumen.fail >= 3, a.id + ": el aceite atrapado fallaría (informativo): " + b.fuera_resumen.fail);
+    assert.equal(b.fuera_resumen.n, b.fuera_alcance.length);
+  }
+  // el estado, el FU y el veredicto de alcance 1 no dependen de las filas movidas
+  for (const a of r1.alternativas) {
+    const b = a.byT[1], a2 = r2.alternativas.find((x) => x.id === a.id), b2 = a2.byT[1];
+    assert.ok(b2.fuera_alcance.length === 0 && b2.filas.some((x) => /Aceite atrapado/.test(x.nombre)), a.id + ": con alcance 2 reaparecen");
+    assert.equal(b2.termico, false, a.id + ": con alcance 2 el aceite atrapado hace fallar lo térmico (comportamiento anterior)");
+    assert.ok(b.fuTerm <= b2.fuTerm + 1e-12 && b.nFail <= b2.nFail);
+    assert.equal(b.FS, b2.FS); assert.equal(b.masa, b2.masa);
+  }
+  const base = r1.alternativas.find((a) => a.id === "base").byT[1], base2 = r2.alternativas.find((a) => a.id === "base").byT[1];
+  assert.ok(base.fuEst <= base2.fuEst + 1e-12 && base.gira && base.estructura && base.termico, "base a 80 °C con alcance 1: gira, estructura y térmica cumplen");
+  assert.equal(base.fuTerm, base.filas.filter((x) => x.fu != null && isFinite(x.fu)).reduce((m, x) => Math.max(m, x.fu), 0) || base.fuTerm, "FU térmico = máx. de las filas del escenario");
+  // el análisis estándar (sin escenario térmico) no depende de term_alcance
+  const s1 = TT.analyze(P1, { noFEA: true }), s2 = TT.analyze(P2, { noFEA: true });
+  assert.deepEqual(s1.checks.map((c) => [c.name, c.fu, c.st]), s2.checks.map((c) => [c.name, c.fu, c.st])); assert.ok(s1.checks.every((c) => !c.fuera));
+  // las filas del accionamiento mantienen su valor calculado (solo se marcan)
+  const A80a = TT.analyze(TT.thermalP(P1, 80), { noFEA: true }), A80b = TT.analyze(TT.thermalP(P2, 80), { noFEA: true });
+  assert.deepEqual(A80a.checks.filter((c) => c.grp === "Uña").map((c) => [c.name, c.fu, c.st, c.fuera === true]), A80b.checks.filter((c) => c.grp === "Uña").map((c) => [c.name, c.fu, c.st, true]));
+  assert.ok(A80a.checks.filter((c) => c.fuera).every((c) => ACC_GRPS.includes(c.grp) || (c.grp === "Temperatura")));
 });

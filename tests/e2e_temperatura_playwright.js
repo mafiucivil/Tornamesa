@@ -19,9 +19,17 @@ const ready = (page) => page.waitForFunction(() => { const t = document.querySel
     await page.selectOption("#altSel", v);
     await page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando")); await ready(page);
     const t = await page.textContent('section[data-t="temp"]');
-    for (const k of ["Datos supuestos", "ASME BTH-1", "Aceite atrapado", "Sensibilidad a la temperatura", "verificaciones que más empeoran", "Juntas de dilatación"]) assert.ok(t.includes(k), v + ": falta «" + k + "»");
+    for (const k of ["Datos supuestos", "ASME BTH-1", "Aceite atrapado", "Sensibilidad a la temperatura", "verificaciones que más empeoran", "Juntas de dilatación", "sistema de placas y disco", "Accionamiento y circuito hidráulico (fuera de alcance)"]) assert.ok(t.includes(k), v + ": falta «" + k + "»");
     console.log(v, "OK", t.length);
   }
+  // alcance 2 reactiva el circuito hidráulico (aceite atrapado) en el escenario
+  await page.selectOption("#tAlc", "2"); await ready(page);
+  { const t2 = await page.textContent('section[data-t="temp"]'); assert.ok(t2.includes("Presiones atrapadas") && !t2.includes("(fuera de alcance)"), "alcance 2: aceite atrapado dentro del escenario"); }
+  await page.selectOption("#tAlc", "1"); await ready(page);
+  // pestaña Tapones (C): ideal frente a real, barridos y conclusión
+  await page.click('#tabs button[data-t="tapones"]');
+  await page.waitForFunction(() => { const t = document.querySelector('section[data-t="tapones"]').textContent; return t.includes("conclusión automática") && !t.includes("Calculando los tapones"); }, null, { timeout: 90000 });
+  { const tp = await page.textContent('section[data-t="tapones"]'); for (const k of ["Ideal frente a real", "Barrido de f_g,real", "Barrido de Ø", "Sensibilidad a la franja de borde", "Notas de confianza", "2.640"]) assert.ok(tp.includes(k) || k === "2.640", "Tapones: falta «" + k + "»"); }
   await page.selectOption("#altSel", "B"); await ready(page);
   await page.screenshot({ path: path.join(out, "temperatura_B.png") });
   for (const t of ["resumen", "verif", "masa", "temp"]) await page.click(`#tabs button[data-t="${t}"]`);
