@@ -162,9 +162,16 @@ class Hoja:
     def info(self, n, total):
         g = self.ctx.g
         return dict(proj="TT300-C · TORNAMESA HIDRÁULICA 300 tf", subproj=f"Interfaz: {g.interfaz_nombre}", titulo=self.titulo, plano=self.plano, lamina=f"{n} de {total}",
-                    escala=self.escala, formato=f"{self.fmt} ({int(self.s.W)}×{int(self.s.H)})", material=self.material, masa=self.masa, trat=self.trat, rev=REV, fecha=g.FECHA, revs=self.ctx.revs,
+                    escala=self._escala_txt(), formato=f"{self.fmt} ({int(self.s.W)}×{int(self.s.H)})", material=self.material, masa=self.masa, trat=self.trat, rev=REV, fecha=g.FECHA, revs=self.ctx.revs,
                     aviso=ADVERTENCIA, estado="EMITIDO PARA REVISIÓN — NO APTO PARA FABRICACIÓN HASTA SU APROBACIÓN",
                     generales="Tolerancias generales ISO 2768-mK; soldadura ISO 2553 / ISO 5817; rugosidad ISO 1302; GD&T ISO 1101.")
+
+    def _escala_txt(self):
+        e = self.escala
+        if tw(e, 3.5) <= 36:
+            return e
+        parts = [x.strip() for x in e.split("/") if x.strip()]
+        return f"{parts[0]} a {parts[-1]} (ver vistas)" if len(parts) > 1 else e
 
     def finish(self, n, total):
         self.s.frame(self.info(n, total))

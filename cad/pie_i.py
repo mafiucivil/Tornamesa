@@ -304,21 +304,25 @@ def sheet_int_graseras(ctx):
     return p.h
 
 
-@pieza("int_disco_mesa", "int_cara", nogroup=True)
+@pieza("int_disco_mesa", "int_bronce", nogroup=True)
 def sheet_int_ranuras(ctx):
     g, P, m = ctx.g, ctx.P, ctx.m
     lay = m.layout
-    key = "int_disco_mesa" if m.get("int_disco_mesa") else "int_cara"
     if g.opt not in (1, 3) or g.h_gr <= 0:
         return None
-    ks = [key]
-    p = Pieza(ctx, ks, "INTERFAZ: RANURAS DE ENGRASE EN LA CARA DESLIZANTE DE LA MESA (TRAZADO)", fmt="A1", code="INT-101")
+    # opción A: ranuras en el disco de la mesa (cara inferior); opción C: ranuras en la placa de bronce de la base (cara superior)
+    key, face = ("int_disco_mesa", "bot") if g.opt == 1 else ("int_bronce", "top")
+    if not m.get(key):
+        return None
+    p = Pieza(ctx, [key], "INTERFAZ: RANURAS DE ENGRASE EN LA CARA DESLIZANTE (TRAZADO: 12 RADIALES Y CIRCUNFERENCIALES, GRASERAS)", fmt="A1", code="INT-101")
     s = p.s
     nk, th = sector_local(ctx, key)
     bb = ctx.shapes[nk].BoundingBox()
-    zs = bb.zmin
+    t = bb.zlen
+    zs = bb.zmin if face == "bot" else bb.zmax
+    sg = 1.0 if face == "bot" else -1.0          # el material está hacia +z (bot) o hacia -z (top) desde la cara deslizante
+    zf = zs + sg * g.h_gr                        # fondo de las ranuras
     rr = lay.r_circ
-    allk = [k for k in ("int_disco_mesa", "int_cara") if m.get(k)]
     p.iso_keys = [nk]
 
     def planta(V, p):
@@ -329,37 +333,35 @@ def sheet_int_ranuras(ctx):
             q1, q2 = polar(g.Ri, phi), polar(g.Ro, phi)
             s.line(V.P(q1[0], q1[1], zs), V.P(q2[0], q2[1], zs), "EJE")
         for i, r in enumerate(rr):
-            q = polar(r, 90 - 0.0)
-            V.dim_rad(c3, r, 100 + 12 * i, on=allk, text=f"R{fm(r, 0)}", ext=18 + 6 * i) if False else None
-            s.leader(V.P(r * math.cos(math.radians(30 + 15 * i)), r * math.sin(math.radians(30 + 15 * i)), zs), (V.P(0, 0, zs)[0] + 30 + 60 * i, V.P(0, 0, zs)[1] + g.Ro * V.scale * 0.35 + 18 * i), f"circunferencial {i + 1}: R{fm(r, 0)} (centro de la ranura)", dot=True)
+            a_ = math.radians(40 + 22 * i)
+            pa = V.P(r * math.cos(a_), r * math.sin(a_), zs)
+            s.leader(pa, (V.ext[2] + 12, pa[1] + 6 * i), f"circunferencial {i + 1}: R{fm(r, 0)} (eje de la ranura)", dot=True)
         s.text(f"{g.n_gr_rad} ranuras radiales a k·{fm(360 / g.n_gr_rad, 2)}° (k = 0…{g.n_gr_rad - 1}), de R_i = {fm(g.Ri, 0)} a R_o = {fm(g.Ro, 0)}; extremos abiertos", (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
         for gp in (m.info.get("grease_pts") or [])[:g.n_greaser]:
             a = math.degrees(math.atan2(gp[1], gp[0]))
             q = polar(g.Ro + 12, a)
             s.text("G", V.P(q[0], q[1], zs), T_N + 1, "MIDDLE_CENTER", bold=True)
         s.dim_ang(V.P(c3), g.Ri * V.scale * 0.8, 0, 360.0 / g.n_gr_rad, f"{fm(360 / g.n_gr_rad, 2)}° (paso)")
-    p.vs("planta", {k: ctx.shapes[k] for k in allk}, "bottom", lv=(1, 1, 1, 1), extra=(0, 0, 100, 20), draw=planta, hatch=False, title="PLANTA DE LA CARA DESLIZANTE DE LA MESA (vista desde abajo; ranuras y graseras G)", w=2.0,
-         auto=dict(holes=False, verts=False, only_extents=True), mat={k: ctx.mat.get(k, "acero") for k in allk})
-    zf = bb.zmin + g.h_gr           # fondo de las ranuras (la cara deslizante de la mesa es la inferior)
+    allk = {k: ctx.shapes[k] for k in [key] if k in ctx.shapes}
+    p.vs("planta", allk, "bottom" if face == "bot" else "top", lv=(1, 1, 1, 1), extra=(0, 0, 140, 20), draw=planta, hatch=False,
+         title=f"PLANTA DE LA CARA DESLIZANTE (vista {'desde abajo' if face == 'bot' else 'desde arriba'}; ranuras y graseras G)", w=2.0, auto=dict(holes=False, verts=False, only_extents=True), mat={k: ctx.mat.get(k, "acero") for k in allk})
 
     def sec(V, p):
-        pts = [(g.Ri, 0, bb.zmin)] + [(r, 0, zf) for r in sorted(rr)] + [(g.Ro, 0, bb.zmin)]
+        pts = [(g.Ri, 0, zs)] + [(r, 0, zf) for r in sorted(rr)] + [(g.Ro, 0, zs)]
         for a_, b_ in zip(pts, pts[1:]):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
         V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (R_i a R_o)")
-        for i, r in enumerate(sorted(rr)):
-            V.note_pt((r, 0, zf), (0, 30 + 9 * i), f"ranura circunferencial R{fm(r, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", on=[nk], dot=True) if False else None
-    p.vs("sector", [nk], "bottom", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
+    p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
          auto=dict(holes=False, verts=False, only_extents=True, overall=False))
-    # corte transversal de una ranura circunferencial (bisectriz del sector)
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
-    p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, -bb.zlen - 6, 60, 10), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,
-         auto=dict(tol={round(g.w_gr, 1): " (ancho)", round(g.h_gr, 1): " (prof.)"}, holes=False))
+    zlo, zhi = (-10, t + 6) if face == "bot" else (-t - 6, 10)
+    p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, zlo, 60, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,
+         auto=dict(tol={round(g.w_gr, 1): " (ancho)", round(g.h_gr, 1): " (prof.)", round(t, 1): " (e)"}, holes=False))
     rows = [["Ranuras radiales", f"{g.n_gr_rad} × a k·{fm(360 / g.n_gr_rad, 2)}°; de R{fm(g.Ri, 0)} a R{fm(g.Ro, 0)}"], ["Ranuras circunferenciales", f"{g.n_gr_circ}; R = " + ", ".join(fm(r, 0) for r in rr)],
             ["Ancho / profundidad", f"{fm(g.w_gr, 0)} / {fm(g.h_gr, 1)} mm (sección rectangular, aristas rotas 0,5×45°)"], ["Graseras", f"{g.n_greaser} a R_o − 30 (ver lámina de graseras)"], ["Área perdida", "ver núcleo (área de ranuras)"]]
     p.table_block("PARÁMETROS DE LAS RANURAS (JSON del núcleo + S05)", [("Parámetro", 50, "L"), ("Valor", 120, "L")], rows)
     p.tables()
-    p.notes([f"Ranuras fresadas en la cara deslizante de cada sector de mesa: ancho {fm(g.w_gr, 0)} × profundidad {fm(g.h_gr, 1)} mm (S05, PROVISORIO); radiales abiertas hacia el perímetro (purga), circunferenciales a R = {', '.join(fm(r, 0) for r in rr)}.",
+    p.notes([f"Ranuras fresadas en la cara deslizante de cada sector ({'disco de la mesa' if g.opt == 1 else 'placa de bronce de la base'}): ancho {fm(g.w_gr, 0)} × profundidad {fm(g.h_gr, 1)} mm (S05, PROVISORIO); radiales abiertas hacia el perímetro (purga), circunferenciales a R = {', '.join(fm(r, 0) for r in rr)}.",
              f"Las ranuras circunferenciales cruzan las {g.n_gr_rad} radiales: el trazado se repite igual en cada sector (los sectores de {fm(th, 3)}° se mecanizan idénticos).", "Desbarbar y romper aristas 0,5×45°; Ra ≤ 1,6 en el fondo; lapear la cara después de fresar.",
              "Las ranuras no deben cortar los avellanados de los tornillos ni la muesca del tope (distancia ≥ 3 mm)."],
             gd=[("pos", "±0,5", "A", "Posición de las ranuras radiales respecto de la bisectriz del sector (A)")])

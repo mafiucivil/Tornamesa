@@ -181,38 +181,83 @@ def plan_cells(specs, shapes, zone):
     caps = [sp.maxs for sp in specs]
     wts = [sp.w for sp in specs]
     iso = [sp.iso for sp in specs]
-    best = None
     import random
     rnd = random.Random(7)
-    idx = list(range(n))
-    perms = [tuple(idx)]
-    if n <= 4:
-        perms = list(itertools.permutations(idx))
-    else:
-        seen = {tuple(idx)}
-        while len(perms) < (40 if n == 5 else 24):
-            q = idx[:]
-            rnd.shuffle(q)
-            if tuple(q) not in seen:
-                seen.add(tuple(q)); perms.append(tuple(q))
     mins_ = [sp.mins for sp in specs]
-    for perm in perms:
-        for mode in ("rows", "cols"):
-            for groups0 in _compositions(n):
-                if max(len(g) for g in groups0) > 4 or len(groups0) > 4:
-                    continue
-                groups = [[perm[i] for i in g] for g in groups0]
-                if mode == "cols" and len(groups) == 1 and n > 1:
-                    continue
-                r = _solve(groups, mode, zone, nat, mar, caps, wts, iso, mins_)
-                if r is None:
-                    continue
+    idx = list(range(n))
+
+    def groups_of(perm, mask):
+        cuts = [i + 1 for i in range(n - 1) if mask >> i & 1]
+        edges = [0] + cuts + [n]
+        return [[perm[i] for i in range(edges[k], edges[k + 1])] for k in range(len(edges) - 1)]
+
+    cache = {}
+
+    def evaluate(perm, mask, mode):
+        key = (perm, mask, mode)
+        if key in cache:
+            return cache[key]
+        groups = groups_of(perm, mask)
+        res = None
+        if not (max(len(g) for g in groups) > 4 or len(groups) > 4 or (mode == "cols" and len(groups) == 1 and n > 1)):
+            r = _solve(groups, mode, zone, nat, mar, caps, wts, iso, mins_)
+            if r is not None:
                 score, sc, lines = r
                 for i, sp in enumerate(specs):
                     if sp.mins and sc[i] < sp.mins - 1e-9:
                         score -= 4.0 * wts[i] * math.log(sp.mins / sc[i])
-                if best is None or score > best[0]:
-                    best = (score, mode, groups, sc, lines)
+                res = (score, mode, groups, sc, lines)
+        cache[key] = res
+        return res
+    best = None
+    if n <= 4:
+        for perm in itertools.permutations(idx):
+            for mask in range(2 ** (n - 1)):
+                for mode in ("rows", "cols"):
+                    r = evaluate(perm, mask, mode)
+                    if r and (best is None or r[0] > best[0]):
+                        best = r
+    else:
+        starts = [tuple(idx)]
+        for keyf in (lambda i: -wts[i], lambda i: -nat[i][0] * nat[i][1] * wts[i], lambda i: -nat[i][1], lambda i: -nat[i][0], lambda i: nat[i][0] * nat[i][1]):
+            starts.append(tuple(sorted(idx, key=keyf)))
+        for _ in range(6):
+            q = idx[:]
+            rnd.shuffle(q)
+            starts.append(tuple(q))
+        cands = []
+        for perm in starts:
+            for mask in range(2 ** (n - 1)):
+                cnt = bin(mask).count("1") + 1
+                if cnt > 4:
+                    continue
+                for mode in ("rows", "cols"):
+                    r = evaluate(perm, mask, mode)
+                    if r:
+                        cands.append((r[0], perm, mask, mode))
+        cands.sort(key=lambda t: -t[0])
+        for score0, perm, mask, mode in cands[:6]:
+            cur = (score0, perm, mask, mode)
+            for _ in range(260):
+                p2, m2, md2 = list(cur[1]), cur[2], cur[3]
+                mv = rnd.random()
+                if mv < 0.6:
+                    i, j = rnd.sample(range(n), 2)
+                    p2[i], p2[j] = p2[j], p2[i]
+                elif mv < 0.9:
+                    m2 ^= 1 << rnd.randrange(n - 1)
+                else:
+                    md2 = "cols" if md2 == "rows" else "rows"
+                r = evaluate(tuple(p2), m2, md2)
+                if r and r[0] > cur[0]:
+                    cur = (r[0], tuple(p2), m2, md2)
+            r = evaluate(cur[1], cur[2], cur[3])
+            if r and (best is None or r[0] > best[0]):
+                best = r
+        for score0, perm, mask, mode in cands[:1]:
+            r = evaluate(perm, mask, mode)
+            if r and (best is None or r[0] > best[0]):
+                best = r
     if best is None:
         raise RuntimeError("ninguna disposición cabe en la zona de vistas: " + str([sp.name for sp in specs]))
     score, mode, groups, sc, lines = best

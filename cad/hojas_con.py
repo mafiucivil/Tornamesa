@@ -361,7 +361,7 @@ def sheet_base_soldada(ctx):
         V.dimh((-xg, B / 2, tb), (xg, B / 2, tb), "top", 1, on=["base_plancha"], text=f"{f(2 * xg)} (entre ejes de bancadas)")
         c.cut_mark("planta", "A", (-B / 2 - 20, 0, tb), (B / 2 + 20, 0, tb), 90)
         c.cut_mark("planta", "B", (c1[0], -B / 2 - 20, tb), (c1[0], B / 2 + 20, tb), 180)
-    c.vs("planta", sh, "top", lv=(1, 1, 1, 2), extra=(20, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.5)
+    c.vs("planta", sh, "top", lv=(1, 1, 1, 2), extra=(20, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=4.0)
 
     def cA(V, c):
         balloons_auto(c, V, [k for k in ks if k not in ("orejas",)], pred=lambda q: q[1] >= -0.5, gap=12, off=12)
@@ -484,7 +484,7 @@ def sheet_mesa_conj2(ctx):
         if len(D["almas"]) > 2:
             V.dimv((D["almas"][-1], 0, g.z0 + g.tbo), (D["almas"][-1], 0, zt0), "right", 0, on=["mesa_alma2_W"], text=f"{f(g.hw)}")
         V.dimh((g.d_bush / 2, 0, zt0), (P["D_hub"] / 2, 0, zt0), "top", 0, on=["mesa_cubo_W"], text=f"{fm((P['D_hub'] - g.d_bush) / 2, 0)} (cubo)")
-    c.vs("cw", ws, "front", cut=CUT_Y, lv=(1, 1, 2, 2), extra=(20, 20, 20, 20), draw=cw, mat=mm, hs=0.7, title=f"CORTE POR ALMAS (plano a {fm(ang, 2)}°, entre nervios)", auto=False, w=1.6)
+    c.vs("cw", ws, "front", cut=CUT_Y, lv=(1, 1, 2, 2), extra=(20, 20, 20, 20), draw=cw, mat=mm, hs=0.7, title=f"CORTE POR ALMAS (plano a {fm(ang, 2)}°, entre nervios)", auto=False, w=4.0)
     kc = [k for k in ("base_plancha", "collar", "mesa_plancha_inf", "mesa_cubo", "pivote", "buje") if k in ctx.shapes]
 
     def cc(V, c):
@@ -561,7 +561,7 @@ def sheet_pivote_conj(ctx):
         V.dimh((-P["D_hub"] / 2, 0, g.z0 + g.tbo + 40), (P["D_hub"] / 2, 0, g.z0 + g.tbo + 40), "top", 0, on=["mesa_cubo"], text=f"Ø{f(P['D_hub'])} (cubo)")
         V.dimh((-g.D_boss / 2, 0, g.tb + g.h_boss - 2), (g.D_boss / 2, 0, g.tb + g.h_boss - 2), "bottom", 0, on=["collar"], text=f"Ø{f(g.D_boss)} (collar)")
         V.dimh((-P["D_piv"] / 2, 0, g.tb + 20), (P["D_piv"] / 2, 0, g.tb + 20), "bottom", 1, on=["pivote", "collar"], text=tol_txt(P["D_piv"], "p6") + " / H7") if False else None
-    c.vs("cA", sh, "front", cut=CUT_Y, center=(0, 0, 0), win=(-190, -8, 190, top + 20), lv=(2, 2, 3, 2), extra=(20, 20, 40, 20), draw=cA, mat=mm, hs=0.5, title="CORTE A-A (eje del pivote)", auto=False, w=1.6)
+    c.vs("cA", sh, "front", cut=CUT_Y, center=(0, 0, 0), win=(-190, -8, 190, top + 20), lv=(2, 2, 3, 2), extra=(20, 20, 40, 20), draw=cA, mat=mm, hs=0.5, title="CORTE A-A (eje del pivote)", auto=False, w=3.0)
     c.vs("det_f", [k for k in ("pivote", "buje", "mesa_cubo") if k in ctx.shapes], "front", cut=CUT_Y, center=(P["D_piv"] / 2, 0, g.z_bush0 + P["L_bush"] / 2), win=(-30, -P["L_bush"] / 2 - 10, 100, P["L_bush"] / 2 + 10), lv=(1, 1, 1, 1), hs=0.35, maxs=2.0,
          title="DETALLE A: AJUSTES DEL BUJE (F7/f7 Y s6/H7)", auto=dict(on=["pivote", "buje", "mesa_cubo"]), mat=mats(ctx, ["pivote", "buje", "mesa_cubo"]), w=1.0)
     ajs = [a for a in hojas_base.ajustes(ctx) if a[0] in ("Pivote en plancha base y collar", "Pivote en buje", "Buje en cubo de la mesa")]
