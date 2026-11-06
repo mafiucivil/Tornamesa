@@ -24,6 +24,7 @@ class Ctx:
         self.m, self.g, self.D, self.P = m, m.g, m.D, m.g.P
         self.sup = supuestos(m.g)
         self.DV = m.g.DV
+        self.M = m.g.M
         self.shapes = {p.key: cq.Compound.makeCompound(list(p.solid.vals())) for p in m.parts}
         COTAS.set_shapes(self.shapes)
         self.hojas = []

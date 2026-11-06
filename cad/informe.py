@@ -64,21 +64,23 @@ def explicar_masas(ctx, rep):
         if gr in ("ss", "bz", "uhmw") and g.opt:
             lay = ctx.m.layout
             n = g.n_sec
-            ts = [l["t"] for l in g.stack]
             rho = {"ss": RHO_SS, "bz": P["rho_bz"] * 1e-6, "uhmw": RHO_UH}[gr]
-            causas = []
+            causas, tot = [], 0.0
             if gr != "uhmw":
-                tsum = sum(l["t"] for l in g.stack if (l["id"] in ("disc_base", "disc_mesa", "cara") and gr == "ss" and not (g.opt == 3 and g.conf == 2)) or (l["id"] == "bronce" and gr == "bz"))
+                capas = [(l, lay.L_base if l["lado"] == "base" else lay.L_mesa) for l in g.stack if (gr == "ss" and l["id"] in ("disc_base", "disc_mesa", "cara") and not (g.opt == 3 and g.conf == 2)) or (gr == "bz" and (l["id"] == "bronce" or (l["id"] == "cara" and g.conf == 2)))]
+                tsum = sum(l["t"] for l, _ in capas)
                 hole = rho * math.pi * (g.Ri_if ** 2 - g.Ri_core ** 2) * tsum
-                causas.append(f"agujero central mayor por el collar (R_i {fm(g.Ri_if, 1)} frente a {fm(g.Ri_core, 0)}): {fm(hole, 1)} kg")
+                jun = rho * n * g.junta("disc") * (g.Ro - g.Ri_if) * tsum
+                nt = rho * n * (lay.b_tope + 2) * sum((L_ or 0) * l["t"] for l, L_ in capas) if g.removable else 0.0
+                causas += [f"agujero central mayor por el collar (R_i {fm(g.Ri_if, 1)} frente a {fm(g.Ri_core, 0)}): {fm(hole, 1)} kg", f"juntas de {fm(g.junta('disc'), 1)} mm entre {n} sectores: {fm(jun, 1)} kg"]
+                if nt:
+                    causas.append(f"muescas de los topes ({fm(lay.b_tope + 2, 0)} mm de ancho): {fm(nt, 1)} kg")
+                tot = hole + jun + nt
+                res = -r["dif"] - tot
+                causas.append(("tapones de grafito, ranuras de engrase y agujeros avellanados / otros" if gr == "bz" else "ranuras de engrase y agujeros avellanados") + f": {fm(res, 1)} kg")
             else:
-                th_u = 360.0 / g.n_seg
-                strip = rho * g.n_seg * (lay.b_tope + g.junta('uhmw')) * (g.Ro - g.Ri_if) * g.I["tuh"]
-                causas.append(f"franjas de las barras del rebaje y juntas entre sectores de UHMW: {fm(strip, 1)} kg")
-            if gr == "ss" and g.removable:
-                causas.append("muescas de los topes, juntas de 1 mm, ranuras de engrase y agujeros avellanados")
-            if gr == "bz":
-                causas.append("tapones de grafito (más livianos que el bronce que reemplazan), ranuras, muescas y juntas")
+                strip = rho * g.n_seg * (lay.b_tope + g.junta("uhmw")) * (g.Ro - g.Ri_if) * g.I["tuh"]
+                causas.append(f"franjas de las barras del rebaje y juntas entre sectores de UHMW: {fm(strip, 1)} kg; resto por el collar")
             t += "; ".join(causas) + "."
         elif gr == "wood":
             mm = {p.key: p for p in ctx.m.parts}

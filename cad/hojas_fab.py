@@ -568,6 +568,11 @@ def sheet_pivote(ctx):
 
 
 # ======================================================================================================
+def no_desm(s, ctx):
+    if ctx.g.opt and not ctx.g.removable:
+        s.text("NO DESMONTABLE: FIJACIÓN PEGADA (fix_mode = 2). La interfaz no admite limpieza ni cambio sin destruir la unión.", (30, 562), 3.6, "TOP_LEFT", bold=True)
+
+
 def int_keys(ctx):
     """Claves de interfaz por lado: (base, mesa, extras)."""
     g, m = ctx.g, ctx.m
@@ -597,6 +602,7 @@ def sheet_int_conj(ctx):
     h = Hoja(ctx, "INT", 1, f"INTERFAZ {int_title(ctx)}: CONJUNTO Y CORTE", "1:10 / 1:4 / 1,2:1", material="Ver despiece de la interfaz", masa=f"{f(ctx.mass_of(*keys), 1)} kg",
              trat="Ver despiece")
     s = h.begin()
+    no_desm(s, ctx)
     tb, z0 = g.tb, g.z0
     zt = z0 - 0.0
     V1 = View(s, ctx.sh(*base_side), "top", (125, 450), 0.1, center=(0, 0, tb), label="Base: sectores"); V1.draw()
@@ -625,7 +631,7 @@ def sheet_int_conj(ctx):
     for i, (za, zb_, idn) in enumerate(zs):
         xa = rr + 70 + 6 * i
         VD.dim((xa, 0, za), (xa, 0, zb_), 8 + 10 * i, orient="v", on=on, text=f"{fm(zb_ - za, 1)}", outside=True)
-    title_view(s, (520, 195), "DETALLE DEL TOPE (corte por la muesca, escala ampliada)", "ESC 1,2:1")
+    title_view(s, (520, 195), "DETALLE DEL TOPE (corte por la muesca)" if g.removable else "DETALLE DE CAPAS (sin topes: pegado)", "ESC 1,2:1")
     if g.removable:
         Lb, Lm = lay.L_base, lay.L_mesa
         s.text(f"Tope lado base: barra {fm(lay.b_tope, 0)}×{f(Lb)}×{fm(ctx.m.info['tope_h'][0], 0)} en muesca {fm(lay.b_tope + 2, 0)}×{f(Lb)}; filetes z{fm(lay.w_tope, 0)} (2).", (430, 175), 2.0)
@@ -649,7 +655,8 @@ def interfaz_notas(ctx):
     n = [f"Alternativa elegida en el cálculo: {g.interfaz_nombre}.",
          ("Fijación DESMONTABLE por sectores: topes soldados al respaldo (barra b_tope = %s, filete w_tope = z%s) toman el par; tornillos avellanados ISO 10642 M%s solo dan posición." % (fm(lay.b_tope, 0), fm(lay.w_tope, 0), fm(lay.d_tor, 0))
           if g.removable else "FIJACIÓN PEGADA (fix_mode = 2): NO DESMONTABLE sin destruir la unión; no admite limpieza ni cambio de piezas. No se dibujan topes ni tornillos."),
-         "Soldar los topes ANTES del alivio de tensiones y del rectificado de las caras; el sector se baja sobre el tope y se asegura con los tornillos (S01–S03, PROVISORIO).",
+         ("Soldar los topes ANTES del alivio de tensiones y del rectificado de las caras; el sector se baja sobre el tope y se asegura con los tornillos (S01–S03, PROVISORIO)." if g.removable else
+          "Superficies de respaldo granalladas sin pintura; pegar con adhesivo epóxico estructural (A DEFINIR POR EL PROVEEDOR) y curar según su ficha antes del rectificado."),
          f"Rugosidad de las caras deslizantes Ra 0,4; planitud de cada sector 0,05; de la plancha de respaldo 0,20 en Ø{f(P['D_top'] + 20)}.",
          f"Junta en frío entre sectores {fm(g.junta('disc'), 1)} mm (bordes biselados 0,5×45°); sobreespesor de relapeado {fm(P['ss_allow'], 1)} mm."]
     if g.opt in (1, 3):
@@ -671,6 +678,7 @@ def sheet_int_sect(ctx):
     h = Hoja(ctx, "INT", 2, f"INTERFAZ {int_title(ctx)}: SECTORES", "1:2,5 / 1:1", material=ctx.m.get(base_k).material[:60], masa=f"{f(ctx.m.get(base_k).mass_unit, 2)} / {f(ctx.m.get(mesa_k).mass_unit, 2)} kg",
              trat=ctx.m.get(mesa_k).tratamiento[:60])
     s = h.begin()
+    no_desm(s, ctx)
     tb, z0 = g.tb, g.z0
     Ri, Ro = g.Ri_if, g.Ro
     for i, (key, nm, zf, th_s, face, t_key) in enumerate(((kb, "SECTOR DEL LADO BASE", None, 360.0 / nB, "top", base_k), (km, "SECTOR DEL LADO MESA", None, th, "bot", mesa_k))):
@@ -717,6 +725,7 @@ def sheet_int_topes(ctx):
     h = Hoja(ctx, "INT", 3, "INTERFAZ: TOPES, TORNILLOS, ENGRASE Y ESPECIALES", "1:1 / 1:2", material="ASTM A572 Gr.50 (topes); 10.9 (tornillos)",
              masa=f"{f(ctx.mass_of(*[k for k in ('int_tope_base', 'int_tope_mesa', 'int_tornillo_base', 'int_tornillo_mesa', 'int_tope_uhmw', 'graseras') if m.has(k)]), 2)} kg", trat="—")
     s = h.begin()
+    no_desm(s, ctx)
     tb, z0 = g.tb, g.z0
     base_k, mesa_k = int_keys(ctx)
     th = lay.th

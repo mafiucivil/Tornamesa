@@ -290,7 +290,7 @@ def sheet_conjunto(ctx):
             ["Tiempo por vuelta", f"{fm(DV['tRev'], 1)} min (bomba {fm(P['Q_pump'], 1)} L/min)"], ["Interfaz de giro", g.interfaz_nombre]]
     s.text("DATOS TÉCNICOS", (30, 270), 3.0, "TOP_LEFT", bold=True)
     s.table(30, 264, [("Ítem", 85, "L"), ("Valor", 130, "L")], rows, rh=4.8, h=1.9)
-    notas = [ADVERTENCIA, NOTA_VIENTO, NOTA_ANCLAJE,
+    notas = [ADVERTENCIA, NOTA_VIENTO, NOTA_ANCLAJE] + (["INTERFAZ NO DESMONTABLE (fijación pegada, fix_mode = 2)."] if g.opt and not g.removable else []) + [
              "Cilindros, patines y uñas dibujados para giro antihorario; ménsulas de ambos sentidos. Lista de posiciones: GEN-005 y GEN-003.",
              "Normas: AISC 360-22 ASD; ASME BTH-1 Cat. B Nd 3,0; AWS D1.1; ISO 2768-m, 286, 1101, 1302, 2553, 5817."]
     s.notes_block(648, 560, "NOTAS DEL CONJUNTO", notas, h=2.1, wrap_chars=95)

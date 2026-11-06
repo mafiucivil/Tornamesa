@@ -1,0 +1,5 @@
+cadquery>=2.4
+ezdxf>=1.1
+pymupdf
+shapely
+openpyxl
