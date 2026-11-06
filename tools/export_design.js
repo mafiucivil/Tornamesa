@@ -57,6 +57,20 @@ const out = {
   mercado: TT.market(P), capCil: TT.capacityByCyl(P, [1, 2]), bomba: R.pump,
   revisionCruzada: AG.crossCheck(A),
   auditoria: AG.audit(A.checks),
+  // Geometría de la interfaz que el núcleo calcula pero no entrega como parámetro (se extrae de sus propias verificaciones, sin recalcular):
+  //  - largo de cada tope (L_tope) y canto radial disponible (R_o − R_i − 100), en el orden en que el núcleo los emite
+  //  - junta de dilatación calculada, profundidad útil de los tapones de grafito, ancho de cada sector
+  //  - constantes del núcleo que fijan la geometría de la mesa (diámetros del alojamiento de la tapa y del buje)
+  interfazGeom: (() => {
+    const ck = A.checks, byName = (re) => ck.filter((c) => re.test(c.name));
+    const topes = byName(/largo del tope frente al canto radial/).map((c) => ({ pieza: c.name.split(":")[0], L: c.dem, Lav: c.cap, n: Number((c.name.match(/\((\d+) (sectores|pastillas)\)/) || [])[1]) || null }));
+    const juntas = byName(/(crecimiento por dilatación de la cuerda|junta de dilatación entre sectores)/).map((c) => ({ pieza: c.name.split(":")[0], j: c.dem }));
+    const tap = byName(/Tapones de grafito: profundidad restante/)[0];
+    const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));
+    const ifc = R.ifc;
+    return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
+      hole_top: P.D_piv + 80, d_bush: P.D_piv + 30, nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30)" };
+  })(),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
 };
 process.stdout.write(JSON.stringify(out, null, 1));
