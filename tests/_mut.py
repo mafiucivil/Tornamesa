@@ -85,7 +85,7 @@ def alt_export(aid, wood=False, extra=None):
 
 # ------------------------------------------------------------------ constantes independientes (registro.md y normas)
 g_ = 9.80665
-ALPHA_SS, ALPHA_UH, ALPHA_BZ = 17.0e-6, 180.0e-6, 18.0e-6      # registro: inox 16,0 a 17,2; UHMW 180 a 200; bronce C93200 18
+ALPHA_SS, ALPHA_UH, ALPHA_BZ = 17.0e-6, 190.0e-6, 18.0e-6      # registro: inox 16,0 a 17,2; UHMW 180 a 200; bronce C93200 18
 ALPHA_UH_DESIGN, ALPHA_ST_DESIGN = 180.0e-6, 12.0e-6           # registro (opción B, ISO 11359; EN 1993-1-1): junta en frío a 20 °C con dT = 40
 AV = 7.5e-4                                                    # α_v del aceite mineral, registro
 K_HOSE = 327.0                                                 # MPa, K combinado aceite + manguera, registro
@@ -318,7 +318,7 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Bancada de guía fuera de la mesa con la mesa caliente", "giro", ban / (P["x_g"] - P["w_bed"] / 2), ban, P["x_g"] - P["w_bed"] / 2, kind="geo")
     add("Dilatación global: crecimiento del diámetro", "est", None, al * dT * P["D_top"], al * dT * P["B"], kind="info")
     # --- (4) gradiente
-    kappa = al * gT / P["D_top"] * 0 + al * gT / P["h_disc"] * 1000     # 1/m con h = h_mesa (mm → m)
+    kappa = al * gT / P["D_top"] * 0 + al * gT / 230 * 1000     # 1/m con h = h_mesa (mm → m)
     sth = P["E"] * k["E"] * al * gT / (2 * (1 - P["nu"]))
     add("Gradiente: curvatura térmica", "est", None, kappa, None, kind="info")
     add("Gradiente: flecha en el diámetro", "est", None, kappa * (P["D_top"] / 2 / 1000) ** 2 / 2 * 1000, None, kind="info")
