@@ -678,7 +678,8 @@ def build_interfaz(m, g, D, log):
                 if g.h_gr > 0:
                     if any(abs(r - rg) < g.w_gr / 2 + m_ for rg in lay.r_circ):
                         continue
-                    if any(abs(((phi - a + 180) % 360) - 180) < 0.01 or r * abs(math.sin(math.radians(((phi - a + 180) % 360) - 180))) < g.w_gr / 2 + m_ and abs(((phi - a + 180) % 360) - 180) < 90 for phi in lay.phi_rad):
+                    # ranuras radiales (hallazgo del verificador): la distancia del tapón a la ranura se mide con el ángulo del TAPÓN (ph), no con el de la bisectriz del sector
+                    if any(r * abs(math.sin(math.radians(((phi - ph + 180) % 360) - 180))) < g.w_gr / 2 + m_ and abs(((phi - ph + 180) % 360) - 180) < 90 for phi in lay.phi_rad):
                         continue
                 loc.append((xl, yl))
             total_plugs += len(loc)
