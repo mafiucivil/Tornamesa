@@ -760,7 +760,7 @@ def sheet_int_sect(ctx):
         zf = lay_["z0"] + lay_["t"] if i == 0 else lay_["z0"]
         V = View(s, ctx.sh(key), "top", (60 + 0, oy), 0.42, center=(Ri, 0, zf), label=nm); V.draw()
         s.line(V.P(Ri - 20, 0, zf), V.P(Ro + 20, 0, zf), "EJE")
-        V.dim((Ri, 0, zf), (Ro, 0, zf), 12 + (th_s and 0), orient="h", on=[key], text=f"{fm(Ro - Ri, 0)} (R_i {fm(Ri, 1)} → R_o {f(Ro)})")
+        V.dim((Ri, 0, zf), (Ro, 0, zf), 0.42 * Ro * math.tan(math.radians(th_s / 2)) + 8, orient="h", on=[key], text=f"{fm(Ro - Ri, 0)} (R_i {fm(Ri, 1)} → R_o {f(Ro)})")
         if g.removable:
             xa, xb = g.r_u - (lay.L_base if i == 0 else lay.L_mesa) / 2, g.r_u + (lay.L_base if i == 0 else lay.L_mesa) / 2
             yb = (lay.b_tope + 2) / 2
@@ -772,8 +772,8 @@ def sheet_int_sect(ctx):
         s.text(f"Ángulo del sector {fm(th_s, 2)}° (centro en la bisectriz); junta {fm(g.junta('disc'), 1)} entre bordes paralelos (S04); e = {fm(lay_['t'], 1)}.", (30, oy - 75), 2.0)
         s.finish((V.P(Ro - 80, 0, zf)[0], V.P(0, 0, zf)[1] + 4 + 20), "Ra 0,4 (cara deslizante)")
         title_view(s, (150, oy - 88), nm, "ESC 1:2,4")
-    s.gdt((330, 440), "flat", "0,05"); s.text("Planitud de la cara deslizante de cada sector (ISO 1101).", (362, 442), 2.0)
-    s.gdt((330, 425), "par", "0,05", "A"); s.text("Cara deslizante paralela a la cara de asiento (A).", (362, 427), 2.0)
+    s.gdt((330, 372), "flat", "0,05"); s.text("Planitud de la cara deslizante de cada sector (ISO 1101).", (362, 374), 2.0)
+    s.gdt((330, 357), "par", "0,05", "A"); s.text("Cara deslizante paralela a la cara de asiento (A).", (362, 359), 2.0)
     s.notes_block(330, 405, "DETALLE POR OPCIÓN", sect_notes(ctx), h=1.9, wrap_chars=105)
     right_col(ctx, s, [base_k, mesa_k] + [k for k in ("int_uhmw", "int_tapones") if ctx.m.has(k)], notas=[], extra_proc=True)
     return h
@@ -892,7 +892,7 @@ def sheet_int_topes(ctx):
         ctx.local_ang("int_bronce", "bz_L", 180.0 / nB, 360.0 / nB * 0.9)
         zB = g.stack[0]["z0"] + g.stack[0]["t"]
         V = View(s, ctx.sh("bz_L"), "top", (40, 130), 0.3, center=(g.Ri, 0, zB), label="Bronce"); V.draw()
-        V.dim((g.Ri, 0, zB), (g.Ro, 0, zB), 10, orient="h", on=["bz_L"], text=f"{fm(g.Ro - g.Ri, 0)} (R_i → R_o)")
+        V.dim((g.Ri, 0, zB), (g.Ro, 0, zB), 0.3 * g.Ro * math.tan(math.radians(180.0 / nB)) + 8, orient="h", on=["bz_L"], text=f"{fm(g.Ro - g.Ri, 0)} (R_i → R_o)")
         title_view(s, (140, 68), "PASTILLA / SECTOR DE BRONCE CON TAPONES", "ESC 1:3,3")
         s.text(f"Tapones Ø{fm(P['bz_plug_d'], 0)} × {fm(m.info.get('plug_prof', 0), 1)} (70 % de e = {fm(g.I['tbz'], 1)}) en malla escalonada de paso {fm(P['bz_plug_p'], 0)}; {m.info.get('n_plugs')} tapones en total (S09).", (30, 52), 2.0)
         if g.conf == 3:
