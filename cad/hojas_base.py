@@ -15,6 +15,10 @@ def circ(c, r, n=96, a0=0.0, a1=360.0):
     return [(c[0] + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)), c[1] + r * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
 
 
+def polar(r, deg):
+    return (r * math.cos(math.radians(deg)), r * math.sin(math.radians(deg)))
+
+
 class Ctx:
     def __init__(self, m):
         self.m, self.g, self.D, self.P = m, m.g, m.D, m.g.P

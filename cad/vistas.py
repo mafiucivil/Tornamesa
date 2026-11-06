@@ -78,17 +78,32 @@ def hlr(shape, view, tol=2.0, hidden=False):
 
 
 def _wire_pts(w, tol):
-    pts = []
+    """Puntos ordenados de un alambre cerrado (encadena las aristas por extremos coincidentes)."""
+    segs = []
     for e in w.Edges():
         if e.geomType() == "LINE":
             seg = [e.startPoint(), e.endPoint()]
         else:
             n = max(8, min(400, int(e.Length() / tol)))
             seg = [e.positionAt(i / n) for i in range(n + 1)]
-        if pts and (pts[-1] - seg[0]).Length > 1e-3 and (pts[-1] - seg[-1]).Length < 1e-3:
-            seg = seg[::-1]
-        pts.extend(seg if not pts else seg[1:])
-    return pts
+        segs.append(seg)
+    if not segs:
+        return []
+    chain = list(segs.pop(0))
+    while segs:
+        end = chain[-1]
+        best, bi, brev = 1e18, 0, False
+        for i, sg in enumerate(segs):
+            d0, d1 = (sg[0] - end).Length, (sg[-1] - end).Length
+            if d0 < best:
+                best, bi, brev = d0, i, False
+            if d1 < best:
+                best, bi, brev = d1, i, True
+        sg = segs.pop(bi)
+        if brev:
+            sg = sg[::-1]
+        chain.extend(sg[1:])
+    return chain
 
 
 def clip_polys(polys, win):
