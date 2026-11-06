@@ -347,6 +347,8 @@ def build(D, verbose=True):
         for a in D["nervios"]:
             b_ = box(a0, a1, -P["t_rib"] / 2, P["t_rib"] / 2, z0 + tbo, z0 + tbo + hw).rotate((0, 0, 0), (0, 0, 1), a)
             rb = b_ if rb is None else rb.union(b_)
+        for r_ in D["almas"]:
+            rb = rb.cut(ring(r_ - tw / 2, r_ + tw / 2, hw + 2, z0 + tbo - 1))
         m.add(Part(f"mesa_nervio{i}", "MES", f"Nervio radial, tramo {i + 1}", f"Pletina e={f(P['t_rib'])}, h={f(hw)}, L={f(a1 - a0, 1)} (R{f(a0, 1)}–R{f(a1, 1)})", rb, int(P["N_rib"]), A572, "Plasma (anidado en plancha)", core="ribs", color=(0.3, 0.45, 0.7)))
     hub = ring(d_bush / 2, P["D_hub"] / 2, hw, z0 + tbo)
     if g.boss:
@@ -449,6 +451,7 @@ def build_interfaz(m, g, D, log):
     P, I = g.P, g.I
     if g.opt == 0:
         return
+    A572 = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa)"
     lay = Layout(g)
     m.layout = lay
     th = lay.th

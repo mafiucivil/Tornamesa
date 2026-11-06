@@ -490,11 +490,11 @@ const TT = (() => {
     const stall = dpts.map((d) => { const Fp = Fstall * P.eta_c; return { Fp, H: Math.abs(d.h) * Fp, R: Math.max(Math.abs(d.rf), Math.abs(d.rr)) * Fp, Rsum: (Math.abs(d.rf) + Math.abs(d.rr)) * Fp }; });
     const stallMax = { Fp: Math.max(...stall.map((x) => x.Fp)), H: Math.max(...stall.map((x) => x.H)), R: Math.max(...stall.map((x) => x.R)), Rsum: Math.max(...stall.map((x) => x.Rsum)) };
     const caseDef = [
-      ["nom", ["Nominal: grasa grafitada limpia", "Nominal: inox–inox con grasa limpia", "Nominal: UHMW sobre inox con grasa limpia"][oi], mu.nom, r_u],
+      ["nom", ["Nominal: grasa grafitada limpia", "Nominal: inox–inox con grasa limpia", "Nominal: UHMW sobre inox con grasa limpia", "Nominal: bronce con grafito sobre acero con grasa limpia"][oi], mu.nom, r_u],
       ["dis", "Diseño: μ límite superior, r efectivo", mu.d, P.r_ef],
       ["borde", "Borde: μ de diseño con contacto en el borde (r = R)", mu.d, Ro],
       ["cont", "Contaminado: arena / película degradada", mu.cont, P.r_ef],
-      ["seco", ["Acero seco, sin lubricación (referencial)", "Inox seco, sin lubricación (referencial; gripado)", "UHMW seco sobre inox (autolubricado)"][oi], mu.dry, r_u],
+      ["seco", ["Acero seco, sin lubricación (referencial)", "Inox seco, sin lubricación (referencial; gripado)", "UHMW seco sobre inox (autolubricado)", "Bronce con grafito seco sobre acero (autolubricado)"][oi], mu.dry, r_u],
     ];
     const cases = K.ok ? caseDef.map(([id, name, mu, r]) => {
       const T = torque(mu, r), F = Fcyl(T);
