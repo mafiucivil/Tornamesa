@@ -64,7 +64,7 @@ def sheet_base(ctx):
     VA.dim((xg - P["w_bed"] / 2, 0, g.zb), (xg + P["w_bed"] / 2, 0, g.zb), 12, orient="h", on=["bancada"])
     VA.dim((xg + P["w_bed"] / 2, 0, tb), (xg + P["w_bed"] / 2, 0, g.zb), 8, orient="v", on=["bancada"])
     s.weld_iso(VA.P(B / 2 - P["rim_t"], 0, tb + 3), VA.P(B / 2 - 330, 0, 120), "fillet", f"z{fm(weld_by(ctx, 'Marco perimetral – plancha')['size'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-01 A DEFINIR POR EL FABRICANTE"])
-    s.weld_iso(VA.P(xg - P["w_bed"] / 2, 0, tb + 2), VA.P(xg - 460, 0, 70), "fillet", f"z{fm(P['w_bed_f'], 0)}", other=True, tail=["111/135 · ISO 5817-B", "WPS-03 A DEFINIR POR EL FABRICANTE"])
+    s.weld_iso(VA.P(xg - P["w_bed"] / 2, 0, tb + 2), VA.P(xg - 800, 0, 40), "fillet", f"z{fm(P['w_bed_f'], 0)}", other=True, tail=["111/135 · ISO 5817-B", "WPS-03 A DEFINIR POR EL FABRICANTE"])
     s.finish((VA.P(xg - P["w_slot"] / 2 - 22, 0, g.zb)[0], VA.P(0, 0, g.zb)[1] + 6), "Ra 1,6")
     s.text(f"Cara superior de la plancha: planitud 0,20 en Ø{f(P['D_top'] + 20)} (ISO 1101)", (VA.P(-150, 0, 0)[0], VA.P(0, 0, -34)[1]), 2.1)
     title_view(s, (500, 462), "CORTE A-A (plano y = 0)", "ESC 1:5")
@@ -390,8 +390,8 @@ def sheet_mesa(ctx):
     a0 = D["pasadores"][0]
     pa = polar(g.R_pin, a0)
     V.dim((0, 0, z0), (pa[0], pa[1], z0), 20 if False else 0.01, orient="a", on=["mesa_cubo", "pasadores"], virt_a=g.d_bush / 2, virt_b=g.d_pin / 2, text=f"R{f(g.R_pin)}") if False else None
-    s.text(f"{g.N_pin} pasadores Ø{f(g.d_pin)} m6 en R{f(g.R_pin)} (PCD Ø{f(2 * g.R_pin)} ±0,3); el primero a {fm(a0, 3)}° del eje x; paso {fm(360 / g.N_pin, 3)}° (±0,05°).", (30, 288), 2.1)
-    s.text(f"{int(P['N_rib'])} nervios e={f(P['t_rib'])} a {fm(360 / P['N_rib'], 2)}°; almas anulares e={f(P['t_web'])} en R " + " / ".join(f(r) for r in D["almas"]) + f"; cubo Ø{f(P['D_hub'])}/Ø{f(g.d_bush)}.", (30, 284), 2.1)
+    s.text(f"{g.N_pin} pasadores Ø{f(g.d_pin)} m6 en R{f(g.R_pin)} (PCD Ø{f(2 * g.R_pin)} ±0,3); el primero a {fm(a0, 3)}° del eje x; paso {fm(360 / g.N_pin, 3)}° (±0,05°).", (30, 277), 2.1)
+    s.text(f"{int(P['N_rib'])} nervios e={f(P['t_rib'])} a {fm(360 / P['N_rib'], 2)}°; almas anulares e={f(P['t_web'])} en R " + " / ".join(f(r) for r in D["almas"]) + f"; cubo Ø{f(P['D_hub'])}/Ø{f(g.d_bush)}.", (30, 273), 2.1)
     title_view(s, (160, 296), "PLANTA (corte a media altura de las almas)", "ESC 1:10")
     # corte radial por un pasador (mesa girada para llevarlo al eje x)
     rk = ctx.rotated(keys, -a0)

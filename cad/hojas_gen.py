@@ -271,7 +271,7 @@ def sheet_conjunto(ctx):
     V.dim((-B / 2, -B / 2, 0), (B / 2, -B / 2, 0), -9, orient="h", on=["base_plancha"])
     V.dim_dia((0, 0, g.z0 + g.hd + (P["t_wood"] if g.wood else 0)), g.Rt, 130, text=f"Ø{f(P['D_top'])}", on=["mesa_anillo_sup"], ext=22) if not g.wood else None
     s.section_mark(V.P(-B / 2 - 25, 0, 0), 90, "A"); s.section_mark(V.P(B / 2 + 25, 0, 0), 90, "A")
-    title_view(s, (160, 292), "PLANTA", "ESC 1:10")
+    title_view(s, (160, 283), "PLANTA", "ESC 1:10")
     zt = g.z0 + g.hd + (P["t_wood"] if g.wood else 0)
     VA = View(s, shp, "front", (460, 400), 0.1, center=(0, 0, 0), cut=((0, 0, 0), (0, 1, 0)), tol=3.0, label="Corte A-A", hatch_scale=1.0); VA.draw()
     VA.dim((B / 2, 0, 0), (B / 2, 0, tb + P["rim_h"]), 12, orient="v", on=["marco_largo", "marco_corto", "base_plancha"], text=f"{f(tb + P['rim_h'])}") if False else None
