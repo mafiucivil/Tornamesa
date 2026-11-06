@@ -54,6 +54,7 @@
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
+    syncAlt();
   }
   let tmr = null;
   $("#form").addEventListener("input", (e) => {
@@ -65,9 +66,21 @@
       if (OPTS.includes(id) && P[id]) OPTS.filter((k) => k !== id).forEach((other) => { P[other] = 0; const ob = $("#p_" + other); if (ob) { ob.checked = false; ob.closest(".prm").classList.remove("chg"); } });
     } else P[id] = txt ? e.target.value : parseFloat(e.target.value);
     row.classList.toggle("chg", P[id] !== DEF[id]);
+    syncAlt();
     clearTimeout(tmr); $("#busy").textContent = "Calculando…";
     tmr = setTimeout(recalc, 380);
   });
+  /* ---------- selector de la alternativa de interfaz (sincronizado con las casillas A, B, C y la configuración de C) ---------- */
+  function syncAlt() {
+    const v = P.opt_ss ? "A" : P.opt_uhmw ? "B" : P.opt_bz ? "C" + Math.min(3, Math.max(1, Math.round(P.bz_conf || 1))) : "0";
+    const sel = $("#altSel"); if (sel) sel.value = v;
+  }
+  $("#altSel").onchange = (e) => {
+    const v = e.target.value;
+    P.opt_ss = v === "A" ? 1 : 0; P.opt_uhmw = v === "B" ? 1 : 0; P.opt_bz = v[0] === "C" ? 1 : 0;
+    if (v[0] === "C") P.bz_conf = parseInt(v[1], 10);
+    buildForm(); recalc();
+  };
   $("#bReset").onclick = () => { P = Object.assign({}, DEF); buildForm(); recalc(); };
   $("#bExp").onclick = () => {
     const blob = new Blob([JSON.stringify(P, null, 2)], { type: "application/json" });

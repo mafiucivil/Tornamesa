@@ -4,7 +4,7 @@ Software de cálculo y verificación de una tornamesa de 300 tf para equipos sob
 
 ## Herramienta
 
-Abrir `dist/TT300-C_Verificacion.html` en cualquier navegador (un solo archivo, sin conexión). Permite editar todos los parámetros y muestra en vivo:
+Abrir `Tornamesa_v1.0.html` (raíz del repositorio) en cualquier navegador (un solo archivo, sin conexión). Es el archivo principal; la versión sale del archivo `VERSION` y `python3 tools/build_tt300c.py` lo regenera con el número nuevo (borra el de la versión anterior; queda en el historial de git). Arriba del formulario se elige la **alternativa de interfaz de giro** (base acero-acero, A, B, C1, C2 o C3); cubierta de madera y fijación pegada se activan en el formulario. Permite editar todos los parámetros y muestra en vivo:
 - si el sistema **gira** (FS, presiones, carrera, casos de fricción);
 - si la **estructura cumple** (AISC 360-22, ASME BTH-1 Cat. B, AWS D1.1), con FEA propio de la mesa y del izaje;
 - la **masa** y un optimizador que la minimiza manteniendo todas las verificaciones;
@@ -18,7 +18,7 @@ Abrir `dist/TT300-C_Verificacion.html` en cualquier navegador (un solo archivo, 
 | `packages/core/` | Núcleo: `fea.js` (MITC4, Q4) y `tt300c.js` (cinemática, accionamiento, masas, verificaciones) |
 | `packages/agents/` | Agentes deterministas del producto |
 | `packages/web/` | Interfaz (`shell.html`, `ui.js`) y exportación del paquete de dibujo (`planos_export.js`) |
-| `tools/build_tt300c.py` | Arma el HTML autónomo en `dist/` |
+| `tools/build_tt300c.py` | Arma el HTML autónomo `Tornamesa_v<VERSION>.html` en la raíz |
 | `tools/export_design.js` | Exporta el diseño (parámetros + resultados) para los planos |
 | `cad/planos_tt300c.py` | Genera las 6 láminas A1 (PDF + DXF) en `cad/out/` desde el JSON exportado |
 | `tests/` | Tests Node, golden file y verificación independiente en Python |

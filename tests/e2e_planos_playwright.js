@@ -3,7 +3,7 @@
 const path = require("path"), fs = require("fs"), assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const out = process.argv[2] || fs.mkdtempSync(path.join(require("os").tmpdir(), "tt300c-e2e-"));
-const html = "file://" + path.resolve(__dirname, "..", "dist", "TT300-C_Verificacion.html");
+const html = "file://" + path.resolve(__dirname, "..", require("fs").readdirSync(path.resolve(__dirname, "..")).filter((n) => /^Tornamesa_v.*\.html$/.test(n))[0]);
 const ALTS = [["acero-acero", null], ["A", "opt_ss"], ["B", "opt_uhmw"], ["C", "opt_bz"]];
 (async () => {
   const browser = await chromium.launch();

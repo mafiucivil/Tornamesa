@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TT300-C Verificación</title>
+<title>Tornamesa v1.0 · TT300-C</title>
 <style>
 :root{
   --bg:#f6f7f9;--panel:#ffffff;--ink:#14171c;--ink2:#4a5260;--line:#d9dde3;--soft:#eef1f4;
@@ -91,7 +91,7 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 </head>
 <body>
 <header>
-  <div><h1>TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro con patín guiado y uña de cara plana · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
+  <div><h1>Tornamesa v1.0 · TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro con patín guiado y uña de cara plana · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
   <div class="badges" id="badges"></div>
 </header>
 <div class="wrap">
@@ -104,6 +104,15 @@ svg text{font-family:var(--sans);fill:var(--ink)}
       <button id="bTheme" title="Tema claro / oscuro">◐</button>
     </div>
     <input type="file" id="fImp" accept=".json,application/json" hidden>
+    <div class="prm" id="altRow"><label for="altSel"><b>Alternativa de interfaz de giro</b></label>
+      <select id="altSel" title="Elige la interfaz entre la mesa y la base; el cálculo, el paquete de dibujo y el despiece siguen esta elección">
+        <option value="0">Base: acero sobre acero con grasa grafitada</option>
+        <option value="A">A · Dos discos de acero inoxidable con grasa</option>
+        <option value="B">B · Discos inox con lámina de UHMW entre ellos</option>
+        <option value="C1">C1 · Placa de bronce con grafito + disco duro</option>
+        <option value="C2">C2 · Dos placas de bronce de aleaciones distintas</option>
+        <option value="C3">C3 · Bronce en pastillas + disco duro</option>
+      </select></div>
     <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera láminas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Exportar paquete de dibujo (DXF · CSV · JSON · láminas)</label><input id="pkgChk" type="checkbox"></div>
     <div class="pkg" id="pkgPanel" hidden></div>
     <div class="busy" id="busy"></div>
@@ -2796,6 +2805,7 @@ if (false) module.exports = PLANOS;
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
+    syncAlt();
   }
   let tmr = null;
   $("#form").addEventListener("input", (e) => {
@@ -2807,9 +2817,21 @@ if (false) module.exports = PLANOS;
       if (OPTS.includes(id) && P[id]) OPTS.filter((k) => k !== id).forEach((other) => { P[other] = 0; const ob = $("#p_" + other); if (ob) { ob.checked = false; ob.closest(".prm").classList.remove("chg"); } });
     } else P[id] = txt ? e.target.value : parseFloat(e.target.value);
     row.classList.toggle("chg", P[id] !== DEF[id]);
+    syncAlt();
     clearTimeout(tmr); $("#busy").textContent = "Calculando…";
     tmr = setTimeout(recalc, 380);
   });
+  /* ---------- selector de la alternativa de interfaz (sincronizado con las casillas A, B, C y la configuración de C) ---------- */
+  function syncAlt() {
+    const v = P.opt_ss ? "A" : P.opt_uhmw ? "B" : P.opt_bz ? "C" + Math.min(3, Math.max(1, Math.round(P.bz_conf || 1))) : "0";
+    const sel = $("#altSel"); if (sel) sel.value = v;
+  }
+  $("#altSel").onchange = (e) => {
+    const v = e.target.value;
+    P.opt_ss = v === "A" ? 1 : 0; P.opt_uhmw = v === "B" ? 1 : 0; P.opt_bz = v[0] === "C" ? 1 : 0;
+    if (v[0] === "C") P.bz_conf = parseInt(v[1], 10);
+    buildForm(); recalc();
+  };
   $("#bReset").onclick = () => { P = Object.assign({}, DEF); buildForm(); recalc(); };
   $("#bExp").onclick = () => {
     const blob = new Blob([JSON.stringify(P, null, 2)], { type: "application/json" });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TT300-C Verificación</title>
+<title>Tornamesa v@@VERSION@@ · TT300-C</title>
 <style>
 :root{
   --bg:#f6f7f9;--panel:#ffffff;--ink:#14171c;--ink2:#4a5260;--line:#d9dde3;--soft:#eef1f4;
@@ -91,7 +91,7 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 </head>
 <body>
 <header>
-  <div><h1>TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro con patín guiado y uña de cara plana · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
+  <div><h1>Tornamesa v@@VERSION@@ · TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro con patín guiado y uña de cara plana · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
   <div class="badges" id="badges"></div>
 </header>
 <div class="wrap">
@@ -104,6 +104,15 @@ svg text{font-family:var(--sans);fill:var(--ink)}
       <button id="bTheme" title="Tema claro / oscuro">◐</button>
     </div>
     <input type="file" id="fImp" accept=".json,application/json" hidden>
+    <div class="prm" id="altRow"><label for="altSel"><b>Alternativa de interfaz de giro</b></label>
+      <select id="altSel" title="Elige la interfaz entre la mesa y la base; el cálculo, el paquete de dibujo y el despiece siguen esta elección">
+        <option value="0">Base: acero sobre acero con grasa grafitada</option>
+        <option value="A">A · Dos discos de acero inoxidable con grasa</option>
+        <option value="B">B · Discos inox con lámina de UHMW entre ellos</option>
+        <option value="C1">C1 · Placa de bronce con grafito + disco duro</option>
+        <option value="C2">C2 · Dos placas de bronce de aleaciones distintas</option>
+        <option value="C3">C3 · Bronce en pastillas + disco duro</option>
+      </select></div>
     <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera láminas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Exportar paquete de dibujo (DXF · CSV · JSON · láminas)</label><input id="pkgChk" type="checkbox"></div>
     <div class="pkg" id="pkgPanel" hidden></div>
     <div class="busy" id="busy"></div>
