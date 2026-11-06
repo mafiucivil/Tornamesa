@@ -671,3 +671,194 @@ test("Collar y pivote: equilibrio con el asiento rígido-lineal, filete (V_c, M_
   // sin opción de interfaz: sin barras de topes
   assert.equal(R.m.stopBars, 0);
 });
+
+/* ======================================================================================================
+   Temperatura de servicio (exposición solar, 80 °C) · docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)»
+   Escenario aparte: con T_serv = 20 °C (por defecto) nada del cálculo estándar cambia; TT.thermal evalúa la MISMA geometría
+   (dimensionada a 20 °C y congelada) con las capacidades reducidas a la temperatura.
+   ====================================================================================================== */
+const THALTS = { base: {}, A: { opt_ss: 1 }, B: { opt_uhmw: 1 }, C1: { opt_bz: 1, bz_conf: 1 }, C2: { opt_bz: 1, bz_conf: 2 }, C3: { opt_bz: 1, bz_conf: 3 } };
+
+test("Temperatura · parámetros nuevos (grupo «Temperatura») con T_serv = 20 °C por defecto y rangos del registro", () => {
+  const P = TT.defaults(), g = TT.PARAM_GROUPS.find((x) => x.id === "temperatura");
+  assert.ok(g, "grupo Temperatura");
+  const d = (id) => g.p.find((q) => q[0] === id);
+  assert.equal(P.T_serv, 20); assert.equal(P.T_ref, 20); assert.equal(P.dT_grad, 0);
+  assert.deepEqual([d("T_serv")[4], d("T_serv")[5]], [20, 120], "rango 20–120 °C");
+  const K = { kT_Fy: 1.00, kT_E: 1.00, kT_Fy_ss: 0.82, kT_E_ss: 0.975, kT_p_uh: 0.40, kT_E_uh: 0.40, kT_bz: 1.00, kT_wood: 0.70, kT_bolt: 0.94, kT_weld: 1.00, kT_hertz: 1.00 };
+  for (const [k, v] of Object.entries(K)) assert.equal(P[k], v, k);
+  assert.equal(P.p_max_cil, 700); assert.equal(P.alivio_term, 0); assert.equal(P.nu_min, 10); assert.equal(P.K_oil, 1400); assert.equal(P.K_oil_hi, 1900); assert.equal(P.ba_cil, 1.4);
+  // cada factor declara su nivel de confianza (A/B/C) en el rótulo
+  for (const k of Object.keys(K)) assert.ok(/\((?:[ABC](?:\/[ABC])?)[);,]|confianza [ABC]/.test(d(k)[1]), "nivel de confianza en el rótulo de " + k + ": " + d(k)[1]);
+  // el análisis estándar no cambia con T_serv: es un escenario aparte
+  const A0 = TT.analyze(TT.defaults(), { noFEA: true }), A1 = TT.analyze(Object.assign(TT.defaults(), { T_serv: 80, dT_grad: 15 }), { noFEA: true });
+  assert.equal(A1.checks.length, A0.checks.length, "T_serv no agrega filas ni cambia el cálculo estándar");
+  A0.checks.forEach((c, i) => { assert.equal(A1.checks[i].name, c.name); assert.equal(A1.checks[i].fu, c.fu); assert.equal(A1.checks[i].st, c.st); });
+  assert.ok(!A0.checks.some((c) => c.grp === "Temperatura"));
+});
+
+test("Temperatura · factores: 1 a 20 °C, valor tabulado a 80 °C, interpolación lineal y extrapolación con nota", () => {
+  const P = TT.defaults(), f20 = TT.thermalFactors(P, 20), f80 = TT.thermalFactors(P, 80), f50 = TT.thermalFactors(P, 50), f100 = TT.thermalFactors(P, 100);
+  for (const [k, v] of Object.entries(f20.k)) assert.equal(v, 1, "factor " + k + " a 20 °C = 1");
+  assert.equal(f20.dT, 0); assert.equal(f80.dT, 60); assert.equal(f20.extrap, false); assert.equal(f80.extrap, false);
+  near(f80.k.Fy_ss, 0.82, 1e-12, "inox Fy a 80"); near(f80.k.E_ss, 0.975, 1e-12, "inox E a 80"); near(f80.k.p_uh, 0.40, 1e-12, "UHMW k_p a 80"); near(f80.k.E_uh, 0.40, 1e-12, "UHMW k_E a 80");
+  near(f80.k.wood, 0.70, 1e-12, "madera Ct a 80"); near(f80.k.bolt, 0.94, 1e-12, "perno 10.9"); near(f80.k.Fy, 1, 1e-12, "acero estructural"); near(f80.k.bz, 1, 1e-12, "bronce"); near(f80.k.weld, 1, 1e-12, "soldadura"); near(f80.k.hertz, 1, 1e-12, "Hertz");
+  near(f50.k.Fy_ss, 1 + (0.82 - 1) * 30 / 60, 1e-12, "interpolación lineal a 50 °C"); near(f50.k.wood, 1 - 0.3 * 30 / 60, 1e-12, "madera a 50 °C");
+  assert.equal(f100.extrap, true); assert.ok(f100.notes.some((s) => /80 °C/.test(s) && /extrapol/i.test(s)), "nota de extrapolación sobre 80 °C");
+  near(f100.k.Fy_ss, 0.82 - 0.18 * 20 / 60, 1e-12, "extrapolación lineal (con cautela) a 100 °C"); assert.ok(f100.k.p_uh >= 0.05, "el factor no baja de 0,05");
+  // dilataciones: acero 12×10⁻⁶ (EN 1993-1-1), media 20–80 °C 12,4×10⁻⁶ (EN 1993-1-2 §3.4.1.1), inox 17, UHMW 190, bronce 18, madera 5 en la fibra y 30 transversal
+  near(f80.alpha.st, 12.4e-6, 0.002, "α acero medio 20–80 °C (EN 1993-1-2: 7,44×10⁻⁴/60)"); near(f20.alpha.st, 12e-6, 1e-12, "α acero a ΔT = 0 = 12×10⁻⁶");
+  near(f80.alpha.ss, 17e-6, 1e-12, "inox"); near(f80.alpha.uh, 190e-6, 1e-12, "UHMW"); near(f80.alpha.bz, 18e-6, 1e-12, "bronce"); near(f80.alpha.woodT, 30e-6, 1e-12, "madera transversal"); near(f80.alpha.woodL, 5e-6, 1e-12, "madera en la fibra");
+  near(TT.alphaSteelMean(80) * 60, 1.2e-5 * 80 + 0.4e-8 * 80 * 80 - 2.416e-4, 1e-9, "ε(80 °C) de EN 1993-1-2 = 7,44×10⁻⁴");
+});
+
+test("Temperatura · aceite atrapado: Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c) con los valores del registro", () => {
+  const P = TT.defaults(), o = TT.oilTrapped(P, 80), a3 = 3 * TT.alphaSteelMean(80), av = 7.5e-4;
+  near(o.dT, 60, 1e-12, "ΔT"); near(o.av, av, 1e-12, "α_v"); 
+  near(o.rigid.lo.dp, (av - a3) * 60 * 1400, 1e-9, "recipiente rígido, K = 1,4 GPa (MPa)");
+  near(o.rigid.hi.dp, (av - a3) * 60 * 1900, 1e-9, "recipiente rígido, K = 1,9 GPa (MPa)");
+  near(o.rigid.hi.bar, 815, 0.01, "registro: 815 bar con 1,9 GPa");
+  const Kc = P.E / (2 * ((P.ba_cil ** 2 + 1) / (P.ba_cil ** 2 - 1) + P.nu));
+  near(o.Kc_lame, Kc, 1e-12, "K_c de Lamé"); near(Kc / 1000, 30, 0.03, "registro: K_c ≈ 30 GPa para b/a = 1,4");
+  near(o.cyl.hi.dp, (av - a3) * 60 / (1 / 1900 + 1 / Kc), 1e-9, "cilindro Lamé, 1,9 GPa"); near(o.cyl.hi.bar, 770, 0.02, "registro: ≈ 770 bar");
+  near(o.cyl.lo.dp, (av - a3) * 60 / (1 / 1400 + 1 / Kc), 1e-9, "cilindro Lamé, 1,4 GPa"); assert.ok(o.cyl.hi.dp > o.cyl.lo.dp, "con K mayor la presión sube: la cota alta es 1,9 GPa");
+  near(o.hose.hi.bar, 140, 0.03, "registro: ≈ 140 bar con manguera (K combinado ≈ 0,33 GPa)");
+  assert.equal(TT.oilTrapped(P, 20).cyl.hi.dp, 0, "a 20 °C no hay sobrepresión térmica");
+  near(o.expansion_free_pct, 100 * (av - 3 * TT.alphaSteelMean(80)) * 60, 1e-9, "dilatación libre del aceite (%): 4,28 % (registro: 4,29 %)"); near(o.expansion_free_pct, 4.29, 0.01, "registro");
+});
+
+test("Temperatura · viscosidad del aceite (Walther) y mínimo de la bomba", () => {
+  near(TT.oilViscosity(80).lo, 11.1, 0.01, "VG 46 con ν100 = 6,8: ≈ 11 mm²/s a 80 °C (registro)"); near(TT.oilViscosity(80).hi, 14.6, 0.01, "VG 46 con IV 185: ≈ 14,6 mm²/s");
+  near(TT.oilViscosity(40).lo, 46, 1e-9, "ν40 = 46"); near(TT.oilViscosity(100).lo, 6.8, 1e-9, "ν100 = 6,8"); near(TT.oilViscosity(40).hi, 47.4, 1e-9, "Eurol: 47,4"); near(TT.oilViscosity(100).hi, 9.5, 1e-9, "Eurol: 9,5");
+  assert.ok(TT.oilViscosity(60).lo > TT.oilViscosity(80).lo, "la viscosidad baja con T");
+});
+
+test("Temperatura · a 20 °C el escenario reproduce el cálculo estándar (factores = 1) y la geometría queda congelada a T_serv", () => {
+  for (const [id, fl] of Object.entries(THALTS)) {
+    const Pa = Object.assign(TT.defaults(), fl), A0 = TT.analyze(Pa, { noFEA: true });
+    const A1 = TT.analyze(TT.thermalP(Pa, 20), { noFEA: true });                                  // factores a 20 °C: todos = 1
+    A0.checks.forEach((c, i) => { assert.equal(A1.checks[i].name, c.name, id); assert.ok(c.fu == null ? A1.checks[i].fu == null : Math.abs(A1.checks[i].fu - c.fu) <= 1e-12 * Math.max(1, Math.abs(c.fu)) || c.fu === A1.checks[i].fu, id + " · " + c.name); assert.equal(A1.checks[i].st, c.st, id + " · " + c.name); });
+    assert.ok(A1.checks.length > A0.checks.length && A1.checks.slice(A0.checks.length).every((c) => c.grp === "Temperatura"), id + ": el escenario solo AGREGA filas del grupo Temperatura");
+  }
+  const r = TT.thermal(TT.defaults(), { T: [20, 80], wood: false });
+  assert.deepEqual(r.alternativas.map((a) => a.id), ["base", "A", "B", "C1", "C2", "C3"]);
+  for (const a of r.alternativas) {
+    const Pa = Object.assign(TT.defaults(), THALTS[a.alt]), A = TT.analyze(Pa), I = A.R.ifc, [b20, b80] = a.byT;
+    near(b20.FS, A.R.cd.FS, 1e-9, a.id + ": FS a 20 °C"); near(a.FS20, A.R.cd.FS, 1e-9, a.id + ": FS20");
+    near(b20.fuEst, Math.max(...A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && isFinite(c.fu)).map((c) => c.fu)), 1e-9, a.id + ": FU estructura máx. a 20 °C = el del análisis estándar");
+    near(b20.masa, A.R.m.total, 1e-9, a.id + ": masa a 20 °C"); assert.equal(b80.masa, b20.masa, a.id + ": la masa no cambia (geometría congelada)");
+    assert.deepEqual([a.geometria.tss, a.geometria.tss2, a.geometria.tuh, a.geometria.tbz], [I.tss, I.tss2, I.tuh, I.tbz || 0].map((x, i) => (i === 3 ? I.tbz : x)), a.id + ": espesores del escenario = los de 20 °C");
+    assert.equal(b20.FS, b80.FS, a.id + ": con μ constante el FS del giro no depende de la temperatura");
+  }
+  // sin congelar, la lámina UHMW se re-dimensionaría con p_adm·0,4 (más gruesa): el escenario NO lo hace
+  const PB = Object.assign(TT.defaults(), THALTS.B), t20 = TT.analyze(PB, { noFEA: true }).R.ifc.tuh, tFree = TT.analyze(TT.thermalP(PB, 80), { noFEA: true }).R.ifc.tuh;
+  assert.ok(tFree > t20, "sin congelar la lámina sube de " + t20 + " a " + tFree + " mm");
+  const rB = TT.thermal(TT.defaults(), { T: [20, 80], alts: ["B"] }).alternativas[0];
+  assert.equal(rB.geometria.tuh, t20); assert.equal(rB.byT[1].masa, rB.byT[0].masa);
+  // largos de tope y espesores de disco también congelados (A: el Fy del inox baja 18 % y el tope no se alarga)
+  const rA = TT.thermal(TT.defaults(), { T: [20, 80], alts: ["A"] }).alternativas[0], A20 = TT.analyze(Object.assign(TT.defaults(), THALTS.A), { noFEA: true });
+  assert.deepEqual(rA.geometria.L, Object.fromEntries(A20.R.ifc.topes.map((s) => [s.id, s.L])), "largos de los topes de 20 °C");
+});
+
+test("Temperatura · filas de juntas, buje de bronce, gradiente y uña: fórmulas del registro", () => {
+  const r = TT.thermal(TT.defaults(), { T: [20, 80], alts: ["B"] }), a = r.alternativas[0], f = a.byT[1].filas, P = TT.defaults(), A = TT.analyze(Object.assign(TT.defaults(), THALTS.B), { noFEA: true }), R = A.R;
+  const row = (re) => { const x = f.find((q) => re.test(q.nombre)); assert.ok(x, "fila " + re); return x; };
+  const as = TT.alphaSteelMean(80), chord = 2 * R.Ro * Math.sin(Math.PI / P.n_seg);
+  // (a) junta UHMW: α 190, acero 12,4 → 2,78 mm requeridos frente a 1,8 mm en frío (diseño a 40 K con 180×10⁻⁶): se cierra
+  const jU = row(/Lámina UHMW \(24 sectores\): junta de dilatación requerida/);
+  near(jU.dem, (190e-6 - as) * 60 * chord, 1e-9, "j_req UHMW"); near(jU.cap, Math.ceil(Math.max(P.j_sec, (AL_UH_ - 11.7e-6) * P.dT * chord) * 10 - 1e-9) / 10, 1e-12, "j_disp = junta del diseño a 20 °C"); assert.equal(jU.estado, "fail", "la junta de la lámina UHMW cierra a 80 °C");
+  assert.equal(a.juntas.find((j) => /UHMW/.test(j.pieza)).j_req, jU.dem);
+  const jD = row(/Disco de la base \(liso\).*junta de dilatación requerida/); near(jD.dem, (17e-6 - as) * 60 * 2 * R.Ro * Math.sin(Math.PI / P.n_sec), 1e-9, "j_req inox"); assert.equal(jD.estado, "ok");
+  // (b) buje de bronce en el pivote
+  const D = P.D_piv, bu = row(/Buje de bronce–pivote: holgura con el buje libre/);
+  near(bu.dem, (18e-6 - as) * 60 * D, 1e-9, "Δ holgura libre = (α_bz − α_acero)·ΔT·D (afloja)"); near(bu.cap, (18e-6 - as) * 60 * (D + 30), 1e-9, "Δ interferencia en el cubo (aprieta)");
+  const bc = row(/cierre de la holgura diametral/); assert.ok(bc.dem > 0 && bc.dem < 0.05 && bc.estado === "ok", "con el buje retenido la holgura se reduce unas centésimas de mm y no se cierra: " + bc.dem); near(bc.cap, P.c_bush_d, 1e-12, "holgura en frío");
+  // (c) uña–pasador con la mesa caliente y la base a la sombra
+  const eps = as * 60, dR = eps * P.R_pin, K = R.K;
+  near(row(/holgura radial de la uña en el patín/).dem, K.radial * (1 + eps) + 2 + dR, 1e-9, "holgura radial + α·ΔT·R_pin"); near(dR, 0.69, 0.02, "registro: 0,69 mm para 60 K y R_pin 930");
+  near(row(/caso uniforme/).dem, (P.x_g - K.armMin) * eps, 1e-9, "escala uniforme: ≈ 0,16 mm"); assert.ok(row(/caso uniforme/).dem < 0.2);
+  // (d) gradiente de 15 K a 80 °C: κ = α·ΔT/h, flecha κ·(D/2)²/2, σ = E·α·ΔT/(2(1 − ν))
+  const kap = as * 15 / P.h_disc, sig = P.E * as * 15 / (2 * (1 - P.nu));
+  near(row(/curvatura térmica/).dem, kap * 1e3, 1e-9, "κ (1/m)"); near(row(/flecha en el diámetro/).dem, kap * (P.D_top / 2) ** 2 / 2, 1e-9, "flecha"); near(row(/tensión de flexión térmica/).dem, sig, 1e-9, "σ restringida");
+  const top = TT.analyze(Object.assign(TT.defaults(), THALTS.B)).checks.find((c) => c.name === "Plancha superior: global + local"), gt = row(/Gradiente: plancha superior/);
+  near(gt.dem, top.dem + sig, 1e-9, "FU de la plancha superior + σ térmica (suma conservadora)"); near(gt.fu, (top.dem + sig) / top.cap, 1e-9);
+  near(row(/desnivel de la cara de contacto/).dem, kap * (R.Ro ** 2 - R.Ri ** 2) / 2, 1e-9, "desnivel R_i–R_o");
+  // sin gradiente (T = 20): todo en cero
+  const f20 = a.byT[0].filas; assert.equal(f20.find((q) => /curvatura térmica/.test(q.nombre)).dem, 0); assert.equal(f20.find((q) => /junta de dilatación requerida/.test(q.nombre)).dem, 0);
+});
+const AL_UH_ = 180e-6;
+
+test("Temperatura · aceite atrapado: p_hold + Δp contra el cilindro, alivio térmico y recomendación", () => {
+  const P = TT.defaults(), g = (o, T) => TT.thermal(Object.assign(TT.defaults(), o), { T: [20, T || 80], alts: ["base"] }).alternativas[0].byT[1].filas;
+  const rows = g({}), A = TT.analyze(P, { noFEA: true }), pd = A.R.cd.p, o = TT.oilTrapped(P, 80), dp = o.sel.hi.bar;
+  assert.equal(P.oil_cont, 2, "contenedor por defecto: cilindro (Lamé)");
+  const ho = rows.find((x) => /carrera de diseño: p_hold/.test(x.nombre)), cal = rows.find((x) => /tras el calado/.test(x.nombre)), ann = rows.find((x) => /cámara anular/.test(x.nombre)), vv = rows.find((x) => /Válvula de alivio térmico del tramo/.test(x.nombre));
+  near(ho.dem, pd + dp, 1e-9, "p_hold = F_dis/A más Δp"); near(ho.cap, 700, 1e-12, "p_max_cil"); assert.equal(ho.estado, "fail");
+  near(cal.dem, P.p_relief + dp, 1e-9, "calado: p_alivio + Δp"); near(cal.cap, 1050, 1e-12, "prueba 1,5×"); assert.equal(cal.estado, "fail");
+  near(ann.dem, P.p_ret + dp, 1e-9, "cámara anular: p_ret + Δp"); assert.equal(ann.estado, "fail");
+  assert.equal(vv.estado, "fail"); assert.ok(/instalar válvula de alivio térmico en el tramo aislado/.test(vv.nombre + vv.formula) && /aguas arriba/.test(vv.formula), "recomendación y aviso del alivio de sistema");
+  near(dp, 763.5, 0.01, "Δp con K = 1,9 GPa y cilindro Lamé a ΔT = 60 K: ≈ 764 bar");
+  // con un alivio térmico que abre en 700 bar (= p_max_cil y = alivio del sistema) la presión queda limitada: monitoreo, sin fallo
+  const w = g({ alivio_term: 700 }); assert.ok(!w.some((x) => x.sys === "term" && x.estado === "fail"), "alivio térmico a 700 bar: ninguna fila térmica de aceite falla");
+  assert.ok(w.some((x) => /Válvula de alivio térmico: apertura bajo la presión máxima/.test(x.nombre) && x.estado === "ok"));
+  assert.equal(g({ alivio_term: 900 }).find((x) => /apertura bajo la presión máxima/.test(x.nombre)).estado, "fail", "apertura sobre p_max_cil");
+  assert.equal(g({ alivio_term: 600 }).find((x) => /apertura sobre el alivio del sistema/.test(x.nombre)).estado, "fail", "por debajo del alivio del sistema gotea a calado");
+  // rígido > cilindro > manguera
+  const dpOf = (c) => g({ oil_cont: c }).find((x) => /carrera de diseño: p_hold/.test(x.nombre)).dem - pd;
+  assert.ok(dpOf(1) > dpOf(2) && dpOf(2) > dpOf(3), "rígido > cilindro > manguera"); near(dpOf(3), 140, 0.03, "manguera ≈ 140 bar");
+  // a 20 °C no hay sobrepresión y la verificación pasa; a 40 K (T = 60) el aceite ya excede
+  assert.equal(TT.thermal(P, { T: [20, 80], alts: ["base"] }).alternativas[0].byT[0].filas.find((x) => /carrera de diseño: p_hold/.test(x.nombre)).estado, "ok");
+});
+
+test("Temperatura · aceite, sellos, grasa y sensibilidades (μ, Fy 0,92, UHMW k_p/k_E, madera)", () => {
+  const P = TT.defaults(), r = TT.thermal(P, { T: [20, 40, 60, 80, 100] }), by = (id) => r.alternativas.find((a) => a.id === id);
+  const row = (a, T, re) => a.byT.find((b) => b.T === T).filas.find((x) => re.test(x.nombre));
+  const bs = by("base");
+  const v80 = row(bs, 80, /viscosidad a T_serv/), v100 = row(bs, 100, /viscosidad a T_serv/);
+  near(v80.cap, TT.oilViscosity(80).lo, 1e-12); near(v80.fu, P.nu_min / TT.oilViscosity(80).lo, 1e-12); assert.equal(v80.estado, "warn", "≈ 11 mm²/s frente al mínimo supuesto de 10: monitoreo"); assert.equal(v100.estado, "fail", "6,8 mm²/s < 10");
+  assert.equal(row(bs, 80, /Sellos NBR/).estado, "warn"); assert.equal(row(bs, 100, /Sellos NBR/).estado, "warn", "80–120 °C: solo monitoreo"); assert.equal(row(bs, 40, /Sellos NBR/).estado, "ok");
+  const gr = row(bs, 80, /punto de goteo/); near(gr.fu, 80 / 175, 1e-12); assert.equal(gr.estado, "ok"); assert.ok(/margen = 95 K/.test(gr.formula), "margen de 95 K a 80 °C");
+  // μ: FS(μ·f) = FS/f; el multiplicador máximo con FS ≥ FS_mín es FS/FS_mín
+  near(bs.sens.mu[2].FS, bs.FS20 / 1.2, 1e-12); near(bs.sens.mu[3].FS, bs.FS20 / 1.5, 1e-12); assert.equal(bs.sens.mu[1].gira, true); assert.equal(bs.sens.mu[2].gira, false, "μ × 1,2 baja el FS del giro bajo 1,25 en la base"); near(bs.sens.mu_crit, bs.FS20 / P.FS_min, 1e-12);
+  assert.ok(by("C1").sens.mu_crit > bs.sens.mu_crit, "el bronce con grafito tiene más margen de μ (μ_d 0,15 frente a 0,20)");
+  // k_mu_T como entrada: con 1,2 a 80 °C el FS del giro baja a FS/1,2 y el golden a 20 °C no cambia
+  const rm = TT.thermal(Object.assign(TT.defaults(), { k_mu_T: 1.2 }), { T: [20, 80], alts: ["base"] }).alternativas[0];
+  near(rm.byT[1].FS, rm.byT[0].FS / 1.2, 1e-9, "FS con μ × 1,2"); assert.equal(rm.byT[0].FS, rm.FS20);
+  // Fy × 0,92 (ASME II-D): con la base el FU máximo de las verificaciones de fluencia sube 1/0,92 y queda ≤ 1,0
+  assert.equal(bs.byT.find((b) => b.T === 80).fuEst, bs.byT[0].fuEst, "k_Fy = 1,00: el FU máximo de la base no cambia a 80 °C");
+  near(bs.sens.kFy092.fuEst, bs.byT[0].fuEst / 0.92, 1e-6, "FU máx / 0,92"); assert.ok(bs.sens.kFy092.fuEst <= 1 && bs.sens.kFy092.estructura, "la base cumple con Fy × 0,92");
+  assert.ok(bs.sens.kFy092.empeoran.length > 0 && bs.sens.kFy092.empeoran.every((x) => x.de !== "fail"));
+  // inox (A, B): el Fy del inox baja 18 % → los topes de los discos (dimensionados para FU 0,90) pasan de 1,0: cambian de estado
+  for (const id of ["A", "B"]) { const cam = by(id).byT.find((b) => b.T === 80).cambian.filter((c) => /aplastamiento del tope/.test(c.nombre)); assert.ok(cam.length >= 1 && cam.every((c) => c.de === "ok" && c.a === "fail" && c.empeora), id + ": tope del disco inox falla a 80 °C"); }
+  assert.equal(by("C1").byT.find((b) => b.T === 80).cambian.filter((c) => c.grp !== "Temperatura" && c.grp !== "Mesa").length, 0, "C1: sin cambios de estado de verificaciones estándar con k_bz = 1,00");
+  // UHMW (B): k_p·p_adm; la lámina solo cumple si k_p ≥ k_crítico (< 1); monotonía
+  const B = by("B"), u = B.sens.uhmw;
+  assert.ok(u.kp_crit > 0.4 && u.kp_crit < 1 && u.kp.find((x) => x.k_p === 1).cumple && !u.kp.find((x) => x.k_p === 0.4).cumple, "k_p crítico entre 0,4 y 1: " + u.kp_crit);
+  for (let i = 1; i < u.kp.length; i++) assert.ok(u.kp[i].fuUHMW <= u.kp[i - 1].fuUHMW + 1e-12, "FU de la lámina no crece con k_p");
+  assert.equal(B.byT.find((b) => b.T === 80).gira, false, "B no gira con seguridad a 80 °C: el aplastamiento del tope del rebaje supera p_adm·0,4");
+  assert.ok(B.byT.find((b) => b.T === 80).cambian.some((c) => /Lámina UHMW.*aplastamiento del canto/.test(c.nombre) && c.empeora));
+  assert.ok(row(B, 80, /acortamiento elástico/).dem > row(B, 20, /acortamiento elástico/).dem, "E reducida: más deformación bajo carga");
+  // madera: C_t sobre p_wood
+  const W = TT.thermal(Object.assign(TT.defaults(), { opt_wood: 1 }), { T: [20, 80], alts: ["base"] }).alternativas[0], mw = (T) => W.byT.find((b) => b.T === T);
+  assert.equal(W.madera, true); const cw = (T) => mw(T).sensibles_est.concat(mw(T).sensibles).find((x) => /Madera: aplastamiento/.test(x.nombre));
+  near(cw(80).fuT / cw(80).fu20, 1 / 0.7, 1e-9, "FU de la madera × 1/C_t"); assert.equal(W.sens.madera[1].Ct, 0.5); assert.ok(W.sens.madera[1].fu > W.sens.madera[0].fu);
+});
+
+test("Temperatura · escenario por defecto (solar 80 °C, 15 K), temperaturas del escenario, JSON puro y lista de verificaciones sensibles", () => {
+  const r = TT.thermal(TT.defaults(), { alts: ["base", "B"] });
+  assert.equal(r.T_scn, 80); assert.equal(r.gradiente_scn, 15, "sin T_serv definida el escenario es el solar: 80 °C y 15 K"); assert.deepEqual(r.T, [20, 40, 60, 80, 100]);
+  const r2 = TT.thermal(Object.assign(TT.defaults(), { T_serv: 60 }), { T: [20, 40], alts: ["base"] });
+  assert.equal(r2.T_scn, 60); assert.equal(r2.gradiente_scn, 0); assert.deepEqual(r2.T, [20, 40, 60], "la tabla incluye la temperatura del escenario");
+  assert.equal(TT.thermal(Object.assign(TT.defaults(), { T_serv: 60, dT_grad: 10 }), { T: [20, 60], alts: ["base"] }).alternativas[0].byT[1].gradiente, 10);
+  const s = JSON.stringify(r); assert.ok(!/NaN|undefined|Infinity/.test(s), "JSON sin NaN/undefined/Infinity"); assert.deepEqual(JSON.parse(s), JSON.parse(JSON.stringify(TT.thermal(TT.defaults(), { alts: ["base", "B"] }))), "determinista");
+  for (const a of r.alternativas) for (const b of a.byT) {
+    assert.ok(b.sensibles.length <= 10 && b.sensibles_est.length <= 10);
+    b.sensibles.forEach((x) => { assert.ok(["A", "B", "C", "A/C", "B/C"].includes(x.conf), "nivel de confianza: " + x.conf); assert.ok(x.fuT >= x.fu20 && x.nombre); });
+    for (let i = 1; i < b.sensibles.length; i++) assert.ok(b.sensibles[i].delta <= b.sensibles[i - 1].delta + 1e-12, "ordenadas por aumento de FU");
+    assert.ok(b.cambian.every((c) => ["ok", "warn", "fail"].includes(c.de) && ["ok", "warn", "fail"].includes(c.a) && c.de !== c.a));
+  }
+  assert.ok(r.avisos.some((x) => /BTH-1/.test(x) && /66 °C/.test(x)) && r.avisos.some((x) => /UHMW/.test(x) && /confianza C/.test(x)) && r.avisos.some((x) => /alivio térmico/.test(x)));
+  const b80 = r.alternativas[0].byT.find((b) => b.T === 80); assert.ok(b80.sensibles[0].sys === "term" || b80.sensibles[0].delta > 0);
+  // pestañas de extrapolación
+  assert.ok(r.alternativas[0].byT.find((b) => b.T === 100).extrapolado && r.alternativas[0].byT.find((b) => b.T === 100).notas.some((x) => /extrapol/.test(x)));
+});
