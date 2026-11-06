@@ -53,9 +53,10 @@ class Pieza:
 
     def V(self, keys, view, box, label="", margin=(16, 16, 16, 16), mat=None, **kw):
         sh = keys if isinstance(keys, dict) else self.ctx.sh(*keys)
+        hatch = kw.pop("hatch", True)
         V = View.auto(self.s, sh, view, box, margin=margin, label=label or view, **kw)
         V.mat = mat or {k: self.ctx.mat.get(k, "acero") for k in sh}
-        V.draw()
+        V.draw(hatch=hatch)
         self.scales.append(V.scale)
         self.vlist.append(V)
         return V

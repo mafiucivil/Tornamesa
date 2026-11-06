@@ -16,7 +16,7 @@ from geom import f, fm
 import draw as dr
 
 HLR_CACHE = {}
-STD_SCALES = [1/100, 1/50, 1/25, 1/20, 1/10, 1/5, 1/2.5, 1/2, 1/1, 2/1, 5/1]
+STD_SCALES = [1/100, 1/50, 1/25, 1/20, 1/10, 1/8, 1/5, 1/4, 1/2.5, 1/2, 1/1.5, 1/1, 1.5, 2/1, 5/1]
 
 
 def snap_scale(s):
@@ -236,6 +236,7 @@ class View:
                  only=None, label=""):
         self.S, self.shapes, self.view, self.scale = S, shapes, view, scale
         self.origin = origin
+        self.center = center
         self.cu, self.cv = proj_pt(center, view)
         self.win = win              # ventana en coordenadas de pantalla del modelo (u0, v0, u1, v1) relativas a 'center'
         self.cut, self.hidden, self.nocut, self.hatch_scale = cut, hidden, set(nocut), hatch_scale
@@ -287,8 +288,8 @@ class View:
                 try:
                     sec = shp.intersect(plane)
                     for fc in sec.Faces():
-                        outer = [self.uv((p.x, p.y, p.z)) for p in _wire_pts(fc.outerWire(), self.tol)]
-                        holes = [[self.uv((p.x, p.y, p.z)) for p in _wire_pts(w, self.tol)] for w in fc.innerWires()]
+                        outer = [proj_pt((p.x, p.y, p.z), self.view) for p in _wire_pts(fc.outerWire(), self.tol)]
+                        holes = [[proj_pt((p.x, p.y, p.z), self.view) for p in _wire_pts(w, self.tol)] for w in fc.innerWires()]
                         hatches.append((k, outer, holes))
                 except Exception as ex:
                     print("   sección falló", k, ex)
@@ -297,11 +298,12 @@ class View:
         if cached is None:
             comp = cq.Compound.makeCompound([cq.Compound.makeCompound(list(s.Solids())) if hasattr(s, "Solids") else s for s in kept])
             vis, hid = hlr(comp, self.view, self.tol, self.hidden)
-            vis = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in vis]
-            hid = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in hid]
             HLR_CACHE[ck] = (vis, hid, hatches)
         else:
             vis, hid, hatches = cached
+        vis = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in vis]
+        hid = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in hid]
+        hatches = [(k, [(u - self.cu, v - self.cv) for (u, v) in o], [[(u - self.cu, v - self.cv) for (u, v) in h_] for h_ in hs]) for (k, o, hs) in hatches]
         if self.win:
             vis, hid = clip_polys(vis, self.win), clip_polys(hid, self.win)
         xs, ys = [], []
