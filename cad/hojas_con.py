@@ -219,9 +219,9 @@ def sheet_conjunto(ctx):
     c.vs("planta", sh, "top", lv=(1, 1, 1, 1), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.5)
 
     def elev(V, c):
-        V.dimv((B / 2, -B / 2, 0), (g.Rt, 0, top), "right", 0, on=["base_plancha", "mesa_anillo_sup"], text=f"{f(top)} (altura total sin cubierta)")
+        V.dimv((B / 2, -B / 2, 0), (g.Rt, 0, top), "right", 0, on=["base_plancha", "mesa_anillo_sup"], text=f"{f(top)}")
         V.dimv((B / 2, -B / 2, 0), (B / 2, -B / 2, tb), "right", 1, on=["base_plancha"], text=f"{f(tb)}")
-        V.dimv((g.Rt, 0, g.z0), (g.Rt, 0, top), "right", 2, on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)} (h_disc)")
+        V.dimv((g.Rt, 0, g.z0), (g.Rt, 0, top), "right", 2, on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)}")
     c.vs("elev", sh, "front", lv=(1, 2, 3, 1), draw=elev, mat=mm, hatch=False, title="ELEVACIÓN FRONTAL", auto=False, w=1.0)
     c.vs("cA", sh, "front", cut=CUT_Y, lv=(1, 1, 2, 1), extra=(22, 22, 22, 22), mat=mm, hs=0.5, title="CORTE A-A (plano y = 0)", auto=False, w=1.2,
          draw=chain(balloon_cb([k for k in ks], pred=lambda q: q[1] >= -0.5, gap=12.0, off=16.0), lambda V, c: V.dimv((B / 2, 0, g.tb), (B / 2, 0, g.tb + P["rim_h"]), "right", 0, on=["marco_corto"], text=f"{f(P['rim_h'])}")))
@@ -233,7 +233,7 @@ def sheet_conjunto(ctx):
         ["Masa total del ensamble (3D)", f"{f(mt, 1)} kg (piezas del núcleo + comerciales)"], ["Masa del núcleo (m.total)", f"{f(ctx.M['total'], 1)} kg"],
         ["Centro de gravedad (x, y, z)", f"({fm(cgx[0], 1)}; {fm(cgx[1], 1)}; {fm(cgx[2], 1)}) mm desde el centro de la base y la cara inferior"],
         ["Carga de diseño", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm"], ["Mesa / base", f"Ø{f(P['D_top'])} / {f(B)} × {f(B)} × {f(g.tb)}"], ["Interfaz", g.interfaz_nombre]])
-    c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, NOTA_ANCLAJE, "Cotas generales; el detalle de cada subconjunto está en CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote) y CON-012 (interfaz).",
+    c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, NOTA_ANCLAJE, "Cota 228: altura total sin cubierta (base + mesa); 210: h_disc. Cotas generales; el detalle de cada subconjunto está en CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote) y CON-012 (interfaz).",
                                        "Despiece completo con materiales, certificados y masas en CON-002. Piezas: plano propio con el código de la pieza. Vistas adicionales y dimensiones generales: CON-003."])
     c.build()
     return c.h
@@ -255,7 +255,7 @@ def sheet_vistas_conj(ctx):
          auto=dict(on=["base_plancha"], hole_rmin=20.0))
     pk = [k for k in ("pasadores", "pernos_pasador", "mesa_anillo_sup") if k in sh]
     c.vs("det_pin", {k: ctx.shapes[k] for k in pk}, "front", cut=((0, 0, 0), (0, 1, 0)), center=(g.R_pin, 0, top - 60), win=(-90, -110, 90, 90), lv=(1, 2, 1, 1), hs=0.4, maxs=2.0,
-         title="DETALLE A: PASADOR, ARANDELA Y PERNO EN EL BORDE DE LA MESA", auto=dict(on=pk), mat={k: ctx.mat.get(k, "acero") for k in pk}, w=1.0)
+         title="DETALLE A: PASADOR, ARANDELA Y PERNO EN EL BORDE DE LA MESA", auto=False, mat={k: ctx.mat.get(k, "acero") for k in pk}, w=1.0)
     rows = [["Base (plancha)", f"{f(B)} × {f(B)} × {f(tb)}"], ["Altura total del equipo sin cubierta", f"{f(top)} (z de la cara superior de la mesa desde la cara inferior de la base)"],
             ["Mesa", f"Ø{f(P['D_top'])} × {f(g.hd)}; cara inferior a z = {f(g.z0)}"], ["Eje de los cilindros", f"z = {f(g.zc)}"],
             ["Pivote", f"Ø{f(P['D_piv'])} × {fm(g.L_piv, 1)}"], ["Carrera de los cilindros", f"{f(P['stroke'])} mm"]]

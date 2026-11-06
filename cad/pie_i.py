@@ -317,6 +317,17 @@ def sheet_int_ranuras(ctx):
         s.dim_ang(V.P(c3), g.Ri * V.scale * 0.8, 0, 360.0 / g.n_gr_rad, f"{fm(360 / g.n_gr_rad, 2)}° (paso)")
     p.vs("planta", {k: ctx.shapes[k] for k in allk}, "bottom", lv=(1, 1, 1, 1), extra=(0, 0, 100, 20), draw=planta, hatch=False, title="PLANTA DE LA CARA DESLIZANTE DE LA MESA (vista desde abajo; ranuras y graseras G)", w=2.0,
          auto=dict(holes=False, verts=False, only_extents=True), mat={k: ctx.mat.get(k, "acero") for k in allk})
+    zf = bb.zmin + g.h_gr           # fondo de las ranuras (la cara deslizante de la mesa es la inferior)
+
+    def sec(V, p):
+        pts = [(g.Ri, 0, bb.zmin)] + [(r, 0, zf) for r in sorted(rr)] + [(g.Ro, 0, bb.zmin)]
+        for a_, b_ in zip(pts, pts[1:]):
+            V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
+        V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (R_i a R_o)")
+        for i, r in enumerate(sorted(rr)):
+            V.note_pt((r, 0, zf), (0, 30 + 9 * i), f"ranura circunferencial R{fm(r, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", on=[nk], dot=True) if False else None
+    p.vs("sector", [nk], "bottom", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
+         auto=dict(holes=False, verts=False, only_extents=True, overall=False))
     # corte transversal de una ranura circunferencial (bisectriz del sector)
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
     p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, -bb.zlen - 6, 60, 10), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,

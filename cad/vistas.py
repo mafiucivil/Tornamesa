@@ -516,7 +516,7 @@ class View:
             if abs(self.uv(b)[1] - self.uv(a)[1]) > 0.05:
                 self.dimv(a, b, side, lv, on=on, **kw)
 
-    def note_hole(self, c3, r, ang_deg, text, ext=14.0, on=None):
+    def note_hole(self, c3, r, ang_deg, text, ext=14.0, on=None, lines=None):
         """Llamada «n × Ø… » apuntando a un agujero (radio r del modelo), verificada contra el eje del cilindro."""
         ok = COTAS.axis_ok(c3, r, on or self.keys)
         COTAS.add(vista=self.label, texto=text, valor_dibujo=round(2 * r, 3), tipo="agujero", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
@@ -526,7 +526,7 @@ class View:
         c = self.P(c3)
         p1 = (c[0] + r * self.scale * math.cos(a), c[1] + r * self.scale * math.sin(a))
         q = (c[0] + (r * self.scale + ext) * math.cos(a), c[1] + (r * self.scale + ext) * math.sin(a))
-        self.S.leader(p1, q, text)
+        self.S.leader(p1, q, text, lines=lines)
 
     def note_pt(self, p3, off, text, on=None, lines=None, dot=False):
         """Llamada de texto con flecha hacia un punto 3D de la superficie (verificada)."""

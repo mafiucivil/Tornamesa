@@ -588,7 +588,7 @@ class Plano:
         nx, ny = int((x1 - x0) / st), int((y1 - y0) / st)
         occ = [[False] * ny for _ in range(nx)]
         s = self.s
-        rects = list(getattr(s, "views", [])) + list(getattr(s, "reserved", []))
+        rects = list(getattr(s, "views", [])) + list(getattr(s, "reserved", [])) + list(getattr(s, "footprints", []))
         for (a, b, c, d) in rects:
             for i in range(max(0, int((a - infl - x0) / st)), min(nx, int((c + infl - x0) / st) + 1)):
                 for j in range(max(0, int((b - infl - y0) / st)), min(ny, int((d + infl - y0) / st) + 1)):

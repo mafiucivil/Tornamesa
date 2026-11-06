@@ -167,9 +167,10 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         else:
             prot = {lo[0], hi[0]}
             chain = _thin(items, V.scale, txt_of, minw=minw, protect=prot)
-            if len(chain) > maxn:
-                step = (len(chain) - 1) / (maxn - 1)
-                chain = [chain[int(round(i * step))] for i in range(maxn)]
+            while len(chain) > maxn:
+                # elimina el punto interior cuyos tramos vecinos suman menos (el resto queda con tramos holgados)
+                k = min(range(1, len(chain) - 1), key=lambda i: chain[i + 1][0] - chain[i - 1][0])
+                chain.pop(k)
         lv = lvl
         dimf = V.dimh if axis == 0 else V.dimv
         if len(chain) > 2 or (len(chain) == 2 and not overall):
@@ -293,4 +294,13 @@ def notes_holes(V, cs, on, fits=None, ang0=35, ext=14.0, pitch_txt=None, center=
                     tmax = min(tmax, t)
         near_c = math.hypot(P[0] - cxp, P[1] - cyp) < 0.2 * max(x1 - x0, y1 - y0)
         e = ext if near_c else (max(ext, (tmax - rpx) + 8) if tmax < 1e8 else ext)
-        V.note_hole(c[3], c[2], ang, txt, ext=min(e, 160), on=on)
+        e = min(e, 160)
+        qx = P[0] + (rpx + e) * dx
+        box = getattr(V, "box", None)
+        lines = None
+        if box is not None:
+            avail = (box[2] - qx - 2) if dx >= 0 else (qx - box[0] - 2)
+            if tw(txt, T_N) > avail:
+                from draw import wrapw
+                lines = wrapw(txt, max(avail, 50.0), T_N)
+        V.note_hole(c[3], c[2], ang, txt, ext=e, on=on, lines=lines)

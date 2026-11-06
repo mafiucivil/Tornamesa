@@ -39,13 +39,7 @@ def sheet_base_plancha(ctx):
 
     def corte(V, p):
         s.line(V.P(0, 0, -10), V.P(0, 0, g.tb + g.h_boss + 10), "EJE")
-        V.dim_dia((0, 0, tb / 2), P["D_piv"] / 2, 20, text=f"Ø{f(P['D_piv'])} H7", on=on, ext=22)
-        V.dimv((V.shapes["base_plancha"].BoundingBox().xmax * 0 + 150, 0, 0), (150, 0, tb), "right", 0, on=on, text=f"{f(tb)} (t_base) ±0,5") if False else None
-        s.roughness((V.P(-70, 0, tb)[0], V.P(0, 0, tb + g.h_boss)[1] + 6), "Ra 3,2 (cara de apoyo)")
-        s.roughness((V.P(P["D_piv"] / 2 + 2, 0, tb / 2)[0] + 22, V.P(0, 0, tb / 2)[1] - 40), "Ra 1,6 (agujero)")
         s.datum((V.P(-250, 0, 0)[0], V.P(0, 0, 0)[1] - 1), "A", up=False)
-        s.gdt((V.P(120, 0, 0)[0], V.P(0, 0, 0)[1] - 34), "perp", "0,05", "A")
-        s.text("Eje Ø%s H7 perpendicular a la cara de apoyo" % f(P["D_piv"]), (V.P(120, 0, 0)[0] + 24, V.P(0, 0, 0)[1] - 34), T_N, "MIDDLE_LEFT")
         w_sym(p, jids(ctx, "Collar")[0], V, (g.D_boss / 2, 0, tb + 1), (45, 30), all_round=True)
     p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", mat={"base_plancha": "acero", "collar": "acero"},
          auto=dict(on=["base_plancha", "collar"], fits={P["D_piv"]: "H7"}), w=2.0, hs=0.5)
@@ -58,9 +52,6 @@ def sheet_base_plancha(ctx):
             w_sym(p, ids[0], V, (0, -B / 2 + rt, tb + 3), (28, 36))
     p.vs("borde", ["base_plancha", "marco_largo"], "right", cut=CUT_X, center=(0, -B / 2, tb), win=(-30, -tb - 6, 40, rh + 10), lv=(1, 1, 1, 1), draw=det_borde, title="DETALLE B: BORDE CON MARCO PERIMETRAL",
          auto=dict(on=["base_plancha", "marco_largo"], text={}), mat={"base_plancha": "acero", "marco_largo": "acero"}, maxs=2.0, w=1.0)
-    # detalle de la esquina en planta
-    p.vs("esquina", ["base_plancha", "marco_largo", "marco_corto"], "top", center=(B / 2, -B / 2, tb), win=(-70, -10, 20, 70), lv=(1, 1, 1, 1), title="DETALLE C: ESQUINA (PLANTA)", hatch=False,
-         auto=dict(on=["base_plancha", "marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
     # tabla de posiciones
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):
