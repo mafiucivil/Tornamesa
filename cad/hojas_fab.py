@@ -115,7 +115,7 @@ def sheet_mensula(ctx):
     s = h.begin()
     tb, H_, rear, Llug, Win, Wout = g.tb, BR["H"], BR["rear"], BR["Llug"], BR["Win"], BR["Wout"]
     zt = tb + H_
-    V = View(s, ctx.sh(*keys), "top", (170, 480), 0.8, center=(0, 0, 0), label="Planta"); V.draw()
+    V = View(s, ctx.sh(*keys), "top", (170, 455), 0.8, center=(0, 0, 0), label="Planta"); V.draw()
     s.line(V.P(-rear - 20, 0, zt), V.P(P["L_ch"] - rear + 25, 0, zt), "EJE")
     V.dim((-rear, Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), 10, orient="h", on=["mensula_mejilla_L"])
     V.dim((-rear, Wout / 2, zt), (0, Wout / 2, zt), 18, orient="h", on=["mensula_mejilla_L"], text=f"{f(rear)}")
@@ -123,8 +123,8 @@ def sheet_mensula(ctx):
     V.dim((P["L_ch"] - rear, -Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), 10, orient="v", on=["mensula_mejilla_L"])
     V.dim((Llug - rear, -Win / 2, zt), (Llug - rear, Win / 2, zt), 8, orient="v", on=["mensula_oreja_sup_L"])
     V.dim_dia((0, 0, zt), P["d_pp"] / 2, 120, text=f"Ø{f(P['d_pp'])} H9", on=["mensula_oreja_sup_L"], ext=18)
-    s.weld_iso(V.P(P["L_ch"] - rear - 30, Wout / 2, zt), V.P(P["L_ch"] - rear + 60, Wout / 2 + 110, zt), "fillet", f"z{fm(P['w_br'], 0)}", other=True, tail=["111/135 · ISO 5817-B", "WPS-02 A DEFINIR POR EL FABRICANTE"])
-    title_view(s, (170, 380), "PLANTA", "ESC 1:1,25")
+    s.weld_iso(V.P(P["L_ch"] - rear - 30, Wout / 2, zt), V.P(P["L_ch"] - rear + 60, Wout / 2 + 30, zt), "fillet", f"z{fm(P['w_br'], 0)}", other=True, tail=["111/135 · ISO 5817-B", "WPS-02 A DEFINIR POR EL FABRICANTE"])
+    title_view(s, (170, 360), "PLANTA", "ESC 1:1,25")
     VS = View(s, ctx.sh(*keys), "front", (170, 225), 0.8, cut=((0, 0, 0), (0, 1, 0)), label="Elevación", hatch_scale=0.35); VS.draw()
     s.line(VS.P(0, 0, tb - 10), VS.P(0, 0, zt + 15), "EJE")
     VS.dim((Llug - rear, 0, tb), (Llug - rear, 0, zt), 12, orient="v", on=["mensula_oreja_sup_L", "mensula_oreja_inf_L"])
@@ -437,7 +437,7 @@ def sheet_mesa_plan(ctx):
     VR.dim((g.prIn - 30, 0, z0), (g.prIn - 30, 0, z0 + g.tbo), -6, orient="v", on=["mesa_plancha_inf_r"], text=f"{f(g.tbo)}", outside=True)
     VR.dim((g.prIn + 10, 0, z0), (g.prIn + 10, 0, z0 + g.tpr), 8, orient="v", on=["mesa_anillo_inf_r"], text=f"{f(g.tpr)}", outside=True)
     VR.dim((g.prIn - 30, 0, z0 + g.hd - g.tt), (g.prIn - 30, 0, z0 + g.hd), -6, orient="v", on=["mesa_plancha_sup_r"], text=f"{f(g.tt)}", outside=True)
-    s.weld_iso(VR.P(g.prIn, 0, z0 + g.tbo), VR.P(g.prIn - 100, 0, z0 - 25), "cjp", f"t={fm(g.tbo, 0)}", tail=["111/135 · ISO 5817-B · UT 100 %", "WPS-06 A DEFINIR POR EL FABRICANTE"])
+    s.weld_iso(VR.P(g.prIn, 0, z0 + g.tbo), VR.P(g.prIn + 40, 0, z0 - 25), "cjp", f"t={fm(g.tbo, 0)}", tail=["111/135 · ISO 5817-B · UT 100 %", "WPS-06 A DEFINIR POR EL FABRICANTE"])
     s.text(f"Transición de espesor {f(g.tbo)} → {f(g.tpr)}: rebajar el anillo 1:4 en la unión con la plancha (CJP en V 60°, raíz 3, con respaldo).", (30, 110), 2.0)
     title_view(s, (120, 125), "CORTE: EMPALME ANILLO–PLANCHA (inferior)", "ESC 1:2")
     s.gdt((310, 150), "flat", "0,20"); s.text(f"Cara inferior de la mesa: planitud 0,20 en Ø{f(P['D_top'])}", (342, 152), 2.0)
