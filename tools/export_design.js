@@ -57,13 +57,13 @@ const out = {
   mercado: TT.market(P), capCil: TT.capacityByCyl(P, [1, 2]), bomba: R.pump,
   revisionCruzada: AG.crossCheck(A),
   auditoria: AG.audit(A.checks),
-  // Geometría de la interfaz que el núcleo calcula pero no entrega como parámetro (se extrae de sus propias verificaciones, sin recalcular):
-  //  - largo de cada tope (L_tope) y canto radial disponible (R_o − R_i − 100), en el orden en que el núcleo los emite
+  // Geometría de la interfaz que el núcleo calcula pero no entrega como parámetro (la geometría de los topes sale de R.ifc.topes; el resto, de sus propias verificaciones, sin recalcular):
+  //  - geometría resuelta de cada tope (R.ifc.topes: L_tope, canto radial disponible, h_c, z, barra y su masa), en el orden en que el núcleo los emite
   //  - junta de dilatación calculada, profundidad útil de los tapones de grafito, ancho de cada sector
   //  - constantes del núcleo que fijan la geometría de la mesa (diámetros del alojamiento de la tapa y del buje)
   interfazGeom: (() => {
     const ck = A.checks, byName = (re) => ck.filter((c) => re.test(c.name));
-    const topes = byName(/largo del tope frente al canto radial/).map((c) => ({ pieza: c.name.split(":")[0], L: c.dem, Lav: c.cap, n: Number((c.name.match(/\((\d+) (sectores|pastillas)\)/) || [])[1]) || null }));
+    const topes = (R.ifc.topes || []).map((s) => Object.assign({}, s));   // geometría resuelta de cada tope (núcleo: stopsOf), también la lámina UHMW en B: pieza, n, t, L, Lav, F, a_sup, a_inf, h_barra, h_c, z, w_tope, b_tope, w_min, capas, m_barra, m_barras
     const juntas = byName(/(crecimiento por dilatación de la cuerda|junta de dilatación entre sectores)/).map((c) => ({ pieza: c.name.split(":")[0], j: c.dem }));
     const tap = byName(/Tapones de grafito: profundidad restante/)[0];
     const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));

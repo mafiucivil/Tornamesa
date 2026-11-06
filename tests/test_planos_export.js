@@ -167,7 +167,7 @@ test("Lista de materiales (CSV): la masa total coincide con R.m.total del núcle
     // masas por componente del núcleo
     const m = A.R.m, sum = (sub) => items.filter((r) => r[0].startsWith("TT300C-" + sub + "-")).reduce((s, r) => s + dec(r[7]), 0);
     const near = (a, b, msg) => assert.ok(Math.abs(a - b) <= 0.0005 * Math.max(1, b), `${nombre} ${msg}: ${a} vs ${b}`);
-    near(sum("MESA"), m.disc, "MESA"); near(sum("INTER"), m.ss + m.uhmw + m.bz, "INTER"); near(sum("CIL"), m.cyl, "cilindros");
+    near(sum("MESA"), m.disc, "MESA"); near(sum("INTER"), m.ss + m.uhmw + m.bz + m.stopBars, "INTER (discos, UHMW, bronce y barras de los topes)"); near(sum("CIL"), m.cyl, "cilindros");
     near(sum("PIVOTE") + sum("IZAJE") + sum("BASE"), m.pivot + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds, "base + collar + orejas + pivote");
     assert.ok(rows.some((r) => r[0].includes("ESTOS PLANOS NO SON VÁLIDOS")), "advertencia en el CSV");
     if (over.opt_wood) assert.ok(items.some((r) => /^TT300C-MESA-07-/.test(r[0])), "cubierta de madera en la lista");
@@ -203,6 +203,27 @@ test("JSON de diseño: mismo contenido que tools/export_design.js (parámetros p
   const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), pk = PL.buildPackage(P, A, {});
   const j = JSON.parse(Buffer.from(pk.files.find((f) => f.kind === "json").data).toString("utf8"));
   assert.equal(j.proyecto, "TT300-C"); assert.ok(j.derivados && j.verificaciones && j.pasadores.length === P.N_pin);
+});
+
+/* ---- geometría resuelta de los topes (interfazGeom.topes) y barras en la lista de materiales ---- */
+test("interfazGeom.topes: geometría resuelta de cada tope (R.ifc.topes), idéntica en tools/export_design.js; las barras suman a la lista de materiales", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tt300c-")), script = path.join(__dirname, "..", "tools", "export_design.js");
+  for (const [nombre, over] of VARIANTS) {
+    const { P, A, pk } = pack(over), T = A.R.ifc.topes, got = JSON.parse(PL.designJSON(PL.buildDesign(P, A))).interfazGeom.topes;
+    assert.equal(got.length, T.length, nombre + ": un elemento por tope");
+    got.forEach((g, i) => {
+      for (const k of ["pieza", "n", "t", "L", "Lav", "F", "a_sup", "a_inf", "h_barra", "h_c", "z", "w_tope", "b_tope", "w_min", "capas", "m_barra", "m_barras"]) assert.ok(k in g, `${nombre}: falta ${k}`);
+      assert.deepEqual(g, JSON.parse(JSON.stringify(T[i])), nombre + ": " + g.pieza);
+    });
+    const pf = path.join(tmp, "p.json"); fs.writeFileSync(pf, JSON.stringify(P));
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, pf], { maxBuffer: 1 << 28 }).toString()).interfazGeom.topes, got, nombre + ": ambos exportadores iguales");
+    // lista de materiales: las barras de los topes son una línea más y la lista cierra con m.total
+    const bars = pk.bom.items.find((i) => /Barras de los topes/.test(i.desc));
+    const mb = A.R.m.stopBars;
+    if (mb > 0) { assert.ok(bars, nombre + ": línea de barras en la lista"); assert.ok(Math.abs(bars.mTot - mb) < 1e-9); } else assert.ok(!bars);
+    assert.ok(Math.abs(pk.bom.total - A.R.m.total) < 1e-6, nombre + `: lista = núcleo (${pk.bom.total} vs ${A.R.m.total})`);
+  }
+  assert.deepEqual(JSON.parse(PL.designJSON(PL.buildDesign(TT.defaults()))).interfazGeom.topes, [], "sin interfaz: sin topes");
 });
 
 /* ---- ZIP ---- */

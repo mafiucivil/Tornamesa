@@ -70,10 +70,10 @@ const PLANOS = (() => {
       mercado: TT_.market(P), capCil: TT_.capacityByCyl(P, [1, 2]), bomba: R.pump,
       revisionCruzada: AG_.crossCheck(A),
       auditoria: AG_.audit(A.checks),
-      // Geometría de la interfaz que el núcleo calcula pero no entrega como parámetro (se extrae de sus propias verificaciones, sin recalcular)
+      // Geometría de la interfaz que el núcleo calcula pero no entrega como parámetro (la geometría de los topes sale de R.ifc.topes; el resto, de sus propias verificaciones, sin recalcular)
       interfazGeom: (() => {
         const ck = A.checks, byName = (re) => ck.filter((c) => re.test(c.name));
-        const topes = byName(/largo del tope frente al canto radial/).map((c) => ({ pieza: c.name.split(":")[0], L: c.dem, Lav: c.cap, n: Number((c.name.match(/\((\d+) (sectores|pastillas)\)/) || [])[1]) || null }));
+        const topes = (R.ifc.topes || []).map((s) => Object.assign({}, s));   // geometría resuelta de cada tope (núcleo: stopsOf), también la lámina UHMW en B: pieza, n, t, L, Lav, F, a_sup, a_inf, h_barra, h_c, z, w_tope, b_tope, w_min, capas, m_barra, m_barras
         const juntas = byName(/(crecimiento por dilatación de la cuerda|junta de dilatación entre sectores)/).map((c) => ({ pieza: c.name.split(":")[0], j: c.dem }));
         const tap = byName(/Tapones de grafito: profundidad restante/)[0];
         const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));
@@ -153,6 +153,7 @@ const PLANOS = (() => {
       if (ifc.conf === 2) add("INTER", 2, `2.ª placa de bronce t = ${nf(ifc.tss)} (${sect})`, `Bronce Fy ${nf(P.Fy_bz2)} MPa`, nS, solid);
       else add("INTER", 2, `Disco duro t = ${nf(ifc.tss)} (${sect})`, `17-4PH o inox nitrurado (Fy ${nf(P.Fy_cara)} MPa)`, nS, m.ss);
     }
+    if (m.stopBars > 0) add("INTER", 4, `Barras de los topes soldados (${(ifc.topes || []).map((s) => `${nf(s.capas * s.n)} x ${nf(s.L)} x ${nf(s.b_tope)} x ${nf(s.h_barra)}`).join("; ")})`, steel, ifc.topes.reduce((q, s) => q + s.capas * s.n, 0), m.stopBars, "Soldadas al respaldo (filete w_tope); suman a la masa total");
     // Pivote, orejas, cilindros
     add("PIVOTE", 1, `Pivote Ø${nf(P.D_piv)} x ${nf(P.t_base + ifc.delta + P.h_disc - P.t_top + 3)}`, `Acero Fy ${nf(P.Fy_piv)} MPa`, 1, m.pivot);
     if (collar > 0) add("PIVOTE", 2, `Collar de asiento Ø${nf(P.D_boss)}/Ø${nf(P.D_piv)} x ${nf(P.h_boss)} soldado a la base`, steel, 1, collar);
