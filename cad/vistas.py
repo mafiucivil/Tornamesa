@@ -450,13 +450,21 @@ class View:
         low = y0 - 8 * (max(self.lv["bottom"], 0) + 1) - 6 + dy
         cx = (x0 + x1) / 2
         box = getattr(self, "box", None)
+        esc = self.esc
         if box is not None:
             wmax = box[2] - box[0] - 2
             while h > 3.5 and dr.tw(text, h, True) > wmax:
                 h -= 0.5
+            if dr.tw(text, h, True) > wmax:
+                # título demasiado largo para la celda: lo que sigue a « (» o « —» pasa a la línea de la escala
+                for sep in (" (", " — ", " — "):
+                    if sep in text:
+                        i_ = text.index(sep)
+                        text, esc = text[:i_], text[i_:].strip(" —") + "  " + esc
+                        break
             wt = dr.tw(text, h, True)
             cx = min(max(cx, box[0] + 1 + wt / 2), box[2] - 1 - wt / 2)
-        self.S.view_title((cx, low - 2), text, self.esc, h)
+        self.S.view_title((cx, low - 2), text, esc, h)
         return low
 
     def circles(self, keys=None, rmin=0.0, rmax=1e9, axis_tol=1e-3):

@@ -270,14 +270,15 @@ def notes_holes(V, cs, on, fits=None, ang0=35, ext=14.0, pitch_txt=None, center=
         best = None
         for c in lst:
             P = V.P(c[3])
-            ang = math.degrees(math.atan2(P[1] - cyp, P[0] - cxp)) if math.hypot(P[0] - cxp, P[1] - cyp) > 8 else ang0 + 50 * gi
+            ang = math.degrees(math.atan2(P[1] - cyp, P[0] - cxp)) if math.hypot(P[0] - cxp, P[1] - cyp) > 8 else (40.0, 220.0, 130.0, 310.0)[gi % 4]
             score = sum(min(abs(((ang - a + 180) % 360) - 180) for a in [u_]) for u_ in used[-1:]) if used else 0
             if best is None or score > best[0]:
                 best = (score, c, ang)
         _, c, ang = best
+        P0 = V.P(c[3])
         # Si el centro de la vista es el centro del agujero, o varios grupos coinciden, separa las direcciones
         for a in used:
-            if abs(((ang - a + 180) % 360) - 180) < 12:
+            if abs(((ang - a + 180) % 360) - 180) < 12 and math.hypot(P0[0] - cxp, P0[1] - cyp) > 8:
                 ang += 24
         used.append(ang)
         # distancia hasta salir de la caja de la vista (papel)
@@ -293,7 +294,7 @@ def notes_holes(V, cs, on, fits=None, ang0=35, ext=14.0, pitch_txt=None, center=
                 if t > rpx:
                     tmax = min(tmax, t)
         near_c = math.hypot(P[0] - cxp, P[1] - cyp) < 0.2 * max(x1 - x0, y1 - y0)
-        e = ext if near_c else (max(ext, (tmax - rpx) + 8) if tmax < 1e8 else ext)
+        e = (ext + 12.0 * (gi // 4)) if near_c else (max(ext, (tmax - rpx) + 8) if tmax < 1e8 else ext)
         e = min(e, 160)
         qx = P[0] + (rpx + e) * dx
         box = getattr(V, "box", None)

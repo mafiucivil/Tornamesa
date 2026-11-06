@@ -36,10 +36,22 @@ def int_sector_sheet(ctx, key, titulo, face):
 
     def planta(V, p):
         s.line(V.P(g.Ri - 10, 0, ztop), V.P(g.Ro + 10, 0, ztop), "EJE")
+        rs_ = [math.hypot(vx.X, vx.Y) for vx in ctx.shapes[nk].Vertices()]
+        ri_e, ro_e = (min(rs_), max(rs_)) if rs_ else (g.Ri, g.Ro)
+        if abs(ri_e - g.Ri) > 0.5 or abs(ro_e - g.Ro) > 0.5:
+            ri_e, ro_e = ri_e, ro_e                       # sector con radios propios (p. ej. lámina UHMW): se acota el real
         ah = math.radians(th * 0.35)
-        V.note_pt((g.Ro * math.cos(ah), g.Ro * math.sin(ah), ztop), (30, 18), f"R{fm(g.Ro, 0)} (R_o)", on=on, dot=True)
-        V.note_pt((g.Ri * math.cos(ah), g.Ri * math.sin(ah), ztop), (-30, 22), f"R{fm(g.Ri, 0)} (R_i)", on=on, dot=True)
-        V.dimh((g.Ri, 0, ztop), (g.Ro, 0, ztop), "bottom", 0, on=on, text=f"{fm(g.Ro - g.Ri, 0)} (R_o − R_i)")
+        pe = autodim.visible_points(V, on)
+        def arc_pt(r_):
+            c_ = [q for q in pe if abs(math.hypot(q[0][0], q[0][1]) - r_) < 0.3]
+            return min(c_, key=lambda q: abs(q[2])) [0] if c_ else None
+        po, pi_ = arc_pt(ro_e), arc_pt(ri_e)
+        if po:
+            V.note_pt(po, (30, 18), f"R{fm(ro_e, 0)} (R_o)", on=on, dot=True)
+        if pi_:
+            V.note_pt(pi_, (-30, 22), f"R{fm(ri_e, 0)} (R_i)", on=on, dot=True)
+        if po and pi_:
+            V.dimh(pi_, po, "bottom", 0, on=on, text=f"{fm(ro_e - ri_e, 0)} (R_o − R_i)")
         if g.removable and Ln and key != "int_uhmw":
             nb = lay.b_tope + 2
             V.dimh((g.r_u - Ln / 2, nb / 2, ztop), (g.r_u + Ln / 2, nb / 2, ztop), "top", 0, on=on, text=f"{fm(Ln, 1)} (muesca del tope)")

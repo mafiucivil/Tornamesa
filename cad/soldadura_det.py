@@ -148,17 +148,17 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         (Wn, Hn), _ = butt_size(t, kind)
         tr = "transición de espesores 1:4" if "1:4" in w["prep"] else None
         nm = f"{jid}: junta {'a tope en V 60°' if kind == 'V' else 'con bisel 45°'}"
-        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 90, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({'V 60°' if kind == 'V' else 'bisel 45°'}, t = {fm(t, 0)})",
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({'V 60°' if kind == 'V' else 'bisel 45°'}, t = {fm(t, 0)})",
                     custom=lambda s, ox, oy, k, pl: prep_butt(s, ox, oy, k, t, jid, pl, kind, ang, root, 2.0, True, transition=tr))
     if w["groove"] and w["sym"] == "slot":
         wd, L = 22.0, 80.0
         Wn, Hn = slot_size(wd, L, w["t"])
-        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 90, 0), mins=1.0, maxs=2.0, title=title or f"DETALLE {jid}: SOLDADURA DE RANURA",
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=2.0, title=title or f"DETALLE {jid}: SOLDADURA DE RANURA",
                     custom=lambda s, ox, oy, k, pl: prep_slot(s, ox, oy, k, wd, L, w["t"], jid, pl))
     # filete
     z = w["z"]
     t2 = t2 or max(w["t"] or 10.0, 6.0)
     t1 = t1 or max(min(w["t"] or 10.0, 20.0), 6.0)
     (Wn, Hn), _ = fillet_size(z, t1, t2)
-    return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 1, 2, 2), extra=(0, 0, 90, 0), mins=2.0, maxs=5.0, title=title or f"DETALLE {jid}: FILETE EN T z{fm(z, 0)} (a = {fm(z * 0.7071, 1)})",
+    return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 1, 2, 2), extra=(0, 0, 112, 0), mins=2.0, maxs=5.0, title=title or f"DETALLE {jid}: FILETE EN T z{fm(z, 0)} (a = {fm(z * 0.7071, 1)})",
                 custom=lambda s, ox, oy, k, pl: prep_fillet(s, ox, oy, k, z, t1, t2, jid, pl, both))
