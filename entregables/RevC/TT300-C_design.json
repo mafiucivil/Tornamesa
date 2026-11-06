@@ -114,10 +114,10 @@
   "c_rod": 110,
   "eta_c": 0.95,
   "m_cyl": 55,
-  "Q_pump": 1.8,
-  "Q_ret": 0,
+  "Q_pump": 10,
+  "Q_ret": 20,
   "eta_pump": 0.85,
-  "t_vuelta_obj": 0,
+  "t_vuelta_obj": 15,
   "v_ret_max": 0.25,
   "x_g": 1140,
   "l_p": 300,
@@ -225,8 +225,8 @@
    "aReq": 67.07114605570445,
    "Wout": 200
   },
-  "tRev": 70.23203164695929,
-  "tCycle": 2.5082868445342603,
+  "tRev": 10.506897979502057,
+  "tCycle": 0.37524635641078774,
   "muMax_ref": 0.27678297417178127,
   "Kguide": 1.2537703025810694,
   "Rguide": 280.75146601067763,
@@ -2369,10 +2369,10 @@
    {
     "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.004240141530262885,
+    "dem": 0.023556341834793805,
     "cap": 0.05,
     "unidad": "MPa·m/s",
-    "fu": 0.0848028306052577,
+    "fu": 0.4711268366958761,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
@@ -2479,10 +2479,10 @@
    {
     "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.00529670563850605,
+    "dem": 0.02942614243614472,
     "cap": 0.5,
     "unidad": "MPa·m/s",
-    "fu": 0.0105934112770121,
+    "fu": 0.05885228487228944,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
@@ -2923,16 +2923,16 @@
   }
  ],
  "bomba": {
-  "Qr": 1.8,
-  "tExt": 1.6611171155856028,
-  "tRet": 0.8471697289486574,
-  "PhExt": 1.5174343770846734,
-  "PhRet": 0.6,
-  "vExt": 0.00235785100876882,
-  "vRet": 0.004623237272095726,
-  "Qreq": 0,
-  "Pmotor": 1.785216914217263,
-  "PmotorAlarm": 2.1176470588235294
+  "Qr": 20,
+  "tExt": 0.29900108080540855,
+  "tRet": 0.07624527560537916,
+  "PhExt": 8.43019098380374,
+  "PhRet": 6.666666666666667,
+  "vExt": 0.013099172270937888,
+  "vRet": 0.05136930302328584,
+  "Qreq": 8.427843797635115,
+  "Pmotor": 9.917871745651459,
+  "PmotorAlarm": 11.764705882352942
  },
  "revisionCruzada": [
   {
@@ -3039,12 +3039,12 @@
     8
    ],
    [
-    "ASME BTH-1 §3-2.2",
+    "Hidráulica",
     5
    ],
    [
-    "Hidráulica",
-    4
+    "ASME BTH-1 §3-2.2",
+    5
    ],
    [
     "Geometría (alzado)",
@@ -3059,12 +3059,12 @@
     4
    ],
    [
-    "Criterio del proyecto",
+    "Criterio de operación",
     3
    ],
    [
-    "Criterio de operación",
-    2
+    "Criterio del proyecto",
+    3
    ],
    [
     "Geometría (retorno del trinquete)",
@@ -3572,10 +3572,10 @@
    "grp": "Giro",
    "nombre": "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)",
    "formula": "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx",
-   "dem": 0.004623237272095726,
+   "dem": 0.05136930302328584,
    "cap": 0.25,
    "unidad": "m/s",
-   "fu": 0.018492949088382903,
+   "fu": 0.20547721209314335,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -3583,9 +3583,30 @@
    "grp": "Giro",
    "nombre": "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)",
    "formula": "P = p·Q/(600·η) a la presión de diseño (dem) y a la de alarma (cap)",
-   "dem": 1.785216914217263,
-   "cap": 2.1176470588235294,
+   "dem": 9.917871745651459,
+   "cap": 11.764705882352942,
    "unidad": "kW",
+   "fu": null,
+   "estado": "info",
+   "ref": "Hidráulica"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Tiempo por vuelta frente al objetivo",
+   "formula": "t_vuelta ≤ t_objetivo",
+   "dem": 10.506897979502057,
+   "cap": 15,
+   "unidad": "min",
+   "fu": 0.7004598653001372,
+   "estado": "ok",
+   "ref": "Criterio de operación"
+  },
+  {
+   "grp": "Giro",
+   "nombre": "Caudal de bomba requerido para el tiempo objetivo (avance y retorno al mismo caudal)",
+   "formula": "Q = (V_avance + V_retorno)·N_pas/t_objetivo",
+   "dem": 8.427843797635115,
+   "unidad": "L/min",
    "fu": null,
    "estado": "info",
    "ref": "Hidráulica"
@@ -3594,7 +3615,7 @@
    "grp": "Giro",
    "nombre": "Tiempo por vuelta",
    "formula": "N_pas · (V_ext + V_ret) / Q",
-   "dem": 70.23203164695929,
+   "dem": 10.506897979502057,
    "unidad": "min",
    "fu": null,
    "estado": "info",

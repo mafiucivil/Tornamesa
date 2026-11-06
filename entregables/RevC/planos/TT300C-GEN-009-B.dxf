@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461351.045011574
+2461351.049872685
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461351.0454398147
+2461351.050289352
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{D583D39C-E7AE-4682-9D9D-E7BA7C3BE041}
+{25888222-9BD5-4AF7-9839-AAA215BD477B}
   9
 $VERSIONGUID
   2
-{66B6E910-064B-4183-B581-D9148416AC7A}
+{2316F9CF-12FC-442F-8E76-62AB9E615B38}
   9
 $EXTNAMES
 290
@@ -3593,7 +3593,7 @@ AcDbText
  40
 1.9
   1
-El mandante indicó 15 min/vuelta «ya definido en el cálculo», pero D['derivados'].tRev = 70,2 min (Q_pump = 1,8 L/min, t_vuelta_obj = 0, D['bomba'].Qreq = 0). Los planos rotulan el valor del JSON.
+El mandante indicó 15 min/vuelta «ya definido en el cálculo», pero D['derivados'].tRev = 10,5 min (Q_pump = 10 L/min, t_vuelta_obj = 15, D['bomba'].Qreq = 8,4). Los planos rotulan el valor del JSON.
   7
 STD
  11
@@ -9555,7 +9555,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:04:49.679342+00:00
+1.4.2 @ 2026-11-06T04:11:49.756014+00:00
   0
 DICTIONARYVAR
   5
@@ -9567,7 +9567,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:05:26.619239+00:00
+1.4.2 @ 2026-11-06T04:12:25.508387+00:00
   0
 ENDSEC
   0

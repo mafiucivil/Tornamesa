@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. B
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 93 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 90 s.
 Interfaz dibujada: **Acero-acero con grasa grafitada (sin interfaz alternativa)**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -111,7 +111,7 @@ Todas las láminas dentro del formato A1.
 
 | Id | Tema | Descripción | Decisión requerida |
 |---|---|---|---|
-| B-01 | Tiempo por vuelta | El mandante indicó 15 min/vuelta «ya definido en el cálculo», pero D['derivados'].tRev = 70,2 min (Q_pump = 1,8 L/min, t_vuelta_obj = 0, D['bomba'].Qreq = 0). Los planos rotulan el valor del JSON. | Confirmar el caudal de bomba o fijar t_vuelta_obj = 15 en el cálculo y regenerar. |
+| B-01 | Tiempo por vuelta | El mandante indicó 15 min/vuelta «ya definido en el cálculo», pero D['derivados'].tRev = 10,5 min (Q_pump = 10 L/min, t_vuelta_obj = 15, D['bomba'].Qreq = 8,4). Los planos rotulan el valor del JSON. | Confirmar el caudal de bomba o fijar t_vuelta_obj = 15 en el cálculo y regenerar. |
 | B-02 | Collar y rebaje del cubo sin interfaz | Con Δ = 0 la cara superior del collar (z = 78) coincide con el techo del rebaje del cubo: contacto cara a cara sin holgura. | Definir holgura vertical collar–cubo (p. ej. ≥ 2 mm). |
 | B-03 | Izaje de la mesa | El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible). | Definir izaje de la mesa (orejas o cáncamos verificados). |
 | B-04 | Retención axial del pivote | El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable). | Definir retención (tope inferior, anillo o interferencia verificada). |

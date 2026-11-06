@@ -139,10 +139,10 @@ const TT = (() => {
       ["c_rod", "Retraído: eje del ojal del vástago → cara frontal del cuerpo", "mm", 110, 30, 400, 1],
       ["eta_c", "Rendimiento del cilindro (sellos)", "–", 0.95, 0.8, 1, 0.01],
       ["m_cyl", "Masa por cilindro", "kg", 55, 5, 500, 1],
-      ["Q_pump", "Caudal de la bomba en el avance (a la presión de trabajo)", "L/min", 1.8, 0.2, 50, 0.1],
-      ["Q_ret", "Caudal de retorno, bomba de dos etapas o válvula de alto caudal (0 = igual al de avance)", "L/min", 0, 0, 100, 0.1],
+      ["Q_pump", "Caudal de la bomba en el avance (a la presión de trabajo)", "L/min", 10, 0.2, 50, 0.1],
+      ["Q_ret", "Caudal de retorno, bomba de dos etapas o válvula de alto caudal (0 = igual al de avance)", "L/min", 20, 0, 100, 0.1],
       ["eta_pump", "Rendimiento global de la bomba y el motor", "–", 0.85, 0.5, 0.95, 0.01],
-      ["t_vuelta_obj", "Tiempo por vuelta objetivo (0 = sin objetivo)", "min", 0, 0, 240, 1],
+      ["t_vuelta_obj", "Tiempo por vuelta objetivo (0 = sin objetivo)", "min", 15, 0, 240, 1],
       ["v_ret_max", "Velocidad máxima de retorno del vástago (rebote de la uña sobre el pasador)", "m/s", 0.25, 0.02, 1, 0.01],
     ] },
     { id: "cinematica", t: "Accionamiento guiado (patín y uña)", p: [

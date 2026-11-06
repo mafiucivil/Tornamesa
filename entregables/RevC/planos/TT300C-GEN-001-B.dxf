@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461351.044953704
+2461351.0498263887
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461351.0450694445
+2461351.0499189813
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{0B3CD9B9-3BC7-4700-9976-95CAF7346938}
+{70F12D66-57C5-4ECC-8485-6D97198ECCB5}
   9
 $VERSIONGUID
   2
-{931BF2BC-44B9-4551-8843-A28E24359DB2}
+{035D8ED8-C322-41F8-91B3-8F37BA09C8F2}
   9
 $EXTNAMES
 290
@@ -2661,7 +2661,7 @@ AcDbText
  40
 2.9
   1
-5. Velocidad de operación: tiempo por vuelta calculado 70,2 min (bomba 1,8 L/min; D['bomba']); ciclo 2,51 min. El mandante indicó 15 min/vuelta: NO coincide (ver brechas).
+5. Velocidad de operación: tiempo por vuelta calculado 10,5 min (bomba 10 L/min; D['bomba']); ciclo 0,38 min. El mandante indicó 15 min/vuelta: NO coincide (ver brechas).
   7
 STD
  11
@@ -10741,7 +10741,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:04:44.723648+00:00
+1.4.2 @ 2026-11-06T04:11:45.517214+00:00
   0
 DICTIONARYVAR
   5
@@ -10753,7 +10753,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-06T04:04:54.131227+00:00
+1.4.2 @ 2026-11-06T04:11:53.885723+00:00
   0
 ENDSEC
   0

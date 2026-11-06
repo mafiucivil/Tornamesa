@@ -275,8 +275,9 @@ mrows = [["Plancha superior", m["top"]], ["Plancha inferior", m["bot"]], ["Almas
          ["Cilindros", m["cyl"]], ["TOTAL", m["total"]]]
 table(["Componente", "Masa (kg)"], [[a, n(b)] for a, b in mrows], widths=(80, 30), num_cols=(1,))
 if M3:
-    dmax = max(abs(r["dif_%"]) for r in M3["comparacion"])
-    T(f"Control: las masas se recalculan sobre el modelo 3D (CadQuery). Diferencia máxima 3D frente al núcleo: {n(dmax)} %.", size=9)
+    M3m = M3["masas"]
+    T(f"Control: las masas se recalculan sobre el modelo 3D (CadQuery). Diferencia 3D frente al núcleo (masa comparable {n(M3m['total_nucleo'])} kg): {n(M3m['dif_pct'])} % (tolerancia {n(M3m['tol_pct'])} %). "
+      f"Masa del ensamble con piezas fuera del núcleo (pernos, buje, tapas, pasadores): {n(M3['masa_total_ensamble'])} kg.", size=9)
 
 # ================================================================= 6. INTERFAZ
 H("6. Interfaz de giro y presión de contacto")
@@ -565,7 +566,7 @@ ctrl = [["Auditoría normativa", "Toda verificación tiene fórmula y referencia
 if M3:
     ni = len(M3["interferencias"]); nok = sum(1 for x in M3["interferencias"] if x["ok"])
     ctrl.append(["Modelo 3D (CadQuery): interferencias", f"{nok} de {ni} pares sin interferencia"])
-    ctrl.append(["Modelo 3D: masas frente al núcleo", f"Diferencia máxima {n(max(abs(r['dif_%']) for r in M3['comparacion']))} %"])
+    ctrl.append(["Modelo 3D: masas frente al núcleo", f"Diferencia {n(M3['masas']['dif_pct'])} % (tolerancia {n(M3['masas']['tol_pct'])} %)"])
 table(["Control", "Resultado"], ctrl, widths=(70, 100), size=8.5)
 
 # ================================================================= salida

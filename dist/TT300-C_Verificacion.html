@@ -505,10 +505,10 @@ const TT = (() => {
       ["c_rod", "Retraído: eje del ojal del vástago → cara frontal del cuerpo", "mm", 110, 30, 400, 1],
       ["eta_c", "Rendimiento del cilindro (sellos)", "–", 0.95, 0.8, 1, 0.01],
       ["m_cyl", "Masa por cilindro", "kg", 55, 5, 500, 1],
-      ["Q_pump", "Caudal de la bomba en el avance (a la presión de trabajo)", "L/min", 1.8, 0.2, 50, 0.1],
-      ["Q_ret", "Caudal de retorno, bomba de dos etapas o válvula de alto caudal (0 = igual al de avance)", "L/min", 0, 0, 100, 0.1],
+      ["Q_pump", "Caudal de la bomba en el avance (a la presión de trabajo)", "L/min", 10, 0.2, 50, 0.1],
+      ["Q_ret", "Caudal de retorno, bomba de dos etapas o válvula de alto caudal (0 = igual al de avance)", "L/min", 20, 0, 100, 0.1],
       ["eta_pump", "Rendimiento global de la bomba y el motor", "–", 0.85, 0.5, 0.95, 0.01],
-      ["t_vuelta_obj", "Tiempo por vuelta objetivo (0 = sin objetivo)", "min", 0, 0, 240, 1],
+      ["t_vuelta_obj", "Tiempo por vuelta objetivo (0 = sin objetivo)", "min", 15, 0, 240, 1],
       ["v_ret_max", "Velocidad máxima de retorno del vástago (rebote de la uña sobre el pasador)", "m/s", 0.25, 0.02, 1, 0.01],
     ] },
     { id: "cinematica", t: "Accionamiento guiado (patín y uña)", p: [
@@ -856,11 +856,11 @@ const TT = (() => {
     const stall = dpts.map((d) => { const Fp = Fstall * P.eta_c; return { Fp, H: Math.abs(d.h) * Fp, R: Math.max(Math.abs(d.rf), Math.abs(d.rr)) * Fp, Rsum: (Math.abs(d.rf) + Math.abs(d.rr)) * Fp }; });
     const stallMax = { Fp: Math.max(...stall.map((x) => x.Fp)), H: Math.max(...stall.map((x) => x.H)), R: Math.max(...stall.map((x) => x.R)), Rsum: Math.max(...stall.map((x) => x.Rsum)) };
     const caseDef = [
-      ["nom", ["Nominal: grasa grafitada limpia", "Nominal: inox–inox con grasa limpia", "Nominal: UHMW sobre inox con grasa limpia"][oi], mu.nom, r_u],
+      ["nom", ["Nominal: grasa grafitada limpia", "Nominal: inox–inox con grasa limpia", "Nominal: UHMW sobre inox con grasa limpia", "Nominal: bronce con grafito sobre acero con grasa limpia"][oi], mu.nom, r_u],
       ["dis", "Diseño: μ límite superior, r efectivo", mu.d, P.r_ef],
       ["borde", "Borde: μ de diseño con contacto en el borde (r = R)", mu.d, Ro],
       ["cont", "Contaminado: arena / película degradada", mu.cont, P.r_ef],
-      ["seco", ["Acero seco, sin lubricación (referencial)", "Inox seco, sin lubricación (referencial; gripado)", "UHMW seco sobre inox (autolubricado)"][oi], mu.dry, r_u],
+      ["seco", ["Acero seco, sin lubricación (referencial)", "Inox seco, sin lubricación (referencial; gripado)", "UHMW seco sobre inox (autolubricado)", "Bronce con grafito seco sobre acero (autolubricado)"][oi], mu.dry, r_u],
     ];
     const cases = K.ok ? caseDef.map(([id, name, mu, r]) => {
       const T = torque(mu, r), F = Fcyl(T);

@@ -142,8 +142,10 @@ test("Bomba, retorno rápido, potencia y tiempo por vuelta", () => {
   near(R.pump.vRet, 20e6 / 60 / (P.n_cyl * Aa) / 1000, 1e-12, "velocidad de retorno");
   near(R.pump.Pmotor, Math.max(R.pump.PhExt, R.pump.PhRet) / P.eta_pump, 1e-12, "potencia del motor");
   near(R.pump.PhRet, P.p_ret * 20 / 600, 1e-12, "potencia hidráulica del retorno");
-  assert.equal(TT.compute(TT.defaults()).tRev > 70 && TT.compute(TT.defaults()).tRev < 70.5, true, "por defecto 70 min por vuelta (sin cambios)");
-  const obj = TT.analyze(Object.assign(TT.defaults(), { t_vuelta_obj: 30 }), { noFEA: true });
+  assert.equal(TT.compute(Object.assign(TT.defaults(), { Q_pump: 1.8, Q_ret: 0 })).tRev > 70 && TT.compute(Object.assign(TT.defaults(), { Q_pump: 1.8, Q_ret: 0 })).tRev < 70.5, true, "con 1,8 L/min sin retorno rápido, 70 min por vuelta");
+  const Rd = TT.compute(TT.defaults());
+  assert.ok(Rd.tRev > 10.4 && Rd.tRev < 10.6, "por defecto (10/20 L/min) 10,5 min por vuelta, bajo el objetivo de 15 min");
+  const obj = TT.analyze(Object.assign(TT.defaults(), { Q_pump: 1.8, Q_ret: 0, t_vuelta_obj: 30 }), { noFEA: true });
   assert.equal(obj.checks.find((c) => /Tiempo por vuelta frente al objetivo/.test(c.name)).st, "fail", "70 min no cumple un objetivo de 30 min");
   const need = obj.checks.find((c) => /Caudal de bomba requerido/.test(c.name)).dem;
   near(TT.compute(Object.assign(TT.defaults(), { Q_pump: need, Q_ret: need })).tRev, 30, 1e-9, "el caudal requerido da el tiempo objetivo");
