@@ -31,7 +31,7 @@
 30;TT300C-ACC-005-B;Pasador del vástago (patín): Pasador Ø70 f8 × 136, placa de retención;2;42CrMo4+QT (EN 10083-3), Fy ≥ 650 MPa;4.109;8.22;Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal;Tratamiento: Bonificado 28–34 HRC;
 31;TT300C-ACC-006-B;Pasador del ojal trasero (ménsula): Pasador Ø70 f8 × 172, placa de retención;2;42CrMo4+QT (EN 10083-3), Fy ≥ 650 MPa;5.196;10.39;Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal;Tratamiento: Bonificado 28–34 HRC;
 32;TT300C-MAD-001-B;"Tablones de madera dura: Tablones contiguos e=50, ancho 200 (adoptado por el mandante), dentro del anillo; conjunto Ø1.980 con abertura central Ø240; 28 bolsillos Ø119×31";1;"Madera dura seca al aire, ρ ≥ 900 kg/m³, p adm. 6 MPa (NCh1198; confirmar con el proveedor)";127.974;127.97;"Aserrado y cepillado de tablones; corte a medida; bolsillos con fresa; fijación con tornillos avellanados (a definir)";"Ancho de tablón 200 adoptado por el mandante (S06); fijación A DEFINIR; ";
-33;TT300C-MAD-002-B;Anillo de acero de contención: Pletina 10×50 rolada a Ø2.000, soldada a la plancha superior (filete 6 a ambos lados);1;ASTM A572 Gr.50 (Fy ≥ 345 MPa);24.538;24.54;"Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa";"Pletina 10×t_wood adoptada por el mandante (S06); el cálculo no incluye su masa (fuera del núcleo); ";
+33;TT300C-MAD-002-B;Anillo de acero de contención: Pletina 10×50 rolada a Ø2.000, soldada a la plancha superior (filete 6 a ambos lados);1;ASTM A572 Gr.50 (Fy ≥ 345 MPa);24.538;24.54;"Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa";"Pletina t_ring × t_wood adoptada por el mandante (S06); incluida en el núcleo (m.ring) y en m.total; ";
 —;—;Resorte de retorno de la uña (compresión);2;"Comercial; carrera ≥ 73 mm, fuerza 150–300 N";;;;No modelado;A DEFINIR POR CATÁLOGO
 —;—;Tornillo ISO 10642 M10×25 cl. 10.9 (tapa retenedora);4;10.9;;;;No modelado;A DEFINIR POR CATÁLOGO
 —;—;Tornillo avellanado M10 (tapa de inspección);6;10.9;;;;No modelado;A DEFINIR POR CATÁLOGO
@@ -43,4 +43,4 @@
 
 MASA TOTAL (kg);;;;;;3261.1
 "CENTRO DE GRAVEDAD x; y; z (mm)";;;;;;;;"0.0; -0.0; 94.3"
-Comparable con el núcleo (kg);3D 3183.8;núcleo 3197.8;dif -14.0 kg;-0.44 %;tolerancia 0.5 %
+Comparable con el núcleo (kg);3D 3208.3;núcleo 3219.5;dif -11.2 kg;-0.35 %;tolerancia 0.5 %

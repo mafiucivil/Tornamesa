@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. B
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 140 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 136 s.
 Interfaz dibujada: **Opción A: dos discos de acero inoxidable con grasa (base liso, mesa ranurado)** (fijación pegada: NO desmontable)
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -90,13 +90,13 @@ Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 | Discos de interfaz (inox / duro) | 339.2 | 342.8 | -3.6 | -1.04 |
 
 **Total comparable:** 3D 3447.8 kg frente a 3453.4 kg del núcleo: Δ -5.6 kg (-0.16 %), tolerancia ±0.5 % → DENTRO.
-Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, anillo de la madera, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 53.7 kg. **Masa total del ensamble: 3501.5 kg.**
+Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 53.7 kg. **Masa total del ensamble: 3501.5 kg.**
 **Centro de gravedad (x, y, z):** (0.0; -0.0; 88.1) mm (origen en el eje de la mesa y la cara inferior de la base).
 
-**Total comparable conciliado:** 3D 3447.8 kg + 2.3 kg de muescas, chaflanes y juntas (por fórmula) = 3450.1 kg frente a 3453.4 kg del núcleo: Δ -0.10 % → DENTRO de ±0.5 %.
-
 ### Diferencias explicadas por pieza
-- Discos de interfaz (inox / duro): 3D 339,2 kg frente a 342,8 kg (-1,04 %). Causas (fórmula): juntas de 1 mm entre 24 sectores del disco de la base: 1 kg; juntas de 1 mm entre 24 sectores del disco de la mesa: 1,3 kg. Suma 2,3 kg; resto 1,2 kg (ranuras de engrase, agujeros avellanados y de engrase, tapones, redondeos).
+- Mesa (planchas, almas, nervios, cubo, pasadores): 3D 1422,1 kg frente a 1423,3 kg del núcleo (-0,09 %; residual -1,26 kg). Residual no descontado en el núcleo: rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo).
+- Patines: 3D 284,5 kg frente a 285,3 kg del núcleo (-0,28 %; residual -0,79 kg). Residual no descontado en el núcleo: alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría).
+- Discos de interfaz (inox / duro): 3D 339,2 kg frente a 342,8 kg del núcleo (-1,04 %; residual -3,55 kg). Residual no descontado en el núcleo: fijación pegada: el núcleo calcula discos completos (sin juntas ni muescas), el modelo 3D conserva 24 sectores con junta de 1 mm (2,3 kg) y además las ranuras de engrase y los taladros de las graseras (el resto del residual).
 
 ## Interferencias
 
@@ -105,7 +105,7 @@ Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, ani
 
 ## Chequeo automático de cotas (dibujo frente a modelo 3D)
 
-108 cotas registradas; 108 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
+111 cotas registradas; 111 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
 
 ## Control de marco
 
@@ -130,10 +130,11 @@ Todas las láminas dentro del formato A1.
 | B-02 | Retención axial del pivote | El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable). | A DEFINIR: tope inferior, anillo o interferencia verificada. |
 | B-03 | Torque de pernos y tornillos | El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición). | A DEFINIR: torques de apriete (ISO 898-1 / VDI 2230). |
 | B-04 | Tamaño de soldaduras sin parámetro | Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f. | A DEFINIR: confirmar o parametrizar tamaños y END de las soldaduras sin parámetro. |
-| B-05 | Verificación del núcleo del filete de las mejillas | La fila «Filete mínimo mejillas–base» acota con mín(w_br, t_base, t_ch) = 18: no detecta que w_br = 20 supera t_base = 18 (el máximo AISC J2.2b sobre el borde de la mejilla de 25 sería 23). | Revisar el criterio de la fila (mínimo y máximo por separado). |
-| B-06 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
-| B-07 | Masa de sectores: muescas, juntas y chaflanes no descontados | El núcleo calcula discos, placas y lámina como corona completa y suma además las barras de los topes; la geometría real descuenta las muescas de las barras, los chaflanes de alivio, las juntas entre sectores (y, según la opción, ranuras, agujeros y tapones). Conciliación por pieza en el informe del paquete. | Descontar esas áreas en el núcleo (m.ss, m.bz, m.uhmw) o aceptar la diferencia (conservadora: el núcleo pesa más). |
-| B-08 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
+| B-05 | Filetes máximos AISC J2.2b de almas y nervios | Almas y nervios de la mesa: w_web = 6 sobre t = 6 superan el máximo de borde t − 2 = 4 mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión. | PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma. |
+| B-06 | Pendiente declarado por el núcleo | Fijación permanente (pegado): los discos NO son desmontables sin destruir la unión; no admite limpieza ni cambio | Atender en fabricación/aprobación según el texto del núcleo. |
+| B-07 | Pendiente declarado por el núcleo | Opción A: par inox–inox con riesgo de gripado si la película de grasa se expulsa: exigir aleaciones o durezas distintas (≥ 50 HB de diferencia) o recubrimiento | Atender en fabricación/aprobación según el texto del núcleo. |
+| B-08 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
+| B-09 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
 
 ## Reproducción
 

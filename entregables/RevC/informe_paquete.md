@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. B
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 106 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 97 s.
 Interfaz dibujada: **Acero-acero con grasa grafitada (sin interfaz alternativa)**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -83,8 +83,12 @@ Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 | Uñas | 27.2 | 27.2 | +0.0 | +0.00 |
 
 **Total comparable:** 3D 3055.8 kg frente a 3057.8 kg del núcleo: Δ -2.0 kg (-0.07 %), tolerancia ±0.5 % → DENTRO.
-Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, anillo de la madera, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 52.8 kg. **Masa total del ensamble: 3108.6 kg.**
+Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 52.8 kg. **Masa total del ensamble: 3108.6 kg.**
 **Centro de gravedad (x, y, z):** (0.0; -0.0; 86.5) mm (origen en el eje de la mesa y la cara inferior de la base).
+
+### Diferencias explicadas por pieza
+- Mesa (planchas, almas, nervios, cubo, pasadores): 3D 1418,4 kg frente a 1419,6 kg del núcleo (-0,09 %; residual -1,21 kg). Residual no descontado en el núcleo: rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo).
+- Patines: 3D 253,7 kg frente a 254,5 kg del núcleo (-0,31 %; residual -0,79 kg). Residual no descontado en el núcleo: alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría).
 
 ## Interferencias
 
@@ -93,7 +97,7 @@ Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, ani
 
 ## Chequeo automático de cotas (dibujo frente a modelo 3D)
 
-104 cotas registradas; 104 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
+107 cotas registradas; 107 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
 
 ## Control de marco
 
@@ -114,7 +118,7 @@ Todas las láminas dentro del formato A1.
 | B-02 | Retención axial del pivote | El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable). | A DEFINIR: tope inferior, anillo o interferencia verificada. |
 | B-03 | Torque de pernos y tornillos | El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición). | A DEFINIR: torques de apriete (ISO 898-1 / VDI 2230). |
 | B-04 | Tamaño de soldaduras sin parámetro | Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f. | A DEFINIR: confirmar o parametrizar tamaños y END de las soldaduras sin parámetro. |
-| B-05 | Verificación del núcleo del filete de las mejillas | La fila «Filete mínimo mejillas–base» acota con mín(w_br, t_base, t_ch) = 18: no detecta que w_br = 20 supera t_base = 18 (el máximo AISC J2.2b sobre el borde de la mejilla de 25 sería 23). | Revisar el criterio de la fila (mínimo y máximo por separado). |
+| B-05 | Filetes máximos AISC J2.2b de almas y nervios | Almas y nervios de la mesa: w_web = 6 sobre t = 6 superan el máximo de borde t − 2 = 4 mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión. | PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma. |
 | B-06 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
 | B-07 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
 

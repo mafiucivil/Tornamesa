@@ -27,7 +27,7 @@ Fecha de emisión: 06-11-2026 · Interfaz: Acero-acero con grasa grafitada (sin 
 | 19 | TT300C-MES-003-B | CUBO, ALMAS ANULARES Y NERVIOS RADIALES | Cubo con rebaje inferior Ø D_rebaje × h_rebaje_cubo (holguras c_boss_r, c_boss_a); almas y nervios (largos de tramo; anillos del JSON). | interfazGeom (D_rebaje_bot, h_rebaje_cubo); verificación del collar «pared del rebaje ≥ 25 mm»; masas de almas y nervios |
 | 20 | TT300C-MES-004-B | PASADOR DE EMPUJE Y PERNO DE RETENCIÓN | Pasador Ø85 m6 × h_disc, temple por inducción ≥ 55 HRC (Fy_sup), alivio de borde, perno M20. | Verificaciones «Pasadores de empuje»; P.Fy_surf, P.k_edge |
 | 21 | TT300C-PIV-001-B | PIVOTE, BUJE, TAPA RETENEDORA Y TAPA DE INSPECCIÓN | Pivote, buje, tapas: asiento t_base + h_boss, buje desde t_base + h_boss + g_buje, holguras reales del collar (radial c_boss_r, axial al techo), brazo e = 42, ajustes p6/H7. | Verificaciones «Pivote» (asiento, brazo efectivo, buje, flexión, rebaje del collar) |
-| 22 | TT300C-MAD-001-B | CUBIERTA DE MADERA Y ANILLO DE ACERO | Madera: espesor, abertura, bolsillos, anillo de acero (pletina 10×t_wood, adoptado), tablones de 200, f_apoyo. | Verificaciones «Cubierta» (aplastamiento, espesor mínimo) |
+| 22 | TT300C-MAD-001-B | CUBIERTA DE MADERA Y ANILLO DE ACERO | Madera: espesor, abertura, bolsillos, anillo de acero (pletina t_ring×t_wood, en el núcleo), tablones de 200, f_apoyo. | Verificaciones «Cubierta» (aplastamiento, espesor mínimo) |
 
 ## Verificaciones transversales
 - Todas las láminas llevan la advertencia obligatoria, cajetín completo, estado «EMITIDO PARA REVISIÓN» y tabla de revisiones.

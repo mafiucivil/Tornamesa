@@ -75,17 +75,25 @@
    },
    {
     "grupo": "wood",
-    "pieza": "Cubierta de madera",
+    "pieza": "Cubierta de madera (tablones)",
     "modelo3d": 127.97423397173318,
-    "nucleo": 139.95795271742531,
-    "dif": -11.98371874569213,
-    "dif_pct": -8.562370707070304
+    "nucleo": 137.14465649613564,
+    "dif": -9.170422524402454,
+    "dif_pct": -6.686678692917833
+   },
+   {
+    "grupo": "ring",
+    "pieza": "Anillo de acero de la madera",
+    "modelo3d": 24.53819481902656,
+    "nucleo": 24.538194819026472,
+    "dif": 8.881784197001252e-14,
+    "dif_pct": 3.619575222426092e-13
    }
   ],
-  "total_3d": 3183.788002077018,
-  "total_nucleo": 3197.77146316725,
-  "dif": -13.98346109023214,
-  "dif_pct": -0.4372876939861782,
+  "total_3d": 3208.3261968960446,
+  "total_nucleo": 3219.496361764987,
+  "dif": -11.170164868942265,
+  "dif_pct": -0.3469537969230248,
   "fuera": [
    [
     "TT300C-MES-013-B",
@@ -116,22 +124,17 @@
     "TT300C-ACC-006-B",
     "Pasador del ojal trasero (ménsula)",
     10.392357082148497
-   ],
-   [
-    "TT300C-MAD-002-B",
-    "Anillo de acero de contención",
-    24.53819481902656
    ]
   ],
-  "masa_fuera": 77.34534605621604,
+  "masa_fuera": 52.80715123718948,
   "masa_ensamble": 3261.133348133234,
   "tol_pct": 0.5
  },
- "masa_total_ensamble": 3261.1333481332344,
+ "masa_total_ensamble": 3261.133348133235,
  "cg": [
-  0.023677925484239633,
-  -0.0019441106553833858,
-  94.28996816046919
+  0.023677925484240813,
+  -0.0019441106553812334,
+  94.28996816046917
  ],
  "interferencias": [
   {
@@ -2823,8 +2826,8 @@
   "TT300C-IZA-001-B": {
    "nombre": "Oreja de izaje",
    "qty": 4,
-   "masa_unit": 3.9938146615535484,
-   "masa_total": 15.975258646214193
+   "masa_unit": 3.9938146615535612,
+   "masa_total": 15.975258646214245
   },
   "TT300C-ACC-001-B": {
    "nombre": "Bancada de guía con ranura T",

@@ -51,7 +51,9 @@
   "b_tope": 20,
   "a_sup": 2,
   "a_inf": 0,
-  "hc_min": 3,
+  "hc_min": 6,
+  "tol_hc": 1,
+  "j_sec": 1,
   "d_tor": 6,
   "h_gr": 1,
   "w_gr": 8,
@@ -87,6 +89,7 @@
   "f_apoyo": 0.9,
   "h_skid": 0,
   "tol_skid": 10,
+  "t_ring": 10,
   "D_top": 2000,
   "t_top": 20,
   "t_bot": 16,
@@ -167,7 +170,7 @@
   "t_base_min": 16,
   "rim_h": 45,
   "rim_t": 10,
-  "c_lug": 150,
+  "c_lug": 200,
   "x_lug": 600,
   "t_ear": 18,
   "R_ear": 92,
@@ -343,6 +346,7 @@
    "hub": 66.75094309741858,
    "pins": 261.92365087856825,
    "wood": 0,
+   "ring": 0,
    "disc": 1419.633434310487,
    "ssTop": 0,
    "ss": 0,
@@ -357,7 +361,8 @@
    "pivot": 18.73287717038443,
    "cyl": 110,
    "stopBars": 0,
-   "total": 3057.8135104498247
+   "total": 3057.8135104498247,
+   "sectorCuts": 0
   }
  },
  "pasadores": [
@@ -813,7 +818,17 @@
     },
     {
      "id": "hc_min",
-     "lab": "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (tolerancia de corte y rebabas del canto)",
+     "lab": "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (con h_c = 3 mm el aplastamiento pasaba de FU 0,90 a 1,31 por 1 mm de error de corte: 4.ª pasada, hallazgo T6; espesor mínimo del sector con tope = a_sup + a_inf + h_c,mín = 15 mm)",
+     "u": "mm"
+    },
+    {
+     "id": "tol_hc",
+     "lab": "Fijación desmontable · tope: tolerancia de la altura de contacto (corte y rebabas del canto): el largo del tope y el espesor de la lámina UHMW se dimensionan con h_c − tol_hc, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+     "u": "mm"
+    },
+    {
+     "id": "j_sec",
+     "lab": "Fijación desmontable · junta en frío entre sectores contiguos de disco, placa o lámina (mínimo 1 mm; la junta efectiva es la mayor entre este valor y la dilatación calculada, redondeada a 0,1 mm; se descuenta de la masa)",
      "u": "mm"
     },
     {
@@ -995,6 +1010,11 @@
     {
      "id": "tol_skid",
      "lab": "Tolerancia de enrase con los rieles",
+     "u": "mm"
+    },
+    {
+     "id": "t_ring",
+     "lab": "Anillo de acero de contención de la madera (pletina soldada a la plancha superior en el borde): ancho radial; el alto es t_madera y el acero va en el borde exterior, los tablones dentro (Ø D_mesa − 2·t_anillo)",
      "u": "mm"
     }
    ]
@@ -1447,7 +1467,7 @@
     },
     {
      "id": "c_lug",
-     "lab": "Puntos de izaje (lados y): distancia al borde",
+     "lab": "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite)",
      "u": "mm"
     },
     {
@@ -1654,7 +1674,8 @@
    "mSS": 0,
    "mBz": 0,
    "tbz": 0,
-   "topes": []
+   "topes": [],
+   "cortes": []
   },
   "Tmax": 656.4906300230158,
   "q_min": 0.4317108140552331,
@@ -1922,78 +1943,78 @@
     "k": 1,
     "name": "A · Discos inoxidables con grasa",
     "tbz": 0,
-    "tss": 12,
-    "tss2": 12,
-    "tss2Req": 6.553193347466879,
+    "tss": 15,
+    "tss2": 15,
+    "tss2Req": 6.553764913243708,
     "tuh": 0,
-    "tssReq": 5.553193347466879,
+    "tssReq": 5.553764913243708,
     "tuhReq": 0,
-    "delta": 24,
-    "mass": 3757.0389921848787,
+    "delta": 30,
+    "mass": 3892.6376450186426,
     "mu_d": 0.2,
-    "F": 322.1086025504693,
-    "p": 506.3227289711592,
-    "FS": 1.382517433934657,
-    "muMax": 0.2765034867869315,
-    "q": 1.6750858329168625,
-    "mAdd": 587.647216121952,
+    "F": 322.18900339066886,
+    "p": 506.44911110593955,
+    "FS": 1.3821724328262732,
+    "muMax": 0.2764344865652546,
+    "q": 1.6754661353522873,
+    "mAdd": 705.0727425524401,
     "turns": true,
-    "tFlex": 5.053193347466879,
+    "tFlex": 5.053764913243708,
     "tuhConf": 0,
-    "qAvg": 1.0535911445488784,
-    "dTot": 699.225481735054
+    "qAvg": 1.0538295010322982,
+    "dTot": 834.824134568818
    },
    {
     "k": 2,
     "name": "B · Discos inoxidables con lámina UHMW",
     "tbz": 0,
-    "tss": 12,
-    "tss2": 12,
-    "tss2Req": 5.553193347466879,
+    "tss": 15,
+    "tss2": 15,
+    "tss2Req": 5.553764913243708,
     "tuh": 25,
-    "tssReq": 5.553193347466879,
-    "tuhReq": 14.078312632496859,
-    "delta": 49,
-    "mass": 3989.6954437662444,
+    "tssReq": 5.553764913243708,
+    "tuhReq": 14.079521704427375,
+    "delta": 55,
+    "mass": 4112.846666618554,
     "mu_d": 0.2,
-    "F": 322.1160188413317,
-    "p": 506.3343866437535,
-    "FS": 1.382485603318318,
-    "muMax": 0.27649712066366366,
-    "q": 1.67512091256864,
-    "mAdd": 660.2076910003982,
+    "F": 322.1947201620448,
+    "p": 506.45809730271,
+    "FS": 1.3821479086385502,
+    "muMax": 0.2764295817277101,
+    "q": 1.675493176140314,
+    "mAdd": 766.0986052708863,
     "turns": true,
-    "tFlex": 5.053193347466879,
-    "tuhConf": 14.078312632496859,
-    "qAvg": 1.0535911445488784,
-    "dTot": 931.8819333164197
+    "tFlex": 5.053764913243708,
+    "tuhConf": 14.079521704427375,
+    "qAvg": 1.0538295010322982,
+    "dTot": 1055.0331561687294
    },
    {
     "k": 3,
     "name": "C · Placa de bronce con tapones de grafito (bronce + disco duro)",
-    "tbz": 12,
-    "tbzReq": 9.163788580601747,
-    "tFlexB": 5.549046773684288,
-    "tss": 12,
-    "tss2": 12,
+    "tbz": 15,
+    "tbzReq": 9.164598875420008,
+    "tFlexB": 5.549674425351616,
+    "tss": 15,
+    "tss2": 15,
     "tss2Req": 6,
     "tuh": 0,
     "tssReq": 6,
     "tuhReq": 0,
-    "delta": 24,
-    "mass": 3716.1062378438905,
+    "delta": 30,
+    "mass": 3845.7743509939114,
     "mu_d": 0.15,
-    "F": 241.5814519128519,
-    "p": 379.74204672836936,
-    "FS": 1.8433565785795434,
-    "muMax": 0.2765034867869315,
-    "q": 1.6750858329168625,
-    "mAdd": 548.5984617809638,
+    "F": 241.6417525430017,
+    "p": 379.83683332945475,
+    "FS": 1.8428965771016972,
+    "muMax": 0.2764344865652546,
+    "q": 1.6754661353522873,
+    "mAdd": 657.4746885277093,
     "turns": true,
-    "tFlex": 2.2879305969393218,
+    "tFlex": 2.2881893843513708,
     "tuhConf": 0,
-    "qAvg": 1.0535911445488784,
-    "dTot": 658.2927273940659
+    "qAvg": 1.0538295010322982,
+    "dTot": 787.9608405440868
    }
   ]
  },
@@ -2002,47 +2023,47 @@
    {
     "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 23.748777692602438,
+    "dem": 14.941671320784693,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.19307949343579217,
+    "fu": 0.12147700260800563,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 5.553193347466879,
-    "cap": 12,
+    "dem": 5.553764913243708,
+    "cap": 15,
     "unidad": "mm",
-    "fu": 0.4627661122889066,
+    "fu": 0.37025099421624724,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 28.487762810400657,
+    "dem": 17.237236736323634,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.2316078277268346,
+    "fu": 0.1401401360676718,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 6.553193347466879,
-    "cap": 12,
+    "dem": 6.553764913243708,
+    "cap": 15,
     "unidad": "mm",
-    "fu": 0.5460994456222399,
+    "fu": 0.4369176608829139,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.053193347466879,
+    "dem": 5.053764913243708,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2051,8 +2072,8 @@
    {
     "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.553193347466879,
-    "cap": 12,
+    "dem": 5.553764913243708,
+    "cap": 15,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2061,42 +2082,52 @@
    {
     "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope sobre el canto del sector",
     "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 76.49845010335284,
+    "dem": 62.998723614525865,
     "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.895591610966082,
+    "fu": 0.7375460325603028,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 280,
+    "dem": 170,
     "cap": 769,
     "unidad": "mm",
-    "fu": 0.3641092327698309,
+    "fu": 0.22106631989596878,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
     "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
-    "dem": 35.50200218466039,
+    "dem": 63.008238576984894,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.4347183940978823,
+    "fu": 0.7715294519630803,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
-    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
-    "dem": 3,
-    "cap": 3,
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 15; barra h = t − a_sup; espesor mínimo del sector 15 mm)",
+    "dem": 6,
+    "cap": 6,
     "unidad": "mm",
     "fu": 1,
     "estado": "ok",
     "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)",
+    "formula": "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = 1 mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+    "dem": 75.59846833743103,
+    "cap": 85.41666666666667,
+    "unidad": "MPa",
+    "fu": 0.8850552390723633,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
@@ -2121,10 +2152,10 @@
    {
     "nombre": "Disco de la base (liso) (24 sectores): filete del tope dentro de la altura de barra",
     "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
-    "dem": 9,
-    "cap": 10,
+    "dem": 12,
+    "cap": 13,
     "unidad": "mm",
-    "fu": 0.9,
+    "fu": 0.9230769230769231,
     "estado": "ok",
     "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
    },
@@ -2141,18 +2172,18 @@
    {
     "nombre": "Disco de la base (liso) (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
     "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
-    "dem": 29.260657164532457,
+    "dem": 56.69885125307328,
     "cap": 115,
     "unidad": "MPa",
-    "fu": 0.2544404970828909,
+    "fu": 0.49303348915715894,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
-    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
-    "dem": 10.5504,
-    "cap": 0.4396,
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = 7,85 g/cm³ (acero estructural)",
+    "dem": 8.32728,
+    "cap": 0.34697,
     "unidad": "kg / kg por barra",
     "fu": null,
     "estado": "info",
@@ -2162,51 +2193,61 @@
     "nombre": "Disco de la base (liso): cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 11.5,
+    "cap": 14.5,
     "unidad": "mm",
-    "fu": 0.46086956521739136,
+    "fu": 0.3655172413793104,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): aplastamiento del tope sobre el canto del sector",
     "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 76.49845010335284,
+    "dem": 62.998723614525865,
     "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.895591610966082,
+    "fu": 0.7375460325603028,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 280,
+    "dem": 170,
     "cap": 769,
     "unidad": "mm",
-    "fu": 0.3641092327698309,
+    "fu": 0.22106631989596878,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
     "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
-    "dem": 35.50200218466039,
+    "dem": 63.008238576984894,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.4347183940978823,
+    "fu": 0.7715294519630803,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
-    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
-    "dem": 3,
-    "cap": 3,
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 15; barra h = t − a_sup; espesor mínimo del sector 15 mm)",
+    "dem": 6,
+    "cap": 6,
     "unidad": "mm",
     "fu": 1,
     "estado": "ok",
     "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)",
+    "formula": "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = 1 mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+    "dem": 75.59846833743103,
+    "cap": 85.41666666666667,
+    "unidad": "MPa",
+    "fu": 0.8850552390723633,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
@@ -2231,10 +2272,10 @@
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): filete del tope dentro de la altura de barra",
     "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
-    "dem": 9,
-    "cap": 10,
+    "dem": 12,
+    "cap": 13,
     "unidad": "mm",
-    "fu": 0.9,
+    "fu": 0.9230769230769231,
     "estado": "ok",
     "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
    },
@@ -2251,18 +2292,18 @@
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
     "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
-    "dem": 29.260657164532457,
+    "dem": 56.69885125307328,
     "cap": 115,
     "unidad": "MPa",
-    "fu": 0.2544404970828909,
+    "fu": 0.49303348915715894,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
    },
    {
     "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
-    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
-    "dem": 10.5504,
-    "cap": 0.4396,
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = 7,85 g/cm³ (acero estructural)",
+    "dem": 8.32728,
+    "cap": 0.34697,
     "unidad": "kg / kg por barra",
     "fu": null,
     "estado": "info",
@@ -2272,9 +2313,9 @@
     "nombre": "Disco de la mesa (con ranuras de engrase): cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 11.5,
+    "cap": 14.5,
     "unidad": "mm",
-    "fu": 0.46086956521739136,
+    "fu": 0.3655172413793104,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -2289,11 +2330,11 @@
    },
    {
     "nombre": "Disco inoxidable: masa del sector (manipulación manual al desmontar)",
-    "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 12.242650335874002,
+    "formula": "m_sector = m_neta_pieza/n ≤ 25 kg (neta: sin muescas, chaflanes ni juntas)",
+    "dem": 14.689015469842502,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.48970601343496006,
+    "fu": 0.5875606187937001,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
@@ -2338,7 +2379,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = t_disco base + t_disco mesa",
-    "dem": 24,
+    "dem": 30,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2356,38 +2397,58 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 587.647216121952,
+    "dem": 705.0727425524401,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
     "ref": "Geometría"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 1·24·7,930 g/cm³·[13035,0 + 56100,0 + 8330,0] mm³; V_junta = j·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,0 mm; V_muesca = (b_tope + 2)·L_tope·t, L_tope = 170; V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 14.7431388,
+    "cap": 352.53637127622005,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
+   },
+   {
+    "nombre": "Disco de la mesa (con ranuras de engrase) (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 1·24·7,930 g/cm³·[13035,0 + 56100,0 + 8330,0] mm³; V_junta = j·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,0 mm; V_muesca = (b_tope + 2)·L_tope·t, L_tope = 170; V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 14.7431388,
+    "cap": 352.53637127622005,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
    }
   ],
   "B": [
    {
     "nombre": "Disco de la base (liso): flexión sobre un vacío local (placa empotrada, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_inox; a = Ø_vacío/2; t = t_disco − sobreespesor − ranura",
-    "dem": 23.748777692602438,
+    "dem": 14.941671320784693,
     "cap": 123,
     "unidad": "MPa",
-    "fu": 0.19307949343579217,
+    "fu": 0.12147700260800563,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)"
    },
    {
     "nombre": "Disco de la base (liso): espesor adoptado frente al requerido",
     "formula": "t_disco ≥ máx(t_flex + sobreespesor + ranura; t_mínimo constructivo)",
-    "dem": 5.553193347466879,
-    "cap": 12,
+    "dem": 5.553764913243708,
+    "cap": 15,
     "unidad": "mm",
-    "fu": 0.4627661122889066,
+    "fu": 0.37025099421624724,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión sobre vacío local, desgaste y relapeado, ranuras, fabricación)"
    },
    {
     "nombre": "Disco inoxidable: espesor mínimo por flexión sobre el vacío local",
     "formula": "t_flex = a·√(0,75·q_máx/(0,6·Fy_inox))",
-    "dem": 5.053193347466879,
+    "dem": 5.053764913243708,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2396,8 +2457,8 @@
    {
     "nombre": "Disco inoxidable: espesor requerido / comercial adoptado (disco de la base)",
     "formula": "t_req = máx(t_flex + sobreespesor; t_mín); espesores comerciales de plancha ASTM A240",
-    "dem": 5.553193347466879,
-    "cap": 12,
+    "dem": 5.553764913243708,
+    "cap": 15,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2406,42 +2467,52 @@
    {
     "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope sobre el canto del sector",
     "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 76.49845010335284,
+    "dem": 62.998723614525865,
     "cap": 85.41666666666667,
     "unidad": "MPa",
-    "fu": 0.895591610966082,
+    "fu": 0.7375460325603028,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 280,
+    "dem": 170,
     "cap": 769,
     "unidad": "mm",
-    "fu": 0.3641092327698309,
+    "fu": 0.22106631989596878,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
     "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
-    "dem": 35.50200218466039,
+    "dem": 63.008238576984894,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.4347183940978823,
+    "fu": 0.7715294519630803,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
-    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
-    "dem": 3,
-    "cap": 3,
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 15; barra h = t − a_sup; espesor mínimo del sector 15 mm)",
+    "dem": 6,
+    "cap": 6,
     "unidad": "mm",
     "fu": 1,
     "estado": "ok",
     "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)",
+    "formula": "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = 1 mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+    "dem": 75.59846833743103,
+    "cap": 85.41666666666667,
+    "unidad": "MPa",
+    "fu": 0.8850552390723633,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
@@ -2466,10 +2537,10 @@
    {
     "nombre": "Disco de la base (liso) (24 sectores): filete del tope dentro de la altura de barra",
     "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
-    "dem": 9,
-    "cap": 10,
+    "dem": 12,
+    "cap": 13,
     "unidad": "mm",
-    "fu": 0.9,
+    "fu": 0.9230769230769231,
     "estado": "ok",
     "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
    },
@@ -2486,18 +2557,18 @@
    {
     "nombre": "Disco de la base (liso) (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
     "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
-    "dem": 29.260657164532457,
+    "dem": 56.69885125307328,
     "cap": 115,
     "unidad": "MPa",
-    "fu": 0.2544404970828909,
+    "fu": 0.49303348915715894,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
    },
    {
     "nombre": "Disco de la base (liso) (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
-    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
-    "dem": 21.1008,
-    "cap": 0.4396,
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = 7,85 g/cm³ (acero estructural)",
+    "dem": 16.65456,
+    "cap": 0.34697,
     "unidad": "kg / kg por barra",
     "fu": null,
     "estado": "info",
@@ -2507,9 +2578,9 @@
     "nombre": "Disco de la base (liso): cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 11.5,
+    "cap": 14.5,
     "unidad": "mm",
-    "fu": 0.46086956521739136,
+    "fu": 0.3655172413793104,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -2524,11 +2595,11 @@
    },
    {
     "nombre": "Disco inoxidable: masa del sector (manipulación manual al desmontar)",
-    "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 12.242650335874002,
+    "formula": "m_sector = m_neta_pieza/n ≤ 25 kg (neta: sin muescas, chaflanes ni juntas)",
+    "dem": 14.689015469842502,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.48970601343496006,
+    "fu": 0.5875606187937001,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
@@ -2553,7 +2624,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = t_disco base + t_disco mesa + t_UHMW",
-    "dem": 49,
+    "dem": 55,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2562,7 +2633,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 660.2076910003982,
+    "dem": 766.0986052708863,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2571,27 +2642,37 @@
    {
     "nombre": "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida",
     "formula": "q_máx ≤ p_adm,UHMW",
-    "dem": 1.6750804532515586,
+    "dem": 1.675459410770657,
     "cap": 5,
     "unidad": "MPa",
-    "fu": 0.33501609065031174,
+    "fu": 0.33509188215413144,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: espesor adoptado frente al requerido",
     "formula": "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)",
-    "dem": 14.078312632496859,
+    "dem": 14.079521704427375,
     "cap": 25,
     "unidad": "mm",
-    "fu": 0.5631325052998744,
+    "fu": 0.563180868177095,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
+    "nombre": "Lámina UHMW: espesor mínimo por el tope del rebaje / comercial adoptado",
+    "formula": "t ≥ a_sup + a_inf + máx(h_c,mín; F_s/(0,9·L·p_adm) + tol_hc); el 0,9 es un margen de proyecto sobre la presión admisible (no lo exige la norma) y tol_hc = 1 mm la tolerancia de la altura de contacto",
+    "dem": 24.164442442383173,
+    "cap": 25,
+    "unidad": "mm",
+    "fu": null,
+    "estado": "info",
+    "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo; criterio del proyecto (margen 0,9 y tolerancia)"
+   },
+   {
     "nombre": "Lámina UHMW: espesor por conformidad de planitud (con módulo confinado) / comercial adoptado",
     "formula": "t_conf = E_c(S)·δ/(p_adm − q_máx); E_c = E[1 + (M/E − 1)S²/(1 + S²)], S = D/(4t), M = E(1−ν)/((1+ν)(1−2ν)), ν = 0,45",
-    "dem": 14.078312632496859,
+    "dem": 14.079521704427375,
     "cap": 25,
     "unidad": "mm",
     "fu": null,
@@ -2610,41 +2691,51 @@
    },
    {
     "nombre": "Lámina UHMW (24 sectores): aplastamiento del canto contra el tope del rebaje",
-    "formula": "σ = F_sector/(L_canto·h_c) ≤ p_adm,UHMW; h_c = t − a_sup − a_inf; F_sector = μ_máx·N/n·(q_máx/q_med)",
-    "dem": 3.982864584048376,
+    "formula": "σ = F_sector/(L_canto·h_c) ≤ p_adm,UHMW; h_c = t − a_sup − a_inf; F_sector = μ_máx·N/n·(q_máx/q_med); el espesor se dimensiona con h_c ≥ F_s/(0,9·L·p_adm) + tol_hc (0,9: margen de proyecto, no lo exige la norma)",
+    "dem": 3.9838377014490987,
     "cap": 5,
     "unidad": "MPa",
-    "fu": 0.7965729168096752,
+    "fu": 0.7967675402898198,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Tope del rebaje del sector UHMW: soldadura al disco de la base (2 filetes, corte + par de excentricidad)",
     "formula": "f = √[(F/(2aL))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); z = a_inf + h_c/2",
-    "dem": 13.54118102877508,
+    "dem": 13.54448949146754,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.16581037994418465,
+    "fu": 0.1658508917322556,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2"
    },
    {
     "nombre": "Lámina UHMW (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
-    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 25; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
-    "dem": 3,
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 25; barra h = t − a_sup; espesor mínimo del sector 15 mm)",
+    "dem": 6,
     "cap": 16,
     "unidad": "mm",
-    "fu": 0.1875,
+    "fu": 0.375,
     "estado": "ok",
     "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
    },
    {
+    "nombre": "Lámina UHMW (24 sectores): aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)",
+    "formula": "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = 1 mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+    "dem": 4.2494268815457055,
+    "cap": 5,
+    "unidad": "MPa",
+    "fu": 0.8498853763091411,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3"
+   },
+   {
     "nombre": "Lámina UHMW (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
     "formula": "a_sup ≥ 1 mm + sobreespesor de desgaste y relapeado (0,00 mm)",
-    "dem": 1.0021049681784429,
+    "dem": 1.002105444390506,
     "cap": 2,
     "unidad": "mm",
-    "fu": 0.5010524840892214,
+    "fu": 0.501052722195253,
     "estado": "ok",
     "ref": "Criterio del proyecto (la barra no debe rozar la pieza contraria)"
    },
@@ -2661,10 +2752,10 @@
    {
     "nombre": "Lámina UHMW (24 sectores): filete del tope dentro de la altura de barra",
     "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
-    "dem": 9,
+    "dem": 12,
     "cap": 23,
     "unidad": "mm",
-    "fu": 0.391304347826087,
+    "fu": 0.5217391304347826,
     "estado": "ok",
     "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
    },
@@ -2681,18 +2772,18 @@
    {
     "nombre": "Lámina UHMW (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
     "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
-    "dem": 14.338312502574153,
+    "dem": 14.341815725216755,
     "cap": 115,
     "unidad": "MPa",
-    "fu": 0.1246809782832535,
+    "fu": 0.12471144108884134,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
    },
    {
     "nombre": "Lámina UHMW (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
-    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
-    "dem": 66.64461599999998,
-    "cap": 2.7768589999999995,
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = 7,93 g/cm³ (acero inoxidable: barras del rebaje de la lámina UHMW)",
+    "dem": 67.3237968,
+    "cap": 2.8051582,
     "unidad": "kg / kg por barra",
     "fu": null,
     "estado": "info",
@@ -2700,31 +2791,31 @@
    },
    {
     "nombre": "Lámina UHMW: masa del sector (manipulación manual)",
-    "formula": "m_sector = m_UHMW/n ≤ 25 kg",
-    "dem": 3.0233531199352566,
+    "formula": "m_sector = m_UHMW_neta/n ≤ 25 kg",
+    "dem": 2.5427442799352566,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.12093412479741027,
+    "fu": 0.10170977119741026,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
    {
     "nombre": "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.023743019537138213,
+    "dem": 0.023748390978111236,
     "cap": 0.05,
     "unidad": "MPa·m/s",
-    "fu": 0.47486039074276426,
+    "fu": 0.47496781956222467,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
    {
     "nombre": "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor",
     "formula": "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.0021049681784427827,
+    "dem": 0.002105444390505992,
     "cap": 5,
     "unidad": "mm",
-    "fu": 0.0004209936356885565,
+    "fu": 0.0004210888781011984,
     "estado": "ok",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
    },
@@ -2745,34 +2836,54 @@
     "fu": null,
     "estado": "info",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Disco de la base (liso) (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 2·24·7,930 g/cm³·[13035,0 + 56100,0 + 8330,0] mm³; V_junta = j·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,0 mm; V_muesca = (b_tope + 2)·L_tope·t, L_tope = 170; V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 29.4862776,
+    "cap": 705.0727425524401,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 1·24·0,940 g/cm³·[473605,0 + 0,0 + 37681,0] mm³; V_junta = (b_tope + j)·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,8 mm (franja libre entre sectores, con la barra del rebaje dentro); V_muesca = 0 (sin muesca); V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 11.53461216,
+    "cap": 61.025862718446156,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
    }
   ],
   "C": [
    {
     "nombre": "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)",
     "formula": "σ = 3·q_loc·a²/(4·t²·η) ≤ 0,6·Fy_bz; η = (p − d)/p; t = t_placa − sobreespesor; q_loc = q/cobertura",
-    "dem": 52.34626416411121,
+    "dem": 30.981128157741445,
     "cap": 102,
     "unidad": "MPa",
-    "fu": 0.5131986682756001,
+    "fu": 0.3037365505660926,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
    {
     "nombre": "Placa de bronce: espesor adoptado frente al requerido",
     "formula": "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)",
-    "dem": 9.163788580601747,
-    "cap": 12,
+    "dem": 9.164598875420008,
+    "cap": 15,
     "unidad": "mm",
-    "fu": 0.7636490483834789,
+    "fu": 0.6109732583613339,
     "estado": "ok",
     "ref": "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)"
    },
    {
     "nombre": "Placa de bronce: espesor por flexión / requerido / comercial adoptado",
     "formula": "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor",
-    "dem": 5.549046773684288,
-    "cap": 12,
+    "dem": 5.549674425351616,
+    "cap": 15,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -2791,10 +2902,10 @@
    {
     "nombre": "Disco duro: flexión sobre un vacío local (empotrado, carga uniforme)",
     "formula": "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_cara; t = t_disco − sobreespesor",
-    "dem": 23.748777692602438,
+    "dem": 14.941671320784693,
     "cap": 600,
     "unidad": "MPa",
-    "fu": 0.0395812961543374,
+    "fu": 0.024902785534641154,
     "estado": "ok",
     "ref": "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16; 0,6Fy (AISC 360-22 F11, criterio del proyecto); Fy de ASTM B584 / B148 (confirmar con el proveedor)"
    },
@@ -2802,49 +2913,49 @@
     "nombre": "Disco duro: espesor adoptado frente al requerido",
     "formula": "t ≥ máx(t_flex + sobreespesor; t_mínimo constructivo)",
     "dem": 6,
-    "cap": 12,
+    "cap": 15,
     "unidad": "mm",
-    "fu": 0.5,
+    "fu": 0.4,
     "estado": "ok",
     "ref": "Cálculo de espesor"
    },
    {
     "nombre": "Presión de contacto sobre el bronce neto (sin tapones de grafito)",
     "formula": "q_neto = q_máx/(cobertura·(1 − f_g)) ≤ p_adm,bronce",
-    "dem": 2.093170931190399,
+    "dem": 2.093644474333711,
     "cap": 20,
     "unidad": "MPa",
-    "fu": 0.10465854655951996,
+    "fu": 0.10468222371668554,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: valor PV en el borde de la mesa (durante la carrera)",
     "formula": "PV = q_neto·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)",
-    "dem": 0.029669141095493345,
+    "dem": 0.029675853217338895,
     "cap": 0.5,
     "unidad": "MPa·m/s",
-    "fu": 0.05933828219098669,
+    "fu": 0.05935170643467779,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Bronce con grafito: desgaste en la vida de diseño frente al espesor de reserva",
     "formula": "h = k·q_neto·s ≤ t_placa − t_flex/√η (reserva); s = vida·vueltas/año·2π·r_ef",
-    "dem": 0.01315178084027093,
-    "cap": 4.836211419398253,
+    "dem": 0.013154756199591298,
+    "cap": 7.835401124579993,
     "unidad": "mm",
-    "fu": 0.002719438771332157,
+    "fu": 0.0016788873971396638,
     "estado": "ok",
     "ref": "Proveedor de bronce con grafito (datos de catálogo); confirmar con ensayo"
    },
    {
     "nombre": "Tapones de grafito: profundidad restante tras el desgaste (≥ 2 mm)",
     "formula": "h + 2 ≤ 0,70·t_placa",
-    "dem": 2.013151780840271,
-    "cap": 8.399999999999999,
+    "dem": 2.0131547561995915,
+    "cap": 10.5,
     "unidad": "mm",
-    "fu": 0.23966092629050847,
+    "fu": 0.1917290243999611,
     "estado": "ok",
     "ref": "Criterio de proyecto (el grafito debe seguir lubricando)"
    },
@@ -2861,42 +2972,52 @@
    {
     "nombre": "Placa de bronce (24 sectores): aplastamiento del tope sobre el canto del sector",
     "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 62.998723614525865,
+    "dem": 52.24284397302145,
     "cap": 70.83333333333333,
     "unidad": "MPa",
-    "fu": 0.8893937451462476,
+    "fu": 0.7375460325603029,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Placa de bronce (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 340,
+    "dem": 205,
     "cap": 769,
     "unidad": "mm",
-    "fu": 0.44213263979193757,
+    "fu": 0.2665799739921977,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Placa de bronce (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
     "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
-    "dem": 29.236942975602677,
+    "dem": 52.250734429694795,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.35800338337472665,
+    "fu": 0.6398049113840178,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
    },
    {
     "nombre": "Placa de bronce (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
-    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
-    "dem": 3,
-    "cap": 3,
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 15; barra h = t − a_sup; espesor mínimo del sector 15 mm)",
+    "dem": 6,
+    "cap": 6,
     "unidad": "mm",
     "fu": 1,
     "estado": "ok",
     "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)",
+    "formula": "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = 1 mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+    "dem": 62.691412767625735,
+    "cap": 70.83333333333333,
+    "unidad": "MPa",
+    "fu": 0.8850552390723634,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3"
    },
    {
     "nombre": "Placa de bronce (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
@@ -2921,10 +3042,10 @@
    {
     "nombre": "Placa de bronce (24 sectores): filete del tope dentro de la altura de barra",
     "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
-    "dem": 9,
-    "cap": 10,
+    "dem": 12,
+    "cap": 13,
     "unidad": "mm",
-    "fu": 0.9,
+    "fu": 0.9230769230769231,
     "estado": "ok",
     "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
    },
@@ -2941,18 +3062,18 @@
    {
     "nombre": "Placa de bronce (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
     "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
-    "dem": 24.09701178255614,
+    "dem": 47.0185595757193,
     "cap": 115,
     "unidad": "MPa",
-    "fu": 0.20953923289179252,
+    "fu": 0.4088570397888635,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
    },
    {
     "nombre": "Placa de bronce (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
-    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
-    "dem": 12.8112,
-    "cap": 0.5337999999999999,
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = 7,85 g/cm³ (acero estructural)",
+    "dem": 10.04172,
+    "cap": 0.41840499999999997,
     "unidad": "kg / kg por barra",
     "fu": null,
     "estado": "info",
@@ -2961,42 +3082,52 @@
    {
     "nombre": "Disco duro (24 sectores): aplastamiento del tope sobre el canto del sector",
     "formula": "σ = F_tope/(L_tope·h_c) ≤ 1,25·mín(Fy_sector; Fy_barra)/Nd; h_c = t − a_sup − a_inf; F_tope = (T_calado/r_u)/n·(q_máx/q_med)",
-    "dem": 125.99744722905173,
+    "dem": 71.39855342979598,
     "cap": 143.75,
     "unidad": "MPa",
-    "fu": 0.8765039807238382,
+    "fu": 0.4966855890768416,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.3 (aplastamiento); Nd del proyecto"
    },
    {
     "nombre": "Disco duro (24 sectores): largo del tope frente al canto radial disponible",
     "formula": "L_tope ≤ R_o − R_i − 100",
-    "dem": 170,
+    "dem": 150,
     "cap": 769,
     "unidad": "mm",
-    "fu": 0.22106631989596878,
+    "fu": 0.19505851755526657,
     "estado": "ok",
     "ref": "Geometría"
    },
    {
     "nombre": "Disco duro (24 sectores): soldadura del tope al respaldo (2 filetes): corte + par de excentricidad",
     "formula": "f = √[(F/(2·a·L))² + (F·z/(b·a·L))²] ≤ 0,60FEXX/(1,20Nd); a = 0,707w; z = a_inf + h_c/2 (resultante sobre el respaldo); el filete cargado toma el par con el brazo b_tope",
-    "dem": 58.473885951205354,
+    "dem": 71.40933705391622,
     "cap": 81.66666666666667,
     "unidad": "MPa",
-    "fu": 0.7160067667494533,
+    "fu": 0.8744000455581578,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4 (resultante); hallazgo T2 de la revisión independiente"
    },
    {
     "nombre": "Disco duro (24 sectores): altura de contacto efectiva del tope sobre el canto del sector",
-    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 12; barra h = t − a_sup; espesor mínimo del sector 12 mm)",
-    "dem": 3,
-    "cap": 3,
+    "formula": "h_c,mín ≤ h_c = t − a_sup − a_inf (t = 15; barra h = t − a_sup; espesor mínimo del sector 15 mm)",
+    "dem": 6,
+    "cap": 6,
     "unidad": "mm",
     "fu": 1,
     "estado": "ok",
     "ref": "Criterio del proyecto (geometría del tope; tolerancia de corte del canto)"
+   },
+   {
+    "nombre": "Disco duro (24 sectores): aplastamiento del tope con la altura de contacto reducida por la tolerancia (h_c − tol_hc)",
+    "formula": "σ = F_tope/(L_tope·(h_c − tol_hc)) ≤ adm; tol_hc = 1 mm (corte y rebabas del canto): el largo del tope (y el espesor de la lámina UHMW) se dimensionan con h_c − tol_hc y FU objetivo 0,90, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+    "dem": 85.67826411575517,
+    "cap": 143.75,
+    "unidad": "MPa",
+    "fu": 0.5960227068922098,
+    "estado": "ok",
+    "ref": "Criterio del proyecto (hallazgo T6: el aplastamiento no debe depender de 1 mm de corte del canto); ASME BTH-1 §3-3.3"
    },
    {
     "nombre": "Disco duro (24 sectores): barra del tope bajo la superficie de deslizamiento al final de la vida",
@@ -3021,10 +3152,10 @@
    {
     "nombre": "Disco duro (24 sectores): filete del tope dentro de la altura de barra",
     "formula": "w_tope + h_c,mín ≤ h_barra = t − a_sup (el cateto vertical del filete debe caber bajo el contacto)",
-    "dem": 9,
-    "cap": 10,
+    "dem": 12,
+    "cap": 13,
     "unidad": "mm",
-    "fu": 0.9,
+    "fu": 0.9230769230769231,
     "estado": "ok",
     "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8 (filete mínimo por la parte más gruesa)"
    },
@@ -3041,18 +3172,18 @@
    {
     "nombre": "Disco duro (24 sectores): flexión de la barra del tope en la raíz (voladizo de altura z)",
     "formula": "σ = 6·F·z/(L·b²) ≤ Fy/Nd; z = a_inf + h_c/2",
-    "dem": 48.19402356511228,
+    "dem": 64.25869808681638,
     "cap": 115,
     "unidad": "MPa",
-    "fu": 0.41907846578358504,
+    "fu": 0.5587712877114468,
     "estado": "ok",
     "ref": "ASME BTH-1 §3-2.3 (flexión, Fy/Nd)"
    },
    {
     "nombre": "Disco duro (24 sectores): masa de las barras del tope (incluida en la masa total, m.stopBars)",
-    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa",
-    "dem": 6.4056,
-    "cap": 0.26689999999999997,
+    "formula": "m = capas·n·ρ·L·b_tope·h_barra, una barra por sector y capa; ρ = 7,85 g/cm³ (acero estructural)",
+    "dem": 7.3476,
+    "cap": 0.30615,
     "unidad": "kg / kg por barra",
     "fu": null,
     "estado": "info",
@@ -3062,9 +3193,9 @@
     "nombre": "Placa de bronce: cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 10,
+    "cap": 13,
     "unidad": "mm",
-    "fu": 0.53,
+    "fu": 0.40769230769230774,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -3072,9 +3203,9 @@
     "nombre": "Disco duro: cabeza del tornillo avellanado dentro del espesor útil",
     "formula": "0,55·d_tornillo + 2 ≤ t − sobreespesor",
     "dem": 5.300000000000001,
-    "cap": 11.5,
+    "cap": 14.5,
     "unidad": "mm",
-    "fu": 0.46086956521739136,
+    "fu": 0.3655172413793104,
     "estado": "ok",
     "ref": "ISO 10642 (altura de la cabeza k = 0,55·d); criterio del proyecto"
    },
@@ -3098,21 +3229,21 @@
    },
    {
     "nombre": "Placa de bronce con grafito: masa del sector (manipulación manual al desmontar)",
-    "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 10.61561890499949,
+    "formula": "m_sector = m_neta_pieza/n ≤ 25 kg (neta: sin muescas, chaflanes ni juntas)",
+    "dem": 12.645653818812056,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.4246247561999796,
+    "fu": 0.5058261527524822,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
    {
     "nombre": "Disco duro: masa del sector (manipulación manual al desmontar)",
-    "formula": "m_sector = m_pieza/n ≤ 25 kg",
-    "dem": 12.242650335874002,
+    "formula": "m_sector = m_neta_pieza/n ≤ 25 kg (neta: sin muescas, chaflanes ni juntas)",
+    "dem": 14.749124869842502,
     "cap": 25,
     "unidad": "kg",
-    "fu": 0.48970601343496006,
+    "fu": 0.5899649947937001,
     "estado": "ok",
     "ref": "ISO 11228-1 (carga manual)"
    },
@@ -3157,7 +3288,7 @@
    {
     "nombre": "Altura que agrega la interfaz sobre la plancha base",
     "formula": "Δ = t_bronce + t_disco (o 2.ª placa)",
-    "dem": 24,
+    "dem": 30,
     "unidad": "mm",
     "fu": null,
     "estado": "info",
@@ -3166,7 +3297,7 @@
    {
     "nombre": "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)",
     "formula": "m = ρ·A·t (bronce descontando los tapones, más el grafito)",
-    "dem": 548.5984617809638,
+    "dem": 657.4746885277093,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -3189,6 +3320,26 @@
     "fu": null,
     "estado": "pend",
     "ref": "Decisión del proyectista"
+   },
+   {
+    "nombre": "Placa de bronce (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 1·24·6,876 g/cm³·[13035,0 + 67650,0 + 10045,0] mm³; V_junta = j·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,0 mm; V_muesca = (b_tope + 2)·L_tope·t, L_tope = 205; V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 14.972875498495451,
+    "cap": 303.4956916514893,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
+   },
+   {
+    "nombre": "Disco duro (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 1·24·7,930 g/cm³·[13035,0 + 49500,0 + 7350,0] mm³; V_junta = j·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,0 mm; V_muesca = (b_tope + 2)·L_tope·t, L_tope = 150; V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 13.300513200000001,
+    "cap": 353.97899687622004,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
    }
   ]
  },
@@ -3235,8 +3386,8 @@
   }
  ],
  "cubierta": {
-  "dMasa": 139.95795271742554,
-  "mWood": 139.95795271742531,
+  "dMasa": 161.68285131516222,
+  "mWood": 137.14465649613564,
   "checks": [
    {
     "nombre": "Madera: aplastamiento perpendicular a la fibra bajo la carga (área de contacto efectiva)",
@@ -3270,12 +3421,22 @@
    },
    {
     "nombre": "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)",
-    "formula": "m = ρ·A·t",
-    "dem": 139.95795271742531,
+    "formula": "m = ρ·A·t, A = π/4·((D − 2·t_anillo)² − Ø_abertura²): los tablones van dentro del anillo de acero; Ø_abertura = D_piv + 80 (el 3D usa una abertura mayor y N_pin bolsillos de perno y arandela que el núcleo no descuenta: conservador)",
+    "dem": 137.14465649613564,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
     "ref": "Geometría"
+   },
+   {
+    "nombre": "Anillo de acero de contención de la madera (pletina t_anillo × t_madera en el borde, soldada a la plancha superior; incluida en la masa total y en m.disc)",
+    "formula": "m = ρ_acero·π·(R² − (R − t_anillo)²)·t_madera (alto del anillo = espesor de los tablones; ancho radial t_anillo = 10 mm)",
+    "dem": 24.538194819026472,
+    "cap": 137.14465649613564,
+    "unidad": "kg (anillo / madera)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría; anillo adoptado por el mandante (pletina de 10 mm)"
    },
    {
     "nombre": "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante",
@@ -3473,9 +3634,9 @@
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 39.19274035103286,
+   "tool": 39.19274035039981,
    "indep": 39.192740351341584,
-   "d": -7.877063723864826e-10,
+   "d": -2.4029313842717104e-9,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
@@ -3537,6 +3698,10 @@
     4
    ],
    [
+    "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa",
+    4
+   ],
+   [
     "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1",
     4
    ],
@@ -3549,6 +3714,10 @@
     3
    ],
    [
+    "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)",
+    3
+   ],
+   [
     "Geometría (retorno del trinquete)",
     2
    ],
@@ -3558,10 +3727,6 @@
    ],
    [
     "Placa sándwich axisimétrica (rev. M2)",
-    2
-   ],
-   [
-    "AWS D1.1/D1.1M:2020, tamaño mínimo de filete",
     2
    ],
    [
@@ -3578,14 +3743,6 @@
    ],
    [
     "ASME BTH-1 §3-3.3 (aplastamiento)",
-    2
-   ],
-   [
-    "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4",
-    2
-   ],
-   [
-    "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)",
     2
    ],
    [
@@ -3808,6 +3965,13 @@
   "tapon_prof_max": null,
   "tapon_prof_frac": null,
   "sector_masa": [],
+  "cortes": [],
+  "junta_sector": null,
+  "junta_uhmw": null,
+  "j_sec": 1,
+  "tol_hc": 1,
+  "t_ring": 10,
+  "anillo_madera": null,
   "hole_top": 200,
   "d_bush": 150,
   "Ri": 131,
@@ -3816,7 +3980,7 @@
   "h_rebaje": 62,
   "h_rebaje_plancha": 16,
   "h_rebaje_cubo": 46,
-  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo"
+  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total"
  },
  "verificaciones": [
   {
@@ -4308,18 +4472,29 @@
    "unidad": "mm",
    "fu": 1,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
   },
   {
    "grp": "Soldaduras",
    "nombre": "Filete mínimo mejillas–base",
-   "formula": "w_mín(T = 25) ≤ w ≤ t_mín",
+   "formula": "w_mín(T = máx(t_base; t_mejilla) = 25) ≤ w_br; el mínimo no excede la parte más delgada (18 mm)",
    "dem": 8,
-   "cap": 18,
+   "cap": 20,
    "unidad": "mm",
-   "fu": 0.4444444444444444,
+   "fu": 0.4,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
+  },
+  {
+   "grp": "Soldaduras",
+   "nombre": "Filete máximo mejillas–base según el borde de la mejilla",
+   "formula": "w_br ≤ w_máx(t_mejilla = 25) (t < 6: t; t ≥ 6: t − 2 mm): la mejilla es la parte que termina en el borde; la plancha base (18 mm) se suelda por su cara, donde J2.2b no limita el cateto",
+   "dem": 20,
+   "cap": 23,
+   "unidad": "mm",
+   "fu": 0.8695652173913043,
+   "estado": "ok",
+   "ref": "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)"
   },
   {
    "grp": "Pasadores de empuje",
@@ -4803,7 +4978,7 @@
   {
    "grp": "Pivote",
    "nombre": "Soldadura del collar a la base (filete perimetral): V_c y M_c del asiento rígido-lineal",
-   "formula": "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,85·H)",
+   "formula": "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,875·H)",
    "dem": 66.46056207349076,
    "cap": 81.66666666666667,
    "unidad": "MPa",
@@ -4831,7 +5006,7 @@
    "unidad": "mm",
    "fu": 0.8,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
   },
   {
    "grp": "Pivote",
@@ -4869,10 +5044,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
-   "dem": 64.40577830163164,
+   "dem": 58.38230392275366,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.31113902561174706,
+   "fu": 0.2820401155688582,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -4880,10 +5055,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 6.661081749727496,
+   "dem": 5.570726094921566,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.7805955175461909,
+   "fu": 0.652819464248621,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -4892,9 +5067,9 @@
    "nombre": "Punto de izaje fuera de la mesa",
    "formula": "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)",
    "dem": 1045,
-   "cap": 1279.4139283281231,
+   "cap": 1235.4756169184402,
    "unidad": "mm",
-   "fu": 0.8167802279326097,
+   "fu": 0.8458281051361174,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -4903,9 +5078,9 @@
    "nombre": "Punto de izaje dentro del marco",
    "formula": "t_marco + 35 ≤ c",
    "dem": 45,
-   "cap": 150,
+   "cap": 200,
    "unidad": "mm",
-   "fu": 0.3,
+   "fu": 0.225,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -5017,7 +5192,7 @@
    "unidad": "mm",
    "fu": 0.75,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
   },
   {
    "grp": "Orejas de izaje",
@@ -5043,9 +5218,9 @@
   {
    "grp": "Orejas de izaje",
    "nombre": "Ramales: longitud mínima para un ángulo ≥ 60° sobre la horizontal (el 60° es una cota mínima)",
-   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1279 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
-   "dem": 2558.827856656246,
-   "cap": 2216.009927775595,
+   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1235 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
+   "dem": 2470.95123383688,
+   "cap": 2139.9065400152404,
    "unidad": "mm (longitud mínima / altura del vértice)",
    "fu": null,
    "estado": "info",

@@ -51,7 +51,9 @@
   "b_tope": 20,
   "a_sup": 2,
   "a_inf": 0,
-  "hc_min": 3,
+  "hc_min": 6,
+  "tol_hc": 1,
+  "j_sec": 1,
   "d_tor": 6,
   "h_gr": 1,
   "w_gr": 8,
@@ -87,6 +89,7 @@
   "f_apoyo": 0.9,
   "h_skid": 0,
   "tol_skid": 10,
+  "t_ring": 10,
   "D_top": 2000,
   "t_top": 20,
   "t_bot": 16,
@@ -167,7 +170,7 @@
   "t_base_min": 16,
   "rim_h": 45,
   "rim_t": 10,
-  "c_lug": 150,
+  "c_lug": 200,
   "x_lug": 600,
   "t_ear": 18,
   "R_ear": 92,
@@ -343,6 +346,7 @@
    "hub": 70.46560654747957,
    "pins": 261.92365087856825,
    "wood": 0,
+   "ring": 0,
    "disc": 1423.3480977605482,
    "ssTop": 195.88240537398403,
    "ss": 342.79420940447204,
@@ -357,7 +361,8 @@
    "pivot": 19.975816887850698,
    "cyl": 110,
    "stopBars": 0,
-   "total": 3453.38624146194
+   "total": 3453.38624146194,
+   "sectorCuts": 0
   }
  },
  "pasadores": [
@@ -813,7 +818,17 @@
     },
     {
      "id": "hc_min",
-     "lab": "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (tolerancia de corte y rebabas del canto)",
+     "lab": "Fijación desmontable · tope: altura mínima de contacto entre la barra y el canto del sector (con h_c = 3 mm el aplastamiento pasaba de FU 0,90 a 1,31 por 1 mm de error de corte: 4.ª pasada, hallazgo T6; espesor mínimo del sector con tope = a_sup + a_inf + h_c,mín = 15 mm)",
+     "u": "mm"
+    },
+    {
+     "id": "tol_hc",
+     "lab": "Fijación desmontable · tope: tolerancia de la altura de contacto (corte y rebabas del canto): el largo del tope y el espesor de la lámina UHMW se dimensionan con h_c − tol_hc, de modo que 1 mm menos de contacto no pasa de FU 0,90",
+     "u": "mm"
+    },
+    {
+     "id": "j_sec",
+     "lab": "Fijación desmontable · junta en frío entre sectores contiguos de disco, placa o lámina (mínimo 1 mm; la junta efectiva es la mayor entre este valor y la dilatación calculada, redondeada a 0,1 mm; se descuenta de la masa)",
      "u": "mm"
     },
     {
@@ -995,6 +1010,11 @@
     {
      "id": "tol_skid",
      "lab": "Tolerancia de enrase con los rieles",
+     "u": "mm"
+    },
+    {
+     "id": "t_ring",
+     "lab": "Anillo de acero de contención de la madera (pletina soldada a la plancha superior en el borde): ancho radial; el alto es t_madera y el acero va en el borde exterior, los tablones dentro (Ø D_mesa − 2·t_anillo)",
      "u": "mm"
     }
    ]
@@ -1447,7 +1467,7 @@
     },
     {
      "id": "c_lug",
-     "lab": "Puntos de izaje (lados y): distancia al borde",
+     "lab": "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite)",
      "u": "mm"
     },
     {
@@ -1670,7 +1690,8 @@
    "mSS": 342.79420940447204,
    "mBz": 0,
    "tbz": 0,
-   "topes": []
+   "topes": [],
+   "cortes": []
   },
   "Tmax": 656.4906300230158,
   "q_min": 0.4319716135276898,
@@ -1970,19 +1991,19 @@
     "tssReq": 5.552050021920227,
     "tuhReq": 14.075895108661385,
     "delta": 27,
-    "mass": 3496.960552252608,
+    "mass": 3496.431226972608,
     "mu_d": 0.2,
     "F": 321.9527605004332,
     "p": 506.07776074790183,
     "FS": 1.383186645003946,
     "muMax": 0.2766373290007892,
     "q": 1.6743486874962052,
-    "mAdd": 337.3598929880437,
+    "mAdd": 336.8305677080437,
     "turns": true,
     "tFlex": 5.052050021920227,
     "tuhConf": 14.075895108661385,
     "qAvg": 1.0531144315820384,
-    "dTot": 439.1470418027834
+    "dTot": 438.6177165227832
    },
    {
     "k": 3,
@@ -2270,7 +2291,7 @@
    {
     "nombre": "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)",
     "formula": "m = ρ·A·t",
-    "dem": 337.3598929880437,
+    "dem": 336.8305677080437,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
@@ -2362,6 +2383,16 @@
     "fu": null,
     "estado": "info",
     "ref": "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo"
+   },
+   {
+    "nombre": "Lámina UHMW (24 sectores): descuento de masa por muescas, chaflanes y juntas entre sectores (incluido en la masa neta m.ss / m.uhmw / m.bz)",
+    "formula": "m_desc = capas·n·ρ·[V_junta + V_muesca + V_chaflán] = 1·24·0,940 g/cm³·[23463,0 + 0,0 + 0,0] mm³; V_junta = (b_tope + j)·(R_o − R_i)·t, j = máx(j_sec; dilatación) = 1,8 mm (franja libre entre sectores, con la barra del rebaje dentro); V_muesca = 0 (sin muesca); V_chaflán = a_inf²·L_tope = 2 cantos × a_inf²/2·L (chaflán 45° en ambos cantos: el par se invierte con el sentido de giro); sin descontar tornillos de posición, ranuras, graseras ni tapones (conservador)",
+    "dem": 0.52932528,
+    "cap": 43.006959647067696,
+    "unidad": "kg (descuento / neta)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D"
    }
   ],
   "C": [
@@ -2644,8 +2675,8 @@
   }
  ],
  "cubierta": {
-  "dMasa": 139.95795271742554,
-  "mWood": 139.95795271742531,
+  "dMasa": 161.68285131516222,
+  "mWood": 137.14465649613564,
   "checks": [
    {
     "nombre": "Madera: aplastamiento perpendicular a la fibra bajo la carga (área de contacto efectiva)",
@@ -2679,12 +2710,22 @@
    },
    {
     "nombre": "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)",
-    "formula": "m = ρ·A·t",
-    "dem": 139.95795271742531,
+    "formula": "m = ρ·A·t, A = π/4·((D − 2·t_anillo)² − Ø_abertura²): los tablones van dentro del anillo de acero; Ø_abertura = D_piv + 80 (el 3D usa una abertura mayor y N_pin bolsillos de perno y arandela que el núcleo no descuenta: conservador)",
+    "dem": 137.14465649613564,
     "unidad": "kg",
     "fu": null,
     "estado": "info",
     "ref": "Geometría"
+   },
+   {
+    "nombre": "Anillo de acero de contención de la madera (pletina t_anillo × t_madera en el borde, soldada a la plancha superior; incluida en la masa total y en m.disc)",
+    "formula": "m = ρ_acero·π·(R² − (R − t_anillo)²)·t_madera (alto del anillo = espesor de los tablones; ancho radial t_anillo = 10 mm)",
+    "dem": 24.538194819026472,
+    "cap": 137.14465649613564,
+    "unidad": "kg (anillo / madera)",
+    "fu": null,
+    "estado": "info",
+    "ref": "Geometría; anillo adoptado por el mandante (pletina de 10 mm)"
    },
    {
     "nombre": "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante",
@@ -2882,9 +2923,9 @@
   },
   {
    "name": "Equilibrio FEA izaje ΣR/ΣF",
-   "tool": 44.282053863475824,
+   "tool": 44.282053862759085,
    "indep": 44.28205386383487,
-   "d": -8.108123234549596e-10,
+   "d": -2.429388260831e-9,
    "tol": 0.5,
    "ok": true,
    "note": "kN"
@@ -2946,6 +2987,10 @@
     4
    ],
    [
+    "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa",
+    4
+   ],
+   [
     "AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1",
     4
    ],
@@ -2959,6 +3004,10 @@
    ],
    [
     "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (AISC 360-22 F11, criterio del proyecto)",
+    3
+   ],
+   [
+    "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)",
     3
    ],
    [
@@ -2978,10 +3027,6 @@
     2
    ],
    [
-    "AWS D1.1/D1.1M:2020, tamaño mínimo de filete",
-    2
-   ],
-   [
     "ASME BTH-1 §3-3.3",
     2
    ],
@@ -2995,14 +3040,6 @@
    ],
    [
     "ASME BTH-1 §3-3.3 (aplastamiento)",
-    2
-   ],
-   [
-    "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4",
-    2
-   ],
-   [
-    "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)",
     2
    ],
    [
@@ -3265,6 +3302,13 @@
   "tapon_prof_max": null,
   "tapon_prof_frac": null,
   "sector_masa": [],
+  "cortes": [],
+  "junta_sector": null,
+  "junta_uhmw": null,
+  "j_sec": 1,
+  "tol_hc": 1,
+  "t_ring": 10,
+  "anillo_madera": null,
   "hole_top": 200,
   "d_bush": 150,
   "Ri": 131,
@@ -3273,7 +3317,7 @@
   "h_rebaje": 48,
   "h_rebaje_plancha": 16,
   "h_rebaje_cubo": 32,
-  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo"
+  "nota": "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total"
  },
  "verificaciones": [
   {
@@ -3935,18 +3979,29 @@
    "unidad": "mm",
    "fu": 1,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
   },
   {
    "grp": "Soldaduras",
    "nombre": "Filete mínimo mejillas–base",
-   "formula": "w_mín(T = 25) ≤ w ≤ t_mín",
+   "formula": "w_mín(T = máx(t_base; t_mejilla) = 25) ≤ w_br; el mínimo no excede la parte más delgada (18 mm)",
    "dem": 8,
-   "cap": 18,
+   "cap": 20,
    "unidad": "mm",
-   "fu": 0.4444444444444444,
+   "fu": 0.4,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020, tamaño mínimo de filete"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
+  },
+  {
+   "grp": "Soldaduras",
+   "nombre": "Filete máximo mejillas–base según el borde de la mejilla",
+   "formula": "w_br ≤ w_máx(t_mejilla = 25) (t < 6: t; t ≥ 6: t − 2 mm): la mejilla es la parte que termina en el borde; la plancha base (18 mm) se suelda por su cara, donde J2.2b no limita el cateto",
+   "dem": 20,
+   "cap": 23,
+   "unidad": "mm",
+   "fu": 0.8695652173913043,
+   "estado": "ok",
+   "ref": "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)"
   },
   {
    "grp": "Pasadores de empuje",
@@ -4430,7 +4485,7 @@
   {
    "grp": "Pivote",
    "nombre": "Soldadura del collar a la base (filete perimetral): V_c y M_c del asiento rígido-lineal",
-   "formula": "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,85·H)",
+   "formula": "f = √(f_b² + f_v²) ≤ 0,60FEXX/(1,2·Nd); f_b = M_c/(π·D²/4·a), f_v = V_c/(π·D·a), a = 0,707·w_collar; V_c = H/L·[h + k(h − h²/L)], M_c = H/L·[(1 + k)h²/2 − k·h³/(3L)], k = 6(e + L/2)/L (V_c ≈ 1,875·H)",
    "dem": 66.49437356166503,
    "cap": 81.66666666666667,
    "unidad": "MPa",
@@ -4458,7 +4513,7 @@
    "unidad": "mm",
    "fu": 0.8,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
   },
   {
    "grp": "Pivote",
@@ -4496,10 +4551,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
-   "dem": 73.44735064191018,
+   "dem": 66.60048263836124,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.35481811904304433,
+   "fu": 0.3217414620210688,
    "estado": "ok",
    "ref": "AISC 360-22 F11 (0,6Fy)"
   },
@@ -4507,10 +4562,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 7.4593794687155075,
+   "dem": 6.224537866720299,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.8741460314900985,
+   "fu": 0.729438031256285,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -4519,9 +4574,9 @@
    "nombre": "Punto de izaje fuera de la mesa",
    "formula": "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)",
    "dem": 1045,
-   "cap": 1279.4139283281231,
+   "cap": 1235.4756169184402,
    "unidad": "mm",
-   "fu": 0.8167802279326097,
+   "fu": 0.8458281051361174,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -4530,9 +4585,9 @@
    "nombre": "Punto de izaje dentro del marco",
    "formula": "t_marco + 35 ≤ c",
    "dem": 45,
-   "cap": 150,
+   "cap": 200,
    "unidad": "mm",
-   "fu": 0.3,
+   "fu": 0.225,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -4644,7 +4699,7 @@
    "unidad": "mm",
    "fu": 0.75,
    "estado": "ok",
-   "ref": "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 Tabla J2.4"
+   "ref": "Se aplica la regla de AWS (parte más gruesa): AWS D1.1/D1.1M:2020 Tabla 5.8, sin exceder el espesor de la parte más delgada; AISC 360-22 Tabla J2.4 lo da por la parte más delgada (valor menor o igual) y no se usa"
   },
   {
    "grp": "Orejas de izaje",
@@ -4670,9 +4725,9 @@
   {
    "grp": "Orejas de izaje",
    "nombre": "Ramales: longitud mínima para un ángulo ≥ 60° sobre la horizontal (el 60° es una cota mínima)",
-   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1279 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
-   "dem": 2558.827856656246,
-   "cap": 2216.009927775595,
+   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1235 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
+   "dem": 2470.95123383688,
+   "cap": 2139.9065400152404,
    "unidad": "mm (longitud mínima / altura del vértice)",
    "fu": null,
    "estado": "info",

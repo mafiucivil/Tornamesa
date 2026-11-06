@@ -8,10 +8,11 @@ TT300C-BAS-001-B;Planta;2.560;2560.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-B;Planta;Ø120 H7 (pasante);120.0;diámetro;eje OK;;OK
 TT300C-BAS-001-B;Planta;Ø250 (collar);250.0;diámetro;eje OK;;OK
 TT300C-BAS-001-B;Corte A-A;18;18.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-B;Corte A-A;10;10.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-B;Corte A-A;45;45.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-B;Corte A-A;160;160.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-B;Corte A-A;40;40.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-B;Detalle D1 marco;10;10.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-B;Detalle D1 marco;45;45.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-B;Detalle D1 marco;18;18.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-B;Detalle D2 bancada;160;160.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-B;Detalle D2 bancada;40;40.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-B;Detalle collar;Ø250;250.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-B;Detalle collar;Ø120 H7;120.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-B;Detalle collar;60;60.0;lineal;0.000;0.000;OK
@@ -22,20 +23,22 @@ TT300C-BAS-005-B;Planta;175;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Planta;200;200.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Planta;150;150.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Planta;Ø70 H9;70.0;diámetro;eje OK;;OK
-TT300C-BAS-005-B;Elevación;181;181.0;lineal;0.000;0.000;OK
+TT300C-BAS-005-B;Elevación;187;187.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Elevación;25;25.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-B;Elevación;102;102.0;lineal;0.000;0.000;OK
+TT300C-BAS-005-B;Elevación;108;108.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Elevación;175;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Vista frontal;200;200.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-B;Vista frontal;150;150.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-B;Vista frontal;181;181.0;lineal;0.000;0.000;OK
+TT300C-BAS-005-B;Vista frontal;187;187.0;lineal;0.000;0.000;OK
 TT300C-IZA-001-B;Perfil;184 (= 2R);184.0;lineal;0.000;0.000;OK
 TT300C-IZA-001-B;Perfil;90 (centro del agujero);90.0;lineal;0.000;0.000;OK
 TT300C-IZA-001-B;Perfil;Ø45;45.0;diámetro;eje OK;;OK
 TT300C-IZA-001-B;Perfil;R92;92;radio;eje OK;;OK
 TT300C-IZA-001-B;Planta;e = 18;18.0;lineal;0.000;0.000;OK
-TT300C-IZA-001-B;Esquina de la base;150 (al borde);150.0;lineal;0.000;0.000;OK
-TT300C-IZA-001-B;Esquina de la base;600 (al eje y);600.0;lineal;0.000;0.000;OK
+TT300C-IZA-001-B;Ubicación de las 4 orejas;1.200 (entre orejas);1200.0;lineal;0.000;0.000;OK
+TT300C-IZA-001-B;Ubicación de las 4 orejas;2.160 (entre orejas);2160.0;lineal;0.000;0.000;OK
+TT300C-IZA-001-B;Ubicación de las 4 orejas;2.560;2560.0;lineal;0.000;0.000;OK
+TT300C-IZA-001-B;Esquina de la base;c_lug = 200 (al borde);200.0;lineal;0.000;0.000;OK
 TT300C-ACC-001-B;Planta;1023,25;1023.254;lineal;0.000;0.000;OK
 TT300C-ACC-001-B;Planta;160;160.0;lineal;0.000;0.000;OK
 TT300C-ACC-001-B;Corte transversal;160;160.0;lineal;0.000;0.000;OK
@@ -49,7 +52,7 @@ TT300C-ACC-002-B;Planta;87,5;87.5;lineal;0.000;0.000;OK
 TT300C-ACC-002-B;Planta;245;245.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-B;Planta;Ø70 H9 (pasador del vástago);70.0;diámetro;eje OK;;OK
 TT300C-ACC-002-B;Corte F-F;245;245.0;lineal;0.000;0.000;OK
-TT300C-ACC-002-B;Corte F-F;153 (sobre la bancada);153.0;lineal;0.000;0.000;OK
+TT300C-ACC-002-B;Corte F-F;159 (sobre la bancada);159.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-B;Corte F-F;38 f7;38.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-B;Corte F-F;62 h11;62.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-B;Corte F-F;8;8.0;lineal;0.000;0.000;OK
@@ -66,7 +69,7 @@ TT300C-ACC-003-B;Elevación;10 (alivio);10.0;lineal;0.000;0.000;OK
 TT300C-ACC-004-B;PASADOR DEL VÁSTAGO (PATÍN);Ø70 f8;70.0;lineal;0.000;0.000;OK
 TT300C-ACC-004-B;PASADOR DEL VÁSTAGO (PATÍN);136;136.022;lineal;0.000;0.022;OK
 TT300C-ACC-004-B;PASADOR DEL OJAL TRASERO (MÉNSULA);Ø70 f8;70.0;lineal;0.000;0.000;OK
-TT300C-ACC-004-B;PASADOR DEL OJAL TRASERO (MÉNSULA);196;196.022;lineal;0.000;0.022;OK
+TT300C-ACC-004-B;PASADOR DEL OJAL TRASERO (MÉNSULA);202;202.022;lineal;0.000;0.022;OK
 TT300C-MES-001-B;Planta (corte horizontal);Ø2.000;2000.0;diámetro;eje OK;;OK
 TT300C-MES-001-B;Planta (corte horizontal);Ø1.720 (límite de anillos);1720;diámetro;eje OK;;OK
 TT300C-MES-001-B;Corte radial;210;210.0;lineal;0.000;0.000;OK
@@ -87,7 +90,7 @@ TT300C-MES-003-B;Cubo planta;Ø310;310.0;diámetro;eje OK;;OK
 TT300C-MES-003-B;Cubo planta;Ø150 H7;150.0;diámetro;eje OK;;OK
 TT300C-MES-003-B;Cubo corte;174;174.0;lineal;0.000;0.000;OK
 TT300C-MES-003-B;Cubo corte;Ø256 (rebaje = D_boss + 2·c_boss_r);256.0;lineal;0.000;0.000;OK
-TT300C-MES-003-B;Cubo corte;22 (rebaje sobre la plancha);22.0;lineal;0.000;0.000;OK
+TT300C-MES-003-B;Cubo corte;16 (rebaje);16.0;lineal;0.000;0.000;OK
 TT300C-MES-003-B;Cubo corte;27 (pared del cubo, ≥ 25);27.0;lineal;0.000;0.000;OK
 TT300C-MES-003-B;Nervio;142;142.0;lineal;0.000;0.015;OK
 TT300C-MES-003-B;Nervio;174;174.0;lineal;0.015;0.015;OK
@@ -95,7 +98,7 @@ TT300C-MES-004-B;Pasador;Ø85 m6;85.0;lineal;0.000;0.000;OK
 TT300C-MES-004-B;Pasador;210 −0,5/0;210.0;lineal;0.000;0.000;OK
 TT300C-MES-004-B;Pasador;Ø115 (arandela ×10);115.0;lineal;0.000;0.000;OK
 TT300C-PIV-001-B;Conjunto del pivote;Ø120 p6 (asiento) / f7 (buje);120.0;lineal;0.000;0.000;OK
-TT300C-PIV-001-B;Conjunto del pivote;235;235.0;lineal;0.000;0.000;OK
+TT300C-PIV-001-B;Conjunto del pivote;241;241.0;lineal;0.000;0.000;OK
 TT300C-PIV-001-B;Conjunto del pivote;80 (buje);80.0;lineal;0.000;0.000;OK
 TT300C-PIV-001-B;Conjunto del pivote;Ø150 s6;150.0;lineal;0.000;0.000;OK
 TT300C-PIV-001-B;Conjunto del pivote;Ø180×8;180.0;lineal;0.000;0.000;OK
@@ -103,31 +106,31 @@ TT300C-PIV-001-B;Conjunto del pivote;Ø238×8 (tapa de inspección);238.0;lineal
 TT300C-PIV-001-B;Conjunto del pivote;60 (collar);60.0;lineal;0.000;0.000;OK
 TT300C-PIV-001-B;Conjunto del pivote;3 (radial);3.0;lineal;0.000;0.000;OK
 TT300C-PIV-001-B;Conjunto del pivote;2 (axial);2.0;lineal;0.000;0.000;OK
-TT300C-INT-001-B;Detalle del tope;12;12.0;lineal;0.000;0.000;OK
-TT300C-INT-001-B;Detalle del tope;12;12.0;lineal;0.000;0.000;OK
+TT300C-INT-001-B;Detalle del tope;15;15.0;lineal;0.000;0.000;OK
+TT300C-INT-001-B;Detalle del tope;15;15.0;lineal;0.000;0.000;OK
 TT300C-INT-002-B;SECTOR DEL LADO BASE;869 (R_i 131 → R_o 1.000);869.0;lineal;0.000;0.000;OK
-TT300C-INT-002-B;SECTOR DEL LADO BASE;340 (muesca del tope);340.0;lineal;0.000;0.000;OK
+TT300C-INT-002-B;SECTOR DEL LADO BASE;205 (muesca del tope);205.0;lineal;0.000;0.000;OK
 TT300C-INT-002-B;SECTOR DEL LADO BASE;22;22.0;lineal;0.000;0.000;OK
 TT300C-INT-002-B;SECTOR DEL LADO BASE;Ø6,6 + avellanado Ø12 × 90° (M6);6.6;diámetro;eje OK;;OK
 TT300C-INT-002-B;SECTOR DEL LADO MESA;869 (R_i 131 → R_o 1.000);869.0;lineal;0.000;0.000;OK
-TT300C-INT-002-B;SECTOR DEL LADO MESA;590 (muesca del tope);590.0;lineal;0.000;0.000;OK
+TT300C-INT-002-B;SECTOR DEL LADO MESA;355 (muesca del tope);355.0;lineal;0.000;0.000;OK
 TT300C-INT-002-B;SECTOR DEL LADO MESA;22;22.0;lineal;0.000;0.000;OK
 TT300C-INT-002-B;SECTOR DEL LADO MESA;Ø6,6 + avellanado Ø12 × 90° (M6);6.6;diámetro;eje OK;;OK
-TT300C-INT-003-B;BARRA DE TOPE LADO BASE;340;340.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;BARRA DE TOPE LADO BASE;205;205.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;BARRA DE TOPE LADO BASE;20;20.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;BARRA DE TOPE LADO BASE elev.;10 (= t − a_sup);10.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;BARRA DE TOPE LADO MESA;590;590.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;BARRA DE TOPE LADO BASE elev.;13 (= t − a_sup);13.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;BARRA DE TOPE LADO MESA;355;355.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;BARRA DE TOPE LADO MESA;20;20.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;BARRA DE TOPE LADO MESA elev.;10 (= t − a_sup);10.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;BARRA DE TOPE LADO MESA elev.;13 (= t − a_sup);13.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra base;20 (b_tope);20.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;Sección barra base;10 (h = t − a_sup);10.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;Sección barra base;3 (h_c);3.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;Sección barra base;13 (h = t − a_sup);13.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;Sección barra base;6 (h_c);6.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra base;2 (a_sup);2.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra base;22 (ancho libre);22.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra base;7×45° (a_inf);7.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra mesa;20 (b_tope);20.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;Sección barra mesa;10 (h = t − a_sup);10.0;lineal;0.000;0.000;OK
-TT300C-INT-003-B;Sección barra mesa;3 (h_c);3.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;Sección barra mesa;13 (h = t − a_sup);13.0;lineal;0.000;0.000;OK
+TT300C-INT-003-B;Sección barra mesa;6 (h_c);6.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra mesa;2 (a_sup);2.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra mesa;22 (ancho libre);22.0;lineal;0.000;0.000;OK
 TT300C-INT-003-B;Sección barra mesa;7×45° (a_inf);7.0;lineal;0.000;0.000;OK

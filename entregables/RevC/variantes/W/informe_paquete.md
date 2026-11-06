@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. B
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 108 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 123 s.
 Interfaz dibujada: **Acero-acero con grasa grafitada (sin interfaz alternativa)**
 Cubierta de madera: sí. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -69,7 +69,7 @@ Cubierta de madera: sí. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 | 30 | TT300C-ACC-005-B | Pasador del vástago (patín) | 2 | 4.11 | 8.2 | no |
 | 31 | TT300C-ACC-006-B | Pasador del ojal trasero (ménsula) | 2 | 5.20 | 10.4 | no |
 | 32 | TT300C-MAD-001-B | Tablones de madera dura | 1 | 127.97 | 128.0 | sí |
-| 33 | TT300C-MAD-002-B | Anillo de acero de contención | 1 | 24.54 | 24.5 | no |
+| 33 | TT300C-MAD-002-B | Anillo de acero de contención | 1 | 24.54 | 24.5 | sí |
 
 ## Masas: modelo 3D frente al núcleo
 
@@ -84,14 +84,17 @@ Cubierta de madera: sí. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 | Cilindros (masa de catálogo) | 110.0 | 110.0 | +0.0 | +0.00 |
 | Patines | 253.7 | 254.5 | -0.8 | -0.31 |
 | Uñas | 27.2 | 27.2 | +0.0 | +0.00 |
-| Cubierta de madera | 128.0 | 140.0 | -12.0 | -8.56 |
+| Cubierta de madera (tablones) | 128.0 | 137.1 | -9.2 | -6.69 |
+| Anillo de acero de la madera | 24.5 | 24.5 | +0.0 | +0.00 |
 
-**Total comparable:** 3D 3183.8 kg frente a 3197.8 kg del núcleo: Δ -14.0 kg (-0.44 %), tolerancia ±0.5 % → DENTRO.
-Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, anillo de la madera, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 77.3 kg. **Masa total del ensamble: 3261.1 kg.**
+**Total comparable:** 3D 3208.3 kg frente a 3219.5 kg del núcleo: Δ -11.2 kg (-0.35 %), tolerancia ±0.5 % → DENTRO.
+Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 52.8 kg. **Masa total del ensamble: 3261.1 kg.**
 **Centro de gravedad (x, y, z):** (0.0; -0.0; 94.3) mm (origen en el eje de la mesa y la cara inferior de la base).
 
 ### Diferencias explicadas por pieza
-- Cubierta de madera: 3D 128 kg frente a 140 kg (-8,56 %). Causas: anillo de contención de 10 mm que reemplaza madera, abertura Ø240 frente a Ø200 y 28 bolsillos Ø119×31 (el núcleo calcula el anulo completo).
+- Mesa (planchas, almas, nervios, cubo, pasadores): 3D 1418,4 kg frente a 1419,6 kg del núcleo (-0,09 %; residual -1,21 kg). Residual no descontado en el núcleo: rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo).
+- Patines: 3D 253,7 kg frente a 254,5 kg del núcleo (-0,31 %; residual -0,79 kg). Residual no descontado en el núcleo: alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría).
+- Cubierta de madera (tablones): 3D 128 kg frente a 137,1 kg del núcleo (-6,69 %; residual -9,17 kg). Residual no descontado en el núcleo: abertura central Ø240 de la tapa de inspección (el núcleo usa Ø200) y 28 bolsillos de perno y arandela Ø119×31 (el núcleo calcula el anulo completo). Por geometría: abertura 0,6 kg + bolsillos 8,7 kg = 9,3 kg.
 
 ## Interferencias
 
@@ -100,7 +103,7 @@ Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, ani
 
 ## Chequeo automático de cotas (dibujo frente a modelo 3D)
 
-107 cotas registradas; 107 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
+110 cotas registradas; 110 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
 
 ## Control de marco
 
@@ -110,7 +113,7 @@ Todas las láminas dentro del formato A1.
 
 | Id | Tema | Valor | Motivo |
 |---|---|---|---|
-| S06 | Anillo de acero y tablones de la cubierta de madera | ADOPTADO por el mandante: pletina de 10 × 50 mm (ancho × alto) en el borde, soldada a la plancha superior, 24,5 kg fuera del núcleo; tablones de 200 mm de ancho; abertura central Ø240 para la tapa de inspección (PROVISORIA) | El núcleo calcula la madera como anulo Ø D_top / Ø(D_piv + 80) sin anillo; el anillo y el ancho de tablón los fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO). |
+| S06 | Anillo de acero y tablones de la cubierta de madera | ADOPTADO por el mandante: pletina de 10 × 50 mm (ancho × alto) en el borde, soldada a la plancha superior (t_ring del núcleo; en m.total); tablones de 200 mm de ancho; abertura central Ø240 para la tapa de inspección (PROVISORIA) | El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO). |
 | S13 | Izaje de la mesa | No se dibujan puntos de izaje de la mesa (A DEFINIR) | El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista. |
 | S14 | Retención axial del pivote | Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR) | El cálculo verifica asiento y flexión pero no la extracción axial del pivote. |
 
@@ -118,14 +121,15 @@ Todas las láminas dentro del formato A1.
 
 | Id | Tema | Descripción | Decisión requerida |
 |---|---|---|---|
-| B-01 | Cubierta de madera: masa del anillo fuera del núcleo | Adoptado por el mandante: anillo de acero pletina 10×50 (24,5 kg, NO incluido en m.total) y tablones de 200 mm. El núcleo calcula la madera como anulo Ø2000/Ø200 sin anillo: madera 3D 128 kg frente a 140 kg del núcleo (anillo, abertura Ø240 y 28 bolsillos). | Sumar el anillo (24,5 kg) a m.total y descontar anillo, abertura y bolsillos de la madera, o aceptar la diferencia conservadora. |
+| B-01 | Cubierta de madera: residual de masa fuera del núcleo | El anillo de acero (pletina 10×50, 24,5 kg) ya está en el núcleo y en m.total (madera 137,1 kg dentro del anillo). El modelo 3D descuenta además la abertura central Ø240 de la tapa de inspección (0,6 kg) y 28 bolsillos de perno/arandela (8,7 kg) que el núcleo no resta: residual 9,3 kg, conservador en el núcleo. | Informativo: aceptar la diferencia o descontarla en el núcleo. Disposición de tablones (ancho 200 mm) y fijación A DEFINIR. |
 | B-02 | Izaje de la mesa | El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible). | A DEFINIR: orejas o cáncamos verificados para la mesa. |
 | B-03 | Retención axial del pivote | El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable). | A DEFINIR: tope inferior, anillo o interferencia verificada. |
 | B-04 | Torque de pernos y tornillos | El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición). | A DEFINIR: torques de apriete (ISO 898-1 / VDI 2230). |
 | B-05 | Tamaño de soldaduras sin parámetro | Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f. | A DEFINIR: confirmar o parametrizar tamaños y END de las soldaduras sin parámetro. |
-| B-06 | Verificación del núcleo del filete de las mejillas | La fila «Filete mínimo mejillas–base» acota con mín(w_br, t_base, t_ch) = 18: no detecta que w_br = 20 supera t_base = 18 (el máximo AISC J2.2b sobre el borde de la mejilla de 25 sería 23). | Revisar el criterio de la fila (mínimo y máximo por separado). |
-| B-07 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
-| B-08 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
+| B-06 | Filetes máximos AISC J2.2b de almas y nervios | Almas y nervios de la mesa: w_web = 6 sobre t = 6 superan el máximo de borde t − 2 = 4 mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión. | PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma. |
+| B-07 | Pendiente declarado por el núcleo | Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante | Atender en fabricación/aprobación según el texto del núcleo. |
+| B-08 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
+| B-09 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
 
 ## Reproducción
 

@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. B
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 173 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 175 s.
 Interfaz dibujada: **Opción B: dos discos de acero inoxidable con lámina de UHMW por sectores**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -39,19 +39,19 @@ Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
 | Pos | Código | Ítem | Cant | Masa unit. kg | Masa total kg | En núcleo |
 |---|---|---|---|---|---|---|
-| 1 | TT300C-BAS-001-B | Plancha base | 1 | 924.26 | 924.3 | sí |
+| 1 | TT300C-BAS-001-B | Plancha base | 1 | 924.29 | 924.3 | sí |
 | 2 | TT300C-BAS-002-B | Collar de asiento del pivote | 1 | 17.79 | 17.8 | sí |
 | 3 | TT300C-BAS-003-B | Marco perimetral largo | 2 | 9.04 | 18.1 | sí |
 | 4 | TT300C-BAS-004-B | Marco perimetral corto | 2 | 8.97 | 17.9 | sí |
-| 5 | TT300C-BAS-005-B | Mejilla de ménsula | 8 | 13.14 | 105.1 | sí |
+| 5 | TT300C-BAS-005-B | Mejilla de ménsula | 8 | 13.52 | 108.2 | sí |
 | 6 | TT300C-BAS-006-B | Oreja superior de ménsula | 4 | 4.40 | 17.6 | sí |
-| 7 | TT300C-BAS-007-B | Oreja inferior (bloque) de ménsula | 4 | 22.33 | 89.3 | sí |
+| 7 | TT300C-BAS-007-B | Oreja inferior (bloque) de ménsula | 4 | 23.39 | 93.6 | sí |
 | 8 | TT300C-IZA-001-B | Oreja de izaje | 4 | 3.99 | 16.0 | sí |
 | 9 | TT300C-ACC-001-B | Bancada de guía con ranura T | 2 | 40.48 | 81.0 | sí |
 | 10 | TT300C-MES-001-B | Plancha superior de la mesa | 1 | 358.99 | 359.0 | sí |
 | 11 | TT300C-MES-002-B | Anillo superior de pasadores | 1 | 139.71 | 139.7 | sí |
-| 12 | TT300C-MES-003-B | Plancha inferior de la mesa | 1 | 285.29 | 285.3 | sí |
-| 13 | TT300C-MES-004-B | Anillo inferior de pasadores | 1 | 139.63 | 139.6 | sí |
+| 12 | TT300C-MES-003-B | Plancha inferior de la mesa | 1 | 285.30 | 285.3 | sí |
+| 13 | TT300C-MES-004-B | Anillo inferior de pasadores | 1 | 139.65 | 139.6 | sí |
 | 14 | TT300C-MES-005-B | Alma anular R300 | 1 | 15.45 | 15.4 | sí |
 | 15 | TT300C-MES-006-B | Alma anular R590 | 1 | 30.38 | 30.4 | sí |
 | 16 | TT300C-MES-007-B | Alma anular R840 | 1 | 43.25 | 43.3 | sí |
@@ -61,19 +61,19 @@ Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 | 20 | TT300C-MES-011-B | Cubo de la mesa | 1 | 78.96 | 79.0 | sí |
 | 21 | TT300C-MES-012-B | Pasador de empuje | 28 | 9.35 | 261.9 | sí |
 | 22 | TT300C-MES-013-B | Perno ISO 4762 M20×45 con arandela | 28 | 0.93 | 25.9 | no |
-| 23 | TT300C-PIV-001-B | Pivote | 1 | 23.08 | 23.1 | sí |
+| 23 | TT300C-PIV-001-B | Pivote | 1 | 23.62 | 23.6 | sí |
 | 24 | TT300C-PIV-002-B | Buje autolubricado | 1 | 3.87 | 3.9 | no |
 | 25 | TT300C-PIV-003-B | Tapa retenedora | 1 | 1.60 | 1.6 | no |
 | 26 | TT300C-PIV-004-B | Tapa de inspección | 1 | 2.79 | 2.8 | no |
 | 27 | TT300C-ACC-002-B | Cilindro hidráulico doble efecto | 2 | 55.00 | 110.0 | sí |
-| 28 | TT300C-ACC-003-B | Patín guiado | 2 | 180.80 | 361.6 | sí |
+| 28 | TT300C-ACC-003-B | Patín guiado | 2 | 187.41 | 374.8 | sí |
 | 29 | TT300C-ACC-004-B | Uña de empuje | 2 | 13.61 | 27.2 | sí |
 | 30 | TT300C-ACC-005-B | Pasador del vástago (patín) | 2 | 4.11 | 8.2 | no |
-| 31 | TT300C-ACC-006-B | Pasador del ojal trasero (ménsula) | 2 | 6.68 | 13.4 | no |
-| 32 | TT300C-INT-001-B | Disco de la base (sector liso) | 24 | 11.46 | 274.9 | sí |
-| 33 | TT300C-INT-002-B | Disco de la mesa (sector liso) | 24 | 11.46 | 274.9 | sí |
-| 34 | TT300C-INT-003-B | Barra de tope (disco de la base) | 24 | 0.44 | 10.6 | sí |
-| 35 | TT300C-INT-004-B | Barra de tope (disco de la mesa) | 24 | 0.44 | 10.6 | sí |
+| 31 | TT300C-ACC-006-B | Pasador del ojal trasero (ménsula) | 2 | 6.86 | 13.7 | no |
+| 32 | TT300C-INT-001-B | Disco de la base (sector liso) | 24 | 14.68 | 352.3 | sí |
+| 33 | TT300C-INT-002-B | Disco de la mesa (sector liso) | 24 | 14.68 | 352.3 | sí |
+| 34 | TT300C-INT-003-B | Barra de tope (disco de la base) | 24 | 0.35 | 8.3 | sí |
+| 35 | TT300C-INT-004-B | Barra de tope (disco de la mesa) | 24 | 0.35 | 8.3 | sí |
 | 36 | TT300C-INT-005-B | Tornillo avellanado de posición M6×25 | 48 | 0.01 | 0.3 | no |
 | 37 | TT300C-INT-006-B | Tornillo avellanado de posición M6×25 | 48 | 0.01 | 0.3 | no |
 | 38 | TT300C-INT-007-B | Sector de lámina UHMW | 24 | 2.54 | 61.0 | sí |
@@ -83,30 +83,36 @@ Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
 | Grupo | 3D kg | Núcleo kg | Δ kg | Δ % |
 |---|---|---|---|---|
-| Plancha base + collar + orejas de izaje | 958.0 | 958.2 | -0.2 | -0.02 |
+| Plancha base + collar + orejas de izaje | 958.1 | 958.2 | -0.1 | -0.01 |
 | Marco perimetral | 36.0 | 36.0 | +0.0 | +0.00 |
-| Ménsulas de cilindro | 212.0 | 212.0 | -0.0 | -0.00 |
+| Ménsulas de cilindro | 219.3 | 219.3 | -0.0 | -0.00 |
 | Bancadas de guía | 81.0 | 81.0 | +0.0 | +0.00 |
-| Mesa (planchas, almas, nervios, cubo, pasadores) | 1430.5 | 1431.8 | -1.4 | -0.10 |
-| Pivote | 23.1 | 23.1 | +0.0 | +0.00 |
+| Mesa (planchas, almas, nervios, cubo, pasadores) | 1430.5 | 1431.8 | -1.3 | -0.09 |
+| Pivote | 23.6 | 23.6 | +0.0 | +0.00 |
 | Cilindros (masa de catálogo) | 110.0 | 110.0 | +0.0 | +0.00 |
-| Patines | 361.6 | 362.4 | -0.8 | -0.22 |
+| Patines | 374.8 | 375.6 | -0.8 | -0.21 |
 | Uñas | 27.2 | 27.2 | +0.0 | +0.00 |
-| Discos de interfaz (inox / duro) | 549.9 | 587.6 | -37.8 | -6.43 |
-| Barras de los topes (m.stopBars) | 88.4 | 87.7 | +0.7 | +0.77 |
-| Lámina UHMW | 61.0 | 72.6 | -11.5 | -15.90 |
+| Discos de interfaz (inox / duro) | 704.6 | 705.1 | -0.5 | -0.07 |
+| Barras de los topes (m.stopBars) | 84.0 | 84.0 | +0.0 | +0.00 |
+| Lámina UHMW | 61.0 | 61.0 | -0.0 | -0.00 |
 
-**Total comparable:** 3D 3938.7 kg frente a 3989.7 kg del núcleo: Δ -50.9 kg (-1.28 %), tolerancia ±0.5 % → FUERA.
-Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, anillo de la madera, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 56.4 kg. **Masa total del ensamble: 3995.2 kg.**
-**Centro de gravedad (x, y, z):** (0.0; -0.0; 102.7) mm (origen en el eje de la mesa y la cara inferior de la base).
+**Total comparable:** 3D 4110.1 kg frente a 4112.8 kg del núcleo: Δ -2.8 kg (-0.07 %), tolerancia ±0.5 % → DENTRO.
+Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): 56.8 kg. **Masa total del ensamble: 4166.8 kg.**
+**Centro de gravedad (x, y, z):** (0.0; -0.0; 104.0) mm (origen en el eje de la mesa y la cara inferior de la base).
 
-**Total comparable conciliado:** 3D 3938.7 kg + 48.2 kg de muescas, chaflanes y juntas (por fórmula) = 3986.9 kg frente a 3989.7 kg del núcleo: Δ -0.07 % → DENTRO de ±0.5 %.
+### Control de masa de la interfaz por pieza (cortes del núcleo, `interfazGeom.cortes`)
+
+| Pieza | Piezas (n × capas) | t mm | Junta mm | Juntas kg | Muescas kg | Chaflanes kg | Bruta kg | Neta del núcleo kg | 3D kg | Residual kg | Residual % |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Disco de la base (liso) (24 sectores) | 48 | 15 | 1 | 5.0 | 21.4 | 3.2 | 734.6 | 705.1 | 704.6 | -0.51 | -0.07 |
+| Lámina UHMW (24 sectores) | 24 | 25 | 1,8 (franja libre) | 10.7 | 0.0 | 0.9 | 72.6 | 61.0 | 61.0 | -0.00 | -0.00 |
+
+La masa neta es la del núcleo (m_neta = bruta − juntas − muescas − chaflanes). No hay conciliación manual: el 3D se compara directamente con ella. El residual corresponde a lo que el núcleo no descuenta (ranuras de engrase, agujeros avellanados de tornillos, taladros de graseras; tapones de grafito en la opción C).
 
 ### Diferencias explicadas por pieza
-- Discos de interfaz (inox / duro): 3D 549,9 kg frente a 587,6 kg (-6,43 %). Causas (fórmula): muescas de las barras en el disco de la base (22×280×12, 24 u.): 14,1 kg; chaflanes de alivio 7×45° del disco de la base (24 u., 2 cantos): 2,6 kg; juntas de 1 mm entre 24 sectores del disco de la base: 2 kg; muescas de las barras en el disco de la mesa (22×280×12, 24 u.): 14,1 kg; chaflanes de alivio 7×45° del disco de la mesa (24 u., 2 cantos): 2,6 kg; juntas de 1 mm entre 24 sectores del disco de la mesa: 2 kg. Suma 37,3 kg; resto 0,4 kg (ranuras de engrase, agujeros avellanados y de engrase, tapones, redondeos).
-- Barras de los topes (m.stopBars): 3D 88,4 kg frente a 87,7 kg (0,77 %). Causas (fórmula): barras de UHMW en inoxidable (ρ 7,93 frente a 7,85 del núcleo): -0,7 kg. Suma -0,7 kg; resto -0 kg (ranuras de engrase, agujeros avellanados y de engrase, tapones, redondeos).
-- Lámina UHMW: 3D 61 kg frente a 72,6 kg (-15,9 %). Causas (fórmula): franjas libres entre sectores de UHMW (barra 20 + junta 1,8, 24 u.): 10,7 kg; chaflanes de alivio 7×45° de la lámina (24 u., 2 cantos): 0,9 kg. Suma 11,5 kg; resto 0 kg (ranuras de engrase, agujeros avellanados y de engrase, tapones, redondeos).
-- TOTAL comparable crudo -1,28 % (fuera de ±0,5 %). Descontando por fórmula las muescas, chaflanes y juntas (48,2 kg) que el núcleo no resta, el total conciliado queda en -0,07 % (DENTRO). Corrección propuesta en el núcleo: m.ss / m.bz / m.uhmw con las áreas de muesca, chaflán y junta descontadas (con ello el núcleo y el modelo 3D coinciden); en el modelo 3D no hay nada que corregir, la geometría de los topes es la verificada por el núcleo.
+- Mesa (planchas, almas, nervios, cubo, pasadores): 3D 1430,5 kg frente a 1431,8 kg del núcleo (-0,09 %; residual -1,35 kg). Residual no descontado en el núcleo: rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo).
+- Patines: 3D 374,8 kg frente a 375,6 kg del núcleo (-0,21 %; residual -0,79 kg). Residual no descontado en el núcleo: alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría).
+- Discos de interfaz (inox / duro): 3D 704,6 kg frente a 705,1 kg del núcleo (-0,07 %; residual -0,51 kg). Residual no descontado en el núcleo: ranuras de engrase, agujeros avellanados de los tornillos de posición y taladros de las graseras (el núcleo solo descuenta juntas, muescas y chaflanes).
 
 ## Interferencias
 
@@ -115,7 +121,7 @@ Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, ani
 
 ## Chequeo automático de cotas (dibujo frente a modelo 3D)
 
-137 cotas registradas; 137 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
+140 cotas registradas; 140 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
 
 ## Control de marco
 
@@ -139,15 +145,16 @@ Todas las láminas dentro del formato A1.
 |---|---|---|---|
 | B-01 | Posición, torque y largo de tornillos de posición | Adoptado por el mandante: 2 por sector. El núcleo fija solo d_tor = M6 y verifica la cabeza; la posición radial (S01), el largo (S11) y el torque no están definidos. | Confirmar posición y largo; definir torque (ISO 898-1 / VDI 2230). |
 | B-02 | Opción B sin engrase | El núcleo no define ranuras ni graseras para la opción B (UHMW sobre inox «con grasa limpia»); no se dibujan. | Definir si B lleva engrase y su geometría. |
-| B-03 | Buje parcialmente sin guía en el cubo | El buje arranca en z = 80 y el alesaje del cubo (Ø150 H7) empieza en z = 83: engrane 77 de 80 mm (con rebaje de 13 < t_bot, el agujero de la plancha inferior es pasante). | Verificar la presión del buje con el engrane real o subir el buje. |
+| B-03 | Buje parcialmente sin guía en el cubo | El buje arranca en z = 80 y el alesaje del cubo (Ø150 H7) empieza en z = 89: engrane 71 de 80 mm (con rebaje de 7 < t_bot, el agujero de la plancha inferior es pasante). | Verificar la presión del buje con el engrane real o subir el buje. |
 | B-04 | Izaje de la mesa | El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible). | A DEFINIR: orejas o cáncamos verificados para la mesa. |
 | B-05 | Retención axial del pivote | El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable). | A DEFINIR: tope inferior, anillo o interferencia verificada. |
 | B-06 | Torque de pernos y tornillos | El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición). | A DEFINIR: torques de apriete (ISO 898-1 / VDI 2230). |
 | B-07 | Tamaño de soldaduras sin parámetro | Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f. | A DEFINIR: confirmar o parametrizar tamaños y END de las soldaduras sin parámetro. |
-| B-08 | Verificación del núcleo del filete de las mejillas | La fila «Filete mínimo mejillas–base» acota con mín(w_br, t_base, t_ch) = 18: no detecta que w_br = 20 supera t_base = 18 (el máximo AISC J2.2b sobre el borde de la mejilla de 25 sería 23). | Revisar el criterio de la fila (mínimo y máximo por separado). |
-| B-09 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
-| B-10 | Masa de sectores: muescas, juntas y chaflanes no descontados | El núcleo calcula discos, placas y lámina como corona completa y suma además las barras de los topes; la geometría real descuenta las muescas de las barras, los chaflanes de alivio, las juntas entre sectores (y, según la opción, ranuras, agujeros y tapones). Conciliación por pieza en el informe del paquete. | Descontar esas áreas en el núcleo (m.ss, m.bz, m.uhmw) o aceptar la diferencia (conservadora: el núcleo pesa más). |
-| B-11 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
+| B-08 | Filetes máximos AISC J2.2b de almas y nervios | Almas y nervios de la mesa: w_web = 6 sobre t = 6 superan el máximo de borde t − 2 = 4 mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión. | PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma. |
+| B-09 | Advertencia del núcleo aceptada: soldadura mejillas–base | «Soldadura mejillas–base (4 filetes)»: FU 0,925 (demanda 75,5 / capacidad 81,7 MPa) en banda «warn» con w_br = 20 (mínimo AWS D1.1 T5.8 = 8 mm; máximo AISC J2.2b = t_ch − 2 = 23 mm, ya en el tope). | ACEPTADA POR EL MANDANTE como advertencia (no se aumenta el filete: w_br ya está cerca del máximo AISC J2.2b). Dejar registro en la aprobación. |
+| B-10 | Pendiente declarado por el núcleo | Soldar los topes antes del alivio de tensiones y del rectificado de las caras; el sector entra por el borde de la mesa izada y se asegura con los tornillos de posición | Atender en fabricación/aprobación según el texto del núcleo. |
+| B-11 | Diferencias de fórmula del patín | La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza. | Informativo (dentro de tolerancia). |
+| B-12 | Cilindro comercial | Largo ojal–ojal L0 = 520 mm y masa 55 kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo. | Confirmar con el proveedor del cilindro. |
 
 ## Reproducción
 

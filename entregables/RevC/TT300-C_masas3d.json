@@ -114,10 +114,10 @@
   "masa_ensamble": 3108.6209193424743,
   "tol_pct": 0.5
  },
- "masa_total_ensamble": 3108.6209193424747,
+ "masa_total_ensamble": 3108.620919342475,
  "cg": [
-  0.024839591066287723,
-  -0.0020394909045474115,
+  0.02483959106628896,
+  -0.0020394909045451533,
   86.47666450122529
  ],
  "interferencias": [
@@ -2722,8 +2722,8 @@
   "TT300C-IZA-001-B": {
    "nombre": "Oreja de izaje",
    "qty": 4,
-   "masa_unit": 3.9938146615535484,
-   "masa_total": 15.975258646214193
+   "masa_unit": 3.9938146615535612,
+   "masa_total": 15.975258646214245
   },
   "TT300C-ACC-001-B": {
    "nombre": "Bancada de guía con ranura T",
