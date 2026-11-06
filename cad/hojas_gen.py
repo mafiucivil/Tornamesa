@@ -122,7 +122,7 @@ def sheet_corte(ctx):
     s = h.begin()
     s.text("LISTA DE CORTE (dimensiones brutas con sobremetal; corte a llama/plasma/sierra)", (30, 566), 3.0, "TOP_LEFT", bold=True)
     rows = lista.cut_rows(ctx)
-    wtable(s, 30, 560, [("Pos", 24), ("Pieza", 58), ("Forma", 36), ("Dimensión bruta (mm)", 70), ("Cant", 12), ("Material", 100), ("Observación", 160)], rows, h=1.8)
+    wtable(s, 30, 560, [("Pos", 30), ("Pieza", 100), ("Forma", 55), ("Dimensión bruta (mm)", 120), ("Cant", 18), ("Material", 190), ("Observación", 282)], rows, h=2.4)
     return h
 
 
@@ -132,7 +132,7 @@ def sheet_soldaduras(ctx):
     W_ = soldaduras(ctx)
     rows = [[w["id"], w["juntas"], w["tipo"], w["tamano"], w["nota"], w["proc"], "ISO 5817-" + w["calidad"], w["end"], w["wps"]] for w in W_]
     s.text("PROGRAMA DE SOLDADURAS (tipo, tamaño, END)", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    y = wtable(s, 30, 560, [("Id", 10), ("Juntas", 100), ("Tipo y preparación", 95), ("Tamaño", 20), ("Origen del tamaño", 60), ("Proceso ISO 4063", 55), ("Calidad", 22), ("END", 36), ("WPS", 86)], rows, h=1.7)
+    y = wtable(s, 30, 560, [("Id", 12), ("Juntas", 150), ("Tipo y preparación", 140), ("Tamaño", 24), ("Origen del tamaño", 170), ("Proceso ISO 4063", 85), ("Calidad", 28), ("END", 50), ("WPS", 136)], rows, h=2.4)
     s.notes_block(30, y - 8, "CONTROL", [
         "Precalentamiento AWS D1.1: t ≤ 20: 10 °C (se exige 50 °C mín.); 20 < t ≤ 38: 50 °C; 38 < t ≤ 65: 65 °C; interpase ≤ 250 °C. Electrodos E7018 / alambre ER70S-6 (FEXX del núcleo: %s MPa)." % f(ctx.P["FEXX"]),
         "42CrMo4 y 34CrNiMo6 (pivote, pasadores, uñas): NO se sueldan. Soldar los topes de la interfaz antes del alivio de tensiones y del rectificado de las caras.",
