@@ -939,7 +939,7 @@ def sheet_madera(ctx):
     VR.dim((g.Rt, 0, z0 + hd), (g.Rt, 0, z0 + hd + tW), 10, orient="v", on=["madera_anillo_r"], text=f"{f(tW)}")
     VR.dim((g.Rt - g.t_ring, 0, z0 + hd + tW), (g.Rt, 0, z0 + hd + tW), 10, orient="h", on=["madera_anillo_r"], text=f"{fm(g.t_ring, 0)} (t_ring)")
     VR.dim((g.R_pin - g.washer_D / 2 - 2, 0, z0 + hd), (g.R_pin + g.washer_D / 2 + 2, 0, z0 + hd), -25, orient="h", on=["madera_r"], text=f"Ø{f(g.washer_D + 4)} (bolsillo) × 31") if False else None
-    s.weld_iso(VR.P(g.Rt - g.t_ring, 0, z0 + hd + 2), VR.P(g.Rt - 70, 0, z0 + hd + 50), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-10 A DEFINIR POR EL FABRICANTE"])
+    s.weld_iso(VR.P(g.Rt - g.t_ring, 0, z0 + hd + 2), VR.P(g.Rt - 60, 0, z0 + hd + tW + 26), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-10 A DEFINIR POR EL FABRICANTE"])
     title_view(s, (500, 350), "CORTE POR UN PASADOR (bolsillo sobre el perno)", "ESC 1:1")
     s.text(f"f_apoyo = {fm(P['f_apoyo'], 2)}: fracción del círculo de carga Ø{f(P['D_load'])} que toca realmente la madera (tablones contiguos dentro del anillo); p adm. {fm(P['p_wood'], 1)} MPa.", (30, 290), 2.1)
     s.text("ADOPTADO por el mandante (S06): ancho de tablón 200, anillo %s×t (en el núcleo, m.ring %s kg); abertura Ø%s y bolsillos sobre los pernos de pasador: PROVISORIOS (residual de masa en el informe)." % (fm(g.t_ring, 0), fm(ctx.M["ring"], 1), f(g.cb_D)), (30, 285), 2.1)
