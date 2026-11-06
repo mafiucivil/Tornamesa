@@ -44,7 +44,7 @@ def main():
             b_ = _bb.extents(ezdxf.readfile(str(out / (nm + ".dxf"))).modelspace())
             if b_.extmin.x < -0.5 or b_.extmin.y < -0.5 or b_.extmax.x > h.s.W + 0.5 or b_.extmax.y > h.s.H + 0.5:
                 print("   FUERA DE MARCO", nm, [round(v) for v in (b_.extmin.x, b_.extmin.y, b_.extmax.x, b_.extmax.y)], "hoja", h.s.W, h.s.H)
-            print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
+            print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "huella", round(getattr(h, "huella", 0), 2), "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
 
 def vistas_rows():

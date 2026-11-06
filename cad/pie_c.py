@@ -24,7 +24,7 @@ def sheet_pivote_pieza(ctx):
         V.dimv((-r, 0, 0), (-r, 0, zA), "left", 1, on=on, text=f"{fm(zA, 0)} (bajo la plancha)") if False else None
         ra(s, V, (r, 0, g.L_piv / 2), "Ra 0,8", dx=24, dy=0)
         V.dim_dia((0, 0, g.L_piv - 12), 4.25, 40, text="4 × M10-6H prof. 20 (broca Ø8,5)", on=on, ext=30) if False else None
-    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 80, 0), draw=elev, hatch=False, title="ELEVACIÓN", w=1.5,
+    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 90, 0), draw=elev, hatch=False, title="ELEVACIÓN", w=1.5,
          auto=dict(rev=(0, 0), fits={P["D_piv"]: "p6"}, rev_side="top", tol={round(g.L_piv, 1): " ±0,1"}, hole_notes=False))
     p.vs("extremo", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), title="VISTA DE EXTREMO (cara superior)", hatch=False, w=1.0,
          auto=dict(hole_rmin=3.0, hole_txt={8.5: f"4 × M10-6H prof. {fm(g.cap_tap, 0)} (broca Ø8,5), PCD Ø{fm(g.cap_pcd, 0)}, a 45° + 90°·k"}, fits={}))

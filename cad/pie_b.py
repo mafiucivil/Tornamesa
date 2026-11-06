@@ -25,7 +25,7 @@ def sheet_mesa_sup(ctx):
     def corte(V, p):
         w_out(p, jj[0], V, (g.prIn, 0, zt - tt / 2), "right", prep="60°", dy=-10)
         ra(s, V, (g.hole_top / 2 + 40, 0, zt), "Ra 6,3")
-    p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, zt - tt - 6, x_b, zt + 14), center=(0, 0, 0), breaks=[(g.hole_top / 2 + 180, g.prIn - 180)], lv=(1, 2, 1, 2), extra=(0, 0, 120, 0),
+    p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, zt - tt - 6, x_b, zt + 14), center=(0, 0, 0), breaks=[(g.hole_top / 2 + 180, g.prIn - 180)], lv=(1, 2, 1, 2), extra=(0, 0, 90, 0),
          draw=corte, title="CORTE A-A (radial, con rotura)", hs=0.5, w=1.2,
          auto=dict(tol={round(tt, 1): " (t_top)"}, text={}))
     p.detail("det_c", "corte", (g.hole_top / 2 + 10, 0, zt - tt / 2), 38, "B", lv=(1, 2, 1, 1), title="DETALLE B: AGUJERO CENTRAL Y REBAJE DE LA TAPA", maxs=2.0)
@@ -66,7 +66,7 @@ def sheet_mesa_anillos(ctx):
         s.dim_ang(V.P(c3), g.R_pin * V.scale * 0.85, 0, pitch, f"{fm(pitch, 3)}° (paso)")
         s.dim_ang(V.P(c3), g.R_pin * V.scale * 0.7, 0, 90, "90° (4 empalmes)")
         s.text(f"Primer agujero a {fm(a0, 3)}° del eje x (antihorario)", (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 130, 0), draw=planta, title="PLANTA (anillo; superior e inferior idénticos)", hatch=False, w=1.8,
+    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), draw=planta, title="PLANTA (anillo; superior e inferior idénticos)", hatch=False, w=1.8,
          auto=dict(fits={g.d_pin: "H7"}, hole_rmin=20, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±1,5 (D_top)"}))
     x_a, x_b = g.prIn - 30, g.Rt + 30
 
@@ -111,7 +111,7 @@ def sheet_mesa_inf(ctx):
         s.text("Cara inferior (interfaz): planeada, Ra 3,2", (V.P(ri + 60, 0, z0)[0] + 20, V.P(0, 0, z0)[1] - 14), T_N, "MIDDLE_LEFT")
         if jj:
             w_out(p, jj[0], V, (g.prIn, 0, z0 + tbo / 2), "right", prep="60°", dy=-12)
-    p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, z0 - 6, x_b, z0 + tbo + 14), breaks=[(ri + 150, g.prIn - 150)], lv=(1, 3, 1, 2), extra=(0, 0, 130, 0), draw=corte,
+    p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, z0 - 6, x_b, z0 + tbo + 14), breaks=[(ri + 150, g.prIn - 150)], lv=(1, 3, 1, 2), extra=(0, 0, 90, 0), draw=corte,
          title="CORTE A-A (radial, con rotura)", hs=0.5, w=1.2, auto=dict(tol={round(tbo, 1): " (t_bot)"}))
     p.detail("det_c", "corte", (ri + 6, 0, z0 + tbo / 2), 30, "B", lv=(1, 2, 1, 1), title="DETALLE B: BORDE DEL AGUJERO (REBAJE DEL COLLAR)", maxs=5.0)
     for i, j_ in enumerate(jj):
@@ -144,7 +144,7 @@ def sheet_almas(ctx):
 
     def corte(V, p):
         w_out(p, ids[0], V, (r + P["t_web"] / 2, 0, z0 + 2), "right", other=None, dy=14)
-    p.vs("corte", [k0], "front", cut=CUT_Y, center=(r, 0, z0), win=(-14, -6, 14, g.hw + 8), lv=(1, 2, 1, 2), extra=(0, 0, 120, 0), draw=corte, title="CORTE DE UNA ALMA (todas iguales en sección)", hs=0.35, maxs=2.0, w=1.0,
+    p.vs("corte", [k0], "front", cut=CUT_Y, center=(r, 0, z0), win=(-14, -6, 14, g.hw + 8), lv=(1, 2, 1, 2), extra=(0, 0, 90, 0), draw=corte, title="CORTE DE UNA ALMA (todas iguales en sección)", hs=0.35, maxs=2.0, w=1.0,
          auto=dict(tol={round(g.hw, 1): " (h = h_disc − t_top − t_bot) ±0,5", round(P["t_web"], 1): " (t_web)"}))
     rows = [[f"A{i + 1}", f"{ctx.code(k).replace(CODE + '-', '')}", f(2 * r_), f(r_), f(2 * math.pi * r_, 0), f"{math.ceil(2 * math.pi * r_ / 3000)} pletina(s) rolada(s)", f"{fm(g.hw, 0)} × {fm(P['t_web'], 0)}"]
             for i, (k, r_) in enumerate(zip(ks, D["almas"]))]
@@ -220,7 +220,7 @@ def sheet_cubo(ctx):
         ra(s, V, (-g.d_bush / 2 + 1, 0, zt - g.hw / 2), "Ra 1,6", dx=4, dy=-6)
         if jc:
             w_out(p, jc[0], V, (P["D_hub"] / 2, 0, z0), "right", prep="45°", dy=-12)
-    p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 110, 0), draw=corte, title="CORTE A-A", hs=0.6, w=1.4,
+    p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 90, 0), draw=corte, title="CORTE A-A", hs=0.6, w=1.4,
          auto=dict(rev=(0, 0), fits={g.d_bush: "H7"}, rev_side="top", tol={round(g.hw, 1): " ±0,5"}, text={round(g.Drb, 1): f"Ø{f(g.Drb)} (rebaje del collar)"}))
     if g.rebaje and g.hHub > 0:
         p.detail("det_r", "corte", (g.Drb / 2, 0, z0 + g.hHub / 2), 25, "B", lv=(1, 2, 1, 1), title="DETALLE B: REBAJE DEL COLLAR", maxs=5.0)

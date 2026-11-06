@@ -161,6 +161,7 @@ def sheet_marcos(ctx):
     p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, -B / 2, tb), win=(-60, -20, 25, 60), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
          auto=dict(on=["marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
     add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=True)
+    add_prep(p, "det_j2", wd(ctx, ids[2]), t1=rt, t2=tb, both=True) if len(ids) > 2 else None
     p.tables(ids)
     p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {f(B)} y 2 cortas de {f(B - 2 * rt)} (entre las largas); corte a sierra o plasma con borde recto.",
              "Armado: pletinas largas sobre la plancha, cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo exterior e interior.",
@@ -203,6 +204,8 @@ def sheet_mensula_piezas(ctx):
     p.vs("os_corte", k2, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(1, 2, 1, 1), title="CORTE A-A: AGUJERO DE LA OREJA", hatch=True, auto=dict(tol={}, hole_notes=False, text={round(P["d_pp"], 1): tol_txt(P["d_pp"], "H9")}), w=0.8, hs=0.4)
     if len(ids) >= 4:
         add_prep(p, "det_j4", wd(ctx, ids[0]), t1=tc, t2=tb)
+        add_prep(p, "det_j5", wd(ctx, ids[1]), t1=tc, t2=tc)
+        add_prep(p, "det_j6", wd(ctx, ids[2]), t1=tc, t2=BR["spacer"] + tc)
     p.tables(ids)
     p.notes([f"Mejillas: plancha {f(tc)} × {f(H_)} × {f(P['L_ch'])}, 2 por ménsula ({int(P['n_br'])} ménsulas, {int(2 * P['n_br'])} mejillas); plasma, borde recto.",
              f"Orejas: planchas {f(Win)} (−0,5 para entrar entre mejillas con luz interior {f(Win)}) × {f(Llug)}; la inferior es un bloque {f(hb)} de espesor (pletinas apiladas o plancha gruesa).",

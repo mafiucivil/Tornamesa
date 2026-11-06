@@ -159,7 +159,7 @@ def tope_sheet(ctx, key, titulo, side):
     def jd(V, p):
         if ids:
             w_out(p, ids[0], V, (xc, -b / 2, zb0 + 1), "right", dy=-14)
-    p.vs("junta", ks, "right", cut=CUT_X, center=(xc, 0, zc_), win=(-(b / 2 + 34), -tp["t"] - 14, b / 2 + 34, tp["t"] + 14), lv=(1, 2, 1, 2), extra=(0, 0, 120, 0), draw=jd, hs=0.25, w=1.4,
+    p.vs("junta", ks, "right", cut=CUT_X, center=(xc, 0, zc_), win=(-(b / 2 + 34), -tp["t"] - 14, b / 2 + 34, tp["t"] + 14), lv=(1, 2, 1, 2), extra=(0, 0, 90, 0), draw=jd, hs=0.25, w=1.4,
          title="DETALLE DE JUNTA (corte por el centro de la barra)", mat={plate + "_t": "acero", sector + "_t1": ctx.mat.get(sector, "acero"), nk: "acero"},
          auto=dict(on=ks, tol={round(tp["h_barra"], 1): " (h)", round(b, 1): " (b)"}, hole_notes=False))
     if ids:
@@ -469,7 +469,7 @@ def sheet_madera_anillo(ctx):
     def corte(V, p):
         if ids:
             w_out(p, ids[0], V, (g.Rt, 0, zw0 + 1), "right", dy=-12)
-    p.vs("corte", ["madera_anillo", "mesa_plancha_sup"], "front", cut=CUT_Y, center=(g.Rt - 20, 0, zw0), win=(-60, -g.tt - 8, 40, tW + 12), lv=(1, 2, 1, 2), extra=(0, 0, 120, 0), draw=corte, hs=0.3, maxs=2.0,
+    p.vs("corte", ["madera_anillo", "mesa_plancha_sup"], "front", cut=CUT_Y, center=(g.Rt - 20, 0, zw0), win=(-60, -g.tt - 8, 40, tW + 12), lv=(1, 2, 1, 2), extra=(0, 0, 90, 0), draw=corte, hs=0.3, maxs=2.0,
          title="CORTE RADIAL: ANILLO SOBRE LA PLANCHA SUPERIOR", mat={"madera_anillo": "acero", "mesa_plancha_sup": "acero"}, w=1.2, auto=dict(on=["madera_anillo", "mesa_plancha_sup"], tol={round(tW, 1): " (t_wood)", round(g.t_ring, 1): " (t_ring)"}))
     if ids:
         add_prep(p, "det_j", wd(ctx, ids[0]), t1=g.t_ring, t2=g.tt)

@@ -192,11 +192,11 @@ def main():
                         ad_tot[k] += 1
                         break
         o1, o2, o3 = h.ocupacion()
-        mrows.append([n, h.plano, h.titulo, h.fmt, h.escala, ncot.get(h.plano, 0), round(o1 * 100, 1), round(o2 * 100, 1), round(o3 * 100, 1), n_ad, n_ad_body, len(getattr(s, "hatch_classes", set())),
+        mrows.append([n, h.plano, h.titulo, h.fmt, h.escala, ncot.get(h.plano, 0), round(o1 * 100, 1), round(o2 * 100, 1), round(o3 * 100, 1), round(getattr(h, 'huella', 0.0) * 100, 1), n_ad, n_ad_body, len(getattr(s, "hatch_classes", set())),
                       min((e.dxf.height for e in s.m if e.dxftype() == "TEXT"), default=0)])
     with open(out / "metricas_laminas.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")
-        wr.writerow(["n", "lámina", "título", "formato", "escala", "cotas", "% vistas / área útil del marco", "% vistas / zona de vistas (área de dibujo)", "% tinta / zona de vistas", "textos A DEFINIR", "A DEFINIR sin contar el cajetín (6 por lámina)", "clases de achurado", "altura mínima de texto [mm]"])
+        wr.writerow(["n", "lámina", "título", "formato", "escala", "cotas", "% vistas / área útil del marco", "% vistas / zona de vistas (área de dibujo)", "% tinta / zona de vistas", "% huella (vista + cotas + título + símbolos) / zona", "textos A DEFINIR", "A DEFINIR sin contar el cajetín (6 por lámina)", "clases de achurado", "altura mínima de texto [mm]"])
         wr.writerows(mrows)
     with open(out / "soldaduras.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")
@@ -221,9 +221,9 @@ def main():
         fh.write(f"- Láminas: {total}; cotas verificadas: {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas).\n- Ítems del despiece sin globo en un plano de conjunto/subconjunto: {sin_globo or 'ninguno'}.\n")
         fh.write(f"- Juntas sin símbolo ISO 2553 en un plano de pieza/subconjunto: {sin_simbolo or 'ninguna'}. Piezas fabricables sin plano: {sin_plano or 'ninguna'}.\n- Errores de generación: {errores or 'ninguno'}.\n")
         fh.write("- Textos «A DEFINIR» por causa: " + "; ".join(f"{k}: {v}" for k, v in ad_tot.items()) + ".\n\n")
-        fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | A DEFINIR |\n|---|---|---|---|---|---|---|---|---|\n")
+        fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR |\n|---|---|---|---|---|---|---|---|---|---|\n")
         for r in mrows:
-            fh.write(f"| {r[0]} | {r[1]} | {r[3]} | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} | {r[10]} |\n")
+            fh.write(f"| {r[0]} | {r[1]} | {r[3]} | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} | {r[9]} | {r[11]} |\n")
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)

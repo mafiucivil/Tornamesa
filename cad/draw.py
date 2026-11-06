@@ -343,7 +343,7 @@ class Sheet:
         self.arrow(p, math.atan2(p[1] - q[1], p[0] - q[0]))
         sh = sh if sh in (1, -1) else (1 if q[0] >= p[0] else -1)
         texts_w = [tw(t, T_N) for t in ([size, length, prep] if True else [])]
-        wl = max(46.0, 8 + sum(texts_w) + 16) if L is None else L
+        wl = max(34.0, 8 + sum(texts_w) + 12) if L is None else L
         r_ = (q[0] + sh * wl, q[1])
         self.line(q, r_, "COTA")
         self.line((q[0], q[1] + 1.6), (r_[0], r_[1] + 1.6), "OCU")          # línea de identificación (trazos): lado opuesto

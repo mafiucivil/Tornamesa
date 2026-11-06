@@ -132,7 +132,8 @@ class Hoja:
             return
         w["sheets"].add(self.plano)
         self.welds_here.append(jid)
-        tail = [f"{jid} · {w['proceso']} · {w['nivel']}", f"{w['wps_corto']} (PROPUESTA)", w["end"].replace(" · ", " ").replace(" 100 %", "100").replace(" 10 %", "10").replace("de la unión", "")] + list(extra_tail)
+        end_c = w["end"].replace(" · ", " ").replace(" 100 %", "100").replace(" 10 %", "10").replace("de la unión", "").strip()
+        tail = [f"{jid} · {w['proceso']} · {w['wps_corto']}", f"{w['nivel']} · {end_c}"] + list(extra_tail)
         kd = kind or w["sym"]
         sz = size if size is not None else w["size_txt"]
         ln = length if length is not None else w.get("len_txt", "")
@@ -140,7 +141,7 @@ class Hoja:
         ar = w["contorno"] if all_round is None else all_round
         # el símbolo (línea de referencia + rabo de texto) no debe salir de la zona de vistas: se vuelca al otro lado si hace falta
         sh_ = sh if sh in (1, -1) else (1 if q[0] >= p[0] else -1)
-        wl_ = max(46.0, 8 + sum(tw(t_, T_N) for t_ in (sz, ln, pr)) + 16) if L is None else L
+        wl_ = max(34.0, 8 + sum(tw(t_, T_N) for t_ in (sz, ln, pr)) + 12) if L is None else L
         ext_ = wl_ + max(tw(t_, T_N) for t_ in tail) + 6
         zr = getattr(self, "zone", self.R["left"])
         qm = 2 * p[0] - q[0]
@@ -185,6 +186,12 @@ class Hoja:
                 for j in range(int(max(y0, zone[1]) // 4), int(min(y1, zone[3]) // 4) + 1):
                     cells.add((i, j))
         A = len(cells) * 16.0
+        fcells = set()
+        for (x0, y0, x1, y1) in getattr(s, "footprints", []):
+            for i in range(int(max(x0, zone[0]) // 4), int(min(x1, zone[2]) // 4) + 1):
+                for j in range(int(max(y0, zone[1]) // 4), int(min(y1, zone[3]) // 4) + 1):
+                    fcells.add((i, j))
+        self.huella = len(fcells) * 16.0 / zarea
         # tinta: puntos de las entidades que caen en la zona
         ink = set()
         st = 8.0

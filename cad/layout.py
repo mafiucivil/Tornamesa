@@ -18,9 +18,9 @@ import draw as dr
 from draw import Sheet, tw, wrapw, T_N, T_S, T_T
 import autodim
 
-GAP = 5.0       # separación entre celdas [mm de papel]
+GAP = 4.0       # separación entre celdas [mm de papel]
 DIMSTEP = 8.5   # paso entre líneas de cota apiladas
-TITLE_H = 20.0  # altura reservada para el título de la vista y su escala
+TITLE_H = 17.0  # altura reservada para el título de la vista y su escala
 
 
 class VS:
@@ -186,11 +186,11 @@ def plan_cells(specs, shapes, zone):
     rnd = random.Random(7)
     idx = list(range(n))
     perms = [tuple(idx)]
-    if n <= 5:
+    if n <= 4:
         perms = list(itertools.permutations(idx))
     else:
         seen = {tuple(idx)}
-        while len(perms) < 70:
+        while len(perms) < (40 if n == 5 else 24):
             q = idx[:]
             rnd.shuffle(q)
             if tuple(q) not in seen:
@@ -199,6 +199,8 @@ def plan_cells(specs, shapes, zone):
     for perm in perms:
         for mode in ("rows", "cols"):
             for groups0 in _compositions(n):
+                if max(len(g) for g in groups0) > 4 or len(groups0) > 4:
+                    continue
                 groups = [[perm[i] for i in g] for g in groups0]
                 if mode == "cols" and len(groups) == 1 and n > 1:
                     continue
@@ -505,6 +507,7 @@ class Plano:
         for i in range(len(specs)):
             sp = specs[i]
             cell = cells[i]
+            r0_ = len(getattr(s, "reserved", []))
             if sp.custom:
                 a, b = sp.nat
                 mg = sp.margins()
@@ -518,6 +521,7 @@ class Plano:
                 self.scales.append(sc_)
                 if sp.title:
                     s.view_title((ox + a * sc_ / 2, oy - 8 * (sp.lv[1] + 1) - 6), sp.title, "ESC " + scale_txt(sc_), dr.T_T)
+                self._footprint(s, (ox, oy, ox + a * sc_, oy + b * sc_), sp, r0_, custom=True)
                 continue
             shp = sp_shapes(sp, shapes)
             if not shp:
@@ -552,11 +556,27 @@ class Plano:
                 sp.draw(V, self)
             if sp.title:
                 V.title(sp.title)
+            self._footprint(s, V.ext, sp, r0_, V=V)
         for cb in self.post:
             cb(self)
         if (iso_fill if iso_fill is not None else self.iso_fill):
             self.fill_free(zone)
         h.escala = self.fit_scale_txt() or "S/E"
+
+    def _footprint(self, s, ext, sp, r0, V=None, custom=False):
+        """Huella de la vista: geometría + pila de cotas usada + título + símbolos y llamadas dibujados en ella."""
+        x0, y0, x1, y1 = ext
+        if V is not None:
+            lv = V.lv
+            fx0, fy0, fx1, fy1 = x0 - 8 - 8.5 * lv["left"], y0 - 8 - 8.5 * lv["bottom"] - (TITLE_H if sp.title else 0), x1 + 8 + 8.5 * lv["right"], y1 + 8 + 8.5 * lv["top"]
+        else:
+            fx0, fy0, fx1, fy1 = x0 - 8, y0 - 8 - (TITLE_H if sp.title else 0) - 8 * sp.lv[1], x1 + 8, y1 + 8
+        for q in getattr(s, "reserved", [])[r0:]:
+            if q[2] - q[0] < 200 and q[3] - q[1] < 200:
+                fx0, fy0, fx1, fy1 = min(fx0, q[0]), min(fy0, q[1]), max(fx1, q[2]), max(fy1, q[3])
+        if not hasattr(s, "footprints"):
+            s.footprints = []
+        s.footprints.append((fx0, fy0, fx1, fy1))
 
     def fit_scale_txt(self):
         sc = sorted(set(self.scales), reverse=True)
