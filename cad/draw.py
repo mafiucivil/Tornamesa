@@ -423,7 +423,7 @@ class Sheet:
         a, b = ys["proj"]
         self.text("PROYECTO", (x0 + 1.2, b - 1.0), 1.7, "TOP_LEFT")
         self.text(info["proj"], (x0 + 2, b - 4.0), 3.0, "TOP_LEFT", bold=True)
-        for i, ln in enumerate(wrap(info["subproj"], 78)[:2]):
+        for i, ln in enumerate(wrap(info["subproj"], 100)[:2]):
             self.text(ln, (x0 + 2, b - 8.2 - i * 2.8), 2.2, "TOP_LEFT")
         a, b = ys["estado"]
         self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), 2.6, "MIDDLE_CENTER", bold=True)

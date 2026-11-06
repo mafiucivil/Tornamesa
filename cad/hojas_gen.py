@@ -91,9 +91,9 @@ def sheet_supuestos(ctx, gaps):
     s = h.begin()
     rows = [[x["id"], x["tema"], x["valor"], x["motivo"]] for x in ctx.sup]
     s.text("SUPUESTOS DE DIBUJO (PROVISORIO) Y DECISIONES ADOPTADAS POR EL MANDANTE (ADOPTADO)", (30, 566), 3.0, "TOP_LEFT", bold=True)
-    y = wtable(s, 30, 560, [("Id", 10), ("Tema", 55), ("Valor adoptado", 190), ("Motivo", 520)], rows, h=1.9)
+    y = wtable(s, 30, 560, [("Id", 12), ("Tema", 60), ("Valor adoptado", 240), ("Motivo", 483)], rows, h=2.5)
     s.text("BRECHAS: DATOS QUE EL CÁLCULO DEBE ENTREGAR O CONFIRMAR", (30, y - 8), 3.0, "TOP_LEFT", bold=True)
-    wtable(s, 30, y - 14, [("Id", 10), ("Tema", 55), ("Descripción", 600), ("Decisión requerida", 110)], [[x["id"], x["tema"], x["desc"], x["decision"]] for x in gaps], h=1.9)
+    wtable(s, 30, y - 14, [("Id", 12), ("Tema", 60), ("Descripción", 490), ("Decisión requerida", 233)], [[x["id"], x["tema"], x["desc"], x["decision"]] for x in gaps], h=2.5)
     return h
 
 

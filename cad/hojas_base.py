@@ -30,12 +30,12 @@ class Ctx:
         self.hojas = []
         g = self.g
         self.revs = [
-            ("B", g.FECHA, "B VIGENTE – EMITIDO PARA REVISIÓN. Cambios C respecto de la B anterior: "
-             f"R_i {fm(g.Ri, 0)} (Ø{f(2 * g.Ri)} de discos); rebaje del collar con holguras {fm(g.c_boss_r, 0)}/{fm(g.c_boss_a, 0)} (Ø{f(g.Drb)}, plancha inferior con agujero pasante), D_hub {fm(self.P['D_hub'], 0)}; "
-             f"barras de tope verificadas (h = t − a_sup, chaflán a_inf, h_c) en despiece y masa; orejas de izaje R{fm(self.P['R_ear'], 0)}; filete del collar z{fm(g.w_collar, 0)}; "
-             f"almas en R" + "/".join(fm(r, 0) for r in self.D["almas"]) + f"; w_br {fm(self.P['w_br'], 0)}; brazo del pivote {fm(g.e_piv, 0)}; temple ≥ 55 HRC y alivio de borde uña–pasador. "
-             f"Sin viento ni anclaje (mandante).", "A DEFINIR", "A DEFINIR", "A DEFINIR"),
-            ("B ant.", "—", "Emisión Rev. B anterior (uña guiada, patín con lengüeta T, 6 láminas); reemplazada por esta emisión.", "—", "—", "—"),
+            ("B", g.FECHA, "B VIGENTE – EMITIDO PARA REVISIÓN. Cambios respecto de la emisión anterior (núcleo, 4.ª pasada): "
+             + (f"h_c mín. {fm(g.IG['topes'][0]['h_c_min'], 0)} con tol_hc {fm(g.IG['tol_hc'], 0)}: sectores de {fm(g.I['tss'], 0)} mm, Δ {fm(g.delta, 0)} mm, largos de tope del JSON; masas netas de sectores (juntas, muescas, chaflanes) sin conciliación manual; " if g.opt and g.IG.get("topes") else "")
+             + f"c_lug {fm(self.P['c_lug'], 0)}: orejas de izaje en (±{f(self.P['x_lug'])}, ±{f(g.cl_lug)}); filete mejillas–base w_br {fm(self.P['w_br'], 0)} (mín. AWS, máx. AISC J2.2b); "
+             + (f"anillo de la madera ({fm(g.t_ring, 0)}×{fm(self.P['t_wood'], 0)}) en el núcleo; " if g.wood else "")
+             + f"R_i {fm(g.Ri, 0)}, rebaje del collar {fm(g.c_boss_r, 0)}/{fm(g.c_boss_a, 0)} (Ø{f(g.Drb)}); detalles D1/D2 en BAS-001; ubicación de las 4 orejas en IZA-001. Sin viento ni anclaje (mandante).", "A DEFINIR", "A DEFINIR", "A DEFINIR"),
+            ("B ant.", "—", "Emisión B anterior (86a7e4d, núcleo 3.ª pasada); reemplazada por esta emisión.", "—", "—", "—"),
         ]
 
     def local(self, key, newkey, near=None, r=1e9, shift=(0, 0, 0), rot=0.0):
