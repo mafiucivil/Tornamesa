@@ -154,6 +154,8 @@ class Hoja:
         return self.s
 
     def ocupacion(self):
+        if not getattr(self.s, "views", None):
+            return 0.0, 0.0
         """(área de vistas / área útil del marco, área de vistas / área de dibujo disponible)."""
         s = self.s
         vs = getattr(s, "views", [])

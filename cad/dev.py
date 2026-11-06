@@ -15,9 +15,12 @@ def main():
     m = M3.build(D, verbose=False)
     M3.apply_backing_holes(m)
     ctx = Ctx(m)
+    import modelo3d_tt300c as M3b
+    ctx.rep = M3b.masas(m) and dict(masa_total_ensamble=M3b.cog(m)[0], cg=M3b.cog(m)[1])
     build_welds(ctx)
     import hojas_pie
-    hojas_con = hojas_gen = hojas_pie
+    import hojas_con
+    hojas_gen = hojas_pie
     hojas_pie.register(ctx)
     out = SC / "dev"
     import pymupdf
@@ -28,12 +31,13 @@ def main():
             if hasattr(mod, nm):
                 fn = getattr(mod, nm)
         h = fn(ctx)
-        s = h.finish(1, 1)
-        s.save(str(out / (nm + ".dxf")), str(out / (nm + ".pdf")))
-        d = pymupdf.open(str(out / (nm + ".pdf")))
-        d[0].get_pixmap(dpi=60).save(str(out / (nm + ".png")))
-        o = h.ocupacion()
-        print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
+        for h in (h if isinstance(h, list) else [h]):
+            s = h.finish(1, 1)
+            s.save(str(out / (nm + ".dxf")), str(out / (nm + ".pdf")))
+            d = pymupdf.open(str(out / (nm + ".pdf")))
+            d[0].get_pixmap(dpi=60).save(str(out / (nm + ".png")))
+            o = h.ocupacion()
+            print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
 
 def vistas_rows():
