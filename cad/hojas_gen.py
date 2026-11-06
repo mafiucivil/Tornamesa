@@ -374,8 +374,8 @@ def sheet_verificacion(ctx):
     ver = ["Cotas de cada lámina verificadas contra el sólido 3D (chequeo_cotas.csv): 0 fallas.", "Masa 3D frente al núcleo ≤ 0,5 % y 0 interferencias (informe_paquete.md).",
            "Cada pieza del despiece tiene plano o referencia a catálogo; cada código del despiece aparece con globo en un plano de conjunto/subconjunto.",
            "Cada junta soldada J## tiene símbolo ISO 2553 y fila en la tabla de soldaduras (GEN-007).", "Cada plano de pieza trae material, dimensión de partida y masa.",
-           "Tamaños de filete: confirmar los marcados «mínimo AWS, a confirmar» y el caso w_web > t − 2 (AISC J2.2b).", "Materiales «SEGÚN CÁLCULO Fy ≥ …, A DEFINIR POR EL FABRICANTE»: aprobar o fijar el grado.",
-           "Torques propuestos (GEN-008): confirmar o reemplazar por cálculo VDI 2230.", "Pintura (sistema y EPS), WPS/PQR, grillete, lista de compras: A DEFINIR.", "Supuestos S## y brechas B-## (GEN-009): aceptar o corregir antes de aprobar.",
+           "Tamaños de filete: confirmar los marcados «mínimo AWS, a confirmar» y el caso w_web > t − 2 (AISC J2.2b).", "Grados de material PROPUESTOS por Fy del cálculo (GEN-005): aprobar o fijar el grado.",
+           "Torques propuestos (GEN-008): confirmar o reemplazar por cálculo VDI 2230.", "WPS-P y sistema de pintura PROPUESTOS (GEN-012, GEN-006): confirmar; marca/modelo de los componentes de catálogo (GEN-008): A DEFINIR POR CATÁLOGO.", "Supuestos S## y brechas B-## (GEN-009): aceptar o corregir antes de aprobar.",
            "Texto negro sobre fondo blanco; letra ≥ 3,5 mm en el plot A1 (tablas densas 3,0 mm; mínimo absoluto 2,5 mm).", "Estado EMITIDO PARA REVISIÓN en todas las láminas hasta su aprobación; completar DIBUJÓ/REVISÓ/APROBÓ."]
     rows = [[str(i + 1), v, "", ""] for i, v in enumerate(ver)]
     c.s.table(R[0], R[3], [("N°", 0.04 * w, "C"), ("Verificación", 0.74 * w, "L"), ("Cumple (sí/no)", 0.10 * w, "C"), ("Observación", 0.12 * w, "L")], rows, h=T_S, title="VERIFICACIONES TRANSVERSALES DEL JUEGO DE PLANOS")

@@ -172,9 +172,9 @@ def main():
         for r in cr:
             wr.writerow([r["sheet"], r["vista"], r["texto"], r["valor_dibujo"], r["tipo"], r["extremo_a"], r["extremo_b"], "OK" if r["ok"] else "FALLA"])
     # ---- métricas por lámina, A DEFINIR, cobertura ----
-    causas = {"WPS / procedimiento de soldadura": r"WPS", "Sistema de pintura / EPS": r"pintura|EPS", "Grado de material (el cálculo solo fija Fy)": r"GRADO A DEFINIR|grado A DEFINIR|SEGÚN CÁLCULO",
-              "Catálogo / proveedor": r"CATÁLOGO|catálogo", "Firmas del cajetín (DIBUJÓ/REVISÓ/APROBÓ)": r"^A DEFINIR$", "Decisión del calculista / mandante": r"CALCULISTA|MANDANTE|mandante|DEFINIR POR EL CALCULISTA",
-              "Otros (fijación, izaje de la mesa, retención, ranuras)": r"."}
+    causas = {"Firmas del cajetín (DIBUJÓ/REVISÓ/APROBÓ)": r"^A DEFINIR$", "Decisión del mandante/calculista (retención axial del pivote, izaje de la mesa, tapones, advertencias)": r"CALCULISTA|MANDANTE|mandante|calculista|izaje|retención|A DECIDIR",
+              "Marca/modelo por catálogo (proveedor)": r"CATÁLOGO|catálogo", "WPS / procedimiento de soldadura": r"WPS", "Sistema de pintura / EPS": r"pintura|EPS", "Grado de material": r"GRADO|grado",
+              "Otros": r"."}
     ad_tot = {k: 0 for k in causas}
     mrows = []
     ncot = {}
