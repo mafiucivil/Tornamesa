@@ -131,6 +131,17 @@ def state_geo(fu):
     return "fail" if fu > 1 else "ok"
 
 
+def state_row(r, fu=None):
+    """Estado de una fila térmica. Reglas del núcleo inferidas y comprobadas: filas «giro» (geométricas) y la fila de la válvula de alivio térmico
+    ok ≤ 1; sellos NBR: monitoreo entre 80 y 120 °C (warn), fail sobre 120 °C; el resto, resistencia (warn > 0,9)."""
+    fu = r["fu"] if fu is None else fu
+    if r["key"].startswith("Sellos NBR"):
+        return "ok" if fu <= 0.9 else ("warn" if r["dem"] <= 120 else "fail")
+    if r["kind"] == "geo" or r["key"].startswith("Válvula de alivio térmico del tramo aislado"):
+        return state_geo(fu)
+    return state_res(fu)
+
+
 def walther(T40, v40, T100, v100, T):
     Z = lambda v: math.log10(math.log10(v + 0.7))
     x = lambda t: math.log10(t + 273.15)
@@ -173,7 +184,7 @@ for c in D0["verificaciones"]:
     byname[f'{c["grp"]} · {c["nombre"]}'] = c
 nmiss = 0
 for k, v in G["fu"].items():
-    m = [c for kk, c in byname.items() if kk == k or kk.startswith(k.split(" (")[0])]
+    m = [c for kk, c in byname.items() if kk == k] or [c for kk, c in byname.items() if kk.startswith(k.split(" (")[0])]
     if len(m) != 1:
         nmiss += 1; print("XX  golden sin correspondencia única:", k[:80]); fails.append("golden:" + k); continue
     chk("golden FU " + k[:60], m[0]["fu"], v, tol=1e-9, absn=1e-12)
@@ -393,8 +404,7 @@ for wood in (False, True):
                     chk(tag + " cap", r["cap"], f["cap"])
                 if r["kind"] != "info" and r["fu"] is not None:
                     chk(tag + " fu", r["fu"], f["fu"], absn=1e-12)
-                    stt = (state_geo if r["kind"] == "geo" else state_res)(r["fu"])
-                    chk_eq(tag + " estado", stt, f["estado"])
+                    chk_eq(tag + " estado", state_row(r), f["estado"])
                 if r["kind"] == "info" and r["fu"] is None:
                     chk_eq(tag + " fu None", f["fu"], None)
                 chk_eq(tag + " sys", r["sys"], f["sys"])
@@ -454,7 +464,7 @@ for over in ({"oil_cont": 1}, {"oil_cont": 3}, {"alivio_term": 800}, {"c_bush_d"
                 chk_eq(f"{over} T={rT['T']}: fila '{r['key'][:40]}' existe", len(m), 1); continue
             f = m[0]; tag = f"{over} T={rT['T']} {r['key'][:40]}"
             if r["fu"] is not None:
-                chk(tag + " fu", r["fu"], f["fu"], absn=1e-12); chk_eq(tag + " estado", (state_geo if r["kind"] == "geo" else state_res)(r["fu"]), f["estado"])
+                chk(tag + " fu", r["fu"], f["fu"], absn=1e-12); chk_eq(tag + " estado", state_row(r), f["estado"])
             if r["dem"] is not None and f["dem"] is not None and not r["key"].startswith("Aceite: dilatación"):
                 chk(tag + " dem", r["dem"], f["dem"])
     Kc_lame = Kc_save
@@ -483,13 +493,14 @@ def std_classify(c, aid):
     if g == "Interfaz bronce":
         if n.startswith(("Placa de bronce", "2.ª placa", "Pastillas")):
             if "flexión sobre un vacío local" in n: return "bz_flex"
-            if "aplastamiento del tope" in n: return "bz_tope"
+            if "aplastamiento del tope sobre el canto" in n: return "bz_tope"
+            if "aplastamiento del tope con la altura de contacto reducida" in n: return "bz_red"
         if n.startswith("Presión de contacto sobre el bronce neto") or n.startswith("Bronce con grafito: valor PV"): return "bz_p"
     if g == "Cubierta" and n.startswith("Madera: aplastamiento"): return "wood"
     return None
 
 
-GIRO_FAM = {"ss_tope", "ss_red", "uh_red"}
+GIRO_FAM = {"ss_tope", "ss_red", "uh_red", "bz_tope", "bz_red"}
 
 
 def std_at(aid, wood, k, P, q_uh=None, kfy_extra=1.0):
@@ -520,7 +531,7 @@ def std_at(aid, wood, k, P, q_uh=None, kfy_extra=1.0):
             padm = P["p_uhmw"] * k["p_uh"]
             t = t_conf(q, P["ss_void"], P["E_uhmw"] * k["E_uh"], P["d_flat"], padm)
             fu = None if math.isinf(t) else max(t, P["uh_tmin"]) / c["cap"]
-        elif fam in ("bz_flex", "bz_tope", "bz_p"):
+        elif fam in ("bz_flex", "bz_tope", "bz_red", "bz_p"):
             fu = c["fu"] / k["bz"]
         elif fam == "wood":
             fu = c["fu"] / k["wood"]
@@ -542,8 +553,8 @@ def state_std(it, fu):
     """estado de una verificación estándar: las de la familia 'resistencia' (MPa, MPa·m/s) y las 'est' en mm usan 0,9/1,0; las 'giro' en mm usan ≤ 1."""
     if fu is None:
         return "fail"
-    if it["fam"] in ("ss_tope", "ss_red", "uh_red"):
-        return state_res(fu)
+    if it["sys"] == "giro":
+        return state_geo(fu)
     if it["unidad"] in ("MPa", "MPa·m/s") or it["fam"] in ("uh_esp", "ss_esp"):
         return state_res(fu)
     return state_geo(fu)
@@ -577,13 +588,13 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
             else: est_fail = True
     for r in rows:
         if r["fu"] is None: continue
-        stt = (state_geo if r["kind"] == "geo" else state_res)(r["fu"])
+        stt = state_row(r)
         if stt == "fail": fail += 1
         if stt == "warn": warn += 1
         if stt == "fail":
             if r["sys"] == "giro": giro_fail = True
             elif r["sys"] == "est": est_fail = True
-        if r["sys"] == "term" and stt != "ok": term_bad = True
+        if r["sys"] == "term" and stt == "fail": term_bad = True
     return dict(FS=FS, fuEst=fuEst, fuTerm=fuTerm, gira=(FS >= P["FS_min"] and not giro_fail), estructura=not est_fail, termico=not term_bad,
                 nFail=fail, nWarn=warn, stds=stds, rows=rows, k=k, aux=aux, fs20=fs20)
 
@@ -593,7 +604,7 @@ def cmp_state(tag, S, rT):
     chk(tag + " fuEst", S["fuEst"]["fuT"], rT["fuEst"], absn=1e-12)
     chk_eq(tag + " gobernante (estructura)", S["fuEst"]["nombre"][:60], rT["gobernante"]["nombre"][:60])
     chk(tag + " fuTerm", S["fuTerm"]["fu"], rT["fuTerm"], absn=1e-12)
-    chk_eq(tag + " gobernante térmico", S["fuTerm"]["key"][:40], rT["gobernanteTerm"]["nombre"][:40])
+    chk_eq(tag + " gobernante térmico", rT["gobernanteTerm"]["nombre"].startswith(S["fuTerm"]["key"]), True)
     chk_eq(tag + " gira", S["gira"], rT["gira"])
     chk_eq(tag + " estructura", S["estructura"], rT["estructura"])
     chk_eq(tag + " termico", S["termico"], rT["termico"])
@@ -613,7 +624,7 @@ def cambios(S, aid, wood, P, T):
     for r in S["rows"]:
         if r["fu"] is None: continue
         o = r20[r["key"]]
-        a = (state_geo if o["kind"] == "geo" else state_res)(o["fu"]); b = (state_geo if r["kind"] == "geo" else state_res)(r["fu"])
+        a = state_row(o); b = state_row(r)
         if a != b:
             out[("Temperatura", r["key"][:70])] = (a, b, o["fu"], r["fu"])
     return out
@@ -635,8 +646,11 @@ for wood in (False, True):
             cmp_state(f"{cid} T={rT['T']}", S, rT)
             # cambios de estado
             ch = cambios(S, aid, wood, P0, rT["T"])
-            core_ch = {(c["grp"], c["nombre"][:70]): (c["de"], c["a"], c["fu20"], c["fuT"]) for c in rT["cambian"]}
-            core_ch = {k_: v for k_, v in core_ch.items()}
+            def canon(c):
+                for kk in ch:
+                    if kk[0] == c["grp"] and c["nombre"].startswith(kk[1]): return kk
+                return (c["grp"], c["nombre"][:70])
+            core_ch = {canon(c): (c["de"], c["a"], c["fu20"], c["fuT"]) for c in rT["cambian"]}
             chk_eq(f"{cid} T={rT['T']} cambios de estado: mismas verificaciones", sorted(ch.keys()), sorted(core_ch.keys()))
             for kk, v in ch.items():
                 if kk in core_ch:
@@ -675,7 +689,11 @@ for wood in (False, True):
             if r0["fu"] is None or r0["sys"] != "est": continue
             a0, b0 = state_res(r0["fu"]), state_res(r1["fu"])
             if a0 != b0 and r0["key"].startswith("Gradiente"): emp[("Temperatura", r0["key"][:50])] = (a0, b0)
-        coreemp = {(e["grp"], e["nombre"][:50]): (e["de"], e["a"]) for e in k92["empeoran"]}
+        def canon92(e):
+            for kk in emp:
+                if kk[0] == e["grp"] and e["nombre"].startswith(kk[1]): return kk
+            return (e["grp"], e["nombre"][:50])
+        coreemp = {canon92(e): (e["de"], e["a"]) for e in k92["empeoran"]}
         # el núcleo lista las que empeoran respecto del estado a 20 °C (de = estado a 80 °C con k = 1)
         if len(coreemp) >= 10:
             miss = set(coreemp) - set(emp)
