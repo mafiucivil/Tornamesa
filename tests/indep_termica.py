@@ -16,6 +16,15 @@ GD = ROOT / "tests" / "golden"
 P0 = json.loads((GD / "params_defaults.json").read_text())
 G = json.loads((GD / "tt300c_defaults.json").read_text())
 TOL = 1e-3
+ALC = None                                   # alcance térmico (term_alcance): 1 = placas y disco; 2 = además accionamiento e hidráulica (comportamiento de 1bbe3ed)
+SUPPORTS_ALC = False                         # el núcleo reconoce term_alcance (detección conductual en el modo principal)
+for _a in sys.argv[1:]:
+    if _a.startswith("--alcance="):
+        ALC = int(_a.split("=")[1])
+    if _a.startswith("--soporte="):
+        SUPPORTS_ALC = _a.split("=")[1] == "1"
+# filas del escenario que pertenecen al accionamiento y a la hidráulica (fuera del alcance 1)
+DRIVE_KEYS = ("Uña–pasador", "Patín fuera", "Bancada de guía", "Aceite", "Válvula de alivio", "Sellos NBR")
 fails = []
 nchk = [0]
 LOG = "-v" in sys.argv
@@ -51,7 +60,9 @@ _cache = {}
 
 
 def export(over=None):
-    over = over or {}
+    over = dict(over or {})
+    if SUPPORTS_ALC and ALC is not None:
+        over.setdefault("term_alcance", ALC)
     key = json.dumps(over, sort_keys=True)
     if key in _cache:
         return _cache[key]
@@ -81,6 +92,27 @@ def alt_export(aid, wood=False, extra=None):
     if extra:
         o.update(extra)
     return export(o)
+
+
+def _spawn(alc, sup):
+    return subprocess.run([sys.executable, "-I", str(pathlib.Path(__file__).resolve()), f"--alcance={alc}", f"--soporte={1 if sup else 0}"] + [a for a in sys.argv[1:] if a == "-v"]).returncode
+
+
+if ALC is None:
+    # modo principal: detecta si el núcleo reconoce term_alcance y ejecuta la réplica en cada alcance admitido
+    try:
+        _d = export({"term_alcance": 1})
+    except RuntimeError as e:
+        print("export con term_alcance=1 falló:", e); _d = None
+    _filas = [f for f in _d["termica"]["alternativas"][0]["byT"][3]["filas"]] if _d else []
+    _sup = _d is not None and not any(f["nombre"].startswith("Aceite atrapado") for f in _filas)
+    print(f"núcleo con term_alcance: {'sí' if _sup else 'no (se ejecuta sólo el alcance 2 = comportamiento de 1bbe3ed)'}", flush=True)
+    rc = 0
+    for _a in ((1, 2) if _sup else (2,)):
+        print(f"######## alcance {_a} ########", flush=True)
+        rc = max(rc, _spawn(_a, _sup))
+    print("RESULTADO GLOBAL:", "sin diferencias" if rc == 0 else "DIFERENCIAS")
+    sys.exit(rc)
 
 
 # ------------------------------------------------------------------ constantes independientes (registro.md y normas)
@@ -361,6 +393,8 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Grasa grafitada", "term", T / P["T_drop"], T, P["T_drop"])
     if aid == "B":
         add("Lámina UHMW: temperatura frente al límite", "est", T / 80.0, T, 80.0)
+    if ALC == 1:
+        R = [r for r in R if not r["key"].startswith(DRIVE_KEYS)]
     return R, dict(al=al, eps=eps, gT=gT, k=k, p_hold=p_hold, dp_hi=dp_hi, dp_lo=dp_lo, nu_lo=nu_lo, sth=sth)
 
 
@@ -435,7 +469,7 @@ for wood in (False, True):
 
 # tabla `aceite`, `viscosidad`
 print("   (aceite y viscosidad: tablas del núcleo)")
-for e in TH0["aceite"]:
+for e in (TH0["aceite"] if ALC != 1 else []):
     T = e["T"]; dT = T - P0["T_ref"]; al = a_st(T, P0["T_ref"]); dv = (AV - 3 * al) * dT
     chk(f"aceite T={T} rígido bajo", dv * P0["K_oil"] * 10, e["rigido"]["bajo"], absn=1e-9)
     chk(f"aceite T={T} rígido alto", dv * P0["K_oil_hi"] * 10, e["rigido"]["alto"], absn=1e-9)
@@ -444,13 +478,13 @@ for e in TH0["aceite"]:
     chk(f"aceite T={T} manguera", dv * K_HOSE * 10, e["manguera"], absn=1e-9)
     chk(f"aceite T={T} K_c Lamé", Kc_lame, e["Kc_lame_MPa"])
     chk(f"aceite T={T} selección (oil_cont=2)", dv / (1 / P0["K_oil_hi"] + 1 / Kc_lame) * 10, e["seleccion_bar"], absn=1e-9)
-for v in TH0["viscosidad"]:
+for v in (TH0["viscosidad"] if ALC != 1 else []):
     chk(f"viscosidad VG46 IV100 T={v['T']}", walther(40, 46.0, 100, 6.8, v["T"]), v["lo"])
     chk(f"viscosidad VG46 IV185 (Eurol 47,4/9,5) T={v['T']}", walther(40, 47.4, 100, 9.5, v["T"]), v["hi"])
 chk("registro: ν(80 °C) VG46 = 11,1 mm²/s", walther(40, 46.0, 100, 6.8, 80), 11.1, tol=1e-2)
 chk("registro: ν(80 °C) VG46 IV185 = 14,6 mm²/s", walther(40, 47.4, 100, 9.5, 80), 14.6, tol=1e-2)
 # variantes de P: contenedor, alivio térmico, K, c_bush_d
-for over in ({"oil_cont": 1}, {"oil_cont": 3}, {"alivio_term": 800}, {"c_bush_d": 0.05}, {"K_oil_hi": 2300}, {"ba_cil": 1.8}, {"p_max_cil": 600, "nu_min": 12}, {"dT_grad": 7}):
+for over in (({"oil_cont": 1}, {"oil_cont": 3}, {"alivio_term": 800}, {"K_oil_hi": 2300}, {"ba_cil": 1.8}, {"p_max_cil": 600, "nu_min": 12}) if ALC != 1 else ()) + ({"c_bush_d": 0.05}, {"dT_grad": 7}):
     P = dict(P0); P.update(over)
     Tscn, gs, Ts = scenario(P)
     D = export(over); a = {x["id"]: x for x in D["termica"]["alternativas"]}["base"]

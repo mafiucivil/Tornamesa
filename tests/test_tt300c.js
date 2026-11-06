@@ -862,3 +862,43 @@ test("Temperatura · escenario por defecto (solar 80 °C, 15 K), temperaturas de
   // pestañas de extrapolación
   assert.ok(r.alternativas[0].byT.find((b) => b.T === 100).extrapolado && r.alternativas[0].byT.find((b) => b.T === 100).notas.some((x) => /extrapol/.test(x)));
 });
+
+/* ======================= Tapones de grafito (opción C): cantidad real colocable frente a la ideal ======================= */
+// Golden del modo ideal (bz_fg_modo = 0): reproduce el cálculo anterior a los tapones reales (f_g = π·d²/(2√3·p²) sobre toda la corona)
+const bzSnap = (conf, o) => {
+  const A = TT.analyze(Object.assign(TT.defaults(), { opt_bz: 1, bz_conf: conf }, o || {}), { noFEA: true }), R = A.R, I = R.ifc;
+  return { mBz: R.m.bz, mTotal: R.m.total, N: R.N, q: I.q, qLoc: I.qLoc, qNet: I.qNet, tbz: I.tbz, tbzReq: I.tbzReq, tss: I.tss, tssReq: I.tssReq, fg: I.fg, eta: I.eta, FS: R.cd.FS,
+    fu: Object.fromEntries(A.checks.filter((c) => c.grp === "Interfaz bronce" && c.fu != null && isFinite(c.fu)).map((c) => [c.name, c.fu])) };
+};
+test("Tapones · golden del modo ideal (bz_fg_modo = 0 reproduce el cálculo anterior de C1, C2 y C3)", () => {
+  const snap = Object.fromEntries([1, 2, 3].map((c) => ["C" + c, bzSnap(c, { bz_fg_modo: 0 })]));
+  const f = path.join(__dirname, "golden", "tt300c_bz_ideal.json");
+  if (process.env.UPDATE_GOLDEN || !fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(snap, null, 1));
+  const g = JSON.parse(fs.readFileSync(f, "utf8"));
+  const cmp = (a, b, k) => {
+    if (typeof b === "number") near(a, b, 1e-9, k);
+    else for (const kk of Object.keys(b)) { assert.ok(a && kk in a, "falta " + k + "." + kk); cmp(a[kk], b[kk], k + "." + kk); }
+  };
+  cmp(snap, g, "golden-ideal");
+});
+
+/* ======================= Temperatura: alcance (term_alcance) ======================= */
+// Golden del escenario anterior (term_alcance = 2: sistema de placas y disco + accionamiento y circuito hidráulico)
+const thSnap = (P) => {
+  const r = TT.thermal(P, { T: [20, 80] });
+  return Object.fromEntries(r.alternativas.map((a) => [a.id, Object.fromEntries(a.byT.map((b) => [String(b.T), {
+    FS: b.FS, gira: b.gira, estructura: b.estructura, termico: b.termico, fuEst: b.fuEst, fuTerm: b.fuTerm, masa: b.masa, nFail: b.nFail, nWarn: b.nWarn,
+    filas: Object.fromEntries(b.filas.map((x) => [x.nombre, x.fu == null ? -1 : (isFinite(x.fu) ? x.fu : 1e9)])), estados: b.filas.map((x) => x.estado).join(",") }]))]));
+};
+test("Temperatura · golden del escenario anterior (term_alcance = 2 reproduce el comportamiento previo en las siete alternativas)", () => {
+  const snap = thSnap(Object.assign(TT.defaults(), { term_alcance: 2 }));
+  const f = path.join(__dirname, "golden", "tt300c_termica_alcance2.json");
+  if (process.env.UPDATE_GOLDEN || !fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(snap, null, 1));
+  const g = JSON.parse(fs.readFileSync(f, "utf8"));
+  const cmp = (a, b, k) => {
+    if (typeof b === "number") near(a, b, 1e-9, k);
+    else if (typeof b === "object" && b !== null) for (const kk of Object.keys(b)) { assert.ok(a && kk in a, "falta " + k + "." + kk); cmp(a[kk], b[kk], k + "." + kk); }
+    else assert.equal(a, b, k);
+  };
+  cmp(snap, g, "golden-termica");
+});
