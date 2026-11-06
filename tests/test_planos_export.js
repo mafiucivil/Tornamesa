@@ -275,3 +275,19 @@ test("DXF: lectura y auditoría con ezdxf (se omite si no está instalado)", (t)
   const py = `import ezdxf,glob,sys\nfor f in sorted(glob.glob(sys.argv[1]+'/*.dxf')):\n    d=ezdxf.readfile(f); a=d.audit()\n    assert not a.errors, (f,a.errors)\n    assert d.dxfversion=='AC1009', d.dxfversion\n    t=[e.dxf.text for e in d.modelspace() if e.dxftype()=='TEXT']\n    assert any('NO SON V\\u00c1LIDOS' in s for s in t), f\nprint('ok')`;
   assert.equal(execFileSync("python3", ["-I", "-c", py, tmp]).toString().trim(), "ok");
 });
+
+/* ---- Escenario térmico (exposición solar, 80 °C): clave `termica` idéntica en los dos exportadores ---- */
+test("JSON de diseño: `termica` (escenario solar 80 °C, por alternativa y temperatura) igual en tools/export_design.js y packages/web/planos_export.js", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tt300c-")), script = path.join(__dirname, "..", "tools", "export_design.js");
+  for (const over of [{}, { opt_uhmw: 1, opt_wood: 1, T_serv: 70, dT_grad: 12 }]) {
+    const P = Object.assign(TT.defaults(), over), pf = path.join(tmp, "p.json"); fs.writeFileSync(pf, JSON.stringify(P));
+    const ref = JSON.parse(execFileSync(process.execPath, [script, pf], { maxBuffer: 1 << 28 }).toString()).termica;
+    const got = JSON.parse(PL.designJSON(PL.buildDesign(P))).termica;
+    assert.ok(got && Array.isArray(got.alternativas) && got.alternativas.length === 6, "una entrada por alternativa");
+    assert.deepEqual(got, ref, "ambos exportadores iguales");
+    assert.deepEqual(got, JSON.parse(JSON.stringify(TT.thermal(P))), "igual a TT.thermal(P)");
+    assert.equal(got.T_scn, over.T_serv || 80); assert.equal(got.gradiente_scn, over.dT_grad || 15);
+    for (const a of got.alternativas) { assert.ok(a.byT.length >= 5 && a.byT.every((b) => b.FS > 0 && "fuEst" in b && Array.isArray(b.sensibles) && Array.isArray(b.cambian)), a.id); assert.equal(a.madera, !!over.opt_wood, "la madera sigue la casilla del formulario"); }
+    assert.ok(got.avisos.length >= 3 && got.aceite.length === got.T.length);
+  }
+});

@@ -1631,7 +1631,7 @@ const TT = (() => {
       const sc = Tscn, g0 = gradAt(sc), base = thermalRun(Pa, sc, null, frozen, g0, A20, cache), eb = fuEstOf(base.A);
       const sumSens = (run) => { const e = fuEstOf(run.A); const wr = [];
         run.A.checks.forEach((c, i) => { const r0 = base.A.checks[i]; if (r0 && r0.st !== c.st && ST_RANK[c.st] > ST_RANK[r0.st]) wr.push({ grp: c.grp, nombre: c.name, de: r0.st, a: c.st, fu: c.fu }); });
-        return { fuEst: e ? e.fu : 0, gobernante: brief(e), gira: run.A.verdict.gira, estructura: run.A.verdict.estructura, empeoran: wr, dFu: (e ? e.fu : 0) - (eb ? eb.fu : 0) }; };
+        const tm = fuTermOf(run.A); return { fuEst: e ? e.fu : 0, gobernante: brief(e), fuTerm: tm ? tm.fu : 0, gobernanteTerm: brief(tm), gira: run.A.verdict.gira, estructura: run.A.verdict.estructura, empeoran: wr, dFu: (e ? e.fu : 0) - (eb ? eb.fu : 0) }; };
       const sens = { T: sc, kFy092: Object.assign(sumSens(thermalRun(Pa, sc, { kT_Fy: 0.92 }, frozen, g0, A20, cache)), { k: 0.92, ref: "ASME II-D Tabla Y-1 (de memoria; confianza C)" }) };
       if (I.o === 3) sens.bz090 = Object.assign(sumSens(thermalRun(Pa, sc, { kT_bz: 0.90 }, frozen, g0, A20, cache)), { k: 0.90 });
       const FS0 = base.A.R.cd ? base.A.R.cd.FS : NaN;

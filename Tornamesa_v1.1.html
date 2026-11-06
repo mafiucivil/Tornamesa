@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tornamesa v1.0 · TT300-C</title>
+<title>Tornamesa v1.1 · TT300-C</title>
 <style>
 :root{
   --bg:#f6f7f9;--panel:#ffffff;--ink:#14171c;--ink2:#4a5260;--line:#d9dde3;--soft:#eef1f4;
@@ -86,12 +86,18 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 .pkg .kv span:nth-child(even){font-family:var(--sans);text-align:right}
 .pkg ul{margin:4px 0 6px;padding-left:16px;color:var(--ink2);font-size:12px}
 .pkg select{font:12.5px var(--sans);padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);max-width:100%}
+.tmp-ctl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.tmp-ctl label{font-size:12.5px;color:var(--ink2)}
+.tmp-ctl input{width:84px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12.5px var(--mono);text-align:right}
+.conf{display:inline-block;min-width:22px;text-align:center;padding:0 5px;border-radius:4px;font-size:11px;font-weight:700;background:var(--infobg);color:var(--info)}
+.conf-C{background:var(--warnbg);color:var(--warn)}.conf-B{background:var(--pendbg);color:var(--pend)}.conf-A{background:var(--okbg);color:var(--ok)}
+td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{background:var(--failbg)}
 .pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
 <body>
 <header>
-  <div><h1>Tornamesa v1.0 · TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro con patín guiado y uña de cara plana · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
+  <div><h1>Tornamesa v1.1 · TT300-C · Verificación de tornamesa hidráulica</h1><div class="sub">Cilindro con patín guiado y uña de cara plana · acero-acero con grasa grafitada · AISC 360-22 (ASD), ASME BTH-1, AWS D1.1</div></div>
   <div class="badges" id="badges"></div>
 </header>
 <div class="wrap">
@@ -126,6 +132,7 @@ svg text{font-family:var(--sans);fill:var(--ink)}
     <section class="tab" data-t="verif" data-l="Verificaciones"></section>
     <section class="tab" data-t="fea" data-l="FEA"></section>
     <section class="tab" data-t="masa" data-l="Masas"></section>
+    <section class="tab" data-t="temp" data-l="Temperatura"></section>
     <section class="tab" data-t="agentes" data-l="Agentes"></section>
     <section class="tab" data-t="opt" data-l="Optimizador"></section>
   </main>
@@ -620,6 +627,36 @@ const TT = (() => {
       ["turns_yr", "Vueltas completas por año", "–", 50, 0, 10000, 1],
       ["life", "Vida de diseño", "años", 25, 1, 100, 1],
     ] },
+    // Escenario térmico (docs/normas/registro.md · «Temperatura (exposición solar, 80 °C)»): NO modifica el cálculo a 20 °C. TT.thermal evalúa la geometría
+    // dimensionada a 20 °C con las capacidades reducidas a T_serv. Los factores se dan a 80 °C (columna «Factor 80/20» del registro) y se interpolan
+    // linealmente desde 1,00 a T_ref; sobre 80 °C se extrapola con cautela. Nivel de confianza del dato entre paréntesis (A tabla contrastada, B ficha o dos fuentes, C supuesto).
+    { id: "temperatura", t: "Temperatura de servicio (escenario solar; no cambia el cálculo a 20 °C)", p: [
+      ["T_serv", "Temperatura del cuerpo en servicio (escenario térmico aparte; solar: 80)", "°C", 20, 20, 120, 5],
+      ["T_ref", "Temperatura de referencia del diseño y del montaje", "°C", 20, 0, 40, 1],
+      ["dT_grad", "Gradiente plancha superior–inferior a 80 °C (hipótesis EN 1991-1-5 T6.1 de otra tipología, confianza C; escenario solar 15–18; 0 = sin gradiente; a otra T se escala con ΔT/60)", "K", 0, 0, 40, 1],
+      ["kT_Fy", "Acero estructural y aleado: Fy a 80 °C / Fy a 20 °C (AISC 360-22 App. 4 y EN 1993-1-2: 1,00, confianza B; sensibilidad ASME II-D Tabla Y-1: 0,92, confianza C)", "–", 1.00, 0.5, 1, 0.01],
+      ["kT_E", "Acero: E a 80 °C / E a 20 °C (EN 1993-1-2 k_E,θ = 1,00 a 100 °C, confianza B)", "–", 1.00, 0.5, 1, 0.005],
+      ["kT_Fy_ss", "Inoxidable 304/316: Fy a 80 °C / Fy a 20 °C (EN 10088-2 de memoria, 0,80–0,85, confianza C)", "–", 0.82, 0.5, 1, 0.01],
+      ["kT_E_ss", "Inoxidable: E a 80 °C / E a 20 °C (EN 10088-1: 194 GPa a 100 °C, confianza B)", "–", 0.975, 0.8, 1, 0.005],
+      ["kT_p_uh", "UHMW-PE: capacidad (p_adm y PV) a 80 °C / a 20 °C (supuesto 0,3–0,5 sin curva del proveedor, confianza C; 80 °C es su límite de servicio)", "–", 0.40, 0.1, 1, 0.05],
+      ["kT_E_uh", "UHMW-PE: módulo aparente a 80 °C / a 20 °C (supuesto sin curva del proveedor, confianza C)", "–", 0.40, 0.1, 1, 0.05],
+      ["kT_bz", "Bronce (Fy, p_adm, PV, presión del buje) a 80 °C / a 20 °C (criterio de ingeniería, confianza C; sensibilidad 0,90)", "–", 1.00, 0.5, 1, 0.01],
+      ["kT_wood", "Madera dura: factor C_t de aplastamiento perpendicular a la fibra a 80 °C (NDS 2018 T2.3.3: 0,7 seca; tabla confianza A, extrapolación a 80 °C confianza C)", "–", 0.70, 0.3, 1, 0.05],
+      ["kT_bolt", "Pernos ISO 898-1 clase 10.9: Rp0,2 a 80 °C / a 20 °C (de memoria 0,93–0,95, confianza C)", "–", 0.94, 0.5, 1, 0.01],
+      ["kT_weld", "Soldadura E70XX: FEXX a 80 °C / a 20 °C (criterio del revisor, confianza C)", "–", 1.00, 0.5, 1, 0.01],
+      ["kT_hertz", "Fy superficial de las caras templadas (Hertz) a 80 °C / a 20 °C (criterio, confianza C)", "–", 1.00, 0.5, 1, 0.01],
+      ["k_mu_T", "μ a 80 °C / μ a 20 °C (la grasa fluye y se expulsa; dato de entrada sin fuente, confianza C; 1,0 = sin cambio)", "–", 1.0, 0.5, 3, 0.05],
+      ["c_bush_d", "Holgura diametral en frío buje de bronce–pivote (supuesto de ajuste H7/e8 para Ø120, confianza C)", "mm", 0.10, 0.02, 0.5, 0.01],
+      ["K_oil", "Módulo volumétrico del aceite, cota baja (1,4–1,9 GPa a 80 °C y 700 bar, confianza C)", "MPa", 1400, 800, 2500, 50],
+      ["K_oil_hi", "Módulo volumétrico del aceite, cota alta (da la mayor sobrepresión: es la que gobierna la verificación)", "MPa", 1900, 800, 2500, 50],
+      ["ba_cil", "Relación de diámetros exterior/interior de la pared del cilindro hidráulico b/a (Lamé; supuesto, confianza C)", "–", 1.4, 1.05, 3, 0.05],
+      ["oil_cont", "Rigidez del contenedor del aceite atrapado: 1 = rígido; 2 = cilindro (Lamé); 3 = manguera (K combinado ≈ 327 MPa)", "–", 2, 1, 3, 1],
+      ["p_max_cil", "Presión máxima de trabajo del cilindro (prueba = 1,5 × esta; ISO 10100 de memoria, confianza C)", "bar", 700, 100, 1000, 10],
+      ["alivio_term", "Válvula de alivio térmico en el tramo aislado (cilindro + retenciones): presión de apertura (0 = no hay)", "bar", 0, 0, 1000, 10],
+      ["nu_min", "Viscosidad mínima admisible de la bomba (supuesto del revisor, confianza C)", "mm²/s", 10, 3, 40, 1],
+      ["T_seal", "Límite de servicio continuo de los sellos NBR (80–120 °C según fuente, confianza C; se toma el menor)", "°C", 80, 60, 120, 5],
+      ["T_drop", "Punto de goteo de la grasa grafitada NLGI 2 (≥ 175 °C, confianza B)", "°C", 175, 100, 300, 5],
+    ] },
   ];
 
   function defaults() {
@@ -738,7 +775,8 @@ const TT = (() => {
     const sized = (id, grp, nombre, n, t, FyP, tResp, allow, capas) => {
       const g = stopGeo(P, t), Fst = Ftot / n * kpk, adm = 1.25 * Math.min(FyP, P.Fy) / Nd;       // el menor Fy entre el canto del sector y la barra
       const hCd = g.hC - P.tol_hc, LreqB = hCd > 0 ? Fst * 1e3 / (adm * hCd) : Infinity, LreqW = weldStop(P, Fst, 1, g.z) / Fw, Lreq = Math.max(LreqB, LreqW);
-      const L = P.L_tope > 0 ? P.L_tope : (isFinite(Lreq) ? Math.ceil(Lreq / 0.9 / 5) * 5 : Lav);   // largo: el mayor entre aplastamiento (con h_c − tol_hc) y soldadura, con FU objetivo 0,90
+      const Lz = P.__th && P.__th.frozen && P.__th.frozen.L[id];                                   // largo congelado a 20 °C (escenario térmico)
+      const L = Lz > 0 ? Lz : P.L_tope > 0 ? P.L_tope : (isFinite(Lreq) ? Math.ceil(Lreq / 0.9 / 5) * 5 : Lav);   // largo: el mayor entre aplastamiento (con h_c − tol_hc) y soldadura, con FU objetivo 0,90
       push({ id, grp, nombre, n, t, tResp, allow, capas: capas || 1, F: Fst, L, Lreq, adm, uh: false });
     };
     if (I.o === 1 || I.o === 2) {
@@ -796,7 +834,8 @@ const TT = (() => {
     const A_ss = Math.PI * ((P.D_top / 2) ** 2 - riOf(P) ** 2);
     const calc = (mTop, dl) => { const L = ifaceLoad(P, mTop, dl), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin), treq2: Math.max(tFlex + P.ss_allow + gr, P.ss_tmin) }; };
     const tS = P.fix_mode < 1.5 ? tStopMin(P) : 0;                        // con topes soldados el sector no puede ser más fino que a_sup + a_inf + h_c,mín
-    const pick = (c) => P.t_ss > 0 ? [P.t_ss, P.t_ss] : [commercial(SS_COMM, Math.max(c.treq, tS)), commercial(SS_COMM, Math.max(c.treq2, tS))];   // [disco de la base (liso), disco de la mesa (ranurado)]
+    const fz = P.__th && P.__th.frozen;                                    // escenario térmico: geometría dimensionada a 20 °C y congelada
+    const pick = (c) => fz ? [fz.tss, fz.tss2] : P.t_ss > 0 ? [P.t_ss, P.t_ss] : [commercial(SS_COMM, Math.max(c.treq, tS)), commercial(SS_COMM, Math.max(c.treq2, tS))];   // [disco de la base (liso), disco de la mesa (ranurado)]
     let c = calc(0, 0), [t1, t2] = pick(c);
     for (let i = 0; i < 4; i++) {                                       // el disco rotatorio también carga la interfaz
       c = calc(RHO_SS * A_ss * t2, t1 + t2);
@@ -815,7 +854,7 @@ const TT = (() => {
         const Fs = Math.max(ms.d, ms.cont, ms.dry) * Nn / P.n_seg * c.L.q_max / c.L.q_avg;
         tuhTope = P.a_sup + stopAInf(P) + Math.max(P.hc_min, Fs * 1e3 / (P.p_uhmw * Lav * 0.9) + P.tol_hc);   // h_c ≥ F_s/(0,9·L·p_adm) + tol_hc; el 0,9 es margen de proyecto (no lo exige la norma)
       }
-      tuh = P.t_uhmw > 0 ? P.t_uhmw : commercial(UH_COMM, Math.max(tuhReq, tuhTope));
+      tuh = fz ? fz.tuh : P.t_uhmw > 0 ? P.t_uhmw : commercial(UH_COMM, Math.max(tuhReq, tuhTope));
       EcU = uc.Ec(tuh); SU = uc.S(tuh);
     }
     return { o, tss: t1, tss2: t2, tssReq: c.treq, tss2Req: c.treq2, tTope: tS, tuhTope, gr, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf, EcU, SU,
@@ -841,8 +880,9 @@ const TT = (() => {
     };
     const rot = (tC) => conf === 2 ? mSolid(tC) : RHO_SS * A_ss * tC;                                  // masa rotatoria (fija a la mesa)
     const tS = P.fix_mode < 1.5 ? tStopMin(P) : 0;                        // espesor mínimo por tope soldado (a_sup + a_inf + h_c,mín)
-    const pickC = (c) => P.t_cara > 0 ? P.t_cara : commercial(conf === 2 ? BZ_COMM : SS_COMM, Math.max(c.treqC, tS));
-    const pickB = (c) => P.t_bz > 0 ? P.t_bz : commercial(BZ_COMM, Math.max(c.treqB, tS));
+    const fz = P.__th && P.__th.frozen;                                    // escenario térmico: geometría congelada a 20 °C
+    const pickC = (c) => fz ? fz.tss : P.t_cara > 0 ? P.t_cara : commercial(conf === 2 ? BZ_COMM : SS_COMM, Math.max(c.treqC, tS));
+    const pickB = (c) => fz ? fz.tbz : P.t_bz > 0 ? P.t_bz : commercial(BZ_COMM, Math.max(c.treqB, tS));
     let c = calc(0, 0), tB = pickB(c), tC = pickC(c);
     for (let i = 0; i < 4; i++) { c = calc(rot(tC), tB + tC); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
     return { o: 3, conf, cov, eta, fg, a, A_ss, tTope: tS, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, gr: P.h_gr, fgr: grooveFrac(P).f, qNet: c.qLoc / (1 - fg - grooveFrac(P).f), tss2: tC, tss2Req: c.treqC,
@@ -886,7 +926,7 @@ const TT = (() => {
     const spacer = Math.max(0, hAxis(P) - P.b_eye / 2 - P.g_ch - P.t_ch); // suplemento bajo la oreja inferior
     // saliente trasera: desgarro por corte de la oreja superior (2 planos) con F/2 a calado, BTH-1 Fy/(Nd·√3)
     const Fs = Math.PI / 4 * P.D_bore ** 2 * P.p_relief / 10;           // N
-    const aReq = (Fs / 2) / (2 * P.t_ch * P.Fy / (P.Nd * Math.sqrt(3)));
+    const aReq = (Fs / 2) / (2 * P.t_ch * (P.__th ? P.__th.Fy0 : P.Fy) / (P.Nd * Math.sqrt(3)));   // escenario térmico: la saliente se dimensionó con el Fy de 20 °C
     const rear = Math.ceil((P.d_pp / 2 + aReq / 0.85) / 5) * 5;
     const lugF = P.d_pp / 2 + 25;                                        // saliente delantera (sin carga), libre del cuerpo
     return { Win, H, spacer, rear, lugF, Llug: rear + lugF, aReq, Wout: Win + 2 * P.t_ch };
@@ -1189,12 +1229,190 @@ const TT = (() => {
   const FAT_CAT = { A: [250e8, 165, 3], B: [120e8, 110, 3], C: [44e8, 69, 3], D: [22e8, 48, 3], E: [11e8, 31, 3], "E'": [3.9e8, 18, 3], F: [150e10, 55, 6] };
   function FSR(cat, nCyc) { const [Cf, Fth, k] = FAT_CAT[cat]; return Math.max(6.895 * Math.pow(Cf / Math.max(nCyc, 1), 1 / k), Fth); }
 
+  /* ---------------- Temperatura de servicio (exposición solar) ---------------- */
+  // Fuente de todos los datos: docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)» (niveles de confianza A/B/C allí definidos).
+  // Escenario aparte: con T_serv = 20 °C el cálculo estándar no cambia. TT.thermal evalúa la geometría dimensionada a 20 °C (congelada) con las capacidades reducidas.
+  const TH_AV = 7.5e-4;                    // 1/K, expansión volumétrica del aceite mineral (7,0–7,5×10⁻⁴; C)
+  const TH_KHOSE = 327;                    // MPa, módulo combinado aceite + manguera (≈ 47 500 psi; C)
+  const TH_NU_BZ = 0.33;                   // Poisson del bronce (buje)
+  const TH_AL = { ss: 17e-6, uh: 190e-6, bz: 18e-6, woodT: 30e-6, woodL: 5e-6, st0: 12e-6 };   // inox (B), UHMW (B/C), bronce (C), madera (C); acero EN 1993-1-1 §3.2.6
+  const epsSteel = (T) => 1.2e-5 * T + 0.4e-8 * T * T - 2.416e-4;        // EN 1993-1-2 §3.4.1.1, Δl/l con θ en °C (da 0 a 20 °C)
+  function alphaSteelMean(T, Tref) {                                      // α medio entre T_ref y T: 12,4×10⁻⁶ para 20–80 °C
+    Tref = Tref == null ? 20 : Tref;
+    return T - Tref > 1e-9 ? (epsSteel(T) - epsSteel(Tref)) / (T - Tref) : TH_AL.st0;
+  }
+  const kAt = (k80, T, Tref) => (T - Tref <= 0 ? 1 : Math.max(0.05, 1 + (k80 - 1) * (T - Tref) / (80 - Tref)));   // lineal entre 1 (T_ref) y el valor a 80 °C; extrapola sobre 80 °C
+  // Factores de reducción, dilataciones y notas a la temperatura T. ov: sobrescribe parámetros (sensibilidades)
+  function thermalFactors(P, T, ov) {
+    ov = ov || {};
+    const g = (id) => (ov[id] != null ? ov[id] : P[id]), Tref = P.T_ref, ex = T > 80 + 1e-9, dT = Math.max(0, T - Tref);
+    const f = (id) => kAt(g(id), T, Tref);
+    const k = { Fy: f("kT_Fy"), E: f("kT_E"), Fy_ss: f("kT_Fy_ss"), E_ss: f("kT_E_ss"), p_uh: f("kT_p_uh"), E_uh: f("kT_E_uh"), bz: f("kT_bz"), wood: f("kT_wood"), bolt: f("kT_bolt"), weld: f("kT_weld"), hertz: f("kT_hertz"), mu: f("k_mu_T") };
+    const notes = [];
+    if (ex) notes.push("T > 80 °C: factores extrapolados linealmente desde el valor tabulado a 80 °C (sin dato publicado); tomar el resultado como orden de magnitud");
+    if (T > 66) notes.push("80 °C excede el rango estándar de ASME BTH-1 (−4 a 66 °C): requiere decisión de persona calificada (registro, «Alcance térmico de BTH-1»; sección por confirmar)");
+    if (T >= 80) notes.push("UHMW-PE: 80 °C es su límite de servicio continuo y coincide con el Vicat B50; sin curva del proveedor los factores k_p y k_E son supuestos (confianza C)");
+    return { T, dT, extrap: ex, k, notes, alpha: { st: alphaSteelMean(T, Tref), ss: TH_AL.ss, uh: TH_AL.uh, bz: TH_AL.bz, woodT: TH_AL.woodT, woodL: TH_AL.woodL } };
+  }
+  // Presión por aceite atrapado entre una válvula de retención/bloqueo y un tope: Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c)  (MPa; ×10 = bar)
+  function oilTrapped(P, T, ov) {
+    ov = ov || {};
+    const g = (id) => (ov[id] != null ? ov[id] : P[id]), dT = Math.max(0, T - P.T_ref), as = alphaSteelMean(T, P.T_ref), d = (TH_AV - 3 * as) * dT;
+    const b2 = g("ba_cil") ** 2, Kc = P.E / (2 * ((b2 + 1) / (b2 - 1) + P.nu));      // Lamé: rigidez volumétrica de la sección del tubo (b/a)
+    const mk = (K, Kcc) => { const Ke = Kcc ? 1 / (1 / K + 1 / Kcc) : K, dp = d * Ke; return { K, Ke, dp, bar: dp * 10 }; };
+    const rigid = { lo: mk(g("K_oil")), hi: mk(g("K_oil_hi")) }, cyl = { lo: mk(g("K_oil"), Kc), hi: mk(g("K_oil_hi"), Kc) }, hose = { lo: mk(TH_KHOSE), hi: mk(TH_KHOSE) };
+    return { T, dT, av: TH_AV, as3: 3 * as, Kc_lame: Kc, rigid, cyl, hose, sel: [rigid, cyl, hose][Math.min(3, Math.max(1, Math.round(g("oil_cont")))) - 1], expansion_free_pct: 100 * d,
+      expansion_1m_mm: 1000 * d, ref: "docs/normas/registro.md, «Presión por aceite atrapado»; ISO 4413:2010 (cláusula por confirmar)" };
+  }
+  // Viscosidad cinemática del VG 46 a T (mm²/s), Walther (ASTM D341): lo = ν40 46 y ν100 6,8 (IV ≈ 100); hi = ν40 47,4 y ν100 9,5 (Eurol Hykrol EXL 46, IV 185)
+  const walther = (n1, n2) => { const f = (n) => Math.log10(Math.log10(n + 0.7)), t = (c) => Math.log10(c + 273.15), B = (f(n1) - f(n2)) / (t(100) - t(40)), A = f(n1) + B * t(40); return (c) => Math.pow(10, Math.pow(10, A - B * t(c))) - 0.7; };
+  const VISC_LO = walther(46, 6.8), VISC_HI = walther(47.4, 9.5);
+  const oilViscosity = (T) => ({ lo: VISC_LO(T), hi: VISC_HI(T) });
+  // Copia de P con las capacidades reducidas a T (geometría congelada: frozen). ov: sobrescribe parámetros kT_* (sensibilidades); grad: gradiente plancha superior–inferior a T (K)
+  function thermalP(P, T, ov, frozen, grad) {
+    const th = thermalFactors(P, T, ov), k = th.k, Q = Object.assign({}, P);
+    ["Fy", "Fy_pin", "Fy_dog", "Fy_pp", "Fy_piv", "Fy_shoe", "Fy_cara"].forEach((id) => { Q[id] = P[id] * k.Fy; });
+    Q.E = P.E * k.E; Q.Fy_ss = P.Fy_ss * k.Fy_ss;
+    ["Fy_bz", "Fy_bz2", "p_bz", "PV_bz", "p_bush"].forEach((id) => { Q[id] = P[id] * k.bz; });
+    Q.p_uhmw = P.p_uhmw * k.p_uh; Q.PV_uh = P.PV_uh * k.p_uh; Q.E_uhmw = P.E_uhmw * k.E_uh; Q.p_wood = P.p_wood * k.wood; Q.FEXX = P.FEXX * k.weld; Q.Fy_surf = P.Fy_surf * k.hertz;
+    if (Math.abs(k.mu - 1) > 1e-12) ["mu_d", "mu_nom", "mu_cont", "mu_dry", "muA_nom", "muA_d", "muA_cont", "muA_dry", "muB_nom", "muB_d", "muB_cont", "muB_dry", "muC_nom", "muC_d", "muC_cont", "muC_dry"].forEach((id) => { Q[id] = P[id] * k.mu; });
+    Q.__th = { T, dT: th.dT, grad: grad || 0, k, alpha: th.alpha, notes: th.notes, extrap: th.extrap, Fy0: P.Fy, P0: P, frozen: frozen || null };
+    return Q;
+  }
+
+  // Filas del escenario térmico (grupo «Temperatura»). Se agregan SOLO cuando P.__th existe (TT.thermal); el análisis estándar no las incluye.
+  // Todas las filas se emiten siempre (también con ΔT = 0) para que sean comparables fila a fila entre temperaturas. conf = nivel de confianza del dato (A/B/C) del registro.
+  function thermalRows(P, R, fea, out, add) {
+    const th = P.__th, I = R.ifc, K = R.K, T = th.T, dT = th.dT, al = th.alpha, k = th.k, Ro = R.Ro, Ri = R.Ri;
+    const nf = (v, d) => (+v).toFixed(d == null ? 2 : d).replace(".", ",");
+    const REG = "docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)»";
+    const tadd = (o) => add(Object.assign({ grp: "Temperatura", sys: "est" }, o));
+    const eps = al.st * dT;                                                   // dilatación libre del acero (α medio 20–T)
+    const pd = R.cd ? R.cd.p : P.p_relief;
+
+    /* (a) Dilatación diferencial en juntas de los sectores: la junta en frío es la del diseño a 20 °C (congelada) */
+    (I.cortes || []).forEach((c) => {
+      const alp = c.tgt === "uhmw" ? al.uh : c.tgt === "bz" ? al.bz : al.ss, chord = 2 * Ro * Math.sin(Math.PI / c.n), alN = c.tgt === "uhmw" ? "UHMW" : c.tgt === "bz" ? "bronce" : "inox";
+      const pad = c.id === "bz0" && I.conf === 3, jReq = Math.max(0, alp - al.st) * dT * chord, jDisp = pad ? (1 - I.cov) * chord : c.j;
+      if (!(jDisp > 0) && !(jReq > 0)) return;
+      tadd({ sub: "a", conf: "C", name: c.pieza + ": junta de dilatación requerida frente a la disponible en frío (no debe cerrarse)",
+        formula: "j_req = (α_" + alN + " − α_acero)·ΔT·cuerda = (" + nf(alp * 1e6, 0) + " − " + nf(al.st * 1e6, 1) + ")×10⁻⁶·ΔT·" + nf(chord, 0) + " mm ≤ j_disp (" + (pad ? "(1 − cobertura)·cuerda de la pastilla" : "junta en frío del diseño a 20 °C = máx(j_sec; dilatación a ΔT = " + P.dT + " K), a 0,1 mm") + "); si la junta cierra, el sector se comprime y pandea",
+        dem: jReq, cap: jDisp, unit: "mm", ref: REG + " (cálculos del revisor: ~10 mm/m de diferencia UHMW–acero); α de ficha de fabricante" });
+      tadd({ sub: "a", kind: "info", conf: "C", name: c.pieza + ": crecimiento radial relativo al respaldo (fijar al centro con agujeros ranurados)", formula: "Δr = (α_" + alN + " − α_acero)·ΔT·R_o", dem: Math.max(0, alp - al.st) * dT * Ro, unit: "mm", ref: REG });
+    });
+
+    /* (b) Pivote: buje de bronce (Ø int. D_piv, Ø ext. D_piv + 30) en cubo de acero y pasador de acero */
+    {
+      const a = P.D_piv / 2, b = a + 15, dal = Math.max(0, al.bz - al.st) * dT, ratio = 2 * a * b / ((b * b + a * a) - TH_NU_BZ * (b * b - a * a));
+      const boreR = a * al.bz * dT - ratio * dal * b, pinR = a * al.st * dT, dClose = Math.max(0, -2 * (boreR - pinR));   // cierre diametral con el Ø exterior del buje guiado por el cubo de acero (Lamé, anillo comprimido)
+      const pc = E_BZ * dal / ((b * b + a * a) / (b * b - a * a) - TH_NU_BZ), sth = 2 * pc * b * b / (b * b - a * a);
+      tadd({ sub: "b", conf: "C", name: "Buje de bronce–pivote: cierre de la holgura diametral con el buje retenido por el cubo de acero", formula: "cierre = 2·[(a·α_bz·ΔT − ρ·(α_bz − α_acero)·ΔT·b) − a·α_acero·ΔT]; ρ = 2ab/((b² + a²) − ν(b² − a²)) (Lamé); ≤ holgura diametral en frío c_bush_d = " + nf(P.c_bush_d, 2) + " mm (supuesto H7/e8; el núcleo no define el ajuste)",
+        dem: dClose, cap: P.c_bush_d, unit: "mm", ref: REG + " (α bronce 18, acero 12,4×10⁻⁶); hipótesis del revisor" });
+      tadd({ sub: "b", kind: "info", conf: "C", name: "Buje de bronce–pivote: holgura con el buje libre (afloja) / interferencia buje–cubo (aprieta)", formula: "Δc = (α_bz − α_acero)·ΔT·D_piv (aumento de holgura si el buje fuera libre); Δi = (α_bz − α_acero)·ΔT·(D_piv + 30) (aumento de interferencia en el cubo)", dem: dal * P.D_piv, cap: dal * (P.D_piv + 30), unit: "mm (holgura libre / interferencia)", ref: REG });
+      tadd({ sub: "b", kind: "info", conf: "C", name: "Buje de bronce retenido: tensión circunferencial por dilatación impedida frente al Fy del bronce de menor resistencia (por confirmar)", formula: "σ_θ = 2·p·b²/(b² − a²), p = E_bz·(α_bz − α_acero)·ΔT/((b² + a²)/(b² − a²) − ν)", dem: sth, cap: P.Fy_bz2 * k.bz, unit: "MPa", ref: REG });
+    }
+
+    /* (c) Uña–pasador: la mesa a T y la base a la sombra (a T_ref) es el caso desfavorable; con ambas a T el efecto relativo es el de la escala uniforme */
+    {
+      const dR = eps * P.R_pin;
+      tadd({ sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente, base a la sombra): holgura radial de la uña en el patín con el crecimiento del círculo de pasadores", formula: "R·(1 − cos π/N)·(1 + ε) + 2 + α·ΔT·R_pin ≤ holgura radial del patín; ε = α·ΔT; α·ΔT·R_pin = " + nf(dR, 2) + " mm", dem: K.radial * (1 + eps) + 2 + dR, cap: P.slot, unit: "mm", ref: REG + " (EN 1993-1-1 §3.2.6; EN 1993-1-2 §3.4.1.1)" });
+      tadd({ sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente): luz de la uña entre pasadores (la cuerda y el pasador crecen con la mesa)", formula: "(cuerda − d_pas)·(1 + ε) ≥ b_uña + 2·10", dem: P.dog_b + 20, cap: K.gap * (1 + eps), unit: "mm", ref: REG });
+      tadd({ sub: "c", sys: "giro", kind: "geo", conf: "B", name: "Uña–pasador (mesa caliente): carrera requerida con el crecimiento de la cuerda", formula: "s_libre + cuerda·(1 + ε) + margen ≤ carrera", dem: P.s_free + K.chord * (1 + eps) + P.s_margin, cap: P.stroke, unit: "mm", ref: REG });
+      tadd({ sub: "c", kind: "info", conf: "B", name: "Uña–pasador, caso uniforme (mesa y base calientes): desplazamiento relativo por escala uniforme", formula: "(x_g − a_mín)·α·ΔT; sin efecto relativo apreciable", dem: (P.x_g - K.armMin) * eps, unit: "mm", ref: REG });
+    }
+
+    /* (d) Gradiente plancha superior (al sol) – inferior (a la sombra) */
+    {
+      const g = th.grad, h = P.h_disc, kap = al.st * g / h, sag = kap * (P.D_top / 2) ** 2 / 2, sigTh = P.E * al.st * g / (2 * (1 - P.nu));
+      const gapR = kap * (Ro * Ro - Ri * Ri) / 2, win = kap * (P.ss_void / 2) ** 2 / 2;
+      const GREF = REG + "; EN 1991-1-5 §6.1.4.1 Tabla 6.1 (tableros de puentes: otra tipología); σ de la placa restringida según Timoshenko";
+      tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: curvatura térmica de la mesa", formula: "κ = α·ΔT_grad/h con h = h_mesa = " + P.h_disc + " mm", dem: kap * 1e3, unit: "1/m", ref: GREF });
+      tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: flecha en el diámetro de la mesa (plancha libre)", formula: "s = κ·(D/2)²/2", dem: sag, unit: "mm", ref: GREF });
+      tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: tensión de flexión térmica si la mesa está restringida", formula: "σ = E·α·ΔT_grad/(2(1 − ν)); cota con la restricción total (la real depende de la caja)", dem: sigTh, cap: 0.6 * P.Fy, unit: "MPa", ref: GREF });
+      const comb = (re, nombre) => { const c = out.find((x) => x.grp !== "Temperatura" && x.fu != null && re.test(x.name)); if (c) tadd({ sub: "d", conf: "C", name: nombre, formula: "FU actual (" + c.name + ") con σ_térmica sumada (suma conservadora): (dem + σ_th)/cap", dem: c.dem + sigTh, cap: c.cap, unit: c.unit, ref: GREF }); };
+      comb(/^Plancha superior: global \+ local$/, "Gradiente: plancha superior (global + local) más σ térmica restringida");
+      comb(/^Plancha inferior: global \+ local$/, "Gradiente: plancha inferior (global + local) más σ térmica restringida");
+      comb(/pared del cubo junto al rebaje/, "Gradiente: pared del cubo junto al rebaje del collar más σ térmica restringida");
+      tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: desnivel de la cara de contacto entre R_i y R_o (la mesa se abomba: el contacto pasa al borde exterior)", formula: "Δz = κ·(R_o² − R_i²)/2; la carga aplana la mesa si σ_th cabe (fila de σ combinada): entonces el contacto se restablece", dem: gapR, cap: P.d_flat, unit: "mm (desnivel / planitud d_flat)", ref: GREF });
+      tadd({ sub: "d", kind: "geo", conf: "C", name: "Gradiente: variación del hueco de contacto en la ventana de medición (Ø = vacío local) frente a la planitud admitida", formula: "κ·(Ø_vacío/2)²/2 ≤ d_flat", dem: win, cap: P.d_flat, unit: "mm", ref: GREF });
+    }
+
+    /* (e) Aceite atrapado: cilindro + retenciones. El cilindro empuja contra la fricción (no sostiene W): p_hold = F_dis/A (≡ W/A de la carga sostenida) y, en calado, p_alivio */
+    {
+      const o = oilTrapped(P, T), sel = o.sel, dp = sel.hi.bar, dpLo = sel.lo.bar, pMax = P.p_max_cil, pTest = 1.5 * pMax, rel = P.alivio_term, lim = (p) => (rel > 0 ? Math.min(p, rel) : p);
+      const OREF = REG + ", «Presión por aceite atrapado»; ISO 4413:2010 (cláusula por confirmar); prueba 1,5 × (ISO 10100 de memoria)";
+      const TRAMO = "tramo aislado = cilindro + válvulas de retención/bloqueo y tapones; un alivio de sistema aguas arriba de la retención NO lo protege";
+      tadd({ sub: "e", sys: "term", kind: "info", conf: "C", name: "Aceite atrapado: sobrepresión térmica Δp (cota alta K = 1,9 GPa / cota baja K = 1,4 GPa)", formula: "Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c); α_v = 7,5×10⁻⁴/K, 3α_s = " + nf(o.as3 * 1e5, 2) + "×10⁻⁵/K; contenedor: " + ["rígido", "cilindro b/a " + nf(P.ba_cil, 2) + " (Lamé, K_c = " + nf(o.Kc_lame / 1000, 1) + " GPa)", "manguera (K combinado 327 MPa)"][Math.min(3, Math.max(1, Math.round(P.oil_cont))) - 1] + "; aire libre no se cuenta", dem: dp, cap: dpLo, unit: "bar (K alta / K baja)", ref: OREF });
+      tadd({ sub: "e", sys: "term", conf: "C", name: "Aceite atrapado en la carrera de diseño: p_hold + Δp térmico frente a la presión máxima de trabajo del cilindro", formula: "p_hold = F_dis/A (presión de diseño, ≡ W/A del pistón que sostiene la carga) + Δp ≤ p_max_cil" + (rel > 0 ? " (limitada por la apertura del alivio térmico " + rel + " bar)" : " (sin alivio térmico)") + "; la sobrepresión aparece solo con movimiento restringido (tope, fin de carrera, calado); " + TRAMO, dem: lim(pd + dp), cap: pMax, unit: "bar", ref: OREF });
+      tadd({ sub: "e", sys: "term", conf: "C", name: "Aceite atrapado tras el calado: p_alivio + Δp térmico frente a la presión de prueba del cilindro (1,5 × p_max)", formula: "p_alivio (700 bar: el calado deja la presión atrapada en el alivio del sistema) + Δp ≤ 1,5·p_max_cil; " + TRAMO, dem: lim(P.p_relief + dp), cap: pTest, unit: "bar", ref: OREF });
+      tadd({ sub: "e", sys: "term", conf: "C", name: "Aceite atrapado en la cámara anular (lado vástago): p_retorno + Δp térmico frente a la presión máxima de trabajo", formula: "p_ret + Δp ≤ p_max_cil (la cámara anular también queda aislada entre retención y tope)", dem: lim(P.p_ret + dp), cap: pMax, unit: "bar", ref: OREF });
+      if (rel > 0) {
+        tadd({ sub: "e", sys: "term", kind: "geo", conf: "C", name: "Válvula de alivio térmico: apertura bajo la presión máxima de trabajo del cilindro", formula: "p_apertura ≤ p_max_cil", dem: rel, cap: pMax, unit: "bar", ref: OREF });
+        tadd({ sub: "e", sys: "term", kind: "geo", conf: "C", name: "Válvula de alivio térmico: apertura sobre el alivio del sistema (no gotea en operación ni a calado)", formula: "p_alivio ≤ p_apertura; con p_alivio = p_max_cil la ventana de ajuste es nula: bajar el alivio del sistema o usar un cilindro de mayor presión", dem: P.p_relief, cap: rel, unit: "bar", ref: OREF });
+      } else {
+        const risk = pd + dp > pMax + 1e-9 || P.p_relief + dp > pTest + 1e-9 || P.p_ret + dp > pMax + 1e-9;
+        tadd({ sub: "e", sys: "term", conf: "C", stFix: risk ? "fail" : "ok", name: "Válvula de alivio térmico del tramo aislado (cilindro + retenciones): no hay" + (risk ? " y hay riesgo: instalar válvula de alivio térmico en el tramo aislado" : ""), formula: "alivio_term = 0 (no hay): " + (risk ? "instalar válvula de alivio térmico en el tramo aislado (cilindro + retenciones), con apertura entre el alivio del sistema y la presión máxima de trabajo; " : "") + TRAMO, dem: pd + dp, cap: pMax, unit: "bar", ref: OREF });
+      }
+      tadd({ sub: "e", sys: "term", kind: "info", conf: "C", name: "Aceite: dilatación libre (si el pistón puede moverse bajo carga la presión se mantiene en p_hold y la expansión sale como carrera)", formula: "ΔV/V = (α_v − 3α_s)·ΔT; 1 m de columna de aceite se alarga ΔV/V·1 000 mm", dem: o.expansion_free_pct, cap: o.expansion_1m_mm, unit: "% / mm por m de columna", ref: OREF });
+    }
+
+    /* (f) Aceite, sellos y bomba */
+    {
+      const v = oilViscosity(T), SREF = REG + ", «Viscosidad a 80 °C» y sellos NBR (Ulman -30 a +80; Machine Design 90–100; Power & Motion -40 a 120)";
+      tadd({ sub: "f", sys: "term", conf: "C", name: "Aceite VG 46: viscosidad a T_serv frente al mínimo de la bomba", formula: "ν_mín,bomba = " + P.nu_min + " mm²/s (supuesto) ≤ ν(T) (Walther ASTM D341 con ν40 = 46 y ν100 = 6,8 → " + nf(v.lo, 1) + " mm²/s; con IV 185 → " + nf(v.hi, 1) + " mm²/s)", dem: P.nu_min, cap: v.lo, unit: "mm²/s", ref: SREF });
+      tadd({ sub: "f", sys: "term", conf: "C", stFix: T <= P.T_seal ? (T > 0.9 * P.T_seal ? "warn" : "ok") : (T <= 120 ? "warn" : "fail"), name: "Sellos NBR: temperatura de servicio frente al límite de las fuentes (80–120 °C)", formula: "T ≤ T_seal = " + P.T_seal + " °C (el menor de 80–120 °C); entre ese valor y 120 °C solo monitoreo; PU/FKM: FKM hasta 200 °C", dem: T, cap: P.T_seal, unit: "°C", ref: SREF });
+      tadd({ sub: "f", sys: "term", kind: "info", conf: "C", name: "Bomba con viscosidad baja: más fugas internas (menor caudal útil y rendimiento volumétrico); potencia del motor sin cambio apreciable", formula: "solo nota: Pmotor = p·Q/(600·η) con η a 20 °C; confirmar con la curva de la bomba a ν(T)", dem: R.pump.Pmotor, cap: v.lo, unit: "kW / mm²/s", ref: SREF });
+    }
+
+    /* (g) Lubricación */
+    {
+      const GREF = REG + ", «Grasa NLGI 2 con MoS₂/grafito» (ASTM D2265; fichas Mobil, SKF, Lubriplate)";
+      tadd({ sub: "g", sys: "term", conf: "B", name: "Grasa grafitada: temperatura frente al punto de goteo (margen ≥ 95 K a 80 °C)", formula: "T ≤ T_goteo = " + P.T_drop + " °C; margen = T_goteo − T = " + nf(P.T_drop - T, 0) + " K", dem: T, cap: P.T_drop, unit: "°C", ref: GREF });
+      const FSd = R.cd ? R.cd.FS : NaN;
+      [0.8, 1, 1.2, 1.5].forEach((f) => tadd({ sub: "g", sys: "term", kind: "info", conf: "C", name: "Sensibilidad al μ de la grasa a T_serv (dato de entrada): FS del giro con μ × " + nf(f, 1), formula: "FS(μ·f) = FS_dis/f (F lineal en μ); FS_mín = " + P.FS_min + "; el μ real a T_serv no tiene fuente (la grasa fluida y la expulsión lo suben)", dem: FSd / f, cap: P.FS_min, unit: "– (FS / FS_mín)", ref: GREF }));
+    }
+
+    /* (h) UHMW-PE: capacidades ya reducidas en P (p_adm, PV, E) */
+    if (I.o === 2) {
+      const UREF = REG + ", «Interfaz UHMW-PE (opción B)» y filas UHMW-PE (fichas Quadrant/Mitsubishi, Ensinger, Röchling; sin curva a 80 °C)";
+      tadd({ sub: "h", kind: "info", conf: "C", name: "Lámina UHMW: factores aplicados a la capacidad (k_p sobre p_adm y PV) y al módulo (k_E)", formula: "k_p = " + nf(k.p_uh, 3) + ", k_E = " + nf(k.E_uh, 3) + " (supuestos: sin curva del proveedor); la geometría de la lámina (espesor, tope) está congelada a 20 °C", dem: k.p_uh, cap: k.E_uh, unit: "– / –", ref: UREF });
+      tadd({ sub: "h", kind: "info", conf: "C", name: "Lámina UHMW: acortamiento elástico bajo q_máx con el módulo reducido (flecha local en la ventana)", formula: "δ = q_máx·t/E_c(S); E_c = E_ap·k_E·[1 + (M/E − 1)S²/(1 + S²)]; E reducida aumenta la deformación bajo carga (y la fluencia, nota)", dem: I.q * I.tuh / I.EcU, cap: P.d_flat, unit: "mm (δ / planitud d_flat)", ref: UREF });
+      const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A), vmax = R.Ro / K.armMin * vcyl / 1000, PV20 = P.PV_uh / k.p_uh;
+      tadd({ sub: "h", kind: "info", conf: "C", name: "Lámina UHMW: PV admisible por balance térmico, PV(T) = PV₂₀·(80 − T)/(80 − T_ref) (cota inferior: se anula a 80 °C)", formula: "criterio del revisor (confianza C): el calor friccional ya no se evacua cuando T_ambiente = T_límite; compárese con la fila de PV con k_p", dem: I.q * vmax, cap: PV20 * Math.max(0, (80 - T) / (80 - P.T_ref)), unit: "MPa·m/s", ref: UREF });
+      tadd({ sub: "h", conf: "B", name: "Lámina UHMW: temperatura frente al límite de servicio continuo (80 °C; Vicat B50 = 80 °C)", formula: "T ≤ 80 °C", dem: T, cap: 80, unit: "°C", ref: UREF });
+      tadd({ sub: "h", kind: "pend", conf: "C", name: "UHMW-PE a T_serv: exigir al proveedor la curva de módulo y de límite elástico entre 20 y 80 °C, creep (módulo de fluencia 550 → 300 MPa de 1 h a 1 000 h a 23 °C; +15 K ≈ tensión × 0,63) y desgaste a T", formula: "Sin verificación numérica: k_p y k_E son supuestos", dem: 0, unit: "–", ref: UREF });
+    }
+    if (I.o === 3) tadd({ sub: "h", kind: "pend", conf: "C", name: "Bronce con grafito a T_serv: la ficha de temperatura hallada es de C93200; confirmar C95400 (Fy, α) con el proveedor", formula: "Sin verificación numérica: k_bz = " + nf(k.bz, 2) + " es criterio de ingeniería", dem: 0, unit: "–", ref: REG + ", «Interfaz de bronce con grafito (opción C)»" });
+
+    /* (i) Madera: C_t sobre p_wood (ya aplicado a P.p_wood) */
+    if (P.opt_wood > 0.5) {
+      const w = out.find((x) => x.grp === "Cubierta" && /Madera: aplastamiento/.test(x.name)), p0 = P.p_wood / k.wood;
+      tadd({ sub: "i", kind: "info", conf: "C", name: "Madera: factor C_t aplicado al aplastamiento perpendicular a la fibra y sensibilidad con madera húmeda (C_t = 0,50 a 125–150 °F)", formula: "FU(C_t) = q/(p_wood·C_t); C_t seca = " + nf(k.wood, 2) + " (NDS 2018 T2.3.3, copia AWC: A en la tabla, 80 °C = 176 °F fuera de ella, extrapolación C)", dem: w ? w.dem / (p0 * 0.5) : NaN, cap: w ? w.dem / p0 : NaN, unit: "– (FU con C_t = 0,50 / FU con C_t = 1)", ref: REG + ", «Madera dura»; NDS 2018 Tabla 2.3.3" });
+      tadd({ sub: "i", kind: "pend", conf: "C", name: "Madera: el secado al sol baja la humedad de equilibrio (sube la resistencia, aparecen grietas y deformación de tablones); NCh1198 sin factor de temperatura confirmado", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: REG + ", «Madera dura»" });
+    }
+
+    /* (j) Acero estructural, soldaduras, pernos */
+    tadd({ sub: "j", kind: "info", conf: "B", name: "Acero estructural y cadena de empuje: factor de Fy y de E aplicados (1,00 por AISC App. 4 / EN 1993-1-2; sensibilidad ASME II-D: 0,92, confianza C)", formula: "k_Fy = " + nf(k.Fy, 3) + ", k_E = " + nf(k.E, 3) + ", soldadura k = " + nf(k.weld, 2) + " (C); el App. 4 de AISC es de exposición al fuego: sirve de cota, no de norma de servicio sostenido", dem: k.Fy, cap: k.weld, unit: "– / –", ref: REG + ", «Acero estructural y cadena de empuje a 80 °C»" });
+    tadd({ sub: "j", kind: "info", conf: "C", name: "Pernos 10.9: factor de Rp0,2 (0,94, de memoria de ISO 898-1); el modelo no tiene verificación de resistencia de pernos (los tornillos de posición ISO 10642 no transmiten carga)", formula: "k_perno = " + nf(k.bolt, 3) + " aplicable si se agregan uniones atornilladas", dem: k.bolt, unit: "–", ref: REG + ", «Pernos ISO 898-1 clase 10.9»" });
+    tadd({ sub: "j", kind: "pend", conf: "C", stFix: T > 66 ? "pend" : "info", name: "ASME BTH-1: 80 °C (176 °F) excede el rango estándar (−4 a 66 °C): requiere decisión de persona calificada y registro de la hipótesis", formula: "Nd = 3,0 no incluye un margen térmico explícito; sección de BTH-1 sobre temperatura sin confirmar", dem: T, cap: 66, unit: "°C", ref: REG + ", «Alcance térmico de BTH-1»" });
+
+    /* (k) Dilatación global */
+    {
+      const Dm = P.D_top * eps, Db = P.B * eps;
+      tadd({ sub: "k", kind: "info", conf: "B", name: "Dilatación global: crecimiento del diámetro de la mesa (y de la base)", formula: "ΔD = α·ΔT·D (≈ 0,7 mm/m a ΔT = 60 K); la base: ΔB = α·ΔT·B", dem: Dm, cap: Db, unit: "mm (mesa / base)", ref: REG + ", «Dilatación libre»" });
+      tadd({ sub: "k", sys: "giro", kind: "geo", conf: "B", name: "Patín fuera de la mesa con la mesa caliente (base a la sombra)", formula: "(D/2)(1 + ε) + 15 ≤ x_g − w_s/2", dem: Ro * (1 + eps) + 15, cap: P.x_g - P.w_s / 2, unit: "mm", ref: REG });
+      tadd({ sub: "k", sys: "giro", kind: "geo", conf: "B", name: "Bancada de guía fuera de la mesa con la mesa caliente (base a la sombra)", formula: "(D/2)(1 + ε) + 10 ≤ x_g − w_bancada/2", dem: Ro * (1 + eps) + 10, cap: P.x_g - P.w_bed / 2, unit: "mm", ref: REG });
+    }
+  }
+
   /* ---------------- Verificaciones ---------------- */
   // kind: "fu" (FU = dem/cap), "geo" (FU con criterio geométrico), "info" (no afecta el veredicto), "pend" (pendiente de dato)
   function verifs(P, R, fea) {
     const out = [];
     const add = (o) => out.push(Object.assign({ kind: "fu" }, o, { fu: o.kind === "info" || o.kind === "pend" ? null : (o.fu != null ? o.fu : ((o.cap > 0 && o.dem >= 0) ? o.dem / o.cap : Infinity)) }));   // capacidad ≤ 0 o demanda negativa: no cumple
     const K = R.K, Nd = P.Nd, Fy = P.Fy;
+    const dTe = P.__th ? Math.max(P.dT, P.__th.dT) : P.dT;          // ΔT de las filas térmicas heredadas: la de diseño (40 K) o la del escenario si es mayor
+    const EssT = E_SS * (P.__th ? P.__th.k.E_ss : 1);               // módulo del inoxidable a la temperatura del escenario
     const Fs = R.Fstall;                                   // fuerza de calado por cilindro, kN
     const cd = R.cd || { F: NaN, p: NaN, FS: NaN };
     const cs = (id) => R.cases.find((c) => c.id === id) || { F: NaN, FS: NaN, p: NaN };
@@ -1305,21 +1523,21 @@ const TT = (() => {
         // sectores desmontables: topes soldados al respaldo toman el par; cada sector es libre de dilatarse
         discs.forEach((d) => { stopRows(topeOf(d.id)); screwRow("Interfaz inox", d.n, d.t - P.ss_allow); });
         const chord = 2 * R.Ro * Math.sin(Math.PI / P.n_sec);
-        add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Sectores de disco: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes)", formula: "j = (α_inox − α_acero)·ΔT·cuerda del sector", dem: (AL_SS - AL_S) * P.dT * chord, unit: "mm", ref: "Termoelasticidad" });
+        add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Sectores de disco: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes)", formula: "j = (α_inox − α_acero)·ΔT·cuerda del sector", dem: (AL_SS - AL_S) * dTe * chord, unit: "mm", ref: "Termoelasticidad" });
         handRow("Interfaz inox", "Disco inoxidable", Math.max(...discs.map((d) => perSec(d.id, RHO_SS * I.A_ss * d.t / P.n_sec))) * P.n_sec, P.n_sec);
         add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Soldar los topes antes del alivio de tensiones y del rectificado de las caras; el sector entra por el borde de la mesa izada y se asegura con los tornillos de posición", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
       } else {
         const Ttot = R.Tmax, TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
         add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
         if (P.tau_bond > 0) {
-          const eps = (AL_SS - AL_S) * P.dT, tb2 = eps * Math.sqrt(P.G_ad * E_SS * Math.max(I.tss, I.tss2) / P.t_ad);
+          const eps = (AL_SS - AL_S) * dTe, tb2 = eps * Math.sqrt(P.G_ad * EssT * Math.max(I.tss, I.tss2) / P.t_ad);
           add({ grp: "Interfaz inox", sys: "est", name: "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)", formula: "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb2, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
         }
-        const sth = E_SS * (AL_SS - AL_S) * P.dT;
+        const sth = EssT * (AL_SS - AL_S) * dTe;
         add({ grp: "Interfaz inox", sys: "est", name: "Dilatación diferencial inox–acero: tensión si el disco quedara restringido", formula: "σ = E_inox·(α_inox − α_acero)·ΔT ≤ 0,6·Fy_inox", dem: sth, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α inox 17,3 y acero 11,7 (×10⁻⁶/K)" });
         add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Fijación permanente (pegado): los discos NO son desmontables sin destruir la unión; no admite limpieza ni cambio", formula: "Alternativa: fijación desmontable por sectores (fix_mode = 1)", dem: 0, unit: "–", ref: "Requisito de mantenimiento del mandante" });
       }
-      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Dilatación diferencial radial del disco respecto de su respaldo", formula: "Δr = (α_inox − α_acero)·ΔT·R", dem: (AL_SS - AL_S) * P.dT * R.Ro, unit: "mm", ref: "Termoelasticidad" });
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Dilatación diferencial radial del disco respecto de su respaldo", formula: "Δr = (α_inox − α_acero)·ΔT·R", dem: (AL_SS - AL_S) * dTe * R.Ro, unit: "mm", ref: "Termoelasticidad" });
       if (I.o === 1) groovesRows("Interfaz inox", "disco de la mesa");
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: I.o === 2 ? "Δ = t_disco base + t_disco mesa + t_UHMW" : "Δ = t_disco base + t_disco mesa", dem: I.delta, unit: "mm", ref: "Geometría (eje de los cilindros sube Δ)" });
       if (I.o === 1) add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción A: par inox–inox con riesgo de gripado si la película de grasa se expulsa: exigir aleaciones o durezas distintas (≥ 50 HB de diferencia) o recubrimiento", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
@@ -1346,8 +1564,8 @@ const TT = (() => {
       const vmax = R.Ro / R.K.armMin * vcyl / 1000;                                 // m/s en el borde de la mesa durante la carrera
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: valor PV en el borde de la mesa (durante la carrera)", formula: "PV = q_máx·v; v = R·v_cil/a_mín, v_cil = Q/(n·A)", dem: I.q * vmax, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: desgaste en la vida de diseño frente al 20 % del espesor", formula: "h = k·q_máx·s ≤ 0,20·t; s = vida·vueltas/año·2π·r_ef", dem: wear, cap: 0.2 * I.tuh, unit: "mm", ref: REFU });
-      const gap = (AL_UH - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.n_seg);
-      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: crecimiento radial del sector (fijar al centro con agujeros ranurados)", formula: "Δr = (α_UHMW − α_acero)·ΔT·R", dem: (AL_UH - AL_S) * P.dT * R.Ro, unit: "mm", ref: REFU });
+      const gap = (AL_UH - AL_S) * dTe * 2 * R.Ro * Math.sin(Math.PI / P.n_seg);
+      add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: crecimiento radial del sector (fijar al centro con agujeros ranurados)", formula: "Δr = (α_UHMW − α_acero)·ΔT·R", dem: (AL_UH - AL_S) * dTe * R.Ro, unit: "mm", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Lámina UHMW: junta de dilatación entre sectores (ancho a dejar en frío)", formula: "j = (α_UHMW − α_acero)·ΔT·cuerda del sector; α_UHMW = 180×10⁻⁶/K", dem: gap, unit: "mm", ref: REFU });
     }
 
@@ -1382,8 +1600,8 @@ const TT = (() => {
         screwRow(G3, "Placa de bronce", I.tbz - P.bz_allow - P.h_gr);
         screwRow(G3, conf === 2 ? "2.ª placa de bronce" : "Disco duro", I.tss - (conf === 2 ? P.bz_allow : P.ss_allow));
         const chordB = 2 * R.Ro * Math.sin(Math.PI / nB), chordC = 2 * R.Ro * Math.sin(Math.PI / P.n_sec);
-        add({ grp: G3, sys: "est", kind: "info", name: "Sectores de bronce: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda del sector", dem: (AL_BZ - AL_S) * P.dT * chordB, unit: "mm", ref: "Termoelasticidad" });
-        add({ grp: G3, sys: "est", kind: "info", name: (conf === 2 ? "Sectores de la 2.ª placa" : "Sectores del disco duro") + ": crecimiento por dilatación de la cuerda (junta en frío ≥ 1 mm)", formula: "j = (α − α_acero)·ΔT·cuerda del sector", dem: ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT * chordC, unit: "mm", ref: "Termoelasticidad" });
+        add({ grp: G3, sys: "est", kind: "info", name: "Sectores de bronce: crecimiento por dilatación de la cuerda (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda del sector", dem: (AL_BZ - AL_S) * dTe * chordB, unit: "mm", ref: "Termoelasticidad" });
+        add({ grp: G3, sys: "est", kind: "info", name: (conf === 2 ? "Sectores de la 2.ª placa" : "Sectores del disco duro") + ": crecimiento por dilatación de la cuerda (junta en frío ≥ 1 mm)", formula: "j = (α − α_acero)·ΔT·cuerda del sector", dem: ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * dTe * chordC, unit: "mm", ref: "Termoelasticidad" });
         handRow(G3, "Placa de bronce con grafito", perSec("bz0", R.m.bz) * nB, nB);
         handRow(G3, conf === 2 ? "2.ª placa de bronce" : "Disco duro", perSec("bz1", R.m.ss) * P.n_sec, P.n_sec);
         add({ grp: G3, sys: "est", kind: "pend", name: "Soldar los topes antes del alivio de tensiones y del rectificado; sectores atornillados con tornillos de posición, sacables con la mesa izada", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
@@ -1392,20 +1610,20 @@ const TT = (() => {
         const TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * I.cov * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
         add({ grp: G3, sys: "giro", name: "Retención de la placa de bronce sobre la base (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A_pegada·r_u)", dem: R.Tmax, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
         if (P.tau_bond > 0) {
-          const tb1 = (AL_BZ - AL_S) * P.dT * Math.sqrt(P.G_ad * E_BZ * I.tbz / P.t_ad);
+          const tb1 = (AL_BZ - AL_S) * dTe * Math.sqrt(P.G_ad * E_BZ * I.tbz / P.t_ad);
           add({ grp: G3, sys: "est", name: "Adhesivo de la placa de bronce: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E_bz·t/t_adhesivo), ε = (α_bz − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb1, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
-          const epsC = ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * P.dT, EC = conf === 2 ? E_BZ : E_SS;
+          const epsC = ((conf === 2 ? AL_BZ : AL_SS) - AL_S) * dTe, EC = conf === 2 ? E_BZ : E_SS;
           add({ grp: G3, sys: "est", name: conf === 2 ? "Adhesivo de la 2.ª placa de bronce: cortante térmico en el borde" : "Adhesivo del disco duro: cortante térmico en el borde", formula: "τ = ε·√(G_ad·E·t/t_adhesivo) ≤ τ_adm,cíclico", dem: epsC * Math.sqrt(P.G_ad * EC * I.tss / P.t_ad), cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
         }
-        add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)" });
-        if (conf === 2) add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero de la 2.ª placa: tensión si quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz2", dem: E_BZ * (AL_BZ - AL_S) * P.dT, cap: I.sadC, unit: "MPa", ref: "Termoelasticidad" });
+        add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero: tensión si la placa quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz", dem: E_BZ * (AL_BZ - AL_S) * dTe, cap: I.sad, unit: "MPa", ref: "Termoelasticidad; α bronce 18, acero 11,7 (×10⁻⁶/K)" });
+        if (conf === 2) add({ grp: G3, sys: "est", name: "Dilatación diferencial bronce–acero de la 2.ª placa: tensión si quedara restringida", formula: "σ = E_bz·(α_bz − α_acero)·ΔT ≤ 0,6·Fy_bz2", dem: E_BZ * (AL_BZ - AL_S) * dTe, cap: I.sadC, unit: "MPa", ref: "Termoelasticidad" });
         const TretR = Math.max(P.mu_back * R.N * R.r_u / 1e3, P.tau_bond * R.Ac * R.r_u / 1e6);
         add({ grp: G3, sys: "giro", name: conf === 2 ? "Retención de la 2.ª placa de bronce sobre la mesa (la mayor entre fricción y pegado)" : "Retención del disco duro sobre la mesa (la mayor entre fricción y pegado)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u)", dem: R.Tmax, cap: TretR, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
         add({ grp: G3, sys: "est", kind: "pend", name: "Fijación permanente (pegado): la placa y el disco NO son desmontables sin destruir la unión; no admite limpieza ni cambio", formula: "Alternativa: fijación desmontable por sectores (fix_mode = 1)", dem: 0, unit: "–", ref: "Requisito de mantenimiento del mandante" });
       }
       groovesRows(G3, "placa de bronce");
-      add({ grp: G3, sys: "est", kind: "info", name: "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)", formula: "Δr = (α_bz − α_acero)·ΔT·R", dem: (AL_BZ - AL_S) * P.dT * R.Ro, unit: "mm", ref: "Termoelasticidad" });
-      if (conf === 3) add({ grp: G3, sys: "est", kind: "info", name: "Pastillas de bronce: crecimiento por dilatación de la cuerda de la pastilla (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda de la pastilla", dem: (AL_BZ - AL_S) * P.dT * 2 * R.Ro * Math.sin(Math.PI / P.bz_npad), unit: "mm", ref: "Termoelasticidad" });
+      add({ grp: G3, sys: "est", kind: "info", name: "Dilatación diferencial radial de la placa respecto de su respaldo (fijar al centro con agujeros ranurados)", formula: "Δr = (α_bz − α_acero)·ΔT·R", dem: (AL_BZ - AL_S) * dTe * R.Ro, unit: "mm", ref: "Termoelasticidad" });
+      if (conf === 3) add({ grp: G3, sys: "est", kind: "info", name: "Pastillas de bronce: crecimiento por dilatación de la cuerda de la pastilla (dejar una junta en frío ≥ 1 mm, biselar bordes, sellar)", formula: "j = (α_bz − α_acero)·ΔT·cuerda de la pastilla", dem: (AL_BZ - AL_S) * dTe * 2 * R.Ro * Math.sin(Math.PI / P.bz_npad), unit: "mm", ref: "Termoelasticidad" });
       add({ grp: G3, sys: "est", kind: "info", name: "Altura que agrega la interfaz sobre la plancha base", formula: "Δ = t_bronce + t_disco (o 2.ª placa)", dem: I.delta, unit: "mm", ref: "Geometría (el eje de los cilindros sube Δ)" });
       add({ grp: G3, sys: "est", kind: "info", name: "Masa agregada por la interfaz (bronce con grafito + disco duro o 2.ª placa)", formula: "m = ρ·A·t (bronce descontando los tapones, más el grafito)", dem: R.m.ss + R.m.bz, unit: "kg", ref: "Geometría" });
       add({ grp: G3, sys: "est", kind: "pend", name: "Arranque con adherencia–deslizamiento (stick-slip) a 2,5 mm/s: diferencia entre μ estático y cinético", formula: "Sin verificación numérica; ensayo de arranque tras reposo bajo carga", dem: 0, unit: "–", ref: "Ensayo del proveedor" });
@@ -1645,12 +1863,14 @@ const TT = (() => {
     fat("Pie de soldadura mejilla–base", Fd / 2 * 1e3 * hax / (P.t_ch * P.L_ch ** 2 / 6), "E", nCyc);
     fat("Garganta soldadura mejilla–base (corte)", Math.hypot(Fd * 1e3 / (4 * aw * P.L_ch), Fd * 1e3 * hax / (4 * aw * P.L_ch ** 2 / 6)), "F", nCyc);
 
+    if (P.__th) thermalRows(P, R, fea, out, add);                      // escenario térmico (TT.thermal): filas del grupo «Temperatura»
     out.forEach((c) => {
       if (c.kind === "info") c.st = "info";
       else if (c.kind === "pend") c.st = "pend";
       else if (!isFinite(c.fu)) c.st = "fail";
       else if (c.kind === "geo" || c.sys === "giro") c.st = c.fu <= 1 ? "ok" : "fail";   // límites con margen propio
       else c.st = c.fu <= 0.9 ? "ok" : c.fu <= 1 ? "warn" : "fail";
+      if (c.stFix) c.st = c.stFix;                                   // filas térmicas con criterio de estado propio (monitoreo, aviso de falta de alivio)
     });
     return out;
   }
@@ -1677,7 +1897,7 @@ const TT = (() => {
     const R = compute(P);
     let fea = null;
     if (R.K.ok && !opts.noFEA) {
-      fea = { top: discCached(P, R, "top", opts), bot: discCached(P, R, "bot", opts), glob: globalBending(P, R), lift: runLift(P, R, opts.coarse) };
+      fea = opts.fea || { top: discCached(P, R, "top", opts), bot: discCached(P, R, "bot", opts), glob: globalBending(P, R), lift: runLift(P, R, opts.coarse) };   // opts.fea: FEA ya resuelto (escenario térmico: la tensión FEA no depende de Fy)
     }
     const checks = verifs(P, R, fea);
     const bad = (sys) => checks.filter((c) => c.sys === sys && c.st === "fail");
@@ -1733,7 +1953,98 @@ const TT = (() => {
     };
   }
 
-  return { riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
+  /* ---------------- Escenario térmico: API pura reutilizable (UI y export_design) ---------------- */
+  const TH_ALTS = [["base", "Base: acero sobre acero con grasa grafitada", {}], ["A", "A · Dos discos de acero inoxidable con grasa", { opt_ss: 1 }], ["B", "B · Discos inox con lámina de UHMW", { opt_uhmw: 1 }],
+    ["C1", "C1 · Placa de bronce con grafito + disco duro", { opt_bz: 1, bz_conf: 1 }], ["C2", "C2 · Dos placas de bronce de aleaciones distintas", { opt_bz: 1, bz_conf: 2 }], ["C3", "C3 · Bronce en pastillas + disco duro", { opt_bz: 1, bz_conf: 3 }]];
+  const ST_RANK = { ok: 0, warn: 1, fail: 2 };
+  // Nivel de confianza del dato (A/B/C del registro) de una verificación estándar cuya capacidad se redujo
+  function confOf(c) {
+    if (c.conf) return c.conf;
+    if (c.grp === "Interfaz inox" || c.grp === "Interfaz bronce") return "C";
+    if (c.grp === "Cubierta") return "A/C";
+    if (/oldadura|Hertz|Filete|filete/.test(c.name)) return "C";
+    return "B";
+  }
+  // Evalúa una alternativa a la temperatura T con la geometría congelada. ref: análisis a T_ref (para comparar fila a fila)
+  function thermalRun(Pa, T, ov, frozen, grad, A0, cache) {
+    const Pt = thermalP(Pa, T, ov, frozen, grad), reuse = Math.abs(Pt.E - Pa.E) < 1e-9 && A0 && A0.fea;
+    const A = analyze(Pt, { cache, fea: reuse ? A0.fea : undefined });
+    return { Pt, A };
+  }
+  function thermal(P, opts) {
+    opts = opts || {};
+    const Ts = (opts.T || [20, 40, 60, 80, 100]).slice(), Tref = P.T_ref, scn = P.T_serv > Tref;
+    const Tscn = opts.Tscn != null ? opts.Tscn : (scn ? P.T_serv : 80);
+    const grad = opts.gradient != null ? opts.gradient : (P.dT_grad > 0 ? P.dT_grad : (scn ? 0 : 15));   // K a Tscn; a otras T se escala con ΔT/ΔT_scn
+    if (!Ts.some((t) => Math.abs(t - Tscn) < 1e-9)) { Ts.push(Tscn); Ts.sort((x, y) => x - y); }   // la tabla siempre incluye la temperatura del escenario
+    const gradAt = (T) => (Tscn > Tref ? grad * Math.max(0, T - Tref) / (Tscn - Tref) : 0);
+    const woodMode = opts.wood == null ? "form" : opts.wood;
+    const ids = opts.alts || TH_ALTS.map((a) => a[0]);
+    const cache = new Map(), alts = [];
+    const fuEstOf = (A) => { let best = null; A.checks.forEach((c) => { if (c.grp !== "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
+    const fuTermOf = (A) => { let best = null; A.checks.forEach((c) => { if (c.grp === "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
+    const brief = (c) => (c ? { grp: c.grp, nombre: c.name, fu: c.fu } : null);
+    const woods = woodMode === "both" ? [0, 1] : [woodMode === true || woodMode === 1 ? 1 : woodMode === false || woodMode === 0 ? 0 : (P.opt_wood > 0.5 ? 1 : 0)];
+    TH_ALTS.filter((a) => ids.includes(a[0])).forEach(([id, nombre, flags]) => woods.forEach((w) => {
+      const Pa = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0, bz_conf: 1 }, flags, { opt_wood: w }); delete Pa.__th;
+      const A20 = analyze(Pa, { cache }), I = A20.R.ifc;                                              // geometría de diseño a 20 °C (sin factores)
+      const frozen = { tss: I.tss, tss2: I.tss2, tuh: I.tuh, tbz: I.tbz, L: Object.fromEntries((I.topes || []).map((s) => [s.id, s.L])) };
+      const ref = thermalRun(Pa, Tref, null, frozen, 0, A20, cache);
+      const byT = Ts.map((T) => {
+        const run = T === Tref ? ref : thermalRun(Pa, T, null, frozen, gradAt(T), A20, cache), A = run.A, R = A.R, cur = A.checks;
+        const eu = fuEstOf(A), tt = fuTermOf(A), rows = [], chg = [];
+        cur.forEach((c, i) => {
+          const r0 = ref.A.checks[i]; if (!r0) return;
+          if (r0.st !== c.st && ST_RANK[r0.st] != null && ST_RANK[c.st] != null) chg.push({ grp: c.grp, nombre: c.name, de: r0.st, a: c.st, fu20: r0.fu, fuT: c.fu, empeora: ST_RANK[c.st] > ST_RANK[r0.st], conf: confOf(c) });
+          if (c.fu != null && r0.fu != null && c.kind !== "info") {
+            const f0 = isFinite(r0.fu) ? r0.fu : 99, f1 = isFinite(c.fu) ? c.fu : 99;
+            rows.push({ grp: c.grp, nombre: c.name, fu20: f0, fuT: f1, delta: f1 - f0, var_pct: f0 > 1e-9 ? (f1 / f0 - 1) * 100 : null, st20: r0.st, stT: c.st, conf: confOf(c), sys: c.sys });
+          }
+        });
+        rows.sort((a, b) => b.delta - a.delta);
+        const th = cur.filter((c) => c.grp === "Temperatura").map((c) => ({ sub: c.sub, sys: c.sys, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, conf: c.conf, ref: c.ref }));
+        return { T, dT: Math.max(0, T - Tref), gradiente: gradAt(T), k: run.Pt.__th.k, notas: run.Pt.__th.notes, extrapolado: run.Pt.__th.extrap,
+          FS: R.cd ? R.cd.FS : null, FS_min: P.FS_min, gira: A.verdict.gira, estructura: A.verdict.estructura, termico: !cur.some((c) => c.grp === "Temperatura" && c.st === "fail"),
+          fuEst: eu ? eu.fu : 0, gobernante: brief(eu), fuTerm: tt ? tt.fu : 0, gobernanteTerm: brief(tt), masa: R.m.total,
+          nFail: cur.filter((c) => c.st === "fail").length, nWarn: cur.filter((c) => c.st === "warn").length,
+          sensibles: rows.filter((r) => r.delta > 1e-9).slice(0, 10), sensibles_est: rows.filter((r) => r.delta > 1e-9 && r.sys !== "term").slice(0, 10), cambian: chg, filas: th };
+      });
+      // sensibilidades a T_scn: Fy del acero 0,92 (ASME II-D), bronce 0,90, μ, UHMW y madera
+      const sc = Tscn, g0 = gradAt(sc), base = thermalRun(Pa, sc, null, frozen, g0, A20, cache), eb = fuEstOf(base.A);
+      const sumSens = (run) => { const e = fuEstOf(run.A); const wr = [];
+        run.A.checks.forEach((c, i) => { const r0 = base.A.checks[i]; if (r0 && r0.st !== c.st && ST_RANK[c.st] > ST_RANK[r0.st]) wr.push({ grp: c.grp, nombre: c.name, de: r0.st, a: c.st, fu: c.fu }); });
+        const tm = fuTermOf(run.A); return { fuEst: e ? e.fu : 0, gobernante: brief(e), fuTerm: tm ? tm.fu : 0, gobernanteTerm: brief(tm), gira: run.A.verdict.gira, estructura: run.A.verdict.estructura, empeoran: wr, dFu: (e ? e.fu : 0) - (eb ? eb.fu : 0) }; };
+      const sens = { T: sc, kFy092: Object.assign(sumSens(thermalRun(Pa, sc, { kT_Fy: 0.92 }, frozen, g0, A20, cache)), { k: 0.92, ref: "ASME II-D Tabla Y-1 (de memoria; confianza C)" }) };
+      if (I.o === 3) sens.bz090 = Object.assign(sumSens(thermalRun(Pa, sc, { kT_bz: 0.90 }, frozen, g0, A20, cache)), { k: 0.90 });
+      const FS0 = base.A.R.cd ? base.A.R.cd.FS : NaN;
+      sens.mu = [0.8, 1, 1.2, 1.5].map((f) => ({ f, FS: FS0 / f, gira: FS0 / f >= P.FS_min - 1e-12 })); sens.mu_crit = FS0 / P.FS_min;   // μ máximo (múltiplo del de diseño) con FS ≥ FS_mín
+      if (I.o === 2) {
+        const uh = (ov) => { const run = thermalRun(Pa, sc, ov, frozen, g0, A20, cache); const rr = run.A.checks.filter((c) => c.grp === "Interfaz inox" && /UHMW/.test(c.name) && c.fu != null && c.kind !== "info"); const m = rr.reduce((b, c) => (!b || (isFinite(c.fu) ? c.fu : 99) > b.fu ? { fu: isFinite(c.fu) ? c.fu : 99, nombre: c.name } : b), null); return { fuUHMW: m ? m.fu : 0, gobernante: m ? m.nombre : null, cumple: !rr.some((c) => c.st === "fail") }; };
+        const ks = [0.3, 0.4, 0.5, 0.6, 0.8, 1.0];
+        sens.uhmw = { kp: ks.map((k) => Object.assign({ k_p: k, k_E: P.kT_E_uh }, uh({ kT_p_uh: k }))), kE: ks.map((k) => Object.assign({ k_p: P.kT_p_uh, k_E: k }, uh({ kT_E_uh: k }))) };
+        let lo = 0.05, hi = 1; if (uh({ kT_p_uh: hi }).cumple) { for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (uh({ kT_p_uh: m }).cumple) hi = m; else lo = m; } sens.uhmw.kp_crit = hi; } else sens.uhmw.kp_crit = null;   // k_p mínimo con el que la lámina cumple a T_scn
+      }
+      if (w) sens.madera = [0.7, 0.5].map((ct) => { const run = thermalRun(Pa, sc, { kT_wood: ct * 1 }, frozen, g0, A20, cache), c = run.A.checks.find((x) => x.grp === "Cubierta" && /Madera: aplastamiento/.test(x.name)); return { Ct: ct, fu: c ? c.fu : null, estado: c ? c.st : null }; });
+      const jun = base.A.checks.filter((c) => c.grp === "Temperatura" && c.sub === "a" && /junta de dilatación requerida/.test(c.name)).map((c) => ({ pieza: c.name.split(":")[0], j_req: c.dem, j_disp: c.cap, fu: c.fu, estado: c.st }));
+      alts.push({ id: id + (w ? "+madera" : ""), alt: id, madera: !!w, nombre: nombre + (w ? " + cubierta de madera" : ""), geometria: { o: I.o, conf: I.conf || null, tss: I.tss, tss2: I.tss2, tuh: I.tuh, tbz: I.tbz, masa20: A20.R.m.total, L: frozen.L },
+        FS20: A20.R.cd ? A20.R.cd.FS : null, byT, sens, juntas: jun });
+    }));
+    const oil = Ts.map((T) => { const o = oilTrapped(P, T); return { T, dT: o.dT, rigido: { bajo: o.rigid.lo.bar, alto: o.rigid.hi.bar }, cilindro: { bajo: o.cyl.lo.bar, alto: o.cyl.hi.bar }, manguera: o.hose.hi.bar, Kc_lame_MPa: o.Kc_lame, seleccion_bar: o.sel.hi.bar }; });
+    return {
+      version: 1, T: Ts, T_ref: Tref, T_scn: Tscn, gradiente_scn: grad, fuente: "docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)»",
+      alternativas: alts, aceite: oil, viscosidad: Ts.map((T) => Object.assign({ T }, oilViscosity(T))), factores: Ts.map((T) => { const f = thermalFactors(P, T); return { T, k: f.k, alpha: f.alpha, extrapolado: f.extrap }; }),
+      avisos: [
+        "Los datos de UHMW-PE, acero inoxidable y bronce son de ficha de fabricante o supuestos (confianza C): confirmar con el proveedor; el UHMW-PE no tiene curva publicada a 80 °C y 80 °C es su límite de servicio continuo",
+        "ASME BTH-1: 80 °C (176 °F) excede el rango estándar (−4 a 66 °C); la sección de BTH-1 sobre temperatura no está confirmada y exige decisión de persona calificada",
+        "Aceite atrapado: un tramo aislado (cilindro + retenciones) exige válvula de alivio térmico; un alivio de sistema aguas arriba no lo protege",
+        "Geometría congelada: el escenario evalúa la geometría dimensionada a 20 °C con las capacidades reducidas; no re-dimensiona",
+      ],
+      supuestos_C: ["UHMW-PE: k_p y k_E (0,40)", "Inoxidable: Fy a 80 °C (0,82)", "Bronce: sin reducción (1,00) y α", "Madera: C_t 0,70 extrapolado a 80 °C (fuera de la tabla NDS)", "Pernos 10.9: 0,94", "Soldadura: sin reducción", "Gradiente plancha superior–inferior 15–18 K (EN 1991-1-5, otra tipología)",
+        "Módulo volumétrico del aceite 1,4–1,9 GPa y rigidez del contenedor (b/a = 1,4 por Lamé)", "Viscosidad mínima de la bomba 10 mm²/s", "Límite del sello NBR 80–120 °C", "μ a T_serv (dato de entrada)", "Holgura buje–pivote en frío"],
+    };
+  }
+
+  return { thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
 })();
 if (false) module.exports = TT;
 
@@ -2086,6 +2397,8 @@ const PLANOS = (() => {
           nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total" };
       })(),
       verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
+      // Escenario térmico (exposición solar, registro.md «Temperatura (exposición solar, 80 °C)»): por alternativa y temperatura; geometría de 20 °C congelada; solo informativo (no entra en el veredicto)
+      termica: TT_.thermal(P),
     };
     return out;
   }
@@ -2781,6 +3094,7 @@ if (false) module.exports = PLANOS;
   $("#tabs").innerHTML = tabs.map((t) => `<button data-t="${t.dataset.t}">${t.dataset.l}</button>`).join("");
   function showTab(t) {
     cur = t;
+    if (t === "temp" && typeof renderTemp === "function") setTimeout(renderTemp, 0);
     tabs.forEach((s) => s.classList.toggle("on", s.dataset.t === t));
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
     try { history.replaceState(null, "", "#" + t); } catch (e) { }
@@ -3268,6 +3582,109 @@ if (false) module.exports = PLANOS;
   const LSK = "tt300c-pkg";
   let pkgSelId = "";
   const SHEET_IDS = (typeof PLANOS !== "undefined") ? PLANOS.SHEETS.map((x) => x.id) : [];
+  /* ---------- Temperatura (exposición solar): escenario aparte, geometría de 20 °C congelada ---------- */
+  let TH = null, THkey = "";
+  const confB = (c) => { const k = c === "A" ? "A" : /C/.test(c || "C") ? "C" : "B"; return `<span class="conf conf-${k}" title="Nivel de confianza del dato (registro): A tabla contrastada · B ficha o dos fuentes · C supuesto o fuente única">${esc(c || "C")}</span>`; };
+  const stCell = (st, txt) => `<td class="n c-${st === "info" || st === "pend" ? "ok" : st}">${txt}</td>`;
+  const pct = (v) => (v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + fmt(v, 3) + " %");
+  function altId() { return (P.opt_ss ? "A" : P.opt_uhmw ? "B" : P.opt_bz ? "C" + Math.min(3, Math.max(1, Math.round(P.bz_conf || 1))) : "base") + (P.opt_wood > 0.5 ? "+madera" : ""); }
+  function setTemp(id, v) {
+    P[id] = v; const inp = $("#p_" + id); if (inp) { inp.value = v; inp.closest(".prm").classList.toggle("chg", P[id] !== DEF[id]); }
+    store.set(LS, JSON.stringify(P)); renderTemp();
+  }
+  function renderTemp() {
+    const el = document.querySelector('section[data-t="temp"]');
+    if (cur !== "temp") return;
+    const ctl = `<div class="card"><h3>Escenario térmico · tornamesa expuesta al sol</h3><div class="tmp-ctl">
+        <label for="tServ">T del cuerpo (°C)</label><input id="tServ" type="number" min="20" max="120" step="5" value="${esc(P.T_serv)}">
+        <label for="dTgrad">Gradiente plancha superior–inferior (K)</label><input id="dTgrad" type="number" min="0" max="40" step="1" value="${esc(P.dT_grad)}">
+        <button class="pri" id="bSolar" title="Fija T_serv = 80 °C y dT_grad = 15 K (hipótesis de la sección «Temperatura (exposición solar, 80 °C)» del registro)">Escenario solar 80 °C</button>
+        <button id="bFrio" title="Vuelve a T_serv = 20 °C y sin gradiente (el escenario muestra entonces el solar por defecto)">T_serv = 20 °C</button></div>
+        <div class="note">Escenario aparte: las demás pestañas siguen a 20 °C. La geometría (espesores de discos y lámina, largos de tope, juntas) se dimensiona a 20 °C y se congela: aquí se evalúa esa misma geometría con las capacidades reducidas a la temperatura. Sin T_serv definida (20 °C) se muestra el escenario solar de 80 °C con 15 K. Todos los factores y límites están en el grupo «Temperatura» del panel izquierdo.</div></div>`;
+    const bind = () => {
+      $("#tServ").onchange = (e) => setTemp("T_serv", Math.min(120, Math.max(20, parseFloat(e.target.value) || 20)));
+      $("#dTgrad").onchange = (e) => setTemp("dT_grad", Math.min(40, Math.max(0, parseFloat(e.target.value) || 0)));
+      $("#bSolar").onclick = () => { P.T_serv = 80; P.dT_grad = 15; ["T_serv", "dT_grad"].forEach((k) => { const inp = $("#p_" + k); if (inp) { inp.value = P[k]; inp.closest(".prm").classList.toggle("chg", P[k] !== DEF[k]); } }); store.set(LS, JSON.stringify(P)); renderTemp(); };
+      $("#bFrio").onclick = () => { P.T_serv = 20; P.dT_grad = 0; ["T_serv", "dT_grad"].forEach((k) => { const inp = $("#p_" + k); if (inp) { inp.value = P[k]; inp.closest(".prm").classList.toggle("chg", P[k] !== DEF[k]); } }); store.set(LS, JSON.stringify(P)); renderTemp(); };
+    };
+    if (!A) { el.innerHTML = ctl + msgs(); bind(); return; }
+    const key = JSON.stringify(P);
+    if (key !== THkey) {
+      el.innerHTML = ctl + `<div class="busy">Calculando el escenario térmico de las 6 alternativas…</div>`; bind();
+      setTimeout(() => { try { TH = TT.thermal(P, { wood: "form" }); THkey = key; } catch (err) { TH = null; el.innerHTML = ctl + `<div class="msg error">Error de cálculo térmico: ${esc(err.message)}</div>`; bind(); return; } renderTemp(); }, 30);
+      return;
+    }
+    el.innerHTML = ctl + tempBody(TH); bind();
+  }
+  function tempBody(r) {
+    const at = (a, T) => a.byT.find((b) => Math.abs(b.T - T) < 1e-9), id0 = altId(), act = r.alternativas.find((a) => a.id === id0) || r.alternativas[0], Tn = r.T_scn;
+    const bitem = (a) => at(a, Tn), b20 = (a) => at(a, r.T_ref) || a.byT[0];
+    const ver = (b) => (b.gira && b.estructura && b.termico ? "ok" : !b.gira || !b.estructura ? "fail" : "warn");
+    const tags = (b) => `${b.gira ? "" : '<span class="st st-fail">No gira con FS_mín</span> '}${b.estructura ? "" : '<span class="st st-fail">Estructura/juntas</span> '}${b.termico ? "" : '<span class="st st-fail">Térmica: aceite/gradiente/juntas</span>'}${b.gira && b.estructura && b.termico ? '<span class="st st-ok">Cumple</span>' : ""}`;
+    const gov = (g) => (g ? esc(g.grp + ": " + g.nombre) + ` <span class="ref">(FU ${fu2(g.fu)})</span>` : "—");
+    const warns = `<div class="msg warn"><b>Datos supuestos (confianza C):</b> los de UHMW-PE, acero inoxidable y bronce son de ficha de fabricante o supuestos (el UHMW-PE no tiene curva publicada a 80 °C y 80 °C es su límite de servicio continuo): confirmar con el proveedor antes de decidir.</div>
+      <div class="msg warn"><b>ASME BTH-1:</b> el rango estándar es −4 a 66 °C; a 80 °C (176 °F) la sección de BTH-1 sobre temperatura no está confirmada y exige decisión de persona calificada (Nd = 3,0 no incluye margen térmico).</div>
+      <div class="msg error"><b>Aceite atrapado:</b> un tramo aislado (cilindro + válvulas de retención) calentado ${fmt(Tn - r.T_ref, 3)} K sube ≈ ${fmt((r.aceite.find((o) => Math.abs(o.T - Tn) < 1e-9) || { cilindro: { alto: 0 } }).cilindro.alto, 3)} bar si el movimiento está restringido (tope, fin de carrera, calado): instalar válvula de alivio térmico en el tramo aislado; un alivio de sistema aguas arriba de la retención no lo protege.</div>
+      ${Tn > 80 ? `<div class="msg warn">T &gt; 80 °C: factores extrapolados linealmente desde el valor tabulado a 80 °C; orden de magnitud.</div>` : ""}`;
+    // 1. Tabla por alternativa al escenario
+    const t1 = r.alternativas.map((a) => {
+      const b = bitem(a), z = b20(a), me = id0 === a.id;
+      const dFS = b.FS / z.FS - 1, dFu = z.fuEst > 0 ? b.fuEst / z.fuEst - 1 : null, dMass = b.masa - z.masa;
+      return `<tr${me ? ' class="grp"' : ""}><td>${me ? "● " : ""}${esc(a.nombre)}</td>
+        <td class="n">${fmt(z.FS)} → ${fmt(b.FS)}<div class="ref">${pct(dFS * 100)}</div></td>
+        <td class="n">${fu2(z.fuEst)} → ${fu2(b.fuEst)}<div class="ref">${pct(dFu == null ? null : dFu * 100)}</div></td>
+        <td>${gov(b.gobernante)}</td>
+        <td class="n">${fu2(z.fuTerm)} → ${fu2(b.fuTerm)}</td><td>${gov(b.gobernanteTerm)}</td>
+        <td class="n">${fmt(b.masa, 4)}${dMass ? ` (${pct(dMass / z.masa * 100)})` : ""}</td>
+        <td>${tags(b)}</td><td class="n">${b.cambian.filter((c) => c.empeora).length}</td></tr>`;
+    }).join("");
+    // 2. Matrices de sensibilidad a la temperatura
+    const hdr = r.T.map((T) => `<th class="n">${fmt(T, 3)} °C</th>`).join("");
+    const mx = (f, cls) => r.alternativas.map((a) => `<tr${id0 === a.id ? ' class="grp"' : ""}><td>${id0 === a.id ? "● " : ""}${esc(a.nombre)}</td>${r.T.map((T) => { const b = at(a, T); return cls(b, f(b)); }).join("")}</tr>`).join("");
+    const cell = (kind) => (b, v) => `<td class="n c-${kind === "est" ? (b.estructura ? (b.fuEst > 0.9 ? "warn" : "ok") : "fail") : kind === "term" ? (b.termico ? (b.fuTerm > 0.9 ? "warn" : "ok") : "fail") : b.gira ? "ok" : "fail"}">${v}</td>`;
+    const t2 = mx((b) => fu2(b.fuEst), cell("est")), t3 = mx((b) => fu2(b.fuTerm), cell("term")), t4 = mx((b) => fmt(b.FS), cell("giro")), t5 = mx((b) => b.nFail, (b, v) => `<td class="n c-${v ? "fail" : "ok"}">${v}</td>`);
+    const kf = r.factores.find((f) => Math.abs(f.T - Tn) < 1e-9) || r.factores[r.factores.length - 1];
+    const fk = `Fy acero ${fu2(kf.k.Fy)} · Fy inox ${fu2(kf.k.Fy_ss)} · E inox ${fmt(kf.k.E_ss, 3)} · UHMW k_p ${fu2(kf.k.p_uh)} / k_E ${fu2(kf.k.E_uh)} · bronce ${fu2(kf.k.bz)} · madera C_t ${fu2(kf.k.wood)} · perno ${fu2(kf.k.bolt)}`;
+    // 3. Detalle de la alternativa activa
+    const a = act, b = bitem(a), z = b20(a);
+    const lst = (arr, st) => arr.map((x) => `<tr><td>${esc(x.grp)}: ${esc(x.nombre)}</td><td class="n">${fu2(x.fu20)}</td><td class="n">${fu2(x.fuT)}</td><td class="n">${pct(x.var_pct)}</td><td><span class="st st-${x.st20}">${ST[x.st20]}</span> → <span class="st st-${x.stT}">${ST[x.stT]}</span></td><td>${confB(x.conf)}</td></tr>`).join("") || `<tr><td colspan="6" class="ref">Ninguna</td></tr>`;
+    const chg = b.cambian.filter((c) => c.empeora).map((c) => `<tr><td>${esc(c.grp)}: ${esc(c.nombre)}</td><td><span class="st st-${c.de}">${ST[c.de]}</span> → <span class="st st-${c.a}">${ST[c.a]}</span></td><td class="n">${fu2(c.fu20)} → ${fu2(c.fuT)}</td><td>${confB(c.conf)}</td></tr>`).join("") || `<tr><td colspan="4" class="ref">Ninguna verificación empeora de estado</td></tr>`;
+    const jun = a.juntas.length ? a.juntas.map((j) => `<tr><td>${esc(j.pieza)}</td><td class="n">${fmt(j.j_req)} mm</td><td class="n">${fmt(j.j_disp)} mm</td><td class="n">${fu2(j.fu)}</td><td><span class="st st-${j.estado}">${j.estado === "fail" ? "Cierra" : ST[j.estado]}</span></td></tr>`).join("") : `<tr><td colspan="5" class="ref">Sin sectores con junta (acero–acero o pegado permanente)</td></tr>`;
+    const rowT = (re) => b.filas.find((f) => re.test(f.nombre));
+    const hs = [["Buje de bronce en el pivote", rowT(/cierre de la holgura diametral/)], ["Uña–pasador: holgura radial (mesa caliente, base a la sombra)", rowT(/holgura radial de la uña/)], ["Patín fuera de la mesa caliente", rowT(/Patín fuera de la mesa/)]].filter((x) => x[1]).map(([n, f]) => `<tr><td>${esc(n)}</td><td class="n">${fmt(f.dem, 3)} ${esc(f.unidad)}</td><td class="n">${fmt(f.cap, 4)}</td><td><span class="st st-${f.estado}">${ST[f.estado]}</span></td></tr>`).join("");
+    const od = r.aceite.map((o) => `<tr${Math.abs(o.T - Tn) < 1e-9 ? ' class="grp"' : ""}><td class="n">${fmt(o.T, 3)}</td><td class="n">${fmt(o.rigido.bajo, 3)} – ${fmt(o.rigido.alto, 3)}</td><td class="n">${fmt(o.cilindro.bajo, 3)} – ${fmt(o.cilindro.alto, 3)}</td><td class="n">${fmt(o.manguera, 3)}</td></tr>`).join("");
+    const oilRows = ["carrera de diseño: p_hold", "tras el calado", "cámara anular", "Válvula de alivio térmico del tramo"].map((k) => b.filas.find((f) => f.nombre.indexOf(k) >= 0)).filter(Boolean)
+      .map((f) => `<tr><td>${esc(f.nombre)}</td><td class="n">${fmt(f.dem, 4)} bar</td><td class="n">${fmt(f.cap, 4)} bar</td><td class="n">${fu2(f.fu)}</td><td><span class="st st-${f.estado}">${ST[f.estado]}</span></td></tr>`).join("");
+    const sm = a.sens, mu = sm.mu.map((m) => `<td class="n c-${m.gira ? "ok" : "fail"}">${fmt(m.FS)}</td>`).join("");
+    const uh = sm.uhmw ? `<div class="card" style="margin-top:12px"><h3>Sensibilidad del UHMW-PE (opción B) a k_p y k_E a ${fmt(Tn, 3)} °C</h3><div class="scroll"><table><tr><th>k</th>${sm.uhmw.kp.map((x) => `<th class="n">${fu2(x.k_p)}</th>`).join("")}</tr>
+        <tr><td>FU máx. de la lámina según k_p (k_E = ${fu2(P.kT_E_uh)})</td>${sm.uhmw.kp.map((x) => `<td class="n c-${x.cumple ? "ok" : "fail"}">${x.fuUHMW >= 99 ? "&gt; 99" : fu2(x.fuUHMW)}</td>`).join("")}</tr>
+        <tr><td>FU máx. de la lámina según k_E (k_p = ${fu2(P.kT_p_uh)})</td>${sm.uhmw.kE.map((x) => `<td class="n c-${x.cumple ? "ok" : "fail"}">${x.fuUHMW >= 99 ? "&gt; 99" : fu2(x.fuUHMW)}</td>`).join("")}</tr></table></div>
+        <div class="note">k_p mínimo con el que la lámina cumple a esa temperatura: <b>${sm.uhmw.kp_crit == null ? "ninguno" : fu2(sm.uhmw.kp_crit)}</b>. El factor de 0,40 es supuesto: exigir al proveedor la curva de módulo y de límite elástico entre 20 y 80 °C; el creep (módulo de fluencia 550 → 300 MPa de 1 h a 1 000 h) y el desgaste crecen con la temperatura (sin dato).</div></div>` : "";
+    const wd = sm.madera ? `<div class="note">Madera: aplastamiento con C_t 0,70 (seca) FU ${fu2(sm.madera[0].fu)} · con C_t 0,50 (húmeda) FU ${fu2(sm.madera[1].fu)}; el secado al sol agrieta los tablones (nota).</div>` : "";
+    return warns + `
+    <div class="card" style="margin-top:12px"><h3>Por alternativa a ${fmt(Tn, 3)} °C (20 °C → ${fmt(Tn, 3)} °C) · gradiente ${fmt(r.gradiente_scn, 3)} K</h3><div class="scroll"><table>
+      <tr><th>Alternativa</th><th class="n">FS giro</th><th class="n">FU estructura máx.</th><th>Elemento gobernante (estructura)</th><th class="n">FU térmico máx.</th><th>Gobernante térmico (juntas, gradiente)</th><th class="n">Masa (kg)</th><th>Estado</th><th class="n">Empeoran de estado</th></tr>${t1}</table></div>
+      <div class="note">FU estructura: verificaciones estándar con las capacidades a T (Fy, p_adm, C_t…) sobre la geometría de 20 °C; FU térmico: juntas de dilatación, gradiente sumado a la plancha, aceite. Factores a ${fmt(Tn, 3)} °C: ${fk}. Los FS del giro no cambian con T salvo que se defina k_mu_T (μ de la grasa a T, dato de entrada). ● alternativa activa.</div></div>
+    <div class="card" style="margin-top:12px"><h3>Sensibilidad a la temperatura</h3><div class="scroll">
+      <table><tr><th>FU estructura máx.</th>${hdr}</tr>${t2}</table><table style="margin-top:8px"><tr><th>FU térmico máx. (juntas + gradiente)</th>${hdr}</tr>${t3}</table>
+      <table style="margin-top:8px"><tr><th>FS del giro (μ constante)</th>${hdr}</tr>${t4}</table><table style="margin-top:8px"><tr><th>N.º de verificaciones que no cumplen (incluye aceite, sellos, viscosidad)</th>${hdr}</tr>${t5}</table></div></div>
+    <div class="card" style="margin-top:12px"><h3>${esc(a.nombre)} · verificaciones que más empeoran a ${fmt(Tn, 3)} °C (aumento de FU, 10 mayores)</h3><div class="scroll"><table><tr><th>Verificación</th><th class="n">FU 20 °C</th><th class="n">FU T</th><th class="n">Variación</th><th>Estado</th><th>Confianza</th></tr>${lst(b.sensibles)}</table></div>
+      <div class="note">Solo estructura y giro (sin aceite, sellos ni viscosidad):</div><div class="scroll"><table><tr><th>Verificación</th><th class="n">FU 20 °C</th><th class="n">FU T</th><th class="n">Variación</th><th>Estado</th><th>Confianza</th></tr>${lst(b.sensibles_est)}</table></div></div>
+    <div class="card" style="margin-top:12px"><h3>Verificaciones que cambian de estado (cumple → no cumple)</h3><div class="scroll"><table><tr><th>Verificación</th><th>Estado</th><th class="n">FU</th><th>Confianza</th></tr>${chg}</table></div></div>
+    <div class="grid" style="margin-top:12px">
+      <div class="card scroll"><h3>Juntas de dilatación: requerida frente a disponible</h3><table><tr><th>Pieza</th><th class="n">Requerida</th><th class="n">Disponible en frío</th><th class="n">FU</th><th>Estado</th></tr>${jun}</table>
+        <div class="note">Si la junta cierra el sector se comprime y pandea: ampliar la junta en frío (j_sec) al valor requerido. La junta en frío es la del diseño a 20 °C (ΔT de diseño ${fmt(P.dT, 3)} K).</div></div>
+      <div class="card scroll"><h3>Holguras de pivote y engrane</h3><table><tr><th>Verificación</th><th class="n">Valor</th><th class="n">Límite</th><th>Estado</th></tr>${hs}</table>
+        <div class="note">El buje de bronce (α 18) crece más que el cubo y el pasador de acero (α 12,4): libre, la holgura aumenta; retenido por el cubo, se reduce unas centésimas de mm. Con la mesa caliente y la base a la sombra el círculo de pasadores crece α·ΔT·R_pin respecto de la uña; con ambos calientes el efecto relativo es despreciable.</div></div></div>
+    <div class="grid" style="margin-top:12px">
+      <div class="card scroll"><h3>Aceite atrapado: Δp térmico por temperatura (bar)</h3><table><tr><th class="n">T (°C)</th><th class="n">Recipiente rígido (K 1,4 – 1,9 GPa)</th><th class="n">Cilindro (Lamé, b/a ${fu2(P.ba_cil)})</th><th class="n">Manguera (K ≈ 0,33 GPa)</th></tr>${od}</table>
+        <div class="note">Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c). A mayor K la presión es mayor: gobierna la cota de 1,9 GPa. Con el pistón libre la presión se mantiene y la expansión sale como carrera; la sobrepresión aparece con movimiento restringido.</div></div>
+      <div class="card scroll"><h3>Presiones atrapadas a ${fmt(Tn, 3)} °C frente al cilindro (${fmt(P.p_max_cil, 3)} bar, prueba ${fmt(1.5 * P.p_max_cil, 4)} bar)</h3><table><tr><th>Verificación</th><th class="n">Demanda</th><th class="n">Límite</th><th class="n">FU</th><th>Estado</th></tr>${oilRows}</table>
+        <div class="note">Tramo aislado = cilindro + retenciones. ${P.alivio_term > 0 ? `Alivio térmico a ${fmt(P.alivio_term, 3)} bar.` : "Sin válvula de alivio térmico (alivio_term = 0): instalar válvula de alivio térmico en el tramo aislado."}</div></div></div>
+    <div class="card" style="margin-top:12px"><h3>Sensibilidad al μ de la grasa (FS del giro a ${fmt(Tn, 3)} °C) · ${esc(a.nombre)}</h3><div class="scroll"><table><tr><th>μ × </th>${sm.mu.map((m) => `<th class="n">${fmt(m.f)}</th>`).join("")}</tr><tr><td>FS del giro (FS_mín ${fu2(P.FS_min)})</td>${mu}</tr></table></div>
+      <div class="note">μ máximo (múltiplo del de diseño) con FS ≥ FS_mín: <b>× ${fu2(sm.mu_crit)}</b>. Con Fy del acero × 0,92 (ASME II-D, confianza C): FU estructura máx. ${fu2(sm.kFy092.fuEst)} (${sm.kFy092.fuEst <= 1 ? "≤ 1,0" : "&gt; 1,0"}); FU térmico máx. ${fu2(sm.kFy092.fuTerm)}.${sm.bz090 ? ` Con bronce × 0,90: FU máx. ${fu2(sm.bz090.fuEst)}.` : ""}</div>${wd}</div>${uh}
+    <div class="note">Fuente de los datos y niveles de confianza (A tabla contrastada, B ficha o dos fuentes, C supuesto): docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)». Supuestos de confianza C: ${r.supuestos_C.map(esc).join("; ")}.</div>`;
+  }
   function download(name, data, type) {
     const blob = new Blob([data], { type });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
@@ -3308,7 +3725,7 @@ if (false) module.exports = PLANOS;
   $("#pkgChk").addEventListener("change", () => { store.set(LSK, $("#pkgChk").checked ? "1" : "0"); renderPkg(); });
 
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg();
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderTemp();
   }
   buildForm(); recalc();
 })();

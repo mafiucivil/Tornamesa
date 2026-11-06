@@ -817,7 +817,7 @@ test("Temperatura · aceite, sellos, grasa y sensibilidades (μ, Fy 0,92, UHMW k
   const v80 = row(bs, 80, /viscosidad a T_serv/), v100 = row(bs, 100, /viscosidad a T_serv/);
   near(v80.cap, TT.oilViscosity(80).lo, 1e-12); near(v80.fu, P.nu_min / TT.oilViscosity(80).lo, 1e-12); assert.equal(v80.estado, "warn", "≈ 11 mm²/s frente al mínimo supuesto de 10: monitoreo"); assert.equal(v100.estado, "fail", "6,8 mm²/s < 10");
   assert.equal(row(bs, 80, /Sellos NBR/).estado, "warn"); assert.equal(row(bs, 100, /Sellos NBR/).estado, "warn", "80–120 °C: solo monitoreo"); assert.equal(row(bs, 40, /Sellos NBR/).estado, "ok");
-  const gr = row(bs, 80, /punto de goteo/); near(gr.fu, 80 / 175, 1e-12); assert.equal(gr.estado, "ok"); assert.ok(/margen = 95 K/.test(gr.formula), "margen de 95 K a 80 °C");
+  const gr = row(bs, 80, /punto de goteo/); near(gr.fu, 80 / 175, 1e-12); assert.equal(gr.estado, "ok"); assert.ok(/T_goteo − T = 95 K/.test(gr.formula), "margen de 95 K a 80 °C");
   // μ: FS(μ·f) = FS/f; el multiplicador máximo con FS ≥ FS_mín es FS/FS_mín
   near(bs.sens.mu[2].FS, bs.FS20 / 1.2, 1e-12); near(bs.sens.mu[3].FS, bs.FS20 / 1.5, 1e-12); assert.equal(bs.sens.mu[1].gira, true); assert.equal(bs.sens.mu[2].gira, false, "μ × 1,2 baja el FS del giro bajo 1,25 en la base"); near(bs.sens.mu_crit, bs.FS20 / P.FS_min, 1e-12);
   assert.ok(by("C1").sens.mu_crit > bs.sens.mu_crit, "el bronce con grafito tiene más margen de μ (μ_d 0,15 frente a 0,20)");
@@ -826,7 +826,7 @@ test("Temperatura · aceite, sellos, grasa y sensibilidades (μ, Fy 0,92, UHMW k
   near(rm.byT[1].FS, rm.byT[0].FS / 1.2, 1e-9, "FS con μ × 1,2"); assert.equal(rm.byT[0].FS, rm.FS20);
   // Fy × 0,92 (ASME II-D): con la base el FU máximo de las verificaciones de fluencia sube 1/0,92 y queda ≤ 1,0
   assert.equal(bs.byT.find((b) => b.T === 80).fuEst, bs.byT[0].fuEst, "k_Fy = 1,00: el FU máximo de la base no cambia a 80 °C");
-  near(bs.sens.kFy092.fuEst, bs.byT[0].fuEst / 0.92, 1e-6, "FU máx / 0,92"); assert.ok(bs.sens.kFy092.fuEst <= 1 && bs.sens.kFy092.estructura, "la base cumple con Fy × 0,92");
+  near(bs.sens.kFy092.fuEst, bs.byT[0].fuEst / 0.92, 1e-6, "FU máx / 0,92"); assert.ok(bs.sens.kFy092.fuEst <= 1, "la base mantiene FU ≤ 1,0 en las verificaciones estándar con Fy × 0,92: " + bs.sens.kFy092.fuEst); assert.ok(bs.sens.kFy092.fuTerm > 1 && /Gradiente/.test(bs.sens.kFy092.gobernanteTerm.nombre), "pero con el gradiente de 15 K sumado, la plancha supera 1,0: " + bs.sens.kFy092.fuTerm);
   assert.ok(bs.sens.kFy092.empeoran.length > 0 && bs.sens.kFy092.empeoran.every((x) => x.de !== "fail"));
   // inox (A, B): el Fy del inox baja 18 % → los topes de los discos (dimensionados para FU 0,90) pasan de 1,0: cambian de estado
   for (const id of ["A", "B"]) { const cam = by(id).byT.find((b) => b.T === 80).cambian.filter((c) => /aplastamiento del tope/.test(c.nombre)); assert.ok(cam.length >= 1 && cam.every((c) => c.de === "ok" && c.a === "fail" && c.empeora), id + ": tope del disco inox falla a 80 °C"); }

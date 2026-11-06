@@ -168,7 +168,7 @@ table(["Campo", "Valor"], [
     ["Documento", DOC], ["Revisión", REV], ["Fecha", D["fecha"]],
     ["Estado", "Emitido para revisión – no apto para fabricación hasta aprobación"],
     ["Planos asociados", "TT300-C-D-01, D-02, F-01, F-02, F-03, F-04 (Rev. B)"],
-    ["Herramienta de verificación", "Tornamesa_v1.0.html (misma fuente de datos)"],
+    ["Herramienta de verificación", "Tornamesa_v1.1.html (misma fuente de datos)"],
     ["Normas principales", "AISC 360-22 (ASD); ASME BTH-1, Categoría de diseño B (Nd = 3,0); AWS D1.1/D1.1M:2020"],
 ], widths=(50, 120), size=9.5)
 table(["", "Nombre", "Firma", "Fecha"], [["Elaboró", "", "", ""], ["Revisó", "", "", ""], ["Aprobó", "", "", ""]], widths=(25, 65, 45, 35), size=9.5)

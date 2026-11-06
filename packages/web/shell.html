@@ -86,6 +86,12 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 .pkg .kv span:nth-child(even){font-family:var(--sans);text-align:right}
 .pkg ul{margin:4px 0 6px;padding-left:16px;color:var(--ink2);font-size:12px}
 .pkg select{font:12.5px var(--sans);padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);max-width:100%}
+.tmp-ctl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.tmp-ctl label{font-size:12.5px;color:var(--ink2)}
+.tmp-ctl input{width:84px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12.5px var(--mono);text-align:right}
+.conf{display:inline-block;min-width:22px;text-align:center;padding:0 5px;border-radius:4px;font-size:11px;font-weight:700;background:var(--infobg);color:var(--info)}
+.conf-C{background:var(--warnbg);color:var(--warn)}.conf-B{background:var(--pendbg);color:var(--pend)}.conf-A{background:var(--okbg);color:var(--ok)}
+td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{background:var(--failbg)}
 .pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
@@ -126,6 +132,7 @@ svg text{font-family:var(--sans);fill:var(--ink)}
     <section class="tab" data-t="verif" data-l="Verificaciones"></section>
     <section class="tab" data-t="fea" data-l="FEA"></section>
     <section class="tab" data-t="masa" data-l="Masas"></section>
+    <section class="tab" data-t="temp" data-l="Temperatura"></section>
     <section class="tab" data-t="agentes" data-l="Agentes"></section>
     <section class="tab" data-t="opt" data-l="Optimizador"></section>
   </main>

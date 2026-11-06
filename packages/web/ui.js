@@ -30,6 +30,7 @@
   $("#tabs").innerHTML = tabs.map((t) => `<button data-t="${t.dataset.t}">${t.dataset.l}</button>`).join("");
   function showTab(t) {
     cur = t;
+    if (t === "temp" && typeof renderTemp === "function") setTimeout(renderTemp, 0);
     tabs.forEach((s) => s.classList.toggle("on", s.dataset.t === t));
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
     try { history.replaceState(null, "", "#" + t); } catch (e) { }
@@ -517,6 +518,109 @@
   const LSK = "tt300c-pkg";
   let pkgSelId = "";
   const SHEET_IDS = (typeof PLANOS !== "undefined") ? PLANOS.SHEETS.map((x) => x.id) : [];
+  /* ---------- Temperatura (exposición solar): escenario aparte, geometría de 20 °C congelada ---------- */
+  let TH = null, THkey = "";
+  const confB = (c) => { const k = c === "A" ? "A" : /C/.test(c || "C") ? "C" : "B"; return `<span class="conf conf-${k}" title="Nivel de confianza del dato (registro): A tabla contrastada · B ficha o dos fuentes · C supuesto o fuente única">${esc(c || "C")}</span>`; };
+  const stCell = (st, txt) => `<td class="n c-${st === "info" || st === "pend" ? "ok" : st}">${txt}</td>`;
+  const pct = (v) => (v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "") + fmt(v, 3) + " %");
+  function altId() { return (P.opt_ss ? "A" : P.opt_uhmw ? "B" : P.opt_bz ? "C" + Math.min(3, Math.max(1, Math.round(P.bz_conf || 1))) : "base") + (P.opt_wood > 0.5 ? "+madera" : ""); }
+  function setTemp(id, v) {
+    P[id] = v; const inp = $("#p_" + id); if (inp) { inp.value = v; inp.closest(".prm").classList.toggle("chg", P[id] !== DEF[id]); }
+    store.set(LS, JSON.stringify(P)); renderTemp();
+  }
+  function renderTemp() {
+    const el = document.querySelector('section[data-t="temp"]');
+    if (cur !== "temp") return;
+    const ctl = `<div class="card"><h3>Escenario térmico · tornamesa expuesta al sol</h3><div class="tmp-ctl">
+        <label for="tServ">T del cuerpo (°C)</label><input id="tServ" type="number" min="20" max="120" step="5" value="${esc(P.T_serv)}">
+        <label for="dTgrad">Gradiente plancha superior–inferior (K)</label><input id="dTgrad" type="number" min="0" max="40" step="1" value="${esc(P.dT_grad)}">
+        <button class="pri" id="bSolar" title="Fija T_serv = 80 °C y dT_grad = 15 K (hipótesis de la sección «Temperatura (exposición solar, 80 °C)» del registro)">Escenario solar 80 °C</button>
+        <button id="bFrio" title="Vuelve a T_serv = 20 °C y sin gradiente (el escenario muestra entonces el solar por defecto)">T_serv = 20 °C</button></div>
+        <div class="note">Escenario aparte: las demás pestañas siguen a 20 °C. La geometría (espesores de discos y lámina, largos de tope, juntas) se dimensiona a 20 °C y se congela: aquí se evalúa esa misma geometría con las capacidades reducidas a la temperatura. Sin T_serv definida (20 °C) se muestra el escenario solar de 80 °C con 15 K. Todos los factores y límites están en el grupo «Temperatura» del panel izquierdo.</div></div>`;
+    const bind = () => {
+      $("#tServ").onchange = (e) => setTemp("T_serv", Math.min(120, Math.max(20, parseFloat(e.target.value) || 20)));
+      $("#dTgrad").onchange = (e) => setTemp("dT_grad", Math.min(40, Math.max(0, parseFloat(e.target.value) || 0)));
+      $("#bSolar").onclick = () => { P.T_serv = 80; P.dT_grad = 15; ["T_serv", "dT_grad"].forEach((k) => { const inp = $("#p_" + k); if (inp) { inp.value = P[k]; inp.closest(".prm").classList.toggle("chg", P[k] !== DEF[k]); } }); store.set(LS, JSON.stringify(P)); renderTemp(); };
+      $("#bFrio").onclick = () => { P.T_serv = 20; P.dT_grad = 0; ["T_serv", "dT_grad"].forEach((k) => { const inp = $("#p_" + k); if (inp) { inp.value = P[k]; inp.closest(".prm").classList.toggle("chg", P[k] !== DEF[k]); } }); store.set(LS, JSON.stringify(P)); renderTemp(); };
+    };
+    if (!A) { el.innerHTML = ctl + msgs(); bind(); return; }
+    const key = JSON.stringify(P);
+    if (key !== THkey) {
+      el.innerHTML = ctl + `<div class="busy">Calculando el escenario térmico de las 6 alternativas…</div>`; bind();
+      setTimeout(() => { try { TH = TT.thermal(P, { wood: "form" }); THkey = key; } catch (err) { TH = null; el.innerHTML = ctl + `<div class="msg error">Error de cálculo térmico: ${esc(err.message)}</div>`; bind(); return; } renderTemp(); }, 30);
+      return;
+    }
+    el.innerHTML = ctl + tempBody(TH); bind();
+  }
+  function tempBody(r) {
+    const at = (a, T) => a.byT.find((b) => Math.abs(b.T - T) < 1e-9), id0 = altId(), act = r.alternativas.find((a) => a.id === id0) || r.alternativas[0], Tn = r.T_scn;
+    const bitem = (a) => at(a, Tn), b20 = (a) => at(a, r.T_ref) || a.byT[0];
+    const ver = (b) => (b.gira && b.estructura && b.termico ? "ok" : !b.gira || !b.estructura ? "fail" : "warn");
+    const tags = (b) => `${b.gira ? "" : '<span class="st st-fail">No gira con FS_mín</span> '}${b.estructura ? "" : '<span class="st st-fail">Estructura/juntas</span> '}${b.termico ? "" : '<span class="st st-fail">Térmica: aceite/gradiente/juntas</span>'}${b.gira && b.estructura && b.termico ? '<span class="st st-ok">Cumple</span>' : ""}`;
+    const gov = (g) => (g ? esc(g.grp + ": " + g.nombre) + ` <span class="ref">(FU ${fu2(g.fu)})</span>` : "—");
+    const warns = `<div class="msg warn"><b>Datos supuestos (confianza C):</b> los de UHMW-PE, acero inoxidable y bronce son de ficha de fabricante o supuestos (el UHMW-PE no tiene curva publicada a 80 °C y 80 °C es su límite de servicio continuo): confirmar con el proveedor antes de decidir.</div>
+      <div class="msg warn"><b>ASME BTH-1:</b> el rango estándar es −4 a 66 °C; a 80 °C (176 °F) la sección de BTH-1 sobre temperatura no está confirmada y exige decisión de persona calificada (Nd = 3,0 no incluye margen térmico).</div>
+      <div class="msg error"><b>Aceite atrapado:</b> un tramo aislado (cilindro + válvulas de retención) calentado ${fmt(Tn - r.T_ref, 3)} K sube ≈ ${fmt((r.aceite.find((o) => Math.abs(o.T - Tn) < 1e-9) || { cilindro: { alto: 0 } }).cilindro.alto, 3)} bar si el movimiento está restringido (tope, fin de carrera, calado): instalar válvula de alivio térmico en el tramo aislado; un alivio de sistema aguas arriba de la retención no lo protege.</div>
+      ${Tn > 80 ? `<div class="msg warn">T &gt; 80 °C: factores extrapolados linealmente desde el valor tabulado a 80 °C; orden de magnitud.</div>` : ""}`;
+    // 1. Tabla por alternativa al escenario
+    const t1 = r.alternativas.map((a) => {
+      const b = bitem(a), z = b20(a), me = id0 === a.id;
+      const dFS = b.FS / z.FS - 1, dFu = z.fuEst > 0 ? b.fuEst / z.fuEst - 1 : null, dMass = b.masa - z.masa;
+      return `<tr${me ? ' class="grp"' : ""}><td>${me ? "● " : ""}${esc(a.nombre)}</td>
+        <td class="n">${fmt(z.FS)} → ${fmt(b.FS)}<div class="ref">${pct(dFS * 100)}</div></td>
+        <td class="n">${fu2(z.fuEst)} → ${fu2(b.fuEst)}<div class="ref">${pct(dFu == null ? null : dFu * 100)}</div></td>
+        <td>${gov(b.gobernante)}</td>
+        <td class="n">${fu2(z.fuTerm)} → ${fu2(b.fuTerm)}</td><td>${gov(b.gobernanteTerm)}</td>
+        <td class="n">${fmt(b.masa, 4)}${dMass ? ` (${pct(dMass / z.masa * 100)})` : ""}</td>
+        <td>${tags(b)}</td><td class="n">${b.cambian.filter((c) => c.empeora).length}</td></tr>`;
+    }).join("");
+    // 2. Matrices de sensibilidad a la temperatura
+    const hdr = r.T.map((T) => `<th class="n">${fmt(T, 3)} °C</th>`).join("");
+    const mx = (f, cls) => r.alternativas.map((a) => `<tr${id0 === a.id ? ' class="grp"' : ""}><td>${id0 === a.id ? "● " : ""}${esc(a.nombre)}</td>${r.T.map((T) => { const b = at(a, T); return cls(b, f(b)); }).join("")}</tr>`).join("");
+    const cell = (kind) => (b, v) => `<td class="n c-${kind === "est" ? (b.estructura ? (b.fuEst > 0.9 ? "warn" : "ok") : "fail") : kind === "term" ? (b.termico ? (b.fuTerm > 0.9 ? "warn" : "ok") : "fail") : b.gira ? "ok" : "fail"}">${v}</td>`;
+    const t2 = mx((b) => fu2(b.fuEst), cell("est")), t3 = mx((b) => fu2(b.fuTerm), cell("term")), t4 = mx((b) => fmt(b.FS), cell("giro")), t5 = mx((b) => b.nFail, (b, v) => `<td class="n c-${v ? "fail" : "ok"}">${v}</td>`);
+    const kf = r.factores.find((f) => Math.abs(f.T - Tn) < 1e-9) || r.factores[r.factores.length - 1];
+    const fk = `Fy acero ${fu2(kf.k.Fy)} · Fy inox ${fu2(kf.k.Fy_ss)} · E inox ${fmt(kf.k.E_ss, 3)} · UHMW k_p ${fu2(kf.k.p_uh)} / k_E ${fu2(kf.k.E_uh)} · bronce ${fu2(kf.k.bz)} · madera C_t ${fu2(kf.k.wood)} · perno ${fu2(kf.k.bolt)}`;
+    // 3. Detalle de la alternativa activa
+    const a = act, b = bitem(a), z = b20(a);
+    const lst = (arr, st) => arr.map((x) => `<tr><td>${esc(x.grp)}: ${esc(x.nombre)}</td><td class="n">${fu2(x.fu20)}</td><td class="n">${fu2(x.fuT)}</td><td class="n">${pct(x.var_pct)}</td><td><span class="st st-${x.st20}">${ST[x.st20]}</span> → <span class="st st-${x.stT}">${ST[x.stT]}</span></td><td>${confB(x.conf)}</td></tr>`).join("") || `<tr><td colspan="6" class="ref">Ninguna</td></tr>`;
+    const chg = b.cambian.filter((c) => c.empeora).map((c) => `<tr><td>${esc(c.grp)}: ${esc(c.nombre)}</td><td><span class="st st-${c.de}">${ST[c.de]}</span> → <span class="st st-${c.a}">${ST[c.a]}</span></td><td class="n">${fu2(c.fu20)} → ${fu2(c.fuT)}</td><td>${confB(c.conf)}</td></tr>`).join("") || `<tr><td colspan="4" class="ref">Ninguna verificación empeora de estado</td></tr>`;
+    const jun = a.juntas.length ? a.juntas.map((j) => `<tr><td>${esc(j.pieza)}</td><td class="n">${fmt(j.j_req)} mm</td><td class="n">${fmt(j.j_disp)} mm</td><td class="n">${fu2(j.fu)}</td><td><span class="st st-${j.estado}">${j.estado === "fail" ? "Cierra" : ST[j.estado]}</span></td></tr>`).join("") : `<tr><td colspan="5" class="ref">Sin sectores con junta (acero–acero o pegado permanente)</td></tr>`;
+    const rowT = (re) => b.filas.find((f) => re.test(f.nombre));
+    const hs = [["Buje de bronce en el pivote", rowT(/cierre de la holgura diametral/)], ["Uña–pasador: holgura radial (mesa caliente, base a la sombra)", rowT(/holgura radial de la uña/)], ["Patín fuera de la mesa caliente", rowT(/Patín fuera de la mesa/)]].filter((x) => x[1]).map(([n, f]) => `<tr><td>${esc(n)}</td><td class="n">${fmt(f.dem, 3)} ${esc(f.unidad)}</td><td class="n">${fmt(f.cap, 4)}</td><td><span class="st st-${f.estado}">${ST[f.estado]}</span></td></tr>`).join("");
+    const od = r.aceite.map((o) => `<tr${Math.abs(o.T - Tn) < 1e-9 ? ' class="grp"' : ""}><td class="n">${fmt(o.T, 3)}</td><td class="n">${fmt(o.rigido.bajo, 3)} – ${fmt(o.rigido.alto, 3)}</td><td class="n">${fmt(o.cilindro.bajo, 3)} – ${fmt(o.cilindro.alto, 3)}</td><td class="n">${fmt(o.manguera, 3)}</td></tr>`).join("");
+    const oilRows = ["carrera de diseño: p_hold", "tras el calado", "cámara anular", "Válvula de alivio térmico del tramo"].map((k) => b.filas.find((f) => f.nombre.indexOf(k) >= 0)).filter(Boolean)
+      .map((f) => `<tr><td>${esc(f.nombre)}</td><td class="n">${fmt(f.dem, 4)} bar</td><td class="n">${fmt(f.cap, 4)} bar</td><td class="n">${fu2(f.fu)}</td><td><span class="st st-${f.estado}">${ST[f.estado]}</span></td></tr>`).join("");
+    const sm = a.sens, mu = sm.mu.map((m) => `<td class="n c-${m.gira ? "ok" : "fail"}">${fmt(m.FS)}</td>`).join("");
+    const uh = sm.uhmw ? `<div class="card" style="margin-top:12px"><h3>Sensibilidad del UHMW-PE (opción B) a k_p y k_E a ${fmt(Tn, 3)} °C</h3><div class="scroll"><table><tr><th>k</th>${sm.uhmw.kp.map((x) => `<th class="n">${fu2(x.k_p)}</th>`).join("")}</tr>
+        <tr><td>FU máx. de la lámina según k_p (k_E = ${fu2(P.kT_E_uh)})</td>${sm.uhmw.kp.map((x) => `<td class="n c-${x.cumple ? "ok" : "fail"}">${x.fuUHMW >= 99 ? "&gt; 99" : fu2(x.fuUHMW)}</td>`).join("")}</tr>
+        <tr><td>FU máx. de la lámina según k_E (k_p = ${fu2(P.kT_p_uh)})</td>${sm.uhmw.kE.map((x) => `<td class="n c-${x.cumple ? "ok" : "fail"}">${x.fuUHMW >= 99 ? "&gt; 99" : fu2(x.fuUHMW)}</td>`).join("")}</tr></table></div>
+        <div class="note">k_p mínimo con el que la lámina cumple a esa temperatura: <b>${sm.uhmw.kp_crit == null ? "ninguno" : fu2(sm.uhmw.kp_crit)}</b>. El factor de 0,40 es supuesto: exigir al proveedor la curva de módulo y de límite elástico entre 20 y 80 °C; el creep (módulo de fluencia 550 → 300 MPa de 1 h a 1 000 h) y el desgaste crecen con la temperatura (sin dato).</div></div>` : "";
+    const wd = sm.madera ? `<div class="note">Madera: aplastamiento con C_t 0,70 (seca) FU ${fu2(sm.madera[0].fu)} · con C_t 0,50 (húmeda) FU ${fu2(sm.madera[1].fu)}; el secado al sol agrieta los tablones (nota).</div>` : "";
+    return warns + `
+    <div class="card" style="margin-top:12px"><h3>Por alternativa a ${fmt(Tn, 3)} °C (20 °C → ${fmt(Tn, 3)} °C) · gradiente ${fmt(r.gradiente_scn, 3)} K</h3><div class="scroll"><table>
+      <tr><th>Alternativa</th><th class="n">FS giro</th><th class="n">FU estructura máx.</th><th>Elemento gobernante (estructura)</th><th class="n">FU térmico máx.</th><th>Gobernante térmico (juntas, gradiente)</th><th class="n">Masa (kg)</th><th>Estado</th><th class="n">Empeoran de estado</th></tr>${t1}</table></div>
+      <div class="note">FU estructura: verificaciones estándar con las capacidades a T (Fy, p_adm, C_t…) sobre la geometría de 20 °C; FU térmico: juntas de dilatación, gradiente sumado a la plancha, aceite. Factores a ${fmt(Tn, 3)} °C: ${fk}. Los FS del giro no cambian con T salvo que se defina k_mu_T (μ de la grasa a T, dato de entrada). ● alternativa activa.</div></div>
+    <div class="card" style="margin-top:12px"><h3>Sensibilidad a la temperatura</h3><div class="scroll">
+      <table><tr><th>FU estructura máx.</th>${hdr}</tr>${t2}</table><table style="margin-top:8px"><tr><th>FU térmico máx. (juntas + gradiente)</th>${hdr}</tr>${t3}</table>
+      <table style="margin-top:8px"><tr><th>FS del giro (μ constante)</th>${hdr}</tr>${t4}</table><table style="margin-top:8px"><tr><th>N.º de verificaciones que no cumplen (incluye aceite, sellos, viscosidad)</th>${hdr}</tr>${t5}</table></div></div>
+    <div class="card" style="margin-top:12px"><h3>${esc(a.nombre)} · verificaciones que más empeoran a ${fmt(Tn, 3)} °C (aumento de FU, 10 mayores)</h3><div class="scroll"><table><tr><th>Verificación</th><th class="n">FU 20 °C</th><th class="n">FU T</th><th class="n">Variación</th><th>Estado</th><th>Confianza</th></tr>${lst(b.sensibles)}</table></div>
+      <div class="note">Solo estructura y giro (sin aceite, sellos ni viscosidad):</div><div class="scroll"><table><tr><th>Verificación</th><th class="n">FU 20 °C</th><th class="n">FU T</th><th class="n">Variación</th><th>Estado</th><th>Confianza</th></tr>${lst(b.sensibles_est)}</table></div></div>
+    <div class="card" style="margin-top:12px"><h3>Verificaciones que cambian de estado (cumple → no cumple)</h3><div class="scroll"><table><tr><th>Verificación</th><th>Estado</th><th class="n">FU</th><th>Confianza</th></tr>${chg}</table></div></div>
+    <div class="grid" style="margin-top:12px">
+      <div class="card scroll"><h3>Juntas de dilatación: requerida frente a disponible</h3><table><tr><th>Pieza</th><th class="n">Requerida</th><th class="n">Disponible en frío</th><th class="n">FU</th><th>Estado</th></tr>${jun}</table>
+        <div class="note">Si la junta cierra el sector se comprime y pandea: ampliar la junta en frío (j_sec) al valor requerido. La junta en frío es la del diseño a 20 °C (ΔT de diseño ${fmt(P.dT, 3)} K).</div></div>
+      <div class="card scroll"><h3>Holguras de pivote y engrane</h3><table><tr><th>Verificación</th><th class="n">Valor</th><th class="n">Límite</th><th>Estado</th></tr>${hs}</table>
+        <div class="note">El buje de bronce (α 18) crece más que el cubo y el pasador de acero (α 12,4): libre, la holgura aumenta; retenido por el cubo, se reduce unas centésimas de mm. Con la mesa caliente y la base a la sombra el círculo de pasadores crece α·ΔT·R_pin respecto de la uña; con ambos calientes el efecto relativo es despreciable.</div></div></div>
+    <div class="grid" style="margin-top:12px">
+      <div class="card scroll"><h3>Aceite atrapado: Δp térmico por temperatura (bar)</h3><table><tr><th class="n">T (°C)</th><th class="n">Recipiente rígido (K 1,4 – 1,9 GPa)</th><th class="n">Cilindro (Lamé, b/a ${fu2(P.ba_cil)})</th><th class="n">Manguera (K ≈ 0,33 GPa)</th></tr>${od}</table>
+        <div class="note">Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c). A mayor K la presión es mayor: gobierna la cota de 1,9 GPa. Con el pistón libre la presión se mantiene y la expansión sale como carrera; la sobrepresión aparece con movimiento restringido.</div></div>
+      <div class="card scroll"><h3>Presiones atrapadas a ${fmt(Tn, 3)} °C frente al cilindro (${fmt(P.p_max_cil, 3)} bar, prueba ${fmt(1.5 * P.p_max_cil, 4)} bar)</h3><table><tr><th>Verificación</th><th class="n">Demanda</th><th class="n">Límite</th><th class="n">FU</th><th>Estado</th></tr>${oilRows}</table>
+        <div class="note">Tramo aislado = cilindro + retenciones. ${P.alivio_term > 0 ? `Alivio térmico a ${fmt(P.alivio_term, 3)} bar.` : "Sin válvula de alivio térmico (alivio_term = 0): instalar válvula de alivio térmico en el tramo aislado."}</div></div></div>
+    <div class="card" style="margin-top:12px"><h3>Sensibilidad al μ de la grasa (FS del giro a ${fmt(Tn, 3)} °C) · ${esc(a.nombre)}</h3><div class="scroll"><table><tr><th>μ × </th>${sm.mu.map((m) => `<th class="n">${fmt(m.f)}</th>`).join("")}</tr><tr><td>FS del giro (FS_mín ${fu2(P.FS_min)})</td>${mu}</tr></table></div>
+      <div class="note">μ máximo (múltiplo del de diseño) con FS ≥ FS_mín: <b>× ${fu2(sm.mu_crit)}</b>. Con Fy del acero × 0,92 (ASME II-D, confianza C): FU estructura máx. ${fu2(sm.kFy092.fuEst)} (${sm.kFy092.fuEst <= 1 ? "≤ 1,0" : "&gt; 1,0"}); FU térmico máx. ${fu2(sm.kFy092.fuTerm)}.${sm.bz090 ? ` Con bronce × 0,90: FU máx. ${fu2(sm.bz090.fuEst)}.` : ""}</div>${wd}</div>${uh}
+    <div class="note">Fuente de los datos y niveles de confianza (A tabla contrastada, B ficha o dos fuentes, C supuesto): docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)». Supuestos de confianza C: ${r.supuestos_C.map(esc).join("; ")}.</div>`;
+  }
   function download(name, data, type) {
     const blob = new Blob([data], { type });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
@@ -557,7 +661,7 @@
   $("#pkgChk").addEventListener("change", () => { store.set(LSK, $("#pkgChk").checked ? "1" : "0"); renderPkg(); });
 
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg();
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderTemp();
   }
   buildForm(); recalc();
 })();
