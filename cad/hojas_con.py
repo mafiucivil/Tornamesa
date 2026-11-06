@@ -204,7 +204,7 @@ STEPS = [
 def sheet_conjunto(ctx):
     g, P, m = ctx.g, ctx.P, ctx.m
     ks = all_keys(ctx)
-    c = Conj(ctx, 1, ks, "CONJUNTO GENERAL DEL EQUIPO: PLANTA, ELEVACIÓN, CORTES E ISOMÉTRICA")
+    c = Conj(ctx, 1, ks, "CONJUNTO GENERAL DEL EQUIPO: PLANTA, ELEVACIÓN Y CORTES A-A Y B-B")
     s = c.s
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
     B, tb = g.B, g.tb

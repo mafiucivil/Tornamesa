@@ -18,6 +18,7 @@ import draw as dr
 from draw import Sheet, tw, wrapw, T_N, T_S, T_T
 import autodim
 
+MAIN_BOOST = 1.0
 GAP = 4.0       # separación entre celdas [mm de papel]
 DIMSTEP = 8.5   # paso entre líneas de cota apiladas
 TITLE_H = 17.0  # altura reservada para el título de la vista y su escala
@@ -323,6 +324,8 @@ class Plano:
     def vs(self, name, keys, view, **kw):
         if isinstance(keys, str):
             keys = [keys]
+        if not self.specs and "w" in kw:
+            kw["w"] = kw["w"] * MAIN_BOOST      # la primera vista declarada es la principal: mayor peso en el reparto de escalas
         sp = VS(name, keys, view, **kw)
         self.specs.append(sp)
         return sp
