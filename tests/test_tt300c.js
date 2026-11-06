@@ -902,3 +902,154 @@ test("Temperatura · golden del escenario anterior (term_alcance = 2 reproduce e
   };
   cmp(snap, g, "golden-termica");
 });
+
+/* Conteo independiente de los tapones: malla escalonada propia (coordenadas cartesianas), sin reutilizar el código del núcleo.
+   Centros de la malla (paso p, fila alterna p·√3/2, anclada al centro de la mesa) cuyo borde queda a ≥ bz_edge del borde del bronce, de las muescas, de los tornillos y de las ranuras. */
+function tapIndep(P, R, conf, d, p, edge) {
+  const I = R.ifc, Ri = R.Ri, Ro = R.Ro, n = conf === 3 ? P.bz_npad : P.n_sec, th = 2 * Math.PI / n, m = edge + d / 2, cov = conf === 3 ? I.cov : 1;
+  const L = P.fix_mode < 1.5 ? I.topes.find((t) => t.id === "bz0").L : 0, hb = (P.b_tope + 2) / 2, ru = R.r_u;
+  const gap = Math.max(...I.cortes.filter((c) => !c.strip).map((c) => c.j), P.j_sec);   // junta en frío efectiva entre sectores (mm)
+  const dk = { 4: 8, 5: 10, 6: 12, 8: 16, 10: 20, 12: 24 }[P.d_tor] || 2 * P.d_tor;
+  const rScrew = P.fix_mode < 1.5 ? I.tap.radios : [];
+  const rCirc = P.h_gr > 0 ? I.tap.r_circ : [];
+  let N = 0;
+  const nrow = Math.ceil(Ro / (p * Math.sqrt(3) / 2)) + 2;
+  for (let j = -nrow; j <= nrow; j++) for (let i = -nrow; i <= nrow; i++) {
+    const x = i * p + (Math.abs(j) % 2) * p / 2, y = j * p * Math.sqrt(3) / 2, r = Math.hypot(x, y);
+    if (r < Ri + m || r > Ro - m) continue;
+    let ang = Math.atan2(y, x); if (ang < 0) ang += 2 * Math.PI;
+    const k = Math.min(n - 1, Math.floor(ang / th + 1e-12)), a = (k + 0.5) * th;
+    const xl = x * Math.cos(a) + y * Math.sin(a), yl = -x * Math.sin(a) + y * Math.cos(a);   // marco local: bisectriz del sector sobre +x
+    const sd = (b, px, py) => -px * Math.sin(b) + py * Math.cos(b);                         // distancia con signo a la recta radial de ángulo b (positiva hacia +θ)
+    let e1, e2;
+    if (conf === 3) { const ph = th * cov / 2; e1 = sd(-ph, xl, yl); e2 = -sd(ph, xl, yl); }     // pastilla: bordes radiales a ±(cobertura·paso angular)/2
+    else { e1 = sd(-th / 2, xl, yl) - gap / 2; e2 = -sd(th / 2, xl, yl) - gap / 2; }              // sector: bordes en las radiales de contorno, separados por la junta
+    if (e1 < m || e2 < m) continue;
+    if (L > 0 && Math.abs(yl) < hb + m && xl > ru - L / 2 - m && xl < ru + L / 2 + m) continue;
+    if (rScrew.some((rr) => Math.hypot(xl - rr, yl) < dk / 2 + m)) continue;
+    if (rCirc.some((rg) => Math.abs(r - rg) < P.w_gr / 2 + m)) continue;
+    if (P.h_gr > 0) {   // ranuras radiales equiespaciadas: distancia lateral del centro a la recta de la ranura (semirrecta que sale del centro de la mesa)
+      let hit = false;
+      for (let q = 0; q < P.n_gr_rad && !hit; q++) { const f = 2 * Math.PI * q / P.n_gr_rad; if (x * Math.cos(f) + y * Math.sin(f) > 0 && Math.abs(sd(f, x, y)) < P.w_gr / 2 + m) hit = true; }
+      if (hit) continue;
+    }
+    N++;
+  }
+  return N;
+}
+const C_VARS = [["C1", 1], ["C2", 2], ["C3", 3]];
+const bzA = (conf, o) => TT.analyze(Object.assign(TT.defaults(), { opt_bz: 1, bz_conf: conf }, o || {}), { noFEA: true });
+
+test("Tapones · parámetros nuevos (bz_edge 4, bz_fg_modo 1, bz_fg_min 0,20 supuesto C, bz_eta_min 0,45, bz_n_tor 2) y defaults del patrón sin cambios", () => {
+  const P = TT.defaults(), g = (id) => TT.PARAM_GROUPS.flatMap((x) => x.p).find((q) => q[0] === id);
+  assert.deepEqual([P.bz_edge, P.bz_fg_modo, P.bz_fg_min, P.bz_eta_min, P.bz_n_tor, P.bz_fg_estricto], [4, 1, 0.20, 0.45, 2, 0]);
+  assert.ok(/supuesto C/.test(g("bz_fg_min")[1]) && /catálogo/.test(g("bz_fg_min")[1]), "bz_fg_min declarado como supuesto C a confirmar con catálogo");
+  assert.deepEqual([P.bz_plug_d, P.bz_plug_p], [12, 30], "el barrido no encuentra un patrón que cumpla f_g ≥ 0,20 con η ≥ 0,45: se conserva Ø12 · paso 30");
+});
+
+test("Tapones · N_real contra el conteo independiente (malla propia): C1, C2 y C3; f_g,real = N·π·d²/4/A_contacto ≤ f_g,ideal", () => {
+  for (const [nm, conf] of C_VARS) {
+    const A = bzA(conf), R = A.R, I = R.ifc, P = A.P, T = I.tap, ctx = nm + ": ";
+    assert.equal(T.N, tapIndep(P, R, conf, P.bz_plug_d, P.bz_plug_p, P.bz_edge), ctx + "N_real = conteo independiente");
+    assert.equal(I.Nreal, T.N); assert.ok(Number.isInteger(T.N), "entero");
+    const Acont = R.Ac * (conf === 3 ? I.cov : 1), ap = Math.PI * P.bz_plug_d ** 2 / 4;
+    near(I.fgReal, T.N * ap / Acont, 1e-12, ctx + "f_g,real"); near(I.cobGrafito, I.fgReal, 1e-12, ctx + "cobertura de grafito = π d²/4·N/A");
+    near(I.fgIdeal, Math.PI * P.bz_plug_d ** 2 / (2 * Math.sqrt(3) * P.bz_plug_p ** 2), 1e-12, ctx + "f_g,ideal"); assert.equal(I.fg, I.fgIdeal, "I.fg conserva el significado ideal");
+    assert.ok(I.fgReal <= I.fgIdeal, ctx + "real ≤ ideal"); near(I.Nideal, I.fgIdeal * Acont / ap, 1e-12, ctx + "N ideal equivalente");
+    assert.equal(T.porSector.length, conf === 3 ? P.bz_npad : P.n_sec); assert.equal(T.porSector.reduce((s, v) => s + v, 0), T.N, "N por sector/pastilla suma N");
+    assert.equal(I.topes.find((t) => t.id === "bz0").L, T.L, ctx + "el largo de la muesca del conteo es el del tope del núcleo (R.ifc.topes)");
+    const pd = T.perdidas; assert.ok(["borde", "muesca", "tornillos", "ranCirc", "ranRad"].every((k) => pd[k] >= 0), "pérdidas por causa");
+    assert.equal(T.N_malla - pd.borde - pd.muesca - pd.tornillos - pd.ranCirc - pd.ranRad, T.N, "balance: malla en la corona − pérdidas = N_real");
+  }
+  // conciliación con el 3D del dibujante (cad/modelo3d_tt300c.py, patrón S09): 2.640 en C1/C2 y 2.364 en C3
+  assert.equal(bzA(1).R.ifc.Nreal, 2640); assert.equal(bzA(2).R.ifc.Nreal, 2640); assert.equal(bzA(3).R.ifc.Nreal, 2364);
+  // otros patrones y márgenes: mismo resultado que el conteo independiente
+  for (const [nm, conf, o] of [["C1 Ø16/p34", 1, { bz_plug_d: 16, bz_plug_p: 34 }], ["C3 Ø14/p26 borde 6", 3, { bz_plug_d: 14, bz_plug_p: 26, bz_edge: 6 }], ["C1 pegado", 1, { fix_mode: 2 }], ["C1 sin ranuras", 1, { h_gr: 0 }], ["C2 12 sectores", 2, { n_sec: 12 }]]) {
+    const A = bzA(conf, o); assert.equal(A.R.ifc.tap.N, tapIndep(A.P, A.R, conf, A.P.bz_plug_d, A.P.bz_plug_p, A.P.bz_edge), nm);
+  }
+});
+
+test("Tapones · modo 0 (ideal) reproduce el cálculo anterior; modo 1 (real) cambia masa, q_neto, PV y desgaste de forma consistente", () => {
+  for (const [nm, conf] of C_VARS) {
+    const I0 = bzA(conf, { bz_fg_modo: 0 }).R.ifc, A1 = bzA(conf), I1 = A1.R.ifc, P = A1.P, A0 = bzA(conf, { bz_fg_modo: 0 }), ctx = nm + ": ";
+    assert.equal(I0.fgUsed, I0.fgIdeal); assert.equal(I1.fgUsed, I1.fgReal);
+    near(I0.qNet, I0.qLoc / (1 - I0.fgIdeal - I0.fgr), 1e-12, ctx + "q_neto ideal"); near(I1.qNet, I1.qLoc / (1 - I1.fgReal - I1.fgr), 1e-12, ctx + "q_neto real");
+    assert.ok(I1.qNet < I0.qNet, ctx + "menos grafito: menos área de grafito y menos presión sobre el bronce neto");
+    // masa: bronce con tapones ρ_mezcla = ρ_bz(1 − 0,7 f) + ρ_gr·0,7 f sobre el área de la parte cubierta; el real pesa más porque hay más bronce
+    const rBz = P.rho_bz * 1e-6, mix = (f) => rBz * (1 - 0.7 * f) + 1.8e-6 * 0.7 * f;
+    near(I1.mBz, R_Ac(A1) * (conf === 3 ? I1.cov : 1) * I1.tbz * mix(I1.fgReal) + (conf === 2 ? R_Ac(A1) * I1.tss * rBz : 0), 1e-12, ctx + "masa bruta con f_g,real");
+    near(I0.mBz, R_Ac(A0) * (conf === 3 ? I0.cov : 1) * I0.tbz * mix(I0.fgIdeal) + (conf === 2 ? R_Ac(A0) * I0.tss * rBz : 0), 1e-12, ctx + "masa bruta con f_g,ideal");
+    assert.ok(A1.R.m.bz > A0.R.m.bz && A1.R.m.total > A0.R.m.total, ctx + "el real pesa más");
+    near(A1.R.m.total - A0.R.m.total, A1.R.m.bz - A0.R.m.bz, 1e-9, ctx + "solo cambia la masa del bronce (la masa rotatoria y la presión q no dependen de f_g)");
+    assert.equal(A1.R.ifc.tbz, A0.R.ifc.tbz); near(A1.R.ifc.q, A0.R.ifc.q, 1e-12, ctx + "q_máx");
+    assert.equal(I1.eta, I0.eta, ctx + "η solo depende de d y p");
+    const row = (A, re) => A.checks.find((c) => re.test(c.name));
+    near(row(A1, /Bronce con grafito: valor PV/).dem / row(A0, /Bronce con grafito: valor PV/).dem, I1.qNet / I0.qNet, 1e-12, ctx + "PV ∝ q_neto");
+    near(row(A1, /Bronce con grafito: desgaste/).dem / row(A0, /Bronce con grafito: desgaste/).dem, I1.qNet / I0.qNet, 1e-12, ctx + "desgaste ∝ q_neto");
+    near(row(A1, /Presión de contacto sobre el bronce neto/).dem, I1.qNet, 1e-12, ctx + "fila de q_neto");
+    near(A1.R.cd.FS, A0.R.cd.FS, 1e-9, ctx + "FS: la masa del bronce fijo a la base no carga el giro");
+  }
+});
+const R_Ac = (A) => A.R.Ac;
+
+test("Tapones · criterio de lubricación f_g ≥ bz_fg_min (supuesto C): aviso por defecto, no cumple en modo estricto, cumple si el valor lo permite", () => {
+  const lub = (A) => A.checks.find((c) => /cobertura mínima de lubricante sólido/.test(c.name));
+  for (const [nm, conf] of C_VARS) {
+    const A = bzA(conf), c = lub(A); assert.ok(c, nm + ": fila de lubricación");
+    near(c.dem, 0.20, 1e-12, "demanda = bz_fg_min"); near(c.cap, A.R.ifc.fgUsed, 1e-12, "capacidad = f_g usada");
+    assert.equal(c.st, "warn", nm + ": 0,097 < 0,20: aviso (criterio a confirmar con el catálogo)"); assert.ok(A.verdict.gira && A.verdict.estructura, "el aviso no cambia el veredicto");
+    assert.ok(/supuesto C/.test(c.ref) && /catálogo/.test(c.ref), "nivel de confianza en la referencia");
+    assert.equal(lub(bzA(conf, { bz_fg_estricto: 1 })).st, "fail"); assert.equal(bzA(conf, { bz_fg_estricto: 1 }).verdict.estructura, false, "estricto: no cumple la estructura/lubricación");
+    assert.equal(lub(bzA(conf, { bz_fg_min: 0.09 })).st, "ok");
+    assert.equal(lub(bzA(conf, { bz_fg_modo: 0 })).st, "warn", nm + ": con f_g ideal 0,145 tampoco llega a 0,20");
+    assert.equal(lub(bzA(conf, { bz_fg_modo: 0, bz_fg_min: 0.14 })).st, "ok");
+  }
+  // ligamento mínimo (criterio de proyecto): η ≥ bz_eta_min
+  const eta = (o) => bzA(1, o).checks.find((c) => /Ligamento entre tapones/.test(c.name));
+  assert.equal(eta({}).st, "ok"); assert.equal(eta({ bz_plug_d: 18, bz_plug_p: 30 }).st, "fail", "η = 0,40 < 0,45");
+});
+
+test("Tapones · TT.tapones: comparación ideal–real, barridos monótonos, sensibilidad al borde y a los tornillos, conclusión automática", () => {
+  const r = TT.tapones(TT.defaults());
+  assert.deepEqual(r.alternativas.map((a) => a.id), ["C1", "C2", "C3"]);
+  assert.ok(!/NaN|undefined|Infinity/.test(JSON.stringify(r)), "JSON puro");
+  for (const a of r.alternativas) {
+    const I = bzA(a.conf).R.ifc, A0 = bzA(a.conf, { bz_fg_modo: 0 }), A1 = bzA(a.conf), ctx = a.id + ": ";
+    // (a) ideal vs real
+    assert.equal(a.comparacion.real.N, I.Nreal); near(a.comparacion.ideal.N, I.Nideal, 1e-9, ctx + "N ideal"); near(a.comparacion.real.fg, I.fgReal, 1e-12, ctx + "f_g real");
+    near(a.comparacion.real.masa_bz, A1.R.m.bz, 1e-12, ctx + "masa bronce real"); near(a.comparacion.ideal.masa_bz, A0.R.m.bz, 1e-12, ctx + "masa bronce ideal");
+    near(a.comparacion.real.qNet, I.qNet, 1e-12, ctx + "q_neto"); near(a.comparacion.ideal.FS, A0.R.cd.FS, 1e-12, ctx + "FS giro");
+    for (const k of ["N", "fg", "cobertura", "masa_bz", "masa_total", "qNet", "fuQ", "tbz", "tbzReq", "PV", "fuPV", "desgaste", "fuDesgaste", "FS", "mu"]) { assert.ok(k in a.comparacion.real && k in a.comparacion.ideal && k in a.comparacion.delta_pct, ctx + "campo " + k); }
+    near(a.comparacion.delta_pct.masa_bz, (A1.R.m.bz / A0.R.m.bz - 1) * 100, 1e-9, ctx + "variación % de la masa"); assert.equal(a.comparacion.real.mu, a.comparacion.ideal.mu, "μ es dato: no cambia");
+    // (b) barrido de f_g: monótono
+    const b = a.barrido_fg; assert.ok(b.length >= 11 && Math.abs(b[0].fg_obj - 0.05) < 1e-9 && Math.abs(b[b.length - 1].fg_obj - 0.30) < 1e-9);
+    for (let i = 1; i < b.length; i++) {
+      assert.ok(b[i].fg >= b[i - 1].fg - 1e-12, ctx + "f_g alcanzado crece"); assert.ok(b[i].eta <= b[i - 1].eta + 1e-12, ctx + "η no crece"); assert.ok(b[i].tbzReq >= b[i - 1].tbzReq - 1e-9, ctx + "espesor requerido no decrece");
+      assert.ok(b[i].qNet >= b[i - 1].qNet - 1e-12, ctx + "q_neto crece con f_g"); assert.ok(b[i].tbz >= b[i - 1].tbz, ctx + "espesor adoptado no decrece");
+    }
+    assert.ok(b.every((x) => ["cumple", "cumple sin lubricación", "no cumple", "inalcanzable"].includes(x.estado)), "estados");
+    // (c) barrido (d, p)
+    const dp = a.barrido_dp; assert.deepEqual([...new Set(dp.map((x) => x.d))], [10, 12, 14, 16, 18, 20]); assert.ok(dp.every((x) => x.p >= 22 && x.p <= 40 && x.p > x.d));
+    const x = dp.find((q) => q.d === 12 && q.p === 30); assert.equal(x.N, I.Nreal); near(x.fg, I.fgReal, 1e-12, ctx + "la fila Ø12/30 coincide con el cálculo"); near(x.eta, 0.6, 1e-12, "η");
+    const q = dp.find((z) => z.d === 14 && z.p === 26), A2 = bzA(a.conf, { bz_plug_d: 14, bz_plug_p: 26 }); near(q.masa_bz, A2.R.m.bz, 1e-12, ctx + "masa de otro patrón"); near(q.qNet, A2.R.ifc.qNet, 1e-12, "q_neto de otro patrón");
+    // (d) sensibilidad: más borde = menos tapones; más tornillos = menos tapones
+    const e = a.sens_borde; assert.deepEqual(e.map((z) => z.bz_edge), [2, 4, 6, 8]); for (let i = 1; i < e.length; i++) assert.ok(e[i].N <= e[i - 1].N && e[i].fg <= e[i - 1].fg + 1e-12, ctx + "N no crece con la franja de borde");
+    assert.equal(e[1].N, I.Nreal, "borde 4 = cálculo");
+    const t = a.sens_tornillos; assert.deepEqual(t.filter((z) => z.d_tor === 6).map((z) => z.n_tor), [0, 2, 4]); const tt = t.filter((z) => z.d_tor === 6); assert.ok(tt[0].N >= tt[1].N && tt[1].N >= tt[2].N, ctx + "N no crece con los tornillos"); assert.equal(tt[1].N, I.Nreal);
+    // (e) conclusión
+    const c = a.conclusion; assert.equal(c.fg_min_criterio, 0.20); assert.ok(c.fg_max_alcanzable > I.fgReal && c.fg_max_alcanzable < 0.20, ctx + "ningún patrón con η ≥ 0,45 llega a 0,20: máx " + c.fg_max_alcanzable);
+    assert.equal(c.cumple_criterio, false); assert.equal(c.patron_recomendado, null); assert.ok(c.mejor_alcanzable && c.mejor_alcanzable.eta >= 0.45 - 1e-12 && c.mejor_alcanzable.fg === c.fg_max_alcanzable);
+    assert.ok(c.texto.length >= 3 && c.texto.every((s) => typeof s === "string"));
+  }
+  assert.ok(r.supuestos.some((s) => /bz_fg_min/.test(s)) && r.notas.length >= 3);
+  // con un criterio realista (0,15) sí hay patrón y es el de menor masa entre los que cumplen
+  const r15 = TT.tapones(Object.assign(TT.defaults(), { bz_fg_min: 0.15 })).alternativas[0], pr = r15.conclusion.patron_recomendado;
+  assert.ok(pr && pr.fg >= 0.15 && pr.eta >= 0.45 && pr.estado === "cumple");
+  const ok = r15.barrido_dp.filter((x) => x.estado === "cumple"); assert.ok(ok.length > 0 && ok.every((x) => x.masa_bz >= pr.masa_bz - 1e-9), "menor masa entre los que cumplen");
+});
+
+test("Tapones · interfazGeom y apoyo.interfaz exponen N_real, f_g real e ideal y la cobertura (R.ifc)", () => {
+  const A = bzA(1), I = A.R.ifc;
+  for (const k of ["Nreal", "Nideal", "fgReal", "fgIdeal", "fgUsed", "cobGrafito", "tap"]) assert.ok(k in I, "R.ifc." + k);
+  assert.ok(!("tap" in TT.compute(TT.defaults()).ifc) || TT.compute(TT.defaults()).ifc.tap == null, "sin opción C no hay tapones");
+});

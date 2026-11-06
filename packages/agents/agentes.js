@@ -186,7 +186,7 @@ const AG = (() => {
   ];
   function feasible(A, target) {
     return A.checks.every((c) => {
-      if (c.st === "info" || c.st === "pend") return true;
+      if (c.st === "info" || c.st === "pend" || c.advisory) return true;      // advisory: criterio supuesto por confirmar (aviso, no restringe al optimizador)
       if (c.st === "fail") return false;
       return c.kind === "geo" || c.sys === "giro" ? true : c.fu <= target;
     });
@@ -200,7 +200,7 @@ const AG = (() => {
     let A = run(P);
     // fase 1: factibilidad por máximo descenso del déficit (cada variable ±1 tamaño)
     const deficit = (X) => X.checks.reduce((s, c) => {
-      if (c.st === "info" || c.st === "pend") return s;
+      if (c.st === "info" || c.st === "pend" || c.advisory) return s;
       if (!isFinite(c.fu)) return s + 10;
       const lim = (c.kind === "geo" || c.sys === "giro") ? 1 : tgt;
       return s + Math.max(0, c.fu - lim);

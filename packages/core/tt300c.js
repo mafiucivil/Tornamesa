@@ -90,6 +90,12 @@ const TT = (() => {
       ["k_bz", "Opción C · desgaste específico del bronce con grafito (×10⁻⁷ mm³/N·m)", "–", 10, 0.1, 500, 0.1],
       ["bz_plug_d", "Opción C · diámetro de los tapones de grafito", "mm", 12, 4, 40, 1],
       ["bz_plug_p", "Opción C · paso de los tapones (patrón escalonado)", "mm", 30, 10, 100, 1],
+      ["bz_edge", "Opción C · franja de borde: distancia mínima del borde del tapón al borde del bronce, a las muescas de los topes, a los tornillos de posición y a las ranuras de engrase (cuenta de tapones reales)", "mm", 4, 0, 20, 0.5],
+      ["bz_fg_modo", "Opción C · fracción de grafito que usa el cálculo (masa, q_neto, PV, desgaste, lubricación): 0 = ideal f_g = π·d²/(2√3·p²) sobre toda la corona; 1 = real (tapones que caben: N_real·π·d²/4/A_contacto)", "–", 1, 0, 1, 1],
+      ["bz_fg_min", "Opción C · cobertura mínima de lubricante sólido (f_g del grafito sobre el área de contacto). (supuesto C: orden de magnitud de bronces autolubricados comerciales; confirmar con el catálogo del proveedor, el valor lo fija la ficha)", "–", 0.20, 0.02, 0.6, 0.01],
+      ["bz_fg_estricto", "Opción C · si f_g < bz_fg_min: 0 = aviso (el criterio es un supuesto por confirmar); 1 = no cumple (el veredicto de estructura falla)", "–", 0, 0, 1, "chk"],
+      ["bz_eta_min", "Opción C · ligamento mínimo entre tapones η = (p − d)/p (criterio de proyecto)", "–", 0.45, 0.2, 0.9, 0.01],
+      ["bz_n_tor", "Opción C · tornillos de posición por sector o pastilla en la zona del bronce (0, 2 o 4; 2 = sobre la bisectriz, entre la muesca y cada borde)", "–", 2, 0, 4, 2],
       ["bz_allow", "Opción C · sobreespesor del bronce por desgaste y relapeado", "mm", 1.0, 0, 6, 0.1],
       ["bz_tmin", "Opción C · espesor mínimo constructivo del bronce", "mm", 6, 3, 30, 1],
       ["cara_tmin", "Opción C · espesor mínimo del disco duro (distorsión del temple y rectificado)", "mm", 6, 3, 30, 1],
@@ -380,6 +386,15 @@ const TT = (() => {
     if (I.tss === I.tss2 && I.gr === 0) { d.pop(); d[0].resp = Math.max(P.t_base, P.t_bot); }   // plancha a la que se sueldan los topes: base, fondo de la mesa o la mayor si son iguales
     return d;
   }
+  // Largo de un tope: el mayor entre aplastamiento (con h_c − tol_hc) y soldadura, con FU objetivo 0,90, a múltiplos de 5 mm (o congelado a 20 °C en el escenario térmico, o L_tope manual).
+  // Lo comparten stopsOf() (dimensionamiento) e ifaceDesignBz() (largo de la muesca que excluye tapones): una sola fuente.
+  function stopLenOf(P, id, t, FyP, Fst, Lav) {
+    const Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), g = stopGeo(P, t), adm = 1.25 * Math.min(FyP, P.Fy) / Nd;   // el menor Fy entre el canto del sector y la barra
+    const hCd = g.hC - P.tol_hc, LreqB = hCd > 0 ? Fst * 1e3 / (adm * hCd) : Infinity, LreqW = weldStop(P, Fst, 1, g.z) / Fw, Lreq = Math.max(LreqB, LreqW);
+    const Lz = P.__th && P.__th.frozen && P.__th.frozen.L[id];                                   // largo congelado a 20 °C (escenario térmico)
+    const L = Lz > 0 ? Lz : P.L_tope > 0 ? P.L_tope : (isFinite(Lreq) ? Math.ceil(Lreq / 0.9 / 5) * 5 : Lav);
+    return { L, Lreq, adm };
+  }
   // Geometría resuelta y dimensionamiento de cada tope soldado (fijación desmontable) con el par de calado de R; la usan la masa (m.stopBars) y las verificaciones
   function stopsOf(P, R) {
     const I = R.ifc, out = [];
@@ -391,11 +406,8 @@ const TT = (() => {
       out.push(Object.assign(o, { pieza: o.nombre, a_sup: P.a_sup, a_inf: aInf, h_barra: g.hB, h_c: g.hC, h_c_min: P.hc_min, tol_hc: P.tol_hc, z: g.z, w_tope: P.w_tope, b_tope: P.b_tope, w_min: wMin(Tw), Tw, Lav, rho_barra: rho, m_barra: mB, m_barras: o.capas * o.n * mB }));
     };
     const sized = (id, grp, nombre, n, t, FyP, tResp, allow, capas) => {
-      const g = stopGeo(P, t), Fst = Ftot / n * kpk, adm = 1.25 * Math.min(FyP, P.Fy) / Nd;       // el menor Fy entre el canto del sector y la barra
-      const hCd = g.hC - P.tol_hc, LreqB = hCd > 0 ? Fst * 1e3 / (adm * hCd) : Infinity, LreqW = weldStop(P, Fst, 1, g.z) / Fw, Lreq = Math.max(LreqB, LreqW);
-      const Lz = P.__th && P.__th.frozen && P.__th.frozen.L[id];                                   // largo congelado a 20 °C (escenario térmico)
-      const L = Lz > 0 ? Lz : P.L_tope > 0 ? P.L_tope : (isFinite(Lreq) ? Math.ceil(Lreq / 0.9 / 5) * 5 : Lav);   // largo: el mayor entre aplastamiento (con h_c − tol_hc) y soldadura, con FU objetivo 0,90
-      push({ id, grp, nombre, n, t, tResp, allow, capas: capas || 1, F: Fst, L, Lreq, adm, uh: false });
+      const Fst = Ftot / n * kpk, sl = stopLenOf(P, id, t, FyP, Fst, Lav);
+      push({ id, grp, nombre, n, t, tResp, allow, capas: capas || 1, F: Fst, L: sl.L, Lreq: sl.Lreq, adm: sl.adm, uh: false });
     };
     if (I.o === 1 || I.o === 2) {
       const discs = discList(P, I);
@@ -422,7 +434,7 @@ const TT = (() => {
     const I = R.ifc, out = [];
     if (!(I.o > 0)) return out;
     const Ro = R.Ro, Ri = R.Ri, rem = P.fix_mode < 1.5, aInf = stopAInf(P), top = (id) => (I.topes || []).find((x) => x.id === id);
-    const jOf = (al, n) => Math.ceil(Math.max(P.j_sec, (al - AL_S) * P.dT * 2 * Ro * Math.sin(Math.PI / n)) * 10 - 1e-9) / 10;
+    const jOf = (al, n) => jointOf(P, al, n);
     const add = (o) => {
       const tp = top(o.id), L = rem && tp ? tp.L : 0, cov = o.cov || 1;
       const j = o.joint ? jOf(o.alpha, o.n) : 0;
@@ -440,6 +452,75 @@ const TT = (() => {
       add({ id: "bz0", pieza: (top("bz0") || {}).pieza || "Placa de bronce", tgt: "bz", rho: I.rhoPl, n: nB, capas: 1, t: I.tbz, joint: I.conf !== 3, alpha: AL_BZ, cov: I.cov });
       add({ id: "bz1", pieza: (top("bz1") || {}).pieza || "Disco duro", tgt: I.conf === 2 ? "bz" : "ss", rho: I.conf === 2 ? I.rhoSolid : RHO_SS, n: P.n_sec, capas: 1, t: I.tss, joint: true, alpha: I.conf === 2 ? AL_BZ : AL_SS });
     }
+    return out;
+  }
+  /* ---------------- Tapones de grafito: cuenta determinista de los tapones que caben (opción C) ---------------- */
+  // Junta en frío entre sectores contiguos: la mayor entre j_sec y la dilatación diferencial a ΔT de diseño, redondeada hacia arriba a 0,1 mm
+  const jointOf = (P, al, n) => Math.ceil(Math.max(P.j_sec, (al - AL_S) * P.dT * 2 * (P.D_top / 2) * Math.sin(Math.PI / n)) * 10 - 1e-9) / 10;
+  const ISO10642_DK = { 4: 8, 5: 10, 6: 12, 8: 16, 10: 20, 12: 24 };            // Ø de la cabeza avellanada (mm), ISO 10642
+  const dkOf = (P) => ISO10642_DK[Math.round(P.d_tor)] || 2 * P.d_tor;
+  // Corona de contacto (misma geometría que compute): R_o, R_i, área, radio de fricción r_u y k_q = 4eR_o/(R_o² + R_i²)
+  function contactGeo(P) {
+    const Ro = P.D_top / 2, Ri = riOf(P);
+    return { Ro, Ri, Ac: Math.PI * (Ro * Ro - Ri * Ri), r_u: 2 / 3 * (Ro ** 3 - Ri ** 3) / (Ro ** 2 - Ri ** 2), kq: 4 * P.e * Ro / (Ro * Ro + Ri * Ri) };
+  }
+  // Área útil de colocación = corona R_i…R_o menos la franja de borde (bz_edge, medida desde el borde del tapón), las muescas de los topes ((b_tope + 2) × L_tope),
+  // los tornillos de posición (cabeza ISO 10642 sobre la bisectriz de cada sector) y las ranuras de engrase (circunferenciales y radiales).
+  // Cuenta = centros de la malla escalonada (paso p, fila alterna p·√3/2, anclada al centro de la mesa) que caen en esa área; el mismo patrón S09 del dibujante.
+  //   g = { n, radial (pastillas de bordes radiales: C3), span (° de cada pastilla), gap (mm de junta entre sectores paralelos), L (muesca; 0 sin topes), d, p, edge, nTor }
+  const plugCache = new Map();
+  function plugLayout(P, g) {
+    const geo = contactGeo(P), Ri = geo.Ri, Ro = geo.Ro, d = g.d, p = g.p, m = g.edge + d / 2, n = g.n, th = 360 / n, rd = Math.PI / 180;
+    const dk = dkOf(P), ru = geo.r_u, hb = (P.b_tope + 2) / 2, L = g.L, nTor = g.nTor;
+    const key = [Ri, Ro, d, p, m, n, g.radial ? g.span : 0, g.radial ? 0 : g.gap, L, ru, hb, dk, nTor, P.h_gr > 0 ? [P.w_gr, P.n_gr_rad, P.n_gr_circ, P.R_pin, P.d_pin].join(",") : 0].join("|");
+    const hit = plugCache.get(key);
+    if (hit) return hit;
+    // ranuras circunferenciales: la exterior a R_o − 30 y el resto equiespaciadas hasta R_i + 30 (cad/modelo3d_tt300c.py, S05)
+    const rCirc = [];
+    if (P.h_gr > 0) {
+      const nc = Math.round(P.n_gr_circ);
+      if (nc >= 1) rCirc.push(Ro - 30);
+      for (let k = 1; k < nc; k++) rCirc.push(Ro - 30 - k * (Ro - 30 - (Ri + 30)) / (nc - 1));
+    }
+    const wHalf = P.w_gr / 2 + m, nRad = P.h_gr > 0 ? Math.round(P.n_gr_rad) : 0;
+    // radios de los dos tornillos de posición sobre la bisectriz: a mitad de camino entre la muesca y cada borde, desplazados si caen sobre una ranura circunferencial
+    const radios = [];
+    if (L > 0 && nTor > 0) {
+      const a = ru - L / 2, b = ru + L / 2, rLim = P.R_pin - P.d_pin / 2 - dk / 2 - 4;
+      let c1 = (Ri + a) / 2, c2 = (b + Ro) / 2;
+      if (rLim > b + dk) c2 = Math.min(c2, rLim);
+      for (const [c, step] of [[c1, -8], [c2, c2 >= rLim - 1e-9 ? -8 : 8]]) {
+        let r = c;
+        for (let i = 0; i < 60; i++) { if (!rCirc.length || rCirc.every((rg) => Math.abs(r - rg) > P.w_gr / 2 + dk / 2 + 3)) break; r += step; }
+        radios.push(r);
+      }
+    }
+    const fL = (g.radial ? g.span : th) / 4 * rd;               // posiciones locales de los tornillos (x, y): 2 sobre la bisectriz o, con 4, 2 radios × 2 lados a ±span/4
+    const scr = nTor >= 4 ? radios.flatMap((r) => [[r * Math.cos(fL), r * Math.sin(fL)], [r * Math.cos(fL), -r * Math.sin(fL)]]) : radios.map((r) => [r, 0]);
+    const hh = (g.radial ? g.span : th) / 2 * rd, ax = g.radial ? 0 : (g.gap / 2) / Math.sin(hh);
+    const rows = Math.floor(Ro / (p * Math.sqrt(3) / 2)) + 2, por = new Array(n).fill(0), pd = { borde: 0, muesca: 0, tornillos: 0, ranCirc: 0, ranRad: 0 };
+    let N = 0, nMalla = 0;
+    for (let j = -rows; j <= rows; j++) for (let i = -rows; i <= rows; i++) {
+      const x = i * p + (((j % 2) + 2) % 2) * p / 2, y = j * p * Math.sqrt(3) / 2, r = Math.hypot(x, y);
+      if (r < Ri + m || r > Ro - m) continue;
+      nMalla++;
+      let ph = Math.atan2(y, x) / rd; if (ph < 0) ph += 360;
+      const k = Math.min(n - 1, Math.floor(ph / th + 1e-12)), dd = ph - (k + 0.5) * th, rad = dd * rd, xl = r * Math.cos(rad), yl = r * Math.sin(rad);
+      let d1, d2;
+      if (g.radial) { d1 = r * Math.sin(hh - rad); d2 = r * Math.sin(hh + rad); }      // pastilla: bordes radiales a ±span/2
+      else { d1 = (xl - ax) * Math.sin(hh) - yl * Math.cos(hh); d2 = (xl - ax) * Math.sin(hh) + yl * Math.cos(hh); }   // sector: bordes paralelos a las radiales de contorno, separados por la junta
+      if (d1 < m || d2 < m) { pd.borde++; continue; }
+      if (L > 0 && Math.abs(yl) < hb + m && xl > ru - L / 2 - m && xl < ru + L / 2 + m) { pd.muesca++; continue; }
+      if (scr.some(([sx, sy]) => Math.hypot(xl - sx, yl - sy) < dk / 2 + m)) { pd.tornillos++; continue; }
+      if (rCirc.some((rg) => Math.abs(r - rg) < wHalf)) { pd.ranCirc++; continue; }
+      let gr = false;
+      for (let q = 0; q < nRad && !gr; q++) { const e = (ph - 360 * q / nRad + 540) % 360 - 180; if (Math.abs(e) < 90 && r * Math.abs(Math.sin(e * rd)) < wHalf) gr = true; }   // distancia lateral a la semirrecta de la ranura
+      if (gr) { pd.ranRad++; continue; }
+      N++; por[k]++;
+    }
+    const out = { N, N_malla: nMalla, porSector: por, perdidas: pd, L, radios, r_circ: rCirc, dk, edge: g.edge, n, nTor, margen: m, d, p };
+    if (plugCache.size > 400) plugCache.clear();
+    plugCache.set(key, out);
     return out;
   }
   function ifaceDesign(P) {
@@ -478,16 +559,33 @@ const TT = (() => {
     return { o, tss: t1, tss2: t2, tssReq: c.treq, tss2Req: c.treq2, tTope: tS, tuhTope, gr, tFlex: c.tFlex, q, qAvg: c.L.q_avg, a, sad, A_ss, tuh, tuhReq, tuhConf, EcU, SU,
       delta: t1 + t2 + tuh, mTop: RHO_SS * A_ss * t2, mUH: o === 2 ? RHO_UH * A_ss * tuh : 0, mSS: RHO_SS * A_ss * (t1 + t2), mBz: 0, tbz: 0 };
   }
+  // Tapones de la placa o pastilla de bronce de espesor tB: cuenta real (plugLayout), fracciones real e ideal y cobertura de grafito.
+  // La cuenta no depende de la masa ni de la presión: depende del espesor del bronce (largo del tope) y de la geometría; por eso se evalúa después de dimensionar tB.
+  //   over: { d, p, edge, nTor } sobrescribe el patrón (barridos de TT.tapones)
+  function tapInfo(P, conf, cov, tB, over) {
+    over = over || {};
+    const geo = contactGeo(P), n = conf === 3 ? Math.round(P.bz_npad) : Math.round(P.n_sec), removable = P.fix_mode < 1.5, d = over.d != null ? over.d : P.bz_plug_d, p = over.p != null ? over.p : P.bz_plug_p;
+    let L = 0;
+    if (removable) {
+      const Fst = tmaxOf(P) / (geo.r_u / 1000) / n * (1 + geo.kq), Lav = geo.Ro - geo.Ri - 100;   // F_tope = (T_calado/r_u)/n·(q_máx/q_med): el mismo del dimensionamiento de stopsOf
+      L = stopLenOf(P, "bz0", tB, P.Fy_bz, Fst, Lav).L;
+    }
+    const gap = Math.max(conf === 3 ? 0 : jointOf(P, AL_BZ, n), jointOf(P, conf === 2 ? AL_BZ : AL_SS, Math.round(P.n_sec)));   // junta en frío efectiva entre sectores (el dibujante usa la mayor)
+    const lay = plugLayout(P, { n, radial: conf === 3, span: 360 / n * cov, gap, L, d, p, edge: over.edge != null ? over.edge : P.bz_edge, nTor: over.nTor != null ? over.nTor : Math.round(P.bz_n_tor) });
+    const ap = Math.PI * d * d / 4, Acont = geo.Ac * cov, fgIdeal = Math.PI * d * d / (2 * Math.sqrt(3) * p * p);
+    return Object.assign({}, lay, { Acont, ap, fgReal: lay.N * ap / Acont, fgIdeal, Nideal: fgIdeal * Acont / ap, junta: gap, removable, cov, conf });
+  }
   // Opción C: placa de bronce con tapones de grafito, fija a la base, contra un disco duro rotatorio (configuraciones 1 y 3, esta con pastillas
   // que cubren la fracción bz_cover) o contra una 2.ª placa de bronce de aleación distinta (configuración 2).
   //   Bronce: σ = 3·q_loc·a²/(4·t²)/η ≤ 0,6·Fy_bz, η = (p − d)/p (ligamento entre tapones)  →  t_req = t_flex/√η + sobreespesor, ≥ mínimo constructivo.
+  //   Fracción de grafito f_g: bz_fg_modo = 1 (default) usa la real (tapones que caben, ver plugLayout); 0 usa la ideal π·d²/(2√3·p²) sobre toda la corona.
+  //   f_g solo afecta la masa del bronce (grafito 1,8 en vez de bronce en 0,7·t), q_neto (y con él PV y desgaste) y la cobertura de lubricación; no a q_máx, espesores ni η.
   function ifaceDesignBz(P) {
     const conf = Math.min(3, Math.max(1, Math.round(P.bz_conf))), a = P.ss_void / 2;
     const A_ss = Math.PI * ((P.D_top / 2) ** 2 - riOf(P) ** 2);
     const cov = conf === 3 ? Math.min(1, Math.max(0.05, P.bz_cover)) : 1;
     const eta = (P.bz_plug_p - P.bz_plug_d) / P.bz_plug_p, fg = Math.PI * P.bz_plug_d ** 2 / (2 * Math.sqrt(3) * P.bz_plug_p ** 2);
     const rBz = P.rho_bz * 1e-6;
-    const mPlate = (t) => A_ss * cov * t * (rBz * (1 - PLUG_DEPTH * fg) + RHO_GR * PLUG_DEPTH * fg);   // placa con tapones (parte cubierta)
     const mSolid = (t) => A_ss * t * rBz;                                                              // 2.ª placa de bronce maciza (configuración 2)
     const FyC = conf === 2 ? P.Fy_bz2 : P.Fy_cara;
     const calc = (mTop, dl) => {
@@ -503,9 +601,12 @@ const TT = (() => {
     const pickB = (c) => fz ? fz.tbz : P.t_bz > 0 ? P.t_bz : commercial(BZ_COMM, Math.max(c.treqB, tS));
     let c = calc(0, 0), tB = pickB(c), tC = pickC(c);
     for (let i = 0; i < 4; i++) { c = calc(rot(tC), tB + tC); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
-    return { o: 3, conf, cov, eta, fg, a, A_ss, tTope: tS, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, gr: P.h_gr, fgr: grooveFrac(P).f, qNet: c.qLoc / (1 - fg - grooveFrac(P).f), tss2: tC, tss2Req: c.treqC,
+    const tap = tapInfo(P, conf, cov, tB), fgUsed = P.bz_fg_modo > 0.5 ? tap.fgReal : fg, fgr = grooveFrac(P).f;
+    const rhoPl = rBz * (1 - PLUG_DEPTH * fgUsed) + RHO_GR * PLUG_DEPTH * fgUsed;                     // densidad de la placa con tapones (mezcla sobre el área cubierta)
+    const mPlate = (t) => A_ss * cov * t * rhoPl;
+    return { o: 3, conf, cov, eta, fg, fgIdeal: fg, fgReal: tap.fgReal, fgUsed, Nreal: tap.N, Nideal: tap.Nideal, cobGrafito: tap.fgReal, cobGrafitoIdeal: fg, tap, a, A_ss, tTope: tS, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, gr: P.h_gr, fgr, qNet: c.qLoc / (1 - fgUsed - fgr), tss2: tC, tss2Req: c.treqC,
       tbz: tB, tbzReq: c.treqB, tFlexB: c.tfB, tss: tC, tssReq: c.treqC, tFlex: c.tfC, sad: 0.6 * P.Fy_bz, sadC: 0.6 * FyC, FyC,
-      tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0, rhoPl: rBz * (1 - PLUG_DEPTH * fg) + RHO_GR * PLUG_DEPTH * fg, rhoSolid: rBz,
+      tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0, rhoPl, rhoSolid: rBz,
       mSS: conf === 2 ? 0 : RHO_SS * A_ss * tC, mBz: conf === 2 ? mPlate(tB) + mSolid(tC) : mPlate(tB) };
   }
 
@@ -568,7 +669,7 @@ const TT = (() => {
 
   /* ---------------- Geometría del accionamiento guiado ---------------- */
   // Lado +x: guía y cilindro paralelos a y en x = x_g; la uña empuja el pasador en +y entre θ = −π/N y +π/N.
-  function guideGeo(P) {
+  function guideGeo(P, lite) {   // lite: sin las cotas verticales (zc0, shoeTop), que dependen del espesor de la interfaz (hAxis); tmaxOf las evita para no recursar
     const pitch = 2 * Math.PI / P.N_pin, R = P.R_pin, a_min = R * Math.cos(pitch / 2);
     const front = P.l_p + 20 + P.f_ext;                                  // pasador del vástago → cara delantera del patín (cubre la uña)
     const rear = 1.25 * P.d_pp;                                          // pasador del vástago → cara trasera del patín
@@ -577,18 +678,18 @@ const TT = (() => {
     const y_pin0 = -R * Math.sin(pitch / 2), y_rp0 = y_pin0 - P.l_p - P.s_free, y_rp1 = y_pin0 + chord - P.l_p;
     const y_eye = y_rp0 - P.L0;
     const Y_bed = Math.max(Math.abs(y_rp0 - rear), Math.abs(y_rp1 + front)) + 10;
-    const zc0 = hAxis(P) + P.t_base;                                      // eje del cilindro (absoluto)
+    const zc0 = lite ? NaN : hAxis(P) + P.t_base;                          // eje del cilindro (absoluto)
     // boca del alojamiento: se adelanta desde la cara del patín hasta 10 mm de los pasadores, entre los anillos de la mesa
     const mouthX = Math.min(P.x_g - P.w_s / 2, R + P.d_pin / 2 + 10), inset = P.x_g - P.w_s / 2 - mouthX;
     const lever = mouthX - a_min;                                        // voladizo de la uña: boca → centro del pasador
     // retorno: la uña se desliza radialmente hacia afuera (resorte) hasta despejar el pasador siguiente
     const tipX = a_min - P.c_tip, travel = R + P.d_pin / 2 + 5 - tipX;
     const pocketEnd = mouthX + P.L_in + travel + P.s_sp;                // fondo del alojamiento (uña retraída + resorte)
-    const shoeTop = Math.max(zc0 + forkH(P) / 2, zc0 + P.dog_h / 2 + 1 + P.t_pk);   // cara superior del patín (horquilla o tapa del alojamiento)
+    const shoeTop = lite ? NaN : Math.max(zc0 + forkH(P) / 2, zc0 + P.dog_h / 2 + 1 + P.t_pk);   // cara superior del patín (horquilla o tapa del alojamiento)
     return { shoeTop, pitch, a_min, front, rear, L_s, Lg, chord, y_pin0, y_rp0, y_rp1, y_eye, L_bed: 2 * Y_bed, Y_bed, zc0, lever, mouthX, inset, tipX, travel, pocketEnd };
   }
-  function kinematics(P) {
-    const g = guideGeo(P), R = P.R_pin, n = 60;
+  function kinematics(P, lite) {
+    const g = guideGeo(P, lite), R = P.R_pin, n = 60;
     const pts = [];
     for (let i = 0; i <= n; i++) {
       const th = -g.pitch / 2 + g.pitch * i / n, arm = R * Math.cos(th);
@@ -597,6 +698,27 @@ const TT = (() => {
     const s_req = P.s_free + g.chord;
     return Object.assign({ ok: true, pts, s_req, margin: P.stroke - s_req, armMin: g.a_min, armMax: R, gap: g.chord - P.d_pin,
       radial: R - g.a_min, DeltaMax: P.x_g - g.a_min }, g);
+  }
+
+  /* ---------------- Cadena de empuje en planta: equilibrio del patín por unidad de F_pas (lo usan compute y tmaxOf) ---------------- */
+  function driveAt(P, K, th, s) {
+    const yMid = (K.front - K.rear) / 2;                 // centro del patín respecto del pasador del vástago
+    const xc = P.R_pin * Math.cos(th), yc = P.R_pin * Math.sin(th) - P.d_pin / 2;
+    const yrp = P.R_pin * Math.sin(th) - P.l_p, yr = yrp + yMid - K.Lg / 2;
+    const h = s * P.mu_s, rf = ((P.x_g - xc) + h * (yc - yr)) / K.Lg, rr = h - rf;
+    return { th, s, xc, yc, h, rf, rr, den: xc - h * yc, fr: 1 + P.mu_g * (Math.abs(rf) + Math.abs(rr)) };
+  }
+  function drivePts(P, K) {
+    const dpts = [], thX = Math.asin(Math.min(1, P.d_pin / 2 / P.R_pin));
+    K.pts.forEach((q) => dpts.push(driveAt(P, K, q.th, P.R_pin * Math.sin(q.th) >= P.d_pin / 2 ? 1 : -1)));
+    if (thX < K.pitch / 2) { dpts.push(driveAt(P, K, thX, -1)); dpts.push(driveAt(P, K, thX, 1)); }
+    dpts.sort((a, b) => a.th - b.th || a.s - b.s);
+    return dpts;
+  }
+  // Par de calado vencible (kN·m): el mismo R.Tmax de compute(), disponible sin construir R (lo usa el conteo de tapones para el largo de la muesca del tope)
+  function tmaxOf(P) {
+    const K = kinematics(P, true), A = Math.PI / 4 * P.D_bore ** 2, Fstall = A * P.p_relief / 10 / 1e3;
+    return Fstall / Math.max(...drivePts(P, K).map((d) => 1e3 / P.n_cyl / d.den * d.fr / P.eta_c));
   }
 
   /* ---------------- Accionamiento ---------------- */
@@ -623,17 +745,8 @@ const TT = (() => {
     // velocidad ω·(r − y_p), de modo que s = signo(y_p − r) (la fricción cambia de sentido en y_p = r; ahí se evalúan ambos).
     // Mesa: x_c·F_pas − y_c·H = T/n.  Patín: R_f = [F_pas·Δ + H·(y_c − y_r)]/Lg; R_r = H − R_f;
     // cilindro: F_cil·η = F_pas + μg(|R_f| + |R_r|).  Se toma el máximo en la carrera (y ambos signos en θ = 0).
-    const yMid = (K.front - K.rear) / 2;                 // centro del patín respecto del pasador del vástago
-    function drive(th, s) {                               // por unidad de F_pas
-      const xc = P.R_pin * Math.cos(th), yc = P.R_pin * Math.sin(th) - P.d_pin / 2;
-      const yrp = P.R_pin * Math.sin(th) - P.l_p, yr = yrp + yMid - K.Lg / 2;
-      const h = s * P.mu_s, rf = ((P.x_g - xc) + h * (yc - yr)) / K.Lg, rr = h - rf;
-      return { th, s, xc, yc, h, rf, rr, den: xc - h * yc, fr: 1 + P.mu_g * (Math.abs(rf) + Math.abs(rr)) };
-    }
-    const dpts = [], thX = Math.asin(Math.min(1, P.d_pin / 2 / P.R_pin));
-    K.pts.forEach((q) => dpts.push(drive(q.th, P.R_pin * Math.sin(q.th) >= P.d_pin / 2 ? 1 : -1)));
-    if (thX < K.pitch / 2) { dpts.push(drive(thX, -1)); dpts.push(drive(thX, 1)); }
-    dpts.sort((a, b) => a.th - b.th || a.s - b.s);
+    const drive = (th, s) => driveAt(P, K, th, s);        // por unidad de F_pas
+    const dpts = drivePts(P, K), thX = Math.asin(Math.min(1, P.d_pin / 2 / P.R_pin));
     const atPt = (d, T) => { const Fp = T * 1e3 / P.n_cyl / d.den; return { Fp, H: d.h * Fp, Rf: d.rf * Fp, Rr: d.rr * Fp, F: Fp * d.fr / P.eta_c }; };
     const Fcyl = (T, armmm) => {                          // kN; sin brazo: máximo en la carrera
       if (armmm) { const th = Math.acos(Math.min(1, armmm / P.R_pin)), sg = (t) => (P.R_pin * Math.sin(t) >= P.d_pin / 2 ? 1 : -1); return Math.max(atPt(drive(-th, sg(-th)), T).F, atPt(drive(th, sg(th)), T).F); }
@@ -1196,6 +1309,15 @@ const TT = (() => {
       add({ grp: G3, sys: "est", kind: "geo", name: "Placa de bronce: espesor adoptado frente al requerido", formula: "t_placa ≥ máx(t_flex/√η + sobreespesor; t_mínimo constructivo)", dem: I.tbzReq, cap: I.tbz, unit: "mm", ref: "Cálculo de espesor (flexión, ligamento de los tapones, desgaste y fabricación)" });
       add({ grp: G3, sys: "est", kind: "info", name: "Placa de bronce: espesor por flexión / requerido / comercial adoptado", formula: "t_flex = a·√(0,75·q_loc/(0,6·Fy_bz)); t_req = t_flex/√η + sobreespesor", dem: I.tFlexB, cap: I.tbz, unit: "mm", ref: REFB });
       add({ grp: G3, sys: "est", kind: "info", name: "Tapones de grafito: fracción de área y eficiencia de ligamento", formula: "f_g = π·d²/(2√3·p²); η = (p − d)/p", dem: I.fg, cap: I.eta, unit: "– / –", ref: "Geometría del patrón escalonado" });
+      {   // tapones reales: cuenta por la geometría (franja de borde, muescas, tornillos, ranuras), cobertura de grafito y criterios de lubricación y ligamento
+        const T = I.tap, nfT = (v, d) => (+v).toFixed(d).replace(".", ",");
+        add({ grp: G3, sys: "est", kind: "info", name: "Tapones de grafito: cantidad real colocable N_real frente a la ideal (malla escalonada que cae en el área útil)", formula: "N_real = centros de la malla (paso " + P.bz_plug_p + " mm, fila alterna p·√3/2) con el borde del tapón a ≥ bz_edge = " + P.bz_edge + " mm del borde del bronce" + (T.n ? " (" + T.n + (conf === 3 ? " pastillas" : " sectores") + ", junta " + nfT(T.junta, 1) + " mm)" : "") + (T.removable ? ", de la muesca del tope ((b_tope + 2) × " + T.L + " mm), de los " + (T.radios.length ? (T.nTor >= 4 ? 4 : 2) : 0) + " tornillos de posición por sector (cabeza ISO 10642 Ø" + T.dk + ")" : "") + " y de las ranuras de engrase; pérdidas por causa (tapones): borde " + T.perdidas.borde + ", muesca " + T.perdidas.muesca + ", tornillos " + T.perdidas.tornillos + ", ranura circ. " + T.perdidas.ranCirc + ", ranura rad. " + T.perdidas.ranRad + "; N_ideal = f_g,ideal·A/(π d²/4)", dem: T.N, cap: I.Nideal, unit: "tapones (real / ideal)", ref: "Geometría; conciliado con el patrón S09 del modelo 3D (cad/modelo3d_tt300c.py)" });
+        add({ grp: G3, sys: "est", kind: "info", name: "Tapones de grafito: fracción de área usada en el cálculo (bz_fg_modo) frente a la ideal; real = N_real·π·d²/4/A_contacto", formula: "f_g,real = " + nfT(I.fgReal, 4) + " (cobertura de grafito = π·d²/4·N/A, A = " + (conf === 3 ? "cobertura·" : "") + "A_contacto); f_g,ideal = π·d²/(2√3·p²) = " + nfT(I.fgIdeal, 4) + "; el cálculo usa " + (P.bz_fg_modo > 0.5 ? "la real (bz_fg_modo = 1)" : "la ideal (bz_fg_modo = 0)") + " en masa del bronce, q_neto, PV, desgaste y lubricación; η no cambia", dem: I.fgUsed, cap: I.fgIdeal, unit: "– (usada / ideal)", ref: "Geometría del patrón escalonado" });
+        const REFL = "Bronces autolubricados con grafito (catálogos de proveedor): supuesto C, orden de magnitud; confirmar con el catálogo del proveedor (el valor lo fija la ficha)";
+        add({ grp: G3, sys: "est", kind: "geo", advisory: !(P.bz_fg_estricto > 0.5), stFix: I.fgUsed >= P.bz_fg_min - 1e-12 ? "ok" : (P.bz_fg_estricto > 0.5 ? "fail" : "warn"),
+          name: "Bronce con grafito: cobertura mínima de lubricante sólido (f_g del grafito sobre el área de contacto)", formula: "f_g ≥ bz_fg_min = " + nfT(P.bz_fg_min, 2) + " (supuesto C); " + (P.bz_fg_estricto > 0.5 ? "criterio estricto (bz_fg_estricto = 1): no cumple" : "aviso: el valor es un supuesto y no cambia el veredicto (bz_fg_estricto = 0)"), dem: P.bz_fg_min, cap: I.fgUsed, unit: "–", ref: REFL });
+        add({ grp: G3, sys: "est", kind: "geo", name: "Tapones de grafito: ligamento mínimo entre tapones η = (p − d)/p", formula: "η ≥ bz_eta_min = " + nfT(P.bz_eta_min, 2) + " (criterio de proyecto)", dem: P.bz_eta_min, cap: I.eta, unit: "–", ref: "Criterio del proyecto" });
+      }
       if (conf === 2) {
         add({ grp: G3, sys: "est", name: "2.ª placa de bronce (maciza, aleación distinta): flexión sobre un vacío local", formula: "σ = 3·q·a²/(4·t²) ≤ 0,6·Fy_bz2; t = t_placa − sobreespesor", dem: 0.75 * I.qC * (I.a / (I.tss - P.bz_allow)) ** 2, cap: I.sadC, unit: "MPa", ref: REFB });
       } else {
