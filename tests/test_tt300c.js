@@ -199,13 +199,17 @@ test("Fijación desmontable por sectores con topes (y pegado como alternativa) y
     const P = A.P, B = TT.analyze(Object.assign(TT.defaults(), o, { fix_mode: 2 }), { noFEA: true });
     assert.ok(B.checks.some((c) => /NO son desmontables/.test(c.name) && c.st === "pend"), "pegado declarado como no desmontable");
   });
-  // tope: F = (T_calado/r_u)/n·(q_máx/q_med); L = máx(aplastamiento; soldadura)/0,9, múltiplo de 5 mm
+  // tope: F = (T_calado/r_u)/n·(q_máx/q_med); contacto sobre la altura útil h_c = t − a_sup − a_inf (no sobre t completo);
+  // soldadura con brazo z = a_inf + h_c/2 (la resultante del aplastamiento está sobre el filete delantero, no a t/2); L = máx(aplastamiento; soldadura)/0,9, múltiplo de 5 mm
   const A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }), R = A.R, Nd = P0.Nd;
   const Fst = R.Tmax / (R.r_u / 1000) / P0.n_sec * R.q_max / R.q_avg, adm = 1.25 * P0.Fy_ss / Nd, tB = R.ifc.tss;
-  const Fw = 0.60 * P0.FEXX / (1.2 * Nd), Lreq = Math.max(Fst * 1e3 / (adm * tB), Math.hypot(Fst * 1e3 / (2 * 0.707 * P0.w_tope), Fst * 1e3 * (tB / 2) / (P0.b_tope * 0.707 * P0.w_tope)) / Fw), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;
+  const aInf = P0.w_tope + 1, hC = tB - P0.a_sup - aInf, z = aInf + hC / 2, aw = 0.707 * P0.w_tope;
+  const Fw = 0.60 * P0.FEXX / (1.2 * Nd), wf = (L) => Math.hypot(Fst * 1e3 / (2 * aw * L), Fst * 1e3 * z / (P0.b_tope * aw * L));
+  const Lreq = Math.max(Fst * 1e3 / (adm * hC), wf(1) / Fw), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;
   const row = A.checks.find((c) => /Disco de la base \(liso\).*aplastamiento del tope/.test(c.name));
-  near(row.dem, Fst * 1e3 / (Lt * tB), 1e-9, "aplastamiento del tope"); near(row.cap, adm, 1e-12, "admisible");
+  near(row.dem, Fst * 1e3 / (Lt * hC), 1e-9, "aplastamiento del tope sobre la altura de contacto"); near(row.cap, adm, 1e-12, "admisible");
   assert.ok(row.fu <= 0.9 + 1e-9, "FU del tope ≤ 0,90");
+  near(A.checks.find((c) => /Disco de la base \(liso\).*soldadura del tope/.test(c.name)).dem, wf(Lt), 1e-9, "soldadura con el brazo a_inf + h_c/2");
   // ranuras de engrase: más espesor en el disco de la mesa (A) y en el bronce (C); sin ranuras vuelve a ser simétrico
   const noGr = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, h_gr: 0 }), { noFEA: true }).R.ifc;
   assert.equal(noGr.tss2, noGr.tss); assert.ok(R.ifc.tss2Req > noGr.tss2Req, "la ranura exige más espesor");
@@ -214,6 +218,64 @@ test("Fijación desmontable por sectores con topes (y pegado como alternativa) y
   near(g1.tbzReq - g0.tbzReq, P0.h_gr, 1e-3, "ranura en el bronce"); assert.ok(g1.qNet > g0.qNet, "las ranuras suben la presión neta");
   const mal = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, n_sec: 6 }), { noFEA: true });
   assert.ok(mal.checks.some((c) => /masa del sector/.test(c.name) && c.dem > 25) || mal.checks.some((c) => c.st !== "ok" && /tope/i.test(c.name)) || true, "con pocos sectores crece el sector");
+});
+
+test("Geometría del tope: barra bajo la superficie, alivio inferior, altura de contacto y brazo de excentricidad (A, B, C1-C3)", () => {
+  const P0 = TT.defaults(), aInf = P0.w_tope + 1, tMin = P0.a_sup + aInf + P0.hc_min, RHO = 7.85e-6;
+  assert.ok(P0.a_sup >= 1 && P0.hc_min > 0 && P0.a_inf === 0, "parámetros nuevos: a_sup ≥ 1 mm, h_c,mín y a_inf automático (0)");
+  const variants = [["A", { opt_ss: 1 }], ["B", { opt_uhmw: 1 }], ["C1", { opt_bz: 1 }], ["C2", { opt_bz: 1, bz_conf: 2 }], ["C3", { opt_bz: 1, bz_conf: 3 }]];
+  for (const [nm, o] of variants) {
+    const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), T = A.R.ifc.topes, ctx = nm + " ";
+    assert.ok(A.verdict.gira && A.verdict.estructura, ctx + "cumple");
+    assert.ok(T && T.length === 2, ctx + "dos topes: A y C, base y mesa; B, disco (los dos son iguales) y rebaje de la UHMW");
+    for (const s of T) {
+      assert.ok(s.t >= tMin - 1e-9, ctx + s.pieza + ": t ≥ a_sup + a_inf + h_c,mín = " + tMin);
+      near(s.h_barra, s.t - P0.a_sup, 1e-12, "altura de barra"); near(s.a_inf, aInf, 1e-12, "alivio inferior = w + 1"); near(s.h_c, s.t - P0.a_sup - aInf, 1e-12, "h_c");
+      near(s.z, aInf + s.h_c / 2, 1e-12, "brazo de la excentricidad"); near(s.m_barra, RHO * s.L * P0.b_tope * s.h_barra, 1e-12, "masa de una barra"); near(s.m_barras, s.capas * s.n * s.m_barra, 1e-12, "masa de las barras de la capa");
+      assert.ok(s.a_sup - s.allow >= 1 - 1e-9, ctx + s.pieza + ": la barra queda ≥ 1 mm bajo la cara al final de la vida");
+      assert.ok(s.w_min <= P0.w_tope && P0.w_tope + P0.hc_min <= s.h_barra, "AWS Tabla 5.8 y filete dentro de la barra");
+    }
+    for (const c of A.checks.filter((c) => /tope|barra del tope/i.test(c.name) && c.kind !== "pend" && c.kind !== "info")) assert.ok(c.fu <= (c.sys === "giro" || c.kind === "geo" ? 1 : 0.9) + 1e-9, ctx + c.name + " FU " + c.fu);
+    const names = (re) => A.checks.filter((c) => re.test(c.name)).length;
+    assert.equal(names(/altura de contacto efectiva del tope/), T.length); assert.equal(names(/barra del tope bajo la superficie de deslizamiento/), T.length);
+    assert.equal(names(/alivio inferior del canto libra el filete/), T.length); assert.equal(names(/filete del tope dentro de la altura de barra/), T.length);
+    assert.equal(names(/filete mínimo del tope/), T.length); assert.equal(names(/flexión de la barra del tope/), T.length);
+    assert.ok(A.checks.filter((c) => /AWS D1.1\/D1.1M:2020 Tabla 5.8/.test(c.ref)).length >= T.length, "norma y tabla citadas");
+    // las barras no entran en la masa total (nunca se contaron): se informan aparte
+    assert.ok(!("topes" in A.R.m) && A.checks.some((c) => /masa de las barras del tope/.test(c.name) && c.kind === "info" && c.dem > 0), ctx + "masa de barras solo informativa");
+  }
+  assert.equal(TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }).R.ifc.topes[0].capas, 2, "B: la fila del disco representa los dos discos iguales (masa de barras ×2)");
+  // espesores automáticos de los sectores con tope: A 12/12, B discos 12 y UHMW ≥ 25, C bronce 12 y disco duro 12 (con 6 mm el filete de 6 mm no cabe)
+  const I_A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }).R.ifc, I_B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }).R.ifc;
+  assert.deepEqual([I_A.tss, I_A.tss2], [12, 12]); assert.deepEqual([I_B.tss, I_B.tss2, I_B.tuh], [12, 12, 25]);
+  // B: aplastamiento del canto de la UHMW sobre h_c = t − a_sup − a_inf, no sobre t completo
+  const B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }), RB = B.R;
+  const Lav = RB.Ro - RB.Ri - 100, Fs = Math.max(RB.mu.d, RB.mu.cont, RB.mu.dry) * RB.N / P0.n_seg * RB.q_max / RB.q_avg, hcU = RB.ifc.tuh - P0.a_sup - aInf;
+  near(B.checks.find((c) => /Lámina UHMW.*aplastamiento del canto/.test(c.name)).dem, Fs * 1e3 / (Lav * hcU), 1e-9, "σ del canto UHMW sobre h_c");
+  const aw = 0.707 * P0.w_tope, zU = aInf + hcU / 2;
+  near(B.checks.find((c) => /Tope del rebaje del sector UHMW: soldadura/.test(c.name)).dem, Math.hypot(Fs * 1e3 / (2 * aw * Lav), Fs * 1e3 * zU / (P0.b_tope * aw * Lav)), 1e-9, "soldadura del rebaje UHMW con brazo a_inf + h_c/2");
+  // consecuencia sobre la ménsula: B sube el eje de los cilindros Δ = 12 + 12 + 25 = 49 mm y el filete mejilla–base de 16 mm (antiguo default) no alcanza (FU 1,12); por eso w_br = 20
+  assert.equal(P0.w_br, 20);
+  const Bd = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1, w_br: 16 }), { noFEA: true });
+  assert.deepEqual(Bd.checks.filter((c) => c.st === "fail").map((c) => c.name), ["Soldadura mejillas–base (4 filetes)"], "B con w_br = 16: solo falla la soldadura mejillas–base");
+  // con sectores finos el tope no es realizable: 6 mm (el filete no cabe: h_c < 0) y 10 mm (h_c = 1 < h_c,mín)
+  for (const t of [6, 10]) {
+    const X = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, t_ss: t }), { noFEA: true });
+    assert.ok(X.checks.some((c) => /altura de contacto efectiva del tope/.test(c.name) && c.st === "fail"), "t = " + t + " no cumple la altura de contacto");
+    assert.ok(!X.verdict.estructura, "t = " + t + ": estructura no cumple");
+  }
+  assert.ok(TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, t_ss: 6 }), { noFEA: true }).checks.some((c) => /aplastamiento del tope/.test(c.name) && c.st === "fail"), "con t = 6 el aplastamiento falla (altura de contacto nula)");
+  // el pegado (fix_mode = 2) no lleva topes: no exige ese espesor
+  const G2 = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, fix_mode: 2 }), { noFEA: true });
+  assert.deepEqual([G2.R.ifc.tss, G2.R.ifc.tss2], [6, 8]); assert.ok(!G2.checks.some((c) => /altura de contacto efectiva del tope/.test(c.name)));
+  // alivio superior < 1 mm + sobreespesor de desgaste: la barra sobresaldría al relapear; alivio inferior que no libra el filete; filete mínimo AWS; filete que no cabe
+  const chk = (o, re) => TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }, o), { noFEA: true }).checks.filter((c) => re.test(c.name));
+  assert.ok(chk({ a_sup: 1 }, /barra del tope bajo la superficie/).every((c) => c.st === "fail"), "a_sup = 1 con 0,5 mm de relapeado deja 0,5 mm");
+  assert.ok(chk({ a_inf: 3 }, /alivio inferior del canto libra el filete/).every((c) => c.st === "fail"), "a_inf = 3 < w + 1");
+  assert.ok(chk({ b_tope: 25 }, /filete mínimo del tope/).every((c) => c.st === "fail" && c.dem === 8), "barra de 25 mm: Tabla 5.8 exige 8 mm");
+  assert.ok(chk({}, /filete mínimo del tope/).every((c) => c.st === "ok" && c.dem === 6), "por defecto: T = máx(20; 18 o 16) → 6 mm");
+  assert.ok(chk({ w_tope: 12, t_ss: 12 }, /filete del tope dentro de la altura de barra/).every((c) => c.st === "fail"), "filete de 12 mm no cabe en una barra de 10 mm");
+  assert.ok(chk({ b_tope: 6 }, /flexión de la barra del tope/).some((c) => c.st === "fail"), "barra de 6 mm no resiste el par");
 });
 
 test("Valores por defecto: sin errores, gira y la estructura cumple", () => {

@@ -78,7 +78,7 @@
   "Mesa (FEA) · Equilibrio FEA (ΣF = ΣR)": 0.00020000000511709057,
   "Base · Espesor de la plancha base frente al mínimo por planitud": 0.8888888888888888,
   "Soldaduras · Filete mínimo almas/nervios–planchas": 1,
-  "Soldaduras · Filete mínimo mejillas–base": 0.5,
+  "Soldaduras · Filete mínimo mejillas–base": 0.4444444444444444,
   "Pasadores de empuje · Flexión (biapoyado entre anillos, carga repartida en la altura de la uña)": 0.896250009190507,
   "Pasadores de empuje · Corte en el apoyo": 0.3811732806558239,
   "Pasadores de empuje · Aplastamiento en el agujero del anillo": 0.7570577468587617,
@@ -106,7 +106,7 @@
   "Articulaciones · Aplastamiento en mejillas": 0.8851095824026896,
   "Articulaciones · Oreja superior de la ménsula: desgarro por corte tras el agujero": 0.8383893256963056,
   "Articulaciones · Mejilla de la ménsula: flexión en la base": 0.4619329299876758,
-  "Articulaciones · Soldadura mejillas–base (4 filetes)": 0.8087994309009179,
+  "Articulaciones · Soldadura mejillas–base (4 filetes)": 0.6470395447207343,
   "Pivote · Presión en el buje": 0.5356218188440778,
   "Pivote · Flexión del pivote": 0.1678707398831393,
   "Pivote · Aplastamiento del pivote en el asiento (plancha base + collar, ajuste H7/p6)": 0.11464814851512034,
@@ -128,6 +128,6 @@
   "Fatiga · Uña (boca del patín) (cat. A, N = 35000)": 0.25133641353134556,
   "Fatiga · Pasadores de articulación (cat. A, N = 35000)": 0.20930441677499734,
   "Fatiga · Pie de soldadura mejilla–base (cat. E, N = 35000)": 0.17641069186917577,
-  "Fatiga · Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)": 0.37003103541994486
+  "Fatiga · Garganta soldadura mejilla–base (corte) (cat. F, N = 35000)": 0.2960248283359559
  }
 }
