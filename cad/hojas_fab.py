@@ -522,7 +522,7 @@ def sheet_mesa_cubo(ctx):
     VS.dim((P["D_hub"] / 2, 0, z0 + tbo), (P["D_hub"] / 2, 0, zh), 10, orient="v", on=["mesa_cubo"])
     if g.rebaje and g.hHub > 0:
         VS.dim((g.Drb / 2, 0, z0 + tbo), (-g.Drb / 2, 0, z0 + tbo), -8 if False else -20, orient="h", on=["mesa_cubo"], prefix="Ø", text=f"Ø{f(g.Drb)} (rebaje = D_boss + 2·c_boss_r)")
-        VS.dim((g.Drb / 2 + 12, 0, z0 + tbo), (100, 0, z0 + tbo + g.hHub), -4, orient="v", on=["mesa_cubo"], text=f"{fm(g.hHub, 0)} (rebaje sobre la plancha)", outside=True)
+        VS.dim((g.Drb / 2 + 12, 0, z0 + tbo), (100, 0, z0 + tbo + g.hHub), -4, orient="v", on=["mesa_cubo"], text=f"{fm(g.hHub, 0)} (rebaje)", outside=True)
         VS.dim((g.Drb / 2, 0, z0 + tbo + 12), (P["D_hub"] / 2, 0, z0 + tbo + 12), 8, orient="h", on=["mesa_cubo"], text=f"{fm((P['D_hub'] - g.Drb) / 2, 0)} (pared del cubo, ≥ 25)")
     s.finish((VS.P(-100, 0, zh)[0], VS.P(0, 0, zh)[1] + 5), "Ra 1,6 (H7)")
     if g.rebaje:
