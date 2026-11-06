@@ -211,14 +211,14 @@ def sheet_oreja(ctx):
     VB.dim((-B / 2, -B / 2, 0), (B / 2, -B / 2, 0), -10, orient="h", on=["base_plancha"])
     s.text("O1 en (+x, +y): coordenadas (±x_lug, ±(B/2 − c_lug)); las 4 orejas son iguales y simétricas (espejo en x e y).", (470, 408), 1.9, "TOP_CENTER")
     title_view(s, (470, 392), "UBICACIÓN DE LAS 4 OREJAS (planta de la base)", "ESC 1:20")
-    VQ = View(s, ctx.sh(*keys), "top", (600, 462), 0.2, center=(x + 200, cl + 60, 0), win=(-300, -170, 120, 190), label="Esquina de la base"); VQ.draw()
+    VQ = View(s, ctx.sh(*keys), "top", (600, 482), 0.2, center=(x + 200, cl + 60, 0), win=(-300, -170, 120, 190), label="Esquina de la base"); VQ.draw()
     s.line(VQ.P(0, 0, tb), VQ.P(x, cl, tb), "FANT") if False else None
-    s.line(VQ.P(x - 300, cl, tb), VQ.P(x + 300, cl, tb), "FANT")                            # eje transversal de las orejas
-    s.line(VQ.P(x, cl - 300, tb), VQ.P(x, cl + 160, tb), "FANT")
+    s.line(VQ.P(x - 100, cl, tb), VQ.P(x + 300, cl, tb), "FANT")                            # eje transversal de las orejas (dentro de la ventana)
+    s.line(VQ.P(x, cl - 105, tb), VQ.P(x, cl + 120, tb), "FANT")
     VQ.dim((x + 190, B / 2, tb), (x + 190, cl, tb), 8, orient="v", on=["base_plancha"], text=f"c_lug = {f(P['c_lug'])} (al borde)")
     VQ.dim((0, cl, tb), (x, cl, tb), -12, orient="h", on=["base_plancha"], text=f"x_lug = {f(P['x_lug'])} (al eje y)", outside=True) if False else None
-    s.text(f"O1 (x_lug = {f(x)}; y = B/2 − c_lug = {f(cl)}); plano radial a {fm(ang, 2)}° de x", (600, 441), 1.9, "TOP_CENTER")
-    title_view(s, (600, 427), "OREJA O1 Y DISTANCIA AL BORDE", "ESC 1:5")
+    s.text(f"O1 (x_lug = {f(x)}; y = B/2 − c_lug = {f(cl)}); plano radial a {fm(ang, 2)}° de x", (600, 424), 1.9, "TOP_CENTER")
+    title_view(s, (600, 440), "OREJA O1 Y c_lug", "ESC 1:5")
     s.text(f"Orientación: plano de cada oreja vertical y radial hacia el centro de la base (ángulo atan({f(cl)}/{f(x)}) = {fm(ang, 2)}° respecto de x en O1; las demás son su imagen especular en x e y).", (300, 376), 2.0)
     s.text(f"Distancia al borde c_lug = {f(P['c_lug'])} (núcleo: c ≥ t_marco + 35); fuera del círculo de la mesa Ø{f(P['D_top'])} y dentro del marco.", (300, 372), 2.0)
     rows_o = [[f"O{i + 1}", f(ex), f(ey), fm(math.degrees(math.atan2(ey, ex)), 2) + "°", "radial hacia el centro"] for i, (ex, ey) in enumerate(g.ear_pos)]
