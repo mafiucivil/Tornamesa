@@ -187,6 +187,41 @@ def sector_features(g, lay, idx, a_deg, t, z_face, face, L_notch, grooves, plugs
     return cuts
 
 
+def csink_cut(lay, x, y, z_slide, rec, s, t):
+    """Corte del disco/placa para un tornillo avellanado ISO 10642: contraperforado hasta la cabeza, cono de 90° y agujero pasante.
+    s = −1 si el material está bajo la cara deslizante (cara arriba), +1 si está sobre ella."""
+    d, dk, dc = lay.d_tor, lay.dk, lay.d_clear
+    z_ht = z_slide + s * (-rec) if False else z_slide + (-s) * rec          # cara superior de la cabeza (recesada rec dentro del material)
+    z_ht = z_slide + s * rec
+    rim = 0.05 * d
+    zc0 = z_ht + s * rim                                                     # inicio del cono (radio dk/2)
+    hcone = (dk - dc) / 2
+    cuts = []
+    zlo, zhi = (min(z_slide - s * 1.0, zc0), max(z_slide - s * 1.0, zc0))
+    cuts.append(cyl(dk / 2, zhi - zlo, zlo, x, y))                           # contraperforado (desde la cara hasta el cono)
+    cone = cq.Solid.makeCone(dk / 2, dc / 2, hcone, pnt=cq.Vector(x, y, zc0), dir=cq.Vector(0, 0, s))
+    cuts.append(cq.Workplane("XY").newObject([cone]))
+    z_end = z_slide + s * t
+    zlo, zhi = min(zc0, z_end) - (1 if s > 0 else 0), max(zc0, z_end) + (0 if s > 0 else 1)
+    cuts.append(cyl(dc / 2, abs(z_end - zc0) + 2, min(zc0, z_end) - 1, x, y))
+    return cuts
+
+
+def screw_solid(lay, x, y, z_slide, rec, s, L):
+    d, dk = lay.d_tor, lay.dk
+    z_ht = z_slide + s * rec
+    rim = 0.05 * d
+    cs = (dk - d) / 2
+    z1 = z_ht + s * rim
+    z2 = z1 + s * cs
+    rimc = cq.Solid.makeCylinder(dk / 2, rim, pnt=cq.Vector(x, y, min(z_ht, z1)), dir=cq.Vector(0, 0, 1))
+    cone = cq.Solid.makeCone(dk / 2, d / 2, cs, pnt=cq.Vector(x, y, z1), dir=cq.Vector(0, 0, s))
+    ztip = z_ht + s * L
+    shank = cq.Solid.makeCylinder(d / 2, abs(ztip - z2), pnt=cq.Vector(x, y, min(z2, ztip)), dir=cq.Vector(0, 0, 1))
+    w = cq.Workplane("XY").newObject([rimc]).union(cq.Workplane("XY").newObject([cone])).union(cq.Workplane("XY").newObject([shank]))
+    return w, ztip
+
+
 def make_sector_set(g, lay, M, key_prefix, r0, r1, n, t, z_base, face, L_notch, rho, groove_depth=0.0, plug=None, mode="parallel", span_deg=None,
                     gap=None, screw_rec=0.0, with_screws=True, angle0=0.0, notch=True, greaser=False):
     """Genera n sectores, devuelve (compuesto_de_sectores, lista_de_sectores_locales_info, tornillos, topes).
@@ -205,22 +240,9 @@ def make_sector_set(g, lay, M, key_prefix, r0, r1, n, t, z_base, face, L_notch, 
             cuts.append(box(g.r_u - L_notch / 2, g.r_u + L_notch / 2, -(lay.b_tope + 2) / 2, (lay.b_tope + 2) / 2, z_base - 1, z_base + t + 1))
         # tornillos de posición (S01): agujero pasante con avellanado
         if with_screws and g.removable:
+            sg = -1 if face == "top" else 1
             for r in radii:
-                zc_ = z_slide - screw_rec
-                sgn = -1 if face == "top" else 1
-                clear = cyl(lay.d_clear / 2, t + 2, z_base - 1, r, 0)
-                cone = cq.Workplane("XY").workplane(offset=z_slide - screw_rec - (lay.dk - lay.d_clear) / 2 if face == "top" else z_slide + screw_rec - 0.0)
-                cuts.append(clear)
-                # avellanado 90°: cono de Ø dk en la cabeza a Ø d_clear en la profundidad (dk − d_clear)/2
-                cs_h = (lay.dk - lay.d_clear) / 2
-                if face == "top":
-                    cone = cq.Solid.makeCone(lay.d_clear / 2, lay.dk / 2, cs_h, pnt=cq.Vector(r, 0, z_slide - screw_rec - cs_h), dir=cq.Vector(0, 0, 1))
-                    cylh = cyl(lay.dk / 2, screw_rec + 1, z_slide - screw_rec, r, 0)
-                else:
-                    cone = cq.Solid.makeCone(lay.d_clear / 2, lay.dk / 2, cs_h, pnt=cq.Vector(r, 0, z_slide + screw_rec + cs_h), dir=cq.Vector(0, 0, -1))
-                    cylh = cyl(lay.dk / 2, screw_rec + 1, z_slide - 1, r, 0)
-                cuts.append(cq.Workplane("XY").newObject([cone]))
-                cuts.append(cylh)
+                cuts.extend(csink_cut(lay, r, 0.0, z_slide, screw_rec, sg, t))
         # ranuras de engrase en la cara deslizante
         if groove_depth > 0:
             zg0 = z_slide - groove_depth if face == "top" else z_slide
@@ -467,26 +489,16 @@ def build_interfaz(m, g, D, log):
 
     def make_screws(radii, a_list, t, z_slide, face, rec):
         L = lay.screw_len(t, rec)
+        sg = -1 if face == "top" else 1
         out, holes = [], []
-        cs_h = (lay.dk - lay.d_tor) / 2
         for a in a_list:
             for r in radii:
                 x, y = polar(r, a)
-                if face == "top":                   # cabeza arriba (cara deslizante en z_slide), vástago hacia abajo
-                    zt = z_slide - rec
-                    cone = cq.Solid.makeCone(lay.d_tor / 2, lay.dk / 2, cs_h, pnt=cq.Vector(x, y, zt - cs_h), dir=cq.Vector(0, 0, 1))
-                    cap = cq.Solid.makeCylinder(lay.dk / 2, 0.05 * lay.d_tor, pnt=cq.Vector(x, y, zt - 0.0 - 0.05 * lay.d_tor + 0.05 * lay.d_tor - 0.05 * lay.d_tor), dir=cq.Vector(0, 0, 1))
-                    shank = cq.Solid.makeCylinder(lay.d_tor / 2, L - cs_h - 0.05 * lay.d_tor, pnt=cq.Vector(x, y, zt - L), dir=cq.Vector(0, 0, 1))
-                    hd_ = cq.Workplane("XY").newObject([cone]).union(cq.Workplane("XY").newObject([cap])).union(cq.Workplane("XY").newObject([shank]))
-                    holes.append(cyl(lay.d_tor / 2, L - t + rec + 2, z_slide - rec - L - 2 + 0, x, y).translate((0, 0, 0)))
-                else:                               # cara deslizante abajo (z_slide), vástago hacia arriba
-                    zt = z_slide + rec
-                    cone = cq.Solid.makeCone(lay.d_tor / 2, lay.dk / 2, cs_h, pnt=cq.Vector(x, y, zt + cs_h), dir=cq.Vector(0, 0, -1))
-                    cap = cq.Solid.makeCylinder(lay.dk / 2, 0.05 * lay.d_tor, pnt=cq.Vector(x, y, zt), dir=cq.Vector(0, 0, -1))
-                    shank = cq.Solid.makeCylinder(lay.d_tor / 2, L - cs_h - 0.05 * lay.d_tor, pnt=cq.Vector(x, y, zt + cs_h), dir=cq.Vector(0, 0, 1))
-                    hd_ = cq.Workplane("XY").newObject([cone]).union(cq.Workplane("XY").newObject([shank]))
-                    holes.append(cyl(lay.d_tor / 2, L - t + rec + 2, z_slide + t, x, y))
-                out.append(hd_)
+                w, ztip = screw_solid(lay, x, y, z_slide, rec, sg, L)
+                out.append(w)
+                zback = z_slide + sg * t                                   # superficie del respaldo
+                hh = abs(ztip - zback) + 2
+                holes.append(cyl(lay.d_tor / 2, hh, min(zback, ztip) - (2 if sg < 0 else 0), x, y))
         return out, holes, L
 
     def stop_bars(a_list, L_t, t, z_attach, direction):
@@ -712,12 +724,17 @@ def apply_backing_holes(m):
     gp = m.info.get("grease_pts")
     if hm or gp:
         sol = inf.solid
-        if hm:
-            sol = sol.cut(compound(hm))
         ring_inf = m.get("mesa_anillo_inf")
+        if hm:
+            hmc = compound(hm)
+            sol = sol.cut(hmc)
+            ring_inf.solid = ring_inf.solid.cut(hmc)
         if gp:
             axial = cq.Workplane("XY").workplane(offset=g.z0 - 1).pushPoints(gp).circle(3).extrude(g.tpr / 2 + 1)
             ring_inf.solid = ring_inf.solid.cut(axial)
+            for (x, y) in gp:
+                a = math.degrees(math.atan2(y, x))
+                ring_inf.solid = ring_inf.solid.cut(rotz(cyl(5, 12, 0, 0, 0).rotate((0, 0, 0), (0, 1, 0), 90).translate((g.Rt - 12, 0, g.z0 + g.tpr / 2)), a))
             for (x, y) in gp:
                 a = math.degrees(math.atan2(y, x))
                 rad = rotz(cyl(3, 30, 0, 0, 0).rotate((0, 0, 0), (0, 1, 0), 90).translate((g.Ro - 30, 0, g.z0 + g.tpr / 2)), a)
