@@ -6,8 +6,12 @@ estática, la cinemática, Hertz y ASME BTH-1 Cat. B (Fy/Nd; corte Fy/(Nd·√3)
 soldadura 0,60FEXX/(1,20Nd)).
 
 Ejecutar:  python3 -I tests/indep_accionamiento.py
-Imprime tablas por prueba y termina con «RESULTADO: ...». Sale con 0 si no hay hallazgos críticos ni
-importantes; con 1 en caso contrario.
+Imprime tablas por prueba y termina con «RESULTADO: ...». Sale con 1 si hay discrepancias numéricas o hallazgos
+críticos o mayores («importante»); con 0 en caso contrario.
+Convención «abierto a planos»: N2 (temple por inducción ≥ 55 HRC de pasador y uña) y N8 (alivio de borde de ~10 mm en
+las caras de contacto) son requisitos de planos ya asignados al dibujante; mientras la nota de planos no los rotule se
+imprimen como «abierto a planos» (no bloqueantes). Si el núcleo/planos dejaran de cumplir lo numérico (FU > 1 con la
+hipótesis de temple, o el reparto elástico supera k_edge) siguen apareciendo como N9 «importante».
 
 Convenciones (giro antihorario, cilindro en x = +x_g, empuje +y; el par es simétrico respecto del centro):
   θ ∈ [−π/N, +π/N]; a = R cos θ; y_p = R sin θ; Δ = x_g − a.
@@ -102,17 +106,28 @@ F_sp = 300.0
 mu_p = mu_g                                          # μ uña–alojamiento (hipótesis)
 
 
+def R_i_if(P):
+    """Radio interior real de la interfaz (cambio 2 del núcleo): con collar D_boss/2 + c_boss_r + m_ri; sin collar D_piv/2 + 15."""
+    return P["D_boss"] / 2 + P["c_boss_r"] + P["m_ri"] if P["h_boss"] > 0 else P["D_piv"] / 2 + 15
+
+
 def masa_mesa(P):
+    assert not (P["opt_ss"] or P["opt_uhmw"] or P["opt_bz"]), "solo caso sin interfaz; A/B/C en indep_interfaz.py"
     rings = sorted(float(x) for x in P["rings"].replace(";", ",").split(",") if x.strip())
     Rt = P["D_top"] / 2; hw = P["h_disc"] - P["t_top"] - P["t_bot"]
     rpr = max(P["D_hub"] / 2, P["R_pin"] - (Rt - P["R_pin"])); db = P["D_piv"] + 30
     aring = math.pi * (Rt ** 2 - rpr ** 2) - P["N_pin"] * math.pi * P["d_pin"] ** 2 / 4
     m = RHO * ((math.pi * rpr ** 2 - math.pi / 4 * (P["D_piv"] + 80) ** 2) * P["t_top"] + aring * max(P["t_pr"], P["t_top"]))
-    m += RHO * ((math.pi * rpr ** 2 - math.pi / 4 * db ** 2) * P["t_bot"] + aring * max(P["t_pr"], P["t_bot"]))
+    # Plancha inferior con agujero pasante Ø(D_boss + 2c_boss_r) y cubo rebajado solo lo que excede t_bot (profundidad
+    # desde la cara inferior = h_boss − δ + c_boss_a, δ = 0 sin interfaz).
+    collar = P["h_boss"] > 0
+    D_rec = P["D_boss"] + 2 * P["c_boss_r"] if collar else db
+    dep = P["h_boss"] + P["c_boss_a"] if collar else 0.0
+    m += RHO * ((math.pi * rpr ** 2 - math.pi / 4 * D_rec ** 2) * P["t_bot"] + aring * max(P["t_pr"], P["t_bot"]))
     m += RHO * sum(2 * math.pi * r * hw * P["t_web"] for r in rings)
     nin = sum(1 for r in rings if P["D_hub"] / 2 < r < P["R_rib"])
     m += RHO * P["N_rib"] * (P["R_rib"] - P["D_hub"] / 2 - nin * P["t_web"]) * hw * P["t_rib"]
-    m += RHO * math.pi / 4 * (P["D_hub"] ** 2 - db ** 2) * hw
+    m += RHO * math.pi / 4 * ((P["D_hub"] ** 2 - db ** 2) * hw - ((D_rec ** 2 - db ** 2) * max(dep - P["t_bot"], 0) if collar else 0))
     m += RHO * P["N_pin"] * math.pi / 4 * P["d_pin"] ** 2 * P["h_disc"]
     m_piv = RHO * math.pi / 4 * P["D_piv"] ** 2 * (P["t_base"] + P["h_disc"] - P["t_top"] + 3)
     return m + 0.5 * m_piv
@@ -121,13 +136,13 @@ def masa_mesa(P):
 def par(P, mu, r):
     """T [N·mm] = μ·N·r + μ_buje·H_exc·D/2, H_exc = μN·e·(4/3)(Ro³−Ri³)/(Ro⁴−Ri⁴) (∝ μ)."""
     Nn = P["W_tf"] * g0 * 1e3 + masa_mesa(P) * g0
-    Ro, Ri = P["D_top"] / 2, P["D_piv"] / 2 + 15
+    Ro, Ri = P["D_top"] / 2, R_i_if(P)
     H = mu * Nn * P["e"] * 4 / 3 * (Ro ** 3 - Ri ** 3) / (Ro ** 4 - Ri ** 4)
     return mu * Nn * r + P["mu_bush"] * H * P["D_piv"] / 2
 
 
 def casos(P):
-    Ro, Ri = P["D_top"] / 2, P["D_piv"] / 2 + 15
+    Ro, Ri = P["D_top"] / 2, R_i_if(P)
     ru = 2 / 3 * (Ro ** 3 - Ri ** 3) / (Ro ** 2 - Ri ** 2)
     return {"nom": (P["mu_nom"], ru), "dis": (P["mu_d"], P["r_ef"]), "borde": (P["mu_d"], Ro),
             "cont": (P["mu_cont"], P["r_ef"]), "seco": (P["mu_dry"], ru)}
@@ -306,7 +321,7 @@ F_dd = eM["F"]
 fu_pin_Hd = math.sqrt(F_dd / h_d * Es / (math.pi * r_p)) / (1.67 * P["Fy_pin"])
 planos_txt = (ROOT / "cad" / "planos_tt300c.py").read_text()
 if "Dureza pos 3 y 10: 280–330 HB" in planos_txt or "inducc" not in planos_txt.lower():
-  FIND.append(("N2", "importante", "Hertz: la presión es la misma en ambos cuerpos. La memoria pide temple por inducción en pasador y uña, pero la nota de planos (cad/planos_tt300c.py) sigue con «Dureza pos 3 y 10: 280–330 HB». Sin temple, el pasador (Fy 800) no cumple",
+  FIND.append(("N2", "abierto a planos", "Hertz: la presión es la misma en ambos cuerpos. La memoria pide temple por inducción en pasador y uña, pero la nota de planos (cad/planos_tt300c.py) sigue con «Dureza pos 3 y 10: 280–330 HB». Sin temple, el pasador (Fy 800) no cumple",
              f"FU {s3(ver('Contacto de Hertz')['fu'])} (con Fy_sup = {P['Fy_surf']} en ambos)", f"pasador sin temple: FU {s3(fu_pin_H)} a calado ({s3(fu_pin_Hd)} a diseño). Llevar el temple de pos 3 y 10 a planos; rotular el chequeo «ambas caras»"))
 # chaflán de retorno
 beta = math.radians(P["beta_ch"])
@@ -398,7 +413,7 @@ table("Prueba 5 – Pasador de empuje Ø%s a F_calado (MPa)" % s3(d_pin), ["Cheq
        ["Hertz en el borde de la cara (sin singularidad de arista)", s3(pH_edge), s3(pH), s3(1.67 * P["Fy_surf"]), s3(pH_edge / (1.67 * P["Fy_surf"]))]])
 planos_txt = (ROOT / "cad" / "planos_tt300c.py").read_text()
 if not any(k in planos_txt.lower() for k in ("alivio de borde", "bombeo", "abombad", "perfil logar", "alivio de extremos")):
-    FIND.append(("N8", "importante", "Hertz uña–pasador: el pasador flecta bajo la uña rígida y la carga se concentra en los bordes superior e inferior de la cara (aristas 0,5×45°, sin alivio de borde en planos); la verificación supone carga lineal uniforme F/h",
+    FIND.append(("N8", "abierto a planos", "Hertz uña–pasador: el pasador flecta bajo la uña rígida y la carga se concentra en los bordes superior e inferior de la cara (aristas 0,5×45°, sin alivio de borde en planos); la verificación supone carga lineal uniforme F/h",
                  f"p0 {s3(pH)} MPa, FU {s3(ver('Contacto de Hertz')['fu'])}",
                  f"q_borde = {s3(kq_end)}·F/h → p0 {s3(pH_edge)} MPa, FU {s3(pH_edge/(1.67*P['Fy_surf']))} sin contar la singularidad de arista. Especificar alivio de borde (bombeo o perfil logarítmico de ~10 mm en ambos extremos de la cara) y verificar Hertz con q = {s3(kq_end)}·F/h"))
 
@@ -571,7 +586,8 @@ table("Prueba 8 – Guía, bancada y pivote", ["Frente", "Propio", "Núcleo", "A
 table("Comparación con el núcleo (tolerancia 0,1 % salvo indicación)", ["Prueba", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], COMP)
 table("Hallazgos", ["Id", "Severidad", "Hallazgo", "Núcleo", "Corregido"], FIND)
 nco = sum(1 for c in COMP if c[5] == "coincide"); ndi = sum(1 for c in COMP if c[5] == "discrepa"); nom = sum(1 for c in COMP if c[5] == "el núcleo omite")
-sev = {k: sum(1 for f in FIND if f[1] == k) for k in ("crítica", "importante", "menor")}
+sev = {k: sum(1 for f in FIND if f[1] == k) for k in ("crítica", "importante", "menor", "abierto a planos")}
 print(f"\nRESULTADO: {nco} coincidencias, {ndi} discrepancias numéricas, {nom} omisiones; hallazgos: "
-      f"{sev['crítica']} críticos, {sev['importante']} importantes, {sev['menor']} menores")
-sys.exit(1 if sev["crítica"] or sev["importante"] else 0)
+      f"{sev['crítica']} críticos, {sev['importante']} importantes, {sev['menor']} menores, "
+      f"{sev['abierto a planos']} abiertos a planos (no bloqueantes)")
+sys.exit(1 if (ndi or sev["crítica"] or sev["importante"]) else 0)

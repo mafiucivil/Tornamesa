@@ -19,18 +19,28 @@ rpr = max(P["D_hub"] / 2, P["R_pin"] - (Rt - P["R_pin"]))
 db = P["D_piv"] + 30
 aring = math.pi * (Rt**2 - rpr**2) - P["N_pin"] * math.pi * P["d_pin"]**2 / 4
 m_top = rho * ((math.pi * rpr**2 - math.pi / 4 * (P["D_piv"] + 80)**2) * P["t_top"] + aring * max(P["t_pr"], P["t_top"]))
-m_bot = rho * ((math.pi * rpr**2 - math.pi / 4 * db**2) * P["t_bot"] + aring * max(P["t_pr"], P["t_bot"]))
+# Collar del pivote (cambios 2 y 3 del núcleo): rebaje del cubo con holguras radial c_boss_r y axial c_boss_a.
+# La plancha inferior lleva agujero pasante Ø(D_boss+2·c_boss_r); desde la cara inferior la profundidad de rebaje es
+# h_boss − δ + c_boss_a (δ = espesor de interfaz; 0 por defecto), y el cubo solo se rebaja lo que excede t_bot.
+collar = P["h_boss"] > 0
+D_rec = P["D_boss"] + 2 * P["c_boss_r"] if collar else db
+delta_if = 0.0 if not (P["opt_ss"] or P["opt_uhmw"] or P["opt_bz"]) else None
+assert delta_if is not None, "este script cubre el caso por defecto (sin interfaz); las variantes A/B/C están en indep_interfaz.py"
+dep_rec = P["h_boss"] - delta_if + P["c_boss_a"] if collar else 0.0
+m_bot = rho * ((math.pi * rpr**2 - math.pi / 4 * D_rec**2) * P["t_bot"] + aring * max(P["t_pr"], P["t_bot"]))
 m_webs = rho * sum(2 * math.pi * r * hw * P["t_web"] for r in rings)
 nin = sum(1 for r in rings if P["D_hub"] / 2 < r < P["R_rib"])
 m_ribs = rho * P["N_rib"] * (P["R_rib"] - P["D_hub"] / 2 - nin * P["t_web"]) * hw * P["t_rib"]
-m_hub = rho * math.pi / 4 * ((P["D_hub"]**2 - db**2) * hw - ((P["D_boss"]**2 - db**2) * P["h_boss"] if P["h_boss"] > 0 else 0))   # con rebaje inferior para el collar del pivote
+m_hub = rho * math.pi / 4 * ((P["D_hub"]**2 - db**2) * hw - ((D_rec**2 - db**2) * max(dep_rec - P["t_bot"], 0) if collar else 0))   # rebaje solo por encima de la plancha inferior
 m_pins = rho * P["N_pin"] * math.pi / 4 * P["d_pin"]**2 * P["h_disc"]
 m_disc = m_top + m_bot + m_webs + m_ribs + m_hub + m_pins
 chk("Masa de la mesa (kg)", m_disc, G["masa_mesa"])
 m_piv = rho * math.pi / 4 * P["D_piv"]**2 * (P["t_base"] + P["h_disc"] - P["t_top"] + 3)
 W = P["W_tf"] * g; Wd = (m_disc + 0.5 * m_piv) * g / 1e3; N = W + Wd; ND = P["phi_d"] * W + Wd
 chk("N = W + W_mesa (kN)", N, G["N"])
-Ro, Ri = Rt, P["D_piv"] / 2 + 15
+# R_i real de la interfaz (cambio 2): con collar = D_boss/2 + c_boss_r + m_ri; sin collar = D_piv/2 + 15
+Ro = Rt
+Ri = P["D_boss"] / 2 + P["c_boss_r"] + P["m_ri"] if collar else P["D_piv"] / 2 + 15
 A = math.pi * (Ro**2 - Ri**2); I = math.pi * (Ro**4 - Ri**4) / 4
 chk("q_max interfaz (MPa) — Navier", ND * 1e3 / A + ND * 1e3 * P["e"] * Ro / I, G["q_max"])
 
@@ -98,6 +108,14 @@ def guia_cal(th):
 gc = [guia_cal(-pitch / 2 + pitch * i / 4000) for i in range(4001)]
 Rcal = max(abs(g[1]) for g in gc)                      # kN
 SRcal = max(abs(g[1]) + abs(g[2]) for g in gc)
+
+# --- bomba (cambio 1: Q_pump 10, Q_ret 20 L/min, t_vuelta_obj 15 min) ---
+# Avance y retorno por paso con los n cilindros en paralelo: t = n·A·carrera/Q; una vuelta = N_pin pasos (el patín recorre la carrera completa en cada paso).
+Ann = Ab - math.pi / 4 * P["d_rod"]**2
+tRev = P["N_pin"] * P["n_cyl"] * P["stroke"] * (Ab / P["Q_pump"] + Ann / P["Q_ret"]) / 1e6            # min (mm³ → L)
+chk("Tiempo por vuelta: FU = t_vuelta/t_obj (Q_pump 10, Q_ret 20)", tRev / P["t_vuelta_obj"], G["fu"]["Giro · Tiempo por vuelta frente al objetivo"])
+v_ret = P["Q_ret"] * 1e6 / 60 / (P["n_cyl"] * Ann) / 1000                                              # m/s del vástago en el retorno
+chk("Velocidad de retorno del vástago: FU = v/v_max", v_ret / P["v_ret_max"], G["fu"]["Giro · Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)"])
 
 # --- cadena de empuje (BTH-1, Nd) ---
 Nd = P["Nd"]; tpr = max(P["t_pr"], P["t_top"], P["t_bot"])
