@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. C
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 159 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 229 s.
 Interfaz dibujada: **Opción A: dos discos de acero inoxidable con grasa (base liso, mesa ranurado)**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -145,7 +145,7 @@ La masa neta es la del núcleo (m_neta = bruta − juntas − muescas − chafla
 
 ## Control de marco
 
-Láminas con entidades fuera del formato: TT300C-INT-003-C [-4, 0, 841, 594]; TT300C-INT-004-C [-4, 0, 841, 594]
+Todas las láminas dentro del formato A1.
 
 ## Supuestos del dibujante (PROVISORIO) y decisiones adoptadas por el mandante (ADOPTADO)
 
