@@ -189,7 +189,6 @@ def sheet_oreja(ctx):
     title_view(s, (470, 305), "UBICACIÓN (esquina de la base)", "ESC 1:10")
     s.text(f"Plano de la oreja vertical y radial hacia el centro de la base (ángulo atan(±{f(cl)}/±{f(x)}) = {fm(ang, 2)}° respecto de x en la oreja 1).", (300, 285), 2.1)
     s.text("Orejas en (±x_lug, ±(B/2 − c_lug)); distancia al borde c_lug; fuera del círculo de la mesa y dentro del marco.", (300, 281), 2.1)
-    s.text(ramales_txt(ctx)[3:], (300, 277), 2.1)
     s.notes_block(300, 260, "PROCESO Y CONTROL", [
         "1. Corte a llama o plasma del perfil y del agujero Ø{0} (tolerancia ISO 2768-m; agujero H12 de corte, sin mecanizado: grillete con pasador ≤ d − 3).".format(fm(dE, 0)),
         "2. Biselado de la base de apoyo según WPS (preparación A DEFINIR POR EL FABRICANTE) y esmerilado de bordes del agujero.",
@@ -654,17 +653,18 @@ def sheet_int_conj(ctx):
     title_view(s, (200, 195), "CORTE RADIAL POR LA BISECTRIZ DE UN SECTOR", "ESC 1:4")
     # detalle del tope (1:1,5)
     rr = g.r_u
-    VD = View(s, ctx.sh(*rk), "front", (520, 235), 1.2, center=(rr, 0, tb), cut=((0, 0, 0), (0, 1, 0)), win=(-100, -tb - 3, 100, g.delta + g.tbo + 8), label="Detalle del tope", hatch_scale=0.2); VD.draw()
+    yc = (lay.b_tope + 2) / 2 + lay.a_inf + 3 if g.removable else 0.0          # plano de corte junto a la muesca (la sección por la barra está en INT-003)
+    VD = View(s, ctx.sh(*rk), "front", (520, 235), 1.2, center=(rr, 0, tb), cut=((0, yc, 0), (0, 1, 0)), win=(-100, -tb - 3, 100, g.delta + g.tbo + 8), label="Detalle del tope", hatch_scale=0.2); VD.draw()
     on = [k + "_r" for k in base_side + mesa_side]
     lays = g.stack
     for l in lays:
         if l["id"] in ("disc_base", "bronce"):
-            VD.dim((rr + 60, 0, l["z0"]), (rr + 60, 0, l["z0"] + l["t"]), 10, orient="v", on=on, text=f"{fm(l['t'], 1)}", outside=True) if False else None
+            VD.dim((rr + 60, yc, l["z0"]), (rr + 60, yc, l["z0"] + l["t"]), 10, orient="v", on=on, text=f"{fm(l['t'], 1)}", outside=True) if False else None
     zs = [(l["z0"], l["z0"] + l["t"], l["id"]) for l in lays]
     for i, (za, zb_, idn) in enumerate(zs):
         xa = rr + 70 + 6 * i
-        VD.dim((xa, 0, za), (xa, 0, zb_), 8 + 10 * i, orient="v", on=on, text=f"{fm(zb_ - za, 1)}", outside=True)
-    title_view(s, (520, 195), "DETALLE DEL TOPE (corte por la muesca)" if g.removable else "DETALLE DE CAPAS (sin topes: pegado)", "ESC 1,2:1")
+        VD.dim((xa, yc, za), (xa, yc, zb_), 8 + 10 * i, orient="v", on=on, text=f"{fm(zb_ - za, 1)}", outside=True)
+    title_view(s, (520, 195), "DETALLE DE CAPAS (corte junto a la muesca del tope)" if g.removable else "DETALLE DE CAPAS (sin topes: pegado)", "ESC 1,2:1")
     if g.removable:
         tpb, tpm = lay.tp_base, lay.tp_mesa
         s.text(f"Barra lado base: {fm(lay.b_tope, 0)}×{f(tpb['L'])}×{fm(tpb['h_barra'], 0)} (h = t − a_sup) en muesca {fm(lay.b_tope + 2, 0)}×{f(tpb['L'])}; filetes z{fm(lay.w_tope, 0)} (2); chaflán {fm(tpb['a_inf'], 0)}×45°; h_c = {fm(tpb['h_c'], 0)}.", (430, 175), 2.0)
@@ -827,9 +827,9 @@ def sheet_int_topes(ctx):
             tt_ = g.stack[0]["t"]
             ctx.local("tor_L", "tor_L", near=(r1, 0, tb + tt_ / 2), r=40)
             VS = View(s, ctx.sh("tor_L", ), "front", (570, 500), 2.5, center=(r1, 0, tb + tt_), label="Tornillo"); VS.draw()
-            title_view(s, (570, 365), f"TORNILLO ISO 10642 M{fm(lay.d_tor, 0)}×{L_}", "ESC 3:1")
-            s.text(f"Cabeza recesada {fm(P['ss_allow'] if g.opt != 3 else P['bz_allow'], 1)} bajo la cara deslizante; engrane ≥ 1,5·d en el respaldo (S11); torque A DEFINIR.", (520, 350), 2.0)
-            s.text(f"2 tornillos por sector (adoptado por el mandante), a r = " + " y ".join(f(x) for x in m.info['radii_screw']) + "; el exterior se limita para no caer sobre los pasadores de empuje.", (520, 346), 1.9)
+            title_view(s, (570, 425), f"TORNILLO ISO 10642 M{fm(lay.d_tor, 0)}×{L_}", "ESC 3:1")
+            s.text(f"Cabeza recesada {fm(P['ss_allow'] if g.opt != 3 else P['bz_allow'], 1)} bajo la cara deslizante; engrane ≥ 1,5·d en el respaldo (S11); torque A DEFINIR.", (520, 408), 2.0)
+            s.text(f"2 tornillos por sector (adoptado por el mandante), a r = " + " y ".join(f(x) for x in m.info['radii_screw']) + "; el exterior se limita para no caer sobre los pasadores de empuje.", (520, 404), 1.9)
     else:
         s.text("FIJACIÓN PEGADA (fix_mode = 2): no hay topes ni tornillos. Adhesivo epóxico estructural (A DEFINIR POR EL PROVEEDOR): τ de diseño %s MPa, línea de pegado %s mm." % (fm(P["tau_bond"], 1), fm(P["t_ad"], 1)), (30, 480), 2.2)
         s.text("NO DESMONTABLE: los discos/placas no se pueden limpiar ni reemplazar sin destruir la unión. Superficie de respaldo granallada, sin pintura.", (30, 474), 2.2)
