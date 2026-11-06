@@ -1081,6 +1081,16 @@ table(["Material", "Propiedad", "Valor a 20 °C", "Valor a 80 °C", "Factor 80/2
 name = f"TT300-C_Memoria_Rev{REV}"
 docx = OUT / f"{name}.docx"
 doc.save(docx)
+# Letras negras siempre: también en los estilos heredados de la plantilla de python-docx (estilos de tabla no usados con colores de tema)
+import re, zipfile
+_tmp = docx.with_suffix(".tmp")
+with zipfile.ZipFile(docx) as zin, zipfile.ZipFile(_tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+    for it in zin.infolist():
+        data = zin.read(it.filename)
+        if it.filename in ("word/styles.xml", "word/stylesWithEffects.xml"):
+            data = re.sub(rb"<w:color [^>]*/>", b'<w:color w:val="000000"/>', data)
+        zout.writestr(it, data)
+_tmp.replace(docx)
 print(docx)
 if "--no-pdf" not in sys.argv:
     r = subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", str(OUT), str(docx)], capture_output=True, text=True, timeout=300)

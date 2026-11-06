@@ -153,7 +153,7 @@ La especificación detallada de cada corrección (C1–C3, M1–M8) se escribe y
 | Arquitectura del accionamiento | **Tipo KIET verificada (TT300-C):** cilindro pivotado en la base con uña pivotada en el vástago, sin carro ni guía. Referencia: `docs/referencias/2026-10-30-kiet-400t-analisis.md` |
 | Capacidad | 300 tf |
 | Cilindros | 2 × Ø85/Ø55, carrera 235, 700 bar (como KIET), paramétricos |
-| Entregable de software | Herramienta HTML autónoma `dist/TT300-C_Verificacion.html`: ingreso de parámetros, verificación completa en vivo, veredicto de giro y de estructura, optimizador de peso |
+| Entregable de software | Herramienta HTML autónoma `Tornamesa_v<VERSION>.html` en la raíz (hoy `Tornamesa_v1.1.html`; antes `dist/TT300-C_Verificacion.html`, que ya no existe): ingreso de parámetros, verificación completa en vivo, veredicto de giro y de estructura, optimizador de peso |
 | Objetivos | Peso mínimo (transporte) con giro asegurado |
 | Entregable final | Planos de fabricación completos, generados desde el mismo JSON de parámetros |
 | Lenguaje del núcleo | JavaScript (continuidad con el código existente), sin dependencias, con tests en Node y verificación independiente en Python |

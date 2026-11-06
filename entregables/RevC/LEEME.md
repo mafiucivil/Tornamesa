@@ -23,4 +23,6 @@ python3 cad/generar_paquete.py diseno.json --out cad/out/variante_B
 ```
 (C1–C3 tardan 8–10 min cada una.)
 
+Memoria de cálculo (`TT300-C_Memoria_RevC.docx` y `.pdf`, doc. TT300-C-MC-01 Rev. C, reemplaza a la Rev. B): regenerada con el núcleo vigente (commit ≥ 1bbe3ed) y con dos capítulos nuevos, «9. Alternativas de interfaz de giro y cubierta de madera» (base, A, B, C1, C2, C3 y madera) y «10. Exposición solar: servicio a 80 °C» (escenario aparte, `TT.thermal`). Se genera con `npm run memoria` (`tools/export_design.js`, `tools/export_alternativas.js` y `tools/memoria_tt300c.py`); `TT300-C_alternativas.json` es el dato de entrada de los capítulos 9 y 10 (junto con la clave `termica` del JSON de diseño). El `TT300-C_design.json` de esta carpeta es el de los planos y no se regeneró.
+
 ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.
