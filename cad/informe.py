@@ -48,6 +48,9 @@ def brechas(ctx, rep):
     for v in D["verificaciones"]:
         if v["estado"] == "pend":
             add("Pendiente declarado por el núcleo", v["nombre"], "Atender en fabricación/aprobación según el texto del núcleo.")
+    if g.opt == 3 and ctx.m.info.get("n_plugs"):
+        add("Tapones de grafito: patrón realizable frente a f_g del núcleo", plug_txt(ctx),
+            "A DECIDIR POR EL MANDANTE: densificar el patrón (paso o zonas de exclusión) o que el núcleo use la cantidad real de tapones; el efecto sobre la presión del bronce es conservador, sobre la lubricación no.")
     add("Diferencias de fórmula del patín", "La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza.", "Informativo (dentro de tolerancia).")
     add("Cilindro comercial", f"Largo ojal–ojal L0 = {fm(P['L0'], 0)} mm y masa {fm(P['m_cyl'], 0)} kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo.", "Confirmar con el proveedor del cilindro.")
     return G_
@@ -71,6 +74,10 @@ def cortes_control(ctx):
 def residual_txt(ctx, grupo):
     """Qué no descuenta el núcleo en cada grupo (explica el residual 3D − núcleo; no se compensa con fórmulas)."""
     g, P = ctx.g, ctx.P
+    if grupo == "ss" and g.opt and not g.removable:
+        jk = g.n_sec * g.junta("disc") * (g.Ro - g.Ri) * (g.I["tss"] + g.I["tss2"]) * RHO_SS
+        return (f"fijación pegada: el núcleo calcula discos completos (sin juntas ni muescas), el modelo 3D conserva {g.n_sec} sectores con junta de {fm(g.junta('disc'), 1)} mm ({fm(jk, 1)} kg) "
+                "y además las ranuras de engrase y los taladros de las graseras (el resto del residual)")
     if grupo == "ss":
         return "ranuras de engrase, agujeros avellanados de los tornillos de posición y taladros de las graseras (el núcleo solo descuenta juntas, muescas y chaflanes)"
     if grupo == "bz":
