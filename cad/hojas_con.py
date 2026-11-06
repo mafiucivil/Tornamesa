@@ -83,6 +83,7 @@ def balloons_auto(p, V, keys, pred=None, gap=13.0, off=22.0, label_of=None):
         pos = ctx.m.get(k).pos
         p.s.balloon(P2, q, pos)
         ctx.balloons[p.h.plano].add(pos)
+    V.ext = (min(V.ext[0], bx0 - 6), min(V.ext[1], by0 - 6), max(V.ext[2], bx1 + 6), max(V.ext[3], by1 + 6))
 
 
 class Conj(Pieza):

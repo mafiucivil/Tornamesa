@@ -18,13 +18,19 @@ G = json.loads((GD / "tt300c_defaults.json").read_text())
 TOL = 1e-3
 ALC = None                                   # alcance térmico (term_alcance): 1 = placas y disco; 2 = además accionamiento e hidráulica (comportamiento de 1bbe3ed)
 SUPPORTS_ALC = False                         # el núcleo reconoce term_alcance (detección conductual en el modo principal)
+IDEAL = False                                # pasada «escenario anterior»: term_alcance = 2 con f_g ideal (bz_fg_modo = 0) y sin criterio de lubricación (bz_fg_min = 0,1), como tests/golden/tt300c_termica_alcance2.json
 for _a in sys.argv[1:]:
+    if _a == "--ideal=1":
+        IDEAL = True
     if _a.startswith("--alcance="):
         ALC = int(_a.split("=")[1])
     if _a.startswith("--soporte="):
         SUPPORTS_ALC = _a.split("=")[1] == "1"
 # filas del escenario que pertenecen al accionamiento y a la hidráulica (fuera del alcance 1)
 DRIVE_KEYS = ("Uña–pasador", "Patín fuera", "Bancada de guía", "Aceite", "Válvula de alivio", "Sellos NBR")
+# grupos de verificaciones estándar que pasan a «Accionamiento (fuera de alcance)» con term_alcance = 1 (pasadores de empuje, uña, patín y guía, articulaciones, fatiga)
+DRIVE_GRPS = ("Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga")
+FG_ROW = "Bronce con grafito: cobertura mínima de lubricante sólido"          # criterio f_g ≥ bz_fg_min (aviso por defecto; falla con bz_fg_estricto = 1)
 fails = []
 nchk = [0]
 LOG = "-v" in sys.argv
@@ -63,6 +69,8 @@ def export(over=None):
     over = dict(over or {})
     if SUPPORTS_ALC and ALC is not None:
         over.setdefault("term_alcance", ALC)
+    if IDEAL:
+        over.setdefault("bz_fg_modo", 0); over.setdefault("bz_fg_min", 0.1)
     key = json.dumps(over, sort_keys=True)
     if key in _cache:
         return _cache[key]
@@ -94,8 +102,8 @@ def alt_export(aid, wood=False, extra=None):
     return export(o)
 
 
-def _spawn(alc, sup):
-    return subprocess.run([sys.executable, "-I", str(pathlib.Path(__file__).resolve()), f"--alcance={alc}", f"--soporte={1 if sup else 0}"] + [a for a in sys.argv[1:] if a == "-v"]).returncode
+def _spawn(alc, sup, ideal=False):
+    return subprocess.run([sys.executable, "-I", str(pathlib.Path(__file__).resolve()), f"--alcance={alc}", f"--soporte={1 if sup else 0}"] + (["--ideal=1"] if ideal else []) + [a for a in sys.argv[1:] if a == "-v"]).returncode
 
 
 if ALC is None:
@@ -108,9 +116,9 @@ if ALC is None:
     _sup = _d is not None and not any(f["nombre"].startswith("Aceite atrapado") for f in _filas)
     print(f"núcleo con term_alcance: {'sí' if _sup else 'no (se ejecuta sólo el alcance 2 = comportamiento de 1bbe3ed)'}", flush=True)
     rc = 0
-    for _a in ((1, 2) if _sup else (2,)):
-        print(f"######## alcance {_a} ########", flush=True)
-        rc = max(rc, _spawn(_a, _sup))
+    for _a, _id in (((1, False), (2, False), (2, True)) if _sup else ((2, False),)):
+        print(f"######## alcance {_a}{' con f_g ideal (escenario anterior, golden tt300c_termica_alcance2.json)' if _id else ''} ########", flush=True)
+        rc = max(rc, _spawn(_a, _sup, _id))
     print("RESULTADO GLOBAL:", "sin diferencias" if rc == 0 else "DIFERENCIAS")
     sys.exit(rc)
 
@@ -393,9 +401,10 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Grasa grafitada", "term", T / P["T_drop"], T, P["T_drop"])
     if aid == "B":
         add("Lámina UHMW: temperatura frente al límite", "est", T / 80.0, T, 80.0)
+    drive = [r for r in R if r["key"].startswith(DRIVE_KEYS)]
     if ALC == 1:
         R = [r for r in R if not r["key"].startswith(DRIVE_KEYS)]
-    return R, dict(al=al, eps=eps, gT=gT, k=k, p_hold=p_hold, dp_hi=dp_hi, dp_lo=dp_lo, nu_lo=nu_lo, sth=sth)
+    return R, dict(al=al, eps=eps, gT=gT, k=k, p_hold=p_hold, dp_hi=dp_hi, dp_lo=dp_lo, nu_lo=nu_lo, sth=sth, drive=drive)
 
 
 def row_by_prefix(filas, pre):
@@ -451,6 +460,32 @@ for wood in (False, True):
             if extra:
                 for f in extra:
                     print("XX  fila del núcleo sin réplica:", cid, T, f["nombre"][:90]); fails.append("extra " + f["nombre"][:50])
+            # sección informativa «Accionamiento (fuera de alcance)»: 51 filas calculadas, sin entrar a estado, FU ni veredicto (term_alcance = 1)
+            if ALC == 1:
+                fa = rT["fuera_alcance"]
+                stdd = [c for c in alt_export(aid, wood)["verificaciones"] if c["grp"] in DRIVE_GRPS]
+                # la fila informativa «Bomba con viscosidad baja» (kW / mm²/s; sin FU ni estado) no se replica: es la única fila del bloque sin réplica
+                BOMBA = "Bomba con viscosidad baja"
+                sin_rep = [f["nombre"].split(":")[0] for f in fa if f["grp"] not in DRIVE_GRPS and not any(f["nombre"].startswith(r["key"]) for r in aux["drive"])]
+                chk_eq(f"{cid} T={T} fuera de alcance: filas térmicas sin réplica (sólo la informativa de la bomba)", sin_rep, [BOMBA])
+                chk_eq(f"{cid} T={T} fuera de alcance: nº de filas = estándar + térmicas de accionamiento + bomba", len(fa), len(stdd) + len(aux["drive"]) + 1)
+                chk_eq(f"{cid} T={T} fuera de alcance: términos de las filas estándar", sorted(f["nombre"] for f in fa if f["grp"] in DRIVE_GRPS), sorted(c["nombre"] for c in stdd))
+                for c in stdd:
+                    f = [x for x in fa if x["grp"] == c["grp"] and x["nombre"] == c["nombre"]]
+                    if len(f) != 1:
+                        chk_eq(f"{cid} T={T} fuera de alcance '{c['nombre'][:40]}' existe", len(f), 1); continue
+                    chk(f"{cid} T={T} fuera de alcance {c['nombre'][:40]} fu20", c["fu"], f[0]["fu20"], absn=1e-12) if c["fu"] is not None else None
+                    chk(f"{cid} T={T} fuera de alcance {c['nombre'][:40]} dem", c["dem"], f[0]["dem"], absn=1e-12)
+                for r in aux["drive"]:
+                    f = [x for x in fa if x["nombre"].startswith(r["key"])]
+                    if len(f) != 1:
+                        chk_eq(f"{cid} T={T} fuera de alcance térmica '{r['key'][:40]}' existe", len(f), 1); continue
+                    chk(f"{cid} T={T} fuera de alcance {r['key'][:40]} fu", r["fu"], f[0]["fu"], absn=1e-12) if r["fu"] is not None else chk_eq(f"{cid} T={T} fuera {r['key'][:30]} fu None", f[0]["fu"], None)
+                    if r["dem"] is not None: chk(f"{cid} T={T} fuera de alcance {r['key'][:40]} dem", r["dem"], f[0]["dem"], absn=1e-12)
+                    if r["fu"] is not None: chk_eq(f"{cid} T={T} fuera de alcance {r['key'][:40]} estado", state_row(r), f[0]["estado_informativo"])
+                nf = sum(1 for c in stdd if c["estado"] == "fail") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "fail")
+                nw = sum(1 for c in stdd if c["estado"] == "warn") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "warn")
+                chk_eq(f"{cid} T={T} fuera_resumen (n, fail, warn)", (len(stdd) + len(aux["drive"]) + 1, nf, nw), (rT["fuera_resumen"]["n"], rT["fuera_resumen"]["fail"], rT["fuera_resumen"]["warn"]))
             # masa congelada
             chk(f"{cid} T={T} masa (geometría congelada de 20 °C)", rT["masa"], alt_export(aid, wood)["derivados"]["masas"]["total"], tol=1e-9)
             # aceite: tabla `aceite`
@@ -551,6 +586,8 @@ def std_at(aid, wood, k, P, q_uh=None, kfy_extra=1.0):
     for c in chks:
         if c["fu"] is None:
             continue
+        if ALC == 1 and c["grp"] in DRIVE_GRPS:
+            continue
         fam = std_classify(c, aid)
         fu = c["fu"]
         sys_ = "giro" if (c["grp"] in ("Giro", "Geometría") or fam in GIRO_FAM) else "est"
@@ -571,7 +608,7 @@ def std_at(aid, wood, k, P, q_uh=None, kfy_extra=1.0):
             fu = c["fu"] / k["wood"]
         elif c["unidad"] == "MPa" and kfy_extra != 1.0 and not any(s in c["nombre"] for s in ("Soldadura", "soldadura", "Hertz")) and c["grp"] not in ("Soldaduras", "Fatiga"):
             fu = c["fu"] / kfy_extra
-        out.append(dict(grp=c["grp"], nombre=c["nombre"], fu20=c["fu"], fuT=fu, sys=sys_, unidad=c["unidad"], fam=fam, st20=c["estado"]))
+        out.append(dict(grp=c["grp"], nombre=c["nombre"], fu20=c["fu"], fuT=fu, sys=sys_, unidad=c["unidad"], fam=fam, st20=c["estado"], strict=P.get("bz_fg_estricto", 0)))
     return out
 
 
@@ -587,6 +624,8 @@ def state_std(it, fu):
     """estado de una verificación estándar: las de la familia 'resistencia' (MPa, MPa·m/s) y las 'est' en mm usan 0,9/1,0; las 'giro' en mm usan ≤ 1."""
     if fu is None:
         return "fail"
+    if it["nombre"].startswith(FG_ROW):               # f_g ≥ bz_fg_min: supuesto C; aviso salvo bz_fg_estricto = 1 (entonces falla)
+        return "ok" if fu <= 1 else ("fail" if it.get("strict") else "warn")
     if it["sys"] == "giro":
         return state_geo(fu)
     if it["unidad"] in ("MPa", "MPa·m/s") or it["fam"] in ("uh_esp", "ss_esp"):
@@ -628,9 +667,20 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
         if stt == "fail":
             if r["sys"] == "giro": giro_fail = True
             elif r["sys"] == "est": est_fail = True
-        if r["sys"] == "term" and stt == "fail": term_bad = True
+        if stt == "fail" and ((r["sys"] == "term") if ALC != 1 else (r["sys"] in ("term", "est"))): term_bad = True    # alcance 1: sin filas de aceite, «térmico» = ninguna fila térmica de placas y disco incumple (fuTerm ≤ 1)
     return dict(FS=FS, fuEst=fuEst, fuTerm=fuTerm, gira=(FS >= P["FS_min"] and not giro_fail), estructura=not est_fail, termico=not term_bad,
                 nFail=fail, nWarn=warn, stds=stds, rows=rows, k=k, aux=aux, fs20=fs20)
+
+
+def alt_state_ovr(aid, T, Pq, extra):
+    """alt_state con overrides de parámetros (p. ej. bz_fg_estricto): las verificaciones estándar y térmicas se piden al núcleo con esos parámetros"""
+    global alt_export
+    saved = alt_export
+    alt_export = lambda a, wood=False, ex=None: saved(a, wood, dict(extra, **(ex or {})))
+    try:
+        return alt_state(aid, False, T, Pq, Tscn0, gs0)
+    finally:
+        alt_export = saved
 
 
 def cmp_state(tag, S, rT):
@@ -690,6 +740,56 @@ for wood in (False, True):
                 if kk in core_ch:
                     chk_eq(f"{cid} T={rT['T']} cambio {kk[1][:40]}", (v[0], v[1]), core_ch[kk][:2])
                     chk(f"{cid} T={rT['T']} cambio fuT {kk[1][:30]}", v[3], core_ch[kk][3], absn=1e-12)
+
+# ======================================================================================================================
+# 7b. Escenario anterior (golden) y valores declarados del alcance 1
+# ======================================================================================================================
+if IDEAL:
+    # term_alcance = 2 con f_g ideal y sin criterio de lubricación debe reproducir el escenario anterior: la réplica propia se compara con tests/golden/tt300c_termica_alcance2.json (FS, flags, FU y conteos)
+    print("== 7b. Réplica propia frente al golden del escenario anterior (term_alcance = 2, f_g ideal) ==")
+    GOLD = json.loads((GD / "tt300c_termica_alcance2.json").read_text())
+    for aid, _ in ALTS:
+        for Tk, gT in GOLD[aid].items():
+            T = int(Tk); S = alt_state(aid, False, T, P0, Tscn0, gs0)
+            tag = f"golden alcance 2 {aid} T={T}"
+            chk(tag + " FS", S["FS"], gT["FS"]); chk(tag + " fuEst", S["fuEst"]["fuT"], gT["fuEst"], absn=1e-12); chk(tag + " fuTerm", S["fuTerm"]["fu"], gT["fuTerm"], absn=1e-12)
+            chk_eq(tag + " gira", S["gira"], gT["gira"]); chk_eq(tag + " estructura", S["estructura"], gT["estructura"]); chk_eq(tag + " termico", S["termico"], gT["termico"])
+            chk_eq(tag + " nFail", S["nFail"], gT["nFail"]); chk_eq(tag + " nWarn", S["nWarn"], gT["nWarn"])
+            chk(tag + " masa", alt_export(aid)["derivados"]["masas"]["total"], gT["masa"], tol=1e-9)
+            for r in S["rows"]:
+                m = [v for k, v in gT["filas"].items() if k.startswith(r["key"])]
+                if len(m) == 1 and r["fu"] is not None and m[0] != -1:
+                    chk(tag + " " + r["key"][:40] + " fu", r["fu"], m[0], absn=1e-12)
+if ALC == 1:
+    # valores declarados del alcance 1 a 80 °C (tapones reales; los números del encargo están redondeados a 2-3 cifras)
+    print("== 7b. Estado declarado a 80 °C con alcance 1 y tapones reales ==")
+    DECL = {"base": dict(fuEst=0.85, fuTerm=0.979, gira=True, estructura=True, termico=True, gob="Plancha superior: global + local", gobT="Gradiente: plancha superior"),
+            "A": dict(fuTerm=0.979, gira=False, estructura=True, termico=True, gob="Plancha superior: global + local"),
+            "B": dict(fuTerm=1.545, gira=False, estructura=False, termico=False, gob="Lámina UHMW", gobT="Disco de la base (liso) (24 sectores)" if False else "Lámina UHMW"),
+            "C1": dict(fuEst=0.874, gira=True, estructura=True, gob="Disco duro"),
+            "C2": dict(fuEst=0.85, gira=True, estructura=True, gob="Plancha superior: global + local"),
+            "C3": dict(fuEst=0.92, fuTerm=1.048, gira=True, termico=False, gob="Plancha inferior")}
+    for aid, dd in DECL.items():
+        S = alt_state(aid, False, 80, P0, Tscn0, gs0); tag = f"declarado 80 °C {aid}"
+        if "fuEst" in dd: chk(tag + " fuEst", S["fuEst"]["fuT"], dd["fuEst"], tol=2e-3)
+        if "fuTerm" in dd: chk(tag + " fuTerm", S["fuTerm"]["fu"], dd["fuTerm"], tol=2e-3)
+        for kk in ("gira", "estructura", "termico"):
+            if kk in dd: chk_eq(tag + " " + kk, S[kk], dd[kk])
+        chk_eq(tag + " gobernante de estructura contiene «" + dd["gob"] + "»", dd["gob"] in S["fuEst"]["nombre"], True)
+        if aid == "B":
+            chk_eq(tag + " gobernante térmico = junta de la lámina UHMW", S["fuTerm"]["key"].startswith("Lámina UHMW") and "junta" in S["fuTerm"]["key"], True)
+    # criterio f_g ≥ bz_fg_min: aviso por defecto; bz_fg_estricto = 1 → falla y el veredicto de estructura no cumple
+    for aid in ("C1", "C2", "C3"):
+        for strict in (0, 1):
+            Pq = dict(P0, bz_fg_estricto=strict); ex = {"bz_fg_estricto": strict}
+            for T in (20, 80):
+                S = alt_state_ovr(aid, T, Pq, ex)
+                rT = [b for b in alt_export(aid, False, ex)["termica"]["alternativas"] if b["id"] == aid][0]["byT"]
+                rT = [b for b in rT if b["T"] == T][0]
+                tag = f"bz_fg_estricto={strict} {aid} T={T}"
+                chk_eq(tag + " estructura", S["estructura"], rT["estructura"]); chk_eq(tag + " nFail", S["nFail"], rT["nFail"]); chk_eq(tag + " nWarn", S["nWarn"], rT["nWarn"])
+                if strict:
+                    chk_eq(tag + " con f_g < bz_fg_min el veredicto de estructura no cumple", S["estructura"], False)
 
 # ======================================================================================================================
 # 8. Sensibilidades: μ, Fy×0,92, bronce 0,90, UHMW (k_p, k_E, umbral), madera Ct

@@ -467,7 +467,7 @@ def cuts_for(PP, case, r):
             Lc = geom(PP)[0] - geom(PP)[1] - 100 if sec else 0.0
             out.append(cut_piece(PP, f"Lámina UHMW ({PP['n_seg']} sectores)", "uh", "uhmw", RHO_UH, PP["n_seg"], 1, r["tuh"], Lc, AL_UH))
         return out
-    conf = int(case[1]); fg = fg_of(PP); rho_pl = PP["rho_bz"] * 1e-6 * (1 - 0.7 * fg) + RHO_GR * 0.7 * fg
+    conf = int(case[1]); fg = r["fg"]; rho_pl = PP["rho_bz"] * 1e-6 * (1 - 0.7 * fg) + RHO_GR * 0.7 * fg
     if conf == 3:
         nb = PP["bz_npad"]
         out.append(cut_piece(PP, f"Pastillas de bronce ({nb} pastillas)", "pad", "bz", rho_pl, nb, 1, r["tb"], Lof(nb, r["tb"], PP["Fy_bz"]), AL_BZ, cov=PP["bz_cover"]))
@@ -612,6 +612,16 @@ def mkey(R, name):
 
 def est_mine(fu):
     return "info" if fu is None else ("ok" if fu <= 1 + 1e-9 else "fail")
+
+
+FG_MIN_KEY = "Bronce con grafito: cobertura mínima"
+
+
+def est_row(name, fu, PP):
+    """estado esperado de una fila de la opción C: la cobertura mínima de grafito (f_g ≥ bz_fg_min, supuesto C) es un aviso («warn») salvo bz_fg_estricto = 1 (entonces falla)"""
+    if FG_MIN_KEY in name:
+        return "ok" if fu is not None and fu <= 1 + 1e-9 else ("fail" if PP.get("bz_fg_estricto", 0) else "warn")
+    return est_mine(fu)
 
 
 def expected_rows(P, k):
@@ -1073,6 +1083,115 @@ def eta_of(PP):
     return (PP["bz_plug_p"] - PP["bz_plug_d"]) / PP["bz_plug_p"]
 
 
+# ---------------- tapones de grafito reales: N_real = nodos de la malla escalonada que caben en el área útil ----------------
+# Definición (enunciado de la opción C con tapones reales; se deriva aquí sin leer el criterio del núcleo):
+#   malla: paso p = bz_plug_p, filas separadas p·√3/2 y fila alterna desplazada p/2, con un nodo en el eje de la mesa y las filas paralelas a x (patrón único para toda la corona);
+#   cada nodo es el centro de un tapón de Ø d = bz_plug_d; el tapón cabe si su BORDE queda a ≥ bz_edge de todo borde del bronce: el radio interior R_i y exterior R_o, la junta entre
+#     sectores (semijunta j/2 por lado; en C3 las pastillas tienen bordes radiales sin junta y ancho angular th·cobertura), la muesca del tope ((b_tope + 2) × L, centrada en r_u),
+#     la cabeza avellanada de los tornillos de posición (ISO 10642, Ø cabeza dk; 2 por sector sobre la bisectriz, a medio camino entre la muesca y cada borde, el exterior limitado por los
+#     pasadores de empuje; 4 = los mismos radios con desplazamiento lateral) y las ranuras de engrase (ancho w_gr; circunferenciales de R_o − 30 a R_i + 30 equiespaciadas; radiales a 360/n_gr_rad,
+#     las de ángulo múltiplo de 15° caen en las juntas entre sectores);
+#   con fix_mode = 2 (pegado) no hay topes ni tornillos.
+#   La franja alrededor de la muesca es el rectángulo de la muesca ensanchado bz_edge + d/2 por todos los lados (esquinas vivas: lo que da los 2.640 / 2.364 declarados); con esquinas redondeadas (distancia euclidiana,
+#   plug_count(..., euclid=True)) caben 12 tapones más en C1/C2 (+0,45 %) y 12 en C3.
+#   Empates: un tapón cuyo borde queda EXACTAMENTE a bz_edge cumple «≥ bz_edge» (tolerancia 1e-6 mm); si el conteo cambia con ±1e-6 mm el caso es un empate geométrico (ver TIES).
+DK_ISO10642 = {4: 8.0, 5: 10.0, 6: 12.0, 8: 16.0, 10: 20.0, 12: 24.0}          # Ø nominal de la cabeza avellanada (ISO 10642 / DIN 7991)
+_PLUG_KEYS = ("bz_plug_d", "bz_plug_p", "bz_edge", "D_top", "D_boss", "c_boss_r", "m_ri", "h_boss", "D_piv", "n_sec", "bz_npad", "bz_cover", "j_sec", "dT", "fix_mode", "b_tope", "d_tor", "bz_n_tor", "h_gr",
+              "w_gr", "n_gr_circ", "n_gr_rad", "R_pin", "d_pin")
+_PLUG_CACHE = {}
+
+
+def _dist_rect(px, py, x0, x1, hw):
+    return math.hypot(max(x0 - px, 0.0, px - x1), max(abs(py) - hw, 0.0))
+
+
+def plug_count(PP, conf, L, tol=1e-6, detail=False, euclid=False):
+    """Cantidad de tapones colocables (N_real) con el largo de muesca L del tope de bronce (L = 0: sin topes). tol > 0 admite empates; tol < 0 los rechaza."""
+    key = (tuple(PP.get(k) for k in _PLUG_KEYS), conf, L, tol, detail, euclid)
+    if key in _PLUG_CACHE:
+        return _PLUG_CACHE[key]
+    d, p, edge = PP["bz_plug_d"], PP["bz_plug_p"], PP["bz_edge"]; m = edge + d / 2
+    Ro_, Ri_, _, _, ru_ = geom(PP)
+    ns = PP["n_sec"]; nb = PP["bz_npad"] if conf == 3 else ns; th = 360.0 / nb
+    span = th * (PP["bz_cover"] if conf == 3 else 1.0); h = math.radians(span / 2)
+    gap = 0.0 if conf == 3 else junta_mm(PP, AL_BZ, ns)
+    ax = (gap / 2) / math.sin(h) if conf != 3 else 0.0
+    dk = DK_ISO10642.get(int(PP["d_tor"]), 2.0 * PP["d_tor"])
+    with_stops = PP["fix_mode"] == 1 and L > 0
+    a0, b0, hw = ru_ - L / 2, ru_ + L / 2, (PP["b_tope"] + 2) / 2
+    rg = []
+    if PP["h_gr"] > 0 and PP["n_gr_circ"] >= 1:
+        rg = [Ro_ - 30.0] + ([Ro_ - 30.0 - k * (Ro_ - 30.0 - (Ri_ + 30.0)) / (PP["n_gr_circ"] - 1) for k in range(1, int(PP["n_gr_circ"]))] if PP["n_gr_circ"] >= 2 else [])
+    phis = [k * 360.0 / PP["n_gr_rad"] for k in range(int(PP["n_gr_rad"]))] if (PP["h_gr"] > 0 and PP["n_gr_rad"] > 0) else []
+    scr = []
+    if with_stops and PP["bz_n_tor"] >= 2:
+        c1, c2 = (Ri_ + a0) / 2, (b0 + Ro_) / 2
+        r_lim = PP["R_pin"] - PP["d_pin"] / 2 - dk / 2 - 4.0
+        c2 = min(c2, r_lim) if r_lim > b0 + dk else c2
+        for c_, st in ((c1, -8.0), (c2, -8.0 if c2 >= r_lim - 1e-9 else 8.0)):
+            r_ = c_
+            for _ in range(60):
+                if not rg or all(abs(r_ - g_) > PP["w_gr"] / 2 + dk / 2 + 3 for g_ in rg):
+                    break
+                r_ += st
+            scr.append((r_, 0.0))
+        if PP["bz_n_tor"] >= 4:                         # 4 tornillos: los mismos radios a ambos lados de la muesca (desplazamiento lateral (b_tope+2)/2 + dk/2 + bz_edge; cualquier valor entre 16 y 25 mm da igual conteo)
+            dl = hw + dk / 2 + edge
+            scr = [(r_, s_ * dl) for r_, _ in scr for s_ in (1, -1)]
+    rows_ = int(Ro_ / (p * math.sqrt(3) / 2)) + 3
+    N = 0; per = [0] * nb; loss = dict(borde=0, muesca=0, tornillos=0, ranCirc=0, ranRad=0); nm = 0
+    for j in range(-rows_, rows_ + 1):
+        y = j * p * math.sqrt(3) / 2
+        for i in range(-rows_, rows_ + 1):
+            x = i * p + (j % 2) * p / 2
+            r = math.hypot(x, y)
+            if r < Ri_ + m - tol or r > Ro_ - m + tol:
+                continue
+            nm += 1
+            ph = math.degrees(math.atan2(y, x)) % 360.0
+            k_ = int(ph // th) % nb; a = (k_ + 0.5) * th
+            dd = ((ph - a + 180) % 360) - 180
+            xl, yl = r * math.cos(math.radians(dd)), r * math.sin(math.radians(dd))
+            if conf != 3:
+                d1 = (xl - ax) * math.sin(h) - yl * math.cos(h); d2 = (xl - ax) * math.sin(h) + yl * math.cos(h)
+            else:
+                d1 = r * math.sin(h - math.radians(dd)); d2 = r * math.sin(h + math.radians(dd))
+            if d1 < m - tol or d2 < m - tol:
+                loss["borde"] += 1; continue
+            if with_stops and ((_dist_rect(xl, yl, a0, b0, hw) < m - tol) if euclid else (abs(yl) < hw + m - tol and a0 - m + tol < xl < b0 + m - tol)):
+                loss["muesca"] += 1; continue
+            if any(math.hypot(xl - xr, yl - yy) < dk / 2 + m - tol for xr, yy in scr):
+                loss["tornillos"] += 1; continue
+            if any(abs(r - g_) < PP["w_gr"] / 2 + m - tol for g_ in rg):
+                loss["ranCirc"] += 1; continue
+            if any(r * abs(math.sin(math.radians(((ph - f_ + 180) % 360) - 180))) < PP["w_gr"] / 2 + m - tol and abs(((ph - f_ + 180) % 360) - 180) < 90 for f_ in phis):
+                loss["ranRad"] += 1; continue
+            per[k_] += 1; N += 1
+    out = (N, per, loss, [r_ for r_, _ in scr[:2]] if not (PP["bz_n_tor"] >= 4) else sorted(set(r_ for r_, _ in scr)), nm) if detail else N
+    _PLUG_CACHE[key] = out
+    return out
+
+
+def stop_L_bronze(PP, conf, t_b):
+    """largo de la muesca del tope de la placa/pastilla de bronce (el mismo del cálculo de topes)"""
+    if PP["fix_mode"] != 1 or not math.isfinite(t_b):
+        return 0.0
+    nb = PP["bz_npad"] if conf == 3 else PP["n_sec"]
+    L = tope_calc(PP, F_tope(PP, nb), t_b, PP["Fy_bz"])["L"]
+    return L if math.isfinite(L) else 0.0
+
+
+def plug_fractions(PP, conf, t_b, tie=None):
+    """(f_g usada, f_g real, f_g ideal, N_real, N_ideal, empate) con el área de contacto A_c = A·cobertura. tie = 'lo' rechaza los empates geométricos (solo para reconciliar con el núcleo)."""
+    A_ = geom(PP)[2] * (PP["bz_cover"] if conf == 3 else 1.0); ap = math.pi * PP["bz_plug_d"] ** 2 / 4
+    fgI = fg_of(PP); Nid = fgI * A_ / ap
+    L = stop_L_bronze(PP, conf, t_b)
+    N_hi, N_lo = plug_count(PP, conf, L, 1e-6), plug_count(PP, conf, L, -1e-6)
+    N = N_lo if tie == "lo" else N_hi
+    fgR = N * ap / A_
+    return (fgR if PP.get("bz_fg_modo", 1) == 1 else fgI), fgR, fgI, N, Nid, (N_lo != N_hi, N_lo, N_hi)
+
+
 def ifaceC(PP, conf):
     """Opción C: espesores (bronce y pieza rotatoria), q_máx con el peso de la pieza rotatoria (iterado), masas, Δ."""
     Ro_, Ri_, A_, I_, ru_ = geom(PP)
@@ -1080,7 +1199,7 @@ def ifaceC(PP, conf):
     a = PP["ss_void"] / 2
     tsec = t_sec_min(PP) if PP["fix_mode"] == 1 else 0.0                 # espesor mínimo del sector con topes (bronce y pieza rotatoria)
     cov = PP["bz_cover"] if conf == 3 else 1.0
-    eta = eta_of(PP); fg = fg_of(PP); sb = 0.6 * PP["Fy_bz"]
+    eta = eta_of(PP); sb = 0.6 * PP["Fy_bz"]
     if conf == 2:
         Fy_r, alw, tmn, lst, rho_r = PP["Fy_bz2"], PP["bz_allow"], PP["bz_tmin"], COM_BZ, PP["rho_bz"] * 1e-6
     else:
@@ -1091,6 +1210,7 @@ def ifaceC(PP, conf):
     out = None
     for _ in range(80):
         Delta = t_b + t_r
+        fg, fgR, fgI, Nreal, Nideal, tie_ = plug_fractions(PP, conf, t_b, PP.get("_tie"))        # f_g que usa el cálculo (bz_fg_modo) con el largo de la muesca del espesor vigente
         m_mesa_, rho_piv_ = mesa(PP, Delta)
         m_rot = rho_r * A_ * t_r
         m_piv = rho_piv_ * (PP["t_base"] + PP["h_disc"] - PP["t_top"] + 3 + Delta)
@@ -1105,7 +1225,7 @@ def ifaceC(PP, conf):
         tb_n = PP["t_bz"] if PP["t_bz"] > 0 else com(max(tbReq, tsec), COM_BZ)
         tr_n = PP["t_cara"] if PP["t_cara"] > 0 else com(max(trReq, tsec), lst)
         mBz = A_ * cov * t_b * (PP["rho_bz"] * 1e-6 * (1 - 0.7 * fg) + RHO_GR * 0.7 * fg) if math.isfinite(t_b) else math.inf
-        out = dict(conf=conf, q=q, qloc=qloc, qc=qc, qnet=qloc / (1 - fg - fgr), gr=gr, fgr=fgr, cov=cov, eta=eta, fg=fg, a=a, tfB=tfB, tbReq=tbReq, tb=t_b,
+        out = dict(conf=conf, q=q, qloc=qloc, qc=qc, qnet=qloc / (1 - fg - fgr), gr=gr, fgr=fgr, cov=cov, eta=eta, fg=fg, fgR=fgR, fgI=fgI, Nreal=Nreal, Nideal=Nideal, tie=tie_, a=a, tfB=tfB, tbReq=tbReq, tb=t_b,
                    tfR=tfR, trReq=trReq, tr=t_r, delta=Delta, N=N, ND=ND, Wd=Wd, m_rot=m_rot, mBz=mBz, mAdd=mBz + m_rot, m_piv=m_piv,
                    Fy_r=Fy_r, alw=alw, sr=sr, sb=sb)
         if tb_n == t_b and tr_n == t_r:
@@ -1154,7 +1274,11 @@ def rowsC(PP, conf):
         "Placa de bronce: flexión sobre un vacío local": (sigb, r["sb"], fu(sigb, r["sb"])),
         "Placa de bronce: espesor adoptado frente al requerido": (r["tbReq"], tb, fu(r["tbReq"], tb)),
         "Placa de bronce: espesor por flexión / requerido": (r["tfB"], tb, None),
-        "Tapones de grafito: fracción de área": (r["fg"], r["eta"], None),
+        "Tapones de grafito: fracción de área y eficiencia": (r["fgI"], r["eta"], None),                              # f_g ideal y η = (p − d)/p
+        "Tapones de grafito: cantidad real colocable": (float(r["Nreal"]), r["Nideal"], None),                          # N_real frente a N_ideal
+        "Tapones de grafito: fracción de área usada": (r["fg"], r["fgI"], None),                                         # f_g del cálculo (bz_fg_modo) frente a la ideal
+        "Bronce con grafito: cobertura mínima de lubricante sólido": (PP["bz_fg_min"], r["fg"], fu(PP["bz_fg_min"], r["fg"])),   # f_g ≥ bz_fg_min (aviso; con bz_fg_estricto = 1 falla)
+        "Tapones de grafito: ligamento mínimo entre tapones": (PP["bz_eta_min"], r["eta"], fu(PP["bz_eta_min"], r["eta"])),     # η ≥ bz_eta_min
         "Presión de contacto sobre el bronce neto": (r["qnet"], PP["p_bz"], fu(r["qnet"], PP["p_bz"])),
         "valor PV en el borde": (PVv, PP["PV_bz"], fu(PVv, PP["PV_bz"])),
         "desgaste en la vida de diseño": (hw, reserva, fu(hw, reserva)),
@@ -1241,8 +1365,9 @@ def match_row(rows_mine, name):
 cap_w = 0.6 * P["FEXX"] / (1.2 * P["Nd"])
 
 
-def fail_set(R):
-    return tuple(sorted(k for k, (d, c_, f) in R.items() if f is not None and f > 1 + 1e-9))
+def fail_set(R, strict=0):
+    """verificaciones incumplidas (FU > 1); la cobertura mínima de grafito solo cuenta con bz_fg_estricto = 1 (si no, es un aviso)"""
+    return tuple(sorted(k for k, (d, c_, f) in R.items() if f is not None and f > 1 + 1e-9 and (strict or FG_MIN_KEY not in k)))
 
 
 def sold_fu(Delta):
@@ -1288,7 +1413,7 @@ for c in (1, 2, 3):
                 continue
             ok, d = cmp_val("4a", f"C{c} · {row['nombre'][:58]} [{nm}]", mv, cv)
             bad = bad or not ok; worst = max(worst, abs(d) if d == d else 0)
-        e_m = est_mine(fu if row["estado"] not in ("pend",) else None)
+        e_m = est_row(row["nombre"], fu if row["estado"] not in ("pend",) else None, PC[c])
         e_c = row["estado"] if row["estado"] in ("ok", "fail") else ("info" if row["estado"] in ("info", "pend") else row["estado"])
         if row["estado"] != "pend" and e_m != e_c and not (row["estado"] == "warn" and e_m == "ok"):
             bad = True
@@ -1301,7 +1426,9 @@ for c in (1, 2, 3):
     ic = DC[c]["escenarios"]["ifaces"][3]; ia = DC[c]["apoyo"]["interfaz"]; r = ifaceC(PC[c], c)
     cs = casos_c(PC[c], r["N"])["dis"]
     for nm, mine, core in (("q_máx (MPa)", r["q"], ic["q"]), ("q_máx (apoyo.interfaz)", r["q"], ia["q"]), ("q_loc (MPa)", r["qloc"], ia["qLoc"]), ("q_neto (MPa)", r["qnet"], ia["qNet"]),
-                           ("f_g", r["fg"], ia["fg"]), ("f_ranuras", r["fgr"], ia.get("fgr")), ("η", r["eta"], ia["eta"]),
+                           ("f_g ideal (apoyo.interfaz.fg)", r["fgI"], ia["fg"]), ("f_g ideal (fgIdeal)", r["fgI"], ia["fgIdeal"]), ("f_g real = N_real·π·d²/4/A_contacto", r["fgR"], ia["fgReal"]),
+                           ("f_g usada (bz_fg_modo)", r["fg"], ia["fgUsed"]), ("cobertura de grafito usada", r["fg"], ia["cobGrafito"]), ("cobertura de grafito ideal", r["fgI"], ia["cobGrafitoIdeal"]),
+                           ("N_real (tapones)", float(r["Nreal"]), float(ia["Nreal"])), ("N_ideal = f_g,ideal·A_c/(π d²/4)", r["Nideal"], ia["Nideal"]), ("f_ranuras", r["fgr"], ia.get("fgr")), ("η", r["eta"], ia["eta"]),
                            ("t_flex bronce (mm)", r["tfB"], ic["tFlexB"]), ("t_req bronce (mm)", r["tbReq"], ic["tbzReq"]), ("t_bronce adoptado (mm)", r["tb"], ic["tbz"]),
                            ("t_flex pieza rot. (mm)", r["tfR"], ic["tFlex"]), ("t_req pieza rot. (mm)", r["trReq"], ic["tssReq"]), ("t_rot adoptado (mm)", r["tr"], ic["tss"]),
                            ("Δ altura (mm)", r["delta"], ic["delta"]), ("masa de bronce (kg; en conf. 2 el núcleo suma las dos placas)", r["mBz"] + (r["m_rot"] if c == 2 else 0.0), ia["mBz"]), ("masa pieza rot. (kg)", r["m_rot"], ia["mTop"]), ("masa agregada (kg)", r["mAdd"], ic["mAdd"]),
@@ -1316,6 +1443,85 @@ for c in (1, 2, 3):
     comp("4b", f"C{c} · masa total = suma de componentes (con m.stopBars)", sum(DC[c]["derivados"]["masas"][k] for k in ("disc", "ss", "uhmw", "bz", "base", "rim", "brackets", "dogs", "shoes", "beds", "pivot", "cyl", "stopBars")), mtc)
     comp("4b", f"C{c} · m.stopBars (Σ capas·n·ρ·L·b·h_barra de mis topes)", rowsC(PC[c], c)[1].get("mStop", 0.0), DC[c]["derivados"]["masas"]["stopBars"])
 table("4b. escenarios.ifaces[3] y apoyo.interfaz (opción C): espesores, q, masas, F/p/FS de diseño", ["conf", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], tab)
+
+# ---------------- 4.1t tapones de grafito reales: conteo propio de la malla frente a interfazGeom.tapones ----------------
+tab = []
+for c in (1, 2, 3):
+    DDt, PPt = DC[c], PC[c]; tp_ = DDt["interfazGeom"]["tapones"]; rr_c = ifaceC(PPt, c)
+    Lb = stop_L_bronze(PPt, c, rr_c["tb"]); Nm, per_m, loss_m, rad_m, nmesh = plug_count(PPt, c, Lb, 1e-6, True)
+    for nm_, mv, cv in (("N_real (tapones)", float(Nm), float(tp_["N_real"])), ("N_ideal", rr_c["Nideal"], tp_["N_ideal"]), ("f_g real", rr_c["fgR"], tp_["fg_real"]), ("f_g ideal", rr_c["fgI"], tp_["fg_ideal"]),
+                        ("f_g usada", rr_c["fg"], tp_["fg_usado"]), ("cobertura de grafito", rr_c["fg"], tp_["cobertura"]), ("cobertura ideal", rr_c["fgI"], tp_["cobertura_ideal"]), ("η", rr_c["eta"], tp_["eta"]),
+                        ("nodos de la malla en la corona (N_malla)", float(nmesh), float(tp_["N_malla"])), ("largo de la muesca L (mm)", Lb, tp_["L_muesca"]), ("junta (mm)", 0.0 if c == 3 else junta_mm(PPt, AL_BZ, PPt["n_sec"]), tp_["junta"]),
+                        ("tornillos por sector", float(2 if PPt["bz_n_tor"] >= 2 else 0), float(tp_["n_tornillos_sector"])), ("Ø cabeza (mm)", DK_ISO10642[int(PPt["d_tor"])], tp_["d_cabeza"])):
+        ok, d_ = cmp_val("4t", f"C{c} · {nm_}", mv, cv)
+        tab.append([c, nm_, s3(mv), s3(cv), f"{d_:+.4f}", "coincide" if ok else "DISCREPA"])
+    for kk_ in ("borde", "muesca", "tornillos", "ranCirc", "ranRad"):
+        comp("4t", f"C{c} · tapones perdidos por {kk_}", float(loss_m[kk_]), float(tp_["perdidas"][kk_]))
+    comp("4t", f"C{c} · tapones por sector (lista) igual", 1.0 if per_m == tp_["por_sector"] else 0.0, 1.0)
+    comp("4t", f"C{c} · radios de los tornillos (mm), 2.º", rad_m[1], tp_["radios_tornillos"][1]); comp("4t", f"C{c} · radios de los tornillos (mm), 1.º", rad_m[0], tp_["radios_tornillos"][0])
+    comp("4t", f"C{c} · cumple_lubricacion (f_g usada ≥ bz_fg_min)", 1.0 if rr_c["fg"] >= PPt["bz_fg_min"] - 1e-12 else 0.0, 1.0 if tp_["cumple_lubricacion"] else 0.0)
+    comp("4t", f"C{c} · N_real declarado (2.640 en C1/C2; 2.364 en C3)", float(Nm), 2364.0 if c == 3 else 2640.0)
+    comp("4t", f"C{c} · f_g real declarada (0,0967 C1/C2; 0,0962 C3)", round(rr_c["fgR"], 4), 0.0962 if c == 3 else 0.0967)
+    comp("4t", f"C{c} · N con esquinas redondeadas (euclidiana) − N de esquinas vivas = +12 (sensibilidad del criterio de la muesca)", float(plug_count(PPt, c, Lb, 1e-6, False, True) - Nm), 12.0)
+table("4t. Tapones de grafito reales (opción C): conteo propio de la malla escalonada frente a interfazGeom.tapones", ["conf", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], tab)
+
+# f_g real con bz_fg_modo = 0 reproduce el cálculo anterior (golden del modo ideal, tests/golden/tt300c_bz_ideal.json), contra mi réplica de la opción C sin tapones reales
+_gi = json.loads((ROOT / "tests" / "golden" / "tt300c_bz_ideal.json").read_text())
+for c in (1, 2, 3):
+    rI = ifaceC(dict(PC[c], bz_fg_modo=0), c); gI = _gi["C%d" % c]
+    for nm_, mv, cv in (("f_g", rI["fg"], gI["fg"]), ("η", rI["eta"], gI["eta"]), ("q_máx", rI["q"], gI["q"]), ("q_loc", rI["qloc"], gI["qLoc"]), ("q_neto", rI["qnet"], gI["qNet"]),
+                        ("t_bz", rI["tb"], gI["tbz"]), ("t_bz req", rI["tbReq"], gI["tbzReq"]), ("t_rot", rI["tr"], gI["tss"]), ("N", rI["N"], gI["N"]),
+                        ("masa del bronce (neta)", rI.get("mBzN", rI["mBz"]), gI["mBz"])):
+        cmp_val("4t0", f"C{c} · bz_fg_modo = 0 · {nm_} frente al golden del modo ideal", mv, cv)
+    comp("4t0", f"C{c} · bz_fg_modo = 0 · f_g usada = f_g ideal", rI["fg"], rI["fgI"])
+
+# barrido (d, p) de tapones reales (cuadrícula): conteo propio frente a N_real del núcleo
+GRID_DP = [(d_, p_) for d_ in (8, 10, 12, 14, 16, 18) for p_ in (22, 24, 28, 30, 36, 45)]
+prefetch([dict(opt_bz=1, bz_conf=c, bz_plug_d=d_, bz_plug_p=p_) for c in (1, 3) for d_, p_ in GRID_DP])
+tab = []; n_dp_bad = 0
+for c in (1, 3):
+    for d_, p_ in GRID_DP:
+        DDg = export_c(dict(opt_bz=1, bz_conf=c, bz_plug_d=d_, bz_plug_p=p_))
+        if DDg is None:
+            tab.append([c, d_, p_, "rechazado", "", "", ""]); continue
+        PPg = dict(PC[c], bz_plug_d=d_, bz_plug_p=p_); rg_ = ifaceC(PPg, c); Nc_ = DDg["interfazGeom"]["tapones"]["N_real"]
+        tie_ = rg_["tie"]; mine_ = rg_["Nreal"]
+        if tie_[0] and Nc_ == tie_[1]:
+            mine_ = tie_[1]
+        ok = mine_ == Nc_; n_dp_bad += 0 if ok else 1
+        comp("4t", f"C{c} · barrido (d, p) = ({d_}, {p_}): N_real", float(mine_), float(Nc_))
+        comp("4t", f"C{c} · barrido (d, p) = ({d_}, {p_}): f_g usada", rg_["fg"] if mine_ == rg_["Nreal"] else mine_ * math.pi * d_ ** 2 / 4 / (geom(PPg)[2] * (PPg["bz_cover"] if c == 3 else 1)), DDg["interfazGeom"]["tapones"]["fg_usado"])
+        tab.append([c, d_, p_, s3(eta_of(PPg)), mine_, Nc_, "empate" if tie_[0] else ("coincide" if ok else "DISCREPA")])
+table("4t'. Barrido (Ø d, paso p): N_real propio frente al núcleo (empate = el borde del tapón queda exactamente a bz_edge de una ranura radial; el núcleo lo resuelve con ruido de coma flotante)", ["conf", "d", "p", "η", "N propio", "N núcleo", "Veredicto"], tab)
+
+# patrón máximo alcanzable: f_g real máxima con η ≥ bz_eta_min (cuadrícula d, p en pasos de 0,5 mm, conf. 1 y 3)
+def best_pattern(conf, eta_min):
+    PPb = PC[conf]; best = None; A_c = geom(PPb)[2] * (PPb["bz_cover"] if conf == 3 else 1.0)
+    for d2 in range(8, 61):
+        d_ = d2 / 2
+        for p2 in range(int(math.ceil(d_ / (1 - eta_min) * 2 - 1e-9)), int(math.ceil(d_ / (1 - eta_min) * 2)) + 6):
+            p_ = p2 / 2
+            if (p_ - d_) / p_ < eta_min - 1e-12:
+                continue
+            Nb = plug_count(dict(PPb, bz_plug_d=d_, bz_plug_p=p_), conf, stop_L_bronze(PPb, conf, ifaceC(PPb, conf)["tb"]), 1e-6)
+            f_ = Nb * math.pi * d_ ** 2 / 4 / A_c
+            if best is None or f_ > best[0]:
+                best = (f_, d_, p_, Nb, (p_ - d_) / p_)
+    return best
+
+
+BEST = {c: best_pattern(c, PC[c]["bz_eta_min"]) for c in (1, 3)}
+P12 = {c: min(((plug_count(dict(PC[c], bz_plug_d=12, bz_plug_p=p2 / 2), c, stop_L_bronze(PC[c], c, ifaceC(PC[c], c)["tb"]), 1e-6), p2 / 2) for p2 in range(44, 60) if (p2 / 2 - 12) / (p2 / 2) >= PC[c]["bz_eta_min"] - 1e-12), key=lambda x: x[1]) for c in (1, 3)}
+for c in (1, 3):
+    DDm = export_c(dict(opt_bz=1, bz_conf=c, bz_plug_d=12, bz_plug_p=P12[c][1]))
+    comp("4t", f"C{c} · patrón máximo con Ø12 y η ≥ {PC[c]['bz_eta_min']:g}: paso {P12[c][1]:g} (declarado 22)", P12[c][1], 22.0)
+    comp("4t", f"C{c} · patrón Ø12·paso 22: N_real (declarado 4.812 C1/C2, 4.368 C3)", float(P12[c][0]), 4368.0 if c == 3 else 4812.0)
+    comp("4t", f"C{c} · patrón Ø12·paso 22: N_real propio frente al núcleo", float(P12[c][0]), float(DDm["interfazGeom"]["tapones"]["N_real"]))
+    Ac_ = geom(PC[c])[2] * (PC[c]["bz_cover"] if c == 3 else 1.0)
+    comp("4t", f"C{c} · patrón Ø12·paso 22: f_g real (declarada 0,176) ", round(P12[c][0] * math.pi * 36 / Ac_, 3), 0.176 if c == 1 else round(DDm["interfazGeom"]["tapones"]["fg_usado"], 3))
+    comp("4t", f"C{c} · patrón Ø12·paso 22: η = 0,455 (declarado)", round((P12[c][1] - 12) / P12[c][1], 3), 0.455)
+table("4t''. Patrón de máxima f_g real con η ≥ bz_eta_min (cuadrícula d, p cada 0,5 mm): ninguno alcanza bz_fg_min", ["conf", "f_g real máx.", "Ø d", "paso p", "N_real", "η", "bz_fg_min", "¿alcanza?"],
+      [[c, s3(BEST[c][0]), BEST[c][1], BEST[c][2], BEST[c][3], s3(BEST[c][4]), PC[c]["bz_fg_min"], "sí" if BEST[c][0] >= PC[c]["bz_fg_min"] else "NO"] for c in (1, 3)])
 
 # ---------------- 4.2 casos de giro de C ----------------
 tab = []
@@ -1449,14 +1655,17 @@ for case, ov in (("A", {"opt_ss": 1, "fix_mode": 2}), ("B", {"opt_uhmw": 1, "fix
 
 # ---------------- 4.3 barridos con params.json (núcleo y propio deben coincidir en todos los puntos) ----------------
 SWC = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], (1, 2, 3)), ("Fy_bz", [97, 125, 170, 275, 415], (1, 2, 3)), ("Fy_bz2", [97, 125, 170, 275], (2,)),
-       ("bz_plug_d", [6, 8, 10, 12, 14, 16, 18, 20], (1, 2, 3)), ("bz_plug_p", [18, 20, 24, 30, 36, 45, 60], (1, 2, 3)),
+       ("bz_plug_d", [6, 8, 10, 12, 14, 16, 18, 20], (1, 2, 3)), ("bz_plug_p", [18, 20, 22, 24, 30, 36, 45, 60], (1, 2, 3)),
+       ("bz_edge", [0, 2, 4, 6, 8, 12], (1, 2, 3)), ("bz_n_tor", [0, 2, 4], (1, 2, 3)), ("bz_fg_modo", [0, 1], (1, 2, 3)), ("bz_fg_min", [0.05, 0.1, 0.15, 0.2, 0.3], (1, 2, 3)),
+       ("bz_fg_estricto", [0, 1], (1, 2, 3)), ("bz_eta_min", [0.3, 0.45, 0.6, 0.7], (1, 2, 3)), ("n_gr_circ", [0, 1, 2, 3, 5], (1, 3)),
        ("bz_cover", [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], (3,)), ("W_tf", [200, 240, 280, 300, 320, 360], (1, 2, 3)),
        ("k_bz", [1, 5, 10, 50, 200, 500], (1, 2, 3)), ("p_bz", [5, 10, 20, 40, 60], (1, 2, 3)),
        ("n_sec", [12, 18, 24, 36, 48], (1, 2, 3)), ("bz_npad", [12, 18, 24, 36, 48], (3,)), ("w_tope", [3, 4, 6, 8, 12, 16], (1, 2, 3)), ("d_tor", [4, 6, 8, 10, 12], (1, 2, 3)),
-       ("h_gr", [0, 0.5, 1, 2, 3, 5], (1, 2, 3)), ("w_gr", [3, 8, 15, 25], (1, 2, 3)), ("n_gr_rad", [0, 12, 24, 48], (1, 3)), ("L_tope", [0, 100, 200, 400], (1, 2, 3)), ("b_tope", [6, 12, 20, 30, 40], (1, 2, 3)), ("fix_mode", [2], (1, 2, 3)),
+       ("h_gr", [0, 0.5, 1, 2, 3, 5], (1, 2, 3)), ("w_gr", [3, 8, 15, 25], (1, 2, 3)), ("n_gr_rad", [0, 12, 24, 36, 48], (1, 3)), ("L_tope", [0, 100, 200, 400], (1, 2, 3)), ("b_tope", [6, 12, 20, 30, 40], (1, 2, 3)), ("fix_mode", [2], (1, 2, 3)),
        ("tol_hc", [0, 0.5, 1, 2, 3], (1, 2, 3)), ("hc_min", [3, 4, 6, 8, 10], (1, 2, 3)), ("j_sec", [1, 1.5, 2, 3, 4.7], (1, 2, 3)), ("dT", [20, 30, 40, 70, 100], (1, 2, 3)),
        ("a_inf", [0, 5, 9, 12], (1, 2, 3)), ("a_sup", [1, 2, 3], (1, 2, 3)), ("rho_bz", [7.0, 7.45, 8.0, 9.0], (1, 2, 3)), ("Fy_cara", [250, 400, 600, 1000], (1, 3))]
 swC_n = swC_bad = 0
+TIES = []                                                           # (conf, override, N sin empates, N con empates, N del núcleo)
 PLANCHA_DEV = []
 swC_rej = []
 prefetch([dict(opt_bz=1, bz_conf=c, **{k: v}) for k, vals, cs in SWC for c in cs for v in vals] + [dict(opt_bz=1, bz_conf=c, bz_cover=0.5) for c in (1, 2)])
@@ -1471,6 +1680,11 @@ def cmp_c(over, conf):
     if DD is None:
         return None, None, None, True, []
     R, r = rowsC(PP, conf)
+    tapC = DD["interfazGeom"]["tapones"]
+    if r["tie"][0]:                                                 # empate geométrico (borde del tapón exactamente a bz_edge): el núcleo lo resuelve con el ruido de coma flotante
+        TIES.append((conf, dict(over), r["tie"][1], r["tie"][2], tapC["N_real"]))
+        if tapC["N_real"] == r["tie"][1]:
+            PP["_tie"] = "lo"; R, r = rowsC(PP, conf)
     ic = DD["escenarios"]["ifaces"][3]; bad = []
     cs = casos_c(PP, r["N"])["dis"]
     pairs = [("tbz", r["tb"]), ("tbzReq", r["tbReq"]), ("tFlexB", r["tfB"]), ("tss", r["tr"]), ("tssReq", r["trReq"]), ("tss2Req", r["trReq"]), ("tss2", r["tr"]), ("tFlex", r["tfR"]), ("delta", r["delta"]), ("mAdd", r["mAdd"]),
@@ -1493,7 +1707,7 @@ def cmp_c(over, conf):
             swC_n += 1
             if cv is None or mv is None or not math.isfinite(mv) or (abs(mv - cv) > TOL * abs(cv) if cv else abs(mv) > 1e-9):
                 bad.append(f"{key[:18]}.{nm}")
-        if row["estado"] in ("ok", "fail") and est_mine(fu) != row["estado"]:
+        if (row["estado"] in ("ok", "fail") or FG_MIN_KEY in row["nombre"]) and est_row(row["nombre"], fu, PP) != row["estado"]:
             bad.append(f"{key[:18]}.estado")
         swC_n += 1
     sw = next(v for v in DD["verificaciones"] if "Soldadura mejillas–base (4" in v["nombre"])
@@ -1525,7 +1739,7 @@ for key, vals, cs_ in SWC:
             DD, R, r, ok, bad = cmp_c({key: v}, c)
             if DD is None:
                 swC_rej.append((c, key, v)); rows.append([s3(v), "rechazado por el núcleo"] + [""] * 8); continue
-            ic = DD["escenarios"]["ifaces"][3]; fs_ = fail_set(R)
+            ic = DD["escenarios"]["ifaces"][3]; fs_ = fail_set(R, v if key == "bz_fg_estricto" else 0)
             if sold_fu(r["delta"]) > 1: fs_ = fs_ + ("soldadura mejillas",)
             est = ("; ".join(x[:22] for x in fs_) if fs_ else "cumple") + (" | " + ("coincide" if ok else "DISCREPA " + ",".join(bad)))
             if wear:
@@ -1546,7 +1760,7 @@ print(f"\nBarridos de C: {swC_n} comparaciones, {swC_bad} discrepancias (toleran
 # ---------------- 4.4 umbrales: dónde cambian los espesores comerciales y dónde dejan de cumplir las verificaciones ----------------
 def state_c(PP, conf):
     R, r = rowsC(PP, conf)
-    fs_ = fail_set(R) + (("soldadura mejillas",) if sold_fu(r["delta"]) > 1 + 1e-9 else ())
+    fs_ = fail_set(R, PP.get("bz_fg_estricto", 0)) + (("soldadura mejillas",) if sold_fu(r["delta"]) > 1 + 1e-9 else ())
     return (r["tb"], r["tr"], fs_)
 
 
@@ -1556,7 +1770,7 @@ def core_state(DD, conf):
     R, _ = rowsC(PC[conf], conf); fs_ = []
     for row in DD["interfazChecks"]["C"]:
         k = match_row(R, row["nombre"])
-        if k and row.get("fu") is not None and row["fu"] > 1 + 1e-9:
+        if k and row.get("fu") is not None and row["fu"] > 1 + 1e-9 and not (FG_MIN_KEY in k and row["estado"] == "warn"):
             fs_.append(k)
     sw = next(v for v in DD["verificaciones"] if "Soldadura mejillas–base (4" in v["nombre"])
     if sw["fu"] > 1 + 1e-9: fs_.append("soldadura mejillas")
@@ -1687,7 +1901,7 @@ table("5b'. FU «Plancha inferior: global + local» del núcleo (C3) según t_bo
 print(f"Cobertura crítica (FU = 1) por escalamiento lineal: {s3(cov_crit)}; con la cobertura de proyecto {P['bz_cover']:g}: FU núcleo {s3(FU_PL_DEF)} (escalado {s3(next(x[2] for x in fu_pl if abs(x[0]-0.9)<1e-9))}); "
       f"el término global no se divide por la cobertura (es el momento de la placa completa, que depende de la presión media q_máx)")
 Apad = Ac * P["bz_cover"] / P["bz_npad"]
-q3 = rC[3]["ND"] * 1e3 / (3 * Apad * (1 - fgC))
+q3 = rC[3]["ND"] * 1e3 / (3 * Apad * (1 - rC[3]["fg"]))
 Lp = sorted(float(x) for x in P["rings"].replace(";", ",").split(",") if x.strip()); Lpan = Lp[-1] - Lp[-2]
 Dpl = P["E"] * P["t_bot"] ** 3 / (12 * (1 - 0.3 ** 2)); dpan = rC[3]["qloc"] * Lpan ** 4 / (384 * Dpl)
 print(f"Contacto con 3 pastillas (planitud): q_neto = N_D/(3·A_pastilla·(1−f_g)) = {s3(q3)} MPa frente a p_bz {P['p_bz']:g} (FU {s3(q3/P['p_bz'])}); compliancia por compresión del bronce+disco bajo q_loc = "
@@ -2236,9 +2450,21 @@ FIND.append(("C3", "menor" if cl_c3 else "importante",
               else "μ de C no monótonos: μ_seco o μ_cont menores que el anterior"),
              f"FS dis {s3(cs_c['dis']['FS'])}, cont {s3(cs_c['cont']['FS'])}, seco {s3(cs_c['seco']['FS'])}; μ máx que gira {s3(F_st / (FU_ * par(P, Nc, 1.0, P['r_ef']) / n))}",
              f"con μ = 0,25 en r_ef FS {s3(F_st/1e3/(FU_*par(P, Nc, 0.25, P['r_ef'])/n/1e3))} (< FS_mín) y 0,28 no gira; el μ de arranque tras reposo sigue sin cota (C2)"))
-FIND.append(("C4", "menor", "Área de grafito f_g = 14,5 % por debajo del 25–35 % usual de los bronces con insertos de grafito (confirmar con el proveedor); el μ = 0,15 depende de la película de transferencia",
-             f"Ø{P['bz_plug_d']:g}, paso {P['bz_plug_p']:g}, f_g {s3(fgC)}, η {s3(etaC)}",
-             f"Ø12 con paso 20: f_g {s3(fg_of(dict(P, bz_plug_p=20)))}, η {s3(eta_of(dict(P, bz_plug_p=20)))}: t_bz C1 {s3(com(ifaceC(dict(PC[1], bz_plug_p=20), 1)['tbReq'], COM_BZ))} mm (igual Δ), C3 {s3(com(ifaceC(dict(PC[3], bz_plug_p=20), 3)['tbReq'], COM_BZ))} mm (+2 mm)"))
+FIND.append(("C4", "menor", f"Área de grafito: f_g ideal {s3(rr1['fgI']*100)} % del patrón, pero f_g real {s3(rr1['fgR']*100)} % (C1/C2) y {s3(rr3['fgR']*100)} % (C3) con los tapones que caben ({rr1['Nreal']} y {rr3['Nreal']} de {s3(rr1['Nideal'])} y {s3(rr3['Nideal'])}): por debajo del 25–35 % usual de los bronces con insertos de grafito y de bz_fg_min = {P['bz_fg_min']:g} (aviso permanente, FU {s3(RC[1]['Bronce con grafito: cobertura mínima de lubricante sólido'][2])}); el μ = {P['muC_d']:g} depende de la película de transferencia (confirmar con el proveedor)",
+             f"Ø{P['bz_plug_d']:g}, paso {P['bz_plug_p']:g}, f_g real {s3(rr1['fgR'])} (ideal {s3(rr1['fgI'])}), η {s3(etaC)}",
+             f"Ø12 con paso 22 (η {s3(eta_of(dict(P, bz_plug_p=22)))} ≥ {P['bz_eta_min']:g}): f_g real {s3(P12[1][0]*math.pi*36/geom(P)[2])} (C1) / {s3(P12[3][0]*math.pi*36/(geom(P)[2]*P['bz_cover']))} (C3), {P12[1][0]} y {P12[3][0]} tapones; t_bz C1 {s3(com(ifaceC(dict(PC[1], bz_plug_p=22), 1)['tbReq'], COM_BZ))} mm, C3 {s3(com(ifaceC(dict(PC[3], bz_plug_p=22), 3)['tbReq'], COM_BZ))} mm"))
+FIND.append(("G1", "menor", f"Criterios de lubricación incompatibles entre sí: bz_fg_min = {P['bz_fg_min']:g} (f_g) y bz_eta_min = {P['bz_eta_min']:g} (η) no se cumplen a la vez con ningún patrón de la cuadrícula; con bz_fg_estricto = 1 el diseño nunca cumple y por defecto el aviso es permanente",
+             f"f_g real máxima con η ≥ {P['bz_eta_min']:g}: {s3(BEST[1][0])} (C1: Ø{BEST[1][1]:g}, paso {BEST[1][2]:g}, {BEST[1][3]} tapones) y {s3(BEST[3][0])} (C3); con Ø12: {s3(P12[1][0]*math.pi*36/geom(P)[2])} (paso 22)",
+             f"el patrón de máxima f_g real alcanzable es impracticable (Ø{BEST[1][1]:g}: {BEST[1][3]} perforaciones); decidir con el proveedor una cobertura mínima alcanzable (≈ 0,15 con Ø12 y paso 22–26) o bajar bz_eta_min, y no usar bz_fg_estricto = 1 con los valores actuales"))
+FIND.append(("G2", "menor", "El criterio de franja de borde del núcleo trata la muesca del tope como rectángulo ensanchado (esquinas vivas) y los empates geométricos (borde del tapón a exactamente bz_edge) con el ruido de coma flotante: el conteo puede variar entre ejecuciones de aritmética distinta",
+             f"N_real {rr1['Nreal']} (C1) con esquinas vivas; empates: " + ("; ".join(f"C{c_} {o_}: sin empates {lo_}, con empates {hi_}, núcleo {nc_}" for c_, o_, lo_, hi_, nc_ in TIES[:3]) if TIES else "ninguno en los barridos"),
+             f"con esquinas redondeadas (distancia euclidiana al rectángulo) caben {plug_count(PC[1], 1, stop_L_bronze(PC[1], 1, rr1['tb']), 1e-6, False, True) - rr1['Nreal']} tapones más en C1/C2 y {plug_count(PC[3], 3, stop_L_bronze(PC[3], 3, rr3['tb']), 1e-6, False, True) - rr3['Nreal']} en C3 (+{s3((plug_count(PC[1], 1, stop_L_bronze(PC[1], 1, rr1['tb']), 1e-6, False, True) / rr1['Nreal'] - 1) * 100)} %); definir «≥ bz_edge» con tolerancia de 1e-6 mm (empate admitido) para que el conteo no dependa de la coma flotante"))
+FIND.append(("G3", "menor", f"El μ de C no depende de f_g: la cobertura de grafito real ({s3(rr1['fgR']*100)} %) es 2/3 de la ideal ({s3(rr1['fgI']*100)} %) y está bajo bz_fg_min, pero μ_d = {P['muC_d']:g}, μ_cont = {P['muC_cont']:g} y μ_seco = {P['muC_dry']:g} son datos fijos de catálogo; el FS de giro no lo refleja",
+             f"FS de diseño {s3(cs_c['dis']['FS'])}, μ máx con FS_mín {s3(mu_lim_fsmin)} (margen {s3((mu_lim_fsmin/P['muC_d']-1)*100)} % sobre μ_d), μ máx que gira {s3(mu_stall)}",
+             "ensayo de μ del patrón real (Ø12·paso 30, 9,7 % de grafito) o ficha del proveedor para esa cobertura; si el μ efectivo subiera por la menor película de transferencia, el giro seguiría pasando hasta el margen indicado"))
+FIND.append(("G4", "menor", f"Franja de borde bz_edge = {P['bz_edge']:g} mm: el ligamento junto al borde, muesca, tornillo o ranura ({P['bz_edge']:g} mm entre el borde del tapón y el borde libre) es menor que el ligamento entre tapones (p − d = {P['bz_plug_p']-P['bz_plug_d']:g} mm) y la verificación de flexión usa solo η = (p − d)/p; la pared de {P['bz_edge']:g} mm queda sobre {s3(0.7*rr1['tb'])} mm de profundidad de tapón",
+             f"pared/profundidad {s3(P['bz_edge']/(0.7*rr1['tb']))}; η del borde {s3(P['bz_edge']/(P['bz_edge']+P['bz_plug_d']/2))} (pared/(pared + radio)) frente a η = {s3(etaC)}",
+             "criterio de fabricación (≥ 0,5·(p − d) o ≥ 0,3·d) por confirmar con el proveedor del bronce con tapones; no cambia espesores ni masas, solo el conteo de tapones (bz_edge 2/4/6/8: " + "/".join(str(plug_count(dict(PC[1], bz_edge=e_), 1, stop_L_bronze(PC[1], 1, rr1['tb']), 1e-6)) for e_ in (2, 4, 6, 8)) + " tapones en C1)"))
 FIND.append(("C5", "menor", "η = (p−d)/p es un criterio de sección neta (estado límite de un bronce dúctil): no cubre la tensión elástica en el borde del agujero (Kt bruto 2,0–3,7); el tapón prensado casi no ayuda a resistencia; en C3 el espesor adoptado tiene " + f"{s3((rC[3]['tb']/rC[3]['tbReq']-1)*100)} % de holgura sobre el requerido",
              f"σ núcleo {s3(RC[1]['Placa de bronce: flexión sobre un vacío local'][0])} (C1), {s3(RC[3]['Placa de bronce: flexión sobre un vacío local'][0])} MPa (C3); t_req C3 {s3(rr3['tbReq'])} → {s3(rr3['tb'])} mm",
              f"σ pico/Fy C1 {s3(Kt_eq0*RC[1]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}–{s3(Kt_net_row/etaC*RC[1]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}, C3 {s3(Kt_eq0*RC[3]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}–{s3(Kt_net_row/etaC*RC[3]['Placa de bronce: flexión sobre un vacío local'][0]*etaC/P['Fy_bz'])}; "

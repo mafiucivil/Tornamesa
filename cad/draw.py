@@ -495,6 +495,9 @@ class Sheet:
         for w_ in widths + [0]:
             self.line((x, ytop), (x, y), "FINA" if 0 < x - x0 < Wt else "VIS")
             x += w_
+        if not hasattr(self, "reserved"):
+            self.reserved = []
+        self.reserved.append((x0, y, x0 + Wt, y0 + 2))
         return y, left
 
     # ---------- formato normalizado (ISO 5457 / ISO 7200) ----------
@@ -604,8 +607,9 @@ class Sheet:
             self.text(ln, (x0 + 141.5, b - 6.5 - i * 4.3), 3.0, "TOP_LEFT")
         a, b = ys["tit"]
         lab("tit", 0, "TÍTULO")
-        for i, ln in enumerate(wrapw(info["titulo"], 174, 4.6, True)[:3]):
-            self.text(ln, (x0 + 3, b - 5.0 - i * 5.6), 4.6, "TOP_LEFT", bold=True)
+        th_ = 4.6 if len(wrapw(info["titulo"], 174, 4.6, True)) <= 2 else 3.6
+        for i, ln in enumerate(wrapw(info["titulo"], 174, th_, True)[:3]):
+            self.text(ln, (x0 + 3, b - 5.0 - i * (th_ * 1.2)), th_, "TOP_LEFT", bold=True)
         a, b = ys["proj"]
         lab("proj", 0, "PROYECTO")
         self.text(info["proj"], (x0 + 3, b - 5.0), T_N, "TOP_LEFT", bold=True)

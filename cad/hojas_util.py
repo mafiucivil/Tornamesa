@@ -32,8 +32,8 @@ class Pieza:
         self.keys = [k for k in keys if ctx.m.get(k)]
         self.p0 = ctx.m.get(self.keys[0])
         self.lead = self.p0.code
-        masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)} kg" for k in self.keys[:3]) + (" c/u" if True else "")
-        h = Hoja(ctx, self.lead, titulo, "", fmt=fmt, material=mat_override or self.p0.material, masa=masa if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
+        masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys[:3]) + " kg c/u"
+        h = Hoja(ctx, self.lead, titulo, "", fmt=fmt, material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
         self.h = h
         self.s = h.begin()
@@ -92,7 +92,7 @@ class Pieza:
         st = 4.0
         nx, ny = int((x1 - x0) / st), int((y1 - y0) / st)
         occ = [[False] * ny for _ in range(nx)]
-        for (a, b, c, d) in getattr(self.s, "views", []):
+        for (a, b, c, d) in list(getattr(self.s, "views", [])) + list(getattr(self.s, "reserved", [])):
             for i in range(max(0, int((a - infl - x0) / st)), min(nx, int((c + infl - x0) / st) + 1)):
                 for j in range(max(0, int((b - infl - y0) / st)), min(ny, int((d + infl - y0) / st) + 1)):
                     occ[i][j] = True

@@ -1,7 +1,9 @@
-"""Banco de pruebas: python3 cad/dev.py <hoja> [json] -> genera la(s) lámina(s) en el scratchpad y PNG."""
+"""Banco de pruebas: python3 cad/dev.py <función_de_lámina[,otra]> [design.json] -> genera la(s) lámina(s) (PDF/PNG) en el directorio temporal."""
 import sys, pathlib, time, importlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-SC = pathlib.Path("/tmp/claude-0/-home-user-Tornamesa/56f13788-1d6a-50be-87ae-e9f5fbee4093/scratchpad")
+import tempfile
+SC = pathlib.Path(tempfile.gettempdir()) / "tt300_dev"
+(SC / "dev").mkdir(parents=True, exist_ok=True)
 from geom import load
 import modelo3d_tt300c as M3
 import hojas_base
@@ -10,7 +12,7 @@ from hojas_base import Ctx, build_welds
 
 def main():
     names = sys.argv[1].split(",")
-    jp = sys.argv[2] if len(sys.argv) > 2 else str(SC / "d0.json")
+    jp = sys.argv[2] if len(sys.argv) > 2 else str(pathlib.Path(__file__).resolve().parent / "out" / "TT300-C_design.json")
     D = load(jp)
     m = M3.build(D, verbose=False)
     M3.apply_backing_holes(m)

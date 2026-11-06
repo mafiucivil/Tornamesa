@@ -1,28 +1,25 @@
-# Entregables Rev. C del paquete de planos TT300-C
+# Entregables Rev. C del paquete de planos TT300-C (juego de planos de fabricación rehecho)
 
-Estado: **B vigente (códigos TT300C-…-B), con los cambios del núcleo de la 4.ª pasada**. EMITIDO PARA REVISIÓN: no apto para fabricación hasta su aprobación.
+Estado: **EMITIDO PARA REVISIÓN, revisión C** (códigos TT300C-…-C). NO apto para fabricación hasta su revisión y aprobación por un ingeniero calculista habilitado. DIBUJÓ/REVISÓ/APROBÓ: A DEFINIR (con casillas de firma y fecha).
 
-Generado con `python3 cad/generar_paquete.py --entrega entregables/RevC` (diseño por defecto: interfaz acero-acero con grasa) a partir del JSON de `node tools/export_design.js` (fuente única: planos y cálculo salen del mismo JSON).
-Contenido (carpeta raíz = diseño por defecto): planos PDF y DXF por lámina, PDF combinado, STEP, GLB, despiece CSV/XLSX, chequeo de cotas, informe del paquete, lista de verificación del revisor y memoria de cálculo (DOCX/PDF).
+Generado con `python3 cad/generar_paquete.py --entrega entregables/RevC` (diseño por defecto: interfaz acero-acero con grasa) a partir del JSON de `node tools/export_design.js` (fuente única: planos y cálculo salen del mismo JSON; el generador no tiene valores a mano).
 
-Cambios de esta emisión respecto de la anterior (86a7e4d), todos tomados del JSON:
-- Sectores y discos de 15 mm (hc_min 6, tol_hc 1), Δ 30 mm (A, C) y 55 mm (B), lámina UHMW de B de 25 mm, largos de tope de `interfazGeom.topes`.
-- Masas netas de sectores (juntas, muescas, chaflanes, franjas de UHMW) directamente del núcleo (`interfazGeom.cortes`): sin conciliación manual; el informe trae el control por pieza.
-- c_lug 200 (orejas de izaje en ±600, ±1.080): BAS-001 e IZA-001 (nueva planta de ubicación de las 4 orejas).
-- Madera: anillo de acero (t_ring) dentro del núcleo; residual de abertura y bolsillos explicado en el informe.
-- BAS-001: corte A-A simplificado con detalles D1 (marco) y D2 (bancada) con sus soldaduras; MES-003 sin texto sobre el nervio.
-- GEN-009 con advertencias del núcleo (mejillas–base en B, plancha inferior en C-3) y el pendiente de filetes máximos de almas y nervios.
-
-`variantes/` contiene, para cada alternativa verificada (A, A pegado «AF2», B, C1, C2, C3 y madera «W»), el informe del paquete, la lista de verificación, el despiece, el chequeo de cotas, el JSON de diseño, el control de masas y los PDF de
-conjunto (GEN-002), interfaz (INT-001…003) y madera (MAD-001) cuando aplican (sin DXF). Para regenerar el paquete completo de una variante:
+## Contenido (carpeta raíz = diseño por defecto)
+- `planos/`: una lámina por archivo, PDF y DXF (A1 y A2, método de proyección E, letra ≥ 3,5 mm en el plot, tablas 3,0 mm, mínimo 2,5 mm). Series: `GEN` (generales: notas/normas/índice, inspección, tolerancias y ajustes ISO 286, materiales, tratamientos, programa de soldaduras, torques y compras, supuestos y brechas, cortes de plancha, lista de verificación), `CON` (conjunto general, despiece completo, explosionada, secuencia, base, ménsula, mesa, accionamiento, pivote, interfaz) y láminas de pieza con el código del ítem (`BAS`, `IZA`, `ACC`, `MES`, `PIV`, `INT`, `MAD`).
+- `TT300-C_Planos_RevC.pdf`: PDF combinado con marcadores (índice de láminas). `TT300-C_DXF_RevC.zip`: DXF de todas las láminas.
+- `TT300-C.step`, `TT300-C.glb`: modelo 3D. `TT300-C_despiece.csv/.xlsx` (pestañas Despiece, Masas, Corte, Soldaduras, Supuestos y brechas), `soldaduras.csv` (programa de soldaduras con las láminas donde cada junta tiene su símbolo), `lista_de_cortes.csv`, `metricas_laminas.csv` (cotas, ocupación por vistas y textos A DEFINIR por lámina), `chequeo_cotas.csv` (cada cota verificada contra el sólido 3D), `informe_paquete.md`, `lista_verificacion_revisor.md/.pdf`, `TT300-C_masas3d.json`, `TT300-C_design.json`.
+- `variantes/` (A, A pegado «AF2», B, C1, C2, C3 y madera «W»): el mismo juego completo (PDF por lámina y combinado, STEP/GLB, despiece, soldaduras, informe); sin DXF. Regenerar una variante:
 
 ```
-echo '{"opt_uhmw":1}' > parametros.json                     # A: {"opt_ss":1}; A pegado: {"opt_ss":1,"fix_mode":2}; B: {"opt_uhmw":1}; C1/C2/C3: {"opt_bz":1,"bz_conf":1|2|3}; madera: {"opt_wood":1}
+echo '{"opt_uhmw":1}' > parametros.json     # A: {"opt_ss":1}; A pegado: {"opt_ss":1,"fix_mode":2}; B: {"opt_uhmw":1}; C1/C2/C3: {"opt_bz":1,"bz_conf":1|2|3}; madera: {"opt_wood":1}
 node tools/export_design.js parametros.json > diseno.json
-python3 cad/generar_paquete.py diseno.json --out cad/out/variante_B
+python3 cad/generar_paquete.py diseno.json --out cad/out/variante_B --sin-dxf
 ```
-(C1–C3 tardan 8–10 min cada una.)
 
-Memoria de cálculo (`TT300-C_Memoria_RevC.docx` y `.pdf`, doc. TT300-C-MC-01 Rev. C, reemplaza a la Rev. B): regenerada con el núcleo vigente (commit ≥ 1bbe3ed) y con dos capítulos nuevos, «9. Alternativas de interfaz de giro y cubierta de madera» (base, A, B, C1, C2, C3 y madera) y «10. Exposición solar: servicio a 80 °C» (escenario aparte, `TT.thermal`). Se genera con `npm run memoria` (`tools/export_design.js`, `tools/export_alternativas.js` y `tools/memoria_tt300c.py`); `TT300-C_alternativas.json` es el dato de entrada de los capítulos 9 y 10 (junto con la clave `termica` del JSON de diseño). El `TT300-C_design.json` de esta carpeta es el de los planos y no se regeneró.
+Memoria de cálculo: `TT300-C_Memoria_RevC.docx/.pdf` (sin cambios en esta pasada).
 
-ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.
+## Reglas del juego de planos
+- Cada pieza del despiece tiene plano propio (código de la pieza = número de plano) o referencia a catálogo; cada ítem aparece con globo en un plano de conjunto o subconjunto.
+- Cada junta soldada J## tiene símbolo ISO 2553 (flecha, línea de referencia, tamaño a/z, proceso, nivel ISO 5817, WPS, END) y fila en la tabla de soldaduras (global GEN-007 y por lámina). Tamaños: parámetros w_* del núcleo; donde el núcleo no los da, mínimo AWS D1.1 T5.8 por la parte más gruesa, rotulado «mínimo AWS, a confirmar».
+- Materiales: solo los grados que el cálculo soporta (A572 Gr.50, 34CrNiMo6+QT, A240, 17-4PH, C95400); el resto se rotula «SEGÚN CÁLCULO Fy ≥ … MPa, A DEFINIR POR EL FABRICANTE».
+- Torques de pernos: PROPUESTA, A CONFIRMAR POR EL CALCULISTA (GEN-008).

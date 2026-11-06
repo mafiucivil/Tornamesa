@@ -254,7 +254,7 @@ def sheet_mensula_piezas(ctx):
     V1.dimh((-rear, -Wout / 2, tb), (P["L_ch"] - rear, -Wout / 2, tb), "bottom", 0, on=k1, text=f"{f(P['L_ch'])} ±1")
     V1.dimh((-rear, -Wout / 2, tb), (0, -Wout / 2, tb), "bottom", 1, on=k1, text=f"{f(rear)} (saliente trasera)")
     V1.dimv((P["L_ch"] - rear, -Wout / 2, tb), (P["L_ch"] - rear, -Wout / 2, zt), "right", 0, on=k1, text=f"{f(H_)} ±0,5")
-    V1.title("MEJILLA (2 por ménsula)")
+    V1.title("MEJILLA (2 por ménsula)", dy=-34)
     V1b = p.V(k1, "top", (x0, y0, x0 + 1.15 * third, y0 + 0.40 * (y1 - y0)), label="Mejillas planta", margin=(20, 24, 20, 8))
     V1b.dimv((P["L_ch"] - rear, -Wout / 2, zt), (P["L_ch"] - rear, -Win / 2, zt), "right", 0, on=k1, text=f"{f(tc)}")
     V1b.dimv((P["L_ch"] - rear, -Win / 2, zt), (P["L_ch"] - rear, Win / 2, zt), "right", 0, on=k1, text=f"{f(Win)} (luz interior)")
@@ -263,7 +263,7 @@ def sheet_mensula_piezas(ctx):
     # oreja superior
     xa = x0 + 1.2 * third
     k2 = ["mensula_oreja_sup_L"]
-    V2 = p.V(k2, "top", (xa, y0 + 0.40 * (y1 - y0), xa + 0.95 * third, y1), label="Oreja sup. planta", margin=(18, 30, 22, 26))
+    V2 = p.V(k2, "top", (xa, y0 + 0.40 * (y1 - y0), xa + 0.95 * third, y1), label="Oreja sup. planta", margin=(18, 30, 22, 70))
     V2.dimh((-rear, -Win / 2, zt), (Llug - rear, -Win / 2, zt), "bottom", 0, on=k2, text=f"{f(Llug)} ±0,5")
     V2.dimh((-rear, -Win / 2, zt), (0, -Win / 2, zt), "bottom", 1, on=k2, text=f"{f(rear)}")
     V2.dimv((Llug - rear, -Win / 2, zt), (Llug - rear, Win / 2, zt), "right", 0, on=k2, text=f"{f(Win)} −0,5")
@@ -277,7 +277,7 @@ def sheet_mensula_piezas(ctx):
     xb = x0 + 2.2 * third
     k3 = ["mensula_oreja_inf_L"]
     hb = BR["spacer"] + tc
-    V3 = p.V(k3, "top", (xb, y0 + 0.40 * (y1 - y0), x1, y1), label="Oreja inf. planta", margin=(18, 30, 22, 26))
+    V3 = p.V(k3, "top", (xb, y0 + 0.40 * (y1 - y0), x1, y1), label="Oreja inf. planta", margin=(18, 30, 22, 70))
     V3.dimh((-rear, -Win / 2, tb + hb), (Llug - rear, -Win / 2, tb + hb), "bottom", 0, on=k3, text=f"{f(Llug)} ±0,5")
     V3.dimv((Llug - rear, -Win / 2, tb + hb), (Llug - rear, Win / 2, tb + hb), "right", 0, on=k3, text=f"{f(Win)} −0,5")
     V3.dim_dia((0, 0, tb + hb), P["d_pp"] / 2, 120, on=k3, text=tol_txt(P["d_pp"], "H9"), ext=22)
@@ -285,12 +285,12 @@ def sheet_mensula_piezas(ctx):
     V3.title("OREJA INFERIOR / BLOQUE (BAS-007)")
     V3b = p.V(k3, "front", (xb, y0, x1, y0 + 0.40 * (y1 - y0)), label="Oreja inf. elev", margin=(18, 24, 22, 8))
     V3b.dimv((Llug - rear, 0, tb), (Llug - rear, 0, tb + hb), "right", 0, on=k3, text=f"{f(hb)} (= {f(BR['spacer'])} + {f(tc)})")
-    V3b.title("ELEVACIÓN")
+    V3b.title("ELEVACIÓN", dy=-34)
     ids = jids(ctx, "Mejillas de ménsula", "Oreja superior", "Oreja inferior (bloque) – mejillas", "Oreja inferior (bloque) – plancha")
     if len(ids) >= 4:
         w_sym(p, ids[0], V1, (P["L_ch"] / 2 - rear, -Wout / 2, tb + 0.5), (30, -34))
-        w_sym(p, ids[1], V2, ((Llug - rear) / 2, -Win / 2, zt), (30, -30))
-        w_sym(p, ids[2], V3, ((Llug - rear) / 2, -Win / 2, tb + hb), (30, -30))
+        w_sym(p, ids[1], V2, ((Llug - rear) / 2, Win / 2, zt), (30, 34))
+        w_sym(p, ids[2], V3, ((Llug - rear) / 2, Win / 2, tb + hb), (30, 34))
         w_sym(p, ids[3], V3b, ((Llug - rear) / 2, -Win / 2, tb + 0.5), (30, -30))
     s.gdt((xa + 10, y0 + 0.40 * (y1 - y0) + 2), "coax", "Ø0,10", "A") if False else None
     p.tables(ids)
@@ -1087,7 +1087,7 @@ def tope_sheet(ctx, key, titulo, side):
     Vj.title("DETALLE DE JUNTA (corte por el centro de la barra)")
     ids = jids(ctx, "Barras de tope – plancha base") if key == "int_tope_base" else jids(ctx, "Barras de tope – plancha inferior") if key == "int_tope_mesa" else jids(ctx, "Barras del rebaje UHMW")
     if ids:
-        w_sym(p, ids[0], Vj, (xc, -b / 2, zb0 + (0 if key != "int_tope_mesa" else 0) + 1), (-40, -30), sh=-1)
+        w_sym(p, ids[0], Vj, (xc, -b / 2, zb0 + 1), (30, -40))
     rows = [["a_sup (cara de la barra bajo la cara deslizante)", fm(tp["a_sup"], 1)], ["a_inf (chaflán 45° del canto del sector, = w_tope + 1)", fm(tp["a_inf"], 1)], ["h_c (contacto útil)", fm(tp["h_c"], 1)],
             ["h_c mín. (núcleo)", fm(tp["h_c_min"], 1)], ["b (ancho de la barra)", fm(b, 0)], ["L (largo de la barra)", fm(tp["L"], 1)], ["h barra = t − a_sup", fm(tp["h_barra"], 1)],
             ["w_tope (filete)", f"z{fm(P['w_tope'], 0)} (mín. {fm(tp['w_min'], 0)})"], ["Espesor del sector t", fm(tp["t"], 1)]]

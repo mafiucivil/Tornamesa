@@ -64,8 +64,8 @@ def sheet_notas(ctx):
            ("ASTM A572 Gr.50, A36 (ref.), A240, A578, EN 10164", "Aceros estructurales, inoxidable, UT de planchas, propiedades en espesor"), ("EN 10083-3 (34CrNiMo6+QT)", "Aceros bonificados (pasadores, uña)"),
            ("ISO 12944", "Protección anticorrosiva (referencia; sistema A DEFINIR)")]
     x2 = R[0] + 0.48 * (R[2] - R[0])
-    s.table(x2, R[3], [("Norma", 70, "L"), ("Aplicación", 130, "L")], [list(n) for n in nor], h=T_S, title="NORMAS APLICABLES")
-    c.h.indice_pos = (R[0], y - 8, R[2] - R[0], R[1])
+    yn, _ = s.table(x2, R[3], [("Norma", 70, "L"), ("Aplicación", 130, "L")], [list(n) for n in nor], h=T_S, title="NORMAS APLICABLES")
+    c.h.indice_pos = (R[0], min(y, yn) - 10, R[2] - R[0], R[1])
     return c.h
 
 
