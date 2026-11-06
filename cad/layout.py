@@ -520,7 +520,16 @@ class Plano:
                 s.views.append((ox, oy, ox + a * sc_, oy + b * sc_))
                 self.scales.append(sc_)
                 if sp.title:
-                    s.view_title((ox + a * sc_ / 2, oy - 8 * (sp.lv[1] + 1) - 6), sp.title, "ESC " + scale_txt(sc_), dr.T_T)
+                    t_, esc_, h_ = sp.title, "ESC " + scale_txt(sc_), dr.T_T
+                    wmax_ = cell[2] - cell[0] - 2
+                    while h_ > 3.5 and dr.tw(t_, h_, True) > wmax_:
+                        h_ -= 0.5
+                    if dr.tw(t_, h_, True) > wmax_ and " (" in t_:
+                        i_ = t_.index(" (")
+                        t_, esc_ = t_[:i_], t_[i_:].strip() + "  " + esc_
+                    wt_ = dr.tw(t_, h_, True)
+                    cx_ = min(max(ox + a * sc_ / 2, cell[0] + 1 + wt_ / 2), cell[2] - 1 - wt_ / 2)
+                    s.view_title((cx_, oy - 8 * (sp.lv[1] + 1) - 6), t_, esc_, h_)
                 self._footprint(s, (ox, oy, ox + a * sc_, oy + b * sc_), sp, r0_, custom=True)
                 continue
             shp = sp_shapes(sp, shapes)

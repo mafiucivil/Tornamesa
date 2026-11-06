@@ -457,16 +457,17 @@ def sheet_madera(ctx):
         for i, (a0, a1) in enumerate(zip(edges, edges[1:])):
             xm = (a0 + a1) / 2
             s.text(str(i + 1), V.P(xm, 0 if i > 0 else 0, zw0 + tW), T_MIN + 0.5, "MIDDLE_CENTER") if False else None
-        s.text("T1…T%d a cada lado del eje (juntas rectas, tablones contiguos; junta central en el eje y)" % nb, (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 20), draw=planta, hatch=False, title="PLANTA: DISPOSICIÓN DE TABLONES (200 mm), ABERTURA Ø%s Y BOLSILLOS" % f(g.cb_D), w=2.0,
-         auto=dict(fits={}, hole_rmin=20, text={round(2 * Rin, 1): f"Ø{f(2 * Rin)} (tablones, hasta el anillo)"}, hole_txt={round(g.washer_D + 4, 1): f"{g.N_pin} × Ø{f(g.washer_D + 4)} × 31 (bolsillo sobre perno y arandela), PCD Ø{f(2 * g.R_pin)}"}))
+         auto=dict(fits={}, hole_rmin=20, hole_pos=False, text={round(2 * Rin, 1): f"Ø{f(2 * Rin)} (tablones, hasta el anillo)"}, hole_txt={round(g.washer_D + 4, 1): f"{g.N_pin} × Ø{f(g.washer_D + 4)} × 31 (bolsillo sobre perno y arandela), PCD Ø{f(2 * g.R_pin)}"}))
 
     def corte(V, p):
         pass
-    p.vs("corte", ["madera", "madera_anillo"], "front", cut=CUT_Y, center=(g.Rt - 80, 0, zw0 + tW / 2), win=(-110, -tW - 6, 30, tW + 12), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0, title="CORTE RADIAL (tablón y anillo)",
+    p.vs("corte", ["madera", "madera_anillo"], "front", cut=CUT_Y, center=(g.Rt - 100, 0, zw0 + tW / 2), win=(-90, -tW / 2 - 8, 105, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0, title="CORTE RADIAL (tablón y anillo)",
          mat={"madera": "madera", "madera_anillo": "acero"}, w=1.0, auto=dict(on=["madera", "madera_anillo"], tol={round(tW, 1): " (t_wood)", round(g.t_ring, 1): " (t_ring)"}))
-    p.vs("bolsillo", ["madera"], "front", cut=((0, 0, 0), (0, 1, 0)), center=(g.R_pin, 0, zw0 + tW / 2), win=(-(g.washer_D / 2 + 20), -tW / 2 - 8, g.washer_D / 2 + 20, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0,
-         title="CORTE: BOLSILLO SOBRE PERNO Y ARANDELA", mat={"madera": "madera"}, w=0.9, auto=dict(on=["madera"], tol={}))
+    a0p = ctx.D["pasadores"][0]
+    rot_key(ctx, "madera", "madera_P", -a0p)
+    p.vs("bolsillo", ["madera_P"], "front", cut=CUT_Y, center=(g.R_pin, 0, zw0 + tW / 2), win=(-(g.washer_D / 2 + 20), -tW / 2 - 8, g.washer_D / 2 + 20, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0,
+         title="CORTE POR UN BOLSILLO (perno y arandela del pasador)", mat={"madera_P": "madera"}, w=0.9, auto=dict(on=["madera_P"], tol={}))
     rows = []
     for i, (a0, a1) in enumerate(zip(edges, edges[1:])):
         xm0, xm1 = a0, a1
