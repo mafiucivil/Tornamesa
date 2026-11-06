@@ -601,7 +601,7 @@ def fmt_pair(t):
     return f"{s3(t[0])}+{s3(t[1])} / {s3(t[2])}" + (" ✗A:" + ",".join(x[:14] for x in t[3]) if t[3] else "") + (" ✗B:" + ",".join(x[:14] for x in t[4]) if t[4] else "")
 
 
-UMB_AB = (("ss_void", 60, 200), ("Fy_ss", 170, 250), ("E_uhmw", 200, 500), ("d_flat", 0.05, 0.3), ("W_tf", 200, 360), ("h_gr", 0, 5), ("n_sec", 12, 48), ("w_tope", 3, 16), ("n_seg", 6, 48))
+UMB_AB = (("ss_void", 60, 200), ("Fy_ss", 170, 250), ("E_uhmw", 200, 500), ("d_flat", 0.05, 0.3), ("W_tf", 200, 360), ("h_gr", 0, 5), ("w_tope", 3, 16))
 UMA = [(key, v, p0, p1) for key, lo, hi in UMB_AB for v, p0, p1 in umbrales(key, lo, hi)]
 prefetch([{key: v * fac} for key, v, p0, p1 in UMA for fac in (1 - 2e-4, 1 + 2e-4)])
 rows = []
@@ -978,10 +978,9 @@ def rowsC(PP, conf):
         else:
             R["Disco duro: masa del sector"] = (r["m_rot"] / ns, 25.0, r["m_rot"] / ns / 25.0)
             R["Sectores del disco duro: crecimiento por dilatación de la cuerda"] = ((AL_SS - AL_S) * PP["dT"] * chord_of(PP, ns), None, None)
+        R["Sectores de bronce: crecimiento por dilatación de la cuerda"] = (ep * chord_of(PP, nb), None, None)
         if conf == 3:
             R["Pastillas de bronce: crecimiento por dilatación de la cuerda de la pastilla"] = (ep * chord_of(PP, nb), None, None)
-        else:
-            R["Sectores de bronce: crecimiento por dilatación de la cuerda"] = (ep * chord_of(PP, ns), None, None)
         R["Soldar los topes antes del alivio"] = (0.0, None, None)
     else:
         R["Retención de la placa de bronce"] = (Tret, cret, fu(Tret, cret))
@@ -1117,7 +1116,9 @@ table("4c. Casos de giro de la opción C (F por cilindro kN, p bar, T kN·m)", [
 SWC = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], (1, 2, 3)), ("Fy_bz", [97, 125, 170, 275, 415], (1, 2, 3)), ("Fy_bz2", [97, 125, 170, 275], (2,)),
        ("bz_plug_d", [6, 8, 10, 12, 14, 16, 18, 20], (1, 2, 3)), ("bz_plug_p", [18, 20, 24, 30, 36, 45, 60], (1, 2, 3)),
        ("bz_cover", [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], (3,)), ("W_tf", [200, 240, 280, 300, 320, 360], (1, 2, 3)),
-       ("k_bz", [1, 5, 10, 50, 200, 500], (1, 2, 3)), ("p_bz", [5, 10, 20, 40, 60], (1, 2, 3))]
+       ("k_bz", [1, 5, 10, 50, 200, 500], (1, 2, 3)), ("p_bz", [5, 10, 20, 40, 60], (1, 2, 3)),
+       ("n_sec", [12, 18, 24, 36, 48], (1, 2, 3)), ("bz_npad", [12, 18, 24, 36, 48], (3,)), ("w_tope", [3, 4, 6, 8, 12, 16], (1, 2, 3)), ("d_tor", [4, 6, 8, 10, 12], (1, 2, 3)),
+       ("h_gr", [0, 0.5, 1, 2, 3, 5], (1, 2, 3)), ("w_gr", [3, 8, 15, 25], (1, 2, 3)), ("n_gr_rad", [0, 12, 24, 48], (1, 3)), ("L_tope", [0, 100, 200, 400], (1, 2, 3)), ("fix_mode", [2], (1, 2, 3))]
 swC_n = swC_bad = 0
 PLANCHA_DEV = []
 swC_rej = []
@@ -1195,13 +1196,13 @@ for key, vals, cs_ in SWC:
                              s3(R["profundidad restante tras el desgaste"][2]), est])
             else:
                 rows.append([s3(v), f"{s3(r['tbReq'])}→{s3(r['tb'])} / {s3(ic['tbzReq'])}→{s3(ic['tbz'])}", f"{s3(r['trReq'])}→{s3(r['tr'])} / {s3(ic['tss'])}", s3(r["delta"]), s3(r["mAdd"]),
-                             s3(R["Placa de bronce: flexión sobre un vacío local"][2]), s3(R["Retención de la placa de bronce"][2]), s3(R["Adhesivo de la placa de bronce: cortante"][2]),
-                             s3(sold_fu(r["delta"])), est])
+                             s3(R["Placa de bronce: flexión sobre un vacío local"][2]), s3(max([v_[2] for k_, v_ in R.items() if "del tope" in k_] + [v_[2] for k_, v_ in R.items() if "Retención" in k_ and v_[2] is not None] or [math.nan])),
+                             s3(R["Plancha inferior: global + local"][2]), s3(sold_fu(r["delta"])), est])
         if wear:
             table(f"4d. Barrido de {key} en {CONF_NAME[c]}: FU de presión neta / PV / desgaste / profundidad del tapón", [key, "q_neto MPa", "FU q_neto", "FU PV", "FU desgaste", "FU prof. tapón", "Incumple | veredicto"], rows)
         else:
-            table(f"4d. Barrido de {key} en {CONF_NAME[c]}: t_bz req→adoptado (propio / núcleo), t_rot, Δ, masa agregada, FU flexión bronce / retención / cortante térmico / soldadura mejillas",
-                  [key, "t_bz propio / núcleo", "t_rot propio / núcleo", "Δ mm", "mAdd kg", "FU flex.", "FU ret.", "FU térm.", "FU sold.", "Incumple | veredicto"], rows)
+            table(f"4d. Barrido de {key} en {CONF_NAME[c]}: t_bz req→adoptado (propio / núcleo), t_rot, Δ, masa agregada, FU flexión bronce / topes (o retención con fix_mode 2) / plancha inferior / soldadura mejillas",
+                  [key, "t_bz propio / núcleo", "t_rot propio / núcleo", "Δ mm", "mAdd kg", "FU flex.", "FU topes (o retención)", "FU plancha inf.", "FU sold. mejillas", "Incumple | veredicto"], rows)
 print(f"\nBarridos de C: {swC_n} comparaciones, {swC_bad} discrepancias (tolerancia 0,1 %); puntos rechazados por el núcleo: {len(swC_rej)}")
 
 
@@ -1529,16 +1530,127 @@ table(f"5g. Altura que agrega la interfaz y soldadura mejillas–base (cap {s3(c
 
 
 # ---- límites analíticos de p_bz, k_bz, PV_bz (fuera del rango admitido por el núcleo) y sensibilidades de desgaste
-rows = []; FUW = {}
+rows = []; FUW = {}; KCRIT2 = {}
 sl_ = P["life"] * P["turns_yr"] * 2 * math.pi * P["r_ef"] / 1000
 for c in (1, 2, 3):
     r = rC[c]; reserva = r["tb"] - r["tfB"] / math.sqrt(r["eta"])
     k_res = reserva / (r["qnet"] * sl_ * 1e-7); k_dep = (0.7 * r["tb"] - 2) / (r["qnet"] * sl_ * 1e-7)
     v_e = Ro * vcil(P) / a_min / 1000
-    FUW[c] = P["k_bz"] * 1e-7 * r["qnet"] * sl_ * (Ro / P["r_ef"]) / (reserva - P["bz_allow"])
-    rows.append([c, s3(r["qnet"]), s3(r["qnet"]), s3(P["PV_bz"] / v_e), s3(min(k_res, k_dep)), "5–60", "0,05–3", "0,1–500", s3(FUW[c])])
-table("5h. Límites analíticos: valor del parámetro con FU = 1 frente al rango admitido por el núcleo (p_bz [5; 60], PV_bz [0,05; 3], k_bz [0,1; 500]); última columna: FU de desgaste con el sobreespesor de relapeado descontado de la reserva y s medido en R_o",
-      ["conf", "q_neto MPa", "p_bz crítico MPa", "PV_bz crítico MPa·m/s", "k_bz crítico (×1e-7)", "rango p_bz", "rango PV_bz", "rango k_bz", "FU desgaste corregido"], rows)
+    res2 = min(r["tb"] - r["tbReq"], r["gr"] if r["gr"] > 0 else math.inf)      # reserva útil: sin sobreespesor de relapeado ni ranura (las ranuras desaparecen con h = h_gr)
+    FUW[c] = P["k_bz"] * 1e-7 * r["qnet"] * sl_ * (Ro / P["r_ef"]) / res2
+    KCRIT2[c] = res2 / (r["qnet"] * sl_ * 1e-7 * (Ro / P["r_ef"]))
+    rows.append([c, s3(r["qnet"]), s3(r["qnet"]), s3(P["PV_bz"] / v_e), s3(min(k_res, k_dep)), s3(KCRIT2[c]), "5–60", "0,05–3", "0,1–500", s3(FUW[c])])
+table("5h. Límites analíticos: valor del parámetro con FU = 1 frente al rango admitido por el núcleo (p_bz [5; 60], PV_bz [0,05; 3], k_bz [0,1; 500]); corregido = reserva t_bz − t_req (sin relapeado ni ranura; ≤ h_gr) y s medido en R_o",
+      ["conf", "q_neto MPa", "p_bz crítico MPa", "PV_bz crítico MPa·m/s", "k_bz crítico núcleo (×1e-7)", "k_bz crítico corregido", "rango p_bz", "rango PV_bz", "rango k_bz", "FU desgaste corregido"], rows)
+
+# ======================================================================================
+# 5i. Fijación por sectores con topes: revisión crítica de la fuerza por tope y de los modos de falla no verificados
+# ======================================================================================
+try:
+    import scipy.sparse as _sp2, scipy.sparse.linalg as _spl2
+except Exception:
+    _sp2 = None
+
+
+def sector_fe(b, Lr, t, F, L, nx, ny, E_, nu_=0.3):
+    """Sector rectangular b (x, circunferencial) × Lr (y, radial), tensión plana: la fricción de la cara se reparte uniforme (fuerza de volumen en x) y el tope reacciona en x = 0 en |y − Lr/2| ≤ L/2.
+    Devuelve σ_vm por elemento (MPa)."""
+    hx, hy = b / nx, Lr / ny
+    D_ = E_ / (1 - nu_ ** 2) * np.array([[1, nu_, 0], [nu_, 1, 0], [0, 0, (1 - nu_) / 2]])
+    g_ = 1 / math.sqrt(3); Ke = np.zeros((8, 8)); xi_n = np.array([-1, 1, 1, -1.]); et_n = np.array([-1, -1, 1, 1.])
+    for xi in (-g_, g_):
+        for et in (-g_, g_):
+            dN = np.array([xi_n * (1 + et_n * et) / 4 * 2 / hx, et_n * (1 + xi_n * xi) / 4 * 2 / hy])
+            B = np.zeros((3, 8)); B[0, 0::2] = dN[0]; B[1, 1::2] = dN[1]; B[2, 0::2] = dN[1]; B[2, 1::2] = dN[0]
+            Ke += B.T @ D_ @ B * t * hx * hy / 4
+    nn_ = (nx + 1) * (ny + 1); idx = np.arange(nn_).reshape(nx + 1, ny + 1)
+    el = np.array([[idx[i, j], idx[i + 1, j], idx[i + 1, j + 1], idx[i, j + 1]] for i in range(nx) for j in range(ny)])
+    dof = np.stack([el * 2, el * 2 + 1], axis=2).reshape(len(el), 8)
+    rows_ = np.repeat(dof, 8, axis=1).ravel(); cols_ = np.tile(dof, (1, 8)).ravel(); vals_ = np.tile(Ke.ravel(), len(el))
+    f_ = np.zeros(2 * nn_)
+    for e_ in el:
+        for n_ in e_:
+            f_[2 * n_] += -F / (nx * ny) / 4
+    ys = np.arange(ny + 1) * hy
+    fixed = [2 * idx[0, j] for j in range(ny + 1) if abs(ys[j] - Lr / 2) <= L / 2 + 1e-9] + [2 * idx[0, ny // 2] + 1]
+    fixed = np.array(sorted(set(fixed))); free = np.setdiff1d(np.arange(2 * nn_), fixed); u = np.zeros(2 * nn_)
+    if _sp2 is not None:
+        K_ = _sp2.csr_matrix((vals_, (rows_, cols_)), shape=(2 * nn_, 2 * nn_)); u[free] = _spl2.spsolve(K_[free][:, free].tocsc(), f_[free])
+    else:
+        K_ = np.zeros((2 * nn_, 2 * nn_)); np.add.at(K_, (rows_, cols_), vals_); u[free] = np.linalg.solve(K_[np.ix_(free, free)], f_[free])
+    dN0 = np.array([xi_n / 4 * 2 / hx, et_n / 4 * 2 / hy]); B0 = np.zeros((3, 8)); B0[0, 0::2] = dN0[0]; B0[1, 1::2] = dN0[1]; B0[2, 0::2] = dN0[1]; B0[2, 1::2] = dN0[0]
+    vm = []
+    for d_ in dof:
+        s_ = D_ @ (B0 @ u[d_]); vm.append(math.sqrt(s_[0] ** 2 - s_[0] * s_[1] + s_[1] ** 2 + 3 * s_[2] ** 2))
+    return np.array(vm)
+
+
+rA_, rB2_, r1_, r2_, r3_ = iface(P, 1), iface(P, 2), rC[1], rC[2], rC[3]
+nsec, nbz = P["n_sec"], P["bz_npad"]
+# (opción, pieza, n, t, Fy, sobreespesor, respaldo, N [kN], E, α, masa del pieza completa [kg], en la mesa?)
+PIEZAS = [("A", "disco de la base", nsec, rA_["tss"], P["Fy_ss"], P["ss_allow"], P["t_base"], rA_["N"], E_SS, False),
+          ("A", "disco de la mesa", nsec, rA_["tss2"], P["Fy_ss"], P["ss_allow"], P["t_bot"], rA_["N"], E_SS, True),
+          ("B", "disco de la base", nsec, rB2_["tss"], P["Fy_ss"], P["ss_allow"], P["t_base"], rB2_["N"], E_SS, False),
+          ("B", "disco de la mesa", nsec, rB2_["tss2"], P["Fy_ss"], P["ss_allow"], P["t_bot"], rB2_["N"], E_SS, True),
+          ("C1", "placa de bronce", nsec, r1_["tb"], P["Fy_bz"], P["bz_allow"], P["t_base"], r1_["N"], E_BZ, False),
+          ("C1", "disco duro", nsec, r1_["tr"], P["Fy_cara"], P["ss_allow"], P["t_bot"], r1_["N"], E_SS, True),
+          ("C2", "2.ª placa de bronce", nsec, r2_["tr"], P["Fy_bz2"], P["bz_allow"], P["t_bot"], r2_["N"], E_BZ, True),
+          ("C3", "pastillas de bronce", nbz, r3_["tb"], P["Fy_bz"], P["bz_allow"], P["t_base"], r3_["N"], E_BZ, False)]
+qr_core = q_ratio(P); Ro_p, Ri_p, A_p, I_p, ru_p = geom(P)
+chord_ru = lambda n_: 2 * ru_p * math.sin(math.pi / n_)
+ratio_sec = lambda n_: 1 + P["e"] * A_p / I_p * ru_p * math.sin(math.pi / n_) / (math.pi / n_)
+bt_ = 2 * P["w_tope"]; aw_ = 0.707 * P["w_tope"]
+rows1, rows2, rows3 = [], [], []
+FU_ECC = {}; FU_HC = {}; FU_OV = {}; FU_BK = {}; FU_SC = {}
+for opt, nm, n_, t_, Fy_, alw_, tb_, N_, E_, mesa_ in PIEZAS:
+    F = F_tope(P, n_); c = tope_calc(P, F, t_, Fy_); cap1 = aw_ * c["Fw"]
+    hc = t_ - alw_; e_ = hc / 2; v = F / (2 * c["L"]); nn1 = F * e_ / (bt_ * c["L"])
+    fu_core = v / cap1; fu_ecc = math.hypot(v, nn1) / cap1
+    bt_req = F * e_ / (c["L"] * math.sqrt(cap1 ** 2 - v ** 2)) if v < cap1 else math.inf
+    fu_hc = F / (c["L"] * hc) / c["adm"]; fu_hc1 = F / (c["L"] * (hc - 1)) / c["adm"] if hc > 1 else math.inf
+    Fsec = F / qr_core * ratio_sec(n_); mu_eq = Tmax * 1e3 / (ru_p / 1e3) / (N_ * 1e3)
+    muT = {"A": P["muA_dry"], "B": max(P["muB_d"], P["muB_cont"], P["muB_dry"])}.get(opt, max(P["muC_d"], P["muC_cont"], P["muC_dry"]))
+    Fmu = muT * N_ * 1e3 / n_ * ratio_sec(n_)
+    qmin = {"A": rA_["ND"], "B": rB2_["ND"], "C1": r1_["ND"], "C2": r2_["ND"], "C3": r3_["ND"]}[opt] * 1e3 / A_p * (2 - qr_core)
+    Mov = F * (t_ - hc / 2); Mres = qmin * (Ro_p - Ri_p) * chord_ru(n_) ** 2 / 6
+    m_ = F * (hc / 2 + tb_ / 2) / (c["L"] + 2 * tb_); sig_pl = 6 * m_ / tb_ ** 2
+    Pm = {1: 20.1, 4: 8.78, 5: 14.2, 6: 20.1, 8: 36.6, 10: 58.0, 12: 84.3}.get(int(P["d_tor"]), 0.7854 * (0.9 * P["d_tor"]) ** 2)
+    wsec = (RHO_SS if E_ == E_SS else P["rho_bz"] * 1e-6) * A_p * t_ / n_ * g0 * P["phi_lift"]
+    cap_scr = 2 * 0.75 * 800 * Pm / 2.0
+    key_ = f"{opt} · {nm}"
+    FU_ECC[key_] = fu_ecc; FU_HC[key_] = (fu_hc, fu_hc1); FU_OV[key_] = Mov / Mres; FU_BK[key_] = sig_pl / (0.6 * P["Fy"]); FU_SC[key_] = wsec / cap_scr if mesa_ else 0.0
+    rows1.append([key_, n_, s3(F / 1e3), s3(Fsec / 1e3), s3((Fsec / F - 1) * 100), s3(Fmu / 1e3), s3(mu_eq), s3(c["L"]), s3(c["sig"]), s3(c["sig"] / c["adm"])])
+    rows2.append([key_, s3(t_), s3(c["L"]), s3(fu_core), s3(fu_ecc), s3(bt_req), s3(fu_hc), s3(fu_hc1), s3(Mov / Mres), s3(sig_pl / (0.6 * P["Fy"])), s3(FU_SC[key_])])
+table(f"5i.1. Fuerza por tope: F = (T_calado/r_u)/n·(q_máx/q_med) [q_máx/q_med = {s3(qr_core)}] frente a la del sector más cargado (promedio de presión en el sector: {s3(ratio_sec(nsec))}) y a μ_máx·N/n; μ_eq = T_calado/(N·r_u)",
+      ["Opción · pieza", "n", "F núcleo kN", "F sector kN", "Δ %", "F μ_máx·N kN", "μ_eq calado", "L_tope mm", "σ aplast. MPa", "FU aplast."], rows1)
+table(f"5i.2. Modos de falla no verificados por el núcleo (tope de barra de espesor b = 2·w = {bt_:g} mm; altura de contacto h_c = t − sobreespesor; fuerza en h_c/2): FU de la soldadura con el momento de excentricidad, espesor de barra necesario, aplastamiento con h_c (y con 1 mm más de holgura), vuelco del sector con q_mín, flexión local del respaldo, peso del sector sobre los tornillos de posición al izar",
+      ["Opción · pieza", "t mm", "L mm", "FU sold. núcleo", "FU sold. con excentricidad", "b barra necesaria mm", "FU aplast. h_c", "FU aplast. h_c − 1", "FU vuelco", "FU respaldo", "FU tornillos peso"], rows2)
+rows3 = []
+IP = {}
+for opt, nm, n_, t_, Fy_, alw_, tb_, N_, E_, mesa_ in (PIEZAS[0], PIEZAS[4], PIEZAS[6]):
+    c = tope_calc(P, F_tope(P, n_), t_, Fy_); vm = sector_fe(chord_ru(n_), Ro_p - Ri_p, t_, F_tope(P, n_), c["L"], 24, 120, E_)
+    p95 = float(np.percentile(vm, 95)); IP[f"{opt} · {nm}"] = p95 / Fy_
+    rows3.append([f"{opt} · {nm}", s3(F_tope(P, n_) / 1e3), s3(c["L"]), s3(F_tope(P, n_) / ((Ro_p - Ri_p) * t_)), s3(float(np.median(vm))), s3(p95), s3(p95 / Fy_), s3(p95 / (0.6 * Fy_))]) if np is not None else None
+if rows3:
+    table("5i.3. Tensión en el plano del sector (tensión plana, fricción uniforme, tope centrado de largo L; los máximos puntuales son singulares y dependen de la malla: se informa el percentil 95)",
+          ["Opción · pieza", "F kN", "L mm", "F/(L_rad·t) MPa", "σ_vm mediana", "σ_vm p95", "p95/Fy", "p95/(0,6·Fy)"], rows3)
+# invariancia de la opción 0 frente a los parámetros nuevos
+ok0 = True
+for ov in ({"fix_mode": 2}, {"h_gr": 0, "n_sec": 48, "w_tope": 16, "n_seg": 48, "d_tor": 12, "L_tope": 400}):
+    DDx = export_c(ov)
+    if DDx is None:
+        ok0 = False; continue
+    m0 = {v["nombre"]: v for v in D0["verificaciones"]}; d_ = 0
+    for v in DDx["verificaciones"]:
+        o_ = m0.get(v["nombre"])
+        if o_ is None or any((v.get(k_) is None) != (o_.get(k_) is None) or (v.get(k_) is not None and abs(v[k_] - o_[k_]) > 1e-12 * max(1.0, abs(o_[k_]))) for k_ in ("dem", "cap", "fu")):
+            d_ += 1
+    d_ += sum(1 for k_ in D0["derivados"]["masas"] if abs(D0["derivados"]["masas"][k_] - DDx["derivados"]["masas"][k_]) > 1e-9)
+    comp("5i", f"opción 0 invariante frente a {list(ov)} (verificaciones y masas)", 1.0 if d_ == 0 else 0.0, 1.0)
+    ok0 = ok0 and d_ == 0
+print(f"Opción 0 sin cambios frente a los parámetros de fijación y ranuras (fix_mode = 2; h_gr = 0, n_sec, w_tope, n_seg, d_tor, L_tope extremos): {'sí' if ok0 else 'NO'}")
+print(f"Fuerza por tope: el factor q_máx/q_med = {s3(qr_core)} sobreestima en {s3((qr_core/ratio_sec(nsec)-1)*100)} % la presión media del sector más cargado ({s3(ratio_sec(nsec))}); "
+      f"T_calado/r_u equivale a μ = {s3(Tmax*1e3/(ru_p/1e3)/(rA_['N']*1e3))} en r_u frente a μ_dry de C {P['muC_dry']}: diseño por capacidad del accionamiento (válido y conservador)")
 
 # ======================================================================================
 # 6. Hallazgos de la opción C
@@ -1579,16 +1691,16 @@ FIND.append(("C5", "menor", "η = (p−d)/p es un criterio de sección neta (est
              "razonable con Ø12 y paso 30 (η = 0,6); mantener d/p ≤ 0,4; en C3 el espesor comercial sube con " + "; ".join((f"{k_} ≥ {s3(v_)}" if v_ == v_ else f"{k_}: sin cambio en el rango barrido") for k_ in ("W_tf", "ss_void") for v_ in [min([u[2] for u in UM if u[0] == k_ and u[1] == 3 and u[4][0] > u[3][0] and u[2] > P[k_]] or [math.nan])])))
 FIND.append(("C6", "menor", "Soldadura mejillas–base cerca del límite con la altura agregada Δ (la altura del eje h_disc/2 + Δ sube el momento de las mejillas); en conf. 2 con ss_void ≥ 191 mm incumple",
              f"FU {s3(sold_fu(rr1['delta']))} (C1, C3, Δ = 16), {s3(sold_fu(rC[2]['delta']))} (C2, Δ = 20), «warn»",
-             f"Δ_máx con FU = 1: {s3(Dmax_w2)} mm; op. 0 {s3(sold_fu(0))}, A {s3(sold_fu(12))}, B {s3(sold_fu(27))}; reforzar los filetes de las mejillas o limitar Δ ≤ 26 mm (ss_void ≤ 180 en C1/C3)"))
+             f"Δ_máx con FU = 1: {s3(Dmax_w2)} mm; op. 0 {s3(sold_fu(0))}, A {s3(sold_fu(IF[1]['delta']))} (Δ = {s3(IF[1]['delta'])}), B {s3(sold_fu(IF[2]['delta']))} (Δ = {s3(IF[2]['delta'])}); reforzar los filetes de las mejillas o limitar Δ ≤ 26 mm (ss_void ≤ 180 en C1/C3)"))
 FIND.append(("C7", "menor", "Conf. 2: sigue sin verificación de dureza ni de desgaste de la 2.ª placa maciza (bronce–bronce «pend»)",
              "sin fila de dureza ni de desgaste de la 2.ª placa",
              f"aleaciones con ≥ 50 HB de diferencia (placa con tapones la más dura, p. ej. bronce al aluminio/manganeso; placa maciza reemplazable de bronce al plomo-estaño), Ra ≤ 0,4–0,8 µm, rodaje con grafito; "
              f"una 2.ª placa de Fy ≥ 275 MPa reduce a 6 mm (Δ {s3(ifaceC(dict(PC[2], Fy_bz2=275), 2)['delta'])} mm, −{s3(rC[2]['mAdd']-ifaceC(dict(PC[2], Fy_bz2=275), 2)['mAdd'])} kg)"))
 FIND.append(("C8", "menor", "HB_bz es un dato independiente de Fy_bz: con Fy_bz = 415 MPa (HB real ≈ 200–225) la fila de dureza sigue en 330 − 100",
              f"HB_cara − HB_bz = {s3(hb_diff_c1)} (cap) frente a 100", f"con HB_bz = 225: {s3(P['HB_cara']-225)} (límite 100); ligar HB_bz a la aleación; un disco de Ø2000 × 6 mm templado a 330 HB se deforma: segmentar o usar tratamiento superficial"))
-FIND.append(("C10", "menor", "Desgaste: la reserva t_bz − t_flex/√η no descuenta el sobreespesor de relapeado (bz_allow) y s se mide en r_ef, no en R_o; no limita en el rango admitido de p_bz [5; 60] ni de k_bz [0,1; 500]",
-             f"FU desgaste {s3(RC[1]['desgaste en la vida de diseño'][2])} (C1), {s3(RC[3]['desgaste en la vida de diseño'][2])} (C3)",
-             f"con corrección {s3(FUW[1])} (C1)/{s3(FUW[3])} (C3); k_bz crítico ≈ {s3(float(rows[0][4]))} (C1) frente a 500; p_bz crítico = q_neto = {s3(rr1['qnet'])}–{s3(rr3['qnet'])} MPa (< 5 MPa mínimo del rango): sin efecto numérico"))
+FIND.append(("C10", "menor", "Desgaste: la reserva t_bz − t_flex/√η no descuenta el sobreespesor de relapeado ni la ranura de engrase (que desaparece con h = h_gr) y s se mide en r_ef, no en R_o; el k_bz crítico queda dentro del rango admitido [0,1; 500]",
+             f"FU desgaste {s3(RC[1]['desgaste en la vida de diseño'][2])} (C1), {s3(RC[3]['desgaste en la vida de diseño'][2])} (C3); k_bz crítico núcleo > 500",
+             f"con corrección FU {s3(FUW[1])} (C1)/{s3(FUW[3])} (C3); k_bz crítico ≈ {s3(KCRIT2[1])} (C1) / {s3(KCRIT2[3])} (C3) (×1e-7) frente a 500; p_bz crítico = q_neto = {s3(rr1['qnet'])}–{s3(rr3['qnet'])} MPa (< 5 MPa mínimo del rango)"))
 nm_j = next(r_["nombre"] for r_ in DC[3]["interfazChecks"]["C"] if "pastilla" in r_["nombre"] and "dilatación" in r_["nombre"])
 cl_c11 = "≥ 1 mm" in nm_j
 CIERRES.append(("C11", "texto de la junta entre pastillas (≥ 1 mm en frío)", cl_c11, f"junta térmica {s3((AL_BZ-AL_S)*P['dT']*2*Ro*math.sin(math.pi/P['bz_npad']))} mm; fila: «{nm_j[:90]}…»"))
@@ -1598,6 +1710,29 @@ FIND.append(("C11", "menor", "Junta entre pastillas: el texto exige ≥ 1 mm, pe
 FIND.append(("C12", "menor", "c_lug 50 → 150: la corrección es necesaria (A, B y C pasan de ≈ 1,00–1,05 a 0,67–0,70); mi plancha de Mindlin converge a una flecha ≈ 5 % menor que la del núcleo (el núcleo es conservador y su malla influye)",
              f"FU flecha c_lug 150: 0 {s3(LIFT[('0 acero–acero',150)][1])}, A {s3(LIFT[('A inox–inox',150)][1])}, B {s3(LIFT[('B inox + UHMW',150)][1])}, C {s3(LIFT[('C1 bronce + disco',150)][1])}/{s3(LIFT[('C2 bronce + 2.ª placa',150)][1])}/{s3(LIFT[('C3 pastillas + disco',150)][1])}",
              f"c_lug 50: A {s3(LIFT[('A inox–inox',50)][1])}, B {s3(LIFT[('B inox + UHMW',50)][1])}, C {s3(LIFT[('C1 bronce + disco',50)][1])}/{s3(LIFT[('C2 bronce + 2.ª placa',50)][1])}/{s3(LIFT[('C3 pastillas + disco',50)][1])} (núcleo, sobre B/300); propio converge a {s3(LIFT[('A inox–inox',50)][3])}–{s3(LIFT[('C2 bronce + 2.ª placa',50)][3])}; sin cambios necesarios con c_lug = 150"))
+
+# ---- hallazgos de la fijación por sectores con topes
+mx = lambda d: max(d.items(), key=lambda kv: kv[1])
+k_e, v_e_ = mx(FU_ECC)
+n_over = [k_ for k_, v_ in FU_ECC.items() if v_ > 1 + 1e-9]
+FIND.append(("T1", "menor", "Fuerza por tope F = (T_calado/r_u)/n·(q_máx/q_med): válida como diseño por capacidad del accionamiento y conservadora; con r_u el par equivale a μ = " + f"{s3(Tmax*1e3/(ru_p/1e3)/(rA_['N']*1e3))}" + ", mayor que el μ_máx de C",
+             f"F = {s3(F_tope(P, nsec)/1e3)} kN por tope (n = {nsec})",
+             f"el sector más cargado tiene presión media {s3(ratio_sec(nsec))}·q_med y no {s3(qr_core)} (q_máx del borde exterior): F real {s3((ratio_sec(nsec)/qr_core-1)*100)} %; con μ_máx·N (C {s3(max(P['muC_d'], P['muC_cont'], P['muC_dry']))}) sería {s3(max(P['muC_d'], P['muC_cont'], P['muC_dry'])*r1_['N']*1e3/nsec*ratio_sec(nsec)/1e3)} kN; "
+             "si la interfaz se gripa, T_calado llega íntegro a los topes, por lo que conviene mantenerlo; falta el tope en ambos sentidos de giro (un tope compartido entre sectores vecinos o dos por sector) y centrarlo radialmente en el sector (guiñada)"))
+FIND.append(("T2", "importante" if n_over else "menor",
+             "Soldadura del tope al respaldo: el núcleo verifica solo el corte de dos filetes (f = F/(2·0,707·w·L)); falta el momento de excentricidad entre la fuerza de apoyo (a h_c/2 sobre el respaldo) y la soldadura, que tracciona el filete trasero",
+             f"FU corte (núcleo) máx {s3(max(float(r_[3]) for r_ in rows2))}",
+             f"con barra de espesor b = 2·w = {bt_:g} mm y h_c = t − sobreespesor: FU combinado hasta {s3(v_e_)} ({k_e}); incumplen: {', '.join(n_over) if n_over else 'ninguna'}; "
+             "espesor de barra necesario (tabla 5i.2) hasta " + s3(max(float(r_[5]) for r_ in rows2 if r_[5] not in ('inf', '—'))) + " mm; corregir con barra ≥ 20 mm de espesor, filetes de 8 mm o L mayor, o con tope bajo (h_c ≤ 3 mm)"))
+FIND.append(("T3", "menor", "Aplastamiento del tope: el núcleo usa el espesor completo t del canto; el tope no puede alcanzar la cara de deslizamiento, así que la altura de apoyo es h_c = t − sobreespesor de relapeado (y menos con una holgura)",
+             "σ_aplast. con t completo: FU " + f"{s3(max(float(r_[9]) for r_ in rows1))} máx",
+             "con h_c = t − sobreespesor: FU " + ", ".join(f"{k_.split(' · ')[0]} {k_.split(' · ')[1][:10]} {s3(v_[0])}" for k_, v_ in FU_HC.items() if v_[0] > 0.9) + "; con 1 mm más de holgura: " + ", ".join(f"{k_.split(' · ')[0]} {k_.split(' · ')[1][:10]} {s3(v_[1])}" for k_, v_ in FU_HC.items() if v_[1] > 1) + ": subir L_tope o espesor del canto"))
+FIND.append(("T4", "menor", "Modos de falla del sector suelto sin fila en el núcleo (vuelco por el tope, flexión local del respaldo, tensión en el plano del sector, peso sobre los tornillos de posición): cubiertos con mis cotas, sin que haya fila de verificación",
+             "sin filas",
+             f"vuelco FU máx {s3(max(FU_OV.values()))} (q_mín); respaldo (flexión local con dispersión 45°) {s3(max(FU_BK.values()))}; tornillos de posición al izar {s3(max(FU_SC.values()))}; tensión en el plano p95/Fy " + ", ".join(f"{s3(v_)}" for v_ in IP.values()) + "; levantamiento por succión no gobierna con N > 0 (q_mín = " + s3(r1_['ND']*1e3/A_p*(2-qr_core)) + " MPa)"))
+FIND.append(("T5", "menor", "Fila de la cabeza del tornillo avellanado: en el disco ranurado de A no se descuenta la ranura (t − sobreespesor) y en la placa de bronce sí (t − sobreespesor − h_gr); las graseras de C se describen en la plancha inferior de la mesa, pero la placa ranurada de C va en la base",
+             f"A mesa: cap {s3(P['ss_allow'] and rA_['tss2'] - P['ss_allow'])} mm; bronce: cap {s3(rC[1]['tb'] - P['bz_allow'] - P['h_gr'])} mm",
+             "unificar el criterio (cabeza fuera de la ranura: no descontar) y ubicar las graseras de C en el borde de la plancha base"))
 
 
 # ======================================================================================
@@ -1632,8 +1767,9 @@ FIND.append(("H6", "menor", "Modelo de la placa: empotrada es adecuada y conserv
              f"σ empotrada {s3(sig_cl)} MPa", f"unilateral {s3(sig_fd) if sig_fd else '—'} MPa (−11 %); apoyada {s3(sig_ss)} MPa (t_req {s3(tfl_ss + P['ss_allow'])} → {s3(com(tfl_ss + P['ss_allow'], COM_SS))} mm); la carga uniforme gobierna para δ_v ≥ {s3(wc_fd if wc_fd else wc_cl)} mm (empotrada {s3(wc_cl)}); voladizo máx. c = {s3(c_ov)} mm (cantear el respaldo ≤ 3 mm). σ_δ cerrada subestima ≈ 2× a δ_v = 0,01 mm y 8 % a 0,03 mm: no usarla para reducir t"))
 FIND.append(("H8", "menor", "Fluencia de la lámina: asentamiento y diferencia de borde pequeños; sin efecto sobre la verticalidad, pero relaja bulones y desplaza material a las juntas",
              "no evaluada", f"≈ 0,2–0,4 mm de asentamiento y ≈ 0,1–0,3 mm de diferencia con t = {s3(tU)} mm (≈ 0,05–0,15 mm/m); arandelas elásticas y rebajes con holgura"))
-FIND.append(("H10", "menor", "Pernos avellanados en el disco de 6 mm no evaluados: M8 deja ≈ 1,1 mm bajo la cabeza tras el relapeado; corrosión galvánica y de resquicio inox/acero al carbono",
-             "sin verificación", "usar M6 (k = 3,3 mm) o discos de 8 mm; sellar el perímetro y proteger el respaldo con imprimante de zinc"))
+_hd = [r_ for r_ in DA["interfazChecks"]["A"] if "cabeza del tornillo" in r_["nombre"]]
+FIND.append(("H10", "menor", "Pernos avellanados: el núcleo ya verifica la cabeza (0,55·d + 2 ≤ t − sobreespesor) con M" + str(int(P["d_tor"])) + (f" (FU {s3(max(r_['fu'] for r_ in _hd))} en el disco de {s3(IF[1]['tss'])} mm: poca holgura); " if _hd else ": sin fila; ") + "corrosión galvánica y de resquicio inox/acero al carbono sin verificación",
+             f"cabeza M{int(P['d_tor'])}: {s3(0.55*P['d_tor']+2)} mm frente a {s3(IF[1]['tss']-P['ss_allow'])} mm útiles", "usar M6 (k = 3,3 mm) o discos de 8 mm si se sube d_tor; sellar el perímetro y proteger el respaldo con imprimante de zinc"))
 
 # ======================================================================================
 # Resumen
@@ -1641,6 +1777,10 @@ FIND.append(("H10", "menor", "Pernos avellanados en el disco de 6 mm no evaluado
 bad = [c for c in COMP if c[5] == "discrepa"]
 nco = sum(1 for c in COMP if c[5] == "coincide")
 table("Discrepancias numéricas entre el cálculo propio y el núcleo", ["Prueba", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], bad if bad else [["—", "ninguna", "", "", "", ""]])
+if P["fix_mode"] == 1:
+    FIND[:] = [f_ for f_ in FIND if f_[0] not in ("N2", "N3")]
+    CIERRES.append(("N2/N3", "retención por topes (sin adhesivo) y filas del rebaje del UHMW", True,
+                    "B: σ canto UHMW " + s3(rowsAB(P, 2)[0]["Lámina UHMW (" + str(P["n_seg"]) + " sectores): aplastamiento del canto contra el tope del rebaje"][0]) + f" MPa (cap {P['p_uhmw']}); topes en A, B y C"))
 table("Cierres de la revisión anterior verificados contra el núcleo actual", ["Id", "Cambio del núcleo", "Cerrado", "Evidencia"], [[a_, b_, "sí" if c_ else "NO", d_] for a_, b_, c_, d_ in CIERRES])
 table("Hallazgos", ["Id", "Severidad", "Hallazgo", "Núcleo", "Corregido / efecto"], FIND)
 if bad or sw_bad or swC_bad or um_bad:

@@ -235,14 +235,16 @@ def hecc_kN(PP, N, mu=None):
 
 
 def pivot_core(PP, W_tf, n, opcion="F_en_Fcilmax"):
-    """Devuelve (p_buje MPa, σ_flex MPa, H_cil_dis, H_cil_cal)."""
+    """Criterio NUEVO del núcleo (P1): H_cil = F_pas·√(1+μ_s²) con n impar (diseño y calado).
+    Devuelve (p_buje MPa, σ_flex MPa, H_cil_dis, H_cil_cal)."""
     N = Nkn(PP, W_tf); Hec = hecc_kN(PP, N); Has = Hasim_kN(PP)
     Hd = Hc = 0.0
     if n % 2 == 1:
         Tn = N * cfric(PP, PP["mu_d"], PP["r_ef"]) / n
         pts = tabla(PP)[0]
         e = max(pts, key=lambda q: q["Fh"]) if opcion == "F_en_Fcilmax" else max(pts, key=lambda q: q["F"])
-        Hd = e["F"] * Tn; Hc = PP["eta_c"] * Fst_kN(PP)
+        sr = math.sqrt(1 + PP["mu_s"] ** 2)
+        Hd = sr * e["F"] * Tn; Hc = sr * PP["eta_c"] * Fst_kN(PP)
     p = (Hec + Has + Hd) * 1e3 / (PP["D_piv"] * PP["L_bush"])
     sg = (Hec + Has + Hc) * 1e3 * PP["e_piv"] / (math.pi * PP["D_piv"] ** 3 / 32)
     return p, sg, Hd, Hc
@@ -260,33 +262,36 @@ def bisect(f, lo=0.0, hi=5000.0, it=60):
     return lo
 
 
-def giro_ok_W(PP, W_tf, n):
-    """Verificaciones de la familia «Giro» que dependen de W (FS, alarma, contaminado, borde)."""
-    Fs = Fst_kN(PP); Ab = A_bore(PP)
-    Fd = case_F(PP, W_tf, n, "dis")
-    ok = Fs / Fd >= PP["FS_min"] and Fd * 1e3 / Ab * 10 <= PP["p_alarm"]
-    ok = ok and case_F(PP, W_tf, n, "cont") <= Fs and case_F(PP, W_tf, n, "borde") <= Fs
-    return ok
+def pivot_all(PP, W_tf, n):
+    """Las 4 verificaciones del grupo Pivote que dependen de W: (p_buje, σ_flex, σ_base, σ_cubo) con
+    H_calado = (H_ecc o Ch·N) + H_asim + H_cil,cal para base y cubo (P4)."""
+    p, sg, Hd, Hc = pivot_core(PP, W_tf, n)
+    N = Nkn(PP, W_tf); Hcal = hecc_kN(PP, N) + Hasim_kN(PP) + Hc
+    sb = Hcal * 1e3 / (PP["D_piv"] * PP["t_base"])
+    sh = Hcal * 1e3 / ((PP["D_piv"] + 30) * PP["L_bush"])
+    return p, sg, sb, sh, Hcal
+
+
+def pivot_ok(PP, W_tf, n):
+    p, sg, sb, sh, _ = pivot_all(PP, W_tf, n)
+    cap = 1.25 * PP["Fy"] / PP["Nd"]
+    return p <= PP["p_bush"] and sg <= PP["Fy_piv"] / PP["Nd"] and sb <= cap and sh <= cap
 
 
 def W_piv_core(PP, n):
-    fy = PP["Fy_piv"] / PP["Nd"]
+    """wPiv NUEVO (P5): solo el grupo Pivote, búsqueda hasta 1500 tf."""
+    return bisect(lambda W: pivot_ok(PP, W, n), 0.0, 1500.0)
 
-    def f(W):
-        p, sg, _, _ = pivot_core(PP, W, n)
-        return p <= PP["p_bush"] and sg <= fy
-    return bisect(f)
+
+def W_piv_lim(PP, n, which):
+    idx = {"p": 0, "sg": 1, "sb": 2, "sh": 3}[which]
+    cap = {"p": PP["p_bush"], "sg": PP["Fy_piv"] / PP["Nd"], "sb": 1.25 * PP["Fy"] / PP["Nd"], "sh": 1.25 * PP["Fy"] / PP["Nd"]}[which]
+    return bisect(lambda W: pivot_all(PP, W, n)[idx] <= cap, 0.0, 1500.0)
 
 
 def W_cap_core_like(PP, n):
-    """Réplica del criterio del núcleo (hipótesis verificada abajo): mayor W donde cumplen Pivote y las
-    verificaciones de Giro que dependen de W."""
-    fy = PP["Fy_piv"] / PP["Nd"]
-
-    def f(W):
-        p, sg, _, _ = pivot_core(PP, W, n)
-        return p <= PP["p_bush"] and sg <= fy and giro_ok_W(PP, W, n)
-    return bisect(f)
+    """wCap = mín(wGiro, wPiv)."""
+    return min(W_giro(PP, n, PP["FS_min"], *casos(PP)["dis"]), W_piv_core(PP, n))
 
 
 # ---- modelo completo del pivote (resultante vectorial + par de fricción del buje) -------
@@ -342,9 +347,11 @@ def W_piv_full(PP, n, variante, con_giro=False, mu=None):
 
 
 # ---- cubierta de madera ---------------------------------------------------------------
-def q_wood_core(PP):
-    RL = PP["D_load"] / 2
-    return PP["phi_d"] * PP["W_tf"] * g0 * 1e3 / (math.pi * RL ** 2) * (1 + 4 * PP["e"] / RL)
+def q_wood_core(PP, f=None):
+    """q = φd·W/(f_apoyo·A)·(1+4e/R), A = π(R² − ((D_piv+80)/2)²), R = D_carga/2 (criterio nuevo M1/M3)."""
+    RL = PP["D_load"] / 2; f = PP["f_apoyo"] if f is None else f
+    A = math.pi * (RL ** 2 - ((PP["D_piv"] + 80) / 2) ** 2)
+    return PP["phi_d"] * PP["W_tf"] * g0 * 1e3 / (f * A) * (1 + 4 * PP["e"] / RL)
 
 
 def q_wood_nt(Pn, RL, e, hueco=0.0):
@@ -392,7 +399,7 @@ def pump(PP, n, F_dis_kN):
     PhE, PhR = p_dis * Q / 600, PP["p_ret"] * Qr / 600
     out = dict(Qr=Qr, tExt=tExt, tRet=tRet, tCycle=tC, tRev=tRev, vExt=Q * 1e6 / 60 / (n * Ab) / 1000,
                vRet=Qr * 1e6 / 60 / (n * Aa) / 1000, PhExt=PhE, PhRet=PhR, Pmotor=max(PhE, PhR) / PP["eta_pump"],
-               p_dis=p_dis, Vext=Vext, Vret=Vret)
+               PmotorAlarm=max(PP["p_alarm"] * Q / 600, PhR) / PP["eta_pump"], p_dis=p_dis, Vext=Vext, Vret=Vret)
     out["Qreq"] = (Vext + Vret) / (PP["t_vuelta_obj"] / int(PP["N_pin"])) if PP["t_vuelta_obj"] > 0 else 0.0
     return out
 
@@ -454,13 +461,13 @@ def eval_point(S, v, over, D):
     S.add_ver(v, "p_dis ≤ alarma", Fd * 1e3 / A_bore(PP) * 10 <= PP["p_alarm"], estado_core(D, "Presión de diseño frente a la alarma"))
     # --- bomba
     pm = pump(PP, n, Fd); b = D["bomba"]
-    for k in ("Qr", "tExt", "tRet", "PhExt", "PhRet", "vExt", "vRet", "Pmotor", "Qreq"):
+    for k in ("Qr", "tExt", "tRet", "PhExt", "PhRet", "vExt", "vRet", "Pmotor", "PmotorAlarm", "Qreq"):
         S.add_cmp("bomba." + k, pm[k], b[k])
     S.add_cmp("tCycle", pm["tCycle"], D["derivados"]["tCycle"]); S.add_cmp("tRev", pm["tRev"], D["derivados"]["tRev"])
     S.add_ver(v, "v_ret ≤ máx", pm["vRet"] <= PP["v_ret_max"], estado_core(D, "Velocidad de retorno"))
     if PP["t_vuelta_obj"] > 0:
         S.add_ver(v, "t_vuelta ≤ objetivo", pm["tRev"] <= PP["t_vuelta_obj"], estado_core(D, "Tiempo por vuelta frente al objetivo"))
-    S.add_cmp("P motor (check)", pm["Pmotor"], ver(D, "Potencia del motor")["dem"])
+    S.add_cmp("P motor (check dem)", pm["Pmotor"], ver(D, "Potencia del motor")["dem"]); S.add_cmp("P motor alarma (check cap)", pm["PmotorAlarm"], ver(D, "Potencia del motor")["cap"])
     S.add_cmp("t vuelta (check info)", pm["tRev"], ver_exact(D, "Tiempo por vuelta")["dem"])
     # --- masa y presión de contacto
     Wd = Wd_kN(PP)
@@ -475,6 +482,9 @@ def eval_point(S, v, over, D):
     q = [c for c in cub["checks"] if c["nombre"].startswith("Madera: aplastamiento")][0]
     S.add_cmp("q madera", q_wood_core(PP), q["dem"]); S.add_cmp("FU madera", q_wood_core(PP) / PP["p_wood"], q["fu"])
     S.add_ver(v, "madera: q ≤ p_wood", q_wood_core(PP) <= PP["p_wood"], q["estado"])
+    k2 = [c for c in cub["checks"] if c["nombre"].startswith("Madera: la ley lineal")][0]
+    S.add_cmp("4e/R_carga", 4 * PP["e"] / (PP["D_load"] / 2), k2["dem"] if k2["dem"] else 1e-12) if k2["dem"] else S.add_cmp("4e/R_carga", 4 * PP["e"] / (PP["D_load"] / 2) + 1, 1.0)
+    S.add_ver(v, "madera: 4e/R ≤ 1", 4 * PP["e"] / (PP["D_load"] / 2) <= 1, k2["estado"])
     t = [c for c in cub["checks"] if c["nombre"].startswith("Madera: espesor")][0]
     S.add_ver(v, "madera: t ≥ 30", PP["t_wood"] >= 30, t["estado"])
     S.add_cmp("H total", H_total(PP), ver(D, "Altura total sobre el piso")["dem"])
@@ -494,14 +504,10 @@ def eval_point(S, v, over, D):
         m = cc["n"]
         S.add_cmp(f"wGiro n={m}", W_giro(PP, m, PP["FS_min"], *casos(PP)["dis"]), cc["wGiro"])
         S.add_cmp(f"wNom n={m}", W_giro(PP, m, 1.0, *casos(PP)["nom"]), cc["wNom"])
-        mine_p = W_cap_core_like(PP, m)
         mine_g = W_giro(PP, m, PP["FS_min"], *casos(PP)["dis"])
-        # tiempo objetivo y v_ret no dependen de W: si fallan, el núcleo anula wPiv (hallazgo P5)
-        pmx = pump(PP, m, case_F(PP, max(mine_g, 0.0), m, "dis"))
-        indep_ok = pmx["vRet"] <= PP["v_ret_max"] and (PP["t_vuelta_obj"] <= 0 or pmx["tRev"] <= PP["t_vuelta_obj"])
-        mine_pv = mine_p if indep_ok else 0.0
+        mine_pv = W_piv_core(PP, m)                       # solo grupo Pivote, hasta 1500 tf (P5)
         mine_cap = min(mine_g, mine_pv)
-        for lab, mine, core in ((f"wPiv n={m} (Pivote+Giro)", mine_pv, cc["wPiv"]), (f"wCap n={m}", mine_cap, cc["wCap"])):
+        for lab, mine, core in ((f"wPiv n={m}", mine_pv, cc["wPiv"]), (f"wCap n={m}", mine_cap, cc["wCap"])):
             if core > 0 and mine > 0:
                 S.add_cmp(lab, mine, core)
             else:
@@ -509,9 +515,15 @@ def eval_point(S, v, over, D):
                 if (core > 0) != (mine > 0):
                     S.dis.append((lab + " (cero / no cero)", mine, core))
     # --- pivote (réplica del núcleo)
-    p, sg, Hd, Hc = pivot_core(PP, PP["W_tf"], n)
+    p, sg, sb, sh, Hcal = pivot_all(PP, PP["W_tf"], n)
+    Hd, Hc = pivot_core(PP, PP["W_tf"], n)[2:]
     pb = ver(D, "Presión en el buje"); fx = ver(D, "Flexión del pivote")
     S.add_cmp("p buje", p, pb["dem"]); S.add_cmp("σ flexión pivote", sg, fx["dem"])
+    vb = ver(D, "Aplastamiento del pivote en el agujero"); vh = ver(D, "Aplastamiento del buje en el cubo")
+    capb = 1.25 * PP["Fy"] / PP["Nd"]
+    S.add_cmp("σ aplast. agujero base", sb, vb["dem"]); S.add_cmp("σ aplast. buje en cubo", sh, vh["dem"])
+    S.add_cmp("cap aplast. 1,25Fy/Nd", capb, vb["cap"])
+    S.add_ver(v, "base: σ ≤ 1,25Fy/Nd", sb <= capb, vb["estado"]); S.add_ver(v, "cubo: σ ≤ 1,25Fy/Nd", sh <= capb, vh["estado"])
     S.add_ver(v, "buje p ≤ p_bush", p <= PP["p_bush"], pb["estado"]); S.add_ver(v, "pivote σ ≤ Fy/Nd", sg <= PP["Fy_piv"] / PP["Nd"], fx["estado"])
     S.add_cmp("H_asim", Hasim_kN(PP), ver(D, "Empuje neto al pivote")["dem"])
     if n % 2 == 1:
@@ -558,12 +570,11 @@ Pm_rel = max(p_rel * P["Q_pump"] / 600, pm["PhRet"]) / P["eta_pump"]
 Qcap = pm["Qr"] * A_bore(P) / A_ann(P)
 table("Prueba 1b – Potencia del motor: presión de dimensionamiento (revisión crítica)", ["Criterio", "p (bar)", "P motor (kW)", "frente al núcleo"],
       [["Núcleo: presión de diseño (caso dis)", s3(pm["p_dis"]), s3(pm["Pmotor"]), "—"],
-       ["Alarma (máx. presión de operación permitida)", s3(p_al), s3(Pm_al), f"{(Pm_al / pm['Pmotor'] - 1) * 100:+.1f} %"],
+       ["Alarma (máx. presión de operación permitida) = PmotorAlarm del núcleo", s3(p_al), s3(Pm_al), f"{(Pm_al / pm['Pmotor'] - 1) * 100:+.1f} %"],
        ["Alivio (calado, intermitente)", s3(p_rel), s3(Pm_rel), f"{(Pm_rel / pm['Pmotor'] - 1) * 100:+.1f} %"]])
 print(f"Caudal de descarga del lado émbolo durante el retorno = Q_ret·A/A_anular = {s3(Qcap)} L/min ({Qcap / pm['Qr']:.2f}× Q_ret); el núcleo no lo verifica (válvula y manguera de retorno)")
-if Pm_al > pm["Pmotor"] * 1.05:
-    finding("B1", "menor", "Potencia del motor dimensionada con la presión de diseño del caso «dis», no con la de alarma (límite de operación) ni con el alivio: con la presión en alarma el motor queda corto",
-            f"{s3(pm['Pmotor'])} kW (p = {s3(pm['p_dis'])} bar)", f"{s3(Pm_al)} kW a p_alarma ({s3(p_al)} bar), {s3(Pm_rel)} kW a p_alivio: elegir motor ≥ P(p_alarma) o limitar el par/potencia de la bomba")
+comp("1", "P motor a presión de alarma (kW)", Pm_al, b["PmotorAlarm"]); comp("1", "Potencia motor (check): cap = P a alarma", Pm_al, ver(D0, "Potencia del motor")["cap"])
+print(f"B1 resuelto en el núcleo: PmotorAlarm = {s3(b['PmotorAlarm'])} kW (propio {s3(Pm_al)}); a p_alivio (700 bar, calado) harían falta {s3(Pm_rel)} kW si no se limita la potencia")
 finding("B2", "menor", "tiempo por vuelta ideal: usa la carrera nominal completa (%s mm; la requerida es %s mm, −%.0f %%), sin compresibilidad del aceite (≈ +%.1f %% de t avance como cota), sin conmutación de válvulas ni aceleración; los efectos se compensan en parte"
         % (s3(P["stroke"]), s3(D0["derivados"]["K"]["s_req"]), (1 - D0["derivados"]["K"]["s_req"] / P["stroke"]) * 100, 7e-5 * pm["p_dis"] * 100),
         f"t vuelta = {s3(pm['tRev'])} min", "≈ ±5 %: informar como mínimo teórico")
@@ -600,56 +611,48 @@ DS = export({"opt_wood": 1, "h_skid": 280}); DS2 = export({"opt_wood": 1, "h_ski
 comp("2", "Enrase con h_riel = 280: |H − h| (mm)", abs(H_total(PWc) - 280), ver(DS, "Enrase")["dem"])
 comp("2", "Enrase con h_riel = 240: |H − h| (mm)", abs(H_total(PWc) - 240), ver(DS2, "Enrase")["dem"])
 
-# ---- revisión crítica del aplastamiento
+# ---- revisión crítica del aplastamiento (criterio nuevo: f_apoyo, A con agujero, verificación 4e/R ≤ 1)
 R_L = PWc["D_load"] / 2; hueco = (PWc["D_piv"] + 80) / 2
 PL = PWc["phi_d"] * PWc["W_tf"] * g0 * 1e3
-q_core = q_wood_core(PWc)
-q_hole = q_wood_nt(PL, R_L, PWc["e"], hueco)
-q_nt = q_wood_nt(PL, R_L, PWc["e"])
-e_kern = R_L / 4
+fa = PWc["f_apoyo"]
+q_core = q_wood_core(PWc); qf1 = q_wood_core(PWc, 1.0)
+k2 = [c for c in cub["checks"] if c["nombre"].startswith("Madera: la ley lineal")][0]
+comp("2", "Verificación M2: 4e/R_carga", 4 * PWc["e"] / R_L, k2["dem"]); comp("2", "Verificación M2: FU", 4 * PWc["e"] / R_L / 1.0, k2["fu"])
+A_ann_w = math.pi * (R_L ** 2 - hueco ** 2)
+q_exact = PL / (fa * A_ann_w) * (1 + 4 * PWc["e"] * R_L / (R_L ** 2 + hueco ** 2))      # Navier exacto del anillo (carga centrada en la huella)
+q_nt = q_wood_nt(PL, R_L, PWc["e"]) / fa
 rows = []
-for f in (1.0, 0.8, 0.6, 0.5, q_core / PWc["p_wood"], 0.4, 0.3, 0.2, 0.1):
-    rows.append([f"{f * 100:.1f} %", s3(PL / (f * math.pi * R_L ** 2) / 1e0), s3(PL / (f * math.pi * R_L ** 2) * (1 + 4 * PWc["e"] / R_L)),
-                 s3(PL / (f * math.pi * R_L ** 2) * (1 + 4 * PWc["e"] / R_L) / PWc["p_wood"]), "cumple" if PL / (f * math.pi * R_L ** 2) * (1 + 4 * PWc["e"] / R_L) <= PWc["p_wood"] else "NO CUMPLE"])
-table("Prueba 2b – Aplastamiento de la madera según la fracción f del círculo de carga que apoya realmente (q = q_núcleo/f)",
-      ["f = A_contacto/A_círculo", "q medio (MPa)", "q con (1+4e/R) (MPa)", "FU", "veredicto"], rows)
-f_crit = q_core / PWc["p_wood"]
-A_req = PL * (1 + 4 * PWc["e"] / R_L) / PWc["p_wood"] / 1e6
-print(f"Fracción mínima de apoyo f_crít = q/p_wood = {f_crit * 100:.1f} % del círculo (Ø{PWc['D_load']:.0f}); área de contacto mínima = {A_req:.3f} m² "
-      f"(sin factor de excentricidad: {PL / PWc['p_wood'] / 1e6:.3f} m²).")
-table("Prueba 2c – Otros efectos sobre q de la madera (D_load = %s, e = %s)" % (s3(PWc["D_load"]), s3(PWc["e"])),
-      ["Efecto", "q (MPa)", "Δ frente al núcleo"],
-      [["Núcleo: ley lineal en el círculo completo", s3(q_core), "—"],
-       ["Descontando el agujero del pivote (D_piv + 80)", s3(q_hole), f"{(q_hole / q_core - 1) * 100:+.2f} %"],
-       [f"Sin tracción (excentricidad de núcleo e_k = R/4 = {s3(e_kern)})", s3(q_nt), f"{(q_nt / q_core - 1) * 100:+.2f} %"]])
+for f in (1.0, 0.8, 0.6, fa, qf1 / PWc["p_wood"], 0.4, 0.3, 0.2, 0.1):
+    qq = qf1 / f
+    rows.append([f"{f * 100:.1f} %" + (" (f_apoyo)" if f == fa else (" (f crítico)" if abs(f - qf1 / PWc["p_wood"]) < 1e-12 else "")), s3(qq), s3(qq / PWc["p_wood"]), "cumple" if qq <= PWc["p_wood"] else "NO CUMPLE"])
+table("Prueba 2b – Aplastamiento de la madera según la fracción real f de apoyo (q = q(f=1)/f; el núcleo usa f_apoyo = %s)" % s3(fa),
+      ["f = A_contacto/A_anillo", "q (MPa)", "FU", "veredicto"], rows)
+f_crit = qf1 / PWc["p_wood"]
+A_req = f_crit * A_ann_w / 1e6
+print(f"Fracción crítica de apoyo f_crít = q(f=1)/p_wood = {f_crit * 100:.1f} % (A_contacto = {A_req:.3f} m²); con f_apoyo = {fa} el margen es {(1 - q_core / PWc['p_wood']) * 100:.1f} % (FU {q_core / PWc['p_wood']:.3f}).")
+table("Prueba 2c – Efectos residuales sobre q de la madera (D_load = %s, e = %s, f_apoyo = %s)" % (s3(PWc["D_load"]), s3(PWc["e"]), s3(fa)),
+      ["Variante", "q (MPa)", "Δ frente al núcleo"],
+      [["Núcleo: A del anillo × (1 + 4e/R_carga)", s3(q_core), "—"],
+       ["Navier exacto del anillo: 1 + 4eR/(R² + r²)", s3(q_exact), f"{(q_exact / q_core - 1) * 100:+.2f} %"],
+       [f"Sin tracción (solo difiere si 4e/R > 1, que el núcleo ya rechaza)", s3(q_nt), f"{(q_nt / q_core - 1) * 100:+.2f} %"]])
 rows = []
 for dl in (800, 1000, 1200, 1600, 2000):
     for ee in (100, 150, 200, 250, 300):
         RR = dl / 2
-        if ee >= RR:
+        if 4 * ee / RR <= 1 or ee >= RR:
             continue
-        qa = PL / (math.pi * RR ** 2) * (1 + 4 * ee / RR); qb = q_wood_nt(PL, RR, ee)
-        if abs(qb / qa - 1) > 0.005 or (qa <= PWc["p_wood"]) != (qb <= PWc["p_wood"]):
-            rows.append([dl, ee, f"{4 * ee / RR:.2f}", s3(qa), s3(qb), f"{(qb / qa - 1) * 100:+.1f} %", "OK/NO" if (qa <= PWc["p_wood"]) and not (qb <= PWc["p_wood"]) else "igual"])
-table("Prueba 2d – Fuera del núcleo de la huella (4e/R_carga > 1): la ley lineal del núcleo subestima q (sin tracción)",
-      ["D_carga", "e", "4e/R", "q núcleo", "q sin tracción", "Δ", "veredicto núcleo→propio"], rows)
-flip_nt = any((PL / (math.pi * (dl / 2) ** 2) * (1 + 4 * ee / (dl / 2)) <= PWc["p_wood"]) and not (q_wood_nt(PL, dl / 2, ee) <= PWc["p_wood"])
-              for dl in (800, 1000, 1200, 1600, 2000) for ee in (0, 50, 100, 150, 200, 250, 300) if ee < dl / 2)
-finding("M1", "importante", "El aplastamiento de la madera usa como área de apoyo TODO el círculo D_carga (contradice su rótulo «sin acreditar reparto»: equivale a acreditar reparto total en la huella) y no tiene factor de área de contacto. "
-        "Una carga apoyada en patines o vigas concentra la presión en una fracción f del círculo y q aumenta como 1/f; el chequeo puede dar «ok» y estar subestimando q",
-        f"q = {s3(q_core)} MPa, FU {s3(q_core / PWc['p_wood'])}",
-        f"q/f: falla si f < {f_crit * 100:.0f} % del círculo (A_contacto < {A_req:.2f} m²). Agregar parámetro «área de apoyo efectiva» (o ancho×largo de patines) y calcular q = φd·W/A_ef·(1+4e/R)")
-if flip_nt:
-    finding("M2", "importante", "Aplastamiento de la madera con e fuera del núcleo de la huella (e > D_carga/8): la ley lineal admite tracciones y subestima q; hay combinaciones D_carga/e donde el núcleo da «ok» y sin tracción falla",
-            "ley lineal 1+4e/R (con q_mín < 0)", "q sin tracción (tabla 2d)")
-else:
-    finding("M2", "menor", "Aplastamiento de la madera con e > D_carga/8 (fuera del núcleo): la ley lineal admite tracciones y subestima q (no cambia el veredicto en los rangos probados)",
-            "ley lineal 1+4e/R", "q sin tracción (tabla 2d); agregar q_mín ≥ 0 como en la interfaz")
-finding("M3", "menor", "El área de apoyo de la madera es el círculo completo; la cubierta no existe en el agujero del pivote (D_piv + 80)",
-        f"q = {s3(q_core)} MPa", f"{s3(q_hole)} MPa ({(q_hole / q_core - 1) * 100:+.1f} %)") if q_hole / q_core - 1 > 0.005 else None
+        PPt = dict(PWc, D_load=dl, e=ee)
+        qa = q_wood_core(PPt); qb = q_wood_nt(PL, RR, ee) / fa
+        rows.append([dl, ee, f"{4 * ee / RR:.2f}", s3(qa), s3(qb), f"{(qb / qa - 1) * 100:+.1f} %", "M2 falla (rechazado)"])
+table("Prueba 2d – Combinaciones con 4e/R > 1: la ley lineal subestima q, pero la verificación M2 del núcleo las rechaza", ["D_carga", "e", "4e/R", "q lineal", "q sin tracción", "Δ", "núcleo"], rows)
+finding("M1", "menor", "f_apoyo = %s es un SUPUESTO por defecto (resuelve la crítica: ya hay factor de contacto), sin respaldo geométrico: con f = %s el FU es %.3f («warn») y el margen es %.1f %%; falla si el apoyo real es < %.1f %% del anillo (A_contacto < %.2f m²). "
+        "El factor 1/f supone parches de apoyo repartidos uniformemente en la huella; con patines asimétricos o cargas concentradas q local será mayor" % (s3(fa), s3(fa), q_core / PWc["p_wood"], (1 - q_core / PWc["p_wood"]) * 100, f_crit * 100, A_req),
+        f"q = {s3(q_core)} MPa, FU {s3(q_core / PWc['p_wood'])}", f"el proyectista debe fijar f_apoyo con la geometría real de patines/vigas; f = 0,4 ⇒ q = {s3(qf1 / 0.4)} MPa (FU {s3(qf1 / 0.4 / PWc['p_wood'])})")
+finding("M3", "menor", "q usa A del anillo con el factor (1 + 4e/R_carga) de la huella completa; el Navier exacto del anillo (1 + 4eR/(R²+r²)) da un factor menor: el núcleo es conservador",
+        f"q = {s3(q_core)} MPa", f"{s3(q_exact)} MPa ({(q_exact / q_core - 1) * 100:+.2f} %)")
 finding("M4", "menor", "p_wood = %s MPa (dato de proveedor) se usa como tensión ADMISIBLE sin factor de duración de carga (fluencia en madera bajo carga permanente) ni de humedad. "
         "Los valores admisibles de compresión normal NCh 1198 / de fichas de especies duras deben confirmarse; si 6 MPa es el límite de proporcionalidad, el admisible es menor" % s3(PWc["p_wood"]),
-        f"FU {s3(q_core / PWc['p_wood'])}", "confirmar la base de p_wood (admisible, no ruptura) o agregar factor KD; sensibilidad: FU = q/p")
+        f"FU {s3(q_core / PWc['p_wood'])}", "confirmar la base de p_wood (admisible, no ruptura) o agregar factor KD; con FU 0,95 no hay margen para un KD < 1")
 print(f"Cubierta: +{s3(m_wood(PWc))} kg ({m_wood(PWc) / (masa_mesa(P)) * 100:.1f} % de la mesa), N +{s3(m_wood(PWc) * g0 / 1e3)} kN, q_max interfaz {dq * 100:+.3f} %")
 
 # ======================================================================================
@@ -702,9 +705,9 @@ print(f"k = F_cil/(T/n) = {kc:.6e} 1/mm; c(μ_d, r_ef) = {cdis:.3f} mm; F_cil = 
 Wal = bisect(lambda W: case_F(P, W, n0, "dis") * 1e3 / A_bore(P) * 10 <= P["p_alarm"])
 Wcont = bisect(lambda W: case_F(P, W, n0, "cont") <= Fst_kN(P))
 Wbor = bisect(lambda W: case_F(P, W, n0, "borde") <= Fst_kN(P))
-Wwood = PWc["p_wood"] * math.pi * R_L ** 2 / (PWc["phi_d"] * (1 + 4 * PWc["e"] / R_L)) / 1e3 / g0     # tf
+Wwood = PWc["p_wood"] * PWc["f_apoyo"] * math.pi * (R_L ** 2 - hueco ** 2) / (PWc["phi_d"] * (1 + 4 * PWc["e"] / R_L)) / 1e3 / g0     # tf
 Wint = bisect(lambda W: ((PWc["phi_d"] * W * g0 + Wd_kN(P)) * 1e3 / (math.pi * (Ro ** 2 - Ri ** 2)) * (1 + 4 * P["e"] * Ro / (Ro ** 2 + Ri ** 2))) <= P["q_adm"])
-Wcheck = None
+Wal450 = bisect(lambda W: case_F(P, W, n0, "dis") * 1e3 / A_bore(P) * 10 <= 450)
 table("Prueba 3c – Otros límites de W en el modelo (el «capacity» del núcleo solo considera FS)", ["Límite", "W (tf)", "frente a W_diseño"],
       [["FS ≥ FS_min (capacity.design)", s3(W_des), "—"], ["p_dis ≤ p_alarma", s3(Wal), f"{(Wal / W_des - 1) * 100:+.1f} %"],
        ["Gira con grasa contaminada (F_cont ≤ F_calado)", s3(Wcont), f"{(Wcont / W_des - 1) * 100:+.1f} %"],
@@ -725,26 +728,43 @@ if not fallas(lo):
 else:
     W_struct, nm_struct = 0.0, "falla en la línea base"
 print(f"Primera verificación no-giro que falla al subir W (núcleo): W = {s3(W_struct)} tf → {nm_struct}")
-if Wmin_other < W_des * 0.999 or W_struct < W_des * 0.999:
-    finding("C1", "importante", "El «capacity»/capCil (FS de giro) es mayor que otro límite del propio modelo (alarma, contaminado, q_adm, madera o estructura)",
-            f"capacity.design = {s3(W_des)} tf", f"mín. de otros límites = {s3(min(Wmin_other, W_struct if W_struct > 0 else 1e9))} tf")
+Dw_cap = DW["mercado"]["capacity"]["design"]; Dw_cc = DW["capCil"][1]["wCap"]
+comp("3", "Con cubierta: capacity.design (tf) no cambia por la madera (propio: solo masa)", W_giro(PWc, n0, PWc["FS_min"], *casos(PWc)["dis"]), Dw_cap)
+if Wwood < W_des * 0.999:
+    finding("C1", "importante", "Con la cubierta de madera (opt_wood = 1) el límite de carga por aplastamiento de la madera (%s tf con f_apoyo = %s y p_wood = %s MPa) es MENOR que la capacidad de giro que informan capacity y capCil (%s tf): "
+            "esas capacidades ignoran la verificación de la madera. Con W entre %s y %s tf el núcleo da «madera: falla» y a la vez «capacity» mayor que W" % (s3(Wwood), s3(PWc["f_apoyo"]), s3(PWc["p_wood"]), s3(Dw_cc), s3(Wwood), s3(Dw_cc)),
+            f"capacity.design = {s3(Dw_cap)} tf (con cubierta)", f"capacidad de carga con cubierta = mín(giro, madera) = {s3(min(Dw_cap, Wwood))} tf (−{(1 - Wwood / Dw_cap) * 100:.1f} %); incluir el límite de la madera en wCap")
+if Wmin_other < W_des * 0.999 and Wmin_other != Wwood or W_struct < W_des * 0.999:
+    finding("C2", "importante", "El capacity es mayor que otro límite del propio modelo (alarma, contaminado, q_adm o estructura)", f"capacity.design = {s3(W_des)} tf", f"mín. de otros límites = {s3(min(Wmin_other, W_struct if W_struct > 0 else 1e9))} tf")
 else:
-    finding("C1", "menor", "El «capacity»/capCil mide solo la capacidad de GIRO (FS), no la de carga: no incluye q_adm, la madera ni la estructura de la mesa. Con los datos actuales el primer fallo estructural del núcleo (%s) ocurre en W = %s tf, apenas por encima de la capacidad de giro de %s tf; la capacidad nominal (%s tf, FS = 1, μ_nom) es solo de giro y no es una capacidad de carga" % (nm_struct.split(";")[0], s3(W_struct), s3(W_des), s3(W_nom1)),
+    finding("C2", "menor", "El «capacity»/capCil mide solo la capacidad de GIRO (FS) y del pivote, no la de carga: no incluye la alarma (con p_alarma = 450 bar el límite sería %s tf y wCap seguiría en %s tf; antes wPiv lo captaba, ahora no), contaminado, q_adm ni la estructura. Primer fallo estructural del núcleo (%s) en W = %s tf, apenas por encima de la capacidad de giro de %s tf; la capacidad nominal (%s tf, FS = 1, μ_nom) es solo de giro y no es capacidad de carga" % (s3(Wal450), s3(W_des), nm_struct.split(";")[0], s3(W_struct), s3(W_des), s3(W_nom1)),
             f"capacity.design = {s3(W_des)} tf; nominal = {s3(W_nom1)} tf", f"capacidad de carga = mín(giro, estructura) = {s3(min(W_des, W_struct))} tf; el «nominal» no debe publicarse como capacidad")
 
 # ======================================================================================
 # 4. CAPACIDAD SEGÚN N.º DE CILINDROS Y PIVOTE
 # ======================================================================================
 rows = []
+cap_b = 1.25 * P["Fy"] / P["Nd"]
 for cc in D0["capCil"]:
     m = cc["n"]
     wg = W_giro(P, m, P["FS_min"], *casos(P)["dis"]); wn = W_giro(P, m, 1.0, *casos(P)["nom"])
-    wpv_true = W_piv_core(P, m); wpc = W_cap_core_like(P, m)
+    wpc = W_piv_core(P, m); wcp = W_cap_core_like(P, m)
     comp("4", f"n = {m}: wGiro (tf)", wg, cc["wGiro"]); comp("4", f"n = {m}: wNom (tf)", wn, cc["wNom"])
-    comp("4", f"n = {m}: wPiv del núcleo (tope = límites de Giro) (tf)", min(wpc, 5000), cc["wPiv"])
-    comp("4", f"n = {m}: wCap = mín(wGiro, wPiv) (tf)", min(wg, wpc), cc["wCap"])
-    rows.append([m, s3(wg), s3(cc["wGiro"]), s3(wpv_true), s3(wpc), s3(cc["wPiv"]), s3(min(wg, wpc)), s3(cc["wCap"])])
-table("Prueba 4a – Capacidad por n.º de cilindros (tf)", ["n", "wGiro propio", "wGiro núcleo", "wPiv SOLO pivote (propio)", "wPiv Pivote+Giro (propio)", "wPiv núcleo", "wCap propio", "wCap núcleo"], rows)
+    if cc["wPiv"] > 0 and wpc > 0:
+        comp("4", f"n = {m}: wPiv, solo Pivote hasta 1500 tf (tf)", wpc, cc["wPiv"])
+        comp("4", f"n = {m}: wCap = mín(wGiro, wPiv) (tf)", wcp, cc["wCap"])
+    else:
+        comp("4", f"n = {m}: wPiv = 0 (la base no cumple a ninguna W; 1 = sí)", 1.0 if wpc == 0 else 0.0, 1.0 if cc["wPiv"] == 0 else 0.0)
+        comp("4", f"n = {m}: wCap = 0 (1 = sí)", 1.0 if wcp == 0 else 0.0, 1.0 if cc["wCap"] == 0 else 0.0)
+    lim = {"buje": W_piv_lim(P, m, "p"), "flexión": W_piv_lim(P, m, "sg"), "base": W_piv_lim(P, m, "sb"), "cubo": W_piv_lim(P, m, "sh")}
+    rows.append([m, s3(wg), s3(cc["wGiro"]), s3(wpc), s3(cc["wPiv"]), s3(wcp), s3(cc["wCap"])] + [s3(lim[k]) for k in ("buje", "flexión", "base", "cubo")])
+table("Prueba 4a – Capacidad por n.º de cilindros (tf); límites individuales del grupo Pivote (0 = no cumple ni sin carga, tope 1500)",
+      ["n", "wGiro propio", "wGiro núcleo", "wPiv propio", "wPiv núcleo", "wCap propio", "wCap núcleo", "buje", "flexión", "agujero base", "buje en cubo"], rows)
+t_req = {}
+for Wq in (50, 100, 116, 165):
+    Hc_q = pivot_all(P, Wq, 1)[4]
+    t_req[Wq] = Hc_q * 1e3 / (P["D_piv"] * cap_b)
+print("t_base mínimo para que el agujero de la base cumpla con n = 1: " + "; ".join(f"W = {k} tf → {s3(v)} mm" for k, v in t_req.items()) + f" (t_base = {P['t_base']} mm)")
 # H_cil del núcleo: ¿en qué posición se toma F_pas de diseño?
 D1 = export({"n_cyl": 1, "W_tf": 100}); P1 = D1["P"]
 hc = ver(D1, "Reacción del pivote por empuje no equilibrado")
@@ -759,80 +779,74 @@ comp("4", "H_asim (kN)", Hasim_kN(P), ver(D0, "Empuje neto al pivote")["dem"])
 comp("4", "n = 2, W = 300: p buje (MPa)", pivot_core(P, 300, 2)[0], ver(D0, "Presión en el buje")["dem"])
 comp("4", "n = 2, W = 300: σ flexión pivote (MPa)", pivot_core(P, 300, 2)[1], ver(D0, "Flexión del pivote")["dem"])
 
-# ---- Revisión crítica: modelo completo
+# ---- Revisión crítica: modelo completo del pivote con n = 1
 s = s_res(P)
 pts = tabla(P)[0]
 e_max_F = max(pts, key=lambda q: q["F"]); e_max_Fh = max(pts, key=lambda q: q["Fh"])
-w_core1 = W_cap_core_like(P, 1)
+fy_p = P["Fy_piv"] / P["Nd"]
+w_core1 = bisect(lambda W: pivot_core(P, W, 1)[0] <= P["p_bush"] and pivot_core(P, W, 1)[1] <= fy_p, 0.0, 1500.0)   # buje + flexión (criterio nuevo)
 w_V1 = W_piv_full(P, 1, "V1"); w_V2 = W_piv_full(P, 1, "V2"); w_V3 = W_piv_full(P, 1, "V3")
-w_V1g = W_piv_full(P, 1, "V1", True); w_V2g = W_piv_full(P, 1, "V2", True); w_V3g = W_piv_full(P, 1, "V3", True)
-# componentes en W = capacidad del núcleo (n = 1)
-Wc = D0["capCil"][0]["wCap"]
+Wc = w_core1
 Nn = Nkn(P, Wc); Hec = hecc_kN(P, Nn); Tn1 = Nn * cfric(P, P["mu_d"], P["r_ef"])
 F_des = e_max_Fh["F"] * Tn1; F_des_max = e_max_F["F"] * Tn1
 Has = Hasim_kN(P)
-rows = [["F_pas (normal a la cara) en la posición de F_cil máx.", s3(F_des), "H_cil del núcleo"],
+rows = [["F_pas (normal a la cara) en la posición de F_cil máx.", s3(F_des), "—"],
         ["F_pas máx. de la carrera (otra posición)", s3(F_des_max), f"{(F_des_max / F_des - 1) * 100:+.2f} %"],
-        ["H = μ_s·F (fricción en la cara, en x)", s3(P["mu_s"] * F_des), "no incluida en el núcleo"],
-        ["Resultante √(F²+H²) = F·√(1+μ_s²)", s3(s * F_des), f"{(s - 1) * 100:+.2f} % sobre F"],
+        ["H = μ_s·F (fricción en la cara, en x)", s3(P["mu_s"] * F_des), "incluida desde P1 vía la resultante"],
+        ["Resultante √(F²+H²) = H_cil del núcleo nuevo", s3(s * F_des), f"{(s - 1) * 100:+.2f} % sobre F"],
         ["H_ecc (fricción excéntrica de la mesa, μ_d)", s3(Hec), "peor alineación con el pasador"],
         ["H_asim (fricción desigual de patines)", s3(Has), "en servicio no aplica con n = 1 (F_pas lo fija el par); sí a calado"],
-        ["Reacción de servicio, núcleo: F + H_ecc + H_asim", s3(F_des + Hec + Has), "p = %s MPa" % s3((F_des + Hec + Has) * 1e3 / (P["D_piv"] * P["L_bush"]))],
-        ["Reacción de servicio, completa: s·F + H_ecc + s·H_asim", s3(s * F_des + Hec + s * Has), "p = %s MPa" % s3((s * F_des + Hec + s * Has) * 1e3 / (P["D_piv"] * P["L_bush"]))]]
-table("Prueba 4b – Reacción del pivote con n = 1 en W = %s tf (capacidad del núcleo), componentes en kN" % s3(Wc), ["Componente", "kN", "Observación"], rows)
-Tb_nf = Nn * cfric(P, P["mu_d"], P["r_ef"]); Tb_fb = Tn1 * 0
+        ["Reacción de servicio, núcleo nuevo: s·F + H_ecc + H_asim", s3(s * F_des + Hec + Has), "p = %s MPa" % s3((s * F_des + Hec + Has) * 1e3 / (P["D_piv"] * P["L_bush"]))]]
+table("Prueba 4b – Reacción del pivote con n = 1 en W = %s tf (límite de buje del núcleo), componentes en kN" % s3(Wc), ["Componente", "kN", "Observación"], rows)
 Rb, Ffb = Rbush_service(P, Wc, 1, "V2")
 print(f"Par de fricción del buje con n = 1: el núcleo usa μ_b·H_ecc·D/2 = {s3(P['mu_bush'] * Hec * P['D_piv'] / 2 / 1e3)} kN·m; con la reacción completa "
-      f"μ_b·R·D/2 = {s3(P['mu_bush'] * Rb * P['D_piv'] / 2 / 1e3)} kN·m ({(P['mu_bush'] * (Rb - Hec) * P['D_piv'] / 2) / Tb_nf * 100:.2f} % de T); F_cil máx. sube {(Ffb / (Fcil(P, Tn1)) - 1) * 100:+.2f} %")
-rows = [["Núcleo: H_cil = F_pas (+H_ecc + H_asim)", s3(w_core1), "—", "—"],
-        ["V1: resultante s·F (+H_ecc + s·H_asim)", s3(w_V1), f"{(w_V1 / w_core1 - 1) * 100:+.2f} %", s3(w_V1g)],
-        ["V2: V1 + par de fricción del buje con la reacción completa (realimentado)", s3(w_V2), f"{(w_V2 / w_core1 - 1) * 100:+.2f} %", s3(w_V2g)],
-        ["V3: V2 sin H_asim en servicio (físico: F_pas lo fija el par)", s3(w_V3), f"{(w_V3 / w_core1 - 1) * 100:+.2f} %", s3(w_V3g)]]
+      f"μ_b·R·D/2 = {s3(P['mu_bush'] * Rb * P['D_piv'] / 2 / 1e3)} kN·m ({(P['mu_bush'] * (Rb - Hec) * P['D_piv'] / 2) / (Nn * cfric(P, P['mu_d'], P['r_ef'])) * 100:.2f} % de T); F_cil máx. sube {(Ffb / (Fcil(P, Tn1)) - 1) * 100:+.2f} %")
 w_V2c = W_piv_full(P, 1, "V2", mu=P["mu_cont"]); w2c_c = W_piv_full(P, 2, "V1", mu=P["mu_cont"])
-rows.append(["V2 con grasa contaminada (μ_cont = %s, mismo r_ef): condición en que el diseño exige que gire" % s3(P["mu_cont"]), s3(w_V2c), f"{(w_V2c / w_core1 - 1) * 100:+.2f} %", "—"])
-table("Prueba 4c – Capacidad con n = 1 (tf): efecto del modelo del pivote (bush p ≤ p_bush, flexión a calado)", ["Modelo", "wPiv (tf)", "Δ vs núcleo", "con FS giro ≥ FS_min"], rows)
-# n = 2
+rows = [["Núcleo nuevo (H_cil = s·F_pas + H_ecc + H_asim; buje y flexión)", s3(w_core1), "—"],
+        ["V1: igual con s también en H_asim", s3(w_V1), f"{(w_V1 / w_core1 - 1) * 100:+.2f} %"],
+        ["V2: V1 + par de fricción del buje con la reacción completa (realimentado)", s3(w_V2), f"{(w_V2 / w_core1 - 1) * 100:+.2f} %"],
+        ["V3: V2 sin H_asim en servicio (físico: F_pas lo fija el par)", s3(w_V3), f"{(w_V3 / w_core1 - 1) * 100:+.2f} %"],
+        ["V2 con grasa contaminada (μ_cont = %s, mismo r_ef)" % s3(P["mu_cont"]), s3(w_V2c), f"{(w_V2c / w_core1 - 1) * 100:+.2f} %"],
+        ["Núcleo nuevo con todas las verificaciones del grupo (incl. agujero de la base)", s3(W_piv_core(P, 1)), "n = 1 no cumple a ninguna W con t_base = %s" % P["t_base"]]]
+table("Prueba 4c – Capacidad con n = 1 (tf): residuos del modelo del pivote tras P1", ["Modelo", "wPiv (tf)", "Δ vs núcleo nuevo"], rows)
 w2c = W_piv_core(P, 2)
 w2f = W_piv_full(P, 2, "V1")
-print(f"n = 2 con μ_cont: wPiv {s3(w2c_c)} tf ({(w2c_c / w2c - 1) * 100:+.1f} %)")
-print(f"n = 2: wPiv SOLO pivote (núcleo) = {s3(w2c)} tf; modelo completo (H_ecc + s·H_asim) = {s3(w2f)} tf ({(w2f / w2c - 1) * 100:+.2f} %); el núcleo informa {s3(D0['capCil'][1]['wPiv'])} tf porque la búsqueda se topa con wGiro (FS) = {s3(D0['capCil'][1]['wGiro'])} tf")
-# límite a calado (flexión), n = 1 y 2
-fy_p = P["Fy_piv"] / P["Nd"]
-W_flex1 = bisect(lambda W: pivot_core(P, W, 1)[1] <= fy_p)
-W_flex1f = bisect(lambda W: pivot_full(P, W, 1, "V2")[1] <= fy_p)
-print(f"Flexión del pivote a calado (n = 1): W límite núcleo {s3(W_flex1)} tf, modelo completo {s3(W_flex1f)} tf (no gobierna; gobierna la presión del buje)")
-# Reparto buje–pivote
-R2 = hecc_kN(P, Nkn(P)) + s * Has
+print(f"n = 2: wPiv (núcleo nuevo, solo Pivote) = {s3(w2c)} tf; modelo completo (H_ecc + s·H_asim) = {s3(w2f)} tf ({(w2f / w2c - 1) * 100:+.2f} %); con μ_cont {s3(w2c_c)} tf ({(w2c_c / w2c - 1) * 100:+.1f} %)")
 Rc1 = s * P["eta_c"] * Fst_kN(P) + Hec + Has
+R2 = hecc_kN(P, Nkn(P)) + Has
 print(f"Reparto buje–pivote: la MISMA reacción R atraviesa ambos en serie (buje: p = R/(D·L) en servicio; pivote: M = R·e_piv a calado). "
-      f"A calado con n = 1: R = {s3(Rc1)} kN, M = {s3(Rc1 * P['e_piv'] / 1e3)} kN·m, σ = {s3(Rc1 * 1e3 * P['e_piv'] / (math.pi * P['D_piv'] ** 3 / 32))} MPa (FU {s3(Rc1 * 1e3 * P['e_piv'] / (math.pi * P['D_piv'] ** 3 / 32) / fy_p)}); "
+      f"A calado con n = 1 (W = {s3(Wc)} tf): R = {s3(Rc1)} kN, M = {s3(Rc1 * P['e_piv'] / 1e3)} kN·m, σ = {s3(Rc1 * 1e3 * P['e_piv'] / (math.pi * P['D_piv'] ** 3 / 32))} MPa (FU {s3(Rc1 * 1e3 * P['e_piv'] / (math.pi * P['D_piv'] ** 3 / 32) / fy_p)}); "
       f"con n = 2: R = {s3(R2)} kN, M = {s3(R2 * P['e_piv'] / 1e3)} kN·m")
 delta_pct = (w_V2 / w_core1 - 1) * 100
 delta3 = (w_V3 / w_core1 - 1) * 100
-sev = "importante" if abs(delta_pct) > 5 else "menor"
-finding("P1", sev, "Pivote con n impar: el núcleo usa H_cil = F_pas (solo la componente normal a la cara). La reacción real del pivote por equilibrio de la mesa es la resultante vectorial √(F²+H²) = F·√(1+μ_s²) más la fricción excéntrica, y el par de fricción del buje debe incluir toda la reacción (en el núcleo solo H_ecc)",
-        f"wPiv(n=1) = {s3(w_core1)} tf", f"modelo completo (V2) {s3(w_V2)} tf ({delta_pct:+.2f} %); con μ_cont {s3(w_V2c)} tf ({(w_V2c / w_core1 - 1) * 100:+.1f} %); si además se quita H_asim en servicio (V3) {s3(w_V3)} tf ({delta3:+.2f} %)")
+finding("P1", "importante" if abs(delta_pct) > 5 else "menor", "P1 incorporado (H_cil = s·F_pas verificado, lo comprueban las comparaciones). Residuo: el par de fricción del buje usa solo H_ecc, no la reacción completa del pasador",
+        f"wPiv(n=1, buje+flexión) = {s3(w_core1)} tf", f"con realimentación (V2) {s3(w_V2)} tf ({delta_pct:+.2f} %); con μ_cont {s3(w_V2c)} tf ({(w_V2c / w_core1 - 1) * 100:+.1f} %)")
 finding("P2", "menor", "H_asim se suma a H_cil en servicio con n = 1, pero el empuje desigual por μ_g solo existe a calado (en servicio F_pas lo fija el par): conservador",
         f"H_asim = {s3(Has)} kN en p buje", f"V3: {s3(w_V3)} tf frente a V2 {s3(w_V2)} tf")
-# n = 3
 D3 = export({"n_cyl": 3, "W_tf": 100}); D3d = export({"n_cyl": 3})
 if D3:
     h3 = ver(D3, "Reacción del pivote por empuje no equilibrado")
-    finding("P3", "menor", "n = 3: el núcleo trata cualquier n impar como 1 cilindro sin par (H_cil = F_pas). Con 3 cilindros a 120° y pasadores en fase la resultante vectorial es ≈ 0; "
+    finding("P3", "menor", "n = 3: el núcleo trata cualquier n impar como 1 cilindro sin par (H_cil = s·F_pas). Con 3 cilindros a 120° y pasadores en fase la resultante vectorial es ≈ 0; "
             "con la geometría de guía paralela a y solo existen parejas ±x, así que n = 3 no está definido geométricamente (conservador, no verificado)",
             f"H_cil = {s3(h3['dem'])} kN a W = 100; con W = 300 el buje {s3(ver(D3d, 'Presión en el buje')['dem'])} MPa ({ver(D3d, 'Presión en el buje')['estado']})",
-            f"resultante ≈ 0: buje {s3(pivot_core(dict(P, n_cyl=3), 300, 4)[0])} MPa (como n par); definir la disposición de 3 cilindros o limitar n a {1, 2, 4}") if h3 else None
-# camino de fuerza no verificado
-M_piv_n1 = Rc1 * P["e_piv"] / 1e3; M_piv_n2 = (hecc_kN(P, Nkn(P)) + s * Has) * P["e_piv"] / 1e3
-finding("P4", "importante", "Con n = 1 la reacción del pivote pasa de %s kN (n = 2) a %s kN a calado, y el núcleo no verifica el camino de fuerza pasador → anillos/cubo de la mesa → buje → pivote → soldadura/empotramiento en la base "
-        "(al pasar de n = 2 a n = 1 con el mismo W no cambia ninguna verificación de Mesa, Mesa (FEA) ni Soldaduras; Base solo cambia por la masa de los cilindros; cambian Giro, Pivote y Fatiga de uña y articulación; no hay fatiga del pivote/buje: N = 35.000 reacciones de ≈ 500 kN a calado). Momento en la raíz del pivote: %s → %s kN·m" % (s3(hecc_kN(P, Nkn(P)) + s * Has), s3(Rc1), s3(M_piv_n2), s3(M_piv_n1)),
-        "sin verificación (solo buje y flexión del vástago del pivote)", "agregar: aplastamiento del cubo, soldadura/empotramiento del pivote en la base y cortante de la plancha con R = s·η·F_calado + H_ecc + H_asim")
-finding("P5", "importante", "wPiv/wCap del núcleo no son «solo Pivote»: la búsqueda incluye las verificaciones de Giro que dependen de W (alarma, contaminado, borde) y las que NO dependen (tiempo objetivo, v_ret): "
-        "si el tiempo objetivo no se cumple, wPiv = wCap = 0 tf aunque el pivote y el giro cumplan. Con n = 2 wPiv aparece igual a wGiro (tope de la búsqueda), no es la capacidad del pivote",
-        f"wPiv(n=2) = {s3(D0['capCil'][1]['wPiv'])} tf; con t_obj < t_vuelta: 0 tf",
-        f"separar: wPiv = solo Pivote ({s3(w2c)} tf para n = 2); informar aparte los límites de alarma y tiempo")
+            f"resultante ≈ 0: buje {s3(pivot_core(dict(P, n_cyl=3), 300, 4)[0])} MPa (como n par); definir la disposición de 3 cilindros o limitar n a {1, 2, 4}")
+# P4: resultado de diseño y residuo (momento en la raíz del pivote)
+H2 = pivot_all(P, P["W_tf"], 2)[4]; H1 = pivot_all(dict(P, n_cyl=1), 100, 1)[4]
+fac_M = 1 + 6 * P["e_piv"] / P["t_base"]
+sbM2 = H2 * 1e3 / (P["D_piv"] * P["t_base"]) * fac_M; sbM1 = H1 * 1e3 / (P["D_piv"] * P["t_base"]) * fac_M
+t_M2 = (lambda H: (-H * 1e3 / P["D_piv"] + math.sqrt((H * 1e3 / P["D_piv"]) ** 2 + 4 * cap_b * 6 * H * 1e3 * P["e_piv"] / P["D_piv"])) / (2 * cap_b))(H2)
+table("Prueba 4d – Agujero de la base: σ medio del núcleo frente a σ con el momento M = H·e_piv en un asiento de t_base", ["Caso", "H calado (kN)", "σ = H/(D·t) núcleo", "σ = H/(D·t)·(1 + 6e/t)", "adm. 1,25Fy/Nd", "FU con momento"],
+      [["n = 2, W = %s tf" % s3(P["W_tf"]), s3(H2), s3(H2 * 1e3 / (P["D_piv"] * P["t_base"])), s3(sbM2), s3(cap_b), s3(sbM2 / cap_b)],
+       ["n = 1, W = 100 tf", s3(H1), s3(H1 * 1e3 / (P["D_piv"] * P["t_base"])), s3(sbM1), s3(cap_b), s3(sbM1 / cap_b)]])
+print(f"Con momento, t_base mínimo (n = 2, elástico lineal, sin pretensión del calado ni filete) = {s3(t_M2)} mm frente a t_base = {P['t_base']} mm")
+finding("P4", "menor", "RESULTADO DE DISEÑO (el núcleo ya lo informa): con n = 1 y t_base = %s mm el agujero de la base no cumple a ninguna W (wPiv = wCap = 0); exige t_base ≥ %s mm a W = 100 tf" % (s3(P["t_base"]), s3(t_req[100])),
+        f"wPiv(n=1) = {s3(D0['capCil'][0]['wPiv'])} tf", f"t_base ≥ {s3(t_req[100])} mm (W = 100) / {s3(t_req[165])} mm (W = 165)")
+finding("P6", "importante", "La verificación nueva del agujero de la base usa σ = H/(D_piv·t_base) (presión media) e ignora el momento M = H·e_piv que el pivote Ø%s transmite a un asiento de solo %s mm (pivote calado H7/p6; el filete superior de 8 mm del plano es de sello). Con el momento y distribución lineal rígida σ = H/(D·t)·(1 + 6e/t) = ×%.1f" % (s3(P["D_piv"]), s3(P["t_base"]), fac_M),
+        f"n = 2: σ = {s3(H2 * 1e3 / (P['D_piv'] * P['t_base']))} MPa, FU {s3(H2 * 1e3 / (P['D_piv'] * P['t_base']) / cap_b)}",
+        f"n = 2: σ ≈ {s3(sbM2)} MPa (FU {s3(sbM2 / cap_b)}); n = 1: FU {s3(sbM1 / cap_b)}. Verificar el momento: aumentar la profundidad del asiento (cubo/anillo inferior bajo la base), brida o soldadura estructural del pivote; la pretensión del calado y el filete no están acreditados")
 D40 = export({"t_vuelta_obj": 40})
-comp("4", "Con t_obj = 40 min incumplido: wPiv(n=2) del núcleo = 0 (propio: se anula)", 1e-9, D40["capCil"][1]["wPiv"] if D40["capCil"][1]["wPiv"] > 0 else 1e-9)
+comp("4", "Con t_obj = 40 min incumplido: wPiv(n=2) ya NO se anula (P5)", W_piv_core(P, 2), D40["capCil"][1]["wPiv"])
+comp("4", "Con t_obj = 40 min incumplido: wCap(n=2) = wGiro", W_cap_core_like(P, 2), D40["capCil"][1]["wCap"])
 
 # ======================================================================================
 # 5. MERCADO: μ implícito y coherencia de datos
@@ -909,6 +923,9 @@ SWEEPS = [
     ("t_vuelta_obj", [30, 60, 70, 71, 100], {}),
     ("h_skid", [230, 270, 280, 285, 300], {"opt_wood": 1}),
     ("W_tf", [60, 100, 116, 117, 120], {"n_cyl": 1}),
+    ("f_apoyo", [0.2, 0.3, 0.4, 0.47, 0.48, 0.5, 0.6, 0.8, 1.0], {"opt_wood": 1}),
+    ("t_base", [16, 20, 24, 28, 30, 32], {"n_cyl": 1, "W_tf": 100}),
+    ("t_base", [16, 20, 24], {}),
     ("p_alarm", [600, 500, 450, 400], {}),
     ("mu_cont", [0.25, 0.3, 0.35, 0.4], {}),
     ("p_bush", [10, 14, 20, 30], {}),
@@ -943,19 +960,18 @@ for S in ALL:
     if S.rej:
         print(f"  (rechazados por validación en {S.name}: {S.rej})")
 nsw = sum(S.n for S in ALL); ndis = sum(len(S.dis) + len(S.vm) for S in ALL)
-# Variante de modelo: veredicto con la ley sin tracción en barridos de madera
-rows = []
+# Veredicto combinado de la madera (q ≤ p_wood Y 4e/R ≤ 1) frente a la ley sin tracción (propia)
+mal = []
 for dl in (800, 1000, 1200, 1600, 2000):
-    for ee in (0, 100, 150, 200, 250, 300):
+    for ee in (0, 50, 100, 150, 200, 250, 300):
         if ee >= dl / 2:
             continue
-        qa = PL / (math.pi * (dl / 2) ** 2) * (1 + 4 * ee / (dl / 2)); qb = q_wood_nt(PL, dl / 2, ee)
-        if (qa <= PWc["p_wood"]) != (qb <= PWc["p_wood"]):
-            rows.append([dl, ee, s3(qa), s3(qb)])
-if rows:
-    table("Prueba 6b – Combinaciones D_carga/e donde el veredicto cambia entre ley lineal (núcleo) y sin tracción", ["D_carga", "e", "q núcleo", "q sin tracción"], rows)
-else:
-    print("\nPrueba 6b – En la malla D_carga × e probada el veredicto de la madera no cambia entre ley lineal y sin tracción (cambia el valor de q fuera del núcleo).")
+        PPt = dict(PWc, D_load=dl, e=ee)
+        nucleo_ok = q_wood_core(PPt) <= PWc["p_wood"] and 4 * ee / (dl / 2) <= 1
+        propio_ok = q_wood_nt(PL, dl / 2, ee) * (dl / 2) ** 2 / ((dl / 2) ** 2 - hueco ** 2) / PWc["f_apoyo"] <= PWc["p_wood"]
+        if nucleo_ok and not propio_ok:
+            mal.append((dl, ee))
+print(f"\nPrueba 6b – Malla D_carga × e (35 combinaciones): combinaciones aceptadas por el núcleo (q y 4e/R ≤ 1) pero rechazadas sin tracción y con el agujero: {mal if mal else 'ninguna'}")
 if ndis:
     finding("S1", "crítica", f"{ndis} discrepancias entre el núcleo y la réplica propia en los barridos", "—", "ver detalle de barridos")
 
