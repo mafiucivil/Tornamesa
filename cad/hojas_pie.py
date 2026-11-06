@@ -869,7 +869,7 @@ def sheet_patin(ctx):
     VF.dimh((-g.head_w / 2, yc, g.zT0 + 1), (g.head_w / 2, yc, g.zT0 + 1), "bottom", 1, on=on, text=f"{f(g.head_w)} h11")
     VF.dimv((g.head_w / 2, yc, g.zT0 + 1), (g.head_w / 2, yc, g.zT1 - 1), "right", 1, on=on, text=f"{f(g.head_h)}", outside=True)
     pe = KG["pocketEnd"] - X
-    VF.dimv((pe + CL1, yc, g.pk_bot), (pe + CL1, yc, g.pk_top), "left", 0, on=on, text=f"{f(P['dog_h'] + 2)} H9 (alojamiento de la uña)")
+    VF.dimv((pe + CL1, yc, g.pk_bot), (pe + CL1, yc, g.pk_top), "left", 0, on=on, text=f"{f(P['dog_h'] + 2)} H9 (aloj. uña)")
     s.roughness((VF.P(-ws / 2 + 10, yc, zsh)[0], VF.P(0, yc, zsh)[1] + 14), "Ra 1,6")
     VF.title("CORTE F-F (por el alojamiento de la uña)")
     gd_column(s, xa, y0 + 0.30 * (y1 - y0) - 4, [("par", "0,05", "A", "Cara inferior de la lengüeta ∥ a la cara de apoyo (A)"), ("perp", "0,05", "A", "Alojamiento de la uña ⟂ a la cara de empuje")], 12)
