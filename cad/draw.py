@@ -18,7 +18,7 @@ _FB = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bo
 
 def tw(s, h, bold=False):
     """Ancho real (mm) de un texto de altura h (cap-height ~0,72 de la altura de fuente; se usa la altura de texto de ezdxf)."""
-    return (_FB if bold else _FR).getlength(str(s)) / 200.0 * h * 1.0
+    return (_FB if bold else _FR).getlength(str(s)) / 200.0 * h / 0.688
 
 
 def wrapw(text, width, h, bold=False):
@@ -460,20 +460,20 @@ class Sheet:
             self.text(title, (x0, y), T_N + 0.5, "TOP_LEFT", bold=True)
             y -= (T_N + 0.5) * 1.6
         hl = max(len(wrapw(c[0], c[1] - 2 * pad, h, True)) for c in cols)
-        hh = header_h or hl * h * 1.3 + 2 * pad
+        hh = header_h or hl * h * 1.4 + 2 * pad
         ytop = y
         self.rect(x0, y - hh, x0 + Wt, y, "VIS")
         x = x0
         for (t, w_, al) in cols:
             for i, ln in enumerate(wrapw(t, w_ - 2 * pad, h, True)):
-                self.text(ln, (x + w_ / 2, y - pad - h * 0.5 - i * h * 1.3), h, "MIDDLE_CENTER", bold=True)
+                self.text(ln, (x + w_ / 2, y - pad - h * 0.5 - i * h * 1.4), h, "MIDDLE_CENTER", bold=True)
             x += w_
         y -= hh
         left = []
         for ri, row in enumerate(rows):
             cells = [wrapw(c, w_ - 2 * pad, h, ri in bold_rows) for c, w_ in zip(row, widths)]
             n = max(len(c) for c in cells)
-            rh = n * h * 1.3 + 2 * pad
+            rh = n * h * 1.4 + 2 * pad
             if ymin is not None and y - rh < ymin:
                 left = rows[ri:]
                 break
@@ -481,7 +481,7 @@ class Sheet:
             self.line((x0, y), (x0 + Wt, y), "FINA")
             for lines, (t, w_, al) in zip(cells, cols):
                 for i, ln in enumerate(lines):
-                    yy = y - pad - h * 0.5 - i * h * 1.3
+                    yy = y - pad - h * 0.5 - i * h * 1.4
                     if al == "C":
                         self.text(ln, (x + w_ / 2, yy), h, "MIDDLE_CENTER", bold=ri in bold_rows)
                     elif al == "R":
@@ -500,8 +500,8 @@ class Sheet:
     # ---------- formato normalizado (ISO 5457 / ISO 7200) ----------
     def block_top(self, revs):
         """Cota y superior del conjunto cajetín + revisiones + notas generales (para planificar el layout antes de dibujar el marco)."""
-        rhs = [max(8.0, 3.4 * len(wrapw(r[2], 80, 3.0)) + 2.4) for r in revs]
-        return 10 + 116 + 1.0 + 6.5 + sum(rhs) + 10.5
+        rhs = [max(9.0, 4.3 * len(wrapw(r[2], 76, 3.0)) + 3.0) for r in revs]
+        return 10 + 116 + 1.0 + 6.5 + sum(rhs) + 2.5 + 4.3 * 4 + 2
 
     def regions(self, revs):
         """Regiones útiles: main (todo el ancho sobre el cajetín) y low (franja inferior izquierda junto al cajetín); (x0,y0,x1,y1)."""
@@ -596,12 +596,12 @@ class Sheet:
         for xx in (100, 140):
             self.line((x0 + xx, a), (x0 + xx, b), "FINA")
         lab("mat", 0, "MATERIAL")
-        for i, ln in enumerate(wrapw(info["material"], 96, 3.0)[:5]):
-            self.text(ln, (x0 + 2, b - 6.5 - i * 3.6), 3.0, "TOP_LEFT")
+        for i, ln in enumerate(wrapw(info["material"], 94, 3.0)[:4]):
+            self.text(ln, (x0 + 2, b - 6.5 - i * 4.3), 3.0, "TOP_LEFT")
         lab("mat", 100, "MASA"); self.text(info["masa"], (x0 + 120, a + 8), 3.0 if tw(info["masa"], 3.0) < 36 else T_MIN, "MIDDLE_CENTER")
         lab("mat", 140, "TRATAMIENTO")
-        for i, ln in enumerate(wrapw(info["trat"], 37, 3.0)[:5]):
-            self.text(ln, (x0 + 141.5, b - 6.5 - i * 3.6), 3.0, "TOP_LEFT")
+        for i, ln in enumerate(wrapw(info["trat"], 36, 3.0)[:4]):
+            self.text(ln, (x0 + 141.5, b - 6.5 - i * 4.3), 3.0, "TOP_LEFT")
         a, b = ys["tit"]
         lab("tit", 0, "TÍTULO")
         for i, ln in enumerate(wrapw(info["titulo"], 174, 4.6, True)[:3]):
@@ -610,13 +610,13 @@ class Sheet:
         lab("proj", 0, "PROYECTO")
         self.text(info["proj"], (x0 + 3, b - 5.0), T_N, "TOP_LEFT", bold=True)
         for i, ln in enumerate(wrapw(info["subproj"], 174, 3.0)[:2]):
-            self.text(ln, (x0 + 3, b - 10.5 - i * 3.6), 3.0, "TOP_LEFT")
+            self.text(ln, (x0 + 3, b - 10.5 - i * 4.0), 3.0, "TOP_LEFT")
         a, b = ys["estado"]
         self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), 3.4 if tw(info["estado"], 3.4, True) < 176 else T_MIN + 0.4, "MIDDLE_CENTER", bold=True)
         # --- tabla de revisiones sobre el cajetín ---
         rv = info["revs"]
-        cols = [("REV", 12), ("FECHA", 24), ("DESCRIPCIÓN", 84), ("DIB.", 20), ("REV.", 20), ("APR.", 20)]
-        rhs = [max(8.0, 3.4 * len(wrapw(r[2], 80, 3.0)) + 2.4) for r in rv]
+        cols = [("REV", 10), ("FECHA", 24), ("DESCRIPCIÓN", 76), ("DIB.", 24), ("REV.", 23), ("APR.", 23)]
+        rhs = [max(9.0, 4.3 * len(wrapw(r[2], 76, 3.0)) + 3.0) for r in rv]
         hh = 6.5
         yy = ytop + 1.0
         ytab = yy + hh + sum(rhs)
@@ -635,14 +635,16 @@ class Sheet:
             xx = x0
             for j, (t, w_) in enumerate(cols):
                 if j == 2:
-                    for i, ln in enumerate(wrapw(r[2], 80, 3.0)):
-                        self.text(ln, (xx + 1.2, ycur + rh - 2.0 - i * 3.4), 3.0, "TOP_LEFT")
+                    for i, ln in enumerate(wrapw(r[2], 74, 3.0)):
+                        self.text(ln, (xx + 1.2, ycur + rh - 2.0 - i * 4.3), 3.0, "TOP_LEFT")
                 else:
                     self.text(str(r[j]), (xx + w_ / 2, ycur + rh / 2), 3.0, "MIDDLE_CENTER", bold=(j == 0))
                 xx += w_
-        self.text(info["generales"], (x0, ytab + 2.0), 3.0, "BOTTOM_LEFT")
-        self.text("Cotas en mm salvo indicación. No medir sobre el plano. Proyección: método E (primer diedro).", (x0, ytab + 6.2), 3.0, "BOTTOM_LEFT")
-        self.cajetin_top = ytab + 10.5
+        yg = ytab + 2.5
+        for ln in reversed(wrapw(info["generales"] + " Cotas en mm salvo indicación. No medir sobre el plano. Proyección: método E (primer diedro).", 178, 3.0)):
+            self.text(ln, (x0, yg), 3.0, "BOTTOM_LEFT")
+            yg += 4.3
+        self.cajetin_top = yg
         self.cajetin_x0 = x0
         self.area = (L + 5, B + 5, R_ - 5, by0 - 5)          # área útil (sin banda)
 

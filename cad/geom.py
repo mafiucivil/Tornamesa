@@ -8,7 +8,7 @@ import json, math, re, pathlib, datetime
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT_DEFAULT = ROOT / "cad" / "out"
 CODE = "TT300C"
-REV = "B"
+REV = "C"
 RHO = 7.85e-6          # kg/mm³ (mismo valor del núcleo)
 RHO_SS = 7.93e-6       # inoxidable austenítico (núcleo)
 RHO_UH = 0.94e-6       # UHMW-PE (núcleo)
@@ -100,6 +100,7 @@ class G:
         self.L_piv = self.tb + self.delta + self.hd - self.tt + 3
         self.z_bush0 = self.tb + self.h_boss + P["g_bush"]     # el buje arranca g_bush (2 mm) sobre el collar
         self.washer_D = self.d_pin + 30
+        self.ch_pin, self.ch_piv, self.ch_pp = 2.0, 3.0, 2.0      # chaflanes de dibujo (1×45° mínimo ISO 13715): pasador de empuje, pivote, pasadores de articulación
         # --- accionamiento ---
         self.BR = DV["bracket"]
         self.KG = DV["K"]

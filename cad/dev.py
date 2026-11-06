@@ -16,7 +16,8 @@ def main():
     M3.apply_backing_holes(m)
     ctx = Ctx(m)
     build_welds(ctx)
-    import hojas_pie, hojas_con, hojas_gen
+    import hojas_pie
+    hojas_con = hojas_gen = hojas_pie
     hojas_pie.register(ctx)
     out = SC / "dev"
     import pymupdf

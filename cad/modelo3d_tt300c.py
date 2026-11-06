@@ -398,7 +398,7 @@ def build(D, verbose=True):
         hub = hub.cut(ring(0, g.Drb / 2, g.hHub + 1, z0 + tbo - 1))                 # rebaje del cubo Ø D_rebaje: de la cara inferior del cubo hasta z0 + h_rebaje (h_collar − δ + c_boss_a)
     m.add(Part("mesa_cubo", "MES", "Cubo de la mesa", f"Anillo Ø{f(P['D_hub'])}/Ø{f(d_bush)} H7 × {f(hw)}" + (f", rebaje inferior Ø{f(g.Drb)} × {f(g.hHub)} sobre la plancha (h_rebaje {f(g.h_rebaje)} desde la cara inferior de la mesa)" if g.rebaje and g.hHub > 0 else ""),
                hub, 1, "S355J2+N (EN 10025) o ASTM A572 Gr.50", "Anillo cortado a llama de plancha gruesa o tubo; Ø150 H7 y rebaje en mandrinadora (sin torno vertical)", core="hub", color=(0.3, 0.45, 0.7), cert="EN 10204 3.1"))
-    pins = cq.Workplane("XY").workplane(offset=z0).pushPoints(pin_xy).circle(d_pin / 2).extrude(hd)
+    pins = cq.Workplane("XY").workplane(offset=z0).pushPoints(pin_xy).circle(d_pin / 2).extrude(hd).faces(">Z or <Z").edges().chamfer(g.ch_pin)
     m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa",
                "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción de la franja de contacto", core="pins", color=(0.75, 0.75, 0.78),
                tratamiento=f"Temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm)"))
@@ -408,7 +408,7 @@ def build(D, verbose=True):
                in_core=False, comercial=True, catalogo="ISO 4762 M20×45 cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32)))
 
     # ===================== PIV: pivote, buje, tapas =====================
-    m.add(Part("pivote", "PIV", "Pivote", f"Barra Ø{f(P['D_piv'])} p6 × {f(g.L_piv)}", cyl(P["D_piv"] / 2, g.L_piv), 1, f"42CrMo4+QT (EN 10083-3), Fy ≥ {f(P['Fy_piv'])} MPa",
+    m.add(Part("pivote", "PIV", "Pivote", f"Barra Ø{f(P['D_piv'])} p6 × {f(g.L_piv)}, chaflanes {fm(g.ch_piv, 0)}×45°", cyl(P["D_piv"] / 2, g.L_piv).faces(">Z or <Z").edges().chamfer(g.ch_piv), 1, f"42CrMo4+QT (EN 10083-3), Fy ≥ {f(P['Fy_piv'])} MPa",
                "Corte de barra redonda laminada/rectificada Ø120 con sobrematerial; extremos y Ø p6 en torno horizontal o rectificado externo; sin torno vertical", core="pivot", color=(0.35, 0.35, 0.38),
                tratamiento="Bonificado (QT)", obs="Calado Ø120 p6 en el agujero H7 de la plancha base y el collar (prensa o contracción con hielo seco)"))
     bush = ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], g.z_bush0)
@@ -453,8 +453,8 @@ def build(D, verbose=True):
         px0, px1 = srt(sx * KG["mouthX"], sx * (KG["pocketEnd"] + CL1))
         sh = sh.cut(box(px0 - CL1, px1, yd0 - CL1, yd1 + CL1, zc - P["dog_h"] / 2 - CL1, zc + P["dog_h"] / 2 + CL1))
         shoes.append(sh)
-        apins_s.append(cyl(P["d_pp"] / 2, KG["shoeTop"] + 10 - zpp0, zpp0, X, yr))
-        apins_b.append(cyl(P["d_pp"] / 2, BR["H"] + 15, tb, X, ye))
+        apins_s.append(cyl(P["d_pp"] / 2, KG["shoeTop"] + 10 - zpp0, zpp0, X, yr).faces(">Z or <Z").edges().chamfer(g.ch_pp))
+        apins_b.append(cyl(P["d_pp"] / 2, BR["H"] + 15, tb, X, ye).faces(">Z or <Z").edges().chamfer(g.ch_pp))
     nc = len(cyls)
     m.add(Part("cilindro", "ACC", "Cilindro hidráulico doble efecto", f"Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, {f(P['p_rated'])} psi ({fm(P['p_rated'] * 0.0689476, 0)} bar), ojales con rótula Ø{f(P['d_pp'])}",
                compound(cyls), nc, "Comercial (acero; sellos)", "Comercial", mass_override=nc * P["m_cyl"], core="cyl", comercial=True,

@@ -13,7 +13,7 @@ from shapely.geometry import LineString, Polygon, box as sbox
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from geom import f, fm
-import draw
+import draw as dr
 
 HLR_CACHE = {}
 STD_SCALES = [1/100, 1/50, 1/25, 1/20, 1/10, 1/5, 1/2.5, 1/2, 1/1, 2/1, 5/1]
@@ -324,7 +324,7 @@ class View:
                     if self.win:
                         pg = pg.intersection(sbox(*self.win))
                     cls = self.mat.get(k, "acero")
-                    pat, ang0, sc0 = draw.HATCH_MAT[cls]
+                    pat, ang0, sc0 = dr.HATCH_MAT[cls]
                     ang = ang0 + (90.0 if (self.keys.index(k) % 2) else 0.0) if cls == "acero" else ang0
                     for gg in getattr(pg, "geoms", [pg]):
                         if gg.geom_type == "Polygon" and gg.area > 0.3:
@@ -373,7 +373,7 @@ class View:
     def esc(self):
         return "ESC " + scale_txt(self.scale)
 
-    def title(self, text, dy=0.0, h=draw.T_T):
+    def title(self, text, dy=0.0, h=dr.T_T):
         """Título de la vista (debajo de su extensión) con escala."""
         x0, y0, x1, y1 = self.ext or (self.origin[0], self.origin[1], self.origin[0], self.origin[1])
         low = y0 - 8 * (max(self.lv["bottom"], 0) + 1) - 6 + dy
