@@ -6,9 +6,14 @@ from hojas_util import *
 PLAN = []          # (nombre_función, [claves de pieza]) — se llena con @pieza
 
 
-def pieza(*keys):
+NOGROUP = set()     # láminas de características (ranuras, patrón de tapones, tablones): no «poseen» ninguna pieza del despiece
+
+
+def pieza(*keys, nogroup=False):
     def deco(fn):
         PLAN.append((fn.__name__, list(keys), fn))
+        if nogroup:
+            NOGROUP.add(fn.__name__)
         return fn
     return deco
 
@@ -17,6 +22,8 @@ def register(ctx):
     """Asigna a cada pieza la lámina que la dibuja (para la columna «Plano» del despiece) antes de dibujar cualquier lámina."""
     ctx.group_of = {}
     for name, keys, fn in PLAN:
+        if name in NOGROUP:
+            continue
         ks = [k for k in keys if ctx.m.get(k)]
         for k in ks:
             ctx.group_of[k] = ctx.m.get(ks[0]).code

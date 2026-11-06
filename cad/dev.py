@@ -22,7 +22,7 @@ def main():
     build_welds(ctx)
     import hojas_pie
     import hojas_con
-    hojas_gen = hojas_pie
+    import hojas_gen
     hojas_pie.register(ctx)
     out = SC / "dev"
     import pymupdf
@@ -39,6 +39,11 @@ def main():
             d = pymupdf.open(str(out / (nm + ".pdf")))
             d[0].get_pixmap(dpi=60).save(str(out / (nm + ".png")))
             o = h.ocupacion()
+            import ezdxf
+            from ezdxf import bbox as _bb
+            b_ = _bb.extents(ezdxf.readfile(str(out / (nm + ".dxf"))).modelspace())
+            if b_.extmin.x < -0.5 or b_.extmin.y < -0.5 or b_.extmax.x > h.s.W + 0.5 or b_.extmax.y > h.s.H + 0.5:
+                print("   FUERA DE MARCO", nm, [round(v) for v in (b_.extmin.x, b_.extmin.y, b_.extmax.x, b_.extmax.y)], "hoja", h.s.W, h.s.H)
             print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
 

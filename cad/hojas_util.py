@@ -29,12 +29,12 @@ def hspan(rect, f0, f1):
 class Pieza(Plano):
     """Lámina de fabricación de una pieza (o grupo de piezas iguales). Las vistas se declaran con p.vs(...) y se componen en build()."""
 
-    def __init__(self, ctx, keys, titulo, fmt="A2", mat_override=None, grupo=""):
+    def __init__(self, ctx, keys, titulo, fmt="A2", mat_override=None, grupo="", code=None):
         self.keys = [k for k in keys if ctx.m.get(k)]
         self.p0 = ctx.m.get(self.keys[0])
         self.lead = self.p0.code
         masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys[:3]) + " kg c/u"
-        h = Hoja(ctx, self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
+        h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
         self.init_plano(ctx, h)
         self.iso_keys = list(self.keys)

@@ -74,6 +74,21 @@ def main():
             return
         if r is None:
             return
+        # láminas de texto/tablas: si en A1 ocupan menos de la mitad de la zona libre, se reintenta en A2 (solo si sigue en una sola lámina)
+        if name.startswith("sheet_") and name in hojas_gen.PLAN_GEN and name not in ("sheet_notas", "sheet_cortes") and not isinstance(r, list):
+            rs = getattr(r.s, "reserved", [])
+            R_ = r.zone
+            used = (R_[3] - min((q[1] for q in rs), default=R_[3])) / max(R_[3] - R_[1], 1)
+            if used < 0.5 and r.fmt == "A1":
+                ctx.gen_fmt = "A2"
+                try:
+                    n_before = len(ctx.hojas)
+                    r2 = fn(ctx)
+                    rs2 = getattr(r2.s, "reserved", [])
+                    if not isinstance(r2, list) and min((q[1] for q in rs2), default=0) > r2.zone[1] + 2 and len(ctx.hojas) - n_before == 1:
+                        r = r2
+                finally:
+                    ctx.gen_fmt = None
         for h in (r if isinstance(r, list) else [r]):
             hojas.append(h)
             print(f"  lámina {h.plano} ({time.time() - t1:.0f} s)", flush=True)

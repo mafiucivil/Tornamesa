@@ -4,6 +4,7 @@ import math, sys, pathlib, re
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from hojas_util import *
 import lista
+import propuestas
 
 PLAN_GEN = []
 
@@ -16,12 +17,18 @@ def gen(fn):
 class Gen(Pieza):
     def __init__(self, ctx, num, titulo, fmt="A1"):
         self.ctx = ctx
+        fmt = getattr(ctx, "gen_fmt", None) or fmt
         h = Hoja(ctx, f"GEN-{num:03d}", titulo, "S/E", fmt=fmt, material="No aplica (lámina de información)", masa="—", trat="—", serie="GEN")
         self.h = h
         self.s = h.begin()
-        self.R = h.R
-        self.scales, self.vlist = [], []
+        R = dict(h.R)
+        R["main"] = (R["all"][0], R["all"][1], R["left"][2], R["left"][3])      # área libre a la izquierda del cajetín, a toda la altura
+        self.R = R
+        h.zone = R["main"]
+        self.specs, self.blocks, self.named, self.scales, self.vlist, self.post = [], [], {}, [], [], []
         self.dims_n0 = len(vistas.COTAS.rows)
+        self.iso_keys = None
+        self.iso_fill = False
 
     def table_pages(self, cols, rows, title, titulo_hoja, num0, widths=None, hh=T_S):
         """Tabla que continúa en hojas siguientes si no cabe. Devuelve lista de Hoja."""
@@ -45,12 +52,12 @@ def sheet_notas(ctx):
     c = Gen(ctx, 1, "NOTAS GENERALES, NORMAS APLICABLES E ÍNDICE DE PLANOS")
     s = c.s
     R = c.R["main"]
-    notas = [ADVERTENCIA, "ESTADO DE TODAS LAS LÁMINAS: EMITIDO PARA REVISIÓN. No fabricar hasta la aprobación por un ingeniero calculista habilitado; los campos DIBUJÓ/REVISÓ/APROBÓ están A DEFINIR.",
+    notas = [ADVERTENCIA, "ESTADO DE TODAS LAS LÁMINAS: EMITIDO PARA REVISIÓN. No fabricar hasta la aprobación por un ingeniero calculista habilitado; los campos DIBUJÓ/REVISÓ/APROBÓ del cajetín quedan A DEFINIR (firmas).",
              NOTA_VIENTO + " (sin análisis de viento en el cálculo).", NOTA_ANCLAJE,
              "Fuente única: todos los valores salen del JSON de diseño del núcleo de cálculo (exportado por la herramienta TT300-C); si el JSON cambia, regenerar el juego completo.",
              "Unidades: mm, kg, MPa, grados. Cotas en mm salvo indicación. No medir sobre el plano. Método de proyección E (ISO 5456-2).",
              "Tolerancias generales ISO 2768-mK (lineal y angular) y ISO 13920 para piezas soldadas (clase B/F); rugosidad no indicada: Ra 12,5.",
-             "Soldadura: ISO 2553 (símbolos), ISO 5817 (calidad), ISO 4063 (procesos 111/135/141), AWS D1.1 (calificación, END). WPS/PQR: A DEFINIR POR EL FABRICANTE.",
+             "Soldadura: ISO 2553 (símbolos), ISO 5817 (calidad), ISO 4063 (procesos 111/135/141), AWS D1.1 (calificación, END). WPS pre-calificados PROPUESTOS en GEN-012 (a calificar/confirmar por el fabricante).",
              "Materiales con certificado EN 10204 3.1; trazabilidad por colada; punzonar el código de la pieza.",
              "Aristas vivas rotas 1×45° (ISO 13715) salvo indicación. Rosca métrica ISO 262 / ISO 724; tornillería ISO 4762 / ISO 10642, clase 10.9 (ISO 898-1).",
              "Taller sin torno vertical: gran diámetro por oxicorte/plasma, soldadura y mandrinadora; ajustes largos H7 en mandrinadora.", pintura(ctx),
@@ -62,7 +69,7 @@ def sheet_notas(ctx):
            ("AWS D1.1", "Código de soldadura de acero estructural (T5.8 filete mínimo)"), ("AISC 360-22", "Especificación (J2.2b filete máximo, D5.2 orejas)"), ("BTH-1 Cat. B", "Diseño de dispositivos de izaje bajo el gancho"),
            ("ASME B30.26", "Grilletes de izaje"), ("ISO 898-1 / VDI 2230", "Propiedades de tornillos / uniones atornilladas"), ("EN 10204 3.1", "Certificados de inspección"),
            ("ASTM A572 Gr.50, A36 (ref.), A240, A578, EN 10164", "Aceros estructurales, inoxidable, UT de planchas, propiedades en espesor"), ("EN 10083-3 (34CrNiMo6+QT)", "Aceros bonificados (pasadores, uña)"),
-           ("ISO 12944", "Protección anticorrosiva (referencia; sistema A DEFINIR)")]
+           ("ISO 12944", "Protección anticorrosiva (sistema C4 alta propuesto, GEN-006)")]
     x2 = R[0] + 0.48 * (R[2] - R[0])
     yn, _ = s.table(x2, R[3], [("Norma", 70, "L"), ("Aplicación", 130, "L")], [list(n) for n in nor], h=T_S, title="NORMAS APLICABLES")
     c.h.indice_pos = (R[0], min(y, yn) - 10, R[2] - R[0], R[1])
@@ -143,6 +150,13 @@ def sheet_materiales(ctx):
         rows.append([p.code.replace(CODE + "-", ""), p.name, str(p.qty), p.material, p.cert, "Comercial" if p.comercial else ("Núcleo" if p.core else "Adoptado"), p.tratamiento if p.tratamiento != "—" else "—"])
     out, last, y = c.table_pages([("Código", 0.07 * w, "L"), ("Pieza", 0.18 * w, "L"), ("Cant", 0.04 * w, "C"), ("Material (norma, grado, Fy del cálculo)", 0.33 * w, "L"), ("Certificado", 0.14 * w, "L"),
                                   ("Origen", 0.07 * w, "L"), ("Tratamiento", 0.17 * w, "L")], rows, "MATERIALES POR PIEZA (certificado EN 10204 3.1; grados no definidos por el cálculo: «SEGÚN CÁLCULO Fy ≥ …, A DEFINIR»)", "MATERIALES Y CERTIFICADOS", 5)
+
+    g, P = ctx.g, ctx.P
+    gr = [["Plancha, pletinas y barras soldadas (Fy = %s MPa)" % f(P["Fy"]), propuestas.grado(P["Fy"], 20, "plancha")], ["Pivote (Fy_piv, Ø%s)" % f(P["D_piv"]), propuestas.grado(P["Fy_piv"], P["D_piv"], "barra")],
+          ["Pasadores de articulación (Fy_pp, Ø%s)" % f(P["d_pp"]), propuestas.grado(P["Fy_pp"], P["d_pp"], "barra")], ["Patín (Fy_shoe, bloque de %s mm)" % fm(g.Hs, 0), propuestas.grado(P["Fy_shoe"], g.Hs, "barra")],
+          ["Pasadores de empuje (Fy_pin, Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")], ["Uña (Fy_dog)", propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]]
+    last.s.table(R[0], y - 8, [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")], gr, h=T_S,
+                 title="GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy")
     return out
 
 
@@ -155,16 +169,19 @@ def sheet_tratamientos(ctx):
     rows = [["Base soldada, mesa soldada", "Alivio de tensiones 590–620 °C (2 h/25 mm), enfriamiento lento; antes del mecanizado final", "Fabricante (registro de horno)"],
             ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa), profundidad ≥ {fm(g.z_hard, 1)} mm", "Dureza 10 % por lote; macrografía"],
             ["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. ≥ {fm(g.z_hard, 1)} mm; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"],
-            ["Pivote (PIV-001)", f"Bonificado según Fy ≥ {f(P['Fy_piv'])} MPa (grado A DEFINIR POR EL FABRICANTE)", "Certificado 3.1"],
-            ["Pasadores de articulación (ACC-005/006)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa (grado A DEFINIR); 28–34 HRC de referencia", "Certificado 3.1"],
+            ["Pivote (PIV-001)", f"Bonificado (QT) según Fy ≥ {f(P['Fy_piv'])} MPa: {propuestas.grado_corto(P['Fy_piv'], P['D_piv'], 'barra')} ({propuestas.ROTULO_GRADO})", "Certificado 3.1"],
+            ["Pasadores de articulación (ACC-005)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa: {propuestas.grado_corto(P['Fy_pp'], P['d_pp'], 'barra')} ({propuestas.ROTULO_GRADO}); 28–34 HRC de referencia", "Certificado 3.1"],
             ["Discos de interfaz inoxidables", "Decapado y pasivado; rectificado/lapeado de la cara deslizante Ra 0,4", "Rugosidad 100 % de caras"],
             ["Disco duro 17-4PH (opción C)", f"Condición H1025 o inoxidable nitrurado; ≥ {f(P['HB_cara'])} HB, Fy ≥ {f(P['Fy_cara'])} MPa", "Dureza 100 %"],
             ["Bronce C95400 con tapones de grafito (opción C)", f"≥ {f(P['HB_bz'])} HB, Fy ≥ {f(P['Fy_bz'])} MPa; tapones encastrados al {fm((g.IG.get('tapon_prof_frac') or 0.7) * 100, 0)} % del espesor", "Certificado del proveedor"],
-            ["UHMW-PE (opción B)", "Sin tratamiento ni pintura; UHMW-PE (grado A DEFINIR POR CATÁLOGO según proveedor)", "Certificado del proveedor"],
-            ["Estructura de acero (base, mesa, soldaduras)", pintura(ctx), "Medición de EPS y adherencia (a definir)"],
+            ["UHMW-PE (opción B)", "Sin tratamiento ni pintura; UHMW-PE PE1000 (ASTM D4020), natural; certificado del proveedor", "Certificado del proveedor"],
+            ["Estructura de acero (base, mesa, soldaduras)", pintura(ctx), "EPS (ISO 19840) y adherencia (ISO 4624): 1 medición por 10 m²"],
             ["Zonas sin pintura", f"Cara de apoyo de la interfaz (Ø{f(P['D_top'] + 20)}), caras deslizantes, agujeros H7/H9, ranura T, superficies de contacto de pasadores", "VT"],
-            ["Tornillería", "Pernos 10.9 con recubrimiento (zincado/dacromet) A DEFINIR POR CATÁLOGO", "Certificado del lote"]]
+            ["Tornillería", "Pernos 10.9 con recubrimiento zincado/dacromet (tipo exigido; marca/modelo en GEN-008)", "Certificado del lote"]]
     out, last, y = c.table_pages([("Elemento", 0.22 * w, "L"), ("Tratamiento / especificación", 0.58 * w, "L"), ("Control", 0.20 * w, "L")], rows, "TRATAMIENTOS TÉRMICOS Y SUPERFICIALES", "TRATAMIENTOS", 6)
+    prow = [[a, b_, cc] for a, b_, cc in propuestas.SISTEMA_PINTURA]
+    last.s.table(R[0], y - 8, [("Capa", 0.18 * w, "L"), ("Producto / especificación", 0.64 * w, "L"), ("EPS", 0.18 * w, "R")], prow, h=T_S, bold_rows=(len(prow) - 1,),
+                 title="SISTEMA DE PINTURA — " + propuestas.ROTULO_PINT + " (ISO 12944 C4 alta, epoxi-zinc 60 + epoxi 120 + PU 60 µm)")
     return out
 
 
@@ -199,14 +216,12 @@ def sheet_torques_compras(ctx):
                                       ("K (lubric.)", 0.06 * w, "R"), ("T = K·F·d [N·m]", 0.09 * w, "R"), ("Estado", 0.18 * w, "L")], torque_rows(ctx), h=T_S,
                    title="TORQUES DE APRIETE ORIENTATIVOS (ISO 898-1, VDI 2230 simplificado, rosca lubricada): el núcleo no los entrega")
     y = s.notes_block(R[0], y - 5, "NOTA", ["Método simplificado: precarga al 70 % de la carga de prueba (Rp0,2 de ISO 898-1 clase 10.9 = 940 MPa), factor de torque K = 0,20 (lubricado con grasa); T = K·F·d. Sin cálculo de la unión (rigidez, asentamiento): PROPUESTA, A CONFIRMAR POR EL CALCULISTA; usar llave dinamométrica calibrada y marca de pintura de control."], h=T_N, width=w)
-    rows = []
-    for p in ctx.m.parts:
-        if p.comercial:
-            rows.append([p.code.replace(CODE + "-", ""), p.name, str(p.qty), p.desc, p.catalogo or "A DEFINIR POR CATÁLOGO", p.cert])
+    rows = propuestas.catalogo_rows(ctx)
     for (d, q, e, cat) in lista.extras(ctx):
-        rows.append(["—", d, str(q), e, cat, "A DEFINIR"])
-    s.table(R[0], y - 6, [("Código", 0.07 * w, "L"), ("Elemento", 0.22 * w, "L"), ("Cant", 0.05 * w, "C"), ("Especificación", 0.36 * w, "L"), ("Catálogo / proveedor", 0.20 * w, "L"), ("Certificado", 0.10 * w, "L")], rows, h=T_S, ymin=R[1] + 3,
-            title="COMPRAS DE ELEMENTOS COMERCIALES (cilindro, buje, pernos, tornillos, arandelas, graseras, grillete B30.26, resortes, grasa)")
+        if not d.startswith(("Tornillo ISO 10642 M10", "Tornillo avellanado M10")) and not any(d.split(" (")[0][:18] in r[0] for r in rows):
+            rows.append([d + f" (×{q})", e, "—", "marca/modelo A DEFINIR POR CATÁLOGO"])
+    s.table(R[0], y - 6, [("Componente (tipo)", 0.20 * w, "L"), ("Características exigidas", 0.46 * w, "L"), ("Certificado / prueba", 0.16 * w, "L"), ("Marca / modelo", 0.18 * w, "L")], rows, h=T_S,
+            title="COMPONENTES DE CATÁLOGO: TIPO Y CARACTERÍSTICAS EXIGIDAS (cilindro, grasera, pernos, grillete B30.26, buje, resortes, grasa, tornillos)")
     return c.h
 
 
@@ -364,4 +379,23 @@ def sheet_verificacion(ctx):
            "Texto negro sobre fondo blanco; letra ≥ 3,5 mm en el plot A1 (tablas densas 3,0 mm; mínimo absoluto 2,5 mm).", "Estado EMITIDO PARA REVISIÓN en todas las láminas hasta su aprobación; completar DIBUJÓ/REVISÓ/APROBÓ."]
     rows = [[str(i + 1), v, "", ""] for i, v in enumerate(ver)]
     c.s.table(R[0], R[3], [("N°", 0.04 * w, "C"), ("Verificación", 0.74 * w, "L"), ("Cumple (sí/no)", 0.10 * w, "C"), ("Observación", 0.12 * w, "L")], rows, h=T_S, title="VERIFICACIONES TRANSVERSALES DEL JUEGO DE PLANOS")
+    return c.h
+
+
+@gen
+def sheet_wps(ctx):
+    c = Gen(ctx, 12, "WPS PRE-CALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1 CL. 3) Y PRECALENTAMIENTO")
+    s = c.s
+    R = c.R["main"]
+    w = R[2] - R[0]
+    cols = [(t, a * w / sum(x[1] for x in propuestas.WPS_COLS), al) for t, a, al in propuestas.WPS_COLS]
+    y, _ = s.table(R[0], R[3], cols, propuestas.wps_rows(ctx), h=T_S, title=propuestas.ROTULO_WPS)
+    pre = [["≤ 19 (3/4 in)", "sin precalentar (T ≥ 10 °C)", "sin precalentar (T ≥ 10 °C)"], ["> 19 a 38 (1½ in)", "10 °C", "65 °C"], ["> 38 a 65 (2½ in)", "65 °C", "110 °C"], ["> 65", "110 °C", "150 °C"]]
+    y2, _ = s.table(R[0], y - 8, [("Espesor de la parte más gruesa [mm]", 0.30 * w, "L"), ("Categoría B: E7018, ER70S-6, E71T-1 (los procesos propuestos)", 0.40 * w, "C"), ("Categoría A: electrodos no bajo hidrógeno", 0.30 * w, "C")], pre, h=T_S,
+                    title="PRECALENTAMIENTO MÍNIMO — AWS D1.1 TABLA 3.2, acero Grupo II (ASTM A572 Gr.50)")
+    s.notes_block(R[0], y2 - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
+                                       "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte compatible con FEXX = %s MPa." % f(ctx.P["FEXX"]),
+                                       "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
+                                       "Soldadura de acero inoxidable 309L (barras UHMW): sin precalentamiento; interpase ≤ 150 °C; PT 100 %.", "Aceros bonificados (pasadores, pivote, uña) NO se sueldan.",
+                                       "Soldadores calificados según AWS D1.1 cl. 4 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.9 * w, numbered=True)
     return c.h
