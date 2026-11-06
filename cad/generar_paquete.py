@@ -67,7 +67,7 @@ def main():
     h1 = hojas[0]
     s1 = h1.s
     idx = [[hh.plano, hh.titulo, hh.escala] for hh in hojas]
-    hojas_gen.wtable(s1, 30, h1.indice_pos[1], [("Plano", 52), ("Título", 150), ("Escala", 40)], idx, h=1.9)
+    hojas_gen.wtable(s1, 30, h1.indice_pos[1], [("Plano", 62), ("Título", 190), ("Escala", 40)], idx, h=2.4)
     pd = out / "planos"
     pd.mkdir(exist_ok=True)
     pdfs, dxfs = [], []

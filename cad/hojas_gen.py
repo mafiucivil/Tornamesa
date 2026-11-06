@@ -78,7 +78,7 @@ def sheet_notas(ctx):
                "e) Limpiar y aislar la grasa grafitada de equipos energizados (el grafito es conductor). Registrar el procedimiento y la presión de despegue."]
     else:
         nt += ["LUBRICACIÓN", "14. Interfaz acero-acero con grasa grafitada NLGI 2 (≥ 10 % grafito, EP) en ambas caras; lubricar antes de cada operación. Acero seco no gira."]
-    y = s.notes_block(30, 568, "NOTAS GENERALES", nt, h=2.1, wrap_chars=165)
+    y = s.notes_block(30, 566, "NOTAS GENERALES", nt, h=2.9, wrap_chars=195, ls=1.5)
     # índice de láminas (se completa en el empaquetado)
     ctx.indice_y = y
     h.indice_pos = (30, y - 6)
