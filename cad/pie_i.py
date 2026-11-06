@@ -159,7 +159,7 @@ def tope_sheet(ctx, key, titulo, side):
     def jd(V, p):
         if ids:
             w_out(p, ids[0], V, (xc, -b / 2, zb0 + 1), "right", dy=-14)
-    p.vs("junta", ks, "right", cut=CUT_X, center=(xc, 0, zc_), win=(-(b / 2 + 34), -tp["t"] - 14, b / 2 + 34, tp["t"] + 14), lv=(1, 2, 1, 2), extra=(0, 0, 90, 0), draw=jd, hs=0.25, w=1.4,
+    p.vs("junta", ks, "right", cut=((xc, 0, 0), (-1, 0, 0)), center=(xc, 0, zc_), win=(-(b / 2 + 34), -tp["t"] - 14, b / 2 + 34, tp["t"] + 14), lv=(1, 2, 1, 2), extra=(0, 0, 90, 0), draw=jd, hs=0.25, w=1.4,
          title="DETALLE DE JUNTA (corte por el centro de la barra)", mat={plate + "_t": "acero", sector + "_t1": ctx.mat.get(sector, "acero"), nk: "acero"},
          auto=dict(on=ks, tol={round(tp["h_barra"], 1): " (h)", round(b, 1): " (b)"}, hole_notes=False))
     if ids:
@@ -270,6 +270,17 @@ def sheet_int_graseras(ctx):
         s.text(f"Taladro Ø6 radial desde el canto hasta R{fm(rr, 0)} y Ø6 axial hasta la cara deslizante", (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
     p.vs("traz", {k: ctx.shapes[k] for k in ("mesa_plancha_inf", "graseras") if k in ctx.shapes}, "bottom", lv=(1, 1, 1, 1), extra=(0, 0, 40, 10), draw=trazado, hatch=False, title="TRAZADO EN LA PLANCHA INFERIOR DE LA MESA (vista inferior)", w=1.6,
          auto=dict(on=["mesa_plancha_inf"], holes=False, verts=False, only_extents=True))
+    ag = math.degrees(math.atan2(pts[0][1], pts[0][0]))
+    zk = ["mesa_plancha_inf", "graseras"] + [k for k in ("int_disco_mesa", "int_cara") if ctx.m.get(k)]
+    for k in zk:
+        rot_key(ctx, k, k + "_G", -ag)
+    gk = [k + "_G" for k in zk]
+    zc0 = g.z0 + g.tpr / 2
+
+    def cg(V, p):
+        s.line(V.P(g.Rt - 40, 0, zc0), V.P(rr - 10, 0, zc0), "EJE")
+    p.vs("corte", gk, "front", cut=CUT_Y, center=(rr + 20, 0, zc0), win=(-70, -45, 50, 45), lv=(1, 2, 2, 1), extra=(0, 0, 40, 0), draw=cg, hs=0.4, maxs=2.0, w=1.4,
+         title=f"CORTE A-A POR LA GRASERA G1 (a {fm(ag, 1)}°): TALADRO Ø6 RADIAL Y AXIAL", mat={k + "_G": ctx.mat.get(k, "acero") for k in zk}, auto=dict(on=gk, tol={}, hole_notes=False))
     rows = [[f"G{i + 1}", fm(math.degrees(math.atan2(y, x)), 2) + "°", fm(math.hypot(x, y), 1), "radial Ø6 + axial Ø6"] for i, (x, y) in enumerate(pts[:g.n_greaser])]
     p.table_block("UBICACIÓN DE LAS GRASERAS (origen: eje de la mesa)", [("N°", 12, "C"), ("Ángulo", 30, "R"), ("r [mm]", 28, "R"), ("Conducto", 60, "L")], rows)
     p.tables()
