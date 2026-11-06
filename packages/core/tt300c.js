@@ -201,6 +201,11 @@ const TT = (() => {
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
       ["c_lug", "Puntos de izaje (lados y): distancia al borde", "mm", 150, 30, 600, 5],
       ["x_lug", "Puntos de izaje: distancia al eje y", "mm", 600, 0, 2000, 5],
+      ["t_ear", "Orejas de izaje (4, soldadas a la base): espesor de la placa", "mm", 18, 6, 50, 1],
+      ["R_ear", "Orejas de izaje: radio exterior (ancho = 2R)", "mm", 60, 30, 150, 5],
+      ["d_ear", "Orejas de izaje: diámetro del agujero (grillete: pasador ≤ d − 3)", "mm", 45, 20, 100, 1],
+      ["h_ear", "Orejas de izaje: altura del centro del agujero sobre la base", "mm", 90, 40, 300, 5],
+      ["w_ear", "Orejas de izaje: filete de soldadura a la base (ambos lados)", "mm", 8, 4, 16, 1],
       ["phi_lift", "Factor dinámico de izaje", "–", 1.30, 1, 2, 0.05],
       ["q_floor", "Presión admisible de la losa / mats (referencial)", "MPa", 2.0, 0.1, 20, 0.1],
     ] },
@@ -356,7 +361,8 @@ const TT = (() => {
   function masses(P) {
     const m = massesMesa(P), ifc = ifaceDesign(P);
     m.ssTop = ifc.mTop; m.ss = ifc.mSS; m.uhmw = ifc.mUH; m.bz = ifc.mBz;   // pieza rotatoria, discos inoxidables o duros, lámina UHMW y bronce
-    m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base + (P.h_boss > 0 ? RHO * Math.PI / 4 * (P.D_boss ** 2 - P.D_piv ** 2) * P.h_boss : 0);   // + collar de asiento del pivote
+    m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base + (P.h_boss > 0 ? RHO * Math.PI / 4 * (P.D_boss ** 2 - P.D_piv ** 2) * P.h_boss : 0)   // + collar de asiento del pivote
+      + 4 * RHO * (2 * P.R_ear * (P.h_ear - 0) + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * P.t_ear;   // + 4 orejas de izaje
     m.rim = RHO * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t;
     const bg = bracketGeo(P);
     const Llug = bg.Llug, tl = 2 * P.t_ch + bg.spacer;
@@ -1049,6 +1055,16 @@ const TT = (() => {
     add({ grp: "Base", sys: "est", kind: "geo", name: "Punto de izaje fuera de la mesa", formula: "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)", dem: P.D_top / 2 + 45, cap: Math.hypot(P.x_lug, P.B / 2 - P.c_lug), unit: "mm", ref: "Geometría" });
     add({ grp: "Base", sys: "est", kind: "geo", name: "Punto de izaje dentro del marco", formula: "t_marco + 35 ≤ c", dem: P.rim_t + 35, cap: P.c_lug, unit: "mm", ref: "Geometría" });
     const mt = R.m.total;
+    {   // orejas de izaje soldadas: 3 ramales efectivos a 60° respecto de la horizontal, carga en el plano de la oreja
+      const T = mt * P.phi_lift * G / 1e3 / (3 * Math.sin(60 * D2R)), Tv = T * Math.sin(60 * D2R), Th = T * Math.cos(60 * D2R);   // kN
+      const dp = P.d_ear - 3, Ln = 2 * P.R_ear, aw = 0.707 * P.w_ear, Sw = 2 * aw * Ln * Ln / 6;
+      add({ grp: "Orejas de izaje", sys: "est", name: "Oreja: aplastamiento del agujero (pasador del grillete d − 3)", formula: "σ = T/(d_p·t) ≤ 1,25·Fy/Nd", dem: T * 1e3 / (dp * P.t_ear), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3; ASME B30.26 (grillete)" });
+      add({ grp: "Orejas de izaje", sys: "est", name: "Oreja: tracción en la sección neta del agujero", formula: "σ = T/(2(R − d/2)·t) ≤ Fy/Nd", dem: T * 1e3 / (2 * (P.R_ear - P.d_ear / 2) * P.t_ear), cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.1; AISC 360-22 D2" });
+      add({ grp: "Orejas de izaje", sys: "est", name: "Oreja: desgarro por corte detrás del agujero", formula: "τ = T/(2(R − d/2)·t) ≤ Fy/(Nd·√3)", dem: T * 1e3 / (2 * (P.R_ear - P.d_ear / 2) * P.t_ear), cap: Fy / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2; AISC 360-22 D5" });
+      add({ grp: "Orejas de izaje", sys: "est", name: "Oreja: soldadura a la base (filete a ambos lados, T vertical + T horizontal con brazo h)", formula: "f = √[(Tv/(2aL) + Th·h/S)² + (Th/(2aL))²] ≤ 0,60FEXX/(1,2Nd); L = 2R, a = 0,707w, S = 2aL²/6", dem: Math.hypot(Tv * 1e3 / (2 * aw * Ln) + Th * 1e3 * P.h_ear / Sw, Th * 1e3 / (2 * aw * Ln)), cap: Fw, unit: "MPa", ref: "ASME BTH-1 §3-3.4; AISC 360-22 J2.4" });
+      add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: relación de bordes (R − d/2 ≥ 0,5·d para evitar desgarro prematuro)", formula: "R − d/2 ≥ 0,5·d", dem: 0.5 * P.d_ear, cap: P.R_ear - P.d_ear / 2, unit: "mm", ref: "AISC 360-22 D5 (distancia al borde)" });
+      add({ grp: "Orejas de izaje", sys: "est", kind: "info", name: "Tensión por oreja (3 ramales efectivos a 60°) y WLL mínimo del grillete", formula: "T = m·φ·g/(3·sen 60°)", dem: T, unit: "kN", ref: "ASME B30.9; B30.26" });
+    }
     add({ grp: "Base", sys: "est", kind: "info", name: "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)", formula: "m·φ / (3·sin 60°)", dem: mt * P.phi_lift / (3 * Math.sin(60 * D2R)) / 1000, unit: "t", ref: "ASME B30.9 (3 ramales efectivos)" });
 
     /* --- Fatiga --- */

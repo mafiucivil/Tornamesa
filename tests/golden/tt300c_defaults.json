@@ -1,5 +1,5 @@
 {
- "masa_total": 3037.006819014791,
+ "masa_total": 3045.408197956894,
  "masa_mesa": 1414.8020015216673,
  "N": 2955.961321433174,
  "q_max": 1.661165264702724,
@@ -36,7 +36,7 @@
  "fea": {
   "top": 131.62870002855718,
   "bot": 123.31388347919761,
-  "lift": 52.45573740610937,
+  "lift": 52.583628167359144,
   "glob": 96127.10695233618
  },
  "fu": {
@@ -115,10 +115,15 @@
   "Pivote · Buje sobre el collar: el buje cabe bajo la plancha superior": 0.7473684210526316,
   "Pivote · Soldadura del collar a la base (filete perimetral): par H·e": 0.548265332391648,
   "Pivote · Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)": 0.08942555584179386,
-  "Base · Izaje del conjunto: σvm en la plancha base": 0.30915941852876055,
-  "Base · Izaje: flecha de la base": 0.7749799356991968,
+  "Base · Izaje del conjunto: σvm en la plancha base": 0.3099131708414404,
+  "Base · Izaje: flecha de la base": 0.7773481306925667,
   "Base · Punto de izaje fuera de la mesa": 0.8167802279326097,
   "Base · Punto de izaje dentro del marco": 0.3,
+  "Orejas de izaje · Oreja: aplastamiento del agujero (pasador del grillete d − 3)": 0.13750801254284425,
+  "Orejas de izaje · Oreja: tracción en la sección neta del agujero": 0.09625560877999095,
+  "Orejas de izaje · Oreja: desgarro por corte detrás del agujero": 0.16671960492041726,
+  "Orejas de izaje · Oreja: soldadura a la base (filete a ambos lados, T vertical + T horizontal con brazo h)": 0.4254156301442728,
+  "Orejas de izaje · Oreja: relación de bordes (R − d/2 ≥ 0,5·d para evitar desgarro prematuro)": 0.6,
   "Fatiga · Uña (boca del patín) (cat. A, N = 35000)": 0.25133641353134556,
   "Fatiga · Pasadores de articulación (cat. A, N = 35000)": 0.20930441677499734,
   "Fatiga · Pie de soldadura mejilla–base (cat. E, N = 35000)": 0.17641069186917577,

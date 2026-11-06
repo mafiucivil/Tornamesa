@@ -267,3 +267,17 @@ test("Golden file: resultados por defecto sin cambios no justificados", () => {
   };
   cmp(snap, g, "golden");
 });
+
+test("Orejas de izaje soldadas (4, placa de 18 mm): esfuerzos y masa", () => {
+  const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), R = A.R, G = TT.G;
+  assert.equal(P.t_ear, 18, "placa de 18 mm (mandante)");
+  const T = R.m.total * P.phi_lift * G / 1e3 / (3 * Math.sin(Math.PI / 3)), dp = P.d_ear - 3;
+  const g = (re) => A.checks.find((c) => re.test(c.name));
+  near(g(/aplastamiento del agujero/).dem, T * 1e3 / (dp * P.t_ear), 1e-9, "aplastamiento");
+  near(g(/sección neta/).dem, T * 1e3 / (2 * (P.R_ear - P.d_ear / 2) * P.t_ear), 1e-9, "sección neta");
+  const aw = 0.707 * P.w_ear, L = 2 * P.R_ear, Sw = 2 * aw * L * L / 6, Tv = T * Math.sin(Math.PI / 3), Th = T * Math.cos(Math.PI / 3);
+  near(g(/Oreja: soldadura/).dem, Math.hypot(Tv * 1e3 / (2 * aw * L) + Th * 1e3 * P.h_ear / Sw, Th * 1e3 / (2 * aw * L)), 1e-9, "soldadura");
+  assert.ok(A.checks.filter((c) => c.grp === "Orejas de izaje" && c.fu != null).every((c) => c.fu < 1), "las orejas cumplen");
+  const B = TT.masses(Object.assign(TT.defaults(), { t_ear: 36 })).base - TT.masses(P).base;
+  near(B, 4 * 7.85e-6 * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * 18, 1e-9, "masa de las orejas");
+});
