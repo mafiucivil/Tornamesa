@@ -312,12 +312,19 @@ def F_tope(PP, n_):
     return (Tmax * 1e3 / (ru_ / 1e3)) / n_ * q_ratio(PP)
 
 
+def weld_k(PP, t):
+    """f = √[(F/(2aL))² + (F·(t/2)/(b_tope·a·L))²] = (F/(a·L))·k, k = √(1/4 + (t/(2·b_tope))²); sin b_tope (versión anterior) k = 1/2"""
+    b = PP.get("b_tope")
+    return math.sqrt(0.25 + (t / (2 * b)) ** 2) if b else 0.5
+
+
 def tope_calc(PP, F, t, Fy):
     """L = máx(L_aplastamiento; L_soldadura)/0,9 redondeado a múltiplos de 5 mm; L_tope > 0 lo fija"""
     adm = 1.25 * Fy / PP["Nd"]; Fw = 0.6 * PP["FEXX"] / (1.2 * PP["Nd"])
-    Lap = F / (adm * t); Lsol = F / (2 * 0.707 * PP["w_tope"] * Fw)
+    aw = 0.707 * PP["w_tope"]; kw = weld_k(PP, t)
+    Lap = F / (adm * t); Lsol = F * kw / aw / Fw
     L = PP["L_tope"] if PP["L_tope"] > 0 else math.ceil(max(Lap, Lsol) / 0.9 / 5 - 1e-9) * 5
-    return dict(L=L, adm=adm, Fw=Fw, sig=F / (L * t), fw=F / (2 * 0.707 * PP["w_tope"] * L), Lap=Lap, Lsol=Lsol, F=F)
+    return dict(L=L, adm=adm, Fw=Fw, sig=F / (L * t), fw=F * kw / (aw * L), Lap=Lap, Lsol=Lsol, F=F)
 
 
 def chord_of(PP, n_):
@@ -408,7 +415,7 @@ def rowsAB(PP, k):
         if PP["fix_mode"] == 1:
             Fs = mum * r["N"] * 1e3 / PP["n_seg"] * q_ratio(PP); Lc = Ro_ - Ri_ - 100
             R[f"Lámina UHMW ({PP['n_seg']} sectores): aplastamiento del canto contra el tope del rebaje"] = (Fs / (Lc * tu), PP["p_uhmw"], Fs / (Lc * tu) / PP["p_uhmw"])
-            fw_ = Fs / (2 * 0.707 * PP["w_tope"] * Lc); Fw_ = 0.6 * PP["FEXX"] / (1.2 * PP["Nd"])
+            fw_ = Fs * weld_k(PP, tu) / (0.707 * PP["w_tope"] * Lc); Fw_ = 0.6 * PP["FEXX"] / (1.2 * PP["Nd"])
             R["Tope del rebaje del sector UHMW: soldadura"] = (fw_, Fw_, fw_ / Fw_)
             mu_ = RHO_UH * A_ * tu / PP["n_seg"]
             R["Lámina UHMW: masa del sector"] = (mu_, 25.0, mu_ / 25.0)
@@ -475,7 +482,7 @@ def soldadura_mejilla(Delta):
 SW = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], "mm"), ("Fy_ss", [170, 185, 205, 225, 250], "MPa"),
       ("E_uhmw", [200, 250, 300, 400, 500], "MPa"), ("d_flat", [0.05, 0.1, 0.15, 0.2, 0.3], "mm"), ("W_tf", [200, 240, 280, 300, 320, 360], "tf"),
       ("n_sec", [12, 18, 24, 36, 48], "sectores"), ("n_seg", [12, 16, 24, 48], "sectores UHMW"), ("w_tope", [3, 4, 6, 8, 12, 16], "mm"), ("d_tor", [4, 6, 8, 10, 12], "mm"),
-      ("h_gr", [0, 0.5, 1, 2, 3, 5], "mm"), ("L_tope", [0, 100, 200, 400], "mm"), ("fix_mode", [1, 2], "")]
+      ("h_gr", [0, 0.5, 1, 2, 3, 5], "mm"), ("L_tope", [0, 100, 200, 400], "mm"), ("b_tope", [6, 12, 20, 30, 40], "mm"), ("fix_mode", [1, 2], "")]
 sw_bad = 0; sw_n = 0
 SW_BADLIST = []
 
@@ -601,7 +608,7 @@ def fmt_pair(t):
     return f"{s3(t[0])}+{s3(t[1])} / {s3(t[2])}" + (" ✗A:" + ",".join(x[:14] for x in t[3]) if t[3] else "") + (" ✗B:" + ",".join(x[:14] for x in t[4]) if t[4] else "")
 
 
-UMB_AB = (("ss_void", 60, 200), ("Fy_ss", 170, 250), ("E_uhmw", 200, 500), ("d_flat", 0.05, 0.3), ("W_tf", 200, 360), ("h_gr", 0, 5), ("w_tope", 3, 16))
+UMB_AB = (("ss_void", 60, 200), ("Fy_ss", 170, 250), ("E_uhmw", 200, 500), ("d_flat", 0.05, 0.3), ("W_tf", 200, 360), ("h_gr", 0, 5), ("w_tope", 3, 16), ("b_tope", 6, 40))
 UMA = [(key, v, p0, p1) for key, lo, hi in UMB_AB for v, p0, p1 in umbrales(key, lo, hi)]
 prefetch([{key: v * fac} for key, v, p0, p1 in UMA for fac in (1 - 2e-4, 1 + 2e-4)])
 rows = []
@@ -1118,7 +1125,7 @@ SWC = [("ss_void", [60, 80, 100, 120, 140, 160, 180, 200], (1, 2, 3)), ("Fy_bz",
        ("bz_cover", [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], (3,)), ("W_tf", [200, 240, 280, 300, 320, 360], (1, 2, 3)),
        ("k_bz", [1, 5, 10, 50, 200, 500], (1, 2, 3)), ("p_bz", [5, 10, 20, 40, 60], (1, 2, 3)),
        ("n_sec", [12, 18, 24, 36, 48], (1, 2, 3)), ("bz_npad", [12, 18, 24, 36, 48], (3,)), ("w_tope", [3, 4, 6, 8, 12, 16], (1, 2, 3)), ("d_tor", [4, 6, 8, 10, 12], (1, 2, 3)),
-       ("h_gr", [0, 0.5, 1, 2, 3, 5], (1, 2, 3)), ("w_gr", [3, 8, 15, 25], (1, 2, 3)), ("n_gr_rad", [0, 12, 24, 48], (1, 3)), ("L_tope", [0, 100, 200, 400], (1, 2, 3)), ("fix_mode", [2], (1, 2, 3))]
+       ("h_gr", [0, 0.5, 1, 2, 3, 5], (1, 2, 3)), ("w_gr", [3, 8, 15, 25], (1, 2, 3)), ("n_gr_rad", [0, 12, 24, 48], (1, 3)), ("L_tope", [0, 100, 200, 400], (1, 2, 3)), ("b_tope", [6, 12, 20, 30, 40], (1, 2, 3)), ("fix_mode", [2], (1, 2, 3))]
 swC_n = swC_bad = 0
 PLANCHA_DEV = []
 swC_rej = []
@@ -1600,13 +1607,13 @@ PIEZAS = [("A", "disco de la base", nsec, rA_["tss"], P["Fy_ss"], P["ss_allow"],
 qr_core = q_ratio(P); Ro_p, Ri_p, A_p, I_p, ru_p = geom(P)
 chord_ru = lambda n_: 2 * ru_p * math.sin(math.pi / n_)
 ratio_sec = lambda n_: 1 + P["e"] * A_p / I_p * ru_p * math.sin(math.pi / n_) / (math.pi / n_)
-bt_ = 2 * P["w_tope"]; aw_ = 0.707 * P["w_tope"]
+bt_ = P.get("b_tope", 2 * P["w_tope"]); aw_ = 0.707 * P["w_tope"]
 rows1, rows2, rows3 = [], [], []
 FU_ECC = {}; FU_HC = {}; FU_OV = {}; FU_BK = {}; FU_SC = {}
 for opt, nm, n_, t_, Fy_, alw_, tb_, N_, E_, mesa_ in PIEZAS:
     F = F_tope(P, n_); c = tope_calc(P, F, t_, Fy_); cap1 = aw_ * c["Fw"]
     hc = t_ - alw_; e_ = hc / 2; v = F / (2 * c["L"]); nn1 = F * e_ / (bt_ * c["L"])
-    fu_core = v / cap1; fu_ecc = math.hypot(v, nn1) / cap1
+    fu_core = c["fw"] / c["Fw"]; fu_ecc = math.hypot(v, nn1) / cap1
     bt_req = F * e_ / (c["L"] * math.sqrt(cap1 ** 2 - v ** 2)) if v < cap1 else math.inf
     fu_hc = F / (c["L"] * hc) / c["adm"]; fu_hc1 = F / (c["L"] * (hc - 1)) / c["adm"] if hc > 1 else math.inf
     Fsec = F / qr_core * ratio_sec(n_); mu_eq = Tmax * 1e3 / (ru_p / 1e3) / (N_ * 1e3)
@@ -1624,7 +1631,7 @@ for opt, nm, n_, t_, Fy_, alw_, tb_, N_, E_, mesa_ in PIEZAS:
     rows2.append([key_, s3(t_), s3(c["L"]), s3(fu_core), s3(fu_ecc), s3(bt_req), s3(fu_hc), s3(fu_hc1), s3(Mov / Mres), s3(sig_pl / (0.6 * P["Fy"])), s3(FU_SC[key_])])
 table(f"5i.1. Fuerza por tope: F = (T_calado/r_u)/n·(q_máx/q_med) [q_máx/q_med = {s3(qr_core)}] frente a la del sector más cargado (promedio de presión en el sector: {s3(ratio_sec(nsec))}) y a μ_máx·N/n; μ_eq = T_calado/(N·r_u)",
       ["Opción · pieza", "n", "F núcleo kN", "F sector kN", "Δ %", "F μ_máx·N kN", "μ_eq calado", "L_tope mm", "σ aplast. MPa", "FU aplast."], rows1)
-table(f"5i.2. Modos de falla no verificados por el núcleo (tope de barra de espesor b = 2·w = {bt_:g} mm; altura de contacto h_c = t − sobreespesor; fuerza en h_c/2): FU de la soldadura con el momento de excentricidad, espesor de barra necesario, aplastamiento con h_c (y con 1 mm más de holgura), vuelco del sector con q_mín, flexión local del respaldo, peso del sector sobre los tornillos de posición al izar",
+table(f"5i.2. Modos de falla no verificados por el núcleo (tope de barra de espesor b_tope = {bt_:g} mm; altura de contacto h_c = t − sobreespesor, fuerza en h_c/2; el núcleo usa h_c = t): FU de la soldadura del núcleo, FU con mi excentricidad (h_c), espesor de barra necesario, aplastamiento con h_c (y con 1 mm más de holgura), vuelco del sector con q_mín, flexión local del respaldo, peso del sector sobre los tornillos de posición al izar",
       ["Opción · pieza", "t mm", "L mm", "FU sold. núcleo", "FU sold. con excentricidad", "b barra necesaria mm", "FU aplast. h_c", "FU aplast. h_c − 1", "FU vuelco", "FU respaldo", "FU tornillos peso"], rows2)
 rows3 = []
 IP = {}
@@ -1720,12 +1727,19 @@ FIND.append(("T1", "menor", "Fuerza por tope F = (T_calado/r_u)/n·(q_máx/q_med
              f"F = {s3(F_tope(P, nsec)/1e3)} kN por tope (n = {nsec})",
              f"el sector más cargado tiene presión media {s3(ratio_sec(nsec))}·q_med y no {s3(qr_core)} (q_máx del borde exterior): F real {s3((ratio_sec(nsec)/qr_core-1)*100)} %; con μ_máx·N (C {s3(max(P['muC_d'], P['muC_cont'], P['muC_dry']))}) sería {s3(max(P['muC_d'], P['muC_cont'], P['muC_dry'])*r1_['N']*1e3/nsec*ratio_sec(nsec)/1e3)} kN; "
              "si la interfaz se gripa, T_calado llega íntegro a los topes, por lo que conviene mantenerlo; falta el tope en ambos sentidos de giro (un tope compartido entre sectores vecinos o dos por sector) y centrarlo radialmente en el sector (guiñada)"))
-_t2_core = any(("excentricidad" in r_["nombre"].lower() or "momento" in r_["nombre"].lower()) and "tope" in r_["nombre"].lower() for DDx_ in (DA, DC[1], DC[3]) for r_ in DDx_["interfazChecks"]["A" if DDx_ is DA else "C"])
-FIND.append(("T2", "importante" if (n_over and not _t2_core) else "menor",
-             "Soldadura del tope al respaldo: el núcleo verifica solo el corte de dos filetes (f = F/(2·0,707·w·L)); falta el momento de excentricidad entre la fuerza de apoyo (a h_c/2 sobre el respaldo) y la soldadura, que tracciona el filete trasero",
-             f"FU corte (núcleo) máx {s3(max(float(r_[3]) for r_ in rows2))}",
-             f"con barra de espesor b = 2·w = {bt_:g} mm y h_c = t − sobreespesor: FU combinado hasta {s3(v_e_)} ({k_e}); incumplen: {', '.join(n_over) if n_over else 'ninguna'}; "
-             "espesor de barra necesario (tabla 5i.2) hasta " + s3(max(float(r_[5]) for r_ in rows2 if r_[5] not in ('inf', '—'))) + " mm; corregir con barra ≥ 20 mm de espesor, filetes de 8 mm o L mayor, o con tope bajo (h_c ≤ 3 mm)"))
+_t2_cerrado = "b_tope" in P
+FU_CORE_W = {k_: float(r_[3]) for k_, r_ in zip(FU_ECC, rows2)}
+if _t2_cerrado:
+    CIERRES.append(("T2", "soldadura del tope con momento de excentricidad y b_tope", True,
+                    f"b_tope = {P['b_tope']:g} mm; FU soldadura máx núcleo {s3(max(FU_CORE_W.values()))}; con h_c = t − sobreespesor mi FU máx {s3(max(FU_ECC.values()))}"))
+    FIND.append(("T2", "importante" if any(v_ > 1 + 1e-9 for v_ in list(FU_CORE_W.values()) + list(FU_ECC.values())) else "menor",
+                 "Soldadura del tope con momento de excentricidad: incorporada en el núcleo (b_tope); queda como margen",
+                 f"b_tope = {P['b_tope']:g} mm; FU máx núcleo {s3(max(FU_CORE_W.values()))} ({max(FU_CORE_W.items(), key=lambda kv: kv[1])[0]})",
+                 f"con h_c = t − sobreespesor (fuerza a h_c/2) mi FU máx {s3(max(FU_ECC.values()))}; b_tope mínimo para FU ≤ 1 en cada pieza hasta {s3(max(float(r_[5]) for r_ in rows2 if r_[5] not in ('inf', '—')))} mm (con L redondeado); el núcleo es más conservador al usar h_c = t"))
+else:
+    FIND.append(("T2", "importante" if n_over else "menor",
+                 "Soldadura del tope al respaldo: solo corte; falta el momento de excentricidad", "sin b_tope",
+                 f"FU combinado hasta {s3(v_e_)} ({k_e}) con barra de {bt_:g} mm"))
 FIND.append(("T3", "menor", "Aplastamiento del tope: el núcleo usa el espesor completo t del canto; el tope no puede alcanzar la cara de deslizamiento, así que la altura de apoyo es h_c = t − sobreespesor de relapeado (y menos con una holgura)",
              "σ_aplast. con t completo: FU " + f"{s3(max(float(r_[9]) for r_ in rows1))} máx",
              "con h_c = t − sobreespesor: FU " + ", ".join(f"{k_} {s3(v_[0])}" for k_, v_ in FU_HC.items() if v_[0] > 0.9) + "; con 1 mm más de holgura: " + ", ".join(f"{k_} {s3(v_[1])}" for k_, v_ in FU_HC.items() if v_[1] > 1) + ": subir L_tope o espesor del canto"))
