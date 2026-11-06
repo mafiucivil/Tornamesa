@@ -43,15 +43,6 @@ def sheet_base_plancha(ctx):
         w_sym(p, jids(ctx, "Collar")[0], V, (g.D_boss / 2, 0, tb + 1), (45, 30), all_round=True)
     p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", mat={"base_plancha": "acero", "collar": "acero"},
          auto=dict(on=["base_plancha", "collar"], fits={P["D_piv"]: "H7"}), w=2.0, hs=0.5)
-    # detalle del borde: pletina del marco soldada a la plancha, ambos lados
-    rt, rh = P["rim_t"], P["rim_h"]
-
-    def det_borde(V, p):
-        ids = jids(ctx, "Marco perimetral largo")
-        if ids:
-            w_sym(p, ids[0], V, (0, -B / 2 + rt, tb + 3), (28, 36))
-    p.vs("borde", ["base_plancha", "marco_largo"], "right", cut=CUT_X, center=(0, -B / 2, tb), win=(-30, -tb - 6, 40, rh + 10), lv=(1, 1, 1, 1), draw=det_borde, title="DETALLE B: BORDE CON MARCO PERIMETRAL",
-         auto=dict(on=["base_plancha", "marco_largo"], text={}), mat={"base_plancha": "acero", "marco_largo": "acero"}, maxs=2.0, w=1.0)
     # tabla de posiciones
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):
