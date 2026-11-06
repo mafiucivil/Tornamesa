@@ -1,8 +1,8 @@
 """Memoria de cálculo TT300-C en Word (.docx) y PDF, generada desde cad/out/TT300-C_design.json.
 
-Fuente única: todos los valores salen del núcleo (tools/export_design.js → TT.analyze). Este script solo redacta.
+Fuente única: todos los valores salen del núcleo (tools/export_design.js y tools/export_alternativas.js → TT.analyze, TT.thermal). Este script solo redacta.
 Formato: texto negro, hipótesis → desarrollo → resultado, tablas antes que texto, 3 cifras significativas.
-Uso: node tools/export_design.js > cad/out/TT300-C_design.json && python3 tools/memoria_tt300c.py
+Uso (npm run memoria): node tools/export_design.js > cad/out/TT300-C_design.json && node tools/export_alternativas.js > cad/out/TT300-C_alternativas.json && python3 tools/memoria_tt300c.py
 """
 import json, math, pathlib, subprocess, sys
 from docx import Document
@@ -17,8 +17,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "cad" / "out"
 D = json.load(open(OUT / "TT300-C_design.json", encoding="utf-8"))
 M3 = json.load(open(OUT / "TT300-C_masas3d.json", encoding="utf-8")) if (OUT / "TT300-C_masas3d.json").exists() else None
+ALT = json.load(open(OUT / "TT300-C_alternativas.json", encoding="utf-8"))
 P, DV, K = D["P"], D["derivados"], D["derivados"]["K"]
-REV, DOC = "B", "TT300-C-MC-01"
+REV, DOC = "C", "TT300-C-MC-01"
+TOOL = "Tornamesa_v" + (ROOT / "VERSION").read_text(encoding="utf-8").strip() + ".html"   # herramienta principal (versión del archivo VERSION)
 BLACK = RGBColor(0, 0, 0)
 FONT = "Arial"
 
@@ -31,6 +33,8 @@ def n(x, sig=3, unit=""):
         return "Sí" if x else "No"
     if isinstance(x, str):
         return x
+    if x != 0:
+        x = float(f"{x:.{sig - 1}e}")            # redondeo a cifras significativas antes de elegir decimales (0,99999 → 1,00)
     a = abs(x)
     if a == 0:
         s = "0"
@@ -167,8 +171,9 @@ T("Mesa giratoria Ø{0} para cargas sobredimensionadas (transformadores y equipo
 table(["Campo", "Valor"], [
     ["Documento", DOC], ["Revisión", REV], ["Fecha", D["fecha"]],
     ["Estado", "Emitido para revisión – no apto para fabricación hasta aprobación"],
-    ["Planos asociados", "TT300-C-D-01, D-02, F-01, F-02, F-03, F-04 (Rev. B)"],
-    ["Herramienta de verificación", "Tornamesa_v1.1.html (misma fuente de datos)"],
+    ["Planos asociados", "Paquete de planos TT300C-…-B (Rev. B): entregables/RevC/planos; variantes por alternativa en entregables/RevC/variantes"],
+    ["Herramienta de verificación", TOOL + " (herramienta principal; misma fuente de datos que esta memoria)"],
+    ["Alcance de la revisión", "Alternativas de interfaz (base, A, B, C1, C2, C3 y cubierta de madera) y escenario de exposición solar a 80 °C (capítulos 9 y 10)"],
     ["Normas principales", "AISC 360-22 (ASD); ASME BTH-1, Categoría de diseño B (Nd = 3,0); AWS D1.1/D1.1M:2020"],
 ], widths=(50, 120), size=9.5)
 table(["", "Nombre", "Firma", "Fecha"], [["Elaboró", "", "", ""], ["Revisó", "", "", ""], ["Aprobó", "", "", ""]], widths=(25, 65, 45, 35), size=9.5)
@@ -196,6 +201,8 @@ H("2. Normas y criterios")
 reg = (ROOT / "docs" / "normas" / "registro.md").read_text(encoding="utf-8").splitlines()
 rows = []
 for ln in reg:
+    if ln.startswith("## "):
+        break                                    # lo que sigue (sección Temperatura) va en el capítulo 10 y en el Anexo B
     if ln.startswith("|") and not ln.startswith("|---") and "Ámbito" not in ln:
         c = [x.strip() for x in ln.strip("|").split("|")]
         if len(c) >= 3: rows.append(c[:3])
@@ -486,12 +493,481 @@ for gi, g in enumerate(order, 1):
     table(["N°", "Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], rows,
           widths=(8, 52, 70, 17, 17, 13, 14, 18, 58), size=7, num_cols=(3, 4, 6))
 
+# ================================================================= 9. ALTERNATIVAS (horizontal)
+import re
+
+IDS = ["base", "A", "B", "C1", "C2", "C3", "W"]
+AL = {a["id"]: a for a in ALT["alternativas"]}
+SHORT = {"base": "Base: acero–acero con grasa", "A": "A: discos inox con grasa", "B": "B: discos inox + lámina UHMW", "C1": "C1: bronce con grafito + disco duro",
+         "C2": "C2: dos placas de bronce", "C3": "C3: bronce en pastillas + disco duro", "W": "Madera: base + cubierta con anillo"}
+PL = {p["id"]: p for g in D["grupos"] for p in g["p"]}
+
+
+def plab(pid):
+    return PL[pid]["lab"] if pid in PL else pid
+
+
+def crow(c, conf=False):
+    info = c["estado"] == "info"
+    r = [c["nombre"], c["formula"], n(c["dem"]), "—" if c.get("cap") is None else n(c["cap"]), c["unidad"],
+         "—" if info or c.get("fu") is None else n(c["fu"]), EST.get(c["estado"], c["estado"])]
+    if conf:
+        r.append(c.get("conf", "—"))
+    r.append(c["ref"])
+    return r
+
+
+CH = ["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"]
+CW = (48, 78, 16, 16, 17, 11, 17, 64)
+CHC = CH[:7] + ["Conf.", "Referencia"]
+CWC = (46, 74, 16, 16, 17, 11, 16, 9, 62)
+
+
+def find(a, key, rx):
+    return [c for c in a[key] if re.search(rx, c["nombre"])]
+
+
+H("9. Alternativas de interfaz de giro y cubierta de madera")
+T("Hipótesis. Cada alternativa se evalúa con el mismo núcleo (TT.analyze) y los mismos parámetros del capítulo 4; solo cambia el selector de interfaz: "
+  "base (opt_ss = opt_uhmw = opt_bz = 0), A (opt_ss = 1), B (opt_uhmw = 1), C1, C2 y C3 (opt_bz = 1 con bz_conf = 1, 2, 3) y madera (opt_wood = 1 sobre la base). "
+  f"En {TOOL} el selector de alternativa de interfaz ejecuta la misma función. Los datos de este capítulo salen de tools/export_alternativas.js; no se copió ninguna cifra a mano.", size=9)
+table(["Parámetro común", "Id", "Valor", "Significado"], [
+    [plab("hc_min").split(" (")[0], "hc_min", n(P["hc_min"], unit="mm"), "Altura de contacto mínima del tope sobre el canto del sector"],
+    [plab("tol_hc").split(" (")[0], "tol_hc", n(P["tol_hc"], unit="mm"), "Corte y rebabas del canto: el aplastamiento se verifica con h_c − tol_hc"],
+    [plab("j_sec").split(" (")[0], "j_sec", n(P["j_sec"], unit="mm"), "Junta en frío mínima entre sectores (la dilatación a ΔT de montaje la puede aumentar)"],
+    ["Holgura radial de R_i respecto del rebaje del collar", "m_ri", n(P["m_ri"], unit="mm"), "R_i = D_collar/2 + c_boss_r + m_ri"],
+    ["Radio de la oreja de izaje / Ø del agujero", "R_ear / d_ear", f"{n(P['R_ear'])} / {n(P['d_ear'])} mm", "Orejas de izaje de la base (AISC 360-22 §D5.2)"],
+    ["Anillo de acero de la cubierta de madera", "t_ring", n(P["t_ring"], unit="mm"), "Pletina de borde de alto igual al espesor de los tablones"],
+], widths=(70, 28, 30, 139), size=7.5)
+
+H("9.1 Comparación de masa, espesores, presión de contacto, giro y utilización", 2)
+T("Desarrollo. Δ masa se mide contra la base (acero–acero); la altura agregada es el espesor que la alternativa suma entre la base y la mesa (en la madera, el espesor de los tablones). "
+  "Espesores: requerido por flexión sobre el vacío local (Timoshenko y Woinowsky-Krieger §16, 0,6Fy según AISC 360-22 F11) → comercial adoptado (ASTM A240); lámina UHMW por conformidad con la planitud; bronce por flexión con el ligamento entre tapones. "
+  "FU máximo global es el mayor FU de todas las verificaciones; el FU de estructura usa la definición del escenario térmico (resistencia de la estructura; excluye giro y mínimos constructivos) para poder compararlo a 20 y 80 °C.", size=9)
+
+
+def tr(req, ad):
+    return f"{n(req)} → {n(ad)}"
+
+
+rows = []
+for i in IDS:
+    a = AL[i]; f = a["interfaz"]
+    disc = "—"
+    if i in ("A", "B"):
+        disc = tr(f["tssReq"], f["tss"]) + ("" if (f["tss2"] == f["tss"] and f["tss2Req"] == f["tssReq"]) else " · mesa " + tr(f["tss2Req"], f["tss2"]))
+    elif i.startswith("C"):
+        disc = "disco duro " + tr(f["tssReq"], f["tss"])
+    rows.append([SHORT[i], n(a["masa"]), "—" if i == "base" else "+" + n(a["dMasa"]), n(P["t_wood"]) if i == "W" else ("—" if i == "base" else n(f["delta"])), disc,
+                 tr(f["tuhReq"], f["tuh"]) if i == "B" else "—", tr(f["tbzReq"], f["tbz"]) if i.startswith("C") else "—", n(a["q_max"]), n(a["q_avg"])])
+table(["Alternativa", "Masa total (kg)", "Δ masa (kg)", "Altura agregada (mm)", "Discos inox / duro: t_req → adoptado (mm)", "Lámina UHMW: t_req → adoptado (mm)", "Bronce: t_req → adoptado (mm)", "q_máx (MPa)", "q_med (MPa)"],
+      rows, widths=(56, 22, 20, 22, 44, 34, 30, 19, 20), size=7.5, num_cols=(1, 2, 3, 7, 8))
+rows = []
+for i in IDS:
+    a = AL[i]; g = a["giro"]; v = a["veredicto"]; c = a["conteo"]; gb = a["gobernante"]; gr = a["gobernante_resistencia"]
+    rows.append([SHORT[i], n(g["F"]), n(g["p"]), n(g["FS"]), n(g["mu"]), "Sí" if v["gira"] else "NO", "Sí" if v["estructura"] else "NO", n(v["fuMax"]), gb["nombre"],
+                 n(gr["fu"]), gr["nombre"], f"{c['ok']} / {c['warn']} / {c['fail']} / {c['pend']}"])
+table(["Alternativa", "F por cilindro (kN)", "p diseño (bar)", "FS giro", "μ diseño", "¿Gira?", "¿Estructura?", "FU máx. global", "Elemento gobernante (global)", "FU estructura", "Gobernante de estructura", "Cumple / adv. / falla / pend."],
+      rows, widths=(40, 17, 15, 12, 12, 12, 17, 14, 45, 14, 48, 21), size=7, num_cols=(1, 2, 3, 4, 7, 9))
+fs_b, fs_c = AL["base"]["giro"]["FS"], AL["C1"]["giro"]["FS"]
+T(f"Resultado: las siete alternativas giran con FS ≥ {n(P['FS_min'])} y verifican la estructura a 20 °C. Contra la base ({n(AL['base']['masa'], unit='kg')}), A agrega {n(AL['A']['dMasa'], unit='kg')}, B {n(AL['B']['dMasa'], unit='kg')}, "
+  f"C1 {n(AL['C1']['dMasa'], unit='kg')}, C2 {n(AL['C2']['dMasa'], unit='kg')}, C3 {n(AL['C3']['dMasa'], unit='kg')} y la cubierta de madera con su anillo {n(AL['W']['dMasa'], unit='kg')}. "
+  f"El FS de giro sube de {n(fs_b)} (acero–acero) a {n(fs_c)} con bronce grafitado por el menor μ de diseño. "
+  "El FU máximo global es 1,00 en todas: lo fijan límites geométricos y de presión (p. ej. alivio igual a la presión nominal del cilindro; filete mínimo igual al adoptado), no la resistencia.", bold=True, size=9)
+
+# ---- 9.2 topes
+H("9.2 Topes de los sectores (h_c,mín = 6 mm, tol_hc = 1 mm)", 2)
+T("Hipótesis. Cada sector se retiene con un tope: barra soldada al respaldo que apoya sobre el canto del sector. La altura de contacto h_c = t − a_sup − a_inf no baja de h_c,mín y el aplastamiento se verifica con h_c − tol_hc. "
+  "El largo del tope es L = máx(aplastamiento; soldadura)/0,9, limitado por el canto radial disponible (R_o − R_i − 100 mm). F_tope = (T_calado/r_u)/n·(q_máx/q_med). ASME BTH-1 §3-3.3 y §3-3.4 (Nd del proyecto), AWS D1.1/D1.1M:2020 para el filete.", size=9)
+rows = []
+for i in IDS:
+    for t in AL[i]["topes"]:
+        rows.append([i, t["pieza"], pint(t["n"]), n(t["t"]), n(t["L"]), n(t["Lreq"]), n(t["F"]), n(t["h_c"]), n(t["h_c_min"]), n(t["tol_hc"]), n(t["h_c"] - t["tol_hc"]), n(t["z"]), n(t["h_barra"]), n(t["m_barras"])])
+table(["Alt.", "Pieza", "n", "t sector (mm)", "L adoptado (mm)", "L requerido (mm)", "F tope (kN)", "h_c (mm)", "h_c,mín (mm)", "tol_hc (mm)", "h_c − tol_hc (mm)", "z (mm)", "Alto de barra (mm)", "Masa de barras (kg)"],
+      rows, widths=(11, 74, 9, 14, 16, 17, 15, 12, 14, 13, 17, 10, 16, 19), size=7, num_cols=tuple(range(2, 14)))
+rows = []
+for i in ("A", "B", "C1", "C2", "C3"):
+    for c in find(AL[i], "topes_checks", r"altura de contacto efectiva|h_c − tol_hc|canto contra el tope"):
+        r = crow(c); r[0] = f"[{i}] " + r[0]; rows.append(r)
+table(CH, rows, widths=CW, size=6.5, num_cols=(2, 3, 5))
+bh = AL["B"]["topes"][1]
+T(f"Resultado: todos los topes cumplen con h_c ≥ {n(P['hc_min'])} mm y h_c − tol_hc ≥ {n(P['hc_min'] - P['tol_hc'])} mm; el largo adoptado de los discos es {n(AL['A']['topes'][0]['L'])} mm (requerido {n(AL['A']['topes'][0]['Lreq'])}). "
+  f"En la lámina UHMW de B el tope ocupa todo el canto ({n(bh['L'])} mm) y el espesor ({n(bh['t'])} mm) lo fija h_c: la presión admisible del UHMW (5 MPa) manda sobre el acero.", bold=True, size=9)
+
+# ---- 9.3 R_i, collar y cubo
+H("9.3 Radio interior R_i, collar del pivote y cubo con holguras", 2)
+hb = AL["base"]["hub"]
+T(f"Hipótesis. El anillo de contacto de la interfaz empieza en R_i = D_collar/2 + c_boss_r + m_ri = {n(AL['base']['Ri'], unit='mm')} (D_collar = {n(P['D_boss'])} mm, c_boss_r = {n(P['c_boss_r'])} mm, m_ri = {n(P['m_ri'])} mm), "
+  f"de modo que la interfaz queda libre del rebaje del collar y del agujero de la plancha inferior (Ø {n(hb['Drb'])} mm). El rebaje del cubo tiene profundidad h_collar − δ + c_boss_a, con δ la altura que suma la interfaz; "
+  "se reparte entre la plancha inferior y el cubo. Criterio de proyecto (geometría); filete del collar según AWS D1.1/D1.1M:2020 y AISC 360-22 §J2.2b.", size=9)
+table(["Holgura o dimensión", "Id", "Valor", "Unidad"], [[plab(k).split(" (")[0], k, n(P[k]), PL[k]["u"]] for k in ("h_boss", "D_boss", "w_collar", "c_boss_r", "c_boss_a", "m_ri", "g_bush", "D_piv")],
+      widths=(150, 35, 30, 30), size=7.5, num_cols=(2,))
+table(["Alternativa", "δ interfaz (mm)", "R_i (mm)", "Ø rebaje (mm)", "Profundidad (mm)", "En plancha inferior (mm)", "En el cubo (mm)", "Pared junto al rebaje (mm)"],
+      [[SHORT[i], n(AL[i]["hub"]["delta"]), n(AL[i]["Ri"]), n(AL[i]["hub"]["Drb"]), n(AL[i]["hub"]["hRaw"]), n(AL[i]["hub"]["hPl"]), n(AL[i]["hub"]["hHub"]), n(AL[i]["hub"]["wall"])] for i in IDS],
+      widths=(66, 28, 24, 26, 30, 32, 28, 33), size=7.5, num_cols=tuple(range(1, 8)))
+table(CH, [crow(c) for c in AL["base"]["collar"]], widths=CW, size=6.5, num_cols=(2, 3, 5))
+T("Variación con la alternativa (la pared del rebaje, el buje bajo la plancha superior y la profundidad del rebaje dependen de δ):", size=9, after=1)
+rows = []
+for i in ("A", "B", "C3"):
+    for c in find(AL[i], "collar", r"Rebaje del cubo|Buje sobre el collar|Interfaz: R_i"):
+        r = crow(c); r[0] = f"[{i}] " + r[0]; rows.append(r)
+table(CH, rows, widths=CW, size=6.5, num_cols=(2, 3, 5))
+T(f"Resultado: R_i = {n(AL['base']['Ri'])} mm con holgura m_ri = {n(P['m_ri'])} mm (FU 1,00: es la holgura mínima adoptada). En B (δ = {n(AL['B']['interfaz']['delta'])} mm) el rebaje se reduce a {n(AL['B']['hub']['hRaw'])} mm de profundidad y queda todo en la plancha inferior; "
+  "el cubo no se rebaja.", bold=True, size=9)
+
+# ---- 9.4 orejas
+H("9.4 Orejas de izaje (R = 92 mm, Ø agujero 45 mm)", 2)
+T(f"Hipótesis. Cuatro orejas de plancha t = {n(P['t_ear'])} mm en la base, c_lug = {n(P['c_lug'])} mm y x_lug = {n(P['x_lug'])} mm, grillete de pasador Ø {n(P['d_ear'] - P['g_ear'])} mm (holgura g = {n(P['g_ear'])} mm), "
+  "3 ramales efectivos a 60°. Resistencia con ASME BTH-1 §3-2 y §3-3 (Nd = 3,0) y AISC 360-22 §D5; geometría de la oreja con AISC 360-22 §D5.2: extensión a ≥ 1,33·b_e y ancho 2R ≥ 2·b_e + d, con b_e = mín(2t + 16; (2R − d)/2).", size=9)
+table(CH, [crow(c) for c in AL["base"]["orejas"]], widths=CW, size=6.5, num_cols=(2, 3, 5))
+ea = find(AL["base"], "orejas", r"extensión a")[0]
+T(f"Resultado: las orejas cumplen; la extensión tras el agujero gobierna con FU {n(ea['fu'])} ({n(ea['dem'])} frente a {n(ea['cap'])} mm). La holgura de {n(P['g_ear'])} mm solo es admisible porque el izaje es estático (el pasador no gira bajo carga plena).", bold=True, size=9)
+
+# ---- 9.5 filetes
+H("9.5 Filetes: mínimo AWS D1.1 y máximo AISC 360-22 J2.2b", 2)
+T("Hipótesis. Filete mínimo por la parte más gruesa unida (AWS D1.1/D1.1M:2020, Tabla 5.8: 3, 5, 6 y 8 mm para ≤ 6, ≤ 12, ≤ 20 y > 20 mm), sin exceder el espesor de la parte más delgada; filete máximo a lo largo de bordes "
+  "(AISC 360-22 §J2.2b: t < 6 mm → t; t ≥ 6 mm → t − 2 mm), aplicado a la parte que termina en el borde. En las filas de mínimo, Demanda = w_mín exigido y Capacidad = w adoptado; en las de máximo, Demanda = w adoptado y Capacidad = w_máx.", size=9)
+table(CH, [crow(c) for c in AL["base"]["filetes"]], widths=CW, size=6.5, num_cols=(2, 3, 5))
+rows = []
+for i in ("A", "B", "C1", "C2", "C3"):
+    for c in find(AL[i], "filetes", r"filete mínimo del tope"):
+        r = crow(c); r[0] = f"[{i}] " + r[0]; rows.append(r)
+T("Filetes de los topes de cada alternativa (mismo criterio AWS D1.1/D1.1M:2020 Tabla 5.8):", size=9, after=1)
+table(CH, rows, widths=CW, size=6.5, num_cols=(2, 3, 5))
+fm = find(AL["base"], "filetes", r"Filete mínimo almas")[0]
+wmax_web = P["t_web"] - 2 if P["t_web"] >= 6 else P["t_web"]
+T(f"Resultado: los filetes de mejillas, collar y orejas quedan entre el mínimo de AWS y el máximo de AISC. Los de almas y nervios están en el mínimo exacto ({n(fm['dem'])} mm = {n(fm['cap'])} mm, FU 1,00). "
+  f"Queda un punto abierto: el núcleo exige w_mín ≤ w ≤ t_alma, pero el máximo de borde de AISC 360-22 §J2.2b para un alma de {n(P['t_web'])} mm sería t − 2 = {n(wmax_web)} mm, menor que el mínimo de AWS de {n(fm['dem'])} mm (fijado por la plancha de 20 mm). "
+  "No es un incumplimiento del núcleo, pero el filete máximo de almas y nervios sigue pendiente de revisión (se resuelve con el procedimiento de soldadura o con el espesor del alma).", bold=True, size=9)
+
+# ---- 9.6 madera
+H("9.6 Cubierta de madera dura con anillo de acero", 2)
+wd = AL["W"]["madera"]
+T(f"Hipótesis. Tablones de madera dura e = {n(wd['t_wood'])} mm dentro de una pletina de acero de borde (t_ring = {n(wd['t_ring'])} mm, alto igual al espesor de los tablones) soldada a la plancha superior; "
+  "la cubierta gira con la mesa, no se acredita reparto de la carga y la presión de contacto sube por el peso agregado. Sin tablones, la masa de la cubierta es cero.", size=9)
+table(["Magnitud", "Valor"], [["Masa de la madera", n(wd["m_madera"], unit="kg")], ["Masa del anillo de acero", n(wd["m_anillo"], unit="kg")],
+                              ["Δ masa total contra la base", "+" + n(AL["W"]["dMasa"], unit="kg")], ["Altura agregada", n(wd["t_wood"], unit="mm")],
+                              ["q_máx con la cubierta", n(AL["W"]["q_max"], unit="MPa")], ["FS de giro", n(AL["W"]["giro"]["FS"])]], widths=(90, 50), size=8)
+table(CH, [crow(c) for c in wd["checks"]], widths=CW, size=6.5, num_cols=(2, 3, 5))
+T("Resultado: la presión de aplastamiento perpendicular a la fibra queda bajo la admisible, la ley lineal de presiones no admite tracción y el giro conserva su FS. "
+  "La fijación de los tablones, el acceso a la tapa de inspección y la humedad quedan como pendiente de proyecto.", bold=True, size=9)
+
+# ---- 9.7 pendientes
+H("9.7 Advertencias y pendientes por alternativa", 2)
+rows = []
+for i in IDS:
+    av = AL[i]["avisos"]
+    if not av:
+        rows.append([i, "—", "—", "Sin advertencias ni pendientes", "—"])
+    for v in av:
+        rows.append([i, EST.get(v["estado"], v["estado"]), v["grp"], v["nombre"], v["ref"]])
+table(["Alt.", "Estado", "Grupo", "Advertencia o pendiente", "Referencia"], rows, widths=(11, 20, 28, 140, 68), size=7)
+T("Además de lo anterior, quedan como pendiente común el filete máximo de almas y nervios (9.5) y la numeración de artículos de ASME BTH-1 (capítulo 12).", size=9)
+
+# ================================================================= 10. EXPOSICIÓN SOLAR (horizontal)
+TH = D["termica"]
+THW = ALT["termica_madera"][0]
+THA = {a["id"]: a for a in TH["alternativas"]}
+THA["W"] = THW
+MED = ALT["medidas"]
+T0, TS = TH["T_ref"], TH["T_scn"]
+iS = TH["T"].index(TS)
+F80 = [f for f in TH["factores"] if f["T"] == TS][0]
+AC80 = [x for x in TH["aceite"] if x["T"] == TS][0]
+VI80 = [x for x in TH["viscosidad"] if x["T"] == TS][0]
+bT = lambda i, k=iS: THA[i]["byT"][k]
+filas = lambda i, subs, k=iS: [f for f in bT(i, k)["filas"] if f["sub"] in subs]
+bas80 = bT("base")
+REGREF = "docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)»"
+
+# Afirmaciones cualitativas del texto: si los datos del núcleo cambian y dejan de ser ciertas, la memoria no se emite con texto desactualizado
+_b = lambda i, k=iS: THA[i]["byT"][k]
+assert all(AL[i]["veredicto"]["gira"] and AL[i]["veredicto"]["estructura"] for i in IDS), "alguna alternativa no cumple a 20 °C"
+assert all(abs(AL[i]["veredicto"]["fuMax"] - 1) < 1e-6 for i in IDS), "FU máximo global distinto de 1,00"
+assert all(_b(i)["estructura"] for i in ("base", "A", "C1", "C2", "W")) and not _b("B")["estructura"] and not _b("C3")["estructura"], "estructura a 80 °C: texto desactualizado"
+assert not _b("A")["gira"] and not _b("B")["gira"] and all(_b(i)["gira"] for i in ("base", "C1", "C2", "C3", "W")), "giro a 80 °C: texto desactualizado"
+assert all(_b(i)["nFail"] > 0 and not _b(i)["termico"] for i in IDS), "falla térmica del aceite en todas: texto desactualizado"
+assert all(abs(THA[i]["byT"][0]["FS"] - _b(i)["FS"]) < 1e-9 for i in IDS), "el FS de giro cambia con T"
+assert (not _b("B", 2)["estructura"]) and (not _b("A", 2)["gira"]) and _b("C3", 2)["fuTerm"] > 1 and all(not _b(i, 4)["estructura"] for i in IDS), "sensibilidad 20–100 °C: texto desactualizado"
+assert len(THA["C3"]["sens"]["bz090"]["empeoran"]) == 0, "bronce x 0,90 cambia verificaciones"
+assert not THA["B"]["sens"]["uhmw"]["kp"][1]["cumple"] and THA["B"]["sens"]["uhmw"]["kp_crit"] is not None
+assert THW["sens"]["madera"][0]["estado"] == "ok" and THW["sens"]["madera"][1]["estado"] == "fail"
+assert MED["alivio_termico"][1]["resumen"]["nFail"] == 0 and MED["alivio_termico"][0]["resumen"]["nFail"] > 0
+
+H("10. Exposición solar: servicio a 80 °C")
+T("Escenario aparte, pedido del mandante (06-11-2026): la tornamesa expuesta al sol, con el cuerpo a 80 °C. No cambia el cálculo a 20 °C ni el veredicto de los capítulos 8 y 9; "
+  f"se obtiene con TT.thermal (clave `termica` de tools/export_design.js, la misma que muestra la pestaña Temperatura de {TOOL}). Los datos y su nivel de confianza A/B/C están en {REGREF}; "
+  "lo que no pude leer en la norma original queda marcado con confianza C.", size=9)
+
+H("10.1 Hipótesis", 2)
+table(["Hipótesis", "Valor adoptado", "Origen y confianza"], [
+    ["Temperatura del cuerpo", f"{pint(TS)} °C uniforme en todo el cuerpo; referencia de diseño y montaje {pint(T0)} °C (ΔT = {pint(TS - T0)} K)", "Pedido del mandante. Plancha horizontal de acero oscuro al sol: 58 a 70 °C medidos, 80 °C es cota alta plausible sin viento (C)"],
+    ["Gradiente entre planchas", f"{n(TH['gradiente_scn'])} K entre la plancha superior (al sol) y la inferior (a la sombra) a {pint(TS)} °C; a otra temperatura se escala con ΔT/{pint(TS - T0)} K", "EN 1991-1-5 §6.1.4.1, Tabla 6.1 (18 K, tableros de puentes: otra tipología; C). Medición o análisis térmico propio por hacer"],
+    ["Geometría", f"Dimensionada a {pint(T0)} °C y evaluada congelada a {pint(TS)} °C: espesores, largos de tope, ménsula y juntas son los de 20 °C; solo se reducen las capacidades", "Criterio del núcleo (TT.thermalP). No re-dimensiona"],
+    ["Capacidades", f"Factores k a {pint(TS)} °C del apartado 10.2, interpolados linealmente entre {pint(T0)} °C y {pint(TS)} °C y extrapolados con nota sobre {pint(TS)} °C", "Registro, tabla «Valores por material»"],
+    ["Aceite hidráulico", f"ISO VG 46 a {pint(TS)} °C; ν = {n(VI80['lo'])} a {n(VI80['hi'])} mm²/s (IV 100 a 185); K del aceite {n(P['K_oil'])} a {n(P['K_oil_hi'])} MPa", "ASTM D341 (Walther), fichas de aceite (B/C); K sin fuente a 700 bar y 80 °C (C)"],
+    ["Válvula de bloqueo", f"Cada cilindro con válvulas de retención/bloqueo (capítulo 7.7): el tramo cilindro + retenciones puede quedar aislado y calentarse; alivio térmico del tramo: {'no hay' if P['alivio_term'] == 0 else n(P['alivio_term'], unit='bar')}", "ISO 4413:2010 (cláusula por confirmar); práctica de Power & Motion y AIChE/CCPS (secundarias)"],
+    ["Contenedor del aceite", f"Cilindro de pared gruesa b/a = {n(P['ba_cil'])} (Lamé), K_c = {n(AC80['Kc_lame_MPa'] / 1000)} GPa; presión máxima de trabajo {n(P['p_max_cil'], unit='bar')}, prueba 1,5× = {n(1.5 * P['p_max_cil'], unit='bar')}", "Hipótesis del revisor (C); ISO 10100 de memoria (C)"],
+    ["Alcance", "Informativo: no entra en el veredicto del núcleo a 20 °C (golden file sin cambios)", "Decisión del proyecto"],
+], widths=(40, 130, 97), size=7.5)
+
+H("10.2 Factores de reducción por material, dilataciones y ecuaciones", 2)
+T("Hipótesis. Los factores k = valor a 80 °C / valor a 20 °C salen de los parámetros kT_* del núcleo; el registro entrega solo el valor a 80 °C. Nivel de confianza: A = transcripción contrastada con copia del editor; "
+  "B = ficha de fabricante o dos fuentes secundarias coherentes; C = fuente única, valor de memoria o criterio de ingeniería.", size=9)
+KMAP = {"kT_Fy": "Fy", "kT_E": "E", "kT_Fy_ss": "Fy_ss", "kT_E_ss": "E_ss", "kT_p_uh": "p_uh", "kT_E_uh": "E_uh", "kT_bz": "bz", "kT_wood": "wood", "kT_bolt": "bolt", "kT_weld": "weld", "kT_hertz": "hertz", "k_mu_T": "mu"}
+APLICA = {"kT_Fy": "Fy, Fy_pin, Fy_dog, Fy_pp, Fy_piv, Fy_shoe, Fy_cara", "kT_E": "E", "kT_Fy_ss": "Fy_ss (discos inox)", "kT_E_ss": "Informativo", "kT_p_uh": "p_uhmw, PV_uh", "kT_E_uh": "E_uhmw",
+          "kT_bz": "Fy_bz, Fy_bz2, p_bz, PV_bz, p_bush", "kT_wood": "p_wood", "kT_bolt": "Informativo (sin verificación de resistencia)", "kT_weld": "FEXX", "kT_hertz": "Fy_surf (caras templadas)", "k_mu_T": "μ de las interfaces"}
+rows = []
+for pid, key in KMAP.items():
+    lab = plab(pid); mt = re.match(r"^(.*?) \((.*)\)$", lab)
+    prop, src = (mt.group(1), mt.group(2)) if mt else (lab, "—")
+    conf = "/".join(dict.fromkeys(re.findall(r"confianza ([ABC])", lab))) or "—"
+    rows.append([prop, pid, n(F80["k"][key], 3), APLICA[pid], conf, src])
+table(["Material y propiedad", "Id", f"k a {pint(TS)} °C", "Se aplica a", "Conf.", "Fuente (registro, sección Temperatura)"], rows, widths=(66, 18, 16, 50, 12, 105), size=7, num_cols=(2,))
+AL_SRC = {"st": ("Acero (media 20–80 °C)", "EN 1993-1-2 §3.4.1.1 (Δl/l = 1,2×10⁻⁵θ + 0,4×10⁻⁸θ² − 2,416×10⁻⁴); EN 1993-1-1 §3.2.6", "B"),
+          "ss": ("Inoxidable 304/316", "EN 10088-1 (16,0 a 17,2×10⁻⁶ /K); AmesWeb", "B"), "uh": ("UHMW-PE", "ISO 11359-1/2 (Ensinger PE1000: 180×10⁻⁶ /K; GUR 4120: 200×10⁻⁶ /K)", "B"),
+          "bz": ("Bronce", "CDA, de memoria (C93200 ≈ 18×10⁻⁶ /K); no encontrado", "C"), "woodT": ("Madera ⊥ fibra", "Valor de memoria sin fuente (el registro cita ~40×10⁻⁶ /K); Wood Handbook (FPL) por confirmar", "C"),
+          "woodL": ("Madera ∥ fibra", "Valor de memoria sin fuente; Wood Handbook (FPL) por confirmar", "C")}
+table(["Dilatación térmica", "α (10⁻⁶ /K)", "ε = α·ΔT (mm/m)", "Fuente", "Conf."],
+      [[AL_SRC[k][0], n(F80["alpha"][k] * 1e6), n(F80["alpha"][k] * (TS - T0) * 1e3), AL_SRC[k][1], AL_SRC[k][2]] for k in ("st", "ss", "uh", "bz", "woodT", "woodL")], widths=(45, 24, 28, 158, 12), size=7, num_cols=(1, 2))
+T("Ecuaciones del escenario y su referencia:", bold=True, size=9, after=1)
+table(["Ecuación", "Expresión", "Referencia o fuente"], [
+    ["Factor a temperatura intermedia", "k(T) = 1 + (k₈₀ − 1)·(T − T_ref)/(80 − T_ref); extrapolado sobre 80 °C con aviso", "Criterio del núcleo (TT.thermalFactors); k₈₀ del registro"],
+    ["Dilatación libre del acero", "ε = α_m·ΔT, α_m = [ε(T) − ε(T_ref)]/(T − T_ref), ε(θ) = 1,2×10⁻⁵θ + 0,4×10⁻⁸θ² − 2,416×10⁻⁴", "EN 1993-1-2 §3.4.1.1 (de memoria, no cotejada con el texto); EN 1993-1-1 §3.2.6"],
+    ["Reducción de Fy y E del acero", "Fy(80 °C) = Fy; sensibilidad k = 0,92", "AISC 360-22 Apéndice 4, Tabla A-4.2.1 y EN 1993-1-2 Tabla 3.1 (k = 1,00; solo fuego, cota); ASME II-D Tabla Y-1 (0,92, de memoria)"],
+    ["Junta de dilatación de sectores", "j_req = (α_pieza − α_acero)·ΔT·cuerda; cuerda = 2R_o·sin(π/n); debe ser ≤ j_disp en frío", "Registro, «Cálculos del revisor» (~10 mm/m para UHMW contra acero)"],
+    ["Aceite atrapado", "Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c); α_v = 7,5×10⁻⁴ /K", "Registro, «Presión por aceite atrapado»; ISO 4413:2010 (cláusula por confirmar)"],
+    ["Rigidez volumétrica del tubo", "K_c = E/{2·[(b² + 1)/(b² − 1) + ν]}, con b/a = relación de diámetros", "Lamé, cilindro de pared gruesa (p. ej. Timoshenko, Theory of Elasticity); hipótesis del revisor"],
+    ["Curvatura y flecha por gradiente", "κ = α·ΔT_g/h; s = κ·(D/2)²/2", "Registro, «Flexión por gradiente»; EN 1991-1-5 §6.1.4.1, Tabla 6.1"],
+    ["Tensión de la plancha restringida", "σ = E·α·ΔT_g/(2·(1 − ν)); verificación combinada (dem + σ_th)/cap, suma conservadora", "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells (placa restringida); criterio del núcleo"],
+    ["Buje de bronce en el cubo", "cierre = 2·[(a·α_bz·ΔT − ρ·(α_bz − α_ac)·ΔT·b) − a·α_ac·ΔT]; ρ = 2ab/[(b² + a²) − ν(b² − a²)]", "Lamé (anillo comprimido); hipótesis del revisor"],
+    ["Viscosidad del aceite", "log₁₀log₁₀(ν + 0,7) = A − B·log₁₀T (T en K), con 40 y 100 °C", "ASTM D341 (Walther); Registro, «Viscosidad a 80 °C»"],
+    ["PV de la lámina UHMW", "PV(T) = PV₂₀·(80 − T)/(80 − T_ref)", "Criterio del revisor (C); Quadrant TIVAR 1000, «Limiting PV»"],
+    ["Madera", "p_adm(T) = C_t·p_adm; C_t = 0,70", "NDS 2018 Tabla 2.3.3 (0,70 a 125–150 °F; 80 °C queda fuera de la tabla: extrapolación, C)"],
+    ["Giro con μ distinto", "FS(f·μ) = FS_diseño/f (F lineal en μ)", "Equilibrio del capítulo 7"],
+], widths=(48, 126, 93), size=7)
+T("Resultado: acero estructural y soldadura sin reducción a 80 °C (k = 1,00, confianza B y C); el inoxidable pierde 18 % de Fy (0,82, C) y el UHMW-PE 60 % de p_adm, PV y módulo (0,40, C); la madera, 30 % (0,70, A en la tabla, C al extrapolar a 80 °C). "
+  "La dilatación del UHMW (~10 mm/m más que el acero) es lo que más pesa en las juntas.", bold=True, size=9)
+
+# ---- 10.3 resultados por alternativa
+H("10.3 Resultados por alternativa: 20 °C frente a 80 °C", 2)
+T("Desarrollo. Para cada alternativa, TT.thermal analiza la geometría de 20 °C con las capacidades de cada temperatura. FS = giro (el μ no cambia con T: k_mu = 1). FU de estructura = mayor FU de resistencia de la estructura; "
+  "FU térmico = mayor FU de las verificaciones del grupo «Temperatura» (juntas, gradiente, aceite, sellos). Con gradiente a 80 °C de "
+  f"{n(TH['gradiente_scn'])} K.", size=9)
+rows = []
+for i in IDS:
+    b0, b1 = bT(i, 0), bT(i)
+    rows.append([SHORT[i], n(b0["FS"]), n(b1["FS"]), n(b0["fuEst"]), n(b1["fuEst"]), b1["gobernante"]["nombre"], n(b0["fuTerm"]), n(b1["fuTerm"]), b1["gobernanteTerm"]["nombre"]])
+table(["Alternativa", "FS giro 20 °C", f"FS giro {pint(TS)} °C", "FU estructura 20 °C", f"FU estructura {pint(TS)} °C", f"Gobernante de estructura a {pint(TS)} °C", "FU térmico 20 °C", f"FU térmico {pint(TS)} °C", f"Gobernante térmico a {pint(TS)} °C"],
+      rows, widths=(46, 15, 15, 17, 17, 52, 15, 15, 75), size=7, num_cols=(1, 2, 3, 4, 6, 7))
+rows = []
+for i in IDS:
+    b0, b1 = bT(i, 0), bT(i)
+    rows.append([SHORT[i], n(b0["masa"]), "Sí" if b0["gira"] else "NO", "Sí" if b0["estructura"] else "NO", "Sí" if b0["termico"] else "NO", f"{b0['nFail']} / {b0['nWarn']}",
+                 "Sí" if b1["gira"] else "NO", "Sí" if b1["estructura"] else "NO", "Sí" if b1["termico"] else "NO", f"{b1['nFail']} / {b1['nWarn']}"])
+table(["Alternativa", "Masa (kg)", "20 °C: ¿gira?", "20 °C: ¿estructura?", "20 °C: ¿térmico?", "20 °C: fallas / adv.", f"{pint(TS)} °C: ¿gira?", f"{pint(TS)} °C: ¿estructura?", f"{pint(TS)} °C: ¿térmico?", f"{pint(TS)} °C: fallas / adv."],
+      rows, widths=(56, 20, 22, 26, 24, 26, 22, 26, 24, 21), size=7, num_cols=(1,))
+sB, sC3 = bT("B"), bT("C3")
+T(f"Resultado: el FS de giro no cambia con la temperatura porque el μ de entrada no cambia (sensibilidad en 10.11). La estructura sigue verificando a {pint(TS)} °C en base, A, C1, C2 y madera (FU {n(bT('base')['fuEst'])}); "
+  f"B deja de cumplir (FU {n(sB['fuEst'])}, {sB['gobernante']['nombre']}) y C3 también (FU térmico {n(sC3['fuTerm'])} en la plancha inferior). "
+  "En A y B el giro deja de verificar porque el aplastamiento del tope de los discos inoxidables supera su capacidad reducida (Fy × 0,82). "
+  "Todas las alternativas tienen fallas térmicas por el aceite atrapado (10.6): sin válvula de alivio térmico ninguna queda en servicio a 80 °C.", bold=True, size=9)
+
+# ---- 10.4 sensibilidad a la temperatura
+H("10.4 Sensibilidad a la temperatura: 20, 40, 60, 80 y 100 °C", 2)
+T(f"Desarrollo. Mismos cálculos a cada temperatura; el gradiente se escala con ΔT/{pint(TS - T0)} K; a 100 °C los factores están extrapolados desde 80 °C (sin dato publicado) y valen como orden de magnitud.", size=9)
+table(["Factor"] + [f"{pint(f['T'])} °C" + (" (extrap.)" if f["extrapolado"] else "") for f in TH["factores"]],
+      [[lab] + [n(f["k"][key], 3) for f in TH["factores"]] for lab, key in (("k Fy inoxidable", "Fy_ss"), ("k E inoxidable", "E_ss"), ("k p_adm, PV y E del UHMW", "p_uh"), ("k C_t madera", "wood"), ("k Rp0,2 pernos 10.9", "bolt"), ("k Fy del acero", "Fy"))]
+      + [["α medio del acero (10⁻⁶ /K)"] + [n(f["alpha"]["st"] * 1e6, 4) for f in TH["factores"]], ["Gradiente de plancha (K)"] + [n(bT("base", k)["gradiente"]) for k in range(len(TH["T"]))]],
+      widths=(70, 38, 38, 38, 38, 45), size=7.5, num_cols=(1, 2, 3, 4, 5))
+TT_ = [f"{pint(t)} °C" for t in TH["T"]]
+T("FU de estructura:", size=9, after=1)
+table(["Alternativa"] + TT_, [[SHORT[i]] + [n(b["fuEst"]) for b in THA[i]["byT"]] for i in IDS], widths=(80, 36, 36, 36, 36, 36), size=7.5, num_cols=(1, 2, 3, 4, 5))
+T("FU térmico (juntas, gradiente, aceite, sellos):", size=9, after=1)
+table(["Alternativa"] + TT_, [[SHORT[i]] + [n(b["fuTerm"]) for b in THA[i]["byT"]] for i in IDS], widths=(80, 36, 36, 36, 36, 36), size=7.5, num_cols=(1, 2, 3, 4, 5))
+T("Veredicto (¿gira? / ¿estructura? / ¿térmico?) y número de fallas:", size=9, after=1)
+yn = lambda x: "Sí" if x else "NO"
+table(["Alternativa"] + TT_, [[SHORT[i]] + [f"{yn(b['gira'])} / {yn(b['estructura'])} / {yn(b['termico'])} · {b['nFail']} f." for b in THA[i]["byT"]] for i in IDS], widths=(70, 39, 39, 39, 39, 41), size=7.5)
+fb40, fb60 = bT("base", 1), bT("base", 2)
+T(f"Resultado: la base, C1 y C2 son estructuralmente insensibles a la temperatura hasta 80 °C (el acero no pierde Fy); lo que crece con T es el FU térmico (gradiente de la plancha) de {n(bT('base', 0)['fuTerm'])} a {n(bT('base')['fuTerm'])} en 80 °C. "
+  f"El aceite atrapado ya falla a {pint(TH['T'][1])} °C ({fb40['nFail']} fallas en la base). B es la más sensible: pierde estructura desde {pint(TH['T'][2])} °C (FU {n(bT('B', 2)['fuEst'])}). "
+  f"A pierde el giro desde {pint(TH['T'][2])} °C. C3 supera FU térmico 1,00 desde {pint(TH['T'][2])} °C. A 100 °C todas pierden la estructura, incluso la base (gradiente de {n(bT('base', 4)['gradiente'])} K).", bold=True, size=9)
+
+# ---- 10.5 cambios de estado
+H("10.5 Verificaciones que cambian de estado entre 20 y 80 °C", 2)
+T("Desarrollo. Se comparan, fila a fila, los estados a 20 y 80 °C. El primer bloque es común a todas las alternativas (valores de la base; las alternativas con bronce o UHMW difieren solo en el FU); "
+  "los siguientes son propios de cada alternativa. Confianza = nivel del dato reducido.", size=9)
+base_names = {c["nombre"]: (c["de"], c["a"]) for c in bT("base")["cambian"]}
+
+
+def crows(L, tag):
+    return [[tag, c["grp"], c["nombre"], EST.get(c["de"], c["de"]), EST.get(c["a"], c["a"]), "—" if c["fu20"] is None else n(c["fu20"]), "—" if c["fuT"] is None else n(c["fuT"]), c["conf"]] for c in L]
+
+
+rows = crows(bT("base")["cambian"], "Todas")
+for i in ("A", "B", "C1", "C2", "C3", "W"):
+    spec = [c for c in bT(i)["cambian"] if base_names.get(c["nombre"]) != (c["de"], c["a"])]
+    rows += crows(spec, i) if spec else [[i, "—", "Sin cambios adicionales a los comunes", "—", "—", "—", "—", "—"]]
+table(["Alt.", "Grupo", "Verificación", "20 °C", f"{pint(TS)} °C", "FU 20 °C", f"FU {pint(TS)} °C", "Conf."], rows, widths=(14, 28, 140, 20, 20, 15, 15, 15), size=6.5, num_cols=(5, 6))
+nA = [c for c in bT("A")["cambian"] if c["grp"] == "Interfaz inox"]
+T(f"Resultado: en A y B el aplastamiento del tope de los discos inoxidables pasa de FU {n(nA[0]['fu20'])} a {n(nA[0]['fuT'])} con Fy × {n(F80['k']['Fy_ss'], 2)}; "
+  "en B además fallan la lámina UHMW (espesor, aplastamiento del canto y del tope, PV) y la junta; en C3 la plancha inferior con la σ térmica pasa de advertencia a falla. "
+  "Las que no dependen de la alternativa son el gradiente de las planchas (advertencia), el aceite atrapado (falla), la viscosidad del aceite y los sellos NBR (advertencia).", bold=True, size=9)
+
+# ---- 10.6 aceite atrapado
+H("10.6 Aceite atrapado entre la válvula de bloqueo y el tope", 2)
+T("Hipótesis. Con las válvulas de retención/bloqueo cerradas, el aceite del cilindro queda aislado entre la válvula y un tope mecánico (fin de carrera, calado o cadena de empuje bloqueada) y se calienta de 20 a 80 °C sin poder expandirse. "
+  "Si el pistón puede moverse bajo carga muerta, la presión se mantiene en W/A y la expansión sale como carrera; la sobrepresión aparece solo con el movimiento restringido. "
+  "Un alivio de sistema aguas arriba de la retención no protege el tramo aislado: solo una válvula de alivio térmico en el propio tramo lo hace.", size=9)
+T("Desarrollo. Δp = (α_v − 3α_s)·ΔT/(1/K_aceite + 1/K_c) (registro, «Presión por aceite atrapado»; ISO 4413:2010, cláusula por confirmar). Con 1/K_c = 0 el contenedor es rígido; con Lamé (b/a = "
+  f"{n(P['ba_cil'])}) K_c = {n(AC80['Kc_lame_MPa'] / 1000)} GPa; en manguera, K combinado de 327 MPa (C).", size=9)
+table(["T (°C)", "ΔT (K)", "Rígido, K = 1,4 / 1,9 GPa (bar)", "Cilindro (Lamé), K = 1,4 / 1,9 GPa (bar)", "Manguera (bar)", "Adoptado: cilindro, K alta (bar)"],
+      [[pint(a["T"]), pint(a["dT"]), f"{n(a['rigido']['bajo'])} / {n(a['rigido']['alto'])}", f"{n(a['cilindro']['bajo'])} / {n(a['cilindro']['alto'])}", n(a["manguera"]), n(a["seleccion_bar"])] for a in TH["aceite"]],
+      widths=(25, 25, 62, 68, 40, 47), size=7.5, num_cols=(0, 1, 2, 3, 4, 5))
+orows = [f for f in bT("base")["filas"] if f["sub"] == "e"]
+table(CHC, [crow(c, True) for c in orows], widths=CWC, size=6.5, num_cols=(2, 3, 5))
+dp = AC80["cilindro"]["alto"]
+o1 = [f for f in orows if "carrera de diseño" in f["nombre"]][0]; o2 = [f for f in orows if "tras el calado" in f["nombre"]][0]
+T(f"Resultado: Δp = {n(dp)} bar con K = 1,9 GPa en el cilindro ({n(AC80['cilindro']['bajo'])} bar con 1,4 GPa; {n(AC80['rigido']['alto'])} bar si el contenedor fuera rígido y {n(AC80['manguera'])} bar solo con manguera). "
+  f"En la carrera de diseño la presión llega a {n(o1['dem'])} bar frente a la presión máxima de trabajo de {n(o1['cap'])} bar (FU {n(o1['fu'])}); tras el calado, {n(o2['dem'])} bar frente a la prueba de {n(o2['cap'])} bar (FU {n(o2['fu'])}); "
+  f"en la cámara anular, {n(orows[3]['dem'])} bar. La válvula de alivio térmico es necesaria en cada cilindro; el alivio del sistema ({n(P['p_relief'])} bar) está aguas arriba de la retención y no protege el tramo.", bold=True, size=9)
+
+# ---- 10.7 juntas
+H("10.7 Juntas de dilatación de los sectores", 2)
+T("Hipótesis. Cada sector se coloca con la junta en frío j_disp = máx(j_sec; dilatación a ΔT de montaje) del diseño a 20 °C. A 80 °C el sector de material con mayor α que el acero crece más que su respaldo y, si la junta se cierra, se comprime y pandea. "
+  "j_req = (α_pieza − α_acero)·ΔT·cuerda, con la cuerda del sector a R_o. Referencia: registro, «Cálculos del revisor» (UHMW: ~10 mm/m más que el acero).", size=9)
+rows = []
+for i in IDS:
+    js = THA[i]["juntas"]
+    if not js:
+        rows.append([i, "Sin sectores en la interfaz", "—", "—", "—", "—"])
+    for j in js:
+        rows.append([i, j["pieza"], n(j["j_req"]), n(j["j_disp"]), n(j["fu"]), EST.get(j["estado"], j["estado"])])
+table(["Alt.", "Pieza", "j_req (mm)", "j_disp en frío (mm)", "FU", "Estado"], rows, widths=(14, 120, 30, 38, 25, 40), size=7.5, num_cols=(2, 3, 4))
+jb = MED["junta_B"]
+jUH = next(j for j in THA["B"]["juntas"] if "UHMW" in j["pieza"]); jUH2 = next(j for j in jb["juntas"] if "UHMW" in j["pieza"])
+T(f"Resultado: el UHMW requiere {n(jb['j_req'])} mm de junta y dispone de {n(jUH['j_disp'])} mm en frío (j_sec = {n(jb['j_sec_actual'])} mm; el resto es la dilatación a ΔT de montaje): la junta se cierra (FU {n(jUH['fu'])}). "
+  f"Adoptar j_sec ≥ {n(jb['j_sec_nuevo'])} mm: con ese valor la junta pasa a FU {n(jUH2['fu'])} ({EST.get(jUH2['estado'], jUH2['estado']).lower()}, al límite) y la masa de B a 20 °C pasa de {n(jb['masa20_actual'], 4)} a {n(jb['masa20'], 4)} kg. "
+  "Los sectores de inox y bronce (junta requerida ≈ 0,1 mm) cumplen con holgura.", bold=True, size=9)
+
+# ---- 10.8 holguras
+H("10.8 Holguras del buje y de la uña–pasador", 2)
+T("Hipótesis. El buje de bronce (Ø int. D_piv, Ø ext. D_piv + 30) va en el cubo de acero, con holgura diametral en frío c_bush_d (supuesto de ajuste H7/e8; el núcleo no define el ajuste). La mesa caliente y la base a la sombra "
+  "es el caso desfavorable para la uña: el círculo de pasadores crece α·ΔT·R_pin y la cuerda entre pasadores crece con la mesa. Referencias: Lamé para el anillo comprimido; EN 1993-1-1 §3.2.6 y EN 1993-1-2 §3.4.1.1 para ε.", size=9)
+table(CHC, [crow(c, True) for c in filas("base", ("b", "c", "k"))], widths=CWC, size=6.5, num_cols=(2, 3, 5))
+bj = filas("base", ("b",))[0]; uj = filas("base", ("c",))
+T(f"Resultado: el buje cierra {n(bj['dem'])} mm de los {n(bj['cap'])} mm de holgura diametral (FU {n(bj['fu'])}), sin riesgo de agarrotar el pivote. En la uña, la holgura radial usada es {n(uj[0]['dem'])} mm de {n(uj[0]['cap'])} mm (FU {n(uj[0]['fu'])}), "
+  f"la luz entre pasadores {n(uj[1]['dem'])} mm frente a {n(uj[1]['cap'])} mm y la carrera {n(uj[2]['dem'])} mm de {n(uj[2]['cap'])} mm (FU {n(uj[2]['fu'])}, la más ajustada; quedan {n(uj[2]['cap'] - uj[2]['dem'])} mm de margen): se cumplen. "
+  "Son iguales en todas las alternativas.", bold=True, size=9)
+
+# ---- 10.9 gradiente
+H("10.9 Gradiente entre planchas, curvatura y flecha", 2)
+T(f"Hipótesis. Plancha superior al sol, inferior a la sombra, gradiente de {n(TH['gradiente_scn'])} K, caja de h = {n(P['h_disc'])} mm y Ø {n(P['D_top'])} mm. La mesa libre se curva sin tensión (κ = α·ΔT_g/h, flecha s = κ·(D/2)²/2); "
+  "si la restricción de la caja fuera total, la plancha toma σ = E·α·ΔT_g/(2(1 − ν)) que se suma, de forma conservadora, a la tensión global + local. Referencias: EN 1991-1-5 §6.1.4.1 Tabla 6.1 (otra tipología) y Timoshenko.", size=9)
+table(CHC, [crow(c, True) for c in filas("base", ("d",))], widths=CWC, size=6.5, num_cols=(2, 3, 5))
+gs = filas("base", ("d",))
+T(f"Resultado: κ = {n(gs[0]['dem'])} 1/m y flecha {n(gs[1]['dem'])} mm en el diámetro de la mesa, despreciable; la tensión térmica restringida de {n(gs[2]['dem'])} MPa lleva la plancha superior a FU {n(gs[3]['fu'])} y la inferior a {n(gs[4]['fu'])} (advertencia, no falla). "
+  "En C3, que ya tiene la plancha inferior a FU 0,92 a 20 °C, la suma pasa de 1,00 (ver 10.5 y 10.12).", bold=True, size=9)
+
+# ---- 10.10 sensibilidades
+H("10.10 Sensibilidades: μ, Fy del acero, bronce, madera y k_p / k_E del UHMW", 2)
+T("Desarrollo. Cada sensibilidad cambia un solo factor a 80 °C y repite todas las verificaciones.", size=9)
+T("a) μ de la interfaz a 80 °C (FS(f·μ) = FS_diseño/f; el μ real a 80 °C no tiene fuente: la grasa fluye y se expulsa).", bold=True, size=9, after=1)
+rows = []
+for i in ("base", "A", "B", "C1", "C3"):
+    s = THA[i]["sens"]; mu_d = AL[i]["giro"]["mu"]
+    rows.append([SHORT[i], n(mu_d)] + [f"{n(m['FS'])} ({'gira' if m['gira'] else 'NO gira'})" for m in s["mu"]] + [n(s["mu_crit"] * mu_d)])
+table(["Alternativa", "μ de diseño"] + [f"μ × {n(m['f'], 2)}" for m in THA["base"]["sens"]["mu"]] + ["μ máx. con FS ≥ FS_mín"], rows, widths=(70, 22, 32, 32, 32, 32, 36), size=7.5, num_cols=(1, 2, 3, 4, 5, 6))
+T(f"Resultado: con acero–acero el giro admite hasta μ = {n(THA['base']['sens']['mu_crit'] * AL['base']['giro']['mu'])} (×{n(THA['base']['sens']['mu_crit'])} el μ de diseño) con FS ≥ {n(P['FS_min'])}; con bronce se llega al mismo μ máximo ({n(THA['C1']['sens']['mu_crit'] * AL['C1']['giro']['mu'])}), "
+  "porque lo fija la fuerza de calado. Si la grasa a 80 °C subiera el μ más de un 10 % sobre el de diseño del acero–acero, la base dejaría de girar con FS ≥ FS_mín.", size=9)
+T("b) Fy del acero × 0,92 (ASME II-D Tabla Y-1, de memoria, confianza C) y bronce × 0,90.", bold=True, size=9, after=1)
+rows = []
+for i in IDS:
+    k = THA[i]["sens"]["kFy092"]; b = bT(i)
+    rows.append([SHORT[i], n(b["fuEst"]), n(k["fuEst"]), k["gobernante"]["nombre"], n(b["fuTerm"]), n(k["fuTerm"]), yn(k["gira"]), yn(k["estructura"]), pint(len(k["empeoran"]))])
+table(["Alternativa", "FU estructura (k = 1)", "FU estructura (k = 0,92)", "Gobernante", "FU térmico (k = 1)", "FU térmico (k = 0,92)", "¿Gira?", "¿Estructura?", "Verificaciones que empeoran"],
+      rows, widths=(54, 25, 27, 62, 24, 26, 13, 18, 18), size=7, num_cols=(1, 2, 4, 5, 8))
+bz = THA["C3"]["sens"]["bz090"]
+T(f"Resultado: con k = 0,92 el FU de estructura sube {n(THA['base']['sens']['kFy092']['dFu'])} (de {n(bT('base')['fuEst'])} a {n(THA['base']['sens']['kFy092']['fuEst'])}) y varias verificaciones pasan a advertencia; la plancha superior con la σ térmica llega a FU "
+  f"{n(THA['base']['sens']['kFy092']['fuTerm'])} y la estructura deja de cumplir. Con bronce × 0,90 (C1 a C3) no cambia ninguna: C3 queda con FU de estructura {n(bz['fuEst'])}.", bold=True, size=9)
+T("c) UHMW-PE (alternativa B): k_p (p_adm y PV) y k_E (módulo) a 80 °C.", bold=True, size=9, after=1)
+us = THA["B"]["sens"]["uhmw"]
+table(["Variación", "k_p", "k_E", "FU máximo de la lámina", "Gobernante", "¿Cumple?"],
+      [["k_p"] + [n(r["k_p"], 2), n(r["k_E"], 2), n(r["fuUHMW"]) if r["fuUHMW"] < 50 else "> 50", r["gobernante"], yn(r["cumple"])] for r in us["kp"]] +
+      [["k_E"] + [n(r["k_p"], 2), n(r["k_E"], 2), n(r["fuUHMW"]) if r["fuUHMW"] < 50 else "> 50", r["gobernante"], yn(r["cumple"])] for r in us["kE"]],
+      widths=(25, 15, 15, 40, 140, 25), size=7, num_cols=(1, 2, 3))
+T(f"Resultado: con k_p = {n(P['kT_p_uh'], 2)} la lámina falla; solo cumple si k_p ≥ {n(us['kp_crit'], 2)}. El módulo reducido casi no cambia el resultado (manda la presión admisible). "
+  "Sin la curva del proveedor entre 20 y 80 °C, la alternativa B no se puede acreditar a 80 °C.", bold=True, size=9)
+T("d) Madera: factor C_t de aplastamiento perpendicular a la fibra (NDS 2018 Tabla 2.3.3).", bold=True, size=9, after=1)
+table(["C_t", "FU del aplastamiento", "Estado"], [[n(m["Ct"], 2), n(m["fu"]), EST.get(m["estado"], m["estado"])] for m in THW["sens"]["madera"]], widths=(30, 50, 40), size=7.5, num_cols=(0, 1))
+T(f"Resultado: con C_t = {n(THW['sens']['madera'][0]['Ct'], 2)} la madera cumple (FU {n(THW['sens']['madera'][0]['fu'])}); con madera húmeda (C_t = {n(THW['sens']['madera'][1]['Ct'], 2)}) falla (FU {n(THW['sens']['madera'][1]['fu'])}). "
+  "80 °C queda fuera de la tabla del NDS (límite 150 °F = 66 °C): el factor es una extrapolación.", bold=True, size=9)
+
+# ---- 10.11 BTH-1
+H("10.11 Alcance térmico de ASME BTH-1", 2)
+bth = [f for f in bT("base")["filas"] if "BTH-1" in f["nombre"]][0]
+T("Hipótesis. La cadena de empuje se verifica por analogía con ASME BTH-1, Categoría de diseño B (Nd = 3,0). BTH-1 define un rango estándar de servicio de −4 a 66 °C (25 a 150 °F); "
+  f"{pint(TS)} °C (176 °F) queda fuera de ese rango y Nd = 3,0 no incluye un margen térmico explícito. La sección exacta de BTH-1 no está confirmada (fuentes secundarias: Hoist Magazine, Tandemloc).", size=9)
+table(CHC, [crow(bth, True)] + [crow(c, True) for c in filas("base", ("j",)) if c is not bth and "BTH-1" not in c["nombre"]], widths=CWC, size=6.5, num_cols=(2, 3, 5))
+T(f"Resultado: {pint(TS)} °C excede el rango estándar en {pint(TS - 66)} K; usar BTH-1 en este escenario requiere una decisión de persona calificada y el registro de la hipótesis. Si el mandante mantiene {pint(TS)} °C, "
+  f"la sensibilidad con k_Fy = 0,92 (10.10 b) es la referencia: el FU de estructura queda en {n(THA['base']['sens']['kFy092']['fuEst'])}.", bold=True, size=9)
+
+# ---- 10.12 medidas
+H("10.12 Medidas recomendadas", 2)
+T("Desarrollo. Las medidas con efecto numérico se evaluaron con el núcleo a 80 °C (tools/export_alternativas.js, clave `medidas`).", size=9)
+ar0, ar1 = MED["alivio_termico"]
+c3 = MED["c3_t_bot"]
+g0 = MED["gradiente"][0]["alts"]["C3"]; gm = MED["gradiente"][2]["alts"]["C3"]
+Lnew = AL["A"]["topes"][0]["L"] * nA[0]["fuT"]
+table(["N°", "Medida", "Efecto cuantificado por el núcleo", "Fuente o referencia"], [
+    ["1", f"Válvula de alivio térmico en cada cilindro (tramo cilindro + retenciones), apertura sobre el alivio del sistema ({n(P['p_relief'])} bar) y bajo la presión máxima de trabajo del cilindro",
+     f"Con apertura de {n(ar1['alivio_term'])} bar: fallas térmicas {ar0['resumen']['nFail']} → {ar1['resumen']['nFail']}, escenario térmico {'cumple' if ar1['resumen']['termico'] else 'no cumple'}; la presión atrapada queda en {n(ar1['filas'][1]['dem'])} bar. "
+     f"Hoy la ventana de ajuste es nula (alivio del sistema {n(P['p_relief'])} bar = presión máxima {n(MED['p_max_cil'])} bar): conviene bajar el alivio del sistema o elegir un cilindro de mayor presión",
+     "Registro, «Presión por aceite atrapado»; ISO 4413:2010 (cláusula por confirmar). Práctica de Power & Motion y AIChE/CCPS"],
+    ["2", "No usar un alivio de sistema aguas arriba como protección del tramo aislado", "No protege: con la retención cerrada el aceite del cilindro no ve el alivio del sistema", "Registro, «Si el pistón puede moverse bajo una carga muerta»"],
+    ["3", f"Junta en frío de los sectores j_sec ≥ {n(jb['j_sec_nuevo'])} mm (UHMW de B)", f"j_req {n(jb['j_req'])} mm frente a {n(jUH['j_disp'])} mm disponibles; con j_sec = {n(jb['j_sec_nuevo'])} mm la junta queda en FU {n(jUH2['fu'])}. No basta para B: ver medida 6",
+     "Registro, «Cálculos del revisor» (α UHMW 180 a 200×10⁻⁶ /K)"],
+    ["4", "A y B: ampliar el largo del tope de los discos inoxidables o aumentar h_c", f"El aplastamiento sube a FU {n(nA[0]['fuT'])} con Fy × {n(F80['k']['Fy_ss'], 2)}; el largo requerido es ≈ {n(Lnew)} mm (hoy {n(AL['A']['topes'][0]['L'])} mm; σ ∝ 1/L; límite R_o − R_i − 100 = {n(AL['A']['Ro'] - AL['A']['Ri'] - 100)} mm). Estimación lineal: confirmar con el núcleo",
+     "ASME BTH-1 §3-3.3; EN 10088-2 de memoria (C)"],
+    ["5", "C3: engrosar la plancha inferior o reducir el gradiente (sombra, pintura clara, cubierta)", f"t_bot {n(c3[0]['t_bot'])} → {n(c3[1]['t_bot'])} mm: FU de estructura {n(c3[0]['fuEst'])} → {n(c3[1]['fuEst'])}, FU térmico {n(c3[0]['fuTerm'])} → {n(c3[1]['fuTerm'])}, +{n(c3[1]['masa20'] - c3[0]['masa20'])} kg. "
+     f"Con gradiente de {n(MED['gradiente'][2]['gradiente'])} K (en vez de {n(TH['gradiente_scn'])}) el FU térmico de C3 es {n(gm['fuTerm'])} y su estructura {'cumple' if gm['estructura'] else 'no cumple'}; sin gradiente, FU térmico {n(g0['fuTerm'])}", "AISC 360-22 (σ ≤ 0,6Fy); EN 1991-1-5 Tabla 6.1 (gradiente, C)"],
+    ["6", "B: no acreditar la lámina de UHMW a 80 °C sin la curva del proveedor (límite de servicio continuo = 80 °C)", f"Falla en espesor, canto, tope, PV y junta; solo cumpliría con k_p ≥ {n(us['kp_crit'], 2)}", "Fichas Quadrant/Mitsubishi TIVAR 1000, Ensinger PE1000, Röchling Polystone M"],
+    ["7", "Protección solar de la mesa (sombra, pintura clara, ventilación)", f"La sensibilidad a la temperatura (10.4) muestra que a {pint(TH['T'][1])} y {pint(TH['T'][2])} °C el FU de estructura de la base no cambia y las fallas térmicas son {bT('base', 1)['nFail']} y {bT('base', 2)['nFail']}", "Registro, «Temperatura superficial estimada»"],
+    ["8", "Aceite y sellos: aceite de mayor índice de viscosidad (VG 68 o IV 185) y sellos para 100 °C o más (FKM)", f"Viscosidad a {pint(TS)} °C: {n(VI80['lo'])} mm²/s (IV 100) frente a {n(VI80['hi'])} mm²/s (IV 185), mínimo de la bomba {n(P['nu_min'])} mm²/s; sellos NBR en su límite ({n(P['T_seal'])} °C)", "ASTM D341; Ulman, Machine Design, Power & Motion (secundarias)"],
+    ["9", "Registrar la decisión de persona calificada sobre el rango térmico de BTH-1", f"{pint(TS)} °C excede −4 a 66 °C en {pint(TS - 66)} K", "ASME BTH-1 (sección por confirmar)"],
+], widths=(8, 78, 118, 63), size=7)
+
+# ---- 10.13 supuestos C
+H("10.13 Supuestos de confianza C a confirmar con el proveedor", 2)
+CONF_C = {"UHMW": ("kT_p_uh", "Curva de módulo y de límite elástico del UHMW-PE de 20 a 80 °C, creep y desgaste a T", "Proveedor del UHMW (Quadrant/Mitsubishi, Ensinger, Röchling)"),
+          "Inoxidable": ("kT_Fy_ss", "Rp0,2 del inox a 80–100 °C (EN 10088-2: 157 y 166 MPa a 100 °C de memoria; una página de EN 10269 da 177 y 187 MPa)", "Proveedor del inox / EN 10088-2"),
+          "Bronce": ("kT_bz", "Fy, α y límite de temperatura del bronce C95400 (la ficha hallada es de C93200)", "Proveedor del bronce grafitado"),
+          "Madera": ("kT_wood", "C_t a 80 °C y α de la madera; NCh1198 (factor KT sin dato)", "Proveedor de la madera / NDS 2018 / NCh1198"),
+          "Pernos": ("kT_bolt", "Rp0,2 a 100 °C de la clase 10.9 (ISO 898-1, anexo informativo)", "ISO 898-1 / proveedor de pernos"),
+          "Soldadura": ("kT_weld", "Criterio térmico de servicio de AWS D1.1:2020 (no lo hay)", "Revisor"),
+          "Gradiente": ("dT_grad", "Gradiente real de una caja de ~230 mm al sol", "Medición o análisis térmico propio"),
+          "Módulo volumétrico": ("K_oil", "K del aceite a 700 bar y 80 °C; espesor de pared real del cilindro (b/a)", "Fabricante del aceite y del cilindro"),
+          "Viscosidad": ("nu_min", "Viscosidad mínima admisible de la bomba", "Fabricante de la bomba"),
+          "sello": ("T_seal", "Límite continuo del compuesto del sello elegido", "Catálogo Parker / Trelleborg / Hallite"),
+          "μ": ("k_mu_T", "μ de la grasa a 80 °C y su punto de goteo del producto elegido", "Ensayo de aceptación / proveedor de la grasa"),
+          "Holgura buje": ("c_bush_d", "Ajuste real del buje en el pivote (H7/e8 supuesto)", "Proveedor del buje / proyectista")}
+rows = []
+for k, s_ in enumerate(TH["supuestos_C"], 1):
+    key = next((kk for kk in CONF_C if kk in s_), None)
+    pid, que, quien = CONF_C[key] if key else (None, "Confirmar", "Revisor")
+    val = (n(TH["gradiente_scn"]) if pid == "dT_grad" else n(P[pid], 3)) + ("" if PL[pid]["u"] == "–" else " " + PL[pid]["u"]) if pid else "—"
+    rows.append([pint(k), s_, val, que, quien])
+table(["N°", "Supuesto del núcleo", "Valor del parámetro", "Dato a confirmar", "Responsable"], rows, widths=(8, 70, 28, 100, 61), size=7, num_cols=(0,))
+T("Resultado: ningún resultado térmico de este capítulo debe tomarse como definitivo mientras estos supuestos no se confirmen; los de mayor efecto son el factor de capacidad del UHMW (decide B), el gradiente de planchas (decide C3 y el margen de la base) "
+  "y el módulo volumétrico del aceite (fija la presión atrapada, aunque la conclusión de instalar la válvula de alivio térmico no depende de ellos: con K = 1,4 GPa el cilindro igualmente llega a "
+  f"{n(AC80['cilindro']['bajo'])} bar de sobrepresión).", bold=True, size=9)
+
 # ================================================================= 9. RESUMEN
-ps = doc.add_section()
+ps = doc.add_section()   # vuelve a vertical
 ps.orientation = WD_ORIENT.PORTRAIT; ps.page_width, ps.page_height = Mm(210), Mm(297)
 ps.left_margin = ps.right_margin = Mm(20); ps.top_margin = Mm(20); ps.bottom_margin = Mm(18)
 header_footer(ps)
-H("9. Resumen de resultados")
+H("11. Resumen de resultados")
 vd = D["verdict"]
 cnt = {s: sum(1 for v in VER if v["estado"] == s) for s in EST}
 table(["Resultado", "Valor"], [
@@ -506,13 +982,21 @@ table(["Verificación", "Grupo", "FU", "Referencia"], [[v["nombre"], v["grp"], n
       widths=(72, 25, 13, 60), size=8, num_cols=(2,))
 T("Las verificaciones geométricas con FU = 1,00 incluyen su holgura constructiva (10 a 15 mm) y no admiten desviaciones de fabricación mayores; "
   "están controladas por las tolerancias de los planos F-01 a F-04.", size=9)
+T("Alternativas de interfaz (capítulo 9) y escenario solar a 80 °C (capítulo 10):", bold=True, size=9.5)
+table(["Alternativa", "Masa (kg)", "FS giro", "FU estructura 20 °C", f"FU estructura {pint(TS)} °C", f"¿Cumple a {pint(TS)} °C? (giro / estructura / térmico)"],
+      [[SHORT[i], n(AL[i]["masa"]), n(AL[i]["giro"]["FS"]), n(bT(i, 0)["fuEst"]), n(bT(i)["fuEst"]), f"{yn(bT(i)['gira'])} / {yn(bT(i)['estructura'])} / {yn(bT(i)['termico'])}"] for i in IDS],
+      widths=(52, 18, 14, 20, 20, 46), size=7.5, num_cols=(1, 2, 3, 4))
+T(f"A {pint(TS)} °C la base, C1, C2 y la cubierta de madera conservan giro y estructura; A pierde el giro (tope de los discos con Fy × {n(F80['k']['Fy_ss'], 2)}), B pierde giro y estructura (lámina UHMW y junta) y C3 pierde la estructura (plancha inferior más σ térmica). "
+  "Ninguna alternativa cumple el grupo térmico sin válvula de alivio térmico por el aceite atrapado.", size=9)
 H("Conclusión", 2)
 T(("Con los parámetros indicados la tornamesa TT300-C gira la carga de {0} tf en el caso de diseño con FS = {1} y todas las verificaciones estructurales "
    "y geométricas cumplen (utilización máxima {2}).").format(pint(P["W_tf"]), n(cd["FS"]), n(vd["fuMax"])) if vd["gira"] and vd["estructura"] else
   "ATENCIÓN: la configuración actual no cumple todas las verificaciones; ver capítulo 8.", bold=True)
+T(f"A {pint(TS)} °C (capítulo 10) la geometría dimensionada a {pint(T0)} °C sigue girando y verificando la estructura en la configuración base, pero el aceite atrapado exige válvula de alivio térmico en cada cilindro y 80 °C excede el rango estándar de ASME BTH-1: "
+  "el servicio a 80 °C queda condicionado a esas dos medidas y a confirmar los supuestos de confianza C.", bold=True)
 
 # ================================================================= 10. PENDIENTES
-H("10. Puntos a confirmar antes de fabricar")
+H("12. Puntos a confirmar antes de fabricar")
 table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["1", "Ficha del cilindro", f"Ø{pint(P['D_bore'])}/Ø{pint(P['d_rod'])} × {pint(P['stroke'])}; L0 {pint(P['L0'])}; e_cuerpo ≥ {pint(P['e_body'])}; c_vástago ≥ {pint(P['c_rod'])}; cuerpo Ø ≤ {pint(P['D_body'])}; {pint(P['m_cyl'])} kg; ojales con rótula", "Proveedor"],
     ["2", "Resorte de retorno de la uña (pos 12)", f"Recorrido ≥ {n(K['travel'] + 5)} mm; largo comprimido + tope ≤ {pint(P['s_sp'])} mm; 150 a 300 N", "Proveedor"],
@@ -523,15 +1007,20 @@ table(["N°", "Ítem", "Supuesto en esta memoria", "Responsable"], [
     ["7", "Losa o mats de apoyo", f"q ≈ {n(DV['q_max'], unit='MPa')}", "Tercero"],
     ["8", "Artículo de ISO 4413:2010 (sobrepresión)", "Criterio confirmado; numeral por citar", "Revisor"],
     ["9", "Guía de retorno tipo KIET", "No adoptada; evaluar con fotos del equipo existente", "Mandante / proyectista"],
-    ["13", "Interfaz con placa de bronce y grafito (C), si se adopta", f"Aleación (C95400, Fy {pint(P['Fy_bz'])} MPa), p_adm {pint(P['p_bz'])} MPa, PV, desgaste y μ de catálogo; ensayo de arranque (stick-slip); disco duro (≥ 100 HB sobre el bronce, Ra ≤ 0,4 µm); fijación desmontable por sectores con topes (verificada) y ranuras de engrase; par galvánico y sellado; aún no dibujada", "Proveedor / proyectista"],
-    ["12", "Interfaz inoxidable (A) o con UHMW (B), si se adopta", "μ, p_adm y E_ap del UHMW son datos de catálogo; par inox–inox de aleaciones distintas o tratada contra el gripado; fijación y retención de los discos; sectores de UHMW con juntas de dilatación; no dibujada aún en planos ni en el 3D; discos pegados con epóxico estructural y respaldo granallado sin pintura; respaldo canteado ≤ 3 mm en el borde; tornillos avellanados M6; sellado perimetral; retención de los sectores de UHMW por rebaje o cola de milano; fluencia de la lámina (asentamiento 0,1 a 0,2 mm)", "Proveedor / proyectista"],
-    ["10", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
-    ["11", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
+    ["10", "Interfaz con placa de bronce y grafito (C), si se adopta", f"Aleación (C95400, Fy {pint(P['Fy_bz'])} MPa), p_adm {pint(P['p_bz'])} MPa, PV, desgaste y μ de catálogo; ensayo de arranque (stick-slip); disco duro (≥ 100 HB sobre el bronce, Ra ≤ 0,4 µm); fijación desmontable por sectores con topes (verificada) y ranuras de engrase; par galvánico y sellado; dibujada en las variantes del paquete (entregables/RevC/variantes)", "Proveedor / proyectista"],
+    ["11", "Interfaz inoxidable (A) o con UHMW (B), si se adopta", "μ, p_adm y E_ap del UHMW son datos de catálogo; par inox–inox de aleaciones distintas o tratada contra el gripado; fijación y retención de los discos; sectores de UHMW con juntas de dilatación; dibujada en las variantes del paquete (entregables/RevC/variantes); discos pegados con epóxico estructural y respaldo granallado sin pintura; respaldo canteado ≤ 3 mm en el borde; tornillos avellanados M6; sellado perimetral; retención de los sectores de UHMW por rebaje o cola de milano; fluencia de la lámina (asentamiento 0,1 a 0,2 mm)", "Proveedor / proyectista"],
+    ["12", "Certificados de material", f"Uña Re ≥ {pint(P['Fy_dog'])} MPa; pasadores Re ≥ {pint(P['Fy_pin'])} MPa; patín Fy ≥ {pint(P['Fy_shoe'])} MPa (3.1)", "Proveedor"],
+    ["13", "Temple por inducción de caras de contacto", f"≥ 55 HRC (σy ≥ {pint(P['Fy_surf'])} MPa), profundidad según capítulo 8", "Proveedor / inspección"],
+    ["14", "Válvula de alivio térmico en cada cilindro (tramo cilindro + retenciones)", f"No hay en el diseño base (alivio_term = {n(P['alivio_term'])}); ventana entre alivio del sistema ({n(P['p_relief'])} bar) y presión máxima de trabajo ({n(P['p_max_cil'])} bar) nula; ver 10.6 y 10.12", "Proyectista / proveedor hidráulico"],
+    ["15", "Decisión sobre el rango térmico de ASME BTH-1", f"{pint(TS)} °C excede −4 a 66 °C; requiere decisión de persona calificada (10.11)", "Revisor / mandante"],
+    ["16", "Junta en frío de los sectores de UHMW (B), si se adopta", f"j_sec ≥ {n(MED['junta_B']['j_sec_nuevo'])} mm (requerida {n(MED['junta_B']['j_req'])} mm a {pint(TS)} °C); B no se acredita a {pint(TS)} °C sin la curva del proveedor (10.7, 10.10)", "Proveedor del UHMW"],
+    ["17", "Supuestos de confianza C del escenario solar", "Doce supuestos listados en 10.13 (UHMW, inox, bronce, madera, pernos, soldadura, gradiente, aceite, bomba, sellos, μ, buje)", "Proveedores / revisor"],
+    ["18", "Filete máximo de almas y nervios", "El núcleo exige w ≤ t_alma; AISC 360-22 §J2.2b da t − 2 mm para t ≥ 6 mm (9.5)", "Revisor"],
 ], widths=(9, 45, 85, 31), size=8)
 
 # ================================================================= 11. MERCADO
 MK = D["mercado"]
-H("11. Comparación con equipos comerciales")
+H("13. Comparación con equipos comerciales")
 T("Referencias: fichas y planos públicos de los fabricantes. El brazo de la fuerza y el radio de fricción de los equipos comerciales son estimaciones; el μ implícito es la fricción que el equipo vence al límite del alivio, "
   "sin factor de seguridad (μ = n·F·a/(N·r_u)).", size=9)
 rows = []
@@ -568,6 +1057,25 @@ if M3:
     ctrl.append(["Modelo 3D (CadQuery): interferencias", f"{nok} de {ni} pares sin interferencia"])
     ctrl.append(["Modelo 3D: masas frente al núcleo", f"Diferencia {n(M3['masas']['dif_pct'])} % (tolerancia {n(M3['masas']['tol_pct'])} %)"])
 table(["Control", "Resultado"], ctrl, widths=(70, 100), size=8.5)
+
+# ================================================================= ANEXO B (horizontal): registro de valores por material
+bs = doc.add_section()
+bs.orientation = WD_ORIENT.LANDSCAPE; bs.page_width, bs.page_height = Mm(297), Mm(210)
+bs.left_margin = bs.right_margin = Mm(15); bs.top_margin = Mm(18); bs.bottom_margin = Mm(15)
+header_footer(bs)
+H("Anexo B. Valores por material del escenario térmico (registro de criterios)")
+T(f"Transcripción de docs/normas/registro.md, sección «Temperatura (exposición solar, 80 °C)», tabla «Valores por material». Escala de confianza: A = contrastado con copia del editor de la norma; "
+  "B = ficha de fabricante o coherencia entre dos fuentes secundarias; C = fuente única, valor de memoria o criterio de ingeniería.", size=9)
+vrows, on = [], False
+for ln in reg:
+    if ln.startswith("### "):
+        on = ln.strip() == "### Valores por material"
+        continue
+    if on and ln.startswith("|") and not ln.startswith("|---") and "Material" not in ln.split("|")[1]:
+        c = [x.strip().replace("**", "") for x in ln.strip().strip("|").split("|")]
+        if len(c) >= 7:
+            vrows.append(c[:7])
+table(["Material", "Propiedad", "Valor a 20 °C", "Valor a 80 °C", "Factor 80/20", "Fuente y artículo", "Conf."], vrows, widths=(30, 38, 42, 48, 24, 74, 11), size=6.5)
 
 # ================================================================= salida
 name = f"TT300-C_Memoria_Rev{REV}"
