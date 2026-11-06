@@ -112,7 +112,7 @@ const TT = (() => {
       ["t_top", "Espesor plancha superior", "mm", 20, 6, 60, 1],
       ["t_bot", "Espesor plancha inferior (contacto)", "mm", 16, 6, 60, 1],
       ["h_disc", "Altura total de la mesa", "mm", 210, 60, 400, 5],
-      ["rings", "Radios de almas anulares", "mm", "300, 580, 840"],
+      ["rings", "Radios de almas anulares", "mm", "300, 590, 840"],   // 3.ª pasada: 2.º anillo 580 → 590 (con R_i = 131 el momento global sube 8 % y con 580 la plancha superior quedaba en FU 0,906 > 0,90; con 590, 0,850; sin costo de masa)
       ["t_web", "Espesor almas anulares", "mm", 6, 6, 40, 1],
       ["N_rib", "N° de nervios radiales", "–", 14, 4, 56, 1],
       ["t_rib", "Espesor nervios radiales", "mm", 6, 6, 40, 1],
@@ -219,13 +219,14 @@ const TT = (() => {
       ["L_bush", "Largo del buje", "mm", 80, 20, 300, 5],
       ["p_bush", "Presión admisible del buje", "MPa", 30, 5, 100, 1],
       ["mu_bush", "μ del buje", "–", 0.20, 0.02, 0.5, 0.01],
-      ["e_piv", "Brazo de flexión del pivote desde la cara superior del asiento: mínimo de ingreso; el brazo efectivo es máx(e_piv; g_bush + L_buje/2)", "mm", 40, 5, 200, 1],
+      ["e_piv", "Brazo de flexión del pivote desde la cara superior del asiento: mínimo de ingreso (0 = automático); el brazo efectivo es máx(e_piv; g_bush + L_buje/2)", "mm", 0, 0, 200, 1],
       ["g_bush", "Holgura axial del buje sobre el collar (el buje reacciona a media altura: e = g_bush + L_buje/2)", "mm", 2, 0, 20, 0.5],
       ["h_boss", "Collar de asiento del pivote soldado sobre la base: altura (0 = sin collar; asiento = t_base + h_collar)", "mm", 60, 0, 200, 5],
       ["D_boss", "Collar de asiento del pivote: diámetro exterior (entra en un rebaje del cubo)", "mm", 250, 160, 500, 10],
       ["w_collar", "Collar de asiento del pivote: filete perimetral a la base", "mm", 10, 4, 30, 1],
       ["c_boss_r", "Rebaje del cubo: holgura radial con el collar (el cubo gira, el collar es fijo)", "mm", 3, 0, 20, 0.5],
-      ["c_boss_a", "Rebaje del cubo: holgura axial sobre el collar", "mm", 2, 0, 20, 0.5],
+      ["c_boss_a", "Rebaje del cubo: holgura axial sobre el collar (profundidad del rebaje desde la cara inferior de la mesa = h_collar − δ + c_boss_a, δ = altura que suma la interfaz)", "mm", 2, 0, 20, 0.5],
+      ["m_ri", "Interfaz de giro: margen de borde entre el rebaje del collar y el radio interior R_i del anillo de contacto (con collar: R_i = D_collar/2 + c_boss_r + m_ri; sin collar: D_piv/2 + 15)", "mm", 3, 0, 30, 1],
       ["Fy_piv", "Fy pivote", "MPa", 650, 235, 1000, 5],
       ["Ch", "Coeficiente sísmico horizontal (0 = no aplica, decisión del mandante)", "–", 0, 0, 1.5, 0.01],
     ] },
@@ -252,22 +253,37 @@ const TT = (() => {
     return [...new Set(String(s).split(/[,; ]+/).map(Number).filter((v) => isFinite(v) && v > 0))].sort((a, b) => a - b);   // sin radios repetidos
   }
 
+  /* ---------------- Geometría del collar, el rebaje de la mesa y el radio interior de la interfaz ---------------- */
+  // Radio interior real del anillo de contacto: el collar (Ø D_boss), el rebaje del cubo y de la plancha inferior (Ø D_boss + 2·c_boss_r) y el agujero de los discos
+  // ocupan hasta D_boss/2 + c_boss_r; más un margen de borde m_ri. Sin collar el borde es el del buje (D_piv/2 + 15).
+  const riOf = (P) => P.h_boss > 0 ? P.D_boss / 2 + P.c_boss_r + P.m_ri : P.D_piv / 2 + 15;
+  // Rebaje del collar en la mesa. delta = altura que la interfaz suma bajo la mesa (la cara inferior de la plancha inferior queda a t_base + δ sobre el piso).
+  // El collar sube h_boss sobre la base, de modo que sobresale h_boss − δ de la cara inferior; con la holgura axial, el rebaje mide h_boss − δ + c_boss_a desde esa cara
+  // (negativo: el collar queda bajo la mesa y no hay rebaje). La plancha inferior lleva un agujero pasante Ø D_boss + 2·c_boss_r (un bolsillo menos profundo que t_bot dejaría un labio de pocos mm);
+  // si el rebaje es más profundo que t_bot, el resto se rebaja en el cubo.
+  function hubGeo(P, delta) {
+    const d_bush = P.D_piv + 30, hw = P.h_disc - P.t_top - P.t_bot, collar = P.h_boss > 0;
+    const hRaw = P.h_boss - (delta || 0) + P.c_boss_a, hRec = collar ? Math.max(0, hRaw) : 0;
+    const Drb = collar ? Math.max(P.D_boss + 2 * P.c_boss_r, d_bush) : d_bush;
+    return { d_bush, hw, delta: delta || 0, Drb, hRaw: collar ? hRaw : 0, hRec, hPl: hRec > 0 ? P.t_bot : 0, hHub: Math.min(Math.max(0, hRec - P.t_bot), hw), Ri: riOf(P),
+      wall: (P.D_hub - Drb) / 2 };   // pared del cubo (y ligamento de la plancha) junto al rebaje
+  }
+
   /* ---------------- Masas ---------------- */
-  function massesMesa(P) {
+  function massesMesa(P, delta) {
     const rings = parseRings(P.rings);
     const hw = P.h_disc - P.t_top - P.t_bot;
-    const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15;
+    const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15, hg = hubGeo(P, delta);
     // planchas: disco central + anillo de pasadores (agujeros de pasadores en todo el espesor del anillo)
     const rpr = prIn(P), aRing = Math.PI * (Rt * Rt - rpr * rpr) - P.N_pin * Math.PI / 4 * P.d_pin ** 2;
     const hole_top = P.D_piv + 80;                                       // alojamiento de la tapa retenedora
     const m = {};
     m.top = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * hole_top ** 2) * P.t_top + aRing * Math.max(P.t_pr, P.t_top));
-    m.bot = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * d_bush ** 2) * P.t_bot + aRing * Math.max(P.t_pr, P.t_bot));
+    m.bot = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * d_bush ** 2) * P.t_bot + aRing * Math.max(P.t_pr, P.t_bot) - Math.PI / 4 * (hg.Drb ** 2 - d_bush ** 2) * hg.hPl);   // agujero del buje y rebaje del collar (Ø D_boss + 2·c_boss_r, profundidad hPl)
     m.webs = RHO * rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0);
     const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
     m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
-    const Drb = P.D_boss + 2 * P.c_boss_r, Hrb = P.h_boss + P.c_boss_a;                                  // rebaje del cubo: collar + holguras radial y axial (el cubo gira)
-    m.hub = RHO * Math.PI / 4 * (Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw - (P.h_boss > 0 ? Math.max(0, Drb ** 2 - d_bush ** 2) * Hrb : 0));   // con rebaje inferior para el collar
+    m.hub = RHO * Math.PI / 4 * (Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw - Math.max(0, hg.Drb ** 2 - d_bush ** 2) * hg.hHub);   // rebaje del collar: solo la parte que pasa de la plancha inferior (h_collar − δ + c_boss_a − t_bot)
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
     m.wood = P.opt_wood > 0.5 ? P.rho_wood * 1e-9 * Math.PI / 4 * (P.D_top ** 2 - hole_top ** 2) * P.t_wood : 0;   // cubierta de madera (kg/m³ → kg/mm³)
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood;
@@ -286,14 +302,14 @@ const TT = (() => {
   // Ranuras de engrase: área perdida y volumen de grasa para llenarlas
   function grooveFrac(P) {
     if (!(P.h_gr > 0)) return { Ag: 0, f: 0, V: 0 };
-    const Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15, rm = (Ro + Ri) / 2, Ac = Math.PI * (Ro * Ro - Ri * Ri);
+    const Ro = P.D_top / 2, Ri = riOf(P), rm = (Ro + Ri) / 2, Ac = Math.PI * (Ro * Ro - Ri * Ri);
     const Ag = P.w_gr * (P.n_gr_rad * (Ro - Ri) + P.n_gr_circ * 2 * Math.PI * rm);
     return { Ag, f: Math.min(0.9, Ag / Ac), V: Ag * P.h_gr / 1000 };   // V en cm³
   }
   const commercial = (list, t) => list.find((v) => v >= t - 1e-9) || Math.ceil(t);
   // Presión máxima de contacto con la masa rotatoria adicional mTop (kg): misma distribución lineal que compute()
-  function ifaceLoad(P, mTop) {
-    const m = massesMesa(P), Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15;
+  function ifaceLoad(P, mTop, dl) {   // dl: δ estimada (discos ya elegidos) para la masa del rebaje de la mesa; la diferencia es < 0,2 % de la masa de la mesa
+    const m = massesMesa(P, dl), Ro = P.D_top / 2, Ri = riOf(P);
     const mPiv = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
     const ND = P.phi_d * P.W_tf * G + (m.disc + mTop + mPiv * 0.5) * G / 1e3;
     const Ac = Math.PI * (Ro * Ro - Ri * Ri), kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri);
@@ -365,13 +381,13 @@ const TT = (() => {
     const sad = 0.6 * P.Fy_ss, a = P.ss_void / 2, gr = o === 1 ? P.h_gr : 0;     // ranuras de engrase solo en el disco de la mesa de la opción A
     // Disco inoxidable: placa circular empotrada de radio a sobre un vacío local, carga uniforme q:
     //   σ_máx = 3·q·a²/(4·t²) ≤ 0,6·Fy  →  t_flex = a·√(0,75·q/σ_adm); espesor requerido = t_flex + sobreespesor (+ ranura en el disco ranurado), ≥ mínimo constructivo.
-    const A_ss = Math.PI * ((P.D_top / 2) ** 2 - (P.D_piv / 2 + 15) ** 2);
-    const calc = (mTop) => { const L = ifaceLoad(P, mTop), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin), treq2: Math.max(tFlex + P.ss_allow + gr, P.ss_tmin) }; };
+    const A_ss = Math.PI * ((P.D_top / 2) ** 2 - riOf(P) ** 2);
+    const calc = (mTop, dl) => { const L = ifaceLoad(P, mTop, dl), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin), treq2: Math.max(tFlex + P.ss_allow + gr, P.ss_tmin) }; };
     const tS = P.fix_mode < 1.5 ? tStopMin(P) : 0;                        // con topes soldados el sector no puede ser más fino que a_sup + a_inf + h_c,mín
     const pick = (c) => P.t_ss > 0 ? [P.t_ss, P.t_ss] : [commercial(SS_COMM, Math.max(c.treq, tS)), commercial(SS_COMM, Math.max(c.treq2, tS))];   // [disco de la base (liso), disco de la mesa (ranurado)]
-    let c = calc(0), [t1, t2] = pick(c);
+    let c = calc(0, 0), [t1, t2] = pick(c);
     for (let i = 0; i < 4; i++) {                                       // el disco rotatorio también carga la interfaz
-      c = calc(RHO_SS * A_ss * t2);
+      c = calc(RHO_SS * A_ss * t2, t1 + t2);
       const [n1, n2] = pick(c);
       if (n1 === t1 && n2 === t2) break; t1 = n1; t2 = n2;
     }
@@ -383,7 +399,7 @@ const TT = (() => {
       tuhConf = uc.t;
       tuhReq = Math.max(tuhConf, P.uh_tmin);
       if (P.fix_mode < 1.5) {                                           // tope del rebaje: σ = F_sector/(L·h_c) ≤ p_adm (FU objetivo 0,90) con h_c = t − a_sup − a_inf
-        const Lav = P.D_top / 2 - (P.D_piv / 2 + 15) - 100, ms = muSet(P), Nn = c.L.ND - (P.phi_d - 1) * P.W_tf * G;
+        const Lav = P.D_top / 2 - riOf(P) - 100, ms = muSet(P), Nn = c.L.ND - (P.phi_d - 1) * P.W_tf * G;
         const Fs = Math.max(ms.d, ms.cont, ms.dry) * Nn / P.n_seg * c.L.q_max / c.L.q_avg;
         tuhTope = P.a_sup + stopAInf(P) + Math.max(P.hc_min, Fs * 1e3 / (P.p_uhmw * Lav * 0.9));
       }
@@ -398,15 +414,15 @@ const TT = (() => {
   //   Bronce: σ = 3·q_loc·a²/(4·t²)/η ≤ 0,6·Fy_bz, η = (p − d)/p (ligamento entre tapones)  →  t_req = t_flex/√η + sobreespesor, ≥ mínimo constructivo.
   function ifaceDesignBz(P) {
     const conf = Math.min(3, Math.max(1, Math.round(P.bz_conf))), a = P.ss_void / 2;
-    const A_ss = Math.PI * ((P.D_top / 2) ** 2 - (P.D_piv / 2 + 15) ** 2);
+    const A_ss = Math.PI * ((P.D_top / 2) ** 2 - riOf(P) ** 2);
     const cov = conf === 3 ? Math.min(1, Math.max(0.05, P.bz_cover)) : 1;
     const eta = (P.bz_plug_p - P.bz_plug_d) / P.bz_plug_p, fg = Math.PI * P.bz_plug_d ** 2 / (2 * Math.sqrt(3) * P.bz_plug_p ** 2);
     const rBz = P.rho_bz * 1e-6;
     const mPlate = (t) => A_ss * cov * t * (rBz * (1 - PLUG_DEPTH * fg) + RHO_GR * PLUG_DEPTH * fg);   // placa con tapones (parte cubierta)
     const mSolid = (t) => A_ss * t * rBz;                                                              // 2.ª placa de bronce maciza (configuración 2)
     const FyC = conf === 2 ? P.Fy_bz2 : P.Fy_cara;
-    const calc = (mTop) => {
-      const L = ifaceLoad(P, mTop), qLoc = L.q_max / cov, qC = conf === 3 ? qLoc : L.q_max;
+    const calc = (mTop, dl) => {
+      const L = ifaceLoad(P, mTop, dl), qLoc = L.q_max / cov, qC = conf === 3 ? qLoc : L.q_max;
       const tfB = a * Math.sqrt(0.75 * qLoc / (0.6 * P.Fy_bz)), treqB = Math.max(tfB / Math.sqrt(eta) + P.bz_allow + P.h_gr, P.bz_tmin);   // + ranuras de engrase
       const tfC = a * Math.sqrt(0.75 * qC / (0.6 * FyC)), treqC = Math.max(tfC + (conf === 2 ? P.bz_allow : P.ss_allow), conf === 2 ? P.bz_tmin : P.cara_tmin);
       return { L, qLoc, qC, tfB, treqB, tfC, treqC };
@@ -415,8 +431,8 @@ const TT = (() => {
     const tS = P.fix_mode < 1.5 ? tStopMin(P) : 0;                        // espesor mínimo por tope soldado (a_sup + a_inf + h_c,mín)
     const pickC = (c) => P.t_cara > 0 ? P.t_cara : commercial(conf === 2 ? BZ_COMM : SS_COMM, Math.max(c.treqC, tS));
     const pickB = (c) => P.t_bz > 0 ? P.t_bz : commercial(BZ_COMM, Math.max(c.treqB, tS));
-    let c = calc(0), tB = pickB(c), tC = pickC(c);
-    for (let i = 0; i < 4; i++) { c = calc(rot(tC)); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
+    let c = calc(0, 0), tB = pickB(c), tC = pickC(c);
+    for (let i = 0; i < 4; i++) { c = calc(rot(tC), tB + tC); const nb = pickB(c), nc = pickC(c); if (nb === tB && nc === tC) break; tB = nb; tC = nc; }
     return { o: 3, conf, cov, eta, fg, a, A_ss, tTope: tS, q: c.L.q_max, qAvg: c.L.q_avg, qLoc: c.qLoc, qC: c.qC, gr: P.h_gr, fgr: grooveFrac(P).f, qNet: c.qLoc / (1 - fg - grooveFrac(P).f), tss2: tC, tss2Req: c.treqC,
       tbz: tB, tbzReq: c.treqB, tFlexB: c.tfB, tss: tC, tssReq: c.treqC, tFlex: c.tfC, sad: 0.6 * P.Fy_bz, sadC: 0.6 * FyC, FyC,
       tuh: 0, tuhReq: 0, tuhConf: 0, delta: tB + tC, mTop: rot(tC), mUH: 0,
@@ -425,7 +441,7 @@ const TT = (() => {
 
   // Masas sin las barras de los topes (estas dependen del par de calado y se suman en compute(), que es la fuente de m.total)
   function massesBase(P) {
-    const m = massesMesa(P), ifc = ifaceDesign(P);
+    const ifc = ifaceDesign(P), m = massesMesa(P, ifc.delta);
     m.ssTop = ifc.mTop; m.ss = ifc.mSS; m.uhmw = ifc.mUH; m.bz = ifc.mBz;   // pieza rotatoria, discos inoxidables o duros, lámina UHMW y bronce
     m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base + (P.h_boss > 0 ? RHO * Math.PI / 4 * (P.D_boss ** 2 - P.D_piv ** 2) * P.h_boss : 0)   // + collar de asiento del pivote
       + 4 * RHO * (2 * P.R_ear * (P.h_ear - 0) + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * P.t_ear;   // + 4 orejas de izaje
@@ -521,7 +537,7 @@ const TT = (() => {
     const Wd = (m.disc + m.ssTop + m.pivot * 0.5) * G / 1e3;     // kN (mesa + disco inoxidable rotatorio + medio pivote)
     const mu = muSet(P), ifc = ifaceDesign(P), oi = ifc.o;
     const N = W + Wd, ND = P.phi_d * W + Wd;
-    const Ro = P.D_top / 2, Ri = P.D_piv / 2 + 15;
+    const Ro = P.D_top / 2, Ri = riOf(P), hubG = hubGeo(P, ifc.delta);
     const Ac = Math.PI * (Ro * Ro - Ri * Ri);
     const r_u = 2 / 3 * (Ro ** 3 - Ri ** 3) / (Ro ** 2 - Ri ** 2);
     const kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri);
@@ -585,7 +601,7 @@ const TT = (() => {
       Qreq: P.t_vuelta_obj > 0 ? (Vext + Vret) / 1e6 / (P.t_vuelta_obj / P.N_pin) : 0 };
     pump.Pmotor = Math.max(pump.PhExt, pump.PhRet) / P.eta_pump;
     pump.PmotorAlarm = Math.max(P.p_alarm * P.Q_pump / 600, pump.PhRet) / P.eta_pump;               // a la presión de alarma
-    const res = { pump, m, W, Wd, N, ND, Ro, Ri, Ac, r_u, q_avg, q_max, qc, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
+    const res = { pump, m, W, Wd, N, ND, Ro, Ri, hubG, Ac, r_u, q_avg, q_max, qc, q_min, H_ecc, T_piv, K, A, Aann, Fstall, Falarm, Fret,
       mu, ifc, Tmax, cases, cd, muMax, curve, stroke, stallMax, tCycle, tRev: tCycle * P.N_pin, Vext, hax: hAxis(P), torque, Fcyl, Kg, Kguide: Kg(),
       Rguide: stallMax.R, ePiv: ePivEff(P) };
     // barras de los topes soldados: dependen del par de calado, así que se dimensionan aquí y suman a m.total (no están en ninguna otra pieza).
@@ -1126,10 +1142,15 @@ const TT = (() => {
       add({ grp: "Pivote", sys: "est", name: "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima " + (sM(Lseat) <= cap ? Math.min(Lseat, Math.ceil(hi)) : Math.ceil(hi)) + " mm)", formula: "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, e = brazo efectivo, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)", dem: sM(Lseat), cap, unit: "MPa", ref: "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente" });
     }
     if (P.h_boss > 0) {
-      const Drb = P.D_boss + 2 * P.c_boss_r, Hrb = P.h_boss + P.c_boss_a, wallC = (P.D_boss - P.D_piv) / 2;
+      const hg = R.hubG, Drb = hg.Drb, wallC = (P.D_boss - P.D_piv) / 2;
       add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar del pivote: pared del collar ≥ 30 mm (D_collar ≥ D_piv + 60)", formula: "D_piv + 60 ≤ D_collar", dem: P.D_piv + 60, cap: P.D_boss, unit: "mm", ref: "Criterio de fabricación" });
-      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 2·c_r + 50 ≤ D_cubo)", formula: "D_rebaje = D_collar + 2·c_boss_r (el cubo gira, el collar es fijo); D_rebaje + 50 ≤ D_cubo", dem: Drb + 50, cap: P.D_hub, unit: "mm", ref: "Criterio de fabricación (holgura de giro cubo–collar)" });
-      add({ grp: "Pivote", sys: "est", kind: "info", name: "Rebaje del cubo para el collar: Ø D_collar + 2·c_boss_r × (h_collar + c_boss_a)", formula: "Ø rebaje = D_collar + 2·c_boss_r; profundidad = h_collar + c_boss_a (sin contacto con el collar al girar)", dem: Drb, cap: Hrb, unit: "mm (Ø / profundidad)", ref: "Geometría (holgura de giro cubo–collar)" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 2·c_r + 50 ≤ D_cubo)", formula: "D_rebaje = D_collar + 2·c_boss_r (el cubo gira, el collar es fijo; mismo Ø en el agujero de la plancha inferior); D_rebaje + 50 ≤ D_cubo: pared del cubo y ligamento de la plancha ≥ 25 mm", dem: Drb + 50, cap: P.D_hub, unit: "mm", ref: "Criterio de fabricación (holgura de giro cubo–collar)" });
+      add({ grp: "Pivote", sys: "est", kind: "info", name: "Rebaje del cubo para el collar: Ø D_collar + 2·c_boss_r × (h_collar − δ + c_boss_a) desde la cara inferior de la mesa", formula: "Ø rebaje = D_collar + 2·c_boss_r (agujero de la plancha inferior); profundidad = h_collar − δ + c_boss_a = " + hg.hRaw.toFixed(1).replace(".", ",") + " mm, δ = " + hg.delta + " mm que suma la interfaz (la plancha inferior, t_bot = " + P.t_bot + " mm, lleva un agujero pasante de ese Ø y el resto, si lo hay, se rebaja en el cubo; negativo: el collar queda bajo la mesa y no hay rebaje)", dem: Drb, cap: hg.hRaw, unit: "mm (Ø / profundidad)", ref: "Geometría (holgura de giro cubo–collar; la interfaz sube la cara inferior de la mesa δ)" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Interfaz: R_i libre del rebaje del collar y del agujero de la plancha (R_i ≥ D_collar/2 + c_boss_r + m_ri)", formula: "R_i = D_collar/2 + c_boss_r + m_ri; el anillo de contacto, los discos y la plancha de bronce arrancan fuera del rebaje con un margen de borde m_ri = " + P.m_ri + " mm", dem: Drb / 2 + P.m_ri, cap: R.Ri, unit: "mm", ref: "Geometría (la interfaz no puede ocupar el espacio del collar)" });
+      {   // el anillo de contacto R_i … r_cubo apoya directamente bajo la pared del cubo (plancha inferior de t_bot sobre el pie del cubo): compresión de la pared entre el rebaje y D_cubo
+        const rh = P.D_hub / 2, Awall = rh * rh - (Drb / 2) ** 2, Aring = Math.max(0, rh * rh - R.Ri * R.Ri);
+        add({ grp: "Pivote", sys: "est", name: "Plancha inferior y pared del cubo junto al rebaje: aplastamiento de la pared del cubo bajo la presión de contacto del anillo interior", formula: "σ = q_máx·(r_cubo² − R_i²)/(r_cubo² − r_rebaje²) ≤ Fy/Nd (la presión sobre R_i … r_cubo entra por el pie del cubo; ligamento = (D_cubo − Ø rebaje)/2 = " + hg.wall + " mm)", dem: R.q_max * Aring / Awall, cap: P.Fy / P.Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento); estática del pie del cubo" });
+      }
       add({ grp: "Pivote", sys: "est", kind: "geo", name: "Buje sobre el collar: el buje cabe bajo la plancha superior", formula: "h_collar + g_buje + L_buje ≤ δ + h_disc − t_top", dem: P.h_boss + P.g_bush + P.L_bush, cap: R.ifc.delta + P.h_disc - P.t_top, unit: "mm", ref: "Geometría" });
       // Equilibrio del collar con el MISMO asiento rígido-lineal que da σ (no la simplificación V = H, M = H(e + L/2)): z desde la cara superior del collar,
       // w(z) = H/L·[1 + k(1 − 2z/L)], k = 6(e + L/2)/L, fuerza por unidad de profundidad (ΣF = H y ΣM_centro = H(e + L/2)). El collar (0 ≤ z ≤ h) recibe
@@ -1279,6 +1300,6 @@ const TT = (() => {
     };
   }
 
-  return { capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
+  return { riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
 })();
 if (typeof module !== "undefined") module.exports = TT;

@@ -79,7 +79,9 @@ const PLANOS = (() => {
         const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));
         const ifc = R.ifc;
         return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
-          hole_top: P.D_piv + 80, d_bush: P.D_piv + 30, nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30)" };
+          hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
+          Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
+          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo" };
       })(),
       verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
     };
@@ -341,7 +343,7 @@ const PLANOS = (() => {
     // textos
     const lines = [`BASE ${nf(B)} x ${nf(B)} x ${nf(P.t_base)} · marco ${nf(P.rim_t)} x ${nf(P.rim_h)} · N.º de cilindros ${P.n_cyl} (se muestra el giro antihorario; ménsulas a trazos: giro horario)`,
       `Interfaz elegida: ${ifaceName(P, ifc)}${ifc.o ? ` · Ri ${nf(R.Ri)} · Ro ${nf(R.Ro)} mm` : ""}`, ...fixNotes(c)];
-    if (ifc.o && P.h_boss > 0 && P.D_boss / 2 > R.Ri) lines.push("DIÁMETRO INTERIOR DE DISCOS O PLACAS ALREDEDOR DEL COLLAR: A DEFINIR (el núcleo usa R_i = D_piv/2 + 15).");
+    if (ifc.o && P.h_boss > 0) lines.push(`DIÁMETRO INTERIOR DE DISCOS O PLACAS ALREDEDOR DEL COLLAR: Ø${nf(2 * R.Ri)} (R_i = D_collar/2 + c_boss_r + m_ri = ${nf(P.D_boss / 2)} + ${nf(P.c_boss_r)} + ${nf(P.m_ri)}; igual al del núcleo). REBAJE DEL COLLAR EN LA PLANCHA INFERIOR Ø${nf(R.hubG.Drb)}, PROFUNDIDAD ${nf(R.hubG.hRaw)} DESDE LA CARA INFERIOR DE LA MESA.`);
     if (ifc.o === 3 && P.h_gr > 0) lines.push("RANURAS DE ENGRASE EN EL BRONCE (a trazos): POSICIÓN INDICATIVA, A DEFINIR.");
     lines.push("OREJAS DE IZAJE: ORIENTACIÓN DE LA PLACA EN PLANTA A DEFINIR (se dibuja su huella t x 2R).");
     d.notes = lines;

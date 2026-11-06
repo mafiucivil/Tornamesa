@@ -317,6 +317,96 @@ test("Optimizador: resultado factible y no más pesado", () => {
   assert.ok(o.A.verdict.gira && o.A.verdict.estructura);
 });
 
+const IFC_VARIANTS = [["default", {}], ["A", { opt_ss: 1 }], ["B", { opt_uhmw: 1 }], ["C1", { opt_bz: 1 }], ["C2", { opt_bz: 1, bz_conf: 2 }], ["C3", { opt_bz: 1, bz_conf: 3 }], ["madera", { opt_wood: 1 }]];
+
+test("Radio interior real de la interfaz: R_i = D_collar/2 + c_boss_r + m_ri para todas las opciones, y se propaga a presión, masa, topes y eje", () => {
+  const P0 = TT.defaults(), Ri = P0.D_boss / 2 + P0.c_boss_r + P0.m_ri, RHO_SS = 7.93e-6, RHO_UH = 0.94e-6;
+  assert.equal(P0.m_ri, 3, "margen de borde 3 mm"); assert.equal(Ri, 131, "125 + 3 + 3");
+  for (const [nm, o] of IFC_VARIANTS) {
+    const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), R = A.R, I = R.ifc, ctx = nm + ": ";
+    near(R.Ri, Ri, 1e-12, ctx + "R_i efectivo");
+    near(R.Ac, Math.PI * (R.Ro ** 2 - Ri ** 2), 1e-12, ctx + "área de contacto");
+    near(R.q_avg, R.ND * 1e3 / R.Ac, 1e-12, ctx + "q medio sobre el anillo real");
+    near(R.q_max, R.q_avg * (1 + 4 * P0.e * R.Ro / (R.Ro ** 2 + Ri ** 2)), 1e-12, ctx + "q máx");
+    // sube respecto del anillo antiguo (R_i = 75): la presión no puede bajar al quitar área
+    const Ro = R.Ro, qOld = R.ND * 1e3 / (Math.PI * (Ro ** 2 - 75 ** 2)) * (1 + 4 * P0.e * Ro / (Ro ** 2 + 75 ** 2));
+    assert.ok(R.q_max > qOld, ctx + "q_máx sube al reducir el área");
+    near(R.hax, P0.h_disc / 2 + I.delta, 1e-12, ctx + "el eje de los cilindros sube δ");
+    if (I.o) {
+      near(I.A_ss, Math.PI * (Ro ** 2 - Ri ** 2), 1e-12, ctx + "área de los discos de la interfaz");
+      near(I.q, R.q_max, 1e-3, ctx + "la presión de dimensionamiento de los discos es la del anillo real");
+      for (const s of I.topes) { near(s.Lav, Ro - Ri - 100, 1e-12, ctx + s.pieza + ": canto radial disponible"); assert.ok(s.L <= s.Lav + 1e-9, ctx + s.pieza + ": L ≤ R_o − R_i − 100"); }
+      const row = A.checks.filter((c) => /largo del tope frente al canto radial/.test(c.name));
+      assert.ok(row.length === I.topes.length - (I.o === 2 ? 1 : 0) && row.every((c) => Math.abs(c.cap - (Ro - Ri - 100)) < 1e-9 && c.st === "ok"), ctx + "filas de largo de tope con el canto nuevo (en B la lámina UHMW usa todo el canto y tiene su propia fila de aplastamiento)");
+    }
+  }
+  // masas con el área del anillo real
+  const A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }), B = TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true });
+  near(A.R.m.ss, RHO_SS * Math.PI * (A.R.Ro ** 2 - Ri ** 2) * (A.R.ifc.tss + A.R.ifc.tss2), 1e-12, "masa de los discos (A)");
+  near(B.R.m.uhmw, RHO_UH * Math.PI * (B.R.Ro ** 2 - Ri ** 2) * B.R.ifc.tuh, 1e-12, "masa de la lámina UHMW (B)");
+  // la lámina UHMW usa todo el canto disponible (R_o − R_i − 100) y su espesor de tope lo ve
+  near(B.R.ifc.topes.find((s) => s.id === "uhmw").L, B.R.Ro - Ri - 100, 1e-12, "largo del tope UHMW = canto disponible");
+  // sin collar vuelve al borde del buje (D_piv/2 + 15); m_ri mueve R_i milímetro a milímetro
+  near(TT.compute(Object.assign(TT.defaults(), { h_boss: 0 })).Ri, P0.D_piv / 2 + 15, 1e-12, "sin collar: R_i = D_piv/2 + 15");
+  near(TT.compute(Object.assign(TT.defaults(), { m_ri: 10 })).Ri, 138, 1e-12, "m_ri = 10 → R_i = 138");
+  assert.ok(TT.compute(Object.assign(TT.defaults(), { m_ri: 10 })).q_max > TT.compute(TT.defaults()).q_max, "más margen = menos área = más presión");
+  // por el eje de las ranuras de engrase la longitud radial también parte de R_i: las ranuras ocupan menos área
+  const gOld = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, m_ri: 0 }), { noFEA: true }).R;
+  assert.ok(gOld.Ri < A.R.Ri && gOld.Ac > A.R.Ac);
+  // todas las opciones cumplen con el anillo real (q_máx, aplastamiento de lámina y bronce, topes)
+  for (const [nm, o] of IFC_VARIANTS) { const X = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }); assert.ok(X.verdict.gira && X.verdict.estructura, nm + " cumple con R_i = 131"); }
+});
+
+test("Rebaje del collar en la mesa: h_collar − δ + c_boss_a desde la cara inferior, agujero de la plancha inferior Ø(D_collar + 2·c_r) y aplastamiento de la pared del cubo", () => {
+  const RHO = 7.85e-6;
+  for (const [nm, o] of IFC_VARIANTS) {
+    const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), R = A.R, P = A.P, m = R.m, I = R.ifc, H = R.hubG, ctx = nm + ": ";
+    const d_b = P.D_piv + 30, Drb = P.D_boss + 2 * P.c_boss_r, hw = P.h_disc - P.t_top - P.t_bot, hRec = P.h_boss - I.delta + P.c_boss_a;
+    near(H.hRec, hRec, 1e-12, ctx + "profundidad del rebaje = h_collar − δ + c_boss_a"); near(H.Drb, Drb, 1e-12, ctx + "Ø del agujero de la plancha = D_collar + 2·c_boss_r"); near(H.delta, I.delta, 1e-12, ctx + "δ de la interfaz");
+    assert.ok(H.hRec > 0, ctx + "el collar sobresale de la cara inferior de la mesa");
+    const rpr = TT.prIn(P), Rt = P.D_top / 2, aRing = Math.PI * (Rt * Rt - rpr * rpr) - P.N_pin * Math.PI / 4 * P.d_pin ** 2;
+    const hPl = hRec > 0 ? P.t_bot : 0, hHub = Math.min(Math.max(0, hRec - P.t_bot), hw);   // el agujero de la plancha es pasante (un bolsillo menos profundo que t_bot dejaría un labio inútil)
+    near(m.bot, RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * d_b ** 2) * P.t_bot + aRing * Math.max(P.t_pr, P.t_bot)) - RHO * Math.PI / 4 * (Drb ** 2 - d_b ** 2) * hPl, 1e-12, ctx + "masa de la plancha inferior con el agujero real del collar");
+    near(m.hub, RHO * Math.PI / 4 * ((P.D_hub ** 2 - d_b ** 2) * hw - (Drb ** 2 - d_b ** 2) * hHub), 1e-12, ctx + "masa del cubo con la parte del rebaje sobre la plancha");
+    const inf = A.checks.find((c) => /Rebaje del cubo para el collar/.test(c.name));
+    near(inf.dem, Drb, 1e-12, ctx + "Ø rebaje informado"); near(inf.cap, hRec, 1e-12, ctx + "profundidad informada (h − δ + c_a)"); assert.equal(inf.kind, "info");
+    const wall = A.checks.find((c) => /pared del rebaje del cubo/.test(c.name));
+    near(wall.dem, Drb + 50, 1e-12, ctx + "pared ≥ 25 mm"); assert.equal(wall.st, "ok");
+    // aplastamiento de la pared del cubo bajo la presión de contacto que entra por el pie del cubo (anillo R_i … r_hub, plancha inferior apoyada sobre el cubo)
+    const rh = P.D_hub / 2, lig = A.checks.find((c) => /aplastamiento de la pared del cubo/.test(c.name));
+    near(lig.dem, R.q_max * (rh ** 2 - R.Ri ** 2) / (rh ** 2 - (Drb / 2) ** 2), 1e-9, ctx + "σ en la pared del cubo"); near(lig.cap, P.Fy / P.Nd, 1e-12, ctx + "Fy/Nd"); assert.ok(lig.st === "ok" && lig.fu < 0.1, ctx + "FU " + lig.fu);
+    const rr = A.checks.find((c) => /R_i libre del rebaje/.test(c.name));
+    near(rr.dem, Drb / 2 + P.m_ri, 1e-12, ctx + "R_i ≥ rebaje + margen"); near(rr.cap, R.Ri, 1e-12); assert.equal(rr.st, "ok");
+  }
+  // defaults sin interfaz (δ = 0): 60 + 2 = 62 mm, 16 en la plancha (agujero pasante) y 46 en el cubo
+  const D0 = TT.compute(TT.defaults()).hubG; assert.deepEqual([D0.hRec, D0.hPl, D0.hHub], [62, 16, 46]);
+  // con interfaz el rebaje es menos profundo: A 60 − 24 + 2 = 38; B 60 − 49 + 2 = 13 (menos que t_bot = 16: el cubo queda sin rebaje y el agujero de la plancha sigue siendo pasante, sin labio de 3 mm)
+  const HA = TT.compute(Object.assign(TT.defaults(), { opt_ss: 1 })).hubG, HB = TT.compute(Object.assign(TT.defaults(), { opt_uhmw: 1 })).hubG;
+  assert.deepEqual([HA.hRec, HA.hPl, HA.hHub], [38, 16, 22]); assert.deepEqual([HB.hRec, HB.hPl, HB.hHub], [13, 16, 0]);
+  // la masa total (plancha + cubo) del default es la misma que con el modelo anterior (62 mm, todo en el cubo): solo se reparte entre las dos piezas
+  const m0 = TT.masses(TT.defaults()), P0 = TT.defaults(), d_b = P0.D_piv + 30, Drb = P0.D_boss + 2 * P0.c_boss_r, hw0 = P0.h_disc - P0.t_top - P0.t_bot;
+  const hubOld = RHO * Math.PI / 4 * ((P0.D_hub ** 2 - d_b ** 2) * hw0 - (Drb ** 2 - d_b ** 2) * 62);
+  const rpr0 = TT.prIn(P0), aR0 = Math.PI * ((P0.D_top / 2) ** 2 - rpr0 ** 2) - P0.N_pin * Math.PI / 4 * P0.d_pin ** 2;
+  near(m0.hub + m0.bot, hubOld + RHO * ((Math.PI * rpr0 * rpr0 - Math.PI / 4 * d_b ** 2) * P0.t_bot + aR0 * Math.max(P0.t_pr, P0.t_bot)), 1e-12, "plancha + cubo = modelo anterior (δ = 0)");
+  // collar bajo la cara inferior (h − δ + c_a < 0): no hay rebaje; el agujero de la plancha es solo el del buje; se informa la profundidad negativa
+  const N = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, h_boss: 20 }), { noFEA: true }), HN = N.R.hubG;
+  near(HN.hRaw, 20 - 24 + 2, 1e-12, "profundidad cruda negativa (−2)"); assert.equal(HN.hRec, 0); assert.equal(HN.hPl, 0);
+  near(N.R.m.hub, RHO * Math.PI / 4 * (P0.D_hub ** 2 - d_b ** 2) * hw0, 1e-12, "sin rebaje: cubo macizo salvo el buje");
+  assert.ok(N.checks.find((c) => /Rebaje del cubo para el collar/.test(c.name)).dem < 0 || N.checks.find((c) => /Rebaje del cubo para el collar/.test(c.name)).cap < 0, "profundidad negativa reportada");
+  assert.equal(TT.compute(Object.assign(TT.defaults(), { h_boss: 0 })).hubG.hRec, 0, "sin collar no hay rebaje");
+  // pared del cubo < 25 mm: sigue fallando (D_hub 300)
+  assert.equal(TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1, D_hub: 300 }), { noFEA: true }).checks.find((c) => /pared del rebaje del cubo/.test(c.name)).st, "fail");
+});
+
+test("e_piv: mínimo de ingreso con default 0 = automático (rige g_buje + L_buje/2)", () => {
+  const g = TT.PARAM_GROUPS.find((x) => x.id === "pivote").p.find((q) => q[0] === "e_piv");
+  assert.equal(g[3], 0, "default 0 = automático"); assert.equal(g[4], 0, "mínimo del campo 0"); assert.match(g[1], /0 = autom/);
+  near(TT.compute(TT.defaults()).ePiv, 42, 1e-12, "automático: 2 + 80/2");
+  near(TT.compute(Object.assign(TT.defaults(), { e_piv: 60 })).ePiv, 60, 1e-12, "un mínimo de ingreso mayor manda");
+  near(TT.compute(Object.assign(TT.defaults(), { e_piv: 40 })).ePiv, 42, 1e-12, "el antiguo 40 nunca regía");
+  assert.equal(AG.validate(TT.defaults()).filter((v) => v.lvl === "error").length, 0, "0 es un valor válido");
+});
+
 test("Golden file: resultados por defecto sin cambios no justificados", () => {
   const A = TT.analyze(TT.defaults()), R = A.R;
   const snap = {
@@ -430,7 +520,10 @@ test("Collar y pivote: equilibrio con el asiento rígido-lineal, filete (V_c, M_
   // H2: rebaje del cubo = (D_boss + 2·c_r) × (h_boss + c_a); pared del cubo ≥ 25 mm
   assert.equal(P.c_boss_r, 3); assert.equal(P.c_boss_a, 2);
   const Drb = P.D_boss + 2 * P.c_boss_r, Hrb = P.h_boss + P.c_boss_a, d_b = P.D_piv + 30, hw = P.h_disc - P.t_top - P.t_bot;
-  near(R.m.hub, 7.85e-6 * Math.PI / 4 * ((P.D_hub ** 2 - d_b ** 2) * hw - (Drb ** 2 - d_b ** 2) * Hrb), 1e-12, "masa del cubo con el rebaje con holguras");
+  // 3.ª pasada: la profundidad del rebaje se mide desde la cara inferior de la mesa (h_collar − δ + c_a; δ = 0 sin interfaz); los primeros t_bot mm son el agujero de la plancha inferior y el resto, el cubo
+  const hPl = Math.min(Hrb, P.t_bot), hHub = Math.min(Math.max(0, Hrb - P.t_bot), hw);
+  near(R.m.hub, 7.85e-6 * Math.PI / 4 * ((P.D_hub ** 2 - d_b ** 2) * hw - (Drb ** 2 - d_b ** 2) * hHub), 1e-12, "masa del cubo con el rebaje con holguras (solo la parte sobre la plancha inferior)");
+  near(hPl + hHub, Hrb, 1e-12, "plancha + cubo suman la profundidad total del rebaje (δ = 0: rebaje más profundo que la plancha)");
   const pw = g(/pared del rebaje del cubo/);
   near(pw.dem, Drb + 50, 1e-12, "D_collar + 2·c_r + 50"); near(pw.cap, P.D_hub, 1e-12); assert.equal(pw.st, "ok"); assert.ok(P.D_hub >= Drb + 50, "pared ≥ 25: D_cubo ≥ 306 → 310");
   assert.equal(P.D_hub, 310, "el cubo sube de 300 a 310 (con 3/2 mm la pared quedaba en 22 mm; con 2/1 mm, 23 mm: tampoco alcanza)");

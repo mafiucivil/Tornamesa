@@ -69,7 +69,9 @@ const out = {
     const sector = byName(/masa del sector/).map((c) => ({ pieza: c.name.split(":")[0], m: c.dem }));
     const ifc = R.ifc;
     return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
-      hole_top: P.D_piv + 80, d_bush: P.D_piv + 30, nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30)" };
+      hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
+      Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
+      nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo" };
   })(),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
 };

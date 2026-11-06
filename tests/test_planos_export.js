@@ -217,6 +217,14 @@ test("interfazGeom.topes: geometría resuelta de cada tope (R.ifc.topes), idént
     });
     const pf = path.join(tmp, "p.json"); fs.writeFileSync(pf, JSON.stringify(P));
     assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, pf], { maxBuffer: 1 << 28 }).toString()).interfazGeom.topes, got, nombre + ": ambos exportadores iguales");
+    // 3.ª pasada: R_i efectivo de la interfaz y rebaje del collar en la plancha inferior (claves nuevas de interfazGeom, iguales en los dos exportadores)
+    const IG = JSON.parse(PL.designJSON(PL.buildDesign(P, A))).interfazGeom, IG2 = JSON.parse(execFileSync(process.execPath, [script, pf], { maxBuffer: 1 << 28 }).toString()).interfazGeom, Rr = A.R, hg = Rr.hubG;
+    for (const k of ["Ri", "D_rebaje_bot", "h_rebaje", "h_rebaje_plancha", "h_rebaje_cubo", "m_ri"]) assert.ok(k in IG, `${nombre}: falta interfazGeom.${k}`);
+    assert.equal(IG.Ri, Rr.Ri); assert.equal(IG.Ri, P.D_boss / 2 + P.c_boss_r + P.m_ri, nombre + ": R_i = D_collar/2 + c_boss_r + m_ri");
+    assert.equal(IG.D_rebaje_bot, P.D_boss + 2 * P.c_boss_r, nombre + ": Ø del rebaje en la plancha inferior"); assert.equal(IG.D_rebaje_bot, hg.Drb);
+    assert.equal(IG.h_rebaje, P.h_boss - Rr.ifc.delta + P.c_boss_a, nombre + ": profundidad h_collar − δ + c_boss_a"); assert.equal(IG.h_rebaje_plancha, IG.h_rebaje > 0 ? P.t_bot : 0, nombre + ": agujero pasante en la plancha inferior"); assert.equal(IG.h_rebaje_cubo, Math.min(Math.max(0, IG.h_rebaje - P.t_bot), P.h_disc - P.t_top - P.t_bot)); assert.equal(IG.m_ri, P.m_ri);
+    for (const k of ["Ri", "D_rebaje_bot", "h_rebaje", "h_rebaje_plancha", "h_rebaje_cubo", "m_ri", "d_bush", "hole_top"]) assert.equal(IG2[k], IG[k], `${nombre}: ${k} igual en tools/export_design.js`);
+    assert.equal(IG.d_bush, P.D_piv + 30);
     // lista de materiales: las barras de los topes son una línea más y la lista cierra con m.total
     const bars = pk.bom.items.find((i) => /Barras de los topes/.test(i.desc));
     const mb = A.R.m.stopBars;
