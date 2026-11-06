@@ -61,7 +61,7 @@ def cortes_control(ctx):
     for c in g.IG.get("cortes", []):
         k = c["n"] * c["capas"]
         kgv = lambda V: c["rho"] * V * k
-        ids = {"disc0": ["int_disco_base"] + (["int_disco_mesa"] if c["capas"] == 2 else []), "disc1": ["int_disco_mesa"], "uhmw": ["int_uhmw"], "bz0": ["int_bronce"], "bz1": ["int_cara"]}.get(c["id"], [])
+        ids = {"disc0": ["int_disco_base"] + (["int_disco_mesa"] if c["capas"] == 2 else []), "disc1": ["int_disco_mesa"], "uhmw": ["int_uhmw"], "bz0": ["int_bronce", "int_tapones"], "bz1": ["int_cara"]}.get(c["id"], [])
         m3 = sum(m.get(x).mass_total for x in ids if m.get(x))
         rows.append(dict(id=c["id"], pieza=c["pieza"], k=k, t=c["t"], j=c["j"], strip=c["strip"], jun=kgv(c["V_junta"]), mue=kgv(c["V_muesca"]), cha=kgv(c["V_chaflan"]),
                          bruta=c["m_bruta"], desc=c["m_desc"], neta=c["m_neta"], m3d=m3, res=m3 - c["m_neta"], res_pct=(m3 - c["m_neta"]) / c["m_neta"] * 100 if c["m_neta"] else 0.0))
@@ -74,7 +74,7 @@ def residual_txt(ctx, grupo):
     if grupo == "ss":
         return "ranuras de engrase, agujeros avellanados de los tornillos de posición y taladros de las graseras (el núcleo solo descuenta juntas, muescas y chaflanes)"
     if grupo == "bz":
-        return "ranuras de engrase, tapones de grafito (la masa de los tapones se reparte según el núcleo), tornillos de posición y taladros de las graseras"
+        return "tapones de grafito, ranuras de engrase, tornillos de posición y taladros de las graseras. " + plug_txt(ctx)
     if grupo == "uhmw":
         return "redondeos y tolerancias de corte de los sectores de lámina"
     if grupo == "wood":
@@ -86,6 +86,23 @@ def residual_txt(ctx, grupo):
     if grupo == "base":
         return "agujero del pivote, redondeos y chaflanes de las orejas (fórmula del núcleo)"
     return "fórmula del núcleo frente a geometría"
+
+
+def plug_txt(ctx):
+    """Tapones de grafito: el núcleo trata la placa como mezcla homogénea con f_g sobre toda el área; el 3D coloca el patrón S09 (menos tapones)."""
+    g, P, m = ctx.g, ctx.P, ctx.m
+    n3 = m.info.get("n_plugs")
+    fgv = g.fila("Tapones de grafito: fracción de área")
+    if not n3 or not fgv:
+        return ""
+    cov = P["bz_cover"] if g.conf == 3 else 1.0
+    A = math.pi * (g.Ro ** 2 - g.Ri ** 2) * cov
+    ap = math.pi / 4 * P["bz_plug_d"] ** 2
+    neq = fgv["dem"] * A / ap
+    prof = m.info.get("plug_prof", 0.0)
+    dm = (neq - n3) * ap * prof * (P["rho_bz"] - RHO_GR * 1e6) * 1e-6
+    return (f"El núcleo toma f_g = {fm(fgv['dem'], 3)} sobre toda el área (equivale a ≈ {f(neq)} tapones Ø{fm(P['bz_plug_d'], 0)}×{fm(prof, 1)}); el 3D coloca {f(n3)} (patrón S09: se omiten los tapones a menos de 4 mm de bordes, muescas, tornillos y ranuras). "
+            f"Con {f(neq - n3)} tapones menos hay más bronce y menos grafito: ≈ {fm(dm, 1)} kg de más en el 3D (la placa real queda con f_g ≈ {fm(fgv['dem'] * n3 / neq, 3)}: menos grafito lubricante que el supuesto del núcleo).")
 
 
 def wood_residual(ctx):
