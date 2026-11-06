@@ -8,6 +8,20 @@ OVR = {}
 TXT_STYLE = "STD"
 
 
+def wrap(text, n):
+    """Parte un texto en líneas de a lo más n caracteres, sin cortar palabras."""
+    words, lines, cur = str(text).split(), [], ""
+    for w in words:
+        if len(cur) + len(w) + (1 if cur else 0) > n and cur:
+            lines.append(cur)
+            cur = w
+        else:
+            cur = (cur + " " + w) if cur else w
+    if cur:
+        lines.append(cur)
+    return lines or [""]
+
+
 def new_doc():
     doc = ezdxf.new("R2018", units=4)
     doc.styles.add(TXT_STYLE, font="LiberationSans-Regular.ttf")
@@ -258,45 +272,192 @@ class Sheet:
             x += wv
         return y
 
-    # ---------- formato ----------
-    def frame(self, v, sheet_no, n_sheets, title2, scale_txt, rev="0", plano=None):
-        if OVR:
-            sheet_no, n_sheets, plano = OVR.get("no", sheet_no), OVR.get("n", n_sheets), OVR.get("plano", plano)
-            title2 = OVR.get("title", title2)
+    # ---------- símbolos adicionales ----------
+    def weld_iso(self, p, q, kind="fillet", size="z6", other=False, all_round=False, field=False, tail=(), h=2.2, L=34.0):
+        """Símbolo de soldadura ISO 2553: línea de flecha (p → q), línea de referencia continua con línea de identificación a trazos,
+        símbolo en el lado de la flecha (bajo la línea de referencia) y, si other, también en el lado opuesto. tail: textos de la cola
+        (proceso ISO 4063, nivel de calidad ISO 5817, WPS)."""
+        self.line(p, q, "COTA")
+        self.arrow(p, math.atan2(p[1] - q[1], p[0] - q[0]))
+        sh = 1 if q[0] >= p[0] else -1
+        r = (q[0] + sh * L, q[1])
+        self.line(q, r, "COTA")
+        self.line((q[0], q[1] + 0.9), (r[0], r[1] + 0.9), "OCU")           # línea de identificación (trazos)
+        mx = q[0] + sh * L * 0.4
+        sides = [-1] + ([1] if other else [])
+        for side in sides:
+            if kind == "fillet":
+                self.pline([(mx - 2.2, q[1]), (mx - 2.2, q[1] + side * 4.4), (mx + 2.2, q[1])], "COTA", closed=True)
+            elif kind == "cjp":
+                self.pline([(mx - 2.4, q[1] + side * 4.6), (mx, q[1]), (mx + 2.4, q[1] + side * 4.6)], "COTA")
+            else:
+                self.pline([(mx - 2.2, q[1]), (mx - 2.2, q[1] + side * 4.6), (mx + 2.4, q[1] + side * 4.6)], "COTA")
+            self.text(size, (mx - sh * 4.0, q[1] + side * 2.6), h, ("MIDDLE_RIGHT" if sh > 0 else "MIDDLE_LEFT"))
+        if all_round:
+            self.circle(q, 1.7, "COTA")
+        if field:
+            self.line(q, (q[0], q[1] + 5), "COTA"); self.pline([(q[0], q[1] + 5), (q[0] + sh * 3.5, q[1] + 4), (q[0], q[1] + 3)], "COTA", closed=True)
+        if tail:
+            self.line(r, (r[0] + sh * 3, r[1] + 3), "COTA"); self.line(r, (r[0] + sh * 3, r[1] - 3), "COTA")
+            for i, t in enumerate(tail):
+                self.text(t, (r[0] + sh * 4.5, r[1] + 2.0 - i * h * 1.35), h, "MIDDLE_LEFT" if sh > 0 else "MIDDLE_RIGHT")
+
+    def datum(self, p, letter, up=True):
+        """Referencia de tolerancia geométrica (triángulo + recuadro con letra), ISO 1101."""
+        x, y = p
+        d = 1 if up else -1
+        self.pline([(x - 2.2, y), (x + 2.2, y), (x, y + d * 3.8)], "COTA", closed=True)
+        self.line((x, y + d * 3.8), (x, y + d * 7))
+        self.rect(x - 2.6, y + d * 7 if d > 0 else y + d * 12.2, x + 2.6, y + d * 12.2 if d > 0 else y + d * 7, "COTA")
+        self.text(letter, (x, y + d * 9.6), 2.8, "MIDDLE_CENTER", bold=True)
+
+    def gdt(self, p, sym, tol, datum=None, h=2.4, leader_to=None):
+        """Recuadro de tolerancia geométrica ISO 1101. sym: 'flat','perp','par','coax','pos','cyl','run','circ'. p: esquina inferior izquierda."""
+        x, y = p
+        hh, ww = 6.0, 6.0
+        wt = max(14.0, len(tol) * h * 0.62 + 4)
+        wd = (ww if datum else 0)
+        self.rect(x, y, x + ww + wt + wd, y + hh, "COTA")
+        self.line((x + ww, y), (x + ww, y + hh), "COTA")
+        self.line((x + ww + wt, y), (x + ww + wt, y + hh), "COTA") if datum else None
+        cx, cy = x + ww / 2, y + hh / 2
+        if sym == "flat":
+            self.pline([(cx - 2.2, cy - 1), (cx + 1.2, cy - 1), (cx + 2.2, cy + 1), (cx - 1.2, cy + 1)], "COTA", closed=True)
+        elif sym == "perp":
+            self.line((cx - 2.2, cy - 1.8), (cx + 2.2, cy - 1.8), "COTA"); self.line((cx, cy - 1.8), (cx, cy + 2.2), "COTA")
+        elif sym == "par":
+            self.line((cx - 2.2, cy - 2), (cx + 0.6, cy + 2), "COTA"); self.line((cx - 0.6, cy - 2), (cx + 2.2, cy + 2), "COTA")
+        elif sym in ("coax", "cyl"):
+            self.circle((cx, cy), 1.3, "COTA"); self.circle((cx, cy), 2.3, "COTA")
+        elif sym == "pos":
+            self.circle((cx, cy), 2.2, "COTA"); self.line((cx - 3.2, cy), (cx + 3.2, cy), "COTA"); self.line((cx, cy - 3.2), (cx, cy + 3.2), "COTA")
+        elif sym in ("run", "circ"):
+            self.line((cx - 2, cy - 2), (cx + 2, cy + 2), "COTA"); self.arrow((cx + 2, cy + 2), math.pi / 4, 1.8, 0.7)
+        self.text(tol, (x + ww + wt / 2, cy), h, "MIDDLE_CENTER")
+        if datum:
+            self.text(datum, (x + ww + wt + wd / 2, cy), h, "MIDDLE_CENTER")
+        if leader_to is not None:
+            self.line((x, cy), (x - 4, cy), "COTA"); self.line((x - 4, cy), leader_to, "COTA")
+            self.arrow(leader_to, math.atan2(leader_to[1] - cy, leader_to[0] - x + 4))
+
+    def notes_block(self, x, y, title, lines, h=2.2, wrap_chars=0, ls=1.55):
+        """Bloque de notas con título en negrita; devuelve la y final."""
+        self.text(title, (x, y), h + 0.8, "TOP_LEFT", bold=True)
+        y -= (h + 0.8) * 1.7
+        out = []
+        for ln in lines:
+            out.extend(wrap(ln, wrap_chars) if wrap_chars else [ln])
+        for ln in out:
+            self.text(ln, (x, y), h, "TOP_LEFT")
+            y -= h * ls
+        return y
+
+    # ---------- formato normalizado ----------
+    def frame(self, info):
+        """Marco, banner de advertencia, tabla de revisiones y cajetín normalizado. info: dict con proj, titulo, plano, lamina, escala, formato,
+        material, masa, trat, rev, fecha, revs (lista de (rev, fecha, descripción, dibujó, revisó, aprobó)), aviso (texto obligatorio),
+        estado, generales."""
         self.rect(0, 0, W, H, "FINA")
         self.rect(20, 10, W - 10, H - 10, "MARCO")
-        # zonas
         for i in range(1, 8):
             x = 20 + i * (W - 30) / 8
             self.line((x, H - 10), (x, H - 5), "FINA"); self.line((x, 10), (x, 5), "FINA")
         for i in range(8):
             self.text(str(i + 1), (20 + (i + 0.5) * (W - 30) / 8, H - 7.5), 2.5, "MIDDLE_CENTER")
         for i, L in enumerate("FEDCBA"):
-            y = 10 + (i + 0.5) * (H - 20) / 6
-            self.text(L, (15, y), 2.5, "MIDDLE_CENTER")
-        # rótulo 180 x 62
-        x0, y0, x1 = W - 10 - 180, 10, W - 10
-        y1 = y0 + 62
-        self.rect(x0, y0, x1, y1, "MARCO")
-        rows = [y0 + 10, y0 + 20, y0 + 30, y0 + 44]
-        for yy in rows:
-            self.line((x0, yy), (x1, yy), "FINA")
-        self.line((x0 + 60, y0), (x0 + 60, y0 + 30), "FINA")
-        self.line((x0 + 120, y0), (x0 + 120, y0 + 30), "FINA")
-        self.text(f"PROYECTO: {v['proj']}", (x0 + 2, y1 - 3), 3.2, "TOP_LEFT", bold=True)
-        self.text(v["title"], (x0 + 2, y1 - 9.5), 2.6, "TOP_LEFT")
-        self.text(title2, (x0 + 2, y0 + 41.5), 3.6, "TOP_LEFT", bold=True)
-        self.text("EMITIDO PARA REVISIÓN – NO APTO PARA FABRICACIÓN HASTA APROBACIÓN", (x0 + 2, y0 + 32), 2.2, "BOTTOM_LEFT", bold=True)
-        cells = [("ELABORÓ", "—", 0, 2), ("REVISÓ", "—", 1, 2), ("APROBÓ", "—", 2, 2),
-                 ("ESCALA", scale_txt, 0, 1), ("FECHA", v.get("fecha", "—"), 1, 1), ("FORMATO", "A1", 2, 1),
-                 ("PLANO N°", plano or f"{v['code']}-{sheet_no:02d}", 0, 0), ("LÁMINA", f"{sheet_no} de {n_sheets}", 1, 0), ("REV.", rev, 2, 0)]
-        for lab, val, cx, ry in cells:
-            xx = x0 + cx * 60
-            yy = y0 + ry * 10
-            self.text(lab, (xx + 1.5, yy + 8.6), 1.8, "TOP_LEFT")
-            self.text(val, (xx + 30, yy + 3.2), 3.0 if ry == 0 else 2.6, "MIDDLE_CENTER", bold=(ry == 0))
-        self.text("Cotas en mm salvo indicación. No medir sobre el plano.", (x0, y1 + 1.5), 2.0, "BOTTOM_LEFT")
-        self.text(v.get("rev_txt", ""), (20, 6.5), 2.0, "BOTTOM_LEFT")
+            self.text(L, (15, 10 + (i + 0.5) * (H - 20) / 6), 2.5, "MIDDLE_CENTER")
+        # banner de advertencia obligatoria (visible en la parte superior de toda lámina)
+        by0 = H - 10 - 9.5
+        self.rect(20, by0, W - 10, H - 10, "MARCO")
+        self.text(info["aviso"], ((20 + W - 10) / 2, by0 + 4.75), 4.2 if len(info["aviso"]) < 130 else 3.6, "MIDDLE_CENTER", bold=True)
+        # cajetín
+        x0, x1, y0 = W - 10 - 180, W - 10, 10
+        rows = [("estado", 10), ("proj", 14), ("tit", 12), ("mat", 10), ("fir", 10), ("esc", 10), ("pla", 10)]
+        y = y0
+        ys = {}
+        for k, hh in reversed(rows):
+            ys[k] = (y, y + hh)
+            y += hh
+        ytop = y
+        self.rect(x0, y0, x1, ytop, "MARCO")
+        for k, (a, b) in ys.items():
+            self.line((x0, b), (x1, b), "FINA")
+
+        def cell(k, cx, cw, lab, val, h=2.7, bold=False, wrapn=0):
+            a, b = ys[k]
+            xx = x0 + cx
+            self.text(lab, (xx + 1.2, b - 1.0), 1.7, "TOP_LEFT")
+            if wrapn:
+                for i, ln in enumerate(wrap(val, wrapn)[:2]):
+                    self.text(ln, (xx + 1.2, b - 4.2 - i * 3.0), h, "TOP_LEFT", bold=bold)
+            else:
+                self.text(val, (xx + cw / 2, a + (b - a) * 0.38), h, "MIDDLE_CENTER", bold=bold)
+        a, b = ys["pla"]
+        for xx in (70, 130):
+            self.line((x0 + xx, a), (x0 + xx, b), "FINA")
+        cell("pla", 0, 70, "PLANO N°", info["plano"], 3.4, True)
+        cell("pla", 70, 60, "LÁMINA", info["lamina"], 3.0)
+        cell("pla", 130, 50, "REVISIÓN", info["rev"], 3.4, True)
+        a, b = ys["esc"]
+        for xx in (70, 130):
+            self.line((x0 + xx, a), (x0 + xx, b), "FINA")
+        cell("esc", 0, 70, "ESCALA", info["escala"])
+        cell("esc", 70, 60, "FECHA", info["fecha"])
+        cell("esc", 130, 50, "FORMATO", info["formato"])
+        a, b = ys["fir"]
+        for xx in (60, 120):
+            self.line((x0 + xx, a), (x0 + xx, b), "FINA")
+        cell("fir", 0, 60, "DIBUJÓ", info.get("dibujo", "A DEFINIR"), 2.4)
+        cell("fir", 60, 60, "REVISÓ", info.get("reviso", "A DEFINIR"), 2.4)
+        cell("fir", 120, 60, "APROBÓ", info.get("aprobo", "A DEFINIR"), 2.4)
+        a, b = ys["mat"]
+        for xx in (95, 135):
+            self.line((x0 + xx, a), (x0 + xx, b), "FINA")
+        cell("mat", 0, 95, "MATERIAL", info["material"], 1.9, wrapn=58)
+        cell("mat", 95, 40, "MASA", info["masa"], 2.4)
+        cell("mat", 135, 45, "TRATAMIENTO", info["trat"], 1.7, wrapn=32)
+        a, b = ys["tit"]
+        self.text("TÍTULO", (x0 + 1.2, b - 1.0), 1.7, "TOP_LEFT")
+        for i, ln in enumerate(wrap(info["titulo"], 62)[:2]):
+            self.text(ln, (x0 + 2, b - 4.0 - i * 4.4), 3.3, "TOP_LEFT", bold=True)
+        a, b = ys["proj"]
+        self.text("PROYECTO", (x0 + 1.2, b - 1.0), 1.7, "TOP_LEFT")
+        self.text(info["proj"], (x0 + 2, b - 4.0), 3.0, "TOP_LEFT", bold=True)
+        for i, ln in enumerate(wrap(info["subproj"], 78)[:2]):
+            self.text(ln, (x0 + 2, b - 8.2 - i * 2.8), 2.2, "TOP_LEFT")
+        a, b = ys["estado"]
+        self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), 2.6, "MIDDLE_CENTER", bold=True)
+        # tabla de revisiones sobre el cajetín
+        rv = info["revs"]
+        cols = [("REV", 10), ("FECHA", 20), ("DESCRIPCIÓN", 98), ("DIB.", 17), ("REV.", 17), ("APR.", 18)]
+        yy = ytop + 1
+        rhs = [max(6.0, 3.0 * len(wrap(r[2], 66)) + 2.0) for r in rv]
+        hh = 5.0
+        ytab = yy + hh + sum(rhs)
+        self.rect(x0, yy, x1, ytab, "MARCO")
+        # encabezado arriba
+        self.line((x0, ytab - hh), (x1, ytab - hh), "FINA")
+        xx = x0
+        for (t, w_) in cols:
+            self.text(t, (xx + w_ / 2, ytab - hh / 2), 2.0, "MIDDLE_CENTER", bold=True)
+            xx += w_
+            if xx < x1 - 0.1:
+                self.line((xx, yy), (xx, ytab), "FINA")
+        ycur = ytab - hh
+        for r, rh in zip(rv, rhs):
+            ycur -= rh
+            self.line((x0, ycur), (x1, ycur), "FINA")
+            xx = x0
+            for j, (t, w_) in enumerate(cols):
+                if j == 2:
+                    for i, ln in enumerate(wrap(r[2], 66)):
+                        self.text(ln, (xx + 1.0, ycur + rh - 2.2 - i * 3.0), 1.9, "TOP_LEFT")
+                else:
+                    self.text(str(r[j]), (xx + w_ / 2, ycur + rh / 2), 2.2, "MIDDLE_CENTER", bold=(j == 0))
+                xx += w_
+        self.text(info["generales"], (x0, ytab + 1.5), 2.0, "BOTTOM_LEFT")
+        self.text("Cotas en mm salvo indicación. No medir sobre el plano.", (x0, ytab + 4.6), 2.0, "BOTTOM_LEFT")
+        self.cajetin_top = ytab + 8
 
     # ---------- salida ----------
     def save(self, dxf_path, pdf_path=None):
