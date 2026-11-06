@@ -426,7 +426,7 @@ def pintura(ctx):
 
 
 def notas_gen_fab(ctx):
-    return ["Tolerancias generales ISO 2768-mK; geométricas ISO 1101; rugosidad ISO 1302; ajustes ISO 286-1/-2.",
+    return ["Tolerancias generales ISO 2768-mK (piezas soldadas ISO 13920-BF); geométricas ISO 1101; rugosidad ISO 1302 (no indicada: Ra 12,5); ajustes ISO 286-1/-2.",
             "Soldadura ISO 2553; calidad ISO 5817 en cada símbolo; WPS-P pre-calificados AWS D1.1 cl. 3 PROPUESTOS (GEN-012), a calificar/confirmar por el fabricante.",
             "Materiales con certificado EN 10204 3.1; punzonar la marca de colada y el código de la pieza en zona no crítica.",
             "Aristas vivas rotas 1×45° (o R1) salvo indicación; sin torno vertical: gran diámetro por corte a llama/plasma, soldadura y mandrinadora.",

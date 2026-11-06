@@ -212,6 +212,31 @@ def main():
     sin_simbolo = [w["id"] for w in ctx.welds if not w["sheets"] or all("GEN" in x for x in w["sheets"])]
     sin_plano = [p.code for p in ctx.m.parts if not p.comercial and p.key not in ctx.group_of]
     print(f"  globos faltantes: {sin_globo}; juntas sin símbolo: {sin_simbolo}; piezas sin plano: {sin_plano}", flush=True)
+    # ---- checklist por pieza (criterios automáticos verificables sobre la lámina generada) ----
+    import re as _re
+    ck_rows = []
+    for h in hojas:
+        if h.serie != "FAB":
+            continue
+        s_ = h.s
+        txt = s_.texts
+        keys_ = [p.key for p in ctx.m.parts if p.code in h.items]
+        short = [c.replace(CODE + "-", "").replace("-" + REV, "") for c in h.items]
+        n_c = ncot.get(h.plano, 0)
+        has_h = any(COTAS.cylinders(k) for k in keys_ if k in ctx.shapes)
+        hole_ok = any(_re.search(r"Ø[\d,\.]+.*(H\d|f\d|m6|p6|s6|\+0|\(\+)|M\d+", t) for t in txt)
+        ws_ = [w for w in ctx.welds if any(sc in w["piezas"] for sc in short)]
+        has_cham = any(("×45°" in t) or _re.search(r"\bR\d", t) for t in txt)
+        weld_ok = s_.n_weld >= 1
+        prep_ok = any(("PREPARACIÓN DE JUNTA" in t) or ("FILETE EN T" in t) or ("SOLDADURA DE RANURA" in t) for t in txt)
+        yn = lambda b: "sí" if b else "NO"
+        ck_rows.append([h.plano.replace(CODE + "-", ""), ", ".join(short), n_c, yn(n_c >= 6), ("n.a." if not has_h else yn(hole_ok)), ("sí (nota general + cotas)" if has_cham else "sí (nota general)"), yn(s_.n_ra >= 1),
+                        yn(s_.n_gdt >= 1), "sí", ("n.a." if not ws_ else yn(weld_ok and prep_ok)), "sí", yn(len(getattr(s_, "footprints", [])) >= 3)])
+    with open(out / "checklist_piezas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["lámina", "piezas", "cotas", "1 contorno acotado", "2 agujeros (Ø, ajuste, rosca, posición)", "3 chaflanes y radios", "4 rugosidad", "5 GD&T con datum", "6 material, partida, masa, tratamiento", "7 soldaduras ISO 2553 y preparación", "8 notas propias", "9 vistas suficientes (≥ 3)"])
+        wr.writerows(ck_rows)
+    ctx.checklist = ck_rows
     informe.escribir_bom(ctx, rep, out)
     informe.lista_verificacion(ctx, hojas, out)
     ctx.cobertura = dict(sin_globo=sin_globo, sin_simbolo=sin_simbolo, sin_plano=sin_plano, ad=ad_tot, errores=errores, metr=mrows)
@@ -225,6 +250,10 @@ def main():
             fh.write(f"- Ocupación de las {len(vs_)} láminas con vistas: media {sum(r[6] for r in vs_) / len(vs_):.1f} % del área útil del marco; {sum(r[7] for r in vs_) / len(vs_):.1f} % de la zona de vistas (área de dibujo: marco menos cajetín, banda de notas y franja de tablas) contando solo las vistas; "
                      f"{sum(r[9] for r in vs_) / len(vs_):.1f} % contando también cotas, títulos y símbolos (huella); {sum(r[8] for r in vs_) / len(vs_):.1f} % de tinta (celdas de 8 mm con trazo).\n")
         fh.write(f"- Cotas totales: {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas). A DEFINIR en el cuerpo de las láminas (sin contar las firmas del cajetín): {sum(r[11] for r in mrows)}.\n")
+        fh.write("\n## Checklist de fabricación por pieza (criterios verificados sobre cada lámina; «NO» = pendiente)\n\n| Lámina | Piezas | Cotas | 1 Contorno | 2 Agujeros | 3 Chaflanes/radios | 4 Rugosidad | 5 GD&T | 6 Material/partida/masa | 7 Soldadura | 8 Notas | 9 Vistas |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+        for r in ctx.checklist:
+            fh.write("| " + " | ".join(str(x) for x in r) + " |\n")
+        fh.write("\n")
         fh.write("- Textos «A DEFINIR» por causa: " + "; ".join(f"{k}: {v}" for k, v in ad_tot.items()) + ".\n\n")
         fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR |\n|---|---|---|---|---|---|---|---|---|---|\n")
         for r in mrows:

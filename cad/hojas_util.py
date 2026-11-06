@@ -53,9 +53,42 @@ class Pieza(Plano):
         self.note_block("NOTAS DE FABRICACIÓN", list(specific), numbered=True)
         if gd:
             self.gd(list(gd))
+        self.rugosidad_block()
         self.note_block("GENERALES", notas_gen_fab(ctx))
         insp = inspect or "VT 100 % de toda soldadura; MT/UT según la tabla de soldaduras (AWS D1.1 y BTH-1 Cat. B); control dimensional 100 % de cotas con tolerancia."
         self.note_block("PLAN DE INSPECCIÓN", [insp, "Punzonar código de la pieza y marca de colada (trazabilidad EN 10204 3.1)."])
+
+    def rugosidad_block(self):
+        """Bloque de rugosidad ISO 1302 por cara funcional de la pieza (valores ya usados en las vistas) y general para el resto."""
+        g, P = self.ctx.g, self.ctx.P
+        k = self.keys[0]
+        RA = {
+            "base_plancha": [("Ra 3,2", f"cara de apoyo de la interfaz (zona Ø{f(P['D_top'] + 20)}), planeada"), ("Ra 1,6", f"agujero Ø{f(P['D_piv'])} H7")],
+            "collar": [("Ra 3,2", "cara superior (asiento del cubo)"), ("Ra 1,6", f"agujero Ø{f(P['D_piv'])} H7")],
+            "bancada": [("Ra 1,6", "flancos y fondo de la ranura T")], "patin": [("Ra 1,6", "cuello y cabeza de la lengüeta, alojamientos, ojal H9")],
+            "una": [("Ra 0,8", "cara de empuje templada (rectificada)"), ("Ra 1,6", "caras de guía en el alojamiento")], "pasadores": [("Ra 0,8", f"Ø{f(g.d_pin)} m6 (franja templada y resto)")],
+            "pivote": [("Ra 0,8", f"Ø{f(P['D_piv'])} p6 (toda la barra)"), ("Ra 3,2", "caras extremas")], "buje": [("Ra 1,6", "Ø interior F7 y Ø exterior s6")],
+            "pasador_vastago": [("Ra 0,8", f"Ø{f(P['d_pp'])} f8")], "mesa_anillo_sup": [("Ra 3,2", "agujeros de pasadores H7 y caras del anillo")],
+            "mesa_plancha_sup": [("Ra 6,3", "cara superior y rebaje de la tapa")], "mesa_plancha_inf": [("Ra 3,2", "cara inferior (apoyo de la interfaz), planeada")],
+            "mesa_cubo": [("Ra 1,6", f"agujero Ø{f(g.d_bush)} H7"), ("Ra 3,2", "rebaje y caras de apoyo")], "orejas": [("Ra 12,5", "canto de corte; agujero esmerilado")],
+            "mensula_mejilla": [("Ra 6,3", "caras de apoyo de las orejas"), ("Ra 3,2", f"agujeros Ø{f(P['d_pp'])} H9 de las orejas")],
+            "int_disco_base": [("Ra 0,4", "cara deslizante (lapeada)")], "int_disco_mesa": [("Ra 0,4", "cara deslizante (lapeada)"), ("Ra 1,6", "fondo de ranuras")],
+            "int_cara": [("Ra 0,4", "cara deslizante (lapeada)")], "int_bronce": [("Ra 0,4", "cara deslizante (lapeada)"), ("Ra 1,6", "fondo de ranuras y alojamientos de tapones")],
+            "int_uhmw": [("Ra 3,2", "caras de la lámina (sin mecanizado de precisión)")],
+        }
+        rows = RA.get(k, [("Ra 3,2", "caras mecanizadas indicadas en las vistas"), ("Ra 6,3", "caras de apoyo de soldadura")])
+        rows = rows + [("Ra 12,5", "resto de las superficies (corte térmico o laminado)")]
+
+        def d(s, x, y, w):
+            s.text("RUGOSIDAD POR CARA FUNCIONAL (ISO 1302 / ISO 21920)", (x, y), T_N + 0.5, "TOP_LEFT", bold=True)
+            yy = y - (T_N + 0.5) * 1.7 - 5.0
+            for ra_, txt in rows:
+                s.roughness((x + 5, yy - 15.0), ra_)
+                for i, l_ in enumerate(wrapw(txt, w - 40 - tw(ra_, T_N), T_N)):
+                    s.text(l_, (x + 14 + tw(ra_, T_N) + 12, yy - 8.0 - i * T_N * 1.4), T_N, "MIDDLE_LEFT")
+                yy -= 17.0
+            return yy
+        self.block("rugosidad", d, name="rugosidad")
 
     def finish_scale(self):
         self.build()

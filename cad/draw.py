@@ -100,6 +100,7 @@ class Sheet:
         self.m = self.doc.modelspace()
         self.texts = []
         self.nat = 0              # contador de entidades (diagnóstico)
+        self.n_gdt = self.n_ra = self.n_weld = 0
         self.hatch_used = set()
 
     def reformat(self, fmt):
@@ -322,6 +323,7 @@ class Sheet:
         self.text(label, q, T_T, "MIDDLE_CENTER", bold=True)
 
     def roughness(self, p, ra, h=T_N, mach=True, note=""):
+        self.n_ra += 1
         """Símbolo de rugosidad ISO 1302 (remoción de material obligatoria, triángulo cerrado) con Ra en µm. p: vértice inferior."""
         x, y = p
         self.pline([(x - 3.5, y + 6.1), (x, y), (x + 3.5, y + 6.1)], "COTA")
@@ -339,6 +341,7 @@ class Sheet:
         kind del lado flecha: fillet|V|bevel|J|U|slot|plug|square|none; other: dict(kind,size,length) del otro lado (o None).
         size: texto antes del símbolo (a5, z7, s12); length: texto después (×200, 3×100(150)); prep: ángulo/abertura (60°, r3).
         all_round: soldadura en todo el contorno; field: soldadura en obra; tail: líneas del rabo (proceso, nivel, WPS, END)."""
+        self.n_weld += 1
         self.line(p, q, "COTA")
         self.arrow(p, math.atan2(p[1] - q[1], p[0] - q[0]))
         sh = sh if sh in (1, -1) else (1 if q[0] >= p[0] else -1)
@@ -407,6 +410,7 @@ class Sheet:
 
     def gdt(self, p, sym, tol, datum=None, h=T_N, leader_to=None, leader_from="left"):
         """Recuadro ISO 1101. sym: flat, perp, par, coax, pos, cyl, run, circ, straight, prof. p: esquina inferior izquierda."""
+        self.n_gdt += 1
         x, y = p
         hh, ww = 7.0, 7.0
         parts = [tol] + ([d_ for d_ in (datum if isinstance(datum, (list, tuple)) else [datum])] if datum else [])

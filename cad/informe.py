@@ -359,7 +359,7 @@ def copiar_entrega(out, dest, pdfs, con_dxf=True, extra=()):
     for old in list(dest.glob("TT300-C_Planos_Rev*.pdf")) + list(dest.glob("TT300-C_DXF_Rev*.zip")):
         old.unlink()
     for nm in (f"TT300-C_Planos_Rev{REV}.pdf", f"TT300-C_DXF_Rev{REV}.zip", "TT300-C.step", "TT300-C.glb", "TT300-C_despiece.csv", "TT300-C_despiece.xlsx", "lista_verificacion_revisor.md",
-               "lista_verificacion_revisor.pdf", "informe_paquete.md", "chequeo_cotas.csv", "TT300-C_masas3d.json", "TT300-C_design.json", "metricas_laminas.csv", "soldaduras.csv", "lista_de_cortes.csv", *extra):
+               "lista_verificacion_revisor.pdf", "informe_paquete.md", "chequeo_cotas.csv", "TT300-C_masas3d.json", "TT300-C_design.json", "metricas_laminas.csv", "soldaduras.csv", "lista_de_cortes.csv", "checklist_piezas.csv", *extra):
         if (out / nm).exists():
             shutil.copy(out / nm, dest / nm)
     pd = dest / "planos"
