@@ -241,8 +241,12 @@ test("Geometría del tope: barra bajo la superficie, alivio inferior, altura de 
     assert.equal(names(/alivio inferior del canto libra el filete/), T.length); assert.equal(names(/filete del tope dentro de la altura de barra/), T.length);
     assert.equal(names(/filete mínimo del tope/), T.length); assert.equal(names(/flexión de la barra del tope/), T.length);
     assert.ok(A.checks.filter((c) => /AWS D1.1\/D1.1M:2020 Tabla 5.8/.test(c.ref)).length >= T.length, "norma y tabla citadas");
-    // las barras no entran en la masa total (nunca se contaron): se informan aparte
-    assert.ok(!("topes" in A.R.m) && A.checks.some((c) => /masa de las barras del tope/.test(c.name) && c.kind === "info" && c.dem > 0), ctx + "masa de barras solo informativa");
+    // las barras de los topes (soldadas a los respaldos, no son parte de ninguna otra pieza) suman a m.total y se desglosan en m.stopBars
+    const m = A.R.m, mb = T.reduce((s, x) => s + x.m_barras, 0);
+    near(m.stopBars, mb, 1e-12, ctx + "m.stopBars = Σ m_barras de ifc.topes"); assert.ok(m.stopBars > 0, ctx + "hay masa de barras");
+    near(m.total, m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl + m.stopBars, 1e-12, ctx + "m.total incluye las barras");
+    near(TT.masses(A.P).total, m.total, 1e-12, ctx + "TT.masses() devuelve el mismo total");
+    assert.ok(A.checks.some((c) => /masa de las barras del tope/.test(c.name) && c.kind === "info" && c.dem > 0 && /incluida en la masa total/.test(c.name)), ctx + "fila informativa: masa incluida");
   }
   assert.equal(TT.analyze(Object.assign(TT.defaults(), { opt_uhmw: 1 }), { noFEA: true }).R.ifc.topes[0].capas, 2, "B: la fila del disco representa los dos discos iguales (masa de barras ×2)");
   // espesores automáticos de los sectores con tope: A 12/12, B discos 12 y UHMW ≥ 25, C bronce 12 y disco duro 12 (con 6 mm el filete de 6 mm no cabe)
@@ -332,16 +336,108 @@ test("Golden file: resultados por defecto sin cambios no justificados", () => {
   cmp(snap, g, "golden");
 });
 
-test("Orejas de izaje soldadas (4, placa de 18 mm): esfuerzos y masa", () => {
+test("Orejas de izaje soldadas (4, placa de 18 mm, R 92 mm): esfuerzos y masa", () => {
   const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), R = A.R, G = TT.G;
   assert.equal(P.t_ear, 18, "placa de 18 mm (mandante)");
-  const T = R.m.total * P.phi_lift * G / 1e3 / (3 * Math.sin(Math.PI / 3)), dp = P.d_ear - 3;
+  assert.equal(P.R_ear, 92, "R = 92 mm (decisión del usuario: AISC 360-22 D5.2(3), a ≥ 1,33·b_e)");
+  const T = R.m.total * P.phi_lift * G / 1e3 / (3 * Math.sin(Math.PI / 3)), dp = P.d_ear - P.g_ear;
   const g = (re) => A.checks.find((c) => re.test(c.name));
   near(g(/aplastamiento del agujero/).dem, T * 1e3 / (dp * P.t_ear), 1e-9, "aplastamiento");
   near(g(/sección neta/).dem, T * 1e3 / (2 * (P.R_ear - P.d_ear / 2) * P.t_ear), 1e-9, "sección neta");
   const aw = 0.707 * P.w_ear, L = 2 * P.R_ear, Sw = 2 * aw * L * L / 6, Tv = T * Math.sin(Math.PI / 3), Th = T * Math.cos(Math.PI / 3);
-  near(g(/Oreja: soldadura/).dem, Math.hypot(Tv * 1e3 / (2 * aw * L) + Th * 1e3 * P.h_ear / Sw, Th * 1e3 / (2 * aw * L)), 1e-9, "soldadura");
-  assert.ok(A.checks.filter((c) => c.grp === "Orejas de izaje" && c.fu != null).every((c) => c.fu < 1), "las orejas cumplen");
+  near(g(/Oreja: soldadura/).dem, Math.hypot(Tv * 1e3 / (2 * aw * L) + Th * 1e3 * P.h_ear / Sw, Th * 1e3 / (2 * aw * L)), 1e-9, "soldadura con L = 2R");
+  assert.ok(A.checks.filter((c) => c.grp === "Orejas de izaje" && c.fu != null).every((c) => c.fu <= 1), "las orejas cumplen (incluido D5.2)");
   const B = TT.masses(Object.assign(TT.defaults(), { t_ear: 36 })).base - TT.masses(P).base;
-  near(B, 4 * 7.85e-6 * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * 18, 1e-9, "masa de las orejas");
+  near(B, 4 * 7.85e-6 * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * 18, 1e-9, "masa de las orejas (rectángulo 2R × h + semicírculo − agujero)");
+});
+
+test("Orejas: AISC 360-22 D5.2, placa en la base (flexión + tracción), filete mínimo y máximo, ramales", () => {
+  const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), R = A.R, G = TT.G;
+  const T = R.m.total * P.phi_lift * G / 1e3 / (3 * Math.sin(Math.PI / 3)), Tv = T * Math.sin(Math.PI / 3), Th = T * Math.cos(Math.PI / 3);
+  const rows = (o, re) => TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }).checks.filter((c) => re.test(c.name));
+  const g = (re, o) => rows(o || {}, re)[0];
+  assert.ok(!A.checks.some((c) => /relación de bordes/.test(c.name)), "se reemplazó la fila R − d/2 ≥ 0,5·d (no es el criterio de D5.2)");
+  // D5.2(3): a ≥ 1,33·b_e y 2R ≥ 2·b_e + d, con b_e = mín(2t + 16; (2R − d)/2) (D5.1)
+  const be = (Q) => Math.min(2 * Q.t_ear + 16, (2 * Q.R_ear - Q.d_ear) / 2);
+  const ext = g(/extensión a tras el agujero/), wid = g(/ancho de la placa/);
+  near(ext.dem, 1.33 * be(P), 1e-12, "1,33·b_e"); near(ext.cap, P.R_ear - P.d_ear / 2, 1e-12, "a = R − d/2");
+  assert.ok(ext.fu <= 1 && ext.st === "ok" && /D5\.2\(3\)/.test(ext.ref), "R = 92 cumple D5.2(3) con referencia al artículo");
+  near(wid.dem, 2 * be(P) + P.d_ear, 1e-12, "2·b_e + d"); near(wid.cap, 2 * P.R_ear, 1e-12, "2R"); assert.equal(wid.st, "ok");
+  assert.equal(g(/extensión a tras el agujero/, { R_ear: 60 }).st, "fail", "con R = 60 (valor anterior) la extensión no cumple (FU 1,33)");
+  near(g(/extensión a tras el agujero/, { R_ear: 60 }).fu, 1.33, 1e-9, "R = 60: b_e = 37,5 y a = 37,5 → FU 1,33");
+  // D5.2(2): holgura ≤ 1 mm solo si el pasador gira bajo carga plena
+  const h0 = g(/holgura agujero–pasador/), h1 = g(/holgura agujero–pasador/, { ear_gira: 1 }), h2 = g(/holgura agujero–pasador/, { ear_gira: 1, g_ear: 1 });
+  assert.equal(P.ear_gira, 0); assert.equal(h0.kind, "info"); near(h0.dem, 3, 1e-12, "holgura 3 mm informada");
+  assert.ok(h1.kind === "geo" && h1.st === "fail" && h1.dem === 3 && h1.cap === 1 && /D5\.2\(2\)/.test(h1.ref), "pasador que gira con 3 mm: no cumple");
+  assert.equal(h2.st, "ok", "pasador que gira con 1 mm: cumple");
+  // H5: placa de la oreja en la base: σ = Th·h/(t(2R)²/6) + Tv/(2R·t) ≤ Fy/Nd; τ = Th/(2R·t) ≤ Fy/(Nd√3)
+  const L = 2 * P.R_ear, pl = g(/placa en la base: flexión/), pc = g(/placa en la base: corte/);
+  near(pl.dem, Th * 1e3 * P.h_ear / (P.t_ear * L * L / 6) + Tv * 1e3 / (L * P.t_ear), 1e-9, "flexión + tracción de la placa"); near(pl.cap, P.Fy / P.Nd, 1e-12, "Fy/Nd");
+  near(pc.dem, Th * 1e3 / (L * P.t_ear), 1e-9, "corte de la placa"); near(pc.cap, P.Fy / (P.Nd * Math.sqrt(3)), 1e-12, "Fy/(Nd√3)");
+  assert.equal(g(/placa en la base: flexión/, { t_ear: 6, R_ear: 45, h_ear: 300 }).st, "fail", "oreja esbelta (6 mm, R 45, h 300): gobierna la placa");
+  // H6: filete mínimo (AWS D1.1 Tabla 5.8, parte más gruesa; no más que la más delgada) y máximo (AISC J2.2b: t < 6 → t; t ≥ 6 → t − 2)
+  const mn = g(/Oreja: filete mínimo/), mx = g(/Oreja: filete máximo/);
+  assert.equal(mn.dem, 6, "T = máx(18; 18) → 6 mm"); assert.equal(mn.cap, P.w_ear); assert.equal(mn.st, "ok");
+  assert.equal(mx.dem, P.w_ear); assert.equal(mx.cap, P.t_ear - 2); assert.equal(mx.st, "ok");
+  assert.equal(g(/Oreja: filete mínimo/, { w_ear: 4 }).st, "fail", "4 mm < 6 mm");
+  assert.equal(g(/Oreja: filete máximo/, { t_ear: 8, w_ear: 8 }).st, "fail", "t = 8: w ≤ t − 2 = 6 (el verificador: con w = 8 el núcleo no decía nada)");
+  assert.equal(g(/Oreja: filete máximo/, { t_ear: 8, w_ear: 6 }).st, "ok");
+  assert.equal(g(/Oreja: filete máximo/, { t_ear: 6, w_ear: 5 }).cap, 4, "t = 6: w ≤ 4");
+  assert.ok(/AISC 360-22 §?J2\.2b/.test(mx.ref) && /Tabla 5\.8/.test(mn.ref) && /Tabla J2\.4/.test(mn.ref), "normas citadas");
+  // H7: nota informativa de ramales: el ángulo de 60° es una cota mínima; L ≥ d/cos 60° = 2d (ramales más cortos bajan el ángulo y aumentan T)
+  const ra = g(/Ramales: longitud mínima/);
+  assert.equal(ra.kind, "info"); near(ra.dem, 2 * Math.hypot(P.x_lug, P.B / 2 - P.c_lug), 1e-12, "L_mín = 2·d (d = distancia oreja–eje)");
+  assert.ok(/≥ 60°/.test(ra.formula) && /B30\.9/.test(ra.ref), "cota mínima y referencia B30.9");
+  assert.equal(A.checks.filter((c) => c.grp === "Orejas de izaje" && c.kind !== "info" && c.st === "fail").length, 0);
+});
+
+test("Collar y pivote: equilibrio con el asiento rígido-lineal, filete (V_c, M_c), brazo efectivo, rebaje del cubo con holguras", () => {
+  const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), R = A.R;
+  const g = (re, o) => TT.analyze(Object.assign(TT.defaults(), o || {}), { noFEA: true }).checks.find((c) => re.test(c.name));
+  // H3: brazo efectivo e = holgura del buje sobre el collar + L_buje/2 (e_piv de ingreso es solo un mínimo)
+  assert.equal(P.g_bush, 2); near(R.ePiv, Math.max(P.e_piv, P.g_bush + P.L_bush / 2), 1e-12, "e efectivo"); near(R.ePiv, 42, 1e-12, "2 + 80/2");
+  const Hf = g(/Aplastamiento del pivote en el asiento/).dem * P.D_piv * (P.t_base + P.h_boss);       // N
+  near(g(/Flexión del pivote/).dem, Hf * R.ePiv / (Math.PI * P.D_piv ** 3 / 32), 1e-9, "flexión del pivote con el brazo efectivo");
+  near(TT.compute(Object.assign(TT.defaults(), { L_bush: 120 })).ePiv, 62, 1e-12, "con L_buje = 120 el brazo es 62 mm");
+  near(TT.compute(Object.assign(TT.defaults(), { e_piv: 80 })).ePiv, 80, 1e-12, "e_piv mayor que el geométrico manda");
+  assert.ok(g(/Brazo efectivo del pivote/).kind === "info", "se reporta el valor efectivo");
+  // H1: equilibrio del collar. Asiento rígido-lineal (el mismo del σ del asiento): w(z) = H/L·[1 + k(1 − 2z/L)], k = 6(e + L/2)/L, z desde la cara superior del collar.
+  const L = P.t_base + P.h_boss, hb = P.h_boss, e = R.ePiv, k = 6 * (e + L / 2) / L, N = 400000;
+  let tot = 0, mom = 0, Vc = 0, Mc = 0;
+  for (let i = 0; i < N; i++) {
+    const z = (i + 0.5) * L / N, w = Hf / L * (1 + k * (1 - 2 * z / L)), dz = L / N;
+    tot += w * dz; mom += w * (L / 2 - z) * dz;
+    if (z < hb) { Vc += w * dz; Mc += w * (hb - z) * dz; }                                         // collar: z ∈ [0, h_collar]; momento respecto del plano de la soldadura (cara superior de la base)
+  }
+  near(tot, Hf, 1e-6, "ΣF = H"); near(mom, Hf * (e + L / 2), 1e-6, "ΣM respecto del centro del asiento = H·(e + L/2)");
+  assert.ok(Vc / Hf > 1.8 && Vc / Hf < 1.95, "V_c ≈ 1,85·H (la plancha base toma la reacción de signo contrario): " + Vc / Hf);
+  assert.ok(Mc * 1e-6 > 13 && Mc * 1e-6 < 15.5, "M_c ≈ 14 kN·m respecto de la cara superior de la base: " + Mc * 1e-6);
+  const aw = 0.707 * P.w_collar, f = Math.hypot(Mc / (Math.PI * P.D_boss ** 2 / 4 * aw), Vc / (Math.PI * P.D_boss * aw)), Fw = P.FEXX * 0.6 / (1.2 * P.Nd);
+  const wc = g(/Soldadura del collar/);
+  near(wc.dem, f, 1e-5, "grupo circular: f = √(f_b² + f_v²) con V_c y M_c"); near(wc.cap, Fw, 1e-12, "0,60 FEXX/(1,2 Nd)");
+  assert.equal(P.w_collar, 10); assert.equal(wc.kind, "fu", "el filete del collar usa la banda warn como el resto (H8)");
+  assert.ok(wc.fu <= 0.9 && wc.st === "ok", "con w = 10 mm cumple con FU ≤ 0,90: " + wc.fu);
+  assert.ok(wc.dem > 60, "mayor que el modelo anterior (V = H, M = H(e + L/2): 44,8 MPa): " + wc.dem);
+  const w9 = g(/Soldadura del collar/, { w_collar: 9 });
+  assert.ok(w9.fu > 0.9 && w9.fu <= 1 && w9.st === "warn", "w = 9: banda warn (0,9–1): FU " + w9.fu);
+  assert.equal(g(/Soldadura del collar/, { w_collar: 8 }).st, "fail");
+  // sin collar no hay verificaciones del collar
+  assert.ok(!TT.analyze(Object.assign(TT.defaults(), { h_boss: 0 }), { noFEA: true }).checks.some((c) => /Collar/.test(c.name)));
+  // H6 para el collar: mínimo AWS por la parte más gruesa (pared del collar 65 mm / base 18 → 8 mm) y máximo AISC J2.2b
+  const cmn = g(/Collar: filete mínimo/), cmx = g(/Collar: filete máximo/);
+  assert.equal(cmn.dem, 8); assert.equal(cmn.cap, 10); assert.equal(cmn.st, "ok"); assert.equal(cmx.dem, 10); assert.ok(cmx.cap >= 10 && cmx.st === "ok");
+  assert.equal(g(/Collar: filete mínimo/, { w_collar: 6 }).st, "fail", "6 mm < 8 mm");
+  // H2: rebaje del cubo = (D_boss + 2·c_r) × (h_boss + c_a); pared del cubo ≥ 25 mm
+  assert.equal(P.c_boss_r, 3); assert.equal(P.c_boss_a, 2);
+  const Drb = P.D_boss + 2 * P.c_boss_r, Hrb = P.h_boss + P.c_boss_a, d_b = P.D_piv + 30, hw = P.h_disc - P.t_top - P.t_bot;
+  near(R.m.hub, 7.85e-6 * Math.PI / 4 * ((P.D_hub ** 2 - d_b ** 2) * hw - (Drb ** 2 - d_b ** 2) * Hrb), 1e-12, "masa del cubo con el rebaje con holguras");
+  const pw = g(/pared del rebaje del cubo/);
+  near(pw.dem, Drb + 50, 1e-12, "D_collar + 2·c_r + 50"); near(pw.cap, P.D_hub, 1e-12); assert.equal(pw.st, "ok"); assert.ok(P.D_hub >= Drb + 50, "pared ≥ 25: D_cubo ≥ 306 → 310");
+  assert.equal(P.D_hub, 310, "el cubo sube de 300 a 310 (con 3/2 mm la pared quedaba en 22 mm; con 2/1 mm, 23 mm: tampoco alcanza)");
+  assert.equal(g(/pared del rebaje del cubo/, { D_hub: 300 }).st, "fail", "con el cubo de 300 mm la pared es 22 mm");
+  assert.equal(g(/pared del rebaje del cubo/, { D_hub: 300, c_boss_r: 0 }).st, "ok", "sin holgura radial el criterio anterior (25 mm) se cumplía justo");
+  // el buje cabe: holgura g_bush
+  const bc = g(/Buje sobre el collar/); near(bc.dem, P.h_boss + P.g_bush + P.L_bush, 1e-12, "h_collar + g_buje + L_buje");
+  // sin opción de interfaz: sin barras de topes
+  assert.equal(R.m.stopBars, 0);
 });
