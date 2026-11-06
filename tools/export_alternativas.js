@@ -37,6 +37,8 @@ ALTS.forEach((a) => {
 });
 // escenario térmico de la cubierta de madera (la clave `termica` de export_design.js la deja sin madera)
 out.termica_madera = TT.thermal(P, { alts: ["base"], wood: 1 }).alternativas.filter((x) => x.madera);
+// Tapones de grafito (opción C): ideal frente a real, barridos de f_g, de (Ø, paso), de la franja de borde y de los tornillos, y patrón recomendado (TT.tapones)
+out.tapones = TT.tapones(P);
 // Medidas recomendadas, cuantificadas con el mismo núcleo (T de escenario = 80 °C): (1) válvula de alivio térmico en el tramo aislado; (2) junta en frío de los sectores j_sec ≥ junta requerida de la lámina UHMW (B)
 const Tsc = 80, t80 = (Pp, alt) => TT.thermal(Pp, { alts: [alt], T: [20, Tsc] }).alternativas[0];
 const oilRows = (a) => a.byT[1].filas.filter((r) => r.sub === "e").map((r) => ({ nombre: r.nombre, dem: r.dem, cap: r.cap == null ? null : r.cap, unidad: r.unidad, fu: r.fu, estado: r.estado }));
