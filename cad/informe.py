@@ -99,6 +99,10 @@ def plug_txt(ctx):
     """Tapones de grafito: el núcleo trata la placa como mezcla homogénea con f_g sobre toda el área; el 3D coloca el patrón S09 (menos tapones)."""
     g, P, m = ctx.g, ctx.P, ctx.m
     n3 = m.info.get("n_plugs")
+    T = g.IG.get("tapones")
+    if n3 and T:
+        return (f"Núcleo v1.2 (interfazGeom.tapones): N_real = {f(T['N_real'])} tapones (malla {f(T['N_malla'])}, N_ideal {f(T['N_ideal'])}), f_g real = {fm(T['fg_real'], 3)} (ideal {fm(T['fg_ideal'], 3)}, usado {fm(T['fg_usado'], 3)}); "
+                f"el 3D coloca {f(n3)} ({n3 - T['N_real']:+d} respecto del núcleo). Cumple lubricación (f_g ≥ {fm(T['fg_min'], 2)}): {'sí' if T['cumple_lubricacion'] else 'NO (decisión del calculista)'}.")
     fgv = g.fila("Tapones de grafito: fracción de área")
     if not n3 or not fgv:
         return ""

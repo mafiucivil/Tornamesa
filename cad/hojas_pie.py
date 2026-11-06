@@ -1020,6 +1020,14 @@ def int_sector_sheet(ctx, key, titulo, face, z_of):
     if g.removable and key != "int_uhmw":
         rows.insert(3, ["Muesca del tope", f"{fm(lay.b_tope + 2, 0)} × {fm(Ln, 1)} centrada en r_u = {fm(g.r_u, 1)}"])
     s.table(xa, y0 + 0.45 * (y1 - y0) - 10, [("Parámetro", 40, "L"), ("Valor", 130, "L")], rows, h=T_S, title="PARÁMETROS DEL SECTOR (JSON)")
+    T = g.IG.get("tapones") if key == "int_bronce" else None
+    if T:
+        rows_t = [["N_real (núcleo)", f(T["N_real"])], ["N_malla / N_ideal", f"{f(T['N_malla'])} / {f(T['N_ideal'])}"], ["f_g real / ideal / usado", f"{fm(T['fg_real'], 3)} / {fm(T['fg_ideal'], 3)} / {fm(T['fg_usado'], 3)}"],
+                  ["Pérdidas: borde, muesca, tornillos, ranuras", f"{T['perdidas']['borde']}, {T['perdidas']['muesca']}, {T['perdidas']['tornillos']}, {T['perdidas']['ranCirc'] + T['perdidas']['ranRad']}"],
+                  ["Tapones por sector (núcleo)", ", ".join(str(x) for x in T["por_sector"][:12]) + " … (24)" if len(T["por_sector"]) > 12 else ", ".join(str(x) for x in T["por_sector"])],
+                  ["Tapones en el 3D", f(m.info.get("n_plugs", 0))], ["Ø / paso / profundidad", f"Ø{fm(T['d'], 0)} / {fm(T['p'], 0)} / {fm(m.info.get('plug_prof', 0), 1)} (70 % de e)"],
+                  ["Cumple f_g mínimo", f"{'sí' if T['cumple_lubricacion'] else 'NO'} (f_g mín. {fm(T['fg_min'], 2)})"]]
+        s.table(xa, y0 + 0.30 * (y1 - y0), [("Patrón de tapones (interfazGeom.tapones)", 80, "L"), ("Valor", 90, "L")], rows_t, h=T_S, title="PATRÓN DE TAPONES DE GRAFITO")
     p.tables()
     p.notes([pt.process, pt.obs or "", f"Cara deslizante: {'Ra 0,4 rectificada/lapeada' if key != 'int_uhmw' else 'sin mecanizado de precisión'}; sobreespesor de relapeado {fm(P['ss_allow'], 1)} mm (ss_allow).",
              "Junta entre sectores de ancho constante j (S04): bordes paralelos a la bisectriz; chaflán de alivio en el canto de la muesca = a_inf del tope.",
