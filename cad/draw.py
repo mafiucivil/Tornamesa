@@ -273,13 +273,13 @@ class Sheet:
         return y
 
     # ---------- símbolos adicionales ----------
-    def weld_iso(self, p, q, kind="fillet", size="z6", other=False, all_round=False, field=False, tail=(), h=2.2, L=34.0):
+    def weld_iso(self, p, q, kind="fillet", size="z6", other=False, all_round=False, field=False, tail=(), h=2.2, L=34.0, sh=None):
         """Símbolo de soldadura ISO 2553: línea de flecha (p → q), línea de referencia continua con línea de identificación a trazos,
         símbolo en el lado de la flecha (bajo la línea de referencia) y, si other, también en el lado opuesto. tail: textos de la cola
         (proceso ISO 4063, nivel de calidad ISO 5817, WPS)."""
         self.line(p, q, "COTA")
         self.arrow(p, math.atan2(p[1] - q[1], p[0] - q[0]))
-        sh = 1 if q[0] >= p[0] else -1
+        sh = sh if sh in (1, -1) else (1 if q[0] >= p[0] else -1)       # sentido de la línea de referencia (por defecto, hacia donde apunta la flecha)
         r = (q[0] + sh * L, q[1])
         self.line(q, r, "COTA")
         self.line((q[0], q[1] + 0.9), (r[0], r[1] + 0.9), "OCU")           # línea de identificación (trazos)

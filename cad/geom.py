@@ -75,6 +75,7 @@ class G:
         self.removable = P["fix_mode"] < 1.5
         self.delta = float(I["delta"])
         self.wood = P["opt_wood"] > 0.5
+        self.t_ring = float(self.IG.get("t_ring", P.get("t_ring", 10.0)))   # pletina del anillo de la madera (núcleo: P.t_ring, 4.ª pasada)
         # --- base ---
         self.B, self.tb = P["B"], P["t_base"]
         self.boss = P["h_boss"] > 0
@@ -199,6 +200,10 @@ class G:
 
     def junta(self, which):
         """Junta en frío (mm) entre sectores: la mayor entre 1 mm (regla del núcleo) y la dilatación calculada."""
+        if which == "uhmw" and self.IG.get("junta_uhmw") is not None:
+            return float(self.IG["junta_uhmw"])           # junta en frío efectiva entregada por el núcleo (4.ª pasada)
+        if which != "uhmw" and self.IG.get("junta_sector") is not None:
+            return float(self.IG["junta_sector"])
         J = self.IG.get("juntas", [])
         calc = 0.0
         for j in J:
@@ -242,8 +247,8 @@ def supuestos(g):
         add("S11", "Largo del tornillo de posición", "ISO 10642 con largo normalizado ≥ t − 0,55·d + 1,5·d (1,5 d de rosca en el respaldo)",
             "Criterio de engrane mínimo en acero; el núcleo verifica solo la cabeza.")
     if g.wood:
-        add("S06", "Anillo de acero y tablones de la cubierta de madera", f"ADOPTADO por el mandante: pletina de 10 × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior, 24,5 kg fuera del núcleo; tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección (PROVISORIA)",
-            "El núcleo calcula la madera como anulo Ø D_top / Ø(D_piv + 80) sin anillo; el anillo y el ancho de tablón los fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
+        add("S06", "Anillo de acero y tablones de la cubierta de madera", f"ADOPTADO por el mandante: pletina de {fm(g.t_ring, 0)} × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior (t_ring del núcleo; en m.total); tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección (PROVISORIA)",
+            "El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
     add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista.")
     add("S14", "Retención axial del pivote", "Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
     return S

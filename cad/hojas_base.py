@@ -112,6 +112,23 @@ def fillet_min(t):
     return 3 if t <= 6 else 5 if t <= 12 else 6 if t <= 20 else 8
 
 
+def nota_br(ctx):
+    g, P = ctx.g, ctx.P
+    fm_, fx_ = g.fila("Filete mínimo mejillas–base"), g.fila("Soldadura mejillas–base")
+    t = f"w_br (P); mín. AWS {fm(fm_['dem'], 0) if fm_ else '—'}, máx. AISC J2.2b t_ch − 2 = {fm(P['t_ch'] - 2, 0)} (núcleo)"
+    if fx_ and fx_["estado"] == "warn":
+        t += f"; FU {fm(fx_['fu'], 3)} en banda warn: advertencia aceptada por el mandante (GEN-009)"
+    return t
+
+
+def nota_web(ctx):
+    P = ctx.P
+    t = "w_web (P); mín. AWS (núcleo)"
+    if P["w_web"] > P["t_web"] - 2:
+        t += f"; supera el máx. AISC J2.2b t − 2 = {fm(P['t_web'] - 2, 0)} salvo cateto built-up: PENDIENTE DEL CALCULISTA (GEN-009)"
+    return t
+
+
 def soldaduras(ctx):
     """Programa de soldaduras: lista de dicts (id, juntas, tipo, tamaño, proceso, calidad, END, nota). Los tamaños salen de P; donde el núcleo no fija
     un tamaño se adopta el mínimo AWS D1.1 por la parte más gruesa y se rotula así."""
@@ -123,7 +140,7 @@ def soldaduras(ctx):
     add = lambda **k: W.append(dict(id=f"W{len(W) + 1:02d}", **k))
     add(juntas="Marco perimetral – plancha base", tipo="Filete ambos lados, continuo", size=fillet_min(max(P["rim_t"], tb)), nota="mín. AWS por parte más gruesa (el cálculo no fija)", calidad="C", end="MT 10 %", wps=ws(1), proc=proc)
     add(juntas="Marco largo – marco corto (esquinas)", tipo="Filete en ángulo exterior, continuo", size=fillet_min(P["rim_t"]), nota="mín. AWS", calidad="C", end="MT 10 %", wps=ws(1), proc=proc)
-    add(juntas="Mejilla de ménsula – plancha base", tipo="Filete ambos lados, 4 líneas por ménsula", size=P["w_br"], nota="w_br (P)", calidad="B", end="MT 100 %", wps=ws(2), proc=proc)
+    add(juntas="Mejilla de ménsula – plancha base", tipo="Filete ambos lados, 4 líneas por ménsula", size=P["w_br"], nota=nota_br(ctx), calidad="B", end="MT 100 %", wps=ws(2), proc=proc)
     add(juntas="Orejas sup./inf. de ménsula – mejillas", tipo="Filete ambos lados", size=fillet_min(P["t_ch"]), nota="mín. AWS (t = t_ch)", calidad="B", end="MT 100 %", wps=ws(2), proc=proc)
     add(juntas="Oreja inferior (bloque) – plancha base", tipo="Filete todo alrededor", size=fillet_min(P["t_ch"]), nota="mín. AWS", calidad="B", end="MT 100 %", wps=ws(2), proc=proc)
     add(juntas="Bancada – plancha base", tipo="Filete ambos lados, continuo, precalentar 65 °C", size=P["w_bed_f"], nota="w_bed_f (P)", calidad="B", end="MT 100 %", wps=ws(3), proc=proc)
@@ -134,8 +151,8 @@ def soldaduras(ctx):
     add(juntas="Orejas de izaje – plancha base", tipo="Filete ambos lados (L = 2R), biselar la base de la oreja", size=P["w_ear"], nota=f"w_ear (P); mín. AWS D1.1 T5.8 = {fm(fo['dem'], 0) if fo else '—'} (núcleo)", calidad="B", end="MT 100 % + UT 100 %", wps=ws(5), proc=proc)
     add(juntas="Segmentos de los anillos de la mesa (4 × 90°)", tipo="CJP a tope en V 60°, raíz 3, con respaldo", size=f"t = {fm(g.tpr, 0)}", nota="empalme", calidad="B", end="UT 100 %", wps=ws(6), proc=proc)
     add(juntas="Discos centrales – anillos de la mesa", tipo="CJP a tope en V 60°, raíz 3, con respaldo", size=f"t = {fm(g.tbo, 0)}–{fm(g.tt, 0)}", nota="a tope de planchas de distinto espesor (transición 1:4)", calidad="B", end="UT 100 %", wps=ws(6), proc=proc)
-    add(juntas="Almas anulares – planchas superior e inferior", tipo="Filete ambos lados, continuo", size=P["w_web"], nota="w_web (P)", calidad="B", end="MT 100 %", wps=ws(7), proc=proc)
-    add(juntas="Nervios – planchas y almas", tipo="Filete ambos lados, continuo", size=P["w_web"], nota="w_web (P)", calidad="B", end="MT 100 %", wps=ws(7), proc=proc)
+    add(juntas="Almas anulares – planchas superior e inferior", tipo="Filete ambos lados, continuo", size=P["w_web"], nota=nota_web(ctx), calidad="B", end="MT 100 %", wps=ws(7), proc=proc)
+    add(juntas="Nervios – planchas y almas", tipo="Filete ambos lados, continuo", size=P["w_web"], nota=nota_web(ctx), calidad="B", end="MT 100 %", wps=ws(7), proc=proc)
     add(juntas="Empalme de almas anulares", tipo="CJP a tope en V 60°", size=f"t = {fm(P['t_web'], 0)}", nota="1 por anillo", calidad="B", end="UT 100 %", wps=ws(6), proc=proc)
     add(juntas="Cubo – planchas inferior y superior", tipo="CJP bisel 45° con respaldo", size=f"t = {fm(g.tt, 0)}", nota="cierre de la mesa", calidad="B", end="UT 100 %", wps=ws(6), proc=proc)
     add(juntas="Cierre de la plancha superior (ranuras de tapón)", tipo="Soldadura en ranura 22×80 c/250, relleno completo", size="c/250", nota="tapones sobre almas/nervios", calidad="C", end="MT 100 %", wps=ws(7), proc=proc)

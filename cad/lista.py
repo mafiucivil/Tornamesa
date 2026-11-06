@@ -88,5 +88,5 @@ def cut_rows(ctx):
             add("int_tope_uhmw", "Barra", f"{fm(P['b_tope'], 0)}×{f(m.info['uhmw_bar_L'])}×{fm(m.info['uhmw_bar_h'], 0)}", "L = L_av; h = t_UHMW − a_sup; inoxidable; 2 filetes")
         add("int_uhmw", "Sector", f"{env}×{fm(g.I['tuh'] + 1, 0)}", "CNC/plasma de agua")
     if g.wood:
-        add("madera_anillo", "Pletina rolada", f"10×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - 10) + 20)}", "Adoptado por el mandante (S06); 1 empalme CJP")
+        add("madera_anillo", "Pletina rolada", f"{fm(g.t_ring, 0)}×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - g.t_ring) + 20)}", "Adoptado por el mandante (S06); 1 empalme CJP")
     return R

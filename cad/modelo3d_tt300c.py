@@ -475,7 +475,7 @@ def build(D, verbose=True):
     if g.wood:
         zw0 = z0 + hd
         tW = P["t_wood"]
-        w_ring = 10.0
+        w_ring = float(g.IG.get("t_ring", P.get("t_ring", 10.0)))          # espesor de la pletina: P.t_ring (núcleo, 4.ª pasada)
         ring_st = ring(Rt - w_ring, Rt, tW, zw0)
         wood = ring(g.cb_D / 2, Rt - w_ring, tW, zw0)
         for (x, y) in pin_xy:                                                  # bolsillos sobre perno y arandela de cada pasador (S06)
@@ -484,7 +484,7 @@ def build(D, verbose=True):
                    wood, 1, f"Madera dura seca al aire, ρ ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor)", "Aserrado y cepillado de tablones; corte a medida; bolsillos con fresa; fijación con tornillos avellanados (a definir)",
                    rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Ancho de tablón 200 adoptado por el mandante (S06); fijación A DEFINIR"))
         m.add(Part("madera_anillo", "MAD", "Anillo de acero de contención", f"Pletina {fm(w_ring, 0)}×{f(tW)} rolada a Ø{f(P['D_top'])}, soldada a la plancha superior (filete {f(P['w_web'])} a ambos lados)", ring_st, 1, A572,
-                   "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", in_core=False, color=(0.4, 0.4, 0.45), obs="Pletina 10×t_wood adoptada por el mandante (S06); el cálculo no incluye su masa (fuera del núcleo)"))
+                   "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", core="ring", color=(0.4, 0.4, 0.45), obs="Pletina t_ring × t_wood adoptada por el mandante (S06); incluida en el núcleo (m.ring) y en m.total"))
     log(f"  modelo construido en {time.time() - t0:.0f} s, {len(m.parts)} ítems")
     return m
 
@@ -788,12 +788,12 @@ def masas(m, tol_pct=0.5):
     D, g = m.D, m.g
     M = D["derivados"]["masas"]
     core_keys = {"base": ["base"], "rim": ["rim"], "brackets": ["brackets"], "beds": ["beds"], "dogs": ["dogs"], "shoes": ["shoes"], "pivot": ["pivot"], "cyl": ["cyl"],
-                 "mesa": ["top", "bot", "webs", "ribs", "hub", "pins"], "ss": ["ss"], "uhmw": ["uhmw"], "bz": ["bz"], "wood": ["wood"], "stopBars": ["stopBars"]}
+                 "mesa": ["top", "bot", "webs", "ribs", "hub", "pins"], "ss": ["ss"], "uhmw": ["uhmw"], "bz": ["bz"], "wood": ["wood"], "ring": ["ring"], "stopBars": ["stopBars"]}
     groups = {"base": "base", "rim": "rim", "brackets": "brackets", "beds": "beds", "dogs": "dogs", "shoes": "shoes", "pivot": "pivot", "cyl": "cyl",
-              "top": "mesa", "bot": "mesa", "webs": "mesa", "ribs": "mesa", "hub": "mesa", "pins": "mesa", "ss": "ss", "uhmw": "uhmw", "bz": "bz", "wood": "wood", "stopBars": "stopBars"}
+              "top": "mesa", "bot": "mesa", "webs": "mesa", "ribs": "mesa", "hub": "mesa", "pins": "mesa", "ss": "ss", "uhmw": "uhmw", "bz": "bz", "wood": "wood", "ring": "ring", "stopBars": "stopBars"}
     nombres = {"base": "Plancha base + collar + orejas de izaje", "rim": "Marco perimetral", "brackets": "Ménsulas de cilindro", "beds": "Bancadas de guía", "dogs": "Uñas", "shoes": "Patines",
                "pivot": "Pivote", "cyl": "Cilindros (masa de catálogo)", "mesa": "Mesa (planchas, almas, nervios, cubo, pasadores)", "ss": "Discos de interfaz (inox / duro)", "uhmw": "Lámina UHMW",
-               "bz": "Bronce con grafito (o 2.ª placa)", "wood": "Cubierta de madera", "stopBars": "Barras de los topes (m.stopBars)"}
+               "bz": "Bronce con grafito (o 2.ª placa)", "wood": "Cubierta de madera (tablones)", "ring": "Anillo de acero de la madera", "stopBars": "Barras de los topes (m.stopBars)"}
     mod = {}
     for p in m.parts:
         if p.core:

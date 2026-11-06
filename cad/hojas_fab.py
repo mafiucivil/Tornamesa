@@ -59,15 +59,30 @@ def sheet_base(ctx):
     VA.draw()
     s.line(VA.P(0, 0, -15), VA.P(0, 0, 100), "EJE")
     VA.dim((900, 0, 0), (900, 0, tb), 8, orient="v", on=["base_plancha"])
-    VA.dim((B / 2 - P["rim_t"], 0, tb + P["rim_h"]), (B / 2, 0, tb + P["rim_h"]), 10, orient="h", on=["marco_largo", "marco_corto"])
-    VA.dim((B / 2, 0, tb), (B / 2, 0, tb + P["rim_h"]), 12, orient="v", on=["marco_largo", "marco_corto"])
-    VA.dim((xg - P["w_bed"] / 2, 0, g.zb), (xg + P["w_bed"] / 2, 0, g.zb), 12, orient="h", on=["bancada"])
-    VA.dim((xg + P["w_bed"] / 2, 0, tb), (xg + P["w_bed"] / 2, 0, g.zb), 8, orient="v", on=["bancada"])
-    s.weld_iso(VA.P(B / 2 - P["rim_t"], 0, tb + 3), VA.P(B / 2 - 330, 0, 120), "fillet", f"z{fm(weld_by(ctx, 'Marco perimetral – plancha')['size'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-01 A DEFINIR POR EL FABRICANTE"])
-    s.weld_iso(VA.P(xg - P["w_bed"] / 2, 0, tb + 2), VA.P(xg - 800, 0, 40), "fillet", f"z{fm(P['w_bed_f'], 0)}", other=True, tail=["111/135 · ISO 5817-B", "WPS-03 A DEFINIR POR EL FABRICANTE"])
     s.finish((VA.P(xg - P["w_slot"] / 2 - 22, 0, g.zb)[0], VA.P(0, 0, g.zb)[1] + 6), "Ra 1,6")
     s.text(f"Cara superior de la plancha: planitud 0,20 en Ø{f(P['D_top'] + 20)} (ISO 1101)", (VA.P(-150, 0, 0)[0], VA.P(0, 0, -34)[1]), 2.1)
+    s.text("Soldaduras y cotas del marco y de la bancada: detalles D1 y D2 (más abajo).", (VA.P(-150, 0, 0)[0], VA.P(0, 0, -34)[1] - 4), 2.1)
+    s.detail_circle(VA.P(B / 2 - P["rim_t"] / 2, 0, tb + P["rim_h"] / 2), 7.5, "D1")
+    s.detail_circle(VA.P(xg, 0, g.zb - 12), 8.5, "D2")
     title_view(s, (500, 462), "CORTE A-A (plano y = 0)", "ESC 1:5")
+    # --- D1: marco perimetral y su soldadura (escala 1:1) ---
+    kD = [k for k in ("base_plancha", "marco_largo", "marco_corto") if k in ctx.shapes]
+    V1 = View(s, ctx.sh(*kD), "front", (385, 360), 1.0, center=(B / 2 - 30, 0, tb), cut=((0, 0, 0), (0, 1, 0)), win=(-48, -tb - 6, 40, P["rim_h"] + 12), label="Detalle D1 marco", hatch_scale=0.35)
+    V1.draw()
+    V1.dim((B / 2 - P["rim_t"], 0, tb + P["rim_h"]), (B / 2, 0, tb + P["rim_h"]), 8, orient="h", on=["marco_largo", "marco_corto"])
+    V1.dim((B / 2, 0, tb), (B / 2, 0, tb + P["rim_h"]), 9, orient="v", on=["marco_largo", "marco_corto"])
+    V1.dim((B / 2 - 30, 0, 0), (B / 2 - 30, 0, tb), -9, orient="v", on=["base_plancha"], outside=True)
+    wm = weld_by(ctx, "Marco perimetral – plancha")
+    s.weld_iso(V1.P(B / 2 - P["rim_t"], 0, tb + 2), V1.P(B / 2 - 46, 0, tb + P["rim_h"] + 22), "fillet", f"z{fm(wm['size'], 0)}", other=True, sh=1, tail=["111/135 · ISO 5817-C", "WPS-01 A DEFINIR POR EL FABRICANTE"])
+    title_view(s, (385, 307), "DETALLE D1: MARCO Y SOLDADURA", "ESC 1:1")
+    # --- D2: bancada y su soldadura (escala 1:2) ---
+    V2 = View(s, ctx.sh(*[k for k in ("base_plancha", "bancada") if k in ctx.shapes]), "front", (545, 360), 0.5, center=(xg, 0, tb), cut=((0, 0, 0), (0, 1, 0)), win=(-112, -tb - 8, 112, P["t_bed"] + 12), label="Detalle D2 bancada", hatch_scale=0.35)
+    V2.draw()
+    V2.dim((xg - P["w_bed"] / 2, 0, g.zb), (xg + P["w_bed"] / 2, 0, g.zb), 7, orient="h", on=["bancada"])
+    V2.dim((xg + P["w_bed"] / 2, 0, tb), (xg + P["w_bed"] / 2, 0, g.zb), 7, orient="v", on=["bancada"])
+    V2.dim((xg - P["w_slot"] / 2, 0, g.zb), (xg + P["w_slot"] / 2, 0, g.zb), -14 if False else 0.0001, orient="h", on=["bancada"], text=f"{f(P['w_slot'])} H8 (ranura)") if False else None
+    s.weld_iso(V2.P(xg - P["w_bed"] / 2, 0, tb + 2), V2.P(xg - 150, 0, g.zb + 55), "fillet", f"z{fm(P['w_bed_f'], 0)}", other=True, sh=1, tail=["111/135 · ISO 5817-B", "WPS-03 A DEFINIR POR EL FABRICANTE", "precalentar 65 °C"])
+    title_view(s, (545, 307), "DETALLE D2: BANCADA Y SOLDADURA", "ESC 1:2")
     VC = View(s, ctx.sh("base_plancha", "collar"), "front", (260, 190), 0.5, cut=((0, 0, 0), (0, 1, 0)), win=(-190, -22, 190, 95), label="Detalle collar", hatch_scale=0.4)
     VC.draw()
     s.line(VC.P(0, 0, -12), VC.P(0, 0, tb + g.h_boss + 14), "EJE")
@@ -179,17 +194,36 @@ def sheet_oreja(ctx):
     VT.dim((0, -tE / 2, tb + hE), (0, tE / 2, tb + hE), 10, orient="v", on=["oreja_L"], text=f"{f(tE)}", outside=True) if False else None
     VT.dim((R, -tE / 2, tb + hE), (R, tE / 2, tb + hE), 12, orient="v", on=["oreja_L"], text=f"e = {f(tE)}")
     title_view(s, (140, 215), "PLANTA (espesor)", "ESC 1:1")
-    keys = ["base_plancha", "orejas"]
-    VB = View(s, ctx.sh(*keys), "top", (470, 400), 0.1, center=(g.B / 2 - 700, g.B / 2 - 700, 0), win=(-300, -300, 700, 700), label="Esquina de la base"); VB.draw()
-    for (ex, ey) in g.ear_pos[:1]:
-        s.line(VB.P(0, 0, tb), VB.P(ex, ey, tb), "FANT")
+    # --- ubicación: planta de toda la base con las 4 orejas (1:20) y esquina ampliada (1:5) ---
+    B, Rt = g.B, g.Rt
+    keys = [k for k in ("base_plancha", "orejas", "marco_largo", "marco_corto") if k in ctx.shapes]
+    VB = View(s, ctx.sh(*keys), "top", (470, 487), 0.05, center=(0, 0, 0), label="Ubicación de las 4 orejas"); VB.draw()
+    s.line(VB.P(-B / 2 - 90, 0, 0), VB.P(B / 2 + 90, 0, 0), "EJE"); s.line(VB.P(0, -B / 2 - 90, 0), VB.P(0, B / 2 + 90, 0), "EJE")
+    s.circle(VB.P(0, 0, 0), Rt * 0.05, "OCU")
+    s.text(f"Mesa Ø{f(P['D_top'])}", (VB.P(0, 0, 0)[0], VB.P(0, 0, 0)[1] - Rt * 0.05 - 3), 2.0, "TOP_CENTER")
+    for i, (ex, ey) in enumerate(g.ear_pos):
+        s.line(VB.P(0, 0, tb), VB.P(ex, ey, tb), "FANT")                                 # plano de la oreja: radial hacia el centro
+        sx, sy = (1 if ex > 0 else -1), (1 if ey > 0 else -1)
+        s.text(f"O{i + 1}", (VB.P(ex, ey, tb)[0] + sx * 7, VB.P(ex, ey, tb)[1] + sy * 4), 3.2, "MIDDLE_CENTER", bold=True)
     cl = g.cl_lug
-    VB.dim((x, g.B / 2, tb), (x, cl, tb), 12, orient="v", on=["base_plancha"], text=f"{f(P['c_lug'])} (al borde)")
-    VB.dim((0, cl, tb), (x, cl, tb), -9 if False else 14, orient="h", on=["base_plancha"], text=f"{f(P['x_lug'])} (al eje y)")
-    title_view(s, (470, 305), "UBICACIÓN (esquina de la base)", "ESC 1:10")
-    s.text(f"Plano de la oreja vertical y radial hacia el centro de la base (ángulo atan(±{f(cl)}/±{f(x)}) = {fm(ang, 2)}° respecto de x en la oreja 1).", (300, 285), 2.1)
-    s.text("Orejas en (±x_lug, ±(B/2 − c_lug)); distancia al borde c_lug; fuera del círculo de la mesa y dentro del marco.", (300, 281), 2.1)
-    s.notes_block(300, 260, "PROCESO Y CONTROL", [
+    VB.dim((-x, cl, tb), (x, cl, tb), 9, orient="h", on=["base_plancha"], text=f"{f(2 * x)} (entre orejas)")
+    VB.dim((x, -cl, tb), (x, cl, tb), 14, orient="v", on=["base_plancha"], text=f"{f(2 * cl)} (entre orejas)")
+    VB.dim((-B / 2, -B / 2, 0), (B / 2, -B / 2, 0), -10, orient="h", on=["base_plancha"])
+    s.text("O1 en (+x, +y): coordenadas (±x_lug, ±(B/2 − c_lug)); las 4 orejas son iguales y simétricas (espejo en x e y).", (470, 408), 1.9, "TOP_CENTER")
+    title_view(s, (470, 392), "UBICACIÓN DE LAS 4 OREJAS (planta de la base)", "ESC 1:20")
+    VQ = View(s, ctx.sh(*keys), "top", (600, 462), 0.2, center=(x + 200, cl + 60, 0), win=(-300, -170, 120, 190), label="Esquina de la base"); VQ.draw()
+    s.line(VQ.P(0, 0, tb), VQ.P(x, cl, tb), "FANT") if False else None
+    s.line(VQ.P(x - 300, cl, tb), VQ.P(x + 300, cl, tb), "FANT")                            # eje transversal de las orejas
+    s.line(VQ.P(x, cl - 300, tb), VQ.P(x, cl + 160, tb), "FANT")
+    VQ.dim((x + 190, B / 2, tb), (x + 190, cl, tb), 8, orient="v", on=["base_plancha"], text=f"c_lug = {f(P['c_lug'])} (al borde)")
+    VQ.dim((0, cl, tb), (x, cl, tb), -12, orient="h", on=["base_plancha"], text=f"x_lug = {f(P['x_lug'])} (al eje y)", outside=True) if False else None
+    s.text(f"O1 (x_lug = {f(x)}; y = B/2 − c_lug = {f(cl)}); plano radial a {fm(ang, 2)}° de x", (600, 441), 1.9, "TOP_CENTER")
+    title_view(s, (600, 427), "OREJA O1 Y DISTANCIA AL BORDE", "ESC 1:5")
+    s.text(f"Orientación: plano de cada oreja vertical y radial hacia el centro de la base (ángulo atan({f(cl)}/{f(x)}) = {fm(ang, 2)}° respecto de x en O1; las demás son su imagen especular en x e y).", (300, 376), 2.0)
+    s.text(f"Distancia al borde c_lug = {f(P['c_lug'])} (núcleo: c ≥ t_marco + 35); fuera del círculo de la mesa Ø{f(P['D_top'])} y dentro del marco.", (300, 372), 2.0)
+    rows_o = [[f"O{i + 1}", f(ex), f(ey), fm(math.degrees(math.atan2(ey, ex)), 2) + "°", "radial hacia el centro"] for i, (ex, ey) in enumerate(g.ear_pos)]
+    s.table(300, 367, [("Oreja", 16, "C"), ("x", 20, "R"), ("y", 20, "R"), ("Ángulo del plano", 28, "R"), ("Orientación", 50, "L")], rows_o, rh=4.4, h=1.9)
+    s.notes_block(300, 335, "PROCESO Y CONTROL", [
         "1. Corte a llama o plasma del perfil y del agujero Ø{0} (tolerancia ISO 2768-m; agujero H12 de corte, sin mecanizado: grillete con pasador ≤ d − 3).".format(fm(dE, 0)),
         "2. Biselado de la base de apoyo según WPS (preparación A DEFINIR POR EL FABRICANTE) y esmerilado de bordes del agujero.",
         f"3. Soldadura a la plancha base con filete z{fm(P['w_ear'], 0)} a ambos lados, longitud 2R = {f(2 * R)}; nivel ISO 5817-B.",
@@ -338,13 +372,14 @@ def sheet_art(ctx):
     Lv = ctx.m.get("pasador_vastago").solid.val().BoundingBox().zlen
     Lo = ctx.m.get("pasador_ojal").solid.val().BoundingBox().zlen
     z0v = max(zb, g.zc - g.forkH / 2 - 10)
+    sc_p = min(0.7, 105.0 / (max(Lv, Lo) + 20))                      # el pasador más largo debe caber sobre el título (la altura del eje cambia con δ)
     for i, (key, nm, z0, L) in enumerate((("pv_L", "PASADOR DEL VÁSTAGO (PATÍN)", z0v, Lv), ("po_L", "PASADOR DEL OJAL TRASERO (MÉNSULA)", g.tb, Lo))):
         ox = 80 + i * 130
-        V = View(s, ctx.sh(key), "front", (ox, 430), 0.7, center=(0, 0, z0), label=nm); V.draw()
+        V = View(s, ctx.sh(key), "front", (ox, 430), sc_p, center=(0, 0, z0), label=nm); V.draw()
         s.line(V.P(0, 0, z0 - 8), V.P(0, 0, z0 + L + 8), "EJE")
         V.dim((-d_pp / 2, 0, z0), (d_pp / 2, 0, z0), -8, orient="h", on=[key], text=f"Ø{f(d_pp)} f8")
         V.dim((d_pp / 2, 0, z0), (d_pp / 2, 0, z0 + L), 8, orient="v", on=[key], text=f"{fm(L, 1)}")
-        title_view(s, (ox, 330 if False else 345), nm.split("(")[0].strip(), "ESC 1:1,5")
+        title_view(s, (ox, 330 if False else 345), nm.split("(")[0].strip(), f"ESC 1:{fm(1 / sc_p, 1)}")
     s.text("Ambos: Ra 0,8 en Ø; chaflanes 2×45°; retención con placa y tornillo (A DEFINIR POR CATÁLOGO).", (30, 315), 2.0)
     s.finish((200, 300), "Ra 0,8")
     # cilindro
@@ -521,8 +556,10 @@ def sheet_mesa_cubo(ctx):
         VN.dim((a1_, -P["t_rib"] / 2, z0 + tbo), (a1_, -P["t_rib"] / 2, z0 + tbo + hw), 8, orient="v", on=["nervio0_L"])
         title_view(s, (470, 190), "NERVIO – TRAMO 1 (elevación)", "ESC 1:2")
         s.text(f"Espesor {f(P['t_rib'])}; cortar a plasma; soldar con filete z{fm(P['w_web'], 0)} ambos lados a planchas, almas y cubo.", (400, 175), 2.0)
-    s.weld_iso((470, 330), (520, 360), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-B · MT 100 %", "WPS-07 A DEFINIR POR EL FABRICANTE"])
-    s.text("Soldadura de almas y nervios a las planchas (típica).", (470, 322), 2.0)
+    if segs:                                                 # símbolo con la flecha sobre el borde inferior del nervio (unión con la plancha inferior); texto debajo de la vista, fuera del dibujo
+        tip = VN.P(P["D_hub"] / 2 + 45, P["t_rib"] / 2, z0 + tbo + hw - 0.5)
+        s.weld_iso(tip, (tip[0] + 6, 350), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-B · MT 100 %", "WPS-07 A DEFINIR POR EL FABRICANTE"])
+        s.text("Soldadura de almas y nervios a las planchas (típica).", (tip[0] - 22, 356), 2.0)
     right_col(ctx, s, keys[:1] + nk[:6], notas=["Cubo: anillo cortado a llama de plancha gruesa o tubo, sin torno vertical; Ø150 H7 y rebaje en mandrinadora."], extra_proc=False)
     return h
 
@@ -580,7 +617,8 @@ def sheet_pivote(ctx):
     if g.boss:
         V.dim((g.D_boss / 2, 0, tb), (g.D_boss / 2, 0, tb + g.h_boss), 8, orient="v", on=["collar"], text=f"{f(g.h_boss)} (collar)")
     if g.rebaje:                                              # holguras reales del collar en el rebaje de la mesa (núcleo: c_boss_r, c_boss_a)
-        V.dim((-g.D_boss / 2, 0, g.z0 + g.tbo / 2), (-g.Drb / 2, 0, g.z0 + g.tbo / 2), -16, orient="h", on=["collar", "mesa_plancha_inf"], text=f"{fm(g.c_boss_r, 0)} (radial)", outside=True)
+        zr = (g.z0 + min(tb + g.h_boss, g.z0 + g.hPl)) / 2               # a media altura del tramo del collar que entra en el rebaje (con δ grande el collar solo entra unos mm)
+        V.dim((-g.D_boss / 2, 0, zr), (-g.Drb / 2, 0, zr), -16, orient="h", on=["collar", "mesa_plancha_inf"], text=f"{fm(g.c_boss_r, 0)} (radial)", outside=True)
         V.dim((-100, 0, tb + g.h_boss), (-100, 0, g.z_techo), -8, orient="v", on=["collar", "mesa_cubo", "mesa_plancha_inf"], text=f"{fm(g.z_techo - tb - g.h_boss, 0)} (axial)", outside=True)
         V.dim((-g.D_boss / 2, 0, tb + g.h_boss), (g.D_boss / 2, 0, tb + g.h_boss), -50 if False else 0.01, orient="h", on=["collar"], text="") if False else None
     s.text(f"Asiento del pivote en plancha base + collar: {f(tb + g.h_boss)} (t_base + h_collar). Buje desde z = {f(g.z_bush0)} (2 mm sobre el collar).", (30, 535 - 330 + 40), 2.0) if False else None
@@ -879,7 +917,7 @@ def sheet_madera(ctx):
     z0, hd, tW = g.z0, g.hd, P["t_wood"]
     zt = z0 + hd + tW
     V = View(s, ctx.sh("madera", "madera_anillo"), "top", (150, 430), 0.1, center=(0, 0, zt), label="Planta"); V.draw()
-    Rw = g.Rt - 10.0
+    Rw = g.Rt - g.t_ring
     wp = 200.0
     ys = [-Rw + k * wp for k in range(int(2 * Rw // wp) + 2) if -Rw + k * wp < Rw]
     cut_rows = []
@@ -899,14 +937,14 @@ def sheet_madera(ctx):
     rk = ctx.rotated(["madera", "madera_anillo", "mesa_anillo_sup", "pernos_pasador", "pasadores"], -a0)
     VR = View(s, ctx.sh(*rk), "front", (500, 420), 1.0, center=(g.R_pin + 40, 0, z0 + hd), cut=((0, 0, 0), (0, 1, 0)), win=(-130, -30, 130, tW + 12), label="Corte", hatch_scale=0.3); VR.draw()
     VR.dim((g.Rt, 0, z0 + hd), (g.Rt, 0, z0 + hd + tW), 10, orient="v", on=["madera_anillo_r"], text=f"{f(tW)}")
-    VR.dim((g.Rt - 10, 0, z0 + hd + tW), (g.Rt, 0, z0 + hd + tW), 10, orient="h", on=["madera_anillo_r"], text="10 (adoptado)")
+    VR.dim((g.Rt - g.t_ring, 0, z0 + hd + tW), (g.Rt, 0, z0 + hd + tW), 10, orient="h", on=["madera_anillo_r"], text=f"{fm(g.t_ring, 0)} (t_ring)")
     VR.dim((g.R_pin - g.washer_D / 2 - 2, 0, z0 + hd), (g.R_pin + g.washer_D / 2 + 2, 0, z0 + hd), -25, orient="h", on=["madera_r"], text=f"Ø{f(g.washer_D + 4)} (bolsillo) × 31") if False else None
-    s.weld_iso(VR.P(g.Rt - 10, 0, z0 + hd + 2), VR.P(g.Rt - 70, 0, z0 + hd + 50), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-10 A DEFINIR POR EL FABRICANTE"])
+    s.weld_iso(VR.P(g.Rt - g.t_ring, 0, z0 + hd + 2), VR.P(g.Rt - 70, 0, z0 + hd + 50), "fillet", f"z{fm(P['w_web'], 0)}", other=True, tail=["111/135 · ISO 5817-C", "WPS-10 A DEFINIR POR EL FABRICANTE"])
     title_view(s, (500, 350), "CORTE POR UN PASADOR (bolsillo sobre el perno)", "ESC 1:1")
     s.text(f"f_apoyo = {fm(P['f_apoyo'], 2)}: fracción del círculo de carga Ø{f(P['D_load'])} que toca realmente la madera (tablones contiguos dentro del anillo); p adm. {fm(P['p_wood'], 1)} MPa.", (30, 290), 2.1)
-    s.text("ADOPTADO por el mandante (S06): ancho de tablón 200, anillo 10×t (24,5 kg fuera del núcleo); abertura Ø%s y bolsillos sobre los pernos de pasador: PROVISORIOS." % f(g.cb_D), (30, 285), 2.1)
+    s.text("ADOPTADO por el mandante (S06): ancho de tablón 200, anillo %s×t (en el núcleo, m.ring %s kg); abertura Ø%s y bolsillos sobre los pernos de pasador: PROVISORIOS (residual de masa en el informe)." % (fm(g.t_ring, 0), fm(ctx.M["ring"], 1), f(g.cb_D)), (30, 285), 2.1)
     s.text("Fijación de los tablones (tornillos avellanados) y acabado antideslizante: A DEFINIR POR EL CALCULISTA (verificación pendiente del núcleo).", (30, 280), 2.1)
     s.text("LISTA DE CORTE DE TABLONES (ancho 200 adoptado)", (30, 265), 2.8, "TOP_LEFT", bold=True)
     s.table(30, 259, [("N°", 10, "C"), ("Ancho", 18, "R"), ("L máx.", 20, "R"), ("L mín.", 20, "R"), ("Piezas", 40, "L"), ("e", 12, "R")], cut_rows, rh=4.4, h=1.9)
-    right_col(ctx, s, ["madera", "madera_anillo"], notas=["La madera gira con la mesa y carga la interfaz; masa incluida en el cálculo (m.wood). El anillo de acero NO está en el cálculo de masas (ver informe)."])
+    right_col(ctx, s, ["madera", "madera_anillo"], notas=["La madera gira con la mesa y carga la interfaz; masa incluida en el cálculo (m.wood). El anillo de acero (pletina t_ring × t_wood) está en el núcleo (m.ring) y en m.total."])
     return h

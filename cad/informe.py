@@ -26,9 +26,9 @@ def brechas(ctx, rep):
     if g.opt == 2:
         add("Opción B sin engrase", "El núcleo no define ranuras ni graseras para la opción B (UHMW sobre inox «con grasa limpia»); no se dibujan.", "Definir si B lleva engrase y su geometría.")
     if g.wood:
-        mm = {p.key: p for p in ctx.m.parts}
-        add("Cubierta de madera: masa del anillo fuera del núcleo", f"Adoptado por el mandante: anillo de acero pletina 10×{fm(P['t_wood'], 0)} ({fm(mm['madera_anillo'].mass_total, 1)} kg, NO incluido en m.total) y tablones de 200 mm. El núcleo calcula la madera como anulo Ø{fm(P['D_top'], 0)}/Ø{fm(g.hole_top, 0)} sin anillo: madera 3D {fm(mm['madera'].mass_total, 1)} kg frente a {fm(ctx.M['wood'], 1)} kg del núcleo (anillo, abertura Ø{fm(g.cb_D, 0)} y {g.N_pin} bolsillos).",
-            "Sumar el anillo (24,5 kg) a m.total y descontar anillo, abertura y bolsillos de la madera, o aceptar la diferencia conservadora.")
+        ab, bol = wood_residual(ctx)
+        add("Cubierta de madera: residual de masa fuera del núcleo", f"El anillo de acero (pletina {fm(P['t_ring'], 0)}×{fm(P['t_wood'], 0)}, {fm(ctx.M['ring'], 1)} kg) ya está en el núcleo y en m.total (madera {fm(ctx.M['wood'], 1)} kg dentro del anillo). El modelo 3D descuenta además la abertura central Ø{fm(g.cb_D, 0)} de la tapa de inspección ({fm(ab, 1)} kg) y {g.N_pin} bolsillos de perno/arandela ({fm(bol, 1)} kg) que el núcleo no resta: residual {fm(ab + bol, 1)} kg, conservador en el núcleo.",
+            "Informativo: aceptar la diferencia o descontarla en el núcleo. Disposición de tablones (ancho 200 mm) y fijación A DEFINIR.")
     ev = vol_hub(g)
     if g.boss and ev < P["L_bush"] - 1e-6:
         add("Buje parcialmente sin guía en el cubo", f"El buje arranca en z = {fm(g.z_bush0, 0)} y el alesaje del cubo (Ø{fm(g.d_bush, 0)} H7) empieza en z = {fm(g.z_techo if g.rebaje else g.z0 + g.tbo, 0)}: engrane {fm(ev, 0)} de {fm(P['L_bush'], 0)} mm (con rebaje de {fm(g.h_rebaje, 0)} < t_bot, el agujero de la plancha inferior es pasante).", "Verificar la presión del buje con el engrane real o subir el buje.")
@@ -36,97 +36,82 @@ def brechas(ctx, rep):
     add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura, 42CrMo4 no soldable).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
     add("Torque de pernos y tornillos", "El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición).", "A DEFINIR: torques de apriete (ISO 898-1 / VDI 2230).")
     add("Tamaño de soldaduras sin parámetro", "Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f.", "A DEFINIR: confirmar o parametrizar tamaños y END de las soldaduras sin parámetro.")
-    add("Verificación del núcleo del filete de las mejillas", f"La fila «Filete mínimo mejillas–base» acota con mín(w_br, t_base, t_ch) = {fm(min(P['w_br'], P['t_base'], P['t_ch']), 0)}: no detecta que w_br = {fm(P['w_br'], 0)} supera t_base = {fm(P['t_base'], 0)} (el máximo AISC J2.2b sobre el borde de la mejilla de {fm(P['t_ch'], 0)} sería {fm(P['t_ch'] - 2, 0)}).", "Revisar el criterio de la fila (mínimo y máximo por separado).")
+    add("Filetes máximos AISC J2.2b de almas y nervios", f"Almas y nervios de la mesa: w_web = {fm(P['w_web'], 0)} sobre t = {fm(P['t_web'], 0)} superan el máximo de borde t − 2 = {fm(P['t_web'] - 2, 0)} mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión.",
+        "PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma.")
+    for v in D["verificaciones"]:
+        if v["estado"] == "warn":
+            if v["nombre"].startswith("Soldadura mejillas–base"):
+                add("Advertencia del núcleo aceptada: soldadura mejillas–base", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} MPa) en banda «warn» con w_br = {fm(P['w_br'], 0)} (mínimo AWS D1.1 T5.8 = {fm(g.fila('Filete mínimo mejillas–base')['dem'], 0) if g.fila('Filete mínimo mejillas–base') else '—'} mm; máximo AISC J2.2b = t_ch − 2 = {fm(P['t_ch'] - 2, 0)} mm, ya en el tope).",
+                    "ACEPTADA POR EL MANDANTE como advertencia (no se aumenta el filete: w_br ya está cerca del máximo AISC J2.2b). Dejar registro en la aprobación.")
+            else:
+                add("Advertencia del núcleo (banda «warn»)", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} {v['unidad']}).", "A DECIDIR POR EL MANDANTE: aceptar la advertencia o reforzar la pieza.")
+    for v in D["verificaciones"]:
+        if v["estado"] == "pend":
+            add("Pendiente declarado por el núcleo", v["nombre"], "Atender en fabricación/aprobación según el texto del núcleo.")
     add("Diferencias de fórmula del patín", "La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza.", "Informativo (dentro de tolerancia).")
-    if g.opt:
-        add("Masa de sectores: muescas, juntas y chaflanes no descontados", "El núcleo calcula discos, placas y lámina como corona completa y suma además las barras de los topes; la geometría real descuenta las muescas de las barras, los chaflanes de alivio, las juntas entre sectores (y, según la opción, ranuras, agujeros y tapones). Conciliación por pieza en el informe del paquete.",
-            "Descontar esas áreas en el núcleo (m.ss, m.bz, m.uhmw) o aceptar la diferencia (conservadora: el núcleo pesa más).")
     add("Cilindro comercial", f"Largo ojal–ojal L0 = {fm(P['L0'], 0)} mm y masa {fm(P['m_cyl'], 0)} kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo.", "Confirmar con el proveedor del cilindro.")
     return G_
 
 
-def deducciones(ctx):
-    """Volúmenes (kg) que la geometría real descuenta y el núcleo no: muescas de las barras, chaflanes de alivio, juntas entre sectores y franjas de UHMW.
-    Devuelve {grupo_núcleo: [(causa, kg)]}. Se calculan por fórmula (independiente del modelo 3D) para conciliar la masa."""
-    g, P, lay = ctx.g, ctx.P, getattr(ctx.m, "layout", None)
-    out = {}
-    if not g.opt:
-        return out
-    n = g.n_sec
-    b2 = P["b_tope"] + 2
-    j = g.junta("disc")
-    Aring = math.pi * (g.Ro ** 2 - g.Ri ** 2)
-    rho_bz = P["rho_bz"] * 1e-6
-    capas = []
-    if g.opt in (1, 2):
-        capas = [("ss", RHO_SS, g.I["tss"], n, g.tope_L("base"), "disco de la base"), ("ss", RHO_SS, g.I["tss2"], n, g.tope_L("mesa"), "disco de la mesa")]
-    else:
-        nB = int(P["bz_npad"]) if g.conf == 3 else n
-        capas = [("bz", rho_bz, g.I["tbz"], nB, g.tope_L("base"), "placa/pastillas de bronce"),
-                 ("ss" if g.conf != 2 else "bz", RHO_SS if g.conf != 2 else rho_bz, g.I["tss2"], n, g.tope_L("mesa"), "disco duro / 2.ª placa")]
-    for gr, rho, t, nn, L, nm in capas:
-        lst = out.setdefault(gr, [])
-        if g.removable and L:
-            tp = g.tope("base") if "base" in nm or "bronce" in nm else g.tope("mesa")
-            lst.append((f"muescas de las barras en el {nm} ({fm(b2, 0)}×{fm(L, 0)}×{fm(t, 0)}, {nn} u.)", rho * nn * b2 * L * t))
-            lst.append((f"chaflanes de alivio {fm(tp['a_inf'], 0)}×45° del {nm} ({nn} u., 2 cantos)", rho * nn * tp["a_inf"] ** 2 * L))
-        if g.opt == 3 and g.conf == 3 and "bronce" in nm:
-            pass                      # el hueco entre pastillas ya está en el núcleo (A_ss·cov): no se descuenta de nuevo
-        else:
-            lst.append((f"juntas de {fm(j, 1)} mm entre {nn} sectores del {nm}", rho * nn * j * (g.Ro - g.Ri) * t))
-    if g.opt == 2 and ctx.m.has("int_uhmw"):
-        ju, nu, tuh = g.junta("uhmw"), g.n_seg, g.I["tuh"]
-        lst = out.setdefault("uhmw", [])
-        lst.append((f"franjas libres entre sectores de UHMW (barra {fm(P['b_tope'], 0)} + junta {fm(ju, 1)}, {nu} u.)", RHO_UH * nu * (P["b_tope"] + ju) * (g.Ro - g.Ri) * tuh))
-        if g.removable and lay_tp(ctx, "uhmw"):
-            tp = lay_tp(ctx, "uhmw")
-            lst.append((f"chaflanes de alivio {fm(tp['a_inf'], 0)}×45° de la lámina ({nu} u., 2 cantos)", RHO_UH * nu * tp["a_inf"] ** 2 * tp["L"]))
-    if g.opt == 2 and g.removable and lay_tp(ctx, "uhmw"):
-        tp = lay_tp(ctx, "uhmw")
-        out.setdefault("stopBars", []).append(("barras de UHMW en inoxidable (ρ 7,93 frente a 7,85 del núcleo)", -(RHO_SS - RHO) * tp["n"] * tp["m_barra"] / RHO))
-    return out
+def cortes_control(ctx):
+    """Control de masa de las piezas de la interfaz, por pieza, con los cortes que entrega el núcleo (interfazGeom.cortes: junta, muesca, chaflán, masa bruta,
+    descontada y neta). La masa neta es la que el núcleo suma a m.total; aquí se compara con la masa de las piezas del modelo 3D. Sin fórmulas propias."""
+    g, m = ctx.g, ctx.m
+    rows = []
+    for c in g.IG.get("cortes", []):
+        k = c["n"] * c["capas"]
+        kgv = lambda V: c["rho"] * V * k
+        ids = {"disc0": ["int_disco_base"] + (["int_disco_mesa"] if c["capas"] == 2 else []), "disc1": ["int_disco_mesa"], "uhmw": ["int_uhmw"], "bz0": ["int_bronce"], "bz1": ["int_cara"]}.get(c["id"], [])
+        m3 = sum(m.get(x).mass_total for x in ids if m.get(x))
+        rows.append(dict(id=c["id"], pieza=c["pieza"], k=k, t=c["t"], j=c["j"], strip=c["strip"], jun=kgv(c["V_junta"]), mue=kgv(c["V_muesca"]), cha=kgv(c["V_chaflan"]),
+                         bruta=c["m_bruta"], desc=c["m_desc"], neta=c["m_neta"], m3d=m3, res=m3 - c["m_neta"], res_pct=(m3 - c["m_neta"]) / c["m_neta"] * 100 if c["m_neta"] else 0.0))
+    return rows
 
 
-def lay_tp(ctx, which):
-    return ctx.g.tope(which)
+def residual_txt(ctx, grupo):
+    """Qué no descuenta el núcleo en cada grupo (explica el residual 3D − núcleo; no se compensa con fórmulas)."""
+    g, P = ctx.g, ctx.P
+    if grupo == "ss":
+        return "ranuras de engrase, agujeros avellanados de los tornillos de posición y taladros de las graseras (el núcleo solo descuenta juntas, muescas y chaflanes)"
+    if grupo == "bz":
+        return "ranuras de engrase, tapones de grafito (la masa de los tapones se reparte según el núcleo), tornillos de posición y taladros de las graseras"
+    if grupo == "uhmw":
+        return "redondeos y tolerancias de corte de los sectores de lámina"
+    if grupo == "wood":
+        return "abertura central Ø%s de la tapa de inspección (el núcleo usa Ø%s) y %d bolsillos de perno y arandela Ø%s×31 (el núcleo calcula el anulo completo)" % (fm(g.cb_D, 0), fm(g.hole_top, 0), g.N_pin, fm(g.washer_D + 4, 0))
+    if grupo == "shoes":
+        return "alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría)"
+    if grupo == "mesa":
+        return "rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo)"
+    if grupo == "base":
+        return "agujero del pivote, redondeos y chaflanes de las orejas (fórmula del núcleo)"
+    return "fórmula del núcleo frente a geometría"
 
 
-def conciliar(ctx, rep):
-    """Total comparable conciliado: 3D + deducciones geométricas calculadas por fórmula, frente al núcleo. Devuelve (deducciones, total_deducido, dif_pct_conciliada)."""
-    ms = rep["masas"]
-    d = deducciones(ctx)
-    tot = sum(kg for lst in d.values() for _, kg in lst)
-    return d, tot, (ms["total_3d"] + tot - ms["total_nucleo"]) / ms["total_nucleo"] * 100
+def wood_residual(ctx):
+    """Residual de la madera por geometría (kg): abertura Ø cb_D frente a Ø hole_top y bolsillos. Solo informativo (explica el residual del 3D)."""
+    g, P = ctx.g, ctx.P
+    rho = P["rho_wood"] * 1e-9
+    ab = math.pi / 4 * (g.cb_D ** 2 - g.hole_top ** 2) * P["t_wood"] * rho if g.cb_D > g.hole_top else 0.0
+    bol = g.N_pin * math.pi / 4 * (g.washer_D + 4) ** 2 * 31 * rho
+    return ab, bol
 
 
 def explicar_masas(ctx, rep):
     g, P = ctx.g, ctx.P
     L = []
     ms = rep["masas"]
-    ded = deducciones(ctx)
     for r in ms["comp"]:
         gr = r["grupo"]
-        if abs(r["dif_pct"]) <= 0.5 and gr not in ded:
+        if abs(r["dif_pct"]) < 0.05 and abs(r["dif"]) < 0.5:
             continue
-        t = f"{r['pieza']}: 3D {fm(r['modelo3d'], 1)} kg frente a {fm(r['nucleo'], 1)} kg ({fm(r['dif_pct'], 2)} %). "
-        if gr in ded and ded[gr]:
-            tot = sum(kg for _, kg in ded[gr])
-            res = -r["dif"] - tot
-            t += "Causas (fórmula): " + "; ".join(f"{c}: {fm(kg, 1)} kg" for c, kg in ded[gr]) + f". Suma {fm(tot, 1)} kg; resto {fm(res, 1)} kg (ranuras de engrase, agujeros avellanados y de engrase, tapones, redondeos)."
-        elif gr == "wood":
-            mm = {p.key: p for p in ctx.m.parts}
-            t += f"Causas: anillo de contención de 10 mm que reemplaza madera, abertura Ø{fm(g.cb_D, 0)} frente a Ø{fm(g.hole_top, 0)} y {g.N_pin} bolsillos Ø{fm(g.washer_D + 4, 0)}×31 (el núcleo calcula el anulo completo)."
-        elif gr == "shoes":
-            t += "Fórmula del núcleo frente a geometría del patín (brecha informativa)."
-        elif gr == "mesa":
-            t += "Rebaje del cubo, agujeros de pasadores y empalmes: diferencia de fórmula del núcleo en el rebaje (−0,1 %)."
-        else:
-            t += "Fórmula del núcleo frente a geometría."
+        t = f"{r['pieza']}: 3D {fm(r['modelo3d'], 1)} kg frente a {fm(r['nucleo'], 1)} kg del núcleo ({fm(r['dif_pct'], 2)} %; residual {fm(r['dif'], 2)} kg). Residual no descontado en el núcleo: {residual_txt(ctx, gr)}."
+        if gr == "wood":
+            ab, bol = wood_residual(ctx)
+            t += f" Por geometría: abertura {fm(ab, 1)} kg + bolsillos {fm(bol, 1)} kg = {fm(ab + bol, 1)} kg."
         L.append(t)
-    d, tot, pc = conciliar(ctx, rep)
     if abs(ms["dif_pct"]) > ms["tol_pct"]:
-        L.append(f"TOTAL comparable crudo {fm(ms['dif_pct'], 2)} % (fuera de ±{fm(ms['tol_pct'], 1)} %). Descontando por fórmula las muescas, chaflanes y juntas ({fm(tot, 1)} kg) que el núcleo no resta, el total conciliado queda en {fm(pc, 2)} % ({'DENTRO' if abs(pc) <= ms['tol_pct'] else 'FUERA'}). "
-                 "Corrección propuesta en el núcleo: m.ss / m.bz / m.uhmw con las áreas de muesca, chaflán y junta descontadas (con ello el núcleo y el modelo 3D coinciden); en el modelo 3D no hay nada que corregir, la geometría de los topes es la verificada por el núcleo.")
+        L.append(f"TOTAL comparable {fm(ms['dif_pct'], 2)} %: FUERA de ±{fm(ms['tol_pct'], 1)} %. Revisar por pieza (tabla de control de la interfaz) y corregir el modelo 3D o el núcleo.")
     return L
 
 
@@ -248,7 +233,7 @@ VERIF = {
     "INT-001": ("Capas de la interfaz y alturas (Δ); topes, tornillos y ranuras según la alternativa; NO desmontable si fix_mode = 2.", "D['apoyo'].interfaz; D['interfazChecks']; verificaciones «Interfaz inox/bronce»"),
     "INT-002": ("Sectores: ángulo, juntas, muescas, tornillos, ranuras de engrase, rugosidad y planitud.", "P.n_sec, d_tor, h_gr, w_gr, n_gr_rad, n_gr_circ; verificaciones de sector y tornillo"),
     "INT-003": ("Barras de tope: L, b_tope, h = t − a_sup, a_inf, h_c, w_tope ≥ w_mín; secciones A-A/B-B(/C-C en B); tornillos ISO 10642, graseras, UHMW/bronce con tapones.", "interfazGeom.topes (geometría resuelta) y verificaciones de tope «alivio inferior», «filete dentro de la altura de barra», «filete mínimo»"),
-    "MAD-001": ("Madera: espesor, abertura, bolsillos, anillo de acero (pletina 10×t_wood, adoptado), tablones de 200, f_apoyo.", "Verificaciones «Cubierta» (aplastamiento, espesor mínimo)"),
+    "MAD-001": ("Madera: espesor, abertura, bolsillos, anillo de acero (pletina t_ring×t_wood, en el núcleo), tablones de 200, f_apoyo.", "Verificaciones «Cubierta» (aplastamiento, espesor mínimo)"),
 }
 
 
@@ -305,11 +290,16 @@ def escribir_informe(ctx, rep, hojas, gaps, fuera, cr, out, dt):
         L.append(f"| {r['pieza']} | {r['modelo3d']:.1f} | {r['nucleo']:.1f} | {r['dif']:+.1f} | {r['dif_pct']:+.2f} |")
     ok = abs(ms["dif_pct"]) <= ms["tol_pct"]
     L += ["", f"**Total comparable:** 3D {ms['total_3d']:.1f} kg frente a {ms['total_nucleo']:.1f} kg del núcleo: Δ {ms['dif']:+.1f} kg ({ms['dif_pct']:+.2f} %), tolerancia ±{ms['tol_pct']} % → {'DENTRO' if ok else 'FUERA'}.",
-          f"Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, anillo de la madera, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): {ms['masa_fuera']:.1f} kg. **Masa total del ensamble: {rep['masa_total_ensamble']:.1f} kg.**",
+          f"Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pasadores de articulación; las barras de los topes SÍ están en m.total/m.stopBars): {ms['masa_fuera']:.1f} kg. **Masa total del ensamble: {rep['masa_total_ensamble']:.1f} kg.**",
           f"**Centro de gravedad (x, y, z):** ({rep['cg'][0]:.1f}; {rep['cg'][1]:.1f}; {rep['cg'][2]:.1f}) mm (origen en el eje de la mesa y la cara inferior de la base).", ""]
-    if g.opt:
-        d_, tot_, pc_ = conciliar(ctx, rep)
-        L += [f"**Total comparable conciliado:** 3D {ms['total_3d']:.1f} kg + {tot_:.1f} kg de muescas, chaflanes y juntas (por fórmula) = {ms['total_3d'] + tot_:.1f} kg frente a {ms['total_nucleo']:.1f} kg del núcleo: Δ {pc_:+.2f} % → {'DENTRO' if abs(pc_) <= ms['tol_pct'] else 'FUERA'} de ±{ms['tol_pct']} %.", ""]
+    cc = cortes_control(ctx)
+    if cc:
+        L += ["### Control de masa de la interfaz por pieza (cortes del núcleo, `interfazGeom.cortes`)", "",
+              "| Pieza | Piezas (n × capas) | t mm | Junta mm | Juntas kg | Muescas kg | Chaflanes kg | Bruta kg | Neta del núcleo kg | 3D kg | Residual kg | Residual % |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for r in cc:
+            L.append(f"| {r['pieza']} | {r['k']} | {fm(r['t'], 0)} | {fm(r['j'], 1)}{' (franja libre)' if r['strip'] else ''} | {r['jun']:.1f} | {r['mue']:.1f} | {r['cha']:.1f} | {r['bruta']:.1f} | {r['neta']:.1f} | {r['m3d']:.1f} | {r['res']:+.2f} | {r['res_pct']:+.2f} |")
+        L += ["", "La masa neta es la del núcleo (m_neta = bruta − juntas − muescas − chaflanes). No hay conciliación manual: el 3D se compara directamente con ella. El residual corresponde a lo que el núcleo no descuenta "
+              "(ranuras de engrase, agujeros avellanados de tornillos, taladros de graseras; tapones de grafito en la opción C).", ""]
     ex = explicar_masas(ctx, rep)
     if ex:
         L += ["### Diferencias explicadas por pieza"] + [f"- {x}" for x in ex] + [""]
