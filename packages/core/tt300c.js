@@ -110,9 +110,9 @@ const TT = (() => {
       ["t_bot", "Espesor plancha inferior (contacto)", "mm", 16, 6, 60, 1],
       ["h_disc", "Altura total de la mesa", "mm", 210, 60, 400, 5],
       ["rings", "Radios de almas anulares", "mm", "300, 580, 840"],
-      ["t_web", "Espesor almas anulares", "mm", 8, 6, 40, 1],
+      ["t_web", "Espesor almas anulares", "mm", 6, 6, 40, 1],
       ["N_rib", "N° de nervios radiales", "–", 14, 4, 56, 1],
-      ["t_rib", "Espesor nervios radiales", "mm", 8, 6, 40, 1],
+      ["t_rib", "Espesor nervios radiales", "mm", 6, 6, 40, 1],
       ["R_rib", "Radio exterior de nervios", "mm", 840, 300, 1900, 5],
       ["D_hub", "Diámetro exterior del cubo", "mm", 300, 150, 600, 10],
       ["w_web", "Filete almas/nervios–planchas (cada lado)", "mm", 6, 3, 16, 1],
@@ -122,7 +122,7 @@ const TT = (() => {
       ["d_pin", "Diámetro del pasador", "mm", 85, 30, 160, 5],
       ["R_pin", "Radio del círculo de pasadores", "mm", 930, 400, 1950, 5],
       ["Fy_pin", "Fy pasador (34CrNiMo6+QT)", "MPa", 800, 235, 1000, 5],
-      ["t_pr", "Espesor del anillo perimetral de pasadores (sup. e inf.)", "mm", 35, 10, 80, 1],
+      ["t_pr", "Espesor del anillo perimetral de pasadores (sup. e inf.)", "mm", 27, 10, 80, 1],
     ] },
     { id: "cilindros", t: "Cilindros hidráulicos", p: [
       ["n_cyl", "N° de cilindros (en par)", "–", 2, 1, 4, 1],
@@ -151,7 +151,7 @@ const TT = (() => {
       ["s_free", "Recorrido libre antes de tomar el pasador", "mm", 10, 0, 100, 1],
       ["s_margin", "Margen mínimo de carrera exigido", "mm", 5, 0, 50, 1],
       ["mu_g", "μ patín–guía (grasa grafitada)", "–", 0.15, 0.05, 0.6, 0.01],
-      ["w_s", "Ancho del patín (en x)", "mm", 250, 60, 400, 5],
+      ["w_s", "Ancho del patín (en x)", "mm", 245, 60, 400, 5],
       ["slot", "Holgura radial de la uña en el patín", "mm", 10, 2, 40, 1],
       ["c_tip", "Penetración de la uña más allá del centro del pasador", "mm", 15, 0, 60, 1],
       ["s_sp", "Largo del resorte de retorno comprimido + tope", "mm", 55, 10, 150, 1],
@@ -176,7 +176,7 @@ const TT = (() => {
     ] },
     { id: "guia", t: "Bancada de guía", p: [
       ["t_bed", "Bancada: espesor", "mm", 40, 16, 100, 1],
-      ["w_bed", "Bancada: ancho", "mm", 170, 60, 400, 5],
+      ["w_bed", "Bancada: ancho", "mm", 160, 60, 400, 5],
       ["w_slot", "Ranura de guía: ancho (H8)", "mm", 40, 10, 100, 1],
       ["h_slot", "Ranura de guía: profundidad del cuello", "mm", 18, 5, 60, 1],
       ["w_tee", "Ranura T: ancho de la cabeza (retención vertical del patín)", "mm", 64, 10, 150, 1],
@@ -195,7 +195,7 @@ const TT = (() => {
     ] },
     { id: "base", t: "Base", p: [
       ["B", "Lado de la base cuadrada", "mm", 2560, 1000, 4500, 10],
-      ["t_base", "Espesor plancha base", "mm", 20, 6, 60, 1],
+      ["t_base", "Espesor plancha base", "mm", 18, 6, 60, 1],
       ["t_base_min", "Espesor mínimo de base por planitud (criterio de fabricación)", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
@@ -209,7 +209,9 @@ const TT = (() => {
       ["L_bush", "Largo del buje", "mm", 80, 20, 300, 5],
       ["p_bush", "Presión admisible del buje", "MPa", 30, 5, 100, 1],
       ["mu_bush", "μ del buje", "–", 0.20, 0.02, 0.5, 0.01],
-      ["e_piv", "Brazo de flexión del pivote", "mm", 40, 5, 200, 1],
+      ["e_piv", "Brazo de flexión del pivote (desde la cara superior del asiento)", "mm", 40, 5, 200, 1],
+      ["h_boss", "Collar de asiento del pivote soldado sobre la base: altura (0 = sin collar; asiento = t_base + h_collar)", "mm", 60, 0, 200, 5],
+      ["D_boss", "Collar de asiento del pivote: diámetro exterior (entra en un rebaje del cubo)", "mm", 250, 160, 500, 10],
       ["Fy_piv", "Fy pivote", "MPa", 650, 235, 1000, 5],
       ["Ch", "Coeficiente sísmico horizontal (0 = no aplica, decisión del mandante)", "–", 0, 0, 1.5, 0.01],
     ] },
@@ -250,7 +252,7 @@ const TT = (() => {
     m.webs = RHO * rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0);
     const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
     m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
-    m.hub = RHO * Math.PI / 4 * Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw;
+    m.hub = RHO * Math.PI / 4 * (Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw - (P.h_boss > 0 ? Math.max(0, P.D_boss ** 2 - d_bush ** 2) * P.h_boss : 0));   // con rebaje inferior para el collar
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
     m.wood = P.opt_wood > 0.5 ? P.rho_wood * 1e-9 * Math.PI / 4 * (P.D_top ** 2 - hole_top ** 2) * P.t_wood : 0;   // cubierta de madera (kg/m³ → kg/mm³)
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood;
@@ -354,7 +356,7 @@ const TT = (() => {
   function masses(P) {
     const m = massesMesa(P), ifc = ifaceDesign(P);
     m.ssTop = ifc.mTop; m.ss = ifc.mSS; m.uhmw = ifc.mUH; m.bz = ifc.mBz;   // pieza rotatoria, discos inoxidables o duros, lámina UHMW y bronce
-    m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
+    m.base = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base + (P.h_boss > 0 ? RHO * Math.PI / 4 * (P.D_boss ** 2 - P.D_piv ** 2) * P.h_boss : 0);   // + collar de asiento del pivote
     m.rim = RHO * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t;
     const bg = bracketGeo(P);
     const Llug = bg.Llug, tl = 2 * P.t_ch + bg.spacer;
@@ -1023,11 +1025,18 @@ const TT = (() => {
     add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim + H_cil", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
     add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd (H con la F_pas de calado si el n° de cilindros es impar)", dem: Hf * 1e3 * P.e_piv / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
     // camino de fuerza del pivote: la misma reacción atraviesa el cubo (buje), el vástago y el agujero de la plancha base (calado, BTH-1)
-    add({ grp: "Pivote", sys: "est", name: "Aplastamiento del pivote en el agujero de la plancha base (ajuste H7/p6)", formula: "σ = H/(D_piv·t_base) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar", dem: Hf * 1e3 / (P.D_piv * P.t_base), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
+    const Lseat = P.t_base + P.h_boss;                                        // profundidad del asiento: plancha base + collar soldado
+    add({ grp: "Pivote", sys: "est", name: "Aplastamiento del pivote en el asiento (plancha base + collar, ajuste H7/p6)", formula: "σ = H/(D_piv·L_asiento) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar", dem: Hf * 1e3 / (P.D_piv * Lseat), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
     {   // momento H·(e_piv + L/2) sobre el asiento (modelo lineal rígido): σ = H/(D·L)·(1 + 6(e_piv + L/2)/L); L mínimo por bisección
       const sM = (L) => Hf * 1e3 / (P.D_piv * L) * (1 + 6 * (P.e_piv + L / 2) / L), cap = 1.25 * Fy / Nd;
       let lo = P.t_base, hi = 2000; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (sM(m) > cap) lo = m; else hi = m; }
-      add({ grp: "Pivote", sys: "est", kind: "pend", name: "Asiento del pivote en la base con momento H·e (profundidad del asiento " + P.t_base + " mm; mínima " + (sM(P.t_base) <= cap ? P.t_base : Math.ceil(hi)) + " mm): FU " + (sM(P.t_base) / cap).toFixed(1) + (sM(P.t_base) > cap ? " — NO CUMPLE con el detalle actual (decisión de diseño pendiente: collar o cubo soldado, brida o pivote pasante con tuerca)" : ""), formula: "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)", dem: sM(P.t_base), cap, unit: "MPa", ref: "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente" });
+      add({ grp: "Pivote", sys: "est", name: "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima " + (sM(Lseat) <= cap ? Math.min(Lseat, Math.ceil(hi)) : Math.ceil(hi)) + " mm)", formula: "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)", dem: sM(Lseat), cap, unit: "MPa", ref: "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente" });
+    }
+    if (P.h_boss > 0) {
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar del pivote: pared del collar ≥ 30 mm (D_collar ≥ D_piv + 60)", formula: "D_piv + 60 ≤ D_collar", dem: P.D_piv + 60, cap: P.D_boss, unit: "mm", ref: "Criterio de fabricación" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Collar del pivote: pared del rebaje del cubo ≥ 25 mm (D_collar + 50 ≤ D_cubo)", formula: "D_collar + 50 ≤ D_cubo", dem: P.D_boss + 50, cap: P.D_hub, unit: "mm", ref: "Criterio de fabricación" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Buje sobre el collar: el buje cabe bajo la plancha superior", formula: "h_collar + 2 + L_buje ≤ δ + h_disc − t_top", dem: P.h_boss + 2 + P.L_bush, cap: R.ifc.delta + P.h_disc - P.t_top, unit: "mm", ref: "Geometría" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Soldadura del collar a la base (filete perimetral): par H·e", formula: "f = H·(e+L/2)/(π·D_collar²/4·a) ≤ 0,60FEXX/(1,2·Nd), a = 0,707·w (w = 10 mm); el cortante H/(π·D_c·a) se combina", dem: Math.hypot(Hf * 1e3 * (P.e_piv + Lseat / 2) / (Math.PI * P.D_boss ** 2 / 4 * 0.707 * 10), Hf * 1e3 / (Math.PI * P.D_boss * 0.707 * 10)), cap: Fw, unit: "MPa", ref: "AWS D1.1 / AISC 360-22 J2.4 (grupo circular, método elástico)" });
     }
     add({ grp: "Pivote", sys: "est", name: "Aplastamiento del buje en el cubo de la mesa (Ø exterior del buje = D_piv + 30)", formula: "σ = H/((D_piv + 30)·L_buje) ≤ 1,25·Fy/Nd", dem: Hf * 1e3 / ((P.D_piv + 30) * P.L_bush), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
     if (!(P.Ch > 0)) add({ grp: "Pivote", sys: "est", kind: "info", name: "Caso sísmico: no aplica", formula: "Sin requerimiento sísmico (decisión del mandante, 31-10-2026); si se instala en forma permanente, ingresar Ch", dem: 0, unit: "–", ref: "Decisión del mandante" });

@@ -164,7 +164,7 @@ test("Cubierta de madera dura y enrase con los rieles de skidding", () => {
   assert.ok(TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1, p_wood: 2 }), { noFEA: true }).checks.some((c) => /Madera: aplastamiento/.test(c.name) && c.st === "fail"), "con p_adm de 2 MPa no cumple");
   const H = W.checks.find((c) => /Altura total sobre el piso/.test(c.name)).dem; near(H, P0.t_base + P0.h_disc + P0.t_wood, 1e-12, "altura total con madera");
   assert.ok(!A0.checks.some((c) => /Enrase/.test(c.name)), "sin h_skid no hay verificación");
-  const sk = TT.analyze(Object.assign(TT.defaults(), { h_skid: 235 }), { noFEA: true }).checks.find((c) => /Enrase/.test(c.name));
+  const sk = TT.analyze(Object.assign(TT.defaults(), { h_skid: TT.defaults().t_base + TT.defaults().h_disc + 5 }), { noFEA: true }).checks.find((c) => /Enrase/.test(c.name));
   near(sk.dem, 5, 1e-9, "desnivel de 5 mm"); assert.equal(sk.st, "ok");
   assert.equal(TT.analyze(Object.assign(TT.defaults(), { h_skid: 300 }), { noFEA: true }).checks.find((c) => /Enrase/.test(c.name)).st, "fail");
 });
@@ -175,12 +175,10 @@ test("Capacidad de giro y capacidad según el número de cilindros", () => {
   near(RW.Fstall / RW.Fcyl(RW.torque(R.mu.d, P.r_ef)), P.FS_min, 1e-6, "FS exacto en la capacidad de giro");
   assert.ok(TT.capacityW(P, R.mu.d, P.r_ef, 1) > W && TT.capacityW(P, R.mu.nom, R.r_u, 1) > TT.capacityW(P, R.mu.d, P.r_ef, 1), "monótona en μ y FS");
   const cc = TT.capacityByCyl(P, [1, 2]);
-  assert.equal(cc[0].wPiv, 0, "con 1 cilindro y base de 20 mm el aplastamiento del agujero (empuje de calado) no cumple a ninguna carga");
+  assert.equal(cc[0].wPiv, 0, "con 1 cilindro el asiento del pivote no cumple a ninguna carga (el empuje de calado no depende de W)");
   assert.ok(cc[0].wCap < cc[1].wCap, "2 cilindros admiten más"); near(cc[1].wCap, cc[1].wGiro, 1e-9, "con 2 cilindros limita el giro");
-  const P30 = Object.assign(TT.defaults(), { t_base: 30 }), c30 = TT.capacityByCyl(P30, [1])[0];
-  assert.ok(c30.wPiv > 0 && c30.wPiv < c30.wGiro, "con base de 30 mm el pivote limita el cupo de 1 cilindro");
-  const ok = (W2) => TT.analyze(Object.assign({}, P30, { n_cyl: 1, W_tf: W2 }), { noFEA: true });
-  const below = ok(c30.wCap * 0.98), above = ok(c30.wCap * 1.03);
+  const ok = (W2) => TT.analyze(Object.assign(TT.defaults(), { n_cyl: 2, W_tf: W2 }), { noFEA: true });
+  const below = ok(cc[1].wCap * 0.98), above = ok(cc[1].wCap * 1.03);
   assert.ok(below.verdict.gira && !below.checks.some((c) => c.grp === "Pivote" && c.st === "fail"), "bajo la capacidad cumple");
   assert.ok(!above.verdict.gira || above.checks.some((c) => c.grp === "Pivote" && c.st === "fail"), "sobre la capacidad falla");
   const M = TT.market(P);
@@ -244,7 +242,7 @@ test("Giro: con μ 0,35 la herramienta declara que no gira", () => {
 });
 
 test("Optimizador: resultado factible y no más pesado", () => {
-  const P = Object.assign(TT.defaults(), { t_top: 30, t_bot: 30, t_base: 30 });
+  const P = Object.assign(TT.defaults(), { t_top: 30, t_bot: 30, t_base: 30, t_web: 10, t_rib: 10 });   // partida sobredimensionada y factible (filete mínimo AWS según la plancha más gruesa)
   const m0 = TT.masses(P).total, o = AG.optimize(P);
   assert.ok(o.ok, "factible");
   assert.ok(o.A.R.m.total < m0, "más liviano");
