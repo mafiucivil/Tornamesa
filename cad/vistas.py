@@ -16,7 +16,8 @@ from geom import f, fm
 import draw as dr
 
 HLR_CACHE = {}
-STD_SCALES = [1/100, 1/50, 1/25, 1/20, 1/10, 1/8, 1/5, 1/4, 1/2.5, 1/2, 1/1.5, 1/1, 1.5, 2/1, 5/1]
+# escalas normalizadas pedidas por el mandante (ISO 5455 + 1:2,5 y 1:25 admitidas) y ampliaciones 2:1 y 5:1 para detalles; 1:200 solo como último recurso
+STD_SCALES = [1/200, 1/100, 1/50, 1/25, 1/20, 1/10, 1/5, 1/2.5, 1/2, 1/1, 2/1, 5/1]
 
 
 def snap_scale(s):
@@ -26,7 +27,9 @@ def snap_scale(s):
 
 
 def scale_txt(sc):
-    if sc >= 1:
+    if abs(sc - 1) < 1e-9:
+        return "1:1"
+    if sc > 1:
         return f"{sc:g}:1"
     return f"1:{1 / sc:g}".replace(".", ",")
 
@@ -233,7 +236,7 @@ class View:
     scale: papel/modelo; center: punto 3D del modelo que va en 'origin'."""
 
     def __init__(self, S, shapes, view, origin, scale, center=(0, 0, 0), win=None, cut=None, hidden=False, tol=None, nocut=(), hatch_scale=0.5,
-                 only=None, label=""):
+                 only=None, label="", breaks=None, bgap=12.0, free=False):
         self.S, self.shapes, self.view, self.scale = S, shapes, view, scale
         self.origin = origin
         self.center = center
@@ -246,6 +249,11 @@ class View:
         self.lv = {"top": 0, "bottom": 0, "left": 0, "right": 0}
         self.ext = None
         self.mat = {}
+        self.breaks = sorted(breaks or [])      # tramos [(u_a, u_b)] omitidos (coordenadas de pantalla relativas a 'center'), con símbolo de interrupción ISO 128-30
+        self.bgap = bgap
+        self.free = free                        # escala libre (isométrica: no se mide sobre el plano)
+        self.vis = []
+        self.secv = []
 
     # -- coordenadas --
     def uv(self, p):
@@ -255,10 +263,20 @@ class View:
     def P(self, x, y=None, z=None):
         p = x if y is None else (x, y, z)
         u, v = self.uv(p)
-        return (self.origin[0] + u * self.scale, self.origin[1] + v * self.scale)
+        return self.Pt2((u, v))
 
-    def Pt2(self, uv):
-        return (self.origin[0] + uv[0] * self.scale, self.origin[1] + uv[1] * self.scale)
+    def _shift(self, u):
+        """Desplazamiento en papel que producen los tramos omitidos a la izquierda de u."""
+        sh = 0.0
+        for (ua, ub) in self.breaks:
+            if u >= ub - 1e-9:
+                sh += -(ub - ua) * self.scale + self.bgap
+            elif u > ua:
+                sh += -(u - ua) * self.scale + self.bgap / 2
+        return sh
+
+    def Pt2(self, uv, ref_u=None):
+        return (self.origin[0] + uv[0] * self.scale + self._shift(uv[0] if ref_u is None else ref_u), self.origin[1] + uv[1] * self.scale)
 
     # -- dibujo --
     def draw(self, layer_vis="VIS", layer_hid="OCU", hatch=True):
@@ -266,6 +284,7 @@ class View:
         parts = [(k, self.shapes[k]) for k in self.keys]
         hatches = []
         kept = []
+        secv = []
         ck = (tuple((k, id(self.shapes[k])) for k in self.keys), self.view, self.cut, tuple(sorted(self.nocut)), self.hidden, round(self.tol, 3))
         cached = HLR_CACHE.get(ck)
         if cached is None and self.cut:
@@ -291,6 +310,8 @@ class View:
                         outer = [proj_pt((p.x, p.y, p.z), self.view) for p in _wire_pts(fc.outerWire(), self.tol)]
                         holes = [[proj_pt((p.x, p.y, p.z), self.view) for p in _wire_pts(w, self.tol)] for w in fc.innerWires()]
                         hatches.append((k, outer, holes))
+                        for vx in fc.Vertices():
+                            secv.append((k, (vx.X, vx.Y, vx.Z)))
                 except Exception as ex:
                     print("   sección falló", k, ex)
         elif cached is None:
@@ -298,26 +319,49 @@ class View:
         if cached is None:
             comp = cq.Compound.makeCompound([cq.Compound.makeCompound(list(s.Solids())) if hasattr(s, "Solids") else s for s in kept])
             vis, hid = hlr(comp, self.view, self.tol, self.hidden)
-            HLR_CACHE[ck] = (vis, hid, hatches)
+            HLR_CACHE[ck] = (vis, hid, hatches, secv)
         else:
-            vis, hid, hatches = cached
+            vis, hid, hatches, secv = cached
+        self.secv = secv
         vis = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in vis]
         hid = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in hid]
         hatches = [(k, [(u - self.cu, v - self.cv) for (u, v) in o], [[(u - self.cu, v - self.cv) for (u, v) in h_] for h_ in hs]) for (k, o, hs) in hatches]
         if self.win:
             vis, hid = clip_polys(vis, self.win), clip_polys(hid, self.win)
+        # --- tramos con rotura: se recorta cada polilínea a las porciones visibles ---
+        wins = None
+        if self.breaks:
+            INF = 1e9
+            edges = [-INF] + [x for br in self.breaks for x in br] + [INF]
+            wins = [(edges[i], edges[i + 1]) for i in range(0, len(edges), 2)]
+            def split(polys):
+                out = []
+                for (ua, ub) in wins:
+                    out += [(pl, (ua + ub) / 2 if abs(ua) < 1e8 and abs(ub) < 1e8 else (ub - 1 if ua < -1e8 else ua + 1)) for pl in clip_polys(polys, (ua, -INF, ub, INF))]
+                return out
+            visp = [(pl, ref) for pl, ref in split(vis)]
+            hidp = [(pl, ref) for pl, ref in split(hid)]
+            vis_draw = visp
+            hid_draw = hidp
+        else:
+            vis_draw = [(pl, None) for pl in vis]
+            hid_draw = [(pl, None) for pl in hid]
+        self.vis = vis
         xs, ys = [], []
-        for pl in vis:
-            pp = [self.Pt2(p) for p in pl]
+        for pl, ref in vis_draw:
+            ref_ = None if ref is None else ref
+            pp = [self.Pt2(p, ref_u=(ref_ if ref_ is not None else None)) for p in pl]
             S.pline(pp, layer_vis)
             xs += [p[0] for p in pp]; ys += [p[1] for p in pp]
-        for pl in hid:
-            S.pline([self.Pt2(p) for p in pl], layer_hid)
+        for pl, ref in hid_draw:
+            S.pline([self.Pt2(p, ref_u=ref) for p in pl], layer_hid)
         if xs:
             self.ext = (min(xs), min(ys), max(xs), max(ys))
             if not hasattr(S, "views"):
                 S.views = []
             S.views.append(self.ext)
+            if self.breaks:
+                self._break_symbols(S, wins)
         if hatch:
             used = set()
             for n_, (k, outer, holes) in enumerate(hatches):
@@ -328,15 +372,30 @@ class View:
                     cls = self.mat.get(k, "acero")
                     pat, ang0, sc0 = dr.HATCH_MAT[cls]
                     ang = ang0 + (90.0 if (self.keys.index(k) % 2) else 0.0) if cls == "acero" else ang0
-                    for gg in getattr(pg, "geoms", [pg]):
-                        if gg.geom_type == "Polygon" and gg.area > 0.3:
-                            S.hatch_poly([self.Pt2(p) for p in list(gg.exterior.coords)[:-1]], [[self.Pt2(p) for p in list(i.coords)[:-1]] for i in gg.interiors],
-                                         scale=self.hatch_scale * sc0, angle=ang, pattern=pat)
-                            used.add(cls)
+                    pieces = [(pg, None)]
+                    if wins:
+                        pieces = [(pg.intersection(sbox(ua, -1e9, ub, 1e9)), (ua + ub) / 2 if abs(ua) < 1e8 and abs(ub) < 1e8 else (ub - 1 if ua < -1e8 else ua + 1)) for (ua, ub) in wins]
+                    for pgx, ref in pieces:
+                        for gg in getattr(pgx, "geoms", [pgx]):
+                            if gg.geom_type == "Polygon" and gg.area > 0.3:
+                                S.hatch_poly([self.Pt2(p, ref) for p in list(gg.exterior.coords)[:-1]], [[self.Pt2(p, ref) for p in list(i.coords)[:-1]] for i in gg.interiors],
+                                             scale=self.hatch_scale * sc0, angle=ang, pattern=pat)
+                                used.add(cls)
                 except Exception:
                     pass
             S.hatch_classes = getattr(S, "hatch_classes", set()) | used
         return self
+
+    def _break_symbols(self, S, wins):
+        """Símbolo de interrupción ISO 128-30 (línea fina con zigzag) en cada borde de rotura."""
+        x0, y0, x1, y1 = self.ext
+        ym = (y0 + y1) / 2
+        for i, (ua, ub) in enumerate(self.breaks):
+            for u in (ua, ub):
+                xp = self.origin[0] + u * self.scale + self._shift(u - 1e-6 if u == ua else u + 1e-6)
+                xp = self.origin[0] + u * self.scale + (self._shift(ua) if u == ua else self._shift(ub))
+                pts = [(xp, y0 - 3), (xp, ym - 6), (xp - 3.5, ym - 2.2), (xp + 3.5, ym + 2.2), (xp, ym + 6), (xp, y1 + 3)]
+                S.pline(pts, "FINA")
 
     # -- fitting automático --
     @classmethod
@@ -361,11 +420,19 @@ class View:
             eu0, eu1, ev0, ev1 = eu0 - cu, eu1 - cu, ev0 - cv, ev1 - cv
         bw = box[2] - box[0] - margin[0] - margin[2]
         bh = box[3] - box[1] - margin[1] - margin[3]
-        sc = min(bw / max(eu1 - eu0, 1e-6), bh / max(ev1 - ev0, 1e-6))
+        brs = kw.get("breaks") or []
+        span = sum(ub - ua for ua, ub in brs)
+        gap_total = kw.get("bgap", 12.0) * len(brs)
+        wu = max(eu1 - eu0 - span, 1e-6)
+        sc = min((bw - gap_total) / wu, bh / max(ev1 - ev0, 1e-6))
         if max_scale:
             sc = min(sc, max_scale)
-        sc = snap_scale(sc) if std else sc
-        ox = box[0] + margin[0] + bw / 2 - (eu0 + eu1) / 2 * sc
+        if kw.get("free"):
+            sc = sc
+        elif std:
+            sc = snap_scale(sc)
+        pw = wu * sc + gap_total
+        ox = box[0] + margin[0] + (bw - pw) / 2 - eu0 * sc
         oy = box[1] + margin[1] + bh / 2 - (ev0 + ev1) / 2 * sc
         v = cls(S, shapes, view, (ox, oy), sc, center=center, win=win, cut=cut, **kw)
         v.box = box
@@ -373,13 +440,23 @@ class View:
 
     @property
     def esc(self):
+        if self.free:
+            return "SIN ESCALA (referencial, no medir)"
         return "ESC " + scale_txt(self.scale)
 
     def title(self, text, dy=0.0, h=dr.T_T):
-        """Título de la vista (debajo de su extensión) con escala."""
+        """Título de la vista (debajo de su extensión) con escala; se mantiene dentro de la celda asignada."""
         x0, y0, x1, y1 = self.ext or (self.origin[0], self.origin[1], self.origin[0], self.origin[1])
         low = y0 - 8 * (max(self.lv["bottom"], 0) + 1) - 6 + dy
-        self.S.view_title(((x0 + x1) / 2, low - 2), text, self.esc, h)
+        cx = (x0 + x1) / 2
+        box = getattr(self, "box", None)
+        if box is not None:
+            wmax = box[2] - box[0] - 2
+            while h > 3.5 and dr.tw(text, h, True) > wmax:
+                h -= 0.5
+            wt = dr.tw(text, h, True)
+            cx = min(max(cx, box[0] + 1 + wt / 2), box[2] - 1 - wt / 2)
+        self.S.view_title((cx, low - 2), text, self.esc, h)
         return low
 
     def circles(self, keys=None, rmin=0.0, rmax=1e9, axis_tol=1e-3):

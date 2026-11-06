@@ -10,6 +10,7 @@ import cadquery as cq
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from geom import *
+import propuestas
 
 # ----------------------------------------------------------------------------------------------
 # primitivas
@@ -364,6 +365,8 @@ def build(D, verbose=True):
     disc_top = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt).cut(cyl(g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t)) if False else None
     top_plate = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt)
     top_plate = top_plate.cut(ring(0, g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t))             # rebaje de la tapa de inspección
+    insp_xy = [(g.insp_pcd / 2 * math.cos(math.radians(30 + 60 * i)), g.insp_pcd / 2 * math.sin(math.radians(30 + 60 * i))) for i in range(6)]
+    top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - g.insp_tap).pushPoints(insp_xy).circle(g.tap_m10 / 2).extrude(g.insp_tap + 0.5))   # 6 × M10 (broca Ø8,5) prof. 10 desde el fondo del rebaje
     ring_top = pins_cut(ring(prIn, Rt, tpr, z0 + hd - tpr), z0 + hd - tpr, tpr)
     m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tt)} con agujero Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección",
                top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; soldadura", core="top", color=(0.22, 0.4, 0.7)))
@@ -408,14 +411,15 @@ def build(D, verbose=True):
                in_core=False, comercial=True, catalogo="ISO 4762 M20×45 cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32)))
 
     # ===================== PIV: pivote, buje, tapas =====================
-    m.add(Part("pivote", "PIV", "Pivote", f"Barra Ø{f(P['D_piv'])} p6 × {f(g.L_piv)}, chaflanes {fm(g.ch_piv, 0)}×45°", cyl(P["D_piv"] / 2, g.L_piv).faces(">Z or <Z").edges().chamfer(g.ch_piv), 1, f"SEGÚN CÁLCULO Fy ≥ {f(P['Fy_piv'])} MPa, GRADO A DEFINIR POR EL FABRICANTE (acero bonificado)",
+    cap_xy = [(g.cap_pcd / 2 * math.cos(math.radians(45 + 90 * i)), g.cap_pcd / 2 * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
+    m.add(Part("pivote", "PIV", "Pivote", f"Barra Ø{f(P['D_piv'])} p6 × {f(g.L_piv)}, chaflanes {fm(g.ch_piv, 0)}×45°", cyl(P["D_piv"] / 2, g.L_piv).faces(">Z or <Z").edges().chamfer(g.ch_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - g.cap_tap).pushPoints(cap_xy).circle(g.tap_m10 / 2).extrude(g.cap_tap + 0.5)), 1, propuestas.grado(P['Fy_piv'], P['D_piv'], 'barra'),
                "Corte de barra redonda laminada/rectificada Ø120 con sobrematerial; extremos y Ø p6 en torno horizontal o rectificado externo; sin torno vertical", core="pivot", color=(0.35, 0.35, 0.38),
                tratamiento="Bonificado (QT)", obs="Calado Ø120 p6 en el agujero H7 de la plancha base y el collar (prensa o contracción con hielo seco)"))
     bush = ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], g.z_bush0)
     m.add(Part("buje", "PIV", "Buje autolubricado", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])}×{f(P['L_bush'])}", bush, 1, "Buje autolubricado: aleación A DEFINIR POR CATÁLOGO (p_bush y mu_bush del cálculo)", "Buje comercial o cortado de tubo fundido; Ø exterior s6 y Ø interior en mandrinadora", rho=7.6e-6, in_core=False,
                comercial=True, catalogo="A DEFINIR POR CATÁLOGO (buje autolubricado a medida)", color=(0.8, 0.55, 0.2), cert="EN 10204 3.1"))
-    m.add(Part("tapa_ret", "PIV", "Tapa retenedora", f"Disco Ø{f(g.cap_D)}×{f(g.cap_t)} + 4 × M10×25 ISO 10642 10.9", cyl(g.cap_D / 2, g.cap_t, g.L_piv), 1, A572, "Oxicorte/plasma y mecanizado de agujeros en taladro radial", in_core=False, color=(0.35, 0.35, 0.38)))
-    m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M10 avellanados", cyl(g.cb_D / 2 - 1, g.cb_t, z0 + hd - g.cb_t), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
+    m.add(Part("tapa_ret", "PIV", "Tapa retenedora", f"Disco Ø{f(g.cap_D)}×{f(g.cap_t)} + 4 × M10×25 ISO 10642 10.9", cyl(g.cap_D / 2, g.cap_t, g.L_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - 1).pushPoints(cap_xy).circle(g.clear_m10 / 2).extrude(g.cap_t + 2)), 1, A572, "Oxicorte/plasma y mecanizado de agujeros en taladro radial", in_core=False, color=(0.35, 0.35, 0.38)))
+    m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M10 avellanados", cyl(g.cb_D / 2 - 1, g.cb_t, z0 + hd - g.cb_t).cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - 1).pushPoints(insp_xy).circle(g.clear_m10 / 2).extrude(g.cb_t + 2)), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
 
     # ===================== ACC: cilindros, patines, uñas, pasadores =====================
     cyls, dogs, apins_b, apins_s, shoes = [], [], [], [], []
@@ -460,13 +464,13 @@ def build(D, verbose=True):
                compound(cyls), nc, "Comercial (acero; sellos)", "Comercial", mass_override=nc * P["m_cyl"], core="cyl", comercial=True,
                catalogo="A DEFINIR POR CATÁLOGO (confirmar largo ojal-ojal L0 y geometría de extremos con el proveedor)", color=(0.95, 0.78, 0.1), cert="Certificado de prueba hidráulica del fabricante"))
     m.add(Part("patin", "ACC", "Patín guiado", f"Pieza única {f(KG['L_s'])}×{f(P['w_s'])}, lengüeta T (cuello {f(g.neck_w)} f7, cabeza {f(g.head_w)}×{f(g.head_h)}), marco de boca e={f(P['t_fw'])}", compound(shoes), nc,
-               f"SEGÚN CÁLCULO Fy ≥ {f(P['Fy_shoe'])} MPa, GRADO A DEFINIR POR EL FABRICANTE", "Bloque de plancha gruesa cortado a llama con sobremetal; fresado del alojamiento, lengüeta T y ojales en mandrinadora; taladros con radial; sin soldadura", core="shoes", color=(0.25, 0.25, 0.28)))
+               propuestas.grado(P['Fy_shoe'], g.Hs, 'barra'), "Bloque de plancha gruesa cortado a llama con sobremetal; fresado del alojamiento, lengüeta T y ojales en mandrinadora; taladros con radial; sin soldadura", core="shoes", color=(0.25, 0.25, 0.28)))
     m.add(Part("una", "ACC", "Uña de empuje", f"Forja/bloque {f(g.paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])}, cara de empuje plana templada, chaflán de retorno {fm(P['beta_ch'], 0)}° ({fm(g.ch_dx, 1)}×{fm(g.ch_dy, 1)})", compound(dogs), nc,
                f"34CrNiMo6+QT (EN 10083-3), Re ≥ {f(P['Fy_dog'])} MPa medido en la propia forja (3.1)", "Corte de bloque forjado; fresado en mandrinadora/fresadora; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
                tratamiento=f"Temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm); alivio de borde 10 mm (k_borde {fm(P['k_edge'], 2)})"))
-    m.add(Part("pasador_vastago", "ACC", "Pasador del vástago (patín)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(KG['shoeTop'] + 10 - max(zb, zc - g.forkH / 2 - 10))}, placa de retención", compound(apins_s), nc, f"SEGÚN CÁLCULO Fy ≥ {f(P['Fy_pp'])} MPa, GRADO A DEFINIR POR EL FABRICANTE (acero bonificado)",
+    m.add(Part("pasador_vastago", "ACC", "Pasador del vástago (patín)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(KG['shoeTop'] + 10 - max(zb, zc - g.forkH / 2 - 10))}, placa de retención", compound(apins_s), nc, propuestas.grado(P['Fy_pp'], P['d_pp'], 'barra'),
                "Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal", in_core=False, color=(0.3, 0.3, 0.32), tratamiento="Bonificado 28–34 HRC"))
-    m.add(Part("pasador_ojal", "ACC", "Pasador del ojal trasero (ménsula)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(BR['H'] + 15)}, placa de retención", compound(apins_b), nc, f"SEGÚN CÁLCULO Fy ≥ {f(P['Fy_pp'])} MPa, GRADO A DEFINIR POR EL FABRICANTE (acero bonificado)",
+    m.add(Part("pasador_ojal", "ACC", "Pasador del ojal trasero (ménsula)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(BR['H'] + 15)}, placa de retención", compound(apins_b), nc, propuestas.grado(P['Fy_pp'], P['d_pp'], 'barra'),
                "Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal", in_core=False, color=(0.3, 0.3, 0.32), tratamiento="Bonificado 28–34 HRC"))
 
     # ===================== INT: interfaz =====================

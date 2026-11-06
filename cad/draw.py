@@ -102,6 +102,11 @@ class Sheet:
         self.nat = 0              # contador de entidades (diagnóstico)
         self.hatch_used = set()
 
+    def reformat(self, fmt):
+        """Cambia el formato de una hoja aún vacía (el compositor elige A3/A2/A1 según el llenado)."""
+        self.fmt = fmt
+        self.W, self.H = FORMATS[fmt]
+
     # ---------- primitivas ----------
     def line(self, p1, p2, layer="VIS"):
         self.m.add_line(p1, p2, dxfattribs={"layer": layer})
@@ -265,6 +270,11 @@ class Sheet:
                 self.text(t, (q[0] + sh * 1.0, q[1] + 0.9), h, "BOTTOM_LEFT" if sh > 0 else "BOTTOM_RIGHT")
             else:
                 self.text(t, (q[0] + sh * 1.0, q[1] - 1.0 - (i - 1) * h * 1.4), h, "TOP_LEFT" if sh > 0 else "TOP_RIGHT")
+        if not hasattr(self, "reserved"):
+            self.reserved = []
+        wmax_ = max(tw(t, h) for t in txts) + 2
+        xa, xb = (q[0], q[0] + sh * wmax_) if sh > 0 else (q[0] + sh * wmax_, q[0])
+        self.reserved.append((min(xa, p[0]), min(q[1] - h * 1.4 * len(txts), p[1]), max(xb, p[0]), max(q[1] + h * 1.5, p[1])))
 
     def balloon(self, p, q, n, r=5.0):
         """Globo de posición: círculo r en q, línea guía a p (punto en la pieza)."""
@@ -457,8 +467,10 @@ class Sheet:
         Wt = sum(widths)
         y = y0
         if title:
-            self.text(title, (x0, y), T_N + 0.5, "TOP_LEFT", bold=True)
-            y -= (T_N + 0.5) * 1.6
+            for tl in wrapw(title, max(Wt, 60.0) - 2, T_N + 0.5, True):
+                self.text(tl, (x0, y), T_N + 0.5, "TOP_LEFT", bold=True)
+                y -= (T_N + 0.5) * 1.5
+            y -= 0.5
         hl = max(len(wrapw(c[0], c[1] - 2 * pad, h, True)) for c in cols)
         hh = header_h or hl * h * 1.4 + 2 * pad
         ytop = y

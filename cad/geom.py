@@ -100,6 +100,11 @@ class G:
         self.L_piv = self.tb + self.delta + self.hd - self.tt + 3
         self.z_bush0 = self.tb + self.h_boss + P["g_bush"]     # el buje arranca g_bush (2 mm) sobre el collar
         self.washer_D = self.d_pin + 30
+        # tapas del pivote (PROPUESTA del dibujante, S15): 4 × M10 en PCD 2/3 D_piv (tapa retenedora) y 6 × M10 en PCD Ø220 (tapa de inspección)
+        self.cap_pcd = round(P["D_piv"] * 2 / 3, 0)
+        self.insp_pcd = 220.0
+        self.tap_m10, self.clear_m10 = 8.5, 11.0       # broca de macho M10 y paso medio (ISO 273)
+        self.cap_tap, self.insp_tap = 20.0, 10.0       # profundidad de roscado en el pivote y en el fondo del rebaje
         self.ch_pin, self.ch_piv, self.ch_pp = 2.0, 3.0, 2.0      # chaflanes de dibujo (1×45° mínimo ISO 13715): pasador de empuje, pivote, pasadores de articulación
         # --- accionamiento ---
         self.BR = DV["bracket"]
@@ -250,6 +255,8 @@ def supuestos(g):
     if g.wood:
         add("S06", "Anillo de acero y tablones de la cubierta de madera", f"ADOPTADO por el mandante: pletina de {fm(g.t_ring, 0)} × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior (t_ring del núcleo; en m.total); tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección (PROVISORIA)",
             "El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
+    add("S15", "Atornillado de las tapas del pivote", f"Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø{fm(g.cap_pcd, 0)} a 45°+90°·k, roscados prof. {fm(g.cap_tap, 0)} en el pivote; tapa de inspección: 6 × M10 en PCD Ø{fm(g.insp_pcd, 0)} a 30°+60°·k, roscados prof. {fm(g.insp_tap, 0)} en el fondo del rebaje (PROPUESTA)",
+        "El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar).")
     add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista.")
     add("S14", "Retención axial del pivote", "Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
     return S

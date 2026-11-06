@@ -2,6 +2,8 @@
 import math, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from hojas_base import *
+from layout import Plano, VS
+import autodim
 
 
 def split(rect, nx=1, ny=1, i=0, j=0, gap=6.0):
@@ -24,113 +26,39 @@ def hspan(rect, f0, f1):
     return (x0 + f0 * Wd, y0, x0 + f1 * Wd, y1)
 
 
-class Pieza:
-    """Lámina de fabricación de una pieza (o grupo de piezas iguales). Regiones: views (izq., sobre el cajetín), right (columna de notas), low (tablas)."""
+class Pieza(Plano):
+    """Lámina de fabricación de una pieza (o grupo de piezas iguales). Las vistas se declaran con p.vs(...) y se componen en build()."""
 
     def __init__(self, ctx, keys, titulo, fmt="A2", mat_override=None, grupo=""):
-        self.ctx = ctx
         self.keys = [k for k in keys if ctx.m.get(k)]
         self.p0 = ctx.m.get(self.keys[0])
         self.lead = self.p0.code
         masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys[:3]) + " kg c/u"
-        h = Hoja(ctx, self.lead, titulo, "", fmt=fmt, material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
+        h = Hoja(ctx, self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
-        self.h = h
-        self.s = h.begin()
-        R = h.R
+        self.init_plano(ctx, h)
+        self.iso_keys = list(self.keys)
+        self.fmt_try = ["A2", "A1"] if fmt == "auto" else (["A3", "A2", "A1"] if fmt == "auto3" else None)
         self.W_right = 172.0
-        x0, y0, x1, y1 = R["left"]
-        self.views = (x0, y0, x1, y1)
-        self.right = (R["right"][0], R["right"][1], R["right"][2], R["right"][3])
-        self.low = R["low"]
-        self.scales = []
-        self.vlist = []
-        self.dims_n0 = len(vistas.COTAS.rows)
-
-    def view(self, shapes, view, box, **kw):
-        V = View.auto(self.s, shapes if isinstance(shapes, dict) else self.ctx.sh(*shapes), view, box, mat=None, **{k: v for k, v in kw.items() if k != "mat"}) if False else None
-        return V
-
-    def V(self, keys, view, box, label="", margin=(16, 16, 16, 16), mat=None, **kw):
-        sh = keys if isinstance(keys, dict) else self.ctx.sh(*keys)
-        hatch = kw.pop("hatch", True)
-        V = View.auto(self.s, sh, view, box, margin=margin, label=label or view, **kw)
-        V.mat = mat or {k: self.ctx.mat.get(k, "acero") for k in sh}
-        V.draw(hatch=hatch)
-        self.scales.append(V.scale)
-        self.vlist.append(V)
-        return V
-
-    def fit_scale_txt(self):
-        sc = sorted(set(self.scales), reverse=True)
-        return " / ".join(vistas.scale_txt(x) for x in sc) if sc else ""
 
     def tables(self, weld_ids=None, extra_rows=None, ficha_h=None):
-        """Ficha (despiece de la pieza) y tabla de soldaduras en la franja inferior izquierda. Devuelve la y inferior."""
-        x0, y0, x1, y1 = self.low
-        y, _ = tabla_despiece(self.ctx, self.s, x0, y1 - 1, self.keys, x1 - x0, ymin=y0, title="FICHA DE LA PIEZA (despiece)", total=len(self.keys) > 1)
+        """Ficha (despiece de la pieza) y tabla de soldaduras: bloques anchos de la franja inferior."""
+        self.ficha_block(self.keys)
         if weld_ids:
-            y, _ = tabla_soldaduras(self.ctx, self.s, x0, y - 5, weld_ids, x1 - x0, ymin=y0, title="SOLDADURAS DE ESTA LÁMINA")
-        self.y_low = y
-        return y
+            self.weld_block(weld_ids)
 
     def notes(self, specific, gd=(), inspect=None, y_top=None):
-        """Columna de notas: fabricación específica + generales + inspección + punzonado + pintura."""
-        ctx, s = self.ctx, self.s
-        x0, y0, x1, y1 = self.right
-        wdt = x1 - x0 - 2
-        y = (y_top or y1) - 1
-        y = s.notes_block(x0, y, "NOTAS DE FABRICACIÓN", list(specific), h=T_N, width=wdt, numbered=True)
-        y = s.notes_block(x0, y - 2, "GENERALES", notas_gen_fab(ctx), h=T_N, width=wdt)
+        """Notas: fabricación específica + generales + inspección (bloques de la banda lateral)."""
+        ctx = self.ctx
+        self.note_block("NOTAS DE FABRICACIÓN", list(specific), numbered=True)
+        if gd:
+            self.gd(list(gd))
+        self.note_block("GENERALES", notas_gen_fab(ctx))
         insp = inspect or "VT 100 % de toda soldadura; MT/UT según la tabla de soldaduras (AWS D1.1 y BTH-1 Cat. B); control dimensional 100 % de cotas con tolerancia."
-        y = s.notes_block(x0, y - 2, "PLAN DE INSPECCIÓN", [insp, "Punzonar código de la pieza y marca de colada (trazabilidad EN 10204 3.1)."], h=T_N, width=wdt)
-        return y
-
-    def fill_iso(self, keys=None, min_size=70.0, infl=24.0):
-        """Rellena el mayor rectángulo libre del área de vistas con una isométrica de la pieza (a la mayor escala normalizada que quepa)."""
-        x0, y0, x1, y1 = self.views
-        st = 4.0
-        nx, ny = int((x1 - x0) / st), int((y1 - y0) / st)
-        occ = [[False] * ny for _ in range(nx)]
-        for (a, b, c, d) in list(getattr(self.s, "views", [])) + list(getattr(self.s, "reserved", [])):
-            for i in range(max(0, int((a - infl - x0) / st)), min(nx, int((c + infl - x0) / st) + 1)):
-                for j in range(max(0, int((b - infl - y0) / st)), min(ny, int((d + infl - y0) / st) + 1)):
-                    occ[i][j] = True
-        best = (0, None)
-        hist = [0] * nx
-        for j in range(ny):
-            for i in range(nx):
-                hist[i] = 0 if occ[i][j] else hist[i] + 1
-            stack = []
-            for i in range(nx + 1):
-                hcur = hist[i] if i < nx else 0
-                start = i
-                while stack and stack[-1][1] >= hcur:
-                    s_, hh = stack.pop()
-                    area = (i - s_) * hh
-                    if area > best[0]:
-                        best = (area, (s_, j - hh + 1, i, j + 1))
-                    start = s_
-                stack.append((start, hcur))
-        if not best[1]:
-            return None
-        a, b, c, d = best[1]
-        box = (x0 + a * st, y0 + b * st, x0 + c * st, y0 + d * st)
-        if box[2] - box[0] < min_size or box[3] - box[1] < min_size:
-            return None
-        ks = [k for k in (keys or self.keys) if k in self.ctx.shapes]
-        V = self.V(ks, "iso", box, label="Isométrica", margin=(8, 14, 8, 8), hatch=False)
-        V.title("VISTA ISOMÉTRICA", h=T_N + 1.0)
-        return V
+        self.note_block("PLAN DE INSPECCIÓN", [insp, "Punzonar código de la pieza y marca de colada (trazabilidad EN 10204 3.1)."])
 
     def finish_scale(self):
-        if getattr(self, "iso_fill", True) and isinstance(self, Pieza) and not hasattr(self, "_filled"):
-            self._filled = True
-            try:
-                self.fill_iso()
-            except Exception as ex:
-                print("   (isométrica de relleno falló:", ex, ")")
-        self.h.escala = self.fit_scale_txt() or "S/E"
+        self.build()
 
 
 def gd_column(s, x, y, items, step=14.0):

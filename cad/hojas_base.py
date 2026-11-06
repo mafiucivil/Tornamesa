@@ -7,6 +7,7 @@ from draw import Sheet, wrap, wrapw, tw, T_N, T_S, T_T, T_MIN
 from geom import *
 import vistas
 import iso286
+import propuestas
 from vistas import View, COTAS
 
 REV = "C"
@@ -131,13 +132,27 @@ class Hoja:
             return
         w["sheets"].add(self.plano)
         self.welds_here.append(jid)
-        tail = [f"{jid} · {w['proceso']} · {w['nivel']}", f"{w['wps']}", w["end"].replace(" · ", " ")] + list(extra_tail)
+        tail = [f"{jid} · {w['proceso']} · {w['nivel']}", f"{w['wps_corto']} (PROPUESTA)", w["end"].replace(" · ", " ").replace(" 100 %", "100").replace(" 10 %", "10").replace("de la unión", "")] + list(extra_tail)
         kd = kind or w["sym"]
         sz = size if size is not None else w["size_txt"]
         ln = length if length is not None else w.get("len_txt", "")
         pr = prep if prep is not None else w.get("prep_txt", "")
         ar = w["contorno"] if all_round is None else all_round
-        self.s.weld(p, q, kd, sz, ln, other=other if other is not None else w.get("other"), all_round=ar, field=field, tail=tail, sh=sh, L=L, prep=pr)
+        # el símbolo (línea de referencia + rabo de texto) no debe salir de la zona de vistas: se vuelca al otro lado si hace falta
+        sh_ = sh if sh in (1, -1) else (1 if q[0] >= p[0] else -1)
+        wl_ = max(46.0, 8 + sum(tw(t_, T_N) for t_ in (sz, ln, pr)) + 16) if L is None else L
+        ext_ = wl_ + max(tw(t_, T_N) for t_ in tail) + 6
+        zr = getattr(self, "zone", self.R["left"])
+        qm = 2 * p[0] - q[0]
+        if sh_ == 1 and q[0] + ext_ > zr[2] and qm - ext_ > zr[0] + 5:
+            q, sh_ = (qm, q[1]), -1
+        elif sh_ == -1 and q[0] - ext_ < zr[0] and qm + ext_ < zr[2]:
+            q, sh_ = (qm, q[1]), 1
+        self.s.weld(p, q, kd, sz, ln, other=other if other is not None else w.get("other"), all_round=ar, field=field, tail=tail, sh=sh_, L=L, prep=pr)
+        if not hasattr(self.s, "reserved"):
+            self.s.reserved = []
+        xe = q[0] + sh_ * ext_
+        self.s.reserved.append((min(q[0], xe, p[0]), min(q[1] - 12, p[1]), max(q[0], xe, p[0]), max(q[1] + 12, p[1])))
 
     def balloon(self, pos, p, q):
         self.s.balloon(p, q, pos)
@@ -155,22 +170,59 @@ class Hoja:
         return self.s
 
     def ocupacion(self):
-        if not getattr(self.s, "views", None):
-            return 0.0, 0.0
-        """(área de vistas / área útil del marco, área de vistas / área de dibujo disponible)."""
+        """(vistas / área útil del marco, vistas / zona de vistas [área de dibujo], tinta / zona de vistas).
+        «Vistas» = unión (rejilla de 4 mm) de los recuadros de las vistas, cortes y detalles; «zona de vistas» = marco menos cajetín, banda lateral y franja de tablas;
+        «tinta» = celdas de 8 mm de la zona que contienen algún trazo, cota o texto (mide lo realmente dibujado, no el recuadro)."""
         s = self.s
         vs = getattr(s, "views", [])
-        # unión aproximada por rejilla de 4 mm
-        cells = set()
-        for (x0, y0, x1, y1) in vs:
-            for i in range(int(x0 // 4), int(x1 // 4) + 1):
-                for j in range(int(y0 // 4), int(y1 // 4) + 1):
-                    cells.add((i, j))
-        A = len(cells) * 16.0
         a = self.R["all"]
         tot = (a[2] - a[0]) * (a[3] - a[1])
-        avail = (self.R["main"][2] - self.R["main"][0]) * (self.R["main"][3] - self.R["main"][1])
-        return A / tot, A / avail
+        zone = getattr(self, "zone", None) or self.R["main"]
+        zarea = max((zone[2] - zone[0]) * (zone[3] - zone[1]), 1.0)
+        cells = set()
+        for (x0, y0, x1, y1) in vs:
+            for i in range(int(max(x0, zone[0]) // 4), int(min(x1, zone[2]) // 4) + 1):
+                for j in range(int(max(y0, zone[1]) // 4), int(min(y1, zone[3]) // 4) + 1):
+                    cells.add((i, j))
+        A = len(cells) * 16.0
+        # tinta: puntos de las entidades que caen en la zona
+        ink = set()
+        st = 8.0
+        def mark(x, y):
+            if zone[0] <= x <= zone[2] and zone[1] <= y <= zone[3]:
+                ink.add((int(x // st), int(y // st)))
+        for e in s.m:
+            t = e.dxftype()
+            try:
+                if t == "LINE":
+                    p, q = e.dxf.start, e.dxf.end
+                    n = max(1, int(math.hypot(q.x - p.x, q.y - p.y) / (st / 2)))
+                    for k in range(n + 1):
+                        mark(p.x + (q.x - p.x) * k / n, p.y + (q.y - p.y) * k / n)
+                elif t == "LWPOLYLINE":
+                    pts = list(e.get_points("xy"))
+                    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+                        n = max(1, int(math.hypot(x1 - x0, y1 - y0) / (st / 2)))
+                        for k in range(n + 1):
+                            mark(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)
+                elif t == "CIRCLE":
+                    c, r = e.dxf.center, e.dxf.radius
+                    for k in range(max(8, int(2 * math.pi * r / (st / 2)))):
+                        a_ = 2 * math.pi * k / max(8, int(2 * math.pi * r / (st / 2)))
+                        mark(c.x + r * math.cos(a_), c.y + r * math.sin(a_))
+                elif t == "TEXT":
+                    p = e.dxf.insert
+                    w_ = len(e.dxf.text) * e.dxf.height * 0.55
+                    for k in range(int(w_ // (st / 2)) + 1):
+                        mark(p.x + k * st / 2, p.y)
+                elif t == "HATCH":
+                    for path in e.paths:
+                        for v in getattr(path, "vertices", []):
+                            mark(v[0], v[1])
+            except Exception:
+                pass
+        # las zonas reservadas por tablas y notas cuentan como ocupadas fuera de la zona de vistas; dentro de ella no hay
+        return A / tot, A / zarea, len(ink) * st * st / zarea
 
 
 # ----------------------------------------------------------------------------------------------
@@ -193,7 +245,7 @@ def build_welds(ctx):
     def add(desc, piezas, tipo, sym, z=None, t=None, prep="Sin preparación", prep_txt="", nivel="ISO 5817-B", end="VT 100 % · MT 100 %", wps=1, len_total=0.0, nota="", core=None,
             contorno=False, groove=False, aporte=A5, proc=PROC, other=None, len_txt="", modelada=True):
         j = dict(id=f"J{len(W_) + 1:02d}", desc=desc, piezas=piezas, tipo=tipo, sym=sym, prep=prep, prep_txt=prep_txt, nivel=nivel, end=end, len_total=len_total, nota=nota, contorno=contorno,
-                 aporte=aporte, proceso=proc, other=other, len_txt=len_txt, sheets=set(), wps=f"WPS-{wps:02d} A DEFINIR POR EL FABRICANTE", modelada=modelada, groove=groove)
+                 aporte=aporte, proceso=proc, other=other, len_txt=len_txt, sheets=set(), wps=f"WPS-P{wps:02d} — {propuestas.ROTULO_WPS}", wps_corto=f"WPS-P{wps:02d}", wps_n=wps, modelada=modelada, groove=groove)
         if groove:
             j["t"] = t
             j["z"] = None
@@ -262,7 +314,7 @@ def build_welds(ctx):
     add("Cubo – planchas inferior y superior", "MES-011 / MES-001, 003", "Bisel 45° con respaldo (penetración completa)", "bevel", t=min(g.tt, g.tbo), prep="Bisel 45°, raíz 2 mm, respaldo", prep_txt="45°", groove=True,
         len_total=2 * math.pi * P["D_hub"] / 2, wps=6, end="VT 100 % · UT 100 %")
     add("Cierre de la plancha superior (soldadura de ranura sobre almas y nervios)", "MES-001 / MES-005…010", "Ranura 22×80 c/250, relleno completo", "slot", t=g.tt, groove=True, prep="Ranura rectangular 22×80 pasante, relleno completo",
-        prep_txt="", len_txt="80", nivel="ISO 5817-C", end="VT 100 % · MT 100 %", len_total=0.0, wps=7, modelada=False, nota="Ranuras no modeladas en 3D; ubicación y cantidad: A DEFINIR POR EL FABRICANTE")
+        prep_txt="", len_txt="80", nivel="ISO 5817-C", end="VT 100 % · MT 100 %", len_total=0.0, wps=7, modelada=False, nota="Ranuras no modeladas en 3D; ubicación propuesta: 22×80 c/250 sobre cada alma y nervio (PROPUESTA, confirmar)")
     if g.opt and g.removable:
         tpb = g.tope("base")
         if tpb:
@@ -355,13 +407,13 @@ def inspecciones(ctx):
 
 
 def pintura(ctx):
-    """El cálculo no define el sistema de pintura: se rotula así."""
-    return "Sistema de pintura y espesor de película seca (EPS): A DEFINIR (el cálculo no lo fija). Referencia de ambiente: ISO 12944 C4, preparación Sa 2½."
+    """Sistema de pintura propuesto (el cálculo no lo fija): ISO 12944 C4 alta, EPS 240 µm; rotulado PROPUESTA, CONFIRMAR."""
+    return propuestas.pintura_txt()
 
 
 def notas_gen_fab(ctx):
     return ["Tolerancias generales ISO 2768-mK; geométricas ISO 1101; rugosidad ISO 1302; ajustes ISO 286-1/-2.",
-            "Soldadura ISO 2553; calidad ISO 5817 indicada en cada símbolo; procesos AWS D1.1; WPS «A DEFINIR POR EL FABRICANTE».",
+            "Soldadura ISO 2553; calidad ISO 5817 en cada símbolo; WPS-P pre-calificados AWS D1.1 cl. 3 PROPUESTOS (GEN-012), a calificar/confirmar por el fabricante.",
             "Materiales con certificado EN 10204 3.1; punzonar la marca de colada y el código de la pieza en zona no crítica.",
             "Aristas vivas rotas 1×45° (o R1) salvo indicación; sin torno vertical: gran diámetro por corte a llama/plasma, soldadura y mandrinadora.",
             pintura(ctx)]
@@ -412,7 +464,7 @@ def weld_rows(ctx, ids=None):
             continue
         tipo = w["tipo"] + ("" if w["prep"] == "Sin preparación" else f". Prep.: {w['prep']}")
         out.append([w["id"], f"{w['desc']} ({w['piezas']})", tipo, w["garganta"] if w["groove"] else w["garganta"], w["cateto"], f(w["len_total"], 0) if w["len_total"] else "—",
-                    f"{w['pasadas']}", w["proceso"], w["aporte"], w["wps"].replace(" A DEFINIR POR EL FABRICANTE", " (a definir por el fabricante)"), w["end"], w["nivel"].replace("ISO 5817-", ""), w["origen"] + ("" if w["modelada"] else "; no modelada en 3D")])
+                    f"{w['pasadas']}", w["proceso"], w["aporte"], w["wps_corto"] + " (propuesta)", w["end"], w["nivel"].replace("ISO 5817-", ""), w["origen"] + ("" if w["modelada"] else "; no modelada en 3D")])
     return out
 
 
