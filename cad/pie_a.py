@@ -30,7 +30,7 @@ def sheet_base_plancha(ctx):
             V.note_hole((u, v, tb), r, 60, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
         c0 = V.P(0, 0, tb)
         s.circle(c0, (P["D_top"] + 20) / 2 * V.scale, "FANT")
-        s.text(f"Zona de apoyo Ø{f(P['D_top'] + 20)}: planitud 0,20, Ra 3,2, sin pintura", (c0[0], c0[1] + (P["D_top"] + 20) / 2 * V.scale - 6), T_N, "TOP_CENTER")
+        s.text(f"zona de apoyo Ø{f(P['D_top'] + 20)}", (c0[0], c0[1] - (P["D_top"] + 20) / 2 * V.scale + 3), T_N, "BOTTOM_CENTER")
         s.circle(c0, g.D_boss / 2 * V.scale, "FANT")
         s.text(f"collar Ø{f(g.D_boss)} (BAS-002)", (c0[0], c0[1] - g.D_boss / 2 * V.scale - 3), T_N, "TOP_CENTER")
         p.cut_mark("planta", "A", (-B / 2 - 38, 0, tb), (B / 2 + 38, 0, tb), 90)
@@ -45,7 +45,7 @@ def sheet_base_plancha(ctx):
         zt_ = g.tb + g.h_boss
         rb, rp = g.D_boss / 2, P["D_piv"] / 2
         V.dimh((-rb, 0, zt_), (-rp, 0, zt_), "top", 0, on=["collar"], text=fm(rb - rp, 1))
-        V.dimh((-rp, 0, zt_), (rp, 0, zt_), "top", 0, on=["collar"], text=f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante")
+        V.dimh((-rp, 0, zt_), (rp, 0, zt_), "top", 0, on=["collar"], text=f"Ø{f(P['D_piv'])} H7 (+0,035/0)")
         V.dimh((rp, 0, zt_), (rb, 0, zt_), "top", 0, on=["collar"], text=fm(rb - rp, 1))
         V.dimh((-rb, 0, zt_), (rb, 0, zt_), "top", 1, on=["collar"], text=f"Ø{f(g.D_boss)} (collar BAS-002)")
         V.dimv((rb, 0, g.tb), (rb, 0, zt_), "right", 0, on=["collar"], text=f"{f(g.h_boss)} ±0,5")

@@ -134,6 +134,40 @@ def _vis_dirs(V, u, v, tol=0.08):
     return out
 
 
+def _vis_axis_ok(V, u, v, tol=0.08, tol_deg=3.0):
+    """Validez del punto según las líneas VISIBLES del dibujo: (ok_u, ok_v). Dos direcciones no paralelas → esquina; una sola recta con
+    continuación a ambos lados → interior de la línea (solo vale para medir perpendicular a ella); extremo de línea → vale en ambos ejes;
+    sin líneas visibles → no vale (vértice oculto tras un corte o una cara)."""
+    segs = getattr(V, "_segtree", None)
+    if segs is None:
+        _vis_dirs(V, u, v)
+        segs = V._segtree
+    if not segs:
+        return False, False
+    q = Point(u, v)
+    outs = []
+    for i in segs.query(q.buffer(tol)):
+        sg = V._segs[int(i)]
+        if sg.distance(q) > tol:
+            continue
+        (x0, y0), (x1, y1) = sg.coords[0], sg.coords[-1]
+        for (xa, ya) in ((x0, y0), (x1, y1)):
+            if math.hypot(xa - u, ya - v) > tol:
+                outs.append(math.degrees(math.atan2(ya - v, xa - u)) % 360)
+    if not outs:
+        return False, False
+    for i in range(len(outs)):
+        for j in range(i + 1, len(outs)):
+            dd = abs(((outs[i] - outs[j] + 180) % 360) - 180)
+            if 12 < dd < 168:
+                return True, True
+    both = any(abs(((outs[i] - outs[j] + 180) % 360) - 180) >= 168 for i in range(len(outs)) for j in range(i + 1, len(outs)))
+    if not both:
+        return True, True                      # extremo de una línea
+    d = outs[0] % 180
+    return abs(d - 90) < tol_deg, min(d, 180 - d) < tol_deg
+
+
 def _axis_ok(V, dirs3, tol_deg=3.0, uv=None):
     """(ok_u, ok_v): el punto sirve para medir u (o v) si es esquina, o si toda arista que pasa por él corre perpendicular a ese eje
     (una cota vertical a una arista horizontal está bien definida en cualquier punto de la arista; una horizontal, no)."""
@@ -194,6 +228,8 @@ def _point_is_corner(V, p3, axis=None):
         dirs = _vertex_dirs(shp).get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
         if dirs is not None:
             ou, ov = _axis_ok(V, dirs, uv=(u, v))
+            wu, wv = _vis_axis_ok(V, u, v)
+            ou, ov = ou and wu, ov and wv
             if (ou if axis == 0 else ov if axis == 1 else (ou and ov)):
                 return True
     return _hatch_corner(V, u, v)
@@ -237,6 +273,8 @@ def visible_points(V, keys, tol_vis=0.35):
                     continue
             dirs = vd.get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
             oku, okv = (True, True) if dirs is None else _axis_ok(V, dirs, uv=(u, v))
+            wu, wv = _vis_axis_ok(V, u, v)
+            oku, okv = oku and wu, okv and wv
             if not (oku or okv):
                 V.rejected_pts += 1
                 continue

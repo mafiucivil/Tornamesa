@@ -18,8 +18,8 @@ def sheet_mesa_sup(ctx):
     def planta(V, p):
         s.centerlines(V.P(0, 0, zt), g.prIn * V.scale, 8)
         p.cut_mark("planta", "A", (-g.prIn - 22, 0, zt), (g.prIn + 22, 0, zt), 90)
-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), draw=planta, title="PLANTA", w=1.5,
-         auto=dict(text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn)} ±1,5"}, hole_rmin=4.0, fits={round(g.hole_top, 1): "H12", round(g.cb_D, 1): "H12"}, hole_txt={8.5: f"6 × M10-6H prof. {fm(g.insp_tap, 0)} (broca Ø8,5) en el fondo del rebaje, PCD Ø{fm(g.insp_pcd, 0)}, a 30° + 60°·k"}, tol={}))
+    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), draw=planta, title="PLANTA", w=4.0, mins=0.1,
+         auto=dict(text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn)} ±1,5"}, hole_rmin=4.0, verts=False, hole_pos=False, only_extents=True, fits={round(g.hole_top, 1): "H12", round(g.cb_D, 1): "H12"}, hole_txt={8.5: f"6 × M10-6H prof. {fm(g.insp_tap, 0)} (broca Ø8,5) en el fondo del rebaje, PCD Ø{fm(g.insp_pcd, 0)}, a 30° + 60°·k"}, tol={}))
     x_a, x_b = g.hole_top / 2 - 25, g.prIn + 25
 
     def corte(V, p):
