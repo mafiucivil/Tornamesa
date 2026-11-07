@@ -60,21 +60,50 @@ def sheet_mesa_anillos(ctx):
     def planta(V, p):
         c3 = (0, 0, zt)
         s.circle(V.P(c3), g.R_pin * V.scale, "EJE")
-        for sa in (0, 7, 14, 21):
-            ang = (sa + 0.5) * pitch
+        emp = [(sa + 0.5) * pitch for sa in (0, 7, 14, 21)]
+        for ang in emp:
             pa = polar(g.prIn - 14, ang); pb = polar(g.Rt + 14, ang)
             s.line(V.P(pa + (zt,)), V.P(pb + (zt,)), "FANT")
-        s.dim_ang(V.P(c3), g.R_pin * V.scale * 0.85, 0, pitch, f"{fm(pitch, 3)}° (paso)")
-        s.dim_ang(V.P(c3), g.R_pin * V.scale * 0.7, 0, 90, "90° (4 empalmes)")
-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), draw=planta, title="PLANTA (anillo; superior e inferior idénticos)", hatch=False, w=1.8,
-         auto=dict(fits={g.d_pin: "H7"}, hole_rmin=20, hole_pos=False, verts=False, only_extents=True, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±1,5 (D_top)"}))
+        # eje +x de la mesa (la planta está girada para que el primer agujero quede sobre la horizontal)
+        qx = polar(g.Rt + 40, -a0)
+        s.line(V.P(c3), V.P(polar(g.Rt + 40, -a0) + (zt,)), "EJE")
+        s.text("+x (mesa)", V.P(polar(g.Rt + 46, -a0) + (zt,)), T_N, "MIDDLE_LEFT")
+        rh = g.d_pin / 2
+        def ext_line(ang, r_to):
+            s.line(V.P(polar(g.R_pin + rh + 3, ang) + (zt,)), V.P(polar(r_to + 4, ang) + (zt,)), "COTA")
+        Ra1, Ra2 = g.Rt + 30, g.Rt + 70
+        ext_line(0, Ra1)
+        V.dim_ang_axes(c3, Ra1 * V.scale, -a0, 0, f"{fm(a0, 3)}° (1.er agujero desde +x)", axes=[((g.R_pin, 0.0, zt), rh)], on=on)
+        ext_line(pitch, Ra1); ext_line(2 * pitch, Ra1)
+        V.dim_ang_axes(c3, Ra1 * V.scale, pitch, 2 * pitch, f"{fm(pitch, 3)}° (paso, {g.N_pin}×)",
+                       axes=[(polar(g.R_pin, pitch) + (zt,), rh), (polar(g.R_pin, 2 * pitch) + (zt,), rh)], on=on)
+        k14 = g.N_pin // 2
+        ext_line(k14 * pitch, Ra1)
+        s.line(V.P(polar(g.Rt + 14, emp[2]) + (zt,)), V.P(polar(Ra1 + 4, emp[2]) + (zt,)), "COTA")
+        V.dim_ang_axes(c3, Ra1 * V.scale, k14 * pitch, emp[2], f"{fm(emp[2] - k14 * pitch, 3)}° (empalme)", axes=[(polar(g.R_pin, k14 * pitch) + (zt,), rh)], on=on)
+        s.line(V.P(polar(g.Rt + 14, emp[2]) + (zt,)), V.P(polar(Ra2 + 4, emp[2]) + (zt,)), "COTA")
+        s.line(V.P(polar(g.Rt + 14, emp[1]) + (zt,)), V.P(polar(Ra2 + 4, emp[1]) + (zt,)), "COTA")
+        s.dim_ang(V.P(c3), Ra2 * V.scale, emp[1], emp[2], "90° (entre empalmes)")
+        # PCD entre ejes de agujeros opuestos (verificada contra los ejes de los cilindros)
+        h0, h14 = (g.R_pin, 0.0, zt), (-g.R_pin, 0.0, zt)
+        V.dimh(h14, h0, "bottom", 1, on=on, text=f"PCD Ø{f(2 * g.R_pin)} ±0,3", virt_a=g.d_pin / 2, virt_b=g.d_pin / 2)
+    p.vs("planta", on, "top", lv=(1, 2, 1, 1), extra=(25, 0, 45, 10), draw=planta, title="PLANTA (anillo; superior e inferior idénticos)", hatch=False, w=4.0, mins=0.1,
+         auto=dict(fits={g.d_pin: "H7"}, hole_rmin=20, hole_pos=False, verts=False, only_extents=True, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±1,5", round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn)} ±1,5"}))
+    Rs, rs = g.Rt + 5, g.prIn - 5
+    seg = [["Segmentos por anillo", "4 de 90° (empalmes entre agujeros, a 6,429° + 90°·k desde el 1.er agujero)".replace("6,429", fm(0.5 * pitch, 3))],
+           ["Radio exterior / interior de corte", f"R{fm(Rs, 0)} / R{fm(rs, 0)} (sobremetal 5 mm por lado)"],
+           ["Cuerda exterior de corte", f"{fm(2 * Rs * math.sin(math.radians(45)), 1)} mm"],
+           ["Altura del segmento (flecha + ancho)", f"{fm(Rs - rs * math.cos(math.radians(45)), 1)} mm"],
+           ["Ancho radial", f"{fm(Rs - rs, 0)} mm (terminado {fm(g.Rt - g.prIn, 0)})"], ["Espesor", f"{fm(g.tpr, 0)} mm"]]
+    p.table_block("SEGMENTO DE PARTIDA PARA CORTE (plasma)", [("Dato", 60, "L"), ("Valor", 110, "L")], seg)
     x_a, x_b = g.prIn - 30, g.Rt + 30
 
     def corte(V, p):
         w_out(p, jj[0], V, (g.prIn, 0, zt - 3), "left", prep="60°", dy=12)
         w_out(p, jj[1], V, (g.prIn, 0, zt - g.tpr + 3), "left", prep="60°", dy=-14)
-    p.vs("corte", on, "front", cut=CUT_Y, win=(x_a - g.R_pin, -g.tpr - 10, x_b - g.R_pin, 14), center=(g.R_pin, 0, zt), lv=(1, 2, 1, 3), extra=(130, 0, 0, 0), draw=corte,
-         title="CORTE RADIAL POR UN PASADOR", hs=0.5, w=1.2, auto=dict(fits={g.d_pin: "H7"}, tol={round(g.tpr, 1): " (t_pr)"}))
+        V.dimh((g.prIn, 0, zt - g.tpr), (g.R_pin, 0, zt - g.tpr), "bottom", 2, on=on, text=f"{fm(g.R_pin - g.prIn, 1)} (al eje; PCD Ø{f(2 * g.R_pin)})", virt_b=g.d_pin / 2)
+    p.vs("corte", on, "front", cut=CUT_Y, win=(x_a - g.R_pin, -g.tpr - 10, x_b - g.R_pin, 14), center=(g.R_pin, 0, zt), lv=(1, 2, 1, 3), extra=(105, 0, 0, 0), draw=corte,
+         title="CORTE RADIAL POR UN PASADOR", hs=0.5, w=1.2, mins=1.0, maxs=1.0, auto=dict(fits={g.d_pin: "H7"}, tol={round(g.tpr, 1): ""}, text={round(g.d_pin, 1): f"Ø{f(g.d_pin)} H7 (+0,035/0)"}))
     add_prep(p, "det_e", wd(ctx, ej), t1=g.tpr)
     p.detail("det_p", "corte", (g.R_pin - g.d_pin / 2, 0, zt - 2), 22, "B", lv=(1, 1, 1, 1), title="DETALLE B: BORDE DEL AGUJERO", maxs=5.0) if False else None
     p.tables([ej] + jj)

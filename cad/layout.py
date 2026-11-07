@@ -658,6 +658,10 @@ class Plano:
             fx0, fy0, fx1, fy1 = x0 - 8 - 8.5 * lv["left"], y0 - 8 - 8.5 * lv["bottom"] - (TITLE_H if sp.title else 0), x1 + 8 + 8.5 * lv["right"], y1 + 8 + 8.5 * lv["top"]
         else:
             fx0, fy0, fx1, fy1 = x0 - 8, y0 - 8 - (TITLE_H if sp.title else 0) - 8 * sp.lv[1], x1 + 8, y1 + 8
+        if sp.title:
+            wt = min(tw(sp.title, dr.T_T, True), (sp.V.box[2] - sp.V.box[0]) if (V is not None and getattr(V, "box", None)) else 1e9)
+            cx = (x0 + x1) / 2
+            fx0, fx1 = min(fx0, cx - wt / 2 - 2), max(fx1, cx + wt / 2 + 2)
         for q in getattr(s, "reserved", [])[r0:]:
             if q[2] - q[0] < 200 and q[3] - q[1] < 200:
                 fx0, fy0, fx1, fy1 = min(fx0, q[0]), min(fy0, q[1]), max(fx1, q[2]), max(fy1, q[3])

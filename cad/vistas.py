@@ -16,6 +16,16 @@ from geom import f, fm
 import draw as dr
 
 HLR_CACHE = {}
+
+import re as _re
+_PARAM = _re.compile(r"\s*\((?:[^()]*\b[A-Za-z]{1,6}_[A-Za-z0-9]+\b[^()]*|[LbehtR])\)")
+
+
+def clean_label(t):
+    """Quita de un rótulo de cota los nombres internos de parámetros del núcleo: «18 ±0,5 (t_base)» → «18 ±0,5», «25 (b)» → «25»."""
+    if t is None:
+        return t
+    return _PARAM.sub("", str(t)).strip()
 # escalas normalizadas pedidas por el mandante (ISO 5455 + 1:2,5 y 1:25 admitidas) y ampliaciones 2:1 y 5:1 para detalles; 1:200 solo como último recurso
 STD_SCALES = [1/200, 1/100, 1/50, 1/25, 1/20, 1/10, 1/5, 1/2.5, 1/2, 1/1, 2/1, 5/1]
 
@@ -326,6 +336,7 @@ class View:
         vis = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in vis]
         hid = [[(u - self.cu, v - self.cv) for (u, v) in pl] for pl in hid]
         hatches = [(k, [(u - self.cu, v - self.cv) for (u, v) in o], [[(u - self.cu, v - self.cv) for (u, v) in h_] for h_ in hs]) for (k, o, hs) in hatches]
+        self.hatch2d = hatches
         if self.win:
             vis, hid = clip_polys(vis, self.win), clip_polys(hid, self.win)
         # --- tramos con rotura: se recorta cada polilínea a las porciones visibles ---
@@ -528,6 +539,8 @@ class View:
 
     def note_hole(self, c3, r, ang_deg, text, ext=14.0, on=None, lines=None):
         """Llamada «n × Ø… » apuntando a un agujero (radio r del modelo), verificada contra el eje del cilindro."""
+        text = clean_label(text)
+        lines = [clean_label(x) for x in lines] if lines else lines
         ok = COTAS.axis_ok(c3, r, on or self.keys)
         COTAS.add(vista=self.label, texto=text, valor_dibujo=round(2 * r, 3), tipo="agujero", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
         if not ok:
@@ -540,6 +553,8 @@ class View:
 
     def note_pt(self, p3, off, text, on=None, lines=None, dot=False):
         """Llamada de texto con flecha hacia un punto 3D de la superficie (verificada)."""
+        text = clean_label(text)
+        lines = [clean_label(x) for x in lines] if lines else lines
         d = COTAS.dist_to_surface(p3, on or self.keys)
         ok = d < 0.05
         COTAS.add(vista=self.label, texto=text if lines is None else " | ".join(lines), valor_dibujo=0.0, tipo="llamada", extremo_a=f"{d:.3f}", extremo_b="", ok=bool(ok))
@@ -570,14 +585,14 @@ class View:
         ub, vb = self.uv(p3b)
         val = abs(ub - ua) if orient == "h" else abs(vb - va) if orient == "v" else math.hypot(ub - ua, vb - va)
         # valor 3D real a lo largo de la dirección acotada (la vista no debe distorsionar: se mide en pantalla = en el modelo)
-        txt = text if text is not None else f"{prefix}{numtxt(val, n)}{suffix}"
+        txt = clean_label(text if text is not None else f"{prefix}{numtxt(val, n)}{suffix}")
         self._check(p3a, p3b, val, txt, on, virt_a, virt_b)
         self.S.dim(self.P(p3a), self.P(p3b), off, txt, orient, **kw)
         return val
 
     def dim_dia(self, c3, r, ang_deg, text=None, axis_dir=None, ext=8.0, on=None, prefix="Ø", suffix="", **kw):
         """Cota de diámetro (en vista de planta: círculo centrado en c3 con radio r)."""
-        txt = text if text is not None else f"{prefix}{numtxt(2 * r)}{suffix}"
+        txt = clean_label(text if text is not None else f"{prefix}{numtxt(2 * r)}{suffix}")
         a = math.radians(ang_deg)
         keys = on or self.keys
         ok = COTAS.axis_ok(c3, r, keys) or self._arc_pt_ok(c3, r, ang_deg, on) or self._arc_pt_ok(c3, r, ang_deg + 180, on)
@@ -586,13 +601,28 @@ class View:
             print(f"   DIÁMETRO NO VERIFICADO [{COTAS.sheet}] {txt}")
         self.S.dim_dia(self.P(c3), r * self.scale, ang_deg, txt, ext=ext, **kw)
 
+    def dim_ang_axes(self, c3, r_paper, a0, a1, text, axes=(), on=None):
+        """Cota angular en planta entre dos direcciones desde c3; se verifica que cada (p3, r) de 'axes' sea el eje de un cilindro real
+        (p. ej. ejes de agujeros en un círculo de paso) y que su ángulo coincida con a0 o a1 (±0,01°)."""
+        keys = on or self.keys
+        ok = True
+        for (p3, r) in axes:
+            ang = math.degrees(math.atan2(p3[1] - c3[1], p3[0] - c3[0]))
+            near = min(abs(((ang - a + 180) % 360) - 180) for a in (a0, a1))
+            ok = ok and COTAS.axis_ok(p3, r, keys) and near < 0.01
+        txt = clean_label(text)
+        COTAS.add(vista=self.label, texto=txt, valor_dibujo=round(abs(a1 - a0), 4), tipo="ángulo", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
+        if not ok:
+            print(f"   ÁNGULO NO VERIFICADO [{COTAS.sheet}] {txt}")
+        self.S.dim_ang(self.P(c3), r_paper, a0, a1, txt)
+
     def _arc_pt_ok(self, c3, r, ang_deg, on):
         """Respaldo para arcos que el B-rep no reporta como CYLINDER: el punto del arco a ese ángulo cae sobre la superficie."""
         a = math.radians(ang_deg)
         return COTAS.dist_to_surface((c3[0] + r * math.cos(a), c3[1] + r * math.sin(a), c3[2]), on or self.keys) < 0.05
 
     def dim_rad(self, c3, r, ang_deg, text=None, on=None, ext=8.0, **kw):
-        txt = text if text is not None else f"R{numtxt(r)}"
+        txt = clean_label(text if text is not None else f"R{numtxt(r)}")
         ok = COTAS.axis_ok(c3, r, on or self.keys) or self._arc_pt_ok(c3, r, ang_deg, on)
         COTAS.add(vista=self.label, texto=txt, valor_dibujo=round(r, 3), tipo="radio", extremo_a="eje OK" if ok else "eje NO", extremo_b="", ok=bool(ok))
         if not ok:

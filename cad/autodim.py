@@ -7,6 +7,14 @@ from shapely.geometry import LineString, Point
 from shapely.strtree import STRtree
 import vistas
 from vistas import COTAS, numtxt
+import re as _re
+
+CADENAS = []      # control: cada cadena automática con sus valores, la suma rotulada y la cota total; extremos en esquinas reales
+
+
+def _num(t):
+    m = _re.search(r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?)", t.replace("Ø", ""))
+    return float(m.group(1).replace(".", "").replace(",", ".")) if m else None
 from draw import tw, T_N
 from geom import fm, f
 
@@ -21,8 +29,128 @@ def _cluster(vals, tol=0.06):
     return out
 
 
+_VCACHE = {}
+
+
+def _vertex_dirs(shape):
+    """{(x,y,z) redondeado: [tangentes 3D unitarias de las aristas que llegan al vértice, salientes desde él]}, sin aristas de costura
+    (seam) de superficies cerradas. Un vértice cuyas tangentes proyectadas son todas paralelas no es una arista real del contorno
+    (vértice de partición de un círculo, costura de un cilindro, vértice de teselado): no se acota a él."""
+    key = id(shape)
+    if key in _VCACHE:
+        return _VCACHE[key]
+    from OCP.TopExp import TopExp
+    from OCP.TopTools import TopTools_IndexedDataMapOfShapeListOfShape
+    from OCP.TopAbs import TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepAdaptor import BRepAdaptor_Curve
+    from OCP.gp import gp_Pnt, gp_Vec
+    from OCP.TopoDS import TopoDS
+    w = shape.wrapped
+    ve = TopTools_IndexedDataMapOfShapeListOfShape()
+    TopExp.MapShapesAndAncestors_s(w, TopAbs_VERTEX, TopAbs_EDGE, ve)
+    ef = TopTools_IndexedDataMapOfShapeListOfShape()
+    TopExp.MapShapesAndAncestors_s(w, TopAbs_EDGE, TopAbs_FACE, ef)
+    out = {}
+    for i in range(1, ve.Extent() + 1):
+        vx = TopoDS.Vertex_s(ve.FindKey(i))
+        p = BRep_Tool.Pnt_s(vx)
+        dirs = []
+        for e_ in ve.FindFromIndex(i):
+            e = TopoDS.Edge_s(e_)
+            if BRep_Tool.Degenerated_s(e):
+                continue
+            seam = False
+            j_ = ef.FindIndex(e)
+            if j_:
+                for f_ in ef.FindFromIndex(j_):
+                    if BRep_Tool.IsClosed_s(e, TopoDS.Face_s(f_)):
+                        seam = True
+                        break
+            if seam:
+                continue
+            try:
+                c = BRepAdaptor_Curve(e)
+                t = BRep_Tool.Parameter_s(vx, e)
+                pp, vv = gp_Pnt(), gp_Vec()
+                c.D1(t, pp, vv)
+                n = vv.Magnitude()
+                if n < 1e-9:
+                    continue
+                d = (vv.X() / n, vv.Y() / n, vv.Z() / n)
+                # orientación saliente desde el vértice
+                if abs(t - c.LastParameter()) < abs(t - c.FirstParameter()):
+                    d = (-d[0], -d[1], -d[2])
+                dirs.append(d)
+            except Exception:
+                pass
+        out[(round(p.X(), 3), round(p.Y(), 3), round(p.Z(), 3))] = dirs
+    _VCACHE[key] = out
+    return out
+
+
+def _is_corner2d(V, dirs3, min_deg=12.0):
+    """True si las tangentes salientes proyectadas en la vista forman al menos dos direcciones distintas (esquina real en el dibujo)."""
+    _, xa, ya = vistas.basis(V.view)
+    ang = []
+    for d in dirs3:
+        u = sum(a * b for a, b in zip(d, xa)); v = sum(a * b for a, b in zip(d, ya))
+        if math.hypot(u, v) < 0.2:
+            continue                       # arista perpendicular al plano de la vista: se proyecta como punto
+        ang.append(math.degrees(math.atan2(v, u)))
+    for i in range(len(ang)):
+        for j in range(i + 1, len(ang)):
+            dd = abs(((ang[i] - ang[j] + 180) % 360) - 180)
+            if min_deg < dd < 180 - min_deg:
+                return True
+    # un extremo libre (una sola dirección) es esquina solo si nada continúa en sentido opuesto
+    if len(ang) == 1:
+        return True
+    return False
+
+
+def _hatch_corner(V, u, v, tol=0.06, min_deg=12.0):
+    """True si (u, v) es un vértice de esquina de algún polígono de sección (giro > min_deg)."""
+    for (k, outer, holes) in getattr(V, "hatch2d", []):
+        for poly in [outer] + list(holes):
+            n = len(poly)
+            if n < 3:
+                continue
+            for i, q in enumerate(poly):
+                if abs(q[0] - u) > tol or abs(q[1] - v) > tol:
+                    continue
+                a_ = poly[i - 1]; b_ = poly[(i + 1) % n]
+                d1 = math.atan2(q[1] - a_[1], q[0] - a_[0]); d2 = math.atan2(b_[1] - q[1], b_[0] - q[0])
+                if abs(math.degrees(((d2 - d1 + math.pi) % (2 * math.pi)) - math.pi)) > min_deg:
+                    return True
+    return False
+
+
+def _on_window_edge(V, u, v, tol=0.05):
+    if not V.win:
+        return False
+    return abs(u - V.win[0]) < tol or abs(u - V.win[2]) < tol or abs(v - V.win[1]) < tol or abs(v - V.win[3]) < tol
+
+
+def _point_is_corner(V, p3):
+    """Re-verificación independiente de un extremo de cadena: vértice 3D con esquina proyectada, o esquina de un polígono de sección."""
+    u, v = V.uv(p3)
+    if _on_window_edge(V, u, v):
+        return False
+    for k in V.keys:
+        shp = V.shapes.get(k)
+        if shp is None:
+            continue
+        dirs = _vertex_dirs(shp).get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
+        if dirs is not None:
+            return _is_corner2d(V, dirs)
+    return _hatch_corner(V, u, v)
+
+
 def visible_points(V, keys, tol_vis=0.35):
-    """[(p3, u, v, key)] vértices visibles (o de la sección) de la vista, en coordenadas de pantalla relativas a 'center'."""
+    """[(p3, u, v, key)] puntos acotables de la vista: vértices 3D visibles que son esquina real del contorno 2D (dos direcciones de arista
+    proyectadas distintas; se excluyen vértices de partición de círculos, costuras y vértices de teselado) y esquinas de los polígonos de
+    sección; nunca puntos del borde de la ventana de recorte. Coordenadas de pantalla relativas a 'center'."""
     lines = [LineString(pl) for pl in V.vis if len(pl) >= 2]
     tree = STRtree(lines) if lines else None
     keep = None
@@ -31,10 +159,12 @@ def visible_points(V, keys, tol_vis=0.35):
         keep = (pp, nd)
     pts = []
     seen = set()
+    V.rejected_pts = getattr(V, "rejected_pts", 0)
     for k in keys:
         shp = V.shapes.get(k)
         if shp is None:
             continue
+        vd = _vertex_dirs(shp)
         for vx in shp.Vertices():
             p3 = (vx.X, vx.Y, vx.Z)
             if keep:
@@ -42,6 +172,8 @@ def visible_points(V, keys, tol_vis=0.35):
                     continue
             u, v = V.uv(p3)
             if V.win and not (V.win[0] - 0.01 <= u <= V.win[2] + 0.01 and V.win[1] - 0.01 <= v <= V.win[3] + 0.01):
+                continue
+            if _on_window_edge(V, u, v):
                 continue
             key = (round(u, 2), round(v, 2))
             if key in seen:
@@ -51,6 +183,10 @@ def visible_points(V, keys, tol_vis=0.35):
                 idx = tree.nearest(q)
                 if lines[int(idx)].distance(q) > tol_vis:
                     continue
+            dirs = vd.get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
+            if dirs is not None and not _is_corner2d(V, dirs):
+                V.rejected_pts += 1
+                continue
             seen.add(key)
             pts.append((p3, u, v, k))
     for (k, p3) in V.secv:
@@ -59,8 +195,13 @@ def visible_points(V, keys, tol_vis=0.35):
         u, v = V.uv(p3)
         if V.win and not (V.win[0] - 0.01 <= u <= V.win[2] + 0.01 and V.win[1] - 0.01 <= v <= V.win[3] + 0.01):
             continue
+        if _on_window_edge(V, u, v):
+            continue
         key = (round(u, 2), round(v, 2))
         if key in seen:
+            continue
+        if not _hatch_corner(V, u, v):
+            V.rejected_pts += 1
             continue
         seen.add(key)
         pts.append((p3, u, v, k))
@@ -89,7 +230,7 @@ def _thin(items, scale, text_of, minw=6.0, protect=()):
         worst, wi = 1e9, None
         for i in range(len(items) - 1):
             gap = (items[i + 1][0] - items[i][0]) * scale
-            need = max(minw, tw(text_of(items[i + 1][0] - items[i][0]), T_N) + 3.0)
+            need = max(minw, 0.5 * (tw(text_of(items[i + 1][0] - items[i][0]), T_N) + 3.0))
             r = gap / need
             if r < 1.0 and r < worst:
                 worst, wi = r, i
@@ -174,12 +315,23 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         lv = lvl
         dimf = V.dimh if axis == 0 else V.dimv
         if len(chain) > 2 or (len(chain) == 2 and not overall):
+            txts = []
             for a, b in zip(chain, chain[1:]):
                 val = abs(b[0] - a[0])
                 if val < 0.2:
                     continue
-                dimf(a[1], b[1], side, lv, on=on, text=label(val), virt_a=a[2], virt_b=b[2])
+                t_ = label(val)
+                txts.append(t_)
+                dimf(a[1], b[1], side, lv, on=on, text=t_, virt_a=a[2], virt_b=b[2])
             lv += 1
+            tot_txt = label(abs(hi[0] - lo[0]))
+            nums = [_num(t) for t in txts]
+            s_ = sum(x for x in nums if x is not None)
+            T_ = _num(tot_txt)
+            # extremos: cada punto de la cadena es esquina real (filtrada) o eje de agujero (virt)
+            ends_ok = all(c[2] is not None or _point_is_corner(V, c[1]) for c in chain)
+            CADENAS.append(dict(sheet=COTAS.sheet, vista=V.label, eje="h" if axis == 0 else "v", textos=" | ".join(txts), suma=round(s_, 3), total_txt=tot_txt,
+                                total=T_, ok_suma=(T_ is None or abs(s_ - T_) <= 0.05 + 1e-9), ok_extremos=ends_ok))
         if overall or len(chain) <= 2:
             if len(chain) > 2 or len(chain) == 2:
                 val = abs(hi[0] - lo[0])

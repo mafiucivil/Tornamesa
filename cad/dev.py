@@ -47,6 +47,15 @@ def main():
             b_ = _bb.extents(ezdxf.readfile(str(out / (nm + ".dxf"))).modelspace())
             if b_.extmin.x < -0.5 or b_.extmin.y < -0.5 or b_.extmax.x > h.s.W + 0.5 or b_.extmax.y > h.s.H + 0.5:
                 print("   FUERA DE MARCO", nm, [round(v) for v in (b_.extmin.x, b_.extmin.y, b_.extmax.x, b_.extmax.y)], "hoja", h.s.W, h.s.H)
+            import os
+            import autodim
+            for c_ in autodim.CADENAS:
+                if c_["sheet"] == h.plano and not (c_["ok_suma"] and c_["ok_extremos"]):
+                    print("   CADENA MALA", c_)
+            if os.environ.get("COTAS"):
+                for r in vistas_rows():
+                    if r["sheet"] == h.plano:
+                        print("    ", r["vista"], "|", r["texto"], "|", r["valor_dibujo"], r["ok"])
             print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "huella", round(getattr(h, "huella", 0), 2), "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
 

@@ -28,6 +28,11 @@ def sheet_base_plancha(ctx):
             n = len(cs)
             u, v, r = cs[0]
             V.note_hole((u, v, tb), r, 60, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
+        c0 = V.P(0, 0, tb)
+        s.circle(c0, (P["D_top"] + 20) / 2 * V.scale, "FANT")
+        s.text(f"Zona de apoyo Ø{f(P['D_top'] + 20)}: planitud 0,20, Ra 3,2, sin pintura", (c0[0], c0[1] + (P["D_top"] + 20) / 2 * V.scale - 6), T_N, "TOP_CENTER")
+        s.circle(c0, g.D_boss / 2 * V.scale, "FANT")
+        s.text(f"collar Ø{f(g.D_boss)} (BAS-002)", (c0[0], c0[1] - g.D_boss / 2 * V.scale - 3), T_N, "TOP_CENTER")
         p.cut_mark("planta", "A", (-B / 2 - 38, 0, tb), (B / 2 + 38, 0, tb), 90)
         p.cut_mark("planta", "D", (B / 2 - 150, B / 2 + 30, tb), (B / 2 - 150, B / 2 - 150, tb), 0) if False else None
 
@@ -37,11 +42,18 @@ def sheet_base_plancha(ctx):
         s.line(V.P(0, 0, -10), V.P(0, 0, g.tb + g.h_boss + 10), "EJE")
         s.line((V.ext[0] - 14, V.P(0, 0, 0)[1]), (V.ext[0], V.P(0, 0, 0)[1]), "FINA")
         s.datum((V.ext[0] - 10, V.P(0, 0, 0)[1] - 1), "A", up=False)
-        V.dimh((-P["D_piv"] / 2, 0, g.tb + g.h_boss), (P["D_piv"] / 2, 0, g.tb + g.h_boss), "top", 0, on=["collar", "base_plancha"], text=f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante")
+        zt_ = g.tb + g.h_boss
+        rb, rp = g.D_boss / 2, P["D_piv"] / 2
+        V.dimh((-rb, 0, zt_), (-rp, 0, zt_), "top", 0, on=["collar"], text=fm(rb - rp, 1))
+        V.dimh((-rp, 0, zt_), (rp, 0, zt_), "top", 0, on=["collar"], text=f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante")
+        V.dimh((rp, 0, zt_), (rb, 0, zt_), "top", 0, on=["collar"], text=fm(rb - rp, 1))
+        V.dimh((-rb, 0, zt_), (rb, 0, zt_), "top", 1, on=["collar"], text=f"Ø{f(g.D_boss)} (collar BAS-002)")
+        V.dimv((rb, 0, g.tb), (rb, 0, zt_), "right", 0, on=["collar"], text=f"{f(g.h_boss)} ±0,5")
+        V.dimv((rb, 0, 0), (rb, 0, zt_), "right", 1, on=["collar", "base_plancha"], text=f(zt_))
         V.dimv((-285, 0, 0), (-285, 0, tb), "left", 0, on=["base_plancha"], text=f"{f(tb)} ±0,5 (t_base)")
         w_out(p, jids(ctx, "Collar")[0], V, (g.D_boss / 2, 0, tb + 1), "right", all_round=True, dy=20)
     p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", extra=(0, 0, 115, 0), mat={"base_plancha": "acero", "collar": "acero"},
-         auto=dict(on=["collar"], fits={P["D_piv"]: "H7"}, text={round(P["D_piv"], 1): f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante (mandrinado con el collar)", round(g.D_boss, 1): f"Ø{f(g.D_boss)} (collar BAS-002)"}), w=2.0, hs=0.5)
+         auto=False, w=2.0, hs=0.5)
     # tabla de posiciones
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):

@@ -119,9 +119,9 @@ def sheet_cilindro(ctx):
          auto=dict(fits={P["d_pp"]: "H9"}, hole_rmin=10))
     p.detail("det_ojal", "planta", (X, ye, zc), 75, "A", lv=(1, 1, 1, 1), title="DETALLE A: OJAL CON RÓTULA (EXTREMO TRASERO)", maxs=2.0, hatch=False)
     p.detail("det_vast", "planta", (X, yr, zc), 75, "B", lv=(1, 1, 1, 1), title="DETALLE B: OJAL DEL VÁSTAGO", maxs=2.0, hatch=False)
-    rows = [["Diámetro de camisa (D_bore)", f"{f(P['D_bore'])} mm"], ["Diámetro de vástago (d_rod)", f"{f(P['d_rod'])} mm"], ["Carrera (stroke)", f"{f(P['stroke'])} mm"],
-            ["Largo ojal–ojal retraído (L0)", f"{f(P['L0'])} mm"], ["Cuerpo exterior (D_body)", f"{f(P['D_body'])} mm"], ["Presión nominal p_rated", f"{f(P['p_rated'])} psi = {fm(P['p_rated'] * 0.0689476, 0)} bar"],
-            ["Presión de alivio p_relief", f"{f(P['p_relief'])} bar"], ["Ojales con rótula esférica autolubricada", f"b_eye = {f(P['b_eye'])} mm; Ø{f(P['d_pp'])} H9 (pasador {f(P['d_pp'])} f8); Ø105 exterior"], ["Masa de catálogo", f"{fm(P['m_cyl'], 0)} kg c/u"],
+    rows = [["Diámetro de camisa", f"{f(P['D_bore'])} mm"], ["Diámetro de vástago", f"{f(P['d_rod'])} mm"], ["Carrera", f"{f(P['stroke'])} mm"],
+            ["Largo ojal–ojal retraído", f"{f(P['L0'])} mm"], ["Diámetro exterior del cuerpo", f"{f(P['D_body'])} mm"], ["Presión nominal", f"{f(P['p_rated'])} psi = {fm(P['p_rated'] * 0.0689476, 0)} bar"],
+            ["Presión de alivio", f"{f(P['p_relief'])} bar"], ["Ojales con rótula esférica autolubricada", f"ancho de ojal {f(P['b_eye'])} mm; Ø{f(P['d_pp'])} H9 (pasador {f(P['d_pp'])} f8); Ø105 exterior"], ["Masa de catálogo", f"{fm(P['m_cyl'], 0)} kg c/u"],
             ["Fabricante / código", "marca/modelo A DEFINIR POR CATÁLOGO (confirmar L0 y geometría de extremos)"]]
     p.table_block("ESPECIFICACIÓN DE COMPRA", [("Característica requerida", 70, "L"), ("Valor (del cálculo)", 100, "L")], rows)
     p.tables()

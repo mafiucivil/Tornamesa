@@ -260,6 +260,18 @@ def main():
         fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR | Choques | Fuera de marco | Invasiones |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
         for r in mrows:
             fh.write(f"| {r[0]} | {r[1]} | {r[3]} | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} | {r[9]} | {r[11]} | {r[12]} | {r[13]} | {r[14]} |\n")
+    import autodim
+    cad_bad = [c for c in autodim.CADENAS if not (c["ok_suma"] and c["ok_extremos"])]
+    with open(out / "control_cadenas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["lámina", "vista", "eje", "cadena", "suma", "total rotulado", "suma = total ±0,05", "extremos en aristas reales"])
+        for c in autodim.CADENAS:
+            wr.writerow([c["sheet"], c["vista"], c["eje"], c["textos"], c["suma"], c["total_txt"], "sí" if c["ok_suma"] else "NO", "sí" if c["ok_extremos"] else "NO"])
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Control de cadenas de cotas\n\n- Cadenas automáticas: {len(autodim.CADENAS)}; con suma ≠ total (±0,05) o extremo fuera de una arista real del contorno 2D: {len(cad_bad)}. Detalle en `control_cadenas.csv`.\n")
+        for c in cad_bad:
+            fh.write(f"- {c['sheet']} · {c['vista']}: {c['textos']} (suma {c['suma']}, total {c['total_txt']})\n")
+    print(f"  cadenas: {len(autodim.CADENAS)}, defectuosas {len(cad_bad)}", flush=True)
     n_ch = sum(len(q["choques"]) for q in QC.values())
     n_fu = sum(len(q["fuera"]) for q in QC.values())
     n_iv = sum(len(q["invasiones"]) for q in QC.values())
@@ -276,7 +288,7 @@ def main():
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)
-    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv:
+    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad:
         sys.exit(2)
 
 
