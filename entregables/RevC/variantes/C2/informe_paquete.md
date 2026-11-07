@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. C
 
-Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 612 s.
+Generado el 06-11-2026 desde `TT300-C_design.json` (fuente única) en 550 s.
 Interfaz dibujada: **Opción C-2: dos placas de bronce de aleaciones distintas**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -154,7 +154,7 @@ La masa neta es la del núcleo (m_neta = bruta − juntas − muescas − chafla
 
 ## Control de marco
 
-Láminas con entidades fuera del formato: TT300C-BAS-001-C [-3, 0, 841, 594]
+Todas las láminas dentro del formato A1.
 
 ## Supuestos del dibujante (PROVISORIO) y decisiones adoptadas por el mandante (ADOPTADO)
 
@@ -258,7 +258,7 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 | 12 | TT300C-CON-011-C | A1 | 1:1 / 1:2 | 6 | 23.2 | 36.3 | 16.6 | 61.6 | 1 |
 | 13 | TT300C-CON-012-C | A1 | 1:2 / 1:10 | 3 | 12.9 | 22.8 | 23.0 | 31.4 | 0 |
 | 14 | TT300C-CON-013-C | A1 | S/E | 0 | 0.0 | 0.0 | 17.8 | 0.0 | 0 |
-| 15 | TT300C-BAS-001-C | A1 | 2:1 / 1:1 / 1:20 | 26 | 23.1 | 38.4 | 23.6 | 74.3 | 0 |
+| 15 | TT300C-BAS-001-C | A1 | 2:1 / 1:1 / 1:20 | 26 | 23.1 | 38.4 | 23.5 | 74.0 | 0 |
 | 16 | TT300C-BAS-002-C | A1 | 2:1 / 1:1 / 1:2,5 | 10 | 17.6 | 26.0 | 13.2 | 55.5 | 0 |
 | 17 | TT300C-BAS-003-C | A1 | 2:1 / 1:2,5 / 1:5 | 12 | 14.9 | 23.2 | 17.9 | 55.6 | 0 |
 | 18 | TT300C-BAS-005-C | A1 | 1:1 / 1:2 / 1:2,5 | 36 | 14.2 | 23.3 | 27.4 | 75.7 | 0 |
