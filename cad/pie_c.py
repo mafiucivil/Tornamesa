@@ -115,7 +115,9 @@ def sheet_cilindro(ctx):
         s.line(V.P(X, ye + 90 * c["dir"], zc), V.P(X, yr - 90 * c["dir"], zc), "EJE") if False else None
     p.vs("lateral", on, "right", breaks=[(min(ye, yr) + 420, max(ye, yr) - 420)], lv=(1, 2, 1, 2), title="ELEVACIÓN LATERAL (posición de empuje, con rotura)", hatch=False, w=1.5,
          auto=dict(text={round(abs(ye - yr), 1): f"{fm(abs(ye - yr), 1)} (L entre ejes de ojales)"}))
-    p.vs("planta", on, "top", hidden=False, lv=(1, 2, 2, 1), extra=(0, 0, 70, 0), title="PLANTA DEL CILINDRO", hatch=False, w=1.0, breaks=[(min(ye, yr) + 420, max(ye, yr) - 420)] if False else None,
+    def planta_c(V, p):
+        V.dimv((X, ye, zc), (X, yr, zc), "right", 1, on=on, text=f"{fm(abs(ye - yr), 1)} (entre ejes de ojales, posición de empuje)", virt_a=P["d_pp"] / 2, virt_b=P["d_pp"] / 2)
+    p.vs("planta", on, "top", hidden=False, lv=(1, 2, 2, 1), extra=(0, 0, 70, 0), draw=planta_c, title="PLANTA DEL CILINDRO", hatch=False, w=1.0, breaks=[(min(ye, yr) + 420, max(ye, yr) - 420)] if False else None,
          auto=dict(fits={P["d_pp"]: "H9"}, hole_rmin=10))
     p.detail("det_ojal", "planta", (X, ye, zc), 75, "A", lv=(1, 1, 1, 1), title="DETALLE A: OJAL CON RÓTULA (EXTREMO TRASERO)", maxs=2.0, hatch=False)
     p.detail("det_vast", "planta", (X, yr, zc), 75, "B", lv=(1, 1, 1, 1), title="DETALLE B: OJAL DEL VÁSTAGO", maxs=2.0, hatch=False)

@@ -110,6 +110,55 @@ def _is_corner2d(V, dirs3, min_deg=12.0):
     return False
 
 
+def _vis_dirs(V, u, v, tol=0.08):
+    """Direcciones (grados, 0–180) de los segmentos visibles del dibujo de la vista que pasan por (u, v)."""
+    segs = getattr(V, "_segtree", None)
+    if segs is None:
+        S = []
+        for pl in V.vis:
+            for a_, b_ in zip(pl, pl[1:]):
+                if math.hypot(b_[0] - a_[0], b_[1] - a_[1]) > 1e-6:
+                    S.append(LineString([a_, b_]))
+        V._segs = S
+        V._segtree = STRtree(S) if S else False
+        segs = V._segtree
+    if not segs:
+        return []
+    q = Point(u, v)
+    out = []
+    for i in segs.query(q.buffer(tol)):
+        sg = V._segs[int(i)]
+        if sg.distance(q) <= tol:
+            (x0, y0), (x1, y1) = sg.coords[0], sg.coords[-1]
+            out.append(math.degrees(math.atan2(y1 - y0, x1 - x0)) % 180)
+    return out
+
+
+def _axis_ok(V, dirs3, tol_deg=3.0, uv=None):
+    """(ok_u, ok_v): el punto sirve para medir u (o v) si es esquina, o si toda arista que pasa por él corre perpendicular a ese eje
+    (una cota vertical a una arista horizontal está bien definida en cualquier punto de la arista; una horizontal, no)."""
+    _, xa, ya = vistas.basis(V.view)
+    proj = [d for d in dirs3 if math.hypot(sum(a * b for a, b in zip(d, xa)), sum(a * b for a, b in zip(d, ya))) >= 0.2]
+    if not proj and uv is not None:
+        # extremo de silueta: solo es esquina si en el dibujo visible concurren dos direcciones de línea en ese punto
+        ds = _vis_dirs(V, uv[0], uv[1])
+        if any(min(abs(x - y), 180 - abs(x - y)) > 12 for x in ds for y in ds):
+            return True, True
+        ok_u = bool(ds) and all(abs(x - 90) < tol_deg for x in ds)
+        ok_v = bool(ds) and all(min(x, 180 - x) < tol_deg for x in ds)
+        return ok_u, ok_v
+    if _is_corner2d(V, dirs3):
+        return True, True
+    angs = []
+    for d in dirs3:
+        u = sum(a * b for a, b in zip(d, xa)); v = sum(a * b for a, b in zip(d, ya))
+        if math.hypot(u, v) >= 0.2:
+            angs.append(abs(math.degrees(math.atan2(v, u))) % 180)
+    ok_u = all(abs(x - 90) < tol_deg for x in angs)          # aristas verticales → medida horizontal válida
+    ok_v = all(min(x, 180 - x) < tol_deg for x in angs)      # aristas horizontales → medida vertical válida
+    return ok_u, ok_v
+
+
 def _hatch_corner(V, u, v, tol=0.06, min_deg=12.0):
     """True si (u, v) es un vértice de esquina de algún polígono de sección (giro > min_deg)."""
     for (k, outer, holes) in getattr(V, "hatch2d", []):
@@ -133,7 +182,7 @@ def _on_window_edge(V, u, v, tol=0.05):
     return abs(u - V.win[0]) < tol or abs(u - V.win[2]) < tol or abs(v - V.win[1]) < tol or abs(v - V.win[3]) < tol
 
 
-def _point_is_corner(V, p3):
+def _point_is_corner(V, p3, axis=None):
     """Re-verificación independiente de un extremo de cadena: vértice 3D con esquina proyectada, o esquina de un polígono de sección."""
     u, v = V.uv(p3)
     if _on_window_edge(V, u, v):
@@ -143,8 +192,10 @@ def _point_is_corner(V, p3):
         if shp is None:
             continue
         dirs = _vertex_dirs(shp).get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
-        if dirs is not None and _is_corner2d(V, dirs):
-            return True
+        if dirs is not None:
+            ou, ov = _axis_ok(V, dirs, uv=(u, v))
+            if (ou if axis == 0 else ov if axis == 1 else (ou and ov)):
+                return True
     return _hatch_corner(V, u, v)
 
 
@@ -185,11 +236,12 @@ def visible_points(V, keys, tol_vis=0.35):
                 if lines[int(idx)].distance(q) > tol_vis:
                     continue
             dirs = vd.get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
-            if dirs is not None and not _is_corner2d(V, dirs):
+            oku, okv = (True, True) if dirs is None else _axis_ok(V, dirs, uv=(u, v))
+            if not (oku or okv):
                 V.rejected_pts += 1
                 continue
             seen.add(key)
-            pts.append((p3, u, v, k))
+            pts.append((p3, u, v, k, oku, okv))
     for (k, p3) in V.secv:
         if k not in keys:
             continue
@@ -205,7 +257,7 @@ def visible_points(V, keys, tol_vis=0.35):
             V.rejected_pts += 1
             continue
         seen.add(key)
-        pts.append((p3, u, v, k))
+        pts.append((p3, u, v, k, True, True))
     return pts
 
 
@@ -254,7 +306,7 @@ def _thin(items, scale, text_of, minw=6.0, protect=()):
 
 
 def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=None, text=None, skip_u=(), skip_v=(), maxn=9, overall=True, hole_rmin=1.5,
-              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None):
+              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None):
     """Cotas automáticas de la vista V. tol: {valor_redondeado: sufijo} (p. ej. {20.0: ' ±0,5'}); text: {valor: texto completo}; fits: {Ø: 'H7'} para diámetros.
     Devuelve el nº de cotas dibujadas."""
     on = on or V.keys
@@ -275,7 +327,9 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
     def build(axis, side, skip):
         """Lista [(ordenada, p3, virt_r)] de la cadena sobre el eje 'axis' (0 = u, 1 = v)."""
         rep = {}
-        for (p3, u, v_, k) in pts:
+        for (p3, u, v_, k, oku, okv) in pts:
+            if not (oku if axis == 0 else okv):
+                continue
             o = u if axis == 0 else v_
             other = v_ if axis == 0 else u
             rep.setdefault(round(o / 0.06), []).append((o, other, p3, None))
@@ -304,7 +358,7 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
             return lvl
         lo, hi = items[0], items[-1]
         txt_of = lambda d: label(d)
-        if only_extents:
+        if only_extents or (h_extents and axis == 0) or (v_extents and axis == 1):
             chain = [lo, hi]
         else:
             prot = {lo[0], hi[0]}
@@ -330,7 +384,7 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
             s_ = sum(x for x in nums if x is not None)
             T_ = _num(tot_txt)
             # extremos: cada punto de la cadena es esquina real (filtrada) o eje de agujero (virt)
-            ends_ok = all(c[2] is not None or _point_is_corner(V, c[1]) for c in chain)
+            ends_ok = all(c[2] is not None or _point_is_corner(V, c[1], axis) for c in chain)
             CADENAS.append(dict(sheet=COTAS.sheet, vista=V.label, eje="h" if axis == 0 else "v", textos=" | ".join(txts), suma=round(s_, 3), total_txt=tot_txt,
                                 total=T_, ok_suma=(T_ is None or abs(s_ - T_) <= 0.05 + 1e-9), ok_extremos=ends_ok))
         if overall or len(chain) <= 2:
@@ -344,7 +398,9 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         ax, ay = rev
         ua = V.uv((ax, ay, 0.0))[0]
         rs = {}
-        for (p3, u, v_, k) in pts:
+        for (p3, u, v_, k, oku, okv) in pts:
+            if not oku:
+                continue
             r = abs(u - ua)
             if r > 0.6:
                 rs.setdefault(round(r, 1), []).append((v_, p3))

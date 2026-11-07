@@ -249,8 +249,8 @@ def sheet_vistas_conj(ctx):
     top = g.z0 + g.hd
     on = ["base_plancha", "mesa_anillo_sup", "mesa_anillo_inf", "mesa_plancha_sup", "pernos_pasador"]
     on = [k for k in on if k in sh]
-    c.vs("lat", sh, "right", lv=(1, 2, 3, 1), mat=mm, hatch=False, title="ELEVACIÓN LATERAL (desde +x)", w=1.2, auto=dict(on=on, tol={}, maxn=7))
-    c.vs("post", sh, "back", lv=(1, 2, 3, 1), mat=mm, hatch=False, title="ELEVACIÓN POSTERIOR", w=1.2, auto=dict(on=on, tol={}, maxn=7))
+    c.vs("lat", sh, "right", lv=(1, 2, 3, 1), mat=mm, hatch=False, title="ELEVACIÓN LATERAL (desde +x)", w=1.2, auto=dict(on=on, tol={}, maxn=7, h_extents=True))
+    c.vs("post", sh, "back", lv=(1, 2, 3, 1), mat=mm, hatch=False, title="ELEVACIÓN POSTERIOR", w=1.2, auto=dict(on=on, tol={}, maxn=7, h_extents=True))
     c.vs("inf", sh, "bottom", lv=(1, 1, 1, 1), mat=mm, hatch=False, title="VISTA INFERIOR (cara de apoyo de la base)", w=1.0,
          auto=dict(on=["base_plancha"], hole_rmin=20.0))
     pk = [k for k in ("pasadores", "pernos_pasador", "mesa_anillo_sup") if k in sh]
