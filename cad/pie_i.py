@@ -102,6 +102,10 @@ def int_sector_sheet(ctx, key, titulo, face):
         rows.insert(3, ["Muesca del tope", f"{fm(lay.b_tope + 2, 0)} × {fm(Ln, 1)} centrada en r_u = {fm(g.r_u, 1)}"])
         if scr_r:
             rows.append(["Tornillos de posición", f"{len(scr_r)} por sector, M{fm(lay.d_tor, 0)}, a r = {' y '.join(fm(x, 1) for x in scr_r)} sobre la bisectriz"])
+    gp_ = m.info.get("grease_pts") or []
+    if gp_ and face == "bot" and key in ("int_disco_mesa", "int_cara"):
+        angs_ = ", ".join(fm(math.degrees(math.atan2(y_, x_)) % 360, 1) + "°" for x_, y_ in gp_[:g.n_greaser])
+        rows.append(["Conductos de engrase", f"{len(gp_[:g.n_greaser])} × Ø6 +0,2/0 axial pasante a r = {fm(math.hypot(*gp_[0]), 1)}, en los sectores de las graseras ({angs_}); el resto de sectores sin conducto"])
     p.table_block("PARÁMETROS DEL SECTOR (JSON)", [("Parámetro", 40, "L"), ("Valor", 130, "L")], rows)
     # tabla de sectores
     srows = [[str(i + 1), fm((i + 0.5) * th, 3) + "°", fm(i * th, 3) + "°", fm((i + 1) * th, 3) + "°"] for i in range(pt.qty)]
@@ -362,6 +366,9 @@ def sheet_int_ranuras(ctx):
          auto=dict(tol={round(g.w_gr, 1): " (ancho)", round(g.h_gr, 1): " (prof.)", round(t, 1): " (e)"}, holes=False))
     rows = [["Ranuras radiales", f"{g.n_gr_rad} × a k·{fm(360 / g.n_gr_rad, 2)}°; de R{fm(g.Ri, 0)} a R{fm(g.Ro, 0)}"], ["Ranuras circunferenciales", f"{g.n_gr_circ}; R = " + ", ".join(fm(r, 0) for r in rr)],
             ["Ancho / profundidad", f"{fm(g.w_gr, 0)} / {fm(g.h_gr, 1)} mm (sección rectangular, aristas rotas 0,5×45°)"], ["Graseras", f"{g.n_greaser} a R_o − 30 (ver lámina de graseras)"], ["Área perdida", "ver núcleo (área de ranuras)"]]
+    gp_ = m.info.get("grease_pts") or []
+    if gp_:
+        rows.append(["Conductos de engrase", f"{len(gp_[:g.n_greaser])} × Ø6 +0,2/0 a r = {fm(math.hypot(*gp_[0]), 1)} (sobre la ranura circunferencial exterior), a " + ", ".join(fm(math.degrees(math.atan2(y_, x_)) % 360, 1) + "°" for x_, y_ in gp_[:g.n_greaser])])
     p.table_block("PARÁMETROS DE LAS RANURAS (JSON del núcleo + S05)", [("Parámetro", 50, "L"), ("Valor", 120, "L")], rows)
     p.tables()
     p.notes([f"Ranuras fresadas en la cara deslizante de cada sector ({'disco de la mesa' if g.opt == 1 else 'placa de bronce de la base'}): ancho {fm(g.w_gr, 0)} × profundidad {fm(g.h_gr, 1)} mm (S05, PROVISORIO); radiales abiertas hacia el perímetro (purga), circunferenciales a R = {', '.join(fm(r, 0) for r in rr)}.",
