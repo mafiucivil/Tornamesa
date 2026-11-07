@@ -177,9 +177,9 @@ def sheet_almas(ctx):
     p.vs("corte", [k0], "front", cut=CUT_Y, center=(r, 0, z0), win=(-14, -6, 14, g.hw + 8), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=corte, title="CORTE DE UNA ALMA (todas iguales en sección)", hs=0.35, maxs=2.0, w=1.0,
          auto=dict(tol={round(g.hw, 1): " ±0,5", round(P["t_web"], 1): ""}))
     p.vs("elev", ks, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DE LAS 3 ALMAS", w=0.8, auto=dict(tol={round(g.hw, 1): " ±0,5"}, holes=False), maxs=5.0)
-    rows = [[f"A{i + 1}", f"{ctx.code(k).replace(CODE + '-', '')}", f(2 * r_), f(r_), f(2 * math.pi * r_, 0), f"{math.ceil(2 * math.pi * r_ / 3000)} pletina(s) rolada(s)", f"{fm(g.hw, 0)} × {fm(P['t_web'], 0)}"]
+    rows = [[f"A{i + 1}", f"{ctx.code(k).replace(CODE + '-', '')}", f(2 * r_), f"Ø{f(2 * r_ + P['t_web'])} / Ø{f(2 * r_ - P['t_web'])}", f(2 * math.pi * r_, 0), f"{math.ceil(2 * math.pi * r_ / 3000)} pletina(s) rolada(s)", f"{fm(g.hw, 0)} × {fm(P['t_web'], 0)}"]
             for i, (k, r_) in enumerate(zip(ks, D["almas"]))]
-    p.table_block("DESARROLLO DE LAS ALMAS (pletina rolada)", [("Alma", 14, "C"), ("Código", 24, "L"), ("Ø eje [mm]", 22, "R"), ("R eje [mm]", 22, "R"), ("Desarrollo [mm]", 26, "R"), ("Suministro", 26, "L"), ("h × t", 16, "C")], rows)
+    p.table_block("DESARROLLO DE LAS ALMAS (pletina rolada)", [("Alma", 14, "C"), ("Código", 24, "L"), ("Ø eje [mm]", 20, "R"), ("Ø ext. / Ø int.", 34, "R"), ("Desarrollo [mm]", 24, "R"), ("Suministro", 26, "L"), ("h × t", 16, "C")], rows)
     add_prep(p, "det_e", wd(ctx, ids[1]), t1=P["t_web"])
     add_prep(p, "det_f", wd(ctx, ids[0]), t1=P["t_web"], t2=g.tt)
     p.tables(ids)

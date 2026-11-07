@@ -231,6 +231,7 @@ def sheet_orejas(ctx):
     def perfil(V, p):
         s.line(V.P(0, 0, tb - 6), V.P(0, 0, tb + hE + R + 8), "EJE"); s.line(V.P(-R - 8, 0, tb + hE), V.P(R + 8, 0, tb + hE), "EJE")
         V.dim_rad((0, tE / 2, tb + hE), R, 130, on=on, text=f"R{f(R)}", ext=18)
+        V.dimv((-R, tE / 2, tb), (0, tE / 2, tb + hE + R), "left", None, on=on, text=f"{f(hE + R)} (altura total)")
         w_out(p, jid, V, (R, tE / 2, tb + 3), "right", dy=26)
         s.roughness((V.P(-R, 0, tb + hE)[0] - 30, V.P(0, 0, tb + hE)[1] + 8), "Ra 12,5")
     p.vs("perfil", on, "front", center=(0, 0, tb), lv=(1, 2, 2, 1), extra=(0, 0, 115, 0), draw=perfil, hatch=False, title="PERFIL",

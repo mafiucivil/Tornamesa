@@ -36,6 +36,8 @@ def main():
         for h in (h if isinstance(h, list) else [h]):
             s = h.finish(1, 1)
             qc = h.control_calidad()
+            if qc.get("lineas_texto") or qc.get("cruces_globos"):
+                print("   LINEAS SOBRE TEXTO", h.plano, len(qc["lineas_texto"]), qc["lineas_texto"][:8], "cruces de globos", qc.get("cruces_globos"))
             if qc["choques"] or qc["fuera"] or qc["invasiones"]:
                 print("   QC", nm, "choques", qc["choques"], "fuera", qc["fuera"][:3], "inv", qc["invasiones"][:3], "movidos", qc["movidos"])
             fn_ = h.plano
@@ -57,6 +59,10 @@ def main():
                 for r in vistas_rows():
                     if r["sheet"] == h.plano:
                         print("    ", r["vista"], "|", r["texto"], "|", r["valor_dibujo"], r["ok"])
+            if getattr(h, "serie", "") == "FAB":
+                import completitud
+                n_, miss_, _j = completitud.control_lamina(ctx, h)
+                print("   COMPLETITUD", h.plano, f"{n_ - len(miss_)}/{n_}", miss_[:40])
             print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "huella", round(getattr(h, "huella", 0), 2), "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
 

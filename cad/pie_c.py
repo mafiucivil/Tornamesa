@@ -150,7 +150,37 @@ def sheet_patin(ctx):
     on = ["patin_L"]
     yc = yF - P["dog_b"] / 2
     pe = KG["pocketEnd"] - X
-    p.vs("planta", on, "top", center=(0, 100, zsh), hidden=True, lv=(1, 2, 2, 1), extra=(0, 0, 30, 0), title="PLANTA (alojamiento y ojal en trazo)", w=1.5, hatch=False,
+    bbp = ctx.shapes["patin_L"].BoundingBox()
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.GeomAbs import GeomAbs_Plane
+    so_ = ctx.shapes["patin_L"].Solids()[0]
+    # horquilla del ojal del vástago y alivio: caras planas leídas del sólido (extremo del patín)
+    yE = bbp.ymin
+    fy = sorted({round(fc.Center().y, 2) for fc in so_.Faces() if BRepAdaptor_Surface(fc.wrapped).GetType() == GeomAbs_Plane and abs(abs(fc.normalAt().y) - 1) < 1e-6 and fc.Center().y < yE + 200})
+    slots = []
+    for yb in fy[1:]:
+        fcs = [fc for fc in so_.Faces() if BRepAdaptor_Surface(fc.wrapped).GetType() == GeomAbs_Plane and abs(abs(fc.normalAt().y) - 1) < 1e-6 and abs(fc.Center().y - yb) < 0.05]
+        for fc in fcs:
+            b_ = fc.BoundingBox()
+            if b_.xmax - b_.xmin < ws - 1:
+                slots.append((yb, b_.xmin, b_.xmax, (b_.zmin + b_.zmax) / 2))
+
+    from vistas import COTAS as _CT
+    on_s = lambda q: _CT.dist_to_surface(q, ["patin_L"]) < 0.05
+    slots = [t for t in slots if on_s((t[1], yE, t[3])) and on_s((t[2], yE, t[3])) and t[0] - yE < 160]
+
+    def planta_h(V, p):
+        seen = set()
+        for yb, x0_, x1_, zm in slots:
+            k_ = (round(yb, 1), round(x1_ - x0_, 1))
+            if k_ in seen:
+                continue
+            seen.add(k_)
+            V.dimv((x0_, yE, zm), (x0_, yb, zm), "left", None, on=on, text=f"{fm(yb - yE, 1)} (prof.)")
+            V.dimh((x0_, yE, zm), (x1_, yE, zm), "bottom", None, on=on, text=f"{fm(x1_ - x0_, 1)}")
+            if on_s((bbp.xmax, yE, zm)):
+                V.dimh((x1_, yE, zm), (bbp.xmax, yE, zm), "bottom", None, on=on, text=f"{fm(bbp.xmax - x1_, 1)}")
+    p.vs("planta", on, "top", center=(0, 100, zsh), hidden=True, lv=(1 + len(slots), 2 + len(slots), 2, 1), extra=(0, 0, 30, 0), title="PLANTA (alojamiento, horquilla y ojal en trazo)", w=1.5, hatch=False, draw=planta_h,
          auto=dict(fits={P["d_pp"]: "H9"}, hole_rmin=10, tol={round(KG["L_s"], 1): " ±1 (largo total)", round(ws, 1): " ±0,5"}))
     p.vs("corte_f", on, "front", cut=((0, yc, 0), (0, 1, 0)), center=(0, 0, zb), win=(-200, -55, 130, 150), lv=(2, 2, 2, 2), title="CORTE F-F (por el alojamiento de la uña)", hs=0.5, w=1.4,
          auto=dict(tol={round(g.neck_w, 1): " f7", round(g.head_w, 1): " h11", round(P["dog_h"] + 2, 1): " H9 (aloj. uña)"}))

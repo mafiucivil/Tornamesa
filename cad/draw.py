@@ -699,6 +699,30 @@ class Sheet:
         moved = 0
 
         G = 0.9                                     # holgura mínima entre textos [mm]
+        # líneas de cota, extensión y referencia: un texto movible no puede quedar atravesado por ninguna (control «líneas sobre texto»)
+        from shapely.geometry import LineString, box as _box
+        from shapely.strtree import STRtree
+        segs = []
+        for e in self.m:
+            if e.dxf.layer != "COTA":
+                continue
+            if e.dxftype() == "LINE":
+                pp = [(e.dxf.start.x, e.dxf.start.y), (e.dxf.end.x, e.dxf.end.y)]
+            elif e.dxftype() == "LWPOLYLINE":
+                pp = [(q[0], q[1]) for q in e.get_points()]
+            else:
+                continue
+            for a_, b_ in zip(pp, pp[1:]):
+                if abs(a_[0] - b_[0]) + abs(a_[1] - b_[1]) > 1e-6:
+                    segs.append(LineString([a_, b_]))
+        stree = STRtree(segs) if segs else None
+        SH = 0.35
+
+        def crosses_line(bx):
+            if stree is None or bx[2] - bx[0] < 2 * SH + 0.01 or bx[3] - bx[1] < 2 * SH + 0.01:
+                return False
+            r_ = _box(bx[0] + SH, bx[1] + SH, bx[2] - SH, bx[3] - SH)
+            return any(segs[int(i)].intersects(r_) for i in stree.query(r_))
 
         def clash(bx, skip):
             bi = [bx[0] - G, bx[1] - G, bx[2] + G, bx[3] + G]
@@ -714,6 +738,8 @@ class Sheet:
             if bx[0] < L_ + 0.5 or bx[1] < B_ + 0.5 or bx[2] > R_ - 0.5 or bx[3] > T_ - 0.5:
                 return True
             if skip in movable_idx:
+                if crosses_line(bx):
+                    return True
                 for (x0, y0, x1, y1) in forbid:
                     if bx[0] < x1 and bx[2] > x0 and bx[1] < y1 and bx[3] > y0:
                         return True
@@ -773,6 +799,59 @@ class Sheet:
                 break
         self.n_moved = moved
         return moved
+
+    def interrumpir_lineas(self, gap=0.6, shrink=0.35):
+        """ISO 128-20 / ISO 129-1: una línea de cota, de extensión o de referencia que debe pasar por un texto se interrumpe bajo el texto
+        (con 'gap' mm de margen). Se aplica después del ordenador de textos, solo a las líneas que aún atraviesan un texto. Devuelve cuántas."""
+        import colisiones as C
+        from shapely.geometry import LineString
+        from shapely.strtree import STRtree
+        from shapely.ops import unary_union
+        ents = list(self.m)
+        tp = C.text_polys(ents, shrink)
+        if not tp:
+            return 0
+        tree = STRtree([t[0] for t in tp])
+        n = 0
+        for e in ents:
+            if e.dxf.layer != "COTA" or e.dxftype() not in ("LINE", "LWPOLYLINE"):
+                continue
+            segs = C.cota_segments(e)
+            hit = False
+            out = []
+            for a, b in segs:
+                if abs(a[0] - b[0]) + abs(a[1] - b[1]) < 1e-6:
+                    continue
+                ls = LineString([a, b])
+                polys = [tp[int(i)][0] for i in tree.query(ls) if tp[int(i)][0].intersects(ls)]
+                if not polys:
+                    out.append([(a, b)])
+                    continue
+                hit = True
+                rest = ls.difference(unary_union([p.buffer(shrink + gap, join_style=2) for p in polys]))
+                geoms = getattr(rest, "geoms", [rest])
+                out.append([(g.coords[0], g.coords[-1]) for g in geoms if not g.is_empty and g.length > 0.2])
+            if not hit:
+                continue
+            n += 1
+            pieces = [p for grp in out for p in grp]
+            attrs = {"layer": "COTA"}
+            if e.dxftype() == "LINE" and pieces:
+                e.dxf.start, e.dxf.end = pieces[0][0], pieces[0][1]
+                rest_p = pieces[1:]
+            else:
+                if e.dxftype() == "LINE":
+                    e.dxf.end = e.dxf.start
+                else:
+                    e.set_points([pieces[0][0], pieces[0][1]] if pieces else [(0, 0), (0, 0)])
+                    e.closed = False
+                    if not pieces:
+                        e.dxf.layer = "FINA"
+                rest_p = pieces[1:]
+            for a, b in rest_p:
+                self.m.add_line(a, b, dxfattribs=attrs)
+        self.n_interrumpidas = n
+        return n
 
     def save(self, dxf_path, pdf_path=None):
         self.doc.saveas(dxf_path)

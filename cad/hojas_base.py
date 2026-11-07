@@ -182,6 +182,7 @@ class Hoja:
         caj = (self.R["right"][0], 10.0, W - 10.0, self.R["right"][1] - 3.0)
         band = (self.R["right"][0] - 1.0, self.R["right"][1], s.W - 10.0, s.H - 10.0)
         s.declutter(forbid=[caj, band] + [(x0 - 0.5, y0 - 0.5, x1 + 0.5, y1 + 0.5) for (x0, y0, x1, y1) in getattr(s, "block_rects", [])])
+        s.interrumpir_lineas()
         return s
 
     def control_calidad(self):
@@ -198,7 +199,9 @@ class Hoja:
         if v0 is not None and v1 is not None:
             band = [(x0, y0, x1, y1, "bloque de notas/tablas") for (x0, y0, x1, y1) in getattr(s, "block_rects", [])]
             inv += C.invasiones(ents[v0:v1], band)
-        return dict(choques=C.choques(ents), fuera=C.fuera_de_marco(body, s.W, s.H), invasiones=inv, movidos=getattr(s, "n_moved", 0))
+        return dict(choques=C.choques(ents), fuera=C.fuera_de_marco(body, s.W, s.H), invasiones=inv, movidos=getattr(s, "n_moved", 0),
+                    lineas_texto=C.lineas_sobre_texto(body), cruces_globos=getattr(self, "cruces_globos", 0),
+                    interrumpidas=getattr(s, "n_interrumpidas", 0))
 
     def ocupacion(self):
         """(vistas / área útil del marco, vistas / zona de vistas [área de dibujo], tinta / zona de vistas).

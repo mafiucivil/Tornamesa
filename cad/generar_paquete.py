@@ -288,6 +288,42 @@ def main():
         for pl, v in sorted(tok.items()):
             fh.write(f"- {pl}: {', '.join(sorted(set(v)))}\n")
     print(f"  tokens de parámetros: {n_tok} {dict((k.replace(CODE + '-', ''), sorted(set(v))) for k, v in tok.items())}", flush=True)
+    # ---- completitud dimensional por pieza leída del sólido 3D ----
+    import completitud
+    comp_rows, n_req, n_miss = [], 0, 0
+    for h in hojas:
+        if h.serie != "FAB":
+            continue
+        tot_, miss_, just_ = completitud.control_lamina(ctx, h)
+        n_req += tot_
+        n_miss += len(miss_)
+        comp_rows.append([h.plano.replace(CODE + "-", ""), tot_, tot_ - len(miss_), len(miss_), " | ".join(f"{c.replace(CODE + '-', '')}: {x}" for c, x in miss_),
+                          " | ".join(f"{c.replace(CODE + '-', '')}: {x}" for c, x in just_)])
+    with open(out / "completitud_piezas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["lámina", "requisitos leídos del sólido 3D", "cubiertos en la lámina", "faltantes", "detalle de faltantes", "justificadas"])
+        wr.writerows(comp_rows)
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Completitud dimensional por pieza (desde el sólido 3D)\n\n- Requisitos (extensión total, escalones planos, diámetros/radios, posición de ejes, chaflanes/caras inclinadas) leídos del B-rep de cada pieza fabricable: {n_req}; "
+                 f"cubiertos por una cota, llamada o fila de tabla de su lámina: {n_req - n_miss}; faltantes: {n_miss}. Piezas comerciales: justificadas («definido por elemento comercial»). Detalle en `completitud_piezas.csv`.\n")
+        for r in comp_rows:
+            if r[3]:
+                fh.write(f"- {r[0]}: {r[4]}\n")
+    print(f"  completitud: {n_req} requisitos, faltantes {n_miss}", flush=True)
+    for r in comp_rows:
+        if r[3]:
+            print(f"  COMPLETITUD {r[0]}: {r[4][:400]}", flush=True)
+    n_lt = sum(len(q.get("lineas_texto", [])) for q in QC.values())
+    n_cg = sum(q.get("cruces_globos", 0) for q in QC.values())
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Líneas de cota y de referencia sobre textos\n\n- Líneas de cota, extensión o referencia (capa COTA) que atraviesan el recuadro de un texto: {n_lt}. Cruces entre líneas de referencia de globos: {n_cg}.\n")
+        for pl, q in sorted(QC.items()):
+            if q.get("lineas_texto") or q.get("cruces_globos"):
+                fh.write(f"- {pl}: {len(q.get('lineas_texto', []))} línea(s) sobre texto {q.get('lineas_texto', [])[:4]}; cruces de globos {q.get('cruces_globos', 0)}\n")
+    for pl, q in sorted(QC.items()):
+        if q.get("lineas_texto") or q.get("cruces_globos"):
+            print(f"  LINEAS SOBRE TEXTO {pl}: {len(q.get('lineas_texto', []))} {q.get('lineas_texto', [])[:4]} cruces de globos {q.get('cruces_globos', 0)}", flush=True)
+    print(f"  líneas sobre texto: {n_lt}; cruces de globos: {n_cg}", flush=True)
     n_ch = sum(len(q["choques"]) for q in QC.values())
     n_fu = sum(len(q["fuera"]) for q in QC.values())
     n_iv = sum(len(q["invasiones"]) for q in QC.values())
@@ -304,7 +340,7 @@ def main():
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)
-    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok:
+    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok or n_miss or n_lt or n_cg:
         sys.exit(2)
 
 
