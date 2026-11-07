@@ -35,11 +35,13 @@ def sheet_base_plancha(ctx):
 
     def corte(V, p):
         s.line(V.P(0, 0, -10), V.P(0, 0, g.tb + g.h_boss + 10), "EJE")
-        s.datum((V.P(-250, 0, 0)[0], V.P(0, 0, 0)[1] - 1), "A", up=False)
+        s.line((V.ext[0] - 14, V.P(0, 0, 0)[1]), (V.ext[0], V.P(0, 0, 0)[1]), "FINA")
+        s.datum((V.ext[0] - 10, V.P(0, 0, 0)[1] - 1), "A", up=False)
         V.dimh((-P["D_piv"] / 2, 0, g.tb + g.h_boss), (P["D_piv"] / 2, 0, g.tb + g.h_boss), "top", 0, on=["collar", "base_plancha"], text=f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante")
-        w_sym(p, jids(ctx, "Collar")[0], V, (g.D_boss / 2, 0, tb + 1), (45, 30), all_round=True)
-    p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", mat={"base_plancha": "acero", "collar": "acero"},
-         auto=dict(on=["base_plancha", "collar"], fits={P["D_piv"]: "H7"}, text={round(P["D_piv"], 1): f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante (mandrinado con el collar)", round(g.D_boss, 1): f"Ø{f(g.D_boss)} (collar BAS-002)"}), w=2.0, hs=0.5)
+        V.dimv((-285, 0, 0), (-285, 0, tb), "left", 0, on=["base_plancha"], text=f"{f(tb)} ±0,5 (t_base)")
+        w_out(p, jids(ctx, "Collar")[0], V, (g.D_boss / 2, 0, tb + 1), "right", all_round=True, dy=20)
+    p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", extra=(0, 0, 115, 0), mat={"base_plancha": "acero", "collar": "acero"},
+         auto=dict(on=["collar"], fits={P["D_piv"]: "H7"}, text={round(P["D_piv"], 1): f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante (mandrinado con el collar)", round(g.D_boss, 1): f"Ø{f(g.D_boss)} (collar BAS-002)"}), w=2.0, hs=0.5)
     # tabla de posiciones
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):
@@ -50,6 +52,7 @@ def sheet_base_plancha(ctx):
     for sx in (1, -1):
         rows.append(["Bancada (eje de guía)", f(sx * P["x_g"]), "0", "90°", f"largo {f(g.KG['L_bed'], 1)}"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
+    add_prep(p, "det_j9", wd(ctx, jids(ctx, "Collar")[0]), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False)
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS (origen: centro de la plancha)", [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
     p.tables(jids(ctx, "Collar", "Marco perimetral largo", "Marco corto – plancha"))
     nz = [
