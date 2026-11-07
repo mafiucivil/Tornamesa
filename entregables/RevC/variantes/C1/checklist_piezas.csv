@@ -1,30 +1,30 @@
 ﻿lámina;piezas;cotas;1 contorno acotado;2 agujeros (Ø, ajuste, rosca, posición);3 chaflanes y radios;4 rugosidad;5 GD&T con datum;6 material, partida, masa, tratamiento;7 soldaduras ISO 2553 y preparación;8 notas propias;9 vistas suficientes (≥ 3)
-BAS-001-C;BAS-001;26;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
+BAS-001-C;BAS-001;19;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 BAS-002-C;BAS-002;10;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 BAS-003-C;BAS-003, BAS-004;12;sí;n.a.;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 BAS-005-C;BAS-005, BAS-006, BAS-007;36;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 IZA-001-C;IZA-001;12;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 ACC-001-C;ACC-001;20;sí;n.a.;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
-MES-001-C;MES-001;16;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
-MES-002-C;MES-002, MES-004;26;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
+MES-001-C;MES-001;14;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
+MES-002-C;MES-002, MES-004;10;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 MES-003-C;MES-003;23;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 MES-005-C;MES-005, MES-006, MES-007;12;sí;n.a.;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 MES-008-C;MES-008, MES-009, MES-010;8;sí;n.a.;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
-MES-011-C;MES-011;17;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
+MES-011-C;MES-011;15;sí;sí;sí (nota general + cotas);sí;sí;sí;sí;sí;sí
 MES-012-C;MES-012;12;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 MES-013-C;MES-013;14;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
-PIV-001-C;PIV-001;25;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
+PIV-001-C;PIV-001;23;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 PIV-002-C;PIV-002;10;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 PIV-003-C;PIV-003, PIV-004;28;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
-ACC-002-C;ACC-002;25;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
+ACC-002-C;ACC-002;28;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 ACC-003-C;ACC-003;44;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 ACC-004-C;ACC-004;22;sí;n.a.;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 ACC-005-C;ACC-005, ACC-006;13;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
-INT-003-C;INT-003;20;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
-INT-001-C;INT-001, INT-002;37;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
+INT-003-C;INT-003;37;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
+INT-001-C;INT-001, INT-002;52;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 INT-004-C;INT-004;19;sí;n.a.;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 INT-005-C;INT-005;15;sí;n.a.;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 INT-006-C;INT-006, INT-007;15;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 INT-008-C;INT-008;10;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
-INT-101-C;INT-001;10;sí;NO;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
+INT-101-C;INT-001;12;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí
 INT-102-C;INT-001, INT-002;6;sí;sí;sí (nota general + cotas);sí;sí;sí;n.a.;sí;sí

@@ -145,14 +145,12 @@ TT300C-BAS-001-C;planta;1.080;1080.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-C;planta;1.080;1080.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-C;planta;200;200.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-C;planta;2.560 ±2;2560.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-C;planta;Ø120 H7 (+0,035/0), pasante;120.0;diámetro;eje OK;;OK
+TT300C-BAS-001-C;corte;185;185.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-C;corte;65;65.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-C;corte;120;120.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-C;corte;65;65.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-C;corte;250;250.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-C;corte;18;18.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-C;corte;Ø250 (collar BAS-002);250.0;lineal;0.000;0.000;OK
 TT300C-BAS-001-C;corte;60;60.0;lineal;0.000;0.000;OK
-TT300C-BAS-001-C;corte;78;78.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-C;corte;Ø120 H7 (+0,035/0) pasante;120.0;lineal;0.000;0.000;OK
+TT300C-BAS-001-C;corte;18 ±0,5 (t_base);18.0;lineal;0.000;0.000;OK
 TT300C-BAS-002-C;planta;60;60.0;lineal;eje OK;0.000;OK
 TT300C-BAS-002-C;planta;65;65.0;lineal;0.000;0.000;OK
 TT300C-BAS-002-C;planta;125;125.0;lineal;eje OK;0.000;OK
@@ -178,20 +176,14 @@ TT300C-BAS-003-C;esquina;10;10.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;mej_el;325 ±1;325.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;mej_el;157 ±0,5;157.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;mej_pl;325;325.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-C;mej_pl;25;25.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-C;mej_pl;150;150.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-C;mej_pl;25;25.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;mej_pl;200;200.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;115;115.0;lineal;0.000;eje OK;OK
-TT300C-BAS-005-C;os_pl;35;35.0;lineal;eje OK;0.000;OK
-TT300C-BAS-005-C;os_pl;25;25.0;lineal;0.000;0.000;OK
+TT300C-BAS-005-C;os_pl;60;60.0;lineal;eje OK;0.000;OK
 TT300C-BAS-005-C;os_pl;175 ±0,5;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;75;75.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;75;75.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;150 −0,5;150.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;Ø70 H9 (+0,074 / 0,000);70.0;agujero;eje OK;;OK
-TT300C-BAS-005-C;os_el;150;150.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-C;os_el;25 ±0,2;25.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_el;175;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_el;25 ±0,2;25.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;oi_pl;115;115.0;lineal;0.000;eje OK;OK
@@ -207,8 +199,7 @@ TT300C-BAS-005-C;oi_el;25;25.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;oi_el;175;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;oi_el;78 (= 53 + 25);78.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_corte;80;80.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-C;os_corte;Ø70 H9 (+0,074 / 0,000);70.0;lineal;0.000;0.000;OK
-TT300C-BAS-005-C;os_corte;25;25.0;lineal;0.000;0.000;OK
+TT300C-BAS-005-C;os_corte;95;95.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_corte;175;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_corte;25;25.0;lineal;0.000;0.000;OK
 TT300C-IZA-001-C;perfil;92;92.0;lineal;0.000;eje OK;OK
@@ -243,8 +234,6 @@ TT300C-ACC-001-C;extremo;1023,25;1023.254;lineal;0.000;0.000;OK
 TT300C-ACC-001-C;extremo;22;22.0;lineal;0.000;0.000;OK
 TT300C-ACC-001-C;extremo;18;18.0;lineal;0.000;0.000;OK
 TT300C-ACC-001-C;extremo;40;40.0;lineal;0.000;0.000;OK
-TT300C-MES-001-C;planta;215,26;215.263;lineal;eje OK;0.000;OK
-TT300C-MES-001-C;planta;740;740.0;lineal;0.000;0.000;OK
 TT300C-MES-001-C;planta;955,26;955.263;lineal;eje OK;0.000;OK
 TT300C-MES-001-C;planta;220;220.0;lineal;0.000;0.000;OK
 TT300C-MES-001-C;planta;Ø1.720;1720.0;agujero;eje OK;;OK
@@ -259,22 +248,6 @@ TT300C-MES-001-C;det_c;8;8.0;lineal;0.000;0.000;OK
 TT300C-MES-001-C;det_c;20;20.0;lineal;0.000;0.000;OK
 TT300C-MES-001-C;elev;760;760.0;lineal;0.000;0.000;OK
 TT300C-MES-001-C;elev;20 (t_top);20.0;lineal;0.000;0.000;OK
-TT300C-MES-002-C;planta;350,15;350.154;lineal;eje OK;eje OK;OK
-TT300C-MES-002-C;planta;218,57;218.566;lineal;eje OK;0.000;OK
-TT300C-MES-002-C;planta;196,57;196.567;lineal;0.000;0.000;OK
-TT300C-MES-002-C;planta;206,94;206.944;lineal;0.000;0.000;OK
-TT300C-MES-002-C;planta;537,61;537.613;lineal;0.000;eje OK;OK
-TT300C-MES-002-C;planta;413,87;413.867;lineal;eje OK;0.000;OK
-TT300C-MES-002-C;planta;1923,71;1923.712;lineal;eje OK;0.000;OK
-TT300C-MES-002-C;planta;207,66;207.655;lineal;0.000;eje OK;OK
-TT300C-MES-002-C;planta;323,59;323.591;lineal;eje OK;eje OK;OK
-TT300C-MES-002-C;planta;191,81;191.809;lineal;eje OK;0.000;OK
-TT300C-MES-002-C;planta;211,7;211.703;lineal;0.000;eje OK;OK
-TT300C-MES-002-C;planta;202,19;202.186;lineal;eje OK;0.000;OK
-TT300C-MES-002-C;planta;196,57;196.567;lineal;0.000;0.000;OK
-TT300C-MES-002-C;planta;323,59;323.591;lineal;0.000;0.000;OK
-TT300C-MES-002-C;planta;207,66;207.655;lineal;0.000;eje OK;OK
-TT300C-MES-002-C;planta;1864,76;1864.758;lineal;0.000;eje OK;OK
 TT300C-MES-002-C;planta;Ø2.000;2000.0;agujero;eje OK;;OK
 TT300C-MES-002-C;planta;Ø1.720;1720.0;agujero;eje OK;;OK
 TT300C-MES-002-C;planta;28 × Ø85 H7 (+0,035 / 0,000), PCD Ø1.860, paso 12,857°;85.0;agujero;eje OK;;OK
@@ -401,7 +374,7 @@ TT300C-PIV-003-C;tapa_ret_pl;28,28;28.284;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_ret_pl;28,28;28.284;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_ret_pl;56,57;56.569;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_ret_pl;Ø180;180.0;agujero;eje OK;;OK
-TT300C-PIV-003-C;tapa_ret_pl;4 × Ø11 pasantes (M10) + avellanado 90° Ø20 (ISO 10642), PCD Ø80, a 45° + 90°·k;11.0;agujero;eje OK;;OK
+TT300C-PIV-003-C;tapa_ret_pl;4 × Ø11, avell. Ø20×90°, PCD Ø80;11.0;agujero;eje OK;;OK
 TT300C-PIV-003-C;tapa_ret_co;Ø45,6;45.569;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_ret_co;Ø67,6;67.569;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_ret_co;Ø180;180.0;lineal;0.000;0.000;OK
@@ -415,7 +388,7 @@ TT300C-PIV-003-C;tapa_insp_pl;55;55.0;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_insp_pl;55;55.0;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_insp_pl;220;220.0;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_insp_pl;Ø238;238.0;agujero;eje OK;;OK
-TT300C-PIV-003-C;tapa_insp_pl;6 × Ø11 pasantes (M10) + avellanado 90° Ø20 (ISO 10642), PCD Ø220, a 30° + 60°·k;11.0;agujero;eje OK;;OK
+TT300C-PIV-003-C;tapa_insp_pl;6 × Ø11, avell. Ø20×90°, PCD Ø220;11.0;agujero;eje OK;;OK
 TT300C-PIV-003-C;tapa_insp_co;Ø11;11.0;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_insp_co;Ø179,6;179.526;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_insp_co;Ø201,6;201.526;lineal;0.000;0.000;OK
@@ -423,19 +396,22 @@ TT300C-PIV-003-C;tapa_insp_co;Ø238;238.0;lineal;0.000;0.000;OK
 TT300C-PIV-003-C;tapa_insp_co;8 ±0,2;8.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;lateral;75;75.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;lateral;335;335.0;lineal;0.000;0.000;OK
-TT300C-ACC-002-C;lateral;120;120.0;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;lateral;67,5;67.5;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;lateral;52,5;52.5;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;lateral;530 (L entre ejes de ojales);530.0;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;lateral;25;25.0;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;lateral;25;25.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;lateral;50;50.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;planta;65;65.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;planta;75;75.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;planta;335;335.0;lineal;0.000;0.000;OK
-TT300C-ACC-002-C;planta;120;120.0;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;planta;67,5;67.5;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;planta;52,5;52.5;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;planta;530;530.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;planta;2 × Ø105;105.0;agujero;eje OK;;OK
 TT300C-ACC-002-C;planta;2 × Ø70 H9 (+0,074 / 0,000);70.0;agujero;eje OK;;OK
 TT300C-ACC-002-C;det_ojal;35;35.0;lineal;eje OK;0.000;OK
-TT300C-ACC-002-C;det_ojal;17,5;17.5;lineal;0.000;0.000;OK
-TT300C-ACC-002-C;det_ojal;12,5;12.5;lineal;0.000;0.000;OK
+TT300C-ACC-002-C;det_ojal;30;30.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;det_ojal;65;65.0;lineal;eje OK;0.000;OK
 TT300C-ACC-002-C;det_ojal;75;75.0;lineal;0.000;0.000;OK
 TT300C-ACC-002-C;det_ojal;Ø105;105.0;agujero;eje OK;;OK

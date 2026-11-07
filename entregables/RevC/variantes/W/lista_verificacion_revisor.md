@@ -1,6 +1,6 @@
 # Lista de verificación para el revisor · TT300-C
 
-Fecha de emisión: 06-11-2026 · Interfaz: Acero-acero con grasa grafitada (sin interfaz alternativa)
+Fecha de emisión: 07-11-2026 · Interfaz: Acero-acero con grasa grafitada (sin interfaz alternativa)
 
 **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.**
 

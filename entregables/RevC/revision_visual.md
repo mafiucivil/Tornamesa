@@ -58,3 +58,29 @@ No se abrieron las láminas de INT/CON-012/MAD de las variantes en la corrida fi
 - PIV-002, PIV-003: notas de agujeros que llegan al borde izquierdo de la celda.
 - GEN-010: esquemas de nesting rudimentarios.
 - Ocupación: las láminas de pieza grandes (BAS, MES) siguen con 15–25 % de vistas sobre la zona de vistas; la huella (vista + cotas + títulos + símbolos) es 51–75 %.
+
+## Tercera pasada (cero textos montados, uña Re ≥ 800, defectos abiertos)
+
+Control automático nuevo en el generador (`cad/colisiones.py`, llamado por `generar_paquete.py`): choques de texto (intersección > 20 % del texto menor), entidades fuera del marco interior, entidades del cuerpo dentro del cajetín y entidades de las vistas sobre los bloques de notas/tablas. El generador termina con error si alguno es > 0. Antes de guardar, un ordenador de textos desliza cada valor de cota o llamada a lo largo de su propia línea (prolongándola) hasta dejar ≥ 0,9 mm de holgura con cualquier otro texto, y el compositor recompone la lámina si una vista usó más líneas de cota que las reservadas.
+
+Láminas abiertas en esta pasada (PDF a 120 dpi recortado al área de dibujo y visto a ~2.000 px de ancho, o lámina completa a 45–60 dpi):
+
+| Lámina | Qué se vio | Corrección |
+|---|---|---|
+| ACC-003 | «Ø70 H9» montado sobre 57,5/65 en la planta | El ordenador saca la llamada; se verificó a 120 dpi |
+| BAS-001 | Cadena 140/540 montada; llamadas del collar y de la zona de apoyo cruzando la planta; datum A sobre una cota | Llamadas quitadas (los datos están en la tabla y el corte), Ø120 H7 acotado en el corte, datum al costado, símbolo J09 fuera de la pila de cotas, detalle J09 repuesto |
+| BAS-003 | 45 sobre J01 | Resuelto por el ordenador (0 choques en el control) |
+| BAS-005 | z20 sobre «78 (= 53 + 25)», título sobre símbolo | Símbolos J04/J07 llevados fuera de la vista (reserva lateral de 115 mm) |
+| CON-006 | 18/45 y título D4 contra el rabo del símbolo | Reserva lateral de 115 mm para símbolos; abierta en A pegado |
+| CON-007 | Ø70 H9 sobre la letra C | Llamada girada a 60° |
+| IZA-001 | Símbolo J10 sobre t = 18, z = 8 sobre a = 5,7 | Símbolo fuera de la vista; abierta a 120 dpi |
+| MES-002 | Cadena amontonada en la columna derecha de la planta | Planta solo con extremos y llamada «28 × Ø85 H7, PCD, paso»; texto «Primer agujero…» eliminado (está en notas) |
+| MES-011 | r = 2 sobre 45° | Resuelto por el ordenador; abierta a 120 dpi |
+| PIV-001 | Título de la vista de extremo sobre Ø120 | Recomposición con la reserva corregida; abierta |
+| PIV-002 | Nota Ø120 F7 al borde de la celda | Llamada espejada hacia el lado con espacio; abierta a 120 dpi |
+| PIV-003 | «4 × Ø11…» sobre la letra E y fuera del marco | Llamada abreviada (el detalle está en la tabla de coordenadas); abierta. Queda: su línea de referencia cruza la cota 56,22 (línea sobre texto, no texto sobre texto) |
+| MES-005 | Radios de las almas invadiendo la banda de advertencia | Radios rotulados hacia abajo |
+| MAD-001 / MAD-002 (madera) | Cotas de ventana sin sentido en los cortes | Cortes acotados solo sobre el anillo; abiertas a 50–60 dpi |
+| INT-007 (B) | Lámina UHMW | Abierta, sin defectos visibles |
+
+No se abrieron en esta pasada las demás láminas (el control automático da 0 choques, 0 fuera de marco y 0 invasiones en los 8 casos, pero eso no detecta línea sobre texto ni símbolo sobre geometría).

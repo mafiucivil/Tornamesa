@@ -1,6 +1,6 @@
 # Lista de verificación para el revisor · TT300-C
 
-Fecha de emisión: 06-11-2026 · Interfaz: Opción A: dos discos de acero inoxidable con grasa (base liso, mesa ranurado)
+Fecha de emisión: 07-11-2026 · Interfaz: Opción A: dos discos de acero inoxidable con grasa (base liso, mesa ranurado)
 
 **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.**
 

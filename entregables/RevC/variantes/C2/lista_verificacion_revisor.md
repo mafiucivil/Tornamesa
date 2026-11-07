@@ -1,6 +1,6 @@
 # Lista de verificación para el revisor · TT300-C
 
-Fecha de emisión: 06-11-2026 · Interfaz: Opción C-2: dos placas de bronce de aleaciones distintas
+Fecha de emisión: 07-11-2026 · Interfaz: Opción C-2: dos placas de bronce de aleaciones distintas
 
 **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.**
 

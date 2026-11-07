@@ -1,6 +1,6 @@
 {
  "proyecto": "TT300-C",
- "fecha": "2026-11-06",
+ "fecha": "2026-11-07",
  "P": {
   "W_tf": 300,
   "e": 150,
@@ -149,7 +149,7 @@
   "L_in": 125,
   "l_lip": 60,
   "e_dog": 10,
-  "Fy_dog": 900,
+  "Fy_dog": 800,
   "mu_s": 0.15,
   "Fy_surf": 1500,
   "k_edge": 1.32,
@@ -240,7 +240,7 @@
   "gira": true,
   "estructura": true,
   "warnGiro": 0,
-  "warnEst": 1,
+  "warnEst": 2,
   "pend": 4,
   "fuMax": 0.9999999999999999
  },
@@ -1376,7 +1376,7 @@
     },
     {
      "id": "Fy_dog",
-     "lab": "Fy uña (34CrNiMo6+QT, Re ≥ 900 certificado 3.1)",
+     "lab": "Fy uña (34CrNiMo6+QT, EN 10083-3 Re ≥ 800 para 40 < t ≤ 100 mm, certificado 3.1)",
      "u": "MPa"
     },
     {
@@ -5854,10 +5854,10 @@
    "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
    "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
    "dem": 241.98521583722308,
-   "cap": 300,
+   "cap": 266.6666666666667,
    "unidad": "MPa",
-   "fu": 0.806617386124077,
-   "estado": "ok",
+   "fu": 0.9074445593895865,
+   "estado": "warn",
    "ref": "ASME BTH-1 §3-2.3"
   },
   {
@@ -5865,9 +5865,9 @@
    "nombre": "Corte en la boca del patín",
    "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
    "dem": 69.00631590594315,
-   "cap": 173.20508075688772,
+   "cap": 153.9600717839002,
    "unidad": "MPa",
-   "fu": 0.39840815064080637,
+   "fu": 0.44820916947090716,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.2"
   },
@@ -5908,9 +5908,9 @@
    "nombre": "Corte en la sección del contacto (punta achaflanada)",
    "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
    "dem": 123.32399487298089,
-   "cap": 173.20508075688772,
+   "cap": 153.9600717839002,
    "unidad": "MPa",
-   "fu": 0.7120114163745555,
+   "fu": 0.8010128434213749,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.2"
   },
@@ -5919,9 +5919,9 @@
    "nombre": "Flexión en la zona del chaflán",
    "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
    "dem": 167.3329286298846,
-   "cap": 300,
+   "cap": 266.6666666666667,
    "unidad": "MPa",
-   "fu": 0.557776428766282,
+   "fu": 0.6274984823620672,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3"
   },
@@ -6737,12 +6737,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -6751,10 +6751,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -6806,10 +6806,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -6820,10 +6820,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -7374,7 +7374,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [],
       "sensibles_est": [],
@@ -7755,12 +7755,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -7769,10 +7769,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -7824,10 +7824,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -7838,10 +7838,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -8392,7 +8392,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 2,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -8907,12 +8907,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -8921,10 +8921,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -8976,10 +8976,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -8990,10 +8990,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -9544,7 +9544,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [
        {
@@ -10083,12 +10083,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -10097,10 +10097,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -10152,10 +10152,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -10166,10 +10166,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -10720,7 +10720,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -11260,12 +11260,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -11274,10 +11274,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -11329,10 +11329,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -11343,10 +11343,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -11897,7 +11897,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 5,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -12538,12 +12538,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -12552,10 +12552,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -12607,10 +12607,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -12621,10 +12621,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -13175,7 +13175,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [],
       "sensibles_est": [],
@@ -13606,12 +13606,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -13620,10 +13620,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -13675,10 +13675,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -13689,10 +13689,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -14243,7 +14243,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 2,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -14916,12 +14916,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -14930,10 +14930,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -14985,10 +14985,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -14999,10 +14999,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -15553,7 +15553,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [
        {
@@ -16270,12 +16270,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -16284,10 +16284,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -16339,10 +16339,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -16353,10 +16353,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -16907,7 +16907,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -17625,12 +17625,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -17639,10 +17639,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -17694,10 +17694,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -17708,10 +17708,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -18262,7 +18262,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 5,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -19096,12 +19096,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -19110,10 +19110,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -19165,10 +19165,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -19179,10 +19179,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -19733,7 +19733,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [],
       "sensibles_est": [],
@@ -20228,12 +20228,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -20242,10 +20242,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -20297,10 +20297,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -20311,10 +20311,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -20865,7 +20865,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 2,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -21623,12 +21623,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -21637,10 +21637,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -21692,10 +21692,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -21706,10 +21706,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -22260,7 +22260,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -23061,12 +23061,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -23075,10 +23075,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -23130,10 +23130,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -23144,10 +23144,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -23698,7 +23698,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 3
+       "warn": 4
       },
       "sensibles": [
        {
@@ -24530,12 +24530,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -24544,10 +24544,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -24599,10 +24599,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -24613,10 +24613,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -25167,7 +25167,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 5,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -26216,12 +26216,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -26230,10 +26230,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -26285,10 +26285,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -26299,10 +26299,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -26853,7 +26853,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [],
       "sensibles_est": [],
@@ -27296,12 +27296,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -27310,10 +27310,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -27365,10 +27365,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -27379,10 +27379,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -27933,7 +27933,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -28558,12 +28558,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -28572,10 +28572,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -28627,10 +28627,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -28641,10 +28641,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -29195,7 +29195,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [
        {
@@ -29844,12 +29844,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -29858,10 +29858,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -29913,10 +29913,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -29927,10 +29927,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -30481,7 +30481,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -31131,12 +31131,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -31145,10 +31145,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -31200,10 +31200,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -31214,10 +31214,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -31768,7 +31768,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 5,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -32546,12 +32546,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -32560,10 +32560,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -32615,10 +32615,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -32629,10 +32629,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -33183,7 +33183,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [],
       "sensibles_est": [],
@@ -33626,12 +33626,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -33640,10 +33640,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -33695,10 +33695,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -33709,10 +33709,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -34263,7 +34263,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -34888,12 +34888,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -34902,10 +34902,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -34957,10 +34957,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -34971,10 +34971,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -35525,7 +35525,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [
        {
@@ -36174,12 +36174,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -36188,10 +36188,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -36243,10 +36243,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -36257,10 +36257,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -36811,7 +36811,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -37461,12 +37461,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -37475,10 +37475,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -37530,10 +37530,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -37544,10 +37544,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -38098,7 +38098,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 5,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
@@ -38876,12 +38876,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -38890,10 +38890,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -38945,10 +38945,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -38959,10 +38959,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -39513,7 +39513,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [],
       "sensibles_est": [],
@@ -39956,12 +39956,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -39970,10 +39970,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -40025,10 +40025,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -40039,10 +40039,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -40593,7 +40593,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 0,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -41218,12 +41218,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -41232,10 +41232,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -41287,10 +41287,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -41301,10 +41301,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -41855,7 +41855,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 0
+       "warn": 1
       },
       "sensibles": [
        {
@@ -42504,12 +42504,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -42518,10 +42518,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -42573,10 +42573,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -42587,10 +42587,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -43141,7 +43141,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 4,
-       "warn": 2
+       "warn": 3
       },
       "sensibles": [
        {
@@ -43791,12 +43791,12 @@
         "nombre": "Flexión en la boca del patín (voladizo) con fricción radial",
         "formula": "σ = [F·(x_boca − a_mín + e) + μ_s·F·b/2]/(h·b²/6) + μ_s·F/(h·b) ≤ Fy/Nd",
         "dem": 241.98521583722308,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.806617386124077,
-        "fu20": 0.806617386124077,
-        "estado_informativo": "ok",
-        "estado20": "ok",
+        "fu": 0.9074445593895865,
+        "fu20": 0.9074445593895865,
+        "estado_informativo": "warn",
+        "estado20": "warn",
         "ref": "ASME BTH-1 §3-2.3"
        },
        {
@@ -43805,10 +43805,10 @@
         "nombre": "Corte en la boca del patín",
         "formula": "τ = 1,5·F/(h·b) ≤ Fy/(Nd·√3)",
         "dem": 69.00631590594315,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.39840815064080637,
-        "fu20": 0.39840815064080637,
+        "fu": 0.44820916947090716,
+        "fu20": 0.44820916947090716,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -43860,10 +43860,10 @@
         "nombre": "Corte en la sección del contacto (punta achaflanada)",
         "formula": "τ = 1,5·F/(h·w_c), w_c = b − Δy(1 − c_punta/Δx) ≤ Fy/(Nd·√3)",
         "dem": 123.32399487298089,
-        "cap": 173.20508075688772,
+        "cap": 153.9600717839002,
         "unidad": "MPa",
-        "fu": 0.7120114163745555,
-        "fu20": 0.7120114163745555,
+        "fu": 0.8010128434213749,
+        "fu20": 0.8010128434213749,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.2"
@@ -43874,10 +43874,10 @@
         "nombre": "Flexión en la zona del chaflán",
         "formula": "σ = máx 6F(x − a)/(h·w(x)²) ≤ Fy/Nd",
         "dem": 167.3329286298846,
-        "cap": 300,
+        "cap": 266.6666666666667,
         "unidad": "MPa",
-        "fu": 0.557776428766282,
-        "fu20": 0.557776428766282,
+        "fu": 0.6274984823620672,
+        "fu20": 0.6274984823620672,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-2.3"
@@ -44428,7 +44428,7 @@
       "fuera_resumen": {
        "n": 51,
        "fail": 5,
-       "warn": 1
+       "warn": 2
       },
       "sensibles": [
        {
