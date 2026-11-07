@@ -67,16 +67,18 @@ def sheet_mesa_anillos(ctx):
         # eje +x de la mesa (la planta está girada para que el primer agujero quede sobre la horizontal)
         qx = polar(g.Rt + 40, -a0)
         s.line(V.P(c3), V.P(polar(g.Rt + 40, -a0) + (zt,)), "EJE")
-        s.text("+x (mesa)", V.P(polar(g.Rt + 46, -a0) + (zt,)), T_N, "MIDDLE_LEFT")
+        qx_ = V.P(polar(g.Rt + 40, -a0) + (zt,))
+        s.text("+x (mesa)", (qx_[0] + 1, qx_[1] - 2), T_N, "TOP_LEFT")
         rh = g.d_pin / 2
         def ext_line(ang, r_to):
             s.line(V.P(polar(g.R_pin + rh + 3, ang) + (zt,)), V.P(polar(r_to + 4, ang) + (zt,)), "COTA")
         Ra1, Ra2 = g.Rt + 30, g.Rt + 70
         ext_line(0, Ra1)
         V.dim_ang_axes(c3, Ra1 * V.scale, -a0, 0, f"{fm(a0, 3)}° (1.er agujero desde +x)", axes=[((g.R_pin, 0.0, zt), rh)], on=on)
-        ext_line(pitch, Ra1); ext_line(2 * pitch, Ra1)
-        V.dim_ang_axes(c3, Ra1 * V.scale, pitch, 2 * pitch, f"{fm(pitch, 3)}° (paso, {g.N_pin}×)",
-                       axes=[(polar(g.R_pin, pitch) + (zt,), rh), (polar(g.R_pin, 2 * pitch) + (zt,), rh)], on=on)
+        kp = int(round(g.N_pin * 0.85))   # paso acotado abajo a la derecha, lejos de la cota del primer agujero y de la llamada de agujeros
+        ext_line(kp * pitch, Ra1); ext_line((kp + 1) * pitch, Ra1)
+        V.dim_ang_axes(c3, Ra1 * V.scale, kp * pitch, (kp + 1) * pitch, f"{fm(pitch, 3)}° (paso, {g.N_pin}×)",
+                       axes=[(polar(g.R_pin, kp * pitch) + (zt,), rh), (polar(g.R_pin, (kp + 1) * pitch) + (zt,), rh)], on=on)
         k14 = g.N_pin // 2
         ext_line(k14 * pitch, Ra1)
         s.line(V.P(polar(g.Rt + 14, emp[2]) + (zt,)), V.P(polar(Ra1 + 4, emp[2]) + (zt,)), "COTA")
