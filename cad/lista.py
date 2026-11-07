@@ -82,10 +82,10 @@ def cut_rows(ctx):
                 add(k, "Sector anular", f"{env}×{fm(t + 1, 1)}", "Corte por plasma de agua/láser; rectificado de caras (subcontrato)")
         lay = m.layout
         if m.has("int_tope_base") and "tope_h" in m.info:
-            add("int_tope_base", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_base)}×{fm(m.info['tope_h'][0], 0)}", "h = t − a_sup (núcleo); soldada con 2 filetes")
-            add("int_tope_mesa", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_mesa)}×{fm(m.info['tope_h'][1], 0)}", "h = t − a_sup (núcleo); soldada con 2 filetes")
+            add("int_tope_base", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_base)}×{fm(m.info['tope_h'][0], 0)}", "altura = espesor del sector − retiro (cálculo); soldada con 2 filetes")
+            add("int_tope_mesa", "Barra", f"{fm(P['b_tope'], 0)}×{f(lay.L_mesa)}×{fm(m.info['tope_h'][1], 0)}", "altura = espesor del sector − retiro (cálculo); soldada con 2 filetes")
         if m.has("int_tope_uhmw"):
-            add("int_tope_uhmw", "Barra", f"{fm(P['b_tope'], 0)}×{f(m.info['uhmw_bar_L'])}×{fm(m.info['uhmw_bar_h'], 0)}", "L = L_av; h = t_UHMW − a_sup; inoxidable; 2 filetes")
+            add("int_tope_uhmw", "Barra", f"{fm(P['b_tope'], 0)}×{f(m.info['uhmw_bar_L'])}×{fm(m.info['uhmw_bar_h'], 0)}", "largo = ancho radial − 100; altura = espesor de la lámina − retiro; inoxidable; 2 filetes")
         add("int_uhmw", "Sector", f"{env}×{fm(g.I['tuh'] + 1, 0)}", "CNC/plasma de agua")
     if g.wood:
         add("madera_anillo", "Pletina rolada", f"{fm(g.t_ring, 0)}×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - g.t_ring) + 20)}", "Adoptado por el mandante (S06); 1 empalme CJP")

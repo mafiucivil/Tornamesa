@@ -507,7 +507,7 @@ def build_interfaz(m, g, D, log):
     ss_mat = f"Acero inoxidable austenítico ASTM A240 (Fy ≥ {f(P['Fy_ss'])} MPa)"
     jb = g.junta("disc")
     gap = jb
-    tor_note = "Fijación desmontable por sectores" if g.removable else "NO desmontable (pegado, fix_mode = 2)"
+    tor_note = "Fijación desmontable por sectores" if g.removable else "NO desmontable (sectores pegados)"
     bars_base, bars_mesa = [], []
     screws = []                  # (cq solid) cabezas+vástagos
     holes_base, holes_mesa = [], []   # agujeros roscados en respaldo
