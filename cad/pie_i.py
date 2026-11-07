@@ -513,7 +513,7 @@ def sheet_madera_anillo(ctx):
     ids = jids(ctx, "Anillo de contención")
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), hatch=False, title="PLANTA DEL ANILLO", w=1.5, auto=dict(hole_rmin=20, fits={round(2 * (g.Rt - g.t_ring), 1): "H12"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2 (D_top)"}))
     p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL ANILLO", w=1.0, auto=dict(holes=False, tol={round(tW, 1): " ±1"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2"}))
-    p.vs("det_emp", on, "top", center=(g.Rt - g.t_ring / 2, 0, zw0 + tW), win=(-25, -25, 25, 25), lv=(1, 2, 1, 1), hatch=False, maxs=2.0, title="DETALLE B: SECCIÓN DE LA PLETINA EN PLANTA (t_ring)", w=0.8,
+    p.vs("det_emp", on, "top", center=(g.Rt - g.t_ring / 2, 0, zw0 + tW), win=(-25, -25, 25, 25), lv=(1, 2, 1, 1), hatch=False, maxs=2.0, title="DETALLE B: SECCIÓN DE LA PLETINA EN PLANTA", w=0.8,
          auto=dict(holes=False, tol={round(g.t_ring, 1): " ±0,5"}))
 
     def corte(V, p):
