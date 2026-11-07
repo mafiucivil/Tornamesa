@@ -47,7 +47,7 @@ def int_sector_sheet(ctx, key, titulo, face):
             return min(c_, key=lambda q: abs(q[2])) [0] if c_ else None
         po, pi_ = arc_pt(ro_e), arc_pt(ri_e)
         if po:
-            V.note_pt(po, (30, 18), f"R{fm(ro_e, 0)} (R_o)", on=on, dot=True)
+            V.note_pt(po, (34, -30), f"R{fm(ro_e, 0)} (R_o)", on=on, dot=True)
         if pi_:
             V.note_pt(pi_, (-30, 22), f"R{fm(ri_e, 0)} (R_i)", on=on, dot=True)
         if po and pi_:
@@ -355,7 +355,7 @@ def sheet_int_ranuras(ctx):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
         V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (R_i a R_o)")
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
-         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=2.5, hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)"}, fits={}))
+         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=2.5, hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)"}, fits={round(P["bz_plug_d"], 1): "H7", round(lay.d_clear, 1): "H12", round(lay.dk, 1): "H12"}))
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
     zlo, zhi = (-10, t + 6) if face == "bot" else (-t - 6, 10)
     p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, zlo, 60, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,

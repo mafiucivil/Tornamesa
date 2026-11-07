@@ -456,11 +456,11 @@ class View:
             while h > 3.5 and dr.tw(text, h, True) > wmax:
                 h -= 0.5
             if dr.tw(text, h, True) > wmax:
-                # título demasiado largo para la celda: lo que sigue a « (» o « —» pasa a la línea de la escala
-                for sep in (" (", " — ", " — "):
+                # título demasiado largo para la celda: lo que sigue a « (», « —» o «: » pasa a la línea de la escala
+                for sep in (" (", " — ", ": "):
                     if sep in text:
                         i_ = text.index(sep)
-                        text, esc = text[:i_], text[i_:].strip(" —") + "  " + esc
+                        text, esc = text[:i_], text[i_:].strip(" —:") + "  " + esc
                         break
             if dr.tw(esc, dr.T_N) > wmax:
                 esc = self.esc                      # la acotación del título no cabe en la celda: queda solo la escala
