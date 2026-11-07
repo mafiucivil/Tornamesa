@@ -694,6 +694,7 @@ class Sheet:
         boxes = C.text_boxes(list(self.m))
         idx = {id(b[5]): i for i, b in enumerate(boxes)}
         mov = {id(m_["e"]): m_ for m_ in self.movable}
+        movable_idx = {i for i, b_ in enumerate(boxes) if id(b_[5]) in mov}
         L_, B_, R_, T_ = 20.0, 10.0, self.W - 10.0, self.H - 10.0
         moved = 0
 
@@ -712,9 +713,10 @@ class Sheet:
                     return True
             if bx[0] < L_ + 0.5 or bx[1] < B_ + 0.5 or bx[2] > R_ - 0.5 or bx[3] > T_ - 0.5:
                 return True
-            for (x0, y0, x1, y1) in forbid:
-                if bx[0] < x1 and bx[2] > x0 and bx[1] < y1 and bx[3] > y0:
-                    return True
+            if skip in movable_idx:
+                for (x0, y0, x1, y1) in forbid:
+                    if bx[0] < x1 and bx[2] > x0 and bx[1] < y1 and bx[3] > y0:
+                        return True
             return False
         for _pass in range(4):
             changed = False

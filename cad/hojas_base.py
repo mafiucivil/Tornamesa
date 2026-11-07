@@ -180,7 +180,8 @@ class Hoja:
         s.n_frame1 = len(s.m)
         W, H = s.W, s.H
         caj = (self.R["right"][0], 10.0, W - 10.0, self.R["right"][1] - 3.0)
-        s.declutter(forbid=[caj])
+        band = (self.R["right"][0] - 1.0, self.R["right"][1], s.W - 10.0, s.H - 10.0)
+        s.declutter(forbid=[caj, band] + [(x0 - 0.5, y0 - 0.5, x1 + 0.5, y1 + 0.5) for (x0, y0, x1, y1) in getattr(s, "block_rects", [])])
         return s
 
     def control_calidad(self):
