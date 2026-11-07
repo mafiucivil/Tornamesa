@@ -452,7 +452,7 @@ def sheet_mesa_conj1(ctx):
         V.dim_dia((0, 0, g.z0), g.prIn, 40, on=["mesa_plancha_inf"], text=f"Ø{f(2 * g.prIn)}", ext=26)
         V.dim_dia((0, 0, g.z0), (g.Drb / 2 if g.rebaje else g.d_bush / 2), 150, on=["mesa_plancha_inf"], text=f"Ø{f((g.Drb if g.rebaje else g.d_bush))} (pasante)", ext=26)
     c.vs("inf", sh, "bottom", lv=(1, 1, 1, 1), draw=inf, mat=mm, hatch=False, title="PLANTA INFERIOR (cara de apoyo)", auto=False, w=1.2)
-    c.vs("elev", sh, "front", lv=(1, 2, 2, 1), mat=mm, hatch=False, title="ELEVACIÓN", auto=dict(on=["mesa_anillo_inf", "mesa_anillo_sup", "mesa_plancha_sup", "mesa_plancha_inf"], tol={}, maxn=6), w=1.0)
+    c.vs("elev", sh, "front", lv=(1, 2, 2, 1), mat=mm, hatch=False, title="ELEVACIÓN", auto=dict(on=["mesa_anillo_inf", "mesa_anillo_sup", "mesa_plancha_sup", "mesa_plancha_inf"], tol={}, maxn=6, h_extents=True), w=1.0)
     for k in ks:
         rot_key(ctx, k, k + "_R", -a0)
     rs = ctx.sh(*[k + "_R" for k in ks])

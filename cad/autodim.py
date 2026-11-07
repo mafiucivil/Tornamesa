@@ -324,12 +324,17 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
             return text[r1]
         return numtxt(val) + tol.get(r1, "")
 
+    rmax_ = max((c[2] for c in cs), default=0.0)
+    cs_small = [c for c in cs if c[2] < 0.5 * rmax_]
+
     def build(axis, side, skip):
         """Lista [(ordenada, p3, virt_r)] de la cadena sobre el eje 'axis' (0 = u, 1 = v)."""
         rep = {}
         for (p3, u, v_, k, oku, okv) in pts:
             if not (oku if axis == 0 else okv):
                 continue
+            if hole_pos and any(abs(math.hypot(u - c[0], v_ - c[1]) - c[2]) < 0.05 for c in cs_small):
+                continue                    # borde de un agujero visto en planta: se acota su eje, no un punto de su circunferencia
             o = u if axis == 0 else v_
             other = v_ if axis == 0 else u
             rep.setdefault(round(o / 0.06), []).append((o, other, p3, None))
