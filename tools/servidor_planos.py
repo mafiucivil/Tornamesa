@@ -113,6 +113,7 @@ class Trabajo:
     def __init__(self, design_txt, P):
         ahora = datetime.datetime.now()
         self.alt = alternativa(P)
+        self.P = P
         self.id = ahora.strftime("%Y-%m-%d_%H%M%S") + "_" + self.alt
         self.carpeta = SALIDAS / self.id
         self.tmp = pathlib.Path(tempfile.mkdtemp(prefix="tt300c_"))
@@ -192,7 +193,7 @@ class Trabajo:
             else:
                 prog = 1.0
             return {"id": self.id, "alternativa": self.alt, "estado": self.estado, "fase": self.fase, "progreso": round(prog, 3), "duracion_s": round(dur, 1),
-                    "codigo": self.codigo, "mensaje": self.mensaje, "carpeta": self.carpeta.relative_to(ROOT).as_posix(), "indice": self.indice, "log": list(self.log)[-200:]}
+                    "codigo": self.codigo, "mensaje": self.mensaje, "P": self.P, "carpeta": self.carpeta.relative_to(ROOT).as_posix(), "indice": self.indice, "log": list(self.log)[-200:]}
 
 
 TRABAJOS = {}

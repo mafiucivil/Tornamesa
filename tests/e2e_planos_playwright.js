@@ -11,8 +11,8 @@ const ALTS = [["acero-acero", null], ["A", "opt_ss"], ["B", "opt_uhmw"], ["C", "
   const page = await ctx.newPage(), errs = [];
   page.on("pageerror", (e) => errs.push(String(e))); page.on("console", (m) => { if (m.type() === "error" && !/ERR_CONNECTION_REFUSED/.test(m.text())) errs.push(m.text()); });   // sin generador local, el ping de la pestaña «Planos» falla (esperado)
   await page.goto(html);
-  await page.waitForSelector("#pkgChk");
   await page.click('#tabs button[data-t="planos"]');                 // los esquemas rápidos viven en la pestaña «Planos»
+  await page.waitForSelector("#pkgChk");
   assert.equal(await page.isVisible("#pkgPanel"), false, "el panel debe estar oculto al inicio");
   await page.check("#pkgChk");
   assert.equal(await page.isVisible("#pkgPanel"), true);

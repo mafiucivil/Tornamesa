@@ -845,7 +845,7 @@
     }
     if (GEN.err) h += `<div class="msg error">No se pudo iniciar la generación: ${esc(GEN.err)}</div>`;
     if (jb) {
-      const pc = Math.round(100 * (jb.progreso || 0)), changed = GEN.sentP && GEN.sentP !== JSON.stringify(P);
+      const pc = Math.round(100 * (jb.progreso || 0)), changed = jb.P ? plDiff(P, jb.P).length > 0 : (GEN.sentP && GEN.sentP !== JSON.stringify(P));   // P con que se generó (lo devuelve el servidor)
       h += `<div class="kv" style="margin-top:8px"><span>Trabajo</span><span>${esc(jb.id)}</span><span>Alternativa</span><span>${esc(jb.alternativa || "")}</span><span>Estado</span><span id="genJob" data-estado="${esc(jb.estado)}">${esc({ en_curso: "en curso", listo: "terminado", error: "error" }[jb.estado] || jb.estado)}${jb.duracion_s != null ? ` · ${fmt(jb.duracion_s, 3)} s` : ""}</span></div>`;
       if (jb.estado === "en_curso") h += `<div class="prog"><i style="width:${pc}%"></i></div><div class="busy">${esc(jb.fase || "")} · ${pc} % (estimado)</div>`;
       if (jb.estado === "error") h += `<div class="msg error"><b>El generador terminó con error${jb.codigo != null ? ` (código ${esc(jb.codigo)})` : ""}:</b><pre>${esc(jb.mensaje || "")}</pre></div>`;
