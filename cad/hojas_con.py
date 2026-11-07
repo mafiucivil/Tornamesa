@@ -39,56 +39,126 @@ def anchors(ctx, key, V, pred=None, maxn=80):
     return min(ok, key=lambda o: (o[1] - mu) ** 2 + (o[2] - mv) ** 2)[0]
 
 
-def balloons_auto(p, V, keys, pred=None, gap=13.0, off=22.0, label_of=None):
-    """Globos con línea guía: anclaje sobre la pieza, círculo en un anillo rectangular alrededor de la vista, sin solaparse."""
+def _vis_tree(V):
+    """Segmentos visibles de la vista en coordenadas de papel (para anclar globos sobre líneas realmente dibujadas)."""
+    t = getattr(V, "_ptree", None)
+    if t is None:
+        from shapely.geometry import LineString
+        from shapely.strtree import STRtree
+        segs = []
+        for pl in V.vis:
+            pp = [V.Pt2(q) for q in pl]
+            for a, b in zip(pp, pp[1:]):
+                if math.hypot(b[0] - a[0], b[1] - a[1]) > 1e-6:
+                    segs.append(LineString([a, b]))
+        V._psegs = segs
+        V._ptree = t = (STRtree(segs) if segs else False)
+    return t
+
+
+def visible_anchor(ctx, key, V, pred=None, side=None):
+    """Punto de anclaje del globo: un vértice de la pieza que cae sobre una línea VISIBLE del dibujo, el más extremo hacia el lado
+    del globo (izquierda/derecha); si no hay ninguno, el centro de una cara (comportamiento anterior)."""
+    from shapely.geometry import Point
+    tree = _vis_tree(V)
+    best = None
+    sh = ctx.shapes.get(key)
+    if sh is None:
+        return None
+    pts = [(v.X, v.Y, v.Z) for v in sh.Vertices()]
+    if len(pts) > 4000:
+        pts = pts[::max(1, len(pts) // 4000)]
+    for p3 in pts:
+        if pred and not pred(p3):
+            continue
+        u, v = V.uv(p3)
+        if V.win and not (V.win[0] <= u <= V.win[2] and V.win[1] <= v <= V.win[3]):
+            continue
+        P2 = V.P(p3)
+        if tree:
+            q = Point(P2)
+            near = [V._psegs[int(i)] for i in tree.query(q.buffer(0.35))]
+            if not any(sg.distance(q) <= 0.35 for sg in near):
+                continue
+        key_ = P2[0] if side == "l" else -P2[0] if side == "r" else 0.0
+        if best is None or key_ < best[0]:
+            best = (key_, p3, P2)
+    if best:
+        return best[1], best[2]
+    pt = anchors(ctx, key, V, pred)
+    return (pt, V.P(pt)) if pt is not None else None
+
+
+def _cross(a, b, c, d):
+    def o(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    return (o(a, b, c) * o(a, b, d) < 0) and (o(c, d, a) * o(c, d, b) < 0)
+
+
+def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, sides="lr"):
+    """Globos en dos columnas (izquierda y derecha de la vista), ordenados por la altura de su anclaje para que las líneas de referencia
+    no se crucen; cada línea termina en un punto visible de su pieza. Un globo por número de posición."""
     ctx = p.ctx
     x0, y0, x1, y1 = V.ext
-    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    bx0, by0, bx1, by1 = x0 - off, y0 - off, x1 + off, y1 + off
-    items = []
+    cx = (x0 + x1) / 2
+    XL, XR = x0 - off, x1 + off
+    items = {}
     for k in keys:
-        pt = anchors(ctx, k, V, pred)
-        if pt is None:
+        part = ctx.m.get(k)
+        if part is None or k not in ctx.shapes:
             continue
-        P2 = V.P(pt)
-        items.append((k, P2))
-    per = 2 * ((bx1 - bx0) + (by1 - by0))
-
-    def t_of(q):
-        ang = math.atan2(q[1] - cy, q[0] - cx)
-        dx, dy = math.cos(ang), math.sin(ang)
-        sc = min(((bx1 - cx) / dx) if dx > 1e-9 else 1e9, ((bx0 - cx) / dx) if dx < -1e-9 else 1e9, ((by1 - cy) / dy) if dy > 1e-9 else 1e9, ((by0 - cy) / dy) if dy < -1e-9 else 1e9)
-        px, py = cx + dx * sc, cy + dy * sc
-        if abs(py - by0) < 1e-6: return px - bx0
-        if abs(px - bx1) < 1e-6: return (bx1 - bx0) + (py - by0)
-        if abs(py - by1) < 1e-6: return (bx1 - bx0) + (by1 - by0) + (bx1 - px)
-        return 2 * (bx1 - bx0) + (by1 - by0) + (by1 - py)
-
-    def pos_of(t):
-        t %= per
-        w_, h_ = bx1 - bx0, by1 - by0
-        if t < w_: return (bx0 + t, by0)
-        t -= w_
-        if t < h_: return (bx1, by0 + t)
-        t -= h_
-        if t < w_: return (bx1 - t, by1)
-        t -= w_
-        return (bx0, by1 - t)
-    ts = sorted([(t_of(P2), k, P2) for k, P2 in items])
-    tt = [t for t, _, _ in ts]
+        pos = part.pos
+        if pos in items:
+            continue
+        aL = visible_anchor(ctx, k, V, pred, "l") if "l" in sides else None
+        aR = visible_anchor(ctx, k, V, pred, "r") if "r" in sides else None
+        if aL is None and aR is None:
+            continue
+        dL = (aL[1][0] - XL) if aL else 1e9
+        dR = (XR - aR[1][0]) if aR else 1e9
+        items[pos] = ("l", aL[1]) if dL <= dR else ("r", aR[1])
+    # equilibrio: si un lado tiene muchos más globos, pasa los más cercanos al centro al otro lado
     for _ in range(40):
-        for i in range(1, len(tt)):
-            if tt[i] - tt[i - 1] < gap:
-                m_ = (tt[i] + tt[i - 1]) / 2
-                tt[i - 1], tt[i] = m_ - gap / 2, m_ + gap / 2
-    for t, (_, k, P2) in zip(tt, ts):
-        q = pos_of(t)
-        pos = ctx.m.get(k).pos
-        p.s.balloon(P2, q, pos)
+        L = [k for k, v in items.items() if v[0] == "l"]; R = [k for k, v in items.items() if v[0] == "r"]
+        if abs(len(L) - len(R)) <= 2 or "l" not in sides or "r" not in sides:
+            break
+        big, other = (L, "r") if len(L) > len(R) else (R, "l")
+        k = max(big, key=lambda kk: items[kk][1][0] if other == "r" else -items[kk][1][0])
+        part = next(pp for pp in ctx.m.parts if pp.pos == k)
+        a = visible_anchor(ctx, part.key, V, pred, other) if part.key in ctx.shapes else None
+        if a is None:
+            break
+        items[k] = (other, a[1])
+    placed = []
+    for side, X in (("l", XL), ("r", XR)):
+        its = sorted([(v[1], k) for k, v in items.items() if v[0] == side], key=lambda t: t[0][1])
+        if not its:
+            continue
+        n = len(its)
+        lo, hi = y0 - off + 6, y1 + off - 6
+        g_ = gap if (hi - lo) / max(n - 1, 1) >= gap else max(10.5, (hi - lo) / max(n - 1, 1))
+        ys = [a[1] for a, _ in its]
+        for i in range(1, n):
+            ys[i] = max(ys[i], ys[i - 1] + g_)
+        if ys[-1] > hi:
+            ys[-1] = hi
+            for i in range(n - 2, -1, -1):
+                ys[i] = min(ys[i], ys[i + 1] - g_)
+        segs = [[a, (X, y), k] for (a, k), y in zip(its, ys)]
+        # elimina cruces residuales intercambiando posiciones de globos vecinos
+        for _ in range(3 * n):
+            sw = False
+            for i in range(n - 1):
+                if _cross(segs[i][0], segs[i][1], segs[i + 1][0], segs[i + 1][1]):
+                    segs[i][1], segs[i + 1][1] = segs[i + 1][1], segs[i][1]
+                    sw = True
+            if not sw:
+                break
+        placed += segs
+    for a, q, pos in placed:
+        p.s.balloon(a, q, pos)
         ctx.balloons[p.h.plano].add(pos)
-    V.ext = (min(V.ext[0], bx0 - 6), min(V.ext[1], by0 - 6), max(V.ext[2], bx1 + 6), max(V.ext[3], by1 + 6))
-
-
+    V.ext = (min(V.ext[0], XL - 7), min(V.ext[1], y0 - off), max(V.ext[2], XR + 7), max(V.ext[3], y1 + off))
 
 
 class Conj(Plano):
@@ -274,7 +344,7 @@ def sheet_bom(ctx):
     n = 0
     while pend:
         n += 1
-        c = Conj(ctx, 2 if n == 1 else 13 + n - 2, keys, f"DESPIECE COMPLETO DEL EQUIPO (HOJA {n})")
+        c = Conj(ctx, 2 if n == 1 else 30 + n - 2, keys, f"DESPIECE COMPLETO DEL EQUIPO (HOJA {n})")
         R = c.h.R["main"]
         y, left = tabla_despiece(ctx, c.s, R[0], R[3], pend, R[2] - R[0], ymin=R[1] + 40, title="DESPIECE COMPLETO — MATERIAL CON NORMA Y GRADO, CERTIFICADO EN 10204 3.1, DIMENSIÓN DE PARTIDA, MASAS Y PLANO", total=False)
         done = len(pend) - len(left)

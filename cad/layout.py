@@ -28,13 +28,14 @@ class VS:
     """Especificación de una vista (la lámina la dibuja el compositor cuando conoce su zona)."""
 
     def __init__(self, name, keys, view, cut=None, win=None, center=(0, 0, 0), lv=(1, 2, 2, 1), extra=(0, 0, 0, 0), mat=None, hatch=True, title=None, w=1.0, maxs=None, mins=None,
-                 draw=None, auto=None, iso=False, hidden=False, breaks=None, hs=0.5, label=None, only=None, tag=None, min_cell=(40, 30), detail=None, at=None, nat=None, custom=None):
+                 draw=None, auto=None, iso=False, hidden=False, breaks=None, hs=0.5, label=None, only=None, tag=None, min_cell=(40, 30), detail=None, at=None, nat=None, custom=None, layer="VIS"):
         self.name, self.keys, self.view, self.cut, self.win, self.center = name, keys, view, cut, win, center
         self.lv, self.extra, self.mat, self.hatch, self.title, self.w = lv, extra, mat, hatch, title, w
         self.maxs, self.mins, self.draw, self.auto, self.iso = maxs, mins, draw, auto, iso
         self.hidden, self.breaks, self.hs, self.label, self.only = hidden, breaks, hs, label or name, only
         self.detail = detail    # (nombre_vista_padre, centro3d, radio_modelo, letra)
-        self.nat, self.custom = nat, custom   # vista dibujada por una función (esquema de junta): nat = tamaño natural en mm del modelo
+        self.nat, self.custom = nat, custom
+        self.layer = layer   # vista dibujada por una función (esquema de junta): nat = tamaño natural en mm del modelo
         self.V = None
 
     # extensión natural de la vista en el modelo
@@ -621,7 +622,7 @@ class Plano:
             V = View.auto(s, shp, sp.view, cell, margin=sp.margins(), cut=sp.cut, win=sp.win, center=sp.center, std=not sp.iso, label=sp.label, hidden=sp.hidden, hatch_scale=sp.hs,
                           max_scale=sp.maxs if not sp.iso else None, only=sp.only, **kw)
             V.mat = sp.mat or {k: ctx.mat.get(k, "acero") for k in shp}
-            V.draw(hatch=sp.hatch)
+            V.draw(hatch=sp.hatch, layer_vis=sp.layer)
             sp.V = V
             self.named[sp.name] = V
             if not sp.iso:
