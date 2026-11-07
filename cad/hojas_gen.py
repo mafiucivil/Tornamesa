@@ -136,7 +136,7 @@ def sheet_tolerancias(ctx):
     y2, _ = s.table(R[0], y - 8, [("Característica (ISO 1101)", 0.16 * w, "L"), ("Elemento", 0.40 * w, "L"), ("Tolerancia [mm]", 0.10 * w, "C"), ("Datum", 0.07 * w, "C")], gd, h=T_S, title="TOLERANCIAS GEOMÉTRICAS PRINCIPALES")
     gen_t = [["0,5 a 3", "±0,1", "±0,2", "±0,3"], ["3 a 6", "±0,1", "±0,3", "±0,5"], ["6 a 30", "±0,2", "±0,5", "±1,0"], ["30 a 120", "±0,3", "±0,8", "±1,5"], ["120 a 400", "±0,5", "±1,2", "±2,5"],
              ["400 a 1.000", "±0,8", "±2,0", "±4,0"], ["1.000 a 2.000", "±1,2", "±3,0", "±6,0"], ["2.000 a 4.000", "—", "±4,0", "±8,0"]]
-    s.table(R[0] + 0.62 * w, y - 8, [("Rango [mm]", 0.12 * w, "L"), ("f (fina)", 0.08 * w, "C"), ("m (media)", 0.08 * w, "C"), ("c (basta)", 0.08 * w, "C")], gen_t, h=T_S, title="ISO 2768-1 (se aplica «m»; piezas soldadas ISO 13920 clase B)")
+    s.table(R[0], y2 - 8, [("Rango [mm]", 0.12 * w, "L"), ("f (fina)", 0.08 * w, "C"), ("m (media)", 0.08 * w, "C"), ("c (basta)", 0.08 * w, "C")], gen_t, h=T_S, title="ISO 2768-1 (se aplica «m»; piezas soldadas ISO 13920 clase B)")
     return c.h
 
 

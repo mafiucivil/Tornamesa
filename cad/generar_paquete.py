@@ -75,7 +75,7 @@ def main():
         if r is None:
             return
         # láminas de texto/tablas: si en A1 ocupan menos de la mitad de la zona libre, se reintenta en A2 (solo si sigue en una sola lámina)
-        if name.startswith("sheet_") and name in hojas_gen.PLAN_GEN and name not in ("sheet_notas", "sheet_cortes", "sheet_tolerancias") and not isinstance(r, list):
+        if name.startswith("sheet_") and name in hojas_gen.PLAN_GEN and name not in ("sheet_notas", "sheet_cortes") and not isinstance(r, list):
             rs = getattr(r.s, "reserved", [])
             R_ = r.zone
             used = (R_[3] - min((q[1] for q in rs), default=R_[3])) / max(R_[3] - R_[1], 1)
