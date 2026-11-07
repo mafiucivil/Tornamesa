@@ -225,7 +225,7 @@ def main():
         keys_ = [p.key for p in ctx.m.parts if p.code in h.items]
         short = [c.replace(CODE + "-", "").replace("-" + REV, "") for c in h.items]
         n_c = ncot.get(h.plano, 0)
-        has_h = any(r_ < 200 for k in keys_ if k in ctx.shapes for (r_, _l, _d) in vistas.COTAS.cylinders(k))
+        has_h = any(r_ <= 80 for k in keys_ if k in ctx.shapes for (r_, _l, _d) in vistas.COTAS.cylinders(k))
         hole_ok = any(_re.search(r"Ø[\d,\.]+.*(H\d|f\d|m6|p6|s6|\+0|\(\+)|M\d+", t) for t in txt)
         ws_ = [w for w in ctx.welds if any(sc in w["piezas"] for sc in short)]
         has_cham = any(("×45°" in t) or _re.search(r"\bR\d", t) for t in txt)
