@@ -116,13 +116,21 @@ def visible_anchor(ctx, key, V, pred=None, side=None, avoid=(), cands=None):
     return (pt, V.P(pt)) if pt is not None else None
 
 
+def _seg_pt(a, b, c):
+    """Distancia del punto c al segmento ab (papel)."""
+    vx, vy = b[0] - a[0], b[1] - a[1]
+    L2 = vx * vx + vy * vy or 1e-9
+    t = max(0.0, min(1.0, ((c[0] - a[0]) * vx + (c[1] - a[1]) * vy) / L2))
+    return math.hypot(a[0] + t * vx - c[0], a[1] + t * vy - c[1])
+
+
 def _cross(a, b, c, d):
     def o(p, q, r):
         return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
     return (o(a, b, c) * o(a, b, d) < 0) and (o(c, d, a) * o(c, d, b) < 0)
 
 
-def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, sides="lr"):
+def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, sides="lr", hug=False):
     """Globos en dos columnas (sides="lr": izquierda y derecha) o dos filas (sides="tb": arriba y abajo) en la periferia de la vista;
     las líneas de referencia no se cruzan entre sí (intercambio de globos hasta eliminar cruces) y cada una termina en un punto
     visible de su pieza. Un globo por número de posición."""
@@ -180,12 +188,37 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
                 ys[i_] = min(ys[i_], ys[i_ + 1] - g_)
         if ys[0] < lo and not hor:
             pass
-        segs = [[a, ((y, C) if hor else (C, y)), k] for (a, k), y in zip(its, ys)]
+        Cs = [C] * n
+        if hug and not hor:
+            # cada globo junto a la silueta de la vista a su altura (líneas cortas), nunca más afuera que la columna
+            from shapely.geometry import box as _bx
+            tr = _vis_tree(V)
+            for i_, y in enumerate(ys):
+                bnd = _bx(x0 - 1e4, y - g_ / 2, x1 + 1e4, y + g_ / 2)
+                xs_ = []
+                if tr:
+                    for ii in tr.query(bnd):
+                        it_ = V._psegs[int(ii)].intersection(bnd)
+                        if not it_.is_empty:
+                            xs_.append(it_.bounds[0] if side == "l" else it_.bounds[2])
+                if xs_:
+                    Cs[i_] = max(C, min(xs_) - 10.0) if side == "l" else min(C, max(xs_) + 10.0)
+        segs = [[a, ((y, C) if hor else (Cs[i_], y)), k] for i_, ((a, k), y) in enumerate(zip(its, ys))]
+
+        def _near(a, b, c, r=5.6):
+            vx, vy = b[0] - a[0], b[1] - a[1]
+            L2 = vx * vx + vy * vy or 1e-9
+            t = max(0.0, min(1.0, ((c[0] - a[0]) * vx + (c[1] - a[1]) * vy) / L2))
+            return math.hypot(a[0] + t * vx - c[0], a[1] + t * vy - c[1]) < r
+
+        def _bad(i_, j_):
+            A1, Q1, A2, Q2 = segs[i_][0], segs[i_][1], segs[j_][0], segs[j_][1]
+            return _cross(A1, Q1, A2, Q2) or _near(A1, Q1, Q2) or _near(A2, Q2, Q1)
         for _ in range(4 * n * n):
             sw = False
             for i_ in range(n):
                 for j_ in range(i_ + 1, n):
-                    if _cross(segs[i_][0], segs[i_][1], segs[j_][0], segs[j_][1]):
+                    if _bad(i_, j_):
                         segs[i_][1], segs[j_][1] = segs[j_][1], segs[i_][1]
                         sw = True
             if not sw:
@@ -193,6 +226,7 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
         placed += segs
     # control: cruces entre líneas de referencia de la vista (debe ser 0)
     nx = sum(1 for i_ in range(len(placed)) for j_ in range(i_ + 1, len(placed)) if _cross(placed[i_][0], placed[i_][1], placed[j_][0], placed[j_][1]))
+    nx += sum(1 for i_ in range(len(placed)) for j_ in range(len(placed)) if i_ != j_ and _seg_pt(placed[i_][0], placed[i_][1], placed[j_][1]) < 5.4)
     p.h.cruces_globos = getattr(p.h, "cruces_globos", 0) + nx
     for a, q, pos in placed:
         p.s.balloon(a, q, pos)
@@ -516,7 +550,7 @@ def sheet_explosionada(ctx):
         xy = polar(g.R_pin, a)
         _arrow(s, V.P((xy[0], xy[1], 2700 + zt + 80)), V.P((xy[0], xy[1], 1400 + zt + 5)))
         with alias(ctx, "_x"):
-            balloons_auto(c, V, keys, gap=12.0, off=26.0)
+            balloons_auto(c, V, keys, gap=12.0, off=26.0, hug=True)
     c.vs("expl", {k: ctx.shapes[k] for k in keys}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(40, 30, 40, 30), mat=mats(ctx, keys), hatch=False, draw=cb,
          title="ISOMÉTRICA EXPLOSIONADA (desplazamientos en z ilustrativos; trazo y punto: eje de montaje)", auto=False, w=3.0)
     c.compact_table([k[:-2] for k in keys])
@@ -548,7 +582,7 @@ def sheet_explosion_acc(ctx):
         bb = _bb(ctx, pk)
         _arrow(c.s, V.P((0, 0, bb.zmax + 60)), V.P((0, 0, g.tb + 3)))
         with alias(ctx, "_P"):
-            balloons_auto(c, V, pk, gap=12.0, off=22.0)
+            balloons_auto(c, V, pk, gap=12.0, off=22.0, hug=True)
     c.vs("piv", {k: ctx.shapes[k] for k in pk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, pk), hatch=False, draw=cbp,
          title="PIVOTE, BUJE Y TAPA RETENEDORA (sobre el collar de la base)", auto=False, w=1.0)
     c0 = ctx.D["cilindros"]["antihorario"][0]
@@ -568,7 +602,7 @@ def sheet_explosion_acc(ctx):
                 cx_, cy_ = (bb.xmin + bb.xmax) / 2, (bb.ymin + bb.ymax) / 2
                 _arrow(c.s, V.P((cx_, cy_, bb.zmin)), V.P((cx_, cy_, bb.zmin - dz + 15)))
         with alias(ctx, "_E"):
-            balloons_auto(c, V, ak, gap=12.0, off=24.0)
+            balloons_auto(c, V, ak, gap=12.0, off=24.0, hug=True)
     c.vs("acc", {k: ctx.shapes[k] for k in ak}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, ak), hatch=False, draw=cba,
          title=f"ACCIONAMIENTO DEL LADO +x (eje de la guía a x = {f(X)} del centro)", auto=False, w=2.0)
     c.compact_table(ks)
@@ -597,16 +631,16 @@ def pasos(ctx):
         a_["juego"] = (f"aprieto {-hi} a {-lo} µm" if hi <= 0 else f"juego {lo} a {hi} µm" if lo >= 0 else f"aprieto máx. {-lo} µm / juego máx. {hi} µm")
     T = lambda d: (tq.get(f"M{d}") or [None] * 8)[7] or "—"
     S = []
-    S.append(("1. BASE SOLDADA", [], G["base"], (0, 0, 0), None, [
+    S.append(("1. BASE SOLDADA", ["base_plancha"], [k for k in G["base"] if k != "base_plancha"], (0, 0, 250), None, [
         [pq(*G["base"]), "Armar sobre caballetes nivelados: plancha base, collar, marco, ménsulas, orejas de izaje y bancadas; soldar en secuencia simétrica (GEN-007)",
          f"Posiciones ±1 (BAS-001); eje de bancadas x = ±{f(P['x_g'])} ±0,5", "Plantilla, nivel láser", insp("Orejas de izaje")],
         ["—", f"Alivio de tensiones; mandrinar Ø{f(P['D_piv'])} H7 (plancha + collar) y ojales Ø{f(P['d_pp'])} H9 en línea; planear la zona de apoyo",
-         f"Planitud 0,20 en Ø{f(P['D_top'] + 20)}; perpendicularidad 0,05", "Mandrinadora, regla", insp("Planitud de la cara de apoyo")]]))
-    S.append(("2. MESA SOLDADA", [], G["mesa"], (0, 0, 0), None, [
+         f"Planitud 0,20 en Ø{f(P['D_top'] + 20)}; perpendicularidad 0,05", "Mandrinadora, regla", insp("Planitud de la cara de apoyo")]], dict(mark=["base_plancha"])))
+    S.append(("2. MESA SOLDADA", ["mesa_plancha_inf"], [k for k in G["mesa"] if k != "mesa_plancha_inf"], (0, 0, 350), None, [
         [pq(*G["mesa"]), "Armar sobre la plancha inferior: cubo, almas, nervios y anillos; cerrar con la plancha superior; soldar (GEN-007)",
          f"Altura {f(g.hd)} ±0,5; posición angular de nervios ±0,1°", "Plantilla angular", insp("Pasadores de empuje")],
         ["—", f"Alivio; mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7; planear la cara inferior",
-         f"PCD ±0,3; paso {fm(360 / g.N_pin, 3)}° ±0,05°; planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]]))
+         f"PCD ±0,3; paso {fm(360 / g.N_pin, 3)}° ±0,05°; planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]], dict(mark=["mesa_plancha_inf"])))
     S.append(("3. PIVOTE EN LA BASE", G["base"], [k for k in G["piv"] if k == "pivote"], (0, 0, 300), (-480, -260, 480, 640), [
         [pq("pivote"), f"Calar el pivote Ø{f(P['D_piv'])} p6 en la plancha base y el collar (H7): con prensa, o enfriando el pivote con hielo seco (≈ −78 °C)",
          f"{a_piv['juego'].capitalize()} (agujero {a_piv['h_lim']}; eje {a_piv['s_lim']})", "Prensa hidráulica o hielo seco; guía de centrado", insp("Pivote:")],
@@ -628,7 +662,9 @@ def pasos(ctx):
     else:
         S.append(("4. INTERFAZ ACERO–ACERO: ENGRASE DE LAS CARAS", prev4, [], (0, 0, 0), None, [
             ["—", f"Limpiar y engrasar la zona de apoyo Ø{f(P['D_top'] + 20)} de la base y la cara inferior de la mesa con grasa grafitada NLGI 2",
-             "Película 0,3–0,5 mm por cara; sin partículas", "Espátula, paño", insp("Giro 360°")]]))
+             "Película 0,3–0,5 mm por cara; sin partículas", "Espátula, paño", insp("Giro 360°")]],
+            dict(zona=((P["D_top"] + 20) / 2, g.D_boss / 2 + 2, g.tb, [f"Zona de engrase Ø{f(P['D_top'] + 20)} (cara de apoyo de la base)", "grasa grafitada NLGI 2, película 0,3–0,5 mm"]),
+                 mark=["base_plancha"])))
     new5 = G["mesa"] + G["intm"] + [k for k in G["piv"] if k == "buje"]
     rows5 = [[pq("buje"), f"Prensar el buje en el cubo de la mesa (Ø{f(g.d_bush)} H7/s6)", a_bu["juego"].capitalize(), "Prensa", insp("Pivote:")]]
     if G["intm"]:
@@ -658,7 +694,8 @@ def pasos(ctx):
     S.append(("9. PRUEBA EN VACÍO Y RECEPCIÓN", G["base"] + G["mesa"] + G["pins"] + G["pernos"] + G["acc"] + tap, [], (0, 0, 0), None, [
         ["—", "Giro 360° en vacío y luego con carga; registrar la presión de despegue", "Sin agarrotamiento ni ruido; presión ≤ la esperada", "Manómetro", insp("Giro 360°")],
         ["—", "Prueba hidráulica de cilindros y circuito", "Sin fugas", "Bomba de prueba", insp("Prueba hidráulica")],
-        ["—", "Control final de pares y marcas de pintura; nivelación sobre la losa con cuñas metálicas si hace falta", "Marcas intactas; nivel ≤ 1 mm/m", "Torquímetro, nivel", insp("Torque")]]))
+        ["—", "Control final de pares y marcas de pintura; nivelación sobre la losa con cuñas metálicas si hace falta", "Marcas intactas; nivel ≤ 1 mm/m", "Torquímetro, nivel", insp("Torque")]],
+        dict(giro=True)))
     return S
 
 
@@ -666,11 +703,13 @@ SEQ_NUMS = [5, 14, 15, 16, 17, 19, 20, 21, 22]
 
 
 def _seq_sheet(ctx, num, steps, hoja, ntot):
-    g = ctx.g
+    g, P = ctx.g, ctx.P
     keys_all = sorted({k for st in steps for k in st[1] + st[2] if ctx.m.get(k)}, key=lambda k: ctx.m.get(k).pos)
     tt = " · ".join(st[0].split(". ", 1)[1].split(" (")[0] for st in steps)
     c = Conj(ctx, num, keys_all or all_keys(ctx), f"INSTRUCTIVO DE ARMADO, HOJA {hoja} DE {ntot}: {tt}")
-    for si, (title, prev, new, d, win, rows) in enumerate(steps):
+    for si, st_ in enumerate(steps):
+        title, prev, new, d, win, rows = st_[:6]
+        ex_ = st_[6] if len(st_) > 6 else {}
         prev = [k for k in prev if k in ctx.shapes]
         suf = f"_s{num}{si}"
         nk = [_xkey(ctx, k, d, suf) for k in new if k in ctx.shapes]
@@ -679,7 +718,32 @@ def _seq_sheet(ctx, num, steps, hoja, ntot):
         if win:
             kw = dict(center=(0, 0, g.tb), win=win)
 
-        def cb(V, c, nk=nk, d=d, suf=suf, prev=prev):
+        def cb(V, c, nk=nk, d=d, suf=suf, prev=prev, ex_=ex_):
+            if ex_.get("zona"):
+                ro, ri, zz, txt = ex_["zona"]
+                circ = lambda r: [V.P((r * math.cos(math.radians(t)), r * math.sin(math.radians(t)), zz)) for t in range(0, 360, 4)]
+                from shapely.geometry import MultiPoint
+                po = circ(ro)
+                # hueco: silueta proyectada del collar y del pivote (el achurado no pasa por detrás de ellos)
+                zp_ = ctx.shapes["pivote"].BoundingBox().zmax if "pivote" in ctx.shapes else zz
+                hull = MultiPoint(circ(ri) + [V.P((P["D_piv"] / 2 * math.cos(math.radians(t)), P["D_piv"] / 2 * math.sin(math.radians(t)), zp_)) for t in range(0, 360, 6)]).convex_hull
+                pi = [tuple(q) for q in hull.exterior.coords][:-1]
+                c.s.hatch_poly(po, holes=[pi], scale=4.0, pattern="ANSI31")
+                c.s.pline(po, "FINA", closed=True)
+                pa = max(po, key=lambda q: q[1])
+                c.s.leader(pa, (pa[0] + 32, V.ext[3] + 8), txt[0], lines=txt)
+            if ex_.get("mark"):
+                balloons_auto(c, V, [k for k in ex_["mark"] if k in ctx.shapes], gap=11.0, off=20.0, sides="r", hug=True)
+            if ex_.get("giro"):
+                zt_ = g.z0 + g.hd + 5
+                r_ = g.R_pin * 0.55
+                pts = [V.P((r_ * math.cos(math.radians(t)), r_ * math.sin(math.radians(t)), zt_)) for t in range(200, 341, 4)]
+                c.s.pline(pts, "COTA")
+                a_, b_ = pts[-2], pts[-1]
+                c.s.arrow(b_, math.atan2(b_[1] - a_[1], b_[0] - a_[0]), size=5.0, w=1.8)
+                pm_ = pts[len(pts) // 2]
+                c.s.leader(pm_, (pm_[0] + 40, V.ext[3] + 8), "Giro 360° en vacío (sentido antihorario y horario)",
+                           lines=["Giro 360° en vacío, en ambos sentidos;", "registrar la presión de despegue (GEN-003)"])
             if nk and prev:
                 Vn = View(c.s, {k: ctx.shapes[k] for k in nk}, "iso", V.origin, V.scale, center=V.center, win=V.win, label="nuevas", free=True)
                 Vn.draw(layer_vis="VIS", hatch=False)
@@ -690,7 +754,7 @@ def _seq_sheet(ctx, num, steps, hoja, ntot):
                 _arrow(c.s, V.P((cx_, cy_, bb.zmin - 10)), V.P((cx_, cy_, bb.zmin - d[2] + 10)))
             if nk:
                 with alias(ctx, suf):
-                    balloons_auto(c, V, nk, gap=11.0, off=20.0)
+                    balloons_auto(c, V, nk, gap=11.0, off=20.0, hug=True)
         lay = "FINA" if (prev and nk) else "VIS"
         leyenda = " (piezas del paso en trazo grueso; lo ya montado en trazo fino)" if lay == "FINA" else ""
         c.vs(f"p{si}", {k: ctx.shapes[k] for k in allk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 12, 30, 12), mat=mats(ctx, allk), hatch=False, draw=cb, layer=lay,
