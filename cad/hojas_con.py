@@ -864,11 +864,13 @@ def sheet_mensula_conj(ctx):
         V.dim_dia((0, 0, zt), P["d_pp"] / 2, 60, on=["mensula_oreja_sup_C"], text=tol_txt(P["d_pp"], "H9"), ext=24)
         c.cut_mark("planta", "A", (-rear - 20, 0, zt), (P["L_ch"] - rear + 20, 0, zt), 90)
     c.vs("planta", sh, "top", lv=(1, 1, 2, 2), extra=(20, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.4)
-    c.vs("cA", sh2, "front", cut=CUT_Y, lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE A-A (plano del eje)", w=1.2,
-         draw=lambda V, c: V.dimv((Llug - rear, 0, tb), (Llug - rear, 0, zt), "right", 0, on=["mensula_oreja_inf_C", "mensula_oreja_sup_C"], text=f"{f(H_)} (eje a {f(g.hax)} de la cara de apoyo)"), auto=dict(on=lk, maxn=6))
-    c.vs("cB", sh2, "right", cut=((0, 0, 0), (-1, 0, 0)), lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE B-B (por el eje del ojal)", w=1.0, auto=dict(on=lk, maxn=6))
+    c.vs("cA", sh2, "front", cut=CUT_Y, lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE A-A (plano del eje; base parcial)", w=1.2,
+         center=(P["L_ch"] / 2 - rear, 0, tb), win=(-P["L_ch"] / 2 - 60, -tb - 4, P["L_ch"] / 2 + 60, H_ + 8),
+         draw=lambda V, c: V.dimv((Llug - rear, 0, tb), (Llug - rear, 0, zt), "right", 0, on=["mensula_oreja_inf_C", "mensula_oreja_sup_C"], text=f"{f(H_)}"), auto=dict(on=lk, maxn=6))
+    c.vs("cB", sh2, "right", cut=((0, 0, 0), (-1, 0, 0)), lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE B-B (por el eje del ojal; base parcial)", w=1.0, auto=dict(on=lk, maxn=6),
+         center=(0, 0, tb), win=(-Wout / 2 - 60, -tb - 4, Wout / 2 + 60, H_ + 8))
     if ids:
-        add_prep(c, "det_j", ctx.weld_by_id(ids[0]), t1=tc, t2=tb)
+        add_prep(c, "det_j", ctx.weld_by_id(ids[0]), t1=tc, t2=tb, mins=1.0, maxs=1.0)
     c.tail(ks, ids, [f"Armar en plantilla sobre la base: mejillas {f(tc)} × {f(H_)} a {f(Win)} de luz; orejas entre mejillas; eje del ojal a {f(g.hax)} ±0,5 de la cara de apoyo.",
                      f"Mandrinar Ø{f(P['d_pp'])} H9 de ambas orejas en línea después de soldar (coaxialidad 0,10). Se fabrican {int(P['n_br'])} ménsulas.", "Filetes: ver tabla; secuencia alternada por lados; MT 100 %."])
     c.build()

@@ -137,7 +137,7 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
 
 
 # ------------------------------------------------------------------------------------------------
-def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True):
+def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None):
     """Agrega a la lámina p un esquema de junta correspondiente al registro de soldaduras w (dict de ctx.welds). Devuelve la especificación."""
     jid = w["id"]
     if w["groove"] and w["sym"] in ("V", "bevel"):
@@ -160,5 +160,5 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
     t2 = t2 or max(w["t"] or 10.0, 6.0)
     t1 = t1 or max(min(w["t"] or 10.0, 20.0), 6.0)
     (Wn, Hn), _ = fillet_size(z, t1, t2)
-    return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 1, 2, 2), extra=(0, 0, 112, 0), mins=2.0, maxs=5.0, title=title or f"DETALLE {jid}: FILETE EN T z{fm(z, 0)} (a = {fm(z * 0.7071, 1)})",
+    return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 1, 2, 2), extra=(0, 0, 112, 0), mins=mins or 2.0, maxs=maxs or 5.0, title=title or f"DETALLE {jid}: FILETE EN T z{fm(z, 0)} (a = {fm(z * 0.7071, 1)})",
                 custom=lambda s, ox, oy, k, pl: prep_fillet(s, ox, oy, k, z, t1, t2, jid, pl, both))
