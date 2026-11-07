@@ -608,7 +608,8 @@ def pasos(ctx):
         ["—", "Verificar la perpendicularidad del pivote respecto de la cara de apoyo", "≤ 0,05", "Escuadra, comparador", insp("Pivote:")]]))
     prev4 = G["base"] + G["piv"][:1]
     if G["intb"]:
-        rows = [[pq(*G["intb"]), f"Colocar los {g.n_sec} sectores de la base (muesca en la bisectriz) contra las barras de tope soldadas" if "int_tornillo_base" not in G["intb"] or True else "",
+        rows = [[pq(*G["intb"]), (f"Colocar los {g.n_sec} sectores de la base (muesca en la bisectriz) contra las barras de tope soldadas" if g.removable else
+                                  f"PEGAR los {g.n_sec} sectores de la base sobre la cara planeada (fijación NO desmontable, sin topes ni tornillos): adhesivo estructural, preparación de superficie, espesor de capa y curado A DEFINIR POR EL CALCULISTA con el proveedor del adhesivo"),
                  f"Junta en frío entre sectores {fm(g.junta('disc'), 1)} mm (galga)", "Galgas, plantilla angular", insp("Planitud de la cara de apoyo")]]
         if any("tornillo" in k for k in G["intb"]):
             rows.append(["—", f"Tornillos de posición ISO 10642 M{fm(P['d_tor'], 0)} con fijarroscas (solo posicionan)", f"Par {T(int(P['d_tor']))} N·m (propuesta GEN-008); cabeza bajo la cara", "Torquímetro", insp("Torque")])
@@ -626,8 +627,11 @@ def pasos(ctx):
     new5 = G["mesa"] + G["intm"] + [k for k in G["piv"] if k == "buje"]
     rows5 = [[pq("buje"), f"Prensar el buje en el cubo de la mesa (Ø{f(g.d_bush)} H7/s6)", a_bu["juego"].capitalize(), "Prensa", insp("Pivote:")]]
     if G["intm"]:
-        rows5.append([pq(*G["intm"]), "Con la mesa invertida: fijar los sectores bajo la plancha inferior (tornillos de posición) y las graseras",
-                      f"Junta en frío {fm(g.junta('disc'), 1)} mm; pares según GEN-008", "Torquímetro, galgas", insp("Torque")])
+        gr_ = " y montar las graseras" if any("graser" in k for k in G["intm"]) else ""
+        rows5.append([pq(*G["intm"]), ("Con la mesa invertida: fijar los sectores bajo la plancha inferior (tornillos de posición)" + gr_ if g.removable else
+                                       "Con la mesa invertida: PEGAR los sectores bajo la plancha inferior (NO desmontable; adhesivo y curado A DEFINIR POR EL CALCULISTA)" + gr_),
+                      f"Junta en frío {fm(g.junta('disc'), 1)} mm" + ("; pares según GEN-008" if g.removable else "; planitud del conjunto pegado 0,20"),
+                      "Torquímetro, galgas" if g.removable else "Galgas, regla", insp("Torque") if g.removable else insp("Planitud de la cara de apoyo")])
     rows5.append([pq(*G["mesa"]), "Izar la mesa con los medios del montajista (el cálculo no define puntos de izaje de la mesa), girarla y bajarla sobre el pivote",
                   f"Holgura radial del cubo {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (sin contacto); giro libre a mano", "Medios del montajista; galgas", insp("Pivote:")])
     S.append(("5. BUJE Y MESA SOBRE EL PIVOTE", prev4 + G["intb"], new5, (0, 0, 600), None, rows5))
