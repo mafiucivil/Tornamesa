@@ -1,0 +1,12 @@
+{
+  "name": "tornamesa-tt300c",
+  "private": true,
+  "description": "Cálculo y verificación de tornamesa hidráulica TT300-C",
+  "scripts": {
+    "test": "node --test tests/test_tt300c.js tests/test_planos_export.js && python3 -I tests/indep_tt300c.py && python3 -I tests/indep_accionamiento.py > /dev/null && python3 -I tests/indep_interfaz.py > /dev/null && python3 -I tests/indep_izaje_collar.py > /dev/null && python3 -I tests/indep_termica.py > /dev/null && echo 'verificadores independientes: OK'",
+    "build": "python3 tools/build_tt300c.py",
+    "planos": "node tools/export_design.js > cad/out/TT300-C_design.json && python3 cad/planos_tt300c.py",
+    "memoria": "node tools/export_design.js > cad/out/TT300-C_design.json && node tools/export_alternativas.js > cad/out/TT300-C_alternativas.json && python3 tools/memoria_tt300c.py",
+    "test:convergencia": "node tests/convergencia.js --quick"
+  }
+}

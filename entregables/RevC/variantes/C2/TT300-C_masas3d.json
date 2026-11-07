@@ -1,0 +1,3594 @@
+{
+ "masas": {
+  "comp": [
+   {
+    "grupo": "base",
+    "pieza": "Plancha base + collar + orejas de izaje",
+    "modelo3d": 958.0556482296823,
+    "nucleo": 958.1941472267716,
+    "dif": -0.13849899708930025,
+    "dif_pct": -0.014454168551347069
+   },
+   {
+    "grupo": "rim",
+    "pieza": "Marco perimetral",
+    "modelo3d": 36.031499999999994,
+    "nucleo": 36.031499999999994,
+    "dif": 0.0,
+    "dif_pct": 0.0
+   },
+   {
+    "grupo": "brackets",
+    "pieza": "Ménsulas de cilindro",
+    "modelo3d": 188.97009893109578,
+    "nucleo": 188.97009893109592,
+    "dif": -1.4210854715202004e-13,
+    "dif_pct": -7.520160488662124e-14
+   },
+   {
+    "grupo": "beds",
+    "pieza": "Bancadas de guía",
+    "modelo3d": 80.96803662109077,
+    "nucleo": 80.96803662109073,
+    "dif": 4.263256414560601e-14,
+    "dif_pct": 5.265357284765997e-14
+   },
+   {
+    "grupo": "mesa",
+    "pieza": "Mesa (planchas, almas, nervios, cubo, pasadores)",
+    "modelo3d": 1425.936932938438,
+    "nucleo": 1427.5934274177607,
+    "dif": -1.656494479322646,
+    "dif_pct": -0.11603405055730207
+   },
+   {
+    "grupo": "pivot",
+    "pieza": "Pivote",
+    "modelo3d": 21.334493035754853,
+    "nucleo": 21.396319422097857,
+    "dif": -0.06182638634300375,
+    "dif_pct": -0.28895804518206164
+   },
+   {
+    "grupo": "cyl",
+    "pieza": "Cilindros (masa de catálogo)",
+    "modelo3d": 110.0,
+    "nucleo": 110,
+    "dif": 0.0,
+    "dif_pct": 0.0
+   },
+   {
+    "grupo": "shoes",
+    "pieza": "Patines",
+    "modelo3d": 319.7570529135124,
+    "nucleo": 320.5434252820345,
+    "dif": -0.7863723685221089,
+    "dif_pct": -0.2453247536835948
+   },
+   {
+    "grupo": "dogs",
+    "pieza": "Uñas",
+    "modelo3d": 27.21338756535057,
+    "nucleo": 27.21338756535056,
+    "dif": 1.0658141036401503e-14,
+    "dif_pct": 3.916506539587147e-14
+   },
+   {
+    "grupo": "bz",
+    "pieza": "Bronce con grafito (o 2.ª placa)",
+    "modelo3d": 628.0945659859987,
+    "nucleo": 630.6063093970594,
+    "dif": -2.5117434110607064,
+    "dif_pct": -0.3983061021800204
+   },
+   {
+    "grupo": "stopBars",
+    "pieza": "Barras de los topes (m.stopBars)",
+    "modelo3d": 27.43103999999999,
+    "nucleo": 27.431039999999996,
+    "dif": -7.105427357601002e-15,
+    "dif_pct": -2.5902872649381878e-14
+   }
+  ],
+  "total_3d": 3823.7927562209234,
+  "total_nucleo": 3828.9476918632618,
+  "dif": -5.154935642338387,
+  "dif_pct": -0.13463061021420916,
+  "fuera": [
+   [
+    "TT300C-MES-013-C",
+    "Perno ISO 4762 M20×45 con arandela",
+    25.937735076292554
+   ],
+   [
+    "TT300C-PIV-002-C",
+    "Buje autolubricado",
+    3.867928875099756
+   ],
+   [
+    "TT300C-PIV-003-C",
+    "Tapa retenedora",
+    1.5741930167719578
+   ],
+   [
+    "TT300C-PIV-004-C",
+    "Tapa de inspección",
+    2.758043774653913
+   ],
+   [
+    "TT300C-ACC-005-C",
+    "Pasador del vástago (patín)",
+    8.203665191302209
+   ],
+   [
+    "TT300C-ACC-006-C",
+    "Pasador del ojal trasero (ménsula)",
+    12.191430118173148
+   ],
+   [
+    "TT300C-INT-006-C",
+    "Tornillo avellanado de posición M6×25",
+    0.3185476933049258
+   ],
+   [
+    "TT300C-INT-007-C",
+    "Tornillo avellanado de posición M6×25",
+    0.3185476933049256
+   ],
+   [
+    "TT300C-INT-008-C",
+    "Grasera recta M10×1",
+    0.029593802796815935
+   ]
+  ],
+  "masa_fuera": 55.1996852417002,
+  "masa_ensamble": 3878.9924414626234,
+  "tol_pct": 0.5
+ },
+ "masa_total_ensamble": 3878.992441462623,
+ "cg": [
+  0.01991080266222176,
+  -0.0018364493667284891,
+  92.26771120575674
+ ],
+ "interferencias": [
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-BAS-002-C",
+   "na": "Plancha base",
+   "nb": "Collar de asiento del pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-BAS-003-C",
+   "na": "Plancha base",
+   "nb": "Marco perimetral largo",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-BAS-004-C",
+   "na": "Plancha base",
+   "nb": "Marco perimetral corto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-BAS-005-C",
+   "na": "Plancha base",
+   "nb": "Mejilla de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-BAS-007-C",
+   "na": "Plancha base",
+   "nb": "Oreja inferior (bloque) de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Plancha base",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Plancha base",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Plancha base",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Plancha base",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Plancha base",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Plancha base",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-001-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Plancha base",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-BAS-003-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Marco perimetral largo",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-BAS-004-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Marco perimetral corto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-BAS-005-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Mejilla de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-BAS-007-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Oreja inferior (bloque) de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-002-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Collar de asiento del pivote",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-BAS-004-C",
+   "na": "Marco perimetral largo",
+   "nb": "Marco perimetral corto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-BAS-005-C",
+   "na": "Marco perimetral largo",
+   "nb": "Mejilla de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-BAS-007-C",
+   "na": "Marco perimetral largo",
+   "nb": "Oreja inferior (bloque) de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Marco perimetral largo",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Marco perimetral largo",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Marco perimetral largo",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Marco perimetral largo",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Marco perimetral largo",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Marco perimetral largo",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Marco perimetral largo",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Marco perimetral largo",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Marco perimetral largo",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Marco perimetral largo",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Marco perimetral largo",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Marco perimetral largo",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Marco perimetral largo",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Marco perimetral largo",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Marco perimetral largo",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-003-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Marco perimetral largo",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-BAS-005-C",
+   "na": "Marco perimetral corto",
+   "nb": "Mejilla de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-BAS-007-C",
+   "na": "Marco perimetral corto",
+   "nb": "Oreja inferior (bloque) de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Marco perimetral corto",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Marco perimetral corto",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Marco perimetral corto",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Marco perimetral corto",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Marco perimetral corto",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Marco perimetral corto",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Marco perimetral corto",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Marco perimetral corto",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Marco perimetral corto",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Marco perimetral corto",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Marco perimetral corto",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Marco perimetral corto",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Marco perimetral corto",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Marco perimetral corto",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Marco perimetral corto",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-004-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Marco perimetral corto",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-BAS-006-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Oreja superior de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-BAS-007-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Oreja inferior (bloque) de ménsula",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Mejilla de ménsula",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-005-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Mejilla de ménsula",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-006-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Oreja superior de ménsula",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-IZA-001-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Oreja de izaje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-BAS-007-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Oreja inferior (bloque) de ménsula",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-ACC-001-C",
+   "na": "Oreja de izaje",
+   "nb": "Bancada de guía con ranura T",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Oreja de izaje",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Oreja de izaje",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Oreja de izaje",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Oreja de izaje",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Oreja de izaje",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Oreja de izaje",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Oreja de izaje",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Oreja de izaje",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Oreja de izaje",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Oreja de izaje",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Oreja de izaje",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Oreja de izaje",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Oreja de izaje",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Oreja de izaje",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Oreja de izaje",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Oreja de izaje",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Oreja de izaje",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Oreja de izaje",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Oreja de izaje",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Oreja de izaje",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Oreja de izaje",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Oreja de izaje",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Oreja de izaje",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Oreja de izaje",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-IZA-001-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Oreja de izaje",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-MES-003-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Plancha inferior de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-001-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Bancada de guía con ranura T",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-002-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Anillo superior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-MES-013-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Perno ISO 4762 M20×45 con arandela",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-PIV-003-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Tapa retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-001-C",
+   "b": "TT300C-PIV-004-C",
+   "na": "Plancha superior de la mesa",
+   "nb": "Tapa de inspección",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-MES-013-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Perno ISO 4762 M20×45 con arandela",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-PIV-003-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Tapa retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-002-C",
+   "b": "TT300C-PIV-004-C",
+   "na": "Anillo superior de pasadores",
+   "nb": "Tapa de inspección",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-004-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Anillo inferior de pasadores",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-003-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Plancha inferior de la mesa",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-005-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Alma anular R300",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-004-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Anillo inferior de pasadores",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-006-C",
+   "na": "Alma anular R300",
+   "nb": "Alma anular R590",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Alma anular R300",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Alma anular R300",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Alma anular R300",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Alma anular R300",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Alma anular R300",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Alma anular R300",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Alma anular R300",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Alma anular R300",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Alma anular R300",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Alma anular R300",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Alma anular R300",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Alma anular R300",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Alma anular R300",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-005-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Alma anular R300",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-MES-007-C",
+   "na": "Alma anular R590",
+   "nb": "Alma anular R840",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Alma anular R590",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Alma anular R590",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Alma anular R590",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Alma anular R590",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Alma anular R590",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Alma anular R590",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Alma anular R590",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Alma anular R590",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Alma anular R590",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Alma anular R590",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Alma anular R590",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Alma anular R590",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-006-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Alma anular R590",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-MES-008-C",
+   "na": "Alma anular R840",
+   "nb": "Nervio radial, tramo 1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Alma anular R840",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Alma anular R840",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Alma anular R840",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Alma anular R840",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Alma anular R840",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Alma anular R840",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Alma anular R840",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Alma anular R840",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Alma anular R840",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Alma anular R840",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Alma anular R840",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-007-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Alma anular R840",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-MES-009-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Nervio radial, tramo 2",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-008-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Nervio radial, tramo 1",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-MES-010-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Nervio radial, tramo 3",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-009-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Nervio radial, tramo 2",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-MES-011-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Cubo de la mesa",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-010-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Nervio radial, tramo 3",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-MES-012-C",
+   "na": "Cubo de la mesa",
+   "nb": "Pasador de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Cubo de la mesa",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Cubo de la mesa",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Cubo de la mesa",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Cubo de la mesa",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Cubo de la mesa",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Cubo de la mesa",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Cubo de la mesa",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-011-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Cubo de la mesa",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-MES-013-C",
+   "na": "Pasador de empuje",
+   "nb": "Perno ISO 4762 M20×45 con arandela",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-PIV-001-C",
+   "na": "Pasador de empuje",
+   "nb": "Pivote",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Pasador de empuje",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-PIV-003-C",
+   "na": "Pasador de empuje",
+   "nb": "Tapa retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-PIV-004-C",
+   "na": "Pasador de empuje",
+   "nb": "Tapa de inspección",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Pasador de empuje",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Pasador de empuje",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Pasador de empuje",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Pasador de empuje",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Pasador de empuje",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Pasador de empuje",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Pasador de empuje",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Pasador de empuje",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-012-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Pasador de empuje",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-MES-013-C",
+   "b": "TT300C-PIV-004-C",
+   "na": "Perno ISO 4762 M20×45 con arandela",
+   "nb": "Tapa de inspección",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-PIV-002-C",
+   "na": "Pivote",
+   "nb": "Buje autolubricado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-PIV-003-C",
+   "na": "Pivote",
+   "nb": "Tapa retenedora",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Pivote",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Pivote",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Pivote",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Pivote",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Pivote",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Pivote",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Pivote",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Pivote",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Pivote",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Pivote",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Pivote",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Pivote",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-001-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Pivote",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-002-C",
+   "b": "TT300C-ACC-002-C",
+   "na": "Buje autolubricado",
+   "nb": "Cilindro hidráulico doble efecto",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-002-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Buje autolubricado",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-002-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Buje autolubricado",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-002-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Buje autolubricado",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-PIV-002-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Buje autolubricado",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-002-C",
+   "b": "TT300C-ACC-003-C",
+   "na": "Cilindro hidráulico doble efecto",
+   "nb": "Patín guiado",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-002-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Cilindro hidráulico doble efecto",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-002-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Cilindro hidráulico doble efecto",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-002-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Cilindro hidráulico doble efecto",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-ACC-004-C",
+   "na": "Patín guiado",
+   "nb": "Uña de empuje",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Patín guiado",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Patín guiado",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Patín guiado",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Patín guiado",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Patín guiado",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Patín guiado",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Patín guiado",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Patín guiado",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Patín guiado",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-003-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Patín guiado",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-004-C",
+   "b": "TT300C-ACC-005-C",
+   "na": "Uña de empuje",
+   "nb": "Pasador del vástago (patín)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-004-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Uña de empuje",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-005-C",
+   "b": "TT300C-ACC-006-C",
+   "na": "Pasador del vástago (patín)",
+   "nb": "Pasador del ojal trasero (ménsula)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-001-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Sector de placa de bronce con tapones de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-005-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-ACC-006-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Pasador del ojal trasero (ménsula)",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-001-C",
+   "b": "TT300C-INT-002-C",
+   "na": "Sector de placa de bronce con tapones de grafito",
+   "nb": "Tapón de grafito",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-001-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Sector de placa de bronce con tapones de grafito",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-001-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Sector de placa de bronce con tapones de grafito",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-001-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Sector de placa de bronce con tapones de grafito",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-002-C",
+   "b": "TT300C-INT-003-C",
+   "na": "Tapón de grafito",
+   "nb": "2.ª placa de bronce (sector)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-002-C",
+   "b": "TT300C-INT-004-C",
+   "na": "Tapón de grafito",
+   "nb": "Barra de tope (placa de bronce)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-002-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Tapón de grafito",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-003-C",
+   "b": "TT300C-INT-005-C",
+   "na": "2.ª placa de bronce (sector)",
+   "nb": "Barra de tope (disco duro / 2.ª placa)",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-003-C",
+   "b": "TT300C-INT-007-C",
+   "na": "2.ª placa de bronce (sector)",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-004-C",
+   "b": "TT300C-INT-006-C",
+   "na": "Barra de tope (placa de bronce)",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-005-C",
+   "b": "TT300C-INT-007-C",
+   "na": "Barra de tope (disco duro / 2.ª placa)",
+   "nb": "Tornillo avellanado de posición M6×25",
+   "vol_mm3": 0.0,
+   "ok": true
+  },
+  {
+   "a": "TT300C-INT-007-C",
+   "b": "TT300C-INT-008-C",
+   "na": "Tornillo avellanado de posición M6×25",
+   "nb": "Grasera recta M10×1",
+   "vol_mm3": 0.0,
+   "ok": true
+  }
+ ],
+ "pares_evaluados": 400,
+ "pares_totales": 741,
+ "partes": {
+  "TT300C-BAS-001-C": {
+   "nombre": "Plancha base",
+   "qty": 1,
+   "masa_unit": 924.2871156518826,
+   "masa_total": 924.2871156518826
+  },
+  "TT300C-BAS-002-C": {
+   "nombre": "Collar de asiento del pivote",
+   "qty": 1,
+   "masa_unit": 17.793273931585528,
+   "masa_total": 17.793273931585528
+  },
+  "TT300C-BAS-003-C": {
+   "nombre": "Marco perimetral largo",
+   "qty": 2,
+   "masa_unit": 9.043199999999999,
+   "masa_total": 18.086399999999998
+  },
+  "TT300C-BAS-004-C": {
+   "nombre": "Marco perimetral corto",
+   "qty": 2,
+   "masa_unit": 8.97255,
+   "masa_total": 17.9451
+  },
+  "TT300C-BAS-005-C": {
+   "nombre": "Mejilla de ménsula",
+   "qty": 8,
+   "masa_unit": 11.927093749999989,
+   "masa_total": 95.41674999999991
+  },
+  "TT300C-BAS-006-C": {
+   "nombre": "Oreja superior de ménsula",
+   "qty": 4,
+   "masa_unit": 4.396303991122928,
+   "masa_total": 17.585215964491713
+  },
+  "TT300C-BAS-007-C": {
+   "nombre": "Oreja inferior (bloque) de ménsula",
+   "qty": 4,
+   "masa_unit": 18.992033241651043,
+   "masa_total": 75.96813296660417
+  },
+  "TT300C-IZA-001-C": {
+   "nombre": "Oreja de izaje",
+   "qty": 4,
+   "masa_unit": 3.9938146615535612,
+   "masa_total": 15.975258646214245
+  },
+  "TT300C-ACC-001-C": {
+   "nombre": "Bancada de guía con ranura T",
+   "qty": 2,
+   "masa_unit": 40.48401831054539,
+   "masa_total": 80.96803662109077
+  },
+  "TT300C-MES-001-C": {
+   "nombre": "Plancha superior de la mesa",
+   "qty": 1,
+   "masa_unit": 358.96583022409,
+   "masa_total": 358.96583022409
+  },
+  "TT300C-MES-002-C": {
+   "nombre": "Anillo superior de pasadores",
+   "qty": 1,
+   "masa_unit": 139.71419261644235,
+   "masa_total": 139.71419261644235
+  },
+  "TT300C-MES-003-C": {
+   "nombre": "Plancha inferior de la mesa",
+   "qty": 1,
+   "masa_unit": 285.30023961481425,
+   "masa_total": 285.30023961481425
+  },
+  "TT300C-MES-004-C": {
+   "nombre": "Anillo inferior de pasadores",
+   "qty": 1,
+   "masa_unit": 139.59813923267455,
+   "masa_total": 139.59813923267455
+  },
+  "TT300C-MES-005-C": {
+   "nombre": "Alma anular R300",
+   "qty": 1,
+   "masa_unit": 15.447965059937902,
+   "masa_total": 15.447965059937902
+  },
+  "TT300C-MES-006-C": {
+   "nombre": "Alma anular R590",
+   "qty": 1,
+   "masa_unit": 30.38099795121101,
+   "masa_total": 30.38099795121101
+  },
+  "TT300C-MES-007-C": {
+   "nombre": "Alma anular R840",
+   "qty": 1,
+   "masa_unit": 43.2543021678264,
+   "masa_total": 43.2543021678264
+  },
+  "TT300C-MES-008-C": {
+   "nombre": "Nervio radial, tramo 1",
+   "qty": 14,
+   "masa_unit": 1.1637054084574125,
+   "masa_total": 16.291875718403777
+  },
+  "TT300C-MES-009-C": {
+   "nombre": "Nervio radial, tramo 2",
+   "qty": 14,
+   "masa_unit": 2.3274726576692166,
+   "masa_total": 32.584617207369035
+  },
+  "TT300C-MES-010-C": {
+   "nombre": "Nervio radial, tramo 3",
+   "qty": 14,
+   "masa_unit": 1.9996629128749202,
+   "masa_total": 27.995280780248883
+  },
+  "TT300C-MES-011-C": {
+   "nombre": "Cubo de la mesa",
+   "qty": 1,
+   "masa_unit": 74.71093620469213,
+   "masa_total": 74.71093620469213
+  },
+  "TT300C-MES-012-C": {
+   "nombre": "Pasador de empuje",
+   "qty": 28,
+   "masa_unit": 9.34616272002599,
+   "masa_total": 261.69255616072775
+  },
+  "TT300C-MES-013-C": {
+   "nombre": "Perno ISO 4762 M20×45 con arandela",
+   "qty": 28,
+   "masa_unit": 0.9263476812961626,
+   "masa_total": 25.937735076292554
+  },
+  "TT300C-PIV-001-C": {
+   "nombre": "Pivote",
+   "qty": 1,
+   "masa_unit": 21.334493035754853,
+   "masa_total": 21.334493035754853
+  },
+  "TT300C-PIV-002-C": {
+   "nombre": "Buje autolubricado",
+   "qty": 1,
+   "masa_unit": 3.867928875099756,
+   "masa_total": 3.867928875099756
+  },
+  "TT300C-PIV-003-C": {
+   "nombre": "Tapa retenedora",
+   "qty": 1,
+   "masa_unit": 1.5741930167719578,
+   "masa_total": 1.5741930167719578
+  },
+  "TT300C-PIV-004-C": {
+   "nombre": "Tapa de inspección",
+   "qty": 1,
+   "masa_unit": 2.758043774653913,
+   "masa_total": 2.758043774653913
+  },
+  "TT300C-ACC-002-C": {
+   "nombre": "Cilindro hidráulico doble efecto",
+   "qty": 2,
+   "masa_unit": 55.0,
+   "masa_total": 110
+  },
+  "TT300C-ACC-003-C": {
+   "nombre": "Patín guiado",
+   "qty": 2,
+   "masa_unit": 159.8785264567562,
+   "masa_total": 319.7570529135124
+  },
+  "TT300C-ACC-004-C": {
+   "nombre": "Uña de empuje",
+   "qty": 2,
+   "masa_unit": 13.606693782675285,
+   "masa_total": 27.21338756535057
+  },
+  "TT300C-ACC-005-C": {
+   "nombre": "Pasador del vástago (patín)",
+   "qty": 2,
+   "masa_unit": 4.101832595651104,
+   "masa_total": 8.203665191302209
+  },
+  "TT300C-ACC-006-C": {
+   "nombre": "Pasador del ojal trasero (ménsula)",
+   "qty": 2,
+   "masa_unit": 6.095715059086574,
+   "masa_total": 12.191430118173148
+  },
+  "TT300C-INT-001-C": {
+   "nombre": "Sector de placa de bronce con tapones de grafito",
+   "qty": 24,
+   "masa_unit": 12.668962580035817,
+   "masa_total": 304.0551019208596
+  },
+  "TT300C-INT-002-C": {
+   "nombre": "Tapón de grafito",
+   "qty": 2640,
+   "masa_unit": 0.0021375396415024236,
+   "masa_total": 5.6431046535663985
+  },
+  "TT300C-INT-003-C": {
+   "nombre": "2.ª placa de bronce (sector)",
+   "qty": 24,
+   "masa_unit": 13.266514975482194,
+   "masa_total": 318.39635941157263
+  },
+  "TT300C-INT-004-C": {
+   "nombre": "Barra de tope (placa de bronce)",
+   "qty": 24,
+   "masa_unit": 0.4184049999999999,
+   "masa_total": 10.041719999999998
+  },
+  "TT300C-INT-005-C": {
+   "nombre": "Barra de tope (disco duro / 2.ª placa)",
+   "qty": 24,
+   "masa_unit": 0.7245549999999996,
+   "masa_total": 17.38931999999999
+  },
+  "TT300C-INT-006-C": {
+   "nombre": "Tornillo avellanado de posición M6×25",
+   "qty": 48,
+   "masa_unit": 0.0066364102771859544,
+   "masa_total": 0.3185476933049258
+  },
+  "TT300C-INT-007-C": {
+   "nombre": "Tornillo avellanado de posición M6×25",
+   "qty": 48,
+   "masa_unit": 0.00663641027718595,
+   "masa_total": 0.3185476933049256
+  },
+  "TT300C-INT-008-C": {
+   "nombre": "Grasera recta M10×1",
+   "qty": 4,
+   "masa_unit": 0.007398450699203984,
+   "masa_total": 0.029593802796815935
+  }
+ }
+}
