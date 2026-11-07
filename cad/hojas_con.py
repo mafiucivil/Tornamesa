@@ -612,6 +612,8 @@ def pasos(ctx):
                  f"Junta en frío entre sectores {fm(g.junta('disc'), 1)} mm (galga)", "Galgas, plantilla angular", insp("Planitud de la cara de apoyo")]]
         if any("tornillo" in k for k in G["intb"]):
             rows.append(["—", f"Tornillos de posición ISO 10642 M{fm(P['d_tor'], 0)} con fijarroscas (solo posicionan)", f"Par {T(int(P['d_tor']))} N·m (propuesta GEN-008); cabeza bajo la cara", "Torquímetro", insp("Torque")])
+        if ctx.m.get("int_tapones"):
+            rows.append([pq("int_tapones"), "Tapones de grafito: llegan insertados en los sectores de bronce (taller, INT-102); no se desmontan en obra", "Al ras ±0,05 con la cara deslizante; sin tapones flojos", "Regla, galgas", insp("Planitud de la cara de apoyo")])
         if any("uhmw" in k for k in G["intb"]):
             rows.append(["—", "Colocar los sectores de UHMW en el rebaje entre barras", f"Junta en frío UHMW {fm(g.junta('uhmw'), 1)} mm", "Galgas", insp("Planitud de la cara de apoyo")])
         rows.append(["—", "Limpiar; engrasar la cara deslizante con grasa grafitada NLGI 2" if g.opt != 2 else "Limpiar las caras de deslizamiento (sin partículas)",
