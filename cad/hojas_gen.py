@@ -284,8 +284,14 @@ def nest_items(ctx):
     add("mesa_anillo_inf", "Anillo inf. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
     for p in m.parts:
         if p.key.startswith("mesa_nervio"):
-            bb = p.solid.vals()[0].BoundingBox()
-            L.append((p.key, p.name, max(bb.xlen, bb.ylen) + 4, g.hw + 4, P["t_rib"], p.qty, p.mass_unit))
+            sol = ctx.shapes[p.key].Solids()[0]
+            cc = sol.Center()
+            ur = (cc.x, cc.y)
+            nr = math.hypot(*ur) or 1.0
+            ur = (ur[0] / nr, ur[1] / nr)
+            pr = [v.X * ur[0] + v.Y * ur[1] for v in sol.Vertices()]
+            Lr = max(pr) - min(pr)                       # largo radial real del tramo (no la caja alineada a los ejes)
+            L.append((p.key, p.name, Lr + 4, g.hw + 4, P["t_rib"], p.qty, p.mass_unit))
     add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
@@ -299,9 +305,86 @@ def nest_items(ctx):
     return L
 
 
+KERF = 6.0          # separación entre piezas (corte por plasma/oxicorte) [mm]
+BORDE = 10.0        # borde de plancha descartado [mm]
+WIDTHS = [(1500, 6000), (2000, 6000), (2440, 12000), (3000, 12000)]
+PASO_L = 500.0      # largo de compra en múltiplos de 500 mm (corte a medida por el proveedor)
+
+
+def strip_pack(rects, W):
+    """Empaque por franjas transversales: cada franja ocupa todo el ancho W de la plancha y avanza a lo largo.
+    rects: [(w, h, etiqueta)] de piezas (envolvente con sobremetal). Devuelve (largo usado, posiciones, franjas) o None.
+    posiciones: (franja, x, y, w, h, etiqueta) con origen en la esquina inferior izquierda (x a lo ancho, y a lo largo)."""
+    Wu = W - 2 * BORDE
+    items = []
+    for (w, h, lab) in rects:
+        a, b = max(w, h), min(w, h)
+        if a + KERF <= Wu:
+            items.append((a, b, lab))
+        elif b + KERF <= Wu:
+            items.append((b, a, lab))
+        else:
+            return None
+    items.sort(key=lambda r: (-r[1], -r[0]))
+    shelves, pos = [], []
+    for (w, h, lab) in items:
+        for sh in shelves:
+            if sh["x"] + w + KERF <= Wu + 1e-6 and h <= sh["h"] + 1e-6:
+                pos.append((sh["i"], BORDE + sh["x"], sh["y"], w, h, lab))
+                sh["x"] += w + KERF
+                sh["n"].append(lab)
+                break
+        else:
+            y = BORDE + sum(s_["h"] + KERF for s_ in shelves)
+            sh = dict(i=len(shelves), y=y, h=h, x=w + KERF, n=[lab], w0=w)
+            shelves.append(sh)
+            pos.append((sh["i"], BORDE, y, w, h, lab))
+    L = BORDE + sum(s_["h"] + KERF for s_ in shelves) + BORDE - KERF
+    return L, pos, shelves
+
+
+def plan_espesor(rects):
+    """Mejor ancho comercial y partición en planchas de largo de compra (múltiplo de 500 mm, ≤ largo máximo del ancho)."""
+    best = None
+    smin = max(min(w, h) for (w, h, _) in rects) + 2 * BORDE + KERF
+    custom = [(int(math.ceil(smin / 100.0) * 100 + 100 * k), 6000, True) for k in range(6)]
+    for (W, Lmax, *cu) in [wl + (False,) for wl in WIDTHS] + custom:
+        cu = bool(cu and cu[0])
+        if cu and W >= 1500:
+            continue
+        paso = 100.0 if cu else PASO_L
+        r = strip_pack(rects, W)
+        if r is None:
+            continue
+        L, pos, shelves = r
+        # partición por franjas en planchas de largo ≤ Lmax
+        plates, cur, y0 = [], [], BORDE
+        for sh in shelves:
+            if cur and (sh["y"] + sh["h"] + BORDE - y0 + BORDE) > Lmax:
+                plates.append((cur, y0))
+                cur, y0 = [], sh["y"]
+            cur.append(sh)
+        plates.append((cur, y0))
+        out = []
+        area = 0.0
+        for k, (shs, y0) in enumerate(plates):
+            ids = {s_["i"] for s_ in shs}
+            Lu = max(s_["y"] + s_["h"] for s_ in shs) - y0 + 2 * BORDE
+            Lb = min(Lmax, math.ceil(Lu / paso) * paso)
+            pp = [(i, x, y - y0 + BORDE, w, h, lab) for (i, x, y, w, h, lab) in pos if i in ids]
+            sh2 = [dict(s_, y=s_["y"] - y0 + BORDE) for s_ in shs]
+            out.append(dict(W=W, L=Lb, Lu=Lu, pos=pp, shelves=sh2, custom=cu))
+            area += W * Lb
+        if best is None or area < best[0] - 1e-6:
+            best = (area, out)
+    return best[1] if best else None
+
+
 @gen
 def sheet_cortes(ctx):
-    c = Gen(ctx, 10, "LISTA DE CORTES DE PLANCHA (NESTING SIMPLE) Y APROVECHAMIENTO")
+    """GEN-010: plan de corte de planchas por espesor (ancho comercial, largo de compra, franjas acotadas, aprovechamiento) y GEN-013: posiciones."""
+    from vistas import snap_scale, scale_txt
+    c = Gen(ctx, 10, "PLAN DE CORTE DE PLANCHAS: ANCHO COMERCIAL, LARGO DE COMPRA, FRANJAS Y APROVECHAMIENTO")
     s = c.s
     R = c.R["main"]
     w = R[2] - R[0]
@@ -309,47 +392,77 @@ def sheet_cortes(ctx):
     groups = {}
     for it in items:
         groups.setdefault(round(it[4], 1), []).append(it)
-    rows, nests = [], []
+    rows, nests, prow = [], [], []
     tot_buy = tot_net = 0.0
+    nid = 0
     for t in sorted(groups):
         its = groups[t]
-        rects = [(a[2], a[3], f"{ctx.code(a[0]).replace(CODE + '-', '')}") for a in its for _ in range(int(a[5]))]
-        best = None
-        for (SW, SH) in STOCK:
-            n, pos = shelf_pack(rects, SW, SH)
-            if n is None:
-                continue
-            area = n * SW * SH
-            if best is None or area < best[0]:
-                best = (area, n, SW, SH, pos)
+        rects = [(a[2], a[3], ctx.code(a[0]).replace(CODE + "-", "")) for a in its for _ in range(int(a[5]))]
         net = sum(a[6] * a[5] for a in its)
-        if best is None:
-            rows.append([fm(t, 1), ", ".join(a[1] for a in its), "no cabe en plancha comercial: A DEFINIR (plancha especial)", "—", "—", f(net, 0), "—"])
+        pl = plan_espesor(rects)
+        if pl is None:
+            rows.append([fm(t, 1), "; ".join(f"{a[1]} ×{a[5]}" for a in its), "plancha especial (no cabe en 3.000 de ancho): A DEFINIR con el proveedor", "—", "—", f(net, 0), "—"])
             continue
-        area, n, SW, SH, pos = best
-        buy = n * SW * SH * t * RHO
+        buy = sum(q["W"] * q["L"] for q in pl) * t * RHO
         tot_buy += buy; tot_net += net
-        rows.append([fm(t, 1), "; ".join(f"{a[1]} ×{a[5]} ({fm(a[2], 0)}×{fm(a[3], 0)})" for a in its), f"{SW}×{SH}", str(n), f(buy, 0), f(net, 0), f(net / buy * 100, 1) + " %"])
-        nests.append((t, SW, SH, n, pos))
-    rows.append(["", "TOTAL (planchas)", "", "", f(tot_buy, 0), f(tot_net, 0), f(tot_net / max(tot_buy, 1) * 100, 1) + " %"])
-    y, _ = s.table(R[0], R[3], [("Espesor [mm]", 0.06 * w, "R"), ("Piezas (cant., rectángulo envolvente)", 0.47 * w, "L"), ("Plancha comercial [mm]", 0.12 * w, "C"), ("N° planchas", 0.07 * w, "C"),
-                                ("Masa comprada [kg]", 0.10 * w, "R"), ("Masa neta [kg]", 0.09 * w, "R"), ("Aprovech.", 0.09 * w, "R")], rows, h=T_S, title="PLANCHAS: NESTING POR ESTANTES SOBRE PLANCHAS COMERCIALES (rectángulos envolventes; los discos y anillos se anidan como cuadrados)", bold_rows=(len(rows) - 1,))
-    # esquema de la primera plancha de cada grupo (hasta 6)
-    y -= 10
-    cw = (w - 10) / 3
-    for i, (t, SW, SH, n, pos) in enumerate(nests[:6]):
-        col, row = i % 3, i // 3
-        bx, by = R[0] + col * (cw + 5), y - row * 100
-        sc = min((cw - 10) / SH, 80 / SW) if SH > SW else min((cw - 10) / SW, 80 / SH)
-        Wd, Hd = SW * sc, SH * sc
-        s.text(f"e = {fm(t, 1)} mm: plancha {SW}×{SH} (1.ª de {n})", (bx, by), T_N, "TOP_LEFT", bold=True)
-        s.rect(bx, by - 8 - Hd, bx + Wd, by - 8, "VIS")
-        for (si, px, py, pw, ph, lab) in pos:
-            if si == 0:
-                s.rect(bx + px * sc, by - 8 - (py + ph) * sc, bx + (px + pw) * sc, by - 8 - py * sc, "FINA")
-    s.notes_block(R[0], R[1] + 24, "NOTAS", ["Nesting orientativo por estantes con rectángulos envolventes (sin kerf ni sobremetal adicional al de la tabla de partida); el fabricante optimiza con su software de anidado.",
-                                              "Pletinas y barras (marco, almas, barras de topes) se compran en largos comerciales de 6 m: ver tabla de partida en el despiece."], h=T_N, width=w)
-    return c.h
+        rows.append([fm(t, 1), "; ".join(f"{a[1]} ×{a[5]} ({fm(a[2], 0)}×{fm(a[3], 0)})" for a in its), " + ".join(f"{q['W']}×{fm(q['L'], 0)}" + (" (a medida)" if q["custom"] else "") for q in pl), str(len(pl)), f(buy, 0), f(net, 0), f(net / buy * 100, 1) + " %"])
+        for k, q in enumerate(pl):
+            nid += 1
+            q.update(t=t, id=f"P{nid}", k=k + 1, n=len(pl))
+            nests.append(q)
+            for sh in q["shelves"]:
+                cnt = {}
+                for lab in sh["n"]:
+                    cnt[lab] = cnt.get(lab, 0) + 1
+                prow.append([q["id"], fm(t, 1), f"F{sh['i'] + 1}", fm(sh["y"], 0), fm(sh["h"], 0), ", ".join(f"{lb} ×{n}" for lb, n in cnt.items()),
+                             fm(BORDE, 0), fm(sh["w0"] + KERF, 0) if len(sh["n"]) > 1 else "—"])
+    rows.append(["", "TOTAL (planchas)", "", str(len(nests)), f(tot_buy, 0), f(tot_net, 0), f(tot_net / max(tot_buy, 1) * 100, 1) + " %"])
+    y, _ = s.table(R[0], R[3], [("Espesor [mm]", 0.06 * w, "R"), ("Piezas (cant., rectángulo envolvente con sobremetal)", 0.45 * w, "L"), ("Planchas de compra ancho × largo [mm]", 0.14 * w, "C"), ("N°", 0.04 * w, "C"),
+                                ("Masa comprada [kg]", 0.10 * w, "R"), ("Masa neta [kg]", 0.10 * w, "R"), ("Aprovech.", 0.11 * w, "R")], rows, h=T_S,
+                   title="PLANCHAS POR ESPESOR: ANCHO COMERCIAL Y LARGO DE COMPRA A MEDIDA (múltiplo de 500 mm); aprovechamiento = masa neta / masa comprada", bold_rows=(len(rows) - 1,))
+    # esquemas de corte: una celda por plancha, escala normalizada; largo de la plancha en horizontal
+    y -= 8
+    ytop, ybot = y, R[1] + 26
+    n = len(nests)
+    ncol = 4 if n > 6 else 3
+    nrow = math.ceil(n / ncol)
+    cw, ch = (w - 6 * (ncol - 1)) / ncol, (ytop - ybot - 6 * (nrow - 1)) / max(nrow, 1)
+    for i, q in enumerate(nests):
+        col, row = i % ncol, i // ncol
+        bx, by1 = R[0] + col * (cw + 6), ytop - row * (ch + 6)
+        sc = snap_scale(min((cw - 26) / q["L"], (ch - 38) / q["W"]))
+        Ld, Wd = q["L"] * sc, q["W"] * sc
+        x0, y0 = bx + 14, by1 - 12 - Wd
+        s.text(f"{q['id']} · e = {fm(q['t'], 1)} mm · {q['W']} × {fm(q['L'], 0)} ({q['k']}/{q['n']}) · ESC {scale_txt(sc)}", (bx, by1), T_N, "TOP_LEFT", bold=True)
+        s.rect(x0, y0, x0 + Ld, y0 + Wd, "VIS")
+        for (si, px, py, pw, ph, lab) in q["pos"]:
+            # plancha dibujada con el largo en horizontal: x de papel = largo (py), y de papel = ancho (px)
+            ax, ay = x0 + py * sc, y0 + px * sc
+            s.rect(ax, ay, ax + ph * sc, ay + pw * sc, "FINA")
+            if ph * sc > 9 and pw * sc > 4:
+                s.text(lab.split("-")[0] + "-" + lab.split("-")[1] if "-" in lab else lab, (ax + ph * sc / 2, ay + pw * sc / 2), 2.5, "MIDDLE_CENTER")
+        s.dim((x0, y0), (x0 + Ld, y0), -6, f"{fm(q['L'], 0)}", "h")
+        s.dim((x0, y0), (x0, y0 + Wd), -6, f"{q['W']}", "v", txt_shift=(0.0 if Wd > 16 else -(Wd / 2 + 8)), outside=Wd <= 16)
+        Lu = q["Lu"]
+        if q["L"] - Lu > 20:
+            s.line((x0 + Lu * sc, y0), (x0 + Lu * sc, y0 + Wd), "FANT")
+            s.dim((x0, y0), (x0 + Lu * sc, y0), -13, f"{fm(Lu, 0)} usado", "h")
+    s.notes_block(R[0], R[1] + 22, "NOTAS", [f"Empaque por franjas transversales sobre el ancho comercial; separación entre piezas {fm(KERF, 0)} mm (sangría de corte) y borde de plancha {fm(BORDE, 0)} mm. Posición de cada franja y piezas por franja: GEN-013.",
+                                              "Largo de compra: corte a medida por el proveedor en múltiplos de 500 mm sobre ancho comercial; en espesores gruesos con pocas piezas, «a medida» = trozo oxicortado por el proveedor (múltiplos de 100 mm). Discos y segmentos de anillo se anidan por su rectángulo envolvente (los segmentos pueden anidarse por pares girados 180°: aprovechamiento real mayor). Pletinas y barras: largos comerciales de 6 m (despiece)."], h=T_N, width=w)
+    hs = [c.h]
+    # GEN-013: tabla de franjas
+    c2 = Gen(ctx, 13, "PLAN DE CORTE DE PLANCHAS: POSICIÓN DE FRANJAS Y PIEZAS (ORIGEN EN LA ESQUINA DE LA PLANCHA)")
+    R2 = c2.R["main"]
+    w2 = R2[2] - R2[0]
+    s2 = c2.s
+    cols = [("Plancha", 0.07 * w2, "C"), ("e [mm]", 0.06 * w2, "R"), ("Franja", 0.06 * w2, "C"), ("y inicio [mm]", 0.09 * w2, "R"), ("Ancho de franja [mm]", 0.10 * w2, "R"),
+            ("Piezas en la franja (código ×n, en orden desde x = borde)", 0.42 * w2, "L"), ("x 1.ª pieza [mm]", 0.09 * w2, "R"), ("Paso en x [mm]", 0.09 * w2, "R")]
+    y2, left = s2.table(R2[0], R2[3], cols, prow, h=T_S, ymin=R2[1] + 30,
+                        title="FRANJAS DE CORTE: y = posición a lo largo de la plancha desde el borde de origen; x = a lo ancho; las piezas de una franja se cortan en el orden listado")
+    s2.notes_block(R2[0], R2[1] + 22, "NOTAS", [f"Borde de plancha {fm(BORDE, 0)} mm y sangría {fm(KERF, 0)} mm incluidos en las posiciones. Marcar con el código de la pieza y la colada antes de separar (trazabilidad EN 10204 3.1).",
+                                                "Plan orientativo para la compra; el fabricante puede reordenar con su software de anidado manteniendo la orientación de laminación indicada en los planos de pieza."], h=T_N, width=w2)
+    hs.append(c2.h)
+    return hs
 
 
 @gen
