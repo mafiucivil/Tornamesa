@@ -619,7 +619,7 @@ def pasos(ctx):
             rows.append(["—", "Colocar los sectores de UHMW en el rebaje entre barras", f"Junta en frío UHMW {fm(g.junta('uhmw'), 1)} mm", "Galgas", insp("Planitud de la cara de apoyo")])
         rows.append(["—", "Limpiar; engrasar la cara deslizante con grasa grafitada NLGI 2" if g.opt != 2 else "Limpiar las caras de deslizamiento (sin partículas)",
                      "Película 0,3–0,5 mm; sin partículas" if g.opt != 2 else "Sin partículas", "Espátula, paño", insp("Giro 360°")])
-        S.append(("4. INTERFAZ, LADO BASE (" + g.interfaz_nombre.split(":")[0] + ")", prev4, G["intb"], (0, 0, 350), None, rows))
+        S.append(("4. INTERFAZ, LADO BASE (" + g.interfaz_nombre.split(":")[0] + ("" if g.removable else ", sectores pegados") + ")", prev4, G["intb"], (0, 0, 350), None, rows))
     else:
         S.append(("4. INTERFAZ ACERO–ACERO: ENGRASE DE LAS CARAS", prev4, [], (0, 0, 0), None, [
             ["—", f"Limpiar y engrasar la zona de apoyo Ø{f(P['D_top'] + 20)} de la base y la cara inferior de la mesa con grasa grafitada NLGI 2",
