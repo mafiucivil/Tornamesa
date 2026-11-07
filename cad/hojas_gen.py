@@ -439,8 +439,9 @@ def sheet_cortes(ctx):
             # plancha dibujada con el largo en horizontal: x de papel = largo (py), y de papel = ancho (px)
             ax, ay = x0 + py * sc, y0 + px * sc
             s.rect(ax, ay, ax + ph * sc, ay + pw * sc, "FINA")
-            if ph * sc > 9 and pw * sc > 4:
-                s.text(lab.split("-")[0] + "-" + lab.split("-")[1] if "-" in lab else lab, (ax + ph * sc / 2, ay + pw * sc / 2), 2.5, "MIDDLE_CENTER")
+            lb_ = lab.split("-")[0] + "-" + lab.split("-")[1] if "-" in lab else lab
+            if ph * sc > tw(lb_, 2.5) + 1.5 and pw * sc > 4:
+                s.text(lb_, (ax + ph * sc / 2, ay + pw * sc / 2), 2.5, "MIDDLE_CENTER")
         s.dim((x0, y0), (x0 + Ld, y0), -6, f"{fm(q['L'], 0)}", "h")
         s.dim((x0, y0), (x0, y0 + Wd), -6, f"{q['W']}", "v", txt_shift=(0.0 if Wd > 16 else -(Wd / 2 + 8)), outside=Wd <= 16)
         Lu = q["Lu"]

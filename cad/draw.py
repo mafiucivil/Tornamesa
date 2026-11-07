@@ -293,14 +293,15 @@ class Sheet:
         xa, xb = (q[0], q[0] + sh * wmax_) if sh > 0 else (q[0] + sh * wmax_, q[0])
         self.reserved.append((min(xa, p[0]), min(q[1] - h * 1.4 * len(txts), p[1]), max(xb, p[0]), max(q[1] + h * 1.5, p[1])))
 
-    def balloon(self, p, q, n, r=5.0):
+    def balloon(self, p, q, n, r=5.0, dot=True):
         """Globo de posición: círculo r en q, línea guía a p (punto en la pieza)."""
         d = math.hypot(q[0] - p[0], q[1] - p[1])
         if d < 1e-6:
             return
         ux, uy = (q[0] - p[0]) / d, (q[1] - p[1]) / d
         self.line(p, (q[0] - ux * r, q[1] - uy * r), "COTA")
-        self.dot(p, 0.8)
+        if dot:
+            self.dot(p, 0.8)
         self.circle(q, r, "FINA")
         s = str(n)
         self.text(s, q, T_N if len(s) < 3 else 3.0, "MIDDLE_CENTER", bold=True)

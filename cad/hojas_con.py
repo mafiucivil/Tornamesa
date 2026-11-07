@@ -234,20 +234,58 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
                     return True
             return False
         _untangle()
-        if any(_cross(segs[i_][0], segs[i_][1], segs[j_][0], segs[j_][1]) for i_ in range(n) for j_ in range(i_ + 1, n)):
+        anybad = lambda: any(_bad(i_, j_) for i_ in range(n) for j_ in range(i_ + 1, n))
+        if anybad():
             # con la columna ajustada a la silueta no se pudo destrabar: columna recta
             segs = [[a, ((y, C) if hor else (C, y)), k] for (a, k), y in zip(its, ys)]
             _untangle()
+        if anybad():
+            # último recurso: línea quebrada; tramo oblicuo hasta un quiebre a 14 mm de la columna y tramo recto al globo
+            # (con los anclajes ordenados como los globos, los tramos oblicuos llegan a una misma recta y no se cruzan)
+            sg = (1 if side in ("l", "b") else -1)
+            tg = [(((y, C) if hor else (C, y)), ((y, C + sg * 16) if hor else (C + sg * 16, y))) for y in ys]
+            segs = [[a, tg[i_][0], k, tg[i_][1]] for i_, (a, k) in enumerate(its)]
+            # 2-opt: intercambiar destinos de tramos oblicuos que se cruzan (cada intercambio acorta el total: termina sin cruces)
+            for _ in range(8 * n * n):
+                sw = False
+                for i_ in range(n):
+                    for j_ in range(i_ + 1, n):
+                        if _cross(segs[i_][0], segs[i_][3], segs[j_][0], segs[j_][3]):
+                            segs[i_][1], segs[j_][1] = segs[j_][1], segs[i_][1]
+                            segs[i_][3], segs[j_][3] = segs[j_][3], segs[i_][3]
+                            sw = True
+                if not sw:
+                    break
         placed += segs
     # control: cruces entre líneas de referencia de la vista (debe ser 0)
-    nx = sum(1 for i_ in range(len(placed)) for j_ in range(i_ + 1, len(placed)) if _cross(placed[i_][0], placed[i_][1], placed[j_][0], placed[j_][1]))
-    nx += sum(1 for i_ in range(len(placed)) for j_ in range(len(placed)) if i_ != j_ and _seg_pt(placed[i_][0], placed[i_][1], placed[j_][1]) < 5.4)
+    pieces = [([(sg_[0], sg_[3]), (sg_[3], sg_[1])] if len(sg_) > 3 else [(sg_[0], sg_[1])]) for sg_ in placed]
+    nx = 0
+    for i_ in range(len(placed)):
+        for j_ in range(len(placed)):
+            if i_ == j_:
+                continue
+            if j_ > i_ and any(_cross(a1, b1, a2, b2) for (a1, b1) in pieces[i_] for (a2, b2) in pieces[j_]):
+                nx += 1
+            if any(_seg_pt(a1, b1, placed[j_][1]) < 5.4 for (a1, b1) in pieces[i_]):
+                nx += 1
     p.h.cruces_globos = getattr(p.h, "cruces_globos", 0) + nx
-    for a, q, pos in placed:
-        p.s.balloon(a, q, pos)
+    import os as _os
+    if nx and _os.environ.get("PLANDBG"):
+        for i_ in range(len(placed)):
+            for j_ in range(len(placed)):
+                if i_ != j_ and (any(_cross(a1, b1, a2, b2) for (a1, b1) in pieces[i_] for (a2, b2) in pieces[j_]) or any(_seg_pt(a1, b1, placed[j_][1]) < 5.4 for (a1, b1) in pieces[i_])):
+                    print("CRUCE", p.h.plano, placed[i_][2], [tuple(round(v, 1) for v in q_) for q_ in (placed[i_][0], placed[i_][1])], len(placed[i_]), "|", placed[j_][2], [tuple(round(v, 1) for v in q_) for q_ in (placed[j_][0], placed[j_][1])])
+    for sg_ in placed:
+        a, q, pos = sg_[0], sg_[1], sg_[2]
+        if len(sg_) > 3:
+            p.s.line(a, sg_[3], "COTA")
+            p.s.dot(a, 0.8)
+            p.s.balloon(sg_[3], q, pos, dot=False)
+        else:
+            p.s.balloon(a, q, pos)
         ctx.balloons[p.h.plano].add(pos)
     if placed:
-        qs = [q for _, q, _ in placed]
+        qs = [sg_[1] for sg_ in placed]
         V.ext = (min(V.ext[0], min(q[0] for q in qs) - 7), min(V.ext[1], min(q[1] for q in qs) - 7), max(V.ext[2], max(q[0] for q in qs) + 7), max(V.ext[3], max(q[1] for q in qs) + 7))
 
 
