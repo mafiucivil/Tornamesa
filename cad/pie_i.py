@@ -49,7 +49,7 @@ def int_sector_sheet(ctx, key, titulo, face):
         if po:
             V.note_pt(po, (34, -30), f"R{fm(ro_e, 0)} (radio exterior)", on=on, dot=True)
         if pi_:
-            V.note_pt(pi_, (-30, 22), f"R{fm(ri_e, 0)} (radio interior)", on=on, dot=True)
+            V.note_pt(pi_, (30, 26), f"R{fm(ri_e, 0)} (radio interior)", on=on, dot=True)
         if po and pi_:
             V.dimh(pi_, po, "bottom", 0, on=on, text=f"{fm(ro_e - ri_e, 0)} (ancho radial)")
         if g.removable and Ln and key != "int_uhmw":
