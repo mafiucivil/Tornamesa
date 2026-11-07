@@ -474,9 +474,11 @@ class Plano:
         s, R = self.s, pk["R"]
         if not hasattr(s, "reserved"):
             s.reserved = []
+        s.block_rects = []
         for b, x, y in pk["placed"]:
             y1 = b.draw(s, x, y, pk["bw"])
             s.reserved.append((x, y1, x + pk["bw"], y))
+            s.block_rects.append((x, y1, x + pk["bw"], y))
         x0 = R["left"][0]
         yy = 15.0 + pk["strip_h"]
         gap = pk["gap"]
@@ -498,11 +500,13 @@ class Plano:
                     b.cont_title = (bi == 0)      # al iniciar columna/zona nueva se repite el título con «(cont.)»
                     y1 = b.draw(s, xx, yc, pk["bw"])
                     s.reserved.append((xx, y1, xx + pk["bw"], yc))
+                    s.block_rects.append((xx, y1, xx + pk["bw"], yc))
                     yc -= b.h + gap
             yy = ytop - pk["col_h"] - gap
         for b in pk["wide"]:
             y1 = b.draw(s, x0, yy, pk["Wl"])
             s.reserved.append((x0, y1, x0 + pk["Wl"], yy))
+            s.block_rects.append((x0, y1, x0 + pk["Wl"], yy))
             yy -= b.h + gap
 
     def _try_format(self, fmt):
@@ -527,6 +531,30 @@ class Plano:
 
     # ---------------- construcción ----------------
     def build(self, iso_fill=None):
+        """Compone la lámina; si alguna vista usó más líneas de cota (o un título más bajo) que las reservadas, corrige la reserva y recompone (máx. 3 veces)."""
+        for it in range(4):
+            self._build_once(iso_fill)
+            grow = False
+            for sp in self.specs:
+                V = sp.V
+                if V is None:
+                    continue
+                need = (V.lv["left"], V.lv["bottom"], V.lv["right"], V.lv["top"])
+                if any(n_ > l_ for n_, l_ in zip(need, sp.lv)):
+                    sp.lv = tuple(max(n_, l_) for n_, l_ in zip(need, sp.lv))
+                    grow = True
+            if not grow or it == 3:
+                return
+            h, s, ctx = self.h, self.s, self.ctx
+            s.reset()
+            COTAS.rows[:] = [r for r in COTAS.rows if r["sheet"] != h.plano]
+            ctx.balloons[h.plano] = set()
+            h.welds_here = []
+            self.named, self.scales, self.vlist = {}, [], []
+            for sp in self.specs:
+                sp.V = None
+
+    def _build_once(self, iso_fill=None):
         h, s, ctx = self.h, self.s, self.ctx
         tries = getattr(self, "fmt_try", None) or [h.fmt]
         cands = [c for c in (self._try_format(f_) for f_ in tries) if c]
@@ -552,6 +580,7 @@ class Plano:
         h.scheme = scheme
         COTAS.sheet = h.plano
         self.draw_blocks(pk)
+        s.n_views0 = len(s.m)
         for i in range(len(specs)):
             sp = specs[i]
             cell = cells[i]
@@ -618,6 +647,7 @@ class Plano:
             cb(self)
         if (iso_fill if iso_fill is not None else self.iso_fill):
             self.fill_free(zone)
+        s.n_views1 = len(s.m)
         h.escala = self.fit_scale_txt() or "S/E"
 
     def _footprint(self, s, ext, sp, r0, V=None, custom=False):

@@ -35,6 +35,9 @@ def main():
         h = fn(ctx)
         for h in (h if isinstance(h, list) else [h]):
             s = h.finish(1, 1)
+            qc = h.control_calidad()
+            if qc["choques"] or qc["fuera"] or qc["invasiones"]:
+                print("   QC", nm, "choques", qc["choques"], "fuera", qc["fuera"][:3], "inv", qc["invasiones"][:3], "movidos", qc["movidos"])
             s.save(str(out / (nm + ".dxf")), str(out / (nm + ".pdf")))
             d = pymupdf.open(str(out / (nm + ".pdf")))
             d[0].get_pixmap(dpi=60).save(str(out / (nm + ".png")))

@@ -65,7 +65,7 @@ def int_sector_sheet(ctx, key, titulo, face):
         gs = V.circles(on, 2.9, 3.1)
         if m.info.get("grease_pts") and gs and face == "bot":
             u, v, r = [q for q in gs if abs(q[2] - 3.0) < 0.1][0]
-            V.note_hole((u, v, ztop), r, 40, f"{g.n_greaser} × Ø6 conducto de engrase axial (graseras en el canto de la mesa)", ext=40, on=on)
+            V.note_hole((u, v, ztop), r, 40, f"{g.n_greaser} × Ø6 +0,2/0 conducto de engrase axial (graseras en el canto de la mesa)", ext=40, on=on)
         if key == "int_bronce":
             pl = V.circles(on, P["bz_plug_d"] / 2 - 0.05, P["bz_plug_d"] / 2 + 0.05)
             if pl:
@@ -82,7 +82,10 @@ def int_sector_sheet(ctx, key, titulo, face):
         V.dim_dia((g.Ri + 2, 0, (z0_ + z1_) / 2), 0.0, 0, on=on, text="") if False else None
     p.vs("corte", on, "front", cut=CUT_Y, center=(g.r_u, 0, (z0_ + z1_) / 2), win=(-130, -t - 10, 130, t + 10), lv=(2, 2, 1, 2), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A POR LA BISECTRIZ", hs=0.35, w=1.2,
          auto=dict(tol={}, text={round(t, 1): f"{fm(t, 1)} (e) ±0,1"}, holes=False))
-    cs0 = autodim.circles3d(type("X", (), {})(), []) if False else None
+    # vistas de contorno del sector: elevación (cuerda y espesor) y lateral
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL SECTOR (cuerda y espesor)", w=0.9, maxs=1.0,
+         auto=dict(holes=False, tol={round(t, 1): " ±0,1"}))
+    p.vs("lat", on, "right", lv=(1, 2, 2, 1), hatch=False, title="VISTA LATERAL (ancho del sector en R_o)", w=0.9, maxs=1.0, auto=dict(holes=False, tol={round(t, 1): " ±0,1"}))
     scr_r = list((m.info.get("radii_screw") if face == "top" else m.info.get("radii_screw_m")) or [])
     if g.removable and scr_r and key != "int_uhmw":
         p.vs("det_scr", on, "front", cut=CUT_Y, center=(scr_r[0], 0, (z0_ + z1_) / 2), win=(-14, -t / 2 - 3, 14, t / 2 + 3), lv=(1, 2, 1, 1), hs=0.4, maxs=5.0, w=1.0,
@@ -352,7 +355,7 @@ def sheet_int_ranuras(ctx):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
         V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (R_i a R_o)")
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
-         auto=dict(holes=False, verts=False, only_extents=True, overall=False))
+         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=2.5, hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)"}, fits={}))
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
     zlo, zhi = (-10, t + 6) if face == "bot" else (-t - 6, 10)
     p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, zlo, 60, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,
@@ -460,7 +463,7 @@ def sheet_madera(ctx):
             xm = (a0 + a1) / 2
             s.text(str(i + 1), V.P(xm, 0 if i > 0 else 0, zw0 + tW), T_MIN + 0.5, "MIDDLE_CENTER") if False else None
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 20), draw=planta, hatch=False, title="PLANTA: DISPOSICIÓN DE TABLONES (200 mm), ABERTURA Ø%s Y BOLSILLOS" % f(g.cb_D), w=2.0,
-         auto=dict(fits={}, hole_rmin=20, hole_pos=False, text={round(2 * Rin, 1): f"Ø{f(2 * Rin)} (tablones, hasta el anillo)"}, hole_txt={round(g.washer_D + 4, 1): f"{g.N_pin} × Ø{f(g.washer_D + 4)} × 31 (bolsillo sobre perno y arandela), PCD Ø{f(2 * g.R_pin)}"}))
+         auto=dict(fits={round(g.cb_D, 1): "H12"}, hole_rmin=20, hole_pos=False, text={round(2 * Rin, 1): f"Ø{f(2 * Rin)} −2/−4 (tablones, hasta el anillo)"}, hole_txt={round(g.washer_D + 4, 1): f"{g.N_pin} × Ø{f(g.washer_D + 4)} +2/0 × 31 +2/0 (bolsillo sobre perno y arandela), PCD Ø{f(2 * g.R_pin)}"}))
 
     def corte(V, p):
         pass
@@ -501,7 +504,10 @@ def sheet_madera_anillo(ctx):
     s = p.s
     on = ["madera_anillo"]
     ids = jids(ctx, "Anillo de contención")
-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), hatch=False, title="PLANTA DEL ANILLO", w=1.5, auto=dict(hole_rmin=20, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} (D_top)"}))
+    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), hatch=False, title="PLANTA DEL ANILLO", w=1.5, auto=dict(hole_rmin=20, fits={round(2 * (g.Rt - g.t_ring), 1): "H12"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2 (D_top)"}))
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL ANILLO", w=1.0, auto=dict(holes=False, tol={round(tW, 1): " ±1 (t_wood)"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2"}))
+    p.vs("det_emp", on, "top", center=(g.Rt - g.t_ring / 2, 0, zw0 + tW), win=(-25, -25, 25, 25), lv=(1, 2, 1, 1), hatch=False, maxs=2.0, title="DETALLE B: SECCIÓN DE LA PLETINA EN PLANTA (t_ring)", w=0.8,
+         auto=dict(holes=False, tol={round(g.t_ring, 1): " ±0,5 (t_ring)"}))
 
     def corte(V, p):
         if ids:

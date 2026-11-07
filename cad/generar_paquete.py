@@ -15,8 +15,9 @@ _SHEETS = []
 def _render(i):
     h, n, tot, base = _SHEETS[i]
     s = h.finish(n, tot)
+    qc = h.control_calidad()
     s.save(str(base) + ".dxf", str(base) + ".pdf")
-    return i
+    return i, qc
 
 
 def main():
@@ -130,9 +131,10 @@ def main():
     for n, h in enumerate(hojas, 1):
         _SHEETS.append((h, n, total, pd / h.plano))
     import multiprocessing as mp
+    QC = {}
     with mp.get_context("fork").Pool(4) as pool:
-        for i in pool.imap_unordered(_render, range(total)):
-            pass
+        for i, qc in pool.imap_unordered(_render, range(total)):
+            QC[hojas[i].plano] = qc
     pdfs = [str(pd / h.plano) + ".pdf" for h in hojas]
     dxfs = [str(pd / h.plano) + ".dxf" for h in hojas]
     import pymupdf
@@ -192,11 +194,11 @@ def main():
                         ad_tot[k] += 1
                         break
         o1, o2, o3 = h.ocupacion()
-        mrows.append([n, h.plano, h.titulo, h.fmt, h.escala, ncot.get(h.plano, 0), round(o1 * 100, 1), round(o2 * 100, 1), round(o3 * 100, 1), round(getattr(h, 'huella', 0.0) * 100, 1), n_ad, n_ad_body, len(getattr(s, "hatch_classes", set())),
+        mrows.append([n, h.plano, h.titulo, h.fmt, h.escala, ncot.get(h.plano, 0), round(o1 * 100, 1), round(o2 * 100, 1), round(o3 * 100, 1), round(getattr(h, 'huella', 0.0) * 100, 1), n_ad, n_ad_body, len(QC[h.plano]['choques']), len(QC[h.plano]['fuera']), len(QC[h.plano]['invasiones']), QC[h.plano]['movidos'], len(getattr(s, "hatch_classes", set())),
                       min((e.dxf.height for e in s.m if e.dxftype() == "TEXT"), default=0)])
     with open(out / "metricas_laminas.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")
-        wr.writerow(["n", "lámina", "título", "formato", "escala", "cotas", "% vistas / área útil del marco", "% vistas / zona de vistas (área de dibujo)", "% tinta / zona de vistas", "% huella (vista + cotas + título + símbolos) / zona", "textos A DEFINIR", "A DEFINIR sin contar el cajetín (6 por lámina)", "clases de achurado", "altura mínima de texto [mm]"])
+        wr.writerow(["n", "lámina", "título", "formato", "escala", "cotas", "% vistas / área útil del marco", "% vistas / zona de vistas (área de dibujo)", "% tinta / zona de vistas", "% huella (vista + cotas + título + símbolos) / zona", "textos A DEFINIR", "A DEFINIR sin contar el cajetín (6 por lámina)", "choques de texto", "entidades fuera del marco", "invasiones (cajetín / banda)", "textos reubicados por el ordenador", "clases de achurado", "altura mínima de texto [mm]"])
         wr.writerows(mrows)
     with open(out / "soldaduras.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")
@@ -255,13 +257,26 @@ def main():
             fh.write("| " + " | ".join(str(x) for x in r) + " |\n")
         fh.write("\n")
         fh.write("- Textos «A DEFINIR» por causa: " + "; ".join(f"{k}: {v}" for k, v in ad_tot.items()) + ".\n\n")
-        fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR |\n|---|---|---|---|---|---|---|---|---|---|\n")
+        fh.write("| N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR | Choques | Fuera de marco | Invasiones |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
         for r in mrows:
-            fh.write(f"| {r[0]} | {r[1]} | {r[3]} | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} | {r[9]} | {r[11]} |\n")
+            fh.write(f"| {r[0]} | {r[1]} | {r[3]} | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} | {r[9]} | {r[11]} | {r[12]} | {r[13]} | {r[14]} |\n")
+    n_ch = sum(len(q["choques"]) for q in QC.values())
+    n_fu = sum(len(q["fuera"]) for q in QC.values())
+    n_iv = sum(len(q["invasiones"]) for q in QC.values())
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Control de calidad gráfico (DXF)\n\n- Choques de texto (intersección > 20 % del menor): {n_ch}. Entidades fuera del marco: {n_fu}. Invasiones del cajetín o de la banda de notas: {n_iv}. "
+                 f"Textos reubicados por el ordenador de textos: {sum(q['movidos'] for q in QC.values())}.\n")
+        for pl, q in sorted(QC.items()):
+            if q["choques"] or q["fuera"] or q["invasiones"]:
+                fh.write(f"- {pl}: choques {q['choques'][:6]}; fuera {q['fuera'][:4]}; invasiones {q['invasiones'][:4]}\n")
+    for pl, q in sorted(QC.items()):
+        if q["choques"] or q["fuera"] or q["invasiones"]:
+            print(f"  QC {pl}: choques {q['choques'][:6]} fuera {q['fuera'][:3]} invasiones {q['invasiones'][:3]}", flush=True)
+    print(f"  QC gráfico: choques {n_ch}, fuera de marco {n_fu}, invasiones {n_iv}", flush=True)
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)
-    if inter_bad or any(not r["ok"] for r in cr) or errores:
+    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv:
         sys.exit(2)
 
 

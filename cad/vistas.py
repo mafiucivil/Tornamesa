@@ -462,7 +462,7 @@ class View:
                         i_ = text.index(sep)
                         text, esc = text[:i_], text[i_:].strip(" —") + "  " + esc
                         break
-            wt = dr.tw(text, h, True)
+            wt = max(dr.tw(text, h, True), dr.tw(esc, dr.T_N))
             cx = min(max(cx, box[0] + 1 + wt / 2), box[2] - 1 - wt / 2)
         self.S.view_title((cx, low - 2), text, esc, h)
         return low

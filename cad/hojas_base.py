@@ -174,8 +174,30 @@ class Hoja:
         return f"{parts[0]} a {parts[-1]} (ver vistas)" if len(parts) > 1 else e
 
     def finish(self, n, total):
-        self.s.frame(self.info(n, total))
-        return self.s
+        s = self.s
+        s.n_frame0 = len(s.m)
+        s.frame(self.info(n, total))
+        s.n_frame1 = len(s.m)
+        W, H = s.W, s.H
+        caj = (self.R["right"][0], 10.0, W - 10.0, self.R["right"][1] - 3.0)
+        s.declutter(forbid=[caj])
+        return s
+
+    def control_calidad(self):
+        """Choques de texto, salida del marco e invasiones (cajetín; banda de notas por las vistas). Llamar después de finish()."""
+        import colisiones as C
+        s = self.s
+        ents = list(s.m)
+        n0, n1 = getattr(s, "n_frame0", len(ents)), getattr(s, "n_frame1", len(ents))
+        body = ents[:n0] + ents[n1:]
+        caj = (self.R["right"][0] + 0.5, 10.5, s.W - 10.5, self.R["right"][1] - 3.5, "cajetín")
+        rects = [caj]
+        v0, v1 = getattr(s, "n_views0", None), getattr(s, "n_views1", None)
+        inv = C.invasiones(body, rects)
+        if v0 is not None and v1 is not None:
+            band = [(x0, y0, x1, y1, "bloque de notas/tablas") for (x0, y0, x1, y1) in getattr(s, "block_rects", [])]
+            inv += C.invasiones(ents[v0:v1], band)
+        return dict(choques=C.choques(ents), fuera=C.fuera_de_marco(body, s.W, s.H), invasiones=inv, movidos=getattr(s, "n_moved", 0))
 
     def ocupacion(self):
         """(vistas / área útil del marco, vistas / zona de vistas [área de dibujo], tinta / zona de vistas).

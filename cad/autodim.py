@@ -301,7 +301,14 @@ def notes_holes(V, cs, on, fits=None, ang0=35, ext=14.0, pitch_txt=None, center=
         lines = None
         if box is not None:
             avail = (box[2] - qx - 2) if dx >= 0 else (qx - box[0] - 2)
+            # si el texto no cabe hacia ese lado, se espeja la llamada horizontalmente (hacia el lado con más espacio en la celda)
+            qx_m = P[0] - (rpx + e) * dx
+            avail_m = (box[2] - qx_m - 2) if -dx >= 0 else (qx_m - box[0] - 2)
+            if tw(txt, T_N) > avail and avail_m > avail:
+                ang = 180.0 - ang
+                dx = -dx
+                avail = avail_m
             if tw(txt, T_N) > avail:
                 from draw import wrapw
-                lines = wrapw(txt, max(avail, 50.0), T_N)
+                lines = wrapw(txt, max(avail, 40.0), T_N)
         V.note_hole(c[3], c[2], ang, txt, ext=e, on=on, lines=lines)

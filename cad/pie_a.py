@@ -185,7 +185,7 @@ def sheet_mensula_piezas(ctx):
 
     def d3(V, p):
         if len(ids) >= 4:
-            w_sym(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, tb + 0.5), (30, -30))
+            w_out(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, tb + 0.5), "right", dy=14)
     p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): f" (= {f(BR['spacer'])} + {f(tc)})"}), w=0.7)
     # corte por el eje del agujero de la oreja superior
     p.vs("os_corte", k2, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(1, 2, 1, 1), title="CORTE A-A: AGUJERO DE LA OREJA", hatch=True, auto=dict(tol={}, hole_notes=False, text={round(P["d_pp"], 1): tol_txt(P["d_pp"], "H9")}), w=0.8, hs=0.4)

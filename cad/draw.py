@@ -101,7 +101,20 @@ class Sheet:
         self.texts = []
         self.nat = 0              # contador de entidades (diagnóstico)
         self.n_gdt = self.n_ra = self.n_weld = 0
+        self.movable = []         # textos de cota y de llamada que el ordenador de textos puede deslizar a lo largo de su línea
         self.hatch_used = set()
+
+    def reset(self):
+        """Vacía la hoja (mismo objeto) para recomponerla: lo usa el compositor cuando una vista necesitó más líneas de cota que las previstas."""
+        self.doc = new_doc()
+        self.m = self.doc.modelspace()
+        self.texts = []
+        self.movable = []
+        self.n_gdt = self.n_ra = self.n_weld = 0
+        for k in ("views", "reserved", "footprints", "block_rects"):
+            if hasattr(self, k):
+                setattr(self, k, [])
+        self.hatch_classes = set()
 
     def reformat(self, fmt):
         """Cambia el formato de una hoja aún vacía (el compositor elige A3/A2/A1 según el llenado)."""
@@ -218,7 +231,8 @@ class Sheet:
                 mx, my = b[0] + ux * d, b[1] + uy * d
         tx = mx - math.sin(r) * 1.0 + math.cos(r) * txt_shift
         ty = my + math.cos(r) * 1.0 + math.sin(r) * txt_shift
-        self.text(txt, (tx, ty), h, "BOTTOM_CENTER", rot=deg)
+        t_ = self.text(txt, (tx, ty), h, "BOTTOM_CENTER", rot=deg)
+        self.movable.append(dict(e=t_, base=(tx, ty), deg=deg, a=a, b=b, align="BOTTOM_CENTER"))
 
     def dim_dia(self, c, r, ang_deg, txt, h=T_N, ext=10.0):
         """Cota de diámetro con línea de cota por el centro y texto en el extremo (r en papel)."""
@@ -268,7 +282,9 @@ class Sheet:
         self.line(q, (q[0] + sh * wmax, q[1]), "COTA")
         for i, t in enumerate(txts):
             if i == 0:
-                self.text(t, (q[0] + sh * 1.0, q[1] + 0.9), h, "BOTTOM_LEFT" if sh > 0 else "BOTTOM_RIGHT")
+                t0_ = self.text(t, (q[0] + sh * 1.0, q[1] + 0.9), h, "BOTTOM_LEFT" if sh > 0 else "BOTTOM_RIGHT")
+                if len(txts) == 1:
+                    self.movable.append(dict(e=t0_, base=(q[0] + sh * 1.0, q[1] + 0.9), deg=0.0, a=q, b=(q[0] + sh * wmax, q[1]), align="BOTTOM_LEFT" if sh > 0 else "BOTTOM_RIGHT", leader=True))
             else:
                 self.text(t, (q[0] + sh * 1.0, q[1] - 1.0 - (i - 1) * h * 1.4), h, "TOP_LEFT" if sh > 0 else "TOP_RIGHT")
         if not hasattr(self, "reserved"):
@@ -669,6 +685,87 @@ class Sheet:
         self.area = (L + 5, B + 5, R_ - 5, by0 - 5)          # área útil (sin banda)
 
     # ---------- salida ----------
+    def declutter(self, forbid=(), step=1.5, kmax=60):
+        """Ordenador de textos: desliza los textos de cota/llamada que chocan con otro texto a lo largo de su propia línea (ISO 129: el valor puede
+        desplazarse sobre la línea de cota prolongada) y prolonga la línea bajo el texto si sale del tramo entre flechas. forbid: rectángulos donde no
+        puede quedar texto (cajetín). Devuelve el número de textos movidos."""
+        from ezdxf import bbox as _bb
+        import colisiones as C
+        boxes = C.text_boxes(list(self.m))
+        idx = {id(b[5]): i for i, b in enumerate(boxes)}
+        mov = {id(m_["e"]): m_ for m_ in self.movable}
+        L_, B_, R_, T_ = 20.0, 10.0, self.W - 10.0, self.H - 10.0
+        moved = 0
+
+        def clash(bx, skip):
+            for j, o in enumerate(boxes):
+                if j == skip:
+                    continue
+                if o[0] > bx[2] or o[2] < bx[0] or o[1] > bx[3] or o[3] < bx[1]:
+                    continue
+                if C.overlap(bx, o) > 0.01:
+                    return True
+            if bx[0] < L_ + 0.5 or bx[1] < B_ + 0.5 or bx[2] > R_ - 0.5 or bx[3] > T_ - 0.5:
+                return True
+            for (x0, y0, x1, y1) in forbid:
+                if bx[0] < x1 and bx[2] > x0 and bx[1] < y1 and bx[3] > y0:
+                    return True
+            return False
+        for _pass in range(4):
+            changed = False
+            order = sorted(range(len(boxes)), key=lambda i: boxes[i][0])
+            for ii in order:
+                a = boxes[ii]
+                m_ = mov.get(id(a[5]))
+                if not clash(a, ii):
+                    continue
+                # el texto choca: si no es movible se intenta mover el otro (el primero movible que choca con él)
+                cand = [ii] if m_ else []
+                if not cand:
+                    for j, o in enumerate(boxes):
+                        if j != ii and id(o[5]) in mov and C.overlap(a, o) > 0.01:
+                            cand.append(j)
+                for ci in cand:
+                    bx = boxes[ci]
+                    mm = mov[id(bx[5])]
+                    ux, uy = math.cos(math.radians(mm["deg"])), math.sin(math.radians(mm["deg"]))
+                    best = None
+                    for k in range(1, kmax + 1):
+                        for sg in ((1, -1) if not mm.get("leader") else ((1,) if mm["b"][0] >= mm["a"][0] else (-1,))):
+                            dx, dy = sg * k * step * ux, sg * k * step * uy
+                            nb = [bx[0] + dx, bx[1] + dy, bx[2] + dx, bx[3] + dy]
+                            if not clash(nb, ci):
+                                best = (dx, dy, nb)
+                                break
+                        if best:
+                            break
+                    if not best:
+                        continue
+                    dx, dy, nb = best
+                    bp = mm["base"]
+                    mm["base"] = (bp[0] + dx, bp[1] + dy)
+                    bx[5].set_placement(mm["base"], align=TA[mm["align"]])
+                    boxes[ci][0:4] = nb
+                    # prolonga la línea de cota (o el rellano de la llamada) bajo el texto
+                    a_, b_ = mm["a"], mm["b"]
+                    Ld = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+                    if Ld > 1e-6:
+                        vx, vy = (b_[0] - a_[0]) / Ld, (b_[1] - a_[1]) / Ld
+                        cx, cy = (nb[0] + nb[2]) / 2, (nb[1] + nb[3]) / 2
+                        t = (cx - a_[0]) * vx + (cy - a_[1]) * vy
+                        half = abs((nb[2] - nb[0]) * vx) / 2 + abs((nb[3] - nb[1]) * vy) / 2 + 1.0
+                        if t + half > Ld:
+                            self.line(b_, (a_[0] + vx * (t + half), a_[1] + vy * (t + half)), "COTA")
+                        if t - half < 0:
+                            self.line(a_, (a_[0] + vx * (t - half), a_[1] + vy * (t - half)), "COTA")
+                    moved += 1
+                    changed = True
+                    break
+            if not changed:
+                break
+        self.n_moved = moved
+        return moved
+
     def save(self, dxf_path, pdf_path=None):
         self.doc.saveas(dxf_path)
         if pdf_path:
