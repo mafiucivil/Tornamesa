@@ -877,14 +877,15 @@ def sheet_mensula_conj(ctx):
     ids = [w["id"] for w in ctx.welds if any(t in w["desc"] for t in ("Mejillas de ménsula", "Oreja superior", "Oreja inferior"))]
 
     def planta(V, c):
-        with alias(ctx, "_C"):
-            balloons_auto(c, V, lk, gap=12, off=16)
         V.dimh((-rear, Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), "top", 0, on=["mensula_mejilla_C"], text=f"{f(P['L_ch'])}")
-        V.dimv((P["L_ch"] - rear, -Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), "right", 0, on=["mensula_mejilla_C"], text=f"{f(Wout)}")
-        V.dimv((Llug - rear, -Win / 2, zt), (Llug - rear, Win / 2, zt), "right", 1, on=["mensula_oreja_sup_C"], text=f"{f(Win)} (luz)")
+        V.dimv((P["L_ch"] - rear, -Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), "right", 0, on=["mensula_mejilla_C"], text=f"{f(Wout)}", txt_shift=-30)
+        V.dimv((Llug - rear, -Win / 2, zt), (Llug - rear, Win / 2, zt), "right", 1, on=["mensula_oreja_sup_C"], text=f"{f(Win)} (luz)", txt_shift=30)
         V.dim_dia((0, 0, zt), P["d_pp"] / 2, 60, on=["mensula_oreja_sup_C"], text=tol_txt(P["d_pp"], "H9"), ext=24)
-        c.cut_mark("planta", "A", (-rear - 20, 0, zt), (P["L_ch"] - rear + 20, 0, zt), 90)
-    c.vs("planta", sh, "top", lv=(1, 1, 2, 2), extra=(20, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.4)
+        c.cut_mark("planta", "A", (-rear - 20, 0, zt), (P["L_ch"] - rear + 42, 0, zt), 90)
+        with alias(ctx, "_C"):
+            # globos a la izquierda, fuera de la marca de corte; anclajes fuera del eje (la línea del eje es la del corte)
+            balloons_auto(c, V, lk, pred=lambda q: (22 < q[1] < Win / 2 - 3) or q[1] > Win / 2 + 3, gap=12, off=34, sides="l")
+    c.vs("planta", sh, "top", lv=(1, 1, 2, 2), extra=(20, 20, 30, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.4)
     c.vs("cA", sh2, "front", cut=CUT_Y, lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE A-A (plano del eje; base parcial)", w=1.2,
          center=(P["L_ch"] / 2 - rear, 0, tb), win=(-P["L_ch"] / 2 - 60, -tb - 4, P["L_ch"] / 2 + 60, H_ + 8),
          draw=lambda V, c: V.dimv((Llug - rear, 0, tb), (Llug - rear, 0, zt), "right", 0, on=["mensula_oreja_inf_C", "mensula_oreja_sup_C"], text=f"{f(H_)}"), auto=dict(on=lk, maxn=6))
@@ -993,7 +994,7 @@ def sheet_accionamiento(ctx):
 
     def planta(V, c):
         with alias(ctx, "_A"):
-            balloons_auto(c, V, lk, gap=12, off=16)
+            balloons_auto(c, V, lk, gap=12, off=34, sides="l")
         V.dimv((X, ye, zc), (X, yr, zc), "right", 0, on=["cilindro_A"], text=f"{fm(abs(ye - yr), 1)} (entre ejes de ojales)", virt_a=P["d_pp"] / 2, virt_b=P["d_pp"] / 2)
         V.dim_dia((X, ye, zc), P["d_pp"] / 2, 30, on=["pasador_ojal_A", "cilindro_A"], text=f"Ø{f(P['d_pp'])} f8", ext=22)
         c.cut_mark("planta", "A", (X - 160, yc, g.tb), (X + 160, yc, g.tb), 90)
