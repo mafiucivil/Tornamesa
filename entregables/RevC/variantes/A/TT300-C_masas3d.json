@@ -36,18 +36,18 @@
    {
     "grupo": "mesa",
     "pieza": "Mesa (planchas, almas, nervios, cubo, pasadores)",
-    "modelo3d": 1425.9689867261632,
+    "modelo3d": 1425.9422598230124,
     "nucleo": 1427.5934274177607,
-    "dif": -1.624440691597556,
-    "dif_pct": -0.11378874828079405
+    "dif": -1.6511675947483582,
+    "dif_pct": -0.11566091318695684
    },
    {
     "grupo": "pivot",
     "pieza": "Pivote",
-    "modelo3d": 21.37012890662268,
+    "modelo3d": 21.334493035754853,
     "nucleo": 21.396319422097857,
-    "dif": -0.0261905154751787,
-    "dif_pct": -0.12240663900413384
+    "dif": -0.06182638634300375,
+    "dif_pct": -0.28895804518206164
    },
    {
     "grupo": "cyl",
@@ -90,10 +90,10 @@
     "dif_pct": -2.1331777475961544e-14
    }
   ],
-  "total_3d": 3888.3110703564503,
+  "total_3d": 3888.2487075824315,
   "total_nucleo": 3892.6376450186426,
-  "dif": -4.326574662192343,
-  "dif_pct": -0.11114763450250766,
+  "dif": -4.388937436211108,
+  "dif_pct": -0.11274970435091933,
   "fuera": [
    [
     "TT300C-MES-013-C",
@@ -108,12 +108,12 @@
    [
     "TT300C-PIV-003-C",
     "Tapa retenedora",
-    1.5980653510280558
+    1.5741930167719578
    ],
    [
     "TT300C-PIV-004-C",
     "Tapa de inspección",
-    2.7938522760380615
+    2.758043774653913
    ],
    [
     "TT300C-ACC-005-C",
@@ -141,15 +141,15 @@
     0.029593802796815935
    ]
   ],
-  "masa_fuera": 55.25936607734045,
-  "masa_ensamble": 3943.5704364337907,
+  "masa_fuera": 55.19968524170021,
+  "masa_ensamble": 3943.4483928241316,
   "tol_pct": 0.5
  },
- "masa_total_ensamble": 3943.570436433791,
+ "masa_total_ensamble": 3943.4483928241316,
  "cg": [
-  0.01958475302416489,
-  -0.001806376563555912,
-  91.28501862643773
+  0.019585359141897782,
+  -0.0018064324681058277,
+  91.28030617589833
  ],
  "interferencias": [
   {
@@ -3301,8 +3301,8 @@
   "TT300C-MES-001-C": {
    "nombre": "Plancha superior de la mesa",
    "qty": 1,
-   "masa_unit": 358.9925571272408,
-   "masa_total": 358.9925571272408
+   "masa_unit": 358.96583022409,
+   "masa_total": 358.96583022409
   },
   "TT300C-MES-002-C": {
    "nombre": "Anillo superior de pasadores",
@@ -3379,8 +3379,8 @@
   "TT300C-PIV-001-C": {
    "nombre": "Pivote",
    "qty": 1,
-   "masa_unit": 21.37012890662268,
-   "masa_total": 21.37012890662268
+   "masa_unit": 21.334493035754853,
+   "masa_total": 21.334493035754853
   },
   "TT300C-PIV-002-C": {
    "nombre": "Buje autolubricado",
@@ -3391,14 +3391,14 @@
   "TT300C-PIV-003-C": {
    "nombre": "Tapa retenedora",
    "qty": 1,
-   "masa_unit": 1.5980653510280558,
-   "masa_total": 1.5980653510280558
+   "masa_unit": 1.5741930167719578,
+   "masa_total": 1.5741930167719578
   },
   "TT300C-PIV-004-C": {
    "nombre": "Tapa de inspección",
    "qty": 1,
-   "masa_unit": 2.7938522760380615,
-   "masa_total": 2.7938522760380615
+   "masa_unit": 2.758043774653913,
+   "masa_total": 2.758043774653913
   },
   "TT300C-ACC-002-C": {
    "nombre": "Cilindro hidráulico doble efecto",

@@ -20,14 +20,14 @@ MES-009-C;Nervio radial, tramo 2;Pletina;174×6×1174;14;ASTM A572 Gr.50 (Fy ≥
 MES-010-C;Nervio radial, tramo 3;Pletina;174×6×1674;14;ASTM A572 Gr.50 (Fy ≥ 345 MPa);L=244,0 (R593,0–R837,0)
 MES-011-C;Cubo de la mesa;Anillo;Ø320/Ø140×179;1;ASTM A572 Gr.50 (Fy ≥ 345 MPa);
 MES-012-C;Pasador de empuje;Barra;Ø90×216;28;34CrNiMo6+QT (EN 10083-3), Fy ≥ 800 MPa;
-PIV-001-C;Pivote;Barra;Ø125×247;1;SEGÚN CÁLCULO Fy ≥ 650 MPa, GRADO A DEFINIR ;
-PIV-002-C;Buje autolubricado;Tubo/buje;Ø154/Ø116×84;1;Buje autolubricado: aleación A DEFINIR POR C;
+PIV-001-C;Pivote;Barra;Ø125×247;1;34CrNiMo6+QT (EN 10083-3), Re ≥ 700 MPa (Ø/e;
+PIV-002-C;Buje autolubricado;Tubo/buje;Ø154/Ø116×84;1;Buje autolubricado: bronce con lubricante só;
 PIV-003-C;Tapa retenedora;Disco;Ø185×10;1;ASTM A572 Gr.50 (Fy ≥ 345 MPa);
 PIV-004-C;Tapa de inspección;Disco;Ø243×10;1;ASTM A572 Gr.50 (Fy ≥ 345 MPa);
-ACC-003-C;Patín guiado;Bloque;582×290×197;2;SEGÚN CÁLCULO Fy ≥ 460 MPa, GRADO A DEFINIR ;Una pieza
+ACC-003-C;Patín guiado;Bloque;582×290×197;2;42CrMo4+QT (EN 10083-3), Re ≥ 550 MPa (Ø/e 1;Una pieza
 ACC-004-C;Uña de empuje;Forja/bloque;208×98×120;2;34CrNiMo6+QT (EN 10083-3), Re ≥ 900 MPa medi;Cara de empuje templada
-ACC-005-C;Pasador del vástago (patín);Barra;Ø75×146;2;SEGÚN CÁLCULO Fy ≥ 650 MPa, GRADO A DEFINIR ;
-ACC-006-C;Pasador del ojal trasero (ménsula);Barra;Ø75×212;2;SEGÚN CÁLCULO Fy ≥ 650 MPa, GRADO A DEFINIR ;
+ACC-005-C;Pasador del vástago (patín);Barra;Ø75×146;2;42CrMo4+QT (EN 10083-3), Re ≥ 650 MPa (Ø/e 7;
+ACC-006-C;Pasador del ojal trasero (ménsula);Barra;Ø75×212;2;42CrMo4+QT (EN 10083-3), Re ≥ 650 MPa (Ø/e 7;
 INT-001-C;Disco de la base (sector liso);Sector anular;880×271×16,5;24;Acero inoxidable austenítico ASTM A240 (Fy ≥;"Corte por plasma de agua/láser; rectificado de caras (subcontrato)"
 INT-002-C;Disco de la mesa (sector ranurado);Sector anular;880×271×16,5;24;Acero inoxidable austenítico ASTM A240 (Fy ≥;"Corte por plasma de agua/láser; rectificado de caras (subcontrato)"
 INT-003-C;Barra de tope (disco de la base);Barra;20×170×13;24;ASTM A572 Gr.50 (Fy ≥ 345 MPa);"h = t − a_sup (núcleo); soldada con 2 filetes"
