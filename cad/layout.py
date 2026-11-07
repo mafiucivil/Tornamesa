@@ -565,6 +565,30 @@ class Plano:
         cands = [c for c in (self._try_format(f_) for f_ in tries) if c]
         if not cands:
             raise RuntimeError("ningún formato admite la disposición de " + h.plano)
+        # vista principal a la escala normalizada siguiente (ISO 5455) si cabe y la lámina gana área de vistas
+        sp0 = self.specs[0] if self.specs else None
+        if getattr(self, "boost_main", False) and sp0 is not None and not sp0.iso and not sp0.custom and not getattr(self, "_boosted", False):
+            self._boosted = True
+            for _ in range(3):
+                c0 = max(cands, key=lambda c: c["fill"])
+                s0 = c0["plan"][1][0]
+                up = [x for x in STD_SCALES if x > s0 * 1.0001]
+                if not up or (sp0.maxs and up[0] > sp0.maxs * 1.0001):
+                    break
+                m0 = sp0.mins
+                sp0.mins = up[0]
+                c2 = [c for c in (self._try_format(f_) for f_ in tries) if c]
+                import os as _os
+                if _os.environ.get("PLANDBG"):
+                    print("BOOST", h.plano, s0, "->", up[0], [(c["fmt"], c["plan"][1], round(c["fill"], 3)) for c in c2], "antes", c0["plan"][1], round(c0["fill"], 3))
+                ok = [c for c in c2 if c["plan"][1][0] >= up[0] * 0.9999 and c["fill"] >= c0["fill"] * 0.9
+                      and all(c["plan"][1][i] >= c0["plan"][1][i] * 0.49 for i in range(1, len(self.specs)))]
+                if not ok:
+                    sp0.mins = m0
+                    break
+                cands = ok
+        elif getattr(self, "_boosted", False):
+            pass
         bestf = max(c["fill"] for c in cands)
         # el formato más pequeño cuyo llenado alcanza el 85 % del mejor
         ch = next(c for c in sorted(cands, key=lambda c: ("A3", "A2", "A1").index(c["fmt"])) if c["fill"] >= 0.999 * bestf)

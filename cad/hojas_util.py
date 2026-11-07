@@ -37,6 +37,7 @@ class Pieza(Plano):
         h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
         self.init_plano(ctx, h)
+        self.boost_main = True          # vista principal a la escala normalizada siguiente si cabe (ver layout._build_once)
         self.iso_keys = list(self.keys)
         self.fmt_try = ["A2", "A1"] if fmt == "auto" else (["A3", "A2", "A1"] if fmt == "auto3" else None)
         self.W_right = 172.0

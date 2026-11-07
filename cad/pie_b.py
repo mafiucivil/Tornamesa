@@ -29,7 +29,7 @@ def sheet_mesa_sup(ctx):
          draw=corte, title="CORTE A-A (radial, con rotura)", hs=0.5, w=1.2,
          auto=dict(tol={round(tt, 1): " (t_top)"}, text={}))
     p.detail("det_c", "corte", (g.hole_top / 2 + 10, 0, zt - tt / 2), 38, "B", lv=(1, 2, 1, 1), title="DETALLE B: AGUJERO CENTRAL Y REBAJE DE LA TAPA", maxs=2.0)
-    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(tt, 1): " (t_top)"}, holes=False), maxs=5.0)
+    # sin elevación: plancha de espesor constante; el espesor se acota en el corte
     for i, j_ in enumerate(jj):
         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tt)
     p.tables(jj)
@@ -149,7 +149,7 @@ def sheet_mesa_inf(ctx):
     def planta(V, p):
         s.centerlines(V.P(0, 0, z0), g.prIn * V.scale, 8)
         p.cut_mark("planta", "A", (-g.prIn - 22, 0, z0), (g.prIn + 22, 0, z0), -90)
-    p.vs("planta", on, "bottom", lv=(1, 1, 1, 1), extra=(0, 0, 150, 0), draw=planta, title="VISTA INFERIOR (cara de apoyo)", w=1.5,
+    p.vs("planta", on, "bottom", lv=(1, 1, 1, 1), extra=(0, 0, 30, 0), draw=planta, title="VISTA INFERIOR (cara de apoyo)", w=1.5,
          auto=dict(hole_rmin=2.0, text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn)} ±1,5"}))
     x_a, x_b = ri - 25, g.prIn + 25
 
@@ -161,7 +161,7 @@ def sheet_mesa_inf(ctx):
     p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, z0 - 6, x_b, z0 + tbo + 14), breaks=[(ri + 150, g.prIn - 150)], lv=(1, 3, 1, 2), extra=(0, 0, 115, 0), draw=corte,
          title="CORTE A-A (radial, con rotura)", hs=0.5, w=1.2, auto=dict(tol={round(tbo, 1): " (t_bot)"}))
     p.detail("det_c", "corte", (ri + 6, 0, z0 + tbo / 2), 30, "B", lv=(1, 2, 1, 1), title="DETALLE B: BORDE DEL AGUJERO (REBAJE DEL COLLAR)", maxs=5.0)
-    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(tbo, 1): " (t_bot)"}, holes=False), maxs=5.0)
+    # sin elevación: plancha de espesor constante; el espesor se acota en el corte A-A
     for i, j_ in enumerate(jj):
         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tbo)
     p.tables(jids(ctx, "Plancha inferior – anillo", "Barras de tope – plancha inferior"))
@@ -187,7 +187,7 @@ def sheet_almas(ctx):
         for i, r in enumerate(D["almas"]):
             V.dim_rad((0, 0, z0 + g.hw), r + P["t_web"] / 2, -40 + 25 * i, on=[ks[i]], text=f"R{f(r)} (eje) — A{i + 1}", ext=22 + 6 * i)
         s.centerlines(V.P(0, 0, z0), D["almas"][-1] * V.scale, 8)
-    p.vs("planta", ks, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), draw=planta, title="PLANTA DE LAS 3 ALMAS", hatch=False, w=1.5, auto=dict(holes=False, hole_notes=False))
+    p.vs("planta", ks, "top", lv=(1, 1, 1, 1), extra=(0, 0, 70, 0), draw=planta, title="PLANTA DE LAS 3 ALMAS", hatch=False, w=1.5, auto=dict(holes=False, hole_notes=False))
     k0, r = ks[-1], D["almas"][-1]
 
     def corte(V, p):
