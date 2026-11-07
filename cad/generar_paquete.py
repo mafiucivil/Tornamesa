@@ -291,10 +291,15 @@ def main():
     # ---- completitud dimensional por pieza leída del sólido 3D ----
     import completitud
     comp_rows, n_req, n_miss = [], 0, 0
+    union_, hechos_ = {}, set()
+    for h in hojas:
+        if h.serie == "FAB":
+            for c_ in h.items:
+                union_.setdefault(c_, []).extend(h.s.texts)
     for h in hojas:
         if h.serie != "FAB":
             continue
-        tot_, miss_, just_ = completitud.control_lamina(ctx, h)
+        tot_, miss_, just_ = completitud.control_lamina(ctx, h, union_, hechos_)
         n_req += tot_
         n_miss += len(miss_)
         comp_rows.append([h.plano.replace(CODE + "-", ""), tot_, tot_ - len(miss_), len(miss_), " | ".join(f"{c.replace(CODE + '-', '')}: {x}" for c, x in miss_),
@@ -315,15 +320,17 @@ def main():
             print(f"  COMPLETITUD {r[0]}: {r[4][:400]}", flush=True)
     n_lt = sum(len(q.get("lineas_texto", [])) for q in QC.values())
     n_cg = sum(q.get("cruces_globos", 0) for q in QC.values())
+    n_int = sum(q.get("interrumpidas", 0) for q in QC.values())
     with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
-        fh.write(f"\n## Líneas de cota y de referencia sobre textos\n\n- Líneas de cota, extensión o referencia (capa COTA) que atraviesan el recuadro de un texto: {n_lt}. Cruces entre líneas de referencia de globos: {n_cg}.\n")
+        fh.write(f"\n## Líneas de cota y de referencia sobre textos\n\n- Líneas de cota, extensión o referencia (capa COTA) que atraviesan el recuadro de un texto: {n_lt}. Cruces entre líneas de referencia de globos: {n_cg}. "
+                 f"Líneas interrumpidas bajo un texto (ISO 128-20) después del ordenador de textos: {n_int}.\n")
         for pl, q in sorted(QC.items()):
             if q.get("lineas_texto") or q.get("cruces_globos"):
                 fh.write(f"- {pl}: {len(q.get('lineas_texto', []))} línea(s) sobre texto {q.get('lineas_texto', [])[:4]}; cruces de globos {q.get('cruces_globos', 0)}\n")
     for pl, q in sorted(QC.items()):
         if q.get("lineas_texto") or q.get("cruces_globos"):
             print(f"  LINEAS SOBRE TEXTO {pl}: {len(q.get('lineas_texto', []))} {q.get('lineas_texto', [])[:4]} cruces de globos {q.get('cruces_globos', 0)}", flush=True)
-    print(f"  líneas sobre texto: {n_lt}; cruces de globos: {n_cg}", flush=True)
+    print(f"  líneas sobre texto: {n_lt}; cruces de globos: {n_cg}; interrumpidas bajo texto: {n_int}", flush=True)
     n_ch = sum(len(q["choques"]) for q in QC.values())
     n_fu = sum(len(q["fuera"]) for q in QC.values())
     n_iv = sum(len(q["invasiones"]) for q in QC.values())

@@ -26,6 +26,7 @@ def main():
     hojas_pie.register(ctx)
     out = SC / "dev"
     import pymupdf
+    HS = []
     for nm in names:
         t0 = time.time()
         fn = None
@@ -61,15 +62,23 @@ def main():
                         print("    ", r["vista"], "|", r["texto"], "|", r["valor_dibujo"], r["ok"])
             if getattr(h, "serie", "") == "FAB":
                 import completitud
+                HS.append(h)
                 n_, miss_, _j = completitud.control_lamina(ctx, h)
                 print("   COMPLETITUD", h.plano, f"{n_ - len(miss_)}/{n_}", miss_[:40])
             print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "huella", round(getattr(h, "huella", 0), 2), "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
+    if len(HS) > 1:
+        import completitud
+        un, he = {}, set()
+        for h in HS:
+            for c_ in h.items:
+                un.setdefault(c_, []).extend(h.s.texts)
+        for h in HS:
+            n_, miss_, _j = completitud.control_lamina(ctx, h, un, he)
+            print("   COMPLETITUD (unión)", h.plano, f"{n_ - len(miss_)}/{n_}", miss_[:30])
 
 def vistas_rows():
     import vistas
     return vistas.COTAS.rows
-
-
 if __name__ == "__main__":
     main()

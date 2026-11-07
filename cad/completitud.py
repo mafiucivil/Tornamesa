@@ -140,7 +140,8 @@ def requisitos(so):
             if key in cyls:
                 cyls[key]["full"] = cyls[key]["full"] or full
                 continue
-            cyls[key] = dict(r=r, a=a, others=others, co=[_dot(l0, E[i]) for i in others], full=full)
+            zg = abs(abs(d[2]) - 1) < 1e-4
+            cyls[key] = dict(r=r, a=a, others=others, co=[_dot(l0, E[i]) for i in others], full=full, rho_g=(math.hypot(l0[0], l0[1]) if zg else None))
         elif ty == GeomAbs_Cone:
             inclinadas += 1
     for i in range(3):
@@ -163,10 +164,16 @@ def requisitos(so):
             cands = [abs(v - ctr[i]), v - lo[i], hi[i] - v]
             if min(abs(v - ctr[i]), abs(v - lo[i]), abs(hi[i] - v)) < 0.06:
                 continue           # sobre el eje de simetría o en el borde: implícito
-            R.append(dict(tipo="posición de eje", desc=f"posición del eje de Ø{2 * r:.1f} en {nombres[i]} ({v - lo[i]:.1f} desde el borde)", vals=cands + [rho, 2 * rho]))
+            rg = [c["rho_g"], 2 * c["rho_g"]] if c["rho_g"] else []       # radio del círculo de paso desde el eje del equipo (piezas en sectores)
+            R.append(dict(tipo="posición de eje", desc=f"posición del eje de Ø{2 * r:.1f} en {nombres[i]} ({v - lo[i]:.1f} desde el borde)", vals=cands + [rho, 2 * rho] + rg))
     # extensión: cubierta por el diámetro exterior cuando la pieza es de revolución en ese plano
     dfull = [2 * c["r"] for c in cyls.values() if c["full"]]
+    # sector o anillo: un arco con eje en el eje del equipo define la forma en planta (radios y ángulo); la extensión en planta no se pide
+    ext_pl = max([hi[i] - lo[i] for i in range(3) if abs(E[i][2]) < 1e-3] or [0.0])
+    sector = any(c["rho_g"] is not None and c["rho_g"] < 0.05 and c["r"] >= 0.3 * ext_pl for c in cyls.values())
     for q in ext_req:
+        if sector and abs(E[q["eje"]][2]) < 1e-3:
+            continue
         if not any(abs(d - q["vals"][0]) < 0.05 for d in dfull):
             R.insert(0, q)
     if inclinadas:
@@ -176,8 +183,11 @@ def requisitos(so):
 
 def faltantes(texts, so):
     nums = numeros(texts)
-    dnums = numeros([m for t in texts for m in re.findall(r"Ø\s?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)", str(t))])
-    rnums = numeros([m for t in texts for m in re.findall(r"(?<![A-Za-z])R\s?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)", str(t))])
+    NV = r"(?:\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)"
+    lst = lambda pre: [x for t in texts for m in re.findall(pre + r"\s?=?\s?(" + NV + r"(?:,\s" + NV + r")*)", str(t)) for x in m.split(", ")]
+    dnums = numeros(lst("Ø"))
+    rnums = numeros(lst(r"(?<![A-Za-z])R(?:_[io])?"))
+    anchos = [n for n, d in nums if 0 < n <= 40]
     has_ang = any(("°" in str(t)) or ("×45" in str(t)) or ("chafl" in str(t).lower()) or ("bisel" in str(t).lower()) for t in texts)
     roscas = [float(m) for t in texts for m in re.findall(r"\bM(\d+(?:,\d+)?)", str(t).replace(",", "."))] if texts else []
     out, n = [], 0
@@ -191,6 +201,10 @@ def faltantes(texts, so):
             # diámetros y radios: el número debe estar rotulado como Ø… o R… (o como rosca M…)
             if _hay(dnums, q["vals"][0]) or _hay(rnums, q["vals"][1]):
                 continue
+            # pared de una ranura: radio del eje de la ranura ± medio ancho
+            r_ = q["vals"][1]
+            if any(abs(R_ + sg * w / 2 - r_) < 0.06 for R_ in [n for n, _ in rnums] + [n / 2 for n, _ in dnums] for w in anchos for sg in (1, -1)):
+                continue
         elif any(_hay(nums, v) for v in q["vals"]):
             continue
         if q.get("rosca") and any(0.74 * d <= q["rosca"] <= 1.001 * d for d in roscas):
@@ -199,21 +213,28 @@ def faltantes(texts, so):
     return n, out
 
 
-def control_lamina(ctx, h):
-    """(n_requisitos, [(pieza, faltante)]) para una lámina de pieza. Comerciales: justificadas."""
+def control_lamina(ctx, h, union=None, hechos=None):
+    """(n_requisitos, [(pieza, faltante)], justificadas) para una lámina de pieza. Comerciales: justificadas.
+    union: {código: textos de TODAS las láminas que documentan la pieza} (una pieza puede repartirse en dos láminas, p. ej. sector y ranuras);
+    hechos: conjunto de códigos ya controlados (cada pieza se cuenta una sola vez, en la primera lámina donde aparece)."""
     keys = [p.key for p in ctx.m.parts if p.code in h.items]
     tot, miss, just = 0, [], []
     for k in keys:
         p = ctx.m.get(k)
         if p is None or k not in ctx.shapes:
             continue
+        if hechos is not None:
+            if p.code in hechos:
+                continue
+            hechos.add(p.code)
         if p.comercial:
             just.append((p.code, "definido por elemento comercial"))
             continue
         sols = ctx.shapes[k].Solids()
         if not sols:
             continue
-        n, fl = faltantes(h.s.texts, sols[0])
+        txt = (union or {}).get(p.code) or h.s.texts
+        n, fl = faltantes(txt, sols[0])
         tot += n
         miss += [(p.code, x) for x in fl]
     return tot, miss, just

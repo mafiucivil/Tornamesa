@@ -112,10 +112,26 @@ def sheet_mesa_anillos(ctx):
              f"Posición angular: primer agujero a {fm(a0, 3)}°, paso {fm(pitch, 3)}°; los empalmes quedan entre agujeros (a {fm((0.5) * pitch, 2)}° de ellos).",
              f"Empalmes CJP V 60°, raíz 3, respaldo, UT 100 % ({ej}); esmerilar al ras antes de armar. Soldar los empalmes ANTES de unir con las planchas.",
              "UT de recepción de la plancha ASTM A578 nivel B y Z35 (EN 10164) por el esfuerzo en espesor de los pasadores.",
-             "Rugosidad Ra 3,2 en los agujeros; aristas rotas 1×45°."],
+             "Rugosidad Ra 3,2 en los agujeros; aristas rotas 1×45°."] + notas_anillo_inf(ctx),
             gd=[("pos", "Ø0,3", "A", "PCD y agujeros: posición (A = eje de la mesa)"), ("coax", "Ø0,05", None, "Agujeros superior e inferior coaxiales (mandrinar en línea)"), ("flat", "0,3", None, "Planitud de las caras del anillo")])
     p.build()
     return p.h
+
+
+def notas_anillo_inf(ctx):
+    """Agujeros propios del anillo inferior según la interfaz: roscas de los tornillos de posición y conductos de engrase (leídos del modelo)."""
+    g, P, m = ctx.g, ctx.P, ctx.m
+    out = []
+    hm = centros_xy(m.info.get("holes_mesa"))
+    pat = patron_txt(hm, f"M{fm(P['d_tor'], 0)}", rmin=g.prIn)
+    if pat:
+        out.append("Solo el anillo INFERIOR (MES-004): roscas de los tornillos de posición de los sectores de la mesa: " + "; ".join(pat) + "; profundidad según la lámina de sectores.")
+    gp = m.info.get("grease_pts") or []
+    if gp:
+        pg = patron_txt(gp, "taladro axial Ø6", rmin=0)
+        out.append(f"Solo el anillo INFERIOR (MES-004): conductos de engrase: grasera M10×1 en el canto (Ø10 × prof. 12 desde Ø{f(2 * g.Rt)}, fondo plano a Ø{f(2 * g.Rt - 24)}), "
+                   f"taladro radial Ø6 desde R{fm(g.Ro - 30, 1)} hasta el canto; " + "; ".join(pg) + " hasta la cara inferior. Ver INT (graseras).")
+    return out
 
 
 @pieza("mesa_plancha_inf")

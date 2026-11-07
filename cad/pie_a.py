@@ -76,7 +76,9 @@ def sheet_base_plancha(ctx):
         "La plancha NO lleva anclajes: equipo sin anclaje (apoyo sobre losa).",
     ]
     if g.opt:
-        nz.append(f"Agujeros roscados M{fm(P['d_tor'], 0)} de los tornillos de posición: posiciones y profundidades en la lámina de sectores; roscar después de planear la cara.")
+        hb = centros_xy(ctx.m.info.get("holes_base"))
+        pat = patron_txt(hb, f"M{fm(P['d_tor'], 0)}")
+        nz.append(f"Agujeros roscados M{fm(P['d_tor'], 0)} de los tornillos de posición" + (": " + "; ".join(pat) if pat else "") + ". Profundidad de rosca: lámina de sectores; roscar después de planear la cara.")
     p.notes(nz, gd=[("flat", "0,20", None, f"Planitud de la zona de apoyo Ø{f(P['D_top'] + 20)}"), ("perp", "0,05", "A", f"Agujero Ø{f(P['D_piv'])} H7 perpendicular a la cara de apoyo (A)")])
     p.build()
     return p.h
@@ -197,7 +199,7 @@ def sheet_mensula_piezas(ctx):
     def d3(V, p):
         if len(ids) >= 4:
             w_out(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, tb + 0.5), "right", dy=14)
-    p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): f" (= {f(BR['spacer'])} + {f(tc)})"}), w=0.7)
+    p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), extra=(0, 0, 80, 0), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): f" (= {f(BR['spacer'])} + {f(tc)})"}), w=0.7)
     # corte por el eje del agujero de la oreja superior
     p.vs("os_corte", k2, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(1, 2, 1, 1), title="CORTE A-A: AGUJERO DE LA OREJA", hatch=True, auto=dict(tol={}, hole_notes=False, text={round(P["d_pp"], 1): f"Ø{f(P['d_pp'])} H9"}), w=0.8, hs=0.4)
     if len(ids) >= 4:

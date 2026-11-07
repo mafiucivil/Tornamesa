@@ -446,6 +446,38 @@ def inspecciones(ctx):
     return [(i + 1,) + x for i, x in enumerate(L)]
 
 
+def centros_xy(objs):
+    """Centros (x, y) de una lista de sólidos/Workplanes o de puntos (x, y)."""
+    out = []
+    for h in objs or []:
+        if isinstance(h, (tuple, list)):
+            out.append((float(h[0]), float(h[1])))
+            continue
+        c = (h.val() if hasattr(h, "val") else h).Center()
+        out.append((c.x, c.y))
+    return out
+
+
+def patron_txt(pts, what, rmin=0.0, rmax=1e9):
+    """Patrón polar de agujeros, leído de sus centros: «n × what en R… a a0° + paso°·k (k = 0…n−1)» por cada radio."""
+    rs = {}
+    for (x, y) in pts:
+        r = math.hypot(x, y)
+        if rmin - 0.05 <= r <= rmax + 0.05:
+            rs.setdefault(round(r, 1), []).append(math.degrees(math.atan2(y, x)) % 360.0)
+    out = []
+    for r, an in sorted(rs.items()):
+        an = sorted(an)
+        n = len(an)
+        st = 360.0 / n
+        reg = all(abs(((a - an[0]) - k * st + 180) % 360 - 180) < 0.01 for k, a in enumerate(an))
+        if reg:
+            out.append(f"{n} × {what} en R{fm(r, 1)} a {fm(an[0], 3)}° + {fm(st, 3)}°·k (k = 0…{n - 1}) desde +x")
+        else:
+            out.append(f"{n} × {what} en R{fm(r, 1)} a " + ", ".join(fm(a, 2) + "°" for a in an))
+    return out
+
+
 def nota_anclaje(ctx):
     v = ctx.g.fila("Presión sobre losa")
     q = f"{fm(v['cap'], 0)} {v['unidad']}" if v else "la admisible del cálculo"
