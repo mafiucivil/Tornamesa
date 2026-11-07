@@ -222,15 +222,22 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
         def _bad(i_, j_):
             A1, Q1, A2, Q2 = segs[i_][0], segs[i_][1], segs[j_][0], segs[j_][1]
             return _cross(A1, Q1, A2, Q2) or _near(A1, Q1, Q2) or _near(A2, Q2, Q1)
-        for _ in range(4 * n * n):
-            sw = False
-            for i_ in range(n):
-                for j_ in range(i_ + 1, n):
-                    if _bad(i_, j_):
-                        segs[i_][1], segs[j_][1] = segs[j_][1], segs[i_][1]
-                        sw = True
-            if not sw:
-                break
+        def _untangle():
+            for _ in range(4 * n * n):
+                sw = False
+                for i_ in range(n):
+                    for j_ in range(i_ + 1, n):
+                        if _bad(i_, j_):
+                            segs[i_][1], segs[j_][1] = segs[j_][1], segs[i_][1]
+                            sw = True
+                if not sw:
+                    return True
+            return False
+        _untangle()
+        if any(_cross(segs[i_][0], segs[i_][1], segs[j_][0], segs[j_][1]) for i_ in range(n) for j_ in range(i_ + 1, n)):
+            # con la columna ajustada a la silueta no se pudo destrabar: columna recta
+            segs = [[a, ((y, C) if hor else (C, y)), k] for (a, k), y in zip(its, ys)]
+            _untangle()
         placed += segs
     # control: cruces entre líneas de referencia de la vista (debe ser 0)
     nx = sum(1 for i_ in range(len(placed)) for j_ in range(i_ + 1, len(placed)) if _cross(placed[i_][0], placed[i_][1], placed[j_][0], placed[j_][1]))
@@ -801,7 +808,7 @@ def sheet_base_soldada(ctx):
     c1 = ctx.D["cilindros"]["horario"][0]["eye"]
 
     def planta(V, c):
-        balloons_auto(c, V, ks, gap=12, off=14)
+        balloons_auto(c, V, ks, gap=12, off=14, hug=True)
         V.dimh((-B / 2, B / 2, tb), (B / 2, B / 2, tb), "top", 0, on=["base_plancha"], text=f"{f(B)}")
         V.dimh((-xg, B / 2, tb), (xg, B / 2, tb), "top", 1, on=["base_plancha"], text=f"{f(2 * xg)} (entre ejes de bancadas)")
         c.cut_mark("planta", "A", (-B / 2 - 20, 0, tb), (B / 2 + 20, 0, tb), 90)
@@ -809,7 +816,7 @@ def sheet_base_soldada(ctx):
     c.vs("planta", sh, "top", lv=(1, 1, 1, 2), extra=(20, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=4.0, mins=0.1)
 
     def cA(V, c):
-        balloons_auto(c, V, [k for k in ks if k not in ("orejas",)], pred=lambda q: q[1] >= -0.5, gap=12, off=12)
+        balloons_auto(c, V, [k for k in ks if k not in ("orejas",)], pred=lambda q: q[1] >= -0.5, gap=12, off=12, hug=True)
         V.dimv((B / 2, 0, 0), (B / 2, 0, tb), "right", 0, on=["base_plancha"], text=f"{f(tb)}")
         V.dimh((-B / 2, 0, 0), (B / 2, 0, 0), "bottom", 0, on=["base_plancha"], text=f"{f(B)}")
     c.vs("cA", sh, "front", cut=CUT_Y, lv=(1, 1, 1, 1), extra=(16, 4, 16, 4), draw=cA, mat=mm, hs=0.5, title="CORTE A-A", auto=False, w=1.0, mins=0.1)
