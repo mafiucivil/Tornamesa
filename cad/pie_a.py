@@ -123,7 +123,7 @@ def sheet_collar(ctx):
              f"Agujero Ø{f(P['D_piv'])} H7: NO se mecaniza antes de soldar; se mandrina en línea con la plancha base (BAS-001) en un solo montaje, Ra 1,6.",
              f"Soldar a la plancha base con filete perimetral continuo z{fm(g.w_collar, 0)} ({jc}): secuencia simétrica por tramos opuestos para limitar la distorsión; alivio de tensiones antes de mandrinar.",
              "Arista exterior superior e interior de la boca del agujero: 1×45° (ISO 13715).",
-             "Sin pintura en la cara superior (asiento del cubo de la mesa: holgura axial c_boss_a)."],
+             f"Sin pintura en la cara superior (asiento del cubo de la mesa: holgura axial {fm(g.c_boss_a, 0)} mm)."],
             gd=[("perp", "0,05", "A", "Agujero H7 perpendicular a la cara de apoyo (A = cara inferior)"), ("flat", "0,10", None, "Planitud de la cara superior"),
                 ("coax", "Ø0,05", "A", "Coaxial con el agujero de la plancha base (mandrinado en línea)")])
     p.build()
@@ -242,7 +242,7 @@ def sheet_orejas(ctx):
     def det_bis(V, p):
         s.text("Bisel de la base: preparar según WPS-P05 (propuesta)", (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
     p.tables([jid])
-    p.notes([f"Plancha e = {f(tE)}; perfil 2R × h + semicírculo R{f(R)}; agujero Ø{f(dE)} de corte (sin mecanizar, aristas esmeriladas); grillete con pasador ≤ d − g_ear = {fm(dE - P['g_ear'], 0)} mm.",
+    p.notes([f"Plancha e = {f(tE)}; perfil 2R × h + semicírculo R{f(R)}; agujero Ø{f(dE)} de corte (sin mecanizar, aristas esmeriladas); grillete con pasador de Ø ≤ {fm(dE - P['g_ear'], 0)} mm (agujero Ø{f(dE)} menos {fm(P['g_ear'], 0)} mm de juego).",
              f"Posición en la base: (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±2, plano vertical radial hacia el centro (plano BAS-001, tabla de posiciones).",
              f"Soldadura a la base: filete z{fm(P['w_ear'], 0)} a ambos lados (L = 2R) ({jid}); MT 100 % y UT 100 % antes de la prueba de carga y MT después.",
              ramales_txt_short(ctx),

@@ -47,15 +47,15 @@ def int_sector_sheet(ctx, key, titulo, face):
             return min(c_, key=lambda q: abs(q[2])) [0] if c_ else None
         po, pi_ = arc_pt(ro_e), arc_pt(ri_e)
         if po:
-            V.note_pt(po, (34, -30), f"R{fm(ro_e, 0)} (R_o)", on=on, dot=True)
+            V.note_pt(po, (34, -30), f"R{fm(ro_e, 0)} (radio exterior)", on=on, dot=True)
         if pi_:
-            V.note_pt(pi_, (-30, 22), f"R{fm(ri_e, 0)} (R_i)", on=on, dot=True)
+            V.note_pt(pi_, (-30, 22), f"R{fm(ri_e, 0)} (radio interior)", on=on, dot=True)
         if po and pi_:
-            V.dimh(pi_, po, "bottom", 0, on=on, text=f"{fm(ro_e - ri_e, 0)} (R_o − R_i)")
+            V.dimh(pi_, po, "bottom", 0, on=on, text=f"{fm(ro_e - ri_e, 0)} (ancho radial)")
         if g.removable and Ln and key != "int_uhmw":
             nb = lay.b_tope + 2
             V.dimh((g.r_u - Ln / 2, nb / 2, ztop), (g.r_u + Ln / 2, nb / 2, ztop), "top", 0, on=on, text=f"{fm(Ln, 1)} (muesca del tope)")
-            V.dimv((g.r_u + Ln / 2, -nb / 2, ztop), (g.r_u + Ln / 2, nb / 2, ztop), "right", 0, on=on, text=f"{fm(nb, 0)} (b_tope + 2)")
+            V.dimv((g.r_u + Ln / 2, -nb / 2, ztop), (g.r_u + Ln / 2, nb / 2, ztop), "right", 0, on=on, text=f"{fm(nb, 0)} (barra + 2)")
             V.dimh((g.Ri, 0, ztop), (g.r_u, 0, ztop), "bottom", 0, on=on, text=f"{fm(g.r_u - g.Ri, 1)} (hasta r_u = {fm(g.r_u, 1)})", virt_a=None) if False else None
         cs = V.circles(on, 2.9, lay.dk / 2 + 0.1)
         if cs:
@@ -85,7 +85,7 @@ def int_sector_sheet(ctx, key, titulo, face):
     # vistas de contorno del sector: elevación (cuerda y espesor) y lateral
     p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL SECTOR (cuerda y espesor)", w=0.9, maxs=1.0,
          auto=dict(holes=False, tol={round(t, 1): " ±0,1"}))
-    p.vs("lat", on, "right", lv=(1, 2, 2, 1), hatch=False, title="VISTA LATERAL (ancho del sector en R_o)", w=0.9, maxs=1.0, auto=dict(holes=False, tol={round(t, 1): " ±0,1"}))
+    p.vs("lat", on, "right", lv=(1, 2, 2, 1), hatch=False, title="VISTA LATERAL (ancho del sector en el borde exterior)", w=0.9, maxs=1.0, auto=dict(holes=False, tol={round(t, 1): " ±0,1"}))
     scr_r = list((m.info.get("radii_screw") if face == "top" else m.info.get("radii_screw_m")) or [])
     if g.removable and scr_r and key != "int_uhmw":
         p.vs("det_scr", on, "front", cut=CUT_Y, center=(scr_r[0], 0, (z0_ + z1_) / 2), win=(-14, -t / 2 - 3, 14, t / 2 + 3), lv=(1, 2, 1, 1), hs=0.4, maxs=5.0, w=1.0,
@@ -97,9 +97,9 @@ def int_sector_sheet(ctx, key, titulo, face):
     if key in ("int_disco_mesa", "int_cara") and g.h_gr > 0 and lay.r_circ:
         p.detail("det_gr", "corte", (lay.r_circ[0] - g.r_u, 0, zs), 12, "D", lv=(1, 2, 1, 1), title="DETALLE D: RANURA CIRCUNFERENCIAL (5:1)", maxs=5.0) if False else None
     rows = [["Espesor e", f"{fm(t, 1)} mm"], ["Sectores", f"{pt.qty} de {fm(th, 3)}°"], ["Junta en frío", f"{fm(g.junta('uhmw' if key == 'int_uhmw' else 'disc'), 2)} mm"],
-            ["Radios R_i / R_o", f"{fm(g.Ri, 0)} / {fm(g.Ro, 0)} mm"], ["Material", pt.material], ["Masa unitaria", f"{f(pt.mass_unit, 2)} kg"]]
+            ["Radios interior / exterior", f"{fm(g.Ri, 0)} / {fm(g.Ro, 0)} mm"], ["Material", pt.material], ["Masa unitaria", f"{f(pt.mass_unit, 2)} kg"]]
     if g.removable and key != "int_uhmw":
-        rows.insert(3, ["Muesca del tope", f"{fm(lay.b_tope + 2, 0)} × {fm(Ln, 1)} centrada en r_u = {fm(g.r_u, 1)}"])
+        rows.insert(3, ["Muesca del tope", f"{fm(lay.b_tope + 2, 0)} × {fm(Ln, 1)} centrada a r = {fm(g.r_u, 1)} mm"])
         if scr_r:
             rows.append(["Tornillos de posición", f"{len(scr_r)} por sector, M{fm(lay.d_tor, 0)}, a r = {' y '.join(fm(x, 1) for x in scr_r)} sobre la bisectriz"])
     gp_ = m.info.get("grease_pts") or []
@@ -115,14 +115,14 @@ def int_sector_sheet(ctx, key, titulo, face):
                   [("N°", 10, "C"), ("Bisectriz", 28, "R"), ("Inicio", 24, "R"), ("Fin", 24, "R"), ("N° ", 10, "C"), ("Bisectriz ", 28, "R"), ("Inicio ", 24, "R"), ("Fin ", 24, "R")], s2, wide=True)
     T = g.IG.get("tapones") if key == "int_bronce" else None
     if T:
-        rows_t = [["N_real (núcleo)", f(T["N_real"])], ["N_malla / N_ideal", f"{f(T['N_malla'])} / {f(T['N_ideal'])}"], ["f_g real / ideal / usado", f"{fm(T['fg_real'], 3)} / {fm(T['fg_ideal'], 3)} / {fm(T['fg_usado'], 3)}"],
+        rows_t = [["Tapones reales (cálculo)", f(T["N_real"])], ["Posiciones de malla / ideales", f"{f(T['N_malla'])} / {f(T['N_ideal'])}"], ["Fracción de área de grafito real / ideal / usada", f"{fm(T['fg_real'], 3)} / {fm(T['fg_ideal'], 3)} / {fm(T['fg_usado'], 3)}"],
                   ["Pérdidas: borde, muesca, tornillos, ranuras", f"{T['perdidas']['borde']}, {T['perdidas']['muesca']}, {T['perdidas']['tornillos']}, {T['perdidas']['ranCirc'] + T['perdidas']['ranRad']}"],
                   ["Tapones en el 3D", f(m.info.get("n_plugs", 0))], ["Ø / paso / profundidad", f"Ø{fm(T['d'], 0)} / {fm(T['p'], 0)} / {fm(m.info.get('plug_prof', 0), 1)} (70 % de e)"],
-                  ["Cumple f_g mínimo", f"{'sí' if T['cumple_lubricacion'] else 'NO'} (f_g mín. {fm(T['fg_min'], 2)})"]]
+                  ["Cumple la fracción mínima", f"{'sí' if T['cumple_lubricacion'] else 'NO'} (mínimo {fm(T['fg_min'], 2)})"]]
         p.table_block("PATRÓN DE TAPONES DE GRAFITO (resumen; ver lámina del patrón)", [("Patrón de tapones (interfazGeom.tapones)", 80, "L"), ("Valor", 90, "L")], rows_t)
     p.tables()
-    p.notes([pt.process, pt.obs or "", f"Cara deslizante: {'Ra 0,4 rectificada/lapeada' if key != 'int_uhmw' else 'sin mecanizado de precisión'}; sobreespesor de relapeado {fm(P['ss_allow'], 1)} mm (ss_allow).",
-             "Junta entre sectores de ancho constante j (S04): bordes paralelos a la bisectriz; chaflán de alivio en el canto de la muesca = a_inf del tope.",
+    p.notes([pt.process, pt.obs or "", f"Cara deslizante: {'Ra 0,4 rectificada/lapeada' if key != 'int_uhmw' else 'sin mecanizado de precisión'}; sobreespesor de relapeado {fm(P['ss_allow'], 1)} mm.",
+             "Junta entre sectores de ancho constante (S04): bordes paralelos a la bisectriz; chaflán de alivio 45° en el canto de la muesca, del tamaño indicado en la lámina del tope.",
              "Tolerancias: espesor e ±0,1; radios ±0,5; planitud de la cara deslizante 0,05; posición de la muesca ±0,2 respecto de la bisectriz.", f"Tratamiento: {pt.tratamiento}."],
             gd=[("flat", "0,05", None, "Planitud de la cara deslizante"), ("pos", "0,2", "A", "Muesca del tope respecto de la bisectriz del sector (A)")])
     p.build()
@@ -169,7 +169,7 @@ def tope_sheet(ctx, key, titulo, side):
     p.iso_keys = [nk]
     ids = jids(ctx, "Barras de tope – plancha base") if key == "int_tope_base" else jids(ctx, "Barras de tope – plancha inferior") if key == "int_tope_mesa" else jids(ctx, "Barras del rebaje UHMW")
     p.vs("pl", on, "top", lv=(1, 2, 2, 1), hatch=False, title="BARRA — PLANTA", w=1.5, auto=dict(tol={round(L, 1): " (L)", round(b, 1): " (b)"}, holes=False))
-    p.vs("el", on, "front", lv=(1, 2, 2, 1), hatch=False, title="BARRA — ELEVACIÓN", w=1.0, auto=dict(tol={round(tp["h_barra"], 1): " (h = t − a_sup)"}, holes=False))
+    p.vs("el", on, "front", lv=(1, 2, 2, 1), hatch=False, title="BARRA — ELEVACIÓN", w=1.0, auto=dict(tol={round(tp["h_barra"], 1): ""}, holes=False))
     p.vs("ex", on, "right", lv=(1, 2, 2, 1), hatch=False, title="BARRA — VISTA DE EXTREMO", w=0.8, auto=dict(holes=False), maxs=2.0)
     ks = [plate + "_t", sector + "_t1", nk]
     zc_ = (zb0 + zb1) / 2
@@ -183,15 +183,15 @@ def tope_sheet(ctx, key, titulo, side):
          auto=dict(on=ks, tol={round(tp["h_barra"], 1): " (h)", round(b, 1): " (b)"}, hole_notes=False))
     if ids:
         add_prep(p, "det_j", wd(ctx, ids[0]), t1=b, t2=max(P["t_base"], P["b_tope"]) if False else tp["t"])
-    rows = [["a_sup (cara de la barra bajo la cara deslizante)", fm(tp["a_sup"], 1)], ["a_inf (chaflán 45° del canto del sector, = w_tope + 1)", fm(tp["a_inf"], 1)], ["h_c (contacto útil)", fm(tp["h_c"], 1)],
-            ["h_c mín. (núcleo)", fm(tp["h_c_min"], 1)], ["b (ancho de la barra)", fm(b, 0)], ["L (largo de la barra)", fm(tp["L"], 1)], ["h barra = t − a_sup", fm(tp["h_barra"], 1)],
-            ["w_tope (filete)", f"z{fm(P['w_tope'], 0)} (mín. {fm(tp['w_min'], 0)})"], ["Espesor del sector t", fm(tp["t"], 1)], ["Cantidad de barras", f"{pt.qty}"]]
+    rows = [["Cara de la barra bajo la cara deslizante", fm(tp["a_sup"], 1)], ["Chaflán 45° del canto del sector (= filete + 1)", fm(tp["a_inf"], 1)], ["Contacto útil", fm(tp["h_c"], 1)],
+            ["Contacto útil mínimo (cálculo)", fm(tp["h_c_min"], 1)], ["b (ancho de la barra)", fm(b, 0)], ["L (largo de la barra)", fm(tp["L"], 1)], ["Altura de la barra (espesor del sector − retiro)", fm(tp["h_barra"], 1)],
+            ["Filete de la barra", f"z{fm(P['w_tope'], 0)} (mín. {fm(tp['w_min'], 0)})"], ["Espesor del sector t", fm(tp["t"], 1)], ["Cantidad de barras", f"{pt.qty}"]]
     p.table_block("GEOMETRÍA DEL TOPE (interfazGeom.topes)", [("Parámetro del tope", 120, "L"), ("[mm]", 50, "R")], rows)
     p.tables(ids)
     p.notes([f"Barra {fm(b, 0)} × {f(L, 1)} × {fm(tp['h_barra'], 1)} de {pt.material.split(',')[0]}; corte a sierra, extremos a escuadra; {pt.qty} unidades.",
-             f"Soldar a {'la plancha base' if key == 'int_tope_base' else 'la plancha inferior de la mesa' if key == 'int_tope_mesa' else 'el disco inoxidable de la base'} con 2 filetes (frente y dorso) z{fm(P['w_tope'], 0)} continuos; el filete cabe bajo el chaflán a_inf = {fm(tp['a_inf'], 0)}.",
+             f"Soldar a {'la plancha base' if key == 'int_tope_base' else 'la plancha inferior de la mesa' if key == 'int_tope_mesa' else 'el disco inoxidable de la base'} con 2 filetes (frente y dorso) z{fm(P['w_tope'], 0)} continuos; el filete cabe bajo el chaflán de {fm(tp['a_inf'], 0)} mm del sector.",
              "Soldar ANTES del alivio y del rectificado de las caras deslizantes; posición angular ±0,1° (bisectriz del sector).",
-             f"El sector va con muesca de {fm(b + 2, 0)} mm (1 mm de holgura por lado); la barra queda a a_sup = {fm(tp['a_sup'], 1)} bajo la cara deslizante (contacto útil h_c = {fm(tp['h_c'], 1)}, mínimo {fm(tp['h_c_min'], 1)})."],
+             f"El sector va con muesca de {fm(b + 2, 0)} mm (1 mm de holgura por lado); la barra queda {fm(tp['a_sup'], 1)} mm bajo la cara deslizante (contacto útil {fm(tp['h_c'], 1)} mm, mínimo {fm(tp['h_c_min'], 1)} mm)."],
             gd=[("par", "0,05", "A", "Cara de contacto de la barra paralela al plano de la bisectriz"), ("pos", "±0,1°", "A", "Posición angular respecto de la bisectriz del sector")])
     p.build()
     return p.h
@@ -357,7 +357,7 @@ def sheet_int_ranuras(ctx):
         pts = [(g.Ri, 0, zs)] + [(r, 0, zf) for r in sorted(rr)] + [(g.Ro, 0, zs)]
         for a_, b_ in zip(pts, pts[1:]):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
-        V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (R_i a R_o)")
+        V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (ancho radial)")
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
          auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=2.5, hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)"}, fits={round(P["bz_plug_d"], 1): "H7", round(lay.d_clear, 1): "H12", round(lay.dk, 1): "H12"}))
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
@@ -406,14 +406,14 @@ def sheet_int_tapones(ctx):
         ah = math.radians(th * 0.35)
         V.note_pt((g.Ro * math.cos(ah), g.Ro * math.sin(ah), zt), (30, 18), f"R{fm(g.Ro, 0)}", on=[nk], dot=True)
         V.note_pt((g.Ri * math.cos(ah), g.Ri * math.sin(ah), zt), (-30, 22), f"R{fm(g.Ri, 0)}", on=[nk], dot=True)
-        V.dimh((g.Ri, 0, zt), (g.Ro, 0, zt), "bottom", 0, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (R_o − R_i)")
+        V.dimh((g.Ri, 0, zt), (g.Ro, 0, zt), "bottom", 0, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (ancho radial)")
         s.text(f"Patrón escalonado (malla triangular) paso {fm(T['p'], 0)}; Ø{fm(d, 0)}; {len(cs)} tapones en este sector; origen de la malla en el eje de la mesa; sin tapones a < {fm(T['bz_edge'], 0)} mm de bordes, muesca, tornillos y ranuras.", (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
         if cs:
             a = cs[len(cs) // 2]
             V.note_hole((a[2], a[3], zt), d / 2, 60, f"{len(cs)} × Ø{fm(d, 0)} H7 (alojamiento), prof. {fm(m.info.get('plug_prof', 0), 1)} (70 % de e = {fm(t, 1)})", ext=40, on=on)
     p.vs("planta", on, "top", lv=(1, 2, 2, 1), extra=(30, 0, 180, 20), draw=planta, hatch=False, title=f"PLANTA DEL SECTOR 1 CON SU PATRÓN COMPLETO (sector de {fm(th, 3)}°)", w=2.0, auto=dict(holes=False, verts=False, only_extents=True), mat={nk: "bronce", pk: "grafito"})
     allk = {k: ctx.shapes[k] for k in ("int_bronce", "int_tapones") if k in ctx.shapes}
-    p.vs("total", allk, "top", lv=(1, 1, 1, 1), hatch=False, title=f"PLANTA COMPLETA: {int(T['n_sectores'])} SECTORES, N_real = {f(T['N_real'])} TAPONES", w=1.2, auto=dict(holes=False, verts=False, only_extents=True), mat={k: ctx.mat.get(k, "acero") for k in allk})
+    p.vs("total", allk, "top", lv=(1, 1, 1, 1), hatch=False, title=f"PLANTA COMPLETA: {int(T['n_sectores'])} SECTORES, {f(T['N_real'])} TAPONES", w=1.2, auto=dict(holes=False, verts=False, only_extents=True), mat={k: ctx.mat.get(k, "acero") for k in allk})
     r_ = cs[len(cs) // 2] if cs else None
     if r_:
         ctx.local("int_tapones", "tap_loc", near=(r_[2], r_[3], zt - 5), r=d, shift=(-r_[2], -r_[3], 0)) if False else None
@@ -429,15 +429,15 @@ def sheet_int_tapones(ctx):
     ps = T["por_sector"]
     half = (len(ps) + 1) // 2
     prow = [[str(i + 1), str(ps[i]), str(i + 1 + half) if i + half < len(ps) else "", str(ps[i + half]) if i + half < len(ps) else ""] for i in range(half)]
-    p.table_block(f"TAPONES POR SECTOR (núcleo): total {f(T['N_real'])} de {f(T['N_malla'])} posiciones de malla", [("Sector", 14, "C"), ("N", 14, "R"), ("Sector ", 14, "C"), ("N ", 14, "R")], prow)
+    p.table_block(f"TAPONES POR SECTOR (cálculo): total {f(T['N_real'])} de {f(T['N_malla'])} posiciones de malla", [("Sector", 14, "C"), ("N", 14, "R"), ("Sector ", 14, "C"), ("N ", 14, "R")], prow)
     p.table_block("ALOJAMIENTO, AJUSTE Y FIJACIÓN DEL TAPÓN", [("Característica", 50, "L"), ("Valor", 120, "L")], [
         ["Diámetro / profundidad", f"Ø{fm(d, 0)} H7 / {fm(m.info.get('plug_prof', 0), 1)} mm = 70 % de e ({fm(t, 1)} mm)"], ["Tapón", f"Grafito Ø{fm(d, 0)} p6 × {fm(m.info.get('plug_prof', 0), 1)}, al ras ±0,05 con la cara deslizante (PROPUESTA)"],
         ["Fijación", "Ajuste a presión + sellador anaeróbico de resistencia media (PROPUESTA, confirmar con el proveedor del grafito)"], ["Paso / malla", f"{fm(T['p'], 0)} mm, triangular escalonada; distancia mínima a bordes {fm(T['bz_edge'], 0)} mm"],
-        ["Cobertura f_g", f"real {fm(T['fg_real'], 3)} / ideal {fm(T['fg_ideal'], 3)}; mínimo de lubricación {fm(T['fg_min'], 2)} → {'cumple' if T['cumple_lubricacion'] else 'NO cumple (hallazgo del núcleo)'}"]])
+        ["Fracción de área de grafito", f"real {fm(T['fg_real'], 3)} / ideal {fm(T['fg_ideal'], 3)}; mínimo de lubricación {fm(T['fg_min'], 2)} → {'cumple' if T['cumple_lubricacion'] else 'NO cumple (hallazgo del cálculo)'}"]])
     p.tables()
     p.notes([f"Tapones de grafito Ø{fm(d, 0)} en malla triangular de paso {fm(T['p'], 0)} (S09): alojamientos taladrados Ø{fm(d, 0)} H7 con profundidad 70 % de e = {fm(m.info.get('plug_prof', 0), 1)} mm, fondo plano.",
              "Taladrar con plantilla CNC; el patrón se repite en los sectores con la misma disposición angular; se omiten los tapones en bordes, muesca, tornillos y ranuras (ver núcleo).",
-             f"N total en el 3D: {f(m.info.get('n_plugs', 0))}; N_real del núcleo: {f(T['N_real'])}; f_g {fm(T['fg_real'], 3)} frente al mínimo {fm(T['fg_min'], 2)}.",
+             f"Tapones en el 3D: {f(m.info.get('n_plugs', 0))}; tapones reales según el cálculo: {f(T['N_real'])}; fracción de área de grafito {fm(T['fg_real'], 3)} frente al mínimo {fm(T['fg_min'], 2)}.",
              "Insertar los tapones después de lapear la cara; rectificar al ras con el bronce; grafito sin pintura ni sellado superficial."],
             gd=[("pos", "Ø0,2", "A", "Posición de los alojamientos respecto de la bisectriz (A) y del eje de la mesa"), ("flat", "0,05", None, "Planitud de la cara deslizante con los tapones montados")])
     p.build()
@@ -475,7 +475,7 @@ def sheet_madera(ctx):
     def corte(V, p):
         pass
     p.vs("corte", ["madera", "madera_anillo"], "front", cut=CUT_Y, center=(g.Rt - 100, 0, zw0 + tW / 2), win=(-90, -tW / 2 - 8, 105, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0, title="CORTE RADIAL (tablón y anillo)",
-         mat={"madera": "madera", "madera_anillo": "acero"}, w=1.0, auto=dict(on=["madera_anillo"], tol={round(tW, 1): " (t_wood)", round(g.t_ring, 1): " (t_ring)"}))
+         mat={"madera": "madera", "madera_anillo": "acero"}, w=1.0, auto=dict(on=["madera_anillo"], tol={round(tW, 1): "", round(g.t_ring, 1): ""}))
     a0p = ctx.D["pasadores"][0]
     rot_key(ctx, "madera", "madera_P", -a0p)
     p.vs("bolsillo", ["madera_P"], "front", cut=CUT_Y, center=(g.R_pin, 0, zw0 + tW / 2), win=(-(g.washer_D / 2 + 20), -tW / 2 - 8, g.washer_D / 2 + 20, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0,
@@ -512,15 +512,15 @@ def sheet_madera_anillo(ctx):
     on = ["madera_anillo"]
     ids = jids(ctx, "Anillo de contención")
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), hatch=False, title="PLANTA DEL ANILLO", w=1.5, auto=dict(hole_rmin=20, fits={round(2 * (g.Rt - g.t_ring), 1): "H12"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2 (D_top)"}))
-    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL ANILLO", w=1.0, auto=dict(holes=False, tol={round(tW, 1): " ±1 (t_wood)"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2"}))
+    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL ANILLO", w=1.0, auto=dict(holes=False, tol={round(tW, 1): " ±1"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2"}))
     p.vs("det_emp", on, "top", center=(g.Rt - g.t_ring / 2, 0, zw0 + tW), win=(-25, -25, 25, 25), lv=(1, 2, 1, 1), hatch=False, maxs=2.0, title="DETALLE B: SECCIÓN DE LA PLETINA EN PLANTA (t_ring)", w=0.8,
-         auto=dict(holes=False, tol={round(g.t_ring, 1): " ±0,5 (t_ring)"}))
+         auto=dict(holes=False, tol={round(g.t_ring, 1): " ±0,5"}))
 
     def corte(V, p):
         if ids:
             w_out(p, ids[0], V, (g.Rt, 0, zw0 + 1), "right", dy=-12)
     p.vs("corte", ["madera_anillo", "mesa_plancha_sup"], "front", cut=CUT_Y, center=(g.Rt - 20, 0, zw0), win=(-60, -g.tt - 8, 40, tW + 12), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=corte, hs=0.3, maxs=2.0,
-         title="CORTE RADIAL: ANILLO SOBRE LA PLANCHA SUPERIOR", mat={"madera_anillo": "acero", "mesa_plancha_sup": "acero"}, w=1.2, auto=dict(on=["madera_anillo", "mesa_plancha_sup"], tol={round(tW, 1): " (t_wood)", round(g.t_ring, 1): " (t_ring)"}))
+         title="CORTE RADIAL: ANILLO SOBRE LA PLANCHA SUPERIOR", mat={"madera_anillo": "acero", "mesa_plancha_sup": "acero"}, w=1.2, auto=dict(on=["madera_anillo", "mesa_plancha_sup"], tol={round(tW, 1): "", round(g.t_ring, 1): ""}))
     if ids:
         add_prep(p, "det_j", wd(ctx, ids[0]), t1=g.t_ring, t2=g.tt)
     p.tables(ids)

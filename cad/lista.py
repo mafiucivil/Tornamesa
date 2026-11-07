@@ -22,7 +22,7 @@ def extras(ctx):
         ("Tornillo ISO 10642 M10×25 cl. 10.9 (tapa retenedora)", 4, "10.9", "A DEFINIR POR CATÁLOGO"),
         ("Tornillo avellanado M10 (tapa de inspección)", 6, "10.9", "A DEFINIR POR CATÁLOGO"),
         ("Placa y tornillo de retención de pasador de articulación", 2 * n, "S355J2 / 8.8", "A DEFINIR POR CATÁLOGO"),
-        ("Grillete de izaje (pasador ≤ d_oreja − g_ear = %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
+        ("Grillete de izaje (pasador de Ø ≤ %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
         ("Faldón de sello perimetral (opcional) y fleje", 1, "NBR 70 / S235 galvanizado; dimensiones por el proveedor (opcional)", "A DEFINIR POR CATÁLOGO"),
         ("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, "Cantidad: llenado de ranuras + película de 0,3–0,5 mm por cara", "A DEFINIR POR CATÁLOGO"),
         ("Bomba, válvulas, mangueras y manómetro (circuito hidráulico)", 1, f"Fuera de los planos mecánicos: ver especificación en {CODE}-ACC-002-{REV}", "A DEFINIR POR CATÁLOGO"),

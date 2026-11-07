@@ -57,9 +57,9 @@ def sheet_buje(ctx):
     p.detail("det_ch", "corte", (-(g.d_bush / 2 - 1.5), 0, zt - 1.5), 12, "B", lv=(1, 1, 1, 1), title="DETALLE B: EXTREMO DEL BUJE", maxs=5.0)
     p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(P["L_bush"], 1): " ±0,2"}, holes=False), maxs=2.0)
     p.tables()
-    p.notes([f"Buje autolubricado Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}: comercial o a medida (marca/modelo A DEFINIR POR CATÁLOGO; tipo exigido: bronce con lubricante sólido, p_bush = {fm(P['p_bush'], 0)} MPa y μ = {fm(P['mu_bush'], 2)} del cálculo).",
+    p.notes([f"Buje autolubricado Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}: comercial o a medida (marca/modelo A DEFINIR POR CATÁLOGO; tipo exigido: bronce con lubricante sólido, presión ≤ {fm(P['p_bush'], 0)} MPa y μ ≤ {fm(P['mu_bush'], 2)} según el cálculo).",
              f"Ø exterior {f(g.d_bush)} s6 (aprieto en el cubo H7, prensado) y Ø interior {f(P['D_piv'])} F7 (juego con el pivote p6/f7), Ra 1,6; mecanizar en mandrinadora (sin torno vertical).",
-             f"Montaje: arranca g_bush = {fm(P['g_bush'], 0)} mm sobre el collar (z = {fm(g.z_bush0, 1)} desde la cara inferior de la base).",
+             f"Montaje: el buje arranca {fm(P['g_bush'], 0)} mm sobre el collar (z = {fm(g.z_bush0, 1)} desde la cara inferior de la base).",
              "Aristas 1×45° (ISO 13715); sin pintura; entrega con certificado 3.1 del proveedor."],
             gd=[("coax", "Ø0,05", "A", "Ø interior coaxial con el exterior"), ("perp", "0,05", "A", "Caras extremas perpendiculares al eje")])
     p.build()
@@ -124,7 +124,7 @@ def sheet_cilindro(ctx):
     rows = [["Diámetro de camisa", f"{f(P['D_bore'])} mm"], ["Diámetro de vástago", f"{f(P['d_rod'])} mm"], ["Carrera", f"{f(P['stroke'])} mm"],
             ["Largo ojal–ojal retraído", f"{f(P['L0'])} mm"], ["Diámetro exterior del cuerpo", f"{f(P['D_body'])} mm"], ["Presión nominal", f"{f(P['p_rated'])} psi = {fm(P['p_rated'] * 0.0689476, 0)} bar"],
             ["Presión de alivio", f"{f(P['p_relief'])} bar"], ["Ojales con rótula esférica autolubricada", f"ancho de ojal {f(P['b_eye'])} mm; Ø{f(P['d_pp'])} H9 (pasador {f(P['d_pp'])} f8); Ø105 exterior"], ["Masa de catálogo", f"{fm(P['m_cyl'], 0)} kg c/u"],
-            ["Fabricante / código", "marca/modelo A DEFINIR POR CATÁLOGO (confirmar L0 y geometría de extremos)"]]
+            ["Fabricante / código", "marca/modelo A DEFINIR POR CATÁLOGO (confirmar el largo ojal–ojal retraído y la geometría de extremos)"]]
     p.table_block("ESPECIFICACIÓN DE COMPRA", [("Característica requerida", 70, "L"), ("Valor (del cálculo)", 100, "L")], rows)
     p.tables()
     p.notes(["Elemento comercial: este plano fija solo las dimensiones de interfaz que el cálculo exige; el diseño interno es del fabricante.",
@@ -160,7 +160,7 @@ def sheet_patin(ctx):
     p.tables()
     p.notes([f"Pieza única sin soldadura, desde bloque de plancha gruesa a llama con sobremetal 5 mm; desbaste y alojamientos en mandrinadora/fresadora; Ø{f(P['d_pp'])} H9 en taladro radial.",
              f"Lengüeta T: cuello {f(g.neck_w)} f7 en ranura {f(P['w_slot'])} H8; cabeza {f(g.head_w)} × {f(g.head_h)} en {f(P['w_tee'])} × {f(P['h_tee'])}, 1 mm de juego por lado.",
-             f"Alojamiento de la uña {f(P['dog_b'] + 2)} × {f(P['dog_h'] + 2)} H9; tapa {f(zsh - g.pk_top)} y fondo {f(g.pk_bot - zb)} sobre la bancada (mínimo t_pk = {f(P['t_pk'])}).",
+             f"Alojamiento de la uña {f(P['dog_b'] + 2)} × {f(P['dog_h'] + 2)} H9; tapa {f(zsh - g.pk_top)} y fondo {f(g.pk_bot - zb)} sobre la bancada (espesor mínimo de pared {f(P['t_pk'])} mm).",
              f"Marco de boca e = {f(P['t_fw'])}; inset {f(KG['inset'])}; boca en x = {f(KG['mouthX'] - X, 1)} desde el eje de la guía.",
              f"Material: {propuestas.grado(P['Fy_shoe'], g.Hs, 'barra')}; certificado 3.1. Reacción de guía a calado {f(ctx.DV['Rguide'], 1)} kN (núcleo)."],
             gd=[("par", "0,05", "A", "Cara inferior de la lengüeta paralela a la cara de apoyo (A)"), ("perp", "0,05", "A", "Alojamiento de la uña perpendicular a la cara de empuje")])

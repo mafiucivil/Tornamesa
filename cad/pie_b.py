@@ -148,7 +148,7 @@ def sheet_mesa_inf(ctx):
         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tbo)
     p.tables(jids(ctx, "Plancha inferior – anillo", "Barras de tope – plancha inferior"))
     p.notes([f"Disco Ø{f(2 * g.prIn)} × {f(tbo)} (+3 mm de sobremetal para planear); oxicorte/plasma ISO 9013 clase 3.",
-             f"Agujero central Ø{f(2 * ri)}: " + (f"PASANTE por el rebaje del collar (D_boss {f(g.D_boss)} + 2 × c_boss_r {fm(g.c_boss_r, 0)}); holgura radial {fm(g.c_boss_r, 0)}, axial {fm(g.c_boss_a, 0)}." if g.rebaje else "mandrinado para el buje."),
+             f"Agujero central Ø{f(2 * ri)}: " + (f"PASANTE por el rebaje del collar (Ø{f(g.D_boss)} del collar + 2 × {fm(g.c_boss_r, 0)} mm); holgura radial {fm(g.c_boss_r, 0)} mm, axial {fm(g.c_boss_a, 0)} mm." if g.rebaje else "mandrinado para el buje."),
              f"Cara inferior planeada después de soldar la mesa y aliviar tensiones: planitud 0,20, Ra 3,2 (apoyo de la interfaz, {g.interfaz_nombre}).",
              f"Unión con el anillo inferior: soldadura a tope circunferencial con transición 1:4 ({jj[0] if jj else 'J??'}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."],
             gd=[("flat", "0,20", None, "Planitud de la cara inferior (antes de montar la interfaz)"), ("par", "0,30", "A", "Paralela a la cara superior de la mesa")])
@@ -175,7 +175,7 @@ def sheet_almas(ctx):
     def corte(V, p):
         w_out(p, ids[0], V, (r + P["t_web"] / 2, 0, z0 + 2), "right", other=None, dy=14)
     p.vs("corte", [k0], "front", cut=CUT_Y, center=(r, 0, z0), win=(-14, -6, 14, g.hw + 8), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=corte, title="CORTE DE UNA ALMA (todas iguales en sección)", hs=0.35, maxs=2.0, w=1.0,
-         auto=dict(tol={round(g.hw, 1): " (h = h_disc − t_top − t_bot) ±0,5", round(P["t_web"], 1): " (t_web)"}))
+         auto=dict(tol={round(g.hw, 1): " ±0,5", round(P["t_web"], 1): ""}))
     p.vs("elev", ks, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DE LAS 3 ALMAS", w=0.8, auto=dict(tol={round(g.hw, 1): " ±0,5"}, holes=False), maxs=5.0)
     rows = [[f"A{i + 1}", f"{ctx.code(k).replace(CODE + '-', '')}", f(2 * r_), f(r_), f(2 * math.pi * r_, 0), f"{math.ceil(2 * math.pi * r_ / 3000)} pletina(s) rolada(s)", f"{fm(g.hw, 0)} × {fm(P['t_web'], 0)}"]
             for i, (k, r_) in enumerate(zip(ks, D["almas"]))]
@@ -185,7 +185,7 @@ def sheet_almas(ctx):
     p.tables(ids)
     p.notes([f"Pletina {fm(P['t_web'], 0)} × {f(g.hw)} rolada a los radios de eje R = {', '.join(f(x) for x in D['almas'])} mm; desarrollo = 2πR.",
              f"Cada alma tiene 1 empalme a tope V 60° ({ids[1]}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios.",
-             "Altura h = h_disc − t_top − t_bot ±0,5: cortar a medida y verificar con plantilla antes de armar la mesa.",
+             f"Altura h = {f(g.hd)} − {f(g.tt)} − {f(g.tbo)} = {f(g.hw)} ±0,5 (altura de la mesa menos espesores de las planchas): cortar a medida y verificar con plantilla antes de armar la mesa.",
              f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else "Cumple mínimo AWS y máximo AISC J2.2b."),
              "Las almas son continuas; los nervios se cortan entre almas (ver MES-008…010)."],
             gd=[("perp", "0,5", "A", "Alma perpendicular a la cara de la plancha inferior (A); altura h ±0,5"), ("circ", "2,0", None, "Redondez del anillo rolado (desviación radial máx.)")])
@@ -227,7 +227,7 @@ def sheet_nervios(ctx):
     p.table_block("POSICIÓN ANGULAR DE LOS NERVIOS (desde +x, antihorario)", [("N°", 12, "C"), ("Ángulo", 36, "R"), ("N°", 12, "C"), ("Ángulo", 36, "R")], arows)
     add_prep(p, "det_j", wd(ctx, jn[0]), t1=P["t_rib"], t2=g.tbo) if jn else None
     p.tables(jn)
-    p.notes([f"Pletina {fm(P['t_rib'], 0)} × {f(g.hw)}; {int(P['N_rib'])} nervios por tramo, 3 tramos (entre cubo, almas A1…A3 y borde R_rib = {f(P['R_rib'])}).",
+    p.notes([f"Pletina {fm(P['t_rib'], 0)} × {f(g.hw)}; {int(P['N_rib'])} nervios por tramo, 3 tramos (entre cubo, almas A1…A3 y borde exterior de los nervios a R{f(P['R_rib'])}).",
              "Corte por plasma anidado en plancha; largos de la tabla (entre caras de almas/cubo); ajuste con 1–2 mm de holgura de armado.",
              f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha inferior con plantilla angular ±0,1°.",
              "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior."],
@@ -263,7 +263,7 @@ def sheet_cubo(ctx):
         add_prep(p, "det_j", wd(ctx, jc[0]), t1=g.hw)
     p.tables(jc)
     p.notes([f"Anillo Ø{f(P['D_hub'])} / Ø{f(g.d_bush)} × {f(g.hw)} de plancha gruesa o tubo, corte a llama; agujero Ø{f(g.d_bush)} H7 y rebaje Ø{f(g.Drb)} en mandrinadora (sin torno vertical).",
-             f"Ajuste del buje (PIV-002): {f(g.d_bush)} H7 / s6, prensado. Holgura radial del collar c_boss_r = {fm(g.c_boss_r, 0)} y axial c_boss_a = {fm(g.c_boss_a, 0)} mm (núcleo).",
+             f"Ajuste del buje (PIV-002): {f(g.d_bush)} H7 / s6, prensado. Holgura radial del collar {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo).",
              f"Soldar a las planchas inferior y superior ({jc[0] if jc else 'J??'}) y luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.",
              "Perpendicularidad de las caras 0,10; coaxialidad del agujero con el eje de la mesa 0,05."],
             gd=[("coax", "Ø0,05", "A", "Ø%s H7 coaxial con el eje de la mesa (A)" % f(g.d_bush)), ("perp", "0,10", "A", "Caras inferior y superior perpendiculares al eje")])
@@ -298,7 +298,7 @@ def sheet_pasador(ctx):
     p.vs("lateral", on, "right", lv=(1, 2, 2, 1), title="VISTA LATERAL (zona templada y chaflanes)", hatch=False, w=0.8, auto=dict(tol={round(g.hd, 1): " ±0,1", round(P["dog_h"], 1): " (franja templada)"}), maxs=2.0)
     p.tables()
     p.notes([f"Barra Ø{f(g.d_pin + 5)} laminada/rectificada; torno horizontal o rectificado externo: Ø{f(g.d_pin)} m6 ({iso286.fmt_dev(g.d_pin, 'm6')} mm), Ra 0,8; largo {f(g.hd)} ±0,1.",
-             f"Tratamiento: bonificado y temple por inducción de la franja de contacto ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa del cálculo), profundidad efectiva ≥ {fm(g.z_hard, 1)} mm; Fy ≥ {f(P['Fy_pin'])} MPa (34CrNiMo6+QT, EN 10083-3).",
+             f"Tratamiento: bonificado y temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva ≥ {fm(g.z_hard, 1)} mm; Fy ≥ {f(P['Fy_pin'])} MPa (34CrNiMo6+QT, EN 10083-3).",
              f"Chaflán {fm(g.ch_pin, 0)}×45° en ambos extremos (ISO 13715). Rosca M20-6H prof. 40 en un extremo (ISO 262), perno ISO 4762 M20×45 cl. 10.9; torque propuesto en GEN-008 (PROPUESTA, A CONFIRMAR POR EL CALCULISTA).",
              f"Ajuste en los anillos {f(g.d_pin)} H7/m6 (transición, desmontable). Montar con grasa; sin soldadura.",
              f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en el extremo roscado; 10 % de dureza superficial por lote."],

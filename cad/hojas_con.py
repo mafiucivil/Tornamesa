@@ -190,7 +190,7 @@ STEPS = [
     ("Pivote y buje", "Calar el pivote Ø%s p6 en la plancha base y el collar (prensa o hielo seco); montar el buje s6 en el cubo de la mesa."),
     ("Accionamiento", "Montar bancadas ya soldadas: introducir patines por el extremo de la ranura T, uñas con resorte, cilindros y pasadores de articulación con grasa grafitada; conectar el circuito hidráulico."),
     ("Interfaz", "Montar la interfaz de deslizamiento (según opción) sobre la base y bajo la mesa: sectores con tornillos de posición y topes soldados, grasa grafitada; verificar juntas en frío."),
-    ("Izaje y asiento de la mesa", "Izar la mesa con medios definidos por el montajista (decisión del mandante: el cálculo no define puntos de izaje de la mesa) y asentarla sobre el pivote con la holgura axial c_boss_a y radial c_boss_r en el collar."),
+    ("Izaje y asiento de la mesa", "Izar la mesa con medios definidos por el montajista (decisión del mandante: el cálculo no define puntos de izaje de la mesa) y asentarla sobre el pivote con las holguras axial y radial del collar indicadas en CON-011."),
     ("Pasadores de empuje", "Insertar los %d pasadores Ø%s m6 en los anillos, perno M20 con arandela y torque propuesto (GEN); marcar con pintura de control."),
     ("Tapas y cubierta", "Colocar tapa retenedora del pivote y tapa de inspección; cubierta de madera si corresponde (opción)."),
     ("Control final", "Giro 360° en vacío, prueba hidráulica, prueba de carga y registro de presión de despegue (plan de inspección GEN-003)."),
@@ -233,7 +233,7 @@ def sheet_conjunto(ctx):
         ["Masa total del ensamble (3D)", f"{f(mt, 1)} kg (piezas del núcleo + comerciales)"], ["Masa del núcleo (m.total)", f"{f(ctx.M['total'], 1)} kg"],
         ["Centro de gravedad (x, y, z)", f"({fm(cgx[0], 1)}; {fm(cgx[1], 1)}; {fm(cgx[2], 1)}) mm desde el centro de la base y la cara inferior"],
         ["Carga de diseño", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm"], ["Mesa / base", f"Ø{f(P['D_top'])} / {f(B)} × {f(B)} × {f(g.tb)}"], ["Interfaz", g.interfaz_nombre]])
-    c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, NOTA_ANCLAJE, "Cota 228: altura total sin cubierta (base + mesa); 210: h_disc. Cotas generales; el detalle de cada subconjunto está en CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote) y CON-012 (interfaz).",
+    c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, nota_anclaje(ctx), "Cota 228: altura total sin cubierta (base + mesa); 210: altura de la mesa. Cotas generales; el detalle de cada subconjunto está en CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote) y CON-012 (interfaz).",
                                        "Despiece completo con materiales, certificados y masas en CON-002. Piezas: plano propio con el código de la pieza. Vistas adicionales y dimensiones generales: CON-003."])
     c.build()
     return c.h
@@ -260,7 +260,7 @@ def sheet_vistas_conj(ctx):
             ["Mesa", f"Ø{f(P['D_top'])} × {f(g.hd)}; cara inferior a z = {f(g.z0)}"], ["Eje de los cilindros", f"z = {f(g.zc)}"],
             ["Pivote", f"Ø{f(P['D_piv'])} × {fm(g.L_piv, 1)}"], ["Carrera de los cilindros", f"{f(P['stroke'])} mm"]]
     c.table_block("DIMENSIONES GENERALES", [("Elemento", 60, "L"), ("Dimensión [mm]", 110, "L")], rows)
-    c.note_block("NOTAS", ["Vistas de conjunto sin globos: las posiciones están en CON-001 (corte A-A). Dimensiones de fabricación: planos de cada pieza.", NOTA_VIENTO, NOTA_ANCLAJE])
+    c.note_block("NOTAS", ["Vistas de conjunto sin globos: las posiciones están en CON-001 (corte A-A). Dimensiones de fabricación: planos de cada pieza.", NOTA_VIENTO, nota_anclaje(ctx)])
     c.ficha_block(ks[:0] or [ks[0]], title="") if False else None
     c.build()
     return c.h
@@ -338,7 +338,7 @@ def sheet_secuencia(ctx):
         rows.append([str(i + 1), t, txt])
     zw = c.h.R["left"][2] - c.h.R["left"][0]
     c.table_block("SECUENCIA (taller sin torno vertical: gran diámetro por corte, soldadura y mandrinadora)", [("Paso", 14, "C"), ("Etapa", 50, "L"), ("Descripción", zw - 68, "L")], rows, wide=True)
-    c.note_block("NOTAS", [NOTA_VIENTO, NOTA_ANCLAJE, "Peso del equipo y puntos de izaje de la base: ver CON-001 y BAS-001 (4 orejas).", "No se prevé fabricar sobre la losa del cliente; la base se entrega soldada y aliviada."])
+    c.note_block("NOTAS", [NOTA_VIENTO, nota_anclaje(ctx), "Peso del equipo y puntos de izaje de la base: ver CON-001 y BAS-001 (4 orejas).", "No se prevé fabricar sobre la losa del cliente; la base se entrega soldada y aliviada."])
     c.iso_fill = False
     c.build()
     return c.h
@@ -490,8 +490,8 @@ def sheet_mesa_conj2(ctx):
 
     def cc(V, c):
         if g.rebaje:
-            V.dimh((g.D_boss / 2, 0, g.tb + g.h_boss / 2), (g.Drb / 2, 0, g.z0 + g.tbo / 2), "top", 0, on=["collar", "mesa_plancha_inf"], text=f"c_boss_r = {fm(g.c_boss_r, 0)} (radial)")
-            V.dimv((g.D_boss / 2 - 6, 0, g.tb + g.h_boss), (g.D_boss / 2 - 6, 0, g.z_techo), "left", 0, on=["collar", "mesa_cubo"], text=f"c_boss_a = {fm(g.c_boss_a, 0)} (axial)")
+            V.dimh((g.D_boss / 2, 0, g.tb + g.h_boss / 2), (g.Drb / 2, 0, g.z0 + g.tbo / 2), "top", 0, on=["collar", "mesa_plancha_inf"], text=f"{fm(g.c_boss_r, 0)} (holgura radial)")
+            V.dimv((g.D_boss / 2 - 6, 0, g.tb + g.h_boss), (g.D_boss / 2 - 6, 0, g.z_techo), "left", 0, on=["collar", "mesa_cubo"], text=f"{fm(g.c_boss_a, 0)} (holgura axial)")
     c.vs("cc", kc, "front", cut=CUT_Y, center=(g.D_boss / 2, 0, g.tb + 20), win=(-70, -45, 60, g.h_boss + 70), lv=(1, 1, 1, 1), draw=cc, mat=mats(ctx, kc), hs=0.3, maxs=2.0, title="REBAJE DEL COLLAR: HOLGURAS (detalle)", auto=False, w=1.0)
     jn = [w["id"] for w in ctx.welds if "MES" in w["piezas"]]
     for i, wid in enumerate(jn[:3]):
@@ -504,7 +504,7 @@ def sheet_mesa_conj2(ctx):
     rows2 = [rows[i] + (rows[i + half] if i + half < len(rows) else ["", "", "", ""]) for i in range(half)]
     c.table_block("POSICIÓN DE LOS PASADORES (PCD Ø%s, paso %s°, arranque %s°)" % (f(2 * g.R_pin), fm(360 / g.N_pin, 3), fm(D["pasadores"][0], 3)),
                   [("N°", 9, "C"), ("Ángulo", 22, "R"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("N°", 9, "C"), ("Ángulo", 22, "R"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R")], rows2)
-    c.tail(ks, jn, ["Los nervios se cortan entre almas; las almas son continuas; 1 empalme por alma entre nervios.", "Holguras del collar: radial c_boss_r y axial c_boss_a del núcleo; el cubo gira sin tocar el collar.",
+    c.tail(ks, jn, ["Los nervios se cortan entre almas; las almas son continuas; 1 empalme por alma entre nervios.", f"Holguras del collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo); el cubo gira sin tocar el collar.",
                     f"Tabla de pasadores: ángulos desde +x, sentido antihorario; PCD Ø{f(2 * g.R_pin)} ±0,3."])
     c.build()
     return c.h
@@ -570,11 +570,11 @@ def sheet_pivote_conj(ctx):
     for (desc, d, ho, sh_, app) in ajs:
         t = hojas_base.ajuste_txt(d, ho, sh_)
         rows.append([desc, f"Ø{fm(d, 0)} {ho}/{sh_}", t["h_lim"], t["s_lim"], t["juego"], t["tipo"]])
-    rows.append(["Collar en rebaje de la plancha inferior", f"Ø{f(g.D_boss)} / Ø{f(g.Drb)}", f"{fm(g.Drb, 1)}", f"{fm(g.D_boss, 1)}", f"c_boss_r = {fm(g.c_boss_r, 0)} (radial)", "sin contacto (núcleo)"])
-    rows.append(["Collar – cubo (axial)", f"{fm(g.h_boss, 0)} vs {fm(g.h_rebaje, 1)}", "—", "—", f"c_boss_a = {fm(g.c_boss_a, 0)} (axial)", "sin contacto (núcleo)"])
+    rows.append(["Collar en rebaje de la plancha inferior", f"Ø{f(g.D_boss)} / Ø{f(g.Drb)}", f"{fm(g.Drb, 1)}", f"{fm(g.D_boss, 1)}", f"{fm(g.c_boss_r, 0)} mm (radial)", "sin contacto (del cálculo)"])
+    rows.append(["Collar – cubo (axial)", f"{fm(g.h_boss, 0)} vs {fm(g.h_rebaje, 1)}", "—", "—", f"{fm(g.c_boss_a, 0)} mm (axial)", "sin contacto (del cálculo)"])
     c.table_block("AJUSTES Y HOLGURAS DEL PIVOTE (ISO 286, límites calculados)", [("Ajuste", 40, "L"), ("Nominal", 24, "L"), ("Agujero [mm]", 24, "C"), ("Eje [mm]", 24, "C"), ("Juego [µm]", 26, "C"), ("Tipo", 30, "L")], rows)
     c.tail(ks2, [], [f"Pivote Ø{f(P['D_piv'])} p6 en plancha base y collar (H7, aprieto); en el buje F7/f7 con juego, buje s6/H7 prensado en el cubo.",
-                     f"Altura de asiento del cubo: collar de {f(g.h_boss)} sobre la base; holgura radial {fm(g.c_boss_r, 0)} y axial {fm(g.c_boss_a, 0)} (núcleo): el cubo gira sin tocar el collar.",
+                     f"Altura de asiento del cubo: collar de {f(g.h_boss)} sobre la base; holgura radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo): el cubo gira sin tocar el collar.",
                      f"Tapa retenedora con 4 × M10×25 ISO 10642 10.9 (PCD Ø{fm(g.cap_pcd, 0)}); tapa de inspección con 6 × M10 (PCD Ø{fm(g.insp_pcd, 0)}); torques propuestos en GEN-008, a confirmar.",
                      "Retención axial del pivote: A DEFINIR POR EL CALCULISTA (decisión del mandante)."])
     c.build()

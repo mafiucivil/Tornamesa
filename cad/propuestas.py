@@ -139,12 +139,12 @@ def grado_corto(Fy, d=None, kind="plancha"):
 def catalogo_rows(ctx):
     P, g = ctx.P, ctx.g
     rows = [
-        ["Cilindro hidráulico de doble efecto (×2)", f"Camisa Ø{f(P['D_bore'])}, vástago Ø{f(P['d_rod'])}, carrera {f(P['stroke'])} mm, L0 {f(P['L0'])} mm, presión nominal {fm(P['p_rated'] * 0.0689476, 0)} bar (700 bar), alivio {f(P['p_relief'])} bar, ojales con rótula esférica autolubricada Ø{f(P['d_pp'])}, b = {f(P['b_eye'])} mm, masa ≈ {fm(P['m_cyl'], 0)} kg",
-         "Certificado de prueba hidráulica 1,5 × p_relief; EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO (proveedor)"],
+        ["Cilindro hidráulico de doble efecto (×2)", f"Camisa Ø{f(P['D_bore'])}, vástago Ø{f(P['d_rod'])}, carrera {f(P['stroke'])} mm, largo ojal–ojal retraído {f(P['L0'])} mm, presión nominal {fm(P['p_rated'] * 0.0689476, 0)} bar (700 bar), alivio {f(P['p_relief'])} bar, ojales con rótula esférica autolubricada Ø{f(P['d_pp'])}, b = {f(P['b_eye'])} mm, masa ≈ {fm(P['m_cyl'], 0)} kg",
+         f"Certificado de prueba hidráulica a 1,5 × {f(P['p_relief'])} bar; EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO (proveedor)"],
         ["Grasera recta DIN 71412 M10×1", f"{g.n_greaser} unidades; acero zincado; rosca M10×1 (ISO 261), conducto Ø6", "Lote con certificado de conformidad", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Tornillo ISO 4762 M20×45 cl. 10.9 con arandela", f"{g.N_pin} unidades; recubrimiento zincado/dacromet; arandela dura (HV 300 mín.) Ø{f(g.washer_D)}", "Certificado del lote EN 10204 2.2/3.1", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Grillete de izaje ASME B30.26 (×4)", f"Pasador ≤ {fm(P['d_ear'] - P['g_ear'], 0)} mm; WLL ≥ lo calculado en la fila «Orejas de izaje» del núcleo; con certificado de prueba", "Prueba de carga 1,25 × WLL", "marca/modelo A DEFINIR POR CATÁLOGO"],
-        ["Buje autolubricado", f"Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}; p_bush {fm(P['p_bush'], 0)} MPa; μ ≤ {fm(P['mu_bush'], 2)}; sobre aleación de bronce con lubricante sólido", "Certificado del proveedor", "marca/modelo A DEFINIR POR CATÁLOGO"],
+        ["Buje autolubricado", f"Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}; presión ≤ {fm(P['p_bush'], 0)} MPa; μ ≤ {fm(P['mu_bush'], 2)}; sobre aleación de bronce con lubricante sólido", "Certificado del proveedor", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Resorte de retorno de la uña (compresión) (×2)", f"Carrera ≥ {f(g.KG['travel'] + 5)} mm; fuerza 150–300 N", "—", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Grasa grafitada NLGI 2", "≥ 10 % grafito, aditivos EP; película 0,3–0,5 mm por cara", "Hoja de datos del fabricante", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Tornillos ISO 10642 M10 cl. 10.9 (tapas del pivote)", "4 × M10×25 (tapa retenedora) y 6 × M10 (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],

@@ -17,7 +17,7 @@ CL1 = 1.0              # holgura de modelo entre piezas móviles (ya usada en el
 
 ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO."
 NOTA_VIENTO = "En caso de vientos fuertes no se recomienda realizar la operación."
-NOTA_ANCLAJE = "Equipo sin anclaje: apoyo sobre losa/mats con presión ≤ q_losa; verificar superficie de apoyo por terceros."
+NOTA_ANCLAJE = "Equipo sin anclaje: apoyo sobre losa/mats con la presión admisible de la losa indicada en GEN-001 (verificación del cálculo); verificar la superficie de apoyo por terceros."
 
 
 def load(path=None):
@@ -30,7 +30,7 @@ RELIEF = 10.0          # alivio de borde de la cara de contacto uña–pasador: 
 
 def temple_txt(P):
     """Hallazgo N2: el contacto uña–pasador se calcula con Fy_sup = P.Fy_surf (templado); la nota «Dureza 280–330 HB» queda reemplazada por esta."""
-    return (f"Pasador y uña: temple por inducción ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa supuesto del cálculo), profundidad efectiva según el cálculo")
+    return (f"Pasador y uña: temple por inducción ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva según el cálculo")
 
 
 def alivio_txt(P):
@@ -257,6 +257,6 @@ def supuestos(g):
             "El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
     add("S15", "Atornillado de las tapas del pivote", f"Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø{fm(g.cap_pcd, 0)} a 45°+90°·k, roscados prof. {fm(g.cap_tap, 0)} en el pivote; tapa de inspección: 6 × M10 en PCD Ø{fm(g.insp_pcd, 0)} a 30°+60°·k, roscados prof. {fm(g.insp_tap, 0)} en el fondo del rebaje (PROPUESTA)",
         "El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar).")
-    add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista.")
+    add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de izaje de la base (espesor, radio y agujero: parámetros t_ear, R_ear, d_ear); la mesa debe izarse con medios definidos por el montajista.")
     add("S14", "Retención axial del pivote", "Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
     return S

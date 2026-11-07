@@ -296,7 +296,7 @@ def build_welds(ctx):
             if core is not None:
                 zz, org = float(core[0]), core[1]
             else:
-                zz, org = float(fillet_min(t)), f"mínimo AWS D1.1 T5.8 por la parte más gruesa (t = {fm(t, 0)}), a confirmar"
+                zz, org = float(fillet_min(t)), f"mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa (t = {fm(t, 0)} mm), a confirmar"
             j["z"] = zz
             j["a"] = round(zz * 0.7071, 1)
             j["size_txt"] = f"z{fm(zz, 0)}"
@@ -320,19 +320,19 @@ def build_welds(ctx):
     add("Marco corto – plancha base", "BAS-004 / BAS-001", "Filete en T, ambos lados, continuo", "fillet", t=max(P["rim_t"], tb), len_total=2 * 2 * (B - 2 * P["rim_t"]), wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C",
         other=dict(kind="fillet", size=f"z{fillet_min(max(P['rim_t'], tb))}"))
     add("Marco largo – marco corto (esquinas)", "BAS-003 / BAS-004", "Filete de esquina exterior, continuo (4 esquinas)", "fillet", t=P["rim_t"], len_total=4 * P["rim_h"], wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C")
-    add("Mejillas de ménsula – plancha base", "BAS-005 / BAS-001", "Filete en T, ambos lados de cada mejilla", "fillet", core=(P["w_br"], f"w_br del núcleo; mín. AWS {c('Filete mínimo mejillas–base')}, máx. AISC J2.2b t_ch − 2 = {fm(P['t_ch'] - 2, 0)}"),
+    add("Mejillas de ménsula – plancha base", "BAS-005 / BAS-001", "Filete en T, ambos lados de cada mejilla", "fillet", core=(P["w_br"], f"calculado (memoria, soldadura mejillas–base); mín. AWS D1.1 Tabla 5.8 = {c('Filete mínimo mejillas–base')}, máx. AISC 360-22 J2.2b = t − 2 = {fm(P['t_ch'] - 2, 0)} mm"),
         t=P["t_ch"], len_total=2 * 2 * nb * L_ch, wps=2, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_br'], 0)}"))
     add("Oreja superior – mejillas de ménsula", "BAS-006 / BAS-005", "Filete en T, 2 caras de la oreja contra cada mejilla", "fillet", t=P["t_ch"], len_total=nb * 2 * 2 * Llug, wps=2, end="VT 100 % · MT 100 %",
         other=dict(kind="fillet", size=f"z{fillet_min(P['t_ch'])}"))
     add("Oreja inferior (bloque) – mejillas de ménsula", "BAS-007 / BAS-005", "Filete en T, ambos lados, cara superior del bloque", "fillet", t=P["t_ch"], len_total=nb * 2 * Llug, wps=2, end="VT 100 % · MT 100 %",
         other=dict(kind="fillet", size=f"z{fillet_min(P['t_ch'])}"))
     add("Oreja inferior (bloque) – plancha base", "BAS-007 / BAS-001", "Filete perimetral del bloque", "fillet", t=P["t_ch"], len_total=nb * 2 * (Win + Llug), wps=2, end="VT 100 % · MT 100 %", contorno=True)
-    add("Bancada – plancha base", "ACC-001 / BAS-001", "Filete en T, ambos lados, continuo, precalentar 65 °C", "fillet", core=(P["w_bed_f"], "w_bed_f del núcleo"), t=P["t_bed"], len_total=int(P["n_cyl"]) * 2 * 2 * KG["L_bed"], wps=3,
+    add("Bancada – plancha base", "ACC-001 / BAS-001", "Filete en T, ambos lados, continuo, precalentar 65 °C", "fillet", core=(P["w_bed_f"], "calculado (memoria, soldadura bancada–base)"), t=P["t_bed"], len_total=int(P["n_cyl"]) * 2 * 2 * KG["L_bed"], wps=3,
         end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_bed_f'], 0)}"))
     if g.boss:
-        add("Collar del pivote – plancha base", "BAS-002 / BAS-001", "Filete perimetral continuo", "fillet", core=(g.w_collar, f"w_collar del núcleo; mín. AWS D1.1 T5.8 = {c('Collar: filete mínimo')}"), t=g.h_boss,
+        add("Collar del pivote – plancha base", "BAS-002 / BAS-001", "Filete perimetral continuo", "fillet", core=(g.w_collar, f"calculado (memoria, collar del pivote); mín. AWS D1.1 Tabla 5.8 = {c('Collar: filete mínimo')}"), t=g.h_boss,
             len_total=math.pi * g.D_boss, wps=4, end="VT 100 % · MT 100 % · UT de la unión", contorno=True)
-    add("Orejas de izaje – plancha base", "IZA-001 / BAS-001", "Filete en T, ambos lados, L = 2R; base biselada", "fillet", core=(P["w_ear"], f"w_ear del núcleo; mín. AWS D1.1 T5.8 = {c('Oreja: filete mínimo')}"), t=P["t_ear"],
+    add("Orejas de izaje – plancha base", "IZA-001 / BAS-001", "Filete en T, ambos lados, L = 2R; base biselada", "fillet", core=(P["w_ear"], f"calculado (memoria, orejas de izaje); mín. AWS D1.1 Tabla 5.8 = {c('Oreja: filete mínimo')}"), t=P["t_ear"],
         len_total=4 * 2 * 2 * P["R_ear"], wps=5, end="VT 100 % · MT 100 % · UT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_ear'], 0)}"))
     # MES
     tp = g.tpr
@@ -343,9 +343,9 @@ def build_welds(ctx):
     add("Plancha inferior – anillo inferior", "MES-003 / MES-004", "A tope circunferencial, transición de espesores 1:4", "V", t=g.tbo, prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
         prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
     rin = [r for r in D["almas"]]
-    add("Almas anulares – planchas inferior y superior", "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"w_web del núcleo ({'supera el máx. AISC J2.2b t − 2: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'mín. AWS D1.1 T5.8'})"),
+    add("Almas anulares – planchas inferior y superior", "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios) ({'supera el máx. AISC 360-22 J2.2b = t − 2 = ' + fm(P['t_web'] - 2, 0) + ' mm: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'cumple mín. AWS D1.1 Tabla 5.8'})"),
         t=P["t_web"], len_total=sum(2 * 2 * 2 * math.pi * r for r in rin), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
-    add("Nervios radiales – planchas y almas", "MES-008…010 / MES-001, 003, 005…007", "Filete en T, ambos lados, continuo", "fillet", core=(P["w_web"], "w_web del núcleo"), t=P["t_rib"],
+    add("Nervios radiales – planchas y almas", "MES-008…010 / MES-001, 003, 005…007", "Filete en T, ambos lados, continuo", "fillet", core=(P["w_web"], "calculado (memoria, soldadura de almas y nervios)"), t=P["t_rib"],
         len_total=int(P["N_rib"]) * 2 * 2 * (P["R_rib"] - P["D_hub"] / 2) * 1.0 + int(P["N_rib"]) * 2 * hw_len(g), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
     add("Empalme de cada alma anular", "MES-005…007", "A tope en V 60° (1 por alma)", "V", t=P["t_web"], prep="V 60°, raíz 2 mm, con respaldo", prep_txt="60°", groove=True, len_total=len(rin) * g.hw, wps=6, end="VT 100 % · UT 100 %")
     add("Cubo – planchas inferior y superior", "MES-011 / MES-001, 003", "Bisel 45° con respaldo (penetración completa)", "bevel", t=min(g.tt, g.tbo), prep="Bisel 45°, raíz 2 mm, respaldo", prep_txt="45°", groove=True,
@@ -355,14 +355,14 @@ def build_welds(ctx):
     if g.opt and g.removable:
         tpb = g.tope("base")
         if tpb:
-            wt = (P["w_tope"], f"w_tope del núcleo; w_mín = {fm(tpb['w_min'], 0)} (AWS D1.1 T5.8); cabe bajo a_inf = {fm(tpb['a_inf'], 0)}")
+            wt = (P["w_tope"], f"calculado (memoria, topes de la interfaz); mín. AWS D1.1 Tabla 5.8 = {fm(tpb['w_min'], 0)}; cabe bajo el chaflán de {fm(tpb['a_inf'], 0)} mm del sector")
             nsec = g.n_sec if g.opt != 3 or g.conf != 3 else int(P["bz_npad"])
             add("Barras de tope – plancha base", "INT tope base / BAS-001", "2 filetes (frente y dorso de la barra), continuos", "fillet", core=wt, t=max(tb, P["b_tope"]), len_total=nsec * 2 * tpb["L"], wps=8,
                 end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"), nota="soldar antes del alivio y del rectificado de las caras")
             add("Barras de tope – plancha inferior de la mesa", "INT tope mesa / MES-003", "2 filetes (frente y dorso de la barra), continuos", "fillet", core=wt, t=max(g.tbo, P["b_tope"]), len_total=g.n_sec * 2 * (g.tope("mesa") or tpb)["L"], wps=8,
                 end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"))
         if g.opt == 2 and g.tope("uhmw"):
-            add("Barras del rebaje UHMW – disco inoxidable de la base", "INT tope UHMW / INT disco base", "2 filetes, aporte inoxidable 309L, continuos", "fillet", core=(P["w_tope"], "w_tope del núcleo"), t=max(g.I["tss"], P["b_tope"]),
+            add("Barras del rebaje UHMW – disco inoxidable de la base", "INT tope UHMW / INT disco base", "2 filetes, aporte inoxidable 309L, continuos", "fillet", core=(P["w_tope"], "calculado (memoria, topes de la interfaz)"), t=max(g.I["tss"], P["b_tope"]),
                 len_total=g.n_seg * 2 * g.tope("uhmw")["L"], wps=9, end="VT 100 % · PT 100 %", aporte="ER309L (AWS A5.9)", proc="135 / 141", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"))
     if g.wood:
         add("Anillo de contención de la madera – plancha superior", "MAD anillo / MES-001", "Filete en T, ambos lados, continuo", "fillet", t=max(g.t_ring, g.tt), len_total=2 * math.pi * P["D_top"] / 2 * 2, wps=10, end="VT 100 % · MT 10 %",
@@ -424,7 +424,7 @@ def inspecciones(ctx):
     L = [
         ("Recepción", "Certificado EN 10204 3.1 de todas las planchas, barras y forjas; trazabilidad por colada; punzonado de la marca de colada en cada pieza.", "100 %", "Doc."),
         ("Recepción", "UT de planchas de la mesa y de la base según ASTM A578 nivel B (si se especifica Z35).", "100 % planchas", "UT"),
-        ("Recepción", f"Pasadores y uña: dureza superficial ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa del cálculo) y profundidad de temple ≥ {fm(g.z_hard, 1)} mm; Re ≥ {f(P['Fy_dog'])} MPa en la forja de la uña.", "100 % uñas; 10 % pasadores", "HRC / macro"),
+        ("Recepción", f"Pasadores y uña: dureza superficial ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa) y profundidad de temple ≥ {fm(g.z_hard, 1)} mm; Re ≥ {f(P['Fy_dog'])} MPa en la forja de la uña.", "100 % uñas; 10 % pasadores", "HRC / macro"),
         ("Soldadura", "WPS/PQR calificados según AWS D1.1 y soldadores calificados; registro de precalentamiento e interpase (≤ 250 °C).", "Todas", "Doc."),
         ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1 cl. 6) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
         ("Soldadura", "Partículas magnéticas MT en filetes críticos (mejillas, collar, orejas de izaje, bancadas, topes, almas y nervios) y en ranuras; 10 % en marco.", "Según programa (100 % / 10 %)", "MT"),
@@ -436,11 +436,17 @@ def inspecciones(ctx):
         ("Dimensional", f"Ranura T de bancadas: ancho {f(P['w_slot'])} H8, paralelismo 0,10 en todo el largo, coaxial con el ojal de la ménsula ±0,2.", "100 %", "Calibre / comparador"),
         ("Dimensional", f"Orejas de izaje: posición (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±2; plano vertical radial; agujero Ø{f(P['d_ear'])} a {f(P['h_ear'])} sobre la base ±1.", "100 %", "Cinta / plantilla"),
         ("Torque", f"Pernos M20×45 de los {g.N_pin} pasadores: ver tabla de torques propuesta (GEN); registro por perno y marca de pintura de control.", "100 %", "Torquímetro"),
-        ("Prueba", f"Prueba hidráulica de cilindros y circuito a 1,5 × {f(P['p_relief'])} bar (según certificado del fabricante); p_rated = {fm(P['p_rated'] * 0.0689476, 0)} bar.", "100 %", "Certificado"),
+        ("Prueba", f"Prueba hidráulica de cilindros y circuito a 1,5 × {f(P['p_relief'])} bar (según certificado del fabricante); presión nominal {fm(P['p_rated'] * 0.0689476, 0)} bar.", "100 %", "Certificado"),
         ("Prueba", "Prueba de carga de izaje de la base a 1,25 × WLL con grilletes y eslinga certificados; MT de las soldaduras de orejas después de la prueba.", "1 vez", "Prueba de carga"),
         ("Aceptación", f"Giro 360° con 1,0 × WLL registrando la presión de despegue; μ real ≤ {fm(P['mu_d'] if g.opt == 0 else ctx.D['apoyo']['mu']['d'], 2)} (diseño de la interfaz elegida).", "1 vez", "Manómetro"),
     ]
     return [(i + 1,) + x for i, x in enumerate(L)]
+
+
+def nota_anclaje(ctx):
+    v = ctx.g.fila("Presión sobre losa")
+    q = f"{fm(v['cap'], 0)} {v['unidad']}" if v else "la admisible del cálculo"
+    return f"Equipo sin anclaje: apoyo sobre losa/mats con presión sobre la losa ≤ {q} (admisible del cálculo); verificar la superficie de apoyo por terceros."
 
 
 def pintura(ctx):

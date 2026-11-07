@@ -46,6 +46,12 @@ class Gen(Pieza):
             n += 1
 
 
+def losa_txt(ctx):
+    """Presión admisible sobre la losa/mats según la verificación del núcleo (valor con unidad, sin nombre de parámetro)."""
+    v = ctx.g.fila("Presión sobre losa")
+    return f"{fm(v['cap'], 0)} {v['unidad']}" if v else "la admisible del cálculo"
+
+
 @gen
 def sheet_notas(ctx):
     g = ctx.g
@@ -53,7 +59,7 @@ def sheet_notas(ctx):
     s = c.s
     R = c.R["main"]
     notas = [ADVERTENCIA, "ESTADO DE TODAS LAS LÁMINAS: EMITIDO PARA REVISIÓN. No fabricar hasta la aprobación por un ingeniero calculista habilitado; los campos DIBUJÓ/REVISÓ/APROBÓ del cajetín quedan A DEFINIR (firmas).",
-             NOTA_VIENTO + " (sin análisis de viento en el cálculo).", NOTA_ANCLAJE,
+             NOTA_VIENTO + " (sin análisis de viento en el cálculo).", nota_anclaje(ctx),
              "Fuente única: todos los valores salen del JSON de diseño del núcleo de cálculo (exportado por la herramienta TT300-C); si el JSON cambia, regenerar el juego completo.",
              "Unidades: mm, kg, MPa, grados. Cotas en mm salvo indicación. No medir sobre el plano. Método de proyección E (ISO 5456-2).",
              "Tolerancias generales ISO 2768-mK (lineal y angular) y ISO 13920 para piezas soldadas (clase B/F); rugosidad no indicada: Ra 12,5.",
@@ -61,7 +67,7 @@ def sheet_notas(ctx):
              "Materiales con certificado EN 10204 3.1; trazabilidad por colada; punzonar el código de la pieza.",
              "Aristas vivas rotas 1×45° (ISO 13715) salvo indicación. Rosca métrica ISO 262 / ISO 724; tornillería ISO 4762 / ISO 10642, clase 10.9 (ISO 898-1).",
              "Taller sin torno vertical: gran diámetro por oxicorte/plasma, soldadura y mandrinadora; ajustes largos H7 en mandrinadora.", pintura(ctx),
-             "Sin viento ni anclaje (mandante): el equipo apoya sobre losa/mats con presión ≤ q_losa; la verificación de la losa es de terceros."]
+             f"Sin viento ni anclaje (mandante): el equipo apoya sobre losa/mats; presión sobre la losa ≤ {losa_txt(ctx)} (admisible del cálculo); la verificación de la losa es de terceros."]
     y = s.notes_block(R[0], R[3], "NOTAS GENERALES DE FABRICACIÓN", notas, h=T_N, width=0.46 * (R[2] - R[0]), numbered=True)
     nor = [("ISO 128", "Dibujo técnico: tipos de línea, vistas, cortes y achurado"), ("ISO 129-1", "Acotado"), ("ISO 1101", "Tolerancias geométricas"), ("ISO 1302", "Indicación de la textura superficial"),
            ("ISO 2553 / ISO 4063", "Símbolos de soldadura / procesos"), ("ISO 5817 / ISO 9692-1", "Niveles de calidad / preparación de juntas"), ("ISO 5457 / ISO 7200 / ISO 5456-2", "Formatos, cajetín, método de proyección"),
@@ -97,8 +103,8 @@ def sheet_soldaduras_global(ctx):
     sc = (R[2] - R[0]) / sum(w for _, w, _ in WELD_COLS)
     cols = [(t, w * sc, a) for t, w, a in WELD_COLS]
     out, last, y = c.table_pages(cols, weld_rows(ctx), "PROGRAMA DE SOLDADURAS (Junta N°, piezas, tipo, preparación, garganta a, cateto z, longitud, pasadas, proceso, aporte, WPS, END)", "PROGRAMA DE SOLDADURAS", 7)
-    last.s.notes_block(R[0], y - 6, "NOTAS", ["Tamaños: parámetros w_* del núcleo; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa y se rotula «mínimo AWS, a confirmar».",
-                                              "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte compatible con FEXX = %s MPa (E70xx)." % f(ctx.P["FEXX"]),
+    last.s.notes_block(R[0], y - 6, "NOTAS", ["Tamaños: los calculados en la memoria; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa y se rotula «mínimo AWS, a confirmar».",
+                                              "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte con resistencia a tracción ≥ %s MPa (E70xx)." % f(ctx.P["FEXX"]),
                                               "Todas las juntas llevan símbolo ISO 2553 con su número J## en las láminas de pieza o de subconjunto; la tabla de cada lámina repite las juntas que contiene.",
                                               "END: VT 100 % de todas las juntas; MT/UT/PT según columna (AWS D1.1 y BTH-1 Cat. B). Soldadores y WPS calificados por el fabricante."], h=T_N, width=700, numbered=True)
     return out
@@ -126,7 +132,7 @@ def sheet_tolerancias(ctx):
     for (desc, d, ho, sh_, app) in ajustes(ctx):
         t = ajuste_txt(d, ho, sh_)
         rows.append([desc, f"Ø{fm(d, 0)}", ho, sh_, t["h_lim"], t["s_lim"], t["juego"], t["tipo"], app])
-    rows.append(["Collar en rebaje (núcleo)", f"Ø{f(g.D_boss)}", "—", "—", f"Ø{fm(g.Drb, 1)}", f"Ø{fm(g.D_boss, 1)}", f"{fm(g.c_boss_r * 1000, 0)} (radial)", "con juego", f"c_boss_r = {fm(g.c_boss_r, 0)} y c_boss_a = {fm(g.c_boss_a, 0)} mm del núcleo"])
+    rows.append(["Collar en rebaje (del cálculo)", f"Ø{f(g.D_boss)}", "—", "—", f"Ø{fm(g.Drb, 1)}", f"Ø{fm(g.D_boss, 1)}", f"{fm(g.c_boss_r * 1000, 0)} (radial)", "con juego", f"holgura radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo)"])
     y, _ = s.table(R[0], R[3], [("Ajuste", 0.17 * w, "L"), ("Nominal", 0.05 * w, "C"), ("Agujero", 0.05 * w, "C"), ("Eje", 0.05 * w, "C"), ("Límites agujero [mm]", 0.11 * w, "C"), ("Límites eje [mm]", 0.11 * w, "C"),
                                       ("Juego mín/máx [µm]", 0.10 * w, "C"), ("Tipo", 0.08 * w, "L"), ("Aplicación", 0.28 * w, "L")], rows, h=T_S, title="TABLA DE AJUSTES ISO 286-1/-2 (límites calculados)")
     gd = [["Planitud", "Cara de apoyo de la base (Ø%s)" % f(P["D_top"] + 20), "0,20", "—"], ["Planitud", "Cara inferior de la mesa", "0,20", "—"], ["Perpendicularidad", "Agujero Ø%s H7 respecto de la cara de apoyo" % f(P["D_piv"]), "0,05", "A"],
@@ -152,9 +158,9 @@ def sheet_materiales(ctx):
                                   ("Origen", 0.07 * w, "L"), ("Tratamiento", 0.17 * w, "L")], rows, "MATERIALES POR PIEZA (certificado EN 10204 3.1; donde el cálculo solo fija Fy el grado es PROPUESTO por Fy, a confirmar)", "MATERIALES Y CERTIFICADOS", 5)
 
     g, P = ctx.g, ctx.P
-    gr = [["Plancha, pletinas y barras soldadas (Fy = %s MPa)" % f(P["Fy"]), propuestas.grado(P["Fy"], 20, "plancha")], ["Pivote (Fy_piv, Ø%s)" % f(P["D_piv"]), propuestas.grado(P["Fy_piv"], P["D_piv"], "barra")],
-          ["Pasadores de articulación (Fy_pp, Ø%s)" % f(P["d_pp"]), propuestas.grado(P["Fy_pp"], P["d_pp"], "barra")], ["Patín (Fy_shoe, bloque de %s mm)" % fm(g.Hs, 0), propuestas.grado(P["Fy_shoe"], g.Hs, "barra")],
-          ["Pasadores de empuje (Fy_pin, Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")], ["Uña (Fy_dog)", propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]]
+    gr = [["Plancha, pletinas y barras soldadas (Fy = %s MPa)" % f(P["Fy"]), propuestas.grado(P["Fy"], 20, "plancha")], ["Pivote (Ø%s)" % f(P["D_piv"]), propuestas.grado(P["Fy_piv"], P["D_piv"], "barra")],
+          ["Pasadores de articulación (Ø%s)" % f(P["d_pp"]), propuestas.grado(P["Fy_pp"], P["d_pp"], "barra")], ["Patín (bloque de %s mm)" % fm(g.Hs, 0), propuestas.grado(P["Fy_shoe"], g.Hs, "barra")],
+          ["Pasadores de empuje (Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")], ["Uña (forja, %s mm)" % fm(P["dog_b"], 0), propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]]
     last.s.table(R[0], y - 8, [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")], gr, h=T_S,
                  title="GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy")
     return out
@@ -167,7 +173,7 @@ def sheet_tratamientos(ctx):
     R = c.R["main"]
     w = R[2] - R[0]
     rows = [["Base soldada, mesa soldada", "Alivio de tensiones 590–620 °C (2 h/25 mm), enfriamiento lento; antes del mecanizado final", "Fabricante (registro de horno)"],
-            ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (Fy_sup {f(P['Fy_surf'])} MPa), profundidad ≥ {fm(g.z_hard, 1)} mm", "Dureza 10 % por lote; macrografía"],
+            ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad ≥ {fm(g.z_hard, 1)} mm", "Dureza 10 % por lote; macrografía"],
             ["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. ≥ {fm(g.z_hard, 1)} mm; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"],
             ["Pivote (PIV-001)", f"Bonificado (QT) según Fy ≥ {f(P['Fy_piv'])} MPa: {propuestas.grado_corto(P['Fy_piv'], P['D_piv'], 'barra')} ({propuestas.ROTULO_GRADO})", "Certificado 3.1"],
             ["Pasadores de articulación (ACC-005)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa: {propuestas.grado_corto(P['Fy_pp'], P['d_pp'], 'barra')} ({propuestas.ROTULO_GRADO}); 28–34 HRC de referencia", "Certificado 3.1"],
@@ -394,7 +400,7 @@ def sheet_wps(ctx):
     y2, _ = s.table(R[0], y - 8, [("Espesor de la parte más gruesa [mm]", 0.30 * w, "L"), ("Categoría B: E7018, ER70S-6, E71T-1 (los procesos propuestos)", 0.40 * w, "C"), ("Categoría A: electrodos no bajo hidrógeno", 0.30 * w, "C")], pre, h=T_S,
                     title="PRECALENTAMIENTO MÍNIMO — AWS D1.1 TABLA 3.2, acero Grupo II (ASTM A572 Gr.50)")
     s.notes_block(R[0], y2 - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
-                                       "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte compatible con FEXX = %s MPa." % f(ctx.P["FEXX"]),
+                                       "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte con resistencia a tracción ≥ %s MPa." % f(ctx.P["FEXX"]),
                                        "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
                                        "Soldadura de acero inoxidable 309L (barras UHMW): sin precalentamiento; interpase ≤ 150 °C; PT 100 %.", "Aceros bonificados (pasadores, pivote, uña) NO se sueldan.",
                                        "Soldadores calificados según AWS D1.1 cl. 4 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.9 * w, numbered=True)

@@ -272,6 +272,22 @@ def main():
         for c in cad_bad:
             fh.write(f"- {c['sheet']} · {c['vista']}: {c['textos']} (suma {c['suma']}, total {c['total_txt']})\n")
     print(f"  cadenas: {len(autodim.CADENAS)}, defectuosas {len(cad_bad)}", flush=True)
+    # ---- nombres internos de parámetros del cálculo en el texto de las láminas (solo se admiten en GEN-009 y GEN-011, listas para el calculista) ----
+    pn = sorted([k for k in D["P"] if "_" in k or len(k) >= 4] + ["L0", "Fy_sup", "q_losa", "k_borde", "h_rebaje", "D_rebaje_bot", "h_rebaje_cubo"], key=len, reverse=True)
+    rx_p = re.compile(r"(?<![A-Za-z0-9_\-])(" + "|".join(re.escape(k) for k in pn) + r")(?![A-Za-z0-9_])")
+    tok = {}
+    for h in hojas:
+        if h.plano.startswith((f"{CODE}-GEN-009", f"{CODE}-GEN-011")):
+            continue
+        hits = [m for t in h.s.texts for m in rx_p.findall(t)]
+        if hits:
+            tok[h.plano] = hits
+    n_tok = sum(len(v) for v in tok.values())
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Nombres internos de parámetros en las láminas\n\n- Tokens que coinciden con claves de P del JSON de diseño (fuera de GEN-009 y GEN-011): {n_tok}.\n")
+        for pl, v in sorted(tok.items()):
+            fh.write(f"- {pl}: {', '.join(sorted(set(v)))}\n")
+    print(f"  tokens de parámetros: {n_tok} {dict((k.replace(CODE + '-', ''), sorted(set(v))) for k, v in tok.items())}", flush=True)
     n_ch = sum(len(q["choques"]) for q in QC.values())
     n_fu = sum(len(q["fuera"]) for q in QC.values())
     n_iv = sum(len(q["invasiones"]) for q in QC.values())
@@ -288,7 +304,7 @@ def main():
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)
-    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad:
+    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok:
         sys.exit(2)
 
 
