@@ -548,6 +548,7 @@ class Plano:
             h, s, ctx = self.h, self.s, self.ctx
             s.reset()
             COTAS.rows[:] = [r for r in COTAS.rows if r["sheet"] != h.plano]
+            autodim.CADENAS[:] = [c for c in autodim.CADENAS if c["sheet"] != h.plano]
             ctx.balloons[h.plano] = set()
             h.welds_here = []
             self.named, self.scales, self.vlist = {}, [], []

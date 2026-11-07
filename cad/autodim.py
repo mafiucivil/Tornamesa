@@ -13,7 +13,7 @@ CADENAS = []      # control: cada cadena automática con sus valores, la suma ro
 
 
 def _num(t):
-    m = _re.search(r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?)", t.replace("Ø", ""))
+    m = _re.search(r"(\d+(?:\.\d{3})*(?:,\d+)?)", t.replace("Ø", ""))
     return float(m.group(1).replace(".", "").replace(",", ".")) if m else None
 from draw import tw, T_N
 from geom import fm, f
@@ -103,8 +103,9 @@ def _is_corner2d(V, dirs3, min_deg=12.0):
             dd = abs(((ang[i] - ang[j] + 180) % 360) - 180)
             if min_deg < dd < 180 - min_deg:
                 return True
-    # un extremo libre (una sola dirección) es esquina solo si nada continúa en sentido opuesto
-    if len(ang) == 1:
+    # sin direcciones proyectadas: el vértice está en el extremo de silueta (círculo visto de canto donde nace la generatriz) → esquina real
+    # una sola dirección: extremo libre de una arista
+    if len(ang) <= 1:
         return True
     return False
 
@@ -142,8 +143,8 @@ def _point_is_corner(V, p3):
         if shp is None:
             continue
         dirs = _vertex_dirs(shp).get((round(p3[0], 3), round(p3[1], 3), round(p3[2], 3)))
-        if dirs is not None:
-            return _is_corner2d(V, dirs)
+        if dirs is not None and _is_corner2d(V, dirs):
+            return True
     return _hatch_corner(V, u, v)
 
 
@@ -428,6 +429,8 @@ def notes_holes(V, cs, on, fits=None, ang0=35, ext=14.0, pitch_txt=None, center=
                 best = (score, c, ang)
         _, c, ang = best
         P0 = V.P(c[3])
+        if math.sin(math.radians(ang)) < -0.2:
+            ang = -ang                      # las llamadas no bajan hacia el título de la vista
         # Si el centro de la vista es el centro del agujero, o varios grupos coinciden, separa las direcciones
         for a in used:
             if abs(((ang - a + 180) % 360) - 180) < 12 and math.hypot(P0[0] - cxp, P0[1] - cyp) > 8:
