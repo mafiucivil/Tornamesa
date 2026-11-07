@@ -79,7 +79,7 @@ def sheet_tapas(ctx):
         ct = ctx.code(k).replace(CODE + "-", "")
         zt = zb_ + L_
         p.vs(f"{k}_pl", [k], "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title=f"{ct} — {nm}: PLANTA", hatch=False, w=1.0,
-             auto=dict(hole_rmin=3.0, hole_txt={11.0: f"{n} × Ø11 pasantes (M10) + avellanado 90° Ø20 (ISO 10642), PCD Ø{fm(pcd, 0)}, a {fm(a0, 0)}° + {fm(360 / n, 0)}°·k"}, fits={}))
+             auto=dict(hole_rmin=3.0, hole_txt={11.0: f"{n} × Ø11, avell. Ø20×90°, PCD Ø{fm(pcd, 0)}"}, fits={}))
         p.vs(f"{k}_co", [k], "front", cut=CUT_Y, lv=(1, 2, 2, 2), extra=(0, 0, 20, 0), title=f"{ct} — CORTE A-A", hs=0.35, w=1.0,
              auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={round(L_, 1): " ±0,2"}))
         for i in range(n):
