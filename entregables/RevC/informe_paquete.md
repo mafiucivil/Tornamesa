@@ -1,58 +1,67 @@
 # Informe del paquete de planos TT300-C · Rev. C
 
-Generado el 07-11-2026 desde `TT300-C_design.json` (fuente única) en 239 s.
+Generado el 07-11-2026 desde `TT300-C_design.json` (fuente única) en 218 s.
 Interfaz dibujada: **Acero-acero con grasa grafitada (sin interfaz alternativa)**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
 **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.**
 
-## Láminas (43)
+## Láminas (52)
 
 | N° | Plano | Título | Escala |
 |---|---|---|---|
 | 1 | TT300C-GEN-001-C | NOTAS GENERALES, NORMAS APLICABLES E ÍNDICE DE PLANOS | S/E |
-| 2 | TT300C-CON-001-C | CONJUNTO GENERAL DEL EQUIPO: PLANTA, ELEVACIÓN Y CORTES A-A Y B-B | 1:5 / 1:10 / 1:20 |
+| 2 | TT300C-CON-001-C | CONJUNTO GENERAL DEL EQUIPO: PLANTA Y CORTE A-A CON COTAS DE INSTALACIÓN | 1:5 / 1:10 |
 | 3 | TT300C-CON-002-C | DESPIECE COMPLETO DEL EQUIPO (HOJA 1) | S/E |
-| 4 | TT300C-CON-003-C | CONJUNTO GENERAL: ELEVACIONES LATERAL Y POSTERIOR, VISTA INFERIOR Y DIMENSIONES GENERALES | 1:1 / 1:5 / 1:10 |
-| 5 | TT300C-CON-004-C | ISOMÉTRICA EXPLOSIONADA DEL EQUIPO CON GLOBOS DE POSICIÓN | S/E |
-| 6 | TT300C-CON-005-C | SECUENCIA DE MONTAJE Y FABRICACIÓN | S/E |
+| 4 | TT300C-CON-003-C | CONJUNTO GENERAL: CORTE B-B, ELEVACIÓN FRONTAL Y DETALLE DEL PASADOR | 1:1 / 1:5 |
+| 5 | TT300C-CON-004-C | ISOMÉTRICA EXPLOSIONADA POR GRUPOS DE MONTAJE (ACCIONAMIENTO, PIVOTE Y BUJE EN CON-018) | S/E |
+| 6 | TT300C-CON-005-C | INSTRUCTIVO DE ARMADO, HOJA 1 DE 9: BASE SOLDADA | S/E |
 | 7 | TT300C-CON-006-C | BASE SOLDADA: CONJUNTO (PLANTA, ELEVACIONES, CORTES Y DETALLES DE JUNTA) | 1:2 / 1:5 / 1:10 / 1:20 |
 | 8 | TT300C-CON-007-C | MÉNSULA DE CILINDRO: SUBCONJUNTO SOLDADO (PLANTA, ELEVACIÓN Y CORTES) | 2:1 / 1:5 |
 | 9 | TT300C-CON-008-C | MESA SOLDADA: PLANTA A MEDIA ALTURA, PLANTA INFERIOR, ELEVACIÓN Y CORTE POR UN PASADOR | 1:10 |
 | 10 | TT300C-CON-009-C | MESA SOLDADA: CORTE POR ALMAS, DETALLES DE JUNTA, REBAJE DEL COLLAR Y TABLA DE PASADORES | 2:1 / 1:1 / 1:10 |
 | 11 | TT300C-CON-010-C | ACCIONAMIENTO: CILINDRO, MÉNSULA, PATÍN, BANCADA, UÑA Y PASADORES (VISTA Y CORTES) | 1:1 / 1:5 |
 | 12 | TT300C-CON-011-C | PIVOTE: CUBO, COLLAR, BUJE Y TAPAS — HOLGURAS Y AJUSTES (ISO 286) | 1:1 / 1:2 |
-| 13 | TT300C-BAS-001-C | PLANCHA BASE: CONTORNO, AGUJERO CENTRAL Y POSICIONES | 2:1 / 1:2 / 1:20 |
-| 14 | TT300C-BAS-002-C | COLLAR DE ASIENTO DEL PIVOTE | 2:1 / 1:1 / 1:2,5 |
-| 15 | TT300C-BAS-003-C | MARCO PERIMETRAL: PLETINAS LARGA Y CORTA | 2:1 / 1:2,5 / 1:5 |
-| 16 | TT300C-BAS-005-C | MÉNSULA DE CILINDRO: MEJILLA Y OREJAS (PIEZAS) | 1:2 / 1:2,5 / 1:5 |
-| 17 | TT300C-IZA-001-C | OREJA DE IZAJE (4 UNIDADES) | 2:1 / 1:1 |
-| 18 | TT300C-ACC-001-C | BANCADA DE GUÍA CON RANURA T (2 UNIDADES) | 2:1 / 1:2 / 1:10 |
-| 19 | TT300C-MES-001-C | MESA: PLANCHA SUPERIOR | 2:1 / 1:1 / 1:5 / 1:10 |
-| 20 | TT300C-MES-002-C | MESA: ANILLOS SUPERIOR E INFERIOR DE PASADORES (28 AGUJEROS) | 1:1 / 1:2 / 1:10 |
-| 21 | TT300C-MES-003-C | MESA: PLANCHA INFERIOR (CARA DE APOYO DE LA INTERFAZ) | 2:1 / 1:2 / 1:10 |
-| 22 | TT300C-MES-005-C | MESA: ALMAS ANULARES (3 ANILLOS) | 2:1 / 1:2 / 1:10 |
-| 23 | TT300C-MES-008-C | MESA: NERVIOS RADIALES (TRAMOS ENTRE ALMAS) | 2:1 / 1:1 / 1:2 |
-| 24 | TT300C-MES-011-C | MESA: CUBO | 2:1 / 1:2 |
-| 25 | TT300C-MES-012-C | MESA: PASADOR DE EMPUJE Ø85 (28 UNIDADES) | 5:1 / 2:1 / 1:1 |
-| 26 | TT300C-MES-013-C | MESA: PERNO ISO 4762 M20×45 CON ARANDELA (28 UNIDADES) | 2:1 |
-| 27 | TT300C-PIV-001-C | PIVOTE Ø120 p6 | 5:1 / 2:1 / 1:1 |
-| 28 | TT300C-PIV-002-C | PIVOTE: BUJE AUTOLUBRICADO | 5:1 / 2:1 / 1:1 |
-| 29 | TT300C-PIV-003-C | PIVOTE: TAPAS RETENEDORA (PIV-003) E INSPECCIÓN (PIV-004) | 2:1 / 1:1 / 1:2 |
-| 30 | TT300C-ACC-002-C | CILINDRO HIDRÁULICO DE DOBLE EFECTO (ELEMENTO COMERCIAL — DIMENSIONES DE INTERFAZ) | 1:1 / 1:2 / 1:2,5 |
-| 31 | TT300C-ACC-003-C | PATÍN GUIADO CON LENGÜETA T Y MARCO DE BOCA (2 UNIDADES) | 1:1 / 1:2 / 1:2,5 |
-| 32 | TT300C-ACC-004-C | UÑA DE EMPUJE (CARA PLANA TEMPLADA, CHAFLÁN DE RETORNO) (2 UNIDADES) | 2:1 / 1:1 / 1:2 |
-| 33 | TT300C-ACC-005-C | PASADORES DE ARTICULACIÓN Ø70 f8 (VÁSTAGO Y OJAL TRASERO) | 5:1 / 2:1 / 1:1 |
-| 34 | TT300C-GEN-003-C | PLAN DE INSPECCIÓN Y ENSAYOS | S/E |
-| 35 | TT300C-GEN-004-C | TOLERANCIAS Y AJUSTES (ISO 286) Y TOLERANCIAS GEOMÉTRICAS | S/E |
-| 36 | TT300C-GEN-005-C | MATERIALES Y CERTIFICADOS | S/E |
-| 37 | TT300C-GEN-006-C | TRATAMIENTOS TÉRMICOS Y SUPERFICIALES, PINTURA | S/E |
-| 38 | TT300C-GEN-007-C | PROGRAMA DE SOLDADURAS: TABLA GLOBAL DE JUNTAS | S/E |
-| 39 | TT300C-GEN-008-C | TORQUES DE APRIETE (PROPUESTA) Y LISTA DE COMPRAS DE ELEMENTOS COMERCIALES | S/E |
-| 40 | TT300C-GEN-009-C | SUPUESTOS DEL DIBUJANTE Y BRECHAS CON EL CÁLCULO (GEN-009) | S/E |
-| 41 | TT300C-GEN-010-C | LISTA DE CORTES DE PLANCHA (NESTING SIMPLE) Y APROVECHAMIENTO | S/E |
-| 42 | TT300C-GEN-011-C | LISTA DE VERIFICACIÓN DEL REVISOR | S/E |
-| 43 | TT300C-GEN-012-C | WPS PRE-CALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1 CL. 3) Y PRECALENTAMIENTO | S/E |
+| 13 | TT300C-CON-014-C | INSTRUCTIVO DE ARMADO, HOJA 2 DE 9: MESA SOLDADA | S/E |
+| 14 | TT300C-CON-015-C | INSTRUCTIVO DE ARMADO, HOJA 3 DE 9: PIVOTE EN LA BASE | S/E |
+| 15 | TT300C-CON-016-C | INSTRUCTIVO DE ARMADO, HOJA 4 DE 9: INTERFAZ ACERO–ACERO: ENGRASE DE LAS CARAS | S/E |
+| 16 | TT300C-CON-017-C | INSTRUCTIVO DE ARMADO, HOJA 5 DE 9: BUJE Y MESA SOBRE EL PIVOTE | S/E |
+| 17 | TT300C-CON-018-C | ISOMÉTRICAS EXPLOSIONADAS: PIVOTE CON BUJE Y TAPA RETENEDORA; ACCIONAMIENTO (UN LADO) | S/E |
+| 18 | TT300C-CON-019-C | INSTRUCTIVO DE ARMADO, HOJA 6 DE 9: PASADORES DE EMPUJE Y PERNOS | S/E |
+| 19 | TT300C-CON-020-C | INSTRUCTIVO DE ARMADO, HOJA 7 DE 9: ACCIONAMIENTO | S/E |
+| 20 | TT300C-CON-021-C | INSTRUCTIVO DE ARMADO, HOJA 8 DE 9: TAPAS | S/E |
+| 21 | TT300C-CON-022-C | INSTRUCTIVO DE ARMADO, HOJA 9 DE 9: PRUEBA EN VACÍO Y RECEPCIÓN | S/E |
+| 22 | TT300C-BAS-001-C | PLANCHA BASE: CONTORNO, AGUJERO CENTRAL Y POSICIONES | 2:1 / 1:2 / 1:20 |
+| 23 | TT300C-BAS-002-C | COLLAR DE ASIENTO DEL PIVOTE | 2:1 / 1:1 / 1:2,5 |
+| 24 | TT300C-BAS-003-C | MARCO PERIMETRAL: PLETINAS LARGA Y CORTA | 2:1 / 1:2,5 / 1:5 |
+| 25 | TT300C-BAS-005-C | MÉNSULA DE CILINDRO: MEJILLA Y OREJAS (PIEZAS) | 1:2 / 1:2,5 / 1:5 |
+| 26 | TT300C-IZA-001-C | OREJA DE IZAJE (4 UNIDADES) | 2:1 / 1:1 |
+| 27 | TT300C-ACC-001-C | BANCADA DE GUÍA CON RANURA T (2 UNIDADES) | 2:1 / 1:2 / 1:10 |
+| 28 | TT300C-MES-001-C | MESA: PLANCHA SUPERIOR | 2:1 / 1:1 / 1:5 / 1:10 |
+| 29 | TT300C-MES-002-C | MESA: ANILLOS SUPERIOR E INFERIOR DE PASADORES (28 AGUJEROS) | 1:1 / 1:2 / 1:10 |
+| 30 | TT300C-MES-003-C | MESA: PLANCHA INFERIOR (CARA DE APOYO DE LA INTERFAZ) | 2:1 / 1:2 / 1:10 |
+| 31 | TT300C-MES-005-C | MESA: ALMAS ANULARES (3 ANILLOS) | 2:1 / 1:2 / 1:10 |
+| 32 | TT300C-MES-008-C | MESA: NERVIOS RADIALES (TRAMOS ENTRE ALMAS) | 2:1 / 1:1 / 1:2 |
+| 33 | TT300C-MES-011-C | MESA: CUBO | 2:1 / 1:2 |
+| 34 | TT300C-MES-012-C | MESA: PASADOR DE EMPUJE Ø85 (28 UNIDADES) | 5:1 / 2:1 / 1:1 |
+| 35 | TT300C-MES-013-C | MESA: PERNO ISO 4762 M20×45 CON ARANDELA (28 UNIDADES) | 2:1 |
+| 36 | TT300C-PIV-001-C | PIVOTE Ø120 p6 | 5:1 / 2:1 / 1:1 |
+| 37 | TT300C-PIV-002-C | PIVOTE: BUJE AUTOLUBRICADO | 5:1 / 2:1 / 1:1 |
+| 38 | TT300C-PIV-003-C | PIVOTE: TAPAS RETENEDORA (PIV-003) E INSPECCIÓN (PIV-004) | 2:1 / 1:1 / 1:2 |
+| 39 | TT300C-ACC-002-C | CILINDRO HIDRÁULICO DE DOBLE EFECTO (ELEMENTO COMERCIAL — DIMENSIONES DE INTERFAZ) | 1:1 / 1:2 / 1:2,5 |
+| 40 | TT300C-ACC-003-C | PATÍN GUIADO CON LENGÜETA T Y MARCO DE BOCA (2 UNIDADES) | 1:1 / 1:2 / 1:2,5 |
+| 41 | TT300C-ACC-004-C | UÑA DE EMPUJE (CARA PLANA TEMPLADA, CHAFLÁN DE RETORNO) (2 UNIDADES) | 2:1 / 1:1 / 1:2 |
+| 42 | TT300C-ACC-005-C | PASADORES DE ARTICULACIÓN Ø70 f8 (VÁSTAGO Y OJAL TRASERO) | 5:1 / 2:1 / 1:1 |
+| 43 | TT300C-GEN-003-C | PLAN DE INSPECCIÓN Y ENSAYOS | S/E |
+| 44 | TT300C-GEN-004-C | TOLERANCIAS Y AJUSTES (ISO 286) Y TOLERANCIAS GEOMÉTRICAS | S/E |
+| 45 | TT300C-GEN-005-C | MATERIALES Y CERTIFICADOS | S/E |
+| 46 | TT300C-GEN-006-C | TRATAMIENTOS TÉRMICOS Y SUPERFICIALES, PINTURA | S/E |
+| 47 | TT300C-GEN-007-C | PROGRAMA DE SOLDADURAS: TABLA GLOBAL DE JUNTAS | S/E |
+| 48 | TT300C-GEN-008-C | TORQUES DE APRIETE (PROPUESTA) Y LISTA DE COMPRAS DE ELEMENTOS COMERCIALES | S/E |
+| 49 | TT300C-GEN-009-C | SUPUESTOS DEL DIBUJANTE Y BRECHAS CON EL CÁLCULO (GEN-009) | S/E |
+| 50 | TT300C-GEN-010-C | LISTA DE CORTES DE PLANCHA (NESTING SIMPLE) Y APROVECHAMIENTO | S/E |
+| 51 | TT300C-GEN-011-C | LISTA DE VERIFICACIÓN DEL REVISOR | S/E |
+| 52 | TT300C-GEN-012-C | WPS PRE-CALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1 CL. 3) Y PRECALENTAMIENTO | S/E |
 
 ## Ítems (31)
 
@@ -120,7 +129,7 @@ Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pas
 
 ## Chequeo automático de cotas (dibujo frente a modelo 3D)
 
-457 cotas registradas; 457 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
+454 cotas registradas; 454 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
 
 ## Control de marco
 
@@ -156,12 +165,12 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 
 ## Cobertura y métricas del juego de planos
 
-- Láminas: 43; cotas verificadas: 457 (0 fallas).
+- Láminas: 52; cotas verificadas: 454 (0 fallas).
 - Ítems del despiece sin globo en un plano de conjunto/subconjunto: ninguno.
 - Juntas sin símbolo ISO 2553 en un plano de pieza/subconjunto: ninguna. Piezas fabricables sin plano: ninguna.
 - Errores de generación: ninguno.
-- Ocupación de las 31 láminas con vistas: media 19.6 % del área útil del marco; 29.1 % de la zona de vistas (área de dibujo: marco menos cajetín, banda de notas y franja de tablas) contando solo las vistas; 57.1 % contando también cotas, títulos y símbolos (huella); 18.4 % de tinta (celdas de 8 mm con trazo).
-- Cotas totales: 457 (0 fallas). A DEFINIR en el cuerpo de las láminas (sin contar las firmas del cajetín): 20.
+- Ocupación de las 40 láminas con vistas: media 22.4 % del área útil del marco; 32.4 % de la zona de vistas (área de dibujo: marco menos cajetín, banda de notas y franja de tablas) contando solo las vistas; 55.9 % contando también cotas, títulos y símbolos (huella); 18.0 % de tinta (celdas de 8 mm con trazo).
+- Cotas totales: 454 (0 fallas). A DEFINIR en el cuerpo de las láminas (sin contar las firmas del cajetín): 20.
 
 ## Checklist de fabricación por pieza (criterios verificados sobre cada lámina; «NO» = pendiente)
 
@@ -171,7 +180,7 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 | BAS-002-C | BAS-002 | 7 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | BAS-003-C | BAS-003, BAS-004 | 12 | sí | n.a. | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | BAS-005-C | BAS-005, BAS-006, BAS-007 | 29 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
-| IZA-001-C | IZA-001 | 9 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
+| IZA-001-C | IZA-001 | 10 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | ACC-001-C | ACC-001 | 23 | sí | n.a. | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | MES-001-C | MES-001 | 11 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | MES-002-C | MES-002, MES-004 | 13 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
@@ -185,7 +194,7 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 | PIV-002-C | PIV-002 | 9 | sí | sí | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
 | PIV-003-C | PIV-003, PIV-004 | 24 | sí | sí | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
 | ACC-002-C | ACC-002 | 26 | sí | sí | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
-| ACC-003-C | ACC-003 | 39 | sí | sí | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
+| ACC-003-C | ACC-003 | 45 | sí | sí | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
 | ACC-004-C | ACC-004 | 18 | sí | n.a. | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
 | ACC-005-C | ACC-005, ACC-006 | 13 | sí | sí | sí (nota general + cotas) | sí | sí | sí | n.a. | sí | sí |
 
@@ -193,58 +202,75 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 
 | N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR | Choques | Fuera de marco | Invasiones |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | TT300C-GEN-001-C | A1 | S/E | 0 | 0.0 | 0.0 | 48.3 | 0.0 | 1 | 0 | 0 | 0 |
-| 2 | TT300C-CON-001-C | A1 | 1:5 / 1:10 / 1:20 | 8 | 18.6 | 26.1 | 26.1 | 54.8 | 0 | 0 | 0 | 0 |
+| 1 | TT300C-GEN-001-C | A1 | S/E | 0 | 0.0 | 0.0 | 56.2 | 0.0 | 1 | 0 | 0 | 0 |
+| 2 | TT300C-CON-001-C | A1 | 1:5 / 1:10 | 13 | 21.8 | 33.0 | 27.0 | 61.4 | 0 | 0 | 0 | 0 |
 | 3 | TT300C-CON-002-C | A1 | S/E | 0 | 0.0 | 0.0 | 75.3 | 0.0 | 0 | 0 | 0 | 0 |
-| 4 | TT300C-CON-003-C | A1 | 1:1 / 1:5 / 1:10 | 16 | 35.9 | 46.4 | 26.5 | 75.8 | 0 | 0 | 0 | 0 |
-| 5 | TT300C-CON-004-C | A1 | S/E | 0 | 39.5 | 51.2 | 25.8 | 77.4 | 0 | 0 | 0 | 0 |
-| 6 | TT300C-CON-005-C | A1 | S/E | 0 | 34.7 | 53.0 | 15.4 | 66.8 | 0 | 0 | 0 | 0 |
-| 7 | TT300C-CON-006-C | A1 | 1:2 / 1:5 / 1:10 / 1:20 | 27 | 9.2 | 15.8 | 20.9 | 63.2 | 0 | 0 | 0 | 0 |
-| 8 | TT300C-CON-007-C | A1 | 2:1 / 1:5 | 19 | 26.4 | 39.2 | 17.1 | 67.4 | 0 | 0 | 0 | 0 |
-| 9 | TT300C-CON-008-C | A1 | 1:10 | 15 | 21.4 | 38.2 | 29.0 | 65.3 | 0 | 0 | 0 | 0 |
-| 10 | TT300C-CON-009-C | A1 | 2:1 / 1:1 / 1:10 | 4 | 9.9 | 17.6 | 19.8 | 65.4 | 0 | 0 | 0 | 0 |
-| 11 | TT300C-CON-010-C | A1 | 1:1 / 1:5 | 26 | 18.6 | 30.3 | 22.4 | 59.6 | 0 | 0 | 0 | 0 |
-| 12 | TT300C-CON-011-C | A1 | 1:1 / 1:2 | 8 | 20.8 | 32.5 | 16.1 | 58.1 | 1 | 0 | 0 | 0 |
-| 13 | TT300C-BAS-001-C | A1 | 2:1 / 1:2 / 1:20 | 19 | 14.7 | 24.4 | 16.4 | 49.5 | 0 | 0 | 0 | 0 |
-| 14 | TT300C-BAS-002-C | A1 | 2:1 / 1:1 / 1:2,5 | 7 | 17.6 | 26.0 | 12.9 | 55.5 | 0 | 0 | 0 | 0 |
-| 15 | TT300C-BAS-003-C | A1 | 2:1 / 1:2,5 / 1:5 | 12 | 14.9 | 23.2 | 17.9 | 59.6 | 0 | 0 | 0 | 0 |
-| 16 | TT300C-BAS-005-C | A1 | 1:2 / 1:2,5 / 1:5 | 29 | 6.9 | 11.5 | 20.5 | 61.2 | 0 | 0 | 0 | 0 |
-| 17 | TT300C-IZA-001-C | A1 | 2:1 / 1:1 | 9 | 16.6 | 24.3 | 13.1 | 45.5 | 0 | 0 | 0 | 0 |
-| 18 | TT300C-ACC-001-C | A1 | 2:1 / 1:2 / 1:10 | 23 | 18.2 | 26.6 | 19.1 | 62.6 | 0 | 0 | 0 | 0 |
-| 19 | TT300C-MES-001-C | A1 | 2:1 / 1:1 / 1:5 / 1:10 | 11 | 13.9 | 21.3 | 15.4 | 61.0 | 0 | 0 | 0 | 0 |
-| 20 | TT300C-MES-002-C | A1 | 1:1 / 1:2 / 1:10 | 13 | 10.6 | 18.8 | 15.4 | 43.8 | 0 | 0 | 0 | 0 |
-| 21 | TT300C-MES-003-C | A1 | 2:1 / 1:2 / 1:10 | 7 | 12.0 | 17.7 | 13.4 | 39.1 | 0 | 0 | 0 | 0 |
-| 22 | TT300C-MES-005-C | A1 | 2:1 / 1:2 / 1:10 | 9 | 11.7 | 20.1 | 17.3 | 58.0 | 0 | 0 | 0 | 0 |
-| 23 | TT300C-MES-008-C | A1 | 2:1 / 1:1 / 1:2 | 8 | 15.2 | 25.0 | 15.2 | 56.2 | 0 | 0 | 0 | 0 |
-| 24 | TT300C-MES-011-C | A1 | 2:1 / 1:2 | 12 | 18.1 | 26.7 | 16.8 | 53.3 | 0 | 0 | 0 | 0 |
-| 25 | TT300C-MES-012-C | A1 | 5:1 / 2:1 / 1:1 | 12 | 23.7 | 32.7 | 15.8 | 59.7 | 0 | 0 | 0 | 0 |
-| 26 | TT300C-MES-013-C | A1 | 2:1 | 12 | 21.3 | 29.2 | 12.6 | 40.3 | 0 | 0 | 0 | 0 |
-| 27 | TT300C-PIV-001-C | A1 | 5:1 / 2:1 / 1:1 | 22 | 19.0 | 26.2 | 16.9 | 45.2 | 1 | 0 | 0 | 0 |
-| 28 | TT300C-PIV-002-C | A1 | 5:1 / 2:1 / 1:1 | 9 | 29.6 | 40.8 | 13.9 | 59.0 | 1 | 0 | 0 | 0 |
-| 29 | TT300C-PIV-003-C | A1 | 2:1 / 1:1 / 1:2 | 24 | 14.9 | 22.2 | 17.6 | 45.4 | 0 | 0 | 0 | 0 |
-| 30 | TT300C-ACC-002-C | A1 | 1:1 / 1:2 / 1:2,5 | 26 | 18.4 | 26.8 | 19.6 | 47.5 | 1 | 0 | 0 | 0 |
-| 31 | TT300C-ACC-003-C | A1 | 1:1 / 1:2 / 1:2,5 | 39 | 23.0 | 31.6 | 24.4 | 52.2 | 0 | 0 | 0 | 0 |
-| 32 | TT300C-ACC-004-C | A1 | 2:1 / 1:1 / 1:2 | 18 | 25.0 | 34.7 | 17.9 | 55.4 | 0 | 0 | 0 | 0 |
-| 33 | TT300C-ACC-005-C | A1 | 5:1 / 2:1 / 1:1 | 13 | 28.3 | 40.8 | 18.3 | 66.6 | 0 | 0 | 0 | 0 |
-| 34 | TT300C-GEN-003-C | A1 | S/E | 0 | 0.0 | 0.0 | 26.6 | 0.0 | 0 | 0 | 0 | 0 |
-| 35 | TT300C-GEN-004-C | A2 | S/E | 0 | 0.0 | 0.0 | 49.1 | 0.0 | 0 | 0 | 0 | 0 |
-| 36 | TT300C-GEN-005-C | A1 | S/E | 0 | 0.0 | 0.0 | 56.8 | 0.0 | 0 | 0 | 0 | 0 |
-| 37 | TT300C-GEN-006-C | A1 | S/E | 0 | 0.0 | 0.0 | 28.3 | 0.0 | 0 | 0 | 0 | 0 |
-| 38 | TT300C-GEN-007-C | A1 | S/E | 0 | 0.0 | 0.0 | 41.0 | 0.0 | 0 | 0 | 0 | 0 |
-| 39 | TT300C-GEN-008-C | A2 | S/E | 0 | 0.0 | 0.0 | 54.0 | 0.0 | 11 | 0 | 0 | 0 |
-| 40 | TT300C-GEN-009-C | A1 | S/E | 0 | 0.0 | 0.0 | 23.9 | 0.0 | 4 | 0 | 0 | 0 |
-| 41 | TT300C-GEN-010-C | A1 | S/E | 0 | 0.0 | 0.0 | 27.5 | 0.0 | 0 | 0 | 0 | 0 |
-| 42 | TT300C-GEN-011-C | A2 | S/E | 0 | 0.0 | 0.0 | 27.5 | 0.0 | 0 | 0 | 0 | 0 |
-| 43 | TT300C-GEN-012-C | A2 | S/E | 0 | 0.0 | 0.0 | 51.1 | 0.0 | 0 | 0 | 0 | 0 |
+| 4 | TT300C-CON-003-C | A1 | 1:1 / 1:5 | 1 | 24.0 | 31.0 | 20.0 | 48.6 | 0 | 0 | 0 | 0 |
+| 5 | TT300C-CON-004-C | A1 | S/E | 0 | 36.4 | 47.1 | 27.0 | 61.8 | 0 | 0 | 0 | 0 |
+| 6 | TT300C-CON-005-C | A1 | S/E | 0 | 35.6 | 49.2 | 15.8 | 61.5 | 0 | 0 | 0 | 0 |
+| 7 | TT300C-CON-006-C | A1 | 1:2 / 1:5 / 1:10 / 1:20 | 27 | 9.2 | 15.8 | 21.6 | 61.7 | 0 | 0 | 0 | 0 |
+| 8 | TT300C-CON-007-C | A1 | 2:1 / 1:5 | 19 | 26.4 | 39.2 | 16.8 | 65.4 | 0 | 0 | 0 | 0 |
+| 9 | TT300C-CON-008-C | A1 | 1:10 | 15 | 21.4 | 38.2 | 28.8 | 60.2 | 0 | 0 | 0 | 0 |
+| 10 | TT300C-CON-009-C | A1 | 2:1 / 1:1 / 1:10 | 4 | 9.9 | 17.6 | 20.6 | 65.9 | 0 | 0 | 0 | 0 |
+| 11 | TT300C-CON-010-C | A1 | 1:1 / 1:5 | 26 | 18.6 | 30.3 | 21.8 | 57.3 | 0 | 0 | 0 | 0 |
+| 12 | TT300C-CON-011-C | A1 | 1:1 / 1:2 | 8 | 20.8 | 32.5 | 16.5 | 50.6 | 1 | 0 | 0 | 0 |
+| 13 | TT300C-CON-014-C | A1 | S/E | 0 | 20.0 | 28.0 | 15.5 | 38.4 | 0 | 0 | 0 | 0 |
+| 14 | TT300C-CON-015-C | A1 | S/E | 0 | 32.1 | 44.4 | 5.8 | 53.7 | 0 | 0 | 0 | 0 |
+| 15 | TT300C-CON-016-C | A1 | S/E | 0 | 35.6 | 48.2 | 11.2 | 55.0 | 0 | 0 | 0 | 0 |
+| 16 | TT300C-CON-017-C | A1 | S/E | 0 | 39.4 | 55.0 | 22.4 | 68.1 | 0 | 0 | 0 | 0 |
+| 17 | TT300C-CON-018-C | A1 | S/E | 0 | 26.4 | 34.2 | 16.0 | 60.4 | 0 | 0 | 0 | 0 |
+| 18 | TT300C-CON-019-C | A1 | S/E | 0 | 35.6 | 48.8 | 22.3 | 61.0 | 0 | 0 | 0 | 0 |
+| 19 | TT300C-CON-020-C | A1 | S/E | 0 | 38.9 | 54.6 | 21.6 | 68.5 | 0 | 0 | 0 | 0 |
+| 20 | TT300C-CON-021-C | A1 | S/E | 0 | 35.6 | 48.8 | 18.8 | 61.0 | 0 | 0 | 0 | 0 |
+| 21 | TT300C-CON-022-C | A1 | S/E | 0 | 35.6 | 49.5 | 17.0 | 56.5 | 0 | 0 | 0 | 0 |
+| 22 | TT300C-BAS-001-C | A1 | 2:1 / 1:2 / 1:20 | 19 | 14.7 | 24.4 | 16.4 | 49.5 | 0 | 0 | 0 | 0 |
+| 23 | TT300C-BAS-002-C | A1 | 2:1 / 1:1 / 1:2,5 | 7 | 17.6 | 26.0 | 12.9 | 55.5 | 0 | 0 | 0 | 0 |
+| 24 | TT300C-BAS-003-C | A1 | 2:1 / 1:2,5 / 1:5 | 12 | 14.9 | 23.2 | 17.9 | 59.6 | 0 | 0 | 0 | 0 |
+| 25 | TT300C-BAS-005-C | A1 | 1:2 / 1:2,5 / 1:5 | 29 | 6.7 | 11.1 | 20.6 | 59.0 | 0 | 0 | 0 | 0 |
+| 26 | TT300C-IZA-001-C | A1 | 2:1 / 1:1 | 10 | 16.0 | 23.4 | 13.8 | 46.1 | 0 | 0 | 0 | 0 |
+| 27 | TT300C-ACC-001-C | A1 | 2:1 / 1:2 / 1:10 | 23 | 18.2 | 26.6 | 19.1 | 62.6 | 0 | 0 | 0 | 0 |
+| 28 | TT300C-MES-001-C | A1 | 2:1 / 1:1 / 1:5 / 1:10 | 11 | 13.9 | 21.3 | 15.4 | 61.0 | 0 | 0 | 0 | 0 |
+| 29 | TT300C-MES-002-C | A1 | 1:1 / 1:2 / 1:10 | 13 | 10.6 | 18.8 | 15.4 | 43.8 | 0 | 0 | 0 | 0 |
+| 30 | TT300C-MES-003-C | A1 | 2:1 / 1:2 / 1:10 | 7 | 12.0 | 17.7 | 13.4 | 39.1 | 0 | 0 | 0 | 0 |
+| 31 | TT300C-MES-005-C | A1 | 2:1 / 1:2 / 1:10 | 9 | 11.7 | 20.1 | 17.3 | 58.0 | 0 | 0 | 0 | 0 |
+| 32 | TT300C-MES-008-C | A1 | 2:1 / 1:1 / 1:2 | 8 | 15.2 | 25.0 | 15.2 | 56.2 | 0 | 0 | 0 | 0 |
+| 33 | TT300C-MES-011-C | A1 | 2:1 / 1:2 | 12 | 18.1 | 26.7 | 16.8 | 53.3 | 0 | 0 | 0 | 0 |
+| 34 | TT300C-MES-012-C | A1 | 5:1 / 2:1 / 1:1 | 12 | 23.7 | 32.7 | 15.8 | 59.7 | 0 | 0 | 0 | 0 |
+| 35 | TT300C-MES-013-C | A1 | 2:1 | 12 | 21.3 | 29.2 | 12.6 | 40.3 | 0 | 0 | 0 | 0 |
+| 36 | TT300C-PIV-001-C | A1 | 5:1 / 2:1 / 1:1 | 22 | 19.0 | 26.2 | 16.9 | 45.2 | 1 | 0 | 0 | 0 |
+| 37 | TT300C-PIV-002-C | A1 | 5:1 / 2:1 / 1:1 | 9 | 29.6 | 40.8 | 13.9 | 59.0 | 1 | 0 | 0 | 0 |
+| 38 | TT300C-PIV-003-C | A1 | 2:1 / 1:1 / 1:2 | 24 | 14.9 | 22.2 | 17.6 | 45.4 | 0 | 0 | 0 | 0 |
+| 39 | TT300C-ACC-002-C | A1 | 1:1 / 1:2 / 1:2,5 | 26 | 18.4 | 26.8 | 19.6 | 47.5 | 1 | 0 | 0 | 0 |
+| 40 | TT300C-ACC-003-C | A1 | 1:1 / 1:2 / 1:2,5 | 45 | 23.1 | 31.8 | 25.9 | 55.8 | 0 | 0 | 0 | 0 |
+| 41 | TT300C-ACC-004-C | A1 | 2:1 / 1:1 / 1:2 | 18 | 25.0 | 34.7 | 17.9 | 55.4 | 0 | 0 | 0 | 0 |
+| 42 | TT300C-ACC-005-C | A1 | 5:1 / 2:1 / 1:1 | 13 | 28.3 | 40.8 | 18.3 | 66.6 | 0 | 0 | 0 | 0 |
+| 43 | TT300C-GEN-003-C | A1 | S/E | 0 | 0.0 | 0.0 | 26.6 | 0.0 | 0 | 0 | 0 | 0 |
+| 44 | TT300C-GEN-004-C | A2 | S/E | 0 | 0.0 | 0.0 | 49.1 | 0.0 | 0 | 0 | 0 | 0 |
+| 45 | TT300C-GEN-005-C | A1 | S/E | 0 | 0.0 | 0.0 | 56.8 | 0.0 | 0 | 0 | 0 | 0 |
+| 46 | TT300C-GEN-006-C | A1 | S/E | 0 | 0.0 | 0.0 | 28.3 | 0.0 | 0 | 0 | 0 | 0 |
+| 47 | TT300C-GEN-007-C | A1 | S/E | 0 | 0.0 | 0.0 | 41.0 | 0.0 | 0 | 0 | 0 | 0 |
+| 48 | TT300C-GEN-008-C | A2 | S/E | 0 | 0.0 | 0.0 | 54.0 | 0.0 | 11 | 0 | 0 | 0 |
+| 49 | TT300C-GEN-009-C | A1 | S/E | 0 | 0.0 | 0.0 | 23.9 | 0.0 | 4 | 0 | 0 | 0 |
+| 50 | TT300C-GEN-010-C | A1 | S/E | 0 | 0.0 | 0.0 | 27.5 | 0.0 | 0 | 0 | 0 | 0 |
+| 51 | TT300C-GEN-011-C | A2 | S/E | 0 | 0.0 | 0.0 | 27.5 | 0.0 | 0 | 0 | 0 | 0 |
+| 52 | TT300C-GEN-012-C | A2 | S/E | 0 | 0.0 | 0.0 | 51.1 | 0.0 | 0 | 0 | 0 | 0 |
 
 ## Control de cadenas de cotas
 
-- Cadenas automáticas: 62; con suma ≠ total (±0,05) o extremo fuera de una arista real del contorno 2D: 0. Detalle en `control_cadenas.csv`.
+- Cadenas automáticas: 58; con suma ≠ total (±0,05) o extremo fuera de una arista real del contorno 2D: 0. Detalle en `control_cadenas.csv`.
 
 ## Nombres internos de parámetros en las láminas
 
 - Tokens que coinciden con claves de P del JSON de diseño (fuera de GEN-009 y GEN-011): 0.
 
+## Completitud dimensional por pieza (desde el sólido 3D)
+
+- Requisitos (extensión total, escalones planos, diámetros/radios, posición de ejes, chaflanes/caras inclinadas) leídos del B-rep de cada pieza fabricable: 404; cubiertos por una cota, llamada o fila de tabla de su lámina: 404; faltantes: 0. Piezas comerciales: justificadas («definido por elemento comercial»). Detalle en `completitud_piezas.csv`.
+
+## Líneas de cota y de referencia sobre textos
+
+- Líneas de cota, extensión o referencia (capa COTA) que atraviesan el recuadro de un texto: 0. Cruces entre líneas de referencia de globos: 0. Líneas interrumpidas bajo un texto (ISO 128-20) después del ordenador de textos: 35.
+
 ## Control de calidad gráfico (DXF)
 
-- Choques de texto (intersección > 20 % del menor): 0. Entidades fuera del marco: 0. Invasiones del cajetín o de la banda de notas: 0. Textos reubicados por el ordenador de textos: 23.
+- Choques de texto (intersección > 20 % del menor): 0. Entidades fuera del marco: 0. Invasiones del cajetín o de la banda de notas: 0. Textos reubicados por el ordenador de textos: 64.

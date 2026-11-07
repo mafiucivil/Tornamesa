@@ -1,6 +1,4 @@
 ﻿lámina;vista;eje;cadena;suma;total rotulado;suma = total ±0,05;extremos en aristas reales
-TT300C-CON-003-C;inf;h;1.280 | 60 | 1.220;2560.0;2.560;sí;sí
-TT300C-CON-003-C;inf;v;1.280 | 1.280;2560.0;2.560;sí;sí
 TT300C-CON-006-C;D1;v;18 | 45;63.0;63;sí;sí
 TT300C-CON-006-C;D2;h;48 | 12 | 40 | 12 | 48;160.0;160;sí;sí
 TT300C-CON-006-C;D2;v;22 | 18;40.0;40;sí;sí
