@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.372361111
+2461352.4025578704
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.373460648
+2461352.4036689815
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{B4007801-A85F-4AA6-A989-95B91D37229F}
+{E7DD748B-09D9-4B59-A212-94710CC621E5}
   9
 $VERSIONGUID
   2
-{397591AE-6C1D-4B3C-8C23-0249F691711D}
+{725EF424-C976-4ECE-BA32-6FE443233FD3}
   9
 $EXTNAMES
 290
@@ -2617,7 +2617,7 @@ AcDbText
  40
 3.5
   1
-    c_boss_r = 3 y axial c_boss_a = 2 mm (núcleo).
+    3 mm y axial 2 mm (del cálculo).
   7
 STD
  11
@@ -4921,7 +4921,7 @@ AcDbText
  40
 3.0
   1
-plancha (h_rebaje 62 desde la cara inferior de la mesa)
+plancha (fondo del rebaje a 62 mm de la cara inferior de la mesa)
   7
 STD
  11
@@ -41975,7 +41975,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:12.074743+00:00
+1.4.2 @ 2026-11-07T12:39:41.696663+00:00
   0
 DICTIONARYVAR
   5
@@ -41987,7 +41987,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:57:47.994067+00:00
+1.4.2 @ 2026-11-07T12:41:17.973355+00:00
   0
 ENDSEC
   0

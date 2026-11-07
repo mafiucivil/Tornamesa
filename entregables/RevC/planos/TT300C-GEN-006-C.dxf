@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.372511574
+2461352.402673611
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.373854167
+2461352.4040856482
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{71541F6D-0E30-4DE1-92F0-C7098DC7BB6A}
+{F5545687-89E5-4982-84B8-C4950224FB4E}
   9
 $VERSIONGUID
   2
-{8CE287BC-FB54-4303-84AB-D18051658255}
+{BDB8ED20-01A8-4692-9838-BCA70884723E}
   9
 $EXTNAMES
 290
@@ -2839,7 +2839,7 @@ AcDbText
  40
 3.0
   1
-Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (Fy_sup 1.500 MPa), profundidad ≥ 3,8 mm
+Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: 1.500 MPa), profundidad ≥ 3,8 mm
   7
 STD
  11
@@ -12883,7 +12883,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:25.171093+00:00
+1.4.2 @ 2026-11-07T12:39:51.581426+00:00
   0
 DICTIONARYVAR
   5
@@ -12895,7 +12895,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:58:21.601821+00:00
+1.4.2 @ 2026-11-07T12:41:53.986333+00:00
   0
 ENDSEC
   0

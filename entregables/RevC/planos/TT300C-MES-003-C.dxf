@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.372326389
+2461352.4025347224
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.373321759
+2461352.4035300924
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{1546E09C-7BD5-48AD-94DA-63D3DCEF9B73}
+{95DFBC87-B7A3-461C-B0DC-A21C93798D0B}
   9
 $VERSIONGUID
   2
-{9F5B445E-8605-4D39-A368-64A98857F764}
+{9F033D2C-ED75-43A9-B939-C931D08959DB}
   9
 $EXTNAMES
 290
@@ -2583,7 +2583,7 @@ AcDbText
  40
 3.5
   1
-2. Agujero central Ø256: PASANTE por el rebaje del collar (D_boss 250 + 2
+2. Agujero central Ø256: PASANTE por el rebaje del collar (Ø250 del collar
   7
 STD
  11
@@ -2617,7 +2617,7 @@ AcDbText
  40
 3.5
   1
-    × c_boss_r 3); holgura radial 3, axial 2.
+    + 2 × 3 mm); holgura radial 3 mm, axial 2 mm.
   7
 STD
  11
@@ -38231,7 +38231,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:09.411443+00:00
+1.4.2 @ 2026-11-07T12:39:39.594349+00:00
   0
 DICTIONARYVAR
   5
@@ -38243,7 +38243,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:57:35.892127+00:00
+1.4.2 @ 2026-11-07T12:41:05.963941+00:00
   0
 ENDSEC
   0

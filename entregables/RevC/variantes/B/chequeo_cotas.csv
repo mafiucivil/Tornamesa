@@ -85,8 +85,8 @@ TT300C-CON-008-C;corte;2.000;2000.0;lineal;0.000;0.000;OK
 TT300C-CON-008-C;corte;210;210.0;lineal;0.000;0.000;OK
 TT300C-CON-009-C;cw;174;174.0;lineal;0.000;0.000;OK
 TT300C-CON-009-C;cw;80 (cubo);80.0;lineal;0.000;0.000;OK
-TT300C-CON-009-C;cc;c_boss_r = 3 (radial);3.0;lineal;0.000;0.000;OK
-TT300C-CON-009-C;cc;c_boss_a = 2 (axial);11.0;lineal;0.000;0.000;OK
+TT300C-CON-009-C;cc;3 (holgura radial);3.0;lineal;0.000;0.000;OK
+TT300C-CON-009-C;cc;2 (holgura axial);11.0;lineal;0.000;0.000;OK
 TT300C-CON-010-C;planta;530 (entre ejes de ojales);530.0;lineal;eje OK;eje OK;OK
 TT300C-CON-010-C;planta;Ø70 f8;70.0;diámetro;eje OK;;OK
 TT300C-CON-010-C;cA;42,5;42.5;lineal;0.000;0.000;OK
@@ -469,11 +469,11 @@ TT300C-ACC-005-C;det_ch;2;2.0;lineal;0.000;0.000;OK
 TT300C-ACC-005-C;corte;Ø66;66.0;lineal;0.000;0.000;OK
 TT300C-ACC-005-C;corte;Ø70;70.0;lineal;0.000;0.000;OK
 TT300C-ACC-005-C;corte;227;227.0;lineal;0.000;0.000;OK
-TT300C-INT-001-C;planta;R1000;0.0;llamada;0.000;;OK
-TT300C-INT-001-C;planta;R131;0.0;llamada;0.000;;OK
-TT300C-INT-001-C;planta;869;861.566;lineal;0.000;0.000;OK
+TT300C-INT-001-C;planta;R1000 (radio exterior);0.0;llamada;0.000;;OK
+TT300C-INT-001-C;planta;R131 (radio interior);0.0;llamada;0.000;;OK
+TT300C-INT-001-C;planta;869 (ancho radial);861.566;lineal;0.000;0.000;OK
 TT300C-INT-001-C;planta;170 (muesca del tope);170.0;lineal;0.000;0.000;OK
-TT300C-INT-001-C;planta;22;22.0;lineal;0.000;0.000;OK
+TT300C-INT-001-C;planta;22 (barra + 2);22.0;lineal;0.000;0.000;OK
 TT300C-INT-001-C;planta;2 × M6 ISO 10642 (avellanado Ø12, pasante Ø6,6) a r = 361,4 y 877,5;6.6;agujero;eje OK;;OK
 TT300C-INT-001-C;corte;170;170.0;lineal;0.000;0.000;OK
 TT300C-INT-001-C;corte;7;7.0;lineal;0.000;0.000;OK
@@ -492,11 +492,11 @@ TT300C-INT-001-C;det_scr;3,5;3.5;lineal;0.000;0.000;OK
 TT300C-INT-001-C;det_scr;15;15.0;lineal;0.000;0.000;OK
 TT300C-INT-001-C;det_muesca;170;170.0;lineal;0.000;0.000;OK
 TT300C-INT-001-C;det_muesca;22;22.0;lineal;0.000;0.000;OK
-TT300C-INT-002-C;planta;R1000;0.0;llamada;0.000;;OK
-TT300C-INT-002-C;planta;R131;0.0;llamada;0.000;;OK
-TT300C-INT-002-C;planta;869;861.566;lineal;0.000;0.000;OK
+TT300C-INT-002-C;planta;R1000 (radio exterior);0.0;llamada;0.000;;OK
+TT300C-INT-002-C;planta;R131 (radio interior);0.0;llamada;0.000;;OK
+TT300C-INT-002-C;planta;869 (ancho radial);861.566;lineal;0.000;0.000;OK
 TT300C-INT-002-C;planta;170 (muesca del tope);170.0;lineal;0.000;0.000;OK
-TT300C-INT-002-C;planta;22;22.0;lineal;0.000;0.000;OK
+TT300C-INT-002-C;planta;22 (barra + 2);22.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;planta;2 × M6 ISO 10642 (avellanado Ø12, pasante Ø6,6) a r = 361,4 y 877,5;6.6;agujero;eje OK;;OK
 TT300C-INT-002-C;corte;170;170.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;corte;8;8.0;lineal;0.000;0.000;OK
@@ -518,9 +518,9 @@ TT300C-INT-002-C;det_muesca;7;7.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;det_muesca;22;22.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;det_muesca;7;7.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;det_muesca;36;36.0;lineal;0.000;0.000;OK
-TT300C-INT-007-C;planta;R1000;0.0;llamada;0.000;;OK
-TT300C-INT-007-C;planta;R131;0.0;llamada;0.000;;OK
-TT300C-INT-007-C;planta;869;861.957;lineal;0.000;0.000;OK
+TT300C-INT-007-C;planta;R1000 (radio exterior);0.0;llamada;0.000;;OK
+TT300C-INT-007-C;planta;R131 (radio interior);0.0;llamada;0.000;;OK
+TT300C-INT-007-C;planta;869 (ancho radial);861.957;lineal;0.000;0.000;OK
 TT300C-INT-007-C;elev;50,94;50.936;lineal;0.000;0.000;OK
 TT300C-INT-007-C;elev;761,51;761.507;lineal;0.000;0.000;OK
 TT300C-INT-007-C;elev;49,51;49.513;lineal;0.000;0.000;OK

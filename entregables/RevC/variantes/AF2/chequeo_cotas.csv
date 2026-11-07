@@ -84,8 +84,8 @@ TT300C-CON-008-C;corte;2.000;2000.0;lineal;0.000;0.000;OK
 TT300C-CON-008-C;corte;210;210.0;lineal;0.000;0.000;OK
 TT300C-CON-009-C;cw;174;174.0;lineal;0.000;0.000;OK
 TT300C-CON-009-C;cw;80 (cubo);80.0;lineal;0.000;0.000;OK
-TT300C-CON-009-C;cc;c_boss_r = 3 (radial);3.0;lineal;0.000;0.000;OK
-TT300C-CON-009-C;cc;c_boss_a = 2 (axial);2.0;lineal;0.000;0.000;OK
+TT300C-CON-009-C;cc;3 (holgura radial);3.0;lineal;0.000;0.000;OK
+TT300C-CON-009-C;cc;2 (holgura axial);2.0;lineal;0.000;0.000;OK
 TT300C-CON-010-C;planta;530 (entre ejes de ojales);530.0;lineal;eje OK;eje OK;OK
 TT300C-CON-010-C;planta;Ø70 f8;70.0;diámetro;eje OK;;OK
 TT300C-CON-010-C;cA;42,5;42.5;lineal;0.000;0.000;OK
@@ -461,16 +461,16 @@ TT300C-ACC-005-C;det_ch;2;2.0;lineal;0.000;0.000;OK
 TT300C-ACC-005-C;corte;Ø66;66.0;lineal;0.000;0.000;OK
 TT300C-ACC-005-C;corte;Ø70;70.0;lineal;0.000;0.000;OK
 TT300C-ACC-005-C;corte;186;186.0;lineal;0.000;0.000;OK
-TT300C-INT-001-C;planta;R1000;0.0;llamada;0.000;;OK
-TT300C-INT-001-C;planta;R131;0.0;llamada;0.000;;OK
-TT300C-INT-001-C;planta;869;861.566;lineal;0.000;0.000;OK
+TT300C-INT-001-C;planta;R1000 (radio exterior);0.0;llamada;0.000;;OK
+TT300C-INT-001-C;planta;R131 (radio interior);0.0;llamada;0.000;;OK
+TT300C-INT-001-C;planta;869 (ancho radial);861.566;lineal;0.000;0.000;OK
 TT300C-INT-001-C;elev;861,57;861.566;lineal;0.000;0.000;OK
 TT300C-INT-001-C;elev;6 ±0,1;6.0;lineal;0.000;0.000;OK
 TT300C-INT-001-C;lat;260,06;260.061;lineal;0.000;0.000;OK
 TT300C-INT-001-C;lat;6 ±0,1;6.0;lineal;0.000;0.000;OK
-TT300C-INT-002-C;planta;R1000;0.0;llamada;0.000;;OK
-TT300C-INT-002-C;planta;R131;0.0;llamada;0.000;;OK
-TT300C-INT-002-C;planta;869;861.566;lineal;0.000;0.000;OK
+TT300C-INT-002-C;planta;R1000 (radio exterior);0.0;llamada;0.000;;OK
+TT300C-INT-002-C;planta;R131 (radio interior);0.0;llamada;0.000;;OK
+TT300C-INT-002-C;planta;869 (ancho radial);861.566;lineal;0.000;0.000;OK
 TT300C-INT-002-C;corte;8 ±0,1;8.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;corte;1;1.0;lineal;0.000;0.000;OK
 TT300C-INT-002-C;elev;34,12;34.119;lineal;0.000;0.000;OK
@@ -495,7 +495,7 @@ TT300C-INT-101-C;sector;30;30.0;lineal;0.000;0.000;OK
 TT300C-INT-101-C;sector;404,5;404.5;lineal;0.000;0.000;OK
 TT300C-INT-101-C;sector;404,5;404.5;lineal;0.000;0.000;OK
 TT300C-INT-101-C;sector;30;30.0;lineal;0.000;0.000;OK
-TT300C-INT-101-C;sector;869;869.0;lineal;0.000;0.000;OK
+TT300C-INT-101-C;sector;869 (ancho radial);869.0;lineal;0.000;0.000;OK
 TT300C-INT-101-C;corte;8;8.0;lineal;0.000;0.000;OK
 TT300C-INT-101-C;corte;26;26.0;lineal;0.000;0.000;OK
 TT300C-INT-101-C;corte;34;34.0;lineal;0.000;0.000;OK

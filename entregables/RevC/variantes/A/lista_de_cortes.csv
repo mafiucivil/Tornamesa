@@ -30,5 +30,5 @@ ACC-005-C;Pasador del vástago (patín);Barra;Ø75×146;2;42CrMo4+QT (EN 10083-3
 ACC-006-C;Pasador del ojal trasero (ménsula);Barra;Ø75×212;2;42CrMo4+QT (EN 10083-3), Re ≥ 650 MPa (Ø/e 7;
 INT-001-C;Disco de la base (sector liso);Sector anular;880×271×16,5;24;Acero inoxidable austenítico ASTM A240 (Fy ≥;"Corte por plasma de agua/láser; rectificado de caras (subcontrato)"
 INT-002-C;Disco de la mesa (sector ranurado);Sector anular;880×271×16,5;24;Acero inoxidable austenítico ASTM A240 (Fy ≥;"Corte por plasma de agua/láser; rectificado de caras (subcontrato)"
-INT-003-C;Barra de tope (disco de la base);Barra;20×170×13;24;ASTM A572 Gr.50 (Fy ≥ 345 MPa);"h = t − a_sup (núcleo); soldada con 2 filetes"
-INT-004-C;Barra de tope (disco de la mesa);Barra;20×170×13;24;ASTM A572 Gr.50 (Fy ≥ 345 MPa);"h = t − a_sup (núcleo); soldada con 2 filetes"
+INT-003-C;Barra de tope (disco de la base);Barra;20×170×13;24;ASTM A572 Gr.50 (Fy ≥ 345 MPa);"altura = espesor del sector − retiro (cálculo); soldada con 2 filetes"
+INT-004-C;Barra de tope (disco de la mesa);Barra;20×170×13;24;ASTM A572 Gr.50 (Fy ≥ 345 MPa);"altura = espesor del sector − retiro (cálculo); soldada con 2 filetes"

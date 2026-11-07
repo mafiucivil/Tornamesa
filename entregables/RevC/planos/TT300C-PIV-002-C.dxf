@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.3724074075
+2461352.402604167
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.373599537
+2461352.4038194446
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{C721EE7A-A990-4B02-858E-C4DA51E1300A}
+{2D032BC9-FE8F-49F2-945F-E9AD8B986A8E}
   9
 $VERSIONGUID
   2
-{7822A94B-503C-45D2-BB0A-40A49B5F3236}
+{E7647862-8C50-43AC-89A6-7A727E106843}
   9
 $EXTNAMES
 290
@@ -2583,7 +2583,7 @@ AcDbText
  40
 3.5
   1
-    lubricante sólido, p_bush = 30 MPa y μ = 0,2 del cálculo).
+    lubricante sólido, presión ≤ 30 MPa y μ ≤ 0,2 según el cálculo).
   7
 STD
  11
@@ -2719,7 +2719,7 @@ AcDbText
  40
 3.5
   1
-3. Montaje: arranca g_bush = 2 mm sobre el collar (z = 80 desde la cara
+3. Montaje: el buje arranca 2 mm sobre el collar (z = 80 desde la cara
   7
 STD
  11
@@ -4901,7 +4901,7 @@ AcDbText
  40
 3.0
   1
-Buje autolubricado: bronce con lubricante sólido (p_bush y
+Buje autolubricado: bronce con lubricante sólido (presión ≤
   7
 STD
  11
@@ -4935,7 +4935,7 @@ AcDbText
  40
 3.0
   1
-mu_bush del cálculo); marca/modelo por catálogo
+30 MPa, μ ≤ 0,2 según el cálculo); marca/modelo por
   7
 STD
  11
@@ -4969,7 +4969,7 @@ AcDbText
  40
 3.0
   1
-(GEN-008). Cert.: EN 10204 3.1
+catálogo (GEN-008). Cert.: EN 10204 3.1
   7
 STD
  11
@@ -26767,7 +26767,7 @@ AcDbText
  40
 3.0
   1
-(p_bush y mu_bush del cálculo); marca/modelo
+(presión ≤ 30 MPa, μ ≤ 0,2 según el cálculo);
   7
 STD
  11
@@ -26801,7 +26801,7 @@ AcDbText
  40
 3.0
   1
-por catálogo (GEN-008)
+marca/modelo por catálogo (GEN-008)
   7
 STD
  11
@@ -29369,7 +29369,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:16.279235+00:00
+1.4.2 @ 2026-11-07T12:39:45.248177+00:00
   0
 DICTIONARYVAR
   5
@@ -29381,7 +29381,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:57:59.636828+00:00
+1.4.2 @ 2026-11-07T12:41:30.208848+00:00
   0
 ENDSEC
   0

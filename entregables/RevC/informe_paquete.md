@@ -1,6 +1,6 @@
 # Informe del paquete de planos TT300-C · Rev. C
 
-Generado el 07-11-2026 desde `TT300-C_design.json` (fuente única) en 232 s.
+Generado el 07-11-2026 desde `TT300-C_design.json` (fuente única) en 239 s.
 Interfaz dibujada: **Acero-acero con grasa grafitada (sin interfaz alternativa)**
 Cubierta de madera: no. Collar del pivote: sí. Estado: EMITIDO PARA REVISIÓN.
 
@@ -120,7 +120,7 @@ Piezas no incluidas en el núcleo (pernos, buje, tapas, tornillos, graseras, pas
 
 ## Chequeo automático de cotas (dibujo frente a modelo 3D)
 
-456 cotas registradas; 456 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
+457 cotas registradas; 457 verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **0 fallas**. Detalle en `chequeo_cotas.csv`.
 
 ## Control de marco
 
@@ -131,7 +131,7 @@ Todas las láminas dentro del formato A1.
 | Id | Tema | Valor | Motivo |
 |---|---|---|---|
 | S15 | Atornillado de las tapas del pivote | Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø80 a 45°+90°·k, roscados prof. 20 en el pivote; tapa de inspección: 6 × M10 en PCD Ø220 a 30°+60°·k, roscados prof. 10 en el fondo del rebaje (PROPUESTA) | El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar). |
-| S13 | Izaje de la mesa | No se dibujan puntos de izaje de la mesa (A DEFINIR) | El cálculo solo define las 4 orejas de la base (P.t_ear…); la mesa debe izarse con medios definidos por el montajista. |
+| S13 | Izaje de la mesa | No se dibujan puntos de izaje de la mesa (A DEFINIR) | El cálculo solo define las 4 orejas de izaje de la base (espesor, radio y agujero: parámetros t_ear, R_ear, d_ear); la mesa debe izarse con medios definidos por el montajista. |
 | S14 | Retención axial del pivote | Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR) | El cálculo verifica asiento y flexión pero no la extracción axial del pivote. |
 
 ## Brechas con el cálculo y decisiones requeridas
@@ -156,12 +156,12 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 
 ## Cobertura y métricas del juego de planos
 
-- Láminas: 43; cotas verificadas: 456 (0 fallas).
+- Láminas: 43; cotas verificadas: 457 (0 fallas).
 - Ítems del despiece sin globo en un plano de conjunto/subconjunto: ninguno.
 - Juntas sin símbolo ISO 2553 en un plano de pieza/subconjunto: ninguna. Piezas fabricables sin plano: ninguna.
 - Errores de generación: ninguno.
-- Ocupación de las 31 láminas con vistas: media 19.6 % del área útil del marco; 29.0 % de la zona de vistas (área de dibujo: marco menos cajetín, banda de notas y franja de tablas) contando solo las vistas; 56.9 % contando también cotas, títulos y símbolos (huella); 18.3 % de tinta (celdas de 8 mm con trazo).
-- Cotas totales: 456 (0 fallas). A DEFINIR en el cuerpo de las láminas (sin contar las firmas del cajetín): 20.
+- Ocupación de las 31 láminas con vistas: media 19.6 % del área útil del marco; 29.1 % de la zona de vistas (área de dibujo: marco menos cajetín, banda de notas y franja de tablas) contando solo las vistas; 57.1 % contando también cotas, títulos y símbolos (huella); 18.4 % de tinta (celdas de 8 mm con trazo).
+- Cotas totales: 457 (0 fallas). A DEFINIR en el cuerpo de las láminas (sin contar las firmas del cajetín): 20.
 
 ## Checklist de fabricación por pieza (criterios verificados sobre cada lámina; «NO» = pendiente)
 
@@ -170,7 +170,7 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 | BAS-001-C | BAS-001 | 19 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | BAS-002-C | BAS-002 | 7 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | BAS-003-C | BAS-003, BAS-004 | 12 | sí | n.a. | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
-| BAS-005-C | BAS-005, BAS-006, BAS-007 | 28 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
+| BAS-005-C | BAS-005, BAS-006, BAS-007 | 29 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | IZA-001-C | IZA-001 | 9 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | ACC-001-C | ACC-001 | 23 | sí | n.a. | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
 | MES-001-C | MES-001 | 11 | sí | sí | sí (nota general + cotas) | sí | sí | sí | sí | sí | sí |
@@ -193,46 +193,46 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 
 | N° | Lámina | Fmt | Escala | Cotas | % vistas/marco | % vistas/zona de vistas | % tinta/zona | % huella/zona | A DEFINIR | Choques | Fuera de marco | Invasiones |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | TT300C-GEN-001-C | A1 | S/E | 0 | 0.0 | 0.0 | 47.8 | 0.0 | 1 | 0 | 0 | 0 |
+| 1 | TT300C-GEN-001-C | A1 | S/E | 0 | 0.0 | 0.0 | 48.3 | 0.0 | 1 | 0 | 0 | 0 |
 | 2 | TT300C-CON-001-C | A1 | 1:5 / 1:10 / 1:20 | 8 | 18.6 | 26.1 | 26.1 | 54.8 | 0 | 0 | 0 | 0 |
-| 3 | TT300C-CON-002-C | A1 | S/E | 0 | 0.0 | 0.0 | 75.9 | 0.0 | 0 | 0 | 0 | 0 |
+| 3 | TT300C-CON-002-C | A1 | S/E | 0 | 0.0 | 0.0 | 75.3 | 0.0 | 0 | 0 | 0 | 0 |
 | 4 | TT300C-CON-003-C | A1 | 1:1 / 1:5 / 1:10 | 16 | 35.9 | 46.4 | 26.5 | 75.8 | 0 | 0 | 0 | 0 |
 | 5 | TT300C-CON-004-C | A1 | S/E | 0 | 39.5 | 51.2 | 25.8 | 77.4 | 0 | 0 | 0 | 0 |
 | 6 | TT300C-CON-005-C | A1 | S/E | 0 | 34.7 | 53.0 | 15.4 | 66.8 | 0 | 0 | 0 | 0 |
-| 7 | TT300C-CON-006-C | A1 | 1:2 / 1:5 / 1:10 / 1:20 | 27 | 9.1 | 15.5 | 20.6 | 63.0 | 0 | 0 | 0 | 0 |
-| 8 | TT300C-CON-007-C | A1 | 2:1 / 1:5 | 19 | 27.0 | 39.7 | 18.1 | 67.0 | 0 | 0 | 0 | 0 |
-| 9 | TT300C-CON-008-C | A1 | 1:10 | 15 | 21.4 | 37.9 | 29.1 | 63.8 | 0 | 0 | 0 | 0 |
-| 10 | TT300C-CON-009-C | A1 | 2:1 / 1:1 / 1:10 | 4 | 9.8 | 17.3 | 18.4 | 65.6 | 0 | 0 | 0 | 0 |
-| 11 | TT300C-CON-010-C | A1 | 1:1 / 1:5 | 26 | 19.2 | 30.8 | 22.5 | 59.3 | 0 | 0 | 0 | 0 |
+| 7 | TT300C-CON-006-C | A1 | 1:2 / 1:5 / 1:10 / 1:20 | 27 | 9.2 | 15.8 | 20.9 | 63.2 | 0 | 0 | 0 | 0 |
+| 8 | TT300C-CON-007-C | A1 | 2:1 / 1:5 | 19 | 26.4 | 39.2 | 17.1 | 67.4 | 0 | 0 | 0 | 0 |
+| 9 | TT300C-CON-008-C | A1 | 1:10 | 15 | 21.4 | 38.2 | 29.0 | 65.3 | 0 | 0 | 0 | 0 |
+| 10 | TT300C-CON-009-C | A1 | 2:1 / 1:1 / 1:10 | 4 | 9.9 | 17.6 | 19.8 | 65.4 | 0 | 0 | 0 | 0 |
+| 11 | TT300C-CON-010-C | A1 | 1:1 / 1:5 | 26 | 18.6 | 30.3 | 22.4 | 59.6 | 0 | 0 | 0 | 0 |
 | 12 | TT300C-CON-011-C | A1 | 1:1 / 1:2 | 8 | 20.8 | 32.5 | 16.1 | 58.1 | 1 | 0 | 0 | 0 |
 | 13 | TT300C-BAS-001-C | A1 | 2:1 / 1:2 / 1:20 | 19 | 14.7 | 24.4 | 16.4 | 49.5 | 0 | 0 | 0 | 0 |
 | 14 | TT300C-BAS-002-C | A1 | 2:1 / 1:1 / 1:2,5 | 7 | 17.6 | 26.0 | 12.9 | 55.5 | 0 | 0 | 0 | 0 |
 | 15 | TT300C-BAS-003-C | A1 | 2:1 / 1:2,5 / 1:5 | 12 | 14.9 | 23.2 | 17.9 | 59.6 | 0 | 0 | 0 | 0 |
-| 16 | TT300C-BAS-005-C | A1 | 1:2 / 1:2,5 / 1:5 | 28 | 6.1 | 10.0 | 19.6 | 59.0 | 0 | 0 | 0 | 0 |
+| 16 | TT300C-BAS-005-C | A1 | 1:2 / 1:2,5 / 1:5 | 29 | 6.9 | 11.5 | 20.5 | 61.2 | 0 | 0 | 0 | 0 |
 | 17 | TT300C-IZA-001-C | A1 | 2:1 / 1:1 | 9 | 16.6 | 24.3 | 13.1 | 45.5 | 0 | 0 | 0 | 0 |
 | 18 | TT300C-ACC-001-C | A1 | 2:1 / 1:2 / 1:10 | 23 | 18.2 | 26.6 | 19.1 | 62.6 | 0 | 0 | 0 | 0 |
 | 19 | TT300C-MES-001-C | A1 | 2:1 / 1:1 / 1:5 / 1:10 | 11 | 13.9 | 21.3 | 15.4 | 61.0 | 0 | 0 | 0 | 0 |
 | 20 | TT300C-MES-002-C | A1 | 1:1 / 1:2 / 1:10 | 13 | 10.6 | 18.8 | 15.4 | 43.8 | 0 | 0 | 0 | 0 |
 | 21 | TT300C-MES-003-C | A1 | 2:1 / 1:2 / 1:10 | 7 | 12.0 | 17.7 | 13.4 | 39.1 | 0 | 0 | 0 | 0 |
-| 22 | TT300C-MES-005-C | A1 | 2:1 / 1:2 / 1:10 | 9 | 11.9 | 20.2 | 16.9 | 57.5 | 0 | 0 | 0 | 0 |
+| 22 | TT300C-MES-005-C | A1 | 2:1 / 1:2 / 1:10 | 9 | 11.7 | 20.1 | 17.3 | 58.0 | 0 | 0 | 0 | 0 |
 | 23 | TT300C-MES-008-C | A1 | 2:1 / 1:1 / 1:2 | 8 | 15.2 | 25.0 | 15.2 | 56.2 | 0 | 0 | 0 | 0 |
 | 24 | TT300C-MES-011-C | A1 | 2:1 / 1:2 | 12 | 18.1 | 26.7 | 16.8 | 53.3 | 0 | 0 | 0 | 0 |
-| 25 | TT300C-MES-012-C | A1 | 5:1 / 2:1 / 1:1 | 12 | 23.7 | 32.4 | 16.0 | 59.0 | 0 | 0 | 0 | 0 |
+| 25 | TT300C-MES-012-C | A1 | 5:1 / 2:1 / 1:1 | 12 | 23.7 | 32.7 | 15.8 | 59.7 | 0 | 0 | 0 | 0 |
 | 26 | TT300C-MES-013-C | A1 | 2:1 | 12 | 21.3 | 29.2 | 12.6 | 40.3 | 0 | 0 | 0 | 0 |
 | 27 | TT300C-PIV-001-C | A1 | 5:1 / 2:1 / 1:1 | 22 | 19.0 | 26.2 | 16.9 | 45.2 | 1 | 0 | 0 | 0 |
 | 28 | TT300C-PIV-002-C | A1 | 5:1 / 2:1 / 1:1 | 9 | 29.6 | 40.8 | 13.9 | 59.0 | 1 | 0 | 0 | 0 |
 | 29 | TT300C-PIV-003-C | A1 | 2:1 / 1:1 / 1:2 | 24 | 14.9 | 22.2 | 17.6 | 45.4 | 0 | 0 | 0 | 0 |
 | 30 | TT300C-ACC-002-C | A1 | 1:1 / 1:2 / 1:2,5 | 26 | 18.4 | 26.8 | 19.6 | 47.5 | 1 | 0 | 0 | 0 |
 | 31 | TT300C-ACC-003-C | A1 | 1:1 / 1:2 / 1:2,5 | 39 | 23.0 | 31.6 | 24.4 | 52.2 | 0 | 0 | 0 | 0 |
-| 32 | TT300C-ACC-004-C | A1 | 2:1 / 1:1 / 1:2 | 18 | 24.6 | 33.9 | 18.0 | 55.0 | 0 | 0 | 0 | 0 |
+| 32 | TT300C-ACC-004-C | A1 | 2:1 / 1:1 / 1:2 | 18 | 25.0 | 34.7 | 17.9 | 55.4 | 0 | 0 | 0 | 0 |
 | 33 | TT300C-ACC-005-C | A1 | 5:1 / 2:1 / 1:1 | 13 | 28.3 | 40.8 | 18.3 | 66.6 | 0 | 0 | 0 | 0 |
-| 34 | TT300C-GEN-003-C | A1 | S/E | 0 | 0.0 | 0.0 | 24.5 | 0.0 | 0 | 0 | 0 | 0 |
+| 34 | TT300C-GEN-003-C | A1 | S/E | 0 | 0.0 | 0.0 | 26.6 | 0.0 | 0 | 0 | 0 | 0 |
 | 35 | TT300C-GEN-004-C | A2 | S/E | 0 | 0.0 | 0.0 | 49.1 | 0.0 | 0 | 0 | 0 | 0 |
-| 36 | TT300C-GEN-005-C | A1 | S/E | 0 | 0.0 | 0.0 | 56.1 | 0.0 | 0 | 0 | 0 | 0 |
+| 36 | TT300C-GEN-005-C | A1 | S/E | 0 | 0.0 | 0.0 | 56.8 | 0.0 | 0 | 0 | 0 | 0 |
 | 37 | TT300C-GEN-006-C | A1 | S/E | 0 | 0.0 | 0.0 | 28.3 | 0.0 | 0 | 0 | 0 | 0 |
-| 38 | TT300C-GEN-007-C | A1 | S/E | 0 | 0.0 | 0.0 | 41.9 | 0.0 | 0 | 0 | 0 | 0 |
+| 38 | TT300C-GEN-007-C | A1 | S/E | 0 | 0.0 | 0.0 | 41.0 | 0.0 | 0 | 0 | 0 | 0 |
 | 39 | TT300C-GEN-008-C | A2 | S/E | 0 | 0.0 | 0.0 | 54.0 | 0.0 | 11 | 0 | 0 | 0 |
-| 40 | TT300C-GEN-009-C | A1 | S/E | 0 | 0.0 | 0.0 | 25.1 | 0.0 | 4 | 0 | 0 | 0 |
+| 40 | TT300C-GEN-009-C | A1 | S/E | 0 | 0.0 | 0.0 | 23.9 | 0.0 | 4 | 0 | 0 | 0 |
 | 41 | TT300C-GEN-010-C | A1 | S/E | 0 | 0.0 | 0.0 | 27.5 | 0.0 | 0 | 0 | 0 | 0 |
 | 42 | TT300C-GEN-011-C | A2 | S/E | 0 | 0.0 | 0.0 | 27.5 | 0.0 | 0 | 0 | 0 | 0 |
 | 43 | TT300C-GEN-012-C | A2 | S/E | 0 | 0.0 | 0.0 | 51.1 | 0.0 | 0 | 0 | 0 | 0 |
@@ -241,6 +241,10 @@ Dependencias: cadquery, ezdxf, pymupdf, shapely, openpyxl (opcional; sin él se 
 
 - Cadenas automáticas: 62; con suma ≠ total (±0,05) o extremo fuera de una arista real del contorno 2D: 0. Detalle en `control_cadenas.csv`.
 
+## Nombres internos de parámetros en las láminas
+
+- Tokens que coinciden con claves de P del JSON de diseño (fuera de GEN-009 y GEN-011): 0.
+
 ## Control de calidad gráfico (DXF)
 
-- Choques de texto (intersección > 20 % del menor): 0. Entidades fuera del marco: 0. Invasiones del cajetín o de la banda de notas: 0. Textos reubicados por el ordenador de textos: 22.
+- Choques de texto (intersección > 20 % del menor): 0. Entidades fuera del marco: 0. Invasiones del cajetín o de la banda de notas: 0. Textos reubicados por el ordenador de textos: 23.

@@ -86,8 +86,8 @@ TT300C-CON-008-C;corte;148;148.0;lineal;0.000;0.000;OK
 TT300C-CON-008-C;corte;210;210.0;lineal;0.000;0.000;OK
 TT300C-CON-009-C;cw;174;174.0;lineal;0.000;0.000;OK
 TT300C-CON-009-C;cw;80 (cubo);80.0;lineal;0.000;0.000;OK
-TT300C-CON-009-C;cc;c_boss_r = 3 (radial);3.0;lineal;0.000;0.000;OK
-TT300C-CON-009-C;cc;c_boss_a = 2 (axial);2.0;lineal;0.000;0.000;OK
+TT300C-CON-009-C;cc;3 (holgura radial);3.0;lineal;0.000;0.000;OK
+TT300C-CON-009-C;cc;2 (holgura axial);2.0;lineal;0.000;0.000;OK
 TT300C-CON-010-C;planta;530 (entre ejes de ojales);530.0;lineal;eje OK;eje OK;OK
 TT300C-CON-010-C;planta;Ø70 f8;70.0;diámetro;eje OK;;OK
 TT300C-CON-010-C;cA;42,5;42.5;lineal;0.000;0.000;OK
@@ -165,7 +165,8 @@ TT300C-BAS-005-C;mej_el;157 ±0,5;157.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;mej_pl;325;325.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;mej_pl;200;200.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;115;115.0;lineal;0.000;eje OK;OK
-TT300C-BAS-005-C;os_pl;60;60.0;lineal;eje OK;0.000;OK
+TT300C-BAS-005-C;os_pl;35;35.0;lineal;eje OK;0.000;OK
+TT300C-BAS-005-C;os_pl;25;25.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;175 ±0,5;175.0;lineal;0.000;0.000;OK
 TT300C-BAS-005-C;os_pl;75;75.0;lineal;0.000;eje OK;OK
 TT300C-BAS-005-C;os_pl;75;75.0;lineal;eje OK;0.000;OK

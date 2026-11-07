@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.372037037
+2461352.402256944
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.3727314817
+2461352.4029050926
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{BF3F63ED-DF5E-4467-A80C-5D9195755985}
+{B1E66371-19AA-4553-B036-4DB0B65A0BD0}
   9
 $VERSIONGUID
   2
-{EBC94800-FBA9-4238-8FDC-FC52BE823DD4}
+{4DC386B6-34E8-4B0F-A543-045DA4AE319A}
   9
 $EXTNAMES
 290
@@ -2549,7 +2549,7 @@ AcDbText
  40
 3.5
   1
-Equipo sin anclaje: apoyo sobre losa/mats con presión ≤ q_losa; verificar
+Equipo sin anclaje: apoyo sobre losa/mats con presión sobre la losa ≤ 2
   7
 STD
  11
@@ -2583,7 +2583,7 @@ AcDbText
  40
 3.5
   1
-superficie de apoyo por terceros.
+MPa (admisible del cálculo); verificar la superficie de apoyo por terceros.
   7
 STD
  11
@@ -3695,7 +3695,7 @@ AcDbText
  40
 3.0
   1
-Izar la mesa con medios definidos por el montajista (decisión del mandante: el cálculo no define puntos de izaje de la mesa) y asentarla sobre el pivote con la holgura axial c_boss_a y radial c_boss_r en el collar.
+Izar la mesa con medios definidos por el montajista (decisión del mandante: el cálculo no define puntos de izaje de la mesa) y asentarla sobre el pivote con las holguras axial y radial del collar indicadas en CON-011.
   7
 STD
  11
@@ -110525,7 +110525,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:55:44.560314+00:00
+1.4.2 @ 2026-11-07T12:39:15.336243+00:00
   0
 DICTIONARYVAR
   5
@@ -110537,7 +110537,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:44.020877+00:00
+1.4.2 @ 2026-11-07T12:40:11.304217+00:00
   0
 ENDSEC
   0

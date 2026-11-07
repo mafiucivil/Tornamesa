@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.372511574
+2461352.402673611
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.373877315
+2461352.4041203703
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{95C176ED-79CF-47C8-A08F-1339C51D9605}
+{B8774057-0479-4060-8CDD-DC962CAE244D}
   9
 $VERSIONGUID
   2
-{7244C8E3-833B-43F4-AE29-634B928268B4}
+{6FF599FA-DA6D-4748-BAD5-2077857CE11B}
   9
 $EXTNAMES
 290
@@ -4885,7 +4885,7 @@ AcDbText
  40
 3.0
   1
-Camisa Ø90, vástago Ø63, carrera 235 mm, L0 520 mm, presión nominal 689 bar (700
+Camisa Ø90, vástago Ø63, carrera 235 mm, largo ojal–ojal retraído 520 mm, presión
   7
 STD
  11
@@ -4919,7 +4919,7 @@ AcDbText
  40
 3.0
   1
-bar), alivio 700 bar, ojales con rótula esférica autolubricada Ø70, b = 50 mm, masa ≈ 55
+nominal 689 bar (700 bar), alivio 700 bar, ojales con rótula esférica autolubricada Ø70,
   7
 STD
  11
@@ -4953,7 +4953,7 @@ AcDbText
  40
 3.0
   1
-kg
+b = 50 mm, masa ≈ 55 kg
   7
 STD
  11
@@ -5021,7 +5021,7 @@ AcDbText
  40
 3.0
   1
-hidráulica 1,5 × p_relief; EN
+hidráulica a 1,5 × 700 bar;
   7
 STD
  11
@@ -5055,7 +5055,7 @@ AcDbText
  40
 3.0
   1
-10204 3.1
+EN 10204 3.1
   7
 STD
  11
@@ -5933,7 +5933,7 @@ AcDbText
  40
 3.0
   1
-Ø150 / Ø120 × 80; p_bush 30 MPa; μ ≤ 0,2; sobre aleación de bronce con lubricante
+Ø150 / Ø120 × 80; presión ≤ 30 MPa; μ ≤ 0,2; sobre aleación de bronce con lubricante
   7
 STD
  11
@@ -14215,7 +14215,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:25.276287+00:00
+1.4.2 @ 2026-11-07T12:39:51.771319+00:00
   0
 DICTIONARYVAR
   5
@@ -14227,7 +14227,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:58:23.168312+00:00
+1.4.2 @ 2026-11-07T12:41:56.427202+00:00
   0
 ENDSEC
   0

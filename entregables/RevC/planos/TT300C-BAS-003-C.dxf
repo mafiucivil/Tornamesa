@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461352.3722222224
+2461352.402430556
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461352.373101852
+2461352.403263889
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{94A81093-D476-4825-ACC4-317676EE55E9}
+{BEA13FEF-EFFE-41FF-8B8F-01867143E740}
   9
 $VERSIONGUID
   2
-{479CCAAB-90C6-40EC-B338-262A99C9F427}
+{71B5FA30-B6F8-44F1-BF51-0864590CF400}
   9
 $EXTNAMES
 290
@@ -7311,7 +7311,7 @@ AcDbText
  40
 3.0
   1
-mínimo AWS D1.1 T5.8 por la parte más
+mínimo AWS D1.1 Tabla 5.8 por la parte más
   7
 STD
  11
@@ -7345,7 +7345,7 @@ AcDbText
  40
 3.0
   1
-gruesa (t = 18), a confirmar
+gruesa (t = 18 mm), a confirmar
   7
 STD
  11
@@ -7893,7 +7893,7 @@ AcDbText
  40
 3.0
   1
-mínimo AWS D1.1 T5.8 por la parte más
+mínimo AWS D1.1 Tabla 5.8 por la parte más
   7
 STD
  11
@@ -7927,7 +7927,7 @@ AcDbText
  40
 3.0
   1
-gruesa (t = 18), a confirmar
+gruesa (t = 18 mm), a confirmar
   7
 STD
  11
@@ -8475,7 +8475,7 @@ AcDbText
  40
 3.0
   1
-mínimo AWS D1.1 T5.8 por la parte más
+mínimo AWS D1.1 Tabla 5.8 por la parte más
   7
 STD
  11
@@ -8509,7 +8509,7 @@ AcDbText
  40
 3.0
   1
-gruesa (t = 10), a confirmar
+gruesa (t = 10 mm), a confirmar
   7
 STD
  11
@@ -24401,7 +24401,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:56:00.431174+00:00
+1.4.2 @ 2026-11-07T12:39:30.195906+00:00
   0
 DICTIONARYVAR
   5
@@ -24413,7 +24413,7 @@ DictionaryVariables
 280
 0
   1
-1.4.2 @ 2026-11-07T11:57:16.937411+00:00
+1.4.2 @ 2026-11-07T12:40:42.616413+00:00
   0
 ENDSEC
   0
