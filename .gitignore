@@ -8,3 +8,5 @@ out/
 *.zip
 __pycache__/
 *Verificacion_Tornamesa.html
+salidas/
+.venv-planos/

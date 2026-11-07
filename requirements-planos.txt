@@ -1,0 +1,12 @@
+# Generador local de planos TT300-C (Modo 2 del módulo «Planos»): dependencias de cad/*.py y tools/indice_planos.py.
+# Versiones probadas en el contenedor de desarrollo (Python 3.13, Linux) el 07-11-2026; Instalar_generador_planos.bat las instala en .venv-planos.
+cadquery==2.8.0
+cadquery-ocp==7.9.3.1.1
+ezdxf==1.4.2
+pymupdf==2.0
+shapely==2.2.0
+openpyxl==3.1.5
+pillow==12.3.0
+numpy==2.5.3; python_version >= "3.12"
+numpy==2.4.6; python_version < "3.12"   # numpy 2.5 exige Python 3.12; 2.4.6 es la última para 3.11
+pypdf==6.17.0
