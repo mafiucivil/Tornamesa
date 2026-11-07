@@ -488,12 +488,12 @@ def notes_holes(V, cs, on, fits=None, ang0=35, ext=14.0, pitch_txt=None, center=
             P = V.P(c[3])
             ang = math.degrees(math.atan2(P[1] - cyp, P[0] - cxp)) if math.hypot(P[0] - cxp, P[1] - cyp) > 8 else (40.0, 220.0, 130.0, 310.0)[gi % 4]
             score = sum(min(abs(((ang - a + 180) % 360) - 180) for a in [u_]) for u_ in used[-1:]) if used else 0
+            if math.hypot(P[0] - cxp, P[1] - cyp) > 8 and math.sin(math.radians(ang)) < -0.2:
+                score -= 1000.0             # las llamadas de agujeros excéntricos no bajan hacia el título de la vista
             if best is None or score > best[0]:
                 best = (score, c, ang)
         _, c, ang = best
         P0 = V.P(c[3])
-        if math.sin(math.radians(ang)) < -0.2:
-            ang = -ang                      # las llamadas no bajan hacia el título de la vista
         # Si el centro de la vista es el centro del agujero, o varios grupos coinciden, separa las direcciones
         for a in used:
             if abs(((ang - a + 180) % 360) - 180) < 12 and math.hypot(P0[0] - cxp, P0[1] - cyp) > 8:
