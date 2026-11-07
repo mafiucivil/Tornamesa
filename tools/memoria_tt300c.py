@@ -844,6 +844,10 @@ for i in IDS:
         rows.append([i, EST.get(v["estado"], v["estado"]), v["grp"], v["nombre"], v["ref"]])
 table(["Alt.", "Estado", "Grupo", "Advertencia o pendiente", "Referencia"], rows, widths=(11, 20, 28, 140, 68), size=7)
 T("Además de lo anterior, quedan como pendiente común el filete máximo de almas y nervios (9.5) y la numeración de artículos de ASME BTH-1 (capítulo 12).", size=9)
+_una = next(c for c in D["verificaciones"] if c["nombre"].startswith("Flexión en la boca del patín"))
+T(f"Advertencia aceptada por el mandante (07-11-2026): flexión de la uña en la boca del patín, FU {n(_una['fu'])} (σ = {n(_una['dem'])} MPa ≤ Fy/Nd = {n(_una['cap'])} MPa; ASME BTH-1 §3-2.3, Nd = 3,0). "
+  f"El límite elástico de la uña se fijó en Fy = {pint(P['Fy_dog'])} MPa porque el 34CrNiMo6+QT entrega Re ≥ 800 MPa para 40 < t ≤ 100 mm (EN 10083-3), y el bloque mide 88 mm. "
+  "El valor anterior de 900 MPa no se alcanza con ese espesor. El criterio interno del proyecto, FU ≤ 0,90, se relaja solo para esta fila. Las demás filas de la uña cumplen ≤ 0,90.", size=9)
 
 # ================================================================= 10. EXPOSICIÓN SOLAR (horizontal)
 TH = D["termica"]
@@ -892,7 +896,8 @@ assert len(THA["C3"]["sens"]["bz090"]["empeoran"]) == 0, "bronce x 0,90 cambia v
 assert not THA["B"]["sens"]["uhmw"]["kp"][1]["cumple"] and THA["B"]["sens"]["uhmw"]["kp_crit"] is not None
 assert THW["sens"]["madera"][0]["estado"] == "ok" and THW["sens"]["madera"][1]["estado"] == "fail"
 assert all(TPA[i]["comparacion"][k]["gira"] and TPA[i]["comparacion"][k]["estructura"] for i in ("C1", "C2", "C3") for k in ("ideal", "real")), "tapones: ideal y real cumplen estructura y giro"
-assert FA["fail"] == 4 and FA["warn"] == 2 and {f["grp"] for f in FA["filas_aviso"]} <= {"Temperatura · aceite atrapado", "Temperatura · aceite, sellos y bomba"}, "fuera de alcance: texto desactualizado"
+# warn = 3: la flexión de la uña en la boca del patín (FU 0,907 con Fy_dog = 800 MPa, aceptada por el mandante el 07-11-2026) es fila del accionamiento, fuera de alcance
+assert FA["fail"] == 4 and FA["warn"] == 3 and {f["grp"] for f in FA["filas_aviso"]} <= {"Temperatura · aceite atrapado", "Temperatura · aceite, sellos y bomba", "Uña"}, "fuera de alcance: texto desactualizado"
 
 H("10. Exposición solar a 80 °C")
 T("Escenario aparte, pedido del mandante (06-11-2026): la tornamesa expuesta al sol, con el cuerpo a 80 °C. ALCANCE: este escenario verifica solo el sistema de placas y disco (term_alcance = 1). "
