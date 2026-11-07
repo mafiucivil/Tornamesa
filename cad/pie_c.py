@@ -54,8 +54,7 @@ def sheet_buje(ctx):
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), title="PLANTA", w=1.0, auto=dict(fits={P["D_piv"]: "F7"}, hole_rmin=20))
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 30, 0), title="CORTE A-A", hs=0.35, w=1.4,
          auto=dict(rev=(0, 0), fits={g.d_bush: "s6", P["D_piv"]: "F7"}, rev_side="top", tol={round(P["L_bush"], 1): " ±0,2"}, hole_notes=False))
-    p.detail("det_ch", "corte", (-(g.d_bush / 2 - 1.5), 0, zt - 1.5), 12, "B", lv=(1, 1, 1, 1), title="DETALLE B: EXTREMO DEL BUJE", maxs=5.0)
-    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(P["L_bush"], 1): " ±0,2"}, holes=False), maxs=2.0)
+    # sin detalle del extremo ni elevación: el buje es un casquillo liso (chaflanes por nota) y el corte A-A ya da largo y diámetros
     p.tables()
     p.notes([f"Buje autolubricado Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}: comercial o a medida (marca/modelo A DEFINIR POR CATÁLOGO; tipo exigido: bronce con lubricante sólido, presión ≤ {fm(P['p_bush'], 0)} MPa y μ ≤ {fm(P['mu_bush'], 2)} según el cálculo).",
              f"Ø exterior {f(g.d_bush)} s6 (aprieto en el cubo H7, prensado) y Ø interior {f(P['D_piv'])} F7 (juego con el pivote p6/f7), Ra 1,6; mecanizar en mandrinadora (sin torno vertical).",
@@ -78,8 +77,16 @@ def sheet_tapas(ctx):
         zb_, L_, D_, pcd, n, a0, nm = spec[k]
         ct = ctx.code(k).replace(CODE + "-", "")
         zt = zb_ + L_
-        p.vs(f"{k}_pl", [k], "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title=f"{ct} — {nm}: PLANTA", hatch=False, w=1.0,
-             auto=dict(hole_rmin=3.0, hole_txt={11.0: f"{n} × Ø11, avell. Ø20×90°, PCD Ø{fm(pcd, 0)}"}, fits={}))
+        def pl_(V, p, zt=zt, D_=D_, pcd=pcd, n=n, a0=a0, k=k):
+            c3 = (0, 0, zt)
+            s.circle(V.P(c3), pcd / 2 * V.scale, "EJE")
+            s.centerlines(V.P(c3), D_ / 2 * V.scale, 6)
+            V.dim_dia(c3, D_ / 2, a0 % (360 / n) - 25 if a0 % (360 / n) >= 25 else a0 % (360 / n) + 180 / n, on=[k], text=f"Ø{f(D_)}", ext=26)
+            ah = a0 + 360 / n * (n // 2)          # agujero del lado izquierdo: llamada hacia afuera, lejos de la cota del Ø
+            hp = (pcd / 2 * math.cos(math.radians(ah)), pcd / 2 * math.sin(math.radians(ah)), zt)
+            V.note_hole(hp, 5.5, 180 - 35, f"{n} × Ø11, avell. Ø20×90°, PCD Ø{fm(pcd, 0)} a {fm(a0 % (360 / n), 1)}° + {fm(360 / n, 0)}°·k (tabla)", ext=(D_ / 2 - pcd / 2) * V.scale + 22, on=[k],
+                        lines=[f"{n} × Ø11, avell. Ø20×90°", f"en PCD Ø{fm(pcd, 0)}, a {fm(a0 % (360 / n), 1)}° + {fm(360 / n, 0)}°·k", "(coordenadas en la tabla)"])
+        p.vs(f"{k}_pl", [k], "top", lv=(1, 1, 1, 1), extra=(70, 0, 40, 0), title=f"{ct} — {nm}: PLANTA", hatch=False, w=1.0, draw=pl_, auto=False)
         p.vs(f"{k}_co", [k], "front", cut=CUT_Y, lv=(1, 2, 2, 2), extra=(0, 0, 20, 0), title=f"{ct} — CORTE A-A", hs=0.35, w=1.0,
              auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={round(L_, 1): " ±0,2"}))
         for i in range(n):
