@@ -109,7 +109,7 @@ def visible_anchor(ctx, key, V, pred=None, side=None, avoid=(), cands=None):
             dmin = min((math.hypot(P2[0] - a[0], P2[1] - a[1]) for a in avoid), default=99.0)
             pen = 400.0 if dmin < 4.0 else (60.0 if dmin < 8.0 else 0.0)
             lat = (P2[0] - xs[0]) if side == "l" else (xs[-1] - P2[0]) if side == "r" else 0.0
-            return d + pen + 0.25 * lat
+            return (0.35 * d + pen + 1.0 * lat) if side else (d + pen)
         best = min(vp, key=score)
         return best[0], best[1]
     pt = anchors(ctx, key, V, pred)
@@ -154,6 +154,14 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
         a = visible_anchor(ctx, k, V, pred, None, avoid, cand[pos])
         if a is None:
             continue
+        if hug and not hor and len(sides) == 2:
+            # anclaje en el extremo de la pieza hacia el lado más cercano: líneas de referencia cortas
+            aL = visible_anchor(ctx, k, V, pred, "l", avoid, cand[pos])
+            aR = visible_anchor(ctx, k, V, pred, "r", avoid, cand[pos])
+            if aL and aR:
+                a, sd = (aL, "l") if (aL[1][0] - A_[1]) <= (B_[1] - aR[1][0]) else (aR, "r")
+                items[pos] = (sd, a[1])
+                continue
         if len(sides) == 2:
             sd = A_[0] if abs(a[1][ax] - A_[1]) <= abs(B_[1] - a[1][ax]) else B_[0]
         else:
@@ -166,7 +174,7 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
                 break
             big, other = (L, B_[0]) if len(L) > len(R) else (R, A_[0])
             k = max(big, key=lambda kk: items[kk][1][ax] if other == B_[0] else -items[kk][1][ax])
-            a = visible_anchor(ctx, kof[k], V, pred, None, [v[1] for kk, v in items.items() if kk != k], cand[k])
+            a = visible_anchor(ctx, kof[k], V, pred, (other if hug else None), [v[1] for kk, v in items.items() if kk != k], cand[k])
             if a is None:
                 break
             items[k] = (other, a[1])
@@ -641,7 +649,13 @@ def pasos(ctx):
          f"Altura {f(g.hd)} ±0,5; posición angular de nervios ±0,1°", "Plantilla angular", insp("Pasadores de empuje")],
         ["—", f"Alivio; mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7; planear la cara inferior",
          f"PCD ±0,3; paso {fm(360 / g.N_pin, 3)}° ±0,05°; planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]], dict(mark=["mesa_plancha_inf"])))
-    S.append(("3. PIVOTE EN LA BASE", G["base"], [k for k in G["piv"] if k == "pivote"], (0, 0, 300), (-480, -260, 480, 640), [
+    # vista local del paso 3: plancha base recortada alrededor del collar (el pivote es chico frente a la base)
+    import cadquery as _cq
+    if "base_plancha" in ctx.shapes:
+        rc = g.D_boss / 2 + 250
+        ctx.shapes["base_crop"] = ctx.shapes["base_plancha"].intersect(_cq.Solid.makeBox(2 * rc, 2 * rc, g.tb + 2, _cq.Vector(-rc, -rc, -1)))
+        ctx.mat["base_crop"] = ctx.mat.get("base_plancha", "acero")
+    S.append(("3. PIVOTE EN LA BASE (vista local: plancha base recortada alrededor del collar)", [k for k in ("base_crop", "collar") if k in ctx.shapes], [k for k in G["piv"] if k == "pivote"], (0, 0, 300), None, [
         [pq("pivote"), f"Calar el pivote Ø{f(P['D_piv'])} p6 en la plancha base y el collar (H7): con prensa, o enfriando el pivote con hielo seco (≈ −78 °C)",
          f"{a_piv['juego'].capitalize()} (agujero {a_piv['h_lim']}; eje {a_piv['s_lim']})", "Prensa hidráulica o hielo seco; guía de centrado", insp("Pivote:")],
         ["—", "Verificar la perpendicularidad del pivote respecto de la cara de apoyo", "≤ 0,05", "Escuadra, comparador", insp("Pivote:")]]))
@@ -732,8 +746,7 @@ def _seq_sheet(ctx, num, steps, hoja, ntot):
                 c.s.pline(po, "FINA", closed=True)
                 pa = max(po, key=lambda q: q[1])
                 c.s.leader(pa, (pa[0] + 32, V.ext[3] + 8), txt[0], lines=txt)
-            if ex_.get("mark"):
-                balloons_auto(c, V, [k for k in ex_["mark"] if k in ctx.shapes], gap=11.0, off=20.0, sides="r", hug=True)
+
             if ex_.get("giro"):
                 zt_ = g.z0 + g.hd + 5
                 r_ = g.R_pin * 0.55
@@ -752,9 +765,10 @@ def _seq_sheet(ctx, num, steps, hoja, ntot):
                 bb = sol[0].BoundingBox() if len(sol) > 1 else _bb(ctx, nk)
                 cx_, cy_ = (bb.xmin + bb.xmax) / 2, (bb.ymin + bb.ymax) / 2
                 _arrow(c.s, V.P((cx_, cy_, bb.zmin - 10)), V.P((cx_, cy_, bb.zmin - d[2] + 10)))
-            if nk:
+            mk_ = [k for k in ex_.get("mark", []) if k in ctx.shapes]
+            if nk or mk_:
                 with alias(ctx, suf):
-                    balloons_auto(c, V, nk, gap=11.0, off=20.0, hug=True)
+                    balloons_auto(c, V, nk + mk_, gap=11.0, off=20.0, hug=True)
         lay = "FINA" if (prev and nk) else "VIS"
         leyenda = " (piezas del paso en trazo grueso; lo ya montado en trazo fino)" if lay == "FINA" else ""
         c.vs(f"p{si}", {k: ctx.shapes[k] for k in allk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 12, 30, 12), mat=mats(ctx, allk), hatch=False, draw=cb, layer=lay,
