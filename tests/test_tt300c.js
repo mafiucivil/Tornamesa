@@ -290,7 +290,11 @@ test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
   const A = TT.analyze(P);
   assert.ok(A.verdict.gira, "gira");
   assert.ok(A.verdict.estructura, "estructura");
-  assert.ok(A.checks.filter((c) => c.sys === "est" && c.kind === "fu").every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura");
+  // Excepción aceptada por el mandante el 07-11-2026: uña con Fy = 800 MPa (34CrNiMo6+QT, EN 10083-3, 40 < t ≤ 100 mm), FU 0,907 ≤ 1,0 (BTH-1 §3-2.3, Nd 3,0)
+  const ACEPTADAS = [/^Flexión en la boca del patín/];
+  const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu");
+  assert.ok(est.filter((c) => !ACEPTADAS.some((r) => r.test(c.name))).every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura");
+  assert.ok(est.filter((c) => ACEPTADAS.some((r) => r.test(c.name))).every((c) => c.fu <= 0.92), "excepción aceptada: FU ≤ 0,92 (holgura sobre 0,907)");
 });
 
 test("Agentes: auditor y revisor cruzado sin observaciones", () => {

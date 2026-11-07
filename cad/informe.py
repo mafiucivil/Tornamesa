@@ -43,6 +43,9 @@ def brechas(ctx, rep):
             if v["nombre"].startswith("Soldadura mejillas–base"):
                 add("Advertencia del núcleo aceptada: soldadura mejillas–base", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} MPa) en banda «warn» con w_br = {fm(P['w_br'], 0)} (mínimo AWS D1.1 T5.8 = {fm(g.fila('Filete mínimo mejillas–base')['dem'], 0) if g.fila('Filete mínimo mejillas–base') else '—'} mm; máximo AISC J2.2b = t_ch − 2 = {fm(P['t_ch'] - 2, 0)} mm, ya en el tope).",
                     "ACEPTADA POR EL MANDANTE como advertencia (no se aumenta el filete: w_br ya está cerca del máximo AISC J2.2b). Dejar registro en la aprobación.")
+            elif v["nombre"].startswith("Flexión en la boca del patín"):
+                add("Advertencia del núcleo aceptada: flexión de la uña en la boca del patín", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} {v['unidad']}) con Fy_dog = {fm(P['Fy_dog'], 0)} MPa (34CrNiMo6+QT, EN 10083-3, 40 < t ≤ 100 mm) y Nd = 3,0 (ASME BTH-1 §3-2.3).",
+                    "ACEPTADA POR EL MANDANTE el 07-11-2026 como advertencia (FU ≤ 1,0; se relaja solo para esta fila el criterio interno FU ≤ 0,90). Dejar registro en la aprobación.")
             else:
                 add("Advertencia del núcleo (banda «warn»)", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} {v['unidad']}).", "A DECIDIR POR EL MANDANTE: aceptar la advertencia o reforzar la pieza.")
     for v in D["verificaciones"]:

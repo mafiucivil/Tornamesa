@@ -16,6 +16,8 @@
   "fu": {
    "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)": 0.3037365505660926,
    "Placa de bronce: espesor adoptado frente al requerido": 0.6109732583613339,
+   "Bronce con grafito: cobertura mínima de lubricante sólido (f_g del grafito sobre el área de contacto)": 1.37832223855448,
+   "Tapones de grafito: ligamento mínimo entre tapones η = (p − d)/p": 0.75,
    "Disco duro: flexión sobre un vacío local (empotrado, carga uniforme)": 0.024902785534641154,
    "Disco duro: espesor adoptado frente al requerido": 0.4,
    "Presión de contacto sobre el bronce neto (sin tapones de grafito)": 0.10468222371668554,
@@ -67,6 +69,8 @@
   "fu": {
    "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)": 0.30371619984152753,
    "Placa de bronce: espesor adoptado frente al requerido": 0.6109572568604259,
+   "Bronce con grafito: cobertura mínima de lubricante sólido (f_g del grafito sobre el área de contacto)": 1.37832223855448,
+   "Tapones de grafito: ligamento mínimo entre tapones η = (p − d)/p": 0.75,
    "2.ª placa de bronce (maciza, aleación distinta): flexión sobre un vacío local": 0.2753765965110589,
    "2.ª placa de bronce: espesor adoptado frente al requerido": 0.556445813793966,
    "Presión de contacto sobre el bronce neto (sin tapones de grafito)": 0.10467520987822014,
@@ -117,6 +121,8 @@
   "fu": {
    "Placa de bronce: flexión sobre un vacío local (empotrada, carga uniforme, ligamento entre tapones)": 0.33748505618454727,
    "Placa de bronce: espesor adoptado frente al requerido": 0.6368100215068485,
+   "Bronce con grafito: cobertura mínima de lubricante sólido (f_g del grafito sobre el área de contacto)": 1.37832223855448,
+   "Tapones de grafito: ligamento mínimo entre tapones η = (p − d)/p": 0.75,
    "Disco duro: flexión sobre un vacío local (empotrado, carga uniforme)": 0.02766976170515683,
    "Disco duro: espesor adoptado frente al requerido": 0.4,
    "Presión de contacto sobre el bronce neto (sin tapones de grafito)": 0.11631358190742838,

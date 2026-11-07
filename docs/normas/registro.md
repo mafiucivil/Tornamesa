@@ -151,3 +151,12 @@ Dilatación libre del aceite: 4,29 % (7,15×10⁻⁴ × 60). Para un cilindro Ø
 | Coeficientes α del bronce y de la madera | CDA y Wood Handbook (FPL) |
 
 **Puntos a confirmar:** numeración exacta de ecuaciones de BTH-1 en la edición vigente; tabla de tamaño mínimo de filete en AWS D1.1:2020; todo lo enumerado en «No pude confirmar con fuente primaria» (sección Temperatura).
+
+## Uña de empuje: material y excepción del criterio FU ≤ 0,90
+
+| Ítem | Valor | Referencia | Decisión |
+|---|---|---|---|
+| Material | 34CrNiMo6+QT, Re ≥ 800 MPa para 40 < t ≤ 100 mm (bloque 198 × 88 × 110, t gobernante 88 mm) | EN 10083-3, tabla de propiedades +QT | Corrige el Fy = 900 MPa anterior, que ese acero no alcanza con 88 mm |
+| Flexión en la boca del patín | FU 0,907 (antes 0,807 con 900 MPa) | ASME BTH-1 Cat. B, Nd = 3,0, §3-2.3 | Aceptada por el mandante el 07-11-2026 como advertencia (FU ≤ 1,0). El criterio interno FU ≤ 0,90 se relaja solo para esta fila |
+| Otras filas de la uña | Corte en la boca 0,448; corte en el contacto 0,801; flexión en el chaflán 0,627 | BTH-1 §3-2.2 y §3-2.3 | Cumplen ≤ 0,90 |
+

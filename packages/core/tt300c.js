@@ -178,7 +178,7 @@ const TT = (() => {
       ["L_in", "Uña: largo alojado en el patín", "mm", 125, 50, 500, 5],
       ["l_lip", "Labio de apoyo de la uña en el patín (largo en x)", "mm", 60, 20, 200, 5],
       ["e_dog", "Excentricidad accidental de la uña", "mm", 10, 0, 50, 1],
-      ["Fy_dog", "Fy uña (34CrNiMo6+QT, Re ≥ 900 certificado 3.1)", "MPa", 900, 235, 1200, 5],
+      ["Fy_dog", "Fy uña (34CrNiMo6+QT, EN 10083-3 Re ≥ 800 para 40 < t ≤ 100 mm, certificado 3.1)", "MPa", 800, 235, 1200, 5],
       ["mu_s", "μ cara de la uña–pasador (deslizamiento radial)", "–", 0.15, 0.05, 0.6, 0.01],
       ["Fy_surf", "Límite elástico superficial de las caras de contacto (temple por inducción ≥ 55 HRC)", "MPa", 1500, 235, 2000, 10],
       ["k_edge", "Concentración de la carga lineal en los bordes de la cara (flexión del pasador bajo uña rígida)", "–", 1.32, 1, 3, 0.01],
