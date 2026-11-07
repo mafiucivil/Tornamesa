@@ -462,6 +462,8 @@ class View:
                         i_ = text.index(sep)
                         text, esc = text[:i_], text[i_:].strip(" —") + "  " + esc
                         break
+            if dr.tw(esc, dr.T_N) > wmax:
+                esc = self.esc                      # la acotación del título no cabe en la celda: queda solo la escala
             wt = max(dr.tw(text, h, True), dr.tw(esc, dr.T_N))
             cx = min(max(cx, box[0] + 1 + wt / 2), box[2] - 1 - wt / 2)
         self.S.view_title((cx, low - 2), text, esc, h)
