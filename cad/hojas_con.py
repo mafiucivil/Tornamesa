@@ -58,15 +58,13 @@ def _vis_tree(V):
     return t
 
 
-def visible_anchor(ctx, key, V, pred=None, side=None):
-    """Punto de anclaje del globo: un vértice de la pieza que cae sobre una línea VISIBLE del dibujo, el más extremo hacia el lado
-    del globo (izquierda/derecha); si no hay ninguno, el centro de una cara (comportamiento anterior)."""
+def visible_points(ctx, key, V, pred=None):
+    """Puntos de la pieza (vértices y puntos sobre sus aristas) que caen sobre una línea VISIBLE dibujada: [(p3, P2)]."""
     from shapely.geometry import Point
     tree = _vis_tree(V)
-    best = None
     sh = ctx.shapes.get(key)
     if sh is None:
-        return None
+        return []
     pts = [(v.X, v.Y, v.Z) for v in sh.Vertices()]
     eds = sh.Edges()
     nper = max(2, min(16, 6000 // max(len(eds), 1)))
@@ -79,6 +77,7 @@ def visible_anchor(ctx, key, V, pred=None, side=None):
             pts.append((q.x, q.y, q.z))
     if len(pts) > 8000:
         pts = pts[::max(1, len(pts) // 8000)]
+    out = []
     for p3 in pts:
         if pred and not pred(p3):
             continue
@@ -91,11 +90,28 @@ def visible_anchor(ctx, key, V, pred=None, side=None):
             near = [V._psegs[int(i)] for i in tree.query(q.buffer(0.35))]
             if not any(sg.distance(q) <= 0.35 for sg in near):
                 continue
-        key_ = P2[0] if side == "l" else -P2[0] if side == "r" else 0.0
-        if best is None or key_ < best[0]:
-            best = (key_, p3, P2)
-    if best:
-        return best[1], best[2]
+        out.append((p3, P2))
+    return out
+
+
+def visible_anchor(ctx, key, V, pred=None, side=None, avoid=(), cands=None):
+    """Punto de anclaje del globo sobre una línea VISIBLE de la pieza: el representativo (cerca de la mediana de sus puntos visibles),
+    alejado de los anclajes ya usados (avoid) y, a igualdad, hacia el lado del globo. Si no hay puntos visibles, el centro de una cara."""
+    vp = cands if cands is not None else visible_points(ctx, key, V, pred)
+    if vp:
+        xs = sorted(q[1][0] for q in vp); ys = sorted(q[1][1] for q in vp)
+        mx, my = xs[len(xs) // 2], ys[len(ys) // 2]
+        ext = (xs[-1] - xs[0]) + 1e-6
+
+        def score(q):
+            P2 = q[1]
+            d = math.hypot(P2[0] - mx, P2[1] - my)
+            dmin = min((math.hypot(P2[0] - a[0], P2[1] - a[1]) for a in avoid), default=99.0)
+            pen = 400.0 if dmin < 4.0 else (60.0 if dmin < 8.0 else 0.0)
+            lat = (P2[0] - xs[0]) if side == "l" else (xs[-1] - P2[0]) if side == "r" else 0.0
+            return d + pen + 0.25 * lat
+        best = min(vp, key=score)
+        return best[0], best[1]
     pt = anchors(ctx, key, V, pred)
     return (pt, V.P(pt)) if pt is not None else None
 
@@ -107,13 +123,16 @@ def _cross(a, b, c, d):
 
 
 def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, sides="lr"):
-    """Globos en dos columnas (izquierda y derecha de la vista), ordenados por la altura de su anclaje para que las líneas de referencia
-    no se crucen; cada línea termina en un punto visible de su pieza. Un globo por número de posición."""
+    """Globos en dos columnas (sides="lr": izquierda y derecha) o dos filas (sides="tb": arriba y abajo) en la periferia de la vista;
+    las líneas de referencia no se cruzan entre sí (intercambio de globos hasta eliminar cruces) y cada una termina en un punto
+    visible de su pieza. Un globo por número de posición."""
     ctx = p.ctx
     x0, y0, x1, y1 = V.ext
-    cx = (x0 + x1) / 2
-    XL, XR = x0 - off, x1 + off
-    items, kof = {}, {}
+    hor = sides in ("tb", "t", "b")
+    A_, B_ = (("b", y0 - off), ("t", y1 + off)) if hor else (("l", x0 - off), ("r", x1 + off))
+    ax = 1 if hor else 0          # coordenada que decide el lado
+    al = 0 if hor else 1          # coordenada a lo largo de la fila/columna
+    items, kof, cand = {}, {}, {}
     for k in keys:
         part = ctx.m.get(k)
         if part is None or k not in ctx.shapes:
@@ -122,55 +141,65 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
         if pos in items:
             continue
         kof[pos] = k
-        aL = visible_anchor(ctx, k, V, pred, "l") if "l" in sides else None
-        aR = visible_anchor(ctx, k, V, pred, "r") if "r" in sides else None
-        if aL is None and aR is None:
-            continue
-        dL = (aL[1][0] - XL) if aL else 1e9
-        dR = (XR - aR[1][0]) if aR else 1e9
-        items[pos] = ("l", aL[1]) if dL <= dR else ("r", aR[1])
-    # equilibrio: si un lado tiene muchos más globos, pasa los más cercanos al centro al otro lado
-    for _ in range(40):
-        L = [k for k, v in items.items() if v[0] == "l"]; R = [k for k, v in items.items() if v[0] == "r"]
-        if abs(len(L) - len(R)) <= 2 or "l" not in sides or "r" not in sides:
-            break
-        big, other = (L, "r") if len(L) > len(R) else (R, "l")
-        k = max(big, key=lambda kk: items[kk][1][0] if other == "r" else -items[kk][1][0])
-        a = visible_anchor(ctx, kof[k], V, pred, other)
+        cand[pos] = visible_points(ctx, k, V, pred)
+        avoid = [v[1] for v in items.values()]
+        a = visible_anchor(ctx, k, V, pred, None, avoid, cand[pos])
         if a is None:
-            break
-        items[k] = (other, a[1])
+            continue
+        if len(sides) == 2:
+            sd = A_[0] if abs(a[1][ax] - A_[1]) <= abs(B_[1] - a[1][ax]) else B_[0]
+        else:
+            sd = sides
+        items[pos] = (sd, a[1])
+    if len(sides) == 2:
+        for _ in range(60):
+            L = [k for k, v in items.items() if v[0] == A_[0]]; R = [k for k, v in items.items() if v[0] == B_[0]]
+            if abs(len(L) - len(R)) <= 2:
+                break
+            big, other = (L, B_[0]) if len(L) > len(R) else (R, A_[0])
+            k = max(big, key=lambda kk: items[kk][1][ax] if other == B_[0] else -items[kk][1][ax])
+            a = visible_anchor(ctx, kof[k], V, pred, None, [v[1] for kk, v in items.items() if kk != k], cand[k])
+            if a is None:
+                break
+            items[k] = (other, a[1])
     placed = []
-    for side, X in (("l", XL), ("r", XR)):
-        its = sorted([(v[1], k) for k, v in items.items() if v[0] == side], key=lambda t: t[0][1])
+    lo0, hi0 = ((x0 - off + 6, x1 + off - 6) if hor else (y0 - off + 6, y1 + off - 6))
+    for side, C in (A_, B_):
+        its = sorted([(v[1], k) for k, v in items.items() if v[0] == side], key=lambda t: t[0][al])
         if not its:
             continue
         n = len(its)
-        lo, hi = y0 - off + 6, y1 + off - 6
+        lo, hi = lo0, hi0
         g_ = gap if (hi - lo) / max(n - 1, 1) >= gap else max(10.5, (hi - lo) / max(n - 1, 1))
-        ys = [a[1] for a, _ in its]
-        for i in range(1, n):
-            ys[i] = max(ys[i], ys[i - 1] + g_)
+        ys = [a[al] for a, _ in its]
+        for i_ in range(1, n):
+            ys[i_] = max(ys[i_], ys[i_ - 1] + g_)
         if ys[-1] > hi:
             ys[-1] = hi
-            for i in range(n - 2, -1, -1):
-                ys[i] = min(ys[i], ys[i + 1] - g_)
-        segs = [[a, (X, y), k] for (a, k), y in zip(its, ys)]
-        # elimina cruces residuales intercambiando posiciones de globos vecinos
+            for i_ in range(n - 2, -1, -1):
+                ys[i_] = min(ys[i_], ys[i_ + 1] - g_)
+        if ys[0] < lo and not hor:
+            pass
+        segs = [[a, ((y, C) if hor else (C, y)), k] for (a, k), y in zip(its, ys)]
         for _ in range(4 * n * n):
             sw = False
-            for i in range(n):
-                for j in range(i + 1, n):
-                    if _cross(segs[i][0], segs[i][1], segs[j][0], segs[j][1]):
-                        segs[i][1], segs[j][1] = segs[j][1], segs[i][1]
+            for i_ in range(n):
+                for j_ in range(i_ + 1, n):
+                    if _cross(segs[i_][0], segs[i_][1], segs[j_][0], segs[j_][1]):
+                        segs[i_][1], segs[j_][1] = segs[j_][1], segs[i_][1]
                         sw = True
             if not sw:
                 break
         placed += segs
+    # control: cruces entre líneas de referencia de la vista (debe ser 0)
+    nx = sum(1 for i_ in range(len(placed)) for j_ in range(i_ + 1, len(placed)) if _cross(placed[i_][0], placed[i_][1], placed[j_][0], placed[j_][1]))
+    p.h.cruces_globos = getattr(p.h, "cruces_globos", 0) + nx
     for a, q, pos in placed:
         p.s.balloon(a, q, pos)
         ctx.balloons[p.h.plano].add(pos)
-    V.ext = (min(V.ext[0], XL - 7), min(V.ext[1], y0 - off), max(V.ext[2], XR + 7), max(V.ext[3], y1 + off))
+    if placed:
+        qs = [q for _, q, _ in placed]
+        V.ext = (min(V.ext[0], min(q[0] for q in qs) - 7), min(V.ext[1], min(q[1] for q in qs) - 7), max(V.ext[2], max(q[0] for q in qs) + 7), max(V.ext[3], max(q[1] for q in qs) + 7))
 
 
 class Conj(Plano):
@@ -230,13 +259,13 @@ def mesa_keys(ctx):
     return [p.key for p in ctx.m.parts if p.sub == "MES"]
 
 
-def balloon_cb(keys, pred=None, gap=12.0, off=16.0, suf=None):
+def balloon_cb(keys, pred=None, gap=12.0, off=16.0, suf=None, sides="lr"):
     def cb(V, c):
         if suf:
             with alias(c.ctx, suf):
-                balloons_auto(c, V, keys, pred=pred, gap=gap, off=off)
+                balloons_auto(c, V, keys, pred=pred, gap=gap, off=off, sides=sides)
         else:
-            balloons_auto(c, V, keys, pred=pred, gap=gap, off=off)
+            balloons_auto(c, V, keys, pred=pred, gap=gap, off=off, sides=sides)
     return cb
 
 
@@ -282,41 +311,89 @@ STEPS = [
 
 
 # ======================================================================================================
+def holguras_base_mesa(ctx):
+    """Holguras reales base–mesa medidas en el modelo 3D (distancia mínima entre sólidos), sin contar la interfaz ni el pivote."""
+    G = grupos(ctx)
+    mesa = [k for k in G["mesa"] if k in ctx.shapes]
+    out = []
+    for nm, ks in (("marco perimetral", ["marco_largo", "marco_corto"]), ("ménsulas de cilindro", ["mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf"]),
+                   ("bancadas de guía", ["bancada"]), ("orejas de izaje", ["orejas"]), ("collar del pivote", ["collar"])):
+        ks = [k for k in ks if k in ctx.shapes]
+        if not ks:
+            continue
+        d = min(ctx.shapes[a].distance(ctx.shapes[b]) for a in mesa for b in ks)
+        out.append((nm, d))
+    return out
+
+
 @con
 def sheet_conjunto(ctx):
     g, P, m = ctx.g, ctx.P, ctx.m
     ks = all_keys(ctx)
-    c = Conj(ctx, 1, ks, "CONJUNTO GENERAL DEL EQUIPO: PLANTA, ELEVACIÓN Y CORTES A-A Y B-B")
+    c = Conj(ctx, 1, ks, "CONJUNTO GENERAL DEL EQUIPO: PLANTA Y CORTE A-A CON COTAS DE INSTALACIÓN")
     s = c.s
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
     B, tb = g.B, g.tb
     top = g.z0 + g.hd
+    X = P["x_g"]
+    cyl0 = ctx.D["cilindros"]["antihorario"][0]
+    ye = abs(cyl0["eye"][1])
+    bbp = ctx.shapes["pivote"].BoundingBox()
+    zp = (bbp.zmin + bbp.zmax) / 2
+    a0 = ctx.D["pasadores"][0]
+    pin = polar(g.R_pin, a0)
+    cgx = ctx.rep["cg"]
+    bc = ctx.shapes["cilindro"].BoundingBox()
 
     def planta(V, c):
-        V.dimh((-B / 2, -B / 2, tb), (B / 2, -B / 2, tb), "bottom", 0, on=["base_plancha"], text=f"{f(B)}")
-        V.dimv((B / 2, -B / 2, tb), (B / 2, B / 2, tb), "right", 0, on=["base_plancha"], text=f"{f(B)}")
+        V.dimh((-B / 2, -B / 2, tb), (B / 2, -B / 2, tb), "bottom", 1, on=["base_plancha"], text=f"{f(B)} (huella de apoyo)")
+        V.dimv((B / 2, -B / 2, tb), (B / 2, B / 2, tb), "right", 1, on=["base_plancha"], text=f"{f(B)}")
+        V.dimh((0, 0, zp), (X, 0, g.zc), "bottom", 0, on=["pivote", "cilindro"], virt_a=P["D_piv"] / 2, virt_b=P["D_body"] / 2, text=f"{f(X)} (ejes de guía y cilindro)")
+        V.dimh((-X, 0, g.zc), (0, 0, zp), "bottom", 0, on=["pivote", "cilindro"], virt_a=P["D_body"] / 2, virt_b=P["D_piv"] / 2, text=f"{f(X)}")
+        V.dimv((0, 0, zp), (X, ye, g.zc), "right", 0, on=["pivote", "mensula_oreja_sup"], virt_a=P["D_piv"] / 2, virt_b=P["d_pp"] / 2, text=f"{fm(ye, 0)} (ojal de ménsula)")
         V.dim_dia((0, 0, top), g.Rt, 135, on=["mesa_anillo_sup"], text=f"Ø{f(P['D_top'])} (mesa)", ext=24)
+        V.dim((0, 0, zp), (pin[0], pin[1], top), 0, orient="a", on=["pivote", "pasadores"], virt_a=P["D_piv"] / 2, virt_b=g.d_pin / 2, text=f"R{fm(g.R_pin, 0)} (círculo de pasadores)")
+        ex, ey = g.ear_pos[0]
+        so = min(ctx.shapes["orejas"].Solids(), key=lambda q: math.hypot(q.Center().x - ex, q.Center().y - ey))
+        vx = max(so.Vertices(), key=lambda q: (round(q.Z, 1), q.X + q.Y))
+        V.note_pt((vx.X, vx.Y, vx.Z), (30, 18), f"4 orejas de izaje en (±{f(ex)}; ±{fm(ey, 0)})", on=["orejas"],
+                  lines=[f"4 orejas de izaje en (±{f(ex)}; ±{fm(ey, 0)})", f"agujero Ø{f(P['d_ear'])} a {f(P['h_ear'])} de la base"])
+        pc = V.P((cgx[0], cgx[1], top))
+        s.circle(pc, 3.0, "FINA"); s.line((pc[0] - 4.5, pc[1]), (pc[0] + 4.5, pc[1]), "FINA"); s.line((pc[0], pc[1] - 4.5), (pc[0], pc[1] + 4.5), "FINA")
+        s.leader((pc[0] + 2.2, pc[1] - 2.2), (pc[0] + 12, pc[1] - 12), "CG")
         c.cut_mark("planta", "A", (-B / 2 - 20, 0, tb), (B / 2 + 20, 0, tb), 90)
         c.cut_mark("planta", "B", (0, -B / 2 - 20, tb), (0, B / 2 + 20, tb), 180)
-    c.vs("planta", sh, "top", lv=(1, 1, 1, 1), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.5)
+    c.vs("planta", sh, "top", lv=(1, 2, 2, 1), draw=planta, mat=mm, hatch=False, title="PLANTA (cotas de instalación desde el eje del pivote)", auto=False, w=1.6, extra=(0, 0, 0, 0))
 
-    def elev(V, c):
-        V.dimv((B / 2, -B / 2, 0), (g.Rt, 0, top), "right", 0, on=["base_plancha", "mesa_anillo_sup"], text=f"{f(top)}")
-        V.dimv((B / 2, -B / 2, 0), (B / 2, -B / 2, tb), "right", 1, on=["base_plancha"], text=f"{f(tb)}")
-        V.dimv((g.Rt, 0, g.z0), (g.Rt, 0, top), "right", 2, on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)}")
-    c.vs("elev", sh, "front", lv=(1, 2, 3, 1), draw=elev, mat=mm, hatch=False, title="ELEVACIÓN FRONTAL", auto=False, w=1.0)
-    c.vs("cA", sh, "front", cut=CUT_Y, lv=(1, 1, 2, 1), extra=(22, 22, 22, 22), mat=mm, hs=0.5, title="CORTE A-A (plano y = 0)", auto=False, w=1.2,
-         draw=chain(balloon_cb([k for k in ks], pred=lambda q: q[1] >= -0.5, gap=12.0, off=16.0), lambda V, c: V.dimv((B / 2, 0, g.tb), (B / 2, 0, g.tb + P["rim_h"]), "right", 0, on=["marco_corto"], text=f"{f(P['rim_h'])}")))
-    c.vs("cB", sh, "right", cut=CUT_X, lv=(1, 2, 2, 1), mat=mm, hs=0.5, title="CORTE B-B (plano x = 0)", auto=False, w=1.0,
-         draw=lambda V, c: V.dimv((B / 2, B / 2, 0), (B / 2, B / 2, g.tb), "right", 0, on=["base_plancha"], text=f"{f(g.tb)}"))
+    ycb = (bc.ymin + bc.ymax) / 2
+
+    def cAdims(V, c):
+        V.dimv((B / 2, 0, 0), (B / 2, 0, g.tb), "right", 0, on=["base_plancha"], text=f"{f(tb)}")
+        V.dimv((B / 2, 0, g.tb), (B / 2, 0, g.tb + P["rim_h"]), "right", 1, on=["marco_corto"], text=f"{f(P['rim_h'])}")
+        V.dimv((B / 2, 0, 0), (g.Rt, 0, top), "right", 2, on=["base_plancha", "mesa_anillo_sup"], text=f"{f(top)}")
+        V.dimv((-g.Rt, 0, g.z0), (-g.Rt, 0, top), "left", 0, on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)}")
+        V.dimv((-B / 2, 0, tb), (-cyl0["x"], ycb, g.zc), "left", 1, on=["base_plancha", "cilindro"], virt_b=P["D_body"] / 2, text=f"{f(g.hax)}")
+        pc = V.P((cgx[0], 0, cgx[2]))
+        s.circle(pc, 2.5, "FINA"); s.line((pc[0] - 4, pc[1]), (pc[0] + 4, pc[1]), "FINA"); s.line((pc[0], pc[1] - 4), (pc[0], pc[1] + 4), "FINA")
+    c.vs("cA", sh, "front", cut=CUT_Y, lv=(2, 1, 3, 1), extra=(0, 22, 0, 22), mat=mm, hs=0.5, title="CORTE A-A (plano y = 0) CON GLOBOS DE POSICIÓN; CG: cruz en círculo", auto=False, w=1.3, mins=0.2,
+         draw=chain(cAdims, balloon_cb([k for k in ks], pred=lambda q: q[1] >= -0.5, gap=11.0, off=20.0, sides="tb")))
+    c.iso_fill = False
     c.compact_table()
-    mt, cgx = ctx.rep["masa_total_ensamble"], ctx.rep["cg"]
-    c.table_block("DATOS GENERALES", [("Dato del equipo", 60, "L"), ("Valor", 110, "L")], [
-        ["Masa total del ensamble (3D)", f"{f(mt, 1)} kg (piezas del núcleo + comerciales)"], ["Masa según el cálculo", f"{f(ctx.M['total'], 1)} kg"],
-        ["Centro de gravedad (x, y, z)", f"({fm(cgx[0], 1)}; {fm(cgx[1], 1)}; {fm(cgx[2], 1)}) mm desde el centro de la base y la cara inferior"],
-        ["Carga de diseño", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm"], ["Mesa / base", f"Ø{f(P['D_top'])} / {f(B)} × {f(B)} × {f(g.tb)}"], ["Interfaz", g.interfaz_nombre]])
-    c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, nota_anclaje(ctx), "Cota 228: altura total sin cubierta (base + mesa); 210: altura de la mesa. Cotas generales; el detalle de cada subconjunto está en CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote) y CON-012 (interfaz).",
-                                       "Despiece completo con materiales, certificados y masas en CON-002. Piezas: plano propio con el código de la pieza. Vistas adicionales y dimensiones generales: CON-003."])
+    mt = ctx.rep["masa_total_ensamble"]
+    hol = holguras_base_mesa(ctx)
+    area = (B / 1000) ** 2
+    rows = [["Masa total del ensamble (3D)", f"{f(mt, 1)} kg (piezas del núcleo + comerciales); según el cálculo {f(ctx.M['total'], 1)} kg"],
+            ["Centro de gravedad (x; y; z)", "(" + "; ".join(fm(0.0 if abs(v) < 0.05 else v, 1) for v in cgx) + ") mm desde el eje del pivote y la cara inferior de la base (cruz en círculo en planta y corte A-A)"],
+            ["Huella de apoyo", f"cara inferior de la plancha base {f(B)} × {f(B)} ({fm(area, 2)} m²); presión media del peso propio {fm(mt * 9.81 / area / 1000, 2)} kPa"],
+            ["Ejes de guías y cilindros", f"x = ±{f(X)}; eje de cilindros a z = {f(g.zc)} ({f(g.hax)} sobre la base); ojales de ménsula en y = ±{fm(ye, 0)}"],
+            ["Círculo de pasadores", f"{g.N_pin} × Ø{f(g.d_pin)} en R{fm(g.R_pin, 0)}"],
+            ["Alturas", f"base {f(tb)}; mesa {f(g.hd)} (cara inferior a z = {f(g.z0)}); total sin cubierta {f(top)}"],
+            ["Holguras cubo–collar", f"radial {fm(g.c_boss_r, 0)} mm; axial {fm(g.c_boss_a, 0)} mm"]]
+    rows += [["Holguras mesa–base (mínimas, 3D)", "; ".join(f"{nm} {fm(d, 1)} mm" for nm, d in hol)]]
+    rows += [["Carga de diseño / interfaz", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm / {g.interfaz_nombre}"]]
+    c.table_block("DATOS Y COTAS DE INSTALACIÓN", [("Dato", 50, "L"), ("Valor", 190, "L")], rows, wide=True)
+    c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, nota_anclaje(ctx), "Subconjuntos: CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote), CON-012 (interfaz). Corte B-B y vistas complementarias: CON-003.",
+                                       "Despiece completo en CON-002; explosionadas CON-004 y CON-018; instructivo de armado CON-005, CON-014 a CON-017 y CON-019 a CON-022."])
     c.build()
     return c.h
 
@@ -325,25 +402,20 @@ def sheet_conjunto(ctx):
 def sheet_vistas_conj(ctx):
     g, P = ctx.g, ctx.P
     ks = all_keys(ctx)
-    c = Conj(ctx, 3, ks, "CONJUNTO GENERAL: ELEVACIONES LATERAL Y POSTERIOR, VISTA INFERIOR Y DIMENSIONES GENERALES")
+    c = Conj(ctx, 3, ks, "CONJUNTO GENERAL: CORTE B-B, ELEVACIÓN FRONTAL Y DETALLE DEL PASADOR")
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
     B, tb = g.B, g.tb
     top = g.z0 + g.hd
+    c.vs("cB", sh, "right", cut=CUT_X, lv=(1, 2, 2, 1), mat=mm, hs=0.5, title="CORTE B-B (plano x = 0)", auto=False, w=1.3,
+         draw=lambda V, c: V.dimv((B / 2, B / 2, 0), (B / 2, B / 2, g.tb), "right", 0, on=["base_plancha"], text=f"{f(g.tb)}"))
     on = ["base_plancha", "mesa_anillo_sup", "mesa_anillo_inf", "mesa_plancha_sup", "pernos_pasador"]
     on = [k for k in on if k in sh]
-    c.vs("lat", sh, "right", lv=(1, 2, 3, 1), mat=mm, hatch=False, title="ELEVACIÓN LATERAL (desde +x)", w=1.2, auto=dict(on=on, tol={}, maxn=7, h_extents=True))
-    c.vs("post", sh, "back", lv=(1, 2, 3, 1), mat=mm, hatch=False, title="ELEVACIÓN POSTERIOR", w=1.2, auto=dict(on=on, tol={}, maxn=7, h_extents=True))
-    c.vs("inf", sh, "bottom", lv=(1, 1, 1, 1), mat=mm, hatch=False, title="VISTA INFERIOR (cara de apoyo de la base)", w=1.0,
-         auto=dict(on=["base_plancha"], hole_rmin=20.0))
-    pk = [k for k in ("pasadores", "pernos_pasador", "mesa_anillo_sup") if k in sh]
-    c.vs("det_pin", {k: ctx.shapes[k] for k in pk}, "front", cut=((0, 0, 0), (0, 1, 0)), center=(g.R_pin, 0, top - 60), win=(-90, -110, 90, 90), lv=(1, 2, 1, 1), hs=0.4, maxs=2.0,
-         title="DETALLE A: PASADOR, ARANDELA Y PERNO EN EL BORDE DE LA MESA", auto=False, mat={k: ctx.mat.get(k, "acero") for k in pk}, w=1.0)
-    rows = [["Base (plancha)", f"{f(B)} × {f(B)} × {f(tb)}"], ["Altura total del equipo sin cubierta", f"{f(top)} (z de la cara superior de la mesa desde la cara inferior de la base)"],
-            ["Mesa", f"Ø{f(P['D_top'])} × {f(g.hd)}; cara inferior a z = {f(g.z0)}"], ["Eje de los cilindros", f"z = {f(g.zc)}"],
-            ["Pivote", f"Ø{f(P['D_piv'])} × {fm(g.L_piv, 1)}"], ["Carrera de los cilindros", f"{f(P['stroke'])} mm"]]
-    c.table_block("DIMENSIONES GENERALES", [("Elemento", 60, "L"), ("Dimensión [mm]", 110, "L")], rows)
-    c.note_block("NOTAS", ["Vistas de conjunto sin globos: las posiciones están en CON-001 (corte A-A). Dimensiones de fabricación: planos de cada pieza.", NOTA_VIENTO, nota_anclaje(ctx)])
-    c.ficha_block(ks[:0] or [ks[0]], title="") if False else None
+    c.vs("elev", sh, "front", lv=(1, 1, 1, 1), mat=mm, hatch=False, title="ELEVACIÓN FRONTAL (cotas de altura en CON-001, corte A-A)", w=1.0, auto=False)
+    pk = [k for k in ("pasadores", "pernos_pasador", "mesa_anillo_sup", "mesa_anillo_inf") if k in sh]
+    c.vs("det_pin", {k: ctx.shapes[k] for k in pk}, "front", cut=((0, 0, 0), (0, 1, 0)), center=(g.R_pin, 0, top - 100), win=(-90, -130, 90, 110), lv=(1, 2, 1, 1), hs=0.4, maxs=2.0,
+         title="DETALLE A: PASADOR, ARANDELA Y PERNO EN EL BORDE DE LA MESA", auto=False, mat={k: ctx.mat.get(k, "acero") for k in pk}, w=1.0,
+         draw=balloon_cb(pk, gap=11.0, off=16.0))
+    c.note_block("NOTAS", ["Cotas de instalación, centro de gravedad, huella y holguras: CON-001. Dimensiones de fabricación: planos de cada pieza.", NOTA_VIENTO, nota_anclaje(ctx)])
     c.build()
     return c.h
 
