@@ -25,6 +25,12 @@ Memoria de cálculo: `TT300-C_Memoria_RevC.docx/.pdf` (texto negro, hipótesis �
 - `CON-001`: planta 1:10 y corte A-A 1:5 con cotas de instalación (2.560 × 2.560 huella de apoyo, Ø2.000, ejes de guías y cilindros a ±x desde el eje del pivote, ojales de ménsula, R del círculo de pasadores, orejas de izaje, alturas, CG) y tabla de datos de instalación con holguras base–mesa medidas en el 3D. `CON-003`: corte B-B, elevación frontal y detalle del pasador (sin repetir cotas de CON-001).
 - Controles nuevos del generador (fallan la generación si no dan 0): `completitud_piezas.csv` (requisitos dimensionales leídos del sólido 3D de cada pieza: extensión total, escalones planos, diámetros/radios, posición de ejes, chaflanes; cada uno debe figurar como cota, llamada o fila de tabla; comerciales justificadas), líneas de cota/referencia sobre textos (el ordenador desplaza el texto; si no es posible, la línea se interrumpe bajo el texto, ISO 128-20) y cruces entre líneas de globos.
 
+## Séptima pasada
+- Instructivo: cada paso tiene globos de sus posiciones, flecha de inserción y lo montado en trazo fino; paso 4 acero–acero con la zona de engrase Ø2.020 achurada y llamada; paso 9 con la flecha de giro; paso 3 en vista local.
+- CON-006 con planta 1:10 y cortes 1:5; los detalles D1–D4 y la tabla de soldaduras de la base pasan a CON-023. CON-007 con escalas equilibradas.
+- GEN-010: plan de corte por franjas con planchas acotadas (ancho comercial o trozo a medida, largo de compra) y aprovechamiento por espesor; GEN-013: posición de cada franja y de las piezas.
+- Globos: anclaje en el extremo de la pieza hacia su columna; si quedaran cruces, línea quebrada con intercambio de destinos (control de cruces = 0).
+
 ## Reglas del juego de planos
 - Cada pieza del despiece tiene plano propio (código de la pieza = número de plano) o referencia a catálogo; cada ítem aparece con globo en un plano de conjunto o subconjunto.
 - Cada junta soldada J## tiene símbolo ISO 2553 (flecha, línea de referencia, tamaño a/z, proceso, nivel ISO 5817, WPS, END) y fila en la tabla de soldaduras (global GEN-007 y por lámina). Tamaños: parámetros w_* del núcleo; donde el núcleo no los da, mínimo AWS D1.1 T5.8 por la parte más gruesa, rotulado «mínimo AWS, a confirmar».
