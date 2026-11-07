@@ -533,7 +533,7 @@ def sheet_explosion_acc(ctx):
     g, P = ctx.g, ctx.P
     G = grupos(ctx)
     X = P["x_g"]
-    ks = [k for k in ["collar"] + G["piv"] + ["bancada"] + G["acc"] if ctx.m.get(k) and k in ctx.shapes]
+    ks = [k for k in ["collar"] + G["piv"] + ["mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "bancada"] + G["acc"] if ctx.m.get(k) and k in ctx.shapes]
     c = Conj(ctx, 18, ks, "ISOMÉTRICAS EXPLOSIONADAS: PIVOTE CON BUJE Y TAPA RETENEDORA; ACCIONAMIENTO (UN LADO)")
     pk, pz = [], {}
     c.fmt_try = ["A2", "A1"]
@@ -550,11 +550,15 @@ def sheet_explosion_acc(ctx):
             balloons_auto(c, V, pk, gap=12.0, off=22.0)
     c.vs("piv", {k: ctx.shapes[k] for k in pk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, pk), hatch=False, draw=cbp,
          title="PIVOTE, BUJE Y TAPA RETENEDORA (sobre el collar de la base)", auto=False, w=1.0)
-    ak, plan = [], (("bancada", 0), ("patin", 260), ("una", 470), ("pasador_vastago", 640), ("cilindro", 840), ("pasador_ojal", 1060))
+    c0 = ctx.D["cilindros"]["antihorario"][0]
+    ym = (c0["eye"][1] + c0["rodEngage"][1]) / 2          # centro del accionamiento de un lado (ménsula → patín)
+    ak, plan = [], (("mensula_mejilla", 0), ("mensula_oreja_inf", 0), ("mensula_oreja_sup", 0), ("bancada", 0), ("patin", 260), ("una", 470), ("pasador_vastago", 640),
+                    ("cilindro", 840), ("pasador_ojal", 1060))
     for k, dz in plan:
         if k in ctx.shapes:
-            ctx.local(k, k + "_E", near=(X, 0, g.tb + 80), r=1100, shift=(0, 0, dz))
-            ak.append(k + "_E")
+            ctx.local(k, k + "_E", near=(c0["x"], ym, g.tb + 80), r=800, shift=(0, 0, dz))
+            if ctx.shapes[k + "_E"].Solids():
+                ak.append(k + "_E")
 
     def cba(V, c):
         for k, dz in plan:
