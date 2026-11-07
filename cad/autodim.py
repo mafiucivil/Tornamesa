@@ -306,7 +306,7 @@ def _thin(items, scale, text_of, minw=6.0, protect=()):
 
 
 def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=None, text=None, skip_u=(), skip_v=(), maxn=9, overall=True, hole_rmin=1.5,
-              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None):
+              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, axes="hv", minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None):
     """Cotas automáticas de la vista V. tol: {valor_redondeado: sufijo} (p. ej. {20.0: ' ±0,5'}); text: {valor: texto completo}; fits: {Ø: 'H7'} para diámetros.
     Devuelve el nº de cotas dibujadas."""
     on = on or V.keys
@@ -440,8 +440,10 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         vside_ = vside or v
         run(1, vside_, skip_v, V.lv[vside_] if lvl0 is None else lvl0)
         return len(COTAS.rows) - n0
-    run(0, hside or h, skip_u, V.lv[hside or h] if lvl0 is None else lvl0)
-    run(1, vside or v, skip_v, V.lv[vside or v] if lvl0 is None else lvl0)
+    if "h" in axes:
+        run(0, hside or h, skip_u, V.lv[hside or h] if lvl0 is None else lvl0)
+    if "v" in axes:
+        run(1, vside or v, skip_v, V.lv[vside or v] if lvl0 is None else lvl0)
     # --- diámetros / agujeros ---
     if holes and cs and hole_notes:
         notes_holes(V, cs, on, fits=fits, ang0=ang0, ext=hole_ext, pitch_txt=pitch_txt, hole_txt=hole_txt)
