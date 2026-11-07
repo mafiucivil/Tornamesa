@@ -138,7 +138,7 @@ def sheet_almas(ctx):
 
     def planta(V, p):
         for i, r in enumerate(D["almas"]):
-            V.dim_rad((0, 0, z0 + g.hw), r + P["t_web"] / 2, 20 + 28 * i, on=[ks[i]], text=f"R{f(r)} (eje) — A{i + 1}", ext=22 + 6 * i)
+            V.dim_rad((0, 0, z0 + g.hw), r + P["t_web"] / 2, -40 + 25 * i, on=[ks[i]], text=f"R{f(r)} (eje) — A{i + 1}", ext=22 + 6 * i)
         s.centerlines(V.P(0, 0, z0), D["almas"][-1] * V.scale, 8)
     p.vs("planta", ks, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), draw=planta, title="PLANTA DE LAS 3 ALMAS", hatch=False, w=1.5, auto=dict(holes=False, hole_notes=False))
     k0, r = ks[-1], D["almas"][-1]
