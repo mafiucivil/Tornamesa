@@ -1,0 +1,570 @@
+{
+ "proyecto": "TT300-C",
+ "rev": "C",
+ "carpeta": "entregables/RevC/variantes/C3",
+ "interfaz": "Opción C-3: pastillas de bronce con tapones de grafito + disco duro",
+ "madera": false,
+ "advertencia": "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.",
+ "grupos": {
+  "generales": {
+   "titulo": "Generales",
+   "pdf": "TT300-C_Planos_Generales_RevC.pdf",
+   "laminas": [
+    "TT300C-GEN-001-C",
+    "TT300C-CON-001-C",
+    "TT300C-CON-002-C",
+    "TT300C-CON-003-C",
+    "TT300C-CON-013-C",
+    "TT300C-GEN-003-C",
+    "TT300C-GEN-004-C",
+    "TT300C-GEN-005-C",
+    "TT300C-GEN-006-C",
+    "TT300C-GEN-007-C",
+    "TT300C-GEN-008-C",
+    "TT300C-GEN-009-C",
+    "TT300C-GEN-010-C",
+    "TT300C-GEN-011-C",
+    "TT300C-GEN-012-C"
+   ]
+  },
+  "fabricacion": {
+   "titulo": "Fabricación",
+   "pdf": "TT300-C_Planos_Fabricacion_RevC.pdf",
+   "laminas": [
+    "TT300C-CON-006-C",
+    "TT300C-CON-007-C",
+    "TT300C-CON-008-C",
+    "TT300C-CON-009-C",
+    "TT300C-CON-010-C",
+    "TT300C-CON-011-C",
+    "TT300C-CON-012-C",
+    "TT300C-BAS-001-C",
+    "TT300C-BAS-002-C",
+    "TT300C-BAS-003-C",
+    "TT300C-BAS-005-C",
+    "TT300C-IZA-001-C",
+    "TT300C-ACC-001-C",
+    "TT300C-MES-001-C",
+    "TT300C-MES-002-C",
+    "TT300C-MES-003-C",
+    "TT300C-MES-005-C",
+    "TT300C-MES-008-C",
+    "TT300C-MES-011-C",
+    "TT300C-MES-012-C",
+    "TT300C-MES-013-C",
+    "TT300C-PIV-001-C",
+    "TT300C-PIV-002-C",
+    "TT300C-PIV-003-C",
+    "TT300C-ACC-002-C",
+    "TT300C-ACC-003-C",
+    "TT300C-ACC-004-C",
+    "TT300C-ACC-005-C",
+    "TT300C-INT-003-C",
+    "TT300C-INT-001-C",
+    "TT300C-INT-004-C",
+    "TT300C-INT-005-C",
+    "TT300C-INT-006-C",
+    "TT300C-INT-008-C",
+    "TT300C-INT-101-C",
+    "TT300C-INT-102-C"
+   ]
+  },
+  "armado": {
+   "titulo": "Armado",
+   "pdf": "TT300-C_Planos_Armado_RevC.pdf",
+   "laminas": [
+    "TT300C-CON-004-C",
+    "TT300C-CON-005-C"
+   ]
+  }
+ },
+ "laminas": [
+  {
+   "n": 1,
+   "codigo": "TT300C-GEN-001-C",
+   "titulo": "NOTAS GENERALES, NORMAS APLICABLES E ÍNDICE DE PLANOS",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 2,
+   "codigo": "TT300C-CON-001-C",
+   "titulo": "CONJUNTO GENERAL DEL EQUIPO: PLANTA, ELEVACIÓN Y CORTES A-A Y B-B",
+   "escala": "1:5 / 1:10 / 1:20",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-CON-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 3,
+   "codigo": "TT300C-CON-002-C",
+   "titulo": "DESPIECE COMPLETO DEL EQUIPO (HOJA 1)",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-CON-002-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 4,
+   "codigo": "TT300C-CON-003-C",
+   "titulo": "CONJUNTO GENERAL: ELEVACIONES LATERAL Y POSTERIOR, VISTA INFERIOR Y DIMENSIONES GENERALES",
+   "escala": "1:1 / 1:5 / 1:20",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-CON-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 5,
+   "codigo": "TT300C-CON-004-C",
+   "titulo": "ISOMÉTRICA EXPLOSIONADA DEL EQUIPO CON GLOBOS DE POSICIÓN",
+   "escala": "S/E",
+   "grupo": "armado",
+   "pdf": "planos/TT300C-CON-004-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 6,
+   "codigo": "TT300C-CON-005-C",
+   "titulo": "SECUENCIA DE MONTAJE Y FABRICACIÓN",
+   "escala": "S/E",
+   "grupo": "armado",
+   "pdf": "planos/TT300C-CON-005-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 7,
+   "codigo": "TT300C-CON-006-C",
+   "titulo": "BASE SOLDADA: CONJUNTO (PLANTA, ELEVACIONES, CORTES Y DETALLES DE JUNTA)",
+   "escala": "1:2 / 1:2,5 / 1:10 / 1:20",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-006-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 8,
+   "codigo": "TT300C-CON-007-C",
+   "titulo": "MÉNSULA DE CILINDRO: SUBCONJUNTO SOLDADO (PLANTA, ELEVACIÓN Y CORTES)",
+   "escala": "2:1 / 1:5 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-007-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 9,
+   "codigo": "TT300C-CON-008-C",
+   "titulo": "MESA SOLDADA: PLANTA A MEDIA ALTURA, PLANTA INFERIOR, ELEVACIÓN Y CORTE POR UN PASADOR",
+   "escala": "1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-008-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 10,
+   "codigo": "TT300C-CON-009-C",
+   "titulo": "MESA SOLDADA: CORTE POR ALMAS, DETALLES DE JUNTA, REBAJE DEL COLLAR Y TABLA DE PASADORES",
+   "escala": "2:1 / 1:1 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-009-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 11,
+   "codigo": "TT300C-CON-010-C",
+   "titulo": "ACCIONAMIENTO: CILINDRO, MÉNSULA, PATÍN, BANCADA, UÑA Y PASADORES (VISTA Y CORTES)",
+   "escala": "1:2 / 1:5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-010-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 12,
+   "codigo": "TT300C-CON-011-C",
+   "titulo": "PIVOTE: CUBO, COLLAR, BUJE Y TAPAS — HOLGURAS Y AJUSTES (ISO 286)",
+   "escala": "1:1 / 1:2",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-011-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 13,
+   "codigo": "TT300C-CON-012-C",
+   "titulo": "CONJUNTO DE LA INTERFAZ: OPCIÓN C-3: PASTILLAS DE BRONCE CON TAPONES DE GRAFITO + DISCO DURO",
+   "escala": "1:2 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-CON-012-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 14,
+   "codigo": "TT300C-CON-013-C",
+   "titulo": "DESPIECE COMPLETO DEL EQUIPO (HOJA 2)",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-CON-013-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 15,
+   "codigo": "TT300C-BAS-001-C",
+   "titulo": "PLANCHA BASE: CONTORNO, AGUJERO CENTRAL Y POSICIONES",
+   "escala": "2:1 / 1:2 / 1:20",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-BAS-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 16,
+   "codigo": "TT300C-BAS-002-C",
+   "titulo": "COLLAR DE ASIENTO DEL PIVOTE",
+   "escala": "2:1 / 1:1 / 1:2,5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-BAS-002-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 17,
+   "codigo": "TT300C-BAS-003-C",
+   "titulo": "MARCO PERIMETRAL: PLETINAS LARGA Y CORTA",
+   "escala": "2:1 / 1:2,5 / 1:5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-BAS-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 18,
+   "codigo": "TT300C-BAS-005-C",
+   "titulo": "MÉNSULA DE CILINDRO: MEJILLA Y OREJAS (PIEZAS)",
+   "escala": "1:2 / 1:2,5 / 1:5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-BAS-005-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 19,
+   "codigo": "TT300C-IZA-001-C",
+   "titulo": "OREJA DE IZAJE (4 UNIDADES)",
+   "escala": "2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-IZA-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 20,
+   "codigo": "TT300C-ACC-001-C",
+   "titulo": "BANCADA DE GUÍA CON RANURA T (2 UNIDADES)",
+   "escala": "2:1 / 1:2 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-ACC-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 21,
+   "codigo": "TT300C-MES-001-C",
+   "titulo": "MESA: PLANCHA SUPERIOR",
+   "escala": "2:1 / 1:1 / 1:5 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 22,
+   "codigo": "TT300C-MES-002-C",
+   "titulo": "MESA: ANILLOS SUPERIOR E INFERIOR DE PASADORES (28 AGUJEROS)",
+   "escala": "1:1 / 1:2 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-002-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 23,
+   "codigo": "TT300C-MES-003-C",
+   "titulo": "MESA: PLANCHA INFERIOR (CARA DE APOYO DE LA INTERFAZ)",
+   "escala": "2:1 / 1:2 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 24,
+   "codigo": "TT300C-MES-005-C",
+   "titulo": "MESA: ALMAS ANULARES (3 ANILLOS)",
+   "escala": "2:1 / 1:2 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-005-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 25,
+   "codigo": "TT300C-MES-008-C",
+   "titulo": "MESA: NERVIOS RADIALES (TRAMOS ENTRE ALMAS)",
+   "escala": "2:1 / 1:1 / 1:2",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-008-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 26,
+   "codigo": "TT300C-MES-011-C",
+   "titulo": "MESA: CUBO",
+   "escala": "2:1 / 1:2",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-011-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 27,
+   "codigo": "TT300C-MES-012-C",
+   "titulo": "MESA: PASADOR DE EMPUJE Ø85 (28 UNIDADES)",
+   "escala": "5:1 / 2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-012-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 28,
+   "codigo": "TT300C-MES-013-C",
+   "titulo": "MESA: PERNO ISO 4762 M20×45 CON ARANDELA (28 UNIDADES)",
+   "escala": "2:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-MES-013-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 29,
+   "codigo": "TT300C-PIV-001-C",
+   "titulo": "PIVOTE Ø120 p6",
+   "escala": "5:1 / 2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-PIV-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 30,
+   "codigo": "TT300C-PIV-002-C",
+   "titulo": "PIVOTE: BUJE AUTOLUBRICADO",
+   "escala": "5:1 / 2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-PIV-002-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 31,
+   "codigo": "TT300C-PIV-003-C",
+   "titulo": "PIVOTE: TAPAS RETENEDORA (PIV-003) E INSPECCIÓN (PIV-004)",
+   "escala": "2:1 / 1:1 / 1:2",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-PIV-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 32,
+   "codigo": "TT300C-ACC-002-C",
+   "titulo": "CILINDRO HIDRÁULICO DE DOBLE EFECTO (ELEMENTO COMERCIAL — DIMENSIONES DE INTERFAZ)",
+   "escala": "1:1 / 1:2 / 1:2,5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-ACC-002-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 33,
+   "codigo": "TT300C-ACC-003-C",
+   "titulo": "PATÍN GUIADO CON LENGÜETA T Y MARCO DE BOCA (2 UNIDADES)",
+   "escala": "1:1 / 1:2 / 1:2,5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-ACC-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 34,
+   "codigo": "TT300C-ACC-004-C",
+   "titulo": "UÑA DE EMPUJE (CARA PLANA TEMPLADA, CHAFLÁN DE RETORNO) (2 UNIDADES)",
+   "escala": "2:1 / 1:1 / 1:2",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-ACC-004-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 35,
+   "codigo": "TT300C-ACC-005-C",
+   "titulo": "PASADORES DE ARTICULACIÓN Ø70 f8 (VÁSTAGO Y OJAL TRASERO)",
+   "escala": "5:1 / 2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-ACC-005-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 36,
+   "codigo": "TT300C-INT-003-C",
+   "titulo": "INTERFAZ: DISCO DURO / 2.ª PLACA (SECTOR)",
+   "escala": "5:1 / 1:1 / 1:5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 37,
+   "codigo": "TT300C-INT-001-C",
+   "titulo": "INTERFAZ: PLACA DE BRONCE CON TAPONES DE GRAFITO (SECTOR / PASTILLA)",
+   "escala": "2:1 / 1:1 / 1:5",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-001-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 38,
+   "codigo": "TT300C-INT-004-C",
+   "titulo": "INTERFAZ: BARRA DE TOPE DE LA BASE Y DETALLE DE JUNTA",
+   "escala": "2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-004-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 39,
+   "codigo": "TT300C-INT-005-C",
+   "titulo": "INTERFAZ: BARRA DE TOPE DE LA MESA Y DETALLE DE JUNTA",
+   "escala": "2:1 / 1:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-005-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 40,
+   "codigo": "TT300C-INT-006-C",
+   "titulo": "INTERFAZ: TORNILLOS DE POSICIÓN ISO 10642 M6 (ROSCA ISO 262, PAR PROPUESTO)",
+   "escala": "5:1",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-006-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 41,
+   "codigo": "TT300C-INT-008-C",
+   "titulo": "INTERFAZ: GRASERAS DIN 71412 M10×1, TALADRO Ø6 Y TRAZADO DE ENGRASE",
+   "escala": "5:1 / 2:1 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-008-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 42,
+   "codigo": "TT300C-INT-101-C",
+   "titulo": "INTERFAZ: RANURAS DE ENGRASE EN LA CARA DESLIZANTE (TRAZADO: 12 RADIALES Y CIRCUNFERENCIALES, GRASERAS)",
+   "escala": "1:1 / 1:2 / 1:10",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-101-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 43,
+   "codigo": "TT300C-INT-102-C",
+   "titulo": "INTERFAZ: PATRÓN DE TAPONES DE GRAFITO (PLANTA DEL BRONCE, TABLA DE COORDENADAS Y ALOJAMIENTO)",
+   "escala": "5:1 / 1:5 / 1:50",
+   "grupo": "fabricacion",
+   "pdf": "planos/TT300C-INT-102-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 44,
+   "codigo": "TT300C-GEN-003-C",
+   "titulo": "PLAN DE INSPECCIÓN Y ENSAYOS",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-003-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 45,
+   "codigo": "TT300C-GEN-004-C",
+   "titulo": "TOLERANCIAS Y AJUSTES (ISO 286) Y TOLERANCIAS GEOMÉTRICAS",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-004-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 46,
+   "codigo": "TT300C-GEN-005-C",
+   "titulo": "MATERIALES Y CERTIFICADOS",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-005-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 47,
+   "codigo": "TT300C-GEN-006-C",
+   "titulo": "TRATAMIENTOS TÉRMICOS Y SUPERFICIALES, PINTURA",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-006-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 48,
+   "codigo": "TT300C-GEN-007-C",
+   "titulo": "PROGRAMA DE SOLDADURAS: TABLA GLOBAL DE JUNTAS",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-007-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 49,
+   "codigo": "TT300C-GEN-008-C",
+   "titulo": "TORQUES DE APRIETE (PROPUESTA) Y LISTA DE COMPRAS DE ELEMENTOS COMERCIALES",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-008-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 50,
+   "codigo": "TT300C-GEN-009-C",
+   "titulo": "SUPUESTOS DEL DIBUJANTE Y BRECHAS CON EL CÁLCULO (GEN-009)",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-009-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 51,
+   "codigo": "TT300C-GEN-010-C",
+   "titulo": "LISTA DE CORTES DE PLANCHA (NESTING SIMPLE) Y APROVECHAMIENTO",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-010-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 52,
+   "codigo": "TT300C-GEN-011-C",
+   "titulo": "LISTA DE VERIFICACIÓN DEL REVISOR",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-011-C.pdf",
+   "dxf": null
+  },
+  {
+   "n": 53,
+   "codigo": "TT300C-GEN-012-C",
+   "titulo": "WPS PRE-CALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1 CL. 3) Y PRECALENTAMIENTO",
+   "escala": "S/E",
+   "grupo": "generales",
+   "pdf": "planos/TT300C-GEN-012-C.pdf",
+   "dxf": null
+  }
+ ],
+ "faltan_pdf": [],
+ "archivos": {
+  "combinado": "TT300-C_Planos_RevC.pdf",
+  "despiece_xlsx": "TT300-C_despiece.xlsx",
+  "despiece_csv": "TT300-C_despiece.csv",
+  "step": "TT300-C.step",
+  "dxf_zip": null,
+  "informe": "informe_paquete.md",
+  "design": "TT300-C_design.json"
+ }
+}
