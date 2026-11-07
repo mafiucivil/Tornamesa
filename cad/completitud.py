@@ -9,6 +9,8 @@ Para cada pieza fabricable de una lámina de pieza (serie FAB) se extraen del B-
 Cada requisito se da por cubierto si su valor figura como número en algún texto de la lámina (cota, llamada o fila de tabla),
 con la precisión con que está escrito. Para las posiciones de eje se admiten: coordenada desde el centro, desde cualquiera de
 los dos bordes, eje sobre la línea de simetría (coordenada 0), o el radio/diámetro del círculo de paso desde el centro de la pieza.
+En sectores y anillos (arcos con centro en el eje del equipo) la forma en planta la fijan los radios, los ángulos y las posiciones de ejes:
+no se exigen extensiones ni escalones en planta. Una pieza documentada en dos láminas se controla con los textos de ambas.
 Las piezas comerciales quedan justificadas («definido por elemento comercial»)."""
 import math
 import re
@@ -33,7 +35,7 @@ def numeros(texts):
 def _hay(nums, v, tol_int=0.51, tol_dec=0.051):
     v = abs(v)
     for n, dec in nums:
-        if abs(n - v) <= (tol_int if dec == 0 else tol_dec * (10 ** (1 - dec)) if dec <= 1 else 0.006):
+        if abs(n - v) <= (tol_int if dec == 0 else tol_dec * (10 ** (1 - dec)) if dec <= 1 else 0.0051 + 1e-6):
             return True
     return False
 
@@ -104,7 +106,7 @@ def requisitos(so):
     ctr = [(l + h) / 2 for l, h in zip(lo, hi)]
     R = []
     ext_req = [dict(tipo="extensión", desc=f"extensión total en {nombres[i]} = {hi[i] - lo[i]:.1f}", vals=[hi[i] - lo[i]], eje=i) for i in range(3)]
-    levels = [set(), set(), set()]
+    levels = [{}, {}, {}]
     cyls = {}
     inclinadas = 0
     amax = max((fc.Area() for fc in so.Faces()), default=1.0)
@@ -118,7 +120,8 @@ def requisitos(so):
             c = (c.x, c.y, c.z)
             ax = [i for i in range(3) if abs(abs(_dot(n, E[i])) - 1) < 1e-4]
             if ax:
-                levels[ax[0]].add(round(_dot(c, E[ax[0]]), 2))
+                v_ = _dot(c, E[ax[0]])
+                levels[ax[0]].setdefault(round(v_, 2), v_)
             else:
                 inclinadas += 1
         elif ty == GeomAbs_Cylinder:
@@ -144,8 +147,12 @@ def requisitos(so):
             cyls[key] = dict(r=r, a=a, others=others, co=[_dot(l0, E[i]) for i in others], full=full, rho_g=(math.hypot(l0[0], l0[1]) if zg else None))
         elif ty == GeomAbs_Cone:
             inclinadas += 1
+    ext_pl = max([hi[i] - lo[i] for i in range(3) if abs(E[i][2]) < 1e-3] or [0.0])
+    sector = any(c["rho_g"] is not None and c["rho_g"] < 0.05 and c["r"] >= 0.3 * ext_pl for c in cyls.values())
     for i in range(3):
-        L = sorted(levels[i])
+        if sector and abs(E[i][2]) < 1e-3:
+            continue            # sector/anillo: la forma en planta la fijan radios, ángulos y ejes (se controlan aparte)
+        L = sorted(levels[i].values())
         for j, z in enumerate(L):
             if j == 0:
                 continue
@@ -169,8 +176,6 @@ def requisitos(so):
     # extensión: cubierta por el diámetro exterior cuando la pieza es de revolución en ese plano
     dfull = [2 * c["r"] for c in cyls.values() if c["full"]]
     # sector o anillo: un arco con eje en el eje del equipo define la forma en planta (radios y ángulo); la extensión en planta no se pide
-    ext_pl = max([hi[i] - lo[i] for i in range(3) if abs(E[i][2]) < 1e-3] or [0.0])
-    sector = any(c["rho_g"] is not None and c["rho_g"] < 0.05 and c["r"] >= 0.3 * ext_pl for c in cyls.values())
     for q in ext_req:
         if sector and abs(E[q["eje"]][2]) < 1e-3:
             continue

@@ -540,7 +540,8 @@ def sheet_explosion_acc(ctx):
     for k, dz in (("collar", 0), ("pivote", 300), ("buje", 600), ("tapa_ret", 820)):
         if k in ctx.shapes:
             ctx.local(k, k + "_P", near=(0, 0, 0), r=260, shift=(0, 0, dz))
-            pk.append(k + "_P")
+            if ctx.shapes[k + "_P"].Solids():
+                pk.append(k + "_P")
             pz[k] = dz
 
     def cbp(V, c):
