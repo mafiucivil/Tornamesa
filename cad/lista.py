@@ -25,7 +25,7 @@ def extras(ctx):
         ("Grillete de izaje (pasador ≤ d_oreja − g_ear = %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
         ("Faldón de sello perimetral (opcional) y fleje", 1, "NBR 70 / S235 galvanizado; dimensiones por el proveedor (opcional)", "A DEFINIR POR CATÁLOGO"),
         ("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, "Cantidad: llenado de ranuras + película de 0,3–0,5 mm por cara", "A DEFINIR POR CATÁLOGO"),
-        ("Bomba, válvulas, mangueras y manómetro (circuito hidráulico)", 1, f"Fuera de los planos mecánicos: ver especificación en {CODE}-ACC-004-{REV}", "A DEFINIR POR CATÁLOGO"),
+        ("Bomba, válvulas, mangueras y manómetro (circuito hidráulico)", 1, f"Fuera de los planos mecánicos: ver especificación en {CODE}-ACC-002-{REV}", "A DEFINIR POR CATÁLOGO"),
     ]
     if g.opt == 1:
         L.append(("Pasta de contacto/limpieza para discos inoxidables (opcional)", 1, "Cantidad según el proveedor", "A DEFINIR POR CATÁLOGO"))

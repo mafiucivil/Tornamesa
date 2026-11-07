@@ -697,13 +697,18 @@ class Sheet:
         L_, B_, R_, T_ = 20.0, 10.0, self.W - 10.0, self.H - 10.0
         moved = 0
 
+        G = 0.9                                     # holgura mínima entre textos [mm]
+
         def clash(bx, skip):
+            bi = [bx[0] - G, bx[1] - G, bx[2] + G, bx[3] + G]
             for j, o in enumerate(boxes):
                 if j == skip:
                     continue
-                if o[0] > bx[2] or o[2] < bx[0] or o[1] > bx[3] or o[3] < bx[1]:
+                if o[0] > bi[2] or o[2] < bi[0] or o[1] > bi[3] or o[3] < bi[1]:
                     continue
-                if C.overlap(bx, o) > 0.01:
+                ix = min(bi[2], o[2]) - max(bi[0], o[0])
+                iy = min(bi[3], o[3]) - max(bi[1], o[1])
+                if ix > 0.05 and iy > 0.05:
                     return True
             if bx[0] < L_ + 0.5 or bx[1] < B_ + 0.5 or bx[2] > R_ - 0.5 or bx[3] > T_ - 0.5:
                 return True
@@ -722,8 +727,9 @@ class Sheet:
                 # el texto choca: si no es movible se intenta mover el otro (el primero movible que choca con él)
                 cand = [ii] if m_ else []
                 if not cand:
+                    ai = [a[0] - G, a[1] - G, a[2] + G, a[3] + G]
                     for j, o in enumerate(boxes):
-                        if j != ii and id(o[5]) in mov and C.overlap(a, o) > 0.01:
+                        if j != ii and id(o[5]) in mov and min(ai[2], o[2]) - max(ai[0], o[0]) > 0.05 and min(ai[3], o[3]) - max(ai[1], o[1]) > 0.05:
                             cand.append(j)
                 for ci in cand:
                     bx = boxes[ci]

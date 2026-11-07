@@ -562,7 +562,7 @@ class Plano:
             raise RuntimeError("ningún formato admite la disposición de " + h.plano)
         bestf = max(c["fill"] for c in cands)
         # el formato más pequeño cuyo llenado alcanza el 85 % del mejor
-        ch = next(c for c in sorted(cands, key=lambda c: ("A3", "A2", "A1").index(c["fmt"])) if c["fill"] >= 0.85 * bestf)
+        ch = next(c for c in sorted(cands, key=lambda c: ("A3", "A2", "A1").index(c["fmt"])) if c["fill"] >= 0.999 * bestf)
         if ch["fmt"] != h.fmt:
             h.fmt = ch["fmt"]
             s.reformat(ch["fmt"])

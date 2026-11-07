@@ -21,12 +21,8 @@ def sheet_base_plancha(ctx):
         V.dimh((-B / 2, B / 2, tb), (B / 2, B / 2, tb), "top", 1, on=on, text=f"{f(B)} ±2")
         V.chain_v([(-B / 2, -B / 2, tb), (-B / 2, -cl, tb), (-B / 2, 0, tb), (-B / 2, cl, tb), (-B / 2, B / 2, tb)], "left", 0, on=on)
         V.dimv((-B / 2, -B / 2, tb), (-B / 2, B / 2, tb), "left", 1, on=on, text=f"{f(B)} ±2")
-        V.dim_dia((0, 0, tb), P["D_piv"] / 2, 215, text=f"Ø{f(P['D_piv'])} H7 (+0,035/0), pasante", on=on, ext=30)
         s.circle(V.P(0, 0, tb), g.D_boss / 2 * V.scale, "FANT")
-        s.leader((V.P(0, 0, tb)[0] + g.D_boss / 2 * V.scale * 0.707, V.P(0, 0, tb)[1] - g.D_boss / 2 * V.scale * 0.707), (V.P(0, 0, tb)[0] + 40, V.P(0, 0, tb)[1] - 40), f"Collar Ø{f(g.D_boss)} (BAS-002), concéntrico", dot=True)
         s.circle(V.P(0, 0, tb), (P["D_top"] + 20) / 2 * V.scale, "FANT")
-        s.leader((V.P(0, 0, tb)[0] + (P["D_top"] + 20) / 2 * V.scale * 0.707, V.P(0, 0, tb)[1] - (P["D_top"] + 20) / 2 * V.scale * 0.707),
-                 (V.P(0, 0, tb)[0] + 62, V.P(0, 0, tb)[1] - 120), f"Zona de apoyo de la interfaz Ø{f(P['D_top'] + 20)}: planitud 0,20", dot=True)
         cs = V.circles(["base_plancha"], 2.0, 4.5)
         if cs:
             n = len(cs)
@@ -40,9 +36,10 @@ def sheet_base_plancha(ctx):
     def corte(V, p):
         s.line(V.P(0, 0, -10), V.P(0, 0, g.tb + g.h_boss + 10), "EJE")
         s.datum((V.P(-250, 0, 0)[0], V.P(0, 0, 0)[1] - 1), "A", up=False)
+        V.dimh((-P["D_piv"] / 2, 0, g.tb + g.h_boss), (P["D_piv"] / 2, 0, g.tb + g.h_boss), "top", 0, on=["collar", "base_plancha"], text=f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante")
         w_sym(p, jids(ctx, "Collar")[0], V, (g.D_boss / 2, 0, tb + 1), (45, 30), all_round=True)
     p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", mat={"base_plancha": "acero", "collar": "acero"},
-         auto=dict(on=["base_plancha", "collar"], fits={P["D_piv"]: "H7"}), w=2.0, hs=0.5)
+         auto=dict(on=["base_plancha", "collar"], fits={P["D_piv"]: "H7"}, text={round(P["D_piv"], 1): f"Ø{f(P['D_piv'])} H7 (+0,035/0) pasante (mandrinado con el collar)", round(g.D_boss, 1): f"Ø{f(g.D_boss)} (collar BAS-002)"}), w=2.0, hs=0.5)
     # tabla de posiciones
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):
@@ -53,7 +50,6 @@ def sheet_base_plancha(ctx):
     for sx in (1, -1):
         rows.append(["Bancada (eje de guía)", f(sx * P["x_g"]), "0", "90°", f"largo {f(g.KG['L_bed'], 1)}"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
-    add_prep(p, "det_j9", wd(ctx, jids(ctx, "Collar")[0]), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False)
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS (origen: centro de la plancha)", [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
     p.tables(jids(ctx, "Collar", "Marco perimetral largo", "Marco corto – plancha"))
     nz = [
@@ -175,9 +171,9 @@ def sheet_mensula_piezas(ctx):
 
     def d1(V, p):
         if len(ids) >= 4:
-            w_sym(p, ids[0], V, (P["L_ch"] / 2 - rear, -Wout / 2, tb + 0.5), (30, -34))
+            w_out(p, ids[0], V, (P["L_ch"] / 2 - rear, -Wout / 2, tb + 0.5), "right", dy=24)
         s.roughness((V.P(0, -Wout / 2, zt)[0] + 6, V.P(0, 0, zt)[1] + 3), "Ra 12,5 (corte)") if False else None
-    p.vs("mej_el", k1, "front", lv=(1, 2, 1, 1), draw=d1, title="MEJILLA — ELEVACIÓN (2 por ménsula, 8 en total)", auto=dict(tol={round(H_, 1): " ±0,5", round(P["L_ch"], 1): " ±1"}), w=1.5)
+    p.vs("mej_el", k1, "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=d1, title="MEJILLA — ELEVACIÓN (2 por ménsula, 8 en total)", auto=dict(tol={round(H_, 1): " ±0,5", round(P["L_ch"], 1): " ±1"}), w=1.5)
     p.vs("mej_pl", k1, "top", lv=(1, 2, 1, 1), title="MEJILLAS — PLANTA", auto=dict(), w=0.8)
     p.vs("os_pl", k2, "top", lv=(1, 2, 1, 1), extra=(0, 0, 40, 0), title="OREJA SUPERIOR (BAS-006) — PLANTA", auto=dict(fits={P["d_pp"]: "H9"}, tol={round(Llug, 1): " ±0,5", round(Win, 1): " −0,5"}), w=1.0)
     p.vs("os_el", k2, "front", lv=(1, 2, 1, 1), title="OREJA SUPERIOR — ELEVACIÓN", auto=dict(tol={round(tc, 1): " ±0,2"}), w=0.7)
@@ -220,9 +216,9 @@ def sheet_orejas(ctx):
     def perfil(V, p):
         s.line(V.P(0, 0, tb - 6), V.P(0, 0, tb + hE + R + 8), "EJE"); s.line(V.P(-R - 8, 0, tb + hE), V.P(R + 8, 0, tb + hE), "EJE")
         V.dim_rad((0, tE / 2, tb + hE), R, 130, on=on, text=f"R{f(R)}", ext=18)
-        w_sym(p, jid, V, (R, tE / 2, tb + 3), (36, 40))
+        w_out(p, jid, V, (R, tE / 2, tb + 3), "right", dy=26)
         s.roughness((V.P(-R, 0, tb + hE)[0] - 30, V.P(0, 0, tb + hE)[1] + 8), "Ra 12,5")
-    p.vs("perfil", on, "front", center=(0, 0, tb), lv=(1, 2, 2, 1), extra=(0, 0, 30, 0), draw=perfil, hatch=False, title="PERFIL",
+    p.vs("perfil", on, "front", center=(0, 0, tb), lv=(1, 2, 2, 1), extra=(0, 0, 115, 0), draw=perfil, hatch=False, title="PERFIL",
          auto=dict(tol={round(hE, 1): " ±1 (al centro del agujero)", round(2 * R, 1): " (= 2R)"}, fits={round(dE, 1): "H12"}, hole_pos=True), w=1.5)
     p.vs("planta", on, "top", center=(0, 0, tb), lv=(1, 2, 1, 1), title="PLANTA (espesor)", auto=dict(tol={round(tE, 1): ""}), w=0.7, maxs=2.0)
     p.vs("corte", on, "right", cut=((0, 0, 0), (-1, 0, 0)), center=(0, 0, tb), lv=(1, 2, 1, 1), title="CORTE B-B (espesor y agujero)", auto=dict(), w=0.7, maxs=2.0, hs=0.4) if False else None

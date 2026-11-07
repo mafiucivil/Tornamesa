@@ -67,7 +67,7 @@ def sheet_mesa_anillos(ctx):
         s.dim_ang(V.P(c3), g.R_pin * V.scale * 0.85, 0, pitch, f"{fm(pitch, 3)}° (paso)")
         s.dim_ang(V.P(c3), g.R_pin * V.scale * 0.7, 0, 90, "90° (4 empalmes)")
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), draw=planta, title="PLANTA (anillo; superior e inferior idénticos)", hatch=False, w=1.8,
-         auto=dict(fits={g.d_pin: "H7"}, hole_rmin=20, hole_pos=False, only_extents=True, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±1,5 (D_top)"}))
+         auto=dict(fits={g.d_pin: "H7"}, hole_rmin=20, hole_pos=False, verts=False, only_extents=True, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±1,5 (D_top)"}))
     x_a, x_b = g.prIn - 30, g.Rt + 30
 
     def corte(V, p):
