@@ -32,6 +32,7 @@
     cur = t;
     if (t === "temp" && typeof renderTemp === "function") setTimeout(renderTemp, 0);
     if (t === "tapones" && typeof renderTapones === "function") setTimeout(renderTapones, 0);
+    if (t === "planos") setTimeout(() => { if (!GEN.srv && !GEN.pinging) genPing(); }, 0);   // el generador local se busca solo al abrir la pestaña «Planos»
     tabs.forEach((s) => s.classList.toggle("on", s.dataset.t === t));
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
     try { history.replaceState(null, "", "#" + t); } catch (e) { }
@@ -80,7 +81,7 @@
   $("#altSel").onchange = (e) => {
     const v = e.target.value;
     P.opt_ss = v === "A" ? 1 : 0; P.opt_uhmw = v === "B" ? 1 : 0; P.opt_bz = v[0] === "C" ? 1 : 0;
-    if (v[0] === "C") P.bz_conf = parseInt(v[1], 10);
+    P.bz_conf = v[0] === "C" ? parseInt(v[1], 10) : DEF.bz_conf;   // fuera de C vuelve al valor por defecto (los juegos pre-generados A, B y Base lo usan)
     buildForm(); recalc();
   };
   $("#bReset").onclick = () => { P = Object.assign({}, DEF); buildForm(); recalc(); };
@@ -745,8 +746,122 @@
   $("#pkgChk").checked = store.get(LSK) === "1";
   $("#pkgChk").addEventListener("change", () => { store.set(LSK, $("#pkgChk").checked ? "1" : "0"); renderPkg(); });
 
+  /* ---------- Planos: juegos pre-generados (Modo 1) y generador local (Modo 2) ---------- */
+  const PIDX = (typeof PLANOS_IDX !== "undefined") ? PLANOS_IDX : { juegos: [], grupos: [["generales", "Generales"], ["fabricacion", "Fabricación"], ["armado", "Armado"]] };
+  const GEN_URL = (location.protocol.startsWith("http") && (location.hostname === "127.0.0.1" || location.hostname === "localhost") && location.port === "8765") ? "" : "http://127.0.0.1:8765";
+  const PLAB = {}; TT.PARAM_GROUPS.forEach((g) => g.p.forEach((q) => { PLAB[q[0]] = q[1] + (q[2] ? ` [${q[2]}]` : ""); }));
+  const GEN = { srv: null, job: null, poll: null, sentP: null, err: "", pinging: false };     // srv: null = comprobando, false = inactivo, objeto = respuesta de /api/ping
+  const href = (base, f) => (base ? base + "/" : "") + String(f).split("/").map(encodeURIComponent).join("/");
+  const vEq = (a, b) => (typeof a === "number" && typeof b === "number") ? Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b)) : a === b;
+  const vTxt = (v) => v === undefined ? "(no existe)" : typeof v === "number" ? v.toLocaleString("es-CL", { maximumFractionDigits: 9 }) : String(v);
+  function plDiff(Pa, Pb) {
+    const ks = [...new Set([...Object.keys(Pa), ...Object.keys(Pb)])];
+    return ks.filter((k) => !vEq(Pa[k], Pb[k])).map((k) => ({ k, a: Pa[k], b: Pb[k] }));
+  }
+  function plMatch() {
+    let best = null;
+    PIDX.juegos.forEach((j) => { const d = plDiff(P, j.P); if (!best || d.length < best.d.length) best = { j, d }; });
+    return best;
+  }
+  const jName = (j) => (j.id === "0" ? "Base" : j.id) + " · " + j.interfaz + (j.madera ? " · cubierta de madera" : "");
+  /* juego desde indice_planos.json (resultado del generador local) → misma forma compacta del índice incrustado */
+  function jFromIndice(ix) {
+    const gids = PIDX.grupos.map((g) => g[0]), pdf = {};
+    gids.forEach((g) => { pdf[g] = ix.grupos[g] ? ix.grupos[g].pdf : null; });
+    const ar = {}; Object.keys(ix.archivos || {}).forEach((k) => { if (ix.archivos[k]) ar[k] = ix.archivos[k]; });
+    return { id: "local", carpeta: ix.carpeta, interfaz: ix.interfaz, madera: ix.madera, pdf, archivos: ar,
+      laminas: ix.laminas.map((l) => [l.codigo, l.titulo, gids.indexOf(l.grupo), l.pdf ? 1 : 0, l.dxf ? 1 : 0]) };
+  }
+  function plCards(j) {
+    const b = j.carpeta, short = (c) => c.replace(/^TT300C-/, "");
+    const cards = PIDX.grupos.map(([gid, gt], gi) => {
+      const ls = j.laminas.filter((l) => l[2] === gi);
+      const rows = ls.map((l) => `<tr><td>${esc(short(l[0]))}</td><td>${esc(l[1])}</td><td>${l[3] ? `<a href="${esc(href(b, "planos/" + l[0] + ".pdf"))}" target="_blank" rel="noopener">PDF</a>` : "—"}${l[4] ? ` · <a href="${esc(href(b, "planos/" + l[0] + ".dxf"))}" download>DXF</a>` : ""}</td></tr>`).join("");
+      return `<div class="card pl-grp" data-g="${gid}"><h3>${esc(gt)}</h3><div class="big">${ls.length} <span class="ref">láminas</span></div>
+        <div class="btns">${j.pdf[gid] ? `<a class="btn pri" data-pdf="${gid}" href="${esc(href(b, j.pdf[gid]))}" target="_blank" rel="noopener">PDF ${esc(gt)}</a>` : `<span class="note">PDF del grupo no disponible: ejecute tools/indice_planos.py</span>`}</div>
+        <details><summary>Lista de láminas (${ls.length})</summary><div class="scroll"><table><tr><th>Plano</th><th>Título</th><th>Archivo</th></tr>${rows}</table></div></details></div>`;
+    }).join("");
+    const a = j.archivos, lk = (k, t, dl) => a[k] ? `<a data-f="${k}" href="${esc(href(b, a[k]))}"${dl ? " download" : ' target="_blank" rel="noopener"'}>${t}</a>` : "";
+    const dxf = a.dxf_zip ? lk("dxf_zip", "DXF de todas las láminas (.zip)", 1) : `<span class="ref">DXF: no incluido en este juego (solo en el juego Base; el generador local también lo entrega)</span>`;
+    return `<div class="grid">${cards}</div>
+      <div class="pl-files"><b>Otros archivos:</b>${lk("combinado", "PDF combinado (todas las láminas)")}${lk("despiece_xlsx", "Despiece XLSX", 1)}${lk("step", "Modelo 3D STEP", 1)}${dxf}${lk("informe", "Informe del paquete")}</div>
+      <div class="note">Carpeta: <span class="form">${esc(b)}/</span></div>`;
+  }
+  function renderPlanos() {
+    const el = $("#plJuego"); if (!el) return;
+    if (!PIDX.juegos.length) { el.innerHTML = `<div class="msg warn">Esta copia de la herramienta no trae el índice de planos pre-generados.</div>`; el.dataset.juego = ""; renderGen(); return; }
+    const m = plMatch();
+    if (m.d.length === 0) {
+      el.dataset.juego = m.j.id; el.dataset.estado = "coincide";
+      el.innerHTML = `<div class="msg ok"><b>Planos pre-generados coincidentes</b> con los parámetros actuales: juego <b>${esc(jName(m.j))}</b> (${m.j.laminas.length} láminas, Rev. ${esc(PIDX.rev || "C")}).</div>` + plCards(m.j);
+    } else {
+      el.dataset.juego = ""; el.dataset.estado = "no-coincide"; el.dataset.cercano = m.j.id;
+      el.innerHTML = `<div class="msg warn"><b>Los planos pre-generados no corresponden a los parámetros actuales.</b> El juego más cercano es <b>${esc(jName(m.j))}</b>; difiere en ${m.d.length} parámetro${m.d.length > 1 ? "s" : ""}:</div>
+        <div class="card scroll"><table id="plDif"><tr><th>Parámetro</th><th>Nombre</th><th class="n">Valor actual</th><th class="n">Valor del juego</th></tr>
+        ${m.d.map((x) => `<tr><td class="form">${esc(x.k)}</td><td>${esc(PLAB[x.k] || "")}</td><td class="n">${esc(vTxt(x.a))}</td><td class="n">${esc(vTxt(x.b))}</td></tr>`).join("")}</table></div>
+        <div class="note">Use el <b>generador local</b> (abajo) para obtener los planos de estos parámetros, o vuelva a los del juego con «Valores por defecto» y el selector de alternativa.</div>`;
+    }
+    renderGen();
+  }
+  /* ---- Modo 2: servidor local tools/servidor_planos.py ---- */
+  function genFetch(path, opt, ms) {
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 2500);
+    return fetch(GEN_URL + path, Object.assign({ cache: "no-store", signal: ac.signal }, opt || {})).then((r) => r.json().then((j) => { clearTimeout(t); if (!r.ok) { const e = new Error(j.error || ("HTTP " + r.status)); e.data = j; throw e; } return j; }));
+  }
+  function genPing() {
+    GEN.pinging = true;
+    return genFetch("/api/ping").finally(() => { GEN.pinging = false; }).then((j) => { GEN.srv = j; if (j.trabajo && !GEN.job) { GEN.job = j.trabajo; if (j.trabajo.estado === "en_curso") genPoll(); } }).catch(() => { GEN.srv = false; }).then(renderGen);
+  }
+  function genPoll() {
+    clearInterval(GEN.poll);
+    GEN.poll = setInterval(() => {
+      if (!GEN.job) { clearInterval(GEN.poll); return; }
+      genFetch("/api/estado?id=" + encodeURIComponent(GEN.job.id)).then((j) => { GEN.job = j; if (j.estado !== "en_curso") clearInterval(GEN.poll); renderGen(); })
+        .catch(() => { GEN.srv = false; clearInterval(GEN.poll); renderGen(); });
+    }, 1500);
+  }
+  function genStart() {
+    GEN.err = "";
+    let body;
+    try { body = PLANOS.designJSON(PLANOS.buildDesign(P, A)); } catch (err) { GEN.err = "No se pudo armar el JSON de diseño: " + err.message; renderGen(); return; }
+    GEN.sentP = JSON.stringify(P);
+    genFetch("/api/generar", { method: "POST", headers: { "Content-Type": "application/json" }, body }, 15000)
+      .then((j) => { GEN.job = j; genPoll(); renderGen(); })
+      .catch((err) => { GEN.err = err.message; if (err.data && err.data.trabajo) { GEN.job = err.data.trabajo; genPoll(); } renderGen(); });
+  }
+  function renderGen() {
+    const el = $("#plGen"); if (!el) return;
+    const s = GEN.srv, jb = GEN.job;
+    let h = `<h3>Generador local (Modo 2) · planos con los parámetros actuales</h3>`;
+    if (s === null) h += `<div class="note" id="genEstado" data-srv="comprobando">Comprobando si el generador local está activo…</div>`;
+    else if (s === false) h += `<div class="msg warn" id="genEstado" data-srv="inactivo">Generador local no activo. Ejecuta Generar_planos_Tornamesa.bat (requiere instalar una vez con Instalar_generador_planos.bat)</div>
+      <div class="btns"><button id="bGenPing">Volver a comprobar</button></div>`;
+    else {
+      const busy = jb && jb.estado === "en_curso";
+      h += `<div class="msg ok" id="genEstado" data-srv="activo">Generador local activo (${esc(s.servidor || "127.0.0.1:8765")}${s.python ? " · Python " + esc(s.python) : ""}).</div>
+        ${A && !(A.verdict.gira && A.verdict.estructura) ? `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador se negará a emitir planos.</div>` : ""}
+        <div class="btns"><button class="pri" id="bGen"${busy || !A ? " disabled" : ""}>Generar planos con los parámetros actuales</button></div>
+        <div class="note">Tarda varios minutos (modelo 3D, ${PIDX.juegos.length ? "≈ 45–55" : "todas las"} láminas PDF y DXF, despiece y controles de calidad). El resultado queda en la carpeta <span class="form">salidas/</span> del repositorio.</div>`;
+    }
+    if (GEN.err) h += `<div class="msg error">No se pudo iniciar la generación: ${esc(GEN.err)}</div>`;
+    if (jb) {
+      const pc = Math.round(100 * (jb.progreso || 0)), changed = GEN.sentP && GEN.sentP !== JSON.stringify(P);
+      h += `<div class="kv" style="margin-top:8px"><span>Trabajo</span><span>${esc(jb.id)}</span><span>Alternativa</span><span>${esc(jb.alternativa || "")}</span><span>Estado</span><span id="genJob" data-estado="${esc(jb.estado)}">${esc({ en_curso: "en curso", listo: "terminado", error: "error" }[jb.estado] || jb.estado)}${jb.duracion_s != null ? ` · ${fmt(jb.duracion_s, 3)} s` : ""}</span></div>`;
+      if (jb.estado === "en_curso") h += `<div class="prog"><i style="width:${pc}%"></i></div><div class="busy">${esc(jb.fase || "")} · ${pc} % (estimado)</div>`;
+      if (jb.estado === "error") h += `<div class="msg error"><b>El generador terminó con error${jb.codigo != null ? ` (código ${esc(jb.codigo)})` : ""}:</b><pre>${esc(jb.mensaje || "")}</pre></div>`;
+      if (changed && jb.estado !== "en_curso") h += `<div class="msg warn">Los parámetros cambiaron después de generar este juego: no corresponde a los parámetros actuales.</div>`;
+      if (jb.indice) h += (jb.estado === "error" ? `<div class="msg warn">Se emitieron archivos, pero no pasaron todos los controles: revíselos antes de usarlos.</div>` : `<div class="msg ok">Planos generados en <span class="form">${esc(jb.indice.carpeta)}/</span>.</div>`) + plCards(jFromIndice(jb.indice));
+      if (jb.log && jb.log.length) h += `<details${jb.estado === "en_curso" ? " open" : ""}><summary>Registro del generador (${jb.log.length} líneas)</summary><pre class="log" id="genLog">${esc(jb.log.join("\n"))}</pre></details>`;
+    }
+    const lg = $("#genLog"), atEnd = !lg || lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 4;
+    el.innerHTML = h;
+    const lg2 = $("#genLog"); if (lg2 && atEnd) lg2.scrollTop = lg2.scrollHeight;
+    const bp = $("#bGenPing"); if (bp) bp.onclick = () => { GEN.srv = null; renderGen(); genPing(); };
+    const bg = $("#bGen"); if (bg) bg.onclick = genStart;
+  }
+
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderTemp(); renderTapones();
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderPlanos(); renderTemp(); renderTapones();
   }
   buildForm(); recalc();
 })();

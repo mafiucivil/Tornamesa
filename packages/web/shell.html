@@ -92,6 +92,17 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 .conf{display:inline-block;min-width:22px;text-align:center;padding:0 5px;border-radius:4px;font-size:11px;font-weight:700;background:var(--infobg);color:var(--info)}
 .conf-C{background:var(--warnbg);color:var(--warn)}.conf-B{background:var(--pendbg);color:var(--pend)}.conf-A{background:var(--okbg);color:var(--ok)}
 td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{background:var(--failbg)}
+a.btn{display:inline-block;font:600 12.5px var(--sans);padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--soft);color:var(--ink);text-decoration:none;cursor:pointer}
+a.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+a.btn.off{opacity:.5;pointer-events:none}
+.pl-adv{font-size:12.5px;letter-spacing:.2px;border-left:4px solid var(--fail)}
+.pl-sec{margin-top:12px}
+.pl-grp .big{font-size:22px}
+.pl-grp details{margin:8px 0 0}
+.pl-grp td a,.pl-files a{color:var(--acc)}
+.pl-files{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin:10px 0 2px}
+pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:11.5px/1.4 var(--mono);color:var(--ink2);white-space:pre-wrap;margin:6px 0}
+.msg pre{margin:4px 0 0;white-space:pre-wrap;font:12px/1.4 var(--mono)}
 .pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
@@ -119,8 +130,6 @@ td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{back
         <option value="C2">C2 · Dos placas de bronce de aleaciones distintas</option>
         <option value="C3">C3 · Bronce en pastillas + disco duro</option>
       </select></div>
-    <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera láminas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Exportar paquete de dibujo (DXF · CSV · JSON · láminas)</label><input id="pkgChk" type="checkbox"></div>
-    <div class="pkg" id="pkgPanel" hidden></div>
     <div class="busy" id="busy"></div>
     <div id="form"></div>
   </aside>
@@ -132,6 +141,15 @@ td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{back
     <section class="tab" data-t="verif" data-l="Verificaciones"></section>
     <section class="tab" data-t="fea" data-l="FEA"></section>
     <section class="tab" data-t="masa" data-l="Masas"></section>
+    <section class="tab" data-t="planos" data-l="Planos">
+      <div class="msg error pl-adv" id="plAdv"><b>ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.</b></div>
+      <div id="plJuego"></div>
+      <div class="card pl-sec" id="plGen"></div>
+      <div class="card pl-sec"><h3>Esquemas rápidos (no son planos de fabricación)</h3>
+        <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera en el navegador 5 láminas esquemáticas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Esquemas rápidos en el navegador (DXF · CSV · JSON · 5 láminas)</label><input id="pkgChk" type="checkbox"></div>
+        <div class="pkg" id="pkgPanel" hidden></div>
+      </div>
+    </section>
     <section class="tab" data-t="temp" data-l="Temperatura"></section>
     <section class="tab" data-t="tapones" data-l="Tapones (C)"></section>
     <section class="tab" data-t="agentes" data-l="Agentes"></section>
@@ -143,6 +161,7 @@ td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{back
 /*@@CORE@@*/
 /*@@AGENTS@@*/
 /*@@PLANOS@@*/
+/*@@PLANOS_IDX@@*/
 /*@@UI@@*/
 </script>
 </body>
