@@ -24,9 +24,9 @@ def sheet_pivote_pieza(ctx):
         V.dimv((-r, 0, 0), (-r, 0, zA), "left", 1, on=on, text=f"{fm(zA, 0)} (bajo la plancha)") if False else None
         ra(s, V, (r, 0, g.L_piv / 2), "Ra 0,8", dx=24, dy=0)
         V.dim_dia((0, 0, g.L_piv - 12), 4.25, 40, text="4 × M10-6H prof. 20 (broca Ø8,5)", on=on, ext=30) if False else None
-    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 90, 0), draw=elev, hatch=False, title="ELEVACIÓN", w=1.5,
+    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 115, 0), draw=elev, hatch=False, title="ELEVACIÓN", w=1.5,
          auto=dict(rev=(0, 0), fits={P["D_piv"]: "p6"}, rev_side="top", tol={round(g.L_piv, 1): " ±0,1"}, hole_notes=False))
-    p.vs("extremo", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), title="VISTA DE EXTREMO (cara superior)", hatch=False, w=1.0,
+    p.vs("extremo", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title="VISTA DE EXTREMO (cara superior)", hatch=False, w=1.0,
          auto=dict(hole_rmin=3.0, hole_txt={8.5: f"4 × M10-6H prof. {fm(g.cap_tap, 0)} (broca Ø8,5), PCD Ø{fm(g.cap_pcd, 0)}, a 45° + 90°·k"}, fits={}))
     p.vs("corte", ["pivote_45"], "front", cut=CUT_Y, win=(-r - 4, g.L_piv - 48, r + 4, g.L_piv + 4), lv=(1, 2, 1, 2), extra=(0, 0, 40, 0), title="CORTE B-B: AGUJEROS ROSCADOS M10", hs=0.5, w=1.0, maxs=2.0,
          auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={round(g.cap_tap, 1): " (roscado)"}))
@@ -78,7 +78,7 @@ def sheet_tapas(ctx):
         zb_, L_, D_, pcd, n, a0, nm = spec[k]
         ct = ctx.code(k).replace(CODE + "-", "")
         zt = zb_ + L_
-        p.vs(f"{k}_pl", [k], "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), title=f"{ct} — {nm}: PLANTA", hatch=False, w=1.0,
+        p.vs(f"{k}_pl", [k], "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title=f"{ct} — {nm}: PLANTA", hatch=False, w=1.0,
              auto=dict(hole_rmin=3.0, hole_txt={11.0: f"{n} × Ø11 pasantes (M10) + avellanado 90° Ø20 (ISO 10642), PCD Ø{fm(pcd, 0)}, a {fm(a0, 0)}° + {fm(360 / n, 0)}°·k"}, fits={}))
         p.vs(f"{k}_co", [k], "front", cut=CUT_Y, lv=(1, 2, 2, 2), extra=(0, 0, 20, 0), title=f"{ct} — CORTE A-A", hs=0.35, w=1.0,
              auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={round(L_, 1): " ±0,2"}))

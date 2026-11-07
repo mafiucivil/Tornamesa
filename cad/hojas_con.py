@@ -375,17 +375,17 @@ def sheet_base_soldada(ctx):
     c.vs("cB", sh, "right", cut=((c1[0], 0, 0), (-1, 0, 0)), lv=(1, 1, 2, 1), draw=cB, mat=mm, hs=0.5, title="CORTE B-B (plano de la ménsula)", auto=False, w=1.0)
     kD = [k for k in ("base_plancha", "marco_largo") if k in ctx.shapes]
     ids = jids(ctx, "Marco perimetral largo", "Bancada", "Collar", "Mejillas de ménsula")
-    c.vs("D1", kD, "right", cut=CUT_X, center=(0, -B / 2, tb), win=(-30, -tb - 4, 60, P["rim_h"] + 10), lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), hs=0.35, maxs=2.0, title="D1: MARCO–PLANCHA", auto=dict(on=kD), w=0.8,
+    c.vs("D1", kD, "right", cut=CUT_X, center=(0, -B / 2, tb), win=(-30, -tb - 4, 60, P["rim_h"] + 10), lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), hs=0.35, maxs=2.0, title="D1: MARCO–PLANCHA", auto=dict(on=kD), w=0.8,
          draw=lambda V, c: w_out(c, ids[0], V, (0, -B / 2 + P["rim_t"], tb + 3), "right", other=None, dy=14))
     kb = [k for k in ("base_plancha", "bancada") if k in ctx.shapes]
-    c.vs("D2", kb, "front", cut=CUT_Y, center=(xg, 0, tb), win=(-100, -tb - 6, 100, P["t_bed"] + 10), lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), hs=0.35, maxs=2.0, title="D2: BANCADA–PLANCHA", auto=dict(on=kb), w=0.8,
+    c.vs("D2", kb, "front", cut=CUT_Y, center=(xg, 0, tb), win=(-100, -tb - 6, 100, P["t_bed"] + 10), lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), hs=0.35, maxs=2.0, title="D2: BANCADA–PLANCHA", auto=dict(on=kb), w=0.8,
          draw=lambda V, c: w_out(c, ids[1], V, (xg + P["w_bed"] / 2, 0, tb + 2), "right", dy=-14))
     kc = [k for k in ("base_plancha", "collar") if k in ctx.shapes]
     if g.boss:
-        c.vs("D3", kc, "front", cut=CUT_Y, center=(g.D_boss / 2, 0, tb), win=(-110, -tb - 8, 60, g.h_boss + 12), lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), hs=0.35, maxs=2.0, title="D3: COLLAR–PLANCHA", auto=dict(on=kc), w=0.8,
+        c.vs("D3", kc, "front", cut=CUT_Y, center=(g.D_boss / 2, 0, tb), win=(-110, -tb - 8, 60, g.h_boss + 12), lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), hs=0.35, maxs=2.0, title="D3: COLLAR–PLANCHA", auto=dict(on=kc), w=0.8,
              draw=lambda V, c: w_out(c, ids[2], V, (g.D_boss / 2, 0, tb + 2), "right", all_round=True, dy=14))
     ke = [k for k in ("base_plancha", "mensula_mejilla", "mensula_oreja_inf") if k in ctx.shapes]
-    c.vs("D4", ke, "front", cut=((c1[0], c1[1] - 150, 0), (0, 1, 0)), center=(c1[0], c1[1] - 150, tb), win=(-140, -tb - 8, 140, g.BR["H"] + 12), lv=(1, 1, 1, 1), extra=(0, 0, 90, 0), hs=0.35, maxs=1.0,
+    c.vs("D4", ke, "front", cut=((c1[0], c1[1] - 150, 0), (0, 1, 0)), center=(c1[0], c1[1] - 150, tb), win=(-140, -tb - 8, 140, g.BR["H"] + 12), lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), hs=0.35, maxs=1.0,
          title="D4: MÉNSULA (SECCIÓN)", auto=dict(on=ke), w=0.8, draw=lambda V, c: w_out(c, ids[3], V, (c1[0] + g.BR["Win"] / 2 + P["t_ch"], c1[1] - 150, tb + 2), "right", dy=14))
     ws = [w["id"] for w in ctx.welds if any(t in w["piezas"] for t in ("BAS", "IZA", "ACC-001"))]
     c.tail(ks, ws, ["Soldar en secuencia simétrica; alivio de tensiones antes del mecanizado. Mandrinar Ø%s H7 (plancha + collar) y los ojales Ø%s H9 de las ménsulas en línea." % (f(P["D_piv"]), f(P["d_pp"])),
