@@ -7,6 +7,8 @@ from hojas_pie import CUT_X, CUT_Y, jids, w_sym, w_out, rot_key
 from soldadura_det import add_prep
 from pie_a import ra, wd
 import propuestas
+import iso286
+from vistas import View
 
 PLAN_CON = []
 
@@ -66,8 +68,17 @@ def visible_anchor(ctx, key, V, pred=None, side=None):
     if sh is None:
         return None
     pts = [(v.X, v.Y, v.Z) for v in sh.Vertices()]
-    if len(pts) > 4000:
-        pts = pts[::max(1, len(pts) // 4000)]
+    eds = sh.Edges()
+    nper = max(2, min(16, 6000 // max(len(eds), 1)))
+    for e in eds:
+        for t in range(1, nper):
+            try:
+                q = e.positionAt(t / nper)
+            except Exception:
+                continue
+            pts.append((q.x, q.y, q.z))
+    if len(pts) > 8000:
+        pts = pts[::max(1, len(pts) // 8000)]
     for p3 in pts:
         if pred and not pred(p3):
             continue
@@ -102,7 +113,7 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
     x0, y0, x1, y1 = V.ext
     cx = (x0 + x1) / 2
     XL, XR = x0 - off, x1 + off
-    items = {}
+    items, kof = {}, {}
     for k in keys:
         part = ctx.m.get(k)
         if part is None or k not in ctx.shapes:
@@ -110,6 +121,7 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
         pos = part.pos
         if pos in items:
             continue
+        kof[pos] = k
         aL = visible_anchor(ctx, k, V, pred, "l") if "l" in sides else None
         aR = visible_anchor(ctx, k, V, pred, "r") if "r" in sides else None
         if aL is None and aR is None:
@@ -124,8 +136,7 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
             break
         big, other = (L, "r") if len(L) > len(R) else (R, "l")
         k = max(big, key=lambda kk: items[kk][1][0] if other == "r" else -items[kk][1][0])
-        part = next(pp for pp in ctx.m.parts if pp.pos == k)
-        a = visible_anchor(ctx, part.key, V, pred, other) if part.key in ctx.shapes else None
+        a = visible_anchor(ctx, kof[k], V, pred, other)
         if a is None:
             break
         items[k] = (other, a[1])
@@ -146,12 +157,13 @@ def balloons_auto(p, V, keys, pred=None, gap=12.0, off=22.0, label_of=None, side
                 ys[i] = min(ys[i], ys[i + 1] - g_)
         segs = [[a, (X, y), k] for (a, k), y in zip(its, ys)]
         # elimina cruces residuales intercambiando posiciones de globos vecinos
-        for _ in range(3 * n):
+        for _ in range(4 * n * n):
             sw = False
-            for i in range(n - 1):
-                if _cross(segs[i][0], segs[i][1], segs[i + 1][0], segs[i + 1][1]):
-                    segs[i][1], segs[i + 1][1] = segs[i + 1][1], segs[i][1]
-                    sw = True
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if _cross(segs[i][0], segs[i][1], segs[j][0], segs[j][1]):
+                        segs[i][1], segs[j][1] = segs[j][1], segs[i][1]
+                        sw = True
             if not sw:
                 break
         placed += segs
@@ -359,59 +371,261 @@ def sheet_bom(ctx):
     return out
 
 
+# ====================================================================================================== ARMADO
+ACC_KEYS = ("cilindro", "patin", "una", "pasador_vastago", "pasador_ojal")
+PIV_KEYS = ("pivote", "buje", "tapa_ret")
+
+
+def int_side(k):
+    """Lado de la interfaz: 'mesa' (fijado bajo la mesa) o 'base' (sobre la plancha base)."""
+    return "mesa" if ("mesa" in k or k in ("int_cara", "graseras")) else "base"
+
+
+def grupos(ctx):
+    """Grupos de montaje (claves presentes en el modelo). La bancada va soldada a la base."""
+    m = ctx.m
+    has = lambda k: m.get(k) is not None and k in ctx.shapes
+    base = [p.key for p in m.parts if p.sub in ("BAS", "IZA") and has(p.key)]
+    if has("bancada") and "bancada" not in base:
+        base.append("bancada")
+    intb = [p.key for p in m.parts if p.sub == "INT" and int_side(p.key) == "base" and has(p.key) and p.key != "int_tapones"]
+    intm = [p.key for p in m.parts if p.sub == "INT" and int_side(p.key) == "mesa" and has(p.key) and p.key != "int_tapones"]
+    mesa = [p.key for p in m.parts if p.sub == "MES" and p.key not in ("pasadores", "pernos_pasador", "tapa_insp") and has(p.key)]
+    return dict(base=base, intb=intb, intm=intm, mesa=mesa, piv=[k for k in PIV_KEYS if has(k)], pins=[k for k in ("pasadores",) if has(k)],
+                pernos=[k for k in ("pernos_pasador",) if has(k)], insp=[k for k in ("tapa_insp",) if has(k)], mad=[p.key for p in m.parts if p.sub == "MAD" and has(p.key)],
+                acc=[k for k in ACC_KEYS if has(k)])
+
+
+def _xkey(ctx, k, d, suf):
+    nk = k + suf
+    ctx.shapes[nk] = ctx.shapes[k].translate(cq.Vector(*d))
+    ctx.mat[nk] = ctx.mat.get(k, "acero")
+    return nk
+
+
+def _arrow(s, a, b):
+    """Trayectoria de montaje (trazo y punto fino) de a hacia b, con punta de flecha en b (papel)."""
+    s.line(a, b, "EJE")
+    s.arrow(b, math.atan2(b[1] - a[1], b[0] - a[0]), size=4.0, w=1.4)
+
+
+def _bb(ctx, keys):
+    bb = None
+    for k in keys:
+        b_ = ctx.shapes[k].BoundingBox()
+        bb = b_ if bb is None else bb.add(b_)
+    return bb
+
+
 @con
 def sheet_explosionada(ctx):
+    """CON-004: explosión real en z por grupos de montaje (base, pivote, interfaz, buje, mesa, pasadores, pernos, tapas, madera), con trayectorias."""
     g = ctx.g
-    ex = {}
-    for p in ctx.m.parts:
-        ex[p.key + "_x"] = ctx.shapes[p.key].translate(cq.Vector(0, 0, expl_dz(ctx, p)))
-        ctx.mat[p.key + "_x"] = ctx.mat[p.key]
-    ctx.shapes.update(ex)
-    keys = [p.key for p in ctx.m.parts]
-    c = Conj(ctx, 4, keys, "ISOMÉTRICA EXPLOSIONADA DEL EQUIPO CON GLOBOS DE POSICIÓN")
-    ctx_keys = [k + "_x" for k in keys]
+    G = grupos(ctx)
+    lo = ("mesa_plancha_inf", "mesa_anillo_inf")
+    hi = ("mesa_plancha_sup", "mesa_anillo_sup")
+    plan = [(G["base"], 0), ([k for k in G["piv"] if k == "pivote"], 450), ([k for k in G["piv"] if k == "tapa_ret"], 600), (G["intb"], 850), (G["intm"], 1050),
+            ([k for k in G["piv"] if k == "buje"], 1200), ([k for k in G["mesa"] if k in lo], 1400), ([k for k in G["mesa"] if k not in lo + hi], 1700),
+            ([k for k in G["mesa"] if k in hi], 2000), (G["pins"], 2350), (G["insp"], 2350), (G["pernos"], 2700), (G["mad"], 3100)]
+    keys, dz_of = [], {}
+    for ks, dz in plan:
+        for k in ks:
+            nk = _xkey(ctx, k, (0, 0, dz), "_x")
+            keys.append(nk)
+            dz_of[nk] = dz
+    c = Conj(ctx, 4, [k[:-2] for k in keys], "ISOMÉTRICA EXPLOSIONADA POR GRUPOS DE MONTAJE (ACCIONAMIENTO, PIVOTE Y BUJE EN CON-018)")
+    zt = g.z0 + g.hd
 
     def cb(V, c):
-        orig_get = ctx.m.get
-        ctx.m.get = lambda kk: orig_get(kk[:-2] if kk.endswith("_x") else kk)
-        try:
-            balloons_auto(c, V, ctx_keys, gap=14.0, off=28.0)
-        finally:
-            ctx.m.get = orig_get
-        c.s.text("Desplazamientos verticales ilustrativos (no a escala); el eje de montaje es z. Pernos y arandelas sobre los pasadores.", (c.h.zone[0] + 4, c.h.zone[1] + 4), T_N, "BOTTOM_LEFT")
-    c.vs("expl", {k + "_x": ctx.shapes[k + "_x"] for k in keys}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(50, 40, 50, 40), mat={k + "_x": ctx.mat[k] for k in keys}, hatch=False, draw=cb, title="ISOMÉTRICA EXPLOSIONADA", auto=False)
-    c.compact_table(keys)
+        s = c.s
+        top = max(dz_of.values()) + zt + 150
+        _arrow(s, V.P((0, 0, top)), V.P((0, 0, g.tb + 5)))
+        a = ctx.D["pasadores"][0] if isinstance(ctx.D.get("pasadores"), list) else 0.0
+        xy = polar(g.R_pin, a)
+        _arrow(s, V.P((xy[0], xy[1], 2700 + zt + 80)), V.P((xy[0], xy[1], 1400 + zt + 5)))
+        with alias(ctx, "_x"):
+            balloons_auto(c, V, keys, gap=12.0, off=26.0)
+    c.vs("expl", {k: ctx.shapes[k] for k in keys}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(40, 30, 40, 30), mat=mats(ctx, keys), hatch=False, draw=cb,
+         title="ISOMÉTRICA EXPLOSIONADA (desplazamientos en z ilustrativos; trazo y punto: eje de montaje)", auto=False, w=3.0)
+    c.compact_table([k[:-2] for k in keys])
+    c.note_block("NOTAS", ["Orden de montaje e instrucciones de cada paso: CON-005, CON-014 a CON-017 y CON-019 a CON-022.", "Accionamiento (patín, uña, cilindro, pasadores), pivote, buje y tapa retenedora explotados en CON-018.",
+                           "La bancada va soldada a la base (subconjunto BAS)."])
     c.iso_fill = False
     c.build()
     return c.h
 
 
+@con
+def sheet_explosion_acc(ctx):
+    """CON-018: pivote, buje y tapa sobre el collar; accionamiento de un lado (bancada, patín, uña, cilindro, pasadores), explotados con trayectorias."""
+    g, P = ctx.g, ctx.P
+    G = grupos(ctx)
+    X = P["x_g"]
+    ks = [k for k in ["collar"] + G["piv"] + ["bancada"] + G["acc"] if ctx.m.get(k) and k in ctx.shapes]
+    c = Conj(ctx, 18, ks, "ISOMÉTRICAS EXPLOSIONADAS: PIVOTE CON BUJE Y TAPA RETENEDORA; ACCIONAMIENTO (UN LADO)")
+    pk, pz = [], {}
+    c.fmt_try = ["A2", "A1"]
+    for k, dz in (("collar", 0), ("pivote", 300), ("buje", 600), ("tapa_ret", 820)):
+        if k in ctx.shapes:
+            ctx.local(k, k + "_P", near=(0, 0, 0), r=260, shift=(0, 0, dz))
+            pk.append(k + "_P")
+            pz[k] = dz
+
+    def cbp(V, c):
+        bb = _bb(ctx, pk)
+        _arrow(c.s, V.P((0, 0, bb.zmax + 60)), V.P((0, 0, g.tb + 3)))
+        with alias(ctx, "_P"):
+            balloons_auto(c, V, pk, gap=12.0, off=22.0)
+    c.vs("piv", {k: ctx.shapes[k] for k in pk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, pk), hatch=False, draw=cbp,
+         title="PIVOTE, BUJE Y TAPA RETENEDORA (sobre el collar de la base)", auto=False, w=1.0)
+    ak, plan = [], (("bancada", 0), ("patin", 260), ("una", 470), ("pasador_vastago", 640), ("cilindro", 840), ("pasador_ojal", 1060))
+    for k, dz in plan:
+        if k in ctx.shapes:
+            ctx.local(k, k + "_E", near=(X, 0, g.tb + 80), r=1100, shift=(0, 0, dz))
+            ak.append(k + "_E")
+
+    def cba(V, c):
+        for k, dz in plan:
+            if k + "_E" in ctx.shapes and dz > 0:
+                bb = ctx.shapes[k + "_E"].BoundingBox()
+                cx_, cy_ = (bb.xmin + bb.xmax) / 2, (bb.ymin + bb.ymax) / 2
+                _arrow(c.s, V.P((cx_, cy_, bb.zmin)), V.P((cx_, cy_, bb.zmin - dz + 15)))
+        with alias(ctx, "_E"):
+            balloons_auto(c, V, ak, gap=12.0, off=24.0)
+    c.vs("acc", {k: ctx.shapes[k] for k in ak}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, ak), hatch=False, draw=cba,
+         title=f"ACCIONAMIENTO DEL LADO +x (eje de la guía a x = {f(X)} del centro)", auto=False, w=2.0)
+    c.compact_table(ks)
+    c.note_block("NOTAS", ["El patín entra en la ranura T de la bancada por su extremo (desplazamiento horizontal); la explosión en z es ilustrativa.",
+                           "Instrucciones, ajustes y pares: pasos 3 (CON-014), 5 (CON-016), 7 (CON-019) y 8 (CON-020) del instructivo.", "Lado −x: simétrico respecto del eje y."])
+    c.iso_fill = False
+    c.build()
+    return c.h
+
+
+def pasos(ctx):
+    """Pasos del instructivo: (título, previas, nuevas, desplazamiento de inserción, ventana, filas de la tabla del paso)."""
+    g, P, m = ctx.g, ctx.P, ctx.m
+    G = grupos(ctx)
+    import hojas_gen
+    IN = inspecciones(ctx)
+    insp = lambda frag: next((f"GEN-003 n.° {r[0]}" for r in IN if frag in r[2]), "GEN-003")
+    tq = {}
+    for r in hojas_gen.torque_rows(ctx):
+        tq.setdefault(r[2], r)
+    pq = lambda *ks: ", ".join(f"{m.get(k).pos} ({m.get(k).qty})" for k in ks if m.get(k))
+    a_piv, a_bu, a_pin, a_pp = ajuste_txt(P["D_piv"], "H7", "p6"), ajuste_txt(g.d_bush, "H7", "s6"), ajuste_txt(g.d_pin, "H7", "m6"), ajuste_txt(P["d_pp"], "H9", "f8")
+    for a_ in (a_piv, a_bu, a_pin, a_pp):
+        fz = iso286.fit(a_["d"], a_["hole"], a_["shaft"])
+        lo, hi = fz["cmin"], fz["cmax"]
+        a_["juego"] = (f"aprieto {-hi} a {-lo} µm" if hi <= 0 else f"juego {lo} a {hi} µm" if lo >= 0 else f"aprieto máx. {-lo} µm / juego máx. {hi} µm")
+    T = lambda d: (tq.get(f"M{d}") or [None] * 8)[7] or "—"
+    S = []
+    S.append(("1. BASE SOLDADA", [], G["base"], (0, 0, 0), None, [
+        [pq(*G["base"]), "Armar sobre caballetes nivelados: plancha base, collar, marco, ménsulas, orejas de izaje y bancadas; soldar en secuencia simétrica (GEN-007)",
+         f"Posiciones ±1 (BAS-001); eje de bancadas x = ±{f(P['x_g'])} ±0,5", "Plantilla, nivel láser", insp("Orejas de izaje")],
+        ["—", f"Alivio de tensiones; mandrinar Ø{f(P['D_piv'])} H7 (plancha + collar) y ojales Ø{f(P['d_pp'])} H9 en línea; planear la zona de apoyo",
+         f"Planitud 0,20 en Ø{f(P['D_top'] + 20)}; perpendicularidad 0,05", "Mandrinadora, regla", insp("Planitud de la cara de apoyo")]]))
+    S.append(("2. MESA SOLDADA", [], G["mesa"], (0, 0, 0), None, [
+        [pq(*G["mesa"]), "Armar sobre la plancha inferior: cubo, almas, nervios y anillos; cerrar con la plancha superior; soldar (GEN-007)",
+         f"Altura {f(g.hd)} ±0,5; posición angular de nervios ±0,1°", "Plantilla angular", insp("Pasadores de empuje")],
+        ["—", f"Alivio; mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7; planear la cara inferior",
+         f"PCD ±0,3; paso {fm(360 / g.N_pin, 3)}° ±0,05°; planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]]))
+    S.append(("3. PIVOTE EN LA BASE", G["base"], [k for k in G["piv"] if k == "pivote"], (0, 0, 300), (-480, -260, 480, 640), [
+        [pq("pivote"), f"Calar el pivote Ø{f(P['D_piv'])} p6 en la plancha base y el collar (H7): con prensa, o enfriando el pivote con hielo seco (≈ −78 °C)",
+         f"{a_piv['juego'].capitalize()} (agujero {a_piv['h_lim']}; eje {a_piv['s_lim']})", "Prensa hidráulica o hielo seco; guía de centrado", insp("Pivote:")],
+        ["—", "Verificar la perpendicularidad del pivote respecto de la cara de apoyo", "≤ 0,05", "Escuadra, comparador", insp("Pivote:")]]))
+    prev4 = G["base"] + G["piv"][:1]
+    if G["intb"]:
+        rows = [[pq(*G["intb"]), f"Colocar los {g.n_sec} sectores de la base (muesca en la bisectriz) contra las barras de tope soldadas" if "int_tornillo_base" not in G["intb"] or True else "",
+                 f"Junta en frío entre sectores {fm(g.junta('disc'), 1)} mm (galga)", "Galgas, plantilla angular", insp("Planitud de la cara de apoyo")]]
+        if any("tornillo" in k for k in G["intb"]):
+            rows.append(["—", f"Tornillos de posición ISO 10642 M{fm(P['d_tor'], 0)} con fijarroscas (solo posicionan)", f"Par {T(int(P['d_tor']))} N·m (propuesta GEN-008); cabeza bajo la cara", "Torquímetro", insp("Torque")])
+        if any("uhmw" in k for k in G["intb"]):
+            rows.append(["—", "Colocar los sectores de UHMW en el rebaje entre barras", f"Junta en frío UHMW {fm(g.junta('uhmw'), 1)} mm", "Galgas", insp("Planitud de la cara de apoyo")])
+        rows.append(["—", "Limpiar; engrasar la cara deslizante con grasa grafitada NLGI 2" if g.opt != 2 else "Limpiar las caras de deslizamiento (sin partículas)",
+                     "Película 0,3–0,5 mm; sin partículas" if g.opt != 2 else "Sin partículas", "Espátula, paño", insp("Giro 360°")])
+        S.append(("4. INTERFAZ, LADO BASE (" + g.interfaz_nombre.split(":")[0] + ")", prev4, G["intb"], (0, 0, 350), None, rows))
+    else:
+        S.append(("4. INTERFAZ ACERO–ACERO: ENGRASE DE LAS CARAS", prev4, [], (0, 0, 0), None, [
+            ["—", f"Limpiar y engrasar la zona de apoyo Ø{f(P['D_top'] + 20)} de la base y la cara inferior de la mesa con grasa grafitada NLGI 2",
+             "Película 0,3–0,5 mm por cara; sin partículas", "Espátula, paño", insp("Giro 360°")]]))
+    new5 = G["mesa"] + G["intm"] + [k for k in G["piv"] if k == "buje"]
+    rows5 = [[pq("buje"), f"Prensar el buje en el cubo de la mesa (Ø{f(g.d_bush)} H7/s6)", a_bu["juego"].capitalize(), "Prensa", insp("Pivote:")]]
+    if G["intm"]:
+        rows5.append([pq(*G["intm"]), "Con la mesa invertida: fijar los sectores bajo la plancha inferior (tornillos de posición) y las graseras",
+                      f"Junta en frío {fm(g.junta('disc'), 1)} mm; pares según GEN-008", "Torquímetro, galgas", insp("Torque")])
+    rows5.append([pq(*G["mesa"]), "Izar la mesa con los medios del montajista (el cálculo no define puntos de izaje de la mesa), girarla y bajarla sobre el pivote",
+                  f"Holgura radial del cubo {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (sin contacto); giro libre a mano", "Medios del montajista; galgas", insp("Pivote:")])
+    S.append(("5. BUJE Y MESA SOBRE EL PIVOTE", prev4 + G["intb"], new5, (0, 0, 600), None, rows5))
+    S.append(("6. PASADORES DE EMPUJE Y PERNOS", G["base"] + G["mesa"], G["pins"] + G["pernos"], (0, 0, 350), None, [
+        [pq("pasadores"), f"Insertar los {g.N_pin} pasadores Ø{f(g.d_pin)} m6 en los anillos (H7) con grasa", f"H7/m6: {a_pin['juego']}", "Martillo de nylon, extractor", insp("Pasadores de empuje")],
+        [pq("pernos_pasador"), "Perno ISO 4762 M20×45 cl. 10.9 con arandela en cada pasador; marca de pintura de control", f"Par {T(20)} N·m (propuesta GEN-008)", "Torquímetro", insp("Torque")]]))
+    S.append(("7. ACCIONAMIENTO (dos lados)", G["base"] + G["mesa"], G["acc"], (0, 0, 300), None, [
+        [pq("patin"), "Introducir cada patín por el extremo de la ranura T de su bancada, con grasa grafitada",
+         f"Juego del cuello {fm((P['w_slot'] - g.neck_w) / 2, 1)} mm por lado (galga); deslizamiento libre en toda la carrera", "Galgas", insp("Ranura T")],
+        [pq("una"), "Montar la uña con su resorte de retorno en el alojamiento del patín", f"Ajuste {f(P['dog_b'])} H9/f8; retorno libre del resorte", "Manual", insp("Ranura T")],
+        [pq("cilindro", "pasador_vastago", "pasador_ojal"), f"Montar el cilindro entre la ménsula y el patín; pasadores Ø{f(P['d_pp'])} f8 engrasados con su retención; conectar mangueras",
+         f"H9/f8: {a_pp['juego']}; eje del cilindro a z = {f(g.zc)}", "Aparejo de taller", insp("Prueba hidráulica")]]))
+    tap = [k for k in G["piv"] if k == "tapa_ret"] + G["insp"] + G["mad"]
+    rows8 = [[pq("tapa_ret"), "Tapa retenedora sobre el extremo del pivote: 4 tornillos M10×25 ISO 10642", f"Par {T(10)} N·m (propuesta GEN-008)", "Torquímetro", insp("Torque")],
+             [pq("tapa_insp"), "Tapa de inspección en el rebaje de la plancha superior: 6 tornillos M10 avellanados", f"Par {T(10)} N·m", "Torquímetro", insp("Torque")]]
+    if G["mad"]:
+        rows8.append([pq(*G["mad"]), "Tablones de madera dentro del anillo (bolsillos sobre los pernos); fijación según MAD-001", "Holgura de montaje contra el anillo según MAD-001", "Manual", "MAD-001"])
+    S.append(("8. TAPAS" + (" Y CUBIERTA DE MADERA" if G["mad"] else ""), G["base"] + G["mesa"] + G["pins"] + G["pernos"], tap, (0, 0, 250), None, rows8))
+    S.append(("9. PRUEBA EN VACÍO Y RECEPCIÓN", G["base"] + G["mesa"] + G["pins"] + G["pernos"] + G["acc"] + tap, [], (0, 0, 0), None, [
+        ["—", "Giro 360° en vacío y luego con carga; registrar la presión de despegue", "Sin agarrotamiento ni ruido; presión ≤ la esperada", "Manómetro", insp("Giro 360°")],
+        ["—", "Prueba hidráulica de cilindros y circuito", "Sin fugas", "Bomba de prueba", insp("Prueba hidráulica")],
+        ["—", "Control final de pares y marcas de pintura; nivelación sobre la losa con cuñas metálicas si hace falta", "Marcas intactas; nivel ≤ 1 mm/m", "Torquímetro, nivel", insp("Torque")]]))
+    return S
+
+
+SEQ_NUMS = [5, 14, 15, 16, 17, 19, 20, 21, 22]
+
+
+def _seq_sheet(ctx, num, steps, hoja, ntot):
+    g = ctx.g
+    keys_all = sorted({k for st in steps for k in st[1] + st[2] if ctx.m.get(k)}, key=lambda k: ctx.m.get(k).pos)
+    tt = " · ".join(st[0].split(". ", 1)[1].split(" (")[0] for st in steps)
+    c = Conj(ctx, num, keys_all or all_keys(ctx), f"INSTRUCTIVO DE ARMADO, HOJA {hoja} DE {ntot}: {tt}")
+    for si, (title, prev, new, d, win, rows) in enumerate(steps):
+        prev = [k for k in prev if k in ctx.shapes]
+        suf = f"_s{num}{si}"
+        nk = [_xkey(ctx, k, d, suf) for k in new if k in ctx.shapes]
+        allk = prev + nk
+        kw = {}
+        if win:
+            kw = dict(center=(0, 0, g.tb), win=win)
+
+        def cb(V, c, nk=nk, d=d, suf=suf, prev=prev):
+            if nk and prev:
+                Vn = View(c.s, {k: ctx.shapes[k] for k in nk}, "iso", V.origin, V.scale, center=V.center, win=V.win, label="nuevas", free=True)
+                Vn.draw(layer_vis="VIS", hatch=False)
+            if nk and d[2] > 0:
+                sol = ctx.shapes[nk[0]].Solids()
+                bb = sol[0].BoundingBox() if len(sol) > 1 else _bb(ctx, nk)
+                cx_, cy_ = (bb.xmin + bb.xmax) / 2, (bb.ymin + bb.ymax) / 2
+                _arrow(c.s, V.P((cx_, cy_, bb.zmin - 10)), V.P((cx_, cy_, bb.zmin - d[2] + 10)))
+            if nk:
+                with alias(ctx, suf):
+                    balloons_auto(c, V, nk, gap=11.0, off=20.0)
+        lay = "FINA" if (prev and nk) else "VIS"
+        leyenda = " (piezas del paso en trazo grueso; lo ya montado en trazo fino)" if lay == "FINA" else ""
+        c.vs(f"p{si}", {k: ctx.shapes[k] for k in allk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 12, 30, 12), mat=mats(ctx, allk), hatch=False, draw=cb, layer=lay,
+             title=title + leyenda, auto=False, w=1.0, **kw)
+        c.table_block(f"PASO {title}", [("Pos (cant)", 24, "L"), ("Operación", 74, "L"), ("Ajuste / holgura / par a verificar", 56, "L"), ("Herramienta", 30, "L"), ("Control", 22, "L")], rows, wide=True)
+    c.note_block("NOTAS", ["Pares de apriete: PROPUESTA (GEN-008), a confirmar por el calculista. Controles: plan de inspección GEN-003.",
+                           "Izaje de la mesa: medios del montajista (el cálculo no define puntos de izaje de la mesa). Izaje de la base: 4 orejas (IZA).", nota_anclaje(ctx)])
+    c.iso_fill = False
+    c.build()
+    return c.h
 
 
 @con
 def sheet_secuencia(ctx):
-    g, P = ctx.g, ctx.P
-    c = Conj(ctx, 5, all_keys(ctx), "SECUENCIA DE MONTAJE Y FABRICACIÓN")
-    s = c.s
-    stage_keys = [["base_plancha", "collar", "marco_largo", "marco_corto", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "orejas", "bancada"],
-                  ["mesa_plancha_inf", "mesa_anillo_inf", "mesa_alma0", "mesa_alma1", "mesa_alma2", "mesa_nervio0", "mesa_nervio1", "mesa_nervio2", "mesa_cubo", "mesa_plancha_sup", "mesa_anillo_sup"],
-                  ["base_plancha", "collar", "pivote", "buje"], ["base_plancha", "bancada", "cilindro", "patin", "una", "pasador_vastago", "pasador_ojal"]]
-    for i, ks in enumerate(stage_keys):
-        ks = [k for k in ks if k in ctx.shapes]
-        c.vs(f"e{i}", ctx.sh(*ks), "iso", iso=True, lv=(1, 1, 1, 1), mat=mats(ctx, ks), hatch=False, title=f"{i + 1}. {STEPS[i][0].upper()}", auto=False, w=1.0)
-    rows = []
-    for i, (t, d) in enumerate(STEPS):
-        txt = d
-        if "%" in d:
-            vals = {"Mesa soldada": (g.N_pin, f(g.d_pin)), "Pasadores de empuje": (g.N_pin, f(g.d_pin)), "Pivote y buje": (f(P["D_piv"]),), "Base soldada": (f(P["D_piv"]),)}[t]
-            txt = d % vals
-        rows.append([str(i + 1), t, txt])
-    zw = c.h.R["left"][2] - c.h.R["left"][0]
-    c.table_block("SECUENCIA (taller sin torno vertical: gran diámetro por corte, soldadura y mandrinadora)", [("Paso", 14, "C"), ("Etapa", 50, "L"), ("Descripción", zw - 68, "L")], rows, wide=True)
-    c.note_block("NOTAS", [NOTA_VIENTO, nota_anclaje(ctx), "Peso del equipo y puntos de izaje de la base: ver CON-001 y BAS-001 (4 orejas).", "No se prevé fabricar sobre la losa del cliente; la base se entrega soldada y aliviada."])
-    c.iso_fill = False
-    c.build()
-    return c.h
+    """CON-005, CON-014…017 y CON-019…022: instructivo de armado por pasos (vista del paso, flecha de inserción, globos y tabla de operación, ajuste, herramienta y control)."""
+    S = pasos(ctx)
+    grp = [[x] for x in S]      # un paso por lámina: la vista del paso a la mayor escala posible
+    return [_seq_sheet(ctx, num, st, n, len(grp)) for n, (num, st) in enumerate(zip(SEQ_NUMS, grp), 1)]
 
 
 @con

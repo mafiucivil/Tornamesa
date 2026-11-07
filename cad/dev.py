@@ -38,13 +38,14 @@ def main():
             qc = h.control_calidad()
             if qc["choques"] or qc["fuera"] or qc["invasiones"]:
                 print("   QC", nm, "choques", qc["choques"], "fuera", qc["fuera"][:3], "inv", qc["invasiones"][:3], "movidos", qc["movidos"])
-            s.save(str(out / (nm + ".dxf")), str(out / (nm + ".pdf")))
-            d = pymupdf.open(str(out / (nm + ".pdf")))
-            d[0].get_pixmap(dpi=60).save(str(out / (nm + ".png")))
+            fn_ = h.plano
+            s.save(str(out / (fn_ + ".dxf")), str(out / (fn_ + ".pdf")))
+            d = pymupdf.open(str(out / (fn_ + ".pdf")))
+            d[0].get_pixmap(dpi=60).save(str(out / (fn_ + ".png")))
             o = h.ocupacion()
             import ezdxf
             from ezdxf import bbox as _bb
-            b_ = _bb.extents(ezdxf.readfile(str(out / (nm + ".dxf"))).modelspace())
+            b_ = _bb.extents(ezdxf.readfile(str(out / (fn_ + ".dxf"))).modelspace())
             if b_.extmin.x < -0.5 or b_.extmin.y < -0.5 or b_.extmax.x > h.s.W + 0.5 or b_.extmax.y > h.s.H + 0.5:
                 print("   FUERA DE MARCO", nm, [round(v) for v in (b_.extmin.x, b_.extmin.y, b_.extmax.x, b_.extmax.y)], "hoja", h.s.W, h.s.H)
             import os

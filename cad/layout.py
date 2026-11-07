@@ -98,6 +98,9 @@ def _solve(groups, mode, zone, nat, mar, caps, wts, iso_flags, mins):
             a, b = nat[i]
             mw, mh = mar[i][0] + mar[i][2], mar[i][1] + mar[i][3]
             sc[i] = _max_scale_fit(a, b, mw, mh, W, H, caps[i])
+            if iso_flags[i]:
+                # isométrica: se dibuja a escala libre, el reparto usa la escala continua (no la normalizada inmediata inferior)
+                sc[i] = max(sc[i], min((W - mw) / a, (H - mh) / b, caps[i] or 1e9))
 
     def need(i):
         a, b = nat[i]
@@ -580,6 +583,10 @@ class Plano:
         else:
             cells, sc, scheme = {}, {}, None
         h.scheme = scheme
+        import os as _os
+        if _os.environ.get("PLANDBG"):
+            print("PLAN", h.plano, h.fmt, zone, scheme, {i: (round(c[0]), round(c[1]), round(c[2]), round(c[3])) for i, c in cells.items()}, sc,
+                  [sp.natural(sp_shapes(sp, shapes)) for sp in specs], [sp.margins() for sp in specs])
         COTAS.sheet = h.plano
         self.draw_blocks(pk)
         s.n_views0 = len(s.m)
