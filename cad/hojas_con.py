@@ -230,7 +230,7 @@ def sheet_conjunto(ctx):
     c.compact_table()
     mt, cgx = ctx.rep["masa_total_ensamble"], ctx.rep["cg"]
     c.table_block("DATOS GENERALES", [("Dato del equipo", 60, "L"), ("Valor", 110, "L")], [
-        ["Masa total del ensamble (3D)", f"{f(mt, 1)} kg (piezas del núcleo + comerciales)"], ["Masa del núcleo (m.total)", f"{f(ctx.M['total'], 1)} kg"],
+        ["Masa total del ensamble (3D)", f"{f(mt, 1)} kg (piezas del núcleo + comerciales)"], ["Masa según el cálculo", f"{f(ctx.M['total'], 1)} kg"],
         ["Centro de gravedad (x, y, z)", f"({fm(cgx[0], 1)}; {fm(cgx[1], 1)}; {fm(cgx[2], 1)}) mm desde el centro de la base y la cara inferior"],
         ["Carga de diseño", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm"], ["Mesa / base", f"Ø{f(P['D_top'])} / {f(B)} × {f(B)} × {f(g.tb)}"], ["Interfaz", g.interfaz_nombre]])
     c.note_block("NOTAS DE CONJUNTO", [NOTA_VIENTO, nota_anclaje(ctx), "Cota 228: altura total sin cubierta (base + mesa); 210: altura de la mesa. Cotas generales; el detalle de cada subconjunto está en CON-006 (base), CON-007 (ménsula), CON-008/009 (mesa), CON-010 (accionamiento), CON-011 (pivote) y CON-012 (interfaz).",
