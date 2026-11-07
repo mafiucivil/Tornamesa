@@ -31,7 +31,7 @@ def sheet_base_plancha(ctx):
         if cs:
             n = len(cs)
             u, v, r = cs[0]
-            V.note_hole((u, v, tb), r, 100, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=40, on=on)
+            V.note_hole((u, v, tb), r, 60, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
         p.cut_mark("planta", "A", (-B / 2 - 38, 0, tb), (B / 2 + 38, 0, tb), 90)
         p.cut_mark("planta", "D", (B / 2 - 150, B / 2 + 30, tb), (B / 2 - 150, B / 2 - 150, tb), 0) if False else None
 
