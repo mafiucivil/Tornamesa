@@ -192,14 +192,14 @@ def sheet_mensula_piezas(ctx):
         s.roughness((V.P(0, -Wout / 2, zt)[0] + 6, V.P(0, 0, zt)[1] + 3), "Ra 12,5 (corte)") if False else None
     p.vs("mej_el", k1, "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=d1, title="MEJILLA — ELEVACIÓN (2 por ménsula, 8 en total)", auto=dict(tol={round(H_, 1): " ±0,5", round(P["L_ch"], 1): " ±1"}), w=1.5)
     p.vs("mej_pl", k1, "top", lv=(1, 2, 1, 1), title="MEJILLAS — PLANTA", auto=dict(), w=0.8)
-    p.vs("os_pl", k2, "top", lv=(1, 2, 1, 1), extra=(0, 0, 40, 0), title="OREJA SUPERIOR (BAS-006) — PLANTA", auto=dict(fits={P["d_pp"]: "H9"}, tol={round(Llug, 1): " ±0,5", round(Win, 1): " −0,5"}), w=1.0)
+    p.vs("os_pl", k2, "top", lv=(1, 2, 1, 1), extra=(0, 0, 72, 0), title="OREJA SUPERIOR (BAS-006) — PLANTA", auto=dict(fits={P["d_pp"]: "H9"}, tol={round(Llug, 1): " ±0,5", round(Win, 1): " −0,5"}), w=1.0)
     p.vs("os_el", k2, "front", lv=(1, 2, 1, 1), title="OREJA SUPERIOR — ELEVACIÓN", auto=dict(tol={round(tc, 1): " ±0,2"}), w=0.7)
-    p.vs("oi_pl", k3, "top", lv=(1, 2, 1, 1), extra=(0, 0, 40, 0), title="OREJA INFERIOR / BLOQUE (BAS-007) — PLANTA", auto=dict(fits={P["d_pp"]: "H9"}, tol={round(Llug, 1): " ±0,5", round(Win, 1): " −0,5"}), w=1.0)
+    p.vs("oi_pl", k3, "top", lv=(1, 2, 1, 1), extra=(0, 0, 72, 0), title="OREJA INFERIOR / BLOQUE (BAS-007) — PLANTA", auto=dict(fits={P["d_pp"]: "H9"}, tol={round(Llug, 1): " ±0,5", round(Win, 1): " −0,5"}), w=1.0)
 
     def d3(V, p):
         if len(ids) >= 4:
-            w_out(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, tb + 0.5), "right", dy=14)
-    p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), extra=(0, 0, 80, 0), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): f" (= {f(BR['spacer'])} + {f(tc)})"}), w=0.7)
+            w_out(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, tb + 0.5), "top", dy=14, sh=-1)
+    p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), extra=(80, 0, 0, 34), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): ""}), w=0.9)
     # corte por el eje del agujero de la oreja superior
     p.vs("os_corte", k2, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(1, 2, 1, 1), title="CORTE A-A: AGUJERO DE LA OREJA", hatch=True, auto=dict(tol={}, hole_notes=False, text={round(P["d_pp"], 1): f"Ø{f(P['d_pp'])} H9"}), w=0.8, hs=0.4)
     if len(ids) >= 4:

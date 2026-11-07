@@ -112,4 +112,7 @@ def w_out(p, jid, V, pt3, side="right", dy=12.0, **kw):
         q = (a[0] + 6, y1 + 10 + 8.5 * V.lv["top"] + 6); sh = 1
     else:
         q = (a[0] + 6, y0 - 10 - 8.5 * V.lv["bottom"] - 14); sh = 1
+    sh = kw.pop("sh", sh)
+    if sh == -1 and side in ("top", "bottom"):
+        q = (a[0] - 6, q[1])
     p.h.weld(jid, a, q, sh=sh, **kw)
