@@ -328,8 +328,9 @@ class Plano:
         self.gd_items = []
 
     # ---------------- indicaciones en las vistas (gdt_vistas) ----------------
-    def gd_in(self, view, mode, sym, tol, datum=None, at=None, d=None, prefix=None):
-        self.indic.append(("fcf", view, mode, dict(sym=sym, tol=tol, datum=datum, at=at, d=d, prefix=prefix)))
+    def gd_in(self, view, mode, sym, tol, datum=None, at=None, d=None, prefix=None, alt=None):
+        """alt: (vista, modo, at, d, prefix) alternativo si el primero no encuentra lugar."""
+        self.indic.append(("fcf", view, mode, dict(sym=sym, tol=tol, datum=datum, at=at, d=d, prefix=prefix, alt=alt)))
 
     def datum_in(self, view, mode, letter, at=None, d=None, prefix=None):
         self.indic.append(("datum", view, mode, dict(letter=letter, at=at, d=d, prefix=prefix)))
@@ -366,6 +367,20 @@ class Plano:
                 a = dict(a, d=_d2(at_, a.get("d")))
             if kind == "fcf":
                 ok = GV.fcf(s, Lb, mode, a["sym"], a["tol"], a["datum"], a=pt, d=a["d"], prefix=a["prefix"])
+                if not ok and a.get("alt"):
+                    v2, m2, at2, d2, pf2 = a["alt"]
+                    V2 = self.named.get(v2)
+                    if V2 is not None:
+                        pt2 = None if at2 is None else ([V2.P(q) for q in at2] if isinstance(at2, list) else V2.P(at2))
+                        if isinstance(at2, list) and d2 is not None and not isinstance(d2, list):
+                            d2 = [d2] * len(at2)
+                        def _p2(q3, d3):
+                            if d3 is None or len(d3) != 3:
+                                return d3
+                            p0_, p1_ = V2.P(q3), V2.P((q3[0] + d3[0], q3[1] + d3[1], q3[2] + d3[2]))
+                            return (p1_[0] - p0_[0], p1_[1] - p0_[1])
+                        d2 = [_p2(q, dd) for q, dd in zip(at2, d2)] if isinstance(at2, list) else _p2(at2, d2)
+                        ok = GV.fcf(s, Lb, m2, a["sym"], a["tol"], a["datum"], a=pt2, d=d2, prefix=pf2)
                 tag = ("fcf", a["sym"], a["tol"], a["datum"] if not isinstance(a["datum"], list) else tuple(a["datum"]))
             elif kind == "datum":
                 ok = GV.datum(s, Lb, mode, a["letter"], a=pt, d=a["d"], prefix=a["prefix"])

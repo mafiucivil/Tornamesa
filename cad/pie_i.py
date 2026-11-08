@@ -381,8 +381,10 @@ def sheet_int_tornillos(ctx):
     rec_ = P["ss_allow"] if g.opt in (1, 2) else P["bz_allow"]
     p.notes([f"Tornillo avellanado ISO 10642 M{fm(d, 0)} cl. 10.9 (cabeza Ø{fm(lay.dk, 0)} máx.) alojado en el avellanado Ø{fm(lay.dk_av, 0)}×90° del sector (detalle B de la lámina del sector); rosca ISO 262 en el respaldo (plancha base / plancha inferior de la mesa), prof. ≥ 1,5·d.",
              "Los tornillos solo posicionan los sectores: el par lo toman las barras de tope soldadas.", "Largo normalizado ≥ t − 0,55·d + 1,5·d (S11).",
-             f"Aplicar fijarroscas de resistencia media; cabeza {fm(rec_, 1)} +0,2/0 mm bajo la cara deslizante (= sobreespesor de relapeado; igual en todas las variantes).", "Marca/modelo por catálogo (GEN-008)."],
-            gd=[("perp", "0,1", "A", "Cara de apoyo del avellanado perpendicular al eje del tornillo")])
+             f"Aplicar fijarroscas de resistencia media; cabeza {fm(rec_, 1)} +0,2/0 mm bajo la cara deslizante (= sobreespesor de relapeado de esta variante; la profundidad es del avellanado del sector, no del tornillo).", "Marca/modelo por catálogo (GEN-008)."] +
+            [f"Rosca en el respaldo, lado {lado}: M{fm(r_['d'], 0)}-6H, " + (f"pasante en {fm(r_['back'], 0)}" if r_["pasante"] else f"rosca útil {fm(r_['thr'], 0)}, taladro Ø{fm(r_['broca'], 1)} prof. {fm(r_['drill'], 0)}") +
+             f"; engrane {fm(r_['eng'], 1)} (≥ 1,0·d) y la punta queda {fm(r_['thr'] - r_['eng'], 1)} mm antes del fin de la rosca útil (N-01)." for lado, r_ in sorted((m.info.get("screw_resp") or {}).items())],
+            gd=[])
     p.build()
     return p.h
 
@@ -424,6 +426,8 @@ def sheet_int_graseras(ctx):
 
     def cg(V, p):
         s.line(V.P(g.Rt - 40, 0, zc0), V.P(rr - 10, 0, zc0), "EJE")
+    p.datum_in("corte", "surf", "A", at=[(g.Rt - 15, 0, g.z0), (g.Rt - 35, 0, g.z0)], d=(0, 0, -1))
+    p.gd_in("corte", "surf", "pos", "Ø0,5", "A", at=[(rr + 3.0, 0, g.z0 + g.tpr * 0.3), (rr - 3.0, 0, g.z0 + g.tpr * 0.3)], d=[(1, 0, 0), (-1, 0, 0)])
     p.vs("corte", gk, "front", cut=CUT_Y, center=(rr + 20, 0, zc0), win=(-70, -45, 50, 45), lv=(1, 2, 2, 1), extra=(0, 0, 40, 0), draw=cg, hs=0.4, maxs=2.0, w=1.4,
          title=f"CORTE A-A POR LA GRASERA G1 (a {fm(ag % 360, 1)}°): TALADRO Ø6 RADIAL Y AXIAL EN EL ANILLO MES-004", mat={k + "_G": ctx.mat.get(k, "acero") for k in zk}, auto=dict(on=gk, tol={}, hole_notes=False))
     rows = [[f"G{i + 1}", fm(math.degrees(math.atan2(y, x)) % 360, 2) + "°", fm(math.hypot(x, y), 1), "radial Ø6 + axial Ø6 (bisectriz del sector)"] for i, (x, y) in enumerate(pts[:g.n_greaser])]
@@ -432,7 +436,7 @@ def sheet_int_graseras(ctx):
     p.notes([f"Grasera recta DIN 71412 M10×1 de acero zincado, {g.n_greaser} unidades, en el canto del anillo inferior de la mesa (MES-004); rosca M10×1 (ISO 261) prof. 12 con asiento plano.",
              f"Conducto: taladro Ø6 radial hasta R{fm(rr, 0)} (ranura circunferencial exterior) y Ø6 axial hasta la cara deslizante (S08, PROVISORIO); desbarbar y soplar.",
              "Probar cada conducto con grasa grafitada NLGI 2 antes de montar los sectores.", "Marca/modelo por catálogo (GEN-008)."],
-            gd=[("pos", "Ø0,5", "A", "Posición del conducto respecto de la bisectriz de su sector (A)")])
+            gd=[("pos", "Ø0,5", "A", "Posición del conducto axial Ø6 respecto de la cara inferior del anillo (A); su ángulo (bisectriz del sector) en la tabla")])
     p.build()
     return p.h
 
@@ -485,12 +489,17 @@ def sheet_int_ranuras(ctx):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
         V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (ancho radial)")
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
-         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=2.5,
-                   hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)", **({round(P["bz_plug_d"], 1): f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102)"} if g.opt == 3 else {}),
-                             round(lay.dk_av, 1): f"Ø{fm(lay.dk_av, 0)}: avellanados de tornillos (lámina del sector)", round(lay.d_clear, 1): f"Ø{fm(lay.d_clear, 1)}: pasantes de tornillos (lámina del sector)"}, fits={}))
+         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=min(lay.dk_av, P["bz_plug_d"]) / 2 - 0.2,
+                   hole_txt={**({round(P["bz_plug_d"], 1): f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102)"} if g.opt == 3 else {}),
+                             round(lay.dk_av, 1): f"M{fm(lay.d_tor, 0)} ISO 10642: avellanado Ø{fm(lay.dk_av, 0)}×90° y pasante Ø{fm(lay.d_clear, 1)} (lámina del sector)"}, fits={}))
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
     zlo, zhi = (-10, t + 6) if face == "bot" else (-t - 6, 10)
-    p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, zlo, 60, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,
+    p.datum_in("sector", "surf", "A", at=[(g.Ro * math.cos(math.radians(a_)), g.Ro * math.sin(math.radians(a_)), zs) for a_ in (th * 0.3, -th * 0.3, th * 0.15, -th * 0.15)],
+               d=[(math.cos(math.radians(a_)), math.sin(math.radians(a_)), 0) for a_ in (th * 0.3, -th * 0.3, th * 0.15, -th * 0.15)])
+    zg_ = zs + (g.h_gr / 2 if face == "bot" else -g.h_gr / 2)
+    p.gd_in("corte", "dim", "pos", "1", "A", prefix=f"{fm(g.w_gr, 0)} (ancho)",
+            alt=("corte", "surf", [(r0 + g.w_gr / 2, 0, zg_), (r0 - g.w_gr / 2, 0, zg_)], [(-1, 0, 0), (1, 0, 0)], None))
+    p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-22, zlo, 22, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, mins=2.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,
          auto=dict(tol={round(g.w_gr, 1): " (ancho)", round(g.h_gr, 1): " (prof.)", round(t, 1): " (e)"}, holes=False))
     rows = [["Ranuras radiales", f"{g.n_gr_rad} × a k·{fm(360 / g.n_gr_rad, 2)}°; de R{fm(g.Ri, 0)} a R{fm(g.Ro, 0)}"], ["Ranuras circunferenciales", f"{g.n_gr_circ}; R = " + ", ".join(fm(r, 0) for r in rr)],
             ["Ancho / profundidad", f"{fm(g.w_gr, 0)} / {fm(g.h_gr, 1)} mm (sección rectangular, aristas rotas 0,5×45°)"], ["Graseras", f"{g.n_greaser} a R_o − 30 (ver lámina de graseras)"], ["Área perdida", "ver núcleo (área de ranuras)"]]
@@ -504,7 +513,7 @@ def sheet_int_ranuras(ctx):
              f"Las {g.n_gr_rad} radiales van sobre las juntas a k·{fm(360 / g.n_gr_rad, 0)}°, una de cada {int(round((360 / g.n_gr_rad) / th))} juntas: cada radial se reparte entre los dos sectores contiguos (media ranura de {fm(g.w_gr / 2, 1)} mm en el borde de cada uno). "
              f"Hay dos tipos de sector, simétricos: impares (1, 3, …) con la media ranura en el borde inicial y pares (2, 4, …) en el borde final; las circunferenciales son iguales en todos.", "Desbarbar y romper aristas 0,5×45°; Ra ≤ 1,6 en el fondo; lapear la cara después de fresar.",
              "Las ranuras no deben cortar los avellanados de los tornillos ni la muesca del tope (distancia ≥ 3 mm)."],
-            gd=[("pos", "±0,5", "A", "Posición de cada media ranura radial respecto del borde (junta) de su sector (A)"), ("pos", "±0,5", "B", "Posición de las ranuras circunferenciales respecto del eje de la mesa (B)")])
+            gd=[("pos", "1", "A", "Plano medio de cada ranura circunferencial: zona de posición de 1 mm respecto del eje de la mesa (A = arco exterior del sector); radios teóricamente exactos. Ranuras radiales: ±0,5 respecto de la junta (nota)")])
     p.build()
     return p.h
 
@@ -629,6 +638,7 @@ def sheet_madera(ctx):
 
     def corte(V, p):
         pass
+    p.gd_in("corte", "surf", "flat", "1,0", None, at=[(g.Rt - 100 + dx_, 0, zw0 + tW) for dx_ in (-40, 0, -70, 30)], d=(0, 0, 1))
     p.vs("corte", ["madera", "madera_anillo"], "front", cut=CUT_Y, center=(g.Rt - 100, 0, zw0 + tW / 2), win=(-90, -tW / 2 - 8, 105, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0, title="CORTE RADIAL (tablón y anillo)",
          mat={"madera": "madera", "madera_anillo": "acero"}, w=1.0, auto=dict(on=["madera_anillo"], tol={round(tW, 1): "", round(g.t_ring, 1): ""}))
     a0p = ctx.D["pasadores"][0]
@@ -651,7 +661,7 @@ def sheet_madera(ctx):
              f"{g.N_pin} bolsillos Ø{f(g.washer_D + 4)} × 31 sobre las cabezas de los pernos de los pasadores (S06, PROVISORIO).",
              "Fijación de los tablones a la plancha superior: PROPUESTA tornillos para madera avellanados Ø8 × 80 en 4 filas, paso 400 mm, con taladro previo (decisión del mandante: confirmar).",
              "Certificado de clasificación estructural de la madera del proveedor; humedad ≤ 15 %; tratamiento preservante a definir por el proveedor."],
-            gd=[("flat", "1,0", None, "Planitud de la cara superior de la cubierta"), ("pos", "±2", "A", "Posición de los bolsillos respecto de los pasadores")])
+            gd=[("flat", "1,0", None, "Planitud de la cara superior de la cubierta")])
     p.build()
     return p.h
 
@@ -674,6 +684,8 @@ def sheet_madera_anillo(ctx):
     def corte(V, p):
         if ids:
             w_out(p, ids[0], V, (g.Rt, 0, zw0 + 1), "right", dy=-12)
+    p.datum_in("corte", "surf", "A", at=[(g.Rt - 50, 0, zw0), (g.Rt - 70, 0, zw0)], d=(0, 0, 1))
+    p.gd_in("corte", "surf", "perp", "0,5", "A", at=[(g.Rt, 0, zw0 + tW * f_) for f_ in (0.6, 0.4, 0.8)], d=(1, 0, 0))
     p.vs("corte", ["madera_anillo", "mesa_plancha_sup"], "front", cut=CUT_Y, center=(g.Rt - 20, 0, zw0), win=(-60, -g.tt - 8, 40, tW + 12), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=corte, hs=0.3, maxs=2.0,
          title="CORTE RADIAL: ANILLO SOBRE LA PLANCHA SUPERIOR", mat={"madera_anillo": "acero", "mesa_plancha_sup": "acero"}, w=1.2, auto=dict(on=["madera_anillo", "mesa_plancha_sup"], tol={round(tW, 1): "", round(g.t_ring, 1): ""}))
     if ids:

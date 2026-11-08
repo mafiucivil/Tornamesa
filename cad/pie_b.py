@@ -151,7 +151,9 @@ def notas_anillo_inf(ctx):
     hm = centros_xy(m.info.get("holes_mesa"))
     pat = patron_txt(hm, f"M{fm(P['d_tor'], 0)}", rmin=g.prIn)
     if pat:
-        out.append("Solo el anillo INFERIOR (MES-004): roscas de los tornillos de posición de los sectores de la mesa: " + "; ".join(pat) + "; profundidad según la lámina de sectores.")
+        rr_ = (ctx.m.info.get("screw_resp") or {}).get("mesa_anillo")
+        prof_ = ("pasantes" if rr_ and rr_["pasante"] else f"rosca útil {fm(rr_['thr'], 0)}, taladro Ø{fm(rr_['broca'], 1)} prof. {fm(rr_['drill'], 0)}") if rr_ else "según la lámina de tornillos"
+        out.append("Solo el anillo INFERIOR (MES-004): roscas M{0}-6H de los tornillos de posición de los sectores de la mesa: ".format(fm(ctx.P["d_tor"], 0)) + "; ".join(pat) + f"; {prof_} (INT-005).")
     gp = m.info.get("grease_pts") or []
     if gp:
         pg = patron_txt(gp, "taladro axial Ø6", rmin=0)
@@ -194,6 +196,10 @@ def sheet_mesa_inf(ctx):
              f"Oxicorte/plasma ISO 9013 clase 3; la plancha absorbe la abertura de raíz: Ø de corte de preparación {f(2 * g.prIn - 6)}.",
              f"Agujero central Ø{f(2 * ri)}: " + (f"PASANTE por el rebaje del collar (Ø{f(g.D_boss)} del collar + 2 × {fm(g.c_boss_r, 0)} mm); holgura radial {fm(g.c_boss_r, 0)} mm, axial {fm(g.c_boss_a, 0)} mm." if g.rebaje else "mandrinado para el buje."),
              f"Cara inferior planeada después de soldar la mesa y aliviar tensiones: planitud 0,20, Ra 3,2 (apoyo de la interfaz, {g.interfaz_nombre}).",
+             *([("Roscas M{0}-6H de los tornillos de posición de los sectores de la mesa (las que caen en la plancha): ".format(fm(P["d_tor"], 0)) +
+                 ("pasantes (taladro Ø{0} pasante, rosca en todo el espesor)".format(fm(ctx.m.info["screw_resp"]["mesa"]["broca"], 1)) if ctx.m.info["screw_resp"]["mesa"]["pasante"] else
+                  "rosca útil {0}, taladro Ø{1} prof. {2}".format(fm(ctx.m.info["screw_resp"]["mesa"]["thr"], 0), fm(ctx.m.info["screw_resp"]["mesa"]["broca"], 1), fm(ctx.m.info["screw_resp"]["mesa"]["drill"], 0))) +
+                 "; posiciones en la lámina de tornillos (INT-005). Roscar después de planear la cara.")] if (ctx.m.info.get("screw_resp") or {}).get("mesa") else []),
              f"Unión con el anillo inferior: soldadura a tope circunferencial con caras inferiores a ras y transición 1:4 en la cara superior del anillo (chaflán hasta 3 mm del agujero de pasador + pendiente del cordón) ({jj[0] if jj else 'J??'}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."],
             gd=[("flat", "0,20", None, "Planitud de la cara inferior (antes de montar la interfaz); paralelismo entre caras de la mesa: CON-009")])
     p.build()

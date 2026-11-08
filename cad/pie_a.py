@@ -78,7 +78,9 @@ def sheet_base_plancha(ctx):
     if g.opt:
         hb = centros_xy(ctx.m.info.get("holes_base"))
         pat = patron_txt(hb, f"M{fm(P['d_tor'], 0)}")
-        nz.append(f"Agujeros roscados M{fm(P['d_tor'], 0)} de los tornillos de posición" + (": " + "; ".join(pat) if pat else "") + ". Profundidad de rosca: lámina de sectores; roscar después de planear la cara.")
+        rr_ = (ctx.m.info.get("screw_resp") or {}).get("base")
+        prof_ = (f"pasantes" if rr_ and rr_["pasante"] else f"rosca útil {fm(rr_['thr'], 0)}, taladro Ø{fm(rr_['broca'], 1)} prof. {fm(rr_['drill'], 0)}") if rr_ else "según la lámina de tornillos"
+        nz.append(f"Agujeros roscados M{fm(P['d_tor'], 0)}-6H de los tornillos de posición" + (": " + "; ".join(pat) if pat else "") + f"; {prof_} (INT-005); roscar después de planear la cara.")
     p.notes(nz, gd=[("flat", "0,20", None, f"Planitud de la zona de apoyo Ø{f(P['D_top'] + 20)} (cara superior planeada = A)"), ("perp", "0,05", "A", f"Agujero Ø{f(P['D_piv'])} H7 perpendicular a la cara superior planeada (A)")])
     p.build()
     return p.h

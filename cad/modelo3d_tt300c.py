@@ -745,10 +745,10 @@ def build_interfaz(m, g, D, log):
             sb, hb, Lb = make_screws(radii, a_list, t1, tb + t1, "top", rec)
             sm, hm, Lm = make_screws(radii_m, a_list, t2, zm0, "bot", rec)
             for nm, sol, qty, L, t_ in (("int_tornillo_base", sb, len(sb), Lb, t1), ("int_tornillo_mesa", sm, len(sm), Lm, t2)):
-                m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9, cabeza {fm(rec, 1)} bajo la cara deslizante", compound(sol), qty, "10.9 (ISO 10642), zincado",
-                           "Comercial", in_core=False, comercial=True, catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs="Solo posición: el par lo toman los topes"))
+                m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9", compound(sol), qty, "10.9 (ISO 10642), zincado",
+                           "Comercial", in_core=False, comercial=True, catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs=f"Solo posición: el par lo toman los topes; montaje: cabeza {fm(rec, 1)} bajo la cara deslizante (avellanado del sector)"))
             m.info["screw_L"] = (Lb, Lm)
-            m.info["screw_resp"] = {"base": lay.rosca_respaldo(Lb, t1, rec, tb), "mesa": lay.rosca_respaldo(Lm, t2, rec, g.tbo)}
+            m.info["screw_resp"] = {"base": lay.rosca_respaldo(Lb, t1, rec, tb), "mesa": lay.rosca_respaldo(Lm, t2, rec, g.tbo), "mesa_anillo": lay.rosca_respaldo(Lm, t2, rec, g.tpr)}
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii
         m.info["radii_screw_m"] = radii_m
@@ -907,10 +907,10 @@ def build_interfaz(m, g, D, log):
             sb, hb, Lb = make_screws(radii_b, a_b, tB, tb + tB, "top", rec_b)
             sm, hm, Lm = make_screws(radii_c, a_list, tC, zm0, "bot", rec_c)
             for nm, sol, qty, L in (("int_tornillo_base", sb, len(sb), Lb), ("int_tornillo_mesa", sm, len(sm), Lm)):
-                m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9, cabeza {fm(rec_b if nm == 'int_tornillo_base' else rec_c, 1)} bajo la cara deslizante", compound(sol), qty, "10.9 (ISO 10642), zincado", "Comercial", in_core=False, comercial=True,
-                           catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs="Solo posición: el par lo toman los topes"))
+                m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9", compound(sol), qty, "10.9 (ISO 10642), zincado", "Comercial", in_core=False, comercial=True,
+                           catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs=f"Solo posición: el par lo toman los topes; montaje: cabeza {fm(rec_b if nm == 'int_tornillo_base' else rec_c, 1)} bajo la cara deslizante (avellanado del sector)"))
             m.info["screw_L"] = (Lb, Lm)
-            m.info["screw_resp"] = {"base": lay.rosca_respaldo(Lb, tB, rec_b, tb), "mesa": lay.rosca_respaldo(Lm, tC, rec_c, g.tbo)}
+            m.info["screw_resp"] = {"base": lay.rosca_respaldo(Lb, tB, rec_b, tb), "mesa": lay.rosca_respaldo(Lm, tC, rec_c, g.tbo), "mesa_anillo": lay.rosca_respaldo(Lm, tC, rec_c, g.tpr)}
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii_b
         m.info["radii_screw_m"] = radii_c
