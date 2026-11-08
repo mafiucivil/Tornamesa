@@ -10,8 +10,12 @@ Sirve la raíz del repositorio en http://127.0.0.1:8765/ (solo esta máquina), a
                                    python cad/generar_paquete.py <design.json> --out <tmp> --entrega salidas/<fecha-hora>_<alternativa>/
                                  (vía tools/lanzar_generador.py) y luego tools/indice_planos.py sobre esa carpeta.
   GET  /api/estado?id=ID      → estado del trabajo: en_curso | listo | error, fase, progreso (estimado), registro, mensaje de error
-                                 tal cual lo imprime el generador, carpeta y el índice de planos (enlaces relativos a la raíz).
-Responde CORS a la página abierta como archivo (origen «null») y a 127.0.0.1/localhost. Solo biblioteca estándar."""
+                                 tal cual lo imprime el generador, carpeta y el índice de planos (rutas relativas a la raíz).
+  GET  /api/listar            → generaciones anteriores en salidas/ (id, alternativa, láminas, P), la más reciente primero.
+  GET  /api/salida?id=ID      → índice de una generación anterior (indice_planos.json; lo crea con tools/indice_planos.py si falta).
+  GET  /salidas/ID/...        → archivos de cada salida (PDF, DXF, XLSX, STEP...). Además solo se sirve la herramienta Tornamesa_v*.html.
+Responde CORS a la página abierta como archivo (origen «null») y a 127.0.0.1/localhost, con Access-Control-Allow-Private-Network.
+Escucha solo en 127.0.0.1. Solo biblioteca estándar."""
 import argparse
 import collections
 import datetime
@@ -27,6 +31,9 @@ import threading
 import time
 import urllib.parse
 import webbrowser
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import indice_planos as IP  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SALIDAS = ROOT / "salidas"
@@ -201,6 +208,71 @@ ULTIMO = [None]
 LOCK = threading.Lock()
 
 
+# ---------------------------------------------------------------- salidas/
+def _id_valido(tid):
+    return bool(tid) and "/" not in tid and "\\" not in tid and tid not in (".", "..") and (SALIDAS / tid).is_dir()
+
+
+def listar():
+    """Generaciones de salidas/ con juego (informe_paquete.md), la más reciente primero."""
+    out = []
+    for d in reversed(IP.salidas_generadas()):
+        ip = d / "indice_planos.json"
+        try:
+            ix = json.loads(ip.read_text(encoding="utf-8")) if ip.exists() else IP.indice(d)
+        except (OSError, ValueError) as ex:
+            out.append({"id": d.name, "error": str(ex)})
+            continue
+        P = ix.get("P")
+        if P is None:
+            try:
+                P = json.loads((d / "TT300-C_design.json").read_text(encoding="utf-8"))["P"]
+            except (OSError, ValueError, KeyError):
+                P = None
+        out.append({"id": d.name, "carpeta": ix["carpeta"], "alternativa": alternativa(P) if P else "", "interfaz": ix.get("interfaz", ""), "madera": ix.get("madera", False),
+                    "laminas": len(ix["laminas"]), "grupos": {g: len(v["laminas"]) for g, v in ix["grupos"].items()}, "completo": ip.exists(), "P": P,
+                    "fecha": datetime.datetime.fromtimestamp((d / "informe_paquete.md").stat().st_mtime).isoformat(timespec="seconds")})
+    return out
+
+
+def salida(tid):
+    """Índice de una salida; si falta indice_planos.json (o los PDF por grupo), corre tools/indice_planos.py."""
+    d = SALIDAS / tid
+    ip = d / "indice_planos.json"
+    if not ip.exists() or not all((d / g["pdf"]).exists() for g in json.loads(ip.read_text(encoding="utf-8"))["grupos"].values()):
+        r = subprocess.run([sys.executable, str(ROOT / "tools" / "indice_planos.py"), str(d)], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
+        if r.returncode:
+            raise RuntimeError(r.stderr.strip()[-800:] or "falló tools/indice_planos.py")
+    ix = json.loads(ip.read_text(encoding="utf-8"))
+    if ix.get("P") is None:
+        try:
+            ix["P"] = json.loads((d / "TT300-C_design.json").read_text(encoding="utf-8"))["P"]
+        except (OSError, ValueError, KeyError):
+            pass
+    return ix
+
+
+def ruta_estatica(path):
+    """Archivo que se puede servir: la herramienta de la raíz o un archivo dentro de salidas/<id>/. None si no se permite."""
+    rel = urllib.parse.unquote(path).lstrip("/")
+    if "\x00" in rel or "\\" in rel:
+        return None
+    partes = [x for x in rel.split("/") if x]
+    if any(x in (".", "..") for x in partes):
+        return None
+    if len(partes) == 1 and partes[0].startswith("Tornamesa_v") and partes[0].endswith(".html"):
+        f = ROOT / partes[0]
+    elif len(partes) >= 3 and partes[0] == "salidas" and _id_valido(partes[1]):
+        f = ROOT.joinpath(*partes)
+    else:
+        return None
+    try:
+        f.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return None
+    return f if f.is_file() else None
+
+
 # ---------------------------------------------------------------- HTTP
 class Manejador(http.server.SimpleHTTPRequestHandler):
     server_version = "TT300C-planos/1.0"
@@ -264,6 +336,19 @@ class Manejador(http.server.SimpleHTTPRequestHandler):
             if not t:
                 return self._json(404, {"error": "No existe el trabajo «%s»." % tid})
             return self._json(200, t.json())
+        if u.path == "/api/listar":
+            try:
+                return self._json(200, {"salidas": listar()})
+            except Exception as ex:
+                return self._json(500, {"error": f"{type(ex).__name__}: {ex}"})
+        if u.path == "/api/salida":
+            tid = (urllib.parse.parse_qs(u.query).get("id") or [""])[0]
+            if not _id_valido(tid):
+                return self._json(404, {"error": "No existe la salida «%s»." % tid})
+            try:
+                return self._json(200, salida(tid))
+            except Exception as ex:
+                return self._json(500, {"error": f"{type(ex).__name__}: {ex}"})
         if u.path.startswith("/api/"):
             return self._json(404, {"error": "Ruta desconocida"})
         if u.path in ("", "/"):
@@ -271,7 +356,17 @@ class Manejador(http.server.SimpleHTTPRequestHandler):
             self.send_header("Location", "/" + html_principal())
             self.end_headers()
             return
+        if ruta_estatica(u.path) is None:
+            return self._json(404, {"error": "Solo se sirven la herramienta y los archivos de salidas/."})
         return super().do_GET()
+
+    def do_HEAD(self):
+        if ruta_estatica(urllib.parse.urlsplit(self.path).path) is None:
+            self.send_response(404)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        return super().do_HEAD()
 
     def do_POST(self):
         u = urllib.parse.urlsplit(self.path)

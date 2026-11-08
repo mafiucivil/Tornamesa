@@ -1,112 +1,115 @@
-/* Verificación de extremo a extremo de la pestaña «Planos» con Playwright (no forma parte de `npm test`).
-   Uso: node tests/e2e_planos_modulo_playwright.js [directorio de salida]
+/* Verificación de extremo a extremo de la pestaña «Planos» (generación a pedido) con Playwright (no forma parte de `npm test`).
+   Uso: node tests/e2e_planos_modulo_playwright.js [directorio de salida] [--generar]
    Requiere `playwright` con chromium, python3 y la herramienta construida (python3 tools/build_tt300c.py).
-   Levanta tools/servidor_planos.py en 127.0.0.1:8765 (si no está ya activo) y comprueba:
-     1. la herramienta abierta a través del servidor;
-     2. en cada opción de #altSel (y en W = madera, AF2 = A con discos pegados), el juego pre-generado correcto y que todos los enlaces
-        del panel apunten a archivos existentes (y que el servidor los entregue);
-     3. que cambiar la carga muestre «no corresponden» y la lista de diferencias;
-     4. que el ping del servidor active el botón «Generar planos con los parámetros actuales» (también con la página abierta como file://).
-   No pulsa «Generar» (tarda varios minutos). */
+   Comprueba:
+     1. servidor caído (página abierta como file://): estado «no responde», instrucciones de Instalar_generador_planos.bat y
+        Generar_planos_Tornamesa.bat, botón «Generar planos» deshabilitado (se omite si ya había un servidor en 127.0.0.1:8765);
+     2. con tools/servidor_planos.py levantado: herramienta servida por el servidor, generador activo, botón habilitado, resumen de la
+        alternativa y de los parámetros que se enviarán (cambia al instante con #altSel y con un parámetro);
+     3. historial (/api/listar): «Abrir» una generación anterior muestra Generales, Fabricación y Armado con enlaces que el servidor entrega;
+     4. con --generar: genera el caso por defecto completo con el servidor real (unos 6 min), sigue el avance y comprueba el juego final.
+   Capturas: panel_planos_caido.png, panel_planos_generando.png, panel_planos_terminado.png (o panel_planos_historial.png sin --generar). */
 const path = require("path"), fs = require("fs"), assert = require("node:assert/strict"), { spawn } = require("child_process");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
-const out = process.argv[2] || fs.mkdtempSync(path.join(require("os").tmpdir(), "tt300c-e2e-planos-"));
+const args = process.argv.slice(2), GENERAR = args.includes("--generar");
+const out = args.filter((a) => !a.startsWith("--"))[0] || fs.mkdtempSync(path.join(require("os").tmpdir(), "tt300c-e2e-planos-"));
 const htmlName = fs.readdirSync(root).filter((n) => /^Tornamesa_v.*\.html$/.test(n))[0];
 const BASE = "http://127.0.0.1:8765";
-const CARPETA = { 0: "entregables/RevC", A: "entregables/RevC/variantes/A", AF2: "entregables/RevC/variantes/AF2", B: "entregables/RevC/variantes/B",
-  C1: "entregables/RevC/variantes/C1", C2: "entregables/RevC/variantes/C2", C3: "entregables/RevC/variantes/C3", W: "entregables/RevC/variantes/W" };
 const ping = () => fetch(BASE + "/api/ping").then((r) => r.ok).catch(() => false);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const settle = (page) => page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando"), null, { timeout: 60000 }).then(() => page.waitForTimeout(300));
+const shot = (page, name) => page.locator('section[data-t="planos"]').screenshot({ path: path.join(out, name) });
 
 async function servidor() {
-  if (await ping()) return null;
   const py = process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
   const p = spawn(py, [path.join(root, "tools", "servidor_planos.py"), "--no-abrir"], { cwd: root, stdio: "ignore" });
-  for (let i = 0; i < 120; i++) { if (await ping()) return p; await new Promise((r) => setTimeout(r, 500)); }
+  for (let i = 0; i < 120; i++) { if (await ping()) return p; await sleep(500); }
   p.kill(); throw new Error("el servidor de planos no respondió en 60 s");
 }
-const settle = (page) => page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando"), null, { timeout: 60000 }).then(() => page.waitForTimeout(300));
-
-async function enlaces(page, req, juego) {
-  const hrefs = await page.$$eval("#plJuego a[href]", (as) => as.map((a) => a.getAttribute("href")));
-  assert.ok(hrefs.length > 10, juego + ": pocos enlaces");
-  const grupos = await page.$$eval("#plJuego a[data-pdf]", (as) => as.map((a) => a.dataset.pdf));
-  assert.deepEqual(grupos, ["generales", "fabricacion", "armado"], juego + ": PDF de los tres grupos");
+async function juego(page, req, sel) {
+  const grupos = await page.$$eval(sel + " a[data-pdf]", (as) => as.map((a) => a.dataset.pdf));
+  assert.deepEqual(grupos, ["generales", "fabricacion", "armado"], "PDF de los tres grupos");
+  const files = await page.$$eval(sel + " a[data-f]", (as) => as.map((a) => a.dataset.f));
+  for (const f of ["combinado", "despiece_xlsx", "step", "dxf_zip"]) assert.ok(files.includes(f), "falta el enlace " + f);
+  const hrefs = await page.$$eval(sel + " a[href]", (as) => as.map((a) => a.href));
   for (const h of hrefs) {
-    const rel = decodeURIComponent(h);
-    assert.ok(rel.startsWith(CARPETA[juego] + "/"), `${juego}: enlace fuera de su carpeta: ${rel}`);
-    assert.ok(fs.existsSync(path.join(root, rel)), `${juego}: no existe ${rel}`);
+    assert.ok(h.startsWith(BASE + "/salidas/"), "enlace servido por el generador local: " + h);
+    const r = await req.head(h); assert.equal(r.status(), 200, "el servidor entrega " + h);
   }
-  for (const h of hrefs.filter((x) => /_Planos_(Generales|Fabricacion|Armado)_Rev/.test(x))) {
-    const r = await req.head(BASE + "/" + h); assert.equal(r.status(), 200, "el servidor entrega " + h);
-  }
-  return hrefs.length;
+  const n = await page.$$eval(sel + " .pl-grp", (cs) => cs.map((c) => parseInt(c.querySelector(".big").textContent, 10)));
+  return { enlaces: hrefs.length, laminas: n };
 }
 
 (async () => {
-  const proc = await servidor();
+  let proc = null;
   const browser = await chromium.launch();
   try {
-    const ctx = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
-    const page = await ctx.newPage(), errs = [];
-    page.on("pageerror", (e) => errs.push(String(e))); page.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
-    // 1. abrir la herramienta vía el servidor
+    const ctx = await browser.newContext({ viewport: { width: 1500, height: 1200 } });
+    const errs = [];
+    const watch = (pg) => { pg.on("pageerror", (e) => errs.push(String(e))); pg.on("console", (m) => { if (m.type() === "error" && !/ERR_CONNECTION_REFUSED/.test(m.text())) errs.push(m.text()); }); };
+    // 1. servidor caído
+    if (!(await ping())) {
+      const pf = await ctx.newPage(); watch(pf);
+      await pf.goto("file://" + path.join(root, htmlName) + "#planos");
+      await pf.waitForSelector('#genEstado[data-srv="inactivo"]', { timeout: 15000 });
+      const t = await pf.textContent("#plSrv");
+      assert.match(t, /no responde/); assert.match(t, /Instalar_generador_planos\.bat/); assert.match(t, /Generar_planos_Tornamesa\.bat/);
+      assert.equal(await pf.isEnabled("#bGen"), false, "sin servidor el botón está deshabilitado");
+      assert.match(await pf.textContent("#plHist"), /Disponible con el generador local activo/);
+      assert.match(await pf.textContent("#plAdv"), /ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO\./);
+      await shot(pf, "panel_planos_caido.png");
+      console.log("servidor caído → instrucciones visibles, botón deshabilitado");
+      await pf.close();
+      proc = await servidor();
+    } else console.log("servidor caído: omitido (ya había un generador activo en 127.0.0.1:8765)");
+    // 2. servidor activo
+    const page = await ctx.newPage(); watch(page);
     await page.goto(`${BASE}/${htmlName}#planos`);
-    await page.waitForSelector("#plJuego[data-estado]");
-    await page.click("#bReset"); await settle(page);
-    // 4. el ping activa el botón de generar
     await page.waitForSelector('#genEstado[data-srv="activo"]', { timeout: 15000 });
+    await page.click("#bReset"); await settle(page);
     assert.equal(await page.isEnabled("#bGen"), true, "botón Generar habilitado con el servidor activo");
-    assert.match(await page.textContent("#bGen"), /Generar planos con los parámetros actuales/);
-    assert.match(await page.textContent("#plAdv"), /ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO\./);
-    // 2. cada opción del selector → su juego
-    const opts = await page.$$eval("#altSel option", (os) => os.map((o) => o.value));
-    assert.deepEqual(opts, ["0", "A", "B", "C1", "C2", "C3"]);
-    for (const v of opts) {
-      await page.selectOption("#altSel", v); await settle(page);
-      assert.equal(await page.getAttribute("#plJuego", "data-estado"), "coincide", v + ": debe coincidir con un juego pre-generado");
-      assert.equal(await page.getAttribute("#plJuego", "data-juego"), v, v + ": juego mostrado");
-      const n = await enlaces(page, ctx.request, v);
-      console.log(`altSel ${v} → ${CARPETA[v]} · ${n} enlaces OK`);
-      if (v === "0" || v === "C2") await page.locator('section[data-t="planos"]').screenshot({ path: path.join(out, `panel_planos_${v === "0" ? "base" : v}.png`) });
-    }
-    // W (cubierta de madera) y AF2 (A con discos pegados)
-    await page.selectOption("#altSel", "0"); await settle(page);
-    await page.check("#p_opt_wood"); await settle(page);
-    assert.equal(await page.getAttribute("#plJuego", "data-juego"), "W"); console.log(`madera → ${CARPETA.W} · ${await enlaces(page, ctx.request, "W")} enlaces OK`);
-    await page.uncheck("#p_opt_wood"); await page.selectOption("#altSel", "A"); await settle(page);
-    await page.fill("#p_fix_mode", "2"); await settle(page);
-    assert.equal(await page.getAttribute("#plJuego", "data-juego"), "AF2"); console.log(`A + fijación pegada → ${CARPETA.AF2} · ${await enlaces(page, ctx.request, "AF2")} enlaces OK`);
-    // 3. cambiar la carga → no corresponden + diferencias
-    await page.click("#bReset"); await settle(page);
-    assert.equal(await page.getAttribute("#plJuego", "data-juego"), "0");
+    assert.match(await page.textContent("#plResKv"), /Base: acero sobre acero/);
+    await page.selectOption("#altSel", "B"); await settle(page);
+    assert.match(await page.textContent("#plResKv"), /UHMW/, "el resumen sigue a #altSel");
+    assert.ok((await page.$$eval("#plParams tr td.form", (td) => td.map((x) => x.textContent))).includes("opt_uhmw"));
     await page.fill("#p_W_tf", "250"); await settle(page);
-    assert.equal(await page.getAttribute("#plJuego", "data-estado"), "no-coincide");
-    const txt = await page.textContent("#plJuego");
-    assert.match(txt, /no corresponden a los parámetros actuales/);
-    const filas = await page.$$eval("#plDif tr", (trs) => trs.slice(1).map((tr) => [...tr.cells].map((c) => c.textContent.trim())));
-    assert.deepEqual(filas.map((f) => f[0]), ["W_tf"], "única diferencia: W_tf");
-    assert.equal(filas[0][2], "250"); assert.equal(filas[0][3], "300"); assert.match(filas[0][1], /Capacidad nominal/);
-    assert.equal(await page.getAttribute("#plJuego", "data-cercano"), "0");
-    await page.screenshot({ path: path.join(out, "panel_planos_no_coincide.png"), fullPage: false });
-    console.log("carga 250 tf → «no corresponden», diferencias:", JSON.stringify(filas));
-    // las láminas esquemáticas siguen disponibles, rotuladas como esquemas rápidos
-    assert.match(await page.textContent('section[data-t="planos"]'), /Esquemas rápidos \(no son planos de fabricación\)/);
+    assert.ok((await page.$$eval("#plParams tr td.form", (td) => td.map((x) => x.textContent))).includes("W_tf"), "W_tf en los parámetros que se enviarán");
     await page.click("#bReset"); await settle(page);
-    // 4 bis. página abierta como archivo (origen null): el ping CORS también activa el botón
-    const pf = await ctx.newPage();
-    pf.on("pageerror", (e) => errs.push(String(e)));
-    await pf.goto("file://" + path.join(root, htmlName) + "#planos");
-    await pf.waitForSelector('#genEstado[data-srv="activo"]', { timeout: 15000 });
-    assert.equal(await pf.isEnabled("#bGen"), true, "file:// → botón Generar habilitado");
-    assert.equal(await pf.getAttribute("#plJuego", "data-juego"), "0");
-    console.log("file:// → ping CORS OK, botón Generar habilitado");
-    // sin servidor → instrucción de una línea
-    if (proc) {
-      proc.kill(); for (let i = 0; i < 40 && (await ping()); i++) await new Promise((r) => setTimeout(r, 250));
-      await pf.reload(); await pf.waitForSelector('#genEstado[data-srv="inactivo"]', { timeout: 15000 });
-      assert.match(await pf.textContent("#genEstado"), /Ejecuta Generar_planos_Tornamesa\.bat \(requiere instalar una vez con Instalar_generador_planos\.bat\)/);
-      console.log("sin servidor → instrucción del .bat OK");
+    assert.match(await page.textContent("#plResumen"), /Todos los parámetros están en su valor por defecto/);
+    console.log("servidor activo → botón habilitado; resumen de alternativa y parámetros OK");
+    // 3. historial
+    await page.waitForFunction(() => !/Leyendo salidas/.test(document.querySelector("#plHist").textContent));
+    const hist = await page.$$eval("#plHistTab tr[data-id]", (trs) => trs.map((tr) => tr.dataset.id)).catch(() => []);
+    if (hist.length) {
+      await page.click(`#plHistTab button[data-abrir="${hist[0]}"]`);
+      await page.waitForSelector(`#plVer[data-id="${hist[0]}"]`, { timeout: 60000 });
+      const r = await juego(page, ctx.request, "#plVer");
+      console.log(`historial: ${hist.length} generación(es); «Abrir» ${hist[0]} → láminas por grupo ${r.laminas.join("/")}, ${r.enlaces} enlaces servidos`);
+      if (!GENERAR) await shot(page, "panel_planos_historial.png");
+    } else console.log("historial: vacío");
+    // 4. generación real del caso por defecto
+    if (GENERAR) {
+      const t0 = Date.now();
+      await page.click("#bGen");
+      await page.waitForSelector('#genJob[data-estado="en_curso"]', { timeout: 30000 });
+      assert.equal(await page.isEnabled("#bGen"), false, "botón deshabilitado durante la generación");
+      await page.waitForFunction(() => /Dibujando/.test((document.querySelector("#genFase") || {}).textContent || ""), null, { timeout: 900000 });
+      await page.waitForTimeout(2000);
+      await shot(page, "panel_planos_generando.png");
+      console.log("generando:", (await page.textContent("#genFase")).trim());
+      await page.waitForFunction(() => { const j = document.querySelector("#genJob"); return j && j.dataset.estado !== "en_curso"; }, null, { timeout: 1800000, polling: 2000 });
+      const est = await page.getAttribute("#genJob", "data-estado");
+      if (est !== "listo") console.error(await page.textContent("#plGen"));
+      assert.equal(est, "listo", "la generación termina sin error");
+      const id = await page.getAttribute("#plVer", "data-id");
+      const r = await juego(page, ctx.request, "#plVer");
+      assert.ok(r.laminas.every((n) => n > 0), "los tres grupos tienen láminas");
+      await page.waitForSelector(`#plHistTab tr[data-id="${id}"]`, { timeout: 30000 });
+      assert.match(await page.textContent(`#plHistTab tr[data-id="${id}"]`), /= actuales/, "la generación nueva figura en el historial con los parámetros actuales");
+      assert.equal(await page.$("#plVerDif"), null, "el juego corresponde a los parámetros actuales");
+      await shot(page, "panel_planos_terminado.png");
+      console.log(`generado ${id} en ${((Date.now() - t0) / 1000).toFixed(0)} s → láminas por grupo ${r.laminas.join("/")}, ${r.enlaces} enlaces servidos`);
     }
     assert.deepEqual(errs, [], "errores de consola: " + errs.join(" | "));
     console.log("e2e Planos: OK · capturas en", out);

@@ -81,7 +81,7 @@
   $("#altSel").onchange = (e) => {
     const v = e.target.value;
     P.opt_ss = v === "A" ? 1 : 0; P.opt_uhmw = v === "B" ? 1 : 0; P.opt_bz = v[0] === "C" ? 1 : 0;
-    P.bz_conf = v[0] === "C" ? parseInt(v[1], 10) : DEF.bz_conf;   // fuera de C vuelve al valor por defecto (los juegos pre-generados A, B y Base lo usan)
+    P.bz_conf = v[0] === "C" ? parseInt(v[1], 10) : DEF.bz_conf;   // fuera de C vuelve al valor por defecto (así los planos de A, B y Base no difieren por un parámetro que solo usa C)
     buildForm(); recalc();
   };
   $("#bReset").onclick = () => { P = Object.assign({}, DEF); buildForm(); recalc(); };
@@ -746,118 +746,144 @@
   $("#pkgChk").checked = store.get(LSK) === "1";
   $("#pkgChk").addEventListener("change", () => { store.set(LSK, $("#pkgChk").checked ? "1" : "0"); renderPkg(); });
 
-  /* ---------- Planos: juegos pre-generados (Modo 1) y generador local (Modo 2) ---------- */
-  const PIDX = (typeof PLANOS_IDX !== "undefined") ? PLANOS_IDX : { juegos: [], grupos: [["generales", "Generales"], ["fabricacion", "Fabricación"], ["armado", "Armado"]] };
+  /* ---------- Planos: generación a pedido con el generador local (tools/servidor_planos.py en 127.0.0.1:8765) ---------- */
+  const PL_GRUPOS = [["generales", "Generales"], ["fabricacion", "Fabricación"], ["armado", "Armado"]];
   const GEN_URL = (location.protocol.startsWith("http") && (location.hostname === "127.0.0.1" || location.hostname === "localhost") && location.port === "8765") ? "" : "http://127.0.0.1:8765";
-  const PLAB = {}; TT.PARAM_GROUPS.forEach((g) => g.p.forEach((q) => { PLAB[q[0]] = q[1] + (q[2] ? ` [${q[2]}]` : ""); }));
-  const GEN = { srv: null, job: null, poll: null, sentP: null, err: "", pinging: false };     // srv: null = comprobando, false = inactivo, objeto = respuesta de /api/ping
-  const href = (base, f) => (base ? base + "/" : "") + String(f).split("/").map(encodeURIComponent).join("/");
+  const PLAB = {}; TT.PARAM_GROUPS.forEach((g) => g.p.forEach((q) => { PLAB[q[0]] = [q[1], q[2]]; }));
+  // srv: null = comprobando, false = no responde, objeto = respuesta de /api/ping; job = trabajo en curso o último; ver = juego mostrado (indice); hist = /api/listar
+  const GEN = { srv: null, job: null, poll: null, err: "", pinging: false, ver: null, verId: "", hist: null };
+  const href = (base, f) => GEN_URL + "/" + (base + "/" + f).split("/").map(encodeURIComponent).join("/");
   const vEq = (a, b) => (typeof a === "number" && typeof b === "number") ? Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b)) : a === b;
   const vTxt = (v) => v === undefined ? "(no existe)" : typeof v === "number" ? v.toLocaleString("es-CL", { maximumFractionDigits: 9 }) : String(v);
-  function plDiff(Pa, Pb) {
-    const ks = [...new Set([...Object.keys(Pa), ...Object.keys(Pb)])];
-    return ks.filter((k) => !vEq(Pa[k], Pb[k])).map((k) => ({ k, a: Pa[k], b: Pb[k] }));
-  }
-  function plMatch() {
-    let best = null;
-    PIDX.juegos.forEach((j) => { const d = plDiff(P, j.P); if (!best || d.length < best.d.length) best = { j, d }; });
-    return best;
-  }
-  const jName = (j) => (j.id === "0" ? "Base" : j.id) + " · " + j.interfaz + (j.madera ? " · cubierta de madera" : "");
-  /* juego desde indice_planos.json (resultado del generador local) → misma forma compacta del índice incrustado */
-  function jFromIndice(ix) {
-    const gids = PIDX.grupos.map((g) => g[0]), pdf = {};
-    gids.forEach((g) => { pdf[g] = ix.grupos[g] ? ix.grupos[g].pdf : null; });
-    const ar = {}; Object.keys(ix.archivos || {}).forEach((k) => { if (ix.archivos[k]) ar[k] = ix.archivos[k]; });
-    return { id: "local", carpeta: ix.carpeta, interfaz: ix.interfaz, madera: ix.madera, pdf, archivos: ar,
-      laminas: ix.laminas.map((l) => [l.codigo, l.titulo, gids.indexOf(l.grupo), l.pdf ? 1 : 0, l.dxf ? 1 : 0]) };
-  }
-  function plCards(j) {
-    const b = j.carpeta, short = (c) => c.replace(/^TT300C-/, "");
-    const cards = PIDX.grupos.map(([gid, gt], gi) => {
-      const ls = j.laminas.filter((l) => l[2] === gi);
-      const rows = ls.map((l) => `<tr><td>${esc(short(l[0]))}</td><td>${esc(l[1])}</td><td>${l[3] ? `<a href="${esc(href(b, "planos/" + l[0] + ".pdf"))}" target="_blank" rel="noopener">PDF</a>` : "—"}${l[4] ? ` · <a href="${esc(href(b, "planos/" + l[0] + ".dxf"))}" download>DXF</a>` : ""}</td></tr>`).join("");
+  const plDiff = (Pa, Pb) => [...new Set([...Object.keys(Pa), ...Object.keys(Pb)])].filter((k) => !vEq(Pa[k], Pb[k]));
+  const altLabel = () => { const o = $("#altSel"); return o && o.selectedOptions[0] ? o.selectedOptions[0].textContent : ""; };
+  function plCards(ix) {
+    const b = ix.carpeta, short = (c) => c.replace(/^TT300C-/, ""), a = ix.archivos || {};
+    const cards = PL_GRUPOS.map(([gid, gt]) => {
+      const ls = ix.laminas.filter((l) => l.grupo === gid), g = ix.grupos[gid] || {};
+      const rows = ls.map((l) => `<tr><td>${esc(short(l.codigo))}</td><td>${esc(l.titulo)}</td><td>${l.pdf ? `<a href="${esc(href(b, l.pdf))}" target="_blank" rel="noopener">PDF</a>` : "—"}${l.dxf ? ` · <a href="${esc(href(b, l.dxf))}" download>DXF</a>` : ""}</td></tr>`).join("");
       return `<div class="card pl-grp" data-g="${gid}"><h3>${esc(gt)}</h3><div class="big">${ls.length} <span class="ref">láminas</span></div>
-        <div class="btns">${j.pdf[gid] ? `<a class="btn pri" data-pdf="${gid}" href="${esc(href(b, j.pdf[gid]))}" target="_blank" rel="noopener">PDF ${esc(gt)}</a>` : `<span class="note">PDF del grupo no disponible: ejecute tools/indice_planos.py</span>`}</div>
+        <div class="btns">${g.pdf ? `<a class="btn pri" data-pdf="${gid}" href="${esc(href(b, g.pdf))}" target="_blank" rel="noopener">PDF ${esc(gt)}</a>` : `<span class="note">Sin PDF del grupo</span>`}</div>
         <details><summary>Lista de láminas (${ls.length})</summary><div class="scroll"><table><tr><th>Plano</th><th>Título</th><th>Archivo</th></tr>${rows}</table></div></details></div>`;
     }).join("");
-    const a = j.archivos, lk = (k, t, dl) => a[k] ? `<a data-f="${k}" href="${esc(href(b, a[k]))}"${dl ? " download" : ' target="_blank" rel="noopener"'}>${t}</a>` : "";
-    const dxf = a.dxf_zip ? lk("dxf_zip", "DXF de todas las láminas (.zip)", 1) : `<span class="ref">DXF: no incluido en este juego (solo en el juego Base; el generador local también lo entrega)</span>`;
+    const lk = (k, t, dl) => a[k] ? `<a data-f="${k}" href="${esc(href(b, a[k]))}"${dl ? " download" : ' target="_blank" rel="noopener"'}>${t}</a>` : "";
     return `<div class="grid">${cards}</div>
-      <div class="pl-files"><b>Otros archivos:</b>${lk("combinado", "PDF combinado (todas las láminas)")}${lk("despiece_xlsx", "Despiece XLSX", 1)}${lk("step", "Modelo 3D STEP", 1)}${dxf}${lk("informe", "Informe del paquete")}</div>
+      <div class="pl-files"><b>Otros archivos:</b>${lk("combinado", "PDF combinado (todas las láminas)")}${lk("despiece_xlsx", "Despiece XLSX", 1)}${lk("step", "Modelo 3D STEP", 1)}${lk("dxf_zip", "DXF de todas las láminas (.zip)", 1)}${lk("informe", "Informe del paquete")}</div>
       <div class="note">Carpeta: <span class="form">${esc(b)}/</span></div>`;
   }
-  function renderPlanos() {
-    const el = $("#plJuego"); if (!el) return;
-    if (!PIDX.juegos.length) { el.innerHTML = `<div class="msg warn">Esta copia de la herramienta no trae el índice de planos pre-generados.</div>`; el.dataset.juego = ""; renderGen(); return; }
-    const m = plMatch();
-    if (m.d.length === 0) {
-      el.dataset.juego = m.j.id; el.dataset.estado = "coincide";
-      el.innerHTML = `<div class="msg ok"><b>Planos pre-generados coincidentes</b> con los parámetros actuales: juego <b>${esc(jName(m.j))}</b> (${m.j.laminas.length} láminas, Rev. ${esc(PIDX.rev || "C")}).</div>` + plCards(m.j);
-    } else {
-      el.dataset.juego = ""; el.dataset.estado = "no-coincide"; el.dataset.cercano = m.j.id;
-      el.innerHTML = `<div class="msg warn"><b>Los planos pre-generados no corresponden a los parámetros actuales.</b> El juego más cercano es <b>${esc(jName(m.j))}</b>; difiere en ${m.d.length} parámetro${m.d.length > 1 ? "s" : ""}:</div>
-        <div class="card scroll"><table id="plDif"><tr><th>Parámetro</th><th>Nombre</th><th class="n">Valor actual</th><th class="n">Valor del juego</th></tr>
-        ${m.d.map((x) => `<tr><td class="form">${esc(x.k)}</td><td>${esc(PLAB[x.k] || "")}</td><td class="n">${esc(vTxt(x.a))}</td><td class="n">${esc(vTxt(x.b))}</td></tr>`).join("")}</table></div>
-        <div class="note">Use el <b>generador local</b> (abajo) para obtener los planos de estos parámetros, o vuelva a los del juego con «Valores por defecto» y el selector de alternativa.</div>`;
-    }
-    renderGen();
+  function renderPlanos() { renderSrv(); renderResumenPl(); renderGen(); renderHist(); }
+  /* estado del generador e instrucciones de instalación */
+  function renderSrv() {
+    const el = $("#plSrv"); if (!el) return;
+    const s = GEN.srv;
+    el.innerHTML = `<h3>Generador local de planos</h3>` + (s === null ? `<div class="note" id="genEstado" data-srv="comprobando">Comprobando si el generador local está activo en 127.0.0.1:8765…</div>`
+      : s === false ? `<div class="msg warn" id="genEstado" data-srv="inactivo"><b>El generador local no responde.</b> Los planos se generan a pedido en este equipo:</div>
+        <ol class="pl-pasos" id="genInstr"><li><b>Una sola vez:</b> ejecute <span class="form">Instalar_generador_planos.bat</span> (carpeta del repositorio). Busca Python 3.12 o 3.11 (si falta, indica cómo instalarlo desde python.org), crea <span class="form">.venv-planos</span> e instala los paquetes; tarda varios minutos.</li>
+        <li><b>Cada vez:</b> ejecute <span class="form">Generar_planos_Tornamesa.bat</span> y deje abierta su ventana. Abre esta herramienta desde http://127.0.0.1:8765.</li>
+        <li>Vuelva a esta pestaña y pulse «Volver a comprobar».</li></ol>
+        <div class="btns"><button id="bGenPing">Volver a comprobar</button></div>`
+      : `<div class="msg ok" id="genEstado" data-srv="activo">Generador local activo (${esc(s.servidor || "127.0.0.1:8765")}${s.python ? " · Python " + esc(s.python) : ""}).</div>
+        <div class="note">Los juegos generados quedan en la carpeta <span class="form">salidas/</span> del repositorio y se sirven desde el generador local.</div>`);
+    const bp = $("#bGenPing"); if (bp) bp.onclick = () => { GEN.srv = null; renderSrv(); renderGen(); genPing(); };
   }
-  /* ---- Modo 2: servidor local tools/servidor_planos.py ---- */
+  /* alternativa y parámetros que se enviarán */
+  function renderResumenPl() {
+    const el = $("#plResumen"); if (!el) return;
+    const ch = Object.keys(DEF).filter((k) => !vEq(P[k], DEF[k]));
+    let h = `<h3>Lo que se enviará al generador</h3>`;
+    if (!A) { el.innerHTML = h + `<div class="msg error" id="plResEstado">Corrija los datos marcados: con datos inválidos no se pueden generar planos.</div>`; return; }
+    const R = A.R, v = A.verdict;
+    h += `<div class="kv" id="plResKv"><span>Alternativa</span><span>${esc(altLabel())}</span>
+      <span>Interfaz de giro</span><span>${esc(PLANOS.ifaceName(P, R.ifc))}</span><span>Fijación</span><span>${esc(PLANOS.fixText(P, R.ifc))}</span><span>Cubierta</span><span>${esc(PLANOS.woodText(P))}</span>
+      <span>Capacidad / masa total</span><span>${fmt(P.W_tf, 3)} tf / ${fmt(R.m.total, 4)} kg</span>
+      <span>¿Gira? / ¿Estructura?</span><span>${v.gira ? "sí" : "NO"} / ${v.estructura ? "cumple" : "NO cumple"}</span></div>`;
+    if (!(v.gira && v.estructura)) h += `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador se negará a emitir planos.</div>`;
+    h += `<details${ch.length && ch.length <= 8 ? " open" : ""}><summary>Parámetros distintos de los valores por defecto (${ch.length} de ${Object.keys(DEF).length})</summary>${ch.length ? `<div class="scroll"><table id="plParams"><tr><th>Parámetro</th><th>Nombre</th><th class="n">Valor</th><th class="n">Por defecto</th></tr>
+      ${ch.map((k) => `<tr><td class="form">${esc(k)}</td><td>${esc(PLAB[k] ? PLAB[k][0] : "")}${PLAB[k] && PLAB[k][1] && PLAB[k][1] !== "–" ? ` <span class="ref">[${esc(PLAB[k][1])}]</span>` : ""}</td><td class="n">${esc(vTxt(P[k]))}</td><td class="n">${esc(vTxt(DEF[k]))}</td></tr>`).join("")}</table></div>` : `<div class="note">Todos los parámetros están en su valor por defecto.</div>`}</details>
+      <div class="note">Se envía el JSON de diseño completo (el mismo de <span class="form">node tools/export_design.js</span>): ${Object.keys(DEF).length} parámetros más los resultados del cálculo.</div>`;
+    el.innerHTML = h;
+  }
+  /* ---- llamadas al servidor ---- */
   function genFetch(path, opt, ms) {
     const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 2500);
     return fetch(GEN_URL + path, Object.assign({ cache: "no-store", signal: ac.signal }, opt || {})).then((r) => r.json().then((j) => { clearTimeout(t); if (!r.ok) { const e = new Error(j.error || ("HTTP " + r.status)); e.data = j; throw e; } return j; }));
   }
   function genPing() {
     GEN.pinging = true;
-    return genFetch("/api/ping").finally(() => { GEN.pinging = false; }).then((j) => { GEN.srv = j; if (j.trabajo && !GEN.job) { GEN.job = j.trabajo; if (j.trabajo.estado === "en_curso") genPoll(); } }).catch(() => { GEN.srv = false; }).then(renderGen);
+    return genFetch("/api/ping").finally(() => { GEN.pinging = false; }).then((j) => {
+      GEN.srv = j;
+      if (j.trabajo && !GEN.job) { GEN.job = j.trabajo; if (j.trabajo.estado === "en_curso") genPoll(); }
+      genHist();
+    }).catch(() => { GEN.srv = false; GEN.hist = null; }).then(() => { renderSrv(); renderGen(); renderHist(); });
+  }
+  function genHist() {
+    return genFetch("/api/listar", null, 5000).then((j) => { GEN.hist = j.salidas || []; }).catch(() => { GEN.hist = null; }).then(renderHist);
   }
   function genPoll() {
     clearInterval(GEN.poll);
     GEN.poll = setInterval(() => {
       if (!GEN.job) { clearInterval(GEN.poll); return; }
-      genFetch("/api/estado?id=" + encodeURIComponent(GEN.job.id)).then((j) => { GEN.job = j; if (j.estado !== "en_curso") clearInterval(GEN.poll); renderGen(); })
-        .catch(() => { GEN.srv = false; clearInterval(GEN.poll); renderGen(); });
+      genFetch("/api/estado?id=" + encodeURIComponent(GEN.job.id)).then((j) => {
+        GEN.job = j;
+        if (j.estado !== "en_curso") { clearInterval(GEN.poll); if (j.indice) { GEN.ver = j.indice; GEN.verId = j.id; } genHist(); }
+        renderGen();
+      }).catch(() => { GEN.srv = false; clearInterval(GEN.poll); renderSrv(); renderGen(); });
     }, 1500);
   }
   function genStart() {
     GEN.err = "";
     let body;
     try { body = PLANOS.designJSON(PLANOS.buildDesign(P, A)); } catch (err) { GEN.err = "No se pudo armar el JSON de diseño: " + err.message; renderGen(); return; }
-    GEN.sentP = JSON.stringify(P);
     genFetch("/api/generar", { method: "POST", headers: { "Content-Type": "application/json" }, body }, 15000)
-      .then((j) => { GEN.job = j; genPoll(); renderGen(); })
+      .then((j) => { GEN.job = j; GEN.ver = null; GEN.verId = ""; genPoll(); renderGen(); })
       .catch((err) => { GEN.err = err.message; if (err.data && err.data.trabajo) { GEN.job = err.data.trabajo; genPoll(); } renderGen(); });
   }
+  function genAbrir(id) {
+    GEN.err = "";
+    genFetch("/api/salida?id=" + encodeURIComponent(id), null, 60000).then((ix) => { GEN.ver = ix; GEN.verId = id; renderGen(); const r = $("#plVer"); if (r && r.scrollIntoView) r.scrollIntoView({ block: "nearest" }); })
+      .catch((err) => { GEN.err = "No se pudo abrir la generación " + id + ": " + err.message; renderGen(); });
+  }
+  /* botón, avance y resultado */
   function renderGen() {
     const el = $("#plGen"); if (!el) return;
-    const s = GEN.srv, jb = GEN.job;
-    let h = `<h3>Generador local (Modo 2) · planos con los parámetros actuales</h3>`;
-    if (s === null) h += `<div class="note" id="genEstado" data-srv="comprobando">Comprobando si el generador local está activo…</div>`;
-    else if (s === false) h += `<div class="msg warn" id="genEstado" data-srv="inactivo">Generador local no activo. Ejecuta Generar_planos_Tornamesa.bat (requiere instalar una vez con Instalar_generador_planos.bat)</div>
-      <div class="btns"><button id="bGenPing">Volver a comprobar</button></div>`;
-    else {
-      const busy = jb && jb.estado === "en_curso";
-      h += `<div class="msg ok" id="genEstado" data-srv="activo">Generador local activo (${esc(s.servidor || "127.0.0.1:8765")}${s.python ? " · Python " + esc(s.python) : ""}).</div>
-        ${A && !(A.verdict.gira && A.verdict.estructura) ? `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador se negará a emitir planos.</div>` : ""}
-        <div class="btns"><button class="pri" id="bGen"${busy || !A ? " disabled" : ""}>Generar planos con los parámetros actuales</button></div>
-        <div class="note">Tarda varios minutos (modelo 3D, ${PIDX.juegos.length ? "≈ 45–55" : "todas las"} láminas PDF y DXF, despiece y controles de calidad). El resultado queda en la carpeta <span class="form">salidas/</span> del repositorio.</div>`;
-    }
-    if (GEN.err) h += `<div class="msg error">No se pudo iniciar la generación: ${esc(GEN.err)}</div>`;
+    const s = GEN.srv, jb = GEN.job, busy = !!(jb && jb.estado === "en_curso");
+    let h = `<h3>Generar planos con los parámetros actuales</h3>
+      <div class="btns"><button class="pri" id="bGen"${busy || !A || !s ? " disabled" : ""}>Generar planos</button></div>`;
+    if (!s) h += `<div class="note">${s === null ? "Comprobando el generador local…" : "Requiere el generador local activo (vea las instrucciones arriba)."}</div>`;
+    else h += `<div class="note">Tarda unos 4 a 6 minutos: modelo 3D, láminas PDF y DXF, despiece y controles de calidad.</div>`;
+    if (GEN.err) h += `<div class="msg error">${esc(GEN.err)}</div>`;
     if (jb) {
-      const pc = Math.round(100 * (jb.progreso || 0)), changed = jb.P ? plDiff(P, jb.P).length > 0 : (GEN.sentP && GEN.sentP !== JSON.stringify(P));   // P con que se generó (lo devuelve el servidor)
-      h += `<div class="kv" style="margin-top:8px"><span>Trabajo</span><span>${esc(jb.id)}</span><span>Alternativa</span><span>${esc(jb.alternativa || "")}</span><span>Estado</span><span id="genJob" data-estado="${esc(jb.estado)}">${esc({ en_curso: "en curso", listo: "terminado", error: "error" }[jb.estado] || jb.estado)}${jb.duracion_s != null ? ` · ${fmt(jb.duracion_s, 3)} s` : ""}</span></div>`;
-      if (jb.estado === "en_curso") h += `<div class="prog"><i style="width:${pc}%"></i></div><div class="busy">${esc(jb.fase || "")} · ${pc} % (estimado)</div>`;
+      const pc = Math.round(100 * (jb.progreso || 0));
+      h += `<div class="kv" style="margin-top:8px"><span>Trabajo</span><span>${esc(jb.id)}</span><span>Estado</span><span id="genJob" data-estado="${esc(jb.estado)}">${esc({ en_curso: "en curso", listo: "terminado", error: "error" }[jb.estado] || jb.estado)}${jb.duracion_s != null ? ` · ${fmt(jb.duracion_s, 3)} s` : ""}</span></div>`;
+      if (busy) h += `<div class="prog"><i style="width:${pc}%"></i></div><div class="busy" id="genFase">${esc(jb.fase || "")} · ${pc} % (estimado)</div>`;
       if (jb.estado === "error") h += `<div class="msg error"><b>El generador terminó con error${jb.codigo != null ? ` (código ${esc(jb.codigo)})` : ""}:</b><pre>${esc(jb.mensaje || "")}</pre></div>`;
-      if (changed && jb.estado !== "en_curso") h += `<div class="msg warn">Los parámetros cambiaron después de generar este juego: no corresponde a los parámetros actuales.</div>`;
-      if (jb.indice) h += (jb.estado === "error" ? `<div class="msg warn">Se emitieron archivos, pero no pasaron todos los controles: revíselos antes de usarlos.</div>` : `<div class="msg ok">Planos generados en <span class="form">${esc(jb.indice.carpeta)}/</span>.</div>`) + plCards(jFromIndice(jb.indice));
-      if (jb.log && jb.log.length) h += `<details${jb.estado === "en_curso" ? " open" : ""}><summary>Registro del generador (${jb.log.length} líneas)</summary><pre class="log" id="genLog">${esc(jb.log.join("\n"))}</pre></details>`;
+      if (jb.log && jb.log.length) h += `<details${busy ? " open" : ""}><summary>Registro del generador (${jb.log.length} líneas)</summary><pre class="log" id="genLog">${esc(jb.log.join("\n"))}</pre></details>`;
+    }
+    if (GEN.ver) {
+      const ix = GEN.ver, dif = ix.P ? plDiff(P, ix.P) : null, err = jb && jb.id === GEN.verId && jb.estado === "error";
+      h += `<div id="plVer" data-id="${esc(GEN.verId)}">` + (err ? `<div class="msg warn">Se emitieron archivos, pero no pasaron todos los controles: revíselos antes de usarlos.</div>` : `<div class="msg ok">Juego <b>${esc(GEN.verId)}</b>: ${ix.laminas.length} láminas${ix.interfaz ? " · " + esc(ix.interfaz) : ""}${ix.madera ? " · cubierta de madera" : ""}.</div>`)
+        + (dif && dif.length ? `<div class="msg warn" id="plVerDif">Este juego no corresponde a los parámetros actuales (difiere en ${dif.length}: ${esc(dif.slice(0, 8).join(", "))}${dif.length > 8 ? "…" : ""}).</div>` : "")
+        + plCards(ix) + `</div>`;
     }
     const lg = $("#genLog"), atEnd = !lg || lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 4;
     el.innerHTML = h;
     const lg2 = $("#genLog"); if (lg2 && atEnd) lg2.scrollTop = lg2.scrollHeight;
-    const bp = $("#bGenPing"); if (bp) bp.onclick = () => { GEN.srv = null; renderGen(); genPing(); };
     const bg = $("#bGen"); if (bg) bg.onclick = genStart;
+  }
+  /* historial de salidas/ */
+  function renderHist() {
+    const el = $("#plHist"); if (!el) return;
+    let h = `<h3>Generaciones anteriores (salidas/)</h3>`;
+    if (!GEN.srv) h += `<div class="note">Disponible con el generador local activo.</div>`;
+    else if (GEN.hist === null) h += `<div class="note">Leyendo salidas/…</div>`;
+    else if (!GEN.hist.length) h += `<div class="note" id="plHistVacio">Todavía no hay planos generados.</div>`;
+    else h += `<div class="scroll"><table id="plHistTab"><tr><th>Generación</th><th>Alternativa</th><th class="n">Láminas</th><th>Parámetros</th><th></th></tr>
+      ${GEN.hist.map((x) => { const d = x.P ? plDiff(P, x.P).length : -1; return `<tr data-id="${esc(x.id)}"><td class="form">${esc(x.id)}</td><td>${esc(x.interfaz || x.alternativa || "")}${x.madera ? " · madera" : ""}</td><td class="n">${x.laminas != null ? x.laminas : "—"}</td>
+        <td>${d === 0 ? `<span class="st st-ok">= actuales</span>` : d > 0 ? `<span class="st st-info">difiere en ${d}</span>` : "—"}</td><td><button data-abrir="${esc(x.id)}"${GEN.verId === x.id ? " class=\"pri\"" : ""}>Abrir</button></td></tr>`; }).join("")}</table></div>
+      <div class="btns"><button id="bHist">Actualizar lista</button></div>`;
+    el.innerHTML = h;
+    el.querySelectorAll("button[data-abrir]").forEach((b) => { b.onclick = () => genAbrir(b.dataset.abrir); });
+    const bh = $("#bHist"); if (bh) bh.onclick = genHist;
   }
 
   function renderAll() {

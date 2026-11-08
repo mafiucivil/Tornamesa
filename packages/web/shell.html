@@ -100,6 +100,8 @@ a.btn.off{opacity:.5;pointer-events:none}
 .pl-grp .big{font-size:22px}
 .pl-grp details{margin:8px 0 0}
 .pl-grp td a,.pl-files a{color:var(--acc)}
+.pl-pasos{margin:6px 0;padding-left:20px;font-size:12.5px}.pl-pasos li{margin:3px 0}
+#plResumen details{margin:8px 0 4px}
 .pl-files{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin:10px 0 2px}
 pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:11.5px/1.4 var(--mono);color:var(--ink2);white-space:pre-wrap;margin:6px 0}
 .msg pre{margin:4px 0 0;white-space:pre-wrap;font:12px/1.4 var(--mono)}
@@ -143,8 +145,9 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
     <section class="tab" data-t="masa" data-l="Masas"></section>
     <section class="tab" data-t="planos" data-l="Planos">
       <div class="msg error pl-adv" id="plAdv"><b>ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.</b></div>
-      <div id="plJuego"></div>
+      <div class="grid"><div class="card" id="plSrv"></div><div class="card" id="plResumen"></div></div>
       <div class="card pl-sec" id="plGen"></div>
+      <div class="card pl-sec" id="plHist"></div>
       <div class="card pl-sec"><h3>Esquemas rápidos (no son planos de fabricación)</h3>
         <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera en el navegador 5 láminas esquemáticas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Esquemas rápidos en el navegador (DXF · CSV · JSON · 5 láminas)</label><input id="pkgChk" type="checkbox"></div>
         <div class="pkg" id="pkgPanel" hidden></div>
@@ -161,7 +164,6 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
 /*@@CORE@@*/
 /*@@AGENTS@@*/
 /*@@PLANOS@@*/
-/*@@PLANOS_IDX@@*/
 /*@@UI@@*/
 </script>
 </body>

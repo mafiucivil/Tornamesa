@@ -1253,65 +1253,33 @@ bullets(["Enerpac, ETT-Series Hydraulic Turntables, ficha técnica (EN-GB): http
          "KIET: plano de conjunto KIET-1024-REF-TT-400T y manual de la bomba (análisis del 30-10-2026, docs/referencias).",
          "Hydra-Slide: texto del video del fabricante (8′ × 8′ × 6″, 250 y 500 ton); sin ficha técnica de masa ni cilindros."])
 
-# ================================================================= 14. PLANOS (paquete Rev. C)
-INF = (ENTREGA / "informe_paquete.md").read_text(encoding="utf-8")        # informe del generador de planos (último commit o regeneración del paquete)
-_m = re.search(r"## Láminas \((\d+)\)\n\n(.*?)\n\n", INF, re.S)
-LAM = [[c.strip() for c in ln.strip("|").split("|")] for ln in _m.group(2).splitlines()[2:]]          # N°, Plano, Título, Escala
-assert len(LAM) == int(_m.group(1)), "el informe de planos no cuadra con su propio conteo de láminas"
-_mi = re.search(r"## Ítems \((\d+)\)", INF)
-_mc = re.search(r"(\d+) cotas registradas; (\d+) verificadas.*?\*\*(\d+) fallas\*\*", INF)
-_mf = re.search(r"(\d+) pares con volumen común .*? de (\d+) pares evaluados", INF)
-_mg = re.search(r"Generado el ([\d-]+)", INF)
+# ================================================================= 14. PLANOS (paquete Rev. C, generado a pedido)
+# Los juegos de planos ya no se guardan en el repositorio: se generan a pedido con el generador local (tools/servidor_planos.py, pestaña «Planos» de la herramienta).
+# Este capítulo describe el juego y cómo obtenerlo; no lee archivos de entregables/ ni de salidas/.
 SER = {"GEN": "Generales: notas, normas e índice; inspección; tolerancias y ajustes ISO 286; materiales; tratamientos; soldaduras; torques y compras; supuestos y brechas; cortes de plancha; lista de verificación",
-       "CON": "Conjunto general, despiece, explosionada, secuencia y subconjuntos (base, ménsula, mesa, accionamiento, pivote)",
+       "CON": "Conjunto general, despiece, explosionadas, instructivo de armado por pasos y subconjuntos (base, ménsula, mesa, accionamiento, pivote, interfaz)",
        "BAS": "Piezas de la base (plancha, collar, marco, ménsula)", "IZA": "Orejas de izaje", "ACC": "Accionamiento: bancada, cilindro, patín, uña y pasadores de articulación",
        "MES": "Piezas de la mesa (planchas, anillos, almas, nervios, cubo y pasadores de empuje)", "PIV": "Pivote, buje y tapas",
-       "INT": "Interfaz de giro (discos, sectores, topes, tapones de grafito, ranuras y fijaciones)", "MAD": "Cubierta de madera"}
-series = {}
-for ln in LAM:
-    ser = ln[1].split("-")[1]; series.setdefault(ser, []).append(ln)
-H("14. Planos asociados (paquete Rev. C)")
-T("Hipótesis. El paquete de planos de fabricación Rev. C (nomenclatura TT300C-SSS-nnn-C, con SSS la serie y C la revisión) se genera con el mismo JSON del núcleo que esta memoria (tools/export_design.js): "
-  "planos y cálculo no tienen valores a mano distintos. Los datos de este capítulo salen de entregables/RevC/informe_paquete.md"
-  + (f" (generado el {_mg.group(1)})" if _mg else "") + ". Estado: emitido para revisión; NO válido para fabricación hasta su revisión y aprobación por un ingeniero calculista habilitado.", size=9)
-table(["Magnitud", "Valor"], [
-    ["Láminas del diseño por defecto (interfaz acero–acero con grasa)", pint(len(LAM))],
-    ["Series", ", ".join(f"{k} ({len(v)})" for k, v in series.items())],
-    ["Ítems del despiece", pint(int(_mi.group(1))) if _mi else "—"],
-    ["Cotas verificadas contra el sólido 3D", f"{pint(int(_mc.group(2)))} de {pint(int(_mc.group(1)))}; fallas: {pint(int(_mc.group(3)))}" if _mc else "—"],
-    ["Interferencias del modelo 3D", f"{pint(int(_mf.group(1)))} pares con volumen común de {pint(int(_mf.group(2)))} evaluados" if _mf else "—"],
-    ["Variantes por alternativa (mismo juego completo)", pint(sum(1 for p in (ENTREGA / "variantes").iterdir() if p.is_dir())) + " carpetas en entregables/RevC/variantes (tabla siguiente)"],
-    ["Carpetas y archivos", "entregables/RevC/planos (PDF y DXF por lámina), TT300-C_Planos_RevC.pdf, TT300-C_DXF_RevC.zip, TT300-C.step, TT300-C.glb, despiece, soldaduras, lista de cortes, informe_paquete.md"],
-], widths=(70, 100), size=8.5)
-T("Desarrollo. Series y su relación con los capítulos de la memoria:", bold=True, size=9, after=1)
+       "INT": "Interfaz de giro (discos, sectores, topes, tapones de grafito, ranuras y fijaciones); solo en las alternativas A, B y C", "MAD": "Cubierta de madera; solo con la cubierta"}
 REL = {"GEN": "Capítulos 2, 12 y Anexo A (normas, tolerancias, soldaduras, brechas con el cálculo, lista de verificación)", "CON": "Capítulos 3, 5, 7 y 8", "BAS": "Capítulos 5 y 8 (base)", "IZA": "9.4 (orejas de izaje)",
        "ACC": "Capítulo 7 y grupos Patín y guía, Uña, Articulaciones del capítulo 8", "MES": "Capítulos 5 y 8 (mesa, pasadores de empuje)", "PIV": "Capítulos 6 y 9.3 (pivote, collar, buje)",
        "INT": "Capítulos 6, 9.1 a 9.2 y 9.7 (interfaz, topes y tapones de grafito: patrón S09 con N_real)", "MAD": "9.6 (cubierta de madera)"}
-table(["Serie", "Contenido", "Láminas", "Relación con la memoria"],
-      [[k, SER.get(k, "—"), pint(len(v)), REL.get(k, "—")] for k, v in series.items()], widths=(14, 78, 16, 62), size=8, num_cols=(2,))
-VAR_NOM = {"A": "A: discos inox con grasa", "AF2": "A pegado (fijación permanente, fix_mode = 2)", "B": "B: discos inox + lámina UHMW", "C1": "C1: bronce con grafito + disco duro",
-           "C2": "C2: dos placas de bronce", "C3": "C3: bronce en pastillas + disco duro", "W": "Madera: base + cubierta con anillo"}
-rows = []
-for vd_ in sorted(p for p in (ENTREGA / "variantes").iterdir() if p.is_dir()):
-    ip = vd_ / "informe_paquete.md"
-    if not ip.exists():
-        continue
-    tx = ip.read_text(encoding="utf-8")
-    ml = re.search(r"## Láminas \((\d+)\)\n\n(.*?)\n\n", tx, re.S)
-    mc = re.search(r"(\d+) cotas registradas; (\d+) verificadas.*?\*\*(\d+) fallas\*\*", tx)
-    if not ml:
-        continue
-    nint = sum(1 for ln_ in ml.group(2).splitlines()[2:] if "-INT-" in ln_)
-    rows.append([vd_.name, VAR_NOM.get(vd_.name, vd_.name), ml.group(1), str(nint), f"{mc.group(2)} de {mc.group(1)}; fallas {mc.group(3)}" if mc else "—"])
-if rows:
-    T("Variantes por alternativa (mismo juego completo, con las láminas de interfaz de la serie INT):", size=9, after=1)
-    table(["Variante", "Alternativa dibujada", "Láminas", "De ellas INT", "Cotas verificadas"], rows, widths=(18, 80, 18, 20, 34), size=8, num_cols=(2, 3))
-if "INT" not in series:
-    T("Nota: el diseño por defecto (interfaz acero–acero con grasa) no tiene láminas de la serie INT; la interfaz de cada alternativa se dibuja en su variante.", size=9)
-T("Índice de láminas del diseño por defecto:", bold=True, size=9, after=1)
-table(["N°", "Plano", "Título", "Escala"], [[l[0], l[1], l[2], l[3]] for l in LAM], widths=(8, 34, 96, 32), size=7, num_cols=(0,))
-T("Resultado: el juego de planos Rev. C tiene " + pint(len(LAM)) + " láminas" + (f" y {pint(int(_mc.group(2)))} cotas verificadas contra el modelo 3D sin fallas" if _mc and int(_mc.group(3)) == 0 else "") +
-  ". Los datos que el cálculo aún no define (WPS, sistema de pintura, grado del material, catálogo del proveedor, firmas) se rotulan «A DEFINIR» en cada lámina; las brechas y las decisiones requeridas están en la lámina TT300C-GEN-009-C y en informe_paquete.md. "
+H("14. Planos asociados (paquete Rev. C, generado a pedido)")
+T("Hipótesis. El paquete de planos de fabricación Rev. C (nomenclatura TT300C-SSS-nnn-C, con SSS la serie y C la revisión) se genera a pedido para la alternativa y los parámetros elegidos en la herramienta, "
+  "con el mismo JSON del núcleo que esta memoria (tools/export_design.js): planos y cálculo no tienen valores a mano distintos. El repositorio no guarda juegos de planos; el juego se obtiene con el generador local "
+  "(Generar_planos_Tornamesa.bat, pestaña «Planos» de la herramienta, botón «Generar planos») y queda en salidas/<fecha-hora>_<alternativa>/. "
+  "Estado: emitido para revisión; NO válido para fabricación hasta su revisión y aprobación por un ingeniero calculista habilitado.", size=9)
+table(["Magnitud", "Valor"], [
+    ["Cómo se obtiene", "Una vez: Instalar_generador_planos.bat (Python 3.12/3.11 y requirements-planos.txt). Luego: Generar_planos_Tornamesa.bat y, en la pestaña «Planos», «Generar planos» (unos 4 a 6 minutos)"],
+    ["Grupos del juego", "Generales (GEN-*, CON-001 a CON-003, despiece completo), Fabricación (subconjuntos soldados, interfaz y piezas) y Armado (explosionadas, secuencia e instructivo de armado), cada uno en su PDF"],
+    ["Archivos del juego", "PDF por lámina y por grupo, PDF combinado con marcadores, DXF por lámina y ZIP, modelo 3D STEP/GLB, despiece CSV/XLSX, soldaduras, lista de cortes, controles de cotas y de completitud, informe_paquete.md y lista de verificación del revisor"],
+    ["Controles que condicionan la emisión", "El generador se niega a emitir (código ≠ 0) si el diseño no gira, la estructura no cumple, hay interferencias en el 3D, cotas que no coinciden con el sólido, textos superpuestos, entidades fuera del marco o cadenas de cotas defectuosas"],
+], widths=(55, 115), size=8.5)
+T("Desarrollo. Series de láminas y su relación con los capítulos de la memoria:", bold=True, size=9, after=1)
+table(["Serie", "Contenido", "Relación con la memoria"],
+      [[k, SER[k], REL[k]] for k in SER], widths=(14, 92, 64), size=8)
+T("Resultado: el juego de planos Rev. C se emite a pedido, para la alternativa y los parámetros vigentes, con el índice de láminas en TT300C-GEN-001-C y el detalle de controles en informe_paquete.md del propio juego. "
+  "Los datos que el cálculo aún no define (WPS, sistema de pintura, grado del material, catálogo del proveedor, firmas) se rotulan «A DEFINIR» en cada lámina; las brechas y las decisiones requeridas están en la lámina TT300C-GEN-009-C. "
   "Los torques de pernos son propuesta, a confirmar por el calculista (TT300C-GEN-008-C).", bold=True, size=9)
 
 # ================================================================= ANEXO A

@@ -1,8 +1,8 @@
 """Índice de un juego de planos TT300-C y PDF por grupo (Generales · Fabricación · Armado).
 
 Uso:
-    python3 tools/indice_planos.py                 # todos los juegos de entregables/RevC (raíz y variantes/*)
-    python3 tools/indice_planos.py CARPETA [...]   # solo esas carpetas (p. ej. salidas/2026-11-07_1530_base)
+    python3 tools/indice_planos.py CARPETA [...]   # p. ej. salidas/2026-11-07_153526_base (lo corre tools/servidor_planos.py tras generar)
+    python3 tools/indice_planos.py                 # todas las carpetas de salidas/ que tengan informe_paquete.md
     python3 tools/indice_planos.py --sin-pdf ...   # solo indice_planos.json (no une PDF)
 
 Para cada carpeta de juego (la que contiene informe_paquete.md, TT300-C_design.json y planos/TT300C-XXX-NNN-C.pdf):
@@ -13,7 +13,7 @@ Para cada carpeta de juego (la que contiene informe_paquete.md, TT300-C_design.j
       Fabricación → el resto (subconjuntos soldados, interfaz, BAS, MES, PIV, ACC, IZA, INT, MAD…);
   · une las láminas individuales en el orden del informe en TT300-C_Planos_{Generales,Fabricacion,Armado}_Rev<R>.pdf (pypdf);
   · escribe indice_planos.json con la lista de láminas por grupo, la ruta y el título.
-La función indice(carpeta) devuelve el mismo diccionario sin escribir nada (la usa tools/build_tt300c.py)."""
+La función indice(carpeta) devuelve el mismo diccionario sin escribir nada."""
 import json
 import pathlib
 import re
@@ -21,7 +21,7 @@ import sys
 import unicodedata
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-ENTREGA = ROOT / "entregables" / "RevC"
+SALIDAS = ROOT / "salidas"
 ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO."
 GRUPOS = [("generales", "Generales", "Generales"), ("fabricacion", "Fabricación", "Fabricacion"), ("armado", "Armado", "Armado")]
 _ARMADO = ("EXPLOSIONADA", "MONTAJE", "SECUENCIA", "ARMADO")
@@ -100,12 +100,16 @@ def indice(carpeta):
                        "laminas": [l["codigo"] for l in laminas if l["grupo"] == gid]}
     interfaz, madera = _descripcion(inf)
     try:
+        P = json.loads((carpeta / "TT300-C_design.json").read_text(encoding="utf-8"))["P"]
+    except (OSError, ValueError, KeyError):
+        P = None
+    try:
         rel = carpeta.relative_to(ROOT).as_posix()
     except ValueError:
         rel = carpeta.as_posix()
     return {
         "proyecto": "TT300-C", "rev": rev, "carpeta": rel, "interfaz": interfaz, "madera": madera, "advertencia": ADVERTENCIA,
-        "grupos": grupos, "laminas": laminas, "faltan_pdf": faltan,
+        "grupos": grupos, "laminas": laminas, "faltan_pdf": faltan, "P": P,
         "archivos": {"combinado": _existe(carpeta, f"TT300-C_Planos_Rev{rev}.pdf"), "despiece_xlsx": _existe(carpeta, "TT300-C_despiece.xlsx"),
                      "despiece_csv": _existe(carpeta, "TT300-C_despiece.csv"), "step": _existe(carpeta, "TT300-C.step"),
                      "dxf_zip": _existe(carpeta, f"TT300-C_DXF_Rev{rev}.zip"), "informe": _existe(carpeta, "informe_paquete.md"),
@@ -159,19 +163,15 @@ def procesar(carpeta, con_pdf=True):
     return idx
 
 
-def juegos_entregados():
-    """Carpetas de los juegos pre-generados: la raíz de entregables/RevC (caso Base) y variantes/* (orden alfabético)."""
-    out = [ENTREGA] if (ENTREGA / "informe_paquete.md").exists() else []
-    var = ENTREGA / "variantes"
-    if var.exists():
-        out += sorted(d for d in var.iterdir() if (d / "informe_paquete.md").exists())
-    return out
+def salidas_generadas():
+    """Carpetas de salidas/ con un juego generado (las que tienen informe_paquete.md), en orden alfabético (= cronológico)."""
+    return sorted(d for d in SALIDAS.iterdir() if (d / "informe_paquete.md").exists()) if SALIDAS.exists() else []
 
 
 def main(argv):
     con_pdf = "--sin-pdf" not in argv
     dirs = [a for a in argv if not a.startswith("--")]
-    carpetas = [pathlib.Path(d) for d in dirs] or juegos_entregados()
+    carpetas = [pathlib.Path(d) for d in dirs] or salidas_generadas()
     if not carpetas:
         sys.exit("No hay juegos de planos que indexar.")
     for c in carpetas:
