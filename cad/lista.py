@@ -19,12 +19,12 @@ def extras(ctx):
     n = int(P["n_cyl"])
     L = [
         ("Resorte de retorno de la uña (compresión)", n, f"Comercial; carrera ≥ {f(g.KG['travel'] + 5)} mm, fuerza 150–300 N", "A DEFINIR POR CATÁLOGO"),
-        ("Tornillo ISO 10642 M10×25 cl. 10.9 (tapa retenedora)", 4, "10.9", "A DEFINIR POR CATÁLOGO"),
+        (f"Tornillo ISO 10642 M10×{g.cap_L:.0f} cl. 10.9 (tapa retenedora)", 4, "10.9", "A DEFINIR POR CATÁLOGO"),
         (f"Tornillo ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} cl. 10.9 (tapa de inspección)", 6, "10.9", "A DEFINIR POR CATÁLOGO"),
         ("Placa y tornillo de retención de pasador de articulación", 2 * n, "S355J2 / 8.8", "A DEFINIR POR CATÁLOGO"),
         ("Grillete de izaje (pasador de Ø ≤ %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
         ("Faldón de sello perimetral (opcional) y fleje", 1, "NBR 70 / S235 galvanizado; dimensiones por el proveedor (opcional)", "A DEFINIR POR CATÁLOGO"),
-        ("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, "Cantidad: llenado de ranuras + película de 0,3–0,5 mm por cara", "A DEFINIR POR CATÁLOGO"),
+        ("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, ("Cantidad: llenado de ranuras + película de 0,3–0,5 mm por cara" if g.opt in (1, 3) and g.h_gr > 0 else "Cantidad: película de 0,3–0,5 mm sobre la cara de apoyo de la base y la cara inferior de la mesa"), "A DEFINIR POR CATÁLOGO"),
         ("Bomba, válvulas, mangueras y manómetro (circuito hidráulico)", 1, f"Fuera de los planos mecánicos: ver especificación en {CODE}-ACC-002-{REV}", "A DEFINIR POR CATÁLOGO"),
     ]
     if g.opt == 1:

@@ -323,6 +323,46 @@ class Plano:
         self.iso_keys = None
         self.iso_fill = True
         self.post = []      # callbacks tras construir (marcas de corte, globos)
+        self.indic = []     # indicaciones en las vistas (B-20): marcos ISO 1101, datums ISO 5459, rugosidad ISO 1302 con referencia
+        self.gd_items = []
+
+    # ---------------- indicaciones en las vistas (gdt_vistas) ----------------
+    def gd_in(self, view, mode, sym, tol, datum=None, at=None, d=None, prefix=None):
+        self.indic.append(("fcf", view, mode, dict(sym=sym, tol=tol, datum=datum, at=at, d=d, prefix=prefix)))
+
+    def datum_in(self, view, mode, letter, at=None, d=None, prefix=None):
+        self.indic.append(("datum", view, mode, dict(letter=letter, at=at, d=d, prefix=prefix)))
+
+    def ra_in(self, view, ra, at, d):
+        self.indic.append(("ra", view, "surf", dict(ra=ra, at=at, d=d)))
+
+    def _draw_indic(self):
+        import gdt_vistas as GV
+        h, s = self.h, self.s
+        h.indic_ok, h.indic_fallo = [], []
+        if not self.indic:
+            return
+        Lb = GV.Libre(s, getattr(h, "zone", None) or h.R["main"])
+        orden = {"datum": 0, "fcf": 1, "ra": 2}
+        for kind, view, mode, a in sorted(self.indic, key=lambda t: orden[t[0]]):
+            V = self.named.get(view)
+            if V is None:
+                h.indic_fallo.append((kind, view, "vista inexistente"))
+                continue
+            at_ = a.get("at")
+            pt = None if at_ is None else ([V.P(q) for q in at_] if isinstance(at_, list) else V.P(at_))
+            if isinstance(at_, list) and not isinstance(a.get("d"), list):
+                a = dict(a, d=[a["d"]] * len(at_))
+            if kind == "fcf":
+                ok = GV.fcf(s, Lb, mode, a["sym"], a["tol"], a["datum"], a=pt, d=a["d"], prefix=a["prefix"])
+                tag = ("fcf", a["sym"], a["tol"], a["datum"] if not isinstance(a["datum"], list) else tuple(a["datum"]))
+            elif kind == "datum":
+                ok = GV.datum(s, Lb, mode, a["letter"], a=pt, d=a["d"], prefix=a["prefix"])
+                tag = ("datum", a["letter"])
+            else:
+                ok = GV.rugosidad(s, Lb, a["ra"], pt, a["d"])
+                tag = ("ra", a["ra"])
+            (h.indic_ok if ok else h.indic_fallo).append(tag if ok else tag + (view,))
 
     # ---------------- declaración ----------------
     def vs(self, name, keys, view, **kw):
@@ -339,7 +379,7 @@ class Plano:
         par = next(sp for sp in self.specs if sp.name == parent)
         u, v = vistas.proj_pt(center3, par.view)
         cu, cv = vistas.proj_pt(par.center, par.view)
-        sp = VS(name, keys or par.keys, par.view, cut=par.cut, center=center3, win=(-r, -r, r, r), lv=lv, mat=par.mat, title=kw.pop("title", f"DETALLE {letter}"), hatch=kw.pop("hatch", True),
+        sp = VS(name, keys or par.keys, par.view, cut=par.cut, center=center3, win=(-r, -r, r, r), lv=lv, mat=kw.pop("mat", par.mat), title=kw.pop("title", f"DETALLE {letter}"), hatch=kw.pop("hatch", True),
                 maxs=kw.pop("maxs", 5.0), **kw)
         sp.detail = (parent, center3, r, letter)
         self.specs.append(sp)
@@ -399,9 +439,15 @@ class Plano:
         self.block("tabla", d, wide=wide, name=title)
 
     def gd(self, items, title="TOLERANCIAS GEOMÉTRICAS (ISO 1101)"):
-        """items = [(sym, tol, datum, texto)]"""
+        """items = [(sym, tol, datum, texto)]. Si la lámina indica las tolerancias en las vistas (gd_in), la tabla es solo el resumen."""
+        self.gd_items = list(items)
+        self.h.gd_items = self.gd_items
         def d(s, x, y, w):
-            s.text(title, (x, y), T_N + 0.5, "TOP_LEFT", bold=True)
+            ttl = "TOLERANCIAS GEOMÉTRICAS (ISO 1101): RESUMEN (MARCOS EN LAS VISTAS)" if self.indic else title
+            for l_ in wrapw(ttl, w - 2, T_N + 0.5, True):
+                s.text(l_, (x, y), T_N + 0.5, "TOP_LEFT", bold=True)
+                y -= (T_N + 0.5) * 1.5
+            y += (T_N + 0.5) * 1.5
             y -= (T_N + 0.5) * 1.7
             for sym, tol, datum, txt in items:
                 wd = s.gdt((x, y - 6), sym, tol, datum)
@@ -681,6 +727,7 @@ class Plano:
             self._footprint(s, V.ext, sp, r0_, V=V)
         for cb in self.post:
             cb(self)
+        self._draw_indic()
         if (iso_fill if iso_fill is not None else self.iso_fill):
             self.fill_free(zone)
         s.n_views1 = len(s.m)

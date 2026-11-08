@@ -229,7 +229,63 @@ def wps(ctx):
     return out
 
 
+def tornillos_juego(ctx):
+    """Todos los tornillos del juego que roscan en una pieza: (descripción, d, L, espesor apretado, rosca útil, agujero ciego)."""
+    g = ctx.g
+    out = []
+    if ctx.m.get("tapa_ret"):
+        out.append((f"Tapa retenedora: ISO 10642 M10×{g.cap_L:.0f} en el pivote (rosca útil {g.cap_thr:.0f}, taladro {g.cap_tap:.0f})", 10.0, g.cap_L, g.cap_t, g.cap_thr, True))
+    if ctx.m.get("tapa_insp"):
+        out.append((f"Tapa de inspección: ISO 10642 M{g.insp_d:.0f}×{g.insp_L} en el fondo del rebaje (rosca pasante {g.insp_rem:.0f})", g.insp_d, float(g.insp_L), g.cb_t, g.insp_rem, False))
+    if ctx.m.get("pernos_pasador"):
+        out.append((f"Perno ISO 4762 M20×45 en el pasador (arandela {g.washer_t:.0f}, rosca útil {g.pin_thr:.0f}, taladro {g.pin_drill_L:.0f})", 20.0, 45.0, g.washer_t, g.pin_thr, True))
+    for lado, r in sorted((ctx.m.info.get("screw_resp") or {}).items()):
+        out.append((f"Tornillo de posición ISO 10642 M{r['d']:.0f}×{r['L']:.0f}, lado {lado} (rosca útil {r['thr']:.0f}" + (", pasante)" if r["pasante"] else f", taladro {r['drill']:.0f})"),
+                    r["d"], r["L"], r["clamp"], r["thr"], not r["pasante"]))
+    return out
+
+
+def tornillos(ctx):
+    """N-01: cada tornillo roscado en una pieza: engrane ≥ 1,0·d; en agujero ciego, la punta queda ≥ 2 mm antes del fin de la rosca útil
+    (largo dentro de la rosca ≤ rosca útil − 2); en rosca pasante, el engrane no supera el espesor roscado."""
+    out = []
+    for txt, d, L, clamp, thr, ciego in tornillos_juego(ctx):
+        eng = L - clamp
+        if eng < d - 1e-6:
+            out.append(f"{txt}: engrane {eng:.1f} mm < 1,0·d = {d:.0f}")
+        if ciego and eng > thr - 2.0 + 1e-6:
+            out.append(f"{txt}: la punta llega a {thr - eng:.1f} mm del fin de la rosca útil (< 2 mm: toca fondo)")
+        if not ciego and eng > thr + 1e-6:
+            out.append(f"{txt}: engrane {eng:.1f} mm mayor que el espesor roscado {thr:.0f}")
+    return out
+
+
+def gdt_vistas(ctx, hojas):
+    """B-20: en cada lámina de pieza, cada tolerancia geométrica de la tabla tiene su marco dibujado en una vista (sobre la superficie o la cota que controla),
+    cada letra de datum citada tiene su indicador ISO 5459 en una vista, y ninguna indicación declarada quedó sin lugar.
+    Fuera del alcance de esta emisión: láminas del accionamiento (ACC-*), que se redibujan con el modo pivotado."""
+    out = []
+    for h in hojas:
+        t = h.plano.replace(CODE + "-", "")
+        if getattr(h, "serie", "") != "FAB" or t.startswith("ACC"):
+            continue
+        items = getattr(h, "gd_items", None) or []
+        ok = getattr(h, "indic_ok", []) or []
+        for f_ in getattr(h, "indic_fallo", []) or []:
+            out.append(f"{t}: indicación sin lugar en la vista {f_}")
+        fr = [o for o in ok if o[0] == "fcf"]
+        dl = {o[1] for o in ok if o[0] == "datum"}
+        for sym, tol, dat, txt in items:
+            key = ("fcf", sym, tol, tuple(dat) if isinstance(dat, list) else dat)
+            if key not in fr:
+                out.append(f"{t}: tolerancia «{sym} {tol} {dat or ''}» ({txt[:40]}) sin marco en las vistas")
+            for d_ in (dat if isinstance(dat, list) else [dat] if dat else []):
+                if d_ not in dl:
+                    out.append(f"{t}: datum {d_} sin indicador en las vistas")
+    return out
+
+
 def todos(ctx, hojas):
     import hojas_gen
-    res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx))
+    res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas))
     return res

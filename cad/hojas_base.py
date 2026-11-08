@@ -461,7 +461,7 @@ def ajustes(ctx):
     P, g = ctx.P, ctx.g
     return [
         ("Pivote en plancha base y collar", P["D_piv"], "H7", "p6", f"Aprieto, zona p6 del pivote (z = 0 a {fm(g.z_p6, 0)}, PIV-001): prensado o contracción (hielo seco); agujero mandrinado en línea"),
-        ("Pivote en buje", P["D_piv"], "F7", "f7", f"Con juego, zona f7 del pivote (z = {fm(g.z_f7, 0)} a {fm(g.L_piv, 0)}, PIV-001); buje autolubricado"),
+        ("Pivote en buje", P["D_piv"], "F7", "f7", f"Con juego, zona f7 del pivote (z = {fm(g.z_f7, 0)} a {fm(g.L_piv, 0)}, PIV-001); F7 del buje DESPUÉS del calado en el cubo (escariado o mandrinado final, PIV-002)"),
         ("Buje en cubo de la mesa", g.d_bush, "H7", "s6", "Aprieto: prensado"),
         ("Pasador de empuje en anillos", g.d_pin, "H7", "m6", "Transición: desmontable, sin soldadura"),
         ("Pasador de articulación en ojales", P["d_pp"], "H9", "f8", "Con juego, grasa grafitada"),
@@ -496,9 +496,12 @@ def inspecciones(ctx):
         *([("Soldadura", "Líquidos penetrantes PT en soldaduras de acero inoxidable (barras del rebaje UHMW).", "100 %", "PT")] if any("ER309L" in w["aporte"] for w in getattr(ctx, "welds", [])) else []),
         ("Dimensional", f"Planitud de la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) ≤ 0,20 mm y de la cara inferior de la mesa ≤ 0,20 mm antes de montar la interfaz.", "100 %", "Regla/nivel láser"),
         ("Dimensional", f"Pasadores de empuje: agujeros Ø{f(g.d_pin)} H7 en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos); coaxialidad de los agujeros de ambos anillos Ø0,05 (mandrinado en línea, CON-009).", "100 %", "CMM / plantilla"),
-        ("Dimensional", f"Pivote: perpendicularidad ≤ 0,05 respecto de la cara de apoyo; coaxialidad collar–plancha base 0,05; altura del eje de ménsulas {f(g.hax)} ±0,5.", "100 %", "CMM / comparador"),
+        ("Dimensional", f"Pivote: perpendicularidad ≤ 0,05 respecto de la cara de apoyo; coaxialidad collar–plancha base 0,05. Ménsulas: centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 sobre la cara de apoyo (A); agujeros de las orejas perpendiculares a A (CON-007, BAS-005).", "100 %", "CMM / comparador"),
+        ("Dimensional", f"Buje (PIV-002) DESPUÉS del calado s6/H7 en el cubo y del escariado o mandrinado final: Ø interior {f(P['D_piv'])} F7 = {fm(iso286.limits(P['D_piv'], 'F7')[0], 3)} / {fm(iso286.limits(P['D_piv'], 'F7')[1], 3)} medido en 3 secciones × 2 direcciones a 90°; coaxial con el agujero H7 del cubo Ø0,05. Fuera de tolerancia: rechazo (no se repasa el pivote).", "100 %", "Micrómetro de interiores / comparador"),
         ("Dimensional", f"Ranura T de bancadas: ancho {f(P['w_slot'])} H8, paralelismo 0,10 en todo el largo, coaxial con el ojal de la ménsula ±0,2.", "100 %", "Calibre / comparador"),
-        ("Montaje", "Interfaz y engrase: película de grasa 0,3–0,5 mm por cara, sin partículas; juntas en frío entre sectores con galga (CON-012).", "100 %", "VT / galgas"),
+        ("Montaje", ("Interfaz y engrase: película de grasa 0,3–0,5 mm por cara, sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt and g.opt != 2 else
+                     "Interfaz: sectores de UHMW en el rebaje sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt == 2 else
+                     f"Interfaz acero–acero: película de grasa 0,3–0,5 mm sobre la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) y la cara inferior de la mesa, sin partículas (CON-005, paso 4)."), "100 %", "VT / galgas" if g.opt else "VT"),
         ("Montaje", f"Holguras cubo–collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (CON-011) con galgas; giro libre a mano antes de cargar.", "100 %", "Galgas"),
         ("Dimensional", f"Posiciones de las piezas soldadas de la base según la tabla de BAS-001, ±1. Orejas de izaje: posición (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±1 (tabla de posiciones de BAS-001); plano vertical radial; agujero Ø{f(P['d_ear'])} a {f(P['h_ear'])} sobre la base ±1.", "100 %", "Cinta / plantilla"),
         ("Torque", f"Pernos M20×45 de los {g.N_pin} pasadores y tornillos de las tapas: torques propuestos en GEN-008; registro por perno y marca de pintura de control.", "100 %", "Torquímetro"),

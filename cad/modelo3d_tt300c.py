@@ -214,6 +214,16 @@ class Layout:
         need = t - rec + 1.5 * self.d_tor
         return next((L for L in ISO10642_L if L >= need), math.ceil(need))
 
+    def rosca_respaldo(self, L, t, rec, back):
+        """Agujero roscado del tornillo de posición en el respaldo (N-01): engrane = L − (t − rec); rosca útil = engrane + 2 (redondeada al mm, la punta
+        nunca llega al fin de la rosca); taladro de macho = rosca útil + 4 (punta y salida del macho), o PASANTE si no cabe en el respaldo."""
+        eng = L - (t - rec)
+        thr = float(math.ceil(eng + 2.0 - 1e-9))
+        drill = thr + 4.0
+        pas = drill >= back - 1e-9
+        return dict(d=self.d_tor, L=L, clamp=t - rec, eng=eng, thr=(back if pas else thr), drill=(back if pas else drill), pasante=pas, back=back,
+                    broca={4: 3.3, 5: 4.2, 6: 5.0, 8: 6.8, 10: 8.5, 12: 10.2}.get(int(self.d_tor), round(0.84 * self.d_tor, 1)))
+
     def screw_radii(self, L_notch, grooves=True):
         """Dos radios sobre la bisectriz, entre la muesca y cada borde, libres de ranuras circunferenciales."""
         g = self.g
@@ -415,7 +425,7 @@ def build(D, verbose=True):
     top_plate = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt)
     top_plate = top_plate.cut(ring(0, g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t))             # rebaje de la tapa de inspección
     insp_xy = [(g.insp_pcd / 2 * math.cos(math.radians(30 + 60 * i)), g.insp_pcd / 2 * math.sin(math.radians(30 + 60 * i))) for i in range(6)]
-    top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - g.insp_tap).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_tap + 0.5))   # 6 × M8 (broca Ø6,8) prof. 10 desde el fondo del rebaje
+    top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=z0 + hd - tt - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_rem + 1.0))   # 6 × M8 (broca Ø6,8) PASANTE en el remanente bajo el rebaje (N-20)
     ring_top = pins_cut(ring(prIn, Rt, tpr, z0 + hd - tpr), z0 + hd - tpr, tpr)
     m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tt)} con agujero Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección",
                top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; soldadura", core="top", color=(0.22, 0.4, 0.7)))
@@ -468,7 +478,7 @@ def build(D, verbose=True):
     bush = ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], g.z_bush0)
     m.add(Part("buje", "PIV", "Buje autolubricado", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])}×{f(P['L_bush'])}", bush, 1, f"Buje autolubricado: bronce con lubricante sólido (presión ≤ {fm(P['p_bush'], 0)} MPa, μ ≤ {fm(P['mu_bush'], 2)} según el cálculo); marca/modelo por catálogo (GEN-008)", "Buje comercial o cortado de tubo fundido; Ø exterior s6 y Ø interior en mandrinadora", rho=7.6e-6, in_core=False,
                comercial=True, catalogo="A DEFINIR POR CATÁLOGO (buje autolubricado a medida)", color=(0.8, 0.55, 0.2), cert="EN 10204 3.1"))
-    m.add(Part("tapa_ret", "PIV", "Tapa retenedora", f"Disco Ø{f(g.cap_D)}×{f(g.cap_t)} + 4 × M10×25 ISO 10642 10.9", csk(cyl(g.cap_D / 2, g.cap_t, g.L_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - 1).pushPoints(cap_xy).circle(g.clear_m10 / 2).extrude(g.cap_t + 2)), cap_xy, g.L_piv + g.cap_t, g.clear_m10, 20.0), 1, A572, "Oxicorte/plasma y mecanizado de agujeros en taladro radial", in_core=False, color=(0.35, 0.35, 0.38)))
+    m.add(Part("tapa_ret", "PIV", "Tapa retenedora", f"Disco Ø{f(g.cap_D)}×{f(g.cap_t)} + 4 × M10×{g.cap_L:.0f} ISO 10642 10.9", csk(cyl(g.cap_D / 2, g.cap_t, g.L_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - 1).pushPoints(cap_xy).circle(g.clear_m10 / 2).extrude(g.cap_t + 2)), cap_xy, g.L_piv + g.cap_t, g.clear_m10, g.cap_csk), 1, A572, "Oxicorte/plasma y mecanizado de agujeros en taladro radial", in_core=False, color=(0.35, 0.35, 0.38)))
     m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9", csk(cyl(g.cb_D / 2 - 1, g.cb_t, z0 + hd - g.cb_t).cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - 1).pushPoints(insp_xy).circle(g.insp_clear / 2).extrude(g.cb_t + 2)), insp_xy, z0 + hd, g.insp_clear, g.insp_csk), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
 
     # ===================== ACC: cilindros, patines, uñas, pasadores =====================
@@ -632,6 +642,7 @@ def build_interfaz(m, g, D, log):
                 m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9, cabeza {fm(rec, 1)} bajo la cara deslizante", compound(sol), qty, "10.9 (ISO 10642), zincado",
                            "Comercial", in_core=False, comercial=True, catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs="Solo posición: el par lo toman los topes"))
             m.info["screw_L"] = (Lb, Lm)
+            m.info["screw_resp"] = {"base": lay.rosca_respaldo(Lb, t1, rec, tb), "mesa": lay.rosca_respaldo(Lm, t2, rec, g.tbo)}
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii
         m.info["radii_screw_m"] = radii_m
@@ -784,6 +795,7 @@ def build_interfaz(m, g, D, log):
                 m.add(Part(nm, "INT", f"Tornillo avellanado de posición M{fm(lay.d_tor, 0)}×{L}", f"Tornillo ISO 10642 M{fm(lay.d_tor, 0)}×{L} cl. 10.9, cabeza {fm(rec_b if nm == 'int_tornillo_base' else rec_c, 1)} bajo la cara deslizante", compound(sol), qty, "10.9 (ISO 10642), zincado", "Comercial", in_core=False, comercial=True,
                            catalogo=f"ISO 10642 M{fm(lay.d_tor, 0)}×{L} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), obs="Solo posición: el par lo toman los topes"))
             m.info["screw_L"] = (Lb, Lm)
+            m.info["screw_resp"] = {"base": lay.rosca_respaldo(Lb, tB, rec_b, tb), "mesa": lay.rosca_respaldo(Lm, tC, rec_c, g.tbo)}
             m.info["holes_base"], m.info["holes_mesa"] = hb, hm
         m.info["radii_screw"] = radii_b
         m.info["radii_screw_m"] = radii_c

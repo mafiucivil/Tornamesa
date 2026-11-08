@@ -395,7 +395,38 @@ class View:
                 except Exception:
                     pass
             S.hatch_classes = getattr(S, "hatch_classes", set()) | used
+        if self.win and hatches and not self.breaks and getattr(self, "roturas", True):
+            self._roturas_ventana(S, hatches)
         return self
+
+    def _roturas_ventana(self, S, hatches):
+        """N-13: en un corte parcial (ventana), cada tramo del borde de la ventana que corta material lleva una línea de rotura en zigzag (ISO 128-2, tipo 01.1)."""
+        from shapely.geometry import LineString
+        from shapely.ops import unary_union
+        try:
+            U = unary_union([Polygon(o, hs).buffer(0) for _, o, hs in hatches])
+        except Exception:
+            return
+        u0, v0, u1, v1 = self.win
+        for a, b in (((u0, v0), (u1, v0)), ((u1, v0), (u1, v1)), ((u1, v1), (u0, v1)), ((u0, v1), (u0, v0))):
+            inter = U.intersection(LineString([a, b]))
+            for sg in getattr(inter, "geoms", [inter]):
+                if sg.is_empty or sg.geom_type != "LineString" or sg.length * self.scale < 2.5:
+                    continue
+                p, q = self.Pt2(sg.coords[0]), self.Pt2(sg.coords[-1])
+                L = math.hypot(q[0] - p[0], q[1] - p[1])
+                ux, uy = (q[0] - p[0]) / L, (q[1] - p[1]) / L
+                nx, ny = -uy, ux
+                ov = 1.5                                    # la línea de rotura sobresale un poco del contorno
+                p0, q0 = (p[0] - ux * ov, p[1] - uy * ov), (q[0] + ux * ov, q[1] + uy * ov)
+                if L < 10:
+                    S.pline([p0, q0], "FINA")
+                    continue
+                m = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
+                z = 2.2
+                pts = [p0, (m[0] - ux * z, m[1] - uy * z), (m[0] - ux * z * 0.35 + nx * 3.2, m[1] - uy * z * 0.35 + ny * 3.2),
+                       (m[0] + ux * z * 0.35 - nx * 3.2, m[1] + uy * z * 0.35 - ny * 3.2), (m[0] + ux * z, m[1] + uy * z), q0]
+                S.pline(pts, "FINA")
 
     def _break_symbols(self, S, wins):
         """Símbolo de interrupción ISO 128-30 (línea fina con zigzag) en cada borde de rotura."""

@@ -796,7 +796,9 @@ def pasos(ctx):
             dict(zona=((P["D_top"] + 20) / 2, g.D_boss / 2 + 2, g.tb, [f"Zona de engrase Ø{f(P['D_top'] + 20)} (cara de apoyo de la base)", "grasa grafitada NLGI 2, película 0,3–0,5 mm"]),
                  mark=["base_plancha"])))
     new5 = G["mesa"] + G["intm"] + [k for k in G["piv"] if k == "buje"]
-    rows5 = [[pq("buje"), f"Prensar el buje en el cubo de la mesa (Ø{f(g.d_bush)} H7/s6)", a_bu["juego"].capitalize(), "Prensa", insp("Pivote:")]]
+    lf7 = iso286.limits(P["D_piv"], "F7")
+    rows5 = [[pq("buje"), f"Prensar el buje en el cubo de la mesa (Ø{f(g.d_bush)} H7/s6); luego escariar o mandrinar el Ø interior a {f(P['D_piv'])} F7 con el buje ya calado (PIV-002)", a_bu["juego"].capitalize(), "Prensa; escariador o mandrinadora", insp("Buje (PIV-002)")],
+             ["—", f"Verificar el Ø interior del buje DESPUÉS del calado: {fm(lf7[0], 3)} / {fm(lf7[1], 3)} (F7) en 3 secciones × 2 direcciones; registrar", f"Juego F7/f7 con la zona f7 del pivote {iso286.fit(P['D_piv'], 'F7', 'f7')['cmin']:+d}/{iso286.fit(P['D_piv'], 'F7', 'f7')['cmax']:+d} µm", "Micrómetro de interiores", insp("Buje (PIV-002)")]]
     if G["intm"]:
         gr_ = " y montar las graseras" if any("graser" in k for k in G["intm"]) else ""
         rows5.append([pq(*G["intm"]), ("Con la mesa invertida: fijar los sectores bajo la plancha inferior (tornillos de posición)" + gr_ if g.removable else
@@ -816,7 +818,7 @@ def pasos(ctx):
         [pq("cilindro", "pasador_vastago", "pasador_ojal"), f"Montar el cilindro entre la ménsula y el patín; pasadores Ø{f(P['d_pp'])} f8 engrasados con su retención; conectar mangueras",
          f"H9/f8: {a_pp['juego']}; eje del cilindro a z = {f(g.zc)}", "Aparejo de taller", insp("Prueba hidráulica")]]))
     tap = [k for k in G["piv"] if k == "tapa_ret"] + G["insp"] + G["mad"]
-    rows8 = [[pq("tapa_ret"), "Tapa retenedora sobre el extremo del pivote: 4 tornillos M10×25 ISO 10642", f"Par {T(10)} N·m (propuesta GEN-008)", "Torquímetro", insp("torques propuestos")],
+    rows8 = [[pq("tapa_ret"), f"Tapa retenedora sobre el extremo del pivote: 4 tornillos M10×{g.cap_L:.0f} ISO 10642", f"Par {T(10)} N·m (propuesta GEN-008)", "Torquímetro", insp("torques propuestos")],
              [pq("tapa_insp"), f"Tapa de inspección en el rebaje de la plancha superior: 6 tornillos ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9", f"Par {T(int(g.insp_d))} N·m", "Torquímetro", insp("torques propuestos")]]
     if G["mad"]:
         rows8.append([pq(*G["mad"]), "Tablones de madera dentro del anillo (bolsillos sobre los pernos); fijación según MAD-001", "Holgura de montaje contra el anillo según MAD-001", "Manual", "MAD-001"])
@@ -1146,7 +1148,14 @@ def sheet_pivote_conj(ctx):
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
 
     def cA(V, c):
-        balloons_auto(c, V, [k for k in ks if k not in ("mesa_plancha_sup", "mesa_plancha_inf", "base_plancha")], pred=lambda q: q[1] >= -0.5, gap=12, off=18)
+        balloons_auto(c, V, [k for k in ks if k not in ("mesa_plancha_sup", "mesa_plancha_inf", "base_plancha", "tapa_ret")], pred=lambda q: q[1] >= -0.5, gap=12, off=18)
+        # N-21: el globo de la tapa retenedora va arriba, con su propia línea inclinada (no comparte recta con el del pivote)
+        if ctx.m.get("tapa_ret"):
+            a_ = V.P(g.cap_D / 2 - 10, 0, g.L_piv + g.cap_t / 2)
+            q_ = (a_[0] + 34, V.ext[3] + 16)
+            c.s.balloon(a_, q_, ctx.m.get("tapa_ret").pos)
+            ctx.balloons[c.h.plano].add(ctx.m.get("tapa_ret").pos)
+            V.ext = (V.ext[0], V.ext[1], V.ext[2], max(V.ext[3], q_[1] + 7))
         V.line_axis = None
         c.s.line(V.P(0, 0, -6), V.P(0, 0, top + 14), "EJE")
         V.dimv((g.d_bush / 2, 0, g.z_bush0), (g.d_bush / 2, 0, g.z_bush0 + P["L_bush"]), "right", 0, on=["buje"], text=f"{f(P['L_bush'])} (buje)")
@@ -1154,20 +1163,31 @@ def sheet_pivote_conj(ctx):
         V.dimh((-P["D_hub"] / 2, 0, g.z0 + g.tbo + 40), (P["D_hub"] / 2, 0, g.z0 + g.tbo + 40), "top", 0, on=["mesa_cubo"], text=f"Ø{f(P['D_hub'])} (cubo)")
         V.dimh((-g.D_boss / 2, 0, g.tb + g.h_boss - 2), (g.D_boss / 2, 0, g.tb + g.h_boss - 2), "bottom", 0, on=["collar"], text=f"Ø{f(g.D_boss)} (collar)")
         V.dimh((-P["D_piv"] / 2, 0, g.tb + 20), (P["D_piv"] / 2, 0, g.tb + 20), "bottom", 1, on=["pivote", "collar"], text=tol_txt(P["D_piv"], "p6") + " / H7") if False else None
-    c.vs("cA", sh, "front", cut=CUT_Y, center=(0, 0, 0), win=(-190, -8, 190, top + 20), lv=(2, 2, 3, 2), extra=(20, 20, 40, 20), draw=cA, mat=mm, hs=0.5, title="CORTE POR EL EJE DEL PIVOTE (plano y = 0)", auto=False, w=3.0)
-    c.vs("det_f", [k for k in ("pivote", "buje", "mesa_cubo") if k in ctx.shapes], "front", cut=CUT_Y, center=(P["D_piv"] / 2, 0, g.z_bush0 + P["L_bush"] / 2), win=(-30, -P["L_bush"] / 2 - 10, 100, P["L_bush"] / 2 + 10), lv=(1, 1, 1, 1), hs=0.35, maxs=2.0,
-         title="DETALLE Y (ampliación del corte): AJUSTES DEL BUJE (F7/f7 Y s6/H7)", auto=dict(on=["pivote", "buje", "mesa_cubo"]), mat=mats(ctx, ["pivote", "buje", "mesa_cubo"]), w=1.0)
+    c.vs("cA", sh, "front", cut=CUT_Y, center=(0, 0, 0), win=(-190, -8, 190, top + 20), lv=(2, 2, 3, 2), extra=(20, 20, 40, 20), draw=cA, mat=mm, hs=0.5, title="CORTE POR EL EJE DEL PIVOTE (plano y = 0)", auto=False, w=3.0, mins=1.0)
+    # A-08: detalle Y con su llamada en el corte (círculo y letra) y escala mayor que la del corte
+    zc_ = g.z_bush0 + P["L_bush"] / 2
+    rD = (g.d_bush - P["D_piv"]) / 2
+
+    def detY(V, c):
+        aL, aR = V.P(P["D_piv"] / 2, 0, zc_ + P["L_bush"] * 0.25), V.P(g.d_bush / 2, 0, zc_ - P["L_bush"] * 0.25)
+        xl_, xr_ = V.Pt2((V.win[0], 0))[0], V.Pt2((V.win[2], 0))[0]
+        V.note_pt((P["D_piv"] / 2, 0, zc_ + P["L_bush"] * 0.25), (min(xl_, V.ext[0]) - 6 - aL[0], 10), f"Ø{f(P['D_piv'])} F7/f7 (buje / zona f7 del pivote): juego {iso286.fit(P['D_piv'], 'F7', 'f7')['cmin']:+d}/{iso286.fit(P['D_piv'], 'F7', 'f7')['cmax']:+d} µm", on=["buje"],
+                  lines=[f"Ø{f(P['D_piv'])} F7/f7 (buje / pivote)", f"juego {iso286.fit(P['D_piv'], 'F7', 'f7')['cmin']:+d}/{iso286.fit(P['D_piv'], 'F7', 'f7')['cmax']:+d} µm; F7 después del calado"])
+        V.note_pt((g.d_bush / 2, 0, zc_ - P["L_bush"] * 0.25), (max(xr_, V.ext[2]) + 6 - aR[0], -10), f"Ø{f(g.d_bush)} H7/s6 (cubo / buje): aprieto", on=["buje"],
+                  lines=[f"Ø{f(g.d_bush)} H7/s6 (cubo / buje)", f"aprieto {-iso286.fit(g.d_bush, 'H7', 's6')['cmax']}…{-iso286.fit(g.d_bush, 'H7', 's6')['cmin']} µm (prensado)"])
+    c.detail("det_f", "cA", (P["D_piv"] / 2 + rD / 2, 0, zc_), 30.0, "Y", keys=[k for k in ("pivote", "buje", "mesa_cubo") if k in ctx.shapes], lv=(1, 1, 1, 2), hs=0.35, maxs=2.0, mins=2.0,
+             title="DETALLE Y: AJUSTES DEL BUJE", mat=mats(ctx, ["pivote", "buje", "mesa_cubo"]), w=0.6, auto=False, draw=detY, extra=(50, 0, 50, 0))
     ajs = [a for a in hojas_base.ajustes(ctx) if a[0] in ("Pivote en plancha base y collar", "Pivote en buje", "Buje en cubo de la mesa")]
     rows = []
     for (desc, d, ho, sh_, app) in ajs:
         t = hojas_base.ajuste_txt(d, ho, sh_)
-        rows.append([desc, f"Ø{fm(d, 0)} {ho}/{sh_}", t["h_lim"], t["s_lim"], t["juego"], t["tipo"]])
+        rows.append([desc, f"Ø{fm(d, 0)} {ho}/{sh_}", t["h_lim"], t["s_lim"], t["juego"] + " µm", t["tipo"]])
     rows.append(["Collar en rebaje de la plancha inferior", f"Ø{f(g.D_boss)} / Ø{f(g.Drb)}", f"{fm(g.Drb, 1)}", f"{fm(g.D_boss, 1)}", f"{fm(g.c_boss_r, 0)} mm (radial)", "sin contacto (del cálculo)"])
     rows.append(["Collar – cubo (axial)", f"{fm(g.h_boss, 0)} vs {fm(g.h_rebaje, 1)}", "—", "—", f"{fm(g.c_boss_a, 0)} mm (axial)", "sin contacto (del cálculo)"])
-    c.table_block("AJUSTES Y HOLGURAS DEL PIVOTE (ISO 286, límites calculados)", [("Ajuste", 40, "L"), ("Nominal", 24, "L"), ("Agujero [mm]", 24, "C"), ("Eje [mm]", 24, "C"), ("Juego [µm]", 26, "C"), ("Tipo", 30, "L")], rows)
+    c.table_block("AJUSTES Y HOLGURAS DEL PIVOTE (ISO 286, límites calculados)", [("Ajuste", 40, "L"), ("Nominal", 24, "L"), ("Agujero [mm]", 24, "C"), ("Eje [mm]", 24, "C"), ("Juego / holgura", 26, "C"), ("Tipo", 30, "L")], rows)
     c.tail(ks2, [], [f"Pivote Ø{f(P['D_piv'])} con dos zonas (PIV-001): zona p6 (z = 0 a {fm(g.z_p6, 0)}) calada en plancha base y collar H7/p6 (aprieto); zona f7 (z = {fm(g.z_f7, 0)} a {fm(g.L_piv, 0)}) en el buje F7/f7 (juego); buje s6/H7 prensado en el cubo.",
                      f"Altura de asiento del cubo: collar de {f(g.h_boss)} sobre la base; holgura radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo): el cubo gira sin tocar el collar.",
-                     f"Tapa retenedora con 4 × M10×25 ISO 10642 10.9 (PCD Ø{fm(g.cap_pcd, 0)}); tapa de inspección con 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9 (PCD Ø{fm(g.insp_pcd, 0)}); torques propuestos en GEN-008, a confirmar.",
+                     f"Tapa retenedora con 4 × M10×{g.cap_L:.0f} ISO 10642 10.9 (PCD Ø{fm(g.cap_pcd, 0)}); tapa de inspección con 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9 (PCD Ø{fm(g.insp_pcd, 0)}); torques propuestos en GEN-008, a confirmar.",
                      "Retención axial del pivote: A DEFINIR POR EL CALCULISTA (decisión del mandante)."])
     c.build()
     return c.h

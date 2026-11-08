@@ -39,6 +39,8 @@ def main():
             qc = h.control_calidad()
             if qc.get("lineas_texto") or qc.get("cruces_globos"):
                 print("   LINEAS SOBRE TEXTO", h.plano, len(qc["lineas_texto"]), qc["lineas_texto"][:8], "cruces de globos", qc.get("cruces_globos"))
+            if getattr(h, "indic_fallo", None):
+                print("   INDICACIONES SIN LUGAR", h.plano, h.indic_fallo)
             if qc["choques"] or qc["fuera"] or qc["invasiones"]:
                 print("   QC", nm, "choques", qc["choques"], "fuera", qc["fuera"][:3], "inv", qc["invasiones"][:3], "movidos", qc["movidos"])
             fn_ = h.plano

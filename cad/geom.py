@@ -118,7 +118,14 @@ class G:
         assert r_max >= r_min, "la tapa de inspección no admite el patrón de tornillos con bordes ≥ 3 mm"
         self.insp_pcd = 2.0 * math.floor(r_max)
         self.tap_m10, self.clear_m10 = 8.5, 11.0       # broca de macho M10 y paso medio (ISO 273)
-        self.cap_tap, self.insp_tap = 20.0, 10.0       # profundidad de roscado en el pivote y en el fondo del rebaje
+        self.cap_tap, self.insp_tap = 20.0, 10.0       # taladro ciego del pivote (Ø8,5 prof. 20) y rosca útil M8 en el fondo del rebaje
+        self.cap_csk = 21.0                             # avellanado Ø21×90° de la tapa retenedora (dk máx. ISO 10642 M10 = 20, con holgura)
+        self.cap_thr = self.cap_tap - 4.0               # rosca útil M10 del pivote (punta del taladro y salida del macho: 4 mm)
+        # N-01: largo comercial del tornillo de la tapa retenedora: engrane ≥ 1,0·d y punta ≥ 2 mm antes del fin de la rosca útil (agujero ciego)
+        self.cap_L = max(L for L in (8, 10, 12, 16, 20, 25, 30, 35, 40) if L - self.cap_t <= self.cap_thr - 2.0 + 1e-9)
+        assert self.cap_L - self.cap_t >= 10.0 - 1e-9, "tapa retenedora: ningún largo ISO 10642 M10 da engrane ≥ 1,0·d sin tocar fondo"
+        # tapa de inspección: taladro Ø6,8 PASANTE en el remanente bajo el rebaje (N-20) y rosca útil insp_tap
+        self.insp_rem = self.tt - self.cb_t                # espesor remanente bajo el rebaje
         self.ch_pin, self.ch_piv, self.ch_pp = 2.0, 3.0, 2.0      # chaflanes de dibujo (1×45° mínimo ISO 13715): pasador de empuje, pivote, pasadores de articulación
         # --- accionamiento ---
         self.BR = DV["bracket"]

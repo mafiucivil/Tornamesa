@@ -157,6 +157,6 @@ def catalogo_rows(ctx):
         ["Buje autolubricado", f"Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}; presión ≤ {fm(P['p_bush'], 0)} MPa; μ ≤ {fm(P['mu_bush'], 2)}; sobre aleación de bronce con lubricante sólido", "Certificado del proveedor", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Resorte de retorno de la uña (compresión) (×2)", f"Carrera ≥ {f(g.KG['travel'] + 5)} mm; fuerza 150–300 N", "—", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Grasa grafitada NLGI 2", "≥ 10 % grafito, aditivos EP; película 0,3–0,5 mm por cara", "Hoja de datos del fabricante", "marca/modelo A DEFINIR POR CATÁLOGO"],
-        ["Tornillos ISO 10642 cl. 10.9 (tapas del pivote)", f"4 × M10×25 (tapa retenedora) y 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
+        ["Tornillos ISO 10642 cl. 10.9 (tapas del pivote)", f"4 × M10×{g.cap_L:.0f} (tapa retenedora) y 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
     ]
     return rows
