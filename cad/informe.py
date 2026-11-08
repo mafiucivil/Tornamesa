@@ -33,7 +33,7 @@ def brechas(ctx, rep):
     if g.boss and ev < P["L_bush"] - 1e-6:
         add("Buje parcialmente sin guía en el cubo", f"El buje arranca en z = {fm(g.z_bush0, 0)} y el alesaje del cubo (Ø{fm(g.d_bush, 0)} H7) empieza en z = {fm(g.z_techo if g.rebaje else g.z0 + g.tbo, 0)}: engrane {fm(ev, 0)} de {fm(P['L_bush'], 0)} mm (con rebaje de {fm(g.h_rebaje, 0)} < t_bot, el agujero de la plancha inferior es pasante).", "Verificar la presión del buje con el engrane real o subir el buje.")
     add("Izaje de la mesa", "El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible).", "A DEFINIR: orejas o cáncamos verificados para la mesa.")
-    add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
+    add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (zona p6 calada H7/p6, sin soldadura).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
     add("Torque de pernos y tornillos", "El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición).", "Torques PROPUESTOS en GEN-008 (ISO 898-1, VDI 2230 simplificado): A CONFIRMAR POR EL CALCULISTA.")
     add("Tamaño de soldaduras sin parámetro", "Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f.", "CONFIRMAR o parametrizar tamaños y END de las soldaduras sin parámetro.")
     add("Filetes máximos AISC J2.2b de almas y nervios", f"Almas y nervios de la mesa: w_web = {fm(P['w_web'], 0)} sobre t = {fm(P['t_web'], 0)} superan el máximo de borde t − 2 = {fm(P['t_web'] - 2, 0)} mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión.",
@@ -55,6 +55,10 @@ def brechas(ctx, rep):
         add("Tapones de grafito: patrón realizable frente a f_g del núcleo", plug_txt(ctx),
             "A DECIDIR POR EL MANDANTE: densificar el patrón (paso o zonas de exclusión) o que el núcleo use la cantidad real de tapones; el efecto sobre la presión del bronce es conservador, sobre la lubricación no.")
     add("Diferencias de fórmula del patín", "La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza.", "Informativo (dentro de tolerancia).")
+    cam = float(ctx.M.get("cam") or 0.0)
+    if cam > 0.05:
+        add("Masa del accionamiento sin dibujar (leva de reenganche)", f"El núcleo suma {fm(cam, 1)} kg de la leva de reenganche (masa «cam» del cálculo) que este juego todavía no dibuja: la masa de las láminas (modelo 3D) es menor que la del cálculo en esa cantidad más el residual de fórmulas.",
+            "PENDIENTE ACCIONAMIENTO: se dibuja con el rediseño de la leva de reenganche y del modo pivotado.")
     add("Cilindro comercial", f"Largo ojal–ojal L0 = {fm(P['L0'], 0)} mm y masa {fm(P['m_cyl'], 0)} kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo.", "Confirmar con el proveedor del cilindro.")
     return G_
 
@@ -259,7 +263,7 @@ VERIF = {
     "MES-002": ("Planchas y anillos: espesores t_top, t_bot, t_pr, agujero Ø200, rebaje Ø240, agujero pasante Ø D_rebaje_bot (collar + 2 c_boss_r), agujeros de pasadores.", "Verificaciones «Mesa (FEA)»; P.t_top, t_bot, t_pr"),
     "MES-003": ("Cubo con rebaje inferior Ø D_rebaje × h_rebaje_cubo (holguras c_boss_r, c_boss_a); almas y nervios (largos de tramo; anillos del JSON).", "interfazGeom (D_rebaje_bot, h_rebaje_cubo); verificación del collar «pared del rebaje ≥ 25 mm»; masas de almas y nervios"),
     "MES-004": ("Pasador Ø85 m6 × h_disc, temple por inducción ≥ 55 HRC (Fy_sup), alivio de borde, perno M20.", "Verificaciones «Pasadores de empuje»; P.Fy_surf, P.k_edge"),
-    "PIV-001": ("Pivote, buje, tapas: asiento t_base + h_boss, buje desde t_base + h_boss + g_buje, holguras reales del collar (radial c_boss_r, axial al techo), brazo e = 42, ajustes p6/H7.", "Verificaciones «Pivote» (asiento, brazo efectivo, buje, flexión, rebaje del collar)"),
+    "PIV-001": ("Pivote, buje, tapas: asiento t_base + h_boss, buje desde t_base + h_boss + g_buje, holguras reales del collar (radial c_boss_r, axial al techo), brazo e = 42, ajustes H7/p6 (zona de calado) y F7/f7 (zona del buje).", "Verificaciones «Pivote» (asiento, brazo efectivo, buje, flexión, rebaje del collar)"),
     "INT-001": ("Capas de la interfaz y alturas (Δ); topes, tornillos y ranuras según la alternativa; NO desmontable si fix_mode = 2.", "D['apoyo'].interfaz; D['interfazChecks']; verificaciones «Interfaz inox/bronce»"),
     "INT-002": ("Sectores: ángulo, juntas, muescas, tornillos, ranuras de engrase, rugosidad y planitud.", "P.n_sec, d_tor, h_gr, w_gr, n_gr_rad, n_gr_circ; verificaciones de sector y tornillo"),
     "INT-003": ("Barras de tope: L, b_tope, h = t − a_sup, a_inf, h_c, w_tope ≥ w_mín; secciones A-A/B-B(/C-C en B); tornillos ISO 10642, graseras, UHMW/bronce con tapones.", "interfazGeom.topes (geometría resuelta) y verificaciones de tope «alivio inferior», «filete dentro de la altura de barra», «filete mínimo»"),
@@ -343,7 +347,7 @@ def escribir_informe(ctx, rep, hojas, gaps, fuera, cr, out, dt):
     for r in cr:
         if not r["ok"]:
             L.append(f"- FALLA [{r['sheet']}] {r['texto']} ({r['extremo_a']} / {r['extremo_b']})")
-    L += ["", "## Control de marco", "", ("Todas las láminas dentro del formato A1." if not fuera else "Láminas con entidades fuera del formato: " + "; ".join(f"{a} {b}" for a, b in fuera))]
+    L += ["", "## Control de marco", "", (("Todas las láminas dentro de su formato (" + ", ".join(f"{k}: {v}" for k, v in sorted({fm_: sum(1 for h in hojas if h.fmt == fm_) for fm_ in {h.fmt for h in hojas}}.items())) + ").") if not fuera else "Láminas con entidades fuera del formato: " + "; ".join(f"{a} {b}" for a, b in fuera))]
     L += ["", "## Supuestos del dibujante (PROVISORIO) y decisiones adoptadas por el mandante (ADOPTADO)", "", "| Id | Tema | Valor | Motivo |", "|---|---|---|---|"]
     for x in ctx.sup:
         L.append(f"| {x['id']} | {x['tema']} | {x['valor']} | {x['motivo']} |")

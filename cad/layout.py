@@ -353,6 +353,9 @@ class Plano:
     def note_block(self, title, lines, numbered=False):
         """Las notas se parten en bloques de 1–2 líneas (átomos) para llenar la banda lateral sin huecos."""
         lines = list(lines)
+        if not hasattr(self.h, "notas_reg"):
+            self.h.notas_reg = []
+        self.h.notas_reg.extend(lines)
         i0 = 0
         first = True
         while i0 < len(lines):
@@ -383,7 +386,7 @@ class Plano:
                             yy -= T_N * 1.4
                         yy -= T_N * 0.25
                     return yy
-                return s.notes_block(x, y, ttl, chunk, h=T_N, width=w - 2, numbered=False)
+                return s.notes_block(x, y, ttl, chunk, h=T_N, width=w - 2, numbered=False, reg=False)
             blk_ref.append(self.block("notas", d, name=ttl))
             i0 += 2
             first = False

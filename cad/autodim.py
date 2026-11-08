@@ -344,7 +344,7 @@ def _thin(items, scale, text_of, minw=6.0, protect=()):
 
 
 def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=None, text=None, skip_u=(), skip_v=(), maxn=9, overall=True, hole_rmin=1.5,
-              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, axes="hv", minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None):
+              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, axes="hv", minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None, rev_only=None):
     """Cotas automáticas de la vista V. tol: {valor_redondeado: sufijo} (p. ej. {20.0: ' ±0,5'}); text: {valor: texto completo}; fits: {Ø: 'H7'} para diámetros.
     Devuelve el nº de cotas dibujadas."""
     on = on or V.keys
@@ -454,6 +454,8 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         radii = sorted(rs)
         # descarta los diámetros demasiado próximos en papel para apilarlos (siempre apila: un nivel por diámetro)
         radii = radii[-rev_max:] if len(radii) > rev_max else radii
+        if rev_only is not None:                # solo los diámetros funcionales (los de chaflanes quedan definidos por la nota del chaflán, B-46)
+            radii = [r for r in radii if any(abs(2 * r - d_) < 0.11 for d_ in rev_only)]
         ya = text or {}
         for r in radii:
             lst = rs[r]

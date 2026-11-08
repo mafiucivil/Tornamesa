@@ -34,7 +34,7 @@ class Pieza(Plano):
         self.p0 = ctx.m.get(self.keys[0])
         self.lead = self.p0.code
         masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys[:3]) + " kg c/u"
-        h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 24 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
+        h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 30 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
         self.init_plano(ctx, h)
         self.boost_main = True          # vista principal a la escala normalizada siguiente si cabe (ver layout._build_once)
@@ -42,9 +42,10 @@ class Pieza(Plano):
         self.fmt_try = ["A2", "A1"] if fmt == "auto" else (["A3", "A2", "A1"] if fmt == "auto3" else None)
         self.W_right = 172.0
 
-    def tables(self, weld_ids=None, extra_rows=None, ficha_h=None):
-        """Ficha (despiece de la pieza) y tabla de soldaduras: bloques anchos de la franja inferior."""
-        self.ficha_block(self.keys)
+    def tables(self, weld_ids=None, extra_rows=None, ficha_h=None, ficha=True):
+        """Ficha (despiece de la pieza) y tabla de soldaduras: bloques anchos de la franja inferior. ficha=False en las láminas de características (la pieza se define en su lámina, H-32)."""
+        if ficha:
+            self.ficha_block(self.keys)
         if weld_ids:
             self.weld_block(weld_ids)
 
@@ -55,9 +56,10 @@ class Pieza(Plano):
         if gd:
             self.gd(list(gd))
         self.rugosidad_block()
-        self.note_block("GENERALES", notas_gen_fab(ctx))
-        insp = inspect or "VT 100 % de toda soldadura; MT/UT según la tabla de soldaduras (AWS D1.1 y BTH-1 Cat. B); control dimensional 100 % de cotas con tolerancia."
-        self.note_block("PLAN DE INSPECCIÓN", [insp, "Punzonar código de la pieza y marca de colada (trazabilidad EN 10204 3.1)."])
+        # notas generales: solo la referencia a GEN-001 (no se repiten en la lámina); inspección propia solo si la pieza la tiene
+        self.note_block(REF_GEN_TIT, [REF_GEN])
+        if inspect:
+            self.note_block("PLAN DE INSPECCIÓN DE LA PIEZA", [inspect])
 
     def rugosidad_block(self):
         """Bloque de rugosidad ISO 1302 por cara funcional de la pieza (valores ya usados en las vistas) y general para el resto."""
@@ -68,16 +70,18 @@ class Pieza(Plano):
             "collar": [("Ra 3,2", "cara superior (asiento del cubo)"), ("Ra 1,6", f"agujero Ø{f(P['D_piv'])} H7")],
             "bancada": [("Ra 1,6", "flancos y fondo de la ranura T")], "patin": [("Ra 1,6", "cuello y cabeza de la lengüeta, alojamientos, ojal H9")],
             "una": [("Ra 0,8", "cara de empuje templada (rectificada)"), ("Ra 1,6", "caras de guía en el alojamiento")], "pasadores": [("Ra 0,8", f"Ø{f(g.d_pin)} m6 (franja templada y resto)")],
-            "pivote": [("Ra 0,8", f"Ø{f(P['D_piv'])} p6 (toda la barra)"), ("Ra 3,2", "caras extremas")], "buje": [("Ra 1,6", "Ø interior F7 y Ø exterior s6")],
+            "pivote": [("Ra 0,8", f"Ø{f(P['D_piv'])} p6 (zona de calado) y Ø{f(P['D_piv'])} f7 (zona del buje)"), ("Ra 3,2", "caras extremas")], "buje": [("Ra 1,6", "Ø interior F7 y Ø exterior s6")],
             "pasador_vastago": [("Ra 0,8", f"Ø{f(P['d_pp'])} f8")], "mesa_anillo_sup": [("Ra 3,2", "agujeros de pasadores H7 y caras del anillo")],
             "mesa_plancha_sup": [("Ra 6,3", "cara superior y rebaje de la tapa")], "mesa_plancha_inf": [("Ra 3,2", "cara inferior (apoyo de la interfaz), planeada")],
             "mesa_cubo": [("Ra 1,6", f"agujero Ø{f(g.d_bush)} H7"), ("Ra 3,2", "rebaje y caras de apoyo")], "orejas": [("Ra 12,5", "canto de corte; agujero esmerilado")],
             "mensula_mejilla": [("Ra 6,3", "caras de apoyo de las orejas"), ("Ra 3,2", f"agujeros Ø{f(P['d_pp'])} H9 de las orejas")],
-            "int_disco_base": [("Ra 0,4", "cara deslizante (lapeada)")], "int_disco_mesa": [("Ra 0,4", "cara deslizante (lapeada)"), ("Ra 1,6", "fondo de ranuras")],
+            "int_disco_base": [("Ra 0,4", "cara deslizante (lapeada)")], "int_disco_mesa": [("Ra 0,4", "cara deslizante (lapeada)")] + ([("Ra 1,6", "fondo de ranuras")] if g.opt == 1 and g.h_gr > 0 else []),
             "int_cara": [("Ra 0,4", "cara deslizante (lapeada)")], "int_bronce": [("Ra 0,4", "cara deslizante (lapeada)"), ("Ra 1,6", "fondo de ranuras y alojamientos de tapones")],
             "int_uhmw": [("Ra 3,2", "caras de la lámina (sin mecanizado de precisión)")],
         }
-        rows = RA.get(k, [("Ra 3,2", "caras mecanizadas indicadas en las vistas"), ("Ra 6,3", "caras de apoyo de soldadura")])
+        RA.update({"tapa_ret": [("Ra 3,2", "cara de apoyo y avellanados")], "tapa_insp": [("Ra 3,2", "cara de apoyo y avellanados")],
+                   "pernos_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "marco_largo": [("Ra 12,5", "cantos de corte (a escuadra)")]})
+        rows = RA.get(k, [("Ra 6,3", "bordes de las caras que se sueldan (preparación)")])
         rows = rows + [("Ra 12,5", "resto de las superficies (corte térmico o laminado)")]
 
         def d(s, x, y, w):
