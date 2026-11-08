@@ -29,7 +29,7 @@ for _a in sys.argv[1:]:
 # filas del escenario que pertenecen al accionamiento y a la hidráulica (fuera del alcance 1)
 DRIVE_KEYS = ("Uña–pasador", "Patín fuera", "Bancada de guía", "Aceite", "Válvula de alivio", "Sellos NBR")
 # grupos de verificaciones estándar que pasan a «Accionamiento (fuera de alcance)» con term_alcance = 1 (pasadores de empuje, uña, patín y guía, articulaciones, fatiga)
-DRIVE_GRPS = ("Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga")
+DRIVE_GRPS = ("Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga", "Leva de reenganche", "Soporte del ojal E", "Placas-leva")   # + leva guiada (Tarea 1) y modo pivotado (Tarea 2)
 FG_ROW = "Bronce con grafito: cobertura mínima de lubricante sólido"          # criterio f_g ≥ bz_fg_min (aviso por defecto; falla con bz_fg_estricto = 1)
 fails = []
 nchk = [0]
@@ -149,6 +149,21 @@ def kfac(P, T):
     Tr = P["T_ref"]
     s = (T - Tr) / (80.0 - Tr) if T > Tr else 0.0
     return {k: max(K_FLOOR, 1 + (P[p] - 1) * s) for k, p in KEYS.items()}
+
+
+def is_bolt(c):
+    return c["nombre"].startswith("Pernos de") and c["unidad"] == "MPa"
+
+
+def bolt_fu(c, chks, P, k):
+    """Pernos de las levas (AISC 360-22 J3) con Fu × k_perno; la fila de tracción usa F'nt = mín(Fnt; 1,3·Fnt − Ω·Fnt/Fnv·f_rv), Ω = 2,00."""
+    Fu = P["Fu_bolt"] * k["bolt"]
+    if "tracción" in c["nombre"]:
+        pre = c["nombre"].split(":")[0]
+        frv = next(x["dem"] for x in chks if x["nombre"].startswith(pre + ": corte"))
+        Fnt, Fnv = 0.75 * Fu, 0.45 * Fu
+        return c["dem"] / (max(0.0, min(Fnt, 1.3 * Fnt - 2 * Fnt / Fnv * frv)) / 2)
+    return c["dem"] / (0.45 * Fu / 2)
 
 
 def scenario(P):
@@ -483,8 +498,10 @@ for wood in (False, True):
                     chk(f"{cid} T={T} fuera de alcance {r['key'][:40]} fu", r["fu"], f[0]["fu"], absn=1e-12) if r["fu"] is not None else chk_eq(f"{cid} T={T} fuera {r['key'][:30]} fu None", f[0]["fu"], None)
                     if r["dem"] is not None: chk(f"{cid} T={T} fuera de alcance {r['key'][:40]} dem", r["dem"], f[0]["dem"], absn=1e-12)
                     if r["fu"] is not None: chk_eq(f"{cid} T={T} fuera de alcance {r['key'][:40]} estado", state_row(r), f[0]["estado_informativo"])
-                nf = sum(1 for c in stdd if c["estado"] == "fail") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "fail")
-                nw = sum(1 for c in stdd if c["estado"] == "warn") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "warn")
+                kT_ = kfac(P, T); allc = alt_export(aid, wood)["verificaciones"]
+                stT = lambda c: state_res(bolt_fu(c, allc, P, kT_)) if is_bolt(c) else c["estado"]     # pernos de las levas: Fu × k_perno a T; el resto del accionamiento no cambia (k_Fy = 1)
+                nf = sum(1 for c in stdd if stT(c) == "fail") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "fail")
+                nw = sum(1 for c in stdd if stT(c) == "warn") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "warn")
                 chk_eq(f"{cid} T={T} fuera_resumen (n, fail, warn)", (len(stdd) + len(aux["drive"]) + 1, nf, nw), (rT["fuera_resumen"]["n"], rT["fuera_resumen"]["fail"], rT["fuera_resumen"]["warn"]))
             # masa congelada
             chk(f"{cid} T={T} masa (geometría congelada de 20 °C)", rT["masa"], alt_export(aid, wood)["derivados"]["masas"]["total"], tol=1e-9)
@@ -606,6 +623,8 @@ def std_at(aid, wood, k, P, q_uh=None, kfy_extra=1.0):
             fu = c["fu"] / k["bz"]
         elif fam == "wood":
             fu = c["fu"] / k["wood"]
+        elif is_bolt(c):
+            fu = bolt_fu(c, chks, P, k)
         elif c["unidad"] == "MPa" and kfy_extra != 1.0 and not any(s in c["nombre"] for s in ("Soldadura", "soldadura", "Hertz")) and c["grp"] not in ("Soldaduras", "Fatiga"):
             fu = c["fu"] / kfy_extra
         out.append(dict(grp=c["grp"], nombre=c["nombre"], fu20=c["fu"], fuT=fu, sys=sys_, unidad=c["unidad"], fam=fam, st20=c["estado"], strict=P.get("bz_fg_estricto", 0)))
