@@ -1,22 +1,35 @@
-# Entregables Rev. C del paquete de planos TT300-C (juego de planos de fabricación rehecho)
+# Entregables Rev. C TT300-C: memoria de cálculo; los planos se generan a pedido
 
-Estado: **EMITIDO PARA REVISIÓN, revisión C** (códigos TT300C-…-C). NO apto para fabricación hasta su revisión y aprobación por un ingeniero calculista habilitado. DIBUJÓ/REVISÓ/APROBÓ: A DEFINIR (con casillas de firma y fecha).
+Estado del juego de planos: **EMITIDO PARA REVISIÓN, revisión C** (códigos TT300C-…-C). **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.** DIBUJÓ/REVISÓ/APROBÓ: A DEFINIR (con casillas de firma y fecha).
 
-Segunda pasada (compositor de lámina, cotas automáticas verificadas, láminas nuevas, WPS/pintura/grados propuestos). Generado con `python3 cad/generar_paquete.py --entrega entregables/RevC` (diseño por defecto: interfaz acero-acero con grasa) a partir del JSON de `node tools/export_design.js` (fuente única: planos y cálculo salen del mismo JSON; el generador no tiene valores a mano).
+## Contenido de esta carpeta
+- `TT300-C_Memoria_RevC.docx/.pdf`: memoria de cálculo (texto negro, hipótesis → desarrollo → resultado). Regenerar con `npm run memoria` (necesita `python-docx` y LibreOffice `soffice`); el .docx y el .pdf se copian a esta carpeta.
+- `TT300-C_design.json`: diseño por defecto exportado por `node tools/export_design.js` (fuente única del cálculo y de los planos).
+- `TT300-C_alternativas.json`: datos de los capítulos 9 y 10 de la memoria (`node tools/export_alternativas.js`).
 
-## Contenido (carpeta raíz = diseño por defecto)
-- `planos/`: una lámina por archivo, PDF y DXF (A1 y A2, método de proyección E, letra ≥ 3,5 mm en el plot, tablas 3,0 mm, mínimo 2,5 mm). Cada vista se dibuja a la mayor escala normalizada que cabe (1:1, 1:2, 1:2,5, 1:5, 1:10, 1:20, 1:25, 1:50, 1:100; ampliaciones 2:1 y 5:1 en detalles); las isométricas llevan la leyenda «SIN ESCALA». Series: `GEN` (generales: notas/normas/índice, inspección, tolerancias y ajustes ISO 286, materiales y grados propuestos, tratamientos y pintura, programa de soldaduras, torques y componentes de catálogo, supuestos y brechas, cortes de plancha, lista de verificación, GEN-012 WPS pre-calificados propuestos), `CON` (conjunto general, despiece completo, explosionada, secuencia, base, ménsula, mesa, accionamiento, pivote, interfaz) y láminas de pieza con el código del ítem (`BAS`, `IZA`, `ACC`, `MES`, `PIV`, `INT`, `MAD`).
-- `TT300-C_Planos_RevC.pdf`: PDF combinado con marcadores (índice de láminas). `TT300-C_DXF_RevC.zip`: DXF de todas las láminas.
-- `TT300-C.step`, `TT300-C.glb`: modelo 3D. `TT300-C_despiece.csv/.xlsx` (pestañas Despiece, Masas, Corte, Soldaduras, Supuestos y brechas), `soldaduras.csv` (programa de soldaduras con las láminas donde cada junta tiene su símbolo), `lista_de_cortes.csv`, `metricas_laminas.csv` (cotas, ocupación por vistas y textos A DEFINIR por lámina), `chequeo_cotas.csv` (cada cota verificada contra el sólido 3D), `informe_paquete.md`, `lista_verificacion_revisor.md/.pdf`, `TT300-C_masas3d.json`, `TT300-C_design.json`.
-- `variantes/` (A, A pegado «AF2», B, C1, C2, C3 y madera «W»): el mismo juego completo (PDF por lámina y combinado, STEP/GLB, despiece, soldaduras, informe); sin DXF. Regenerar una variante:
+Desde el 08-11-2026 el repositorio **no guarda juegos de planos** (ni PDF, DXF, STEP, despiece ni los controles del paquete). Los juegos anteriores siguen en el historial de git.
+
+## Cómo obtener los planos (a pedido)
+1. En Windows, una sola vez: `Instalar_generador_planos.bat` (raíz del repositorio). Busca Python 3.12 o 3.11, crea `.venv-planos` e instala `requirements-planos.txt`.
+2. Cada vez: `Generar_planos_Tornamesa.bat`. Levanta el generador local en http://127.0.0.1:8765 y abre la herramienta `Tornamesa_v<versión>.html`.
+3. En la herramienta: elija la alternativa (selector de interfaz de giro, casillas de madera y fijación) y los parámetros. En la pestaña **Planos**, pulse «Generar planos» (unos 4 a 6 minutos).
+4. Al terminar, la pestaña muestra los tres grupos **Generales**, **Fabricación** y **Armado**, cada uno con su PDF y la lista de láminas, más el PDF combinado, el despiece XLSX, el modelo STEP y el ZIP de DXF. Todo queda en `salidas/<fecha-hora>_<alternativa>/`, que git ignora. El historial de la pestaña reabre las generaciones anteriores sin regenerar.
+
+Sin la herramienta (Linux o macOS, con las dependencias de `requirements-planos.txt`):
 
 ```
 echo '{"opt_uhmw":1}' > parametros.json     # A: {"opt_ss":1}; A pegado: {"opt_ss":1,"fix_mode":2}; B: {"opt_uhmw":1}; C1/C2/C3: {"opt_bz":1,"bz_conf":1|2|3}; madera: {"opt_wood":1}
 node tools/export_design.js parametros.json > diseno.json
-python3 cad/generar_paquete.py diseno.json --out cad/out/variante_B --sin-dxf
+python3 cad/generar_paquete.py diseno.json --out /tmp/tt300c --entrega salidas/mi_juego
+python3 tools/indice_planos.py salidas/mi_juego      # PDF por grupo e indice_planos.json
 ```
 
-Memoria de cálculo: `TT300-C_Memoria_RevC.docx/.pdf` (texto negro, hipótesis → desarrollo → resultado, formato para insertar en documento) y `TT300-C_alternativas.json` (datos de los capítulos 9 y 10, incluida la clave `tapones`). Actualizada con el núcleo v1.2 (commit c5a9f15, `Tornamesa_v1.2.html`): cap. 9.7 «Opción C: tapones de grafito, cantidad real frente a ideal» (N_real 2.640 / 2.640 / 2.364 frente a ideal 3.961 / 3.961 / 3.565; f_g real 0,0967 frente a 0,145; hallazgos G1 a G4 y recomendación al proveedor); cap. 10 «Exposición solar a 80 °C» con alcance solo placas y disco (`term_alcance` = 1; cilindros, aceite atrapado, válvula de alivio térmico, sellos, viscosidad/bomba y accionamiento fuera del escenario, 51 filas informativas en la nota 10.12); cap. 14 con el juego de planos Rev. C leído de `informe_paquete.md`; Anexo C con los parámetros nuevos de la v1.2. Regenerar: `npm run memoria` (necesita `python-docx` y LibreOffice `soffice`); el .docx y el .pdf se copian a esta carpeta.
+El generador se niega a emitir (código ≠ 0) si el diseño no gira, la estructura no cumple o falla un control de calidad.
+
+## Contenido del juego que emite el generador
+- `planos/`: una lámina por archivo, PDF y DXF (A1 y A2, método de proyección E, letra ≥ 3,5 mm en el plot, tablas 3,0 mm, mínimo 2,5 mm). Series: `GEN` (generales), `CON` (conjunto general, despiece, explosionadas, instructivo de armado y subconjuntos) y láminas de pieza con el código del ítem (`BAS`, `IZA`, `ACC`, `MES`, `PIV`, `INT`, `MAD`).
+- Grupos (`tools/indice_planos.py`, por el título de cada lámina): **Armado** = títulos con EXPLOSIONADA, MONTAJE, SECUENCIA o ARMADO; **Generales** = GEN-*, CON-001 a CON-003 y los títulos con DESPIECE COMPLETO o CONJUNTO GENERAL; **Fabricación** = el resto. Cada grupo en `TT300-C_Planos_{Generales,Fabricacion,Armado}_RevC.pdf`.
+- `TT300-C_Planos_RevC.pdf` (combinado con marcadores), `TT300-C_DXF_RevC.zip`, `TT300-C.step`, `TT300-C.glb`, `TT300-C_despiece.csv/.xlsx`, `soldaduras.csv`, `lista_de_cortes.csv`, `metricas_laminas.csv`, `chequeo_cotas.csv`, `completitud_piezas.csv`, `control_cadenas.csv`, `checklist_piezas.csv`, `informe_paquete.md`, `lista_verificacion_revisor.md/.pdf`, `TT300-C_masas3d.json` y `TT300-C_design.json`.
 
 ## Planos de armado (sexta pasada)
 - `CON-004`: isométrica explosionada por grupos en z (base soldada con bancadas; pivote y tapa retenedora; interfaz lado base; interfaz lado mesa; buje; mesa en tres niveles; pasadores; pernos; tapa de inspección; madera), con trayectorias de montaje en trazo y punto y un globo por posición en la periferia (líneas sin cruces, cada una termina en un punto visible de su pieza).
@@ -37,4 +50,4 @@ Memoria de cálculo: `TT300-C_Memoria_RevC.docx/.pdf` (texto negro, hipótesis �
 - Materiales: donde el cálculo solo fija Fy, el grado comercial más económico que lo cumple se rotula «PROPUESTO por Fy del cálculo; confirmar» (GEN-005). WPS: tabla de WPS pre-calificados propuestos (GEN-012, «PROPUESTA — A CALIFICAR/CONFIRMAR POR EL FABRICANTE»). Pintura: ISO 12944 C4 alta, 240 µm, «PROPUESTA, CONFIRMAR» (GEN-006). «A DEFINIR» queda solo para firmas del cajetín, decisiones del mandante (retención axial del pivote, izaje de la mesa) y marca/modelo de catálogo.
 - Torques de pernos: PROPUESTA, A CONFIRMAR POR EL CALCULISTA (GEN-008).
 
-- `revision_visual.md`: registro de la revisión visual lámina por lámina (qué se abrió, qué se vio, qué se corrigió).
+- Registro de la revisión visual lámina por lámina (historial de QA de las pasadas anteriores): `docs/qa/revision_visual_RevC.md`.

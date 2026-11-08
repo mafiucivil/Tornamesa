@@ -10,3 +10,10 @@ __pycache__/
 *Verificacion_Tornamesa.html
 salidas/
 .venv-planos/
+# Planos: se generan a pedido con el generador local (salidas/); en entregables/RevC solo se versionan la memoria, el diseño y el LEEME
+entregables/RevC/*
+!entregables/RevC/LEEME.md
+!entregables/RevC/TT300-C_Memoria_RevC.docx
+!entregables/RevC/TT300-C_Memoria_RevC.pdf
+!entregables/RevC/TT300-C_design.json
+!entregables/RevC/TT300-C_alternativas.json
