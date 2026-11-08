@@ -111,18 +111,25 @@ def main():
     # orden final: GEN-001, CON, piezas (orden del plan), resto GEN por número
     orden = {id(h): i for i, h in enumerate(hojas)}
 
+    pref_rank = {}
+    for h in hojas:
+        pf = h.plano.replace(CODE + "-", "").split("-")[0]
+        pref_rank.setdefault(pf, len(pref_rank))
+
     def okey(h):
+        # láminas de pieza ordenadas por código dentro de cada serie (H-04); series en el orden del plan
         t = h.plano.replace(CODE + "-", "")
-        if t.startswith("GEN-001"): return (0, 0)
-        if t.startswith("CON"): return (1, int(t.split("-")[1]))
-        if t.startswith("GEN"): return (3, int(t.split("-")[1]))
-        return (2, orden[id(h)])
+        if t.startswith("GEN-001"): return (0, 0, 0)
+        if t.startswith("CON"): return (1, int(t.split("-")[1]), 0)
+        if t.startswith("GEN"): return (3, int(t.split("-")[1]), 0)
+        return (2, pref_rank[t.split("-")[0]], int(t.split("-")[1]))
     hojas.sort(key=okey)
     total = len(hojas)
     h1 = next(h for h in hojas if h.plano.startswith(f"{CODE}-GEN-001"))
     if hasattr(h1, "indice_pos"):
         if hojas_gen.tabla_indice(ctx, h1, hojas):
             print("  AVISO: el índice de planos no cabe en GEN-001", flush=True)
+            errores.append(("indice", "el índice de planos no cabe en GEN-001"))
     pd = out / "planos"
     if pd.exists():
         shutil.rmtree(pd)
@@ -344,10 +351,20 @@ def main():
         if q["choques"] or q["fuera"] or q["invasiones"]:
             print(f"  QC {pl}: choques {q['choques'][:6]} fuera {q['fuera'][:3]} invasiones {q['invasiones'][:3]}", flush=True)
     print(f"  QC gráfico: choques {n_ch}, fuera de marco {n_fu}, invasiones {n_iv}", flush=True)
+    # ---- controles de coherencia de la revisión exhaustiva (ISO 2768, partidas, avellanados, notas, códigos, variante, WPS) ----
+    import controles
+    CTL = controles.todos(ctx, hojas)
+    n_ctl = sum(len(v) for v in CTL.values())
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write("\n## Controles de coherencia del juego\n\n")
+        for k, v in CTL.items():
+            fh.write(f"- {k}: {len(v)} falla(s)" + ("" if not v else ": " + "; ".join(v[:12])) + "\n")
+    for k, v in CTL.items():
+        print(f"  control {k}: {len(v)}" + (f" {v[:6]}" if v else ""), flush=True)
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)
-    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok or n_miss or n_lt or n_cg:
+    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok or n_miss or n_lt or n_cg or n_ctl:
         sys.exit(2)
 
 

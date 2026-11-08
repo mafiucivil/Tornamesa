@@ -1,0 +1,235 @@
+"""Controles automáticos de coherencia del juego de planos (revisión exhaustiva de la Rev. C).
+
+Cada control devuelve una lista de fallas (texto). El generador los escribe en informe_paquete.md y sale con código 2 si alguno falla.
+  - iso2768:     la tabla de GEN-004 coincide con ISO 2768-1:1989, Tabla 1 (valores de referencia escritos aquí, independientes de la tabla dibujada).
+  - partidas:    cada dimensión de partida de la lista de cortes es ≥ la dimensión de la pieza terminada (+ sobremedida donde se mecaniza a cota).
+  - avellanados: cada avellanado (cara cónica) queda dentro de su pieza con borde ≥ BORDE_MIN; los roscados de la tapa de inspección dejan pared ≥ BORDE_MIN.
+  - notas:       ninguna nota se repite dentro de una lámina; las notas generales de GEN-001 no se copian en otras láminas; textos contradictorios prohibidos.
+  - codigos:     los códigos de pieza INT salen del registro fijo (un código = una pieza en todas las variantes) y la lámina de cada pieza lleva su código.
+  - variante:    el rótulo (subtítulo) y el título de cada lámina identifican la variante del juego.
+  - wps:         cada WPS agrupa juntas de una sola familia y un solo rango de precalentamiento (AWS D1.1-2020 Tabla 5.11, por la parte más gruesa)."""
+import math
+import re
+import sys
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from geom import CODE, REV, BORDE_MIN
+
+# ISO 2768-1:1989, Tabla 1 — desviaciones admisibles para cotas lineales [mm]; None = no especificado
+ISO2768_REF = [((0.5, 3), (0.05, 0.1, 0.2, None)), ((3, 6), (0.05, 0.1, 0.3, 0.5)), ((6, 30), (0.1, 0.2, 0.5, 1.0)), ((30, 120), (0.15, 0.3, 0.8, 1.5)),
+               ((120, 400), (0.2, 0.5, 1.2, 2.5)), ((400, 1000), (0.3, 0.8, 2.0, 4.0)), ((1000, 2000), (0.5, 1.2, 3.0, 6.0)), ((2000, 4000), (None, 2.0, 4.0, 8.0))]
+
+
+def _num(t):
+    t = t.strip()
+    if t in ("—", "-", ""):
+        return None
+    return float(t.replace("±", "").replace(".", "").replace(",", "."))
+
+
+def iso2768(hojas_gen):
+    out = []
+    tab = hojas_gen.ISO2768_LINEAL
+    if len(tab) != len(ISO2768_REF):
+        return [f"ISO 2768-1: la tabla tiene {len(tab)} rangos (norma: {len(ISO2768_REF)})"]
+    for (rng, vals), ((a, b), ref) in zip(tab, ISO2768_REF):
+        nums = [float(x.replace(".", "").replace(",", ".")) for x in re.findall(r"\d[\d.]*,?\d*", rng)]
+        if not nums or abs(nums[0] - a) > 1e-9 or abs(nums[-1] - b) > 1e-9:
+            out.append(f"ISO 2768-1: rango «{rng}» ≠ {a}–{b}")
+        for cl, v, r in zip("fmcv", vals, ref):
+            vv = _num(v)
+            if (vv is None) != (r is None) or (vv is not None and abs(vv - r) > 1e-9):
+                out.append(f"ISO 2768-1: rango {a}–{b}, clase {cl}: {v} (norma ±{r})")
+    return out
+
+
+# ------------------------------------------------------------------------------------------------
+def _obb_dims(shape):
+    """Dimensiones (ordenadas) de la caja orientada mínima de un sólido."""
+    from OCP.Bnd import Bnd_OBB
+    from OCP.BRepBndLib import BRepBndLib
+    b = Bnd_OBB()
+    BRepBndLib.AddOBB_s(shape.wrapped, b, True, True, False)
+    return sorted([2 * b.XHSize(), 2 * b.YHSize(), 2 * b.ZHSize()])
+
+
+def _parse_partida(forma, dim):
+    """[d1, d2, d3] de la dimensión de partida («155×180×25», «Ø260×65», «Ø2.010/Ø1.710×30»); None si no es un bloque/disco."""
+    s = dim.replace(".", "").replace(",", ".")
+    m = re.match(r"^Ø([\d.]+)(?:/Ø[\d.]+)?×([\d.]+)$", s)
+    if m:
+        D, t = float(m.group(1)), float(m.group(2))
+        return sorted([D, D, t])
+    m = re.match(r"^([\d.]+)×([\d.]+)×([\d.]+)$", s)
+    if m:
+        return sorted(float(x) for x in m.groups())
+    return None
+
+
+def partidas(ctx):
+    import lista
+    out = []
+    for r in lista.cut_rows(ctx):
+        code, forma, dim = r[0], r[2], r[3]
+        if "rolada" in forma:              # pletina rolada: la partida es el desarrollo, no la envolvente
+            continue
+        pd = _parse_partida(forma, dim)
+        p = next((q for q in ctx.m.parts if q.code.replace(CODE + "-", "") == code), None)
+        if pd is None or p is None:
+            continue
+        sol = p.solid.vals()[0]
+        so = sol.Solids()[0] if hasattr(sol, "Solids") and sol.Solids() else sol
+        if p.key.startswith("mesa_anillo"):
+            pz = sorted([2 * ctx.g.Rt, 2 * ctx.g.Rt, ctx.g.tpr])      # anillo completo: se arma con 4 segmentos de la partida
+        elif p.key.startswith("mesa_nervio"):
+            pz = sorted([lista.rib_len(ctx, p), ctx.g.hw, ctx.P["t_rib"]])
+        else:
+            pz = _obb_dims(so)
+        for a, b in zip(pd, pz):
+            if a < b - 0.05:
+                out.append(f"Partida menor que la pieza terminada: {code} «{forma} {dim}» frente a {'×'.join(f'{x:.1f}' for x in pz)}")
+                break
+    return out
+
+
+# ------------------------------------------------------------------------------------------------
+def avellanados(ctx):
+    """Cada cara cónica (avellanado) de una pieza fabricada: un anillo de radio (r_avellanado + BORDE_MIN), a 0,3 mm bajo la cara, debe quedar dentro del sólido."""
+    import cadquery as cq
+    out = []
+    g = ctx.g
+    for p in ctx.m.parts:
+        if p.comercial:
+            continue
+        for so in p.solid.vals():
+            sols = so.Solids() if hasattr(so, "Solids") else [so]
+            for sd in sols[:2]:                    # basta un sector/pieza por tipo
+                for fc in sd.Faces():
+                    if fc.geomType() != "CONE":
+                        continue
+                    circ = [e for e in fc.Edges() if e.geomType() == "CIRCLE"]
+                    if len(circ) < 2:
+                        continue
+                    big = max(circ, key=lambda e: e.radius())
+                    sml = min(circ, key=lambda e: e.radius())
+                    cb, cs_ = big.arcCenter(), sml.arcCenter()        # centro de la circunferencia (Center() da el baricentro de un arco)
+                    ax = (cb.x - cs_.x, cb.y - cs_.y, cb.z - cs_.z)
+                    L = math.sqrt(sum(a * a for a in ax)) or 1.0
+                    ax = tuple(a / L for a in ax)
+                    u = (1.0, 0.0, 0.0) if abs(ax[0]) < 0.9 else (0.0, 1.0, 0.0)
+                    u = (u[0] - ax[0] * sum(a * b for a, b in zip(u, ax)), u[1] - ax[1] * sum(a * b for a, b in zip(u, ax)), u[2] - ax[2] * sum(a * b for a, b in zip(u, ax)))
+                    nu = math.sqrt(sum(a * a for a in u))
+                    u = tuple(a / nu for a in u)
+                    v = (ax[1] * u[2] - ax[2] * u[1], ax[2] * u[0] - ax[0] * u[2], ax[0] * u[1] - ax[1] * u[0])
+                    # chaflán exterior (material por dentro del cono) o avellanado (hueco por dentro): punto a media altura, 0,6 mm hacia el eje
+                    rm_ = (big.radius() + sml.radius()) / 2 - 0.6
+                    cm_ = ((cb.x + cs_.x) / 2, (cb.y + cs_.y) / 2, (cb.z + cs_.z) / 2)
+                    if sd.isInside(cq.Vector(*(c + rm_ * uu for c, uu in zip(cm_, u)))):
+                        continue
+                    rr = big.radius() + BORDE_MIN
+                    bad = 0
+                    for k in range(16):
+                        t = 2 * math.pi * k / 16
+                        q = tuple(c - 0.3 * a + rr * (math.cos(t) * uu + math.sin(t) * vv) for c, a, uu, vv in zip((cb.x, cb.y, cb.z), ax, u, v))
+                        if not sd.isInside(cq.Vector(*q)):
+                            bad += 1
+                    if bad:
+                        out.append(f"Avellanado Ø{2 * big.radius():.1f} de {p.code.replace(CODE + '-', '')} a menos de {BORDE_MIN:.0f} mm del borde de la pieza o de otro agujero")
+                        break
+    # roscados de la tapa de inspección en el fondo del rebaje: pared hasta el agujero central y hasta el canto del rebaje
+    r = g.insp_pcd / 2
+    if r - g.insp_d / 2 - g.hole_top / 2 < BORDE_MIN - 1e-6:
+        out.append(f"Roscados M{g.insp_d:.0f} de la tapa de inspección: pared {r - g.insp_d / 2 - g.hole_top / 2:.1f} mm hasta el agujero Ø{g.hole_top:.0f} (< {BORDE_MIN:.0f})")
+    if (g.cb_D / 2 - 1) - (r + g.insp_csk / 2) < BORDE_MIN - 1e-6:
+        out.append(f"Avellanado de la tapa de inspección: borde {(g.cb_D / 2 - 1) - (r + g.insp_csk / 2):.1f} mm (< {BORDE_MIN:.0f})")
+    return out
+
+
+# ------------------------------------------------------------------------------------------------
+def _norm(t):
+    t = re.sub(r"^\s*\d+\.\s*", "", str(t))
+    return re.sub(r"\s+", " ", t).strip().lower()
+
+
+PROHIBIDOS = [(re.compile(r"ISO 13920(?:-B(?!F)|\s*\(?clase)"), "ISO 13920 con clase distinta de «ISO 13920-BF»"), (re.compile(r"\(o R1\)"), "aristas «1×45° (o R1)» (GEN-001: 1×45° ISO 13715)"),
+              (re.compile(r"10204 2\.2"), "certificado 2.2 (GEN-001: EN 10204 3.1)"), (re.compile(r"arandela[^.;]*(S355J2|A572)"), "material de la arandela distinto del único del despiece"),
+              (re.compile(r"HV 300 mín"), "arandela «HV 300 mín.» (material único: ver despiece)")]
+
+
+def notas(ctx, hojas):
+    out = []
+    gen = [_norm(n) for n in getattr(ctx, "notas_generales", [])]
+    firma = [x[:70] for x in gen if len(x) > 30]
+    for h in hojas:
+        tag = h.plano.replace(CODE + "-", "").replace("-" + REV, "")
+        ns = [n for n in list(getattr(h, "notas_reg", [])) + list(getattr(h.s, "notas_reg", []))]
+        seen = {}
+        for n in ns:
+            k = _norm(n)
+            if len(k) < 12:
+                continue
+            if k in seen:
+                out.append(f"{tag}: nota repetida «{n[:70]}»")
+            seen[k] = 1
+            if not tag.startswith("GEN-001") and any(k.startswith(fi) or fi.startswith(k[:70]) for fi in firma):
+                out.append(f"{tag}: copia una nota general de GEN-001 «{n[:70]}»")
+        for t in h.s.texts:
+            for rx, why in PROHIBIDOS:
+                if rx.search(str(t)):
+                    out.append(f"{tag}: {why}: «{str(t)[:80]}»")
+    return sorted(set(out))
+
+
+def codigos(ctx, hojas):
+    import modelo3d_tt300c as M3
+    out = []
+    usados = {}
+    for k, (n, nm, var) in M3.INT_CODIGOS.items():
+        usados.setdefault(n, set()).add(nm)
+    for n, nms in usados.items():
+        if len(nms) > 1:
+            out.append(f"INT-{n:03d}: el registro asigna el mismo código a piezas distintas {sorted(nms)}")
+    for p in ctx.m.parts:
+        if p.sub != "INT":
+            continue
+        ck = M3.int_clave(p.key, ctx.g.conf)
+        if ck not in M3.INT_CODIGOS or M3.INT_CODIGOS[ck][0] != p.num:
+            out.append(f"{p.code}: código fuera del registro fijo de la interfaz")
+    for h in hojas:
+        t = h.plano.replace(CODE + "-", "")
+        if t.startswith("INT-") and h.items and int(t.split("-")[1]) < 100:
+            if h.plano != h.items[0]:
+                out.append(f"{t}: la lámina no lleva el código de su pieza principal ({h.items[0]})")
+    return out
+
+
+def variante(ctx, hojas):
+    g = ctx.g
+    out = []
+    for h in hojas:
+        inf = h.info(1, 1)
+        if f"Variante {g.variante}" not in inf["subproj"]:
+            out.append(f"{h.tag}: el rótulo no identifica la variante {g.variante}")
+        if not h.titulo.endswith(f"VARIANTE {g.variante}"):
+            out.append(f"{h.tag}: el título no identifica la variante {g.variante}")
+    return out
+
+
+def wps(ctx):
+    import propuestas
+    out = []
+    grp = {}
+    for w in ctx.welds:
+        grp.setdefault(w["wps_n"], []).append(w)
+    for n, ws in sorted(grp.items()):
+        fam = {propuestas.wps_family(w) for w in ws}
+        pre = {propuestas.precalentamiento(w["t_pre"]) for w in ws}
+        if len(fam) > 1 or len(pre) > 1:
+            out.append(f"WPS-P{n:02d}: juntas {', '.join(w['id'] for w in ws)} con familias {sorted(fam)} o precalentamientos {sorted(pre)} distintos")
+    return out
+
+
+def todos(ctx, hojas):
+    import hojas_gen
+    res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx))
+    return res
