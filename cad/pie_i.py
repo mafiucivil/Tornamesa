@@ -383,8 +383,10 @@ def sheet_int_tornillos(ctx):
     p.notes([f"Tornillo avellanado ISO 10642 M{fm(d, 0)} cl. 10.9 (cabeza Ø{fm(lay.dk, 0)} máx.) alojado en el avellanado Ø{fm(lay.dk_av, 0)}×90° del sector (detalle B de la lámina del sector); rosca ISO 262 en el respaldo (plancha base / plancha inferior de la mesa), prof. ≥ 1,5·d.",
              "Los tornillos solo posicionan los sectores: el par lo toman las barras de tope soldadas.", "Largo normalizado ≥ t − 0,55·d + 1,5·d (S11).",
              f"Aplicar fijarroscas de resistencia media; cabeza {fm(rec_, 1)} +0,2/0 mm bajo la cara deslizante (= sobreespesor de relapeado de esta variante; la profundidad es del avellanado del sector, no del tornillo).", "Marca/modelo por catálogo (GEN-008)."] +
-            [f"Rosca en el respaldo, lado {lado}: M{fm(r_['d'], 0)}-6H, " + (f"pasante en {fm(r_['back'], 0)}" if r_["pasante"] else f"rosca útil {fm(r_['thr'], 0)}, taladro Ø{fm(r_['broca'], 1)} prof. {fm(r_['drill'], 0)}") +
-             f"; engrane {fm(r_['eng'], 1)} (≥ 1,0·d) y la punta queda {fm(r_['thr'] - r_['eng'], 1)} mm antes del fin de la rosca útil (N-01)." for lado, r_ in sorted((m.info.get("screw_resp") or {}).items())],
+            [f"Rosca en el respaldo, {({'base': 'plancha base (BAS-001)', 'mesa': 'plancha inferior de la mesa (MES-003)', 'mesa_anillo': 'anillo inferior de la mesa (MES-004)'}).get(lado, lado)}: M{fm(r_['d'], 0)}-6H, " +
+             (f"pasante en {fm(r_['back'], 0)} (rosca en todo el espesor); engrane {fm(r_['eng'], 1)} (≥ 1,0·d)." if r_["pasante"] else
+              f"rosca útil {fm(r_['thr'], 0)}, taladro Ø{fm(r_['broca'], 1)} prof. {fm(r_['drill'], 0)}; engrane {fm(r_['eng'], 1)} (≥ 1,0·d) y la punta queda {fm(r_['thr'] - r_['eng'], 1)} mm antes del fin de la rosca útil (N-01).")
+             for lado, r_ in sorted((m.info.get("screw_resp") or {}).items())],
             gd=[])
     p.build()
     return p.h
