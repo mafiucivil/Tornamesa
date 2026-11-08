@@ -1,81 +1,95 @@
 /* TT300-C · Simulación del movimiento del accionamiento (SVG, sin dependencias externas).
-   Anima el ciclo empuje → retorno → reenganche con la geometría y los resultados del núcleo (TT): kinematics()/guideGeo() para las cotas
-   del accionamiento guiado, R.stroke para la fuerza del cilindro y las reacciones de guía a lo largo del empuje, R.pump para las
-   velocidades del vástago (caudal de avance y de retorno), chamferGeo() para el chaflán de retorno de la uña y analyze().checks para
-   marcar en rojo las verificaciones de cinemática que fallan.
-   La UI solo compone posiciones (rotación de la mesa, traslación del vástago); no recalcula fuerzas ni cinemática.
-   Arquitectura: un «proveedor» por modo de accionamiento (drive_mode 1 = guiado; drive_mode 2 = pivotado tipo KIET, pendiente de las
-   funciones de geometría del núcleo) entrega el estado en cada instante; el dibujo y los controles son comunes. */
+   Anima el ciclo empuje → retorno → reenganche con la API de simulación del núcleo (TT): driveAt (fuerzas en θ para cada caso de
+   fricción), guidedAt / camAt / camGeo (modo guiado, con la leva de reenganche si opt_cam = 1), pivotGeo / pivotAt (modo pivotado tipo
+   KIET, drive_mode = 2), guideGeo/kinematics/chamferGeo/bracketGeo para las cotas del modo guiado, R.pump para las velocidades del
+   vástago (caudal de avance y de retorno) y analyze().checks para marcar en rojo las verificaciones de cinemática que fallan.
+   La UI solo compone el dibujo (rotación de la mesa, simetrías entre cilindros); no recalcula fuerzas ni cinemática.
+   Arquitectura: un «proveedor» por modo entrega el estado en cada instante y su dibujo; los controles, el gráfico y el GIF son comunes. */
 const SIM = (() => {
   const D2R = Math.PI / 180;
   const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
   const IFC_COL = ["#8a94a3", "#9fb8cf", "#e9ecef", "#b07a32"];          // acero-acero, inox (A), UHMW (B), bronce (C)
   const num = (v, d) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const interp = (xs, ys, x) => {
-    if (x <= xs[0]) return ys[0];
-    for (let i = 1; i < xs.length; i++) if (x <= xs[i]) { const t = xs[i] === xs[i - 1] ? 1 : (x - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[i - 1] + t * (ys[i] - ys[i - 1]); }
-    return ys[ys.length - 1];
-  };
+  const sentido = () => S.dir > 0 ? "antihorario" : "horario";
 
-  /* ================= proveedor del modo guiado (drive_mode 1) ================= */
+  // verificaciones de cinemática que fallan (estáticas): se muestran en todo el ciclo; las del instante las entrega el núcleo
+  function fallas(A, re) { return A.checks.filter((c) => c.st === "fail" && (c.sys === "giro" && c.kind === "geo" || re && re.test(c.grp || ""))).map((c) => c.name); }
+  // pico de la salida lateral/radial en el retorno: por debajo de esa carrera la uña vuelve detrás del pasador (reenganche)
+  function picoRetorno(sUse, uOf) {
+    let sPk = 0, uPk = 0;
+    for (let i = 0; i <= 240; i++) { const s = sUse * i / 240, u = uOf(s); if (u > uPk + 1e-9) { uPk = u; sPk = s; } }
+    return { sPk, uPk };
+  }
+  const pF = (R, F) => F * 1e3 / R.A * 10;                               // presión del cilindro (bar) = F/A, como en R.cases
+
+  /* ================= modo guiado (drive_mode 1): bancada con ranura T, patín, uña radial con resorte y, si opt_cam, leva de reenganche ================= */
   function guiado(P, A) {
-    const R = A.R, K = R.K, ch = TT.chamferGeo(P), bg = TT.bracketGeo(P);
-    const pitch = K.pitch, h = pitch / 2;
-    const sUse = Math.min(P.stroke, K.s_req);                           // carrera por paso: hasta θ = +π/N (o el tope del cilindro si no alcanza)
-    const vExt = R.pump.vExt * 1000, vRet = R.pump.vRet * 1000;         // mm/s (núcleo: Q/(n·A) y Q_ret/(n·A_anular))
-    const tExt = sUse / vExt, tRet = sUse / vRet;
-    const kS = K.pts.map((q) => q.s), kTh = K.pts.map((q) => q.th), kArm = K.pts.map((q) => q.arm);
-    const thOf = (s) => s <= P.s_free ? -h : interp(kS, kTh, s);       // inversa de s(θ) tabulada por el núcleo
-    const dTh = thOf(sUse) + h;                                           // giro de la mesa por carrera (= paso si la carrera alcanza)
-    const sTh = R.stroke.map((q) => q.th);
-    const caseOf = (id) => R.cases.find((c) => c.id === id) || R.cd;
-    // fuerzas del núcleo a lo largo del empuje (caso de diseño, R.stroke); para otro caso se escala por T (el núcleo es lineal en T: Tmax = F_calado/F_cil(T = 1))
-    const forces = (th, caseId) => {
-      const k = caseOf(caseId).T / R.cd.T, f = (key) => interp(sTh, R.stroke.map((q) => q[key]), th) * k;
-      return { F: f("F"), Fp: f("Fp"), H: f("H"), Rf: f("Rf"), Rr: f("Rr") };
-    };
-    const curve = (caseId) => R.stroke.map((q) => { const k = caseOf(caseId).T / R.cd.T; return { s: q.s, F: q.F * k, p: q.F * k * 1e3 / R.A * 10 }; });
-    // geometría local de la estación (lado +x, empuje en +y; el dibujo la refleja para cada cilindro y sentido)
-    const yFace = (s) => K.y_rp0 + s + P.l_p - P.d_pin / 2;              // cara de empuje de la uña (contacta el pasador en y_p − d/2 a s = s_libre)
-    const pinNext = { top: K.y_pin0 + P.d_pin / 2, bot: K.y_pin0 - P.d_pin / 2 };   // pasador siguiente (en −π/N tras el paso)
-    const dyCh = Math.min(ch.dy, P.dog_b);
-    // salida radial de la uña al retraer: el chaflán de la arista trasera monta sobre el pasador siguiente; el resorte la devuelve al pasarlo
-    const uRet = (s) => {
-      const yf = yFace(s), yb = yf - P.dog_b, pen = pinNext.top - yb;
-      if (pen <= 0 || yf <= pinNext.bot) return 0;
-      return Math.min(ch.dx, pen * ch.dx / dyCh);
-    };
-    // instante del reenganche: la cara de la uña pasa bajo el pasador siguiente
-    const sSnap = pinNext.bot - (K.y_rp0 + P.l_p - P.d_pin / 2);
-    const fails = A.checks.filter((c) => c.sys === "giro" && c.kind === "geo" && c.st === "fail");
-    const failAt = (re) => fails.filter((c) => re.test(c.name)).map((c) => c.name);
-    const flags = { carrera: failAt(/Carrera requerida/), toma: failAt(/^Uña/), retorno: failAt(/Alojamiento|Holgura radial/), siempre: fails.filter((c) => !/Carrera requerida|^Uña|Alojamiento|Holgura radial/.test(c.name)).map((c) => c.name) };
-    function state(tau, caseId) {                                         // tau: s dentro de la carrera (0 … tExt + tRet)
+    const R = A.R, K = R.K, ch = TT.chamferGeo(P), bg = TT.bracketGeo(P), cam = TT.camGeo ? TT.camGeo(P) : null;
+    const pitch = K.pitch, h = pitch / 2, sUse = Math.min(P.stroke, K.s_req);
+    const vExt = R.pump.vExt * 1000, vRet = R.pump.vRet * 1000, tExt = sUse / vExt, tRet = sUse / vRet;   // mm/s y s
+    const at = (s, fase, caseId) => (cam ? TT.camAt(P, s, fase) : TT.guidedAt ? TT.guidedAt(P, s, fase, caseId) : null);
+    const dTh = at(sUse, "empuje").th + h;                                // giro por carrera (= paso si la carrera alcanza)
+    const pk = picoRetorno(sUse, (s) => at(s, "retorno").u);
+    const fijas = fallas(A, /Leva de reenganche/);
+    const carrera = fijas.filter((n) => /Carrera requerida/.test(n)), siempre = fijas.filter((n) => !/Carrera requerida/.test(n));
+    function state(tau, caseId) {
       const o = { pitch, dTh, sUse };
       if (tau < tExt) {
-        const s = Math.min(sUse, vExt * tau), th = thOf(s), contact = s >= P.s_free;
-        Object.assign(o, { fase: contact ? "empuje" : "aproximación (carrera libre)", faseId: "empuje", s, thLoc: th, rot: th + h, u: 0, contact });
-        if (contact) Object.assign(o, forces(th, caseId), { arm: interp(kTh, kArm, th) });
-        o.alerta = [...flags.siempre, ...(contact && s - P.s_free < 15 ? flags.toma : []), ...(s >= sUse - 2 && sUse < K.s_req ? flags.carrera : [])];
+        const s = Math.min(sUse, vExt * tau), g = at(s, "empuje", caseId), contact = s >= P.s_free, d = contact ? TT.driveAt(P, g.th, caseId) : null;
+        Object.assign(o, { fase: contact ? "empuje" : "aproximación (carrera libre)", faseId: "empuje", s, thLoc: g.th, rot: g.th + h, u: 0, contact, g });
+        if (d) Object.assign(o, { F: d.F, Fp: d.Fp, H: d.H, Rf: d.Rf, Rr: d.Rr, arm: d.arm, ft: d.ft, fr: d.fr, Fguia: Math.max(Math.abs(d.Rf), Math.abs(d.Rr)) });
+        o.alerta = [...siempre, ...(s >= sUse - 2 && sUse < K.s_req ? carrera : [])];
       } else {
-        const s = Math.max(0, sUse - vRet * (tau - tExt)), u = uRet(s), snapped = s <= sSnap;
-        Object.assign(o, { fase: u > 0 ? "retorno: la uña sale sobre el pasador siguiente" : snapped ? "reenganche (el resorte devuelve la uña)" : "retorno", faseId: u > 0 || !snapped ? "retorno" : "reenganche",
-          s, thLoc: h, rot: dTh, u, contact: false });
-        o.alerta = [...flags.siempre, ...(u > 0 ? flags.retorno : [])];
+        const s = Math.max(0, sUse - vRet * (tau - tExt)), g = at(s, "retorno"), reeng = pk.uPk > 0 && s < pk.sPk;
+        Object.assign(o, { fase: reeng ? (cam && g.enRampa ? "reenganche: la rampa de la leva devuelve la uña" : "reenganche: el resorte devuelve la uña") : g.u > 0 ? "retorno: la uña sale sobre el pasador siguiente" : "retorno",
+          faseId: reeng ? "reenganche" : "retorno", s, thLoc: h, rot: dTh, u: g.u, contact: false, g });
+        const al = g.alertas || { choque: g.holgura < -1e-6 };
+        o.alerta = [...siempre, ...(al.sincronia ? ["Sincronía de la leva de reenganche (holgura bajo el margen)"] : []), ...(al.choque ? ["Choque de la uña con el pasador siguiente"] : [])];
       }
       o.L = P.L0 + o.s;
       return o;
     }
-    return { id: 1, nombre: "Guiado: bancada con ranura T, patín y uña deslizante radial con resorte", P, R, K, bg, ch, pitch, tExt, tRet, vExt, vRet, sUse, dTh, state, curve, yFace, pinNext, flags,
-      nota: P.opt_cam ? "Guía de reenganche (opt_cam): pendiente de la geometría del núcleo" : "" };
+    const curve = (caseId) => { const out = []; for (let i = 0; i <= 60; i++) { const s = P.s_free + (sUse - P.s_free) * i / 60, F = TT.driveAt(P, at(s, "empuje", caseId).th, caseId).F; out.push({ s, F, p: pF(R, F) }); } return out; };
+    return { id: 1, nombre: "Guiado: bancada con ranura T, patín y uña deslizante radial con resorte" + (cam ? " y leva de reenganche positiva" : ""), P, R, K, bg, ch, cam, pitch, tExt, tRet, vExt, vRet, sUse, dTh, state, curve,
+      pinBase: () => 180 / P.N_pin * D2R, plan: planGuiado, detail: detailGuiado,
+      leva: cam ? `riel-leva con bolsillo y rampa a ${num(cam.alpha_deg, 0)}°, seguidor de rodillo; sincronía ${num(cam.sincronia, 1)} mm` : "" };
   }
 
-  /* modo pivotado (drive_mode 2): requiere las funciones de geometría por θ del núcleo; no se inventa la cinemática en la UI */
+  /* ================= modo pivotado tipo KIET (drive_mode 2): ojal de esquina, bloque-uña sobre Q y placa-leva en media luna ================= */
+  function pivotado(P, A) {
+    const R = A.R, g = TT.pivotGeo ? TT.pivotGeo(P) : null;
+    if (!g) return { id: 2, pendiente: true, nombre: "Pivotado tipo KIET (drive_mode = 2)" };
+    const sUse = Math.min(P.stroke, g.s_req), vExt = R.pump.vExt * 1000, vRet = R.pump.vRet * 1000, tExt = sUse / vExt, tRet = sUse / vRet;
+    const at = (s, fase) => TT.pivotAt(P, s, fase, sentido());
+    const th0 = () => at(0, "empuje").th;
+    const dTh = Math.abs(TT.pivotAt(P, sUse, "empuje", "antihorario").th - TT.pivotAt(P, 0, "empuje", "antihorario").th);
+    const pk = { antihorario: picoRetorno(sUse, (s) => TT.pivotAt(P, s, "retorno", "antihorario").w), horario: picoRetorno(sUse, (s) => TT.pivotAt(P, s, "retorno", "horario").w) };
+    const fijas = fallas(A, /[Pp]ivot|[Ll]eva/), carrera = fijas.filter((n) => /Carrera/.test(n)), siempre = fijas.filter((n) => !/Carrera/.test(n));
+    function state(tau, caseId) {
+      const o = { pitch: g.paso, dTh, sUse };
+      if (tau < tExt) {
+        const s = Math.min(sUse, vExt * tau), q = at(s, "empuje"), contact = q.arm != null, d = contact ? TT.driveAt(P, q.th_cil1_antihorario, caseId) : null;
+        Object.assign(o, { fase: contact ? "empuje" : "aproximación (carrera libre)", faseId: "empuje", s, rot: Math.abs(q.th - th0()), contact, q });
+        if (d) Object.assign(o, { F: d.F, Fp: d.Fp, H: d.H, arm: d.arm, armEff: d.armEff, ft: d.ft, fr: d.fr, Fleva: q.contactoLeva.F });
+        o.alerta = [...siempre, ...(s >= sUse - 2 && sUse < g.s_req ? carrera : [])];
+      } else {
+        const s = Math.max(0, sUse - vRet * (tau - tExt)), q = at(s, "retorno"), p = pk[sentido()], reeng = p.uPk > 0 && s < p.sPk;
+        Object.assign(o, { fase: reeng ? (q.contactoLeva.enRampa ? "reenganche: la placa-leva devuelve el bloque-uña" : "reenganche: el bloque-uña vuelve detrás del pasador") : q.w > 0.5 ? "retorno: el bloque-uña sale sobre el pasador siguiente" : "retorno",
+          faseId: reeng ? "reenganche" : "retorno", s, rot: dTh, contact: false, q });
+        o.alerta = [...siempre, ...(q.alertas.sincronia ? ["Sincronía de la placa-leva (holgura bajo el margen)"] : []), ...(q.alertas.choque ? ["Choque del bloque-uña con el pasador"] : [])];
+      }
+      o.L = o.q.L; o.phi = o.q.phi_f;
+      return o;
+    }
+    const curve = (caseId) => { const out = []; for (let i = 0; i <= 60; i++) { const s = P.s_free + (sUse - P.s_free) * i / 60, q = TT.pivotAt(P, s, "empuje", "antihorario"); if (q.arm == null) continue; const F = TT.driveAt(P, q.th_cil1_antihorario, caseId).F; out.push({ s, F, p: pF(R, F) }); } return out; };
+    return { id: 2, nombre: "Pivotado tipo KIET: cilindro pivotado en el ojal de esquina, bloque-uña sobre el pasador Q y placa-leva en media luna", P, R, g, pitch: g.paso, tExt, tRet, vExt, vRet, sUse, dTh, state, curve,
+      pinBase: () => th0(), plan: planPivot, detail: detailPivot, leva: `4 placas-leva (2 por sentido); el cilindro usa la del sentido elegido` };
+  }
+
   function proveedor(P, A) {
-    const modo = P.drive_mode || 1;
-    if (modo === 1) return guiado(P, A);
-    return { id: modo, pendiente: true, nombre: "Pivotado tipo KIET (drive_mode = 2)" };
+    const modo = TT.driveMode ? TT.driveMode(P) : (P.drive_mode || 1);
+    return modo === 2 ? pivotado(P, A) : guiado(P, A);
   }
 
   /* ================= dibujo ================= */
@@ -84,19 +98,20 @@ const SIM = (() => {
   const map = (sx, dy) => (x, y) => [sx * x, dy * y];                    // local de la estación → global (planta, y hacia arriba)
 
   function pinsSvg(pv, rot, X, Y, r, hi) {
-    const P = pv.P, N = P.N_pin, o = [];
+    const P = pv.P, N = P.N_pin, o = [], a0 = pv.pinBase();
     for (let k = 0; k < N; k++) {
-      const a = (180 / N + 360 * k / N) * D2R + rot, x = P.R_pin * Math.cos(a), y = P.R_pin * Math.sin(a);
+      const a = a0 + 2 * Math.PI * k / N + rot, x = P.R_pin * Math.cos(a), y = P.R_pin * Math.sin(a);
       o.push(`<circle cx="${X(x)}" cy="${Y(y)}" r="${r(P.d_pin / 2)}" class="sim-pin${hi && hi(x, y) ? " on" : ""}"/>`);
     }
     return o.join("");
   }
-  // estación de un cilindro en coordenadas locales (sx = +1, dy = +1) transformadas por m
+  const polySvg = (pts, X, Y, cls) => `<polygon points="${pts.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="${cls}"/>`;
+  // estación del modo guiado en coordenadas locales (sx = +1, dy = +1) transformadas por m
   function stationSvg(pv, st, m, X, Y, r, alerta) {
-    const P = pv.P, K = pv.K, bg = pv.bg, pt = (x, y) => { const [gx, gy] = m(x, y); return `${X(gx)},${Y(gy)}`; };
+    const P = pv.P, K = pv.K, bg = pv.bg, g = st.g, pt = (x, y) => { const [gx, gy] = m(x, y); return `${X(gx)},${Y(gy)}`; };
     const rect = (x0, y0, x1, y1, cls) => `<polygon points="${pt(x0, y0)} ${pt(x1, y0)} ${pt(x1, y1)} ${pt(x0, y1)}" class="${cls}"/>`;
     const circ = (x, y, d, cls) => { const [gx, gy] = m(x, y); return `<circle cx="${X(gx)}" cy="${Y(gy)}" r="${r(d / 2)}" class="${cls}"/>`; };
-    const yrp = K.y_rp0 + st.s, xg = P.x_g, ws = P.w_s;
+    const yrp = g.y_rp, xg = P.x_g, ws = P.w_s;
     const o = [];
     o.push(rect(xg - ws / 2 - 20, -K.Y_bed, xg + ws / 2 + 20, K.Y_bed, "sim-bed"));                       // bancada con ranura T
     o.push(rect(xg - bg.Wout / 2, K.y_eye - bg.rear, xg + bg.Wout / 2, K.y_eye + bg.lugF, "sim-brk"));   // ménsula del ojal
@@ -105,18 +120,39 @@ const SIM = (() => {
     o.push(rect(xg - P.d_rod / 2, yBar, xg + P.d_rod / 2, yrp, "sim-rod"));                            // vástago
     o.push(circ(xg, K.y_eye, P.d_pp, "sim-pp"));
     o.push(rect(xg - ws / 2, yrp - K.rear, xg + ws / 2, yrp + K.front, "sim-shoe" + (alerta ? " bad" : "")));   // patín
-    // uña: cara de empuje plana, chaflán de retorno en la arista punta–cara trasera, desplazada u hacia afuera
-    const yf = pv.yFace(st.s), yb = yf - P.dog_b, tip = K.tipX + st.u, out = K.mouthX + P.L_in + st.u, dx = Math.min(pv.ch.dx, out - tip), dy = Math.min(pv.ch.dy, P.dog_b);
+    // leva de reenganche (opt_cam): riel fijo; su canto es el lugar que limita al seguidor (perfil del núcleo, camGeo)
+    const cam = pv.cam;
+    if (cam) {
+      const pr = cam.perfil_y, xo = Math.max(...pr.map((q) => q.x_canto)) + 30;
+      o.push(`<polygon points="${pr.map((q) => pt(q.x_canto, q.y)).join(" ")} ${pt(xo, pr[pr.length - 1].y)} ${pt(xo, pr[0].y)}" class="sim-cam${alerta ? " bad" : ""}"/>`);
+    }
+    // uña: cara de empuje plana, chaflán de retorno en la arista punta–cara trasera, desplazada u hacia afuera (núcleo: y_cara, x_punta)
+    const yf = g.y_cara, yb = yf - P.dog_b, tip = g.x_punta, out = K.mouthX + P.L_in + st.u, dx = Math.min(pv.ch.dx, out - tip), dy = Math.min(pv.ch.dy, P.dog_b);
     o.push(`<polygon points="${pt(tip, yf)} ${pt(tip, yb + dy)} ${pt(tip + dx, yb)} ${pt(out, yb)} ${pt(out, yf)}" class="sim-dog${alerta ? " bad" : st.contact ? " on" : ""}"/>`);
-    // resorte entre la uña y el fondo del alojamiento
     const ym = (yf + yb) / 2, n = 8, x0 = out, x1 = K.pocketEnd, zz = [];
     for (let i = 0; i <= n; i++) zz.push(pt(x0 + (x1 - x0) * i / n, ym + (i % 2 ? 18 : -18) * (i > 0 && i < n ? 1 : 0)));
     o.push(`<polyline points="${zz.join(" ")}" class="sim-spr"/>`);
+    if (cam && g.x_seguidor != null) o.push(circ(g.x_seguidor, g.y_seguidor, 2 * Math.max(5, cam.x_canto_toma - cam.x_perno_toma - cam.holgura_toma), "sim-fol"));   // seguidor de rodillo
     o.push(circ(xg, yrp, P.d_pp, "sim-pp"));
     return o.join("");
   }
+  // modo pivotado: placas-leva, ojales, cilindros y bloques-uña en coordenadas globales (cilindro 2 = simetría central del 1)
+  function pivotSvg(pv, st, X, Y, r, alerta) {
+    const P = pv.P, g = pv.g, q = st.q, neg = (p) => [-p[0], -p[1]], o = [], sen = sentido();
+    Object.entries(g.placas).forEach(([k, pl]) => o.push(polySvg(pl.contorno, X, Y, "sim-cam" + (k.endsWith(sen) ? (alerta ? " bad" : "") : " off"))));
+    g.E.forEach((E) => { const b = g.ojalE.lado_cajon / 2; o.push(polySvg([[E[0] - b, E[1] - b], [E[0] + b, E[1] - b], [E[0] + b, E[1] + b], [E[0] - b, E[1] + b]], X, Y, "sim-brk")); });
+    [[q.E, q.Q, (p) => p], [neg(q.E), neg(q.Q), neg]].forEach(([E, Q, f]) => {
+      const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
+      const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s, k]) => [E[0] + s * u[0] + k * w / 2 * t[0], E[1] + s * u[1] + k * w / 2 * t[1]]);
+      o.push(polySvg(bar(0, lb, P.D_body), X, Y, "sim-cyl"), polySvg(bar(lb, L, P.d_rod), X, Y, "sim-rod"));
+      o.push(`<circle cx="${X(E[0])}" cy="${Y(E[1])}" r="${r(g.ojalE.d / 2)}" class="sim-pp"/>`);
+      o.push(polySvg(q.una.cuerpo.map(f), X, Y, "sim-dog" + (alerta ? " bad" : st.contact ? " on" : "")), polySvg(q.una.cara.map(f), X, Y, "sim-dog" + (st.contact ? " on" : "")), polySvg(q.una.cubo.map(f), X, Y, "sim-pp"));
+      if (st.contact) { const c = f(q.contactoLeva.punto); o.push(`<circle cx="${X(c[0])}" cy="${Y(c[1])}" r="3" class="sim-ct"/>`); }
+    });
+    return o.join("");
+  }
 
-  function planSvg(pv, st, rot) {
+  function planGuiado(pv, st, rot) {
     const P = pv.P, B = P.B, W = 520, sc = W / (B + 200), X = (x) => (W / 2 + x * sc).toFixed(1), Y = (y) => (W / 2 - y * sc).toFixed(1), r = (d) => (d * sc).toFixed(2);
     const pairs = S.dir > 0 ? [[1, 1], [-1, -1]] : [[1, -1], [-1, 1]];
     const al = st.alerta.length > 0;
@@ -133,7 +169,7 @@ const SIM = (() => {
     return s;
   }
 
-  function detailSvg(pv, st, rot) {
+  function detailGuiado(pv, st, rot) {
     const P = pv.P, K = pv.K, x0 = K.a_min - 230, x1 = K.pocketEnd + 70, y0 = K.y_pin0 - 270, y1 = K.y_rp1 + K.front + 50;
     const W = 520, sc = W / (x1 - x0), H = (y1 - y0) * sc, dy = S.dir > 0 ? 1 : -1;
     const X = (x) => ((x - x0) * sc).toFixed(1);
@@ -153,6 +189,44 @@ const SIM = (() => {
     s += `<rect x="4" y="${(H - 34).toFixed(0)}" width="${W - 8}" height="26" rx="4" class="sim-tbg"/><rect x="8" y="${(H - 28).toFixed(0)}" width="14" height="14" fill="${col}" class="sim-sw"/><text x="28" y="${(H - 17).toFixed(0)}" class="sim-t">Interfaz: ${esc(typeof PLANOS !== "undefined" ? PLANOS.ifaceName(P, ifc) : "")}${P.opt_wood > 0.5 ? " · cubierta de madera" : ""} · μ ${num(pv.R.mu.nom, 2)} / ${num(pv.R.mu.d, 2)}</text></svg>`;
     return s;
   }
+  function planSvg(pv, st, rot) { return pv.plan(pv, st, rot); }
+  function detailSvg(pv, st, rot) { return pv.detail(pv, st, rot); }
+  function planPivot(pv, st, rot) {
+    const P = pv.P, B = P.B, W = 520, sc = W / (B + 200), X = (x) => (W / 2 + x * sc).toFixed(1), Y = (y) => (W / 2 - y * sc).toFixed(1), r = (d) => (d * sc).toFixed(2);
+    const al = st.alerta.length > 0, q = st.q, hitA = (x, y) => st.contact && [q.pasadores.A, [-q.pasadores.A[0], -q.pasadores.A[1]]].some((c) => Math.hypot(x - c[0], y - c[1]) < P.d_pin / 2);
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" class="sim-svg" id="simPlan" role="img" aria-label="Planta animada">`;
+    s += `<rect x="${X(-B / 2)}" y="${Y(B / 2)}" width="${r(B)}" height="${r(B)}" class="sim-base"/>`;
+    s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2)}" class="sim-table"/><circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_hub / 2)}" class="sim-hub"/>`;
+    const a = pv.pinBase() + rot;
+    s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0.9 * P.D_top / 2 * Math.cos(a))}" y2="${Y(0.9 * P.D_top / 2 * Math.sin(a))}" class="sim-mark"/>`;
+    s += pinsSvg(pv, rot, X, Y, r, hitA);
+    s += pivotSvg(pv, st, X, Y, r, al);
+    s += `<rect x="4" y="3" width="${W - 8}" height="18" rx="3" class="sim-tbg"/><text x="8" y="16" class="sim-t">Planta · ${S.dir > 0 ? "giro antihorario" : "giro horario"} · θ = ${num(rot / D2R * S.dir, 3)}° · φ cilindro 1 = ${num(st.phi / D2R, 1)}°</text></svg>`;
+    return s;
+  }
+  function detailPivot(pv, st, rot) {
+    const P = pv.P, g = pv.g, pl = g.placas["1_" + sentido()].contorno, q = st.q;
+    // encuadre fijo: placa-leva activa, Q al inicio y al final del empuje y los pasadores tomado y siguiente
+    const ext = [TT.pivotAt(P, 0, "empuje", sentido()), TT.pivotAt(P, pv.sUse, "empuje", sentido())].flatMap((z) => [z.Q, z.pasadores.A, z.pasadores.B]);
+    const xs = pl.map((p) => p[0]).concat(ext.map((p) => p[0])), ys = pl.map((p) => p[1]).concat(ext.map((p) => p[1]));
+    let x0 = Math.min(...xs) - 90, x1 = Math.max(...xs) + 90, y0 = Math.min(...ys) - 90, y1 = Math.max(...ys) + 90;
+    if (x1 - x0 < 0.75 * (y1 - y0)) { const c = (x0 + x1) / 2, hw = 0.375 * (y1 - y0); x0 = c - hw; x1 = c + hw; }
+    const W = 520, sc = W / (x1 - x0), Hh = Math.min(700, (y1 - y0) * sc), H = Hh;
+    if ((y1 - y0) * sc > Hh) { const c = (y0 + y1) / 2, hh = Hh / sc / 2; y0 = c - hh; y1 = c + hh; }
+    const X = (x) => ((x - x0) * sc).toFixed(1), Y = (y) => ((y1 - y) * sc).toFixed(1), r = (d) => (d * sc).toFixed(2), al = st.alerta.length > 0;
+    const ifc = pv.R.ifc, col = IFC_COL[ifc.o] || IFC_COL[0];
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H.toFixed(0)}" class="sim-svg" id="simDet" role="img" aria-label="Detalle del bloque-uña y la placa-leva">`;
+    s += `<defs><clipPath id="simClip"><rect x="0" y="0" width="${W}" height="${H.toFixed(0)}"/></clipPath></defs><g clip-path="url(#simClip)">`;
+    s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2)}" fill="${col}" opacity=".55" stroke="none"/>`;
+    if (P.opt_wood > 0.5) s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2 - 12)}" fill="#8b5a2b" opacity=".25" stroke="none"/>`;
+    s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2)}" class="sim-table" fill-opacity="0"/>`;
+    s += pinsSvg(pv, rot, X, Y, r, (x, y) => st.contact && Math.hypot(x - q.pasadores.A[0], y - q.pasadores.A[1]) < P.d_pin / 2);
+    s += pivotSvg(pv, st, X, Y, r, al);
+    s += `</g><rect x="4" y="3" width="${W - 8}" height="18" rx="3" class="sim-tbg"/><text x="8" y="16" class="sim-t">Detalle del bloque-uña y la placa-leva (cilindro 1) · fase: ${esc(st.fase)}</text>`;
+    s += `<rect x="4" y="${(H - 34).toFixed(0)}" width="${W - 8}" height="26" rx="4" class="sim-tbg"/><rect x="8" y="${(H - 28).toFixed(0)}" width="14" height="14" fill="${col}" class="sim-sw"/><text x="28" y="${(H - 17).toFixed(0)}" class="sim-t">Interfaz: ${esc(typeof PLANOS !== "undefined" ? PLANOS.ifaceName(P, ifc) : "")}${P.opt_wood > 0.5 ? " · cubierta de madera" : ""} · μ ${num(pv.R.mu.nom, 2)} / ${num(pv.R.mu.d, 2)}</text></svg>`;
+    return s;
+  }
+
 
   function chartSvg(pv) {
     // p = F_cil/A: una sola curva con dos ejes (kN a la izquierda, bar a la derecha)
@@ -207,18 +281,18 @@ const SIM = (() => {
     el("simPlanBox").innerHTML = planSvg(pv, st, sn.rot);
     el("simDetBox").innerHTML = detailSvg(pv, st, sn.rot);
     el("simChartBox").innerHTML = chartSvg(pv);
-    const p = st.F != null ? st.F * 1e3 / R.A * 10 : null, gF = st.Rf != null ? Math.max(Math.abs(st.Rf), Math.abs(st.Rr)) : null;
+    const p = st.F != null ? pF(R, st.F) : null, piv = pv.id === 2;
     const row = (k, v, id) => `<span>${k}</span><span${id ? ` id="${id}"` : ""}>${v}</span>`;
-    el("simRead").innerHTML = `<div class="kv">
-      ${row("Fase", `<b>${esc(st.fase)}</b>`, "simFase")}
+    el("simRead").innerHTML = `<div class="sim-fase">Fase: <b id="simFase">${esc(st.fase)}</b></div><div class="kv sim-read">
       ${row("Carrera", `${Math.min(sn.k + (sn.done ? 0 : 1), S.n)} de ${S.n}`)}
       ${row("θ de la mesa", num(sn.thetaDeg, 3) + "°", "simTheta")}
       ${row("Carrera s / largo del cilindro", `${num(st.s, 1)} / ${num(st.L, 0)} mm`)}
-      ${row("Brazo a(θ)", st.contact ? num(st.arm, 1) + " mm" : "— (sin contacto)")}
-      ${row("Fracción tangencial / radial", st.contact ? `${num(Math.cos(st.thLoc), 4)} / ${num(Math.sin(st.thLoc), 4)}` : "—")}
+      ${piv ? row("Ángulo del cilindro 1 (en planta)", num(st.phi / D2R, 2) + "°") : ""}
+      ${row(piv ? "Brazo a(θ) / efectivo" : "Brazo a(θ)", st.contact ? (piv ? `${num(st.arm, 1)} / ${num(st.armEff, 1)} mm` : num(st.arm, 1) + " mm") : "— (sin contacto)")}
+      ${row("Fracción tangencial / radial", st.contact ? `${num(st.ft, 4)} / ${num(st.fr, 4)}` : "—")}
       ${row(`F_cil requerida (${cs ? cs.id === "nom" ? "nominal" : "diseño" : ""}, μ ${num(cs ? cs.mu : NaN, 2)})`, st.contact ? `<span class="${st.F > R.Fstall ? "sim-bad" : ""}">${num(st.F, 1)} kN</span>` : "≈ 0 (sin carga)")}
       ${row("Presión", st.contact ? `${num(p, 0)} bar (alivio ${num(P.p_relief, 0)})` : "—")}
-      ${row("Fuerza en la guía (máx. reacción del patín)", gF != null ? num(gF, 1) + " kN" : "—")}
+      ${piv ? row("Fuerza en la placa-leva (caso de diseño)", st.contact ? num(st.Fleva, 1) + " kN" : "—") : row("Fuerza en la guía (máx. reacción del patín)", st.Fguia != null ? num(st.Fguia, 1) + " kN" : "—")}
       ${row("Tiempo simulado / total", `${num(Math.min(S.t, total()), 1)} / ${num(total(), 1)} s`)}
     </div>
     ${st.alerta.length ? `<div class="msg error" id="simAlerta"><b>Verificación de cinemática que falla en este instante:</b> ${st.alerta.map(esc).join("; ")}</div>` : ""}`;
@@ -251,13 +325,14 @@ const SIM = (() => {
       <span>Accionamiento</span><span>${esc(pv.nombre)}</span>
       <span>Interfaz</span><span>${esc(S.label)}</span>
       <span>μ nominal / diseño</span><span>${num(mu.nom, 2)} / ${num(mu.d, 2)}</span>
-      ${P.cam_mat != null ? `<span>Material de la leva (cam_mat)</span><span>${P.cam_mat === 0 ? "0 · automático (según el modo y la interfaz)" : esc(P.cam_mat)}</span>` : ""}
+      ${P.cam_mat != null && (pv.id === 2 || pv.cam) && TT.camFam ? (() => { const f = TT.camFam(P); return `<span>Material de la leva (cam_mat = ${esc(P.cam_mat)}${f.auto ? ", automático" : ""})</span><span>${esc(f.nombre)} · μ ${num(f.mu, 2)}</span>`; })() : ""}
       <span>Paso de la mesa (360°/${P.N_pin})</span><span>${num(pv.pitch / D2R, 3)}°</span>
       <span>Carrera por paso / del cilindro</span><span>${num(pv.sUse, 1)} / ${num(P.stroke, 0)} mm</span>
       <span>Velocidad del vástago avance / retorno</span><span>${num(pv.vExt, 1)} / ${num(pv.vRet, 1)} mm/s (Q ${num(P.Q_pump, 1)} / ${num(R.pump.Qr, 1)} L/min)</span>
       <span>Tiempo de empuje / retorno por carrera</span><span id="simTiempos">${num(pv.tExt, 1)} / ${num(pv.tRet, 1)} s</span>
       <span>Tiempo por vuelta (núcleo, carrera completa)</span><span>${num(R.tRev, 2)} min</span>
-    </div>${pv.nota ? `<div class="note">${esc(pv.nota)}</div>` : ""}`;
+      ${pv.leva ? `<span>Guía de reenganche</span><span>${esc(pv.leva)}</span>` : ""}
+    </div>`;
   }
 
   function open(P, A) {
@@ -284,7 +359,7 @@ const SIM = (() => {
       <div class="sim-gif" id="simGif"></div>
       <div class="sim-grid"><div id="simPlanBox"></div><div id="simDetBox"></div></div>
       <div class="sim-grid"><div id="simRead"></div><div id="simChartBox"></div></div>
-      <div class="note">Geometría y fuerzas del núcleo (kinematics, guideGeo, chamferGeo, R.stroke del caso de diseño; para el caso nominal, escalado por el par: el núcleo es lineal en T). Ambos cilindros trabajan en paralelo; el detalle muestra el del lado +x.</div>`;
+      <div class="note">Geometría, cinemática y fuerzas del núcleo: ${pv.id === 2 ? "pivotGeo y pivotAt (ojal E, pasador Q, bloque-uña, placas-leva)" : "guidedAt" + (pv.cam ? ", camGeo y camAt (leva de reenganche)" : "") + ", guideGeo y chamferGeo"}, driveAt (F_cil del caso de fricción elegido) y R.pump (tiempos). Ambos cilindros trabajan en paralelo; el detalle muestra ${pv.id === 2 ? "el cilindro 1" : "el del lado +x"}.</div>`;
     el("bSimPlay").onclick = () => { if (S.t >= total() - 1e-9) reset(); S.run = !S.run; S.last = 0; render(); };
     el("bSimStep").onclick = stepNext;
     el("bSimReset").onclick = () => { S.run = false; reset(); };

@@ -34,6 +34,7 @@ Sin abrir el navegador (mismo codificador, con Playwright y chromium):
 ```
 node tools/gif_simulacion.js --alt B,W --sentido horario --carreras 2 --velocidad 1 --salida salidas/
 node tools/gif_simulacion.js --alt AF2 --param W_tf=250 --salida mi_simulacion.gif
+node tools/gif_simulacion.js --alt C1 --param drive_mode=2 --sentido horario --salida salidas/   # modo pivotado tipo KIET
 ```
 
 `--alt`: 0 (base), A, AF2, B, C1, C2, C3, más W para la cubierta de madera; `--friccion nom|dis`; `--param k=v` cambia cualquier parámetro del formulario.
