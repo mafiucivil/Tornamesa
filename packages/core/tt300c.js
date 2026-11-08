@@ -855,12 +855,18 @@ const TT = (() => {
   // La uña a la salida u es el polígono convexo: punta X = −c_punta + u, cara de empuje en η, cara trasera en η − b_uña y chaflán de retorno
   // entre (X_t + Δx, η − b) y (X_t, η − b + Δy). Al retraer (η de η₁ a η₀) la leva limita u ≤ u_leva(η): nivel de toma c, bolsillo (recorrido Δx)
   // y rampa a α del eje de la bancada que termina en c a η_fin = η₀ + tramo; el margen de sincronía es la menor holgura uña–B con u = u_leva(η).
-  function camGuided(P) {
+  // Memoria por contenido de P (sin la copia P0 del escenario térmico): massesBase y compute piden la misma leva; los resultados son de solo lectura
+  // Las cargas (W, e, φ_d, D_carga y los casos de fricción del giro) no intervienen en la geometría de las levas: se excluyen de la clave y se agrega la
+  // cota del eje (depende de la interfaz, que sí depende de la carga), de modo que los barridos de capacidad reutilizan la leva.
+  const MEMO_SKIP = new Set(["P0", "W_tf", "e", "phi_d", "D_load", "r_ef", "mu_nom", "mu_cont", "mu_dry", "FS_min", "turns_yr", "life", "q_floor", "phi_lift"]);
+  const memoP = (fn, useHax) => { const cache = new Map(); return (P, ...a) => { const k = JSON.stringify(P, (kk, v) => (MEMO_SKIP.has(kk) ? undefined : v)) + (useHax ? "|" + hAxis(P) : ""); if (cache.has(k)) return cache.get(k); const r = fn(P, ...a); if (cache.size > 64) cache.clear(); cache.set(k, r); return r; }; };
+  const camGuided = memoP(camGuidedRaw, true);
+  function camGuidedRaw(P) {
     if (!(P.opt_cam > 0.5) || driveMode(P) !== 1) return null;
     const g = guideGeo(P), ch = chamferGeo(P), r = P.d_pin / 2, fam = camFam(P);
     const al = P.cam_alpha * D2R, ta = Math.tan(al), c = P.cam_c, m = P.cam_msync, trav = g.travel, dyc = Math.min(ch.dy, P.dog_b);
     const clr = (eta, u) => { const Xt = -P.c_tip + u, Yb = eta - P.dog_b; return polyDist([[Xt, eta], [Xt, Yb + dyc], [Xt + ch.dx, Yb], [Xt + 3000, Yb], [Xt + 3000, eta]], 0, 0) - r; };
-    const uNeed = (eta) => { if (clr(eta, 0) >= m) return 0; let lo = 0, hi = trav + 60; if (clr(eta, hi) < m) return Infinity; for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (clr(eta, mid) >= m) hi = mid; else lo = mid; } return hi; };
+    const uNeed = (eta) => { if (clr(eta, 0) >= m) return 0; let lo = 0, hi = trav + 60; if (clr(eta, hi) < m) return Infinity; for (let i = 0; i < 26; i++) { const mid = (lo + hi) / 2; if (clr(eta, mid) >= m) hi = mid; else lo = mid; } return hi; };
     const eta0 = -r - P.s_free, eta1 = g.chord - r, etaEnd = eta0 + P.cam_dwell, uPk = trav, n = 300;
     const etas = Array.from({ length: n + 1 }, (_, i) => eta0 + (eta1 - eta0) * i / n), need = etas.map(uNeed);
     const needMax = Math.max(0, ...need.map((x) => (isFinite(x) ? x : 1e9)));
@@ -959,7 +965,9 @@ const TT = (() => {
     suggestCache.set(key, out);
     return out;
   }
-  function kinPiv(P, lite) {   // lite: sin la cota z del eje (depende de la interfaz; tmaxOf la evita para no recursar)
+  const kinPivFull = memoP((P) => kinPivRaw(P, false), true), kinPivLite = memoP((P) => kinPivRaw(P, true), false);
+  function kinPiv(P, lite) { return lite ? kinPivLite(P) : kinPivFull(P); }
+  function kinPivRaw(P, lite) {   // lite: sin la cota z del eje (depende de la interfaz; tmaxOf la evita para no recursar)
     const sg = P.pv_RE > 0 && P.pv_Lqp > 0 ? null : suggestE(P);
     const RE = P.pv_RE > 0 ? P.pv_RE : sg.RE, Lqp = P.pv_Lqp > 0 ? P.pv_Lqp : sg.Lqp;
     const K = pivKin(P, RE, Lqp, 60);
@@ -970,7 +978,9 @@ const TT = (() => {
   // Placa-leva del modo pivotado. w = desplazamiento lateral de Q hacia afuera (−t) respecto de la recta E–P al inicio: Q(L, w) = E + L·û(ψ₀ − w/L).
   // Empuje: w_emp(L) (alineación E–Q–P); retorno (mesa detenida: B en θ_ini y el anterior a B): w_nec(L) = menor w con holgura ≥ margen
   // (bloque alineado con el vástago). Canto de la leva (centro del seguidor): w_leva = máx(w_emp + c; bolsillo) con rampa a α desde L0 + tramo.
-  function camPiv(P, K) {
+  const camPivMemo = memoP((P) => camPivRaw(P, kinPiv(P)), true);
+  function camPiv(P, K) { return K && K.ok ? (K === kinPiv(P) ? camPivMemo(P) : camPivRaw(P, K)) : null; }
+  function camPivRaw(P, K) {
     if (!K || !K.ok) return null;
     const r = P.d_pin / 2, R = P.R_pin, E = K.E, Lqp = K.Lqp, psi0 = K.pts[0].psi, L0 = P.L0, Ls = K.Ls, Le = K.Lend, fam = camFam(P);
     const Qof = (L, w) => { const ps = psi0 - w / L, u = [Math.cos(ps), Math.sin(ps)]; return { Q: [E[0] + L * u[0], E[1] + L * u[1]], u }; };
@@ -1093,7 +1103,7 @@ const TT = (() => {
     if (mode === 1) res.camG = camGuided(P);
     else if (K.ok) {
       // pivotado: soporte del ojal, bloque-uña, placa-leva y zapata del seguidor (largo automático con p_adm y PV de la familia a FU 0,90)
-      res.sup = pivSupGeo(P); res.blk = pivBlkGeo(P, K); res.camP = camPiv(P, K);
+      res.sup = pivSupGeo(P); res.blk = pivBlkGeo(P, K); res.camP = Object.assign({}, camPiv(P, K));   // copia: la leva memorizada no lleva las fuerzas, que dependen de la carga
       const CP = res.camP, Fn = (T) => Math.max(...dpts.map((d) => atPt(d, T).Fp)), Tdis = cd ? P.mu_s * Fn(cd.T) * 1e3 : 0;   // N
       const NR = Fret * 1e3 / Math.sin(P.pv_alpha * D2R), Tst = stallMax.Fcam * 1e3, Ncam = Math.max(NR, Tst);
       const vQ = (P.Q_pump * 1e6 / 60 / (P.n_cyl * A)) / 1000 * Math.max(...K.pts.map((q, i) => (i ? Math.hypot(q.Q[0] - K.pts[i - 1].Q[0], q.Q[1] - K.pts[i - 1].Q[1]) / Math.max(1e-9, Math.abs(q.L - K.pts[i - 1].L)) : 0)));   // m/s del seguidor
