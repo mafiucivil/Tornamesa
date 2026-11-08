@@ -167,7 +167,7 @@ def sheet_tapas(ctx):
         bi = (g.cb_D / 2 - 1) - g.insp_pcd / 2 - g.insp_csk / 2
         ins.append(f"Tapa de inspección Ø{f(g.cb_D - 2)} × {f(g.cb_t)} (en el rebaje Ø{f(g.cb_D)} de la plancha superior MES-001): 6 × ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9 a los agujeros M{fm(g.insp_d, 0)}-6H pasantes del fondo del rebaje (taladro Ø{fm(g.insp_drill, 1)} pasante, rosca en los {fm(g.insp_rem, 0)} mm del remanente; engrane {fm(g.insp_L - g.cb_t, 0)} ≥ 1,0·d); "
                    f"avellanado Ø{fm(g.insp_csk, 0)}×90° con borde {fm(bi, 1)} mm hasta el canto de la tapa (≥ {fm(BORDE_MIN, 0)}); sin función estructural.")
-    p.notes(ins + ["Material de las tapas: ASTM A572 Gr.50 (Fy del cálculo).", "Tornillos: torque propuesto en GEN-008; marca/modelo por catálogo (GEN-008)."],
+    p.notes(ins + ["Material de las tapas: ASTM A572 Gr.50 (Fy del cálculo) — PROPUESTO.", "Tornillos: torque propuesto en GEN-008; marca/modelo por catálogo (GEN-008)."],
             gd=[("pos", "Ø0,2", ["C", "D"], "Tapa retenedora: patrón de agujeros respecto de la cara de apoyo (C) y del eje del Ø exterior (D)"),
                 ("pos", "Ø0,2", ["E", "F"], "Tapa de inspección: patrón de agujeros respecto de la cara de apoyo (E) y del eje del Ø exterior (F)"),
                 ("flat", "0,10", None, "Planitud de la cara de apoyo de cada tapa")] if "tapa_insp" in ks else

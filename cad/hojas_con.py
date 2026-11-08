@@ -460,7 +460,7 @@ def sheet_conjunto(ctx):
         V.dim_dia((0, 0, top), g.Rt, 250, on=["mesa_anillo_sup"], text=f"Ø{f(P['D_top'])} (mesa)", ext=24)
         k135 = min(range(g.N_pin), key=lambda k_: abs(ctx.D["pasadores"][k_] - 135.0))
         pin = polar(g.R_pin, ctx.D["pasadores"][k135])        # pasador a ~135°: la cota no queda sobre el eje A-A ni junto a las cotas de la derecha (A-40)
-        t_r = f"R{fm(g.R_pin, 0)} (círculo de pasadores)"
+        t_r = f"R{fm(g.R_pin, 0)} (círculo de pasadores)" if V.scale >= 0.075 else f"R{fm(g.R_pin, 0)}"      # a 1:20 solo el radio (tabla de datos)
         sh_r = max(0.0, 0.5 * (g.R_pin - P["D_piv"] / 2 - g.d_pin / 2) * V.scale - tw(t_r, T_N) / 2 - 4.0)     # N-06: texto junto al pasador, fuera del cubo y del CG
         V.dim((0, 0, zp), (pin[0], pin[1], top), 0, orient="a", on=["pivote", "pasadores"], virt_a=P["D_piv"] / 2, virt_b=g.d_pin / 2, text=t_r, txt_shift=-sh_r)
         ex, ey = g.ear_pos[1]
@@ -926,7 +926,7 @@ def sheet_base_soldada(ctx):
     B, tb, xg = g.B, g.tb, P["x_g"]
     ks = ["base_plancha", "collar", "marco_largo", "marco_corto", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "orejas", "bancada"]
     ks = [k for k in ks if ctx.m.get(k)]
-    c = Conj(ctx, 6, ks, "BASE SOLDADA: CONJUNTO (PLANTA Y CORTES A-A / B-B; DETALLES EN CON-023)", material="ASTM A572 Gr.50 (Fy ≥ %s MPa); plancha base Z35" % f(P["Fy"]), trat="Alivio de tensiones 590–620 °C")
+    c = Conj(ctx, 6, ks, "BASE SOLDADA: CONJUNTO (PLANTA Y CORTES A-A / B-B; DETALLES EN CON-023)", material="ASTM A572 Gr.50 (Fy ≥ %s MPa) — PROPUESTO; plancha base Z35" % f(P["Fy"]), trat="Alivio de tensiones 590–620 °C")
     s = c.s
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
     c1 = ctx.D["cilindros"]["horario"][0]["eye"]
@@ -966,7 +966,7 @@ def sheet_base_soldada(ctx):
     c.build()
     out_h = c.h
     # segunda lámina: detalles de junta y tabla de soldaduras (la planta queda a 1:10 en CON-006)
-    c = Conj(ctx, 23, ks, "BASE SOLDADA: DETALLES DE JUNTA D1–D4 Y TABLA DE SOLDADURAS DEL SUBCONJUNTO", material="ASTM A572 Gr.50 (Fy ≥ %s MPa); plancha base Z35" % f(P["Fy"]), trat="Alivio de tensiones 590–620 °C")
+    c = Conj(ctx, 23, ks, "BASE SOLDADA: DETALLES DE JUNTA D1–D4 Y TABLA DE SOLDADURAS DEL SUBCONJUNTO", material="ASTM A572 Gr.50 (Fy ≥ %s MPa) — PROPUESTO; plancha base Z35" % f(P["Fy"]), trat="Alivio de tensiones 590–620 °C")
     h1 = out_h
     kD = [k for k in ("base_plancha", "marco_largo") if k in ctx.shapes]
     ids = jids(ctx, "Marco perimetral largo", "Bancada", "Collar", "Mejillas de ménsula")
@@ -1037,7 +1037,7 @@ def sheet_mesa_conj1(ctx):
     g, P, D = ctx.g, ctx.P, ctx.D
     ks = mesa_keys(ctx)
     a0 = D["pasadores"][0]
-    c = Conj(ctx, 8, ks, "MESA SOLDADA: PLANTA A MEDIA ALTURA, PLANTA INFERIOR, ELEVACIÓN Y CORTE POR UN PASADOR", material="ASTM A572 Gr.50 (Fy ≥ %s MPa); planchas Z35 y UT A578 B (ver despiece)" % f(P["Fy"]), trat="Alivio de tensiones; planear cara inferior", masa=masa_mesa(ctx, ks))
+    c = Conj(ctx, 8, ks, "MESA SOLDADA: PLANTA A MEDIA ALTURA, PLANTA INFERIOR, ELEVACIÓN Y CORTE POR UN PASADOR", material="ASTM A572 Gr.50 (Fy ≥ %s MPa) — PROPUESTO; planchas Z35 y UT A578 B (ver despiece)" % f(P["Fy"]), trat="Alivio de tensiones; planear cara inferior", masa=masa_mesa(ctx, ks))
     zmid = g.z0 + g.tbo + g.hw / 2
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
 
@@ -1069,7 +1069,7 @@ def sheet_mesa_conj2(ctx):
     g, P, D = ctx.g, ctx.P, ctx.D
     ks = mesa_keys(ctx)
     ang = D["nervios"][0] + 0.5 * (D["nervios"][1] - D["nervios"][0])
-    c = Conj(ctx, 9, ks, "MESA SOLDADA: CORTE POR ALMAS, DETALLES DE JUNTA, REBAJE DEL COLLAR Y TABLA DE PASADORES", material="ASTM A572 Gr.50 (Fy ≥ %s MPa); planchas Z35 y UT A578 B (ver despiece)" % f(P["Fy"]), trat="Alivio de tensiones; planear cara inferior", masa=masa_mesa(ctx, ks))
+    c = Conj(ctx, 9, ks, "MESA SOLDADA: CORTE POR ALMAS, DETALLES DE JUNTA, REBAJE DEL COLLAR Y TABLA DE PASADORES", material="ASTM A572 Gr.50 (Fy ≥ %s MPa) — PROPUESTO; planchas Z35 y UT A578 B (ver despiece)" % f(P["Fy"]), trat="Alivio de tensiones; planear cara inferior", masa=masa_mesa(ctx, ks))
     for k in ks:
         rot_key(ctx, k, k + "_W", -ang)
     ws = ctx.sh(*[k + "_W" for k in ks])

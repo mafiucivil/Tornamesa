@@ -422,15 +422,15 @@ def sheet_pernos(ctx):
 
     def elev(V, p):
         s.line(V.P(0, 0, zt - 70), V.P(0, 0, zt + 40), "EJE")
-        V.note_pt((12.0, 0, zt + g.washer_t + 20), (34, 12), "Cabeza Ø30 × 20, hexágono interior s = 17 × 10 (ISO 4762, M20)", on=["perno1"], dot=True,
+        V.note_pt((12.0, 0, zt + g.washer_t + 20), (-30, 26), "Cabeza Ø30 × 20, hexágono interior s = 17 × 10 (ISO 4762, M20)", on=["perno1"], dot=True,
                   lines=["Cabeza Ø30 × 20, hexágono interior", "s = 17 × 10 (ISO 4762, M20)"])
-        V.note_pt((g.pin_drill / 2, 0, zt - 30), (44, -8), f"M20 × 45: engrane {fm(45 - g.washer_t, 0)} en la rosca útil {fm(g.pin_thr, 0)} del pasador (MES-012)", on=["perno1"], dot=True,
+        V.note_pt((g.pin_drill / 2, 0, zt - 30), ((g.d_pin - g.pin_drill) / 2 * V.scale + 12, -8), f"M20 × 45: engrane {fm(45 - g.washer_t, 0)} en la rosca útil {fm(g.pin_thr, 0)} del pasador (MES-012)", on=["perno1"], dot=True,
                   lines=["M20 × 45: engrane " + fm(45 - g.washer_t, 0), f"en la rosca útil {fm(g.pin_thr, 0)} del pasador (MES-012)"])
     # B-13: el perno no se corta en sentido longitudinal (ISO 128-50); la arandela y el pasador sí; el vástago se ve dentro del agujero Ø22
     p.vs("corte", ["perno1", "arandela1", "pin1m"], "front", cut=CUT_Y, win=(-g.washer_D / 2 - 6, zt - 62, g.washer_D / 2 + 6, zt + g.washer_t + 26), lv=(2, 2, 2, 3), extra=(0, 0, 90, 0), draw=elev,
          title="CORTE A-A: PERNO (sin cortar), ARANDELA Y EXTREMO DEL PASADOR (montado)", hs=0.5, w=1.6, nocut=("perno1",),
          auto=dict(on=["arandela1"], rev=(0, 0), rev_side="top", hole_notes=False, fits={}, text={round(g.washer_D, 1): f"Ø{f(g.washer_D)} ±0,5 (arandela)", round(g.washer_d, 1): f"Ø{f(g.washer_d)} +0,3/0 (agujero de la arandela)"},
-                   tol={round(g.washer_t, 1): " ±0,1 (arandela, caras rectificadas)"}),
+                   tol={round(g.washer_t, 1): " ±0,1"}),
          mat={"perno1": "acero", "arandela1": "acero", "pin1m": "acero"})
 
     def pl_(V, p):

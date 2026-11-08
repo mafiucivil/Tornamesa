@@ -511,7 +511,7 @@ def inspecciones(ctx):
         ("Dimensional", f"Ranura T de bancadas: ancho {f(P['w_slot'])} H8, paralelismo 0,10 en todo el largo, coaxial con el ojal de la ménsula ±0,2.", "100 %", "Calibre / comparador"),
         ("Montaje", ("Interfaz y engrase: película de grasa 0,3–0,5 mm por cara, sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt and g.opt != 2 else
                      "Interfaz: sectores de UHMW en el rebaje sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt == 2 else
-                     f"Interfaz acero–acero: película de grasa 0,3–0,5 mm sobre la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) y la cara inferior de la mesa, sin partículas (CON-005, paso 4)."), "100 %", "VT / galgas" if g.opt else "VT"),
+                     f"Interfaz acero–acero: película de grasa 0,3–0,5 mm sobre la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) y la cara inferior de la mesa, sin partículas (instructivo de montaje, paso 4)."), "100 %", "VT / galgas" if g.opt else "VT"),
         ("Montaje", f"Holguras cubo–collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (CON-011) con galgas; giro libre a mano antes de cargar.", "100 %", "Galgas"),
         ("Dimensional", f"Posiciones de las piezas soldadas de la base según la tabla de BAS-001, ±1. Orejas de izaje: posición (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±1 (tabla de posiciones de BAS-001); plano vertical radial; agujero Ø{f(P['d_ear'])} a {f(P['h_ear'])} sobre la base ±1.", "100 %", "Cinta / plantilla"),
         ("Torque", f"Pernos M20×45 de los {g.N_pin} pasadores y tornillos de las tapas: torques propuestos en GEN-008; registro por perno y marca de pintura de control.", "100 %", "Torquímetro"),

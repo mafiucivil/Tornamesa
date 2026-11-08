@@ -135,7 +135,8 @@ def int_sector_sheet(ctx, key, titulo, face):
         p.gd_in("planta", "dim", "pos", "0,2", "B-C", prefix=f"{fm(lay.b_tope + 2, 0)} (barra + 2)")
 
     def corte(V, p):
-        V.dim_dia((g.Ri + 2, 0, (z0_ + z1_) / 2), 0.0, 0, on=on, text="") if False else None
+        if not g.removable:                    # sin muesca: la ventana no tiene aristas propias; el espesor se acota a mano (H-41)
+            V.dimv((g.r_u + 60, 0, z0_), (g.r_u + 60, 0, z1_), "right", 0, on=on, text=f"{fm(t, 1)} (e) ±0,1")
     p.vs("corte", on, "front", cut=CUT_Y, center=(g.r_u, 0, (z0_ + z1_) / 2), win=(-130, -t - 10, 130, t + 10), lv=(2, 2, 1, 2), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A POR LA BISECTRIZ", hs=0.35, w=1.2,
          auto=dict(tol={}, text={round(t, 1): f"{fm(t, 1)} (e) ±0,1"}, holes=False, axes="v"))      # H-26: sin cadenas contra los bordes de la ventana
     # vistas de contorno del sector: elevación (cuerda y espesor) y lateral
