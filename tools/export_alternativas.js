@@ -58,6 +58,14 @@ out.tapones.patron_minusculo = [[1, "C1"], [3, "C3"]].map(([conf, id]) => {
   const act = [1, 3].map((conf) => ({ conf, N_menos: Nat(conf, P.bz_plug_d, P.bz_plug_p, P.bz_edge - eps), N_mas: Nat(conf, P.bz_plug_d, P.bz_plug_p, P.bz_edge + eps) }));
   out.tapones.empates = { eps, n_patrones: tot, n_con_empate: ej.length, max_dif_pct: ej.reduce((m, x) => Math.max(m, Math.abs(x.dif_pct)), 0), ejemplos: ej.slice(0, 6), patron_actual: act };
 }
+// Modos de accionamiento (Tarea 1: leva de reenganche del modo guiado; Tarea 2: pivotado tipo KIET) para cada alternativa de interfaz: mismo núcleo (TT.analyze)
+out.modos_accionamiento = ALTS.map((a) => ({ id: a.id, nombre: a.nombre, modos: [1, 2].map((dm) => {
+  const Pa = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0, bz_conf: 1 }, a.flags, { opt_wood: a.wood, drive_mode: dm }), A = TT.analyze(Pa, { noFEA: true }), R = A.R, K = R.K;
+  const est = A.checks.filter((c) => c.kind === "fu" && c.sys === "est" && isFinite(c.fu)), gov = est.reduce((b, c) => (!b || c.fu > b.fu ? c : b), null);
+  return { drive_mode: dm, familia_leva: R.fam.f, masa: R.m.total, masas: { brackets: R.m.brackets, dogs: R.m.dogs, shoes: R.m.shoes, beds: R.m.beds, cam: R.m.cam }, F_dis: R.cd ? R.cd.F : null, p_dis: R.cd ? R.cd.p : null, FS: R.cd ? R.cd.FS : null,
+    brazo_min: K.armMin, brazo_ef_min: dm === 2 ? K.aEffMin : null, carrera_req: K.s_req, sincronia: dm === 1 ? (R.camG ? R.camG.sync : null) : (R.camP ? R.camP.sync : null), veredicto: A.verdict, gobernante: brief(gov),
+    fallas: A.checks.filter((c) => c.st === "fail").map(brief) };
+}) }));
 // Parámetros añadidos en la v1.2 (definición del núcleo: etiqueta, unidad, valor por defecto, mínimo, máximo)
 const NEW_IDS = ["term_alcance", "bz_fg_modo", "bz_edge", "bz_fg_min", "bz_fg_estricto", "bz_eta_min", "bz_n_tor", "d_tor"];
 const allP = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []);

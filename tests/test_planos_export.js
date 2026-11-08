@@ -168,7 +168,7 @@ test("Lista de materiales (CSV): la masa total coincide con R.m.total del núcle
     const m = A.R.m, sum = (sub) => items.filter((r) => r[0].startsWith("TT300C-" + sub + "-")).reduce((s, r) => s + dec(r[7]), 0);
     const near = (a, b, msg) => assert.ok(Math.abs(a - b) <= 0.0005 * Math.max(1, b), `${nombre} ${msg}: ${a} vs ${b}`);
     near(sum("MESA"), m.disc, "MESA"); near(sum("INTER"), m.ss + m.uhmw + m.bz + m.stopBars, "INTER (discos, UHMW, bronce y barras de los topes)"); near(sum("CIL"), m.cyl, "cilindros");
-    near(sum("PIVOTE") + sum("IZAJE") + sum("BASE"), m.pivot + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds, "base + collar + orejas + pivote");
+    near(sum("PIVOTE") + sum("IZAJE") + sum("BASE"), m.pivot + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + (m.cam || 0), "base + collar + orejas + pivote + accionamiento (con la leva de reenganche, m.cam)");
     assert.ok(rows.some((r) => r[0].includes("ESTOS PLANOS NO SON VÁLIDOS")), "advertencia en el CSV");
     if (over.opt_wood) assert.ok(items.some((r) => /^TT300C-MESA-07-/.test(r[0])), "cubierta de madera en la lista");
     else assert.ok(!items.some((r) => /^TT300C-MESA-07-/.test(r[0])));

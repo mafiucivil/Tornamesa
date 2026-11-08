@@ -1441,7 +1441,7 @@ for c in (1, 2, 3):
     mt0 = D0["derivados"]["masas"]["total"]; mtc = DC[c]["derivados"]["masas"]["total"]
     cmp_val("4b", f"C{c} · dTot (masa total − op. 0)", mtc - mt0, ic["dTot"])
     comp("4b", f"C{c} · dTot ≥ mAdd", 1.0 if ic["dTot"] >= r["mAdd"] else 0.0, 1.0)
-    comp("4b", f"C{c} · masa total = suma de componentes (con m.stopBars)", sum(DC[c]["derivados"]["masas"][k] for k in ("disc", "ss", "uhmw", "bz", "base", "rim", "brackets", "dogs", "shoes", "beds", "pivot", "cyl", "stopBars")), mtc)
+    comp("4b", f"C{c} · masa total = suma de componentes (con m.stopBars)", sum(DC[c]["derivados"]["masas"][k] for k in ("disc", "ss", "uhmw", "bz", "base", "rim", "brackets", "dogs", "shoes", "beds", "cam", "pivot", "cyl", "stopBars")), mtc)
     comp("4b", f"C{c} · m.stopBars (Σ capas·n·ρ·L·b·h_barra de mis topes)", rowsC(PC[c], c)[1].get("mStop", 0.0), DC[c]["derivados"]["masas"]["stopBars"])
 table("4b. escenarios.ifaces[3] y apoyo.interfaz (opción C): espesores, q, masas, F/p/FS de diseño", ["conf", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], tab)
 
@@ -2006,9 +2006,9 @@ except Exception:
 
 def plate_lift(PP, m, nel):
     """Placa cuadrada B×B de espesor t_base, libre en el borde, apoyada en 4 puntos de izaje (x = ±x_lug, y = ±(B/2 − c_lug), apoyo rígido en w de ±75 mm); carga = φ_izaje·g·masa:
-    base + marco + ménsulas + patines + bancadas uniformes en B²; mesa + pivote + uñas + cilindros + piezas de interfaz sobre el círculo Ø D_top."""
+    base + marco + ménsulas + patines + bancadas + levas uniformes en B²; mesa + pivote + uñas + cilindros + piezas de interfaz sobre el círculo Ø D_top."""
     B_ = PP["B"]; a_ = B_ / 2; Rd = PP["D_top"] / 2; h = B_ / nel; nn = nel + 1
-    own = m["base"] + m["rim"] + m["brackets"] + m["shoes"] + m["beds"]
+    own = m["base"] + m["rim"] + m["brackets"] + m["shoes"] + m["beds"] + m.get("cam", 0.0)     # + levas (Tarea 1: riel-leva guiado; Tarea 2: placas-leva), fijas a la base o a la bancada
     oth = m["disc"] + m["pivot"] + m["dogs"] + m["cyl"] + m["ss"] + m["uhmw"] + m["bz"] + m.get("stopBars", 0.0)     # las barras de los topes van con la interfaz (bajo la mesa)
     qo = PP["phi_lift"] * own * g0 / B_ ** 2; qd = PP["phi_lift"] * oth * g0 / (math.pi * Rd ** 2)
     Ke = mitc4_K(h, PP["E"], PP["nu"], PP["t_base"])

@@ -21,8 +21,11 @@ function cylPos(sx, dy) {
   };
 }
 const ccw = [cylPos(1, 1), cylPos(-1, -1)], cw = [cylPos(1, -1), cylPos(-1, 1)];
+// Tarea 1 (leva de reenganche guiada) y Tarea 2 (modo pivotado tipo KIET): datos de dibujo del accionamiento; los arma el núcleo (TT.designDrive) para que
+// packages/web/planos_export.js produzca el mismo JSON con una sola llamada
+const DRV = TT.designDrive(P, R);
 const out = {
-  proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P,
+  proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P, modo: DRV.modo, modo_nombre: DRV.modo_nombre, levaGuiada: DRV.levaGuiada, pivotado: DRV.pivotado,
   verdict: A.verdict, validacion: val,
   derivados: {
     W: R.W, N: R.N, ND: R.ND, q_max: R.q_max, q_avg: R.q_avg, Fstall: R.Fstall, Falarm: R.Falarm, Fret: R.Fret, A: R.A, Aann: R.Aann,
@@ -31,7 +34,7 @@ const out = {
     K: { armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, gap: K.gap, radial: K.radial, DeltaMax: K.DeltaMax,
          L_s: K.L_s, Lg: K.Lg, front: K.front, rear: K.rear, y_eye: K.y_eye, y_rp0: K.y_rp0, y_rp1: K.y_rp1, L_bed: K.L_bed, Y_bed: K.Y_bed, zc0: K.zc0, lever: K.lever, mouthX: K.mouthX, inset: K.inset, tipX: K.tipX, travel: K.travel, pocketEnd: K.pocketEnd, shoeTop: K.shoeTop },
     casos: R.cases.map((c) => ({ id: c.id, nombre: c.name, mu: c.mu, r: c.r, T: c.T, F: c.F, p: c.p, FS: c.FS, gira: c.turns })),
-    masas: R.m,
+    masas: R.m, masas_desc: DRV.masas_desc,
   },
   pasadores: Array.from({ length: P.N_pin }, (_, k) => (180 / P.N_pin + 360 * k / P.N_pin)),
   nervios: Array.from({ length: P.N_rib }, (_, k) => 360 * k / P.N_rib),

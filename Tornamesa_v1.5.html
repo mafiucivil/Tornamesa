@@ -139,6 +139,8 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
 .sim-cF.ghost,.sim-cp.ghost{opacity:.25}
 .sim-svg .sim-tF{fill:var(--acc)}.sim-svg .sim-tp{fill:var(--load)}
 .sim-bad{color:var(--fail);font-weight:700}
+.sim-tbg{fill:var(--panel);fill-opacity:.9}.sim-sw{stroke:var(--ink);stroke-width:.5}.sim-grid-l{stroke:var(--line);stroke-width:.6}
+.sim-gif{margin:8px 0}.sim-gif img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
 .pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
@@ -3475,7 +3477,7 @@ const SIM = (() => {
     const P = pv.P, B = P.B, W = 520, sc = W / (B + 200), X = (x) => (W / 2 + x * sc).toFixed(1), Y = (y) => (W / 2 - y * sc).toFixed(1), r = (d) => (d * sc).toFixed(2);
     const pairs = S.dir > 0 ? [[1, 1], [-1, -1]] : [[1, -1], [-1, 1]];
     const al = st.alerta.length > 0;
-    let s = `<svg viewBox="0 0 ${W} ${W}" class="sim-svg" id="simPlan" role="img" aria-label="Planta animada">`;
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" class="sim-svg" id="simPlan" role="img" aria-label="Planta animada">`;
     s += `<rect x="${X(-B / 2)}" y="${Y(B / 2)}" width="${r(B)}" height="${r(B)}" class="sim-base"/>`;
     pairs.forEach(([sx, dy]) => { s += stationSvg(pv, st, map(sx, dy), X, Y, r, al); });
     s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2)}" class="sim-table"/>`;
@@ -3484,7 +3486,7 @@ const SIM = (() => {
     s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0.9 * P.D_top / 2 * Math.cos(ang))}" y2="${Y(0.9 * P.D_top / 2 * Math.sin(ang))}" class="sim-mark"/>`;
     const cps = st.contact ? pairs.map(([sx, dy]) => map(sx, dy)(P.R_pin * Math.cos(st.thLoc), P.R_pin * Math.sin(st.thLoc))) : [];   // pasador tomado por cada uña
     s += pinsSvg(pv, ang, X, Y, r, (x, y) => cps.some(([cx, cy]) => Math.hypot(x - cx, y - cy) < P.d_pin / 2));
-    s += `<text x="8" y="16" class="sim-t">Planta · ${S.dir > 0 ? "giro antihorario" : "giro horario"} · θ = ${num(rot / D2R * S.dir, 3)}°</text></svg>`;
+    s += `<rect x="4" y="3" width="${W - 8}" height="18" rx="3" class="sim-tbg"/><text x="8" y="16" class="sim-t">Planta · ${S.dir > 0 ? "giro antihorario" : "giro horario"} · θ = ${num(rot / D2R * S.dir, 3)}°</text></svg>`;
     return s;
   }
 
@@ -3494,7 +3496,7 @@ const SIM = (() => {
     const X = (x) => ((x - x0) * sc).toFixed(1);
     const Yf = (gy) => (dy > 0 ? (y1 - gy) * sc : (gy + y1) * sc).toFixed(1);   // con giro horario la estación se ve reflejada en y
     const r = (d) => (d * sc).toFixed(2), al = st.alerta.length > 0;
-    let s = `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" class="sim-svg" id="simDet" role="img" aria-label="Detalle de la estación de un cilindro">`;
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H.toFixed(0)}" class="sim-svg" id="simDet" role="img" aria-label="Detalle de la estación de un cilindro">`;
     s += `<defs><clipPath id="simClip"><rect x="0" y="0" width="${W}" height="${H.toFixed(0)}"/></clipPath></defs><g clip-path="url(#simClip)">`;
     // capa de interfaz bajo la mesa (corona de contacto), con el color de la alternativa
     const ifc = pv.R.ifc, col = IFC_COL[ifc.o] || IFC_COL[0];
@@ -3504,33 +3506,53 @@ const SIM = (() => {
     s += stationSvg(pv, st, map(1, dy), X, Yf, r, al);
     const cp = map(1, dy)(P.R_pin * Math.cos(st.thLoc), P.R_pin * Math.sin(st.thLoc));
     s += pinsSvg(pv, rot, X, Yf, r, (x, y) => st.contact && Math.hypot(x - cp[0], y - cp[1]) < P.d_pin / 2);
-    s += `</g><text x="8" y="16" class="sim-t">Detalle de la estación (cilindro del lado +x) · fase: ${esc(st.fase)}</text>`;
-    s += `<rect x="4" y="${(H - 34).toFixed(0)}" width="${W - 8}" height="26" rx="4" fill="var(--panel)" opacity=".9"/><rect x="8" y="${(H - 28).toFixed(0)}" width="14" height="14" fill="${col}" stroke="var(--ink)" stroke-width=".5"/><text x="28" y="${(H - 17).toFixed(0)}" class="sim-t">Interfaz: ${esc(S.label)} · μ ${num(pv.R.mu.nom, 2)} / ${num(pv.R.mu.d, 2)}</text></svg>`;
+    s += `</g><rect x="4" y="3" width="${W - 8}" height="18" rx="3" class="sim-tbg"/><text x="8" y="16" class="sim-t">Detalle de la estación (cilindro del lado +x) · fase: ${esc(st.fase)}</text>`;
+    s += `<rect x="4" y="${(H - 34).toFixed(0)}" width="${W - 8}" height="26" rx="4" class="sim-tbg"/><rect x="8" y="${(H - 28).toFixed(0)}" width="14" height="14" fill="${col}" class="sim-sw"/><text x="28" y="${(H - 17).toFixed(0)}" class="sim-t">Interfaz: ${esc(typeof PLANOS !== "undefined" ? PLANOS.ifaceName(P, ifc) : "")}${P.opt_wood > 0.5 ? " · cubierta de madera" : ""} · μ ${num(pv.R.mu.nom, 2)} / ${num(pv.R.mu.d, 2)}</text></svg>`;
     return s;
   }
 
   function chartSvg(pv) {
-    const cur = pv.curve(S.caso), W = 360, H = 150, m = { l: 44, r: 44, t: 10, b: 26 };
-    const sMax = Math.max(pv.P.stroke, pv.sUse, ...cur.map((q) => q.s)), Fm = Math.max(...cur.map((q) => q.F)) * 1.15, pm = Math.max(...cur.map((q) => q.p)) * 1.15;
-    const X = (s) => (m.l + s / sMax * (W - m.l - m.r)).toFixed(1), YF = (F) => (H - m.b - F / Fm * (H - m.t - m.b)).toFixed(1), Yp = (p) => (H - m.b - p / pm * (H - m.t - m.b)).toFixed(1);
-    const full = (k, Yk) => cur.map((q) => `${X(q.s)},${Yk(q[k])}`).join(" ");
+    // p = F_cil/A: una sola curva con dos ejes (kN a la izquierda, bar a la derecha)
+    const cur = pv.curve(S.caso), W = 360, H = 160, m = { l: 46, r: 50, t: 12, b: 30 }, kp = cur.length && cur[0].F ? cur[0].p / cur[0].F : 1;
+    const sMax = Math.max(pv.P.stroke, pv.sUse, ...cur.map((q) => q.s)), Fm = Math.max(...cur.map((q) => q.F)) * 1.15;
+    const X = (s) => (m.l + s / sMax * (W - m.l - m.r)).toFixed(1), YF = (F) => (H - m.b - F / Fm * (H - m.t - m.b)).toFixed(1);
     const tr = cur.filter((q) => q.s <= S.curS + 1e-9);
-    let s = `<svg viewBox="0 0 ${W} ${H}" class="sim-svg" id="simChart" role="img" aria-label="F_cil y p frente a s">`;
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="sim-svg" id="simChart" role="img" aria-label="F_cil y p frente a s">`;
     s += `<line x1="${m.l}" y1="${H - m.b}" x2="${W - m.r}" y2="${H - m.b}" class="sim-ax"/><line x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H - m.b}" class="sim-ax"/><line x1="${W - m.r}" y1="${m.t}" x2="${W - m.r}" y2="${H - m.b}" class="sim-ax"/>`;
-    s += `<polyline points="${full("F", YF)}" class="sim-cF ghost"/><polyline points="${full("p", Yp)}" class="sim-cp ghost"/>`;
-    if (tr.length > 1) { s += `<polyline points="${tr.map((q) => `${X(q.s)},${YF(q.F)}`).join(" ")}" class="sim-cF"/><polyline points="${tr.map((q) => `${X(q.s)},${Yp(q.p)}`).join(" ")}" class="sim-cp"/>`; }
+    for (let i = 1; i <= 3; i++) {
+      const F = Fm / 1.15 * i / 3, y = YF(F);
+      s += `<line x1="${m.l}" y1="${y}" x2="${W - m.r}" y2="${y}" class="sim-grid-l"/><text x="${m.l - 4}" y="${(+y + 4).toFixed(1)}" class="sim-t sim-tF" text-anchor="end">${num(F, 0)}</text><text x="${W - m.r + 4}" y="${(+y + 4).toFixed(1)}" class="sim-t sim-tp">${num(F * kp, 0)}</text>`;
+    }
+    s += `<polyline points="${cur.map((q) => `${X(q.s)},${YF(q.F)}`).join(" ")}" class="sim-cF ghost"/>`;
+    if (tr.length > 1) s += `<polyline points="${tr.map((q) => `${X(q.s)},${YF(q.F)}`).join(" ")}" class="sim-cF"/>`;
     s += `<line x1="${X(pv.P.stroke)}" y1="${m.t}" x2="${X(pv.P.stroke)}" y2="${H - m.b}" class="sim-lim"/>`;
-    s += `<text x="${m.l}" y="${H - 6}" class="sim-t">0</text><text x="${W - m.r}" y="${H - 6}" class="sim-t" text-anchor="end">s = ${num(sMax, 0)} mm</text>`;
-    s += `<text x="4" y="${m.t + 8}" class="sim-t sim-tF">${num(Fm, 0)} kN</text><text x="${W - 2}" y="${m.t + 8}" class="sim-t sim-tp" text-anchor="end">${num(pm, 0)} bar</text>`;
-    s += `<text x="${m.l + 6}" y="${m.t + 22}" class="sim-t sim-tF">F_cil</text><text x="${m.l + 46}" y="${m.t + 22}" class="sim-t sim-tp">p</text></svg>`;
+    s += `<text x="${m.l}" y="${H - 14}" class="sim-t">0</text><text x="${W - m.r}" y="${H - 14}" class="sim-t" text-anchor="end">s = ${num(sMax, 0)} mm</text>`;
+    s += `<text x="${m.l - 4}" y="${m.t - 2}" class="sim-t sim-tF" text-anchor="end">kN</text><text x="${W - m.r + 4}" y="${m.t - 2}" class="sim-t sim-tp">bar</text>`;
+    s += `<text x="${W / 2}" y="${H - 2}" class="sim-t" text-anchor="middle">F_cil (eje izq., kN) y p = F_cil/A (eje der., bar): una sola curva</text></svg>`;
     return s;
+  }
+
+  // interfaz · fijación (solo si hay discos de interfaz: en acero-acero no se rotula) · cubierta
+  function etiqueta(P, A) {
+    if (typeof PLANOS === "undefined") return "";
+    const ifc = A.R.ifc, partes = [PLANOS.ifaceName(P, ifc)];
+    if (ifc.o) partes.push(PLANOS.fixText(P, ifc));
+    partes.push(PLANOS.woodText(P));
+    return partes.join(" · ");
+  }
+  // nombre corto de la alternativa para archivos: modo_interfaz[F2][_madera]
+  function altFile(P) {
+    const m = (P.drive_mode || 1) === 2 ? "pivotado" : "guiado";
+    const i = P.opt_ss ? "A" + (P.fix_mode === 2 ? "F2" : "") : P.opt_uhmw ? "B" : P.opt_bz ? "C" + Math.min(3, Math.max(1, Math.round(P.bz_conf || 1))) : "base";
+    return m + "_" + i + (P.opt_wood > 0.5 ? "_madera" : "");
   }
 
   /* ================= ciclo y controles ================= */
   const period = () => S.prov.tExt + S.prov.tRet;
   const total = () => S.n * period();
-  function snapshot() {
-    const pv = S.prov, T = period(), tt = Math.min(S.t, total() - 1e-9), k = Math.max(0, Math.floor(tt / T)), done = S.t >= total() - 1e-9;
+  function snapshot() { return snapshotAt(S.t); }
+  function snapshotAt(t) {
+    const pv = S.prov, T = period(), tt = Math.min(t, total() - 1e-9), k = Math.max(0, Math.floor(tt / T)), done = t >= total() - 1e-9;
     const st = done ? Object.assign(pv.state(T - 1e-9, S.caso), { fase: "fin de las carreras", faseId: "fin" }) : pv.state(tt - k * T, S.caso);
     const rotLoc = done ? S.n * pv.dTh : k * pv.dTh + st.rot;
     return { st, k: done ? S.n : k, done, rot: S.dir * rotLoc, thetaDeg: rotLoc / D2R };
@@ -3607,21 +3629,23 @@ const SIM = (() => {
       el("simBox").dataset.fin = "pendiente"; return;
     }
     S.prov = pv;
-    S.label = (typeof PLANOS !== "undefined" ? PLANOS.ifaceName(P, A.R.ifc) + " · " + PLANOS.fixText(P, A.R.ifc) + " · " + PLANOS.woodText(P) : "") ;
+    S.label = etiqueta(P, A);
     body.innerHTML = `${header(pv)}
       <div class="sim-ctl">
-        <button class="pri" id="bSimPlay">Reproducir</button><button id="bSimStep">Paso a paso</button><button id="bSimReset">Reiniciar</button>
+        <button class="pri" id="bSimPlay">Reproducir</button><button id="bSimStep">Paso a paso</button><button id="bSimReset">Reiniciar</button><button id="bSimGif" title="GIF animado de la planta y el detalle con las carreras, el sentido y la velocidad elegidos">Exportar GIF</button>
         <label>Velocidad <select id="simSpeed">${SPEEDS.map((v) => `<option value="${v}"${v === S.speed ? " selected" : ""}>×${num(v, v < 1 ? 2 : 0)}</option>`).join("")}</select></label>
         <label>Sentido <select id="simDir"><option value="1"${S.dir > 0 ? " selected" : ""}>antihorario</option><option value="-1"${S.dir < 0 ? " selected" : ""}>horario</option></select></label>
         <label>Carreras <input id="simN" type="number" min="1" max="${P.N_pin}" step="1" value="${S.n}"></label>
         <label>Fricción <select id="simCaso"><option value="nom"${S.caso === "nom" ? " selected" : ""}>nominal</option><option value="dis"${S.caso === "dis" ? " selected" : ""}>diseño</option></select></label>
       </div>
+      <div class="sim-gif" id="simGif"></div>
       <div class="sim-grid"><div id="simPlanBox"></div><div id="simDetBox"></div></div>
       <div class="sim-grid"><div id="simRead"></div><div id="simChartBox"></div></div>
       <div class="note">Geometría y fuerzas del núcleo (kinematics, guideGeo, chamferGeo, R.stroke del caso de diseño; para el caso nominal, escalado por el par: el núcleo es lineal en T). Ambos cilindros trabajan en paralelo; el detalle muestra el del lado +x.</div>`;
     el("bSimPlay").onclick = () => { if (S.t >= total() - 1e-9) reset(); S.run = !S.run; S.last = 0; render(); };
     el("bSimStep").onclick = stepNext;
     el("bSimReset").onclick = () => { S.run = false; reset(); };
+    el("bSimGif").onclick = () => { const b = el("bSimGif"); b.disabled = true; exportGif().catch((err) => { el("simGif").innerHTML = `<div class="msg error">No se pudo generar el GIF: ${esc(err.message)}</div>`; }).then(() => { b.disabled = false; }); };
     el("simSpeed").onchange = (e) => { S.speed = parseFloat(e.target.value); };
     el("simDir").onchange = (e) => { S.dir = parseInt(e.target.value, 10); reset(); };
     el("simN").onchange = (e) => { S.n = Math.max(1, Math.min(P.N_pin, Math.round(parseFloat(e.target.value) || 1))); e.target.value = S.n; reset(); };
@@ -3635,6 +3659,167 @@ const SIM = (() => {
     const m = el("simModal"); if (m) m.addEventListener("click", (e) => { if (e.target === m) close(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.open) close(); });
   }
+  /* ================= exportación a GIF (GIF89a inline: paleta global por popularidad, LZW, bloque NETSCAPE de bucle) ================= */
+  const GIF = (() => {
+    // paleta global de 256 colores: los más frecuentes (5 bits por canal) de cuadros de muestra + colores fijos del tema
+    function paleta(samples, fijos) {
+      const cnt = new Map(), sum = new Map();
+      const add = (r, g, b, w) => { const k = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3); cnt.set(k, (cnt.get(k) || 0) + w); const s = sum.get(k) || [0, 0, 0, 0]; s[0] += r * w; s[1] += g * w; s[2] += b * w; s[3] += w; sum.set(k, s); };
+      samples.forEach((d) => { for (let i = 0; i < d.length; i += 4) add(d[i], d[i + 1], d[i + 2], 1); });
+      const pal = [], seen = new Set();
+      fijos.forEach(([r, g, b]) => { const k = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3); if (!seen.has(k) && pal.length < 256) { seen.add(k); pal.push([r, g, b]); } });
+      [...cnt.entries()].sort((a, b) => b[1] - a[1]).forEach(([k]) => { if (!seen.has(k) && pal.length < 256) { seen.add(k); const s = sum.get(k); pal.push([Math.round(s[0] / s[3]), Math.round(s[1] / s[3]), Math.round(s[2] / s[3])]); } });
+      while (pal.length < 256) pal.push([0, 0, 0]);
+      const lut = new Uint8Array(32768);                                  // color de 15 bits → índice más cercano
+      for (let k = 0; k < 32768; k++) {
+        const r = (k >> 10 & 31) * 8 + 4, g = (k >> 5 & 31) * 8 + 4, b = (k & 31) * 8 + 4;
+        let best = 0, bd = Infinity;
+        for (let j = 0; j < 256; j++) { const p = pal[j], d = 2 * (r - p[0]) ** 2 + 4 * (g - p[1]) ** 2 + 3 * (b - p[2]) ** 2; if (d < bd) { bd = d; best = j; } }
+        lut[k] = best;
+      }
+      return { pal, lut };
+    }
+    function indices(d, lut) { const n = d.length >> 2, out = new Uint8Array(n); for (let i = 0, j = 0; i < n; i++, j += 4) out[i] = lut[(d[j] >> 3) << 10 | (d[j + 1] >> 3) << 5 | (d[j + 2] >> 3)]; return out; }
+    // LZW de GIF (código mínimo 8, tabla de 4096 con código de limpieza al llenarse)
+    function lzw(px) {
+      const out = [], tab = new Int32Array(4096 * 256), clear = 256, eoi = 257;
+      let size = 9, next = 258, cur = 0, shift = 0;
+      const emit = (c) => { cur |= c << shift; shift += size; while (shift >= 8) { out.push(cur & 255); cur >>>= 8; shift -= 8; } };
+      emit(clear);
+      let code = px[0];
+      for (let i = 1; i < px.length; i++) {
+        const k = px[i], key = code * 256 + k, v = tab[key];
+        if (v) { code = v - 1; continue; }
+        emit(code);
+        if (next === 4096) { emit(clear); tab.fill(0); size = 9; next = 258; }
+        else { if (next >= 1 << size) size++; tab[key] = next + 1; next++; }
+        code = k;
+      }
+      emit(code); emit(eoi);
+      if (shift > 0) out.push(cur & 255);
+      return out;
+    }
+    function encode(w, h, pal, frames) {                                 // frames: [{x, y, w, h, px, delay (cs)}]
+      const b = [], u16 = (v) => b.push(v & 255, v >> 8 & 255), str = (s) => { for (const c of s) b.push(c.charCodeAt(0)); };
+      str("GIF89a"); u16(w); u16(h); b.push(0xF7, 0, 0);
+      pal.forEach((c) => b.push(c[0], c[1], c[2]));
+      b.push(0x21, 0xFF, 11); str("NETSCAPE2.0"); b.push(3, 1, 0, 0, 0);     // bucle infinito
+      const parts = [new Uint8Array(b)];
+      frames.forEach((f) => {
+        const hb = [0x21, 0xF9, 4, 0x04, f.delay & 255, f.delay >> 8 & 255, 0, 0, 0x2C, f.x & 255, f.x >> 8, f.y & 255, f.y >> 8, f.w & 255, f.w >> 8, f.h & 255, f.h >> 8, 0, 8];
+        const data = lzw(f.px), blk = new Uint8Array(data.length + Math.ceil(data.length / 255) + 1);
+        let o = 0;
+        for (let i = 0; i < data.length; i += 255) { const n = Math.min(255, data.length - i); blk[o++] = n; for (let j = 0; j < n; j++) blk[o++] = data[i + j]; }
+        blk[o++] = 0;
+        parts.push(new Uint8Array(hb), blk.subarray(0, o));
+      });
+      parts.push(new Uint8Array([0x3B]));
+      return parts;
+    }
+    return { paleta, indices, encode, lzw };
+  })();
+
+  // hoja de estilo autónoma para rasterizar los SVG fuera de la página: reglas .sim-* y svg con las variables del tema resueltas
+  function estiloSvg() {
+    const cs = getComputedStyle(document.documentElement), vars = ["--bg", "--panel", "--ink", "--ink2", "--line", "--soft", "--acc", "--ok", "--okbg", "--warn", "--warnbg", "--fail", "--failbg", "--info", "--infobg", "--pend", "--pendbg", "--steel", "--load", "--sans", "--mono"];
+    const decl = vars.map((v) => `${v}:${cs.getPropertyValue(v).trim()}`).join(";");
+    let rules = "";
+    for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; } for (const r of rs) if (r.selectorText && /sim-|^svg/.test(r.selectorText)) rules += r.cssText + "\n"; }
+    return `<style>svg{${decl}}\n${rules}</style>`;
+  }
+  function rasterSvg(svg, css) {
+    const src = svg.replace(/^<svg([^>]*)>/, (m0, a) => `<svg${a}>${css}`);
+    return new Promise((res, rej) => { const im = new Image(), url = URL.createObjectURL(new Blob([src], { type: "image/svg+xml" })); im.onload = () => { URL.revokeObjectURL(url); res(im); }; im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("no se pudo rasterizar el SVG")); }; im.src = url; });
+  }
+  // instantes de los cuadros: más densos en el retorno (rápido) para ver la salida de la uña y el reenganche
+  function instantes() {
+    const pv = S.prov, T = period(), ts = [], nE = 28, nR = 36;
+    for (let k = 0; k < S.n; k++) {
+      for (let i = 0; i < nE; i++) ts.push(k * T + pv.tExt * i / nE);
+      for (let i = 0; i < nR; i++) ts.push(k * T + pv.tExt + pv.tRet * i / nR);
+    }
+    ts.push(total());
+    return ts;
+  }
+  async function exportGif(opt) {
+    opt = opt || {};
+    if (!S.prov || S.prov.pendiente) throw new Error("no hay simulación que exportar");
+    const run0 = S.run; S.run = false;
+    const prog = (txt, f) => { const g = el("simGif"); if (g) g.innerHTML = `<div class="busy">${esc(txt)}</div><div class="prog"><i style="width:${Math.round(100 * f)}%"></i></div>`; };
+    const css = estiloSvg(), W = 900, pad = 6, head = 84, colW = (W - 3 * pad) / 2;
+    const ts = instantes(), pv = S.prov, alt = `${pv.nombre.split(":")[0]} · ${S.label}`;
+    const cvs = document.createElement("canvas"), cx = cvs.getContext("2d", { willReadFrequently: true });
+    const cssv = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#fff";
+    let H = 0;
+    const curS0 = S.curS;
+    const lineas = (txt, maxW, maxN) => {                                 // parte el rótulo en líneas que caben en el ancho del GIF
+      const out = []; let cur = "";
+      for (const w of txt.split(" ")) { const tr = cur ? cur + " " + w : w; if (cx.measureText(tr).width <= maxW || !cur) cur = tr; else { out.push(cur); cur = w; } }
+      out.push(cur);
+      if (out.length > maxN) { out.length = maxN; out[maxN - 1] += " …"; }
+      return out;
+    };
+    async function cuadro(t) {
+      const sn = snapshotAt(t), st = sn.st;
+      const im1 = await rasterSvg(planSvg(pv, st, sn.rot), css), im2 = await rasterSvg(detailSvg(pv, st, sn.rot), css);
+      const h1 = colW * im1.height / im1.width, h2 = colW * im2.height / im2.width;
+      if (!H) { H = Math.round(head + Math.max(h1, h2) + pad); cvs.width = W; cvs.height = H; }
+      cx.fillStyle = cssv("--bg"); cx.fillRect(0, 0, W, H);
+      cx.fillStyle = cssv("--ink"); cx.font = "600 14px " + cssv("--sans"); cx.textBaseline = "top";
+      lineas(`TT300-C · ${alt}`, W - 2 * pad - 4, 2).forEach((ln, j) => cx.fillText(ln, pad + 2, 5 + 18 * j));
+      cx.font = "13px " + cssv("--sans");
+      cx.fillText(`θ = ${num(sn.thetaDeg, 2)}° · carrera ${Math.min(sn.k + (sn.done ? 0 : 1), S.n)} de ${S.n} · ${S.dir > 0 ? "antihorario" : "horario"} · fase: ${st.fase} · t = ${num(Math.min(t, total()), 1)} s de ${num(total(), 1)} s (×${num(S.speed, S.speed < 1 ? 2 : 0)})`, pad + 2, 44);
+      if (st.alerta.length) { cx.fillStyle = cssv("--fail"); cx.fillText(lineas("Verificación que falla: " + st.alerta.join("; "), W - 2 * pad - 4, 1)[0], pad + 2, 62); }
+      cx.drawImage(im1, pad, head, colW, h1); cx.drawImage(im2, 2 * pad + colW, head, colW, h2);
+      return cx.getImageData(0, 0, W, H).data;
+    }
+    // paleta global: cuadros de muestra (inicio, empuje con contacto, retorno sobre el pasador, fin) + colores fijos del tema y de las interfaces
+    prog("Preparando la paleta…", 0.02);
+    const hex = (c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    const muestras = [];
+    for (const t of [0, buscarFase("empuje"), buscarFase("retorno"), buscarFase("reenganche"), total()]) if (t != null) muestras.push(await cuadro(t));
+    const fij = ["--bg", "--panel", "--ink", "--ink2", "--line", "--soft", "--acc", "--ok", "--fail", "--failbg", "--load", "--steel", "--pend", "--pendbg", "--infobg"]
+      .map((v) => { cx.fillStyle = cssv(v); const c = cx.fillStyle; return c.startsWith("#") ? hex(c) : [0, 0, 0]; }).concat(IFC_COL.map(hex));
+    const pal = GIF.paleta(muestras, fij);
+    const frames = [];
+    for (let i = 0; i < ts.length; i++) {
+      frames.push({ px: GIF.indices(await cuadro(ts[i]), pal.lut), t: ts[i] });
+      prog(`Rasterizando el cuadro ${i + 1} de ${ts.length}…`, 0.05 + 0.7 * (i + 1) / ts.length);
+      if (i % 4 === 3) await new Promise((r) => setTimeout(r, 0));
+    }
+    let prev = null;
+    S.curS = curS0;
+    // duración de cada cuadro proporcional al tiempo real a la velocidad elegida (centésimas, mínimo 2); el último se mantiene 1,5 s
+    const out = [];
+    let acc = 0;
+    for (let i = 0; i < frames.length; i++) {
+      const tEnd = i + 1 < frames.length ? frames[i + 1].t : frames[i].t + 1.5 * S.speed, want = Math.round(tEnd / S.speed * 100);
+      let dl = Math.max(2, want - acc); acc += dl;
+      // solo el rectángulo que cambia respecto del cuadro anterior (disposición «no descartar»)
+      const f = frames[i];
+      if (prev) {
+        let x0 = W, y0 = H, x1 = -1, y1 = -1;
+        for (let y = 0, o = 0; y < H; y++) for (let x = 0; x < W; x++, o++) if (f.px[o] !== prev[o]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        if (x1 < 0) { out[out.length - 1].delay += dl; prev = f.px; continue; }
+        const w = x1 - x0 + 1, h = y1 - y0 + 1, sub = new Uint8Array(w * h);
+        for (let y = 0; y < h; y++) sub.set(f.px.subarray((y0 + y) * W + x0, (y0 + y) * W + x0 + w), y * w);
+        out.push({ x: x0, y: y0, w, h, px: sub, delay: dl });
+      } else out.push({ x: 0, y: 0, w: W, h: H, px: f.px, delay: dl });
+      prev = f.px;
+    }
+    prog(`Codificando ${out.length} cuadros (LZW)…`, 0.75);
+    await new Promise((r) => setTimeout(r, 0));
+    const parts = GIF.encode(W, H, pal.pal, out), blob = new Blob(parts, { type: "image/gif" });
+    const nombre = `TT300-C_simulacion_${altFile(pv.P)}.gif`;
+    if (S.gifUrl) URL.revokeObjectURL(S.gifUrl);
+    S.gifUrl = URL.createObjectURL(blob);
+    const g = el("simGif");
+    if (g) g.innerHTML = `<div class="msg ok" id="simGifOk">GIF listo: ${out.length} cuadros, ${W} × ${H} px, ${num(blob.size / 1048576, 2)} MB · <a href="${S.gifUrl}" download="${esc(nombre)}">${esc(nombre)}</a></div><img id="simGifPrev" src="${S.gifUrl}" alt="Vista previa del GIF de la simulación">`;
+    if (opt.descargar !== false) { const a = document.createElement("a"); a.href = S.gifUrl; a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); }
+    S.run = run0;
+    return { blob, nombre, cuadros: out.length, w: W, h: H };
+  }
+
   // para pruebas y capturas: ir a un instante (s simulados) o al centro de la primera ventana de una fase (empuje, retorno, reenganche)
   function seek(t) { S.run = false; S.t = Math.max(0, Math.min(total(), t)); render(); return S.t; }
   function buscarFase(id) {
@@ -3642,7 +3827,7 @@ const SIM = (() => {
     for (let i = 0; i < n; i++) { const t = T * (i + 0.5) / n; if (S.prov.state(t, S.caso).faseId === id) hit.push(t); }
     return hit.length ? hit[Math.floor(hit.length / 2)] : null;
   }
-  return { open, close, init, proveedor, seek, buscarFase, _S: S };
+  return { open, close, init, proveedor, seek, buscarFase, exportGif, GIF, _S: S };
 })();
 if (false) module.exports = SIM;
 

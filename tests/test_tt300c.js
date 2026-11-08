@@ -246,7 +246,7 @@ test("Geometría del tope: barra bajo la superficie, alivio inferior, altura de 
     // las barras de los topes (soldadas a los respaldos, no son parte de ninguna otra pieza) suman a m.total y se desglosan en m.stopBars
     const m = A.R.m, mb = T.reduce((s, x) => s + x.m_barras, 0);
     near(m.stopBars, mb, 1e-12, ctx + "m.stopBars = Σ m_barras de ifc.topes"); assert.ok(m.stopBars > 0, ctx + "hay masa de barras");
-    near(m.total, m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl + m.stopBars, 1e-12, ctx + "m.total incluye las barras");
+    near(m.total, m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.cam + m.pivot + m.cyl + m.stopBars, 1e-12, ctx + "m.total incluye las barras");
     near(TT.masses(A.P).total, m.total, 1e-12, ctx + "TT.masses() devuelve el mismo total");
     assert.ok(A.checks.some((c) => /masa de las barras del tope/.test(c.name) && c.kind === "info" && c.dem > 0 && /incluida en la masa total/.test(c.name)), ctx + "fila informativa: masa incluida");
   }
@@ -481,7 +481,7 @@ test("4.ª pasada · masa de sectores: muescas, chaflanes y juntas descontadas c
     }
     near(m.ss, exp.ss - desc.ss, 1e-9, ctx + "m.ss neta"); near(m.uhmw, exp.uhmw - desc.uhmw, 1e-9, ctx + "m.uhmw neta"); near(m.bz, exp.bz - desc.bz, 1e-9, ctx + "m.bz neta");
     assert.ok(desc.ss + desc.uhmw + desc.bz > 5, ctx + "el descuento es apreciable (> 5 kg)");
-    near(m.total, m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.pivot + m.cyl + m.stopBars, 1e-12, ctx + "m.total con piezas netas");
+    near(m.total, m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.cam + m.pivot + m.cyl + m.stopBars, 1e-12, ctx + "m.total con piezas netas");
     // la fila informativa de cada pieza y las claves de interfazGeom
     const rows = A.checks.filter((c) => /descuento de masa por muescas, chaflanes y juntas/.test(c.name));
     assert.equal(rows.length, I.cortes.length, ctx + "una fila por pieza"); assert.ok(rows.every((c) => c.kind === "info" && c.dem > 0 && /a_inf²|a_inf\^2|a_inf²/.test(c.formula) && /junta/.test(c.formula)), ctx + "filas info con la fórmula");
@@ -540,7 +540,7 @@ test("4.ª pasada · filete mejillas–base: mínimo AWS D1.1 T5.8 (parte más g
 });
 
 test("4.ª pasada · flecha al izar la base (C12): margen ≥ 10 % del límite B/300 en todas las variantes, incluso B con madera", () => {
-  const P0 = TT.defaults(); assert.equal(P0.c_lug, 200, "puntos de izaje a 200 mm del borde (150 dejaba B sin margen con hc_min = 6)");
+  const P0 = TT.defaults(); assert.equal(P0.c_lug, 250, "puntos de izaje a 250 mm del borde (150 dejaba B sin margen con hc_min = 6; 200 → 250 por la masa de la leva de reenganche, 08-11-2026)");
   for (const [nm, o] of [...IFC_VARIANTS, ["B+madera", { opt_uhmw: 1, opt_wood: 1 }]]) {
     const P = Object.assign(TT.defaults(), o), R = TT.compute(P), L = TT.runLift(P, R, false);
     assert.ok(L.wMax <= 0.90 * P.B / 300, nm + ": flecha " + L.wMax.toFixed(2) + " mm vs límite " + (P.B / 300).toFixed(2));
@@ -737,7 +737,7 @@ test("Temperatura · viscosidad del aceite (Walther) y mínimo de la bomba", () 
   assert.ok(TT.oilViscosity(60).lo > TT.oilViscosity(80).lo, "la viscosidad baja con T");
 });
 
-const ACC_GRPS = ["Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga"];   // grupos del accionamiento mecánico (fuera del alcance térmico con term_alcance = 1)
+const ACC_GRPS = ["Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga", "Leva de reenganche", "Soporte del ojal E", "Placas-leva"];   // grupos del accionamiento mecánico (fuera del alcance térmico con term_alcance = 1); los tres últimos son de la leva guiada y del modo pivotado
 test("Temperatura · a 20 °C el escenario reproduce el cálculo estándar (factores = 1) y la geometría queda congelada a T_serv", () => {
   for (const [id, fl] of Object.entries(THALTS)) {
     const Pa = Object.assign(TT.defaults(), fl), A0 = TT.analyze(Pa, { noFEA: true });
@@ -1100,4 +1100,212 @@ test("Temperatura · alcance (term_alcance): 1 = sistema de placas y disco, sin 
   const A80a = TT.analyze(TT.thermalP(P1, 80), { noFEA: true }), A80b = TT.analyze(TT.thermalP(P2, 80), { noFEA: true });
   assert.deepEqual(A80a.checks.filter((c) => c.grp === "Uña").map((c) => [c.name, c.fu, c.st, c.fuera === true]), A80b.checks.filter((c) => c.grp === "Uña").map((c) => [c.name, c.fu, c.st, true]));
   assert.ok(A80a.checks.filter((c) => c.fuera).every((c) => ACC_GRPS.includes(c.grp) || (c.grp === "Temperatura")));
+});
+
+/* ======================= Tarea 1: leva de reenganche positiva del modo guiado ======================= */
+test("Leva guiada · parámetros nuevos (opt_cam = 1 por defecto, s_libre 21) y la leva no cambia las fuerzas del accionamiento", () => {
+  const P = TT.defaults();
+  assert.equal(P.opt_cam, 1); assert.equal(P.drive_mode, 1); assert.equal(P.cam_mat, 0); assert.equal(P.s_free, 21);
+  const g = TT.PARAM_GROUPS.find((x) => x.id === "leva_guiada"); assert.ok(g && g.p.length >= 15 && g.p.every((q) => q[4] !== undefined && q[5] !== undefined), "grupo con rangos");
+  const R1 = TT.compute(P), R0 = TT.compute(Object.assign(TT.defaults(), { opt_cam: 0 }));
+  assert.ok(R1.camG && !R0.camG && R0.m.cam === 0 && R1.m.cam > 0);
+  near(R1.m.total - R0.m.total, R1.m.cam, 1e-9, "la masa total suma la leva");
+  near(R1.m.cam, P.n_cyl * (R1.camG.m.plate + R1.camG.m.ped + R1.camG.m.ext + R1.camG.m.fol), 1e-12, "riel + soportes + prolongación + seguidor por cilindro");
+  assert.deepEqual(R1.cases.map((c) => c.F), R0.cases.map((c) => c.F), "la leva no cambia la fuerza del cilindro");
+  near(R1.K.s_req, 21 + 2 * P.R_pin * Math.sin(Math.PI / P.N_pin), 1e-12, "carrera requerida con la sobrecarrera de 21 mm");
+});
+test("Leva guiada · sincronía con margen, bolsillo suficiente, rampa sin autobloqueo y fuerzas de atasco a p_ret", () => {
+  const A = TT.analyze(TT.defaults(), { noFEA: true }), c = A.R.camG, P = A.P;
+  assert.ok(c.sync >= P.cam_msync, "sincronía: holgura " + c.sync.toFixed(2) + " ≥ " + P.cam_msync);
+  assert.ok(c.needMax <= c.travel, "el bolsillo alcanza");
+  assert.ok(c.lockDem < c.lockCap, "rampa sin autobloqueo");
+  const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10;
+  near(c.NR, Fret / Math.sin(P.cam_alpha * Math.PI / 180), 1e-12, "N_rampa = F_ret/sen α"); near(c.NT, Fret / Math.tan(P.beta_ch * Math.PI / 180), 1e-12, "N_toma = F_ret/tan β");
+  // el perfil: nivel de toma c, bolsillo de profundidad Δx, rampa a α que termina en c en η₀ + tramo
+  near(c.etaEnd, -P.d_pin / 2 - P.s_free + P.cam_dwell, 1e-12, "fin de la rampa"); assert.equal(c.prof[1][1], P.cam_c); assert.ok(c.prof.some((q) => Math.abs(q[1] - c.travel) < 1e-9 || q[1] > P.cam_c));
+  const rows = A.checks.filter((x) => x.grp === "Leva de reenganche");
+  assert.ok(rows.length >= 18 && rows.every((x) => x.ref && x.formula), "filas con fórmula y referencia");
+  assert.ok(rows.filter((x) => x.sys === "est" && x.kind === "fu").every((x) => x.fu <= 0.90), "FU ≤ 0,90 en las filas estructurales de la leva");
+  assert.ok(rows.every((x) => x.st !== "fail"), "ninguna fila de la leva falla");
+  assert.ok(rows.some((x) => /AISC 360-22 §J3/.test(x.ref)) && rows.some((x) => /Hertz/.test(x.ref)) && rows.some((x) => /BTH-1/.test(x.ref)));
+  // la sincronía falla con la sobrecarrera anterior (10 mm) y el autobloqueo con una rampa muy empinada o una zapata deslizante
+  const s10 = TT.analyze(Object.assign(TT.defaults(), { s_free: 10 }), { noFEA: true }).checks.find((x) => /^Sincronía: holgura uña–pasador siguiente/.test(x.name));
+  assert.equal(s10.st, "fail", "con s_libre = 10 mm no hay lugar para la rampa");
+  const steep = TT.analyze(Object.assign(TT.defaults(), { cam_alpha: 72 }), { noFEA: true }).checks.find((x) => /^Rampa de reenganche sin autobloqueo/.test(x.name));
+  assert.equal(steep.st, "fail", "α = 72° se autobloquea");
+  const lowA = TT.analyze(Object.assign(TT.defaults(), { cam_alpha: 50 }), { noFEA: true }).checks.find((x) => /^Sincronía: holgura uña–pasador siguiente/.test(x.name));
+  assert.equal(lowA.st, "fail", "α = 50°: la rampa empuja la uña antes de despejar el pasador");
+  for (const f of [2, 3, 4]) { const X = TT.analyze(Object.assign(TT.defaults(), { cam_mat: f }), { noFEA: true }); assert.equal(X.R.fam.f, f); assert.ok(!X.verdict.gira, "familia " + f + " en el riel guiado: se autobloquea (justifica la regla automática = 1)"); }
+  assert.ok(TT.analyze(Object.assign(TT.defaults(), { opt_cam: 0 }), { noFEA: true }).checks.some((x) => x.grp === "Leva de reenganche" && x.kind === "info" && /desactivada/.test(x.name)));
+});
+
+/* ======================= Tarea 2: modo pivotado con guía de leva (tipo KIET) ======================= */
+const P2 = (o) => Object.assign(TT.defaults(), { drive_mode: 2 }, o || {});
+test("Pivotado · modo 2 por defecto: gira, la estructura cumple con FU ≤ 0,90 y no hay patín, bancada ni ménsulas", () => {
+  const A = TT.analyze(P2()), R = A.R;
+  assert.ok(A.verdict.gira, "gira"); assert.ok(A.verdict.estructura, "estructura");
+  const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu");
+  assert.ok(est.every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura: " + est.filter((c) => c.fu > 0.9).map((c) => c.name + " " + c.fu.toFixed(3)).join("; "));
+  assert.ok(!A.checks.some((c) => c.grp === "Patín y guía" || /patín/.test(c.name) && c.grp === "Giro"), "sin filas del patín");
+  assert.equal(R.m.shoes, 0); assert.equal(R.m.beds, 0);
+  near(R.m.brackets, P2().n_cyl * R.sup.m, 1e-12, "soportes del ojal E"); near(R.m.dogs, P2().n_cyl * R.blk.m, 1e-12, "bloques-uña con pasador Q");
+  assert.ok(R.m.cam > 0 && R.m.total < TT.compute(TT.defaults()).m.total, "más liviano que el guiado");
+  assert.ok(R.cd.FS >= P2().FS_min, "FS ≥ FS_mín");
+  assert.equal(AG.validate(P2()).filter((v) => v.lvl === "error").length, 0);
+  for (const c of AG.crossCheck(A)) assert.ok(c.ok, "revisor cruzado: " + c.name + " Δ " + c.d);
+  assert.ok(AG.audit(A.checks).ok, "todas las filas con fórmula y referencia");
+});
+test("Pivotado · cinemática: E–Q–P alineados, L = |P − E| − L_qp, a = dist(O, E–P) = dL/dθ, a_ef = a − μ_s|v_s|, carrera y fuerza", () => {
+  const P = P2(), R = TT.compute(P), K = R.K, ph = P.pv_phE * Math.PI / 180, E = [P.pv_RE * Math.cos(ph), P.pv_RE * Math.sin(ph)];
+  assert.ok(K.ok); assert.deepEqual(K.E.map((v) => +v.toFixed(9)), E.map((v) => +v.toFixed(9)));
+  near(K.pts[0].L, P.L0 + P.s_free, 1e-9, "toma a L0 + s_libre");
+  for (const q of K.pts) {
+    const d = Math.hypot(q.P[0] - E[0], q.P[1] - E[1]), Q = [q.P[0] + P.pv_Lqp * (E[0] - q.P[0]) / d, q.P[1] + P.pv_Lqp * (E[1] - q.P[1]) / d];
+    near(q.Q[0], Q[0], 1e-9, "Q_x"); near(q.Q[1], Q[1], 1e-9, "Q_y"); near(q.L, d - P.pv_Lqp, 1e-12, "L");
+    near(q.a, Math.abs(E[0] * q.P[1] - E[1] * q.P[0]) / d, 1e-9, "brazo = distancia de O a la recta E–P");
+    const h = 1e-6, Lp = Math.hypot(P.R_pin * Math.cos(q.th + h) - E[0], P.R_pin * Math.sin(q.th + h) - E[1]), Lm = Math.hypot(P.R_pin * Math.cos(q.th - h) - E[0], P.R_pin * Math.sin(q.th - h) - E[1]);
+    near(q.a, (Lp - Lm) / (2 * h), 1e-6, "a = dL/dθ");
+    near(q.aEff, q.a - P.mu_s * Math.abs(P.d_pin / 2 * (1 - (q.P[0] * q.u[0] + q.P[1] * q.u[1]) / d)), 1e-9, "a_ef");
+  }
+  near(K.s_req, Math.max(...K.pts.map((q) => q.L)) - P.L0, 1e-12, "carrera requerida");
+  const kf = 1 + R.fam.mu * P.mu_s;
+  near(R.cd.F, Math.max(...K.pts.map((q) => R.cd.T * 1e3 / P.n_cyl / q.aEff)) * kf / P.eta_c, 1e-12, "F_cil = máx T/(n·a_ef·η)·(1 + μ_leva·μ_s)");
+  near(R.cd.FS, R.Fstall / R.cd.F, 1e-12);
+  // tabla de la carrera: fracciones tangencial y radial del empuje sobre el pasador
+  R.stroke.forEach((q) => { near(q.ft ** 2 + q.fr ** 2, 1, 1e-9, "f_t² + f_r² = 1"); near(q.Fcam, P.mu_s * q.Fp, 1e-12, "fuerza en la leva = μ_s·F_n"); });
+  // sugerencia de E: factible y con el brazo efectivo máximo de su entorno
+  const sg = TT.suggestE(Object.assign(P2(), { pv_RE: 0, pv_Lqp: 0 }));
+  assert.ok(sg.ok && sg.RE <= sg.REmax);
+  const Ks = TT.pivKin(P, sg.RE, sg.Lqp, 40); assert.ok(Ks.feas, "la sugerencia respeta las restricciones");
+  for (const [dR, dL] of [[0, 5], [0, -5], [-5, 0], [-10, 10]]) { const Kn = TT.pivKin(P, sg.RE + dR, sg.Lqp + dL, 40); assert.ok(!Kn.feas || Kn.aEffMin <= sg.aEffMin + 1e-6, "vecino " + dR + "/" + dL + " no mejora"); }
+  assert.ok(TT.compute(Object.assign(P2(), { pv_RE: 0, pv_Lqp: 0 })).K.auto, "pv_RE = 0 usa la sugerencia automática");
+});
+test("Pivotado · perfil de la placa-leva: empuje con holgura, bolsillo para pasar sobre el pasador siguiente y rampa con sincronía", () => {
+  const P = P2(), R = TT.compute(P), C = R.camP;
+  assert.ok(C.sync >= P.pv_msync, "sincronía " + C.sync.toFixed(2));
+  C.need.forEach((q) => { assert.ok(q.w_leva >= q.w_emp + P.pv_c - 1e-9, "la leva deja la holgura sobre la trayectoria de empuje"); if (q.L >= C.Lend + 1e-9 && q.L <= C.Lr1) assert.ok(q.w_leva >= Math.min(q.w_nec, C.wPk) - 1e-6, "la rampa no empuja antes de despejar"); });
+  assert.ok(C.wPk > 0 && C.hasPk, "hay bolsillo"); assert.ok(C.cover > 0 && C.cover < 1);
+  assert.ok(C.diag > 5 && C.inBase <= P.B / 2 - P.rim_t - 5, "4 placas sin solape y dentro de la base");
+  const lo = TT.analyze(P2({ pv_alpha: 35 }), { noFEA: true }).checks.find((c) => /^Sincronía del retorno/.test(c.name));
+  assert.equal(lo.st, "fail", "con α = 35° la rampa empuja el bloque contra el pasador siguiente");
+});
+test("Pivotado · las 4 familias del contacto seguidor–leva (μ, p_adm, PV propios) y la regla automática", () => {
+  const exp = { 1: P2().mu_d, 2: P2().muB_d, 3: P2().muC_d, 4: P2().muA_d };
+  for (const f of [1, 2, 3, 4]) {
+    const A = TT.analyze(P2({ cam_mat: f }), { noFEA: true }), F = A.R.fam, rows = A.checks.filter((c) => c.grp === "Placas-leva");
+    assert.equal(F.f, f); near(F.mu, exp[f], 1e-12, "μ de la familia " + f);
+    assert.ok(A.checks.some((c) => /^Rampa de la placa-leva sin autobloqueo/.test(c.name) && c.name.includes(F.corto)), "autobloqueo con su μ");
+    assert.ok(rows.some((c) => /Pernos de la placa-leva: corte/.test(c.name)) && rows.some((c) => /flexión del labio/.test(c.name)), "pernos y labio");
+    if (f === 1) assert.ok(rows.some((c) => /Hertz/.test(c.name)));
+    else { assert.ok(rows.some((c) => /presión de la zapata/.test(c.name))); assert.ok(A.R.camP.lpad >= P2().pv_dq); }
+    if (f === 2 || f === 3) assert.ok(rows.some((c) => /respaldo de acero/.test(c.name)) && rows.some((c) => /valor PV/.test(c.name)), "respaldo y PV");
+    assert.ok(A.verdict.gira, "familia " + f + ": gira");
+    assert.equal(A.verdict.estructura, f !== 2, "familia " + f + (f === 2 ? ": la zapata de UHMW no es practicable (PV)" : ": cumple"));
+    assert.ok(A.checks.every((c) => !(typeof c.dem === "number" && isNaN(c.dem)) && !(typeof c.cap === "number" && isNaN(c.cap))), "sin NaN");
+  }
+  const auto = (o) => TT.camFam(P2(o)).f;
+  assert.deepEqual([auto({}), auto({ opt_ss: 1 }), auto({ opt_uhmw: 1 }), auto({ opt_bz: 1 }), TT.camFam(TT.defaults()).f, TT.camFam(Object.assign(TT.defaults(), { opt_uhmw: 1 })).f], [1, 4, 4, 3, 1, 1], "regla automática");
+});
+test("Pivotado · combinado con cada alternativa de interfaz (y pegado, madera, escenario térmico) sin NaN", () => {
+  const isBad = (v) => typeof v === "number" && isNaN(v);
+  for (const [nm, o] of [...IFC_VARIANTS, ["pegado", { opt_ss: 1, fix_mode: 2 }], ["C1 pegado", { opt_bz: 1, fix_mode: 2 }], ["B+madera", { opt_uhmw: 1, opt_wood: 1 }]]) {
+    const A = TT.analyze(P2(o), { noFEA: true });
+    const bad = A.checks.filter((c) => isBad(c.dem) || isBad(c.cap) || isBad(c.fu));
+    assert.equal(bad.length, 0, nm + ": " + bad.map((c) => c.name).join("; "));
+    assert.ok(isFinite(A.R.m.total) && isFinite(A.R.cd.F) && A.verdict.gira, nm + ": gira");
+    assert.ok(A.verdict.estructura, nm + ": estructura");
+  }
+  const th = TT.thermal(P2({ term_alcance: 2 }), { T: [20, 80] });
+  th.alternativas.forEach((a) => a.byT.forEach((b) => { assert.ok(isFinite(b.FS) && isFinite(b.masa), a.id + " " + b.T); assert.ok(b.filas.every((x) => !isBad(x.dem) && !isBad(x.cap)), a.id + " filas térmicas sin NaN"); }));
+  const base80 = th.alternativas.find((a) => a.id === "base").byT[1];
+  assert.ok(base80.filas.some((x) => /Pivotado \(mesa caliente/.test(x.nombre)) && !base80.filas.some((x) => /Patín fuera de la mesa/.test(x.nombre)), "filas térmicas del modo pivotado");
+});
+test("Pivotado · pivote central: componente radial del par anulada, asimetría por μ_s ± 0,05 y n° impar de cilindros", () => {
+  const A = TT.analyze(P2(), { noFEA: true }), R = A.R, pa = TT.pivAsym(A.P, R);
+  assert.ok(pa.H > 0 && pa.H < 0.25 * R.Fstall, "asimetría acotada");
+  const row = A.checks.find((c) => /roce desigual en el contacto uña–pasador/.test(c.name)); near(row.dem, pa.H, 1e-12);
+  assert.ok(A.checks.some((c) => /componente radial/.test(c.name) && c.dem > 0), "componente radial informada");
+  const pb = A.checks.find((c) => c.name === "Presión en el buje"); assert.ok(pb && pb.st === "ok");
+  const one = TT.analyze(P2({ n_cyl: 1 }), { noFEA: true }), h1 = one.checks.find((c) => /n° impar de cilindros/.test(c.name));
+  assert.ok(h1 && h1.dem > 0, "con un cilindro el pivote recibe el empuje completo");
+  assert.ok(AG.validate(P2({ n_cyl: 1 })).some((v) => /2 cilindros/.test(v.msg)));
+});
+test("Pivotado · casos límite: geometría sin toma, ojal fuera de la base, uña que no libra el pasador siguiente, carrera insuficiente", () => {
+  const noK = TT.analyze(P2({ pv_RE: 960 }), { noFEA: true });
+  assert.equal(noK.R.K.ok, false); assert.equal(noK.verdict.gira, false, "sin posición de toma no gira");
+  assert.ok(AG.validate(P2({ pv_RE: 960 })).some((v) => v.lvl === "error"), "el validador lo informa");
+  const out = TT.analyze(P2({ pv_RE: 1700 }), { noFEA: true }).checks.find((c) => /Soporte del ojal E dentro de la base/.test(c.name)); assert.equal(out.st, "fail");
+  const clash = TT.analyze(P2({ pv_ecr: 0 }), { noFEA: true }).checks.find((c) => /libre del pasador siguiente durante el empuje/.test(c.name)); assert.equal(clash.st, "fail", "sin acodado el cuerpo toca el pasador siguiente");
+  const st = TT.analyze(P2({ stroke: 200 }), { noFEA: true }).checks.find((c) => /Carrera requerida con margen \(pivotado\)/.test(c.name)); assert.equal(st.st, "fail");
+  const hi = TT.analyze(P2({ pv_hu: 150 }), { noFEA: true }).checks.find((c) => /Bloque-uña dentro de la luz libre/.test(c.name)); assert.equal(hi.st, "fail");
+  const tq = TT.analyze(P2({ mu_s: 0 }), { noFEA: true }); near(tq.R.K.aEffMin, tq.R.K.aMin, 1e-12, "sin roce el brazo efectivo es el geométrico");
+  assert.ok(TT.analyze(P2(), { noFEA: true }).R.cd.F < TT.analyze(P2({ mu_s: 0.3 }), { noFEA: true }).R.cd.F, "el roce del contacto sube la fuerza");
+  assert.equal(TT.driveMode(P2({ drive_mode: 1.4 })), 1); assert.equal(TT.driveMode(P2({ drive_mode: 1.6 })), 2);
+});
+test("Golden file · modo pivotado (drive_mode = 2): resultados por defecto sin cambios no justificados", () => {
+  const A = TT.analyze(P2()), R = A.R, K = R.K;
+  const snap = { masa_total: R.m.total, masas: { brackets: R.m.brackets, dogs: R.m.dogs, cam: R.m.cam }, brazo_min: K.aMin, brazo_ef_min: K.aEffMin, carrera_req: K.s_req, Q_min: K.QrMin, holgura_B: K.clrB,
+    sincronia: R.camP.sync, bolsillo: R.camP.wPk, casos: Object.fromEntries(R.cases.map((c) => [c.id, [c.F, c.p, c.FS]])), fea: { lift: A.fea.lift.vmMax, liftW: A.fea.lift.wMax },
+    fu: Object.fromEntries(A.checks.filter((c) => c.fu != null).map((c) => [c.grp + " · " + c.name, c.fu])) };
+  const f = path.join(__dirname, "golden", "tt300c_pivotado.json");
+  if (process.env.UPDATE_GOLDEN || !fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(snap, null, 1));
+  const g = JSON.parse(fs.readFileSync(f, "utf8"));
+  const cmp = (a, b, k) => {
+    if (typeof b === "number") near(a, b, 1e-6, k);
+    else if (Array.isArray(b)) b.forEach((v, i) => cmp(a[i], v, k + "[" + i + "]"));
+    else for (const kk of Object.keys(b)) { assert.ok(kk in a, "falta " + kk); cmp(a[kk], b[kk], k + "." + kk); }
+  };
+  cmp(snap, g, "golden-pivotado");
+});
+
+/* ======================= API de simulación del movimiento (packages/web/simulacion.js) ======================= */
+test("Simulación · TT.driveAt: fuerzas en cualquier θ y caso, coherentes con compute() en ambos modos", () => {
+  const P = TT.defaults(), R = TT.compute(P), th = -Math.PI / P.N_pin;
+  for (const c of R.cases) {
+    const d = TT.driveAt(P, th, c.id), Fmax = Math.max(...R.stroke.map((q) => q.F)) * c.T / R.cd.T;
+    assert.ok(d.F > 0 && d.F <= Fmax + 1e-9 && d.caso === c.id, "guiado " + c.id);
+  }
+  const dmax = Math.max(...R.stroke.map((q) => TT.driveAt(P, q.th, "dis").F)); assert.ok(dmax <= R.cd.F + 1e-9 && dmax >= 0.99 * R.cd.F, "máximo en la carrera = F de diseño");
+  near(TT.driveAt(P, 0, "dis").arm, P.R_pin, 1e-12, "brazo R·cos θ");
+  const Q = P2(), R2 = TT.compute(Q);
+  R2.stroke.forEach((q) => { const d = TT.driveAt(Q, q.th, "dis"); near(d.F, q.F, 1e-12, "F"); near(d.Fp, q.Fp, 1e-12, "F_n"); near(d.arm, q.arm, 1e-12); near(d.ft, q.ft, 1e-12); near(d.fr, q.fr, 1e-12); });
+  assert.ok(TT.driveAt(Q, R2.K.ths, "cont").F > TT.driveAt(Q, R2.K.ths, "nom").F);
+});
+test("Simulación · modo pivotado: pivotGeo y pivotAt (θ final = θ inicial + paso, carrera, retorno con salida sobre el pasador siguiente y reenganche)", () => {
+  const P = P2(), R = TT.compute(P), K = R.K, G = TT.pivotGeo(P);
+  assert.equal(G.E.length, 2); near(G.E[1][0], -G.E[0][0], 1e-12); assert.deepEqual(Object.keys(G.placas).sort(), ["1_antihorario", "1_horario", "2_antihorario", "2_horario"]);
+  for (const k of Object.keys(G.placas)) assert.ok(G.placas[k].recorte.length > 10 && G.placas[k].contorno.length === 2 * G.placas[k].recorte.length && G.placas[k].pernos.length === Math.round(P.pv_nb));
+  assert.equal(G.L0, P.L0); assert.equal(G.carrera, P.stroke); near(G.s_req, K.s_req, 1e-12);
+  const a0 = TT.pivotAt(P, 0, "empuje", "antihorario"), a1 = TT.pivotAt(P, K.s_req, "empuje", "antihorario");
+  near(a0.th, K.ths, 1e-12, "inicio"); near(a1.th - a0.th, 2 * Math.PI / P.N_pin, 1e-9, "θ final = θ inicial + paso al final del empuje"); near(a1.L, K.Lend, 1e-9);
+  near(a1.Q[0], K.pts[K.pts.length - 1].Q[0], 1e-6); near(a1.Q[1], K.pts[K.pts.length - 1].Q[1], 1e-6, "Q en el final del empuje");
+  const mid = TT.pivotAt(P, 120, "empuje", "antihorario"); near(mid.F, TT.driveAt(P, mid.th, "dis").F, 1e-12); near(mid.contactoLeva.F, P.mu_s * TT.driveAt(P, mid.th, "dis").Fp, 1e-12);
+  // retorno: la uña sale sobre el pasador siguiente (w mayor que en el empuje) y la leva la reengancha (w = c en el extremo retraído) sin choque
+  let wMax = 0, holMin = Infinity, syncMin = Infinity;
+  for (let i = 0; i <= 400; i++) { const s = K.s_req * (1 - i / 400), q = TT.pivotAt(P, s, "retorno", "antihorario"); wMax = Math.max(wMax, q.w); holMin = Math.min(holMin, q.holgura); if (q.contactoLeva.enRampa) syncMin = Math.min(syncMin, q.holgura_leva); assert.ok(!q.alertas.choque, "sin choque en s = " + s.toFixed(1)); }
+  assert.ok(wMax > TT.pivotAt(P, 30, "empuje", "antihorario").w + 20, "sale sobre el pasador siguiente"); assert.ok(holMin >= -1e-6);
+  near(TT.pivotAt(P, 0, "retorno", "antihorario").w, P.pv_c, 1e-9, "reenganche: Q vuelve al canto de toma");
+  assert.ok(Math.abs(syncMin - R.camP.sync) < 0.05 && syncMin >= R.camP.sync - 1e-3, "la sincronía de la simulación coincide con la verificación: " + syncMin.toFixed(3) + " vs " + R.camP.sync.toFixed(3));
+  const h = TT.pivotAt(P, 120, "empuje", "horario"), ph = P.pv_phE * Math.PI / 180;
+  near(h.Q[0] * Math.sin(ph) - h.Q[1] * Math.cos(ph), -(mid.Q[0] * Math.sin(ph) - mid.Q[1] * Math.cos(ph)), 1e-9, "horario = reflejo respecto de la diagonal");
+  assert.equal(TT.pivotGeo(TT.defaults()), null); assert.equal(TT.pivotAt(TT.defaults(), 0, "empuje", "antihorario"), null);
+});
+test("Simulación · modo guiado: guidedAt, camGeo y camAt (cara, θ, salida radial en el retorno y sincronía de la leva)", () => {
+  const P = TT.defaults(), R = TT.compute(P), K = R.K, c = R.camG;
+  const g0 = TT.guidedAt(P, 0, "empuje"), g1 = TT.guidedAt(P, K.s_req, "empuje");
+  near(g0.y_cara, K.y_rp0 + P.l_p - P.d_pin / 2, 1e-12, "y_cara = y_rp0 + s + l_p − d/2"); near(TT.guidedAt(P, 50, "empuje").y_cara, K.y_rp0 + 50 + P.l_p - P.d_pin / 2, 1e-12);
+  near(g0.th, -K.pitch / 2, 1e-12); near(g1.th, K.pitch / 2, 1e-9, "θ final = +π/N: el pasador avanzó un paso");
+  near(TT.guidedAt(P, 100, "empuje").F, TT.driveAt(P, TT.guidedAt(P, 100, "empuje").th, "nom").F, 1e-12, "fuerza del caso nominal sin escalar");
+  // retorno sin leva: la salida radial es la del chaflán sobre el pasador siguiente (holgura nula mientras lo monta)
+  const P0 = Object.assign(TT.defaults(), { opt_cam: 0 }), um = Math.max(...Array.from({ length: 200 }, (_, i) => TT.guidedAt(P0, K.s_req * i / 199, "retorno").u));
+  near(um, P.c_tip + P.d_pin / 2, 1e-6, "la punta pasa por encima del pasador: u = c_punta + r");
+  assert.equal(TT.camGeo(P0), null);
+  const G = TT.camGeo(P); assert.ok(G.perfil.length >= 4 && G.recorrido === K.travel && G.perfil[1].u === P.cam_c);
+  let syncMin = Infinity;
+  for (let i = 0; i <= 2000; i++) { const q = TT.camAt(P, K.s_req * i / 2000, "retorno"); assert.ok(q.u <= q.u_leva + 1e-9 && !q.alertas.choque && !q.alertas.sincronia); if (q.eta <= G.tope_rampa) syncMin = Math.min(syncMin, q.holgura_leva); }
+  assert.ok(Math.abs(syncMin - c.sync) < 0.05 && syncMin >= c.sync - 1e-3, "la sincronía de la simulación coincide con la verificación: " + syncMin.toFixed(3) + " vs " + c.sync.toFixed(3));
+  near(TT.camAt(P, 0, "retorno").u_leva, P.cam_c, 1e-12, "reenganche: la leva deja la uña en la toma");
+  assert.equal(TT.camAt(P, 100, "empuje").u, 0);
+  const P10 = Object.assign(TT.defaults(), { s_free: 10 }), s10 = TT.compute(P10).K.s_req;
+  assert.ok(Array.from({ length: 400 }, (_, i) => TT.camAt(P10, s10 * i / 399, "retorno")).some((q) => q.alertas.choque || q.alertas.sincronia), "con s_libre = 10 la simulación alerta");
 });

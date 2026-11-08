@@ -160,3 +160,45 @@ Dilatación libre del aceite: 4,29 % (7,15×10⁻⁴ × 60). Para un cilindro Ø
 | Flexión en la boca del patín | FU 0,907 (antes 0,807 con 900 MPa) | ASME BTH-1 Cat. B, Nd = 3,0, §3-2.3 | Aceptada por el mandante el 07-11-2026 como advertencia (FU ≤ 1,0). El criterio interno FU ≤ 0,90 se relaja solo para esta fila |
 | Otras filas de la uña | Corte en la boca 0,448; corte en el contacto 0,801; flexión en el chaflán 0,627 | BTH-1 §3-2.2 y §3-2.3 | Cumplen ≤ 0,90 |
 
+
+## Leva de reenganche positiva (modo guiado)
+
+Pedido del mandante 07-11-2026 (Tarea 1). El riel-leva fijo reemplaza la dependencia exclusiva del resorte; el resorte queda como apoyo. Hipótesis de geometría (no hay espacio lateral junto al patín: el patín ocupa x = x_g ± w_s/2 entre la mesa y el marco): el seguidor es un rodillo sobre un perno vertical fijo en la uña, que sale por una ranura de la tapa del alojamiento (la ranura lo guía en y); el riel es una pletina horizontal sobre el patín (entre la cara superior del patín + 2 mm y la cara superior de la mesa), apoyada en dos soportes empernados a la bancada prolongada en cada extremo, por fuera del recorrido del patín y por fuera del cuerpo del cilindro. Una pletina por cilindro: se voltea para el otro sentido de giro.
+
+| Verificación | Criterio | Referencia | Ecuación / nota |
+|---|---|---|---|
+| Sincronía | holgura uña–pasador siguiente B con la uña apoyada en la rampa ≥ margen (cam_msync) | Geometría | Polígono de la uña (punta, chaflán β, cara trasera) frente al círculo de B; rampa a α desde η₀ + tramo, η₀ = −r − s_libre. Con s_libre = 10 mm no cabe la rampa (holgura < 0): s_libre pasa a 21 mm (carrera requerida 229,3 + 5 ≤ 235) |
+| Bolsillo | máx u_nec ≤ recorrido de retorno Δx | Geometría | El bolsillo coincide con la zona de toma del pasador siguiente (B pasa a ser A): una leva posicional no distingue el sentido, de modo que en esa parte del empuje la uña queda con el resorte y el roce del alojamiento, como antes |
+| Autobloqueo de la rampa | μ_ret·k_t·(sen α + μ_seg·cos α) < (cos α − μ_seg·sen α)·(1 − 2μ_ret·z_f/L_in) | Equilibrio de la cuña con fricción | k_t = 1 + 2(z_f − z_ranura)/h_uña (torsión de la uña por la fuerza del seguidor sobre la tapa); μ_seg = mu_roll (rodillo, familia 1) o el μ de la familia 2–4 |
+| Fuerzas de atasco | cilindro tirando a p_ret con la uña trabada; cotas sin roce | Hidráulica | N_rampa = F_ret/sen α; N_toma = F_ret/tan β (chaflán sobre B a nivel de toma); F_ret = A_anular·p_ret |
+| Contacto del rodillo | p₀ = √(q·E*/(π·r)) ≤ 1,67·Fy_sup, q = N/b | Hertz, contacto lineal; Tresca | Canto templado por inducción |
+| Perno del seguidor | flexión N·l/(πd³/32) ≤ Fy/Nd; corte N/A ≤ Fy/(Nd√3) | ASME BTH-1 Cat. B §3-3.3, §3-2.3, §3-2.2 | l = altura del rodillo sobre la cara superior de la uña |
+| Ranura de la tapa | F_ret/(d·t_tapa) ≤ 1,25·Fy_patín/Nd | ASME BTH-1 §3-3.3 | Aplastamiento |
+| Riel-leva | N·k_M/(t·w_n²/6) + F_ret/(t·w_n) ≤ Fy/Nd, sección neta en el bolsillo | ASME BTH-1 §3-2.3 y §3-2.1 | Biapoyado entre soportes, carga en la peor posición del seguidor; 42CrMo4+QT (EN 10083-3, 16 < t ≤ 40: Re ≥ 750) |
+| Soportes del riel | R_x·h/(l·b²/6) + R_y·h/(b·l²/6) ≤ Fy/Nd | ASME BTH-1 §3-2.3 | |
+| Pernos de los soportes | f_t ≤ F'nt/Ω, F'nt = 1,3Fnt − (Ω·Fnt/Fnv)·f_rv ≤ Fnt; f_rv ≤ Fnv/Ω; Fnt = 0,75Fu, Fnv = 0,45Fu (rosca incluida), Ω = 2,00 | AISC 360-22 §J3.6, §J3.7 Ec. J3-3a, Tabla J3.2 (grupo 150 ≈ ISO 898-1 10.9) | Tracción por vuelco (R_x + R_y)·h/((n/2)·s) |
+| Material del contacto | cam_mat = 0 → familia 1 en el modo guiado | Criterio del proyecto | Las familias 2–4 (zapata deslizante) se calculan, pero la rampa que exige la sincronía (~62°) se autobloquea con μ ≥ 0,15 y la presión de atasco supera p_adm |
+
+## Accionamiento pivotado tipo KIET
+
+Pedido del mandante 07-11-2026 (Tarea 2; drive_mode = 2; el valor por defecto sigue siendo 1). Referencia: docs/referencias/2026-10-30-kiet-400t-analisis.md. Dos cilindros de doble efecto pivotan sobre pasadores verticales E en ojales diagonales (φ_E y φ_E + 180°); para invertir el giro el cilindro pivota en el mismo ojal hacia el otro lado (imagen especular respecto de la diagonal); cuatro placas-leva (una por cilindro y sentido). El bloque-uña gira libre sobre el pasador vertical Q del vástago; el extremo inferior de Q es el seguidor y corre en el recorte cóncavo de la placa-leva, empernada a la base fuera de la mesa (la mesa apoya sobre la base hasta R_o = D/2: no hay lugar bajo ella).
+
+| Verificación | Criterio | Referencia | Ecuación / nota |
+|---|---|---|---|
+| Cinemática | Q = P + L_qp·(E − P)/\|E − P\|; L = \|P − E\| − L_qp; a = (P × u)_z = dL/dθ; toma en L0 + s_libre | Estática del miembro de dos fuerzas | El bloque se alinea con E y P (normal del contacto por el centro del pasador) |
+| Roce del contacto | a_ef = a − μ_s·\|v_s\|, v_s = −r·(1 − dψ/dθ), dψ/dθ = (P·u)/\|P − E\| | Potencia virtual | La resultante pasa por Q (bloque libre en Q): el roce inclina la resultante; F_cil·η·a = T/n + μ_s·F_n·\|v_s\| + μ_leva·T_leva·v |
+| Fuerza del cilindro | F_cil = T/(n·a_ef·η)·(1 + μ_leva·μ_s), máximo en la carrera; FS = F_calado/F_dis ≥ FS_mín | Criterio del proyecto | Mismos casos de fricción que el modo guiado |
+| Fuerza en la leva | T_leva = μ_s·F_n (cota: la leva toma toda la fuerza transversal del roce); atasco al retraer N = F_ret/sen α | Equilibrio | La placa se verifica con máx(N_rampa; T_calado); la presión de la zapata con T de diseño |
+| Sugerencia de E | máx a_ef,mín con: cajón del ojal dentro de la base, s_req + margen ≤ carrera, Q a d_Q/2 + holgura fuera de la mesa, cuerpo del cilindro fuera de la mesa, bloque a ≥ pv_cB del pasador siguiente | Optimización por malla (10 mm, luego 1 mm) | Con los valores por defecto: R_E = 1.604 mm, L_qp = 440 mm (se adopta 432: 2 mm de margen sobre la holgura con el pasador siguiente) |
+| Perfil de la placa-leva | canto (centro del seguidor) w_leva = máx(w_emp + c; bolsillo), bolsillo = máx w_nec, rampa a α desde L0 + tramo; holgura con Q contra la leva ≥ margen | Geometría | w = desplazamiento lateral de Q hacia afuera respecto de la recta E–P al inicio; bloque alineado con el vástago en el retorno (hipótesis conservadora) |
+| Autobloqueo de la rampa | μ_E·d_E/(2·L0)·(sen α + μ·cos α) < cos α − μ·sen α | Equilibrio con fricción | El giro del cilindro en E casi no ofrece resistencia; μ de la familia del contacto |
+| Bloque-uña | F/(b·h) + 6F·(e_cr + e)/(h·b²) ≤ Fy/Nd; corte 1,5·μ_s·F/(b·h) ≤ Fy/(Nd√3); pandeo F ≤ π²EI/(L_qp²·Nd); Hertz p₀ ≤ 1,67Fy_sup; horquilla en Q: aplastamiento 1,25Fy/Nd y desgarro | ASME BTH-1 §3-2.1, §3-2.2, §3-2.3, §3-3.3; Hertz | Cuerpo acodado e_cr hacia afuera para librar el pasador siguiente |
+| Pasador Q | M = √[(F/2·(t/2 + g + b/4))² + (N_leva·l_Q)²] ≤ Fy/Nd·πd³/32; corte doble | ASME BTH-1 §3-3.3 | l_Q = horquilla inferior → mitad del espesor de la placa-leva |
+| Ojal trasero E | pasador: flexión F/2·(t/2 + g + b/4), corte doble; tapas: aplastamiento (F/2)/(d·t) ≤ 1,25Fy/Nd, desgarro (F/2)/(2·t·a) ≤ Fy/(Nd√3) | ASME BTH-1 §3-3.3 | |
+| Soporte del ojal E | cajón en U: F/2·(h_sup + h_inf)/S_U ≤ Fy/Nd; corte F/(2bt); soldadura √[(F/(4ba))² + (M/(a·b²))²] ≤ 0,60FEXX/(1,20Nd); filete mín./máx. | ASME BTH-1 §3-2.3, §3-2.2, §3-3.4; AISC 360-22 §J2.4, §J2.2b; AWS D1.1 Tabla 5.8 | Cajón centrado en E con ventana hacia la mesa (sección resistente en U) |
+| Placa-leva: contacto | familia 1: Hertz p₀ ≤ 1,67Fy_sup; familias 2–4: p = T_dis/(l·t) ≤ p_adm, PV ≤ PV_adm (2 y 3), aplastamiento a calado ≤ 1,25·Fy_rev/Nd (3 y 4), respaldo de acero (2 y 3), zapata l ≤ 3·d_Q | Hertz; catálogo de cada material (opciones A, B, C de la interfaz); ASME BTH-1 §3-3.3 | Familia 2 (UHMW) no es practicable: la zapata que pide PV pasa de 3·d_Q |
+| Placa-leva: labio y pernos | 6·(N·s/4)/(t·w²) ≤ Fy/Nd; pernos f_rv = (N/2)/A_b ≤ Fnv/Ω; aplastamiento R_n = mín(1,2·l_c·t·Fu; 2,4·d·t·Fu), Ω = 2; distancia al borde ≥ Tabla J3.4M | ASME BTH-1 §3-2.3; AISC 360-22 §J3.6, §J3.10 Ec. J3-6a, §J3.4 Tabla J3.4M | S355J2 (Fu 470) |
+| Pandeo del cilindro | F_calado ≤ Pcr/3 con el vástago a L0 + carrera | Criterio conservador frente a ISO/TS 13725 | Dato del proveedor (la geometría del tubo no está en el núcleo) |
+| Holguras | Q fuera de la mesa; cuerpo del cilindro fuera de la mesa; bloque libre del pasador siguiente; placas dentro de la base y a cada lado de la diagonal; bloque sobre la placa | Geometría | También a 80 °C con la mesa caliente (escenario térmico, alcance 2) |
+| Pivote central | H = máx(H_ecc; Ch·N) + H_asim + H_cil; H_asim = máx\|F₁(μ_s + 0,05) + F₂(μ_s − 0,05)\| | ASME BTH-1 §3-2.3; equilibrio | Con el par en la diagonal las componentes radiales se anulan; con n impar el pivote recibe el empuje completo |
+| Material del contacto | cam_mat = 0 → base 1, A 4, B 4, C 3 | Pedido del mandante 07-11-2026 | B → 4 porque la zapata de UHMW no cumple PV con la carga transversal del empuje |

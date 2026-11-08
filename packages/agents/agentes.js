@@ -36,14 +36,21 @@ const AG = (() => {
     });
     if (rings.length && P.R_rib > Math.max(...rings) + 1) W("Los nervios terminan fuera del alma exterior");
     if (P.D_top + 100 > P.B) E("La base debe sobresalir al menos 50 mm de la mesa por lado");
-    const g = TT_.guideGeo(P);
-    if (Math.abs(g.y_eye) > P.B / 2 - 60 || P.x_g > P.B / 2 - 60) E("El ojal del cilindro queda fuera de la base (o a menos de 60 mm del borde)");
+    const mode = TT_.driveMode ? TT_.driveMode(P) : 1;
+    if (mode === 1) {
+      const g = TT_.guideGeo(P);
+      if (Math.abs(g.y_eye) > P.B / 2 - 60 || P.x_g > P.B / 2 - 60) E("El ojal del cilindro queda fuera de la base (o a menos de 60 mm del borde)");
+      if (P.opt_cam > 0.5 && TT_.camFam(P).f !== 1) W("Leva de reenganche del modo guiado con zapata deslizante (familias 2–4): la rampa que exige la sincronía se autobloquea; use la familia 1 (rodillo)");
+    } else {
+      if (P.n_cyl !== 2) W("Modo pivotado: el diseño tipo KIET usa 2 cilindros en ojales diagonales (par puro); con otro número el pivote recibe el empuje no equilibrado");
+      if (P.pv_hu + 10 > TT_.pinClear(P)) E("Modo pivotado: el bloque-uña no cabe entre los anillos de la mesa");
+    }
     if (P.l_p - P.d_pin / 2 - 5 <= 0) E("El pasador del vástago queda delante de la uña: aumentar l_p");
     if (P.D_load > P.D_top) E("El diámetro de apoyo de la carga supera la mesa");
     if (P.n_cyl === 1) W("Un solo cilindro no forma par: el pivote recibe la fuerza completa. Válvula de bloqueo obligatoria");
     if (P.n_cyl % 2 === 1 && P.n_cyl > 1) W("N° impar de cilindros: verificar que el conjunto forme par puro");
     if (P.t_pr < Math.max(P.t_top, P.t_bot)) W("El anillo de pasadores es más delgado que las planchas: se usa el mayor espesor");
-    const K = TT_.kinematics(P);
+    const K = mode === 2 ? TT_.kinPiv(P) : TT_.kinematics(P);
     if (!K.ok) E(K.msg);
     return out;
   }
@@ -64,6 +71,7 @@ const AG = (() => {
     const P = A.P, R = A.R, out = [];
     const add = (name, a, b, tol, note) => out.push({ name, tool: a, indep: b, d: (a - b) / (Math.abs(b) || 1) * 100, tol, ok: Math.abs(a - b) <= tol / 100 * Math.abs(b) + 1e-9, note });
     if (!R.K.ok) return out;
+    if (R.mode === 2) return crossCheckPiv(A, add);
     // (a) Fuerza de diseño por potencia virtual con fricción. Para cada θ: equilibrio lineal del patín (3 incógnitas F_pas, R_f, R_r,
     //     resueltas por eliminación de Gauss); el sentido de la fricción de la cara sale de la velocidad numérica del punto
     //     material del pasador en el contacto. Luego F_cil·η·v = (T/n)·ω + μg·Σ|R|·v + μ_s·F_pas·|v_desliz|.
@@ -124,6 +132,38 @@ const AG = (() => {
     vTop -= P.N_pin * Math.PI / 4 * P.d_pin ** 2 * tprx;
     const mTop = 7.85e-6 * vTop;
     add("Masa plancha superior", R.m.top, mTop, 0.01, "kg");
+    return out;
+  }
+
+  // Modo pivotado: (a) brazo a(θ) frente a dL/dθ numérico; (b) fuerza de diseño por potencia virtual con el deslizamiento obtenido por diferencias
+  // finitas de las posiciones del punto de contacto (no de la fórmula analítica del núcleo); (c) carrera por coordenadas; (d) radio de fricción y Navier
+  function crossCheckPiv(A, add) {
+    const P = A.P, R = A.R, K = R.K, out = [];
+    const add2 = (name, a, b, tol, note) => out.push({ name, tool: a, indep: b, d: (a - b) / (Math.abs(b) || 1) * 100, tol, ok: Math.abs(a - b) <= tol / 100 * Math.abs(b) + 1e-9, note });
+    const R0 = P.R_pin, r = P.d_pin / 2, E = K.E, Lqp = K.Lqp, h = 1e-5;
+    const geo = (th) => { const p = [R0 * Math.cos(th), R0 * Math.sin(th)], d = Math.hypot(p[0] - E[0], p[1] - E[1]), u = [(p[0] - E[0]) / d, (p[1] - E[1]) / d]; return { p, d, u, L: d - Lqp }; };
+    let dmax = 0, Fmax = 0;
+    const Tn = R.cd.T * 1e3 / P.n_cyl, kf = 1 + R.fam.mu * P.mu_s;
+    for (let i = 0; i <= 200; i++) {
+      const th = K.ths + K.pitch * i / 200, g0 = geo(th), gp = geo(th + h), gm = geo(th - h), dL = (gp.L - gm.L) / (2 * h);
+      const a = g0.p[0] * g0.u[1] - g0.p[1] * g0.u[0]; dmax = Math.max(dmax, Math.abs(dL - a));
+      // punto de contacto como punto material del bloque (sólido rígido alineado con u, que pasa por Q) y del pasador (gira con la mesa)
+      const Cb = (g, dth) => { const c = [g.p[0] - r * g.u[0], g.p[1] - r * g.u[1]]; return c; };
+      const c0 = Cb(g0), cpin = [c0[0] * Math.cos(h) - c0[1] * Math.sin(h), c0[0] * Math.sin(h) + c0[1] * Math.cos(h)];
+      // material del bloque: posición del mismo punto (en coordenadas del bloque) tras dθ = h
+      const Q0 = [g0.p[0] - Lqp * g0.u[0], g0.p[1] - Lqp * g0.u[1]], Qp = [gp.p[0] - Lqp * gp.u[0], gp.p[1] - Lqp * gp.u[1]], sAl = Lqp - r;
+      const cbl = [Qp[0] + sAl * gp.u[0], Qp[1] + sAl * gp.u[1]];
+      const vs = Math.hypot(cpin[0] - cbl[0], cpin[1] - cbl[1]) / h;
+      const Fn = Tn / (dL - P.mu_s * vs);   // potencia: F_n·dL/dθ = T/n + μ_s·F_n·v_s
+      Fmax = Math.max(Fmax, Fn * kf / P.eta_c);
+    }
+    add2("Pivotado: brazo a(θ) frente a dL/dθ numérico (máx. diferencia)", dmax, 0, 0, "mm");
+    out[out.length - 1].ok = dmax < 1e-3;
+    add2("Pivotado: fuerza de diseño por cilindro por potencia virtual (deslizamiento por diferencias finitas)", R.cd.F, Fmax, 0.1, "kN");
+    add2("Pivotado: carrera requerida por coordenadas (L(θ_fin) − L0)", R.K.s_req, geo(K.the).L - P.L0, 0.1, "mm");
+    let num = 0, den = 0; const nr = 400;
+    for (let i = 0; i < nr; i++) { const rr = R.Ri + (R.Ro - R.Ri) * (i + 0.5) / nr, dA = rr * (R.Ro - R.Ri) / nr; num += rr * dA; den += dA; }
+    add2("Radio de fricción con presión uniforme r_u", R.r_u, num / den, 0.05, "mm");
     return out;
   }
 

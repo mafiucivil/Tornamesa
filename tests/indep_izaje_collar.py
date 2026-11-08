@@ -308,10 +308,10 @@ def evaluar(label, D, detalle=False):
     c("m.base (plancha − taladro + collar + 4 orejas)", mb, M["base"])
     c("m.disc (mesa, con rebaje del cubo)", md, M["disc"])
     c("m.pivote", mp_, M["pivot"]); c("m.rim", mr, M["rim"]); c("m.cilindros", mc, M["cyl"])
-    resto = M["brackets"] + M["dogs"] + M["shoes"] + M["beds"]                     # componentes fuera del alcance (se toman del núcleo)
+    resto = M["brackets"] + M["dogs"] + M["shoes"] + M["beds"] + M.get("cam", 0.0)  # componentes fuera del alcance (se toman del núcleo; cam = leva de reenganche)
     mtot = md + mb + mp_ + mr + mc + resto
     c("m.total (propias + ménsulas/uñas/patines/bancadas del núcleo)", mtot, M["total"])
-    suma = sum(M[k] for k in ("disc", "base", "rim", "brackets", "dogs", "shoes", "beds", "pivot", "cyl"))
+    suma = sum(M.get(k, 0.0) for k in ("disc", "base", "rim", "brackets", "dogs", "shoes", "beds", "cam", "pivot", "cyl"))
     c("m.total = Σ componentes del núcleo (identidad interna)", suma, M["total"], 1e-9)
     c("N = W + W_mesa (kN)", N_kN(PP), D["derivados"]["N"])
     # ---- (a) orejas ----
