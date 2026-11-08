@@ -4,7 +4,7 @@ import pathlib
 root = pathlib.Path(__file__).resolve().parents[1]
 pk = root / "packages"
 s = (pk / "web" / "shell.html").read_text(encoding="utf-8")
-for tag, f in [("FEA", pk / "core" / "fea.js"), ("CORE", pk / "core" / "tt300c.js"), ("AGENTS", pk / "agents" / "agentes.js"), ("PLANOS", pk / "web" / "planos_export.js"), ("UI", pk / "web" / "ui.js")]:
+for tag, f in [("FEA", pk / "core" / "fea.js"), ("CORE", pk / "core" / "tt300c.js"), ("AGENTS", pk / "agents" / "agentes.js"), ("PLANOS", pk / "web" / "planos_export.js"), ("SIM", pk / "web" / "simulacion.js"), ("UI", pk / "web" / "ui.js")]:
     code = f.read_text(encoding="utf-8").replace('if (typeof module !== "undefined") module.exports', "if (false) module.exports")
     s = s.replace("/*@@%s@@*/" % tag, code)
 ver = (root / "VERSION").read_text(encoding="utf-8").strip()

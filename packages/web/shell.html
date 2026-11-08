@@ -105,6 +105,40 @@ a.btn.off{opacity:.5;pointer-events:none}
 .pl-files{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin:10px 0 2px}
 pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:11.5px/1.4 var(--mono);color:var(--ink2);white-space:pre-wrap;margin:6px 0}
 .msg pre{margin:4px 0 0;white-space:pre-wrap;font:12px/1.4 var(--mono)}
+.sim-modal{position:fixed;inset:0;z-index:20;background:rgba(10,14,20,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+.sim-modal[hidden]{display:none}
+.sim-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;width:min(1120px,100%);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.sim-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sim-head h2{font-size:15px;margin:0}
+.sim-kv{grid-template-columns:auto 1fr;font-size:12.5px}
+.sim-kv span:nth-child(even){font-family:var(--sans);text-align:left}
+.sim-ctl{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:10px 0}
+.sim-ctl label{font-size:12.5px;color:var(--ink2)}
+.sim-ctl select,.sim-ctl input{font:12.5px var(--sans);padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.sim-ctl input{width:56px}
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin:8px 0}
+.sim-grid>div{border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--bg);min-width:0}
+.sim-svg{width:100%;height:auto}
+.sim-svg .sim-t{font-size:11px;fill:var(--ink2)}
+.sim-base{fill:var(--soft);stroke:var(--steel);stroke-width:1}
+.sim-table{fill:var(--panel);fill-opacity:.75;stroke:var(--ink);stroke-width:1.2}
+.sim-hub{fill:none;stroke:var(--steel);stroke-width:.8}
+.sim-mark{stroke:var(--acc);stroke-width:1.5}
+.sim-pin{fill:var(--steel);stroke:var(--ink);stroke-width:.5}.sim-pin.on{fill:var(--load)}
+.sim-bed{fill:var(--infobg);stroke:var(--steel);stroke-width:.7}
+.sim-brk{fill:var(--soft);stroke:var(--ink2);stroke-width:.7}
+.sim-cyl{fill:#5b6472;stroke:var(--ink);stroke-width:.6}
+.sim-rod{fill:#c9d1db;stroke:var(--ink);stroke-width:.6}
+.sim-pp{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
+.sim-shoe{fill:var(--pendbg);stroke:var(--pend);stroke-width:.8}
+.sim-dog{fill:#7a8494;stroke:var(--ink);stroke-width:.8}.sim-dog.on{fill:var(--load)}
+.sim-shoe.bad,.sim-dog.bad{fill:var(--failbg);stroke:var(--fail);stroke-width:2}
+.sim-spr{fill:none;stroke:var(--ok);stroke-width:1.2}
+.sim-ax{stroke:var(--ink2);stroke-width:.7}.sim-lim{stroke:var(--fail);stroke-dasharray:3 3;stroke-width:.8}
+.sim-cF{fill:none;stroke:var(--acc);stroke-width:1.6}.sim-cp{fill:none;stroke:var(--load);stroke-width:1.6}
+.sim-cF.ghost,.sim-cp.ghost{opacity:.25}
+.sim-svg .sim-tF{fill:var(--acc)}.sim-svg .sim-tp{fill:var(--load)}
+.sim-bad{color:var(--fail);font-weight:700}
 .pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
@@ -120,6 +154,7 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
       <button id="bReset">Valores por defecto</button>
       <button id="bExp">Exportar JSON</button>
       <button id="bImp">Importar JSON</button>
+      <button id="bSim" title="Animación del ciclo empuje, retorno y reenganche con la geometría del núcleo">Simulación</button>
       <button id="bTheme" title="Tema claro / oscuro">◐</button>
     </div>
     <input type="file" id="fImp" accept=".json,application/json" hidden>
@@ -159,11 +194,18 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
     <section class="tab" data-t="opt" data-l="Optimizador"></section>
   </main>
 </div>
+<div class="sim-modal" id="simModal" hidden>
+  <div class="sim-box" id="simBox" role="dialog" aria-modal="true" aria-labelledby="simTit">
+    <div class="sim-head"><h2 id="simTit">Simulación del movimiento</h2><button id="bSimClose" title="Cerrar (Esc)">Cerrar</button></div>
+    <div id="simBody"></div>
+  </div>
+</div>
 <script>
 /*@@FEA@@*/
 /*@@CORE@@*/
 /*@@AGENTS@@*/
 /*@@PLANOS@@*/
+/*@@SIM@@*/
 /*@@UI@@*/
 </script>
 </body>

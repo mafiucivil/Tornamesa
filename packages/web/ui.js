@@ -96,6 +96,7 @@
     f.text().then((t) => { const s = JSON.parse(t); Object.keys(DEF).forEach((k) => { if (k in s) P[k] = s[k]; }); buildForm(); recalc(); }).catch(() => alert("Archivo JSON no válido"));
   };
   $("#bOpt").onclick = () => { showTab("opt"); runOpt(); };
+  if (typeof SIM !== "undefined") { SIM.init(); $("#bSim").onclick = () => SIM.open(P, A); }   // simulación del movimiento con la geometría del núcleo
 
   /* ---------- cálculo ---------- */
   function recalc() {
