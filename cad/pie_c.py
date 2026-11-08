@@ -10,36 +10,57 @@ from soldadura_det import add_prep
 def sheet_pivote_pieza(ctx):
     g, P = ctx.g, ctx.P
     rot_key(ctx, "pivote", "pivote_45", -45.0)
-    p = Pieza(ctx, ["pivote"], f"PIVOTE Ø{f(P['D_piv'])} p6", fmt="auto")
+    D = P["D_piv"]
+    p = Pieza(ctx, ["pivote"], f"PIVOTE Ø{f(D)}: ZONA p6 (CALADO) Y ZONA f7 (BUJE)", fmt="auto")
     s = p.s
     on = ["pivote"]
-    zA, zB = g.tb, g.tb + g.h_boss
-    r = P["D_piv"] / 2
+    r = D / 2
+    zp6, zf7, Lp = g.z_p6, g.z_f7, g.L_piv
     p.iso_keys = ["pivote"]
+    t_p6, t_f7 = tol_txt(D, "p6"), tol_txt(D, "f7")
+    fp6, ff7 = iso286.fit(D, "H7", "p6"), iso286.fit(D, "F7", "f7")
 
     def elev(V, p):
-        s.line(V.P(0, 0, -8), V.P(0, 0, g.L_piv + 8), "EJE")
-        s.line(V.P(-r - 6, 0, zA), V.P(r + 6, 0, zA), "TRAT"); s.line(V.P(-r - 6, 0, zB), V.P(r + 6, 0, zB), "TRAT")
-        V.dimv((-r, 0, zA), (-r, 0, zB), "left", 1, on=on, text=f"{fm(zB - zA, 0)} (zona en plancha base + collar, H7/p6)")
-        V.dimv((-r, 0, 0), (-r, 0, zA), "left", 1, on=on, text=f"{fm(zA, 0)} (bajo la plancha)") if False else None
-        ra(s, V, (r, 0, g.L_piv / 2), "Ra 0,8", dx=24, dy=0)
-        V.dim_dia((0, 0, g.L_piv - 12), 4.25, 40, text="4 × M10-6H prof. 20 (broca Ø8,5)", on=on, ext=30) if False else None
-    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 115, 0), draw=elev, hatch=False, title="ELEVACIÓN", w=1.5,
-         auto=dict(rev=(0, 0), fits={P["D_piv"]: "p6"}, rev_side="top", tol={round(g.L_piv, 1): " ±0,1"}, hole_notes=False))
-    p.vs("extremo", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title="VISTA DE EXTREMO (cara superior)", hatch=False, w=1.0,
-         auto=dict(hole_rmin=3.0, hole_txt={8.5: f"4 × M10-6H prof. {fm(g.cap_tap, 0)} (broca Ø8,5), PCD Ø{fm(g.cap_pcd, 0)}, a 45° + 90°·k"}, fits={}))
-    p.vs("corte", ["pivote_45"], "front", cut=CUT_Y, win=(-r - 4, g.L_piv - 48, r + 4, g.L_piv + 4), lv=(1, 2, 1, 2), extra=(0, 0, 40, 0), title="CORTE B-B: AGUJEROS ROSCADOS M10", hs=0.5, w=1.0, maxs=2.0,
-         auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={round(g.cap_tap, 1): " (roscado)"}))
-    p.detail("det_ch", "elev", (r - 1.5, 0, g.L_piv - 1.5), 10, "A", lv=(1, 1, 1, 1), title="DETALLE A: CHAFLÁN DE EXTREMO (5:1)", maxs=5.0, hatch=False)
+        s.line(V.P(0, 0, -8), V.P(0, 0, Lp + 8), "EJE")
+        # límites de zona (línea gruesa de trazo y punto ISO 128, tipo 04.2, junto a la superficie)
+        for z_ in (zp6, zf7):
+            s.line(V.P(-r - 6, 0, z_), V.P(-r + 6, 0, z_), "TRAT"); s.line(V.P(r - 6, 0, z_), V.P(r + 6, 0, z_), "TRAT")
+        V.dimv((-r + g.ch_piv, 0, 0), (-r, 0, zp6), "left", 0, on=on, text=f"{fm(zp6, 0)} (zona p6: plancha base + collar)")
+        V.dimv((-r + g.ch_piv, 0, 0), (-r, 0, zf7), "left", 1, on=on, text=f"{fm(zf7, 0)} (inicio zona f7: buje)")
+        V.dimh((-r, 0, zp6 / 2), (r, 0, zp6 / 2), "bottom", 0, on=on, text=f"{t_p6} zona de calado")
+        ra(s, V, (r, 0, (zf7 + Lp) / 2), "Ra 0,8", dx=24, dy=0)
+        ra(s, V, (r, 0, zp6 / 2), "Ra 0,8", dx=24, dy=0)
+    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 115, 0), draw=elev, hatch=False, title="ELEVACIÓN (dos zonas rectificadas)", w=1.5,
+         auto=dict(rev=(0, 0), rev_only=[D], text={round(D, 1): f"{t_f7} zona del buje"}, rev_side="top", tol={round(Lp, 1): " ±0,1"}, hole_notes=False))
+    rc = g.cap_pcd / 2
+    thr = g.cap_tap - 4                      # rosca útil (la punta del taladro y la salida del macho ocupan 4 mm)
+
+    def extremo(V, p):
+        p.cut_mark("extremo", "B", (-(r + 16) * math.cos(math.radians(45)), -(r + 16) * math.sin(math.radians(45)), Lp), ((r + 16) * math.cos(math.radians(45)), (r + 16) * math.sin(math.radians(45)), Lp), 135)
+    p.vs("extremo", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title="VISTA DE EXTREMO (cara superior)", hatch=False, w=1.0, draw=extremo,
+         auto=dict(hole_rmin=3.0, hole_pos=False, verts=False, hole_txt={8.5: f"4 × M10-6H, rosca útil {fm(thr, 0)}, taladro Ø8,5 prof. {fm(g.cap_tap, 0)}, PCD Ø{fm(g.cap_pcd, 0)} a 45° + 90°·k"}, fits={}))
+
+    def corte(V, p):
+        zt, zb = Lp, Lp - g.cap_tap
+        for sx in (1, -1):
+            for e_ in (-5.0, 5.0):           # diámetro nominal de la rosca en línea fina (ISO 6410-1)
+                s.line(V.P(sx * rc + e_, 0, zt), V.P(sx * rc + e_, 0, zt - thr), "FINA")
+            s.line(V.P(sx * rc - 5.0, 0, zt - thr), V.P(sx * rc + 5.0, 0, zt - thr), "VIS")     # límite de la rosca útil
+        V.dimv((rc + 4.25, 0, zb), (rc + 4.25, 0, zt), "right", 0, on=["pivote_45"], text=f"{fm(g.cap_tap, 0)} (taladro Ø8,5)")
+        V.dimv((-rc - 4.25, 0, zt - thr), (-rc - 4.25, 0, zt), "left", 0, on=["pivote_45"], text=f"{fm(thr, 0)} (rosca útil M10-6H)")
+    p.vs("corte", ["pivote_45"], "front", cut=CUT_Y, win=(-r - 4, Lp - 48, r + 4, Lp + 4), lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), draw=corte, title="CORTE B-B: AGUJEROS ROSCADOS M10", hs=0.5, w=1.0, maxs=2.0, auto=False)
+    p.detail("det_ch", "elev", (r - 1.5, 0, Lp - 1.5), 10, "C", lv=(1, 1, 1, 1), title="DETALLE C: CHAFLÁN DE EXTREMO (5:1)", maxs=5.0, hatch=False)
     p.tables()
-    p.notes([f"Barra redonda Ø{f(P['D_piv'] + 5)} laminada/rectificada; torneado/rectificado externo en torno horizontal: Ø{f(P['D_piv'])} p6 ({iso286.fmt_dev(P['D_piv'], 'p6')} mm), Ra 0,8; largo {fm(g.L_piv, 1)}.",
-             f"Material: {propuestas.grado(P['Fy_piv'], P['D_piv'], 'barra')}. Bonificado; certificado 3.1; UT de la barra.",
-             f"Ajuste en plancha base y collar: {f(P['D_piv'])} H7/p6 (aprieto {iso286.fit(P['D_piv'], 'H7', 'p6')['cmin']}…{iso286.fit(P['D_piv'], 'H7', 'p6')['cmax']} µm): prensa o contracción con hielo seco. Ajuste en el buje: f7/F7.",
-             f"Chaflanes {fm(g.ch_piv, 0)}×45° en ambos extremos (ISO 13715). Perpendicularidad de las caras extremas 0,05; cilindricidad 0,02.",
-             f"Cara superior: 4 agujeros M10-6H prof. {fm(g.cap_tap, 0)} (ISO 262) en PCD Ø{fm(g.cap_pcd, 0)} para la tapa retenedora (PIV-003); profundidad útil de rosca ≥ 16.",
+    p.notes([f"Barra redonda Ø{f(D + 5)} laminada; torneado y rectificado externo en torno horizontal en dos zonas: Ø{f(D)} p6 ({iso286.fmt_dev(D, 'p6')}) de z = 0 a {fm(zp6, 0)} (calado en plancha base + collar) "
+             f"y Ø{f(D)} f7 ({iso286.fmt_dev(D, 'f7')}) de z = {fm(zf7, 0)} a {fm(Lp, 0)} (buje); z desde la cara inferior del pivote. Transición de {fm(zf7 - zp6, 0)} mm (z = {fm(zp6, 0)} a {fm(zf7, 0)}): salida de muela cónica, sin garganta ni arista viva. Ra 0,8 en ambas zonas; largo {fm(Lp, 1)}.",
+             f"Material: {propuestas.grado(P['Fy_piv'], D, 'barra')}. Bonificado; UT de la barra.",
+             f"Ajustes (ISO 286-2): zona p6 en plancha base y collar H7/p6, aprieto {-fp6['cmax']}…{-fp6['cmin']} µm (prensa o contracción con hielo seco, la zona p6 entra primero); "
+             f"zona f7 en el buje F7/f7, juego {ff7['cmin']:+d}/{ff7['cmax']:+d} µm. El buje no debe pasar sobre la zona p6.",
+             f"Chaflanes {fm(g.ch_piv, 0)}×45° en ambos extremos (ISO 13715). Perpendicularidad de las caras extremas 0,05; cilindricidad 0,02 en cada zona.",
+             f"Cara superior: 4 agujeros M10-6H, rosca útil {fm(g.cap_tap - 4, 0)} y taladro Ø8,5 prof. {fm(g.cap_tap, 0)} (ISO 262), en PCD Ø{fm(g.cap_pcd, 0)} a 45° + 90°·k, para la tapa retenedora (PIV-003).",
              "Retención axial del pivote: ajuste sin soldadura ni tope; A DEFINIR POR EL CALCULISTA (decisión del mandante: el cálculo no verifica la extracción axial)."],
-            gd=[("cyl", "0,02", None, "Cilindricidad del Ø%s p6" % f(P["D_piv"])), ("perp", "0,05", "A", "Caras extremas perpendiculares al eje (A = Ø%s)" % f(P["D_piv"])),
-                ("pos", "Ø0,2", "A", "Agujeros M10: posición respecto del eje del pivote")])
+            gd=[("cyl", "0,02", None, f"Cilindricidad de cada zona (Ø{f(D)} p6 y Ø{f(D)} f7)"), ("coax", "Ø0,02", "A", f"Zona f7 coaxial con la zona p6 (A = eje de la zona p6)"),
+                ("perp", "0,05", "A", "Caras extremas perpendiculares al eje A"), ("pos", "Ø0,2", "A", "Agujeros M10: posición respecto del eje A")])
     p.build()
     return p.h
 
@@ -51,13 +72,17 @@ def sheet_buje(ctx):
     s = p.s
     on = ["buje"]
     zt = g.z_bush0 + P["L_bush"]
-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), title="PLANTA", w=1.0, auto=dict(fits={P["D_piv"]: "F7"}, hole_rmin=20))
-    p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 30, 0), title="CORTE A-A", hs=0.35, w=1.4,
+    def plb(V, p):
+        p.cut_mark("planta", "A", (-g.d_bush / 2 - 4, 0, zt), (g.d_bush / 2 + 4, 0, zt), 90, ext=6.0)
+    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), title="PLANTA", w=1.0, draw=plb, auto=dict(fits={P["D_piv"]: "F7"}, hole_rmin=20))
+    def cob(V, p):
+        ra(s, V, (-P["D_piv"] / 2, 0, g.z_bush0 + P["L_bush"] / 2), "Ra 1,6", dx=4, dy=-4)
+    p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 30, 0), title="CORTE A-A", hs=0.35, w=1.4, draw=cob,
          auto=dict(rev=(0, 0), fits={g.d_bush: "s6", P["D_piv"]: "F7"}, rev_side="top", tol={round(P["L_bush"], 1): " ±0,2"}, hole_notes=False))
     # sin detalle del extremo ni elevación: el buje es un casquillo liso (chaflanes por nota) y el corte A-A ya da largo y diámetros
     p.tables()
     p.notes([f"Buje autolubricado Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}: comercial o a medida (marca/modelo A DEFINIR POR CATÁLOGO; tipo exigido: bronce con lubricante sólido, presión ≤ {fm(P['p_bush'], 0)} MPa y μ ≤ {fm(P['mu_bush'], 2)} según el cálculo).",
-             f"Ø exterior {f(g.d_bush)} s6 (aprieto en el cubo H7, prensado) y Ø interior {f(P['D_piv'])} F7 (juego con el pivote p6/f7), Ra 1,6; mecanizar en mandrinadora (sin torno vertical).",
+             f"Ø exterior {f(g.d_bush)} s6 (aprieto en el cubo H7, prensado) y Ø interior {f(P['D_piv'])} F7: juego F7/f7 {iso286.fit(P['D_piv'], 'F7', 'f7')['cmin']:+d}/{iso286.fit(P['D_piv'], 'F7', 'f7')['cmax']:+d} µm con la zona f7 del pivote (PIV-001; ISO 286-2), antes del prensado; verificar el Ø interior después de prensar el buje. Ra 1,6; mecanizar en mandrinadora (sin torno vertical).",
              f"Montaje: el buje arranca {fm(P['g_bush'], 0)} mm sobre el collar (z = {fm(g.z_bush0, 1)} desde la cara inferior de la base).",
              "Aristas 1×45° (ISO 13715); sin pintura; entrega con certificado 3.1 del proveedor."],
             gd=[("coax", "Ø0,05", "A", "Ø interior coaxial con el exterior"), ("perp", "0,05", "A", "Caras extremas perpendiculares al eje")])
@@ -71,34 +96,51 @@ def sheet_tapas(ctx):
     ks = [k for k in ("tapa_ret", "tapa_insp") if ctx.m.get(k)]
     p = Pieza(ctx, ks, "PIVOTE: TAPAS RETENEDORA (PIV-003) E INSPECCIÓN (PIV-004)", fmt="auto")
     s = p.s
-    spec = {"tapa_ret": (g.L_piv, g.cap_t, g.cap_D, g.cap_pcd, 4, 45.0, "TAPA RETENEDORA"), "tapa_insp": (g.z0 + g.hd - g.cb_t, g.cb_t, g.cb_D - 2, g.insp_pcd, 6, 30.0, "TAPA DE INSPECCIÓN")}
+    spec = {"tapa_ret": (g.L_piv, g.cap_t, g.cap_D, g.cap_pcd, 4, 45.0, "TAPA RETENEDORA", g.clear_m10, 20.0), "tapa_insp": (g.z0 + g.hd - g.cb_t, g.cb_t, g.cb_D - 2, g.insp_pcd, 6, 30.0, "TAPA DE INSPECCIÓN", g.insp_clear, g.insp_csk)}
     rows = []
+    letras = {"tapa_ret": "A", "tapa_insp": "B"}
     for k in ks:
-        zb_, L_, D_, pcd, n, a0, nm = spec[k]
+        zb_, L_, D_, pcd, n, a0, nm, dcl, dcs = spec[k]
         ct = ctx.code(k).replace(CODE + "-", "")
         zt = zb_ + L_
-        def pl_(V, p, zt=zt, D_=D_, pcd=pcd, n=n, a0=a0, k=k):
+        lt = letras[k]
+        rk = rot_key(ctx, k, k + "_r", -a0)          # copia girada: el 1.er agujero sobre +x para que el corte pase por él
+        hole_t = f"{n} × Ø{fm(dcl, 0)}, avell. Ø{fm(dcs, 0)}×90°"
+
+        def pl_(V, p, zt=zt, D_=D_, pcd=pcd, n=n, a0=a0, k=k, hole_t=hole_t, lt=lt, dcl=dcl):
             c3 = (0, 0, zt)
             s.circle(V.P(c3), pcd / 2 * V.scale, "EJE")
             s.centerlines(V.P(c3), D_ / 2 * V.scale, 6)
             V.dim_dia(c3, D_ / 2, a0 % (360 / n) - 25 if a0 % (360 / n) >= 25 else a0 % (360 / n) + 180 / n, on=[k], text=f"Ø{f(D_)}", ext=26)
             ah = a0 + 360 / n * (n // 2)          # agujero del lado izquierdo: llamada hacia afuera, lejos de la cota del Ø
             hp = (pcd / 2 * math.cos(math.radians(ah)), pcd / 2 * math.sin(math.radians(ah)), zt)
-            V.note_hole(hp, 5.5, 180 - 35, f"{n} × Ø11, avell. Ø20×90°, PCD Ø{fm(pcd, 0)} a {fm(a0 % (360 / n), 1)}° + {fm(360 / n, 0)}°·k (tabla)", ext=(D_ / 2 - pcd / 2) * V.scale + 22, on=[k],
-                        lines=[f"{n} × Ø11, avell. Ø20×90°", f"en PCD Ø{fm(pcd, 0)}, a {fm(a0 % (360 / n), 1)}° + {fm(360 / n, 0)}°·k", "(coordenadas en la tabla)"])
+            V.note_hole(hp, dcl / 2, 180 - 35, f"{hole_t}, PCD Ø{fm(pcd, 0)} a {fm(a0 % (360 / n), 1)}° + {fm(360 / n, 0)}°·k (tabla)", ext=(D_ / 2 - pcd / 2) * V.scale + 22, on=[k],
+                        lines=[hole_t, f"en PCD Ø{fm(pcd, 0)}, a {fm(a0 % (360 / n), 1)}° + {fm(360 / n, 0)}°·k", "(coordenadas en la tabla)"])
+            ca, sa = math.cos(math.radians(a0)), math.sin(math.radians(a0))
+            p.cut_mark(f"{k}_pl", lt, (-(D_ / 2 + 14) * ca, -(D_ / 2 + 14) * sa, zt), ((D_ / 2 + 14) * ca, (D_ / 2 + 14) * sa, zt), (a0 + 90) % 360)
+
+        def co_(V, p, zt=zt, zb_=zb_, L_=L_, pcd=pcd, dcl=dcl, dcs=dcs, rk=rk, D_=D_):
+            r_ = pcd / 2
+            V.dimh((r_ - dcs / 2, 0, zt), (r_ + dcs / 2, 0, zt), "top", 0, on=[rk], text=f"Ø{fm(dcs, 0)}×90° (avellanado)")
+            V.dimh((r_ + dcs / 2, 0, zt), (D_ / 2, 0, zt), "top", 1, on=[rk], text=f"{fm(D_ / 2 - r_ - dcs / 2, 1)} (borde)")
+            V.dimv((D_ / 2, 0, zb_), (D_ / 2, 0, zt), "right", 0, on=[rk], text=f"{fm(L_, 0)} ±0,2")
+            V.dimh((r_ - dcl / 2, 0, zb_), (r_ + dcl / 2, 0, zb_), "bottom", 0, on=[rk], text=f"Ø{fm(dcl, 0)}")
         p.vs(f"{k}_pl", [k], "top", lv=(1, 1, 1, 1), extra=(70, 0, 40, 0), title=f"{ct} — {nm}: PLANTA", hatch=False, w=1.0, draw=pl_, auto=False)
-        p.vs(f"{k}_co", [k], "front", cut=CUT_Y, lv=(1, 2, 2, 2), extra=(0, 0, 20, 0), title=f"{ct} — CORTE A-A", hs=0.35, w=1.0,
-             auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={round(L_, 1): " ±0,2"}))
+        p.vs(f"{k}_co", [rk], "front", cut=CUT_Y, center=(pcd / 2, 0, zb_ + L_ / 2), win=(-pcd / 2 + 5, -L_ / 2 - 6, D_ / 2 - pcd / 2 + 6, L_ / 2 + 6), lv=(1, 2, 2, 2), extra=(0, 0, 20, 0), draw=co_,
+             title=f"{ct} — CORTE {lt}-{lt} POR UN AGUJERO", hs=0.35, w=1.0, maxs=5.0, auto=False)
         for i in range(n):
             a = math.radians(a0 + 360 / n * i)
-            rows.append([ct, f"{i + 1}", f"{fm(pcd / 2 * math.cos(a), 2)}", f"{fm(pcd / 2 * math.sin(a), 2)}", f"{fm((a0 + 360 / n * i) % 360, 1)}°", "Ø11 + avell. Ø20 90°"])
-    p.table_block("COORDENADAS DE LOS AGUJEROS (origen: eje del pivote; PROPUESTA S15)", [("Pieza", 16, "C"), ("N°", 10, "C"), ("x [mm]", 24, "R"), ("y [mm]", 24, "R"), ("Ángulo", 20, "R"), ("Agujero", 38, "L")], rows)
+            x_, y_ = pcd / 2 * math.cos(a), pcd / 2 * math.sin(a)
+            rows.append([ct, f"{i + 1}", fm(0.0 if abs(x_) < 0.005 else x_, 2), fm(0.0 if abs(y_) < 0.005 else y_, 2), f"{fm((a0 + 360 / n * i) % 360, 1)}°", f"Ø{fm(dcl, 0)} + avell. Ø{fm(dcs, 0)}×90°"])
+    p.table_block("COORDENADAS DE LOS AGUJEROS (origen: eje del pivote; patrón PROPUESTO, supuesto S15 de GEN-009)", [("Pieza", 16, "C"), ("N°", 10, "C"), ("x [mm]", 24, "R"), ("y [mm]", 24, "R"), ("Ángulo", 20, "R"), ("Agujero", 38, "L")], rows)
     p.tables()
-    p.notes([f"Tapa retenedora Ø{f(g.cap_D)} × {f(g.cap_t)}: fijada con 4 × M10×25 ISO 10642 10.9 (avellanado 90° Ø20) a los agujeros M10-6H prof. {fm(g.cap_tap, 0)} del extremo del pivote (PIV-001); Ra 3,2; oxicorte/plasma y agujeros en taladro radial.",
-             f"Tapa de inspección Ø{f(g.cb_D - 2)} × {f(g.cb_t)} (apoyo en rebaje de la plancha superior MES-001), 6 × M10 avellanados a los agujeros M10-6H prof. {fm(g.insp_tap, 0)} del fondo del rebaje; sin función estructural.",
-             "El patrón de agujeros es una PROPUESTA del dibujante (S15), geométricamente compatible con el pivote y la plancha superior; confirmar.",
-             "Material de las tapas: ASTM A572 Gr.50 (Fy del cálculo), certificado 3.1.", "Tornillos: torque propuesto en GEN-008; marca/modelo por catálogo (GEN-008)."],
-            gd=[("pos", "Ø0,2", "A", "Patrón de agujeros respecto del eje de la tapa"), ("flat", "0,10", None, "Planitud de la cara de apoyo")])
+    ins = [f"Tapa retenedora Ø{f(g.cap_D)} × {f(g.cap_t)}: 4 × M10×25 ISO 10642 10.9 (avellanado Ø20×90°) a los agujeros M10-6H del extremo del pivote (PIV-001); Ra 3,2; oxicorte/plasma y agujeros en taladro radial."]
+    if "tapa_insp" in ks:
+        bi = (g.cb_D / 2 - 1) - g.insp_pcd / 2 - g.insp_csk / 2
+        ins.append(f"Tapa de inspección Ø{f(g.cb_D - 2)} × {f(g.cb_t)} (en el rebaje Ø{f(g.cb_D)} de la plancha superior MES-001): 6 × ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9 a los agujeros M{fm(g.insp_d, 0)}-6H prof. {fm(g.insp_tap, 0)} del fondo del rebaje; "
+                   f"avellanado Ø{fm(g.insp_csk, 0)}×90° con borde {fm(bi, 1)} mm hasta el canto de la tapa (≥ {fm(BORDE_MIN, 0)}); sin función estructural.")
+    p.notes(ins + ["Material de las tapas: ASTM A572 Gr.50 (Fy del cálculo).", "Tornillos: torque propuesto en GEN-008; marca/modelo por catálogo (GEN-008)."],
+            gd=[("pos", "Ø0,2", "A", "Patrón de agujeros respecto del eje de la tapa (A)"), ("flat", "0,10", None, "Planitud de la cara de apoyo")])
     p.build()
     return p.h
 

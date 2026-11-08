@@ -17,10 +17,8 @@ def sheet_base_plancha(ctx):
     def planta(V, p):
         ghost(p, V, ghosts)
         s.line(V.P(-B / 2 - 70, 0, tb), V.P(B / 2 + 70, 0, tb), "EJE"); s.line(V.P(0, -B / 2 - 70, tb), V.P(0, B / 2 + 70, tb), "EJE")
-        V.chain_h([(-B / 2, B / 2, tb), (-xg, B / 2, tb), (-xl, B / 2, tb), (0, B / 2, tb), (xl, B / 2, tb), (xg, B / 2, tb), (B / 2, B / 2, tb)], "top", 0, on=on)
-        V.dimh((-B / 2, B / 2, tb), (B / 2, B / 2, tb), "top", 1, on=on, text=f"{f(B)} ±2")
-        V.chain_v([(-B / 2, -B / 2, tb), (-B / 2, -cl, tb), (-B / 2, 0, tb), (-B / 2, cl, tb), (-B / 2, B / 2, tb)], "left", 0, on=on)
-        V.dimv((-B / 2, -B / 2, tb), (-B / 2, B / 2, tb), "left", 1, on=on, text=f"{f(B)} ±2")
+        V.dimh((-B / 2, B / 2, tb), (B / 2, B / 2, tb), "top", 0, on=on, text=f"{f(B)} ±2")
+        V.dimv((-B / 2, -B / 2, tb), (-B / 2, B / 2, tb), "left", 0, on=on, text=f"{f(B)} ±2")
         s.circle(V.P(0, 0, tb), g.D_boss / 2 * V.scale, "FANT")
         s.circle(V.P(0, 0, tb), (P["D_top"] + 20) / 2 * V.scale, "FANT")
         cs = V.circles(["base_plancha"], 2.0, 4.5)
@@ -40,8 +38,9 @@ def sheet_base_plancha(ctx):
 
     def corte(V, p):
         s.line(V.P(0, 0, -10), V.P(0, 0, g.tb + g.h_boss + 10), "EJE")
-        s.line((V.ext[0] - 14, V.P(0, 0, 0)[1]), (V.ext[0], V.P(0, 0, 0)[1]), "FINA")
-        s.datum((V.ext[0] - 10, V.P(0, 0, 0)[1] - 1), "A", up=False)
+        s.line((V.ext[0] - 14, V.P(0, 0, tb)[1]), (V.ext[0], V.P(0, 0, tb)[1]), "FINA")
+        s.datum((V.ext[0] - 10, V.P(0, 0, tb)[1] + 1), "A", up=True)
+        ra(s, V, (-P["D_piv"] / 2, 0, tb / 2), "Ra 1,6", dx=-30, dy=-2)
         zt_ = g.tb + g.h_boss
         rb, rp = g.D_boss / 2, P["D_piv"] / 2
         V.dimh((-rb, 0, zt_), (-rp, 0, zt_), "top", 0, on=["collar"], text=fm(rb - rp, 1))
@@ -64,22 +63,21 @@ def sheet_base_plancha(ctx):
     for sx in (1, -1):
         rows.append(["Bancada (eje de guía)", f(sx * P["x_g"]), "0", "90°", f"largo {f(g.KG['L_bed'], 1)}"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
-    add_prep(p, "det_j9", wd(ctx, jids(ctx, "Collar")[0]), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False)
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS (origen: centro de la plancha)", [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
-    p.tables(jids(ctx, "Collar", "Marco perimetral largo", "Marco corto – plancha"))
+    p.tables(jids(ctx, "Collar"))
     nz = [
         f"Plancha {f(B)} × {f(B)} × {f(tb)} de {p.p0.material.split(',')[0]}; sobrematerial de corte 5 mm por borde, recortar a medida después del alivio. Corte por oxicorte/plasma con tolerancia ISO 9013 clase 3.",
         f"Agujero central Ø{f(P['D_piv'])} H7: mandrinar plancha y collar en un solo montaje (mandrinadora) después de soldar el collar y aliviar tensiones; Ra 1,6; perpendicular a la cara de apoyo 0,05.",
         f"Cara superior en la zona Ø{f(P['D_top'] + 20)}: planeada (planitud 0,20 / Ra 3,2); sin pintura en esa zona. Compensar la distorsión de la soldadura con contraflecha o secuencia simétrica.",
-        "Posiciones de las piezas soldadas (tabla): marcar con granete y trazado antes de armar; tolerancia ±1 salvo indicación.",
-        "Soldaduras de la base: ver CON-006 y el programa de soldaduras (GEN-007). Alivio de tensiones 590–620 °C después de soldar y antes del mecanizado final.",
+        "Posiciones de las piezas soldadas (tabla): marcar con granete y trazado antes de armar; tolerancia ±1 (también orejas de izaje).",
+        "Soldaduras de la base: ver CON-023 (detalles D1–D4 y tabla del subconjunto) y el programa de soldaduras (GEN-007); detalle del collar (J09) en BAS-002. Alivio de tensiones 590–620 °C después de soldar y antes del mecanizado final.",
         "La plancha NO lleva anclajes: equipo sin anclaje (apoyo sobre losa).",
     ]
     if g.opt:
         hb = centros_xy(ctx.m.info.get("holes_base"))
         pat = patron_txt(hb, f"M{fm(P['d_tor'], 0)}")
         nz.append(f"Agujeros roscados M{fm(P['d_tor'], 0)} de los tornillos de posición" + (": " + "; ".join(pat) if pat else "") + ". Profundidad de rosca: lámina de sectores; roscar después de planear la cara.")
-    p.notes(nz, gd=[("flat", "0,20", None, f"Planitud de la zona de apoyo Ø{f(P['D_top'] + 20)}"), ("perp", "0,05", "A", f"Agujero Ø{f(P['D_piv'])} H7 perpendicular a la cara de apoyo (A)")])
+    p.notes(nz, gd=[("flat", "0,20", None, f"Planitud de la zona de apoyo Ø{f(P['D_top'] + 20)} (cara superior planeada = A)"), ("perp", "0,05", "A", f"Agujero Ø{f(P['D_piv'])} H7 perpendicular a la cara superior planeada (A)")])
     p.build()
     return p.h
 
@@ -109,6 +107,7 @@ def sheet_collar(ctx):
 
     def planta(V, p):
         s.centerlines(V.P(0, 0, zt), g.D_boss / 2 * V.scale, 6)
+        p.cut_mark("planta", "A", (-g.D_boss / 2 - 14, 0, zt), (g.D_boss / 2 + 14, 0, zt), 90)
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 70, 0), draw=planta, title="PLANTA", auto=dict(fits={P["D_piv"]: "H7"}, hole_rmin=5), w=1.0)
 
     def corte(V, p):
@@ -118,16 +117,14 @@ def sheet_collar(ctx):
         ra(s, V, (-g.D_boss / 2 + 10, 0, zt), "Ra 3,2", dy=2)
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A", w=1.6,
          auto=dict(rev=(0, 0), fits={P["D_piv"]: "H7"}, rev_side="top", tol={round(g.h_boss, 1): " ±0,5"}, hole_notes=False))
-    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN", w=0.8, auto=dict(tol={round(g.h_boss, 1): " ±0,5"}, holes=False), maxs=2.0)
-    add_prep(p, "det_j", wd(ctx, jc), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False)
+    add_prep(p, "det_j", wd(ctx, jc), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False, lab1=f"{fm((g.D_boss - P['D_piv']) / 2, 0)} (ancho radial; alto {fm(g.h_boss, 0)})")
     p.tables([jc])
-    p.notes([f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: oxicorte/plasma desde plancha de {f(g.h_boss + 5)} (sobremetal 5); caras planeadas.",
+    p.notes([f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: partida Ø{f(g.D_boss + 10)} oxicortada de plancha de {f(g.h_boss + 5)}; caras planeadas a {f(g.h_boss)} ±0,5 y Ø{f(g.D_boss)} torneado en torno horizontal.",
              f"Agujero Ø{f(P['D_piv'])} H7: NO se mecaniza antes de soldar; se mandrina en línea con la plancha base (BAS-001) en un solo montaje, Ra 1,6.",
              f"Soldar a la plancha base con filete perimetral continuo z{fm(g.w_collar, 0)} ({jc}): secuencia simétrica por tramos opuestos para limitar la distorsión; alivio de tensiones antes de mandrinar.",
              "Arista exterior superior e interior de la boca del agujero: 1×45° (ISO 13715).",
-             f"Sin pintura en la cara superior (asiento del cubo de la mesa: holgura axial {fm(g.c_boss_a, 0)} mm)."],
-            gd=[("perp", "0,05", "A", "Agujero H7 perpendicular a la cara de apoyo (A = cara inferior)"), ("flat", "0,10", None, "Planitud de la cara superior"),
-                ("coax", "Ø0,05", "A", "Coaxial con el agujero de la plancha base (mandrinado en línea)")])
+             f"Sin pintura en la cara superior: queda bajo el cubo de la mesa con holgura axial {fm(g.c_boss_a, 0)} mm (sin contacto)."],
+            gd=[("perp", "0,05", "A", "Agujero H7 perpendicular a la cara de apoyo (A = cara inferior)"), ("flat", "0,10", None, "Planitud de la cara superior")])
     p.build()
     return p.h
 
@@ -144,26 +141,27 @@ def sheet_marcos(ctx):
     ids = jids(ctx, "Marco perimetral largo", "Marco largo – marco corto", "Marco corto – plancha")
     p.vs("larga", ["ml1"], "front", breaks=[(-900, 900)], lv=(1, 2, 1, 1), title="PLETINA LARGA (BAS-003) — 2 unidades, con rotura", mat={"ml1": "acero"},
          auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5)
-    p.vs("corta", ["mc1"], "right", breaks=[(-900, 900)], lv=(1, 2, 1, 1), title="PLETINA CORTA (BAS-004) — 2 unidades, con rotura", mat={"mc1": "acero"},
-         auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5)
+    def corta_(V, p):
+        if len(ids) > 2:
+            w_out(p, ids[2], V, (B / 2 - rt, -B / 4, tb + 0.5), "bottom")
+    p.vs("corta", ["mc1"], "right", breaks=[(-900, 900)], lv=(1, 2, 1, 1), extra=(0, 0, 0, 0), title="PLETINA CORTA (BAS-004) — 2 unidades, con rotura", mat={"mc1": "acero"},
+         auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5, draw=corta_)
     p.vs("perfil", ["ml1"], "left", lv=(1, 1, 1, 1), title="PERFIL DE LA PLETINA (sección)", maxs=5.0, auto=dict(), hatch=False, w=1.0)
 
     def juntad(V, p):
         w_sym(p, ids[0], V, (0, -B / 2 + rt, tb + 3), (28, 36), other=None)
-        s.cut_line  # (marca de corte en la planta de la esquina)
-    p.vs("junta", ["base_plancha", "marco_largo"], "right", cut=CUT_X, center=(0, -B / 2, tb), win=(-34, -tb - 4, 60, rh + 12), lv=(1, 1, 2, 1), draw=juntad, title="DETALLE A: JUNTA PLETINA–PLANCHA (ambos lados)",
+    p.vs("junta", ["base_plancha", "marco_largo"], "right", cut=CUT_X, center=(0, -B / 2, tb), win=(-34, -tb - 4, 60, rh + 12), lv=(1, 1, 2, 1), draw=juntad, title="DETALLE A: JUNTA PLETINA–PLANCHA (pletina a ras del canto; filete interior)",
          auto=dict(on=["base_plancha", "marco_largo"]), mat={"base_plancha": "acero", "marco_largo": "acero"}, maxs=2.0, w=1.0)
 
     def esq(V, p):
-        w_sym(p, ids[1], V, (B / 2, -B / 2, tb + rh), (-5, 30), kind="fillet")
+        w_sym(p, ids[1], V, (B / 2 - rt, -B / 2 + rt, tb + rh), (-30, 34), kind="fillet", sh=-1)
     p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, -B / 2, tb), win=(-60, -20, 25, 60), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
          auto=dict(on=["marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
-    add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=True)
-    add_prep(p, "det_j2", wd(ctx, ids[2]), t1=rt, t2=tb, both=True) if len(ids) > 2 else None
+    add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=False, title=f"DETALLE {ids[0]} / {ids[2] if len(ids) > 2 else ''}: FILETE INTERIOR z{fm(wd(ctx, ids[0])['z'], 0)} (pletina a ras del canto)")
     p.tables(ids)
     p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {f(B)} y 2 cortas de {f(B - 2 * rt)} (entre las largas); corte a sierra o plasma con borde recto.",
-             "Armado: pletinas largas sobre la plancha, cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo exterior e interior.",
-             f"Las esquinas se sueldan con filete exterior de esquina continuo ({ids[1]}); el tamaño z indicado es el mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
+             "Armado: pletinas largas sobre la plancha con su cara exterior a ras del canto de la plancha; cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo solo por el lado interior (por fuera las caras quedan coplanares).",
+             f"Esquinas: el extremo de la pletina corta apoya contra la cara interior de la larga; filete interior vertical en el rincón ({ids[1]}). Tamaños z: mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
              "El marco contiene la interfaz y protege el borde; no tiene función estructural en el cálculo."],
             gd=[("straight", "2,0", None, "Rectitud del canto en todo el largo (pletinas largas y cortas)"), ("perp", "0,5", "A", "Pletina perpendicular a la cara mayor (A) tras soldar")])
     p.build()
@@ -209,10 +207,10 @@ def sheet_mensula_piezas(ctx):
     p.tables(ids)
     p.notes([f"Mejillas: plancha {f(tc)} × {f(H_)} × {f(P['L_ch'])}, 2 por ménsula ({int(P['n_br'])} ménsulas, {int(2 * P['n_br'])} mejillas); plasma, borde recto.",
              f"Orejas: planchas {f(Win)} (−0,5 para entrar entre mejillas con luz interior {f(Win)}) × {f(Llug)}; la inferior es un bloque {f(hb)} de espesor (pletinas apiladas o plancha gruesa).",
-             f"Agujero Ø{f(P['d_pp'])} H9 de ambas orejas: mandrinar en línea DESPUÉS de soldar la ménsula, en un solo montaje; coaxialidad 0,10; eje a {f(g.hax)} ±0,5 sobre la cara de apoyo.",
+             f"Agujero Ø{f(P['d_pp'])} H9 de ambas orejas: mandrinar en línea DESPUÉS de soldar la ménsula, en un solo montaje; coaxialidad 0,10; centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 sobre la cara de apoyo.",
              "Armar la ménsula en una plantilla sobre la base; soldadura de mejillas: secuencia alternada para limitar la distorsión (filete z de la tabla).",
              "Para la ménsula completa ver el subconjunto CON-007 y la lámina de la base."],
-            gd=[("coax", "Ø0,10", "A", f"Agujeros Ø{f(P['d_pp'])} H9 de las dos orejas coaxiales (mandrinado en línea)"), ("perp", "0,10", "B", "Eje del agujero perpendicular al plano de las mejillas")])
+            gd=[("coax", "Ø0,10", "A", f"Agujeros Ø{f(P['d_pp'])} H9 de las dos orejas coaxiales (mandrinado en línea)"), ("perp", "0,10", "A", "Eje del agujero perpendicular a la cara de apoyo (A)")])
     p.build()
     return p.h
 
@@ -245,9 +243,9 @@ def sheet_orejas(ctx):
     def det_bis(V, p):
         s.text("Bisel de la base: preparar según WPS-P05 (propuesta)", (V.ext[0], V.ext[3] + 6), T_N, "BOTTOM_LEFT")
     p.tables([jid])
-    p.notes([f"Plancha e = {f(tE)}; perfil 2R × h + semicírculo R{f(R)}; agujero Ø{f(dE)} de corte (sin mecanizar, aristas esmeriladas); grillete con pasador de Ø ≤ {fm(dE - P['g_ear'], 0)} mm (agujero Ø{f(dE)} menos {fm(P['g_ear'], 0)} mm de juego).",
-             f"Posición en la base: (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±2, plano vertical radial hacia el centro (plano BAS-001, tabla de posiciones).",
-             f"Soldadura a la base: filete z{fm(P['w_ear'], 0)} a ambos lados (L = 2R) ({jid}); MT 100 % y UT 100 % antes de la prueba de carga y MT después.",
+    p.notes([f"Plancha e = {f(tE)}; perfil 2R × h + semicírculo R{f(R)}; agujero Ø{f(dE)} H12 mecanizado (taladro y mandrinado) después del corte, aristas 1×45°; grillete con pasador de Ø ≤ {fm(dE - P['g_ear'], 0)} mm (agujero Ø{f(dE)} menos {fm(P['g_ear'], 0)} mm de juego).",
+             f"Posición en la base: (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±1, plano vertical radial hacia el centro (plano BAS-001, tabla de posiciones).",
+             f"Soldadura a la base: filete z{fm(P['w_ear'], 0)} a ambos lados (L = 2R), base de la oreja a escuadra sin bisel ({jid}); MT 100 % antes y después de la prueba de carga; UT de laminación de la plancha base bajo la oreja (ASTM A578 nivel B).",
              ramales_txt_short(ctx),
              f"Factor dinámico del cálculo φ_lift = {fm(P['phi_lift'], 2)}; uso: eslinga de 4 ramales con grillete certificado ASME B30.26 (marca/modelo por catálogo; WLL ≥ lo calculado, ver GEN-008)."],
             gd=[("perp", "0,5", "A", "Plano de la oreja perpendicular a la base (A)")])
