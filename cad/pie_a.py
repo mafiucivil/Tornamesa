@@ -241,7 +241,7 @@ def sheet_orejas(ctx):
         V.dim_rad((0, tE / 2, tb + hE), R, 130, on=on, text=f"R{f(R)}", ext=18)
         V.dim_dia((0, tE / 2, tb + hE), dE / 2, 320, on=on, text=f"Ø{f(dE)} H12", ext=12)
         # B-46: una sola cota por elemento; ancho (= 2R) y altura total son auxiliares
-        V.dimv((R, tE / 2, tb), (0, tE / 2, tb + hE), "right", 0, on=on, text=f"{f(hE)} ±1 (al centro del agujero)")
+        V.dimv((R, tE / 2, tb), (0, tE / 2, tb + hE), "right", 0, on=on, text=f"{f(hE)} ±1 (al centro del agujero)", virt_b=dE / 2)
         V.dimh((-R, tE / 2, tb), (R, tE / 2, tb), "bottom", 0, on=on, text=f"({f(2 * R)})")
         V.dimv((-R, tE / 2, tb), (0, tE / 2, tb + hE + R), "left", 0, on=on, text=f"({f(hE + R)})")
         w_out(p, jid, V, (R, tE / 2, tb + 3), "right", dy=26)

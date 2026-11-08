@@ -286,8 +286,8 @@ def build_welds(ctx):
     A5 = "ER70S-6 (AWS A5.18) / E7018 (AWS A5.1)"
 
     def add(desc, piezas, tipo, sym, z=None, t=None, prep="Sin preparación", prep_txt="", nivel="ISO 5817-B", end="VT 100 % · MT 100 %", wps=1, len_total=0.0, nota="", core=None,
-            contorno=False, groove=False, aporte=A5, proc=PROC, other=None, len_txt="", modelada=True, jn=None, t_pre=None):
-        j = dict(id=f"J{jn:02d}" if jn else f"J{len(W_) + 1:02d}", desc=desc, piezas=piezas, tipo=tipo, sym=sym, prep=prep, prep_txt=prep_txt, nivel=nivel, end=end, len_total=len_total, nota=nota, contorno=contorno,
+            contorno=False, groove=False, aporte=A5, proc=PROC, other=None, len_txt="", modelada=True, jn=None, t_pre=None, jid=None):
+        j = dict(id=jid or (f"J{jn:02d}" if jn else f"J{len(W_) + 1:02d}"), desc=desc, piezas=piezas, tipo=tipo, sym=sym, prep=prep, prep_txt=prep_txt, nivel=nivel, end=end, len_total=len_total, nota=nota, contorno=contorno,
                  aporte=aporte, proceso=proc, other=other, len_txt=len_txt, sheets=set(), wps=f"WPS-P{wps:02d} — {propuestas.ROTULO_WPS}", wps_corto=f"WPS-P{wps:02d}", wps_n=wps, modelada=modelada, groove=groove)
         if groove:
             j["t"] = t
@@ -366,8 +366,12 @@ def build_welds(ctx):
     add_n(15, "Nervios radiales – planchas, almas y cubo", "MES-008…010 / MES-001, 003, 005…007, 011", "Filete en T, ambos lados, continuo (a las 2 planchas y en los 2 extremos de cada tramo)", "fillet", core=(P["w_web"], "calculado (memoria, soldadura de almas y nervios)"), t=P["t_rib"],
         len_total=int(P["N_rib"]) * (2 * 2 * L_rib + 2 * 2 * n_tr * g.hw), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
     add_n(16, "Empalme de cada alma anular", "MES-005…007", "A tope en V 60° (1 por alma)", "V", t=P["t_web"], prep="V 60°, raíz 2 mm, con respaldo", prep_txt="60°", groove=True, len_total=len(rin) * g.hw, wps=6, end="VT 100 % · UT 100 %")
-    add_n(17, "Cubo – planchas inferior y superior", "MES-011 / MES-001, 003", "Bisel 45° con respaldo (penetración completa)", "bevel", t=min(g.tt, g.tbo), t_pre=(P["D_hub"] - g.d_bush) / 2, prep="Bisel 45°, raíz 2 mm, respaldo", prep_txt="45°", groove=True,
-        len_total=2 * math.pi * P["D_hub"], wps=6, end="VT 100 % · UT 100 %")
+    # B-07: una junta por plancha (espesores y longitudes propios); unión en T: el cubo apoya sobre la plancha, bisel 45° en el canto exterior del cubo
+    for jid_, desc_, pz_, tt_ in (("J17a", "Cubo – plancha inferior (unión en T)", "MES-011 / MES-003", g.tbo + 3), ("J17b", "Cubo – plancha superior (unión en T)", "MES-011 / MES-001", g.tt)):
+        jw_ = add(desc_, pz_, f"En T, bisel 45° en el canto exterior del cubo, raíz 2 mm, respaldo interior; penetración del espesor de la plancha (t = {fm(tt_, 0)})", "bevel", t=tt_, t_pre=(P["D_hub"] - g.d_bush) / 2,
+                  prep="Bisel 45° en el cubo, raíz 2 mm, respaldo interior (unión en T)", prep_txt="45°", groove=True, len_total=math.pi * P["D_hub"], wps=6, end="VT 100 % · UT 100 %", jid=jid_)
+        jw_["en_T"] = True
+        jw_["t_alma"] = (P["D_hub"] - g.d_bush) / 2
     rc_ = ranuras_cierre(ctx)
     n_sl = sum(r[3] for r in rc_)
     j18 = add_n(18, "Cierre de la plancha superior (soldadura de ranura sobre almas y nervios)", "MES-001 / MES-005…010", f"Ranura 22×80 c/250, relleno completo ({n_sl} ranuras, tabla de MES-001)", "slot", t=g.tt, groove=True, prep="Ranura rectangular 22×80 pasante, relleno completo",
@@ -383,8 +387,12 @@ def build_welds(ctx):
             add_n(20, "Barras de tope – plancha inferior de la mesa", "INT tope mesa / MES-003", "2 filetes (frente y dorso de la barra), continuos", "fillet", core=wt, t=max(g.tbo, P["b_tope"]), len_total=g.n_sec * 2 * (g.tope("mesa") or tpb)["L"], wps=8,
                 end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"))
         if g.opt == 2 and g.tope("uhmw"):
-            add_n(21, "Barras del rebaje UHMW – disco inoxidable de la base", "INT tope UHMW / INT disco base", "2 filetes, aporte inoxidable 309L, continuos", "fillet", core=(P["w_tope"], "calculado (memoria, topes de la interfaz)"), t=max(g.I["tss"], P["b_tope"]),
-                len_total=g.n_seg * 2 * g.tope("uhmw")["L"], wps=9, end="VT 100 % · PT 100 %", aporte="ER309L (AWS A5.9)", proc="135 / 141", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"))
+            Lb_ = g.tope("uhmw")["L"]
+            r0_ = g.Ri + 50
+            r0j = min(m.info.get("uhmw_filete_r0", r0_), r0_ + Lb_)
+            add_n(21, "Barras del rebaje UHMW – disco inoxidable de la base", "INT tope UHMW / INT disco base",
+                  f"2 filetes, aporte inoxidable 309L: lado opuesto a la junta continuo en todo el largo; lado de la junta del disco desde r = {fm(r0j, 0)} (≥ 10 mm de la junta entre sectores, N-05)", "fillet", core=(P["w_tope"], "calculado (memoria, topes de la interfaz)"), t=max(g.I["tss"], P["b_tope"]),
+                len_total=g.n_seg * (2 * Lb_ - (r0j - r0_)), wps=9, end="VT 100 % · PT 100 %", aporte="ER309L (AWS A5.9)", proc="135 / 141", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"))
     if g.wood:
         add_n(22, "Anillo de contención de la madera – plancha superior", "MAD anillo / MES-001", "Filete en T, ambos lados, continuo", "fillet", t=max(g.t_ring, g.tt), len_total=2 * math.pi * P["D_top"] / 2 * 2, wps=10, end="VT 100 % · MT 10 %",
             nivel="ISO 5817-C", other=dict(kind="fillet", size=f"z{fillet_min(max(g.t_ring, g.tt))}"))

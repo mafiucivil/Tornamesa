@@ -52,6 +52,15 @@ class Pieza(Plano):
     def notes(self, specific, gd=(), inspect=None, y_top=None):
         """Notas: fabricación específica + generales + inspección (bloques de la banda lateral)."""
         ctx = self.ctx
+        if any(k in ("int_bronce", "int_tapones") for k in self.keys):
+            # H-02: el patrón de tapones del bronce no cumple la fracción mínima de lubricación del cálculo; lámina retenida hasta los datos del proveedor
+            T = ctx.g.IG.get("tapones") or {}
+            n0 = len(self.blocks)
+            self.note_block("RETENIDA — A DEFINIR (DATOS DEL PROVEEDOR)", [
+                "Esta lámina queda RETENIDA: la placa de bronce con tapones de grafito se define con los datos del proveedor (patrón, Ø, paso y profundidad de los tapones, "
+                f"fracción de grafito). Con el patrón del cálculo la fracción real es {fm(T.get('fg_real', 0), 3)} (mínimo de lubricación {fm(T.get('fg_min', 0.2), 2)}): "
+                + ("NO cumple. " if not T.get("cumple_lubricacion", True) else "") + "No fabricar ni comprar hasta su definición y aprobación."])
+            self.blocks.insert(0, self.blocks.pop(n0))
         self.note_block("NOTAS DE FABRICACIÓN", list(specific), numbered=True)
         if gd:
             self.gd(list(gd))
@@ -80,7 +89,7 @@ class Pieza(Plano):
             "int_uhmw": [("Ra 3,2", "caras de la lámina (sin mecanizado de precisión)")],
         }
         RA.update({"tapa_ret": [("Ra 3,2", "cara de apoyo y avellanados")], "tapa_insp": [("Ra 3,2", "cara de apoyo y avellanados")],
-                   "pernos_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "marco_largo": [("Ra 12,5", "cantos de corte (a escuadra)")]})
+                   "pernos_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "arandela_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "marco_largo": [("Ra 12,5", "cantos de corte (a escuadra)")]})
         rows = RA.get(k, [("Ra 6,3", "bordes de las caras que se sueldan (preparación)")])
         rows = rows + [("Ra 12,5", "resto de las superficies (corte térmico o laminado)")]
 

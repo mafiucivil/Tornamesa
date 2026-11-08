@@ -88,6 +88,41 @@ def prep_butt(s, ox, oy, k, t, jid=None, plano=None, kind="V", angle=60.0, root=
             plano.h.weld(jid, a, (ox + Wn * k + 12, a[1] + 26), sh=1, prep=f"{fm(angle, 0)}°")
 
 
+def tee_size(t, tw_):
+    L = max(30.0, 1.6 * t)
+    return (2 * L + min(tw_, 40.0), t + max(36.0, 1.8 * t) + 12.0), L
+
+
+def prep_tee(s, ox, oy, k, t, tw_, jid=None, plano=None, root=2.0, angle=45.0):
+    """Unión en T con bisel (B-07): plancha horizontal pasante de espesor t; pieza que apoya (cubo, pared tw_) vertical con bisel 45° en su canto
+    exterior hasta la profundidad t, raíz y respaldo del lado interior. Se dibuja una porción de la pared (rotura) y de la plancha."""
+    (Wn, Hn), L = tee_size(t, tw_)
+    w_ = min(tw_, 40.0)
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    H = max(36.0, 1.8 * t)
+    _poly(s, [P(0, 0), P(Wn, 0), P(Wn, t), P(0, t)], 0.0)
+    xr = L + w_                                    # cara exterior del cubo (derecha)
+    hb = math.tan(math.radians(angle)) * (t - root)
+    web = [P(L, t), P(xr, t), P(xr, t + root), P(xr - 0.0, t + root), P(xr, t + root), P(xr, t + root + 0.0)]
+    web = [P(L, t), P(xr - hb, t), P(xr - hb, t + root), P(xr, t + root + hb), P(xr, t + H), P(L, t + H)]
+    _poly(s, web, 90.0)
+    _poly(s, [P(L - 8, t), P(L, t), P(L, t + 6), P(L - 8, t + 6)], 45.0, scale=0.3)          # respaldo interior
+    s.dim(P(0, 0), P(0, t), -9, f"t = {fm(t, 0)} (plancha)", "v")
+    s.dim(P(xr - hb, t), P(xr, t), -7, f"{fm(hb, 0)}", "h", outside=True)
+    s.dim(P(xr, t), P(xr, t + root + hb), 9, f"{fm(t, 0)} (profundidad de la preparación = t)", "v")
+    ap = P(xr, t + root)
+    s.dim_ang(ap, (hb * k) * 0.55, 180 - angle - 0.0 + 0.0 if False else 90 + 0.0, 90 + angle, f"{fm(angle, 0)}°") if False else None
+    s.leader(P(xr - hb, t + root * 0.5), (P(xr - hb, 0)[0] - 18, P(0, -6)[1]), f"raíz {fm(root, 0)} mm", dot=True)
+    s.leader(P(L - 4, t + 3), (P(L - 8, 0)[0] - 18, P(0, t + 14)[1]), "respaldo interior (PROPUESTA)", dot=True)
+    xa_, xb_, ym_ = P(L - 2, 0)[0], P(xr + 2, 0)[0], P(0, t + H)[1]
+    xm_ = (xa_ + xb_) / 2
+    s.pline([(xa_, ym_), (xm_ - 2.5, ym_), (xm_ - 0.8, ym_ + 2.2), (xm_ + 0.8, ym_ - 2.2), (xm_ + 2.5, ym_), (xb_, ym_)], "FINA")
+    s.text("cubo (pared " + fm(tw_, 0) + ")", (P(L + w_ / 2, 0)[0], P(0, t + H * 0.6)[1]), T_N, "MIDDLE_CENTER")
+    if jid and plano is not None:
+        a = P(xr - hb * 0.4, t + root + hb * 0.4)
+        plano.h.weld(jid, a, (ox + Wn * k + 12, a[1] + 26), sh=1, prep=f"{fm(angle, 0)}°")
+
+
 def fillet_size(z, t1, t2):
     L = max(24.0, 3.0 * z)
     return (2 * L + t1, t2 + max(26.0, 4.5 * z) + 4.0), L
@@ -176,6 +211,10 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
 def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None, edge=False):
     """Agrega a la lámina p un esquema de junta correspondiente al registro de soldaduras w (dict de ctx.welds). Devuelve la especificación."""
     jid = w["id"]
+    if w.get("en_T"):
+        (Wn, Hn), _ = tee_size(w["t"], w["t_alma"])
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: UNIÓN EN T CUBO–PLANCHA (bisel 45°, t = {fm(w['t'], 0)})",
+                    custom=lambda s, ox, oy, k, pl: prep_tee(s, ox, oy, k, w["t"], w["t_alma"], jid, pl))
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]
         kind = "V" if w["sym"] == "V" else "bevel"

@@ -70,6 +70,8 @@ def polar(r, deg):
 ISO273 = {4: 4.5, 5: 5.5, 6: 6.6, 8: 9.0, 10: 11.0, 12: 13.5}       # agujero pasante medio
 ISO10642_DK = {4: 8.0, 5: 10.0, 6: 12.0, 8: 16.0, 10: 20.0, 12: 24.0}  # Ø de la cabeza avellanada
 ISO10642_L = [8, 10, 12, 16, 20, 25, 30, 35, 40, 45, 50]
+DEST = 15.0                     # destijeres de los nervios (N-04): 15 × 15 a 45°
+GAP_NERVIO = 1.0                # holgura de armado de cada extremo del nervio contra el cubo o el alma
 
 
 class Part:
@@ -150,19 +152,17 @@ LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_
 # Las clases y los tipos se midieron sobre la geometría real (cad/firmas.py, registro cad/firmas_codigos.json); el control de cada juego y
 # el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
 VAR_CODIGOS = {
-    "base_plancha": [(("BASE", "AF2", "W"), "sin agujeros de la interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con agujeros roscados de los tornillos de posición de la interfaz", 1)],
-    "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de la interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con agujeros roscados de los tornillos de posición de la interfaz", 1)],
-    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "con roscas de los tornillos de posición y conductos de las graseras", 1),
-                        (("AF2",), "con conductos de las graseras (sin roscas)", 1), (("B",), "con roscas de los tornillos de posición", 1)],
-    "mesa_cubo": [(("BASE", "W"), "altura según la interfaz acero–acero", 1), (("A", "C1", "C2", "C3"), "altura según la interfaz A/C", 1), (("AF2",), "altura según la interfaz AF2", 1), (("B",), "altura según la interfaz B", 1)],
-    "pivote": [(("BASE", "W"), "largo según la interfaz acero–acero", 1), (("A", "C1", "C2", "C3"), "largo según la interfaz A/C", 1), (("AF2",), "largo según la interfaz AF2", 1), (("B",), "largo según la interfaz B", 1)],
-    "int_disco_base": [(("A", "B"), "sector inoxidable con muesca y avellanados (desmontable)", 1), (("AF2",), "sector inoxidable liso, pegado", 1)],
-    "int_disco_mesa": [(("A",), "sector inoxidable ranurado con muesca y avellanados; 3 tipos por el trazado de las ranuras", 3), (("AF2",), "sector inoxidable ranurado, pegado; 3 tipos por el trazado de las ranuras", 3),
-                       (("B",), "sector inoxidable liso con muesca y avellanados", 1)],
-    "int_tope_base": [(("A", "B"), "barra de tope (largo de A/B)", 1), (("C1", "C2", "C3"), "barra de tope (largo de C)", 1)],
-    "int_tope_mesa": [(("A", "B"), "barra de tope (largo de A/B)", 1), (("C1", "C3"), "barra de tope (largo de C1/C3)", 1), (("C2",), "barra de tope (largo de C2)", 1)],
-    "int_bronce": [(("C1", "C2"), "sector de bronce; 4 tipos por el patrón de tapones", 4), (("C3",), "pastilla de bronce; 4 tipos por el patrón de tapones", 4)],
-    "int_cara": [(("C1", "C3"), "sector del disco duro; 2 tipos (con y sin conducto de grasera)", 2), (("C2",), "sector de la 2.ª placa de bronce; 2 tipos (con y sin conducto de grasera)", 2)],
+    "base_plancha": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
+    "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
+    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras", 1), (("B",), "roscas", 1)],
+    "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
+    "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2",), "liso, pegado", 1)],
+    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2",), "ranurado, pegado; 3 tipos", 3), (("B",), "liso, muesca", 1)],
+    "int_tope_base": [(("A", "B"), "largo A/B", 1), (("C1", "C2", "C3"), "largo C", 1)],
+    "int_tope_mesa": [(("A", "B"), "largo A/B", 1), (("C1", "C3"), "largo C1/C3", 1), (("C2",), "largo C2", 1)],
+    "int_bronce": [(("C1", "C2"), "4 tipos de patrón de tapones", 4), (("C3",), "4 tipos de patrón de tapones", 4)],
+    "int_cara": [(("C1", "C3"), "con / sin conducto de grasera", 2), (("C2",), "con / sin conducto de grasera", 2)],
 }
 
 
@@ -445,8 +445,8 @@ def build(D, verbose=True):
     BR, KG = g.BR, g.KG
     Llug = BR["Llug"]
     pin_xy = [polar(R_pin, a) for a in D["pasadores"]]
-    A572 = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa)"
-    A572Z = A572 + ", Z35 (EN 10164), UT ASTM A578 nivel B"
+    A572 = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa) — PROPUESTO"
+    A572Z = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa), Z35 (EN 10164), UT ASTM A578 nivel B — PROPUESTO"
 
     # ===================== BAS: base =====================
     B = g.B
@@ -530,17 +530,29 @@ def build(D, verbose=True):
     tw = P["t_web"]
     segs = []
     for i in range(len(rr) - 1):
-        a0 = rr[i] + (tw / 2 if i > 0 else 0)
-        a1 = rr[i + 1] - (tw / 2 if (i < len(rr) - 2 or rr[i + 1] in D["almas"]) else 0)
+        # N-04: el tramo terminado deja 1 mm de holgura de armado contra cada cara de cubo o alma (largo terminado = entre caras − 2)
+        a0 = rr[i] + (tw / 2 if i > 0 else 0) + GAP_NERVIO
+        contra = (i < len(rr) - 2 or rr[i + 1] in D["almas"])
+        a1 = rr[i + 1] - (tw / 2 if contra else 0) - (GAP_NERVIO if contra else 0)
         segs.append((a0, a1))
+    m.info["nervio_holgura"] = [GAP_NERVIO * (1 + (1 if (i < len(rr) - 2 or rr[i + 1] in D["almas"]) else 0)) for i in range(len(rr) - 1)]
     for i, (a0, a1) in enumerate(segs):
         rb = None
+        # destijeres a 45° de DEST × DEST en las 4 esquinas del tramo (paso de los filetes J14 y de la CJP del cubo; N-04)
+        zb_, zt_ = z0 + tbo, z0 + tbo + hw
+        dest = []
+        for (xq_, zq_, sx, sz) in ((a0, zb_, 1, 1), (a0, zt_, 1, -1), (a1, zb_, -1, 1), (a1, zt_, -1, -1)):
+            pts_ = [(xq_ - sx * 1.0, zq_ - sz * 1.0), (xq_ + sx * DEST, zq_ - sz * 1.0), (xq_ + sx * DEST, zq_), (xq_, zq_ + sz * DEST), (xq_ - sx * 1.0, zq_ + sz * DEST)]
+            dest.append(cq.Workplane("XZ").polyline(pts_).close().extrude(P["t_rib"], both=True))
         for a in D["nervios"]:
-            b_ = box(a0, a1, -P["t_rib"] / 2, P["t_rib"] / 2, z0 + tbo, z0 + tbo + hw).rotate((0, 0, 0), (0, 0, 1), a)
+            b_ = box(a0, a1, -P["t_rib"] / 2, P["t_rib"] / 2, zb_, zt_)
+            for d_ in dest:
+                b_ = b_.cut(d_)
+            b_ = b_.rotate((0, 0, 0), (0, 0, 1), a)
             rb = b_ if rb is None else rb.union(b_)
         for r_ in D["almas"]:
             rb = rb.cut(ring(r_ - tw / 2, r_ + tw / 2, hw + 2, z0 + tbo - 1))
-        m.add(Part(f"mesa_nervio{i}", "MES", f"Nervio radial, tramo {i + 1}", f"Pletina e={f(P['t_rib'])}, h={f(hw)}, L={f(a1 - a0, 1)} (R{f(a0, 1)}–R{f(a1, 1)})", rb, int(P["N_rib"]), A572, "Plasma (anidado en plancha)", core="ribs", color=(0.3, 0.45, 0.7)))
+        m.add(Part(f"mesa_nervio{i}", "MES", f"Nervio radial, tramo {i + 1}", f"Pletina e={f(P['t_rib'])}, h={f(hw)}, largo terminado L={f(a1 - a0, 1)} (R{f(a0, 1)}–R{f(a1, 1)}), destijeres {fm(DEST, 0)}×{fm(DEST, 0)} en las 4 esquinas", rb, int(P["N_rib"]), A572, "Plasma (anidado en plancha)", core="ribs", color=(0.3, 0.45, 0.7)))
     hub = ring(d_bush / 2, P["D_hub"] / 2, hw, z0 + tbo)
     if g.rebaje and g.hHub > 0:
         hub = hub.cut(ring(0, g.Drb / 2, g.hHub + 1, z0 + tbo - 1))                 # rebaje del cubo Ø D_rebaje: de la cara inferior del cubo hasta z0 + h_rebaje (h_collar − δ + c_boss_a)
@@ -548,13 +560,21 @@ def build(D, verbose=True):
                hub, 1, A572, "Anillo cortado a llama de plancha gruesa o tubo; Ø150 H7 y rebaje en mandrinadora (sin torno vertical)", core="hub", color=(0.3, 0.45, 0.7), cert="EN 10204 3.1"))
     pins = cq.Workplane("XY").workplane(offset=z0).pushPoints(pin_xy).circle(d_pin / 2).extrude(hd).faces(">Z or <Z").edges().chamfer(g.ch_pin)
     pins = pins.cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.pin_drill_L).pushPoints(pin_xy).circle(g.pin_drill / 2).extrude(g.pin_drill_L + 1))   # M20-6H: taladro Ø17,5 prof. 45 (rosca 40)
-    m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa",
+    m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa — PROPUESTO",
                "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción de la franja de contacto", core="pins", color=(0.75, 0.75, 0.78),
                tratamiento=f"Temple por inducción ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm)"))
-    wsh = cq.Workplane("XY").workplane(offset=z0 + hd).pushPoints(pin_xy).circle(g.washer_D / 2).circle(g.washer_d / 2).extrude(g.washer_t).union(
-        cq.Workplane("XY").workplane(offset=z0 + hd + g.washer_t).pushPoints(pin_xy).circle(15).extrude(20))
-    m.add(Part("pernos_pasador", "MES", "Perno ISO 4762 M20×45 con arandela", f"Perno M20×45 10.9 + arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)} ({WASHER_MAT}) por pasador", wsh, g.N_pin, f"Perno ISO 898-1 cl. 10.9 / arandela {WASHER_MAT}", "Comercial (perno); arandela por plasma o láser, templada y revenida, caras rectificadas",
-               in_core=False, comercial=True, catalogo="ISO 4762 M20×45 cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32)))
+    # B-13/N-18: perno comercial (cabeza Ø30 × 20 con hexágono interior s = 17, vástago M20 × 45) y arandela fabricada, piezas separadas.
+    # El vástago se modela con Ø20 en la arandela y con el Ø de taladro (17,5) dentro de la rosca del pasador (engrane de la rosca, sin interferencia).
+    zh = z0 + hd + g.washer_t
+    bolt = cq.Workplane("XY").workplane(offset=zh).pushPoints(pin_xy).circle(15).extrude(20)
+    bolt = bolt.cut(cq.Workplane("XY").workplane(offset=zh + 20 - 10).pushPoints(pin_xy).polygon(6, 17 / math.cos(math.radians(30))).extrude(10.5))
+    bolt = bolt.union(cq.Workplane("XY").workplane(offset=z0 + hd).pushPoints(pin_xy).circle(10).extrude(g.washer_t))
+    bolt = bolt.union(cq.Workplane("XY").workplane(offset=zh - 45).pushPoints(pin_xy).circle(g.pin_drill / 2).extrude(45 - g.washer_t))
+    wsh = cq.Workplane("XY").workplane(offset=z0 + hd).pushPoints(pin_xy).circle(g.washer_D / 2).circle(g.washer_d / 2).extrude(g.washer_t)
+    m.add(Part("pernos_pasador", "MES", "Perno ISO 4762 M20×45", "Perno ISO 4762 M20×45 cl. 10.9 (hexágono interior s = 17), uno por pasador, con la arandela " + f"Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)}",
+               bolt, g.N_pin, "Perno ISO 898-1 cl. 10.9", "Comercial", in_core=False, comercial=True, catalogo="ISO 4762 M20×45 cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32)))
+    m.add(Part("arandela_pasador", "MES", "Arandela del perno del pasador", f"Arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)}, caras rectificadas", wsh, g.N_pin, WASHER_MAT,
+               "Plasma o láser desde plancha; templada y revenida; caras rectificadas", in_core=False, color=(0.4, 0.4, 0.42), tratamiento="Temple y revenido a 300–370 HV"))
 
     # ===================== PIV: pivote, buje, tapas =====================
     cap_xy = [(g.cap_pcd / 2 * math.cos(math.radians(45 + 90 * i)), g.cap_pcd / 2 * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
@@ -644,14 +664,14 @@ def build_interfaz(m, g, D, log):
     P, I = g.P, g.I
     if g.opt == 0:
         return
-    A572 = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa)"
+    A572 = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa) — PROPUESTO"
     lay = Layout(g)
     m.layout = lay
     th = lay.th
     z0, tb = g.z0, g.tb
     n = g.n_sec
     ss_mat = f"Acero inoxidable austenítico ASTM A240 (Fy ≥ {f(P['Fy_ss'])} MPa)"
-    ss_mat_b = f"Acero inoxidable ASTM A240 tipo 304, recocido, ≤ 180 HB (Fy ≥ {f(P['Fy_ss'])} MPa)" if g.opt == 1 else ss_mat
+    ss_mat_b = f"Acero inoxidable ASTM A240 tipo 304, recocido, ≤ 180 HB (Fy ≥ {f(P['Fy_ss'])} MPa) — PROPUESTO" if g.opt == 1 else ss_mat
     ss_mat_m = f"Acero inoxidable dúplex ASTM A240 UNS S32205, ≥ 230 HB (Fy ≥ {f(P['Fy_ss'])} MPa) — PROPUESTO" if g.opt == 1 else ss_mat
     jb = g.junta("disc")
     gap = jb
@@ -710,7 +730,7 @@ def build_interfaz(m, g, D, log):
                    core="ss", color=(0.8, 0.82, 0.85), obs=tor_note + f"; rugosidad Ra 0,4 en la cara deslizante; sobreespesor {fm(rec, 1)} mm (relapeado)", tratamiento="Decapado y pasivado"))
         m.add(Part("int_disco_mesa", "INT", "Disco de la mesa (sector ranurado)" if g.opt == 1 else "Disco de la mesa (sector liso)", f"Sector de disco de acero inoxidable e={f(t2)}, {n} sectores de {fm(th, 2)}°, junta {fm(jb, 1)}" + (f", ranuras de engrase {fm(g.w_gr, 0)}×{fm(g.h_gr, 1)}" if g.opt == 1 and gr > 0 else "") + (f", muesca para el tope, avellanados M{fm(lay.d_tor, 0)}" if g.removable else ""),
                    compound(sec_m), n, ss_mat_m, "Corte por plasma/láser (subcontrato); " + ("ranuras fresadas en mandrinadora/fresadora; " if g.opt == 1 and gr > 0 else "") + "rectificado/lapeado de la cara deslizante (subcontrato)" + ("; avellanado en taladro radial" if g.removable else ""), rho=RHO_SS, core="ss",
-                   color=(0.8, 0.82, 0.85), obs=tor_note + "; rugosidad Ra 0,4 en la cara deslizante", tratamiento="Decapado y pasivado; ≥ 50 HB sobre el disco de la base (ASTM G98)" if g.opt == 1 else "Decapado y pasivado"))
+                   color=(0.8, 0.82, 0.85), obs=tor_note + "; rugosidad Ra 0,4 en la cara deslizante" + ("; dureza ≥ 50 HB sobre la del disco de la base (ASTM G98)" if g.opt == 1 else ""), tratamiento="Decapado y pasivado"))
         if g.removable:
             tpb, tpm = lay.tp_base, lay.tp_mesa
             assert abs(tpb["t"] - t1) < 1e-6 and abs(tpm["t"] - t2) < 1e-6, "espesor de sector distinto del de interfazGeom.topes"
@@ -769,6 +789,15 @@ def build_interfaz(m, g, D, log):
                            obs=f"largo = ancho radial − 100 mm (cálculo); cara superior {fm(tpu['a_sup'], 0)} mm bajo la cara de la lámina; contacto útil {fm(tpu['h_c'], 0)} mm; chaflán {fm(tpu['a_inf'], 0)}×45° en el canto de la lámina"))
                 m.info["uhmw_bar_L"] = L_u
                 m.info["uhmw_bar_h"] = h_u
+                # N-05: el filete J21 del lado de la junta entre sectores del disco de acero no puede cruzarla (sectores desmontables):
+                # ese filete arranca donde el canto de la barra queda a ≥ 10 mm de la junta
+                dl_ = min(abs(((a_ - round(a_ / th) * th) + 180) % 360 - 180) for a_ in a_u)
+                if dl_ > 1e-6:
+                    r_lim = (10.0 + lay.b_tope / 2 + jb / 2) / math.sin(math.radians(dl_))
+                else:
+                    r_lim = r_in + L_u
+                m.info["uhmw_filete_r0"] = max(r_in, r_lim)
+                m.info["uhmw_ang_junta"] = dl_
             m.info["uhmw_off"] = off_u
     # ---------------------------------------------------------------- opción C
     if g.opt == 3:

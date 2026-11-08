@@ -79,9 +79,13 @@ def cut_rows(ctx):
     for p in m.parts:
         if p.key.startswith("mesa_nervio"):
             L_ = rib_len(ctx, p)
-            R.append([p.code.replace(CODE + "-", ""), p.name, "Plancha e = %s (anidado GEN-010/013)" % f(P["t_rib"]), f"{fm(L_ + 4, 0)}×{f(g.hw + 4)}×{f(P['t_rib'])}", str(p.qty), p.material[:44], f"largo terminado {fm(L_, 0)} (sobremetal 2 por extremo)"])
+            i_ = int(p.key[-1])
+            hol = (m.info.get("nervio_holgura") or [2.0] * 9)[i_]
+            R.append([p.code.replace(CODE + "-", ""), p.name, "Plancha e = %s (anidado GEN-010/013)" % f(P["t_rib"]), f"{fm(L_ + 4, 0)}×{f(g.hw + 4)}×{f(P['t_rib'])}", str(p.qty), p.material[:44],
+                      f"largo de corte {fm(L_ + 4, 0)} = terminado {fm(L_, 0)} (entre caras del nervio; = entre caras de cubo/almas {fm(L_ + hol, 0)} − {fm(hol, 0)} de holgura) + 2 × 2 de sobremetal; destijeres 15 × 15"])
     add("mesa_cubo", "Anillo", f"Ø{f(P['D_hub'] + 10)}/Ø{f(g.d_bush - 10)}×{f(g.hw + 5)}")
     add("pasadores", "Barra", f"Ø{f(g.d_pin + 5)}×{f(g.hd + 6)}")
+    add("arandela_pasador", "Disco", f"Ø{f(g.washer_D + 5)}×{f(g.washer_t + 2)}", f"Plancha de {f(g.washer_t + 2)}: caras rectificadas a {f(g.washer_t)}; agujero Ø{f(g.washer_d)}")
     add("pivote", "Barra", f"Ø{f(P['D_piv'] + 5)}×{f(g.L_piv + 6)}")
     add("buje", "Tubo/buje", f"Ø{f(g.d_bush + 4)}/Ø{f(P['D_piv'] - 4)}×{f(P['L_bush'] + 4)}")
     add("tapa_ret", "Disco", f"Ø{f(g.cap_D + 5)}×{f(g.cap_t + 2)}")

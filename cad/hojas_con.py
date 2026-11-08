@@ -349,7 +349,7 @@ def cortadas_y0(ctx, ks):
 
 def masa_mesa(ctx, ks):
     """Masa del rótulo de la mesa soldada: sin y con pasadores y pernos (A-26)."""
-    sold = [k for k in ks if k not in ("pasadores", "pernos_pasador")]
+    sold = [k for k in ks if k not in ("pasadores", "pernos_pasador", "arandela_pasador")]
     return f"{f(ctx.mass_of(*sold), 1)} / {f(ctx.mass_of(*ks), 1)} kg"
 
 
@@ -391,7 +391,7 @@ def expl_dz(ctx, p):
     if k == "buje": return EXPL["buje"]
     if k == "tapa_ret": return EXPL["tapa_ret"]
     if k == "tapa_insp": return EXPL["tapa_insp"]
-    if k in ("pernos_pasador",): return EXPL["pernos"]
+    if k in ("pernos_pasador", "arandela_pasador"): return EXPL["pernos"]
     if k in ("madera", "madera_anillo"): return EXPL["madera"]
     if sub == "INT": return EXPL["interfaz_m"] if ("mesa" in k or k in ("int_cara", "graseras") or "uhmw" in k) else EXPL["interfaz_b"]
     if sub == "MES": return EXPL["mesa"]
@@ -460,7 +460,9 @@ def sheet_conjunto(ctx):
         V.dim_dia((0, 0, top), g.Rt, 250, on=["mesa_anillo_sup"], text=f"Ø{f(P['D_top'])} (mesa)", ext=24)
         k135 = min(range(g.N_pin), key=lambda k_: abs(ctx.D["pasadores"][k_] - 135.0))
         pin = polar(g.R_pin, ctx.D["pasadores"][k135])        # pasador a ~135°: la cota no queda sobre el eje A-A ni junto a las cotas de la derecha (A-40)
-        V.dim((0, 0, zp), (pin[0], pin[1], top), 0, orient="a", on=["pivote", "pasadores"], virt_a=P["D_piv"] / 2, virt_b=g.d_pin / 2, text=f"R{fm(g.R_pin, 0)} (círculo de pasadores)")
+        t_r = f"R{fm(g.R_pin, 0)} (círculo de pasadores)"
+        sh_r = max(0.0, 0.5 * (g.R_pin - P["D_piv"] / 2 - g.d_pin / 2) * V.scale - tw(t_r, T_N) / 2 - 4.0)     # N-06: texto junto al pasador, fuera del cubo y del CG
+        V.dim((0, 0, zp), (pin[0], pin[1], top), 0, orient="a", on=["pivote", "pasadores"], virt_a=P["D_piv"] / 2, virt_b=g.d_pin / 2, text=t_r, txt_shift=-sh_r)
         ex, ey = g.ear_pos[1]
         so = min(ctx.shapes["orejas"].Solids(), key=lambda q: math.hypot(q.Center().x - ex, q.Center().y - ey))
         vx = max(so.Vertices(), key=lambda q: (round(q.Z, 1), -q.X + q.Y))
@@ -471,6 +473,8 @@ def sheet_conjunto(ctx):
         s.leader((pc[0] + 2.2, pc[1] - 2.2), (pc[0] + 12, pc[1] - 12), "CG")
         c.cut_mark("planta", "A", (-B / 2 - 20, 0, tb), (B / 2 + 20, 0, tb), 90)
         c.cut_mark("planta", "B", (0, -B / 2 - 20, tb), (0, B / 2 + 20, tb), 180)
+        a0x = ctx.D["pasadores"][0]                     # A-08: traza del corte X-X de CON-003 (plano radial por el eje del pasador n.° 1)
+        c.cut_mark("planta", "X", polar(g.R_pin - 170, a0x) + (top,), polar(g.Rt + 60, a0x) + (top,), (a0x - 90) % 360)
     c.vs("planta", sh, "top", lv=(1, 2, 2, 1), draw=planta, mat=mm, hatch=False, title="PLANTA (cotas de instalación desde el eje del pivote)", auto=False, w=1.6, extra=(0, 0, 0, 0))
 
     ycb = (bc.ymin + bc.ymax) / 2
@@ -520,10 +524,10 @@ def sheet_vistas_conj(ctx):
     top = g.z0 + g.hd
     c.vs("cB", sh, "right", cut=CUT_X, lv=(1, 2, 2, 1), mat=mm, hs=0.5, title="CORTE B-B (plano x = 0)", auto=False, w=1.3,
          draw=lambda V, c: V.dimv((B / 2, B / 2, 0), (B / 2, B / 2, g.tb), "right", 0, on=["base_plancha"], text=f"{f(g.tb)}"))
-    on = ["base_plancha", "mesa_anillo_sup", "mesa_anillo_inf", "mesa_plancha_sup", "pernos_pasador"]
+    on = ["base_plancha", "mesa_anillo_sup", "mesa_anillo_inf", "mesa_plancha_sup", "pernos_pasador", "arandela_pasador"]
     on = [k for k in on if k in sh]
     c.vs("elev", sh, "front", lv=(1, 1, 1, 1), mat=mm, hatch=False, title="ELEVACIÓN FRONTAL (cotas de altura en CON-001, corte A-A)", w=1.0, auto=False)
-    pk = [k for k in ("pasadores", "pernos_pasador", "mesa_anillo_sup", "mesa_anillo_inf", "mesa_plancha_sup", "mesa_plancha_inf") if k in sh]
+    pk = [k for k in ("pasadores", "pernos_pasador", "arandela_pasador", "mesa_anillo_sup", "mesa_anillo_inf", "mesa_plancha_sup", "mesa_plancha_inf") if k in sh]
     a0_ = ctx.D["pasadores"][0]
     for k in pk:
         rot_key(ctx, k, k + "_P", -a0_)               # el plano del corte pasa por el eje del 1.er pasador (A-09)
@@ -538,8 +542,8 @@ def sheet_vistas_conj(ctx):
         V.dimv((g.R_pin + r_, 0, g.z0 + g.tpr), (g.R_pin + r_, 0, top - g.tpr), "right", 0, on=["mesa_anillo_inf_P", "mesa_anillo_sup_P"], text=f"{f(g.hd - 2 * g.tpr)}")
         V.dimv((g.R_pin + r_, 0, top - g.tpr), (g.R_pin + r_, 0, top), "right", 0, on=["mesa_anillo_sup_P"], text=f"{f(g.tpr)}")
     c.vs("det_pin", {k: ctx.shapes[k] for k in pkp}, "front", cut=((0, 0, 0), (0, 1, 0)), center=(g.R_pin, 0, top - 100), win=(-90, -130, 90, 138), lv=(1, 2, 2, 1), hs=0.4, maxs=2.0,
-         title="CORTE X-X POR EL EJE DE UN PASADOR (pasador, arandela y perno M20; plano a %s° de +x)" % fm(a0_, 3), auto=False, mat={k + "_P": ctx.mat.get(k, "acero") for k in pk}, w=1.0,
-         draw=dpin)
+         title="CORTE X-X POR EL EJE DEL PASADOR N.° 1 (traza en la planta de CON-001; plano a %s° de +x)" % fm(a0_, 3), auto=False, mat={k + "_P": ctx.mat.get(k, "acero") for k in pk}, w=1.0,
+         draw=dpin, nocut=("pasadores_P", "pernos_pasador_P"))         # A-09: pasador y perno sin rayar (ISO 128-50)
     c.note_block("NOTAS", ["Cotas de instalación, centro de gravedad, huella y holguras: CON-001. Dimensiones de fabricación: planos de cada pieza.", REF_GEN_TIT + " (apoyo sin anclaje y viento: nota 4)."])
     c.build()
     return c.h
@@ -620,9 +624,9 @@ def grupos(ctx):
         base.append("bancada")
     intb = [p.key for p in m.parts if p.sub == "INT" and int_side(p.key) == "base" and has(p.key) and p.key != "int_tapones"]
     intm = [p.key for p in m.parts if p.sub == "INT" and int_side(p.key) == "mesa" and has(p.key) and p.key != "int_tapones"]
-    mesa = [p.key for p in m.parts if p.sub == "MES" and p.key not in ("pasadores", "pernos_pasador", "tapa_insp") and has(p.key)]
+    mesa = [p.key for p in m.parts if p.sub == "MES" and p.key not in ("pasadores", "pernos_pasador", "arandela_pasador", "tapa_insp") and has(p.key)]
     return dict(base=base, intb=intb, intm=intm, mesa=mesa, piv=[k for k in PIV_KEYS if has(k)], pins=[k for k in ("pasadores",) if has(k)],
-                pernos=[k for k in ("pernos_pasador",) if has(k)], insp=[k for k in ("tapa_insp",) if has(k)], mad=[p.key for p in m.parts if p.sub == "MAD" and has(p.key)],
+                pernos=[k for k in ("arandela_pasador", "pernos_pasador") if has(k)], insp=[k for k in ("tapa_insp",) if has(k)], mad=[p.key for p in m.parts if p.sub == "MAD" and has(p.key)],
                 acc=[k for k in ACC_KEYS if has(k)])
 
 
@@ -810,7 +814,7 @@ def pasos(ctx):
     S.append(("5. BUJE Y MESA SOBRE EL PIVOTE", prev4 + G["intb"], new5, (0, 0, 600), None, rows5))
     S.append(("6. PASADORES DE EMPUJE Y PERNOS", G["base"] + G["mesa"], G["pins"] + G["pernos"], (0, 0, 350), None, [
         [pq("pasadores"), f"Insertar los {g.N_pin} pasadores Ø{f(g.d_pin)} m6 en los anillos (H7) con grasa", f"H7/m6: {a_pin['juego']}", "Martillo de nylon, extractor", insp("Pasadores de empuje")],
-        [pq("pernos_pasador"), "Perno ISO 4762 M20×45 cl. 10.9 con arandela en cada pasador; marca de pintura de control", f"Par {T(20)} N·m (propuesta GEN-008)", "Torquímetro", insp("torques propuestos")]]))
+        [pq("pernos_pasador", "arandela_pasador"), "Perno ISO 4762 M20×45 cl. 10.9 con su arandela en cada pasador; marca de pintura de control", f"Par {T(20)} N·m (propuesta GEN-008)", "Torquímetro", insp("torques propuestos")]]))
     S.append(("7. ACCIONAMIENTO (dos lados)", G["base"] + G["mesa"], G["acc"], (0, 0, 300), None, [
         [pq("patin"), "Introducir cada patín por el extremo de la ranura T de su bancada, con grasa grafitada",
          f"Juego del cuello {fm((P['w_slot'] - g.neck_w) / 2, 1)} mm por lado (galga); deslizamiento libre en toda la carrera", "Galgas", insp("Ranura T")],
@@ -1038,7 +1042,7 @@ def sheet_mesa_conj1(ctx):
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
 
     def media(V, c):
-        balloons_auto(c, V, [k for k in ks if k not in ("pernos_pasador",)], pred=lambda q: q[2] <= zmid + 0.5, gap=11, off=16)
+        balloons_auto(c, V, [k for k in ks if k not in ("pernos_pasador", "arandela_pasador")], pred=lambda q: q[2] <= zmid + 0.5, gap=11, off=16)
         V.dim_dia((0, 0, g.z0 + g.tbo), g.Rt, 35, on=["mesa_anillo_inf"], text=f"Ø{f(P['D_top'])}", ext=26)
     c.vs("media", sh, "top", cut=((0, 0, zmid), (0, 0, -1)), lv=(1, 1, 1, 1), extra=(20, 20, 20, 20), draw=media, mat=mm, hs=0.8, title="PLANTA A MEDIA ALTURA (corte a h/2)", auto=False, w=1.5)
 
@@ -1074,7 +1078,7 @@ def sheet_mesa_conj2(ctx):
 
     def cw(V, c):
         with alias(ctx, "_W"):
-            balloons_auto(c, V, [k + "_W" for k in ks if k not in ("pernos_pasador", "pasadores")], pred=lambda q: q[1] >= -0.5, gap=11, off=14)
+            balloons_auto(c, V, [k + "_W" for k in ks if k not in ("pernos_pasador", "arandela_pasador", "pasadores")], pred=lambda q: q[1] >= -0.5, gap=11, off=14)
         if len(D["almas"]) > 2:
             V.dimv((D["almas"][-1], 0, g.z0 + g.tbo), (D["almas"][-1], 0, zt0), "right", 0, on=["mesa_alma2_W"], text=f"{f(g.hw)}")
         V.dimh((g.d_bush / 2, 0, zt0), (P["D_hub"] / 2, 0, zt0), "top", 0, on=["mesa_cubo_W"], text=f"{fm((P['D_hub'] - g.d_bush) / 2, 0)} (cubo)")

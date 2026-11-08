@@ -28,8 +28,9 @@ class VS:
     """Especificación de una vista (la lámina la dibuja el compositor cuando conoce su zona)."""
 
     def __init__(self, name, keys, view, cut=None, win=None, center=(0, 0, 0), lv=(1, 2, 2, 1), extra=(0, 0, 0, 0), mat=None, hatch=True, title=None, w=1.0, maxs=None, mins=None,
-                 draw=None, auto=None, iso=False, hidden=False, breaks=None, hs=0.5, label=None, only=None, tag=None, min_cell=(40, 30), detail=None, at=None, nat=None, custom=None, layer="VIS"):
+                 draw=None, auto=None, iso=False, hidden=False, breaks=None, hs=0.5, label=None, only=None, tag=None, min_cell=(40, 30), detail=None, at=None, nat=None, custom=None, layer="VIS", nocut=()):
         self.name, self.keys, self.view, self.cut, self.win, self.center = name, keys, view, cut, win, center
+        self.nocut = tuple(nocut)      # piezas que no se cortan en sentido longitudinal (pernos, pasadores, ejes: ISO 128-50)
         self.lv, self.extra, self.mat, self.hatch, self.title, self.w = lv, extra, mat, hatch, title, w
         self.maxs, self.mins, self.draw, self.auto, self.iso = maxs, mins, draw, auto, iso
         self.hidden, self.breaks, self.hs, self.label, self.only = hidden, breaks, hs, label or name, only
@@ -712,6 +713,8 @@ class Plano:
                 kw["breaks"] = sp.breaks
             if sp.iso:
                 kw["free"] = True
+            if sp.nocut:
+                kw["nocut"] = sp.nocut
             V = View.auto(s, shp, sp.view, cell, margin=sp.margins(), cut=sp.cut, win=sp.win, center=sp.center, std=not sp.iso, label=sp.label, hidden=sp.hidden, hatch_scale=sp.hs,
                           max_scale=sp.maxs if not sp.iso else None, only=sp.only, **kw)
             V.mat = sp.mat or {k: ctx.mat.get(k, "acero") for k in shp}

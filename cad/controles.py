@@ -303,7 +303,7 @@ def gdt_vistas(ctx, hojas):
             key = ("fcf", sym, tol, tuple(dat) if isinstance(dat, list) else dat)
             if key not in fr:
                 out.append(f"{t}: tolerancia «{sym} {tol} {dat or ''}» ({txt[:40]}) sin marco en las vistas")
-            for d_ in (dat if isinstance(dat, list) else [dat] if dat else []):
+            for d_ in [x for dd_ in (dat if isinstance(dat, list) else [dat] if dat else []) for x in str(dd_).split("-")]:
                 if d_ not in dl:
                     out.append(f"{t}: datum {d_} sin indicador en las vistas")
     return out
