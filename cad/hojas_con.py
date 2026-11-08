@@ -458,7 +458,8 @@ def sheet_conjunto(ctx):
         V.dimh((-X, 0, g.zc), (0, 0, zp), "bottom", 0, on=["pivote", "cilindro"], virt_a=P["D_body"] / 2, virt_b=P["D_piv"] / 2, text=f"{f(X)}")
         V.dimv((0, 0, zp), (X, ye, g.zc), "right", 0, on=["pivote", "mensula_oreja_sup"], virt_a=P["D_piv"] / 2, virt_b=P["d_pp"] / 2, text=f"{fm(ye, 0)} (ojal de ménsula)")
         V.dim_dia((0, 0, top), g.Rt, 250, on=["mesa_anillo_sup"], text=f"Ø{f(P['D_top'])} (mesa)", ext=24)
-        pin = polar(g.R_pin, ctx.D["pasadores"][min(3, g.N_pin - 1)])        # pasador a ~45°: la cota no queda sobre el eje A-A (A-40)
+        k135 = min(range(g.N_pin), key=lambda k_: abs(ctx.D["pasadores"][k_] - 135.0))
+        pin = polar(g.R_pin, ctx.D["pasadores"][k135])        # pasador a ~135°: la cota no queda sobre el eje A-A ni junto a las cotas de la derecha (A-40)
         V.dim((0, 0, zp), (pin[0], pin[1], top), 0, orient="a", on=["pivote", "pasadores"], virt_a=P["D_piv"] / 2, virt_b=g.d_pin / 2, text=f"R{fm(g.R_pin, 0)} (círculo de pasadores)")
         ex, ey = g.ear_pos[1]
         so = min(ctx.shapes["orejas"].Solids(), key=lambda q: math.hypot(q.Center().x - ex, q.Center().y - ey))
