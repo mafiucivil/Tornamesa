@@ -15,7 +15,7 @@ FRAME_H = 7.0
 
 def _frame_w(tol, datum, h=T_N):
     parts = [d for d in (datum if isinstance(datum, (list, tuple)) else [datum])] if datum else []
-    return 7.0 + max(14.0, tw(tol, h) + 5) + 7.0 * len(parts)
+    return 7.0 + max(14.0, tw(tol, h) + 5) + sum(max(7.0, tw(d, h) + 3.0) for d in parts)
 
 
 class Libre:
@@ -252,9 +252,15 @@ def rugosidad(s, L, ra, a, d):
     cands = []
     for L1 in (8.0, 13.0, 19.0, 26.0, 34.0, 44.0, 56.0, 4.0):
         e1 = (a[0] + u[0] * L1, a[1] + u[1] * L1)
+        if abs(u[1]) > 0.7:                       # superficie horizontal: tramo normal corto y codo horizontal hacia un costado
+            for dh in [0.0] + [v * sg_ for v in range(10, 160, 6) for sg_ in (1, -1)]:
+                e2 = (e1[0] + dh, e1[1])
+                for sg in ((1, -1) if dh >= 0 else (-1,)):
+                    if dh and (sg > 0) != (dh > 0):
+                        continue
+                    cands.append((L1 + abs(dh) * 0.6, e1, e2, sg))
+            continue
         for dv in [0.0] + [v * sg_ for v in range(10, 100, 5) for sg_ in (1, -1)]:
-            if dv and abs(u[1]) > 0.7:
-                continue
             e2 = (e1[0], e1[1] + dv)
             for sg in ((1, -1) if u[0] >= -0.2 else (-1, 1)):
                 cands.append((L1 + abs(dv), e1, e2, sg))

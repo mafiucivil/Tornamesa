@@ -69,8 +69,8 @@ def notas_generales(ctx):
             "Aristas vivas rotas 1×45° (ISO 13715) salvo indicación. Rosca métrica ISO 261 / ISO 262 / ISO 724; tornillería ISO 4762 / ISO 10642, clase 10.9 (ISO 898-1); agujeros pasantes ISO 273.",
             "Taller sin torno vertical: gran diámetro por oxicorte/plasma (ISO 9013), soldadura y mandrinadora; ajustes largos H7 en mandrinadora.",
             propuestas.pintura_txt() + " Zonas sin pintura: lista única en GEN-006.",
-            "Códigos de pieza: tienen el formato del número de plano (TT300C-SSS-NNN-C); las piezas sin lámina propia se dibujan en la lámina indicada en la columna «Plano» del despiece (CON-002). "
-            "Cada código designa siempre la misma pieza en todas las variantes (mapa de códigos INT en esta lámina)."]
+            "Códigos de pieza: tienen el formato TT300C-SSS-NNN-C, o TT300C-SSS-NNN-n-C con sufijo de geometría; las piezas sin lámina propia se dibujan en la lámina indicada en la columna «Plano» del despiece (CON-002). "
+            "Un código designa una sola geometría: la pieza que cambia entre variantes, o los sectores de geometría distinta de un mismo juego, llevan sufijo -n (mapa de códigos por geometría en esta lámina; control automático sobre la geometría real del modelo 3D)."]
 
 
 def normas(ctx):
@@ -111,16 +111,51 @@ def sheet_notas(ctx):
     y = s.notes_block(R[0], R[3], "NOTAS GENERALES DE FABRICACIÓN", notas, h=T_N, width=0.46 * (R[2] - R[0]), numbered=True)
     x2 = R[0] + 0.48 * (R[2] - R[0])
     yn, _ = s.table(x2, R[3], [("Norma", 70, "L"), ("Aplicación", 130, "L")], normas(ctx), h=T_S, title="NORMAS APLICABLES")
-    # mapa de códigos de la interfaz (estables entre variantes, H-04)
+    # mapa de códigos por geometría (H-04: un código = una geometría; N-07: láminas de características emitidas)
     import modelo3d_tt300c as M3
-    if g.opt:
-        vis = {}
-        for k, (n, nm, var) in M3.INT_CODIGOS.items():
-            vis.setdefault(n, (nm, var))
-        rows = [[f"INT-{n:03d}", nm, var, "sí" if any(p.sub == "INT" and p.num == n for p in ctx.m.parts) else "—"] for n, (nm, var) in sorted(vis.items())]
-        rows += [[f"INT-{n:03d}", nm + " (lámina de características)", "según variante", "—"] for n, nm in sorted(M3.INT_LAMINAS.items())]
-        y, _ = s.table(R[0], y - 6, [("Código", 22, "L"), ("Pieza (denominación fija)", 112, "L"), ("Variantes", 40, "L"), ("En este juego", 26, "C")], rows, h=T_S,
-                        title="MAPA DE CÓDIGOS DE LA INTERFAZ (un código = una pieza en todas las variantes)")
+    var = M3.variante_de(g)
+    en_juego = {p.code_suf(t["suf"] if p.tipos else p.suf).replace(CODE + "-", "").rsplit("-", 1)[0] for p in ctx.m.parts for t in (p.tipos or [None])} | \
+               {p.code.replace(CODE + "-", "").rsplit("-", 1)[0] for p in ctx.m.parts}
+    rows = []
+    por_num = {}
+    for k, (n, nm, vv) in M3.INT_CODIGOS.items():
+        key = k.split("/")[0]
+        e = por_num.setdefault(n, dict(nm=nm, vv=vv, cl=[]))
+        cl = M3.VAR_CODIGOS.get(key)
+        if cl:
+            o = 0
+            for (vs, desc, nt) in cl:
+                if M3._num_clase(key, vs) != n:
+                    continue
+                if not any(c_[0] == vs for c_ in e["cl"]):
+                    e["cl"].append((vs, desc, o + 1, o + nt))
+                o += nt
+    def cods(base, cl):
+        return " · ".join(f"{base}-{a}" + (f"…-{b}" if b > a else "") + f" ({', '.join(vs)}): {desc}" for vs, desc, a, b in cl)
+    for n, e in sorted(por_num.items()):
+        base = f"INT-{n:03d}"
+        actual = sorted({c_ for c_ in en_juego if c_.startswith(base)})
+        rows.append([base, e["nm"] + (". " + cods(base, e["cl"]) if e["cl"] else ""), e["vv"], ", ".join(actual) if actual else "—"])
+    rows += [["INT-101", M3.INT_LAMINAS[101] + " (lámina de características)", "A, AF2, C1, C2, C3", "sí" if (g.opt in (1, 3) and g.h_gr > 0) else "—"],
+             ["INT-102", M3.INT_LAMINAS[102] + " (lámina de características)", "C1, C2, C3", "sí" if g.opt == 3 else "—"]]
+    vt = {103: "A, AF2", 104: "C1, C2, C3", 105: "C1, C2, C3"}
+    for k_, n_ in sorted(M3.LAMINA_TIPOS.items(), key=lambda t: t[1]):
+        if n_ in vt or any(getattr(p, "hoja_tipos", False) and p.key == k_ for p in ctx.m.parts):
+            rows.append([f"INT-{n_:03d}", M3.INT_LAMINAS[n_] + " (lámina de tipos)", vt.get(n_, "—"), "sí" if any(getattr(p, "hoja_tipos", False) and p.key == k_ for p in ctx.m.parts) else "—"])
+    for key, cl in M3.VAR_CODIGOS.items():
+        if key.startswith("int_"):
+            continue
+        p0 = ctx.m.get(key)
+        if p0 is None:
+            continue
+        base = f"{p0.sub}-{p0.num:03d}"
+        o, cl2 = 0, []
+        for (vs, desc, nt) in cl:
+            cl2.append((vs, desc, o + 1, o + nt))
+            o += nt
+        rows.append([base, f"{p0.name}. " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0]])
+    y, _ = s.table(R[0], y - 6, [("Código", 20, "L"), ("Pieza y geometría por código (sufijo -n)", 132, "L"), ("Variantes", 26, "L"), ("En este juego", 22, "L")], rows, h=T_S,
+                    title="MAPA DE CÓDIGOS POR GEOMETRÍA (H-04: un código = una geometría; las piezas que cambian entre variantes o los sectores de geometría distinta llevan sufijo -n)")
     c.h.indice_pos = (R[0], y - 10, R[2] - R[0], R[1], yn - 10)      # columna 1 bajo las notas y el mapa INT; columna 2 bajo las normas
     return c.h
 

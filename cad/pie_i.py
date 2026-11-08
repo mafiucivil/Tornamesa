@@ -70,7 +70,7 @@ def int_sector_sheet(ctx, key, titulo, face):
         if cs:
             sc_ = sorted({round(math.hypot(u, v), 1) for (u, v, r) in cs if abs(v) < 1})
             u, v, r = min(cs, key=lambda q: abs(q[1]))
-            V.note_hole((u, v, ztop), r, 90, f"{len(sc_)} × M{fm(lay.d_tor, 0)} ISO 10642 (avellanado Ø{fm(lay.dk, 0)}, pasante Ø{fm(lay.d_clear, 1)}) a r = " + " y ".join(fm(x, 1) for x in sc_), ext=46, on=on)
+            V.note_hole((u, v, ztop), r, 90, f"{len(sc_)} × M{fm(lay.d_tor, 0)} ISO 10642 (avellanado Ø{fm(lay.dk_av, 0)}×90°, pasante Ø{fm(lay.d_clear, 1)}) a r = " + " y ".join(fm(x, 1) for x in sc_), ext=46, on=on)
         gs = V.circles(on, 2.9, 3.1)
         if m.info.get("grease_pts") and gs and face == "bot":
             u, v, r = [q for q in gs if abs(q[2] - 3.0) < 0.1][0]
@@ -78,11 +78,12 @@ def int_sector_sheet(ctx, key, titulo, face):
         if key == "int_bronce":
             pl = [q for q in V.circles(on, P["bz_plug_d"] / 2 - 0.05, P["bz_plug_d"] / 2 + 0.05) if not any(math.hypot(q[0] - c_[0], q[1] - c_[1]) < 0.5 for c_ in cs)]
             if pl:
-                u, v, r = pl[0]
-                ps_ = (g.IG.get("tapones") or {}).get("porSector") or []
-                n1 = len(ctx.m.info.get("plug_sets", {}).get(0, [])) or len(pl)
-                V.note_hole((u, v, ztop), r, 120, f"{n1} tapones de grafito Ø{fm(P['bz_plug_d'], 0)} H7 en este sector (cantidad por sector: tabla de INT-102), paso {fm(P['bz_plug_p'], 0)} (malla triangular)", ext=40, on=on)
-        p.cut_mark("planta", "A", (g.Ri - 18, 0, ztop), (g.Ro + 18, 0, ztop), 90)
+                # tapón de referencia hacia el medio del sector (la llamada no sale del marco) y texto en tres renglones
+                u, v, r = min(pl, key=lambda q: abs(q[0] - (g.Ri + 0.45 * (g.Ro - g.Ri))) + 3 * abs(q[1] - 30))
+                n1 = len(pl)
+                V.note_hole((u, v, ztop), r, 105, f"{n1} tapones de grafito Ø{fm(P['bz_plug_d'], 0)} H7 en este sector", ext=40, on=on,
+                            lines=[f"{n1} tapones de grafito Ø{fm(P['bz_plug_d'], 0)} H7 en este sector", "(cantidad por sector: tabla de INT-102),", f"paso {fm(P['bz_plug_p'], 0)} (malla triangular)"])
+        p.cut_mark("planta", "A", (g.Ri - 18, 0, ztop), (g.Ro + 48, 0, ztop), 90)
         if con_barras:
             Lb_, bb_ = m.info["uhmw_bar_L"], P["b_tope"]
             r0b = g.Ri + 50
@@ -111,13 +112,27 @@ def int_sector_sheet(ctx, key, titulo, face):
              extra=(0, 0, 115, 0), draw=secD, hs=0.35, maxs=2.0, w=1.0, title="SECCIÓN D-D: BARRA DEL REBAJE SOLDADA AL DISCO (J21)", mat={nk + "_D": "inox", nkb + "_D": "inox"}, auto=False)
     rs = (sorted({round(u, 1) for (u, v, r) in autodim.circles3d(type("X", (), dict(shapes=ctx.shapes, view="top", uv=lambda self, p3: (p3[0], p3[1])))(), on, 2.9, lay.dk / 2 + 0.1) and []})) if False else None
 
+    # B-20/H-26/H-29: rugosidad y planitud sobre la cara deslizante en el corte; datums B y C en las dos juntas (plano medio común B-C = bisectriz)
+    dz_ = 1 if face == "top" else -1
+    p.ra_in("corte", "Ra 0,4" if key != "int_uhmw" else "Ra 3,2", [(g.r_u - 100, 0, zs), (g.r_u + 100, 0, zs), (g.r_u - 60, 0, zs)], (0, 0, dz_))
+    p.gd_in("corte", "surf", "flat", "0,05" if key != "int_uhmw" else "0,5", None, at=[(g.r_u + 70, 0, zs), (g.r_u - 30, 0, zs), (g.r_u + 115, 0, zs)], d=(0, 0, dz_))
+    muesca_ = g.removable and key != "int_uhmw" and Ln
+    if muesca_:
+        h_ = math.radians(th / 2)
+        rad_ = (key == "int_bronce" and g.conf == 3)
+        ax_ = 0.0 if rad_ else (g.junta("disc") / 2) / math.sin(h_)
+        Lm_ = (g.Ri + g.Ro) / 2 * 0.92
+        for sg_, let_ in ((1, "B"), (-1, "C")):
+            pe_ = [(ax_ + L_ * math.cos(h_), sg_ * L_ * math.sin(h_), ztop) for L_ in (Lm_, Lm_ * 0.85, Lm_ * 1.12, Lm_ * 0.7, Lm_ * 1.25, Lm_ * 0.55, Lm_ * 1.38)]
+            p.datum_in("planta", "surf", let_, at=pe_, d=(-math.sin(h_), sg_ * math.cos(h_), 0))
+        p.gd_in("planta", "dim", "pos", "0,2", "B-C", prefix=f"{fm(lay.b_tope + 2, 0)} (barra + 2)")
+
     def corte(V, p):
-        ra(s, V, (g.r_u - 120, 0, zs), "Ra 0,4 (cara deslizante)" if key != "int_uhmw" else "Ra 3,2", dy=3 if face == "top" else -20)
         if not g.removable:                    # sin muesca: la vista no tiene aristas propias que acotar (H-41)
             V.dimv((g.r_u + 60, 0, z0_), (g.r_u + 60, 0, z1_), "right", 0, on=on, text=f"{fm(t, 1)} (e) ±0,1")
         V.dim_dia((g.Ri + 2, 0, (z0_ + z1_) / 2), 0.0, 0, on=on, text="") if False else None
     p.vs("corte", on, "front", cut=CUT_Y, center=(g.r_u, 0, (z0_ + z1_) / 2), win=(-130, -t - 10, 130, t + 10), lv=(2, 2, 1, 2), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A POR LA BISECTRIZ", hs=0.35, w=1.2,
-         auto=dict(tol={}, text={round(t, 1): f"{fm(t, 1)} (e) ±0,1"}, holes=False))
+         auto=dict(tol={}, text={round(t, 1): f"{fm(t, 1)} (e) ±0,1"}, holes=False, axes="v"))      # H-26: sin cadenas contra los bordes de la ventana
     # vistas de contorno del sector: elevación (cuerda y espesor) y lateral
     p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL SECTOR (cuerda y espesor)", w=0.9, maxs=1.0,
          auto=dict(holes=False, tol={round(t, 1): " ±0,1"}))
@@ -125,7 +140,7 @@ def int_sector_sheet(ctx, key, titulo, face):
     scr_r = list((m.info.get("radii_screw") if face == "top" else m.info.get("radii_screw_m")) or [])
     if g.removable and scr_r and key != "int_uhmw":
         p.vs("det_scr", on, "front", cut=CUT_Y, center=(scr_r[0], 0, (z0_ + z1_) / 2), win=(-14, -t / 2 - 3, 14, t / 2 + 3), lv=(1, 2, 1, 1), hs=0.4, maxs=5.0, w=1.0,
-             title=f"DETALLE B (en el plano del corte A-A): AVELLANADO ISO 10642 M{fm(lay.d_tor, 0)} Ø{fm(lay.dk, 0)}×90° A r = {fm(scr_r[0], 1)}", auto=dict(tol={}, holes=False))
+             title=f"DETALLE B (en el plano del corte A-A): AVELLANADO ISO 10642 M{fm(lay.d_tor, 0)} Ø{fm(lay.dk_av, 0)}×90° A r = {fm(scr_r[0], 1)}", auto=dict(tol={}, holes=False))
     if g.removable and Ln and key != "int_uhmw":
         nb = lay.b_tope + 2
         p.vs("det_muesca", on, "top", center=(g.r_u, 0, ztop), win=(-Ln / 2 - 22, -nb / 2 - 22, Ln / 2 + 22, nb / 2 + 22), lv=(1, 2, 2, 2), hatch=False, maxs=2.0, title="DETALLE C: MUESCA DEL TOPE", w=1.0,
@@ -147,6 +162,12 @@ def int_sector_sheet(ctx, key, titulo, face):
     if gp_ and face == "bot" and key in ("int_disco_mesa", "int_cara"):
         angs_ = ", ".join(fm(math.degrees(math.atan2(y_, x_)) % 360, 1) + "°" for x_, y_ in gp_[:g.n_greaser])
         rows.append(["Conductos de engrase", f"{len(gp_[:g.n_greaser])} × Ø6 +0,2/0 axial pasante a r = {fm(math.hypot(*gp_[0]), 1)}, en los sectores de las graseras ({angs_}); el resto de sectores sin conducto"])
+    if pt.tipos:
+        # H-04/H-12: cada tipo de sector es un código propio; esta lámina dibuja el tipo 1 y la lámina del tipo 2 dibuja los demás tipos
+        trows = [[pt.code_suf(t_["suf"]).replace(CODE + "-", ""), str(t_["n"]), ", ".join(str(i + 1) for i in t_["idx"]), f"{f(t_['masa_unit'], 2)} kg",
+                  "esta lámina" if k_ == 1 else f"INT-{__import__('modelo3d_tt300c').LAMINA_TIPOS[key]:03d}"] for k_, t_ in enumerate(pt.tipos, 1)]
+        p.table_block(f"TIPOS DE {'PASTILLA' if (key == 'int_bronce' and g.conf == 3) else 'SECTOR'} (un código por geometría; n.° de la tabla de sectores)",
+                      [("Código", 26, "L"), ("Cant", 9, "R"), ("Sectores n.°", 82, "L"), ("Masa", 20, "R"), ("Lámina", 26, "L")], trows)
     p.table_block("PARÁMETROS DEL SECTOR (JSON)", [("Parámetro", 40, "L"), ("Valor", 130, "L")], rows)
     # tabla de sectores
     srows = [[str(i + 1), fm((i + 0.5) * th, 3) + "°", fm(i * th, 3) + "°", fm((i + 1) * th, 3) + "°"] for i in range(pt.qty)]
@@ -173,7 +194,39 @@ def int_sector_sheet(ctx, key, titulo, face):
              ("Tolerancias: espesor e ±0,1; radios ±0,5; planitud de la cara deslizante 0,05" + ("; posición de la muesca ±0,2 respecto de la bisectriz." if muesca else ".")) if key != "int_uhmw" else
              "Tolerancias de la lámina cortada (sin rectificar): espesor e ±0,3 (plancha del proveedor); radios ±1; planitud 0,5.", f"Tratamiento: {pt.tratamiento}."],
             gd=([("flat", "0,05", None, "Planitud de la cara deslizante")] if key != "int_uhmw" else [("flat", "0,5", None, "Planitud de la lámina")]) +
-               ([("pos", "0,2", "A", "Muesca del tope respecto de la bisectriz del sector (A)")] if muesca else []))
+               ([("pos", "0,2", "B-C", "Plano medio de la muesca del tope respecto del plano medio común de las dos juntas del sector (B-C = bisectriz)")] if muesca else []))
+    p.build()
+    if len(pt.tipos) > 1:
+        return [p.h, tipos_sheet(ctx, key, face, th, pt, titulo)]
+    return p.h
+
+
+def tipos_sheet(ctx, key, face, th, pt, titulo):
+    """H-04/H-12: lámina de los tipos 2…n de un sector (cada tipo es un código propio). Cada tipo se dibuja en planta con la cara que lo distingue
+    (cara deslizante: ranuras, tapones o conducto de grasera); el resto de la geometría es la del tipo 1 (lámina del tipo 1)."""
+    g = ctx.g
+    import modelo3d_tt300c as M3
+    p = Pieza(ctx, [key], titulo.replace("(SECTOR)", "").strip() + ": TIPOS " + ", ".join(t_["suf"] for t_ in pt.tipos[1:]), fmt="A1", code=f"INT-{M3.LAMINA_TIPOS[key]:03d}")
+    p.h.items = [pt.code_suf(t_["suf"]) for t_ in pt.tipos[1:]]
+    p.iso_keys = []
+    p.iso_fill = False
+    vista = "top" if face == "top" else "bottom"
+    for k_, t_ in enumerate(pt.tipos[1:], 2):
+        a_t = (t_["idx"][0] + 0.5) * th
+        nkt = ctx.local_ang(key, f"{key}_t{k_}", a_t, th)
+        if not nkt:
+            continue
+        cod_ = pt.code_suf(t_["suf"]).replace(CODE + "-", "")
+        p.vs(f"tipo{k_}", [nkt], vista, lv=(0, 1, 0, 0), hatch=False, w=1.0, auto=False,
+             title=f"{cod_}: TIPO {t_['suf']} — PLANTA DEL SECTOR N.° {t_['idx'][0] + 1}" + (" (vista inferior: cara deslizante)" if face == "bot" else " (cara deslizante)"))
+    rows = [[pt.code_suf(t_["suf"]).replace(CODE + "-", ""), str(t_["n"]), ", ".join(str(i + 1) for i in t_["idx"]), f"{f(t_['masa_unit'], 2)} kg"] for t_ in pt.tipos]
+    p.table_block("TIPOS (n.° de la tabla de sectores de la lámina del tipo 1)", [("Código", 30, "L"), ("Cant", 10, "R"), ("Sectores n.°", 100, "L"), ("Masa", 22, "R")], rows)
+    dif = {"int_disco_mesa": "el trazado de las ranuras de engrase de la cara deslizante (cotas en INT-101)", "int_disco_base": "el trazado de la cara deslizante",
+           "int_bronce": "el patrón de tapones de grafito (coordenadas por sector en INT-102)", "int_cara": "el conducto de grasera Ø6 (solo en los sectores de las graseras)",
+           "int_uhmw": "el contorno"}.get(key, "la cara deslizante")
+    p.notes([f"Los tipos {', '.join(t_['suf'] for t_ in pt.tipos[1:])} tienen la misma geometría que el tipo {pt.tipos[0]['suf']} ({pt.code.replace(CODE + '-', '')}: contorno, espesor, muesca, avellanados, "
+             f"material, tolerancias y rugosidad) salvo {dif}; cada tipo es un código propio y se marca con su código en la cara no deslizante.",
+             "Montaje: cada sector va en la posición de la tabla de sectores (n.° desde +x en sentido antihorario)."])
     p.build()
     return p.h
 
@@ -315,7 +368,7 @@ def sheet_int_tornillos(ctx):
     p.table_block("ESPECIFICACIÓN (comercial; marca/modelo por catálogo, GEN-008)", [("Pieza", 14, "L"), ("Lado", 14, "L"), ("Designación", 30, "L"), ("Largo [mm]", 18, "R"), ("Cant", 12, "R"), ("Norma / clase / rosca", 70, "L")], rows)
     p.tables()
     rec_ = P["ss_allow"] if g.opt in (1, 2) else P["bz_allow"]
-    p.notes([f"Tornillo avellanado ISO 10642 M{fm(d, 0)} cl. 10.9 (cabeza Ø{fm(lay.dk, 0)}) alojado en el avellanado Ø{fm(lay.dk, 0)}×90° del sector (detalle B de la lámina del sector); rosca ISO 262 en el respaldo (plancha base / plancha inferior de la mesa), prof. ≥ 1,5·d.",
+    p.notes([f"Tornillo avellanado ISO 10642 M{fm(d, 0)} cl. 10.9 (cabeza Ø{fm(lay.dk, 0)} máx.) alojado en el avellanado Ø{fm(lay.dk_av, 0)}×90° del sector (detalle B de la lámina del sector); rosca ISO 262 en el respaldo (plancha base / plancha inferior de la mesa), prof. ≥ 1,5·d.",
              "Los tornillos solo posicionan los sectores: el par lo toman las barras de tope soldadas.", "Largo normalizado ≥ t − 0,55·d + 1,5·d (S11).",
              f"Aplicar fijarroscas de resistencia media; cabeza {fm(rec_, 1)} +0,2/0 mm bajo la cara deslizante (= sobreespesor de relapeado; igual en todas las variantes).", "Marca/modelo por catálogo (GEN-008)."],
             gd=[("perp", "0,1", "A", "Cara de apoyo del avellanado perpendicular al eje del tornillo")])
@@ -422,8 +475,8 @@ def sheet_int_ranuras(ctx):
         V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (ancho radial)")
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
          auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=2.5,
-                   hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)", round(P["bz_plug_d"], 1): f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102) y avellanados de tornillos (lámina del sector)",
-                             round(lay.dk, 1): f"Ø{fm(lay.dk, 0)}: avellanados de tornillos y alojamientos de tapones (ver lámina del sector e INT-102)", round(lay.d_clear, 1): f"Ø{fm(lay.d_clear, 1)}: pasantes de tornillos (lámina del sector)"}, fits={}))
+                   hole_txt={6.0: "Ø6 +0,2/0 (conducto de engrase)", **({round(P["bz_plug_d"], 1): f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102)"} if g.opt == 3 else {}),
+                             round(lay.dk_av, 1): f"Ø{fm(lay.dk_av, 0)}: avellanados de tornillos (lámina del sector)", round(lay.d_clear, 1): f"Ø{fm(lay.d_clear, 1)}: pasantes de tornillos (lámina del sector)"}, fits={}))
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
     zlo, zhi = (-10, t + 6) if face == "bot" else (-t - 6, 10)
     p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-60, zlo, 60, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,

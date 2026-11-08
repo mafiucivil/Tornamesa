@@ -446,7 +446,7 @@ class Sheet:
         hh, ww = 7.0, 7.0
         parts = [tol] + ([d_ for d_ in (datum if isinstance(datum, (list, tuple)) else [datum])] if datum else [])
         wt = max(14.0, tw(tol, h) + 5)
-        wds = [7.0 for _ in parts[1:]]
+        wds = [max(7.0, tw(d_, h) + 3.0) for d_ in parts[1:]]
         tot = ww + wt + sum(wds)
         self.rect(x, y, x + tot, y + hh, "COTA")
         self.line((x + ww, y), (x + ww, y + hh), "COTA")

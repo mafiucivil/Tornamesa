@@ -104,7 +104,7 @@ class Ctx:
     def plano_of(self, key):
         p = self.m.get(key)
         lead = self.group_of.get(key)
-        return lead if lead else ("CATÁLOGO: " + (p.catalogo or "A DEFINIR POR CATÁLOGO") if p.comercial else p.code)
+        return lead if lead else ("CATÁLOGO: " + (p.catalogo or "A DEFINIR POR CATÁLOGO") if p.comercial else p.code_lamina)
 
 
 class Hoja:
@@ -347,12 +347,14 @@ def build_welds(ctx):
         len_total=4 * 2 * 2 * P["R_ear"], wps=5, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_ear'], 0)}"))
     # MES
     tp = g.tpr
-    add_n(11, "Empalmes de los anillos de pasadores (4 × 90°, superior e inferior)", "MES-002 / MES-004", "A tope en V 60°, raíz 3, con respaldo", "V", t=tp, prep="V 60°, abertura de raíz 3 mm, cara de raíz 2 mm, respaldo de acero",
+    # N-03: secuencia de espesores de los anillos: partida tp + 3; empalmes (J11) en la partida; MES-002 se planea a tp antes de J12;
+    # MES-004 se suelda a tp + 3 (J13) y su cara inferior se planea a tp después de soldar, junto con la plancha inferior (tbo + 3 → tbo)
+    add_n(11, "Empalmes de los anillos de pasadores (4 × 90°, superior e inferior)", "MES-002 / MES-004", f"A tope en V 60°, raíz 3, con respaldo (en la partida de {fm(tp + 3, 0)}, antes de planear)", "V", t=tp + 3, prep="V 60°, abertura de raíz 3 mm, cara de raíz 2 mm, respaldo de acero",
         prep_txt="60°", groove=True, len_total=2 * 4 * (g.Rt - g.prIn), wps=6, end="VT 100 % · UT 100 %")
     land_ = (g.R_pin - g.d_pin / 2 - BORDE_MIN) - g.prIn          # chaflán 1:4 del anillo: hasta 3 mm del agujero de pasador (B-04)
-    j12 = add_n(12, "Plancha superior – anillo superior", "MES-001 / MES-002", "A tope circunferencial, transición de espesores 1:4", "V", t=g.tt, t_pre=max(g.tt, tp), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
+    j12 = add_n(12, "Plancha superior – anillo superior", "MES-001 / MES-002", f"A tope circunferencial, transición de espesores 1:4 (anillo ya planeado a {fm(tp, 0)})", "V", t=g.tt, t_pre=max(g.tt, tp), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
         prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
-    j13 = add_n(13, "Plancha inferior – anillo inferior", "MES-003 / MES-004", f"A tope circunferencial, transición de espesores 1:4 (al soldar: plancha {fm(g.tbo + 3, 0)} = {fm(g.tbo, 0)} + 3 de sobremetal en la cara inferior, planeada después)", "V", t=g.tbo + 3, t_pre=max(g.tbo + 3, tp), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
+    j13 = add_n(13, "Plancha inferior – anillo inferior", "MES-003 / MES-004", f"A tope circunferencial, transición de espesores 1:4 (al soldar: plancha {fm(g.tbo + 3, 0)} = {fm(g.tbo, 0)} + 3 y anillo {fm(tp + 3, 0)} = {fm(tp, 0)} + 3, sobremetal en la cara inferior de ambos, planeada después)", "V", t=g.tbo + 3, t_pre=max(g.tbo + 3, tp + 3), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
         prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
     j12.update(t_thick=tp, land=land_)
     j13.update(t_thick=tp + 3, land=land_)
@@ -582,11 +584,32 @@ def partida_dict(ctx):
     return d
 
 
-def bom_row(ctx, p, dpart):
+def tipos_txt(p, t):
+    """Descripción de un tipo de pieza (H-04): qué elementos del conjunto son de ese tipo."""
+    n_tot = sum(len(t_["idx"]) for t_ in p.tipos)
+    nums = ", ".join(str(i + 1) for i in t["idx"][:14]) + (" …" if len(t["idx"]) > 14 else "")
+    return f"TIPO {t['suf']}: {len(t['idx'])} de {n_tot} (n.° {nums}, numerados desde +x en sentido antihorario)"
+
+
+def bom_rows_part(ctx, p, dpart):
+    """Filas del despiece de una pieza: una por tipo de geometría (H-04: un código = una geometría)."""
     code = p.code.replace(CODE + "-", "")
     forma, dim, nota = dpart.get(code, ("Comercial", "Según catálogo", ""))
     obs = "; ".join(x for x in (p.obs, (f"Tratamiento: {p.tratamiento}" if p.tratamiento and p.tratamiento != "—" else ""), nota) if x)
-    return [str(p.pos), code, p.desc, str(p.qty), f"{p.material}. Cert.: {p.cert}", f"{forma} {dim}", f(p.mass_unit, 1), f(p.mass_total, 1), obs, ctx.plano_of(p.key).replace(CODE + "-", "")]
+    plano = ctx.plano_of(p.key).replace(CODE + "-", "")
+    if not p.tipos:
+        return [[str(p.pos), code, p.desc, str(p.qty), f"{p.material}. Cert.: {p.cert}", f"{forma} {dim}", f(p.mass_unit, 1), f(p.mass_total, 1), obs, plano]]
+    out = []
+    for i, t in enumerate(p.tipos, 1):
+        import modelo3d_tt300c as M3
+        pl_ = plano if (i == 1 or not getattr(p, "hoja_tipos", False)) else f"INT-{M3.LAMINA_TIPOS[p.key]:03d}-{REV}"
+        out.append([f"{p.pos}.{i}", p.code_suf(t["suf"]).replace(CODE + "-", ""), f"{p.desc}. {tipos_txt(p, t)}", str(t["n"]), f"{p.material}. Cert.: {p.cert}", f"{forma} {dim}",
+                    f(t["masa_unit"], 1), f(t["masa_unit"] * t["n"], 1), obs, pl_])
+    return out
+
+
+def bom_row(ctx, p, dpart):
+    return bom_rows_part(ctx, p, dpart)[0]
 
 
 def tabla_despiece(ctx, s, x, y, keys, width, ymin=None, title="DESPIECE", total=True):
@@ -595,7 +618,7 @@ def tabla_despiece(ctx, s, x, y, keys, width, ymin=None, title="DESPIECE", total
     cols = [(t, w * sc, a) for t, w, a in BOM_COLS]
     dpart = partida_dict(ctx)
     ps = [ctx.m.get(k) for k in keys if ctx.m.get(k)]
-    rows = [bom_row(ctx, p, dpart) for p in ps]
+    rows = [r for p in ps for r in bom_rows_part(ctx, p, dpart)]
     if total:
         rows.append(["", "", "MASA TOTAL DE LAS PIEZAS LISTADAS", "", "", "", "", f(sum(p.mass_total for p in ps), 1), "", ""])
     return s.table(x, y, cols, rows, h=T_S, ymin=ymin, title=title, bold_rows=(len(rows) - 1,) if total else ())

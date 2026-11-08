@@ -181,25 +181,48 @@ def notas(ctx, hojas):
 
 
 def codigos(ctx, hojas):
+    """H-04: un código = una geometría.
+    - registro fijo de números de la interfaz (INT_CODIGOS) sin números repetidos para piezas distintas;
+    - cada código del juego agrupa sólidos de una sola firma geométrica (medida sobre el B-rep: firmas.py); los tipos distintos llevan sufijo;
+    - la cantidad de tipos coincide con el registro de geometrías por variante (VAR_CODIGOS);
+    - si el registro cad/firmas_codigos.json es de la misma base de parámetros, cada código tiene la firma registrada (misma geometría en todas
+      las variantes); el control entre juegos completo es `python3 cad/firmas.py <entregas>`;
+    - cada lámina de pieza de la interfaz lleva el código de su pieza principal."""
+    import json
     import modelo3d_tt300c as M3
-    out = []
+    import firmas
+    out = list(ctx.m.info.get("codigos_fallas", []))
     usados = {}
     for k, (n, nm, var) in M3.INT_CODIGOS.items():
         usados.setdefault(n, set()).add(nm)
     for n, nms in usados.items():
         if len(nms) > 1:
-            out.append(f"INT-{n:03d}: el registro asigna el mismo código a piezas distintas {sorted(nms)}")
+            out.append(f"INT-{n:03d}: el registro asigna el mismo número a piezas distintas {sorted(nms)}")
     for p in ctx.m.parts:
-        if p.sub != "INT":
+        if p.sub == "INT":
+            ck = M3.int_clave(p.key, ctx.g.conf)
+            if ck not in M3.INT_CODIGOS or M3.INT_CODIGOS[ck][0] != p.num:
+                out.append(f"{p.code}: código fuera del registro fijo de la interfaz")
+        if not p.firmas_cod:
             continue
-        ck = M3.int_clave(p.key, ctx.g.conf)
-        if ck not in M3.INT_CODIGOS or M3.INT_CODIGOS[ck][0] != p.num:
-            out.append(f"{p.code}: código fuera del registro fijo de la interfaz")
+        ts = firmas.tipos(p)
+        if len(ts) != len(p.firmas_cod):
+            out.append(f"{p.code}: {len(ts)} geometrías distintas para {len(p.firmas_cod)} código(s)")
+    try:
+        reg = json.loads(firmas.REGISTRO.read_text(encoding="utf-8"))
+    except Exception:
+        reg = None
+    if reg and reg.get("base") == firmas.base_hash(ctx.D):
+        for cod, fs in firmas.firmas_juego(ctx).items():
+            r = reg["firmas"].get(cod)
+            if r is not None and firmas.clave(r) != firmas.clave(fs):
+                out.append(f"{cod}: geometría distinta de la registrada para ese código (variantes {', '.join(reg['variantes'].get(cod, []))})")
+    lam = {p.code: p.code_lamina for p in ctx.m.parts}
     for h in hojas:
         t = h.plano.replace(CODE + "-", "")
-        if t.startswith("INT-") and h.items and int(t.split("-")[1]) < 100:
-            if h.plano != h.items[0]:
-                out.append(f"{t}: la lámina no lleva el código de su pieza principal ({h.items[0]})")
+        if getattr(h, "serie", "") == "FAB" and h.items and int(t.split("-")[1]) < 100:
+            if h.plano != lam.get(h.items[0], h.items[0]):
+                out.append(f"{t}: la lámina no lleva el número de su pieza principal ({h.items[0]})")
     return out
 
 

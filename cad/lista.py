@@ -5,11 +5,17 @@ from geom import *
 
 
 def bom_rows(ctx):
+    from hojas_base import tipos_txt
     out = []
     for p in ctx.m.parts:
-        out.append(dict(pos=p.pos, code=p.code, nombre=p.name, desc=p.desc, qty=p.qty, material=p.material, norma=p.cert, unit=p.mass_unit, total=p.mass_total, proceso=p.process,
-                        obs=((p.obs + "; ") if p.obs else "") + (f"Tratamiento: {p.tratamiento}" if p.tratamiento and p.tratamiento != "—" else "").strip("; "),
-                        comercial=p.comercial, catalogo=p.catalogo or "", en_nucleo=bool(p.core), sub=p.sub))
+        base = dict(pos=p.pos, code=p.code, nombre=p.name, desc=p.desc, qty=p.qty, material=p.material, norma=p.cert, unit=p.mass_unit, total=p.mass_total, proceso=p.process,
+                    obs=((p.obs + "; ") if p.obs else "") + (f"Tratamiento: {p.tratamiento}" if p.tratamiento and p.tratamiento != "—" else "").strip("; "),
+                    comercial=p.comercial, catalogo=p.catalogo or "", en_nucleo=bool(p.core), sub=p.sub)
+        if not p.tipos:
+            out.append(base)
+            continue
+        for i, t in enumerate(p.tipos, 1):               # H-04: una fila por tipo de geometría, con su código
+            out.append(dict(base, pos=f"{p.pos}.{i}", code=p.code_suf(t["suf"]), desc=f"{p.desc}. {tipos_txt(p, t)}", qty=t["n"], unit=t["masa_unit"], total=t["masa_unit"] * t["n"]))
     return out
 
 

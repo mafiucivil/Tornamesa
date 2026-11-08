@@ -352,7 +352,8 @@ def main():
             print(f"  QC {pl}: choques {q['choques'][:6]} fuera {q['fuera'][:3]} invasiones {q['invasiones'][:3]}", flush=True)
     print(f"  QC gráfico: choques {n_ch}, fuera de marco {n_fu}, invasiones {n_iv}", flush=True)
     # ---- controles de coherencia de la revisión exhaustiva (ISO 2768, partidas, avellanados, notas, códigos, variante, WPS) ----
-    import controles
+    import controles, firmas
+    json.dump(dict(base=firmas.base_hash(D), variante=M3.variante_de(ctx.g), firmas=firmas.firmas_juego(ctx)), open(out / "TT300-C_firmas.json", "w", encoding="utf-8"), indent=1, ensure_ascii=False, sort_keys=True)
     CTL = controles.todos(ctx, hojas)
     n_ctl = sum(len(v) for v in CTL.values())
     with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:

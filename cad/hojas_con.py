@@ -558,7 +558,7 @@ def sheet_bom(ctx):
         if cur is None or cur[0] != p.sub:
             cur = (p.sub, [])
             blocks.append(cur)
-        cur[1].append(bom_row(ctx, p, dpart))
+        cur[1].extend(hojas_base.bom_rows_part(ctx, p, dpart))
     ext = [["—", "—", d, str(q), e, "Comercial", "—", "—", cat, "GEN-008"] for (d, q, e, cat) in lista.extras(ctx)]
     blocks.append(("COMERCIAL", ext))
     sc0 = None
@@ -761,10 +761,10 @@ def pasos(ctx):
         ["—", f"Alivio de tensiones; mandrinar Ø{f(P['D_piv'])} H7 (plancha + collar) y ojales Ø{f(P['d_pp'])} H9 en línea; planear la zona de apoyo",
          f"Planitud 0,20 en Ø{f(P['D_top'] + 20)}; perpendicularidad 0,05", "Mandrinadora, regla", insp("Planitud de la cara de apoyo")]], dict(mark=["base_plancha"])))
     S.append(("2. MESA SOLDADA", ["mesa_plancha_inf"], [k for k in G["mesa"] if k != "mesa_plancha_inf"], (0, 0, 350), None, [
-        [pq(*G["mesa"]), "Armar sobre la plancha inferior: cubo, almas, nervios y anillos; cerrar con la plancha superior; soldar (GEN-007)",
+        [pq(*G["mesa"]), f"Armar sobre la plancha inferior ({fm(g.tbo + 3, 0)}): cubo, almas, nervios, anillo inferior en {fm(g.tpr + 3, 0)} y anillo superior ya planeado a {fm(g.tpr, 0)}; cerrar con la plancha superior; soldar (GEN-007)",
          f"Altura {f(g.hd)} ±0,5; posición angular de nervios ±0,1°", "Plantilla angular", insp("cara inferior de la mesa")],
-        ["—", f"Alivio; mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7; planear la cara inferior",
-         f"PCD ±0,3; paso {fm(360 / g.N_pin, 3)}° ±0,05°; planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]], dict(mark=["mesa_plancha_inf"])))
+        ["—", f"Alivio; planear la cara inferior 3 mm (plancha a {fm(g.tbo, 0)}, anillo inferior a {fm(g.tpr, 0)}); mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7",
+         f"Agujeros en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos, MES-002); planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]], dict(mark=["mesa_plancha_inf"])))
     # vista local del paso 3: plancha base recortada alrededor del collar (el pivote es chico frente a la base)
     import cadquery as _cq
     if "base_plancha" in ctx.shapes:
@@ -1099,7 +1099,9 @@ def sheet_mesa_conj2(ctx):
                   [("N°", 9, "C"), ("Ángulo", 22, "R"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("N°", 9, "C"), ("Ángulo", 22, "R"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R")], rows2)
     c.tail(ks, jn, ["Los nervios se cortan entre almas; las almas son continuas; 1 empalme por alma entre nervios.", "Masa del rótulo: mesa soldada / con pasadores y pernos.", f"Holguras del collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo); el cubo gira sin tocar el collar.",
                     f"Tabla de pasadores: ángulos desde +x, sentido antihorario; PCD Ø{f(2 * g.R_pin)} y ángulos teóricamente exactos; agujeros en posición Ø0,3 respecto del eje de la mesa (MES-002).",
-                    f"Mesa armada (datum A = cara inferior planeada): cara superior paralela a A dentro de 0,5; agujeros Ø{f(g.d_pin)} H7 de los anillos superior e inferior coaxiales Ø0,05 (eje común, mandrinado en línea)."])
+                    f"Mesa armada (datum A = cara inferior planeada): cara superior paralela a A dentro de 0,5; agujeros Ø{f(g.d_pin)} H7 de los anillos superior e inferior coaxiales Ø0,05 (eje común, mandrinado en línea).",
+                    f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); "
+                    f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."])
     c.build()
     return c.h
 

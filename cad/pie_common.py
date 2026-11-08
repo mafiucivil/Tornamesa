@@ -26,7 +26,7 @@ def register(ctx):
             continue
         ks = [k for k in keys if ctx.m.get(k)]
         for k in ks:
-            ctx.group_of[k] = ctx.m.get(ks[0]).code
+            ctx.group_of[k] = ctx.m.get(ks[0]).code_lamina
 
 
 def ghost(p, V, keys, hatch=False):

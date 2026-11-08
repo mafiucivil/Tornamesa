@@ -16,6 +16,7 @@ def main():
     D = load(jp)
     m = M3.build(D, verbose=False)
     M3.apply_backing_holes(m)
+    M3.asignar_codigos(m)
     ctx = Ctx(m)
     import modelo3d_tt300c as M3b
     ctx.rep = M3b.masas(m) and dict(masa_total_ensamble=M3b.cog(m)[0], cg=M3b.cog(m)[1])

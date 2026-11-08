@@ -82,10 +82,21 @@ class Part:
         self.num = 0
         self.pos = 0
         self._vol = None
+        self.suf = ""             # sufijo de geometría (H-04): INT-003-1 / INT-003-2 …
+        self.tipos = []           # tipos de la pieza dentro del juego (sectores de geometría distinta): [dict(suf, n, idx, masa_unit, firma)]
+        self.firmas_cod = {}      # {código: firma geométrica} (control de códigos)
 
     @property
     def code(self):
+        return f"{CODE}-{self.sub}-{self.num:03d}" + (f"-{self.suf}" if self.suf else "") + f"-{REV}"
+
+    @property
+    def code_lamina(self):
+        """Número de la lámina que dibuja la pieza: el número de pieza sin el sufijo de geometría (la ficha de la lámina lista los códigos)."""
         return f"{CODE}-{self.sub}-{self.num:03d}-{REV}"
+
+    def code_suf(self, suf):
+        return f"{CODE}-{self.sub}-{self.num:03d}" + (f"-{suf}" if suf else "") + f"-{REV}"
 
     @property
     def volume(self):
@@ -127,7 +138,80 @@ INT_CODIGOS = {
     "int_cara/2": (14, "2.ª placa de bronce de la mesa (sector)", "C2"),
 }
 # láminas de características de la interfaz (sin pieza propia): número fijo
-INT_LAMINAS = {101: "Ranuras de engrase (cara deslizante de la mesa o de la placa de bronce)", 102: "Patrón de tapones de grafito"}
+INT_LAMINAS = {101: "Ranuras de engrase (cara deslizante de la mesa o de la placa de bronce)", 102: "Patrón de tapones de grafito",
+               103: "Tipos de sector del disco de la mesa (planta de cada tipo)", 104: "Tipos de sector o pastilla de bronce (planta de cada tipo)",
+               105: "Tipos de sector del disco duro o de la 2.ª placa (planta de cada tipo)", 106: "Tipos de sector del disco de la base", 107: "Tipos de sector de UHMW"}
+LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_disco_base": 106, "int_uhmw": 107}
+
+
+# Registro de códigos por geometría (H-04: un código = una geometría). Para cada pieza cuya geometría cambia entre variantes:
+# [(variantes, descripción de la geometría, número de tipos dentro del juego)]. El sufijo del código es correlativo dentro del mismo número
+# de pieza: clase 1 → -1 … -n1, clase 2 → -(n1 + 1) …; los tipos dentro de un juego (sectores de geometría distinta) son sufijos sucesivos.
+# Las clases y los tipos se midieron sobre la geometría real (cad/firmas.py, registro cad/firmas_codigos.json); el control de cada juego y
+# el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
+VAR_CODIGOS = {
+    "base_plancha": [(("BASE", "AF2", "W"), "sin agujeros de la interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con agujeros roscados de los tornillos de posición de la interfaz", 1)],
+    "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de la interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con agujeros roscados de los tornillos de posición de la interfaz", 1)],
+    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "con roscas de los tornillos de posición y conductos de las graseras", 1),
+                        (("AF2",), "con conductos de las graseras (sin roscas)", 1), (("B",), "con roscas de los tornillos de posición", 1)],
+    "mesa_cubo": [(("BASE", "W"), "altura según la interfaz acero–acero", 1), (("A", "C1", "C2", "C3"), "altura según la interfaz A/C", 1), (("AF2",), "altura según la interfaz AF2", 1), (("B",), "altura según la interfaz B", 1)],
+    "pivote": [(("BASE", "W"), "largo según la interfaz acero–acero", 1), (("A", "C1", "C2", "C3"), "largo según la interfaz A/C", 1), (("AF2",), "largo según la interfaz AF2", 1), (("B",), "largo según la interfaz B", 1)],
+    "int_disco_base": [(("A", "B"), "sector inoxidable con muesca y avellanados (desmontable)", 1), (("AF2",), "sector inoxidable liso, pegado", 1)],
+    "int_disco_mesa": [(("A",), "sector inoxidable ranurado con muesca y avellanados; 3 tipos por el trazado de las ranuras", 3), (("AF2",), "sector inoxidable ranurado, pegado; 3 tipos por el trazado de las ranuras", 3),
+                       (("B",), "sector inoxidable liso con muesca y avellanados", 1)],
+    "int_tope_base": [(("A", "B"), "barra de tope (largo de A/B)", 1), (("C1", "C2", "C3"), "barra de tope (largo de C)", 1)],
+    "int_tope_mesa": [(("A", "B"), "barra de tope (largo de A/B)", 1), (("C1", "C3"), "barra de tope (largo de C1/C3)", 1), (("C2",), "barra de tope (largo de C2)", 1)],
+    "int_bronce": [(("C1", "C2"), "sector de bronce; 4 tipos por el patrón de tapones", 4), (("C3",), "pastilla de bronce; 4 tipos por el patrón de tapones", 4)],
+    "int_cara": [(("C1", "C3"), "sector del disco duro; 2 tipos (con y sin conducto de grasera)", 2), (("C2",), "sector de la 2.ª placa de bronce; 2 tipos (con y sin conducto de grasera)", 2)],
+}
+
+
+def variante_de(g):
+    v = g.variante
+    return "BASE" if v == "BASE" else v.replace("-W", "")
+
+
+def _num_clase(key, variantes):
+    """Número de pieza de la interfaz que corresponde a una clase (la pastilla C3 y la 2.ª placa C2 tienen número propio)."""
+    v = variantes[0]
+    conf = int(v[1]) if v.startswith("C") else 0
+    ck = f"{key}/{conf}" if f"{key}/{conf}" in INT_CODIGOS else key
+    return INT_CODIGOS[ck][0] if ck in INT_CODIGOS else None
+
+
+def asignar_codigos(m):
+    """H-04: mide la geometría real de cada pieza fabricada (firmas.py), separa los tipos de un mismo código y asigna el sufijo de geometría
+    según el registro VAR_CODIGOS. Idempotente."""
+    import firmas
+    g = m.g
+    var = variante_de(g)
+    m.info["codigos_fallas"] = []
+    for p in m.parts:
+        if p.comercial or p.sub == "ACC" or p.key.startswith("mensula"):
+            continue
+        ts = firmas.tipos(p)
+        clases = VAR_CODIGOS.get(p.key)
+        off, n_esp = 0, None
+        if clases:
+            ci = next((i for i, c in enumerate(clases) if var in c[0]), None)
+            if ci is None:
+                m.info["codigos_fallas"].append(f"{p.key}: la variante {var} no figura en el registro de códigos")
+                continue
+            mi = _num_clase(p.key, clases[ci][0]) if p.sub == "INT" else None
+            off = sum(c[2] for j, c in enumerate(clases[:ci]) if (p.sub != "INT" or _num_clase(p.key, c[0]) == mi))
+            n_esp = clases[ci][2]
+            if len(ts) != n_esp:
+                m.info["codigos_fallas"].append(f"{p.code}: {len(ts)} geometrías en el juego, el registro prevé {n_esp} (actualizar VAR_CODIGOS)")
+        multi = bool(clases) or len(ts) > 1
+        sufs = [str(off + i + 1) if multi else "" for i in range(len(ts))]
+        p.suf = sufs[0]
+        n_tot = sum(len(ix) for _, ix in ts)
+        unit = p.mass_unit
+        k_ = p.qty // n_tot if n_tot and p.qty % n_tot == 0 else 1
+        p.tipos = [dict(suf=sf, n=len(ix) * k_, idx=ix, firma=fs, masa_unit=(p.rho * fs["vol"] if p.mass_override is None else unit))
+                   for sf, (fs, ix) in zip(sufs, ts)] if len(ts) > 1 else []
+        p.firmas_cod = {p.code_suf(sf).replace(CODE + "-", ""): fs for sf, (fs, ix) in zip(sufs, ts)}
+        p.hoja_tipos = len(ts) > 1 and p.key in ("int_disco_base", "int_disco_mesa", "int_cara", "int_bronce", "int_uhmw")
 
 
 def grease_ang(g, k):
@@ -208,6 +292,7 @@ class Layout:
         self.r_circ = rg
         self.phi_rad = [k * 360.0 / g.n_gr_rad for k in range(g.n_gr_rad)]
         self.dk = ISO10642_DK.get(int(self.d_tor), 2 * self.d_tor)
+        self.dk_av = self.dk + 1.0          # H-14: avellanado con holgura sobre dk máx. de ISO 10642 (M6: Ø13 para dk 12)
         self.d_clear = ISO273.get(int(self.d_tor), self.d_tor * 1.1)
 
     def screw_len(self, t, rec):
@@ -269,11 +354,12 @@ def sector_features(g, lay, idx, a_deg, t, z_face, face, L_notch, grooves, plugs
 def csink_cut(lay, x, y, z_slide, rec, s, t):
     """Corte del disco/placa para un tornillo avellanado ISO 10642: contraperforado hasta la cabeza, cono de 90° y agujero pasante.
     s = −1 si el material está bajo la cara deslizante (cara arriba), +1 si está sobre ella."""
-    d, dk, dc = lay.d_tor, lay.dk, lay.d_clear
-    z_ht = z_slide + s * (-rec) if False else z_slide + (-s) * rec          # cara superior de la cabeza (recesada rec dentro del material)
-    z_ht = z_slide + s * rec
+    d, dk, dc = lay.d_tor, lay.dk_av, lay.d_clear
+    z_ht = z_slide + s * rec                                                 # cara superior de la cabeza (recesada rec dentro del material)
     rim = 0.05 * d
-    zc0 = z_ht + s * rim                                                     # inicio del cono (radio dk/2)
+    # inicio del cono (radio dk_av/2): el cono de 90° alcanza el radio de la cabeza (dk/2) a la altura del borde de la cabeza, así la cabeza
+    # queda a rec bajo la cara con el avellanado de holgura (H-14)
+    zc0 = z_ht + s * rim - s * (lay.dk_av - lay.dk) / 2
     hcone = (dk - dc) / 2
     cuts = []
     zlo, zhi = (min(z_slide - s * 1.0, zc0), max(z_slide - s * 1.0, zc0))
@@ -930,6 +1016,7 @@ def export_step_glb(m, out):
 def run(D, out, verbose=True):
     m = build(D, verbose)
     apply_backing_holes(m)
+    asignar_codigos(m)
     if verbose:
         print("  exportando STEP/GLB...", flush=True)
     export_step_glb(m, out)
