@@ -401,8 +401,8 @@ def build(D, verbose=True):
     for (x, y) in g.ear_pos:
         ears.append(ear_prof.rotate((0, 0, 0), (0, 0, 1), math.degrees(math.atan2(y, x))).translate((x, y, tb)))
     m.add(Part("orejas", "IZA", "Oreja de izaje", f"Plancha e={f(tE)}: base {f(2 * Rr)} × altura {f(hE)} + semicírculo R{f(Rr)}, agujero Ø{f(dE)} a {f(hE)} sobre la base",
-               compound(ears), 4, A572, "Oxicorte/plasma (perfil y agujero), biselado de la base de apoyo, soldadura a la base con filete a ambos lados; plano de la oreja en el plano radial hacia el centro",
-               core="base", color=(0.9, 0.35, 0.2), obs="Agujero de oreja a cota exacta de plantilla; grillete con pasador ≤ d − 3"))
+               compound(ears), 4, A572, "Oxicorte/plasma del perfil; agujero H12 mecanizado (taladro y mandrinado); base de apoyo a escuadra (sin bisel); soldadura a la base con filete a ambos lados; plano de la oreja en el plano radial hacia el centro",
+               core="base", color=(0.9, 0.35, 0.2), obs="Agujero de la oreja mecanizado H12 (Ra 6,3); grillete con pasador ≤ d − 3"))
     # ===================== ACC: bancadas =====================
     beds = []
     for sx in (1, -1):

@@ -263,11 +263,12 @@ def tornillos(ctx):
 def gdt_vistas(ctx, hojas):
     """B-20: en cada lámina de pieza, cada tolerancia geométrica de la tabla tiene su marco dibujado en una vista (sobre la superficie o la cota que controla),
     cada letra de datum citada tiene su indicador ISO 5459 en una vista, y ninguna indicación declarada quedó sin lugar.
-    Fuera del alcance de esta emisión: láminas del accionamiento (ACC-*), que se redibujan con el modo pivotado."""
+    Fuera del alcance de esta emisión: láminas del accionamiento (ACC-* y las piezas de ménsula y bancada), que se redibujan con el modo pivotado."""
     out = []
+    acc = {p.code for p in ctx.m.parts if p.key.startswith(("mensula", "bancada", "cilindro", "patin", "una", "pasador_vastago", "pasador_ojal"))}
     for h in hojas:
         t = h.plano.replace(CODE + "-", "")
-        if getattr(h, "serie", "") != "FAB" or t.startswith("ACC"):
+        if getattr(h, "serie", "") != "FAB" or t.startswith("ACC") or set(getattr(h, "items", []) or []) & acc:
             continue
         items = getattr(h, "gd_items", None) or []
         ok = getattr(h, "indic_ok", []) or []

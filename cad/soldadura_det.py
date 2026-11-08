@@ -93,13 +93,15 @@ def fillet_size(z, t1, t2):
     return (2 * L + t1, t2 + max(26.0, 4.5 * z) + 4.0), L
 
 
-def prep_fillet(s, ox, oy, k, z, t1, t2, jid=None, plano=None, both=True, tag="", lab1=None):
-    """Filete en T: plancha vertical t1 sobre plancha horizontal t2, catetos z, garganta a = 0,707 z."""
+def prep_fillet(s, ox, oy, k, z, t1, t2, jid=None, plano=None, both=True, tag="", lab1=None, edge=False):
+    """Filete en T: plancha vertical t1 sobre plancha horizontal t2, catetos z, garganta a = 0,707 z.
+    edge=True: la plancha vertical queda a ras del canto de la horizontal (cara exterior coplanar, B-08): la horizontal solo se dibuja del lado del filete."""
     (Wn, Hn), L = fillet_size(z, t1, t2)
     Hh = max(26.0, 4.5 * z)
     xc = L + t1 / 2
     P = lambda x, y: (ox + x * k, oy + y * k)
-    base = [P(0, 0), P(Wn, 0), P(Wn, t2), P(0, t2)]
+    x_b0 = xc - t1 / 2 if edge else 0.0
+    base = [P(x_b0, 0), P(Wn, 0), P(Wn, t2), P(x_b0, t2)]
     web = [P(xc - t1 / 2, t2), P(xc + t1 / 2, t2), P(xc + t1 / 2, t2 + Hh), P(xc - t1 / 2, t2 + Hh)]
     _poly(s, base, 0.0)
     _poly(s, web, 90.0)
@@ -115,8 +117,14 @@ def prep_fillet(s, ox, oy, k, z, t1, t2, jid=None, plano=None, both=True, tag=""
     s.dim(P(xe, t2 + z), P(xe + z, t2 + z), 7 * 1, f"z = {fm(z, 0)}", "h", outside=True) if False else None
     s.dim(P(xe, t2), P(xe + z, t2), 10 + 0, f"z = {fm(z, 0)}", "h", outside=True) if False else None
     s.dim(P(xe + z, t2 - 0), P(xe + z, t2 + z), 9, f"z = {fm(z, 0)}", "v", outside=True)
-    s.dim(P(xe, t2 + z), P(xe + z, t2), 7, f"a = {fm(z * 0.7071, 1)}", "a", outside=True)
-    s.dim(P(0, 0), P(0, t2), -9, f"t = {fm(t2, 0)}", "v")
+    # garganta: trazo fino desde la raíz hasta la cara del cordón y llamada fuera del contorno y del achurado (B-48)
+    gm = P(xe + z / 2, t2 + z / 2)
+    s.line(P(xe, t2), gm, "FINA")
+    qa = (P(xe + z, 0)[0] + 9 + 12, gm[1])
+    s.leader(gm, qa, f"a = {fm(z * 0.7071, 1)}", dot=True)
+    s.dim(P(x_b0, 0), P(x_b0, t2), -9, f"t = {fm(t2, 0)}", "v")
+    if edge:
+        s.text("canto de la plancha (cara exterior coplanar)", (P(x_b0, 0)[0] - 3, P(0, -3)[1]), T_N, "TOP_LEFT")
     s.dim(P(xc - t1 / 2, t2 + Hh), P(xc + t1 / 2, t2 + Hh), 8, lab1 or f"t = {fm(t1, 0)}", "h", outside=True)
     # rotura de la pieza vertical dibujada parcialmente (ISO 128-30)
     xa_, xb_, ym_ = P(xc - t1 / 2 - 2, 0)[0], P(xc + t1 / 2 + 2, 0)[0], P(0, t2 + Hh)[1]
@@ -165,7 +173,7 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
 
 
 # ------------------------------------------------------------------------------------------------
-def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None):
+def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None, edge=False):
     """Agrega a la lámina p un esquema de junta correspondiente al registro de soldaduras w (dict de ctx.welds). Devuelve la especificación."""
     jid = w["id"]
     if w["groove"] and w["sym"] in ("V", "bevel"):
@@ -192,4 +200,4 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
     t1 = t1 or max(min(w["t"] or 10.0, 20.0), 6.0)
     (Wn, Hn), _ = fillet_size(z, t1, t2)
     return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 1, 2, 2), extra=(0, 0, 112, 0), mins=mins or 2.0, maxs=maxs or 5.0, title=title or f"DETALLE {jid}: FILETE EN T z{fm(z, 0)} (a = {fm(z * 0.7071, 1)})",
-                custom=lambda s, ox, oy, k, pl: prep_fillet(s, ox, oy, k, z, t1, t2, jid, pl, both, lab1=lab1))
+                custom=lambda s, ox, oy, k, pl: prep_fillet(s, ox, oy, k, z, t1, t2, jid, pl, both, lab1=lab1, edge=edge))

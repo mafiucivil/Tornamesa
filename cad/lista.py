@@ -62,7 +62,7 @@ def cut_rows(ctx):
     add("mensula_mejilla", "Plancha", f"{f(P['L_ch'])}×{f(BR['H'] + 5)}×{f(P['t_ch'])}")
     add("mensula_oreja_sup", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(P['t_ch'])}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 (sobremedida {fm(SOBRE_MEC, 0)}); agujero tras soldar")
     add("mensula_oreja_inf", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(BR['spacer'] + P['t_ch'] + 2)}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 y caras planeadas a {f(BR['spacer'] + P['t_ch'])}; agujero tras soldar")
-    add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte con agujero")
+    add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte del perfil; agujero mecanizado H12")
     add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")
     add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
     add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP; caras planeadas a {f(g.tpr)}", qty=4)

@@ -333,8 +333,8 @@ class Plano:
     def datum_in(self, view, mode, letter, at=None, d=None, prefix=None):
         self.indic.append(("datum", view, mode, dict(letter=letter, at=at, d=d, prefix=prefix)))
 
-    def ra_in(self, view, ra, at, d):
-        self.indic.append(("ra", view, "surf", dict(ra=ra, at=at, d=d)))
+    def ra_in(self, view, ra, at=None, d=None, prefix=None):
+        self.indic.append(("ra", view, "dim" if prefix else "surf", dict(ra=ra, at=at, d=d, prefix=prefix)))
 
     def _draw_indic(self):
         import gdt_vistas as GV
@@ -343,8 +343,8 @@ class Plano:
         if not self.indic:
             return
         Lb = GV.Libre(s, getattr(h, "zone", None) or h.R["main"])
-        orden = {"datum": 0, "fcf": 1, "ra": 2}
-        for kind, view, mode, a in sorted(self.indic, key=lambda t: orden[t[0]]):
+        orden = {"datum": 0, "fcf": 2, "ra": 3}
+        for kind, view, mode, a in sorted(self.indic, key=lambda t: 1 if (t[0] == "ra" and t[2] == "dim") else orden[t[0]]):
             V = self.named.get(view)
             if V is None:
                 h.indic_fallo.append((kind, view, "vista inexistente"))
@@ -353,12 +353,25 @@ class Plano:
             pt = None if at_ is None else ([V.P(q) for q in at_] if isinstance(at_, list) else V.P(at_))
             if isinstance(at_, list) and not isinstance(a.get("d"), list):
                 a = dict(a, d=[a["d"]] * len(at_))
+            # dirección dada en 3D (modelo): se proyecta en la vista
+            def _d2(q3, d3):
+                if d3 is None or len(d3) != 3:
+                    return d3
+                p0, p1 = V.P(q3), V.P((q3[0] + d3[0], q3[1] + d3[1], q3[2] + d3[2]))
+                return (p1[0] - p0[0], p1[1] - p0[1])
+            if isinstance(at_, list):
+                a = dict(a, d=[_d2(q, dd) for q, dd in zip(at_, a["d"])])
+            elif at_ is not None:
+                a = dict(a, d=_d2(at_, a.get("d")))
             if kind == "fcf":
                 ok = GV.fcf(s, Lb, mode, a["sym"], a["tol"], a["datum"], a=pt, d=a["d"], prefix=a["prefix"])
                 tag = ("fcf", a["sym"], a["tol"], a["datum"] if not isinstance(a["datum"], list) else tuple(a["datum"]))
             elif kind == "datum":
                 ok = GV.datum(s, Lb, mode, a["letter"], a=pt, d=a["d"], prefix=a["prefix"])
                 tag = ("datum", a["letter"])
+            elif mode == "dim":
+                ok = GV.rugosidad_cota(s, Lb, a["ra"], a["prefix"])
+                tag = ("ra", a["ra"])
             else:
                 ok = GV.rugosidad(s, Lb, a["ra"], pt, a["d"])
                 tag = ("ra", a["ra"])

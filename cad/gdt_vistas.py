@@ -243,23 +243,65 @@ def datum(s, L, mode, letter, a=None, d=None, prefix=None):
 
 
 def rugosidad(s, L, ra, a, d):
-    """Símbolo ISO 1302 sobre una línea de referencia cuya flecha toca la superficie en a (d: dirección hacia afuera del material)."""
+    """Símbolo ISO 1302 sobre una línea de referencia cuya flecha toca la superficie en a (d: dirección hacia afuera del material).
+    La línea puede quebrarse una vez (tramo normal a la superficie y tramo vertical) para salir de agujeros y cortes estrechos."""
     if isinstance(a, list):
         return any(rugosidad(s, L, ra, a_, d_) for a_, d_ in zip(a, d))
     u = _unit(d)
-    wS = 7.0 + tw(ra, T_N) + 4.0
-    for L1 in (8.0, 13.0, 19.0, 26.0, 34.0, 44.0, 56.0):
-        e = (a[0] + u[0] * L1, a[1] + u[1] * L1)
-        for sg in ((1, -1) if u[0] >= -0.2 else (-1, 1)):
-            x0 = e[0] if sg > 0 else e[0] - wS - 4
-            x1 = x0 + wS + 4
-            x2 = x0 + 4.0 + 9.0 + tw(ra, T_N) + 1.0
-            if L.ok_rect(x0, e[1] - 0.5, max(x1, x2), e[1] + 17.0, pad=0.5) and L.ok_line(a, e):
-                s.line(a, e, "COTA")
-                s.arrow(a, math.atan2(-u[1], -u[0]))
-                s.line((x0, e[1]), (x1, e[1]), "COTA")
-                s.roughness((x0 + 4.0, e[1]), ra)
-                L.take(x0, e[1] - 0.5, max(x1, x2), e[1] + 17.0)
-                L.take(min(a[0], e[0]) - 0.3, min(a[1], e[1]) - 0.3, max(a[0], e[0]) + 0.3, max(a[1], e[1]) + 0.3)
+    wS = 4.0 + 9.0 + tw(ra, T_N) + 1.0
+    cands = []
+    for L1 in (8.0, 13.0, 19.0, 26.0, 34.0, 44.0, 56.0, 4.0):
+        e1 = (a[0] + u[0] * L1, a[1] + u[1] * L1)
+        for dv in [0.0] + [v * sg_ for v in range(10, 100, 5) for sg_ in (1, -1)]:
+            if dv and abs(u[1]) > 0.7:
+                continue
+            e2 = (e1[0], e1[1] + dv)
+            for sg in ((1, -1) if u[0] >= -0.2 else (-1, 1)):
+                cands.append((L1 + abs(dv), e1, e2, sg))
+    cands.sort(key=lambda c: c[0])
+    for _, e1, e2, sg in cands:
+        x0 = e2[0] if sg > 0 else e2[0] - wS - 4
+        x1 = x0 + wS + 4
+        if L.ok_rect(x0, e2[1] - 0.5, x1, e2[1] + 17.0, pad=0.5) and L.ok_line(a, e1) and L.ok_line(e1, e2):
+            s.line(a, e1, "COTA")
+            if e2 != e1:
+                s.line(e1, e2, "COTA")
+            s.arrow(a, math.atan2(-u[1], -u[0]))
+            s.line((x0, e2[1]), (x1, e2[1]), "COTA")
+            s.roughness((x0 + 4.0 if sg > 0 else x1 - wS, e2[1]), ra)
+            L.take(x0, e2[1] - 0.5, x1, e2[1] + 17.0)
+            for p_, q_ in ((a, e1), (e1, e2)):
+                L.take(min(p_[0], q_[0]) - 0.3, min(p_[1], q_[1]) - 0.3, max(p_[0], q_[0]) + 0.3, max(p_[1], q_[1]) + 0.3)
+            return True
+    return False
+
+
+def rugosidad_cota(s, L, ra, prefix):
+    """ISO 1302, 7.3: símbolo de rugosidad junto a la cota del elemento (sobre la línea de cota o el rellano de la llamada, a continuación del texto)."""
+    from ezdxf import bbox
+    cands = []
+    for m in getattr(s, "movable", []):
+        try:
+            t = m["e"].dxf.text
+        except Exception:
+            continue
+        if t.startswith(prefix) and abs(m["a"][1] - m["b"][1]) < 0.01:
+            cands.append((m["e"], m["a"][1], min(m["a"][0], m["b"][0]), max(m["a"][0], m["b"][0])))
+    if not cands:
+        for e in s.m:
+            if e.dxftype() == "TEXT" and e.dxf.text.startswith(prefix) and abs(e.dxf.get("rotation", 0.0) or 0.0) < 0.5:
+                b = bbox.extents([e], fast=False)
+                cands.append((e, b.extmin.y - 0.6, b.extmin.x - 1.0, b.extmax.x + 1.0))
+    wS = 4.0 + 9.0 + tw(ra, T_N) + 1.0
+    for e, y, xa, xb in cands:
+        b = bbox.extents([e], fast=False)
+        for x0 in (b.extmax.x + 2.0, b.extmin.x - wS - 2.0, b.extmax.x + 8.0):
+            if L.ok_rect(x0 + 0.6, y + 0.6, x0 + wS, y + 17.0, pad=0.2):
+                s.roughness((x0 + 3.5, y), ra)
+                if x0 + 3.5 > xb:                       # la línea de cota (o el rellano) se prolonga hasta el vértice del símbolo
+                    s.line((xb, y), (x0 + 3.5 + 2.0, y), "COTA")
+                elif x0 + 3.5 < xa:
+                    s.line((x0 + 3.5 - 2.0, y), (xa, y), "COTA")
+                L.take(x0, y, x0 + wS, y + 17.0)
                 return True
     return False
