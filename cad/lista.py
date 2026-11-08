@@ -20,7 +20,7 @@ def extras(ctx):
     L = [
         ("Resorte de retorno de la uña (compresión)", n, f"Comercial; carrera ≥ {f(g.KG['travel'] + 5)} mm, fuerza 150–300 N", "A DEFINIR POR CATÁLOGO"),
         ("Tornillo ISO 10642 M10×25 cl. 10.9 (tapa retenedora)", 4, "10.9", "A DEFINIR POR CATÁLOGO"),
-        ("Tornillo avellanado M10 (tapa de inspección)", 6, "10.9", "A DEFINIR POR CATÁLOGO"),
+        (f"Tornillo ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} cl. 10.9 (tapa de inspección)", 6, "10.9", "A DEFINIR POR CATÁLOGO"),
         ("Placa y tornillo de retención de pasador de articulación", 2 * n, "S355J2 / 8.8", "A DEFINIR POR CATÁLOGO"),
         ("Grillete de izaje (pasador de Ø ≤ %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
         ("Faldón de sello perimetral (opcional) y fleje", 1, "NBR 70 / S235 galvanizado; dimensiones por el proveedor (opcional)", "A DEFINIR POR CATÁLOGO"),
@@ -30,6 +30,19 @@ def extras(ctx):
     if g.opt == 1:
         L.append(("Pasta de contacto/limpieza para discos inoxidables (opcional)", 1, "Cantidad según el proveedor", "A DEFINIR POR CATÁLOGO"))
     return L
+
+
+SOBRE_MEC = 5.0     # sobremedida de mecanizado por cara/ancho mecanizado a cota [mm]
+
+
+def rib_len(ctx, p):
+    """Largo radial real de un tramo de nervio (proyección de sus vértices sobre la dirección radial del primer nervio)."""
+    sol = ctx.shapes[p.key].Solids()[0] if p.key in ctx.shapes else p.solid.vals()[0].Solids()[0]
+    cc = sol.Center()
+    nr = math.hypot(cc.x, cc.y) or 1.0
+    ur = (cc.x / nr, cc.y / nr)
+    pr = [v.X * ur[0] + v.Y * ur[1] for v in sol.Vertices()]
+    return max(pr) - min(pr)
 
 
 def cut_rows(ctx):
@@ -43,25 +56,24 @@ def cut_rows(ctx):
             R.append([p.code.replace(CODE + "-", ""), p.name[:34], forma, dim, str(qty if qty is not None else p.qty), (mat or p.material)[:44], nota])
     B, tb = g.B, g.tb
     add("base_plancha", "Plancha", f"{f(B + 10)}×{f(B + 10)}×{f(tb)}", "Sobremetal 5 por borde; planitud/planeado tras soldar")
-    add("collar", "Disco", f"Ø{f(g.D_boss + 10)}×{f(g.h_boss + 5)}", "Plancha gruesa; agujero tras soldar")
+    add("collar", "Disco", f"Ø{f(g.D_boss + 10)}×{f(g.h_boss + 5)}", f"De plancha de {f(g.h_boss + 5)}: caras planeadas a {f(g.h_boss)} y Ø{f(g.D_boss)} torneado; agujero tras soldar")
     add("marco_largo", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{f(B)}")
     add("marco_corto", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{f(B - 2 * P['rim_t'])}")
     add("mensula_mejilla", "Plancha", f"{f(P['L_ch'])}×{f(BR['H'] + 5)}×{f(P['t_ch'])}")
-    add("mensula_oreja_sup", "Plancha", f"{f(BR['Win'] - 1)}×{f(BR['Llug'] + 5)}×{f(P['t_ch'])}", "Agujero tras soldar")
-    add("mensula_oreja_inf", "Plancha", f"{f(BR['Win'] - 1)}×{f(BR['Llug'] + 5)}×{f(BR['spacer'] + P['t_ch'] + 2)}", "Agujero tras soldar")
+    add("mensula_oreja_sup", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(P['t_ch'])}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 (sobremedida {fm(SOBRE_MEC, 0)}); agujero tras soldar")
+    add("mensula_oreja_inf", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(BR['spacer'] + P['t_ch'] + 2)}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 y caras planeadas a {f(BR['spacer'] + P['t_ch'])}; agujero tras soldar")
     add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte con agujero")
     add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")
     add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
-    add("mesa_anillo_sup", "Segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", "Empalmes CJP", qty=4)
+    add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP; caras planeadas a {f(g.tpr)}", qty=4)
     add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
-    add("mesa_anillo_inf", "Segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", "Empalmes CJP", qty=4)
+    add("mesa_anillo_inf", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP; caras planeadas a {f(g.tpr)}", qty=4)
     for i, r in enumerate(D["almas"]):
         add(f"mesa_alma{i}", "Pletina rolada", f"{f(g.hw)}×{f(P['t_web'])}×{f(2 * math.pi * r + 20)}", f"R{f(r)}; 1 empalme CJP")
     for p in m.parts:
         if p.key.startswith("mesa_nervio"):
-            bb = p.solid.vals()[0].BoundingBox()
-            L_ = max(bb.xlen, bb.ylen)
-            R.append([p.code.replace(CODE + "-", ""), p.name, "Pletina", f"{f(g.hw)}×{f(P['t_rib'])}×{fm(L_, 1)}", str(p.qty), p.material[:44], p.desc.split(',', 2)[-1].strip()[:40]])
+            L_ = rib_len(ctx, p)
+            R.append([p.code.replace(CODE + "-", ""), p.name, "Plancha e = %s (anidado GEN-010/013)" % f(P["t_rib"]), f"{fm(L_ + 4, 0)}×{f(g.hw + 4)}×{f(P['t_rib'])}", str(p.qty), p.material[:44], f"largo terminado {fm(L_, 0)} (sobremetal 2 por extremo)"])
     add("mesa_cubo", "Anillo", f"Ø{f(P['D_hub'] + 10)}/Ø{f(g.d_bush - 10)}×{f(g.hw + 5)}")
     add("pasadores", "Barra", f"Ø{f(g.d_pin + 5)}×{f(g.hd + 6)}")
     add("pivote", "Barra", f"Ø{f(P['D_piv'] + 5)}×{f(g.L_piv + 6)}")

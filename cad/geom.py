@@ -15,6 +15,8 @@ RHO_UH = 0.94e-6       # UHMW-PE (núcleo)
 RHO_GR = 1.8e-6        # grafito (núcleo)
 CL1 = 1.0              # holgura de modelo entre piezas móviles (ya usada en el modelo 3D de la Rev B)
 
+WASHER_MAT = "C45 (EN 10083-2) templado y revenido a 300–370 HV"     # material ÚNICO de la arandela del perno del pasador (A-14)
+BORDE_MIN = 3.0     # borde mínimo [mm] entre un avellanado/agujero y el canto de la pieza o de otro agujero (control de avellanados)
 ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO."
 NOTA_VIENTO = "En caso de vientos fuertes no se recomienda realizar la operación."
 NOTA_ANCLAJE = "Equipo sin anclaje: apoyo sobre losa/mats con la presión admisible de la losa indicada en GEN-001 (verificación del cálculo); verificar la superficie de apoyo por terceros."
@@ -99,10 +101,22 @@ class G:
         self.cap_t = self.tt - 3 - self.cb_t - 1
         self.L_piv = self.tb + self.delta + self.hd - self.tt + 3
         self.z_bush0 = self.tb + self.h_boss + P["g_bush"]     # el buje arranca g_bush (2 mm) sobre el collar
+        # pivote con dos zonas rectificadas (decisión de ingeniería, A-02/B-01): p6 en la zona calada en plancha base + collar (H7/p6) y f7 en la zona del buje (F7/f7);
+        # transición de 1 mm entre ambas, por debajo del arranque del buje
+        self.z_p6 = self.tb + self.h_boss                      # fin de la zona p6 (desde la cara inferior del pivote = cara inferior de la base)
+        self.z_f7 = self.z_p6 + 1.0                            # inicio de la zona f7 (transición z_p6…z_f7)
+        assert self.z_f7 <= self.z_bush0 + 1e-6, "la zona f7 del pivote debe empezar antes que el buje"
         self.washer_D = self.d_pin + 30
-        # tapas del pivote (PROPUESTA del dibujante, S15): 4 × M10 en PCD 2/3 D_piv (tapa retenedora) y 6 × M10 en PCD Ø220 (tapa de inspección)
+        self.washer_d, self.washer_t = 22.0, 10.0               # arandela del perno M20: agujero Ø22 (ISO 273 medio) y espesor 10
+        self.pin_drill, self.pin_drill_L, self.pin_thr = 17.5, 45.0, 40.0   # rosca M20-6H del pasador: broca Ø17,5 prof. 45, rosca útil 40
+        # tapas del pivote (PROPUESTA del dibujante, S15): 4 × M10 en PCD 2/3 D_piv (tapa retenedora) y 6 × M8 ISO 10642 en la tapa de inspección (B-02):
+        # PCD tal que el avellanado quede dentro de la tapa con borde ≥ 3 mm y el agujero roscado deje pared ≥ 3 mm hacia el agujero central de la plancha superior
         self.cap_pcd = round(P["D_piv"] * 2 / 3, 0)
-        self.insp_pcd = 220.0
+        self.insp_d, self.insp_drill, self.insp_clear, self.insp_csk, self.insp_L = 8.0, 6.8, 9.0, 17.0, 16   # M8: broca Ø6,8, pasante Ø9 (ISO 273), avellanado Ø17×90° (dk 16, ISO 10642), largo 16
+        r_max = (self.cb_D / 2 - 1) - BORDE_MIN - self.insp_csk / 2              # tapa Ø(cb_D − 2)
+        r_min = self.hole_top / 2 + BORDE_MIN + self.insp_d / 2
+        assert r_max >= r_min, "la tapa de inspección no admite el patrón de tornillos con bordes ≥ 3 mm"
+        self.insp_pcd = 2.0 * math.floor(r_max)
         self.tap_m10, self.clear_m10 = 8.5, 11.0       # broca de macho M10 y paso medio (ISO 273)
         self.cap_tap, self.insp_tap = 20.0, 10.0       # profundidad de roscado en el pivote y en el fondo del rebaje
         self.ch_pin, self.ch_piv, self.ch_pp = 2.0, 3.0, 2.0      # chaflanes de dibujo (1×45° mínimo ISO 13715): pasador de empuje, pivote, pasadores de articulación
@@ -182,6 +196,29 @@ class G:
                     2: "Opción C-2: dos placas de bronce de aleaciones distintas",
                     3: "Opción C-3: pastillas de bronce con tapones de grafito + disco duro"}.get(self.conf, "Opción C")}[self.opt]
 
+    @property
+    def variante(self):
+        """Código corto de la variante del juego (rótulo y título de cada lámina): BASE, A, AF2, B, C1…C3, W (+ F2 = fijación pegada, W = cubierta de madera)."""
+        c = "BASE" if self.opt == 0 else {1: "A", 2: "B", 3: f"C{self.conf}"}[self.opt]
+        if self.opt and not self.removable:
+            c += "F2"
+        if self.wood:
+            c = "W" if self.opt == 0 else c + "-W"
+        return c
+
+    @property
+    def variante_nombre(self):
+        """Descripción completa de la variante: interfaz, fijación y cubierta."""
+        I = self.I
+        t = self.interfaz_nombre
+        if self.opt in (1, 2) and not self.removable:
+            t = t.split(":")[0] + f", fijación modo 2: discos inoxidables e{fm(I['tss'], 0)}/e{fm(I['tss2'], 0)} pegados" + (" (base liso, mesa ranurado)" if self.opt == 1 else "") + ", sin topes ni tornillos (no desmontable)"
+        elif self.opt and not self.removable:
+            t += "; fijación modo 2: sectores pegados, sin topes ni tornillos (no desmontable)"
+        if self.wood:
+            t += f"; con cubierta de madera e = {fm(self.P['t_wood'], 0)} y anillo de contención {fm(self.t_ring, 0)}×{fm(self.P['t_wood'], 0)}"
+        return t
+
     def tope(self, which):
         """Geometría resuelta del tope (interfazGeom.topes, ya calculada por el núcleo) de la pieza 'which' ('base'|'mesa'|'uhmw'); None si no hay topes."""
         T = {t["id"]: t for t in self.IG.get("topes", [])}
@@ -241,7 +278,7 @@ def supuestos(g):
         add("S05", "Posición de las ranuras de engrase",
             f"{g.n_gr_rad} radiales a k·360°/{g.n_gr_rad} de R_i a R_o (extremos abiertos: purga por el perímetro); {g.n_gr_circ} circunferenciales, la exterior a R_o − 30 y el resto equiespaciadas hasta R_i + 30",
             "El núcleo solo usa cantidad, ancho, profundidad y largo total (área perdida y volumen de grasa).")
-        add("S08", "Conducto de las graseras", "Grasera M10×1 en el canto de la plancha inferior; taladro Ø6 radial hasta R_o − 30 y Ø6 axial hasta la cara deslizante",
+        add("S08", "Conducto de las graseras", "Grasera M10×1 en el canto del anillo inferior de la mesa (MES-004), sobre la bisectriz de un sector; taladro Ø6 radial hasta R_o − 30 y Ø6 axial hasta la cara deslizante",
             "El núcleo indica «taladro Ø6 hasta la ranura exterior»; trayecto y cota no se entregan.")
     if g.opt == 3:
         add("S09", "Patrón de tapones de grafito", f"Malla triangular (escalonada) de paso {fm(P['bz_plug_p'], 0)} mm, Ø{fm(P['bz_plug_d'], 0)} mm, profundidad {fm(g.IG.get('tapon_prof_frac') or 0.7, 2)}·t; se omiten los tapones a menos de 4 mm de bordes, muescas, tornillos y ranuras",
@@ -255,8 +292,8 @@ def supuestos(g):
     if g.wood:
         add("S06", "Anillo de acero y tablones de la cubierta de madera", f"ADOPTADO por el mandante: pletina de {fm(g.t_ring, 0)} × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior (t_ring del núcleo; en m.total); tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección (PROVISORIA)",
             "El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
-    add("S15", "Atornillado de las tapas del pivote", f"Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø{fm(g.cap_pcd, 0)} a 45°+90°·k, roscados prof. {fm(g.cap_tap, 0)} en el pivote; tapa de inspección: 6 × M10 en PCD Ø{fm(g.insp_pcd, 0)} a 30°+60°·k, roscados prof. {fm(g.insp_tap, 0)} en el fondo del rebaje (PROPUESTA)",
+    add("S15", "Atornillado de las tapas del pivote", f"Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø{fm(g.cap_pcd, 0)} a 45°+90°·k, roscados prof. {fm(g.cap_tap, 0)} en el pivote; tapa de inspección: 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (ISO 10642) en PCD Ø{fm(g.insp_pcd, 0)} a 30°+60°·k, roscados prof. {fm(g.insp_tap, 0)} en el fondo del rebaje; avellanado y roscado con borde ≥ {fm(BORDE_MIN, 0)} mm (PROPUESTA)",
         "El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar).")
     add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de izaje de la base (espesor, radio y agujero: parámetros t_ear, R_ear, d_ear); la mesa debe izarse con medios definidos por el montajista.")
-    add("S14", "Retención axial del pivote", "Ajuste H7/p6 sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
+    add("S14", "Retención axial del pivote", "Zona p6 del pivote calada H7/p6, sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
     return S
