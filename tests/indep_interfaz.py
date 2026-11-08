@@ -565,6 +565,34 @@ def rowsAB(PP, k):
         ds = E_SS * (AL_SS - AL_S) * PP["dT"]
         R["Dilatación diferencial inox–acero: tensión si el disco quedara restringido"] = (ds, sad, ds / sad)
         R["Fijación permanente (pegado)"] = (0.0, None, None)
+        if k == 1:
+            # AF2 (decisión del mandante 08-11-2026): tornillos avellanados ISO 10642 10.9 disco de la mesa → plancha inferior, con el par de diseño
+            muA = PP["muA_d"]; Hecc = muA * Nn * PP["e"] * (4 / 3) * (Ro_ ** 3 - Ri_ ** 3) / (Ro_ ** 4 - Ri_ ** 4)
+            Td = muA * Nn * PP["r_ef"] / 1e3 + PP["mu_bush"] * Hecc * PP["D_piv"] / 2 / 1e3          # kN·m (caso de diseño)
+            d = PP["tor2_d"]; kk = {6: 3.72, 8: 4.96, 10: 6.2, 12: 7.44, 14: 8.4, 16: 8.8, 20: 10.16}.get(round(d), 0.62 * d)
+            dk = {4: 8, 5: 10, 6: 12, 8: 16, 10: 20, 12: 24, 14: 27, 16: 30, 20: 36}.get(round(d), 2 * d)
+            Ab = math.pi / 4 * d * d; dh = d + 1; tb = PP["t_bot"]; nr = round(PP["n_gr_rad"]) if PP["h_gr"] > 0 else 4
+            rOut = Ro_ - 30 if PP["h_gr"] > 0 and PP["n_gr_circ"] >= 1 else Ro_
+            emin = 22 if d <= 16 else (26 if d <= 20 else 1.25 * d)
+            rb = PP["tor2_r"] if PP["tor2_r"] > 0 else (rOut - PP["w_gr"] / 2 - dk / 2 - 5 if PP["h_gr"] > 0 and PP["n_gr_circ"] >= 1 else Ro_ - max(emin, dk / 2 + 5))
+            capV = 0.45 * PP["Fu_bolt"] / 2
+            def ev(n):
+                V = Td * 1e6 / (n * rb); sp = 2 * math.pi * rb / n; lc = sp - dh; te = t2 - kk / 2
+                RnD = min(1.2 * lc * te * PP["Fu_ss"], 2.4 * d * te * PP["Fu_ss"]); RnM = min(1.2 * lc * tb * PP["Fu"], 2.4 * d * tb * PP["Fu"])
+                return dict(n=n, V=V, sp=sp, RnD=RnD, RnM=RnM, f=max(V / Ab / capV, V / (RnD / 2), V / (RnM / 2)))
+            e_ = ev(round(PP["tor2_n"])) if PP["tor2_n"] > 0 else next((ev(nr * m) for m in range(1, 61) if ev(nr * m)["f"] <= 0.85), ev(nr * 60))
+            V = e_["V"]
+            R["AF2 · Tornillos avellanados disco–mesa: corte"] = (V / Ab, capV, V / Ab / capV)
+            R["AF2 · Tornillos: aplastamiento en el disco inoxidable"] = (V / 1e3, e_["RnD"] / 2 / 1e3, V / (e_["RnD"] / 2))
+            R["AF2 · Tornillos: aplastamiento en la plancha inferior"] = (V / 1e3, e_["RnM"] / 2 / 1e3, V / (e_["RnM"] / 2))
+            R["AF2 · Tornillos: separación entre centros"] = (3 * d, e_["sp"], 3 * d / e_["sp"])
+            R["AF2 · Tornillos: distancia al borde exterior"] = (emin, Ro_ - rb, emin / (Ro_ - rb))
+            R["AF2 · Tornillos: cabeza avellanada dentro del espesor"] = (kk + 0.5 + PP["ss_allow"], t2, (kk + 0.5 + PP["ss_allow"]) / t2)
+            R["AF2 · Tornillos: longitud roscada en la plancha inferior"] = (1.25 * d, tb, 1.25 * d / tb)
+            if PP["h_gr"] > 0:
+                gap = rOut - PP["w_gr"] / 2 - rb - dk / 2
+                R["AF2 · Tornillos: cabeza libre de la ranura circunferencial"] = (3.0, gap, 3.0 / gap)
+            R["AF2 · Tornillos: designación y geometría"] = (float(e_["n"]), rb, None)
     if k == 2:
         sl = PP["life"] * PP["turns_yr"] * 2 * math.pi * PP["r_ef"] / 1000
         h = PP["k_wear"] * 1e-7 * q * sl; ve = vedge_of(PP); tu = r["tuh"]
