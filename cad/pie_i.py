@@ -91,6 +91,13 @@ def int_sector_sheet(ctx, key, titulo, face):
             P2 = lambda u, w: V.P(u * ca - w * sa, u * sa + w * ca, ztop)
             s.pline([P2(r0b, -bb_ / 2), P2(r0b + Lb_, -bb_ / 2), P2(r0b + Lb_, bb_ / 2), P2(r0b, bb_ / 2)], "VIS", closed=True)
             s.line(P2(g.Ri - 10, 0), P2(g.Ro + 10, 0), "EJE")
+            # N-05: tramo del filete J21 del lado de la junta del disco (empieza a ≥ 10 mm de la junta)
+            r0j = m.info.get("uhmw_filete_r0", r0b)
+            sj = 1 if ofl > 0 else -1                       # lado de la barra hacia la junta del sector de acero más cercana
+            if r0j > r0b + 1:
+                pa_, pb_ = (r0b * ca - sj * bb_ / 2 * sa, r0b * sa + sj * bb_ / 2 * ca, ztop), (r0j * ca - sj * bb_ / 2 * sa, r0j * sa + sj * bb_ / 2 * ca, ztop)
+                s.line(P2(r0j, sj * (bb_ / 2 - 3)), P2(r0j, sj * (bb_ / 2 + 5)), "COTA")          # inicio del filete del lado de la junta
+                V.dim(pa_, pb_, sj * 7, orient="a", on=on, text=f"{fm(r0j - r0b, 0)}")
             rm_ = r0b + Lb_ / 2
             p.cut_mark("planta", "D", (rm_ * ca - (-60) * sa * 0 + 60 * sa, rm_ * sa - 60 * ca, ztop), (rm_ * ca - 60 * sa, rm_ * sa + 60 * ca, ztop), (ofl + 180) % 360)
         ang = math.radians(th / 2)
@@ -123,13 +130,11 @@ def int_sector_sheet(ctx, key, titulo, face):
         ax_ = 0.0 if rad_ else (g.junta("disc") / 2) / math.sin(h_)
         Lm_ = (g.Ri + g.Ro) / 2 * 0.92
         for sg_, let_ in ((1, "B"), (-1, "C")):
-            pe_ = [(ax_ + L_ * math.cos(h_), sg_ * L_ * math.sin(h_), ztop) for L_ in (Lm_, Lm_ * 0.85, Lm_ * 1.12, Lm_ * 0.7, Lm_ * 1.25, Lm_ * 0.55, Lm_ * 1.38)]
+            pe_ = [(ax_ + L_ * math.cos(h_), sg_ * L_ * math.sin(h_), ztop) for L_ in (Lm_ * 1.25, Lm_ * 1.12, Lm_, Lm_ * 1.38, Lm_ * 0.85, Lm_ * 0.7, Lm_ * 0.55)]
             p.datum_in("planta", "surf", let_, at=pe_, d=(-math.sin(h_), sg_ * math.cos(h_), 0))
         p.gd_in("planta", "dim", "pos", "0,2", "B-C", prefix=f"{fm(lay.b_tope + 2, 0)} (barra + 2)")
 
     def corte(V, p):
-        if not g.removable:                    # sin muesca: la vista no tiene aristas propias que acotar (H-41)
-            V.dimv((g.r_u + 60, 0, z0_), (g.r_u + 60, 0, z1_), "right", 0, on=on, text=f"{fm(t, 1)} (e) ±0,1")
         V.dim_dia((g.Ri + 2, 0, (z0_ + z1_) / 2), 0.0, 0, on=on, text="") if False else None
     p.vs("corte", on, "front", cut=CUT_Y, center=(g.r_u, 0, (z0_ + z1_) / 2), win=(-130, -t - 10, 130, t + 10), lv=(2, 2, 1, 2), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A POR LA BISECTRIZ", hs=0.35, w=1.2,
          auto=dict(tol={}, text={round(t, 1): f"{fm(t, 1)} (e) ±0,1"}, holes=False, axes="v"))      # H-26: sin cadenas contra los bordes de la ventana
@@ -187,7 +192,8 @@ def int_sector_sheet(ctx, key, titulo, face):
     if con_barras:
         p.table_block("BARRAS DEL REBAJE SOLDADAS AL SECTOR (una por sector, en la junta entre sectores de UHMW)", [("Dato", 60, "L"), ("Valor", 110, "L")],
                       [["Pieza", f"{ctx.code('int_tope_uhmw').replace(CODE + '-', '')} (lámina propia)"], ["Ángulo del eje de la barra", f"{fm(m.info.get('uhmw_off', 0.0), 2)}° + {fm(360.0 / m.get('int_tope_uhmw').qty, 2)}°·k desde +x ({fm(ofl, 2)}° desde la bisectriz del sector)"],
-                       ["Radios de la barra", f"r = {fm(g.Ri + 50, 0)} a {fm(g.Ri + 50 + m.info['uhmw_bar_L'], 0)}"], ["Soldadura", "J21: 2 filetes 309L, VT 100 % y PT 100 %"]])
+                       ["Radios de la barra", f"r = {fm(g.Ri + 50, 0)} a {fm(g.Ri + 50 + m.info['uhmw_bar_L'], 0)}"], ["Soldadura", f"J21: 2 filetes 309L, VT 100 % y PT 100 %; el filete del lado de la junta del disco arranca en r = {fm(m.info.get('uhmw_filete_r0', g.Ri + 50), 0)} "
+                        f"(≥ 10 mm de la junta entre sectores desmontables): tramo sin filete acotado «{fm(m.info.get('uhmw_filete_r0', g.Ri + 50) - (g.Ri + 50), 0)}» en la planta, desde el extremo interior de la barra"]])
     p.notes(([f"Subconjunto soldado: sector del disco + barra {ctx.code('int_tope_uhmw').replace(CODE + '-', '')}. Secuencia: 1) cortar los sectores; 2) trazar la línea de junta de los sectores de UHMW y soldar la barra (J21, 309L, PT 100 %); 3) rectificar/lapear la cara deslizante; 4) decapar y pasivar."] if con_barras else []) +
             [pt.process, pt.obs or "", (f"Cara deslizante: Ra 0,4 rectificada/lapeada; sobreespesor de relapeado {fm(P['ss_allow'], 1)} mm." if key != "int_uhmw" else "Caras de la lámina: sin mecanizado de precisión (cortada de plancha); sin relapeado."),
              "Junta entre sectores de ancho constante (S04): bordes paralelos a la bisectriz" + ("; chaflán de alivio 45° en el canto de la muesca, del tamaño indicado en la lámina del tope." if muesca else "."),
@@ -280,9 +286,13 @@ def tope_sheet(ctx, key, titulo, side):
     def jd(V, p):
         if ids:
             w_out(p, ids[0], V, (xc, -b / 2, zb0 + 1), "right", dy=-14)
+        V.dimh((xc, -b / 2, zb1 if key != "int_tope_mesa" else zb0), (xc, b / 2, zb1 if key != "int_tope_mesa" else zb0), "top" if key != "int_tope_mesa" else "bottom", 0, on=[nk], text=f"{fm(b, 0)} (b)")
     p.vs("junta", ks, "right", cut=((xc, 0, 0), (-1, 0, 0)), center=(xc, 0, zc_), win=(-(b / 2 + 34), -tp["t"] - 14, b / 2 + 34, tp["t"] + 14), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=jd, hs=0.25, w=1.4,
          title="DETALLE DE JUNTA (corte por el centro de la barra)", mat={plate + "_t": ctx.mat.get(plate, "acero"), sector + "_t1": ctx.mat.get(sector, "acero"), nk: ctx.mat.get(key, "acero")},
-         auto=dict(on=ks, tol={round(tp["h_barra"], 1): " (h)", round(b, 1): " (b)"}, hole_notes=False))
+         auto=dict(on=ks, tol={round(tp["h_barra"], 1): " (h)", round(b, 1): " (b)"}, hole_notes=False, axes="v"))      # B-46: sin cadenas horizontales contra los bordes de la ventana
+    # B-20: caras de contacto de la barra: datum A en una y paralelismo de la otra (vista de extremo)
+    p.datum_in("ex", "surf", "A", at=[(bb.xmax, -b / 2, zc_), (bb.xmax, -b / 2, zb0 + (zb1 - zb0) * 0.3)], d=(0, -1, 0))
+    p.gd_in("ex", "surf", "par", "0,05", "A", at=[(bb.xmax, b / 2, zc_), (bb.xmax, b / 2, zb0 + (zb1 - zb0) * 0.7)], d=(0, 1, 0))
     if ids:
         add_prep(p, "det_j", wd(ctx, ids[0]), t1=b, t2={"int_tope_base": g.tb, "int_tope_mesa": g.tbo, "int_tope_uhmw": g.I["tss"]}[key])
     rows = [["Cara de la barra bajo la cara deslizante", fm(tp["a_sup"], 1)], ["Chaflán 45° del canto del sector (= filete + 1)", fm(tp["a_inf"], 1)], ["Contacto útil", fm(tp["h_c"], 1)],
@@ -297,15 +307,16 @@ def tope_sheet(ctx, key, titulo, side):
         nts = [f"Barra {fm(b, 0)} × {f(L, 1)} × {fm(tp['h_barra'], 1)} de {pt.material.split(',')[0]}; corte a sierra, extremos a escuadra; {pt.qty} unidades.",
                f"Posición (H-01): una barra en cada JUNTA entre sectores de UHMW (nunca sobre la bisectriz), con su eje a θ = {fm(off_u, 2)}° + {fm(th_u, 2)}°·k desde +x y radialmente de r = {fm(r_in, 0)} a {fm(r_in + L, 0)}; "
                f"la franja entre sectores de UHMW mide b + junta en frío = {fm(b + g.junta('uhmw'), 1)} mm. Ubicación en planta: INT-001 y CON-012.",
-               f"Soldar al disco inoxidable de la base (INT-001, e = {fm(g.I['tss'], 0)}) con 2 filetes (frente y dorso) z{fm(P['w_tope'], 0)} continuos, aporte 309L; el filete cabe bajo el chaflán de {fm(tp['a_inf'], 0)} mm del sector de UHMW.",
+               f"Soldar al disco inoxidable de la base (INT-001, e = {fm(g.I['tss'], 0)}) con 2 filetes (frente y dorso) z{fm(P['w_tope'], 0)}, aporte 309L: el del lado opuesto a la junta del disco, continuo; el del lado de la junta, "
+               f"desde r = {fm(m.info.get('uhmw_filete_r0', r_in), 0)} hasta el extremo (≥ 10 mm de la junta entre sectores desmontables, N-05). El filete cabe bajo el chaflán de {fm(tp['a_inf'], 0)} mm del sector de UHMW.",
                f"Soldar ANTES del rectificado de la cara del disco; la barra queda {fm(tp['a_sup'], 1)} mm bajo la cara de la lámina (contacto útil {fm(tp['h_c'], 1)} mm, mínimo {fm(tp['h_c_min'], 1)} mm)."]
-        gdl = [("par", "0,05", "A", "Caras de contacto de la barra paralelas a la línea de junta entre sectores de UHMW (A)"), ("pos", "±0,1°", "A", "Posición angular del eje de la barra respecto de la línea de junta (A)")]
+        gdl = [("par", "0,05", "A", "Caras de contacto de la barra paralelas entre sí (A = una de ellas); posición angular del eje ±0,1° respecto de la línea de junta (nota)")]
     else:
         nts = [f"Barra {fm(b, 0)} × {f(L, 1)} × {fm(tp['h_barra'], 1)} de {pt.material.split(',')[0]}; corte a sierra, extremos a escuadra; {pt.qty} unidades.",
                f"Soldar a {'la plancha base' if key == 'int_tope_base' else 'la plancha inferior de la mesa'} con 2 filetes (frente y dorso) z{fm(P['w_tope'], 0)} continuos; el filete cabe bajo el chaflán de {fm(tp['a_inf'], 0)} mm del sector.",
                f"Soldar ANTES del alivio y del rectificado de las caras deslizantes; barra centrada en r_u = {fm(g.r_u, 1)} sobre la bisectriz de cada sector, posición angular ±0,1°.",
                f"El sector va con muesca de {fm(b + 2, 0)} mm (1 mm de holgura por lado); la barra queda {fm(tp['a_sup'], 1)} mm bajo la cara deslizante (contacto útil {fm(tp['h_c'], 1)} mm, mínimo {fm(tp['h_c_min'], 1)} mm)."]
-        gdl = [("par", "0,05", "A", "Cara de contacto de la barra paralela al plano de la bisectriz (A)"), ("pos", "±0,1°", "A", "Posición angular respecto de la bisectriz del sector (A)")]
+        gdl = [("par", "0,05", "A", "Caras de contacto de la barra paralelas entre sí (A = una de ellas); posición angular ±0,1° respecto de la bisectriz del sector (nota)")]
     p.notes(nts, gd=gdl)
     p.build()
     return p.h
@@ -530,7 +541,7 @@ def sheet_int_tapones(ctx):
         if cs:
             a = cs[len(cs) // 2]
             V.note_hole((a[2], a[3], zt), d / 2, 60, f"{len(cs)} × Ø{fm(d, 0)} H7 (alojamiento), prof. {fm(m.info.get('plug_prof', 0), 1)} (70 % de e = {fm(t, 1)})", ext=40, on=on)
-    p.vs("planta", on, "top", lv=(1, 2, 2, 1), extra=(30, 0, 180, 20), draw=planta, hatch=False, title=f"PLANTA DEL SECTOR 1 CON SU PATRÓN COMPLETO (sector de {fm(th, 3)}°)", w=2.0, auto=dict(holes=False, verts=False, only_extents=True), mat={nk: "bronce", pk: "grafito"})
+    p.vs("planta", on, "top", lv=(1, 2, 2, 1), extra=(30, 0, 180, 20), draw=planta, hatch=False, title=f"PLANTA DEL SECTOR 1 (TIPO 1) CON SU PATRÓN COMPLETO (sector de {fm(th, 3)}°)", w=2.0, mins=0.2, auto=dict(holes=False, verts=False, only_extents=True), mat={nk: "bronce", pk: "grafito"})
     # (sin planta completa a 1:50: a esa escala el patrón es ilegible; las cantidades por sector van en la tabla, H-17)
     r_ = cs[len(cs) // 2] if cs else None
     if r_:
@@ -538,23 +549,36 @@ def sheet_int_tapones(ctx):
         yv = r_[3]
         p.vs("alojamiento", [nk, pk], "front", cut=((0, yv, 0), (0, 1, 0)), center=(r_[2], yv, zt - t / 2), win=(-d, -t / 2 - 8, d, t / 2 + 8), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, mins=2.0,
              title=f"CORTE: ALOJAMIENTO DEL TAPÓN Ø{fm(d, 0)} (H7 / p6, prof. 70 % t)", mat={nk: "bronce", pk: "grafito"}, w=1.2, auto=dict(on=[nk, pk], tol={}, hole_notes=False))
+    h_ = math.radians(th / 2)
+    ax_ = 0.0 if g.conf == 3 else (g.junta("disc") / 2) / math.sin(h_)
+    Lm_ = (g.Ri + g.Ro) / 2 * 0.92
+    for sg_, let_ in ((1, "B"), (-1, "C")):
+        p.datum_in("planta", "surf", let_, at=[(ax_ + L_ * math.cos(h_), sg_ * L_ * math.sin(h_), zt) for L_ in (Lm_, Lm_ * 0.8, Lm_ * 1.15, Lm_ * 0.65, Lm_ * 1.3)], d=(-math.sin(h_), sg_ * math.cos(h_), 0))
+    p.gd_in("planta", "callout", "pos", "Ø0,2", "B-C", prefix=f"{len(cs)} × Ø{fm(d, 0)} H7")
+    if cs:
+        p.gd_in("alojamiento", "surf", "flat", "0,05", None, at=[(cs[len(cs) // 2][2] + d, cs[len(cs) // 2][3], zt), (cs[len(cs) // 2][2] - d, cs[len(cs) // 2][3], zt)], d=(0, 0, 1))
     rows = [[str(i + 1), fm(r, 1), fm(a, 2) + "°", fm(u, 1), fm(v, 1)] for i, (r, a, u, v) in enumerate(cs)]
     ncol = 6
     per = math.ceil(len(rows) / ncol)
     cols = [("N°", 9, "C"), ("r [mm]", 18, "R"), ("φ [°]", 18, "R"), ("x [mm]", 18, "R"), ("y [mm]", 18, "R")]
     rows4 = [sum([rows[j * per + i] if j * per + i < len(rows) else [""] * 5 for j in range(ncol)], []) for i in range(per)]
-    ps0 = T["por_sector"]
-    tipos = sorted(set(ps0))
-    p.table_block(f"COORDENADAS DE LOS {len(cs)} TAPONES DEL SECTOR 1 (tipo con {ps0[0]} tapones; origen: eje de la mesa; φ desde la bisectriz)" + ("" if len(tipos) == 1 else
-                  f". Los sectores con otra cantidad ({', '.join(str(x) for x in tipos if x != ps0[0])}) tienen el patrón del sector 2 (ver notas)"), sum([[(t_ + " " * j, w, a) for t_, w, a in cols] for j in range(ncol)], []), rows4, wide=True)
-    if len(tipos) > 1:
-        ctx.local_ang("int_tapones", "int_tapones_s2", 1.5 * th, th)
-        cs2 = autodim.circles3d(type("V", (), dict(shapes=ctx.shapes, view="top", uv=lambda self, p3: (p3[0], p3[1])))(), ["int_tapones_s2"], d / 2 - 0.05, d / 2 + 0.05)
-        cs2 = sorted([(math.hypot(u, v), math.degrees(math.atan2(v, u)), u, v) for (u, v, r, loc, k_) in cs2])
-        rows2_ = [[str(i + 1), fm(r, 1), fm(a, 2) + "°", fm(u, 1), fm(v, 1)] for i, (r, a, u, v) in enumerate(cs2)]
-        per2 = math.ceil(len(rows2_) / ncol)
-        rows42 = [sum([rows2_[j * per2 + i] if j * per2 + i < len(rows2_) else [""] * 5 for j in range(ncol)], []) for i in range(per2)]
-        p.table_block(f"COORDENADAS DE LOS {len(cs2)} TAPONES DEL SECTOR 2 (tipo con {ps0[1]} tapones; mismo origen; φ desde la bisectriz del sector 2)", sum([[(t_ + " " * j, w, a) for t_, w, a in cols] for j in range(ncol)], []), rows42, wide=True)
+    # H-04/H-17: una tabla de coordenadas por TIPO de sector de bronce (cada tipo es un código propio)
+    pb_ = m.get("int_bronce")
+    tipos_b = pb_.tipos or [dict(suf=pb_.suf, idx=[0], n=pb_.qty)]
+    for k_, t_ in enumerate(tipos_b, 1):
+        i_s = t_["idx"][0]
+        if k_ == 1:
+            csk = cs
+        else:
+            kk_ = ctx.local_ang("int_tapones", f"int_tapones_t{k_}", (i_s + 0.5) * th, th)
+            csk = autodim.circles3d(type("V", (), dict(shapes=ctx.shapes, view="top", uv=lambda self, p3: (p3[0], p3[1])))(), [kk_], d / 2 - 0.05, d / 2 + 0.05) if kk_ else []
+            csk = sorted([(math.hypot(u, v), math.degrees(math.atan2(v, u)), u, v) for (u, v, r, loc, k__) in csk])
+        rws = [[str(i + 1), fm(r, 1), fm(a, 2) + "°", fm(u, 1), fm(v, 1)] for i, (r, a, u, v) in enumerate(csk)]
+        perk = max(1, math.ceil(len(rws) / ncol))
+        rk4 = [sum([rws[j * perk + i] if j * perk + i < len(rws) else [""] * 5 for j in range(ncol)], []) for i in range(perk)]
+        cod_ = pb_.code_suf(t_["suf"]).replace(CODE + "-", "")
+        p.table_block(f"TIPO {t_['suf']} ({cod_}; sectores n.° {', '.join(str(i + 1) for i in t_['idx'])}): COORDENADAS DE LOS {len(csk)} TAPONES (origen: eje de la mesa; x sobre la bisectriz del sector; φ desde la bisectriz)",
+                      sum([[(t2_ + " " * j, w, a) for t2_, w, a in cols] for j in range(ncol)], []), rk4, wide=True)
     ps = T["por_sector"]
     half = (len(ps) + 1) // 2
     prow = [[str(i + 1), str(ps[i]), str(i + 1 + half) if i + half < len(ps) else "", str(ps[i + half]) if i + half < len(ps) else ""] for i in range(half)]
@@ -570,7 +594,7 @@ def sheet_int_tapones(ctx):
              " tapones (tabla «tapones por sector»); el programa de cada sector se obtiene girando la malla global al ángulo del sector y omitiendo los tapones en bordes, muesca, tornillos y ranuras (S09).",
              f"Tapones en el 3D: {f(m.info.get('n_plugs', 0))}; tapones reales según el cálculo: {f(T['N_real'])}; fracción de área de grafito {fm(T['fg_real'], 3)} frente al mínimo {fm(T['fg_min'], 2)}.",
              "Insertar los tapones después de lapear la cara; rectificar al ras con el bronce; grafito sin pintura ni sellado superficial."],
-            gd=[("pos", "Ø0,2", "A", "Posición de los alojamientos respecto de la bisectriz (A) y del eje de la mesa"), ("flat", "0,05", None, "Planitud de la cara deslizante con los tapones montados")])
+            gd=[("pos", "Ø0,2", "B-C", "Posición de los alojamientos respecto del plano medio común de las juntas del sector (B-C = bisectriz); origen de la malla en el eje de la mesa"), ("flat", "0,05", None, "Planitud de la cara deslizante con los tapones montados")])
     p.build()
     return p.h
 
