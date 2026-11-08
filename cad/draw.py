@@ -683,8 +683,10 @@ class Sheet:
         a, b = ys["proj"]
         lab("proj", 0, "PROYECTO")
         self.text(info["proj"], (x0 + 3, b - 5.0), T_N, "TOP_LEFT", bold=True)
-        for i, ln in enumerate(wrapw(info["subproj"], 174, 3.0)[:2]):
-            self.text(ln, (x0 + 3, b - 10.5 - i * 4.0), 3.0, "TOP_LEFT")
+        sl_ = wrapw(info["subproj"], 174, 3.0)
+        hs_ = 3.0 if len(sl_) == 1 else T_MIN               # subtítulo de la variante: en dos renglones baja a 2,5 mm para no invadir la fila siguiente
+        for i, ln in enumerate(wrapw(info["subproj"], 174, hs_)[:2]):
+            self.text(ln, (x0 + 3, b - 9.8 - i * 3.2), hs_, "TOP_LEFT")
         a, b = ys["estado"]
         self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), 3.4 if tw(info["estado"], 3.4, True) < 176 else T_MIN + 0.4, "MIDDLE_CENTER", bold=True)
         # --- tabla de revisiones sobre el cajetín ---
