@@ -3,18 +3,18 @@ WPS pre-calificados (AWS D1.1 cl. 3), sistema de pintura (ISO 12944), grado come
 Nada de esto sustituye una calificación de procedimiento ni la decisión del calculista; el rótulo obligatorio se imprime con cada uso."""
 import math, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from geom import f, fm
+from geom import f, fm, WASHER_MAT
 
 ROTULO_WPS = "PROPUESTA — A CALIFICAR/CONFIRMAR POR EL FABRICANTE (AWS D1.1 cl. 3/4)"
 ROTULO_PINT = "PROPUESTA, CONFIRMAR"
 ROTULO_GRADO = "PROPUESTO por Fy del cálculo; confirmar"
 
 # ------------------------------------------------------------------------------------------------
-# precalentamiento mínimo AWS D1.1 Tabla 3.2 (acero Grupo II: ASTM A572 Gr.50; categoría B: bajo hidrógeno SMAW, GMAW, FCAW)
+# precalentamiento mínimo AWS D1.1-2020 Tabla 5.11 (acero Grupo II: ASTM A572 Gr.50; categoría B: bajo hidrógeno SMAW, GMAW, FCAW)
 # espesor de la parte más gruesa de la junta [mm] -> °C
 # ------------------------------------------------------------------------------------------------
 def precalentamiento(t, categoria="B"):
-    """AWS D1.1 Tabla 3.2, aceros Grupo I/II. Categoría B (E7018, ER70S-6, E71T-1): ≤19 mm: ninguno (≥ 10 °C de ambiente); 19–38: 10 °C; 38–65: 65 °C; >65: 110 °C.
+    """AWS D1.1-2020 Tabla 5.11, aceros Grupo I/II, por el espesor de la parte más gruesa de la junta. Categoría B (E7018, ER70S-6, E71T-1): ≤19 mm: ninguno (≥ 10 °C de ambiente); 19–38: 10 °C; 38–65: 65 °C; >65: 110 °C.
     Categoría A (electrodos no bajo hidrógeno): 0; 65; 110; 150 °C."""
     if categoria == "A":
         return 0 if t <= 19 else 65 if t <= 38 else 110 if t <= 65 else 150
@@ -52,7 +52,7 @@ FAM_TXT = {
     "FILETE-INOX": ("Filete en T con aporte inoxidable 309L sobre acero inoxidable (barras de topes UHMW), PT 100 %", "1F, 2F"),
     "CJP-V": ("Ranura en V 60° a tope con respaldo, penetración completa (CJP), serie AWS D1.1 Fig. 3.4 B-U4; confirmar designación", "1G, 2G"),
     "CJP-BISEL": ("Ranura con bisel 45° y respaldo, penetración completa (CJP), tipo AWS D1.1 Fig. 3.4 TC-U4; confirmar designación", "1G, 2G"),
-    "RANURA": ("Soldadura de ranura (22 × 80), relleno completo, en posición plana", "1F"),
+    "RANURA": ("Soldadura de ranura (22 × 80) rellena por completo (AWS D1.1, soldaduras de tapón y ranura precalificadas), en posición plana", "1F"),
 }
 
 
@@ -65,17 +65,18 @@ def wps_rows(ctx):
     for n in sorted(grp):
         ws = grp[n]
         fam = wps_family(ws[0])
-        tmax = max((x["t"] or 0) for x in ws)
+        tmax = max(x["t_pre"] for x in ws)
         if fam in ("CJP-V", "CJP-BISEL"):
             passes = f"{max(x['pasadas'] for x in ws)} (raíz sobre respaldo + relleno + tapa)"
         else:
             passes = str(max(x["pasadas"] for x in ws))
+        assert len({wps_family(x) for x in ws}) == 1 and len({precalentamiento(x["t_pre"]) for x in ws}) == 1, f"WPS-P{n:02d} agrupa juntas de familia o rango de precalentamiento distintos"
         rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), FAM_TXT[fam][0], FAM_TXT[fam][1], CORR["GMAW"], CORR["SMAW"], CORR["FCAW"], pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)", INTERPASE, passes])
     return rows
 
 
 WPS_COLS = [("WPS", 13, "C"), ("Juntas", 22, "L"), ("Tipo de junta", 62, "L"), ("Posición", 20, "L"), ("GMAW 135 (típico)", 40, "L"), ("SMAW 111 (típico)", 44, "L"), ("FCAW 136 (típico)", 38, "L"),
-            ("Precalentamiento (Tabla 3.2, Gr. II, cat. B)", 38, "L"), ("Interpase", 24, "L"), ("Pasadas", 28, "L")]
+            ("Precalentamiento (AWS D1.1-2020 Tabla 5.11, Gr. II, cat. B)", 38, "L"), ("Interpase", 24, "L"), ("Pasadas", 28, "L")]
 
 
 # ------------------------------------------------------------------------------------------------
@@ -91,8 +92,17 @@ SISTEMA_PINTURA = [
 
 
 def pintura_txt():
-    return (f"Pintura: ISO 12944 C4 alta, Sa 2½; epoxi-zinc 60 µm + epoxi 120 µm + PU 60 µm = EPS 240 µm ({ROTULO_PINT}). "
-            "Sin pintura: caras de apoyo/deslizantes, agujeros con ajuste, zona de soldadura hasta su inspección, roscas.")
+    return f"Pintura: ISO 12944 C4 alta, Sa 2½; epoxi-zinc 60 µm + epoxi 120 µm + PU 60 µm = EPS 240 µm ({ROTULO_PINT})."
+
+
+def zonas_sin_pintura(ctx):
+    """Lista ÚNICA de zonas sin pintura (GEN-006); el resto de las láminas remite a ella (A-21)."""
+    P, g = ctx.P, ctx.g
+    z = [f"cara de apoyo de la base y cara inferior de la mesa (zona Ø{f(P['D_top'] + 20)})" + (" y caras deslizantes de la interfaz" if g.opt else ""), "agujeros con ajuste (H7/H9) y superficies de contacto de pasadores y pivote",
+         "roscas", "ranura T de las bancadas", "zona de soldadura hasta su inspección (enmascarar 50 mm)"]
+    if g.wood:
+        z.append("cara superior de la mesa bajo la cubierta de madera (imprimación solamente)")
+    return "; ".join(z)
 
 
 # ------------------------------------------------------------------------------------------------
@@ -141,12 +151,12 @@ def catalogo_rows(ctx):
     rows = [
         ["Cilindro hidráulico de doble efecto (×2)", f"Camisa Ø{f(P['D_bore'])}, vástago Ø{f(P['d_rod'])}, carrera {f(P['stroke'])} mm, largo ojal–ojal retraído {f(P['L0'])} mm, presión nominal {fm(P['p_rated'] * 0.0689476, 0)} bar (700 bar), alivio {f(P['p_relief'])} bar, ojales con rótula esférica autolubricada Ø{f(P['d_pp'])}, b = {f(P['b_eye'])} mm, masa ≈ {fm(P['m_cyl'], 0)} kg",
          f"Certificado de prueba hidráulica a 1,5 × {f(P['p_relief'])} bar; EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO (proveedor)"],
-        ["Grasera recta DIN 71412 M10×1", f"{g.n_greaser} unidades; acero zincado; rosca M10×1 (ISO 261), conducto Ø6", "Lote con certificado de conformidad", "marca/modelo A DEFINIR POR CATÁLOGO"],
-        ["Tornillo ISO 4762 M20×45 cl. 10.9 con arandela", f"{g.N_pin} unidades; recubrimiento zincado/dacromet; arandela dura (HV 300 mín.) Ø{f(g.washer_D)}", "Certificado del lote EN 10204 2.2/3.1", "marca/modelo A DEFINIR POR CATÁLOGO"],
+        *([["Grasera recta DIN 71412 M10×1", f"{g.n_greaser} unidades; acero zincado; rosca M10×1 (ISO 261), conducto Ø6", "Lote con certificado de conformidad", "marca/modelo A DEFINIR POR CATÁLOGO"]] if ctx.m.get("graseras") else []),
+        ["Tornillo ISO 4762 M20×45 cl. 10.9 con arandela", f"{g.N_pin} unidades; recubrimiento zincado/dacromet; arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)} de {WASHER_MAT} (MES-013)", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Grillete de izaje ASME B30.26 (×4)", f"Pasador ≤ {fm(P['d_ear'] - P['g_ear'], 0)} mm; WLL ≥ lo calculado en la fila «Orejas de izaje» del núcleo; con certificado de prueba", "Prueba de carga 1,25 × WLL", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Buje autolubricado", f"Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}; presión ≤ {fm(P['p_bush'], 0)} MPa; μ ≤ {fm(P['mu_bush'], 2)}; sobre aleación de bronce con lubricante sólido", "Certificado del proveedor", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Resorte de retorno de la uña (compresión) (×2)", f"Carrera ≥ {f(g.KG['travel'] + 5)} mm; fuerza 150–300 N", "—", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Grasa grafitada NLGI 2", "≥ 10 % grafito, aditivos EP; película 0,3–0,5 mm por cara", "Hoja de datos del fabricante", "marca/modelo A DEFINIR POR CATÁLOGO"],
-        ["Tornillos ISO 10642 M10 cl. 10.9 (tapas del pivote)", "4 × M10×25 (tapa retenedora) y 6 × M10 (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
+        ["Tornillos ISO 10642 cl. 10.9 (tapas del pivote)", f"4 × M10×25 (tapa retenedora) y 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
     ]
     return rows
