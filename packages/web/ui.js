@@ -193,6 +193,32 @@
   }
 
   /* ---------- Modelo: planta y corte ---------- */
+  const isPiv = () => (TT.driveMode ? TT.driveMode(P) : P.drive_mode) === 2;
+  // modo pivotado tipo KIET en planta: lo fijo de TT.pivotGeo (ojales E, placas-leva con pernos) y lo móvil de TT.pivotAt al tomar el pasador
+  function pivotPlan(R) {
+    const g = TT.pivotGeo(P); if (!g) return "";
+    const D = TT.designDrive(P, R).pivotado || {}, pl = D.placa_leva || {}, y = (v) => -v, o = [];
+    const pts = (arr) => arr.map(([a, b]) => `${a},${y(b)}`).join(" ");
+    Object.entries(g.placas).forEach(([k, pc]) => {
+      const op = k.endsWith("_antihorario") ? 1 : 0.35;
+      o.push(`<g opacity="${op}"><polygon points="${pts(pc.contorno)}" fill="#c9b37e" fill-opacity=".5" stroke="#8a6d2f" stroke-width="4"/>${pc.pernos.map(([a, b]) => `<circle cx="${a}" cy="${y(b)}" r="${(pl.d_perno || 20) / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`).join("")}</g>`);
+    });
+    g.E.forEach(([ex, ey]) => { const h = g.ojalE.lado_cajon / 2; o.push(`<rect x="${ex - h}" y="${y(ey) - h}" width="${2 * h}" height="${2 * h}" fill="var(--soft)" stroke="var(--ink)" stroke-width="5"/><circle cx="${ex}" cy="${y(ey)}" r="${g.ojalE.d / 2}" fill="var(--ink)"/>`); });
+    ["horario", "antihorario"].forEach((sen) => {
+      const q = TT.pivotAt(P, P.s_free, "empuje", sen); if (!q) return;
+      const act = sen === "antihorario";
+      [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f]) => {
+        const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
+        const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
+        o.push(`<g opacity="${act ? 1 : 0.3}"><polygon points="${pts(bar(0, lb, P.D_body))}" fill="var(--acc)" opacity=".55"/><polygon points="${pts(bar(lb, L, P.d_rod))}" fill="var(--acc)"/>
+          <polygon points="${pts(q.una.cuerpo.map(f))}" fill="var(--load)" opacity=".85"/><polygon points="${pts(q.una.cara.map(f))}" fill="var(--load)"/><polygon points="${pts(q.una.cubo.map(f))}" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/>
+          <circle cx="${Q[0]}" cy="${y(Q[1])}" r="${g.pasadorQ.d / 2}" fill="none" stroke="var(--ink)" stroke-width="3"/></g>`);
+        if (act) { const A_ = f(q.pasadores.A); o.push(`<circle cx="${A_[0]}" cy="${y(A_[1])}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`); }
+      });
+      if (act && D.brazo_ef_min != null) { const A_ = q.pasadores.A; o.push(`<text x="${A_[0] / 2}" y="${y(A_[1] / 2) - 14}" font-size="44" text-anchor="middle" fill="var(--load)">brazo ef. mín. ${fmt(D.brazo_ef_min, 3)} mm</text><line x1="0" y1="0" x2="${A_[0]}" y2="${y(A_[1])}" stroke="var(--load)" stroke-width="3"/>`); }
+    });
+    return o.join("");
+  }
   function planSVG() {
     const R = A.R, K = R.K, B = P.B, S = B / 2 + 160;
     const y = (v) => -v;
@@ -208,9 +234,10 @@
     for (let k = 0; k < P.N_pin; k++) { const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin; o.push(`<circle cx="${P.R_pin * Math.cos(a)}" cy="${y(P.R_pin * Math.sin(a))}" r="${P.d_pin / 2}" fill="var(--ink2)"/>`); }
     // cáncamos
     [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * P.x_lug - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
+    if (isPiv()) o.push(pivotPlan(R));
     // accionamiento guiado: bancadas, ménsulas (ambos sentidos), patines, uñas y cilindros (sentido antihorario)
-    const g = K, bg = TT.bracketGeo(P);
-    for (const sx of [1, -1]) {
+    const g = K, bg = isPiv() ? null : TT.bracketGeo(P), cam = !isPiv() && TT.camGeo ? TT.camGeo(P) : null;
+    if (!isPiv()) for (const sx of [1, -1]) {
       const X = sx * P.x_g;
       o.push(`<rect x="${X - P.w_bed / 2}" y="${-g.Y_bed}" width="${P.w_bed}" height="${2 * g.Y_bed}" fill="var(--soft)" stroke="var(--steel)" stroke-width="3"/>`);
       o.push(`<line x1="${X}" y1="${-g.Y_bed}" x2="${X}" y2="${g.Y_bed}" stroke="var(--steel)" stroke-width="${P.w_slot}" opacity=".35"/>`);
@@ -231,6 +258,13 @@
         const pts = [[xt, yf], [xm, yf], [xm, ybk], [xt + sx * ch.dx, ybk], [xt, ybk + dy * Math.min(ch.dy, P.dog_b)]].map(([a, b]) => `${a},${y(b)}`).join(" ");
         o.push(`<polygon points="${pts}" fill="var(--load)" opacity=".85"/>`);
         o.push(`<circle cx="${xa}" cy="${y(yp)}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`);
+        if (cam) {                                                    // leva de reenganche (opt_cam): riel fijo con bolsillo y rampa, y seguidor de rodillo al tomar el pasador (núcleo: camGeo, camAt)
+          const L = TT.designDrive(P, R).levaGuiada, xo = L && L.x ? L.x.borde_exterior : Math.max(...cam.perfil_y.map((q) => q.x_canto)) + 40, pr = cam.perfil_y;
+          const rail = pr.map((q) => [q.x_canto, q.y]).concat([[xo, pr[pr.length - 1].y], [xo, pr[0].y]]);
+          o.push(`<polygon points="${rail.map(([a, b]) => `${sx * a},${y(dy * b)}`).join(" ")}" fill="#c9b37e" fill-opacity=".55" stroke="#8a6d2f" stroke-width="4"/>`);
+          const ca = TT.camAt(P, P.s_free, "empuje"), rF = Math.max(5, cam.x_canto_toma - cam.x_perno_toma - cam.holgura_toma);
+          o.push(`<circle cx="${sx * ca.x_seguidor}" cy="${y(dy * ca.y_seguidor)}" r="${rF}" fill="#e2c46f" stroke="var(--ink)" stroke-width="3"/>`);
+        }
         if (sx > 0) {
           o.push(`<line x1="0" y1="0" x2="${xa}" y2="0" stroke="var(--load)" stroke-width="3"/><text x="${xa / 2}" y="-14" font-size="44" text-anchor="middle" fill="var(--load)">brazo ${fmt(g.a_min, 3)} mm</text>`);
           o.push(`<line x1="${xa}" y1="${y(yp)}" x2="${X}" y2="${y(yp)}" stroke="var(--load)" stroke-width="3" stroke-dasharray="14 10"/><text x="${(xa + X) / 2}" y="${y(yp) + (dy > 0 ? 60 : -30)}" font-size="40" text-anchor="middle" fill="var(--load)">Δ ${fmt(g.DeltaMax, 3)}</text>`);
@@ -238,12 +272,32 @@
       }
     }
     o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
-    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)</text>`);
+    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">${isPiv() ? "Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario) · ojales E en diagonal, 4 placas-leva" : "Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")}</text>`);
     return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
+  }
+  // modo pivotado en alzado desarrollado (distancias radiales al eje de giro): placa-leva, bloque-uña con su pasador Q, cilindro y soporte del ojal E
+  function pivotSection(R, pv, gP, X, Z, zc, tb) {
+    const q = TT.pivotAt(P, P.s_free, "empuje", "antihorario"); if (!q) return "";
+    const rr = (pts) => { const v = pts.map(([a, b]) => Math.hypot(a, b)); return [Math.min(...v), Math.max(...v)]; };
+    const pl = pv.placa_leva || {}, bl = pv.bloque_una || {}, se = pv.soporte_E || {}, o = [];
+    const [p0, p1] = rr(gP.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cara, q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    o.push(`<rect x="${X(p0)}" y="${Z(tb + pl.t)}" width="${p1 - p0}" height="${pl.t}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Placa-leva t = ${fmt(pl.t)} mm</title></rect>`);
+    o.push(`<rect x="${X(b0)}" y="${Z(bl.z_inf + bl.h)}" width="${b1 - b0}" height="${bl.h}" fill="var(--load)" opacity=".75"><title>Bloque-uña h = ${fmt(bl.h)} mm</title></rect>`);
+    o.push(`<rect x="${X(rQ - bl.d_Q / 2)}" y="${Z(R.blk.zCam + bl.l_pasador_Q)}" width="${bl.d_Q}" height="${bl.l_pasador_Q}" fill="none" stroke="var(--ink)" stroke-width="2"><title>Pasador Q Ø${fmt(bl.d_Q)} × ${fmt(bl.l_pasador_Q)}</title></rect>`);
+    o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(tb + se.alto)}" width="${se.lado_cajon}" height="${se.alto}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>Soporte del ojal E</title></rect>`);
+    [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => o.push(`<line x1="${X(rE - se.lado_cajon / 2)}" y1="${Z(zt)}" x2="${X(rE + se.lado_cajon / 2)}" y2="${Z(zt)}" stroke="var(--ink)" stroke-width="3"/>`));
+    const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
+    o.push(`<rect x="${X(Math.min(rm, rE))}" y="${Z(zc + P.D_body / 2)}" width="${Math.abs(rE - rm)}" height="${P.D_body}" fill="var(--acc)" opacity=".55"/>`);
+    o.push(`<rect x="${X(Math.min(rQ, rm))}" y="${Z(zc + P.d_rod / 2)}" width="${Math.abs(rm - rQ)}" height="${P.d_rod}" fill="var(--acc)"/>`);
+    o.push(`<line x1="${X(rE)}" y1="${Z(tb)}" x2="${X(rE)}" y2="${Z(tb + se.alto + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
+    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-leva ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(tb + se.alto) - 6}" font-size="13" text-anchor="middle">ojal E (cajón ${fmt(se.lado_cajon)})</text>`);
+    o.push(`<text x="${X(rQ)}" y="${Z(0) + 36}" font-size="12" text-anchor="middle" fill="var(--ink2)">alzado desarrollado a lo largo del cilindro 1 (distancias radiales)</text>`);
+    return o.join("");
   }
   function sectionSVG() {
     const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot), ifc = R.ifc, dl = ifc.delta, tm = tb + dl;   // tm: cara inferior de la mesa (sobre los discos de la interfaz)
-    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tm + hd + (P.opt_wood > 0.5 ? P.t_wood : 0) + 160;
+    const pv = isPiv() ? TT.designDrive(P, R).pivotado : null, gP = pv ? TT.pivotGeo(P) : null;
+    const r0 = TT.prIn(P) - 220, r1 = Math.max(P.B / 2 + 40, gP ? Math.hypot(...gP.E[0]) + gP.ojalE.lado_cajon / 2 + 60 : 0), W = r1 - r0, Hs = tm + hd + (P.opt_wood > 0.5 ? P.t_wood : 0) + 160;
     const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
@@ -267,6 +321,8 @@
     const zc = tb + R.hax;
     o.push(`<line x1="${X(r0)}" y1="${Z(zc)}" x2="${X(r1)}" y2="${Z(zc)}" stroke="var(--load)" stroke-width="1.5" stroke-dasharray="10 6"/>`);
     const K = A.R.K, zb = tb + P.t_bed, fh = TT.forkH(P);
+    if (pv && gP) o.push(pivotSection(R, pv, gP, X, Z, zc, tb));
+    else {
     o.push(`<rect x="${X(P.x_g - P.w_bed / 2)}" y="${Z(zb)}" width="${P.w_bed}" height="${P.t_bed}" fill="var(--steel)" opacity=".8"/>`);
     o.push(`<rect x="${X(P.x_g - P.w_slot / 2)}" y="${Z(zb)}" width="${P.w_slot}" height="${P.h_slot}" fill="var(--panel)"/>`);
     if (P.h_tee > 0) o.push(`<rect x="${X(P.x_g - P.w_tee / 2)}" y="${Z(zb - P.h_slot)}" width="${P.w_tee}" height="${P.h_tee}" fill="var(--panel)"/>`);
@@ -276,6 +332,15 @@
     o.push(`<rect x="${X(K.mouthX)}" y="${Z(zc + P.dog_h / 2 + 10)}" width="${P.x_g - P.w_s / 2 - K.mouthX}" height="${P.dog_h + 20}" fill="none" stroke="var(--ink)" stroke-width="2"/>`);
     o.push(`<rect x="${X(K.tipX)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.tipX}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
     o.push(`<line x1="${X(P.x_g)}" y1="${Z(tb)}" x2="${X(P.x_g)}" y2="${Z(zc + fh / 2 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
+    const LG = TT.camGeo && TT.camGeo(P) ? TT.designDrive(P, R).levaGuiada : null;
+    if (LG && LG.z && LG.x) {                                         // leva de reenganche en alzado: riel sobre el patín y seguidor de rodillo en su perno (núcleo: designDrive.levaGuiada)
+      const z = LG.z, x = LG.x, rF = Math.max(5, x.canto_toma - x.perno_seguidor_toma - (LG.holgura_toma || 0));
+      o.push(`<rect x="${X(x.canto_toma)}" y="${Z(z.sup_riel)}" width="${x.borde_exterior - x.canto_toma}" height="${z.sup_riel - z.inf_riel}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Riel-leva t = ${fmt(z.sup_riel - z.inf_riel)} mm</title></rect>`);
+      o.push(`<line x1="${X(x.perno_seguidor_toma)}" y1="${Z(z.sup_una)}" x2="${X(x.perno_seguidor_toma)}" y2="${Z(z.sup_riel - 4)}" stroke="var(--ink)" stroke-width="3"/>`);
+      o.push(`<rect x="${X(x.perno_seguidor_toma - rF)}" y="${Z(z.sup_riel - 4)}" width="${2 * rF}" height="${z.sup_riel - z.inf_riel - 8}" rx="4" fill="#e2c46f" stroke="var(--ink)" stroke-width="1"><title>Seguidor de rodillo</title></rect>`);
+      o.push(`<text x="${X(x.borde_exterior)}" y="${Z(z.sup_riel) - 4}" font-size="13" text-anchor="end">leva de reenganche</text>`);
+    }
+    }
     const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
     o.push(dim(r0 + 8, tm, tm + hd, `h ${fmt(hd, 3)}`, 6));
     o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
@@ -291,8 +356,16 @@
     if (!A) { el.innerHTML = msgs(); return; }
     el.innerHTML = `<div class="grid" style="grid-template-columns:minmax(300px,1.3fr) minmax(280px,1fr)">
       <div class="card"><h3>Planta</h3>${planSVG()}</div>
-      <div class="card"><h3>Corte radial por el patín (escala 1:1 relativa)</h3>${sectionSVG()}
-        <div class="kv" style="margin-top:10px">
+      <div class="card"><h3>${isPiv() ? "Alzado desarrollado del cilindro pivotado (escala 1:1 relativa)" : "Corte radial por el patín (escala 1:1 relativa)"}</h3>${sectionSVG()}
+        ${isPiv() ? (() => { const D = TT.designDrive(P, A.R).pivotado || {}; return `<div class="kv" style="margin-top:10px">
+          <span>Ojal E (x, y) / radio R_E / φ_E</span><span>${fmt(D.E ? D.E[0] : NaN, 4)}, ${fmt(D.E ? D.E[1] : NaN, 4)} / ${fmt(D.R_E, 4)} mm / ${fmt(D.phi_E, 3)}°</span>
+          <span>Brazo mín / máx / efectivo mín</span><span>${fmt(D.brazo_min, 4)} / ${fmt(D.brazo_max, 4)} / ${fmt(D.brazo_ef_min, 4)} mm</span>
+          <span>Carrera requerida</span><span>${fmt(D.carrera_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
+          <span>Largo Q–pasador (bloque-uña)</span><span>${fmt(D.L_qp, 4)} mm</span>
+          <span>θ del pasador tomado: inicio / fin</span><span>${fmt(D.theta_ini_deg, 4)}° / ${fmt(D.theta_fin_deg, 4)}°</span>
+          <span>Holgura al pasador siguiente / cuerpo–mesa</span><span>${fmt(D.holgura_pasador_siguiente, 3)} / ${fmt(D.holgura_cuerpo_mesa, 3)} mm</span>
+          <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
+        </div>`; })() : `<div class="kv" style="margin-top:10px">
           <span>Brazo mín (R·cos π/N) / máx</span><span>${fmt(A.R.K.armMin, 4)} / ${fmt(A.R.K.armMax, 4)} mm</span>
           <span>Carrera requerida (libre + cuerda)</span><span>${fmt(A.R.K.s_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
           <span>Δ guía–pasador / Lg / factor K</span><span>${fmt(A.R.K.DeltaMax, 3)} / ${fmt(A.R.K.Lg, 3)} mm / ${fmt(A.R.Kguide)}</span>
@@ -300,7 +373,7 @@
           <span>Voladizo de la uña / holgura radial</span><span>${fmt(A.R.K.lever, 3)} / ${fmt(A.R.K.radial)} mm</span>
           <span>Cuerda / hueco entre pasadores</span><span>${fmt(A.R.K.chord, 4)} / ${fmt(A.R.K.gap, 4)} mm</span>
           <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
-        </div></div></div>`;
+        </div>`}</div></div>`;
   }
 
   /* ---------- Accionamiento ---------- */
@@ -343,6 +416,11 @@
     const R = A.R, K = R.K;
     const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(R.mu.cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(R.mu.d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
       const cs = R.cases.find((x) => x.id === id);
+      if (isPiv()) {                                                  // modo pivotado: F_cil del núcleo (driveAt) en el θ que entrega pivotAt para cada extensión
+        const pts = [];
+        for (let i = 0; i <= 60; i++) { const s = P.s_free + (K.s_req - P.s_free) * i / 60, q = TT.pivotAt(P, s, "empuje", "antihorario"); if (q && q.arm != null) pts.push([s, TT.driveAt(P, q.th_cil1_antihorario, id).F]); }
+        return { n, c, pts };
+      }
       return { n, c, pts: K.pts.map((q) => [q.s, R.Fcyl(cs.T, q.arm)]) };
     });
     const chart = lineChart(ser, { xl: "Extensión del cilindro desde retraído (mm)", yl: "Fuerza por cilindro (kN)", ys: [R.Fstall], xs: [0, P.stroke],

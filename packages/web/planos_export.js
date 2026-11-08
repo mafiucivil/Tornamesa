@@ -121,6 +121,9 @@ const PLANOS = (() => {
     const R = A.R, ifc = R.ifc, tb = P.t_base, delta = ifc.delta;
     return {
       P, A, R, K: R.K, ifc, g: TT_.guideGeo(P), bg: TT_.bracketGeo(P), ch: TT_.chamferGeo(P), prIn: TT_.prIn(P), rings: TT_.parseRings(P.rings),
+      // accionamiento: modo pivotado (pivotGeo/pivotAt al tomar el pasador, giro antihorario) o leva de reenganche del modo guiado (camGeo/camAt)
+      piv: (TT_.driveMode ? TT_.driveMode(P) : P.drive_mode) === 2 && TT_.pivotGeo ? { g: TT_.pivotGeo(P), q: TT_.pivotAt(P, P.s_free, "empuje", "antihorario"), D: TT_.designDrive(P, R).pivotado } : null,
+      cam: TT_.camGeo && TT_.camGeo(P) ? { g: TT_.camGeo(P), a: TT_.camAt(P, P.s_free, "empuje"), L: TT_.designDrive(P, R).levaGuiada } : null,
       tb, delta, tm: tb + delta, hw: P.h_disc - P.t_top - P.t_bot, tpr: Math.max(P.t_pr, P.t_top, P.t_bot), d_bush: P.D_piv + 30, hole_top: P.D_piv + 80,
       fecha: fecha || new Date().toISOString().slice(0, 10),
       stops: (A.checks || []).filter((c) => /largo del tope frente al canto/.test(c.name)).map((c) => ({ nombre: c.name.replace(/: largo del tope.*$/, ""), L: c.dem })),
@@ -323,8 +326,9 @@ const PLANOS = (() => {
         for (let k = 1; k <= P.n_gr_circ; k++) v.circ(0, 0, ri + (ro - ri) * k / (P.n_gr_circ + 1), "OCULTO");
       }
     }
+    if (c.piv && c.piv.g) pivotPlanta(v, c);
     // bancadas, ménsulas, cilindros activos (giro antihorario) y patines
-    for (const sx of [1, -1]) {
+    if (!c.piv) for (const sx of [1, -1]) {
       const X = sx * P.x_g;
       v.rect(X - P.w_bed / 2, -g.Y_bed, X + P.w_bed / 2, g.Y_bed);
       v.line(X - P.w_slot / 2, -g.Y_bed, X - P.w_slot / 2, g.Y_bed, "OCULTO"); v.line(X + P.w_slot / 2, -g.Y_bed, X + P.w_slot / 2, g.Y_bed, "OCULTO");
@@ -343,6 +347,11 @@ const PLANOS = (() => {
         const yp = dy * (-P.R_pin * Math.sin(g.pitch / 2)), xm = sx * g.mouthX, xa = sx * g.a_min, xt = sx * g.tipX, yf = yp - dy * P.d_pin / 2, ybk = yf - dy * P.dog_b;
         v.poly([[xt, yf], [xm, yf], [xm, ybk], [xt + sx * ch.dx, ybk], [xt, ybk + dy * Math.min(ch.dy, P.dog_b)]], true);
         v.circ(xa, yp, P.d_pin / 2, "OCULTO");
+        if (c.cam) {                                                  // leva de reenganche: riel fijo (canto con bolsillo y rampa) y seguidor de rodillo al tomar el pasador
+          const pr = c.cam.g.perfil_y, xo = c.cam.L && c.cam.L.x ? c.cam.L.x.borde_exterior : Math.max(...pr.map((q) => q.x_canto)) + 40;
+          v.poly(pr.map((q) => [sx * q.x_canto, dy * q.y]).concat([[sx * xo, dy * pr[pr.length - 1].y], [sx * xo, dy * pr[0].y]]), true);
+          v.circ(sx * c.cam.a.x_seguidor, dy * c.cam.a.y_seguidor, Math.max(5, c.cam.g.x_canto_toma - c.cam.g.x_perno_toma - c.cam.g.holgura_toma));
+        }
       }
     }
     // orejas de izaje (huella de la placa t_ear × 2R, orientación A DEFINIR)
@@ -353,15 +362,20 @@ const PLANOS = (() => {
     v.dimH(0, P.x_g, B / 2, 12, `x_g ${nf(P.x_g)}`);
     v.dimH(0, P.x_lug, yl, 8, `x_izaje ${nf(P.x_lug)}`);
     v.dimV(yl, B / 2, P.x_lug, -14, `c ${nf(P.c_lug)}`);
+    if (!c.piv) {
     v.dimV(-g.Y_bed, g.Y_bed, P.x_g + P.w_bed / 2, -14, `bancada ${nf(2 * g.Y_bed)}`);
     v.dimH(P.x_g - P.w_bed / 2, P.x_g + P.w_bed / 2, -g.Y_bed, -8, `${nf(P.w_bed)}`);
+    }
     v.leader(P.D_piv / 2 * Math.cos(Math.PI / 4), P.D_piv / 2 * Math.sin(Math.PI / 4), -22, 18, `PIVOTE Ø${nf(P.D_piv)} (PIVOTE-01)`);
     if (P.h_boss > 0) v.leader(P.D_boss / 2 * Math.cos(-Math.PI / 4), P.D_boss / 2 * Math.sin(-Math.PI / 4), 22, -18, `COLLAR Ø${nf(P.D_boss)} x ${nf(P.h_boss)} (PIVOTE-02)`);
     v.leader(0, -P.D_top / 2, -26, -16, `MESA Ø${nf(P.D_top)} (oculta)`);
     v.leader(-xl, -yl - P.t_ear / 2, -18, -9, `OREJA DE IZAJE x4 (IZAJE-01)`);
+    if (!c.piv) {
     v.leader(-P.x_g, -g.Y_bed + 120, -20, -14, "BANCADA (BASE-03)"); v.leader(P.x_g + bg.Wout / 2, -g.y_eye + 60, 20, 12, "MÉNSULA (BASE-04)");
     v.leader(P.x_g + P.w_s / 2, g.y_rp0 + P.s_free + g.front, 20, 12, "PATÍN (BASE-05)");
     v.leader(P.x_g + P.D_body / 2, g.y_eye + P.e_body + 120, 20, -10, `CILINDRO Ø${nf(P.D_bore)} (CIL-01)`);
+    if (c.cam) v.leader(P.x_g + P.w_s / 2, g.y_rp0 + P.s_free + 40, 22, -14, "LEVA DE REENGANCHE (BASE-07)");
+    }
     // textos
     const lines = [`BASE ${nf(B)} x ${nf(B)} x ${nf(P.t_base)} · marco ${nf(P.rim_t)} x ${nf(P.rim_h)} · N.º de cilindros ${P.n_cyl} (se muestra el giro antihorario; ménsulas a trazos: giro horario)`,
       `Interfaz elegida: ${ifaceName(P, ifc)}${ifc.o ? ` · Ri ${nf(R.Ri)} · Ro ${nf(R.Ro)} mm` : ""}`, ...fixNotes(c)];
@@ -407,6 +421,44 @@ const PLANOS = (() => {
     d.notes = lines;
   }
 
+  // modo pivotado en planta: ojales E en diagonal (cajón), 4 placas-leva con pernos (activas las del giro antihorario), cilindros y bloques-uña al tomar el pasador
+  function pivotPlanta(v, c) {
+    const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {};
+    Object.entries(g.placas).forEach(([k, pc]) => { const act = k.endsWith("_antihorario"); v.poly(pc.contorno, true, act ? "CONTORNO" : "OCULTO"); if (act) pc.pernos.forEach(([a, b]) => v.circ(a, b, (pl.d_perno || 20) / 2)); });
+    g.E.forEach(([ex, ey]) => { const h = g.ojalE.lado_cajon / 2; v.rect(ex - h, ey - h, ex + h, ey + h); v.circ(ex, ey, g.ojalE.d / 2); v.cross(ex, ey, h + 10); });
+    if (!q) return;
+    [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f]) => {
+      const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
+      const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
+      v.poly(bar(0, lb, P.D_body), true); v.poly(bar(lb, L, P.d_rod), true);
+      v.poly(q.una.cuerpo.map(f), true); v.poly(q.una.cara.map(f), true); v.poly(q.una.cubo.map(f), true); v.circ(Q[0], Q[1], g.pasadorQ.d / 2);
+      const A_ = f(q.pasadores.A); v.circ(A_[0], A_[1], P.d_pin / 2, "OCULTO");
+    });
+    const E = g.E[0], pc = g.placas["1_antihorario"].contorno[0];
+    v.dimH(0, E[0], E[1], -10, `E x ${nf(E[0])}`); v.dimV(0, E[1], E[0], 12, `E y ${nf(E[1])}`);
+    v.leader(E[0], E[1], 18, -10, `OJAL E (BASE-04) · cajón ${nf(g.ojalE.lado_cajon)}`);
+    v.leader(pc[0], pc[1], 20, 12, `PLACA-LEVA t = ${nf(pl.t || P.pv_tcam)} (BASE-07)`);
+    v.leader(q.Q[0], q.Q[1], 22, 14, `BLOQUE-UÑA + PASADOR Q Ø${nf(g.pasadorQ.d)} (BASE-06)`);
+    v.leader((q.E[0] + q.Q[0]) / 2, (q.E[1] + q.Q[1]) / 2, 22, -16, `CILINDRO PIVOTADO Ø${nf(P.D_bore)} (CIL-01)`);
+  }
+  // modo pivotado en alzado desarrollado (distancias radiales): placa-leva, bloque-uña con pasador Q, cilindro y soporte del ojal E
+  function pivotAlzado(v, c, zc, R_) {
+    const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {}, bl = D.bloque_una || {}, se = D.soporte_E || {}, tb = c.tb;
+    if (!q) return;
+    const rr = (pts) => { const a = pts.map(([x, y]) => Math.hypot(x, y)); return [Math.min(...a), Math.max(...a)]; };
+    const [p0, p1] = rr(g.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cara, q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    R_(p0, tb, p1, tb + pl.t);
+    v.rect(b0, bl.z_inf, b1, bl.z_inf + bl.h, "CONTORNO");
+    v.rect(rQ - bl.d_Q / 2, c.R.blk.zCam, rQ + bl.d_Q / 2, c.R.blk.zCam + bl.l_pasador_Q, "OCULTO");
+    v.rect(rE - se.lado_cajon / 2, tb, rE + se.lado_cajon / 2, tb + se.alto, "CONTORNO");
+    [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => v.line(rE - se.lado_cajon / 2, zt, rE + se.lado_cajon / 2, zt));
+    const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
+    v.rect(Math.min(rm, rE), zc - P.D_body / 2, Math.max(rm, rE), zc + P.D_body / 2); v.rect(Math.min(rQ, rm), zc - P.d_rod / 2, Math.max(rQ, rm), zc + P.d_rod / 2);
+    v.line(rE, tb, rE, tb + se.alto + 20, "EJES"); v.line(rQ, c.R.blk.zCam - 10, rQ, c.R.blk.zCam + bl.l_pasador_Q + 10, "EJES");
+    v.dimV(tb, tb + pl.t, p1, -10, `${nf(pl.t)}`); v.dimV(bl.z_inf, bl.z_inf + bl.h, b0, 10, `h ${nf(bl.h)}`);
+    v.leader((p0 + p1) / 2, tb + pl.t, -10, -18, "PLACA-LEVA (BASE-07)"); v.leader(b1, bl.z_inf + bl.h, 12, 20, "BLOQUE-UÑA + PASADOR Q (BASE-06)"); v.leader(rE, tb + se.alto, 14, 22, "SOPORTE DEL OJAL E (BASE-04)");
+  }
+
   // ----- CONJ: sección radial del conjunto con la interfaz elegida -----
   function sheetConj(d, s, c) {
     const P = c.P, R = c.R, K = c.K, ifc = c.ifc, tb = c.tb, tm = c.tm, hd = P.h_disc, tpr = c.tpr, Rt = P.D_top / 2, rpr = c.prIn;
@@ -429,11 +481,21 @@ const PLANOS = (() => {
     if (woodT) { R_(r0, tm + hd, Rt - 0, tm + hd + woodT, true); }
     // bancada, patín y uña (sección por el eje del cilindro)
     const zc = tb + R.hax, zb = tb + P.t_bed, fh = TT_.forkH(P);
+    if (c.piv && c.piv.g) { pivotAlzado(v, c, zc, R_); v.line(r0 - 20, zc, Math.max(rB, Math.hypot(...c.piv.g.E[0])) + 40, zc, "EJES"); }
+    else {
     R_(P.x_g - P.w_bed / 2, tb, P.x_g + P.w_bed / 2, zb);
     v.rect(P.x_g - P.w_slot / 2, zb - P.h_slot, P.x_g + P.w_slot / 2, zb, "OCULTO");
     R_(P.x_g - P.w_s / 2, zb, P.x_g + P.w_s / 2, zc + fh / 2, false);
     v.rect(K.tipX, zc - P.dog_h / 2, K.mouthX + P.L_in, zc + P.dog_h / 2, "CONTORNO");
     v.line(P.x_g, tb, P.x_g, zc + fh / 2 + 20, "EJES"); v.line(r0 - 20, zc, rB + 40, zc, "EJES");
+    if (c.cam && c.cam.L && c.cam.L.z && c.cam.L.x) {               // leva de reenganche: riel sobre el patín y seguidor de rodillo en su perno
+      const z = c.cam.L.z, x = c.cam.L.x, rF = Math.max(5, x.canto_toma - x.perno_seguidor_toma - (c.cam.L.holgura_toma || 0));
+      R_(x.canto_toma, z.inf_riel, x.borde_exterior, z.sup_riel);
+      v.rect(x.perno_seguidor_toma - rF, z.inf_riel + 4, x.perno_seguidor_toma + rF, z.sup_riel - 4, "CONTORNO");
+      v.line(x.perno_seguidor_toma, z.sup_una, x.perno_seguidor_toma, z.sup_riel - 4, "EJES");
+      v.leader(x.borde_exterior, z.sup_riel, 16, 14, "LEVA DE REENGANCHE (BASE-07)");
+    }
+    }
     // cotas: pila de espesores a la izquierda (desfasadas alternadamente para que no se pisen)
     const st = [[0, tb, tb]].concat(layers.map(([z0, t]) => [z0, z0 + t, t]), [[tm, tm + P.t_bot, P.t_bot]]);
     st.forEach(([z0, z1, t], i) => v.dimV(z0, z1, r0, 12 + 10 * (i % 2), nf(t)));
@@ -445,8 +507,7 @@ const PLANOS = (() => {
     v.dimV(0, zc, rB + 40, -14, `eje cil. ${nf(zc)}`);
     v.dimV(0, tm + hd + woodT, rB + 40, -28, `alto ${nf(tm + hd + woodT)}`);
     if (woodT) v.dimV(tm + hd, tm + hd + woodT, Rt, -12, `madera ${nf(woodT)}`);
-    v.leader(P.x_g, zb + 20, 24, 22, "BANCADA + PATÍN (BASE-03 / BASE-05)");
-    v.leader(K.tipX + 30, zc, -30, 24, "UÑA (BASE-06)");
+    if (!c.piv) { v.leader(P.x_g, zb + 20, 24, 22, "BANCADA + PATÍN (BASE-03 / BASE-05)"); v.leader(K.tipX + 30, zc, -30, 24, "UÑA (BASE-06)"); }
     v.leader(P.R_pin, tm + hd, 14, 22 + (woodT ? 6 : 0), `PASADOR Ø${nf(P.d_pin)} en R${nf(P.R_pin)} (MESA-06)`);
     if (layers.length) v.leader((R.Ri > r0 ? R.Ri : r0) + 80, tb + layers[0][1] / 2, -2, -26, "INTERFAZ DE GIRO (INTER)");
     if (woodT) v.leader(r0 + 120, tm + hd + woodT, 0, 20, "CUBIERTA DE MADERA (MESA-07)");
