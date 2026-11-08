@@ -325,6 +325,11 @@ class Manejador(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         u = urllib.parse.urlsplit(self.path)
+        if u.path == "/favicon.ico":                     # sin ícono: 204 para que el navegador no registre un 404 en la consola
+            self.send_response(204)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if u.path == "/api/ping":
             t = ULTIMO[0]
             return self._json(200, {"ok": True, "servicio": "generador de planos TT300-C", "version": version(), "html": html_principal(),
