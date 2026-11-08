@@ -3314,8 +3314,9 @@ const PLANOS = (() => {
       };
     }
     const ccw = [cylPos(1, 1), cylPos(-1, -1)], cw = [cylPos(1, -1), cylPos(-1, 1)];
+    const DRV = TT_.designDrive(P, R);                                  // datos de dibujo del accionamiento (leva guiada, modo pivotado), como tools/export_design.js
     const out = {
-      proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P,
+      proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P, modo: DRV.modo, modo_nombre: DRV.modo_nombre, levaGuiada: DRV.levaGuiada, pivotado: DRV.pivotado,
       verdict: A.verdict, validacion: val,
       derivados: {
         W: R.W, N: R.N, ND: R.ND, q_max: R.q_max, q_avg: R.q_avg, Fstall: R.Fstall, Falarm: R.Falarm, Fret: R.Fret, A: R.A, Aann: R.Aann,
@@ -3324,7 +3325,7 @@ const PLANOS = (() => {
         K: { armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, gap: K.gap, radial: K.radial, DeltaMax: K.DeltaMax,
              L_s: K.L_s, Lg: K.Lg, front: K.front, rear: K.rear, y_eye: K.y_eye, y_rp0: K.y_rp0, y_rp1: K.y_rp1, L_bed: K.L_bed, Y_bed: K.Y_bed, zc0: K.zc0, lever: K.lever, mouthX: K.mouthX, inset: K.inset, tipX: K.tipX, travel: K.travel, pocketEnd: K.pocketEnd, shoeTop: K.shoeTop },
         casos: R.cases.map((c) => ({ id: c.id, nombre: c.name, mu: c.mu, r: c.r, T: c.T, F: c.F, p: c.p, FS: c.FS, gira: c.turns })),
-        masas: R.m,
+        masas: R.m, masas_desc: DRV.masas_desc,
       },
       pasadores: Array.from({ length: P.N_pin }, (_, k) => (180 / P.N_pin + 360 * k / P.N_pin)),
       nervios: Array.from({ length: P.N_rib }, (_, k) => 360 * k / P.N_rib),
@@ -3420,10 +3421,18 @@ const PLANOS = (() => {
     const ears = 4 * RHO * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * P.t_ear;
     add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(P.t_base)} con agujero Ø${nf(P.D_piv)}`, steel, 1, plate);
     add("BASE", 2, `Marco perimetral ${nf(P.rim_t)} x ${nf(P.rim_h)} mm`, steel, 1, m.rim);
-    add("BASE", 3, `Bancada ${nf(P.w_bed)} x ${nf(P.t_bed)} x ${nf(R.K.L_bed)} con ranura T de guía`, steel, P.n_cyl, m.beds);
-    add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)", steel, P.n_br, m.brackets);
-    add("BASE", 5, "Patín guiado con alojamiento de la uña", `Acero Fy ${nf(P.Fy_shoe)} MPa`, P.n_cyl, m.shoes);
-    add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
+    // accionamiento: guiado (bancada, ménsula, patín, uña y leva de reenganche) o pivotado tipo KIET (soporte del ojal E, bloque-uña, placas-leva); descripciones del núcleo (designDrive)
+    const DRV = TT_.designDrive ? TT_.designDrive(P, R) : null, md = (DRV && DRV.masas_desc) || {}, piv = !!(DRV && DRV.modo === 2);
+    if (!piv) {
+      add("BASE", 3, `Bancada ${nf(P.w_bed)} x ${nf(P.t_bed)} x ${nf(R.K.L_bed)} con ranura T de guía`, steel, P.n_cyl, m.beds);
+      add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)", steel, P.n_br, m.brackets);
+      add("BASE", 5, "Patín guiado con alojamiento de la uña", `Acero Fy ${nf(P.Fy_shoe)} MPa`, P.n_cyl, m.shoes);
+      add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
+    } else {
+      add("BASE", 4, md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1) : "Soporte del ojal E", steel, P.n_cyl, m.brackets);
+      add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
+    }
+    if (m.cam > 0) add("BASE", 7, (md.cam ? md.cam.charAt(0).toUpperCase() + md.cam.slice(1) : "Leva de reenganche") + " (masa del núcleo)", steel, piv ? 4 : P.n_cyl, m.cam);
     // Mesa
     const rings = TT_.parseRings(P.rings);
     add("MESA", 1, `Plancha superior t = ${nf(P.t_top)} (anillo de pasadores t = ${nf(Math.max(P.t_pr, P.t_top))})`, steel, 1, m.top);
