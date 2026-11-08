@@ -116,6 +116,9 @@ def sheet_notas(ctx):
     var = M3.variante_de(g)
     en_juego = {p.code_suf(t["suf"] if p.tipos else p.suf).replace(CODE + "-", "").rsplit("-", 1)[0] for p in ctx.m.parts for t in (p.tipos or [None])} | \
                {p.code.replace(CODE + "-", "").rsplit("-", 1)[0] for p in ctx.m.parts}
+    CORTO = {1: "Disco de la base (sector inox.)", 2: "Disco de la mesa (sector inox.)", 3: "Tope soldado a la base", 4: "Tope soldado a la mesa", 5: "Tornillo de posición, base",
+             6: "Tornillo de posición, mesa", 7: "Grasera DIN 71412 M10×1", 8: "Sector de UHMW-PE", 9: "Barra del rebaje UHMW", 10: "Sector de bronce con tapones", 11: "Pastilla de bronce con tapones",
+             12: "Tapón de grafito", 13: "Disco duro de la mesa (sector)", 14: "2.ª placa de bronce (sector)"}
     rows = []
     por_num = {}
     for k, (n, nm, vv) in M3.INT_CODIGOS.items():
@@ -135,13 +138,17 @@ def sheet_notas(ctx):
     for n, e in sorted(por_num.items()):
         base = f"INT-{n:03d}"
         actual = sorted({c_ for c_ in en_juego if c_.startswith(base)})
-        rows.append([base, e["nm"].split(" (")[0] + (": " + cods(base, e["cl"]) if e["cl"] else ""), e["vv"], ", ".join(a_[4:] for a_ in actual) if actual else "—"])
-    rows += [["INT-101", M3.INT_LAMINAS[101] + " (lámina de características)", "A, AF2, C1, C2, C3", "sí" if (g.opt in (1, 3) and g.h_gr > 0) else "—"],
-             ["INT-102", M3.INT_LAMINAS[102] + " (lámina de características)", "C1, C2, C3", "sí" if g.opt == 3 else "—"]]
-    vt = {103: "A, AF2", 104: "C1, C2, C3", 105: "C1, C2, C3"}
+        nm_ = CORTO.get(n, e["nm"].split(" (")[0])
+        act_ = [a_[4:] for a_ in actual]
+        if len(act_) > 2:
+            act_ = [act_[0] + "…" + act_[-1].split("-")[-1]]
+        rows.append([base, nm_ + (": " + cods(base, e["cl"]) if e["cl"] else ""), e["vv"].replace("C1, C2, C3", "C1…C3"), ", ".join(act_) if act_ else "—"])
+    rows += [["INT-101", "Lámina: ranuras de engrase de la cara deslizante", "A, AF2, C1…C3", "sí" if (g.opt in (1, 3) and g.h_gr > 0) else "—"],
+             ["INT-102", "Lámina: patrón de tapones de grafito", "C1…C3", "sí" if g.opt == 3 else "—"]]
+    vt = {103: "A, AF2", 104: "C1…C3", 105: "C1…C3"}
     for k_, n_ in sorted(M3.LAMINA_TIPOS.items(), key=lambda t: t[1]):
         if n_ in vt or any(getattr(p, "hoja_tipos", False) and p.key == k_ for p in ctx.m.parts):
-            rows.append([f"INT-{n_:03d}", M3.INT_LAMINAS[n_] + " (lámina de tipos)", vt.get(n_, "—"), "sí" if any(getattr(p, "hoja_tipos", False) and p.key == k_ for p in ctx.m.parts) else "—"])
+            rows.append([f"INT-{n_:03d}", "Lámina de tipos: " + M3.INT_LAMINAS[n_].split(" (")[0].replace("Tipos de ", "").lower(), vt.get(n_, "—"), "sí" if any(getattr(p, "hoja_tipos", False) and p.key == k_ for p in ctx.m.parts) else "—"])
     if not g.opt:
         # juego sin interfaz: los códigos INT no se usan; una fila los resume (el mapa completo va en los juegos con interfaz)
         rows = [["INT-001…014, INT-101…107", "Piezas y láminas de la interfaz (sectores, topes, tornillos, graseras, UHMW, bronce, disco duro): no se emiten en este juego; "
@@ -158,9 +165,14 @@ def sheet_notas(ctx):
             cl2.append((vs, desc, o + 1, o + nt))
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
-    yn, _ = s.table(x2, yn - 6, [("Código", 22, "L"), ("Pieza; sufijo -n, variantes y geometría", 138, "L"), ("Variantes", 22, "L"), ("En el juego", 18, "L")], rows, h=T_S,
+    # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
+    otros = [r_ for r_ in rows if r_[3] == "—"]
+    rows = [r_ for r_ in rows if r_[3] != "—"]
+    if otros:
+        rows.append(["otros", "No se usan en este juego: " + "; ".join(f"{r_[0]} ({r_[2]})" for r_ in otros), "—", "—"])
+    y, _ = s.table(R[0], y - 6, [("Código", 21, "L"), ("Pieza; sufijo -n, variantes y geometría", 134, "L"), ("Variantes", 27, "L"), ("En el juego", 18, "L")], rows, h=T_S,
                     title="MAPA DE CÓDIGOS POR GEOMETRÍA (un código = una geometría; sufijo -n por variante o por tipo de sector)")
-    c.h.indice_pos = (R[0], y - 10, R[2] - R[0], R[1], yn - 10)      # columna 1 bajo las notas; columna 2 bajo las normas y el mapa de códigos
+    c.h.indice_pos = (R[0], y - 10, R[2] - R[0], R[1], yn - 10)      # columna 1 bajo las notas y el mapa de códigos; columna 2 bajo las normas
     return c.h
 
 

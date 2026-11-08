@@ -30,6 +30,7 @@ class Libre:
         ents = list(s.m)
         self.tb = [box(b[0] - 0.8, b[1] - 0.8, b[2] + 0.8, b[3] + 0.8) for b in C.text_boxes(ents)]
         segs = []
+        hps = []
         for e in ents:
             t = e.dxftype()
             if t in ("LINE", "LWPOLYLINE"):
@@ -46,13 +47,19 @@ class Libre:
                 segs.append(LineString(pts))
             elif t == "HATCH":
                 try:
+                    from shapely.geometry import Polygon as _Pg
                     for path in e.paths:
                         vs = [(v[0], v[1]) for v in getattr(path, "vertices", [])]
                         if len(vs) > 2:
                             segs.append(LineString(vs + [vs[0]]))
+                            pg_ = _Pg(vs).buffer(0)
+                            if pg_.area > 4.0:
+                                hps.append(pg_)          # zona achurada: ninguna indicación se apoya dentro del corte
                 except Exception:
                     pass
         self.segs = segs
+        self.hps = hps
+        self.hs_tree = STRtree(hps) if hps else None
         self.ts = STRtree(self.tb) if self.tb else None
         self.ss = STRtree(segs) if segs else None
         self.rects = [box(*r[:4]) for r in getattr(s, "block_rects", [])]
@@ -68,6 +75,8 @@ class Libre:
             if tree is not None and any(geoms[int(i)].intersects(r) for i in tree.query(r)):
                 return False
         if any(q.intersects(r) for q in self.rects + self.extra):
+            return False
+        if self.hs_tree is not None and any(self.hps[int(i)].intersects(r) for i in self.hs_tree.query(r)):
             return False
         return True
 

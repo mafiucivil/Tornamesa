@@ -71,9 +71,9 @@ def cut_rows(ctx):
     add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte del perfil; agujero mecanizado H12")
     add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")
     add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
-    add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP; caras planeadas a {f(g.tpr)}", qty=4)
+    add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; caras planeadas a {f(g.tpr)} ANTES de soldar a la plancha superior", qty=4)
     add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
-    add("mesa_anillo_inf", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP; caras planeadas a {f(g.tpr)}", qty=4)
+    add("mesa_anillo_inf", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; se suelda en {f(g.tpr + 3)} y la cara inferior se planea a {f(g.tpr)} DESPUÉS de soldar (con la plancha inferior)", qty=4)
     for i, r in enumerate(D["almas"]):
         add(f"mesa_alma{i}", "Pletina rolada", f"{f(g.hw)}×{f(P['t_web'])}×{f(2 * math.pi * r + 20)}", f"R{f(r)}; 1 empalme CJP")
     for p in m.parts:

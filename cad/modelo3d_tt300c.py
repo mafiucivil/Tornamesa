@@ -562,7 +562,7 @@ def build(D, verbose=True):
     pins = pins.cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.pin_drill_L).pushPoints(pin_xy).circle(g.pin_drill / 2).extrude(g.pin_drill_L + 1))   # M20-6H: taladro Ø17,5 prof. 45 (rosca 40)
     m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa — PROPUESTO",
                "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción de la franja de contacto", core="pins", color=(0.75, 0.75, 0.78),
-               tratamiento=f"Temple por inducción ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm)"))
+               tratamiento=f"Bonificado; temple por inducción ≥ 55 HRC, prof. ≥ {fm(g.z_hard, 1)} mm (MES-012)", obs=f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa"))
     # B-13/N-18: perno comercial (cabeza Ø30 × 20 con hexágono interior s = 17, vástago M20 × 45) y arandela fabricada, piezas separadas.
     # El vástago se modela con Ø20 en la arandela y con el Ø de taladro (17,5) dentro de la rosca del pasador (engrane de la rosca, sin interferencia).
     zh = z0 + hd + g.washer_t

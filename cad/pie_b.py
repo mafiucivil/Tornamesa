@@ -19,9 +19,13 @@ def sheet_mesa_sup(ctx):
     def planta(V, p):
         s.centerlines(V.P(0, 0, zt), g.prIn * V.scale, 8)
         p.cut_mark("planta", "A", (-g.prIn - 22, 0, zt), (g.prIn + 22, 0, zt), 90)
+        # B-47: llamada de las roscas M8 hacia abajo a la derecha (no cruza la traza A-A ni otras llamadas)
+        hx = (g.insp_pcd / 2 * math.cos(math.radians(330)), g.insp_pcd / 2 * math.sin(math.radians(330)), zt - g.cb_t)
+        V.note_hole(hx, g.insp_drill / 2, -40, "6 × M8-6H", ext=(g.prIn - g.insp_pcd / 2) * V.scale + 12, on=on,
+                    lines=[f"6 × M{fm(g.insp_d, 0)}-6H pasante (taladro Ø{fm(g.insp_drill, 1)})", f"en el fondo del rebaje, PCD Ø{fm(g.insp_pcd, 0)}, 30° + 60°·k"])
     # B-05: el contorno se acota con el Ø de corte de preparación (la plancha absorbe la abertura de raíz de J12)
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), draw=planta, title="PLANTA", w=4.0, mins=0.1,
-         auto=dict(text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn - 6)} ±1 (corte de preparación = Ø{f(2 * g.prIn)} − 2 × 3)"}, hole_rmin=3.0, verts=False, hole_pos=False, only_extents=True, ang0=118,
+         auto=dict(text={round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn - 6)} ±1 (corte de preparación = Ø{f(2 * g.prIn)} − 2 × 3)"}, hole_rmin=g.insp_drill / 2 + 0.5, verts=False, hole_pos=False, only_extents=True,
                    fits={round(g.hole_top, 1): "H12", round(g.cb_D, 1): "H12"},
                    hole_txt={g.insp_drill: f"6 × M{fm(g.insp_d, 0)}-6H pasante (Ø{fm(g.insp_drill, 1)}), PCD Ø{fm(g.insp_pcd, 0)}, 30° + 60°·k",
                              round(2 * g.prIn, 1): f"Ø{f(2 * g.prIn - 6)} ±1 (corte de preparación = Ø{f(2 * g.prIn)} − 2 × 3)"}, tol={}))

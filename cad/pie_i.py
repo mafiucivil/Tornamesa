@@ -426,7 +426,9 @@ def sheet_int_graseras(ctx):
 
     def cg(V, p):
         s.line(V.P(g.Rt - 40, 0, zc0), V.P(rr - 10, 0, zc0), "EJE")
-    p.datum_in("corte", "surf", "A", at=[(g.Rt - 15, 0, g.z0), (g.Rt - 35, 0, g.z0)], d=(0, 0, -1))
+        s.line(V.P(g.Rt, 0, g.z0 + g.tpr + 1.0), V.P(g.Rt, 0, g.z0 + g.tpr + 20.0), "COTA")          # prolongación del canto (datum A)
+    # datum A = canto exterior del anillo, indicado sobre la prolongación del canto por encima de la vista (ISO 5459)
+    p.datum_in("corte", "surf", "A", at=[(g.Rt, 0, g.z0 + g.tpr + z_) for z_ in (12.0, 16.0, 8.0)], d=(1, 0, 0))
     p.gd_in("corte", "surf", "pos", "Ø0,5", "A", at=[(rr + 3.0, 0, g.z0 + g.tpr * 0.3), (rr - 3.0, 0, g.z0 + g.tpr * 0.3)], d=[(1, 0, 0), (-1, 0, 0)])
     p.vs("corte", gk, "front", cut=CUT_Y, center=(rr + 20, 0, zc0), win=(-70, -45, 50, 45), lv=(1, 2, 2, 1), extra=(0, 0, 40, 0), draw=cg, hs=0.4, maxs=2.0, w=1.4,
          title=f"CORTE A-A POR LA GRASERA G1 (a {fm(ag % 360, 1)}°): TALADRO Ø6 RADIAL Y AXIAL EN EL ANILLO MES-004", mat={k + "_G": ctx.mat.get(k, "acero") for k in zk}, auto=dict(on=gk, tol={}, hole_notes=False))
@@ -436,7 +438,7 @@ def sheet_int_graseras(ctx):
     p.notes([f"Grasera recta DIN 71412 M10×1 de acero zincado, {g.n_greaser} unidades, en el canto del anillo inferior de la mesa (MES-004); rosca M10×1 (ISO 261) prof. 12 con asiento plano.",
              f"Conducto: taladro Ø6 radial hasta R{fm(rr, 0)} (ranura circunferencial exterior) y Ø6 axial hasta la cara deslizante (S08, PROVISORIO); desbarbar y soplar.",
              "Probar cada conducto con grasa grafitada NLGI 2 antes de montar los sectores.", "Marca/modelo por catálogo (GEN-008)."],
-            gd=[("pos", "Ø0,5", "A", "Posición del conducto axial Ø6 respecto de la cara inferior del anillo (A); su ángulo (bisectriz del sector) en la tabla")])
+            gd=[("pos", "Ø0,5", "A", "Posición del conducto axial Ø6 respecto del canto exterior del anillo (A, R − 30); su ángulo (bisectriz del sector) en la tabla")])
     p.build()
     return p.h
 
