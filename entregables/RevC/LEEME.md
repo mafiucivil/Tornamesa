@@ -26,6 +26,18 @@ python3 tools/indice_planos.py salidas/mi_juego      # PDF por grupo e indice_pl
 
 El generador se niega a emitir (código ≠ 0) si el diseño no gira, la estructura no cumple o falla un control de calidad.
 
+## Simulación del movimiento en GIF
+En la herramienta, botón **Simulación** → elija sentido, carreras, velocidad y fricción → **Exportar GIF**. El GIF (GIF89a, codificado en el propio navegador, sin bibliotecas externas) muestra la planta y el detalle de la estación de un cilindro lado a lado, con un rótulo con la alternativa (accionamiento, interfaz y cubierta), θ, fase y tiempo; la duración de cada cuadro es el tiempo real del caudal de avance y de retorno dividido por la velocidad elegida, con más cuadros en el retorno. Se descarga como `TT300-C_simulacion_<alternativa>.gif` y queda en vista previa dentro de la ventana.
+
+Sin abrir el navegador (mismo codificador, con Playwright y chromium):
+
+```
+node tools/gif_simulacion.js --alt B,W --sentido horario --carreras 2 --velocidad 1 --salida salidas/
+node tools/gif_simulacion.js --alt AF2 --param W_tf=250 --salida mi_simulacion.gif
+```
+
+`--alt`: 0 (base), A, AF2, B, C1, C2, C3, más W para la cubierta de madera; `--friccion nom|dis`; `--param k=v` cambia cualquier parámetro del formulario.
+
 ## Contenido del juego que emite el generador
 - `planos/`: una lámina por archivo, PDF y DXF (A1 y A2, método de proyección E, letra ≥ 3,5 mm en el plot, tablas 3,0 mm, mínimo 2,5 mm). Series: `GEN` (generales), `CON` (conjunto general, despiece, explosionadas, instructivo de armado y subconjuntos) y láminas de pieza con el código del ítem (`BAS`, `IZA`, `ACC`, `MES`, `PIV`, `INT`, `MAD`).
 - Grupos (`tools/indice_planos.py`, por el título de cada lámina): **Armado** = títulos con EXPLOSIONADA, MONTAJE, SECUENCIA o ARMADO; **Generales** = GEN-*, CON-001 a CON-003 y los títulos con DESPIECE COMPLETO o CONJUNTO GENERAL; **Fabricación** = el resto. Cada grupo en `TT300-C_Planos_{Generales,Fabricacion,Armado}_RevC.pdf`.

@@ -3,8 +3,10 @@
    Comprueba, para el modo guiado y varias interfaces (Base, A, B, C1 y cubierta de madera), que la simulación abre, anima N carreras
    y termina con θ = N·paso (±0,01°), en ambos sentidos de giro; que una carrera insuficiente se marca en rojo al final del empuje;
    y captura las fases de empuje, retorno y reenganche. El modo pivotado (drive_mode = 2) se prueba cuando el núcleo entregue su
-   geometría; mientras tanto se comprueba que la simulación lo declara pendiente en vez de dibujar una cinemática inventada. */
-const path = require("path"), fs = require("fs"), assert = require("node:assert/strict");
+   geometría; mientras tanto se comprueba que la simulación lo declara pendiente en vez de dibujar una cinemática inventada.
+   «Exportar GIF»: con 2 interfaces y ambos sentidos, el botón descarga un GIF89a válido con más de 1 cuadro que PIL (Python) decodifica,
+   y la vista previa queda en el modal (captura sim_gif_vista_previa.png). */
+const path = require("path"), fs = require("fs"), assert = require("node:assert/strict"), { execFileSync } = require("child_process");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 const out = process.argv[2] || fs.mkdtempSync(path.join(require("os").tmpdir(), "tt300c-e2e-sim-"));
@@ -14,7 +16,7 @@ const N = 2;
 (async () => {
   const browser = await chromium.launch();
   try {
-    const page = await (await browser.newContext({ viewport: { width: 1300, height: 1350 } })).newPage(), errs = [];
+    const page = await (await browser.newContext({ acceptDownloads: true, viewport: { width: 1300, height: 1350 } })).newPage(), errs = [];
     page.on("pageerror", (e) => errs.push(String(e))); page.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
     await page.goto(html);
     await page.waitForSelector("#bSim");
@@ -65,6 +67,27 @@ const N = 2;
     await page.locator("#simBox").screenshot({ path: path.join(out, "sim_guiado_carrera_insuficiente.png") });
     console.log("carrera insuficiente → marcada en rojo al final del empuje");
     await cerrar();
+    // Exportar GIF: 2 interfaces × 2 sentidos
+    for (const [v, dir] of [["0", 1], ["0", -1], ["B", 1], ["B", -1]]) {
+      await page.click("#bReset"); await settle();
+      await page.selectOption("#altSel", v); await settle();
+      await page.click("#bSim"); await page.waitForSelector("#simDet");
+      await page.selectOption("#simDir", String(dir));
+      await page.fill("#simN", "2"); await page.dispatchEvent("#simN", "change");
+      const t0 = Date.now();
+      const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 300000 }), page.click("#bSimGif")]);
+      const f = path.join(out, `${dir < 0 ? "horario_" : ""}${dl.suggestedFilename()}`); await dl.saveAs(f);
+      const buf = fs.readFileSync(f);
+      assert.equal(buf.subarray(0, 6).toString("latin1"), "GIF89a", "cabecera GIF89a");
+      assert.match(dl.suggestedFilename(), /^TT300-C_simulacion_guiado_(base|B)\.gif$/);
+      const py = execFileSync("python3", ["-c", "import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]); n=im.n_frames; d=0\nfor k in range(n):\n im.seek(k); im.convert('RGB'); d+=im.info.get('duration',0)\nprint(n, im.size[0], im.size[1], d, im.info.get('loop'))", f]).toString().trim().split(" ").map(Number);
+      assert.ok(py[0] > 1, "más de 1 cuadro"); assert.equal(py[1], 900); assert.equal(py[4], 0, "bucle infinito (NETSCAPE)");
+      assert.ok(buf.length < 6 * 1048576, "menos de 6 MB para 2 carreras");
+      assert.ok(await page.isVisible("#simGifPrev"), "vista previa en el modal");
+      console.log(`GIF ${v === "0" ? "base" : v}${dir < 0 ? " horario" : ""}: ${py[0]} cuadros (PIL), ${py[1]}×${py[2]} px, ${(buf.length / 1048576).toFixed(2)} MB, ${(py[3] / 1000).toFixed(1)} s de animación; generado en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+      if (v === "B" && dir > 0) { await page.$eval("#simGif", (e) => e.scrollIntoView()); await page.locator("#simBox").screenshot({ path: path.join(out, "sim_gif_vista_previa.png") }); }
+      await cerrar();
+    }
     assert.deepEqual(errs, [], "errores de consola (modo guiado): " + errs.join(" | "));
     // modo pivotado
     await page.click("#bReset"); await settle();
