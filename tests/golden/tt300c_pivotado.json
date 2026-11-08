@@ -98,9 +98,9 @@
   "Articulaciones · Tapas del cajón E: desgarro por corte hacia la pared trasera": 0.6303679140573727,
   "Soporte del ojal E · Cajón del ojal E: flexión en la base (F/2 en cada tapa; sección en U con la ventana del ojal)": 0.5156164358260907,
   "Soporte del ojal E · Cajón del ojal E: corte (dos paredes laterales)": 0.515931892736188,
-  "Soporte del ojal E · Soldadura cajón del ojal E–base (filetes a ambos lados de las tres paredes): corte y flexión": 0.6404337961678462,
-  "Soporte del ojal E · Filete cajón–base: mínimo según la parte más gruesa": 0.36363636363636365,
-  "Soporte del ojal E · Filete cajón–base: máximo según el borde de la pared": 0.9565217391304348,
+  "Soporte del ojal E · Soldadura cajón del ojal E–base (filetes a ambos lados de las tres paredes): corte y flexión": 0.6709306436044102,
+  "Soporte del ojal E · Filete cajón–base: mínimo según la parte más gruesa": 0.38095238095238093,
+  "Soporte del ojal E · Filete cajón–base: máximo según el borde de la pared": 0.9130434782608695,
   "Placas-leva · Placa-leva: contacto de Hertz extremo del pasador Q–canto templado (a calado)": 0.5437251644598595,
   "Placas-leva · Placa-leva: flexión del labio entre pernos": 0.3952253966151201,
   "Placas-leva · Pernos de la placa-leva: corte (M20, 6 por placa; los dos más cercanos toman N)": 0.4869716007728689,
@@ -136,6 +136,6 @@
   "Fatiga · Bloque-uña (cuerpo acodado) (cat. A, N = 35000)": 0.24771582251689836,
   "Fatiga · Pasadores de articulación E y Q (cat. A, N = 35000)": 0.21150458966883987,
   "Fatiga · Pie de soldadura cajón del ojal–base (cat. E, N = 35000)": 0.18850941248262149,
-  "Fatiga · Garganta soldadura cajón del ojal–base (corte) (cat. F, N = 35000)": 0.2804993524853585
+  "Fatiga · Garganta soldadura cajón del ojal–base (corte) (cat. F, N = 35000)": 0.2938564645084708
  }
 }

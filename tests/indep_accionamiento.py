@@ -29,6 +29,7 @@ g0, RHO = 9.80665, 7.85e-6
 
 
 def export(over=None):
+    over = dict({"drive_mode": 1}, **(over or {}))   # este verificador modela el accionamiento guiado: desde el 08-11-2026 el valor por defecto es el pivotado (drive_mode = 2)
     with tempfile.TemporaryDirectory() as td:
         args = ["node", str(ROOT / "tools" / "export_design.js")]
         if over:
@@ -73,7 +74,7 @@ D0 = export()
 if D0 is None:
     print("No se pudo ejecutar node tools/export_design.js"); sys.exit(2)
 P = D0["P"]
-Pg = json.loads((GOLD / "params_defaults.json").read_text())
+Pg = json.loads((GOLD / "params_defaults.json").read_text()); Pg["drive_mode"] = 1   # modelo guiado
 dif = sorted(k for k in set(P) | set(Pg) if P.get(k) != Pg.get(k))
 DV, KC = D0["derivados"], D0["derivados"]["K"]
 VER = {v["nombre"]: v for v in D0["verificaciones"]}

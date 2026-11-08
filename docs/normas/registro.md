@@ -176,7 +176,8 @@ Pedido del mandante 07-11-2026 (Tarea 1). El riel-leva fijo reemplaza la depende
 | Ranura de la tapa | F_ret/(d·t_tapa) ≤ 1,25·Fy_patín/Nd | ASME BTH-1 §3-3.3 | Aplastamiento |
 | Riel-leva | N·k_M/(t·w_n²/6) + F_ret/(t·w_n) ≤ Fy/Nd, sección neta en el bolsillo | ASME BTH-1 §3-2.3 y §3-2.1 | Biapoyado entre soportes, carga en la peor posición del seguidor; 42CrMo4+QT (EN 10083-3, 16 < t ≤ 40: Re ≥ 750) |
 | Soportes del riel | R_x·h/(l·b²/6) + R_y·h/(b·l²/6) ≤ Fy/Nd | ASME BTH-1 §3-2.3 | |
-| Pernos de los soportes | f_t ≤ F'nt/Ω, F'nt = 1,3Fnt − (Ω·Fnt/Fnv)·f_rv ≤ Fnt; f_rv ≤ Fnv/Ω; Fnt = 0,75Fu, Fnv = 0,45Fu (rosca incluida), Ω = 2,00 | AISC 360-22 §J3.6, §J3.7 Ec. J3-3a, Tabla J3.2 (grupo 150 ≈ ISO 898-1 10.9) | Tracción por vuelco (R_x + R_y)·h/((n/2)·s) |
+| Pórticos del riel (08-11-2026) | patas: (R_x/2)·h/(l·b²/6) + (R_y/2)·h/(b·l²/6) ≤ Fy/Nd; soldadura pata–asiento √[(M_x/S_x + M_y/S_y)² + (V/(a·2(b + l)))²] ≤ 0,60FEXX/(1,20Nd) | ASME BTH-1 §3-2.3, §3-3.4; AISC 360-22 §J2.4 | Reemplazan a los soportes empernados a la bancada: bajo el soporte trasero pasa el cuerpo del cilindro y no cabía un patrón de pernos con brazo de vuelco. Dos patas (x = x_g ∓ (D_cuerpo/2 + 5 + b/2)) soldadas a un asiento sobre la bancada prolongada y ensanchada; el riel lleva una aleta hacia adentro en la zona de apoyo (el seguidor no llega) |
+| Pernos riel–pórtico | f_rv ≤ Fnv/Ω, Fnv = 0,45Fu (rosca incluida); aplastamiento R_n = 2,4·d·t·Fu, Ω = 2,00 | AISC 360-22 §J3.6, Tabla J3.2 (grupo 150 ≈ ISO 898-1 10.9); §J3.10 | Pernos verticales del riel a las tapas de las patas; sin tracción por vuelco (el pórtico la toma en las soldaduras) |
 | Material del contacto | cam_mat = 0 → familia 1 en el modo guiado | Criterio del proyecto | Las familias 2–4 (zapata deslizante) se calculan, pero la rampa que exige la sincronía (~62°) se autobloquea con μ ≥ 0,15 y la presión de atasco supera p_adm |
 
 ## Accionamiento pivotado tipo KIET
@@ -202,3 +203,25 @@ Pedido del mandante 07-11-2026 (Tarea 2; drive_mode = 2; el valor por defecto si
 | Holguras | Q fuera de la mesa; cuerpo del cilindro fuera de la mesa; bloque libre del pasador siguiente; placas dentro de la base y a cada lado de la diagonal; bloque sobre la placa | Geometría | También a 80 °C con la mesa caliente (escenario térmico, alcance 2) |
 | Pivote central | H = máx(H_ecc; Ch·N) + H_asim + H_cil; H_asim = máx\|F₁(μ_s + 0,05) + F₂(μ_s − 0,05)\| | ASME BTH-1 §3-2.3; equilibrio | Con el par en la diagonal las componentes radiales se anulan; con n impar el pivote recibe el empuje completo |
 | Material del contacto | cam_mat = 0 → base 1, A 4, B 4, C 3 | Pedido del mandante 07-11-2026 | B → 4 porque la zapata de UHMW no cumple PV con la carga transversal del empuje |
+
+## Valor por defecto del accionamiento (08-11-2026)
+
+Decisión del mandante: drive_mode = 2 (pivotado tipo KIET) es el valor por defecto; el guiado con leva de reenganche queda como alternativa (drive_mode = 1). Las pruebas del guiado fijan drive_mode = 1 y los verificadores independientes del accionamiento guiado (indep_tt300c, indep_accionamiento, indep_interfaz, indep_izaje_collar, indep_termica) comparan con tests/golden/tt300c_guiado.json.
+
+Holguras geométricas del modo 2 (pedido del mandante: FU ≤ 0,95): el filete máximo del cajón del ojal baja a FU 0,913 (w = 21 mm). «Cajón del ojal E dentro de la base» (0,999) y «Q fuera de la mesa» (0,974) no pueden quedar ambos bajo 0,95 con B = 2.560: el cajón pide un R_E chico (≤ 1.515 mm con lado 260) y Q fuera de la mesa lo pide grande (≥ 1.645 mm). Con B = 2.760 la sugerencia de E (pv_fugeo = 0,95) da R_E = 1.645 mm, L_qp = 489 mm, FU 0,947 / 0,950, FS 1,456 y +162 kg. Queda para decisión del mandante (tamaño de la base).
+
+## Tornillos avellanados del disco de la mesa (AF2)
+
+Decisión del mandante 08-11-2026: en la opción A pegada (opt_ss = 1, fix_mode = 2) el par de la interfaz pasa del disco inoxidable de la mesa a la plancha inferior de la mesa con tornillos avellanados ISO 10642 clase 10.9 (M12 como punto de partida), roscados en la plancha.
+
+| Verificación | Criterio | Referencia | Nota |
+|---|---|---|---|
+| Fuerza por tornillo | V = T_dis/(n·r) | Equilibrio | T_dis = par del caso de diseño; n automático = menor múltiplo del N° de ranuras radiales con FU ≤ 0,85; r = entre la ranura circunferencial exterior y el borde (cabeza a 5 mm de la ranura) |
+| Corte del tornillo | V/A_b ≤ Fnv/Ω, Fnv = 0,45·Fu (rosca en el plano de corte), Ω = 2,00 | AISC 360-22 §J3.6, Tabla J3.2 (grupo 150 ≈ 10.9) | A_b nominal |
+| Aplastamiento en el disco | V ≤ R_n/Ω, R_n = mín(1,2·l_c·t_e·Fu; 2,4·d·t_e·Fu), t_e = t − k/2 | AISC 360-22 §J3.10 Ec. J3-6a; EN 1993-1-8 Tabla 3.4 (espesor con avellanado) | Fu del inoxidable ASTM A240 304 = 515 MPa |
+| Aplastamiento en la plancha de la mesa | V ≤ R_n/Ω con t = t_inf, Fu = 450 MPa | AISC 360-22 §J3.10 | Agujero roscado pasante |
+| Separación | s = 2πr/n ≥ 3·d | AISC 360-22 §J3.3 | |
+| Distancia al borde | R_o − r ≥ e_mín | AISC 360-22 §J3.4, Tabla J3.4M | La tabla empieza en M16; para M12 se toma 22 mm (conservador) |
+| Avellanado | k + 0,5 + sobreespesor de relapeado ≤ t | ISO 10642 (k máx.); criterio del mandante | El disco de la mesa se dimensiona con este mínimo: con M12 pasa de 8 a 10 mm |
+| Roscado | 1,25·d ≤ t_inf | VDI 2230 (orientativo, 10.9 en acero S355) | |
+| Ranuras de engrase | holgura cabeza–ranura circunferencial ≥ 3 mm; tornillos a mitad de camino entre ranuras radiales | Geometría | |

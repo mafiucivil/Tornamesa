@@ -13,8 +13,8 @@ import json, math, os, pathlib, subprocess, sys, tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GD = ROOT / "tests" / "golden"
-P0 = json.loads((GD / "params_defaults.json").read_text())
-G = json.loads((GD / "tt300c_defaults.json").read_text())
+P0 = json.loads((GD / "params_defaults.json").read_text()); P0["drive_mode"] = 1
+G = json.loads((GD / "tt300c_guiado.json").read_text())   # golden del modo guiado (drive_mode = 1)
 TOL = 1e-3
 ALC = None                                   # alcance térmico (term_alcance): 1 = placas y disco; 2 = además accionamiento e hidráulica (comportamiento de 1bbe3ed)
 SUPPORTS_ALC = False                         # el núcleo reconoce term_alcance (detección conductual en el modo principal)
@@ -66,7 +66,7 @@ _cache = {}
 
 
 def export(over=None):
-    over = dict(over or {})
+    over = dict({"drive_mode": 1}, **(over or {}))   # modelo térmico del accionamiento guiado (el valor por defecto pasó al pivotado, drive_mode = 2)
     if SUPPORTS_ALC and ALC is not None:
         over.setdefault("term_alcance", ALC)
     if IDEAL:
@@ -766,7 +766,7 @@ for wood in (False, True):
 if IDEAL:
     # term_alcance = 2 con f_g ideal y sin criterio de lubricación debe reproducir el escenario anterior: la réplica propia se compara con tests/golden/tt300c_termica_alcance2.json (FS, flags, FU y conteos)
     print("== 7b. Réplica propia frente al golden del escenario anterior (term_alcance = 2, f_g ideal) ==")
-    GOLD = json.loads((GD / "tt300c_termica_alcance2.json").read_text())
+    GOLD = json.loads((GD / "tt300c_termica_alcance2_guiado.json").read_text())   # escenario anterior en el modo guiado (el de tt300c_termica_alcance2.json es el modo por defecto, pivotado)
     for aid, _ in ALTS:
         for Tk, gT in GOLD[aid].items():
             T = int(Tk); S = alt_state(aid, False, T, P0, Tscn0, gs0)

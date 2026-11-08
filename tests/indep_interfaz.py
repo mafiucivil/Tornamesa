@@ -47,6 +47,7 @@ TOL = 1e-3
 
 
 def export(over=None):
+    over = dict({"drive_mode": 1}, **(over or {}))   # este verificador modela el accionamiento guiado: desde el 08-11-2026 el valor por defecto es el pivotado (drive_mode = 2)
     with tempfile.TemporaryDirectory() as td:
         args = ["node", str(ROOT / "tools" / "export_design.js")]
         if over:
@@ -122,7 +123,7 @@ if D0 is None:
     print("No se pudo ejecutar node tools/export_design.js"); sys.exit(2)
 P = D0["P"]
 DA, DB = export({"opt_ss": 1}), export({"opt_uhmw": 1})
-Pg = json.loads((ROOT / "tests" / "golden" / "params_defaults.json").read_text())
+Pg = json.loads((ROOT / "tests" / "golden" / "params_defaults.json").read_text()); Pg["drive_mode"] = 1   # modelo guiado
 nuevos = sorted(k for k in P if k not in Pg)
 
 
@@ -257,7 +258,9 @@ def iface(P, k):
         treq = max(tfl + P["ss_allow"], P["ss_tmin"])
         treq2 = max(tfl + P["ss_allow"] + gr, P["ss_tmin"])
         t_d_new = (P["t_ss"] if P["t_ss"] > 0 else com(max(treq, tmin_sec), COM_SS)) if k else 0.0
-        t_d2_new = (P["t_ss"] if P["t_ss"] > 0 else com(max(treq2, tmin_sec), COM_SS)) if k else 0.0
+        # AF2 (A pegada, fix_mode = 2; decisión del mandante 08-11-2026): el disco de la mesa aloja la cabeza avellanada ISO 10642 (k máx.) con 0,5 mm bajo la cara tras el relapeado
+        t_av = ({6: 3.72, 8: 4.96, 10: 6.2, 12: 7.44, 14: 8.4, 16: 8.8, 20: 10.16}.get(round(P.get("tor2_d", 12)), 0.62 * P.get("tor2_d", 12)) + 0.5 + P["ss_allow"]) if (k == 1 and not sec) else 0.0
+        t_d2_new = (P["t_ss"] if P["t_ss"] > 0 else com(max(treq2, tmin_sec, t_av), COM_SS)) if k else 0.0
         tconf = t_conf_S(q, P["ss_void"], P["E_uhmw"], P["d_flat"], p=P["p_uhmw"]) if k == 2 else None
         tuhreq = max(tconf, P["uh_tmin"]) if k == 2 else 0.0
         t_ap = 0.0

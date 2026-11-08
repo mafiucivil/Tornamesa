@@ -43,6 +43,7 @@ S60, C60 = math.sin(math.radians(60)), math.cos(math.radians(60))
 # Utilidades
 # ======================================================================================
 def export(over=None):
+    over = dict({"drive_mode": 1}, **(over or {}))   # este verificador modela el accionamiento guiado: desde el 08-11-2026 el valor por defecto es el pivotado (drive_mode = 2)
     with tempfile.TemporaryDirectory() as td:
         args = ["node", str(ROOT / "tools" / "export_design.js")]
         if over:
@@ -456,7 +457,7 @@ D0 = export()
 if D0 is None:
     print("No se pudo ejecutar node tools/export_design.js"); sys.exit(2)
 P0 = D0["P"]
-Pg = json.loads((GOLD / "params_defaults.json").read_text())
+Pg = json.loads((GOLD / "params_defaults.json").read_text()); Pg["drive_mode"] = 1   # modelo guiado
 Gd = json.loads((GOLD / "tt300c_defaults.json").read_text())
 drift = sorted(k for k in Pg if P0.get(k) != Pg.get(k))
 print("Parámetros del núcleo = params_defaults.json:", "sí" if not drift else "NO, difieren: " + ", ".join(f"{k} ({Pg[k]} → {P0.get(k)})" for k in drift))

@@ -72,6 +72,10 @@ const TT = (() => {
       ["tol_hc", "Fijación desmontable · tope: tolerancia de la altura de contacto (corte y rebabas del canto): el largo del tope y el espesor de la lámina UHMW se dimensionan con h_c − tol_hc, de modo que 1 mm menos de contacto no pasa de FU 0,90", "mm", 1, 0, 3, 0.5],
       ["j_sec", "Fijación desmontable · junta en frío entre sectores contiguos de disco, placa o lámina (mínimo 1 mm; la junta efectiva es la mayor entre este valor y la dilatación calculada, redondeada a 0,1 mm; se descuenta de la masa)", "mm", 1, 1, 10, 0.5],
       ["d_tor", "Fijación desmontable: tornillo avellanado de posición (ISO 10642)", "mm", 6, 4, 12, 1],
+      ["tor2_d", "Opción A pegada (AF2: fix_mode = 2): Ø de los tornillos avellanados ISO 10642 clase 10.9 que transmiten el par del disco de la mesa a la mesa (decisión del mandante 08-11-2026: M12)", "mm", 12, 6, 20, 1],
+      ["tor2_n", "AF2: N° de tornillos (0 = automático: el menor múltiplo del N° de ranuras radiales con FU ≤ 0,85 al par de diseño)", "–", 0, 0, 120, 1],
+      ["tor2_r", "AF2: radio del círculo de tornillos (0 = automático: entre la ranura circunferencial exterior y el borde, libre de la ranura)", "mm", 0, 0, 1000, 1],
+      ["Fu_ss", "Fu del acero inoxidable (ASTM A240 304: 515)", "MPa", 515, 400, 900, 5],
       ["h_gr", "Engrase: profundidad de las ranuras en el disco de la mesa (A) o en el bronce (C); 0 = sin ranuras", "mm", 1.0, 0, 5, 0.5],
       ["w_gr", "Engrase: ancho de las ranuras", "mm", 8, 3, 25, 1],
       ["n_gr_rad", "Engrase: N° de ranuras radiales", "–", 12, 0, 48, 1],
@@ -158,7 +162,7 @@ const TT = (() => {
       ["v_ret_max", "Velocidad máxima de retorno del vástago (rebote de la uña sobre el pasador)", "m/s", 0.25, 0.02, 1, 0.01],
     ] },
     { id: "modo", t: "Modo de accionamiento y material de las levas", p: [
-      ["drive_mode", "Modo de accionamiento: 1 = guiado (patín y uña sobre bancada); 2 = pivotado con guía de leva tipo KIET (cilindro pivotado en una esquina, bloque-uña sobre pasador vertical Q, placa-leva por sentido de giro)", "–", 1, 1, 2, 1],
+      ["drive_mode", "Modo de accionamiento: 1 = guiado (patín y uña sobre bancada, con leva de reenganche); 2 = pivotado con guía de leva tipo KIET (cilindro pivotado en una esquina, bloque-uña sobre pasador vertical Q, placa-leva por sentido de giro). Por defecto 2 (decisión del mandante, 08-11-2026)", "–", 2, 1, 2, 1],
       ["cam_mat", "Material del contacto seguidor–leva: 0 = automático (guiado: 1, el rodillo es el único que no se autobloquea con la rampa que exige la sincronía; pivotado: sigue la interfaz de giro: acero–acero → 1, A → 4, B → 4 (la zapata de UHMW no cumple PV en el empuje), C → 3); 1 = acero templado–acero con grasa grafitada; 2 = UHMW sobre respaldo de acero (μ, p_adm y PV de la opción B); 3 = bronce con tapones de grafito sobre respaldo de acero (opción C); 4 = inoxidable–inoxidable con grasa (opción A)", "–", 0, 0, 4, 1],
       ["Fu_bolt", "Pernos de las levas y sus soportes: Fu (ISO 898-1 clase 10.9 ≈ AISC 360-22 grupo 150: 1.040)", "MPa", 1040, 400, 1220, 10],
     ] },
@@ -213,11 +217,12 @@ const TT = (() => {
       ["cam_t", "Riel-leva: espesor de la pletina (va entre la cara superior del patín + 2 mm y la cara superior de la mesa)", "mm", 38, 10, 60, 1],
       ["cam_w", "Riel-leva: ancho de la pletina medido desde el canto a nivel de toma (la sección neta descuenta el bolsillo)", "mm", 170, 60, 300, 5],
       ["Fy_cam", "Riel-leva y soportes: Fy (42CrMo4+QT, EN 10083-3, 16 < t ≤ 40 mm: Re ≥ 750; canto templado por inducción ≥ 55 HRC)", "MPa", 750, 235, 1000, 5],
-      ["cam_ls", "Soportes del riel: largo en y (la bancada se prolonga esto en cada extremo para empernarlos)", "mm", 130, 40, 300, 5],
-      ["cam_px", "Soportes del riel: ancho en x (por fuera del cuerpo del cilindro, bajo el borde exterior del riel)", "mm", 50, 30, 200, 5],
-      ["cam_nb", "Soportes del riel: N° de pernos por soporte", "–", 4, 2, 12, 1],
-      ["cam_db", "Soportes del riel: Ø de los pernos", "mm", 20, 10, 36, 1],
-      ["cam_sb", "Soportes del riel: distancia entre filas de pernos (brazo del vuelco)", "mm", 80, 30, 300, 5],
+      ["cam_ls", "Pórticos del riel: largo en y de cada pata (la bancada se prolonga esto en cada extremo, ensanchada para asentar las dos patas)", "mm", 160, 40, 300, 5],
+      ["cam_px", "Pórticos del riel: espesor en x de cada pata (una a cada lado del cuerpo del cilindro, que pasa bajo el pórtico trasero)", "mm", 30, 10, 80, 1],
+      ["cam_nb", "Pórticos del riel: N° de pernos riel–pórtico por pórtico (verticales, la mitad en cada pata)", "–", 4, 2, 12, 2],
+      ["cam_db", "Pórticos del riel: Ø de los pernos riel–pórtico", "mm", 20, 10, 36, 1],
+      ["cam_wf", "Pórticos del riel: filete de cada pata a su asiento (perimetral)", "mm", 20, 4, 30, 1],
+      ["Fu_cam", "Riel-leva: Fu (42CrMo4+QT, 16 < t ≤ 40 mm: Rm ≥ 1.000; se toma 900)", "MPa", 900, 300, 1200, 10],
     ] },
     { id: "articulacion", t: "Articulaciones y ménsulas del cilindro", p: [
       ["d_pp", "Diámetro de pasadores de articulación", "mm", 70, 20, 150, 5],
@@ -243,7 +248,7 @@ const TT = (() => {
       ["pv_tl", "Soporte del ojal E: espesor de las tapas superior e inferior del cajón (orejas del pasador E)", "mm", 28, 8, 80, 1],
       ["pv_box", "Soporte del ojal E: lado del cajón soldado a la base, centrado en E (paredes traseras en L hacia la esquina; ventana para el ojal hacia la mesa: sección en U)", "mm", 260, 100, 500, 5],
       ["pv_tbox", "Soporte del ojal E: espesor de las paredes del cajón", "mm", 25, 6, 50, 1],
-      ["pv_wbox", "Soporte del ojal E: filete cajón–base (a ambos lados de las tres paredes)", "mm", 22, 4, 30, 1],
+      ["pv_wbox", "Soporte del ojal E: filete cajón–base (a ambos lados de las tres paredes; 22 → 21 mm el 08-11-2026 para dejar el filete máximo en FU ≤ 0,95)", "mm", 21, 4, 30, 1],
       ["pv_muE", "μ del pasador del ojal E (resistencia al giro del cilindro en la rampa de la leva)", "–", 0.20, 0.05, 0.6, 0.01],
       ["pv_c", "Placa-leva: holgura sobre la trayectoria de Q en el empuje", "mm", 3, 0.5, 20, 0.5],
       ["pv_msync", "Placa-leva: margen mínimo de sincronía (holgura bloque-uña–pasador siguiente con Q apoyado en la leva)", "mm", 5, 1, 30, 0.5],
@@ -260,6 +265,7 @@ const TT = (() => {
       ["pv_cQ", "Holgura del pasador Q al borde de la mesa (la placa-leva va sobre la base, fuera de la mesa)", "mm", 10, 2, 50, 1],
       ["pv_cB", "Holgura mínima bloque-uña–pasador siguiente durante el empuje", "mm", 10, 2, 50, 1],
       ["pv_cc", "Holgura mínima cuerpo del cilindro–borde de la mesa", "mm", 10, 2, 100, 1],
+      ["pv_fugeo", "Sugerencia de E: FU objetivo de las holguras «cajón del ojal dentro de la base» y «Q fuera de la mesa» (1 = solo factibles; con B = 2.560 no hay solución por debajo de 0,97: el cajón pide R_E chico y Q fuera de la mesa lo pide grande; FU ≤ 0,95 en ambas exige B ≥ 2.760)", "–", 1, 0.5, 1, 0.01],
     ] },
     { id: "base", t: "Base", p: [
       ["B", "Lado de la base cuadrada", "mm", 2560, 1000, 4500, 10],
@@ -297,6 +303,7 @@ const TT = (() => {
     ] },
     { id: "material", t: "Materiales y normas", p: [
       ["Fy", "Fy acero estructural (ASTM A572 Gr.50)", "MPa", 345, 235, 690, 5],
+      ["Fu", "Fu acero estructural (ASTM A572 Gr.50: 450)", "MPa", 450, 340, 800, 5],
       ["FEXX", "Resistencia del electrodo FEXX", "MPa", 490, 410, 830, 10],
       ["E", "Módulo de elasticidad", "MPa", 200000, 190000, 210000, 1000],
       ["nu", "Coeficiente de Poisson", "–", 0.30, 0.25, 0.35, 0.01],
@@ -516,6 +523,35 @@ const TT = (() => {
   const jointOf = (P, al, n) => Math.ceil(Math.max(P.j_sec, (al - AL_S) * P.dT * 2 * (P.D_top / 2) * Math.sin(Math.PI / n)) * 10 - 1e-9) / 10;
   const ISO10642_DK = { 4: 8, 5: 10, 6: 12, 8: 16, 10: 20, 12: 24 };            // Ø de la cabeza avellanada (mm), ISO 10642
   const dkOf = (P) => ISO10642_DK[Math.round(P.d_tor)] || 2 * P.d_tor;
+  const ISO10642_K = { 3: 1.86, 4: 2.48, 5: 3.1, 6: 3.72, 8: 4.96, 10: 6.2, 12: 7.44, 14: 8.4, 16: 8.8, 20: 10.16 };   // altura máxima de la cabeza avellanada (mm), ISO 10642
+  const isoK = (d) => ISO10642_K[Math.round(d)] || 0.62 * d;
+  const isoDk = (d) => ISO10642_DK[Math.round(d)] || ({ 14: 27, 16: 30, 20: 36 })[Math.round(d)] || 2 * d;
+  // AF2 (opción A pegada, fix_mode = 2): tornillos avellanados ISO 10642 10.9 del disco de la mesa a la plancha inferior (roscados en ella). El par de diseño T se reparte
+  // en n tornillos sobre el radio r: V = T/(n·r). Corte AISC J3.6 (Fnv = 0,45·Fu, rosca incluida); aplastamiento J3.10 en el disco (espesor t − k/2 por el avellanado,
+  // EN 1993-1-8 Tabla 3.4) y en la plancha; separación J3.3 (3d), borde J3.4M; cabeza ≤ t − 0,5; roscado ≥ 1,25d en la plancha.
+  function tornillosAF2(P, R) {
+    const I = R.ifc;
+    if (!(I && I.o === 1 && P.fix_mode > 1.5) || !R.cd) return null;
+    const d = P.tor2_d, Ab = Math.PI / 4 * d * d, dh = d + 1, k = isoK(d), dk = isoDk(d), Ro = R.Ro, t = I.tss2, tb = P.t_bot, T = R.cd.T;
+    const nr = P.h_gr > 0 ? Math.max(1, Math.round(P.n_gr_rad)) : 4, rOut = P.h_gr > 0 && P.n_gr_circ >= 1 ? Ro - 30 : Ro;
+    const r = P.tor2_r > 0 ? P.tor2_r : (P.h_gr > 0 && P.n_gr_circ >= 1 ? rOut - P.w_gr / 2 - dk / 2 - 5 : Ro - Math.max(J34M(d), dk / 2 + 5));
+    const Fnv = 0.45 * P.Fu_bolt, capV = Fnv / 2;
+    const ev = (n) => {
+      const V = T * 1e6 / (n * r), s = 2 * Math.PI * r / n, lc = s - dh, te = t - k / 2;
+      const RnD = Math.min(1.2 * lc * te * P.Fu_ss, 2.4 * d * te * P.Fu_ss), RnM = Math.min(1.2 * lc * tb * P.Fu, 2.4 * d * tb * P.Fu);
+      return { n, V, s, lc, te, RnD, RnM, fuV: V / Ab / capV, fuD: V / (RnD / 2), fuM: V / (RnM / 2) };
+    };
+    let e = null;
+    if (P.tor2_n > 0) e = ev(Math.round(P.tor2_n));
+    else for (let m = 1; m <= 60 && !e; m++) { const q = ev(nr * m); if (Math.max(q.fuV, q.fuD, q.fuM) <= 0.85) e = q; }
+    if (!e) e = ev(nr * 60);
+    const ang = Array.from({ length: e.n }, (_, i) => (i + 0.5) * 360 / e.n);
+    const L = [16, 20, 25, 30, 35, 40, 45, 50].find((x) => x >= t + Math.min(tb, 1.25 * d + 2) - 1) || Math.ceil(t + tb);
+    const latR = nr && P.h_gr > 0 ? r * Math.sin(Math.PI / e.n) : Infinity;   // distancia lateral del eje a la ranura radial más cercana (el tornillo va a mitad de camino)
+    return Object.assign(e, { d, Ab, dh, k, dk, r, t, tb, T, Fnv, capV, ang, pos: ang.map((a) => [r * Math.cos(a * D2R), r * Math.sin(a * D2R)]), L, rOut, latR,
+      avellanado: { d_cabeza: dk, prof: k, angulo_deg: 90, bajo_cara: t - k }, rosca: { d: d, paso: { 6: 1, 8: 1.25, 10: 1.5, 12: 1.75, 14: 2, 16: 2, 20: 2.5 }[Math.round(d)] || null, prof: tb, pasante: true, d_broca: d - ({ 6: 1, 8: 1.25, 10: 1.5, 12: 1.75, 14: 2, 16: 2, 20: 2.5 }[Math.round(d)] || 0.15 * d) },
+      designacion: "ISO 10642 M" + d + " × " + L + " – 10.9" });
+  }
   // Corona de contacto (misma geometría que compute): R_o, R_i, área, radio de fricción r_u y k_q = 4eR_o/(R_o² + R_i²)
   function contactGeo(P) {
     const Ro = P.D_top / 2, Ri = riOf(P);
@@ -591,7 +627,8 @@ const TT = (() => {
     const calc = (mTop, dl) => { const L = ifaceLoad(P, mTop, dl), tFlex = a * Math.sqrt(0.75 * L.q_max / sad); return { L, tFlex, treq: Math.max(tFlex + P.ss_allow, P.ss_tmin), treq2: Math.max(tFlex + P.ss_allow + gr, P.ss_tmin) }; };
     const tS = P.fix_mode < 1.5 ? tStopMin(P) : 0;                        // con topes soldados el sector no puede ser más fino que a_sup + a_inf + h_c,mín
     const fz = P.__th && P.__th.frozen;                                    // escenario térmico: geometría dimensionada a 20 °C y congelada
-    const pick = (c) => fz ? [fz.tss, fz.tss2] : P.t_ss > 0 ? [P.t_ss, P.t_ss] : [commercial(SS_COMM, Math.max(c.treq, tS)), commercial(SS_COMM, Math.max(c.treq2, tS))];   // [disco de la base (liso), disco de la mesa (ranurado)]
+    const tAv = o === 1 && P.fix_mode > 1.5 ? isoK(P.tor2_d) + 0.5 + P.ss_allow : 0;     // AF2: la cabeza avellanada queda 0,5 mm bajo la cara aun después del relapeado (sobreespesor)
+    const pick = (c) => fz ? [fz.tss, fz.tss2] : P.t_ss > 0 ? [P.t_ss, P.t_ss] : [commercial(SS_COMM, Math.max(c.treq, tS)), commercial(SS_COMM, Math.max(c.treq2, tS, tAv))];   // [disco de la base (liso), disco de la mesa (ranurado)]
     let c = calc(0, 0), [t1, t2] = pick(c);
     for (let i = 0; i < 4; i++) {                                       // el disco rotatorio también carga la interfaz
       c = calc(RHO_SS * A_ss * t2, t1 + t2);
@@ -893,19 +930,25 @@ const TT = (() => {
     const ys = etas.map(yOf), kM = Math.max(...ys.map((y) => Math.max(0, (Lsp / 2 + y) * (Lsp / 2 - y)) / Lsp)), kR = Math.max(...ys.map((y) => Math.max(Lsp / 2 + y, Lsp / 2 - y) / Lsp));
     const Sn = P.cam_t * Math.max(wNet, 1e-6) ** 2 / 6, An = P.cam_t * Math.max(wNet, 1e-6);
     const sigPl = Math.max(NT * kM / Sn, NRx * kM / Sn + Fret / An);
+    // pórtico de cada apoyo: dos patas (x = x_g ∓ (D_cuerpo/2 + 5 + b/2)) soldadas a un asiento sobre la bancada prolongada y ensanchada, que dejan pasar el cuerpo
+    // del cilindro bajo el pórtico trasero; el riel (con una aleta hacia adentro en la zona del apoyo, donde el seguidor no llega) se emperna a las tapas de las patas.
+    const px = P.cam_px, ls = P.cam_ls, xL = P.x_g - P.D_body / 2 - 5 - px / 2, xR = P.x_g + P.D_body / 2 + 5 + px / 2, capW = Math.max(px, 2 * J34M(P.cam_db)), aw = 0.707 * P.cam_wf;
+    const Sx = aw * (ls * px + px * px / 3), Sy = aw * (px * ls + ls * ls / 3), Lw = aw * 2 * (px + ls), Fwc = P.FEXX * 0.60 / (1.20 * P.Nd);
     const cases = [[NRx * kR, Fret], [NT * kR, 0]].map(([Rx, Ry]) => {
-      const sPed = Rx * hPed / (P.cam_ls * P.cam_px ** 2 / 6) + Ry * hPed / (P.cam_px * P.cam_ls ** 2 / 6);
-      const V = Math.hypot(Rx, Ry) / P.cam_nb, T = (Rx + Ry) * hPed / (Math.max(1, P.cam_nb / 2) * P.cam_sb), b = boltJ3(P, P.cam_db, V, T);
-      return { Rx, Ry, sPed, V, T, b, fuT: b.ft / Math.max(b.capT, 1e-9), fuV: b.frv / b.capV };
+      const sPed = (Rx / 2) * hPed / (ls * px * px / 6) + (Ry / 2) * hPed / (px * ls * ls / 6);
+      const fW = Math.hypot((Rx / 2) * hPed / Sx + (Ry / 2) * hPed / Sy, Math.hypot(Rx, Ry) / 2 / Lw);
+      const V = Math.hypot(Rx, Ry) / P.cam_nb, b = boltJ3(P, P.cam_db, V, 0), Rn = 2.4 * P.cam_db * P.cam_t * P.Fu_cam;
+      return { Rx, Ry, sPed, fW, V, b, Rn, fuV: b.frv / b.capV, fuB: V / (Rn / 2) };
     });
-    const cg = cases.reduce((a, b) => (Math.max(b.fuT, b.fuV) > Math.max(a.fuT, a.fuV) ? b : a)), cp = cases.reduce((a, b) => (b.sPed > a.sPed ? b : a));
+    const cg = cases.reduce((a, b) => (Math.max(b.fuV, b.fuB) > Math.max(a.fuV, a.fuB) ? b : a)), cp = cases.reduce((a, b) => (b.sPed > a.sPed ? b : a)), cw = cases.reduce((a, b) => (b.fW > a.fW ? b : a));
     let Apk = 0; for (let i = 1; i <= n; i++) Apk += 0.5 * ((uCam(etas[i]) - c) + (uCam(etas[i - 1]) - c)) * (etas[i] - etas[i - 1]);
-    const mPlate = RHO * P.cam_t * Math.max(0, P.cam_w * Lpl - Apk), mPed = 2 * RHO * P.cam_px * P.cam_ls * Math.max(0, hPed);
-    const mExt = 2 * RHO * P.cam_ls * (P.w_bed * P.t_bed - P.w_slot * P.h_slot - P.w_tee * P.h_tee);
+    const flag = Math.max(0, xE0 - (xL - capW / 2)), wExt = (xR + px / 2) - (xL - px / 2);
+    const mPlate = RHO * P.cam_t * Math.max(0, P.cam_w * Lpl - Apk + 2 * ls * flag), mPed = 4 * RHO * (px * ls * Math.max(0, hPed) + capW * ls * 15);
+    const mExt = 2 * RHO * ls * (Math.max(wExt, P.w_bed) * P.t_bed - P.w_slot * P.h_slot - P.w_tee * P.h_tee);
     const mFol = RHO * (Math.PI / 4 * P.cam_df ** 2 * P.cam_bf + Math.PI / 4 * P.cam_dp ** 2 * (lFp + 30));
     return { clr, uNeed, uCam, fam, muC, muP, kt, kp, lockDem, lockCap, alpha: P.cam_alpha, c, m, travel: trav, uPk, eta0, eta1, etaEnd, etaR1, etaX1, etaE0, etaAp, hasPk, needMax, sync, syncIn, etaSync, cover, prof,
       perfil_y: prof.map(([e, u]) => ({ eta: e, y: yOf(e), u, x_canto: xE0 + (u - c) })), need: etas.map((e, i) => ({ eta: e, u_need: need[i], u_leva: uCam(e) })),
-      zc0, zU, zS, zPb, zF, zTop, xFp0, xE0, xPo, wNet, lFp, Lsp, Lpl, hPed, Fret, NR, NRx, NT, Nd, sigPl, kM, kR, bolts: cg, ped: cp, Apk,
+      zc0, zU, zS, zPb, zF, zTop, xFp0, xE0, xPo, wNet, lFp, Lsp, Lpl, hPed, Fret, NR, NRx, NT, Nd, sigPl, kM, kR, bolts: cg, ped: cp, weld: cw, Fwc, Apk, portico: { xL, xR, px, ls, capW, flag, wExt },
       m: { plate: mPlate, ped: mPed, ext: mExt, fol: mFol, one: mPlate + mPed + mExt + mFol, total: P.n_cyl * (mPlate + mPed + mExt + mFol) } };
   }
 
@@ -944,14 +987,15 @@ const TT = (() => {
       pts.push(q);
     }
     const sReq = Lend - P.L0, Qclr = QrMin - P.pv_dq / 2 - P.D_top / 2, eBox = Math.max(Math.abs(E[0]), Math.abs(E[1])) + P.pv_box / 2;
-    const feas = Qclr >= P.pv_cQ && clrB >= P.pv_cB && body >= P.pv_cc && sReq + P.s_margin <= P.stroke && eBox <= P.B / 2 - P.rim_t - 5;
+    const fg = P.pv_fugeo > 0 ? P.pv_fugeo : 1, Bh = P.B / 2 - P.rim_t - 5;   // holguras geométricas con FU objetivo (cajón en la base, Q fuera de la mesa)
+    const feas = (P.D_top / 2 + P.pv_dq / 2 + P.pv_cQ) <= fg * QrMin && clrB >= P.pv_cB && body >= P.pv_cc && sReq + P.s_margin <= P.stroke && eBox <= fg * Bh;
     return { ok: true, mode: 2, E, RE, Lqp, phE: P.pv_phE, ths, the, pitch, pts, at, aMin, aMax, aEffMin, QrMin, Qclr, clrB, body, Lend, Ls, sReq, eBox, feas };
   }
   // Sugerencia de E (radio R_E sobre el ángulo φ y largo L_qp): maximiza el brazo efectivo mínimo con roce (a + μ_s·b_r) respetando la base (cajón del ojal),
   // L0 y la carrera (s_req + margen ≤ carrera), el pasador Q fuera de la mesa, el cuerpo del cilindro fuera de la mesa y la holgura con el pasador siguiente.
   const suggestCache = new Map();
   function suggestE(P) {
-    const key = ["R_pin", "d_pin", "N_pin", "pv_phE", "L0", "s_free", "stroke", "s_margin", "B", "rim_t", "pv_box", "pv_dq", "D_top", "pv_cQ", "pv_cB", "pv_cc", "e_body", "c_rod", "D_body", "mu_s", "pv_bu", "pv_bf", "pv_lf", "pv_ecr"].map((k) => P[k]).join("|");
+    const key = ["pv_fugeo", "R_pin", "d_pin", "N_pin", "pv_phE", "L0", "s_free", "stroke", "s_margin", "B", "rim_t", "pv_box", "pv_dq", "D_top", "pv_cQ", "pv_cB", "pv_cc", "e_body", "c_rod", "D_body", "mu_s", "pv_bu", "pv_bf", "pv_lf", "pv_ecr"].map((k) => P[k]).join("|");
     if (suggestCache.has(key)) return suggestCache.get(key);
     const REmax = Math.floor(pivBaseLimit(P)), REmin = Math.ceil(P.R_pin + P.d_pin), score = (k) => (k.ok && k.feas ? k.aEffMin : -Infinity);
     let best = { s: -Infinity, RE: NaN, Lqp: NaN };
@@ -1119,6 +1163,7 @@ const TT = (() => {
     // barras de los topes soldados: dependen del par de calado, así que se dimensionan aquí y suman a m.total (no están en ninguna otra pieza).
     // Las barras de la mesa giran y cargan la interfaz, pero no se realimentan a N (< 0,01 %; evita la dependencia circular con el par de calado).
     ifc.topes = stopsOf(P, res);
+    ifc.tornillos = tornillosAF2(P, res);                                // AF2: tornillos avellanados disco de la mesa → mesa (null si no aplica)
     m.stopBars = ifc.topes.reduce((s, t) => s + t.m_barras, 0);
     // muescas, chaflanes y juntas entre sectores: las coronas brutas de massesBase pasan a netas (la masa rotatoria m.ssTop queda bruta: no se realimenta a N, conservador, < 0,01 %)
     ifc.cortes = cortesOf(P, res);
@@ -1594,6 +1639,57 @@ const TT = (() => {
       F: dr ? dr.F : 0, Fp: dr ? dr.Fp : 0, H: dr ? dr.H : 0, arm: dr ? dr.arm : null, caso: dr ? dr.caso : null };
   }
 
+  /* ---------------- Geometría de fabricación del accionamiento (planos): sistema de la tornamesa, O en el centro, z desde el piso ---------------- */
+  // Modo guiado: riel-leva, pórticos, prolongación de la bancada, seguidor y ranura de la tapa, para las 4 posiciones de cilindro
+  // (lado sx = ±1 en x = sx·x_g, sentido de empuje dy = ±1; antihorario = (1, 1) y (−1, −1), horario = (1, −1) y (−1, 1)).
+  function camGuidedFab(P, R, c) {
+    const g = guideGeo(P), por = c.portico, yOf = (e) => g.y_pin0 + e - P.dog_b / 2, prof = c.prof.map(([e, u]) => [yOf(e), u]);
+    const yS = [-c.Lsp / 2, c.Lsp / 2], half = c.Lpl / 2, xFlag = por.xL - por.capW / 2;
+    const uAt = (y) => { for (let i = 1; i < prof.length; i++) if (y <= prof[i][0]) { const [y0, u0] = prof[i - 1], [y1, u1] = prof[i]; return y < y0 ? c.c : u0 + (u1 - u0) * (y - y0) / (y1 - y0); } return c.c; };
+    const inFlag = (y) => yS.some((ys) => Math.abs(y - ys) <= P.cam_ls / 2 + 1e-9);
+    const ys = [-half, half, ...prof.map((q) => q[0]), ...yS.flatMap((v) => [v - P.cam_ls / 2, v + P.cam_ls / 2])].filter((y) => y >= -half - 1e-9 && y <= half + 1e-9).sort((a, b) => a - b);
+    const inner = []; ys.forEach((y) => { const x = inFlag(y) ? xFlag : c.xE0 + (uAt(y) - c.c); if (!inner.length || Math.abs(inner[inner.length - 1][0] - x) > 1e-9 || Math.abs(inner[inner.length - 1][1] - y) > 1e-9) inner.push([x, y]); });
+    const riel = inner.concat([[c.xPo, half], [c.xPo, -half]]);
+    const legs = yS.flatMap((y0) => [por.xL, por.xR].map((xc) => ({ x: [xc - por.px / 2, xc + por.px / 2], y: [y0 - P.cam_ls / 2, y0 + P.cam_ls / 2], z: [P.t_base + P.t_bed, c.zPb - 15] })));
+    const caps = yS.flatMap((y0) => [por.xL, por.xR].map((xc) => ({ x: [xc - por.capW / 2, xc + por.capW / 2], y: [y0 - P.cam_ls / 2, y0 + P.cam_ls / 2], z: [c.zPb - 15, c.zPb] })));
+    const nb2 = Math.max(1, Math.round(P.cam_nb / 2)), bolts = yS.flatMap((y0) => [por.xL, por.xR].flatMap((xc) => Array.from({ length: nb2 }, (_, k) => [xc, y0 - P.cam_ls / 2 + J34M(P.cam_db) + (nb2 > 1 ? k * (P.cam_ls - 2 * J34M(P.cam_db)) / (nb2 - 1) : (P.cam_ls / 2 - J34M(P.cam_db)))])));
+    const ext = [-1, 1].map((sg) => ({ x: [xFlag + (por.capW - por.px) / 2, por.xR + por.px / 2], y: sg > 0 ? [g.Y_bed, g.Y_bed + P.cam_ls] : [-g.Y_bed - P.cam_ls, -g.Y_bed], z: [P.t_base, P.t_base + P.t_bed] }));
+    const yFol = P.l_p - P.d_pin / 2 - P.dog_b / 2;    // seguidor respecto del pasador del vástago (y)
+    const fam = c.fam, mat = fam.f === 1 ? "42CrMo4+QT, canto templado por inducción ≥ 55 HRC (rodillo de leva templado)" : fam.nombre + " (zapata deslizante; no cumple en el modo guiado)";
+    const T = (sx, dy) => (q) => [sx * q[0], dy * q[1]], conf = { "1_antihorario": [1, 1], "2_antihorario": [-1, -1], "1_horario": [1, -1], "2_horario": [-1, 1] };
+    return {
+      sistema: "planta x, y (mm) con O en el centro de la mesa; z desde la cara inferior de la base (piso); local = lado +x, empuje +y (cilindro 1, antihorario)",
+      riel: { contorno_local: riel, t: P.cam_t, z: [c.zPb, c.zPb + P.cam_t], material: mat, Fy: P.Fy_cam, nota: "canto interior = leva (toma, bolsillo y rampa); aletas hacia adentro en la zona de los pórticos (el seguidor no llega); se voltea para el otro sentido de giro (simetría en y)" },
+      porticos: { patas_local: legs, tapas_local: caps, pernos_local: bolts, d_perno: P.cam_db, agujero: P.cam_db + 2, filete_pata_asiento: P.cam_wf, material: "42CrMo4+QT (patas y tapas)" },
+      prolongacion_bancada_local: ext,
+      seguidor: { rodillo: { d: P.cam_df, b: P.cam_bf, z: [c.zF - P.cam_bf / 2, c.zF + P.cam_bf / 2] }, perno: { d: P.cam_dp, largo: c.lFp + 30, empotrado_en_una: 30, z_cara_sup_una: c.zU }, x_eje_toma: c.xFp0, y_respecto_pasador_vastago: yFol, recorrido_x: c.travel },
+      ranura_tapa_patin: { ancho: P.cam_dp + 1, x: [c.xFp0 - (P.cam_dp + 1) / 2, c.xFp0 + c.travel + (P.cam_dp + 1) / 2], y_respecto_pasador_vastago: yFol, t_tapa: P.t_pk, nota: "ranura pasante en la tapa del alojamiento de la uña (guía del perno en y, ajuste H9/f8)" },
+      instancias: Object.fromEntries(Object.entries(conf).map(([k, [sx, dy]]) => { const f = T(sx, dy); return [k, { lado: sx, sentido: dy, riel: riel.map(f), pernos: bolts.map(f), patas: legs.map((l) => ({ x: l.x.map((v) => sx * v).sort((a, b) => a - b), y: l.y.map((v) => dy * v).sort((a, b) => a - b), z: l.z })) }]; })),
+    };
+  }
+  // Modo pivotado: cajón y tapas del ojal E, pasador E, bloque-uña acodado, pasador Q, 4 placas-leva (contorno con bolsillo y rampa, pernos, material)
+  function pivotFab(P, R) {
+    const K = R.K, sg = R.sup, bk = R.blk, CP = R.camP, G = pivotGeo(P), fam = CP.fam;
+    const b = P.pv_box, E = K.E, sx = Math.sign(E[0]) || 1, sy = Math.sign(E[1]) || -1;
+    const psis = K.pts.map((q) => q.psi), ph = P.pv_phE * D2R, refl = (a) => 2 * ph - a, deg = (a) => ((a / D2R) % 360 + 360) % 360;
+    const sec = [Math.min(...psis), Math.max(...psis), Math.min(...psis.map(refl)), Math.max(...psis.map(refl))].map(deg);
+    const box = (Ec, s1, s2) => ({ centro: Ec, esquinas: [[Ec[0] - b / 2, Ec[1] - b / 2], [Ec[0] + b / 2, Ec[1] - b / 2], [Ec[0] + b / 2, Ec[1] + b / 2], [Ec[0] - b / 2, Ec[1] + b / 2]],
+      paredes_completas: [s1 > 0 ? "x+" : "x−", s2 > 0 ? "y+" : "y−"], paredes_con_ventana: [s1 > 0 ? "x−" : "x+", s2 > 0 ? "y−" : "y+"] });
+    const pl = fam.f === 1 ? "S355J2 con canto templado (inserto o placa templable) ≥ 55 HRC" : "S355J2 (respaldo) con revestimiento de " + fam.corto + " de " + P.pv_tlin + " mm en el canto";
+    return {
+      sistema: "planta x, y (mm) con O en el centro de la mesa; z desde la cara inferior de la base (piso)",
+      soporte_E: { cilindro1: box(E, sx, sy), cilindro2: box([-E[0], -E[1]], -sx, -sy), lado: b, t_pared: P.pv_tbox, alto_paredes: sg.hBox, z_paredes: [P.t_base, P.t_base + sg.hBox],
+        tapas: { t: P.pv_tl, lado: b, z_inf: [sg.zL - P.pv_tl / 2, sg.zL + P.pv_tl / 2], z_sup: [sg.zU - P.pv_tl / 2, sg.zU + P.pv_tl / 2], agujero_E: P.pv_dE, ajuste: "H9/f8" },
+        ventana: { sector_deg: [Math.min(sec[0], sec[2]) - 10, Math.max(sec[1], sec[3]) + 10], z: [sg.zL + P.pv_tl / 2, sg.zU - P.pv_tl / 2], nota: "abertura en las dos paredes que miran a la mesa para el giro del ojal en ambos sentidos (± 10° de holgura); la sección resistente es la U de las paredes completas" },
+        soldadura: { filete: P.pv_wbox, paredes_base: "a ambos lados de las paredes, perimetral a la base", tapas_paredes: "filete a ambos lados del mismo tamaño" }, material: "S355J2 (Fy " + P.Fy + ")" },
+      pasador_E: { d: P.pv_dE, largo: sg.forkH + 20, z: [sg.zL - P.pv_tl / 2 - 10, sg.zU + P.pv_tl / 2 + 10], material: "Fy " + P.Fy_pp + " MPa", ajuste: "H9/f8" },
+      bloque_una: { contorno_local: G.bloque.local, h: P.pv_hu, z: [bk.zBot, bk.zBot + P.pv_hu], agujero_Q: P.pv_dq, horquilla: { ranura_ojal: P.b_eye + 2 * P.g_ch, t_mejilla: bk.tq, R_cubo: bk.eb }, cuerpo: { b: P.pv_bu, e_acodado: P.pv_ecr }, cara: { b: P.pv_bf, l: P.pv_lf, templada: "≥ 55 HRC (Fy_sup " + P.Fy_surf + ")" }, material: "34CrNiMo6+QT (Fy " + P.Fy_dog + ")",
+        nota: "marco local: origen en Q, x hacia el pasador tomado, y = t (hacia O); el cuerpo se desplaza e_acodado hacia −y" },
+      pasador_Q: { d: P.pv_dq, largo: bk.lPin, z: [P.t_base + 2, bk.zBot + P.pv_hu], extremo_inferior: "seguidor de la placa-leva (" + (fam.tipo === "hertz" ? "templado" : "con zapata de " + CP.lpad + " mm") + ")", voladizo_bajo_horquilla: bk.lq, material: "Fy " + P.Fy_pp + " MPa" },
+      placas_leva: { instancias: G.placas, t: P.pv_tcam, z: [P.t_base, P.t_base + P.pv_tcam], material: pl, familia: fam.f, revestimiento: fam.f > 1 ? { material: fam.nombre, t: P.pv_tlin } : null, zapata: fam.tipo === "pad" ? { largo: CP.lpad, alto: P.pv_tcam } : null,
+        pernos: { d: P.pv_db, n: Math.round(P.pv_nb), agujero: P.pv_db + 2, clase: "10.9 a la base (roscado o pasante con tuerca bajo la base)" }, ancho_labio: P.pv_wlip },
+    };
+  }
   /* ---------------- Datos de dibujo del accionamiento (export_design.js y planos_export.js) ---------------- */
   function designDrive(P, R) {
     const MODE = driveMode(P), D2R = Math.PI / 180;
@@ -1606,7 +1702,8 @@ const TT = (() => {
     z: { eje: c.zc0, sup_una: c.zU, ranura_tapa: c.zS, inf_riel: c.zPb, seguidor: c.zF, sup_mesa: c.zTop, sup_riel: c.zPb + P.cam_t },
     x: { perno_seguidor_toma: c.xFp0, canto_toma: c.xE0, borde_exterior: c.xPo, soporte_interior: c.xPo - P.cam_px, ancho_neto_bolsillo: c.wNet },
     riel: { t: P.cam_t, ancho: P.cam_w, largo: c.Lpl, luz_soportes: c.Lsp, y_soportes: [-c.Lsp / 2, c.Lsp / 2], Fy: P.Fy_cam },
-    soportes: { largo_y: P.cam_ls, ancho_x: P.cam_px, alto: c.hPed, n_pernos: P.cam_nb, d_perno: P.cam_db, s_filas: P.cam_sb, prolongacion_bancada_por_extremo: P.cam_ls },
+    soportes: { tipo: "pórtico de dos patas soldadas a un asiento; el cuerpo del cilindro pasa bajo el pórtico trasero", largo_y: P.cam_ls, espesor_pata_x: P.cam_px, alto: c.hPed, x_patas: [c.portico.xL, c.portico.xR], ancho_tapa: c.portico.capW, filete_pata: P.cam_wf, n_pernos: P.cam_nb, d_perno: P.cam_db, prolongacion_bancada_por_extremo: P.cam_ls, ancho_prolongacion: c.portico.wExt },
+    fabricacion: camGuidedFab(P, R, c),
     seguidor: { d_rodillo: P.cam_df, b_rodillo: P.cam_bf, d_perno: P.cam_dp, voladizo_perno: c.lFp },
     fuerzas_N: { F_ret: c.Fret, rampa: c.NR, rampa_x: c.NRx, toma: c.NT, diseno: c.Nd }, autobloqueo: { dem: c.lockDem, cap: c.lockCap, k_t: c.kt, k_p: c.kp }, masas: c.m };
 })();
@@ -1630,11 +1727,14 @@ const TT = (() => {
       holgura: CP.c, margen_sincronia: CP.m, sincronia: CP.sync, alpha_deg: CP.alpha, bolsillo_w: CP.wPk, fraccion_empuje_retenida: CP.cover, L_fin_rampa: CP.Lend, L_tope_rampa: CP.Lr1, L_salida_bolsillo: CP.LX1, perfil: CP.need,
       fuerzas_N: { rampa_atasco: CP.NR, transversal_calado: CP.Tst, transversal_diseno: CP.Tdis, diseno: CP.Ncam }, v_seguidor_m_s: CP.vQ, area: CP.area, largo_canto: CP.Lb },
     posiciones: Object.fromEntries(Object.entries(tr).map(([k, f]) => [k, pts(f)])),
+    fabricacion: pivotFab(P, R),
     nota: "coordenadas en planta (mm) con O en el centro; Q y P: 61 posiciones del empuje; leva_centro_seguidor: trayectoria del centro del extremo inferior de Q contra la leva (empuje + bolsillo + rampa); leva_canto: canto de contacto; leva_borde_exterior: borde de la placa; leva_pernos: ejes de los pernos" };
 })();
   const masas_desc = MODE === 1 ? { brackets: "ménsulas del ojal trasero (n_br)", dogs: "uñas", shoes: "patines", beds: "bancadas", cam: "leva de reenganche: riel, soportes, prolongación de la bancada y seguidor (Tarea 1)" }
   : { brackets: "soportes del ojal E (cajón, tapas y pasador vertical; uno por cilindro)", dogs: "bloques-uña con pasador Q (uno por cilindro)", shoes: "— (no hay patín)", beds: "— (no hay bancada)", cam: "4 placas-leva con revestimiento y zapatas del seguidor" };
-    return { modo: MODE, modo_nombre: MODE === 1 ? "guiado (patín y uña sobre bancada)" : "pivotado con guía de leva (tipo KIET)", levaGuiada, pivotado, masas_desc };
+    const tw = R.ifc && R.ifc.tornillos, tornillos_interfaz = tw ? { aplica: "AF2: opción A pegada (fix_mode = 2), disco de la mesa → plancha inferior de la mesa", designacion: tw.designacion, n: tw.n, d: tw.d, r: tw.r, PCD: 2 * tw.r, angulos_deg: tw.ang, posiciones: tw.pos,
+      avellanado: tw.avellanado, rosca_en_mesa: tw.rosca, t_disco: tw.t, t_plancha_mesa: tw.tb, V_por_tornillo_kN: tw.V / 1e3, nota: "ángulos medidos desde +x, a mitad de camino entre las ranuras radiales de engrase; avellanado 90° (ISO 10642) en la cara de deslizamiento del disco de la mesa" } : null;
+    return { modo: MODE, modo_nombre: MODE === 1 ? "guiado (patín y uña sobre bancada)" : "pivotado con guía de leva (tipo KIET)", levaGuiada, pivotado, masas_desc, tornillos_interfaz };
   }
 
   /* ---------------- Verificaciones de la leva guiada (Tarea 1) y del modo pivotado (Tarea 2) ---------------- */
@@ -1652,7 +1752,8 @@ const TT = (() => {
     add({ grp: G, sys: "giro", kind: "geo", name: "Riel-leva bajo la cara superior de la mesa", formula: "z_sup_patín + 2 + t_leva ≤ z_eje + h_mesa/2", dem: c.zPb + P.cam_t, cap: c.zTop, unit: "mm", ref: "Geometría (alzado)" });
     add({ grp: G, sys: "giro", kind: "geo", name: "Riel-leva sobre el cuerpo del cilindro (soporte trasero)", formula: "z_eje + D_cuerpo/2 + 1 ≤ z_inf_leva", dem: c.zc0 + P.D_body / 2 + 1, cap: c.zPb, unit: "mm", ref: "Geometría (alzado)" });
     add({ grp: G, sys: "giro", kind: "geo", name: "Riel-leva dentro de la base (x)", formula: "x_canto + ancho ≤ B/2 − t_marco − 5", dem: c.xPo, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
-    add({ grp: G, sys: "giro", kind: "geo", name: "Soportes del riel por fuera del cuerpo del cilindro (x)", formula: "x_g + D_cuerpo/2 + 5 ≤ x_borde − ancho del soporte", dem: P.x_g + P.D_body / 2 + 5, cap: c.xPo - P.cam_px, unit: "mm", ref: "Geometría (planta)" });
+    add({ grp: G, sys: "giro", kind: "geo", name: "Pórtico del riel: pata exterior y su tapa bajo el riel (x)", formula: "x_pata,ext + máx(b; tapa)/2 ≤ x_borde del riel", dem: c.portico.xR + c.portico.capW / 2, cap: c.xPo, unit: "mm", ref: "Geometría (planta)" });
+    add({ grp: G, sys: "giro", kind: "geo", name: "Pórtico del riel: pata interior fuera de la mesa (x)", formula: "D/2 + 10 ≤ x_pata,int − máx(b; tapa)/2", dem: P.D_top / 2 + 10, cap: c.portico.xL - c.portico.capW / 2, unit: "mm", ref: "Geometría (planta)" });
     add({ grp: G, sys: "giro", kind: "geo", name: "Ranura de la tapa del patín para el perno del seguidor dentro del patín", formula: "x_perno + Δx + d_perno/2 + 10 ≤ x_g + w_s/2", dem: c.xFp0 + c.travel + P.cam_dp / 2 + 10, cap: P.x_g + P.w_s / 2, unit: "mm", ref: "Geometría (planta)" });
     add({ grp: G, sys: "giro", kind: "geo", name: "Seguidor dentro del espesor del riel", formula: "b_seguidor + 5 ≤ t_leva", dem: P.cam_bf + 5, cap: P.cam_t, unit: "mm", ref: "Geometría" });
     add({ grp: G, sys: "giro", kind: "geo", name: "Seguidor libre del borde de la mesa", formula: "D/2 + 5 ≤ x_perno − Ø_seguidor/2", dem: P.D_top / 2 + 5, cap: c.xFp0 - P.cam_df / 2, unit: "mm", ref: "Geometría (planta)" });
@@ -1669,9 +1770,10 @@ const TT = (() => {
     add({ grp: G, sys: "est", name: "Perno del seguidor: corte", formula: "τ = N/A ≤ Fy/(Nd·√3)", dem: c.Nd / Ap, cap: P.Fy_pp / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
     add({ grp: G, sys: "est", name: "Ranura de la tapa del patín (guía del perno): aplastamiento por la fuerza en y", formula: "σ = F_ret/(d_perno·t_tapa) ≤ 1,25·Fy_patín/Nd", dem: c.Fret / (P.cam_dp * P.t_pk), cap: 1.25 * P.Fy_shoe / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
     add({ grp: G, sys: "est", name: "Riel-leva: flexión en planta + axial en el bolsillo (ancho reducido; biapoyado entre soportes)", formula: "σ = máx[N_toma·k_M; N_rampa,x·k_M + F_ret·w_n/… ]: N·k_M/(t·w_n²/6) + F_ret/(t·w_n); k_M = máx (L/2 + y)(L/2 − y)/L = " + nfx(c.kM) + " mm, w_n = " + nfx(c.wNet) + " mm", dem: c.sigPl, cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3 y §3-2.1" });
-    add({ grp: G, sys: "est", name: "Soporte del riel: flexión en la base (R_x y R_y a la altura del riel)", formula: "σ = R_x·h/(l·b²/6) + R_y·h/(b·l²/6) ≤ Fy/Nd, h = " + nfx(c.hPed) + " mm", dem: c.ped.sPed, cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
-    add({ grp: G, sys: "est", name: "Pernos de los soportes del riel: tracción con corte (M" + P.cam_db + ", " + P.cam_nb + " por soporte)", formula: "f_t = T/A_b ≤ F'nt/Ω, F'nt = 1,3·Fnt − Ω·Fnt/Fnv·f_rv ≤ Fnt (Ec. J3-3a); T = (R_x + R_y)·h/((n/2)·s); Fnt = 0,75·Fu, Fnv = 0,45·Fu, Ω = 2,00", dem: c.bolts.b.ft, cap: c.bolts.b.capT, unit: "MPa", ref: "AISC 360-22 §J3.6, §J3.7 (Ec. J3-3a), Tabla J3.2" });
-    add({ grp: G, sys: "est", name: "Pernos de los soportes del riel: corte", formula: "f_rv = V/A_b ≤ Fnv/Ω, V = R/n", dem: c.bolts.b.frv, cap: c.bolts.b.capV, unit: "MPa", ref: "AISC 360-22 §J3.6, Tabla J3.2" });
+    add({ grp: G, sys: "est", name: "Pórtico del riel: flexión de cada pata en su base (R_x/2 y R_y/2 a la altura del riel)", formula: "σ = (R_x/2)·h/(l·b²/6) + (R_y/2)·h/(b·l²/6) ≤ Fy/Nd, h = " + nfx(c.hPed) + " mm (voladizo, conservador frente al pórtico)", dem: c.ped.sPed, cap: Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    add({ grp: G, sys: "est", name: "Pórtico del riel: soldadura de cada pata a su asiento (filete perimetral)", formula: "f = √[(M_x/S_x + M_y/S_y)² + (V/(a·2(b + l)))²] ≤ 0,60FEXX/(1,20Nd); S_x = a(l·b + b²/3), S_y = a(b·l + l²/3)", dem: c.weld.fW, cap: c.Fwc, unit: "MPa", ref: "AISC 360-22 §J2.4 (grupo de soldadura, método elástico); ASME BTH-1 §3-3.4" });
+    add({ grp: G, sys: "est", name: "Pernos riel–pórtico: corte (M" + P.cam_db + ", " + P.cam_nb + " por pórtico)", formula: "f_rv = (R/n)/A_b ≤ Fnv/Ω, Fnv = 0,45·Fu (rosca incluida), Ω = 2,00", dem: c.bolts.b.frv, cap: c.bolts.b.capV, unit: "MPa", ref: "AISC 360-22 §J3.6, Tabla J3.2" });
+    add({ grp: G, sys: "est", name: "Pernos riel–pórtico: aplastamiento en el riel", formula: "R/n ≤ R_n/Ω, R_n = 2,4·d·t·Fu, Ω = 2,00", dem: c.bolts.V / 1e3, cap: c.bolts.Rn / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.10 (Ec. J3-6a)" });
     add({ grp: G, sys: "est", kind: "info", name: "Masa de la leva por cilindro: riel, soportes, prolongación de la bancada y seguidor", formula: "m = ρ·V (el riel descuenta el bolsillo)", dem: c.m.one, unit: "kg", ref: "Geometría" });
   }
   function pivAsym(P, R) {
@@ -1899,6 +2001,19 @@ const TT = (() => {
       } else {
         const Ttot = R.Tmax, TretF = P.mu_back * R.N * R.r_u / 1e3, TretA = P.tau_bond * R.Ac * R.r_u / 1e6, Tret = Math.max(TretF, TretA);
         add({ grp: "Interfaz inox", sys: "giro", name: "Retención de los discos sobre su plancha de respaldo (la mayor entre fricción y pegado; no se suman)", formula: "T_calado ≤ máx(μ_respaldo·N·r_u; τ_adhesivo·A·r_u). Un adhesivo rígido falla con deslizamientos de centésimas de mm: la fricción no se moviliza a tiempo", dem: Ttot, cap: Tret, unit: "kN·m", ref: "Equilibrio; respaldo granallado sin pintura; adhesivo epóxico estructural" });
+        const tw = I.tornillos;
+        if (tw) {
+          const RA = "docs/normas/registro.md, «Tornillos avellanados del disco de la mesa (AF2)»";
+          add({ grp: "Interfaz inox", sys: "est", name: "AF2 · Tornillos avellanados disco–mesa: corte (" + tw.n + " × M" + tw.d + " 10.9 en R" + nfx(tw.r, 0) + ")", formula: "f_rv = V/A_b ≤ Fnv/Ω; V = T_dis/(n·r) = " + nfx(tw.V / 1e3, 2) + " kN, Fnv = 0,45·Fu (rosca incluida), Ω = 2,00", dem: tw.V / tw.Ab, cap: tw.capV, unit: "MPa", ref: "AISC 360-22 §J3.6, Tabla J3.2 (grupo 150 ≈ 10.9); " + RA });
+          add({ grp: "Interfaz inox", sys: "est", name: "AF2 · Tornillos: aplastamiento en el disco inoxidable de la mesa (avellanado)", formula: "V ≤ R_n/Ω, R_n = mín(1,2·l_c·t_e·Fu; 2,4·d·t_e·Fu), t_e = t − k/2 = " + nfx(tw.te, 2) + " mm, l_c = s − d_h", dem: tw.V / 1e3, cap: tw.RnD / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.10 (Ec. J3-6a); EN 1993-1-8 Tabla 3.4 (espesor con avellanado); " + RA });
+          add({ grp: "Interfaz inox", sys: "est", name: "AF2 · Tornillos: aplastamiento en la plancha inferior de la mesa (agujero roscado)", formula: "V ≤ R_n/Ω, R_n = mín(1,2·l_c·t·Fu; 2,4·d·t·Fu), t = t_inf", dem: tw.V / 1e3, cap: tw.RnM / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.10 (Ec. J3-6a); " + RA });
+          add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "AF2 · Tornillos: separación entre centros", formula: "3·d ≤ s = 2πr/n", dem: 3 * tw.d, cap: tw.s, unit: "mm", ref: "AISC 360-22 §J3.3" });
+          add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "AF2 · Tornillos: distancia al borde exterior del disco", formula: "e_mín (Tabla J3.4M) ≤ R_o − r", dem: J34M(tw.d), cap: R.Ro - tw.r, unit: "mm", ref: "AISC 360-22 §J3.4, Tabla J3.4M (desde M16; para menores se toma el valor de M16)" });
+          add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "AF2 · Tornillos: cabeza avellanada dentro del espesor del disco", formula: "k + 0,5 + sobreespesor de relapeado ≤ t; k = " + nfx(tw.k, 2) + " mm (ISO 10642); el disco de la mesa se dimensiona con este mínimo", dem: tw.k + 0.5 + P.ss_allow, cap: tw.t, unit: "mm", ref: "ISO 10642; criterio del mandante (cabeza ≤ espesor − 0,5 mm), también tras el relapeado" });
+          add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "AF2 · Tornillos: longitud roscada en la plancha inferior de la mesa", formula: "1,25·d ≤ t_inf (agujero roscado pasante)", dem: 1.25 * tw.d, cap: tw.tb, unit: "mm", ref: "VDI 2230 (orientativo, 10.9 en acero S355); " + RA });
+          if (P.h_gr > 0) add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "AF2 · Tornillos: cabeza libre de la ranura circunferencial exterior", formula: "holgura (R_ranura − w/2) − (r + d_k/2) ≥ 3 mm", dem: 3, cap: tw.rOut - P.w_gr / 2 - tw.r - tw.dk / 2, unit: "mm", ref: "Geometría" });
+          add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "AF2 · Tornillos: designación y geometría (avellanado 90°, roscado pasante en la plancha inferior)", formula: tw.designacion + "; n = " + tw.n + " a (k + ½)·360°/n, entre las ranuras radiales; Ø cabeza " + tw.dk + " mm, prof. " + nfx(tw.k, 2) + " mm", dem: tw.n, cap: tw.r, unit: "– / mm", ref: RA });
+        }
         if (P.tau_bond > 0) {
           const eps = (AL_SS - AL_S) * dTe, tb2 = eps * Math.sqrt(P.G_ad * EssT * Math.max(I.tss, I.tss2) / P.t_ad);
           add({ grp: "Interfaz inox", sys: "est", name: "Adhesivo: cortante térmico en el borde del disco (dilatación diferencial)", formula: "τ_borde = ε·√(G_ad·E_inox·t_disco/t_adhesivo), ε = (α_inox − α_acero)·ΔT ≤ τ_adm,cíclico", dem: tb2, cap: P.tau_cyc, unit: "MPa", ref: "Línea de pegado elástica (corte); criterio del proyecto" });
