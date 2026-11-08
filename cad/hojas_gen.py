@@ -187,16 +187,16 @@ def tabla_indice(ctx, h, hojas):
     cols = [("Plano", 30 * sc, "L"), ("Título", 105 * sc, "L"), ("Fmt", 12 * sc, "C"), ("Escala", 30 * sc, "L"), ("Rev", 13 * sc, "C")]
     tit = f"ÍNDICE DE PLANOS — VARIANTE {ctx.g.variante} (el título de cada lámina termina en «{suf.strip(' —')}»)"
     from draw import Sheet as _Sh
-    hh_ = T_MIN
-    for h_try in (T_S, 2.75, T_MIN):            # letra de tabla densa; mínimo absoluto 2,5 mm si el juego tiene muchas láminas
+    hh_, pd_ = T_MIN, 0.8
+    for h_try, p_try in ((T_S, 1.3), (2.75, 1.3), (T_MIN, 1.3), (T_MIN, 0.8)):     # letra de tabla densa; mínimo absoluto 2,5 mm (ISO 3098) y celdas compactas
         sc_ = _Sh(h.fmt)
-        _, lft = sc_.table(x, y, cols, rows, h=h_try, ymin=ymin + 12, title=tit)
-        _, lft2 = sc_.table(x + wc + 6, yR, cols, lft, h=h_try, ymin=ymin + 12) if lft else (0, [])
+        _, lft = sc_.table(x, y, cols, rows, h=h_try, pad=p_try, ymin=ymin + 18, title=tit)
+        _, lft2 = sc_.table(x + wc + 6, yR, cols, lft, h=h_try, pad=p_try, ymin=ymin + 18) if lft else (0, [])
         if not lft2:
-            hh_ = h_try
+            hh_, pd_ = h_try, p_try
             break
-    y1, l1 = s.table(x, y, cols, rows, h=hh_, ymin=ymin + 12, title=tit)
-    y2, l2 = s.table(x + wc + 6, yR, cols, l1, h=hh_, ymin=ymin + 12) if l1 else (y1, [])
+    y1, l1 = s.table(x, y, cols, rows, h=hh_, pad=pd_, ymin=ymin + 18, title=tit)
+    y2, l2 = s.table(x + wc + 6, yR, cols, l1, h=hh_, pad=pd_, ymin=ymin + 18) if l1 else (y1, [])
     l1 = []
     # números de lámina no emitidos en este juego (reservados para otras variantes o anulados) y hojas de continuación
     usados = {}

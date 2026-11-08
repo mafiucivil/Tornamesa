@@ -322,7 +322,7 @@ def sheet_cubo(ctx):
         p.cut_mark("planta", "A", (-P["D_hub"] / 2 - 14, 0, zt), (P["D_hub"] / 2 + 14, 0, zt), 90)
     p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 70, 0), draw=planta, title="PLANTA", w=1.0, auto=dict(fits={g.d_bush: "H7"}, hole_rmin=20))
 
-    p.ra_in("corte", "Ra 1,6", prefix=f"Ø{f(g.d_bush)} H7")
+    p.ra_in("corte", "Ra 1,6", prefix=f"Ø{f(g.d_bush)} H7", at=[(-g.d_bush / 2, 0, zt - g.hw * f_) for f_ in (0.35, 0.6)] + [(g.d_bush / 2, 0, zt - g.hw * 0.35)], d=[(1, 0, 0), (1, 0, 0), (-1, 0, 0)])
     p.datum_in("corte", "dim", "A", prefix=f"Ø{f(P['D_hub'])}")
     p.gd_in("corte", "dim", "coax", "Ø0,05", "A", prefix=f"Ø{f(g.d_bush)} H7")
     p.gd_in("corte", "surf", "perp", "0,10", "A", at=[(P["D_hub"] / 2 - 15, 0, zt), (-P["D_hub"] / 2 + 15, 0, zt), (P["D_hub"] / 2 - 15, 0, z0)], d=[(0, 0, 1), (0, 0, 1), (0, 0, -1)])

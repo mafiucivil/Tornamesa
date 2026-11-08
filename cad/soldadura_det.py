@@ -112,8 +112,8 @@ def prep_tee(s, ox, oy, k, t, tw_, jid=None, plano=None, root=2.0, angle=45.0):
     s.dim(P(xr, t), P(xr, t + root + hb), 9, f"{fm(t, 0)} (profundidad de la preparación = t)", "v")
     ap = P(xr, t + root)
     s.dim_ang(ap, (hb * k) * 0.55, 180 - angle - 0.0 + 0.0 if False else 90 + 0.0, 90 + angle, f"{fm(angle, 0)}°") if False else None
-    s.leader(P(xr - hb, t + root * 0.5), (P(xr - hb, 0)[0] - 18, P(0, -6)[1]), f"raíz {fm(root, 0)} mm", dot=True)
-    s.leader(P(L - 4, t + 3), (P(L - 8, 0)[0] - 18, P(0, t + 14)[1]), "respaldo interior (PROPUESTA)", dot=True)
+    s.leader(P(xr - hb, t + root * 0.5), (P(xr, 0)[0] + 10, P(0, -6)[1]), f"raíz {fm(root, 0)} mm", dot=True)
+    s.leader(P(L - 4, t + 3), (P(L - 4, 0)[0] + 6, P(0, -6)[1] - 9), "respaldo interior (PROPUESTA)", dot=True)
     xa_, xb_, ym_ = P(L - 2, 0)[0], P(xr + 2, 0)[0], P(0, t + H)[1]
     xm_ = (xa_ + xb_) / 2
     s.pline([(xa_, ym_), (xm_ - 2.5, ym_), (xm_ - 0.8, ym_ + 2.2), (xm_ + 0.8, ym_ - 2.2), (xm_ + 2.5, ym_), (xb_, ym_)], "FINA")

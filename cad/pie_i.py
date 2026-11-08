@@ -552,7 +552,7 @@ def sheet_int_tapones(ctx):
         if cs:
             a = cs[len(cs) // 2]
             V.note_hole((a[2], a[3], zt), d / 2, 60, f"{len(cs)} × Ø{fm(d, 0)} H7 (alojamiento), prof. {fm(m.info.get('plug_prof', 0), 1)} (70 % de e = {fm(t, 1)})", ext=40, on=on)
-    p.vs("planta", on, "top", lv=(1, 2, 2, 1), extra=(30, 0, 180, 20), draw=planta, hatch=False, title=f"PLANTA DEL SECTOR 1 (TIPO 1) CON SU PATRÓN COMPLETO (sector de {fm(th, 3)}°)", w=2.0, mins=0.2, auto=dict(holes=False, verts=False, only_extents=True), mat={nk: "bronce", pk: "grafito"})
+    p.vs("planta", on, "top", lv=(1, 2, 2, 1), extra=(30, 0, 180, 20), draw=planta, hatch=False, title=f"PLANTA DEL SECTOR 1 (TIPO 1) CON SU PATRÓN COMPLETO (sector de {fm(th, 3)}°)", w=2.0, auto=dict(holes=False, verts=False, only_extents=True), mat={nk: "bronce", pk: "grafito"})
     # (sin planta completa a 1:50: a esa escala el patrón es ilegible; las cantidades por sector van en la tabla, H-17)
     r_ = cs[len(cs) // 2] if cs else None
     if r_:
@@ -576,6 +576,7 @@ def sheet_int_tapones(ctx):
     # H-04/H-17: una tabla de coordenadas por TIPO de sector de bronce (cada tipo es un código propio)
     pb_ = m.get("int_bronce")
     tipos_b = pb_.tipos or [dict(suf=pb_.suf, idx=[0], n=pb_.qty)]
+    prev_t, espejos = [], []
     for k_, t_ in enumerate(tipos_b, 1):
         i_s = t_["idx"][0]
         if k_ == 1:
@@ -584,12 +585,24 @@ def sheet_int_tapones(ctx):
             kk_ = ctx.local_ang("int_tapones", f"int_tapones_t{k_}", (i_s + 0.5) * th, th)
             csk = autodim.circles3d(type("V", (), dict(shapes=ctx.shapes, view="top", uv=lambda self, p3: (p3[0], p3[1])))(), [kk_], d / 2 - 0.05, d / 2 + 0.05) if kk_ else []
             csk = sorted([(math.hypot(u, v), math.degrees(math.atan2(v, u)), u, v) for (u, v, r, loc, k__) in csk])
+        # un tipo que es la imagen especular de otro respecto de la bisectriz (y → −y) no repite la tabla
+        esp = None
+        for k2_, (t2_, c2_) in enumerate(prev_t):
+            if len(c2_) == len(csk) and all(any(abs(u - u2) < 0.15 and abs(v + v2) < 0.15 for (_, _, u2, v2) in c2_) for (_, _, u, v) in csk):
+                esp = t2_
+                break
+        prev_t.append((t_, csk))
+        cod_ = pb_.code_suf(t_["suf"]).replace(CODE + "-", "")
+        if esp is not None:
+            espejos.append([f"TIPO {t_['suf']} ({cod_})", ", ".join(str(i + 1) for i in t_["idx"]), f"{len(csk)}", f"simétrico del TIPO {esp['suf']} respecto de la bisectriz: mismas coordenadas con y → −y (φ → −φ)"])
+            continue
         rws = [[str(i + 1), fm(r, 1), fm(a, 2) + "°", fm(u, 1), fm(v, 1)] for i, (r, a, u, v) in enumerate(csk)]
         perk = max(1, math.ceil(len(rws) / ncol))
         rk4 = [sum([rws[j * perk + i] if j * perk + i < len(rws) else [""] * 5 for j in range(ncol)], []) for i in range(perk)]
-        cod_ = pb_.code_suf(t_["suf"]).replace(CODE + "-", "")
         p.table_block(f"TIPO {t_['suf']} ({cod_}; sectores n.° {', '.join(str(i + 1) for i in t_['idx'])}): COORDENADAS DE LOS {len(csk)} TAPONES (origen: eje de la mesa; x sobre la bisectriz del sector; φ desde la bisectriz)",
                       sum([[(t2_ + " " * j, w, a) for t2_, w, a in cols] for j in range(ncol)], []), rk4, wide=True)
+    if espejos:
+        p.table_block("TIPOS SIMÉTRICOS (sin tabla propia)", [("Tipo", 30, "L"), ("Sectores n.°", 50, "L"), ("Tapones", 16, "R"), ("Coordenadas", 90, "L")], espejos)
     ps = T["por_sector"]
     half = (len(ps) + 1) // 2
     prow = [[str(i + 1), str(ps[i]), str(i + 1 + half) if i + half < len(ps) else "", str(ps[i + half]) if i + half < len(ps) else ""] for i in range(half)]

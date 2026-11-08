@@ -336,6 +336,7 @@ class Plano:
         self.indic.append(("datum", view, mode, dict(letter=letter, at=at, d=d, prefix=prefix)))
 
     def ra_in(self, view, ra, at=None, d=None, prefix=None):
+        """prefix: junto a la cota del elemento; si además se da at/d, se usa la superficie como alternativa."""
         self.indic.append(("ra", view, "dim" if prefix else "surf", dict(ra=ra, at=at, d=d, prefix=prefix)))
 
     def _draw_indic(self):
@@ -387,6 +388,8 @@ class Plano:
                 tag = ("datum", a["letter"])
             elif mode == "dim":
                 ok = GV.rugosidad_cota(s, Lb, a["ra"], a["prefix"])
+                if not ok and pt is not None:
+                    ok = GV.rugosidad(s, Lb, a["ra"], pt, a["d"])
                 tag = ("ra", a["ra"])
             else:
                 ok = GV.rugosidad(s, Lb, a["ra"], pt, a["d"])
