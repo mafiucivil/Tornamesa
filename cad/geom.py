@@ -301,7 +301,7 @@ def supuestos(g):
             "El núcleo exige junta en frío ≥ 1 mm y entrega la dilatación.")
     if g.opt == 1 or g.opt == 3:
         add("S05", "Posición de las ranuras de engrase",
-            f"{g.n_gr_rad} radiales a k·360°/{g.n_gr_rad} de R_i a R_o (extremos abiertos: purga por el perímetro); {g.n_gr_circ} circunferenciales, la exterior a R_o − 30 y el resto equiespaciadas hasta R_i + 30",
+            f"{g.n_gr_rad} radiales a k·360°/{g.n_gr_rad} de R_i a R_o (extremos abiertos: purga por el perímetro); {g.n_gr_circ} circunferenciales, la exterior a R_o − 30 y el resto equiespaciadas hasta R_i + 30 (corridas a ≥ 3 mm de la muesca del tope si la cortan)",
             "El núcleo solo usa cantidad, ancho, profundidad y largo total (área perdida y volumen de grasa).")
         add("S08", "Conducto de las graseras", "Grasera M10×1 en el canto del anillo inferior de la mesa (MES-004), sobre la bisectriz de un sector; taladro Ø6 radial hasta R_o − 30 y Ø6 axial hasta la cara deslizante",
             "El núcleo indica «taladro Ø6 hasta la ranura exterior»; trayecto y cota no se entregan.")

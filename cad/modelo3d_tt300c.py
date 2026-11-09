@@ -157,8 +157,8 @@ LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_
 # Las clases y los tipos se midieron sobre la geometría real (cad/firmas.py, registro cad/firmas_codigos.json); el control de cada juego y
 # el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
 VAR_CODIGOS = {
-    "base_plancha": [(("BASE-G", "AF2-G", "W-G"), "sin agujeros de interfaz (accionamiento guiado)", 1), (("A-G", "B-G", "C1-G", "C2-G", "C3-G"), "con roscas de interfaz (accionamiento guiado)", 1),
-                     (("BASE", "AF2", "W"), "roscas de las placas-leva (accionamiento pivotado)", 1), (("A", "B", "C1", "C2", "C3"), "roscas de las placas-leva y de interfaz (accionamiento pivotado)", 1)],
+    "base_plancha": [(("BASE-G", "AF2-G", "W-G"), "lisa (guiado)", 1), (("A-G", "B-G", "C1-G", "C2-G", "C3-G"), "roscas de interfaz (guiado)", 1),
+                     (("BASE", "AF2", "W"), "roscas de placas-leva", 1), (("A", "B", "C1", "C2", "C3"), "placas-leva e interfaz", 1)],
     "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
     "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1)],
     "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
@@ -305,6 +305,16 @@ class Layout:
         if n >= 2:
             r_in = g.Ri + 30.0
             rg += [g.Ro - 30.0 - k * (g.Ro - 30.0 - r_in) / (n - 1) for k in range(1, n)]
+        # S05: una ranura circunferencial no corta la muesca del tope (distancia ≥ 3 mm a sus extremos): se corre hacia adentro si hace falta
+        self.r_circ_mov = []
+        if g.removable:
+            for L_ in [x for x in (g.tope_L("base"), g.tope_L("mesa")) if x]:
+                for i, r_ in enumerate(rg):
+                    lo_, hi_ = g.r_u - L_ / 2 - g.w_gr / 2 - 3.0, g.r_u + L_ / 2 + g.w_gr / 2 + 3.0
+                    if lo_ < r_ < hi_:
+                        nr_ = lo_ if (r_ - lo_) <= (hi_ - r_) else hi_
+                        self.r_circ_mov.append((r_, nr_))
+                        rg[i] = nr_
         self.r_circ = rg
         self.phi_rad = [k * 360.0 / g.n_gr_rad for k in range(g.n_gr_rad)]
         self.dk = ISO10642_DK.get(int(self.d_tor), 2 * self.d_tor)

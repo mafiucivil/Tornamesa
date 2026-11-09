@@ -166,7 +166,7 @@ def sheet_notas(ctx):
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
-    rows.append(["ACC / BAS", "Accionamiento: guiado (juegos «-G») BAS-005…007, ACC-001…012, ACC-019; pivotado (por defecto) BAS-008…011, ACC-013…018 (detalle en CON-002)",
+    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-008…011, ACC-013…018",
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]
@@ -191,7 +191,7 @@ def tabla_indice(ctx, h, hojas):
     tit = f"ÍNDICE DE PLANOS — VARIANTE {ctx.g.variante} (el título de cada lámina termina en «{suf.strip(' —')}»)"
     from draw import Sheet as _Sh
     hh_, pd_ = T_MIN, 0.8
-    for h_try, p_try in ((T_S, 1.3), (2.75, 1.3), (T_MIN, 1.3), (T_MIN, 0.8)):     # letra de tabla densa; mínimo absoluto 2,5 mm (ISO 3098) y celdas compactas
+    for h_try, p_try in ((T_S, 1.3), (2.75, 1.3), (T_MIN, 1.3), (T_MIN, 0.8), (T_MIN, 0.5)):     # letra de tabla densa; mínimo absoluto 2,5 mm (ISO 3098) y celdas compactas
         sc_ = _Sh(h.fmt)
         _, lft = sc_.table(x, y, cols, rows, h=h_try, pad=p_try, ymin=ymin + 18, title=tit)
         _, lft2 = sc_.table(x + wc + 6, yR, cols, lft, h=h_try, pad=p_try, ymin=ymin + 18) if lft else (0, [])
