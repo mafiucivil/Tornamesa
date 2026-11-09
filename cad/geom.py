@@ -324,7 +324,8 @@ def supuestos(g):
         add("S21", "Ojales del cilindro (elemento comercial)", f"Pared de ojal 17,5 mm (Ø{fm(F['pasador_E']['d'] + 35, 0)} en E y Ø{fm(F['pasador_Q']['d'] + 35, 0)} en Q); cuello de ancho b_ojal hasta {fm(F['bloque_una']['horquilla']['R_cubo'] + 10, 0)} mm de Q (PROVISORIO)",
             "El núcleo solo exige Ø ojal ≥ d; la geometría la fija el proveedor del cilindro.")
         add("S22", "Posición dibujada del accionamiento", "Pasador de la mesa del modelo dentro del empuje, el más cercano a su inicio; Q = P + L_qp·(E − P)/|E − P| (cinemática del núcleo)", "Las láminas muestran una posición; el núcleo entrega 61.")
-        add("S23", "Pernos de las placas-leva", f"ISO 4762 M{fm(F['placas_leva']['pernos']['d'], 0)}×{fm(min(45, F['placas_leva']['t'] + g.tb - 1), 0)} 10.9 roscados pasantes en la base, sin sobresalir bajo la base (PROVISORIO)",
+        if not __import__("re").search(r"M\d+\s*[×x]\s*\d+", str(F["placas_leva"]["pernos"].get("norma", ""))):
+          add("S23", "Pernos de las placas-leva", f"ISO 4762 M{fm(F['placas_leva']['pernos']['d'], 0)}×{fm(min(45, F['placas_leva']['t'] + g.tb - 1), 0)} 10.9 roscados pasantes en la base, sin sobresalir bajo la base (PROVISORIO)",
             "El núcleo admite roscado o tuerca bajo la base; la base apoya en la losa (requiere núcleo: engrane).")
     if g.modo == 1 and g.FLG:
         add("S24", "Pasador del vástago bajo el riel-leva", "A ras de la cara superior del patín; retención por anillo elástico inferior (PROPUESTA)", "El riel-leva queda 2 mm sobre el patín (núcleo): no cabe la placa de retención superior.")

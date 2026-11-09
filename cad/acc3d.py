@@ -355,7 +355,7 @@ def build_leva_guiada(m, g, D, Part, A572):
                _compound(rod), len(rod), SG["rodillo"].get("material") or "Acero templado ≥ 55 HRC (núcleo: «rodillo de leva templado»; grado A DEFINIR POR EL CALCULISTA)", "Torneado; temple y rectificado", core="cam", color=(0.3, 0.3, 0.32),
                tratamiento=("Temple total 58–64 HRC; rectificado" if "58" in str(SG["rodillo"].get("material", "")) else "Temple ≥ 55 HRC; rectificado"), num_fijo=ACC_NUM["leva_rodillo"]))
     Lpe = (SG["perno"]["z"][1] - SG["perno"]["z"][0]) if SG["perno"].get("z") else (SG["rodillo"]["z"][1] - SG["perno"]["z_cara_sup_una"] + SG["perno"]["empotrado_en_una"])
-    m.add(Part("leva_perno", "ACC", "Seguidor: perno", f"Perno Ø{f(SG['perno']['d'])} {SG['perno'].get('ajuste', '')} × {f(Lpe)}, empotrado {f(SG['perno']['empotrado_en_una'])} en la uña" + (f"; rosca axial M{fm(d_ret, 0)} para la arandela de tope" if aran else ""),
+    m.add(Part("leva_perno", "ACC", "Seguidor: perno", f"Perno {SG['perno'].get('ajuste') or 'Ø' + f(SG['perno']['d'])} × {f(Lpe)}, empotrado {f(SG['perno']['empotrado_en_una'])} en la uña" + (f"; rosca axial M{fm(d_ret, 0)} para la arandela de tope" if aran else ""),
                _compound(pern), len(pern), propuestas.grado(P["Fy_pp"], SG["perno"]["d"], "barra"), "Barra rectificada; torno horizontal", core="cam", color=(0.3, 0.3, 0.32),
                tratamiento="Bonificado (QT)", num_fijo=ACC_NUM["leva_perno"]))
     if aran:

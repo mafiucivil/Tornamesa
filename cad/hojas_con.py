@@ -1483,7 +1483,7 @@ def sheet_accionamiento_pv(ctx):
     ctx.local("pasadores", "pasadores_V", near=(P_[0], P_[1], g.z0 + g.hd / 2), r=200)
     _crop(ctx, "base_plancha", "base_V", 200, g.B / 2, -g.B / 2, 200, -1, g.tb + 1)
     allk = ["base_V", "pasadores_V"] + lk
-    c = Conj(ctx, 10, ks, "ACCIONAMIENTO PIVOTADO TIPO KIET (LADO DEL CILINDRO 1): CAJÓN, CILINDRO, BLOQUE-UÑA, PASADORES Y PLACAS-LEVA", material="Ver despiece", trat="Ver despiece")
+    c = Conj(ctx, 10, ks, "ACCIONAMIENTO PIVOTADO TIPO KIET (LADO DEL CILINDRO 1): SOPORTE E, CILINDRO, BLOQUE-UÑA, PASADORES Y PLACAS-GUÍA", material="Ver despiece", trat="Ver despiece")
     c.iso_keys = lk
     sh = {k: ctx.shapes[k] for k in allk}
     mm = {k: ctx.mat.get(k[:-2], "acero") for k in allk}
@@ -1518,7 +1518,7 @@ def sheet_accionamiento_pv(ctx):
          title="CORTE A-A POR EL EJE E–Q (soporte E, cilindro, bloque-uña, pasador Q y placa-guía)", w=1.6, auto=dict(on=[k for k in wk if not k.startswith(("base", "cilindro"))], maxn=6, tol={}),
          nocut=("pasador_E_W", "pasador_Q_W", "pernos_placa_leva_W", "pernos_placa_guia_W", "pasadores_placa_guia_W", "pasadores_W", "cilindro_pv_W"), draw=cAd)
     rows = [["E (eje del ojal trasero)", fm(E[0], 1), fm(E[1], 1), f"R_E = {f(PV['R_E'])}; φ_E = {fm(PV['phi_E'], 0)}°"],
-            ["Cajón del cilindro 2", fm(-E[0], 1), fm(-E[1], 1), "giro de 180° del cilindro 1"],
+            ["Soporte E del cilindro 2", fm(-E[0], 1), fm(-E[1], 1), "giro de 180° del cilindro 1"],
             ["Q en la posición dibujada", fm(Q[0], 1), fm(Q[1], 1), f"E–Q = {fm(fr['L'], 1)} (cilindro); Q–P = L_qp"]]
     for k_, ins in F["placas_leva"]["instancias"].items():
         p1, p6 = ins["pernos"][0], ins["pernos"][-1]
@@ -1581,7 +1581,7 @@ def sheet_explosion_acc_pv(ctx):
                 _arrow(c.s, V.P((cx_, cy_, bb.zmin)), V.P((cx_, cy_, bb.zmin - dz + 15)))
         with alias(ctx, "_E"):
             balloons_auto(c, V, ak, gap=12.0, off=24.0, hug=True)
-    c.vs("acc", {k: ctx.shapes[k] for k in ak}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, ak), hatch=False, draw=cba, title="ACCIONAMIENTO PIVOTADO DEL CILINDRO 1 (cajón soldado a la base)", auto=False, w=2.0)
+    c.vs("acc", {k: ctx.shapes[k] for k in ak}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, ak), hatch=False, draw=cba, title="ACCIONAMIENTO PIVOTADO DEL CILINDRO 1 (soporte E soldado a la base)", auto=False, w=2.0)
     c.compact_table(ks)
     c.note_block("NOTAS", ["El soporte del ojal E va soldado a la base (subconjunto CON-007); las placas-guía se empernan a la base (roscas en BAS-001).",
                            "Instrucciones, ajustes y pares: pasos 1, 3 y 7 del instructivo (CON-005, CON-014, CON-019).", "Cilindro 2: el mismo conjunto girado 180°; la explosión en z es ilustrativa."])

@@ -43,7 +43,7 @@ def leer_caso(d, logs=None, caso=None):
             mm = re.findall(r"^exit (\d+)", lg.read_text(encoding="utf-8", errors="replace"), re.M)
             salida = mm[-1] if mm else "—"
     P = D.get("P", {})
-    return dict(caso=caso, est=est, n=len(est), ret=[e for e in est if e["estado"] == "RETENIDA"], items=len(_csv(d / "TT300-C_despiece.csv")),
+    return dict(caso=caso, est=est, n=len(est), ret=[e for e in est if e["estado"] == "RETENIDA"], items=len(rep.get("partes") or {}) or len(_csv(d / "TT300-C_despiece.csv")),
                 cotas=len(cot), cotas_mal=sum(1 for r in cot if r[-1] != "OK"), controles=len(ctl), interf=sum(1 for r in inter if not r.get("ok") and not r.get("declarado")),
                 conflictos=rep.get("conflictos_ids") or {t[:60]: dict(corto=t[:60]) for t in rep.get("conflictos_nucleo", [])}, interfaz=interfaz,
                 modo=D.get("modo_nombre") or ("guiado" if P.get("drive_mode") == 1 else "pivotado"), fecha=D.get("fecha", "—"), salida=salida,
@@ -149,7 +149,7 @@ def _pdf(path, C, cods, tit, est_of, fecha, nota_w, nucleo):
     for c in C:
         rows.append([Paragraph(esc(x), sS) for x in (c["caso"], c["variante"], c["modo"], c["interfaz"], c["n"], c["n"] - len(c["ret"]), len(c["ret"]), c["items"], f"{c['cotas']} ({c['cotas_mal']})",
                                                      c["controles"], c["interf"], c["salida"], "; ".join(v.get("corto", k) for k, v in c["conflictos"].items()) or "ninguno")])
-    t = Table(rows, colWidths=[16 * mm, 12 * mm, 26 * mm, 92 * mm, 15 * mm, 17 * mm, 16 * mm, 12 * mm, 18 * mm, 16 * mm, 15 * mm, 12 * mm, 120 * mm], repeatRows=1)
+    t = Table(rows, colWidths=[16 * mm, 14 * mm, 30 * mm, 70 * mm, 18 * mm, 20 * mm, 20 * mm, 14 * mm, 22 * mm, 20 * mm, 20 * mm, 14 * mm, 118 * mm], repeatRows=1)
     t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.4, colors.grey), ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e6e6e6")), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
     st += [t, Paragraph("Láminas RETENIDAS y su motivo", sH2)]
     rr = [[Paragraph(esc(h), ParagraphStyle("hh", parent=sS, fontName=fb)) for h in ("Caso", "Lámina", "Título", "Motivo")]]

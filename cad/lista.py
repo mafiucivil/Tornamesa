@@ -148,6 +148,9 @@ def cut_rows(ctx):
     if m.get("leva_rodillo"):
         bb_ = m.get("leva_rodillo").solid.vals()[0].Solids()[0].BoundingBox()
         add("leva_rodillo", "Barra", f"Ø{fm(bb_.xlen + 5, 0)}×{fm(bb_.zlen + 6, 0)}", "Torneado; temple y rectificado")
+    if m.get("leva_arandela"):
+        bb_ = m.get("leva_arandela").solid.vals()[0].Solids()[0].BoundingBox()
+        add("leva_arandela", "Barra", f"Ø{fm(bb_.xlen + 5, 0)}×{fm(bb_.zlen + 4, 0)}", "Torneado; caras planas; agujero pasante")
     if m.get("bloque_una"):
         BU = g.FPV["bloque_una"]
         xs_ = [q[0] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]

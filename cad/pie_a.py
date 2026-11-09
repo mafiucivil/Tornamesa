@@ -196,7 +196,7 @@ def sheet_marcos(ctx):
     p.gd_in("larga", "surf", "straight", "2,0", None, at=[(cxl_ - 0.4 * L_ml, -B / 2, tb + rh), (cxl_ + 0.4 * L_ml, -B / 2, tb + rh)], d=(0, 0, 1))
 
     def esq(V, p):
-        w_out(p, ids[1], V, (B / 2 - rt, sy_ * (B / 2 - rt), tb + rh), "top" if sy_ < 0 else "bottom")          # N-12: la cola del símbolo no invade la cota 45 de la pletina corta
+        w_out(p, ids[1], V, (B / 2 - rt, sy_ * (B / 2 - rt), tb + rh), "top" if sy_ < 0 else "left")          # N-12: la cola del símbolo no invade la cota 45 de la pletina corta
     p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, sy_ * B / 2, tb), win=((-60, -20, 25, 60) if sy_ < 0 else (-60, -60, 25, 20)), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
          auto=dict(on=["marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
     add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=False, edge=True, title=f"DETALLE {ids[0]} / {ids[2] if len(ids) > 2 else ''}: FILETE INTERIOR z{fm(wd(ctx, ids[0])['z'], 0)} (pletina a ras del canto)")

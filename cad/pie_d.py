@@ -547,7 +547,15 @@ def sheet_portico(ctx):
             w_out(p, ids[0], V, (0, -1, F["porticos"]["patas_local"][0]["z"][0] + 1), "right", dy=18)
     p.vs("pata", ["pata_L"], "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=dp, title=f"{ctx.code('leva_pata').replace(CODE + '-', '')} PATA", auto=dict(tol={}), w=1.0)
     p.vs("pata_l", ["pata_L"], "right", lv=(1, 2, 1, 1), title="PATA — LATERAL", auto=dict(), w=0.8, hatch=False)
-    p.vs("tapa", ["tapa_L"], "top", lv=(1, 2, 1, 1), title=f"{ctx.code('leva_tapa').replace(CODE + '-', '')} TAPA — PLANTA", auto=dict(hole_rmin=5), w=0.8, hatch=False)
+    RSt = (F["porticos"].get("pernos") or {}).get("rosca") or {}
+
+    def dtp(V, p_):
+        cs_ = V.circles(["tapa_L"], F["porticos"]["d_perno"] / 2 - 0.1, F["porticos"]["d_perno"] / 2 + 0.1)
+        if cs_ and RSt.get("ciega"):
+            u, v, r = cs_[0]
+            V.note_hole((u, v, F["porticos"]["tapas_local"][0]["z"][1]), r, 135, f"{len(cs_)} × M{fm(F['porticos']['d_perno'], 0)}-6H ciegas", ext=24, on=["tapa_L"],
+                        lines=[f"{len(cs_)} × M{fm(F['porticos']['d_perno'], 0)}-6H ciegas, rosca útil {fm(RSt['rosca_util'], 0)}", f"taladro Ø{fm(RSt['d_broca'], 1)} prof. {fm(RSt['prof_taladro'], 0)} (núcleo)"])
+    p.vs("tapa", ["tapa_L"], "top", lv=(1, 2, 1, 1), title=f"{ctx.code('leva_tapa').replace(CODE + '-', '')} TAPA — PLANTA", auto=dict(hole_rmin=5, hole_notes=not RSt.get("ciega")), w=0.8, hatch=False, draw=dtp)
     def dte(V, p_):
         if len(ids) > 1:
             bb_ = ctx.shapes["tapa_L"].BoundingBox()
@@ -595,8 +603,11 @@ def sheet_seguidor(ctx):
     fit_p = (SG["perno"].get("ajuste") or "f8").split()[1] if len((SG["perno"].get("ajuste") or "").split()) > 1 else "f8"
     p.vs("rod", ["rod_L"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title=f"{ctx.code('leva_rodillo').replace(CODE + '-', '')} RODILLO — CORTE", hs=0.5, w=1.0,
          auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, fits={SG["perno"]["d"]: "H7"}))
-    p.vs("per", ["per_L"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title=f"{ctx.code('leva_perno').replace(CODE + '-', '')} PERNO — CORTE", hs=0.5, w=1.0,
-         auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, fits={SG["perno"]["d"]: fit_p}))
+    import re as _re
+    m_r = _re.search(r"M(\d+)", str(RT.get("tornillo", "")))
+    d_r = float(m_r.group(1)) if m_r else 0.0
+    p.vs("per", ["per_L"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title=f"{ctx.code('leva_perno').replace(CODE + '-', '')} PERNO — CORTE", hs=0.5, w=1.0, maxs=2.0,
+         auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, fits={SG["perno"]["d"]: fit_p}, text=({round(d_r, 1): f"M{fm(d_r, 0)}-6H (rosca útil {fm(2 * d_r, 0)})"} if d_r else {})))
     if ctx.m.get("leva_arandela"):
         p.vs("ara", ["ara_L"], "front", cut=CUT_Y, lv=(1, 1, 1, 1), title=f"{ctx.code('leva_arandela').replace(CODE + '-', '')} ARANDELA DE TOPE — CORTE", hs=0.5, w=0.6, auto=dict(rev=(0, 0), rev_side="top", hole_notes=False))
     bbp_ = ctx.shapes["per_L"].BoundingBox()
