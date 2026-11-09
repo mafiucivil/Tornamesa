@@ -319,6 +319,9 @@ def build_leva_guiada(m, g, D, Part, A572):
                "Perno ISO 898-1 cl. 10.9", "Comercial", in_core=False, comercial=True, catalogo=f"ISO 4762 M{f(d_b)}×{Lr} cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32),
                num_fijo=19))
     m.info["perno_riel_L"] = Lr
+    for k_ in ("leva_pata", "leva_tapa", "leva_prolong"):
+        m.get(k_).libre = True
+        m.get(k_).volteable = True
     return dict(ranura=F["ranura_tapa_patin"], seguidor=SG)
 
 

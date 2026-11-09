@@ -163,16 +163,25 @@ VAR_CODIGOS = {
     "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1)],
     "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
     "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
-    "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2",), "liso, pegado", 1)],
-    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2",), "ranurado, pegado y atornillado (avellanados M12); 3 tipos", 3), (("B",), "liso, muesca", 1)],
-    "int_tope_base": [(("A", "B"), "largo A/B", 1), (("C1", "C2", "C3"), "largo C", 1)],
-    "int_tope_mesa": [(("A", "B"), "largo A/B", 1), (("C1", "C3"), "largo C1/C3", 1), (("C2",), "largo C2", 1)],
-    "int_bronce": [(("C1", "C2"), "4 tipos de patrón de tapones", 4), (("C3",), "4 tipos de patrón de tapones", 4)],
-    "int_cara": [(("C1", "C3"), "con / sin conducto de grasera", 2), (("C2",), "con / sin conducto de grasera", 2)],
+    # la muesca y el largo de los topes dependen del par de calado, que cambia con el modo del accionamiento: los juegos «-G» tienen su clase
+    "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2", "AF2-G"), "liso, pegado", 1), (("A-G", "B-G"), "con muesca y avellanados (guiado)", 1)],
+    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2", "AF2-G"), "ranurado, pegado y atornillado (avellanados M12); 3 tipos", 3), (("B",), "liso, muesca", 1),
+                       (("A-G",), "ranurado, muesca (guiado); 3 tipos", 3), (("B-G",), "liso, muesca (guiado)", 1)],
+    "int_tope_base": [(("A", "B"), "largo A/B", 1), (("C1", "C2", "C3"), "largo C", 1), (("A-G", "B-G"), "largo A/B (guiado)", 1), (("C1-G", "C2-G", "C3-G"), "largo C (guiado)", 1)],
+    "int_tope_mesa": [(("A", "B"), "largo A/B", 1), (("C1", "C3"), "largo C1/C3", 1), (("C2",), "largo C2", 1), (("A-G", "B-G"), "largo A/B (guiado)", 1), (("C1-G", "C3-G"), "largo C1/C3 (guiado)", 1), (("C2-G",), "largo C2 (guiado)", 1)],
+    "int_bronce": [(("C1",), "4 tipos de patrón de tapones", 4), (("C2",), "4 tipos de patrón de tapones", 4), (("C3",), "4 tipos de patrón de tapones", 4),
+                   (("C1-G",), "4 tipos (guiado)", 4), (("C2-G",), "4 tipos (guiado)", 4), (("C3-G",), "4 tipos (guiado)", 4)],
+    "int_cara": [(("C1", "C3"), "con / sin conducto de grasera", 2), (("C2",), "con / sin conducto de grasera", 2), (("C1-G", "C3-G"), "con / sin conducto (guiado)", 2), (("C2-G",), "con / sin conducto (guiado)", 2)],
+    # accionamiento: la altura del eje de los cilindros sube con el espesor de la interfaz (δ): cajón, pasador Q y patas del pórtico tienen una clase por δ
+    "cajon_pared": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "cajon_ventana_a": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "cajon_ventana_b": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
+    "leva_pata": [(("BASE-G", "W-G"), "alto base", 1), (("A-G", "C1-G", "C2-G", "C3-G"), "alto A/C", 1), (("AF2-G",), "alto AF2", 1), (("B-G",), "alto B", 1)],
 }
 
 
-MODO_DEP = ("base_plancha",)       # piezas cuya geometría depende del modo del accionamiento (roscas de las placas-leva en la base)
+MODO_DEP = ("base_plancha", "int_disco_base", "int_disco_mesa", "int_tope_base", "int_tope_mesa", "int_bronce", "int_cara", "leva_pata")   # geometría que depende del modo del accionamiento
 
 
 def variante_de(g, key=None):

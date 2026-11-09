@@ -57,6 +57,9 @@ def firma_solido(so, volteable=False, libre=False):
         if ad.GetType() == GeomAbs_Cylinder:
             r = round(ad.Cylinder().Radius(), 1)
             rad[r] = rad.get(r, 0) + 1
+    if libre:                     # pieza recta girada a sus ejes principales: el redondeo absorbe el ruido numérico del giro
+        return dict(vol=_sig(s2.Volume(), 4), area=_sig(s2.Area(), 3), caras=len(s2.Faces()), ext=[round(bb.xlen, 0), round(bb.ylen, 0), round(bb.zlen, 0)],
+                    ixy=0.0, cil=sorted([[r, n] for r, n in rad.items()]))
     return dict(vol=_sig(s2.Volume()), area=_sig(s2.Area(), 4), caras=len(s2.Faces()), ext=[round(bb.xlen, 1), round(bb.ylen, 1), round(bb.zlen, 1)],
                 ixy=ixy, cil=sorted([[r, n] for r, n in rad.items()]))
 
