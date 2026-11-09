@@ -373,7 +373,9 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Bancada de guía fuera de la mesa con la mesa caliente", "giro", ban / (P["x_g"] - P["w_bed"] / 2), ban, P["x_g"] - P["w_bed"] / 2, kind="geo")
     add("Dilatación global: crecimiento del diámetro", "est", None, al * dT * P["D_top"], al * dT * P["B"], kind="info")
     # --- (4) gradiente
-    kappa = al * gT / P["D_top"] * 0 + al * gT / P["h_disc"] * 1000     # 1/m con h = h_mesa (mm → m)
+    # cubierta W (rebaje, 08-11-2026): dentro de R_reb el cajón mide h_mesa − d_rebaje, d_rebaje = t_madera + t_reb − t_top (κ mayor, conservador)
+    h_g = P["h_disc"] - (P["t_wood"] + (P.get("t_reb") or P["t_top"]) - P["t_top"]) if wood else P["h_disc"]
+    kappa = al * gT / h_g * 1000     # 1/m (mm → m)
     sth = P["E"] * k["E"] * al * gT / (2 * (1 - P["nu"]))
     add("Gradiente: curvatura térmica", "est", None, kappa, None, kind="info")
     add("Gradiente: flecha en el diámetro", "est", None, kappa * (P["D_top"] / 2 / 1000) ** 2 / 2 * 1000, None, kind="info")
@@ -388,6 +390,16 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Gradiente: pared del cubo junto al rebaje", "est", (cub["fu"] * (P["Fy"] / P["Nd"]) + sth) / (P["Fy"] / P["Nd"] * k["Fy"]), None, None)
     add("Gradiente: desnivel de la cara de contacto", "est", None, kappa / 1000 * (Ro ** 2 - Ri ** 2) / 2, P["d_flat"], kind="info")
     add("Gradiente: variación del hueco de contacto", "est", (kappa / 1000 * (P["ss_void"] / 2) ** 2 / 2) / P["d_flat"], kappa / 1000 * (P["ss_void"] / 2) ** 2 / 2, P["d_flat"])
+    # --- (4b) cubierta W: holgura perimetral de los tablones frente a la dilatación transversal (madera y acero a T); n de tablones por franjas simétricas
+    if wood:
+        Rw = P["R_reb"] - P["c_mad"]; b_, j_ = P["b_tab"], P["j_tab"]
+        def nstr(odd):
+            y00 = -b_ / 2 if odd else j_ / 2; L = [(max(y00 + q_ * (b_ + j_), -Rw), min(y00 + q_ * (b_ + j_) + b_, Rw)) for q_ in range(-50, 51)]
+            L = [x for x in L if x[1] - x[0] > 1e-9]; return len(L), min(L[0][1] - L[0][0], L[-1][1] - L[-1][0])
+        (n1, w1), (n0, w0) = nstr(True), nstr(False)
+        nt = n1 if w1 >= w0 else n0
+        dmw, cmw = max(0.0, 30e-6 - al) * dT * 2 * Rw, 2 * P["c_mad"] + (nt - 1) * j_
+        add("Madera: holgura perimetral frente a la dilatación transversal a T", "est", dmw / cmw, dmw, cmw, kind="geo")
     # --- (5) aceite atrapado
     ph = [c for c in D["derivados"]["casos"] if c["id"] == "dis"][0]
     p_hold = ph["F"] * 1e3 / Ab * 10                       # bar
@@ -582,7 +594,7 @@ def std_classify(c, aid):
             if "aplastamiento del tope sobre el canto" in n: return "bz_tope"
             if "aplastamiento del tope con la altura de contacto reducida" in n: return "bz_red"
         if n.startswith("Presión de contacto sobre el bronce neto") or n.startswith("Bronce con grafito: valor PV"): return "bz_p"
-    if g == "Cubierta" and n.startswith("Madera: aplastamiento"): return "wood"
+    if g == "Cubierta" and n.startswith(("Madera: aplastamiento", "Madera: apoyo lateral")): return "wood"   # W: el apoyo lateral contra la pared también usa p_madera·C_t
     return None
 
 
@@ -686,7 +698,7 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
         if stt == "fail":
             if r["sys"] == "giro": giro_fail = True
             elif r["sys"] == "est": est_fail = True
-        if stt == "fail" and ((r["sys"] == "term") if ALC != 1 else (r["sys"] in ("term", "est"))): term_bad = True    # alcance 1: sin filas de aceite, «térmico» = ninguna fila térmica de placas y disco incumple (fuTerm ≤ 1)
+        if stt == "fail" and (r["sys"] in ("term", "est", "giro") if ALC != 1 else (r["sys"] in ("term", "est"))): term_bad = True   # alcance 2: cualquier fila térmica que incumple (como el núcleo; con la cubierta W, C3 a 40 °C con gradiente lleva la plancha inferior a FU 1,01)    # alcance 1: sin filas de aceite, «térmico» = ninguna fila térmica de placas y disco incumple (fuTerm ≤ 1)
     return dict(FS=FS, fuEst=fuEst, fuTerm=fuTerm, gira=(FS >= P["FS_min"] and not giro_fail), estructura=not est_fail, termico=not term_bad,
                 nFail=fail, nWarn=warn, stds=stds, rows=rows, k=k, aux=aux, fs20=fs20)
 
