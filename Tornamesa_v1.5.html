@@ -560,15 +560,24 @@ const TT = (() => {
       ["muC_cont", "Opción C · μ contaminado", "–", 0.20, 0.05, 0.8, 0.01],
       ["muC_dry", "Opción C · μ seco (solo grafito; referencial)", "–", 0.25, 0.05, 0.8, 0.01],
     ] },
-    { id: "cubierta", t: "Cubierta de madera dura y altura de skidding", p: [
-      ["opt_wood", "Cubierta de madera dura sobre la plancha superior de la mesa", "–", 0, 0, 1, "chk"],
-      ["t_wood", "Espesor de los tablones", "mm", 50, 20, 150, 5],
+    { id: "cubierta", t: "Cubierta de madera dura (W: tablones enrasados en el rebaje de la mesa) y altura de skidding", p: [
+      ["opt_wood", "Cubierta de madera dura W (decisión del mandante, 08-11-2026): la mesa conserva el anillo superior R_reb…R (plancha superior actual en esa zona, con los pasadores); dentro de R_reb una plancha rebajada continua bajada t_madera, una pared cilíndrica en R_reb y los tablones enrasados con el anillo (sin anillo de contención 10×50; la altura total no aumenta)", "–", 0, 0, 1, "chk"],
+      ["t_wood", "Espesor de los tablones = profundidad del rebaje (supuesto del mandante 50; ajustado a 45 = 2\" cepillado: con 50 el buje no cabe bajo la plancha rebajada, 142 > 140 mm, y la plancha inferior pasa de FU 0,90 por la menor altura del cajón)", "mm", 45, 20, 150, 5],
       ["rho_wood", "Densidad de la madera dura (seca al aire)", "kg/m³", 900, 500, 1300, 10],
       ["p_wood", "Presión admisible de aplastamiento perpendicular a la fibra (sostenida; confirmar con NCh1198 y el proveedor)", "MPa", 6, 1, 20, 0.5],
-      ["f_apoyo", "Fracción del círculo de apoyo de la carga que toca realmente la madera (tablones contiguos dentro del anillo de acero: 0,90, definido por el mandante)", "–", 0.9, 0.05, 1, 0.05],
+      ["f_apoyo", "Fracción del círculo de apoyo de la carga que toca realmente la madera (tablones contiguos dentro del rebaje: 0,90, definido por el mandante)", "–", 0.9, 0.05, 1, 0.05],
       ["h_skid", "Altura de los rieles de skidding o de la superficie de llegada (0 = no aplica)", "mm", 0, 0, 800, 5],
       ["tol_skid", "Tolerancia de enrase con los rieles", "mm", 10, 1, 50, 1],
-      ["t_ring", "Anillo de acero de contención de la madera (pletina soldada a la plancha superior en el borde): ancho radial; el alto es t_madera y el acero va en el borde exterior, los tablones dentro (Ø D_mesa − 2·t_anillo)", "mm", 10, 4, 40, 1],
+      ["R_reb", "W · radio del rebaje: cara interior de la pared cilíndrica y borde interior del anillo superior (supuesto del mandante: 840, sobre el alma de R840)", "mm", 840, 300, 1900, 5],
+      ["t_reb", "W · espesor de la plancha rebajada (0 = igual a t_top, supuesto del mandante)", "mm", 0, 0, 60, 1],
+      ["t_pared", "W · espesor de la pared cilíndrica en R_reb (0 = igual a t_top, supuesto del mandante)", "mm", 0, 0, 60, 1],
+      ["w_pared", "W · filete pared–plancha rebajada (a ambos lados) y filete exterior de refuerzo anillo–pared (AWS D1.1 T5.8: el anillo de 27 mm pide 8)", "mm", 8, 3, 16, 1],
+      ["c_mad", "W · holgura de los tablones contra la pared (libra el filete interior w_pared + 2) y contra la abertura de la tapa de inspección", "mm", 12, 2, 40, 1],
+      ["b_tab", "W · ancho nominal de los tablones (200, fijado por el mandante)", "mm", 200, 80, 400, 5],
+      ["j_tab", "W · junta entre tablones (hinchamiento por humedad)", "mm", 3, 0, 15, 1],
+      ["d_tmad", "W · fijación de los tablones: Ø del tornillo ISO 4762 de cabeza cilíndrica (en cajeado con arandela ISO 7093) roscado en un taladro ciego de la plancha rebajada", "mm", 10, 6, 16, 1],
+      ["s_tmad", "W · fijación: separación máxima entre filas de tornillos a lo largo del tablón", "mm", 600, 200, 1500, 50],
+      ["k_hmad", "W · fuerza horizontal de la carga sobre la cubierta durante el skidding, como fracción de φd·W (supuesto C: empuje de los gatos de skidding; la toma el escalón de R_reb)", "–", 0.10, 0, 0.6, 0.01],
     ] },
     { id: "mesa", t: "Mesa giratoria (cajón)", p: [
       ["D_top", "Diámetro de la mesa", "mm", 2000, 1000, 4000, 10],
@@ -815,34 +824,122 @@ const TT = (() => {
   // (negativo: el collar queda bajo la mesa y no hay rebaje). La plancha inferior lleva un agujero pasante Ø D_boss + 2·c_boss_r (un bolsillo menos profundo que t_bot dejaría un labio de pocos mm);
   // si el rebaje es más profundo que t_bot, el resto se rebaja en el cubo.
   function hubGeo(P, delta) {
-    const d_bush = P.D_piv + 30, hw = P.h_disc - P.t_top - P.t_bot, collar = P.h_boss > 0;
+    const wg = woodGeo(P), d_bush = P.D_piv + 30, hw = wg ? wg.hw_reb : P.h_disc - P.t_top - P.t_bot, collar = P.h_boss > 0;   // W: el cubo llega a la plancha rebajada
     const hRaw = P.h_boss - (delta || 0) + P.c_boss_a, hRec = collar ? Math.max(0, hRaw) : 0;
     const Drb = collar ? Math.max(P.D_boss + 2 * P.c_boss_r, d_bush) : d_bush;
     return { d_bush, hw, delta: delta || 0, Drb, hRaw: collar ? hRaw : 0, hRec, hPl: hRec > 0 ? P.t_bot : 0, hHub: Math.min(Math.max(0, hRec - P.t_bot), hw), Ri: riOf(P),
       wall: (P.D_hub - Drb) / 2 };   // pared del cubo (y ligamento de la plancha) junto al rebaje
   }
 
+  /* ---------------- Cubierta de madera W: mesa con rebaje (decisión del mandante, 08-11-2026) ----------------
+     Anillo superior R_reb…R (la plancha superior actual en esa zona; se fabrica en una pieza de espesor máx(t_pr, t_top) desde R_reb, con los N_pin pasadores),
+     pared cilíndrica R_reb…R_reb + t_pared entre la cara superior de la plancha rebajada y la cara inferior del anillo, plancha rebajada continua t_reb
+     (Ø hole_top … R_reb + t_pared + w_pared + 5) con su cara superior t_madera bajo la cara superior de la mesa, y tablones enrasados con el anillo.
+     Las almas y nervios dentro de R_reb + t_pared pierden d_rebaje = t_madera + t_reb − t_top de altura (llegan a la cara inferior de la plancha rebajada);
+     los nervios terminan en el alma de R_reb (R_nervio = R_reb). Cotas z desde la cara inferior de la mesa. */
+  const ISO4762_L = [16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 80, 90, 100];
+  const ISO7093 = { 6: [18, 1.6], 8: [24, 2], 10: [30, 2.5], 12: [37, 3], 14: [44, 3], 16: [50, 3] };   // arandela ancha: Ø exterior y espesor
+  // Franjas de tablones paralelos a x (ancho b, junta j) dentro del círculo R_w, con la abertura R_ab de la tapa de inspección. Disposición simétrica
+  // (tablón centrado o junta centrada: la que deje los tablones de borde más anchos). Área exacta con F(R, y) = y·√(R² − y²) + R²·asen(y/R) = 2∫₀^y √(R² − s²) ds.
+  function plankLayout(Rw, Rab, b, j, d, sMax) {
+    const F = (R, y) => { if (!(R > 0)) return 0; const yc = Math.max(-R, Math.min(R, y)); return yc * Math.sqrt(R * R - yc * yc) + R * R * Math.asin(yc / R); };
+    const lay = (odd) => {
+      const out = [], p = b + j, y00 = odd ? -b / 2 : j / 2;
+      for (let k = -Math.ceil(Rw / p) - 2; k <= Math.ceil(Rw / p) + 2; k++) {
+        const y0 = y00 + k * p, y1 = y0 + b, a0 = Math.max(y0, -Rw), a1 = Math.min(y1, Rw);
+        if (a1 - a0 > 1e-9) out.push([a0, a1]);
+      }
+      return out;
+    };
+    const L1 = lay(true), L0 = lay(false), wOf = (L) => Math.min(L[0][1] - L[0][0], L[L.length - 1][1] - L[L.length - 1][0]);
+    const sel = wOf(L1) >= wOf(L0) ? L1 : L0;
+    const eEnd = 7 * d, eEdge = Math.max(4 * d, 40), pos = [];
+    const lista = sel.map(([y0, y1], i) => {
+      const yMin = y0 <= 0 && y1 >= 0 ? 0 : Math.min(Math.abs(y0), Math.abs(y1)), yMax = Math.max(Math.abs(y0), Math.abs(y1));
+      const xe = Math.sqrt(Math.max(0, Rw * Rw - yMax * yMax));   // extremo exterior más corto (borde más alejado del centro)
+      const corte = yMax <= Rab ? "abertura" : (yMin < Rab ? "muesca" : null);
+      const xi = corte ? Math.sqrt(Math.max(0, Rab * Rab - yMin * yMin)) : 0;   // fondo de la abertura o de la muesca (sobre el borde más cercano al centro)
+      const piezas = corte === "abertura" ? [{ x0: -Math.sqrt(Rw * Rw - yMin * yMin), x1: -Math.sqrt(Math.max(0, Rab * Rab - yMax * yMax)) }, { x0: Math.sqrt(Math.max(0, Rab * Rab - yMax * yMax)), x1: Math.sqrt(Rw * Rw - yMin * yMin) }]
+        : [{ x0: -Math.sqrt(Rw * Rw - yMin * yMin), x1: Math.sqrt(Rw * Rw - yMin * yMin) }];
+      const w = y1 - y0, ys = w >= 2 * eEdge + 4 * d ? [y0 + eEdge, y1 - eEdge] : [(y0 + y1) / 2];   // 2 tornillos por fila si caben (a4 ≥ 4d al borde, a2 ≥ 4d entre ellos)
+      // filas de tornillos por pieza entre extremos a ≥ 7d del corte (sobre el borde más desfavorable: el más corto) y a ≤ s_máx
+      const segs = corte === "abertura" ? [[-xe, -xi], [xi, xe]] : corte === "muesca" ? [[-xe, -xi], [xi, xe]] : [[-xe, xe]];
+      let nT = 0;
+      segs.forEach(([u0, u1]) => {
+        const Lu = (u1 - u0) - 2 * eEnd;
+        const nR = Lu <= 0 ? 1 : Math.max(2, Math.ceil(Lu / sMax) + 1), xs = nR === 1 ? [(u0 + u1) / 2] : Array.from({ length: nR }, (_, k) => u0 + eEnd + Lu * k / (nR - 1));
+        xs.forEach((x) => ys.forEach((y) => { pos.push([x, y]); nT++; }));
+      });
+      const area = (F(Rw, y1) - F(Rw, y0)) - (F(Rab, y1) - F(Rab, y0));
+      return { i: i + 1, y0, y1, ancho: w, largo: 2 * Math.sqrt(Rw * Rw - yMin * yMin), corte, piezas, area, n_tornillos: nT, extremos: "arco R_tablones (corte curvo)" };
+    });
+    return { b, j, n: lista.length, lista, n_piezas: lista.reduce((s2, t) => s2 + t.piezas.length, 0), area_neta: lista.reduce((s2, t) => s2 + t.area, 0), posiciones: pos, e_extremo: eEnd, e_borde: eEdge };
+  }
+  function woodGeo(P) {
+    if (!(P.opt_wood > 0.5)) return null;
+    const tW = P.t_wood, tReb = P.t_reb > 0 ? P.t_reb : P.t_top, tPar = P.t_pared > 0 ? P.t_pared : P.t_top, tAn = Math.max(P.t_pr, P.t_top);
+    const Rt = P.D_top / 2, Rreb = P.R_reb, Rpar = Rreb + tPar, RrebExt = Rpar + P.w_pared + 5, hole = P.D_piv + 80, Dins = P.D_piv + 120;
+    const hw = P.h_disc - P.t_top - P.t_bot, dRec = tW + tReb - P.t_top, hwReb = hw - dRec, hwAn = P.h_disc - tAn - P.t_bot;
+    const Rw = Rreb - P.c_mad, Rab = Dins / 2 + P.c_mad;
+    const tab = plankLayout(Rw, Rab, P.b_tab, P.j_tab, P.d_tmad, P.s_tmad);
+    // fijación: ISO 4762 Md en cajeado (cabeza 3 mm bajo la superficie) con arandela ISO 7093; taladro ciego en la plancha rebajada (remanente 3 mm, la caja queda cerrada),
+    // rosca útil = profundidad − 4 (punta de la broca y salida del macho, como cad/geom.py); engrane ≥ 1,0·d y punta ≥ 2 mm antes del fin de la rosca útil
+    const d = P.d_tmad, aw = ISO7093[d] || [3 * d, 0.25 * d], hCaj = d + aw[1] + 3, tRest = tW - hCaj, pT = tReb - 3, lR = pT - 4;
+    const Lok = ISO4762_L.filter((L) => L - tRest >= d - 1e-9 && L - tRest <= lR - 2 + 1e-9), Lsel = Lok.length ? Math.max(...Lok) : null;
+    const fij = { tipo: "ISO 4762 M" + d + " clase 8.8 galvanizado en caliente (o A4-70) con arandela ancha ISO 7093 en cajeado; roscado en taladro ciego de la plancha rebajada", d, L: Lsel,
+      d_arandela: aw[0], h_arandela: aw[1], D_cajeado: aw[0] + 4, h_cajeado: hCaj, t_bajo_arandela: tRest, prof_taladro: pT, rosca_util: lR, broca: d <= 6 ? 5 : d <= 8 ? 6.8 : d <= 10 ? 8.5 : d <= 12 ? 10.2 : d <= 14 ? 12 : 14,
+      engrane: Lsel != null ? Lsel - tRest : NaN, n_total: tab.posiciones.length, posiciones: tab.posiciones, e_extremo: tab.e_extremo, e_borde: tab.e_borde, s_max: P.s_tmad,
+      apriete_kN: 0.8 * P.p_wood * Math.PI / 4 * (aw[0] ** 2 - (d + 0.5) ** 2) / 1e3 };
+    fij.par_Nm = 0.2 * fij.apriete_kN * 1e3 * d / 1e3;
+    const almas = parseRings(P.rings).map((r) => { const inn = r <= Rpar + 0.5; return { r, h: inn ? hwReb : hwAn, recortada: inn, t: P.t_web }; });
+    const aPins = P.N_pin * Math.PI / 4 * P.d_pin ** 2;
+    const masas = { anillo: RHO * (Math.PI * (Rt * Rt - Rreb * Rreb) - aPins) * tAn, pared: RHO * Math.PI * (Rpar * Rpar - Rreb * Rreb) * Math.max(0, tW - tAn), plancha_rebajada: RHO * Math.PI * (RrebExt * RrebExt - (hole / 2) ** 2) * tReb,
+      tablones: P.rho_wood * 1e-9 * tW * tab.area_neta };
+    return { t_madera: tW, R_rebaje: Rreb, t_reb: tReb, t_pared: tPar, t_anillo: tAn, w_pared: P.w_pared, c_mad: P.c_mad, R_pared_ext: Rpar, R_reb_ext: RrebExt, R_anillo_int: Rreb, R_ext: Rt,
+      h_pared: tW - tAn, h_c: tW + tReb / 2 - tAn / 2, d_rebaje: dRec, hw: hw, hw_reb: hwReb, hw_anillo: hwAn, R_tablones: Rw, R_abertura: Rab, D_tapa_insp: Dins, hole_top: hole,
+      z: { sup: P.h_disc, reb_sup: P.h_disc - tW, reb_inf: P.h_disc - tW - tReb, anillo_inf: P.h_disc - tAn, almas_reb_sup: P.h_disc - tW - tReb, nota: "cotas desde la cara inferior de la mesa (sumar t_base + δ para el piso)" },
+      almas, nervios: { R_ext: P.R_rib, h: hwReb, sin_cambio_altura: P.R_rib <= Rpar + 0.5, nota: "los nervios llegan al alma de R_reb bajo la plancha rebajada" },
+      soldaduras: {
+        J1: { union: "anillo–pared", tipo: "PJP en bisel simple 45° desde el lado del rebaje (S = t_pared/2, E = S − 3 mm, AISC 360-22 Tabla J2.1) + filete exterior de refuerzo bajo el anillo", S: Math.ceil(tPar / 2), E: Math.ceil(tPar / 2) - 3, w: P.w_pared, largo: 2 * Math.PI * Rreb },
+        J2: { union: "pared–plancha rebajada", tipo: "filete a ambos lados (interior bajo la holgura de los tablones, exterior antes de cerrar la caja)", w: P.w_pared, largo: 2 * Math.PI * Rreb + 2 * Math.PI * Rpar },
+        secuencia: "1) pared a la plancha rebajada (J2, ambos lados); 2) anillo sobre la pared (J1: PJP desde el rebaje y filete exterior, con la subpieza invertida y la zona R_pared…R abierta); 3) almas, nervios y cubo; 4) plancha inferior" },
+      tapas: { D_tapa_insp: Dins, asiento: "rebaje de la tapa de inspección y alojamiento de la tapa retenedora en la plancha rebajada (misma pila que en la plancha superior: 3 + tapa retenedora + 1 + tapa de inspección ≤ t_reb)", abertura_tablones: 2 * Rab },
+      tablones: tab, fijacion: fij, masas, drenaje: "PENDIENTE: el rebaje es una bandeja; definir tubos de drenaje desde el fondo del rebaje al canto exterior de la mesa (supuesto por confirmar)" };
+  }
+  // JSON de diseño (tools/export_design.js y packages/web/planos_export.js): geometría de fabricación de la cubierta W y resumen del FEA escalonado; null sin cubierta
+  function designWood(P, A) {
+    const g = woodGeo(P); if (!g) return null;
+    const f = A && A.fea, e = f && f.top && f.top.escalon;
+    return Object.assign({ modelo: "W: anillo superior + pared cilíndrica + plancha rebajada + tablones enrasados (decisión del mandante, 08-11-2026)", altura_total_sin_cambio: true }, g,
+      { fea: e ? { variantes: e.variantes, s_pared: e.sPared, s_anillo: e.sAnillo, linea_reb: e.lineaReb, linea_pared_sup: e.lineaParedSup, gobierna: e.gobierna, vm_reb: f.top.vmMax, w_reb: f.top.wMax, hc_glob: f.glob.hcTop, Mr_glob_reb: f.glob.MrReb } : null });
+  }
+  const topUnder = (P) => { const g = woodGeo(P); return g ? P.h_disc - g.t_madera - g.t_reb : P.h_disc - P.t_top; };   // cara inferior de la plancha sobre el cubo (pivote, buje, tapas)
+
   /* ---------------- Masas ---------------- */
   function massesMesa(P, delta) {
     const rings = parseRings(P.rings);
     const hw = P.h_disc - P.t_top - P.t_bot;
-    const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15, hg = hubGeo(P, delta);
+    const Rt = P.D_top / 2, r_hub = P.D_hub / 2, d_bush = P.D_piv + 2 * 15, hg = hubGeo(P, delta), wg = woodGeo(P);
     // planchas: disco central + anillo de pasadores (agujeros de pasadores en todo el espesor del anillo)
     const rpr = prIn(P), aRing = Math.PI * (Rt * Rt - rpr * rpr) - P.N_pin * Math.PI / 4 * P.d_pin ** 2;
     const hole_top = P.D_piv + 80;                                       // alojamiento de la tapa retenedora
     const m = {};
-    m.top = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * hole_top ** 2) * P.t_top + aRing * Math.max(P.t_pr, P.t_top));
+    // W: piel superior escalonada = anillo superior (t = máx(t_pr, t_top) desde R_reb) + pared cilíndrica + plancha rebajada (en m.top: la lista de materiales la suma como «plancha superior»)
+    m.top = wg ? wg.masas.anillo + wg.masas.pared + wg.masas.plancha_rebajada : RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * hole_top ** 2) * P.t_top + aRing * Math.max(P.t_pr, P.t_top));
     m.bot = RHO * ((Math.PI * rpr * rpr - Math.PI / 4 * d_bush ** 2) * P.t_bot + aRing * Math.max(P.t_pr, P.t_bot) - Math.PI / 4 * (hg.Drb ** 2 - d_bush ** 2) * hg.hPl);   // agujero del buje y rebaje del collar (Ø D_boss + 2·c_boss_r, profundidad hPl)
-    m.webs = RHO * rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0);
-    const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
-    m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
-    m.hub = RHO * Math.PI / 4 * (Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hw - Math.max(0, hg.Drb ** 2 - d_bush ** 2) * hg.hHub);   // rebaje del collar: solo la parte que pasa de la plancha inferior (h_collar − δ + c_boss_a − t_bot)
+    m.webs = RHO * (wg ? wg.almas.reduce((s, a) => s + 2 * Math.PI * a.r * a.h * P.t_web, 0) : rings.reduce((s, r) => s + 2 * Math.PI * r * hw * P.t_web, 0));
+    if (wg) {   // nervios: tramo dentro de R_pared con la altura reducida y el resto (si R_nervio > R_pared) con la del anillo
+      const Rp = wg.R_pared_ext, rIn = Math.min(P.R_rib, Rp), nIn = rings.filter((r) => r > r_hub && r < Math.min(P.R_rib, Rp)).length, nOut = rings.filter((r) => r >= Rp && r < P.R_rib).length;
+      m.ribs = RHO * P.N_rib * (Math.max(0, rIn - r_hub - nIn * P.t_web) * wg.hw_reb + Math.max(0, P.R_rib - Rp - nOut * P.t_web) * wg.hw_anillo) * P.t_rib;
+    } else {
+      const ringsIn = rings.filter((r) => r > r_hub && r < P.R_rib).length;
+      m.ribs = RHO * P.N_rib * Math.max(0, P.R_rib - r_hub - ringsIn * P.t_web) * hw * P.t_rib;
+    }
+    m.hub = RHO * Math.PI / 4 * (Math.max(0, P.D_hub ** 2 - d_bush ** 2) * hg.hw - Math.max(0, hg.Drb ** 2 - d_bush ** 2) * hg.hHub);   // rebaje del collar: solo la parte que pasa de la plancha inferior (h_collar − δ + c_boss_a − t_bot); W: cubo bajo la plancha rebajada
     m.pins = RHO * P.N_pin * Math.PI / 4 * P.d_pin ** 2 * P.h_disc;
-    // cubierta de madera (kg/m³ → kg/mm³): los tablones van dentro del anillo de acero de contención (Ø D_mesa − 2·t_anillo, hasta la abertura de la tapa)
-    // y el anillo es una pletina t_anillo × t_madera en el borde, soldada a la plancha superior (gira con la mesa y carga la interfaz)
-    const wood_on = P.opt_wood > 0.5, Rw = Rt - P.t_ring;
-    m.wood = wood_on ? P.rho_wood * 1e-9 * Math.PI / 4 * ((2 * Rw) ** 2 - hole_top ** 2) * P.t_wood : 0;
-    m.ring = wood_on ? RHO * Math.PI * (Rt * Rt - Rw * Rw) * P.t_wood : 0;
+    // W: tablones (área neta de las piezas, sin juntas ni la abertura de la tapa); el anillo de contención 10×50 de la versión anterior se eliminó (m.ring = 0, clave conservada)
+    m.wood = wg ? wg.masas.tablones : 0;
+    m.ring = 0;
     m.disc = m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood + m.ring;
     return m;
   }
@@ -867,7 +964,7 @@ const TT = (() => {
   // Presión máxima de contacto con la masa rotatoria adicional mTop (kg): misma distribución lineal que compute()
   function ifaceLoad(P, mTop, dl) {   // dl: δ estimada (discos ya elegidos) para la masa del rebaje de la mesa; la diferencia es < 0,2 % de la masa de la mesa
     const m = massesMesa(P, dl), Ro = P.D_top / 2, Ri = riOf(P);
-    const mPiv = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_top + 3);
+    const mPiv = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + topUnder(P) + 3);
     const ND = P.phi_d * P.W_tf * G + (m.disc + mTop + mPiv * 0.5) * G / 1e3;
     const Ac = Math.PI * (Ro * Ro - Ri * Ri), kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri);
     return { Ac, Ro, Ri, ND, q_avg: ND * 1e3 / Ac, q_max: ND * 1e3 / Ac * (1 + kq) };
@@ -1206,7 +1303,7 @@ const TT = (() => {
       m.shoes = 0; m.beds = 0;
       m.cam = CP ? 2 * P.n_cyl * (RHO * P.pv_tcam * CP.area + (fam.f > 1 ? fam.rhoL * P.pv_tlin * P.pv_tcam * CP.Lb : 0)) : 0;
     }
-    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + ifc.delta + P.h_disc - P.t_top + 3);
+    m.pivot = RHO * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + ifc.delta + topUnder(P) + 3);   // hasta 3 mm sobre la cara inferior de la plancha del cubo (W: la plancha rebajada)
     m.cyl = P.n_cyl * P.m_cyl;
     m.stopBars = 0;                                                      // barras de los topes soldados: las completa compute()
     m.total = m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.cam + m.pivot + m.cyl;
@@ -1684,7 +1781,82 @@ const TT = (() => {
     return { nodes, pol, elems, q: Float64Array.from(q), t, E: P.E, nu: P.nu, wFix: [...wFix], clamp, betaN, groups, rings, pinAng, alpha, rs, ts, which, q_top };
   }
   const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+  /* ---------------- FEA de la piel superior escalonada (cubierta W): modelo desarrollado ----------------
+     La plancha rebajada, la pared cilíndrica y el anillo superior se modelan como UNA placa MITC4 desplegada en el plano: la pared es una corona de ancho L_dev
+     (su flexión meridional; el giro es continuo en las dos uniones, que son rígidas) y el anillo sigue a continuación con los radios desplazados L_dev.
+     Apoyos: w = 0 en R_reb (alma de R_reb y apoyo de la plancha) y en R_reb + L_dev (unión pared–anillo: el anillo es rígido en su plano, la pared no se desplaza
+     lateralmente arriba); pasadores (w = 0) en R_pin + L_dev. La rigidez de la pared se conserva con L_dev = L·(t_reb/t_pared)³ (el modelo usa el espesor t_reb).
+     Dos variantes y se toma la envolvente: «anillo» (L = distancia entre planos medios h_c y anillo con pasadores modelado con t_reb: la menor restricción del vano
+     de la plancha rebajada) y «empotrada» (L = altura libre de la pared y empotramiento en el anillo: la mayor restricción, máximo momento en la pared).
+     Se desprecia la rigidez circunferencial de la pared (anillo de t_pared × h_pared: < 1 % de la de flexión; acotado en tests/indep_madera.py).
+     Validación: tests/test_tt300c.js «caso de referencia axisimétrico» (solución cerrada de Kirchhoff por tramos) y tests/indep_madera.py. */
+  function stepPlate(s) {
+    // s: { r0, Rd, alpha, t, E, nu, h, dth, keyR, keyT, lines, clampLines, ribs: [[ra, rb]], pins: [[R, ang, d]], hLoc: [[ra, rb, h]], load(rc), zone(rc), freeInner }
+    const keyR = uniqSorted([s.r0, s.Rd, ...(s.keyR || [])].filter((r) => r >= s.r0 - 1e-9 && r <= s.Rd + 1e-9), 0.2);
+    const hAt = (a, b) => { let h = s.h; (s.hLoc || []).forEach(([ra, rb, hh]) => { if (a >= ra - 1e-6 && b <= rb + 1e-6) h = Math.min(h, hh); }); return h; };
+    const rs = [keyR[0]];
+    for (let i = 1; i < keyR.length; i++) { const a = keyR[i - 1], b = keyR[i], n = Math.max(1, Math.ceil((b - a) / hAt(a, b) - 1e-9)); for (let k = 1; k <= n; k++) rs.push(a + (b - a) * k / n); }
+    const ts = linspaceKeys(uniqSorted([0, s.alpha, ...(s.keyT || [])].filter((a) => a >= 0 && a <= s.alpha), 1e-4), s.dth);
+    const nT = ts.length, nodes = [], pol = [], elems = [], q = [], zone = [], id = (i, j) => i * nT + j;
+    for (let i = 0; i < rs.length; i++) for (let j = 0; j < nT; j++) { nodes.push([rs[i] * Math.cos(ts[j]), rs[i] * Math.sin(ts[j])]); pol.push([rs[i], ts[j]]); }
+    for (let i = 0; i < rs.length - 1; i++) for (let j = 0; j < nT - 1; j++) {
+      elems.push([id(i, j), id(i + 1, j), id(i + 1, j + 1), id(i, j + 1)]);
+      const rc = (rs[i] + rs[i + 1]) / 2; q.push(s.load ? s.load(rc) : 0); zone.push(s.zone ? s.zone(rc) : "");
+    }
+    const lines = s.lines || [], cl = s.clampLines || [], ribs = s.ribs || [], pins = s.pins || [];
+    const wFix = new Set(), clamp = [], betaN = [], groups = { line: lines.map(() => []), clampLine: cl.map(() => []), rib: [], pin: pins.map(() => []), hub: [] };
+    for (let i = 0; i < rs.length; i++) for (let j = 0; j < nT; j++) {
+      const k = id(i, j), r = rs[i], th = ts[j];
+      if (i === 0 && !s.freeInner) { clamp.push(k); groups.hub.push(k); continue; }
+      lines.forEach((rl, li) => { if (Math.abs(r - rl) < 0.5) { wFix.add(k); groups.line[li].push(k); } });
+      cl.forEach((rl, li) => { if (Math.abs(r - rl) < 0.5) { clamp.push(k); groups.clampLine[li].push(k); } });
+      if ((j === 0 || j === nT - 1) && ribs.some(([ra, rb]) => r >= ra - 0.5 && r <= rb + 0.5)) { if (!wFix.has(k)) groups.rib.push(k); wFix.add(k); }
+      pins.forEach(([Rp, ba, d], bi) => { if (Math.hypot(r * Math.cos(th) - Rp * Math.cos(ba), r * Math.sin(th) - Rp * Math.sin(ba)) <= d / 2 + 0.5) { if (!wFix.has(k)) groups.pin[bi].push(k); wFix.add(k); } });
+      if (j === 0) betaN.push([k, 0, 1]);
+      if (j === nT - 1) betaN.push([k, -Math.sin(s.alpha), Math.cos(s.alpha)]);
+    }
+    return { nodes, pol, elems, q: Float64Array.from(q), zone, t: s.t, E: s.E, nu: s.nu, wFix: [...wFix], clamp, betaN, groups, rs, ts, alpha: s.alpha };
+  }
+  function discModelW(P, R, coarse, variant) {
+    const g = woodGeo(P), alpha = 2 * Math.PI / P.N_rib, r0 = P.D_hub / 2, Rt = P.D_top / 2, Rreb = g.R_rebaje, ring = variant === "anillo";
+    const Lw = Math.max(2, (ring ? g.h_c : g.h_pared) * (g.t_reb / g.t_pared) ** 3), Ra = Rreb + Lw, sh = Lw, Rd = ring ? Rt + sh : Ra;
+    const hr = Math.max(coarse ? 30 : 18, (Rt - r0) / (coarse ? 28 : 48)), dth = Math.max((coarse ? 2.5 : 1.25) * D2R, alpha / (coarse ? 16 : 30));
+    const rings = parseRings(P.rings), RL = Math.min(P.D_load / 2, Rt), Rpe = g.R_pared_ext;
+    const inner = rings.filter((r) => r > r0 && r < Rreb - 0.5), outer = ring ? rings.filter((r) => r > Rpe + 0.5 && r < Rt) : [];
+    const pinAng = []; if (ring) for (let k = 0; k < P.N_pin; k++) { const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin; if (a >= -1e-9 && a <= alpha + 1e-9) pinAng.push(a); }
+    const Rp = P.R_pin + sh, db = (P.d_pin / 2) / Rp, q_top = P.phi_d * R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P.e / RL);
+    const ribs = [[r0, Math.min(P.R_rib, Rreb)]]; if (ring && P.R_rib > Rpe + 0.5) ribs.push([Rpe + sh, P.R_rib + sh]);
+    const m = stepPlate({ r0, Rd, alpha, t: g.t_reb, E: P.E, nu: P.nu, h: hr, dth,
+      keyR: [...inner, Rreb, Ra, Math.min(P.R_rib, Rreb), RL < Rreb ? RL : RL + sh, ...(ring ? [Rp - P.d_pin / 2, Rp, Rp + P.d_pin / 2, ...outer.map((r) => r + sh), ...(P.R_rib > Rpe + 0.5 ? [P.R_rib + sh] : [])] : [])],
+      keyT: [...pinAng, ...pinAng.map((a) => a - db), ...pinAng.map((a) => a + db)],
+      lines: [...inner, Rreb, ...(ring ? [Ra, ...outer.map((r) => r + sh)] : [])], clampLines: ring ? [] : [Ra], ribs, pins: pinAng.map((a) => [Rp, a, P.d_pin]),
+      hLoc: [[Rreb, Ra, Math.min(hr, Lw / 4)]],
+      load: (rc) => (rc < Rreb ? (rc <= RL ? q_top : 0) : (rc >= Ra && rc - sh <= RL ? q_top : 0)),
+      zone: (rc) => (rc < Rreb ? "reb" : rc < Ra ? "pared" : "anillo") });
+    return Object.assign(m, { which: "top", variant, q_top, Lw, Ra, sh, rings: inner, nIn: inner.length, pinAng });
+  }
+  function runDiscW(P, R, coarse) {
+    const g = woodGeo(P), kP = (g.t_reb / g.t_pared) ** 2, t0 = now();
+    const vs = ["anillo", "empotrada"].map((v) => {
+      const m = discModelW(P, R, coarse, v), r = FEA_.plate(m), sumS = (arr) => Math.abs(arr.reduce((s2, k) => s2 + r.reac[k], 0));
+      let vm = 0, imax = 0, sPar = 0, sAn = 0, wReb = 0, wAn = 0;
+      r.el.forEach((e, i) => { const z = m.zone[i]; if (z === "reb") { if (e.vmGauss > vm) { vm = e.vmGauss; imax = i; } } else if (z === "pared") sPar = Math.max(sPar, e.vmGauss * kP); else sAn = Math.max(sAn, e.vmGauss); });
+      m.pol.forEach((p, k) => { if (p[0] <= g.R_rebaje + 1e-6) wReb = Math.max(wReb, Math.abs(r.w[k])); else if (p[0] >= m.Ra + 1e-6) wAn = Math.max(wAn, Math.abs(r.w[k])); });
+      const ringLine = m.rings.map((rr, i) => sumS(m.groups.line[i]) / (rr * m.alpha)).concat([sumS(m.groups.line[m.nIn]) / (g.R_rebaje * m.alpha)]);   // N/mm; la última es la línea de R_reb (alma + pie de la pared)
+      const topLine = v === "anillo" ? sumS(m.groups.line[m.nIn + 1]) / (g.R_rebaje * m.alpha) : sumS(m.groups.clampLine[0]) / (g.R_rebaje * m.alpha);   // reacción horizontal en la unión pared–anillo
+      const ribF = sumS(m.groups.rib), ribLine = ribF / (2 * Math.max(1, Math.min(P.R_rib, g.R_rebaje) - P.D_hub / 2));
+      const ec = m.elems[imax].map((k) => m.nodes[k]), cx = ec.reduce((s2, p) => s2 + p[0], 0) / 4, cy = ec.reduce((s2, p) => s2 + p[1], 0) / 4;
+      return { variante: v, model: m, res: r, vm, sPared: sPar, sAnillo: sAn, wReb, wAnillo: wAn, ringLine, topLine, ribLine, pinF: m.groups.pin.map((gr) => sumS(gr) / 1e3), L_dev: m.Lw, n: m.nodes.length,
+        maxAt: [Math.hypot(cx, cy), Math.atan2(cy, cx) / D2R], Fapp: r.Fapplied / 1e3, Rsum: Math.abs(r.Rsum) / 1e3 };
+    });
+    const [A, B] = vs, gov = A.vm >= B.vm ? A : B, ringLine = A.ringLine.map((v, i) => Math.max(v, B.ringLine[i])), ribLine = Math.max(A.ribLine, B.ribLine);
+    return { model: A.model, res: A.res, ms: now() - t0, vmMax: gov.vm, wMax: Math.max(A.wReb, B.wReb), ringLine, ribLine, pinF: A.pinF, lineMax: Math.max(0, ribLine, ...ringLine),
+      Fapp: A.Fapp, Rsum: A.Rsum, maxAt: gov.maxAt, n: A.n + B.n,
+      escalon: { variantes: vs.map((x) => ({ variante: x.variante, L_dev: x.L_dev, vm_reb: x.vm, s_pared: x.sPared, s_anillo: x.sAnillo, w_reb: x.wReb, w_anillo: x.wAnillo, linea_reb: x.ringLine[x.ringLine.length - 1], linea_pared_sup: x.topLine, n: x.n })),
+        sPared: Math.max(A.sPared, B.sPared), sAnillo: A.sAnillo, lineaReb: Math.max(A.ringLine[A.ringLine.length - 1], B.ringLine[B.ringLine.length - 1]), lineaParedSup: Math.max(A.topLine, B.topLine), gobierna: gov.variante } };
+  }
   function runDisc(P, R, which, coarse) {
+    if (which === "top" && P.opt_wood > 0.5) return runDiscW(P, R, coarse);   // W: piel superior escalonada (modelo desarrollado)
     const m = discModel(P, R, which, coarse);
     const t0 = now();
     const r = FEA_.plate(m);
@@ -1734,9 +1906,12 @@ const TT = (() => {
         if (V > Vmax) { Vmax = V; rV = r[i]; }
       }
     }
-    const hc = P.h_disc - (P.t_top + P.t_bot) / 2;
+    // W: dentro de R_reb el ala superior es la plancha rebajada (t_reb), con su plano medio t_madera + t_reb/2 bajo la cara superior (h_c menor; sin aporte de la madera)
+    const wg = woodGeo(P), tT = wg ? wg.t_reb : P.t_top, hc = wg ? P.h_disc - wg.t_madera - wg.t_reb / 2 - P.t_bot / 2 : P.h_disc - (P.t_top + P.t_bot) / 2;
+    let MrReb = 0;
+    if (wg) { const i = Math.max(5, Math.min(n - 6, Math.round(wg.R_rebaje / Rd * (n - 1)))), ps = psi[i] + C * r[i], dp = dps[i] + C; MrReb = Math.abs(dp + P.nu * ps / r[i]); }   // M_r global en R_reb (N·mm/mm): empuje del ala que cambia de nivel en el escalón
     const imb = Q[n - 1] * 2 * Math.PI * Rd / 1e3;
-    return { Mmax, rM, sigTop: Mmax / (P.t_top * hc), sigBot: Mmax / (P.t_bot * hc), Vmax: Vmax / 1e3, rV, imbalance: imb };
+    return { Mmax, rM, sigTop: Mmax / (tT * hc), sigBot: Mmax / (P.t_bot * hc), Vmax: Vmax / 1e3, rV, imbalance: imb, hcTop: hc, MrReb };
   }
 
   /* ---------------- FEA de izaje de la base (cuarto de placa con simetría) ---------------- */
@@ -1886,10 +2061,10 @@ const TT = (() => {
     }
     /* (d) Gradiente plancha superior (al sol) – inferior (a la sombra) */
     {
-      const g = th.grad, h = P.h_disc, kap = al.st * g / h, sag = kap * (P.D_top / 2) ** 2 / 2, sigTh = P.E * al.st * g / (2 * (1 - P.nu));
+      const wgT = woodGeo(P), g = th.grad, h = wgT ? P.h_disc - wgT.d_rebaje : P.h_disc, kap = al.st * g / h, sag = kap * (P.D_top / 2) ** 2 / 2, sigTh = P.E * al.st * g / (2 * (1 - P.nu));   // W: el cajón es más bajo dentro de R_reb (κ mayor, conservador; la madera además aísla la plancha rebajada)
       const gapR = kap * (Ro * Ro - Ri * Ri) / 2, win = kap * (P.ss_void / 2) ** 2 / 2;
       const GREF = REG + "; EN 1991-1-5 §6.1.4.1 Tabla 6.1 (tableros de puentes: otra tipología); σ de la placa restringida según Timoshenko";
-      tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: curvatura térmica de la mesa", formula: "κ = α·ΔT_grad/h con h = h_mesa = " + P.h_disc + " mm", dem: kap * 1e3, unit: "1/m", ref: GREF });
+      tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: curvatura térmica de la mesa", formula: "κ = α·ΔT_grad/h con " + (wgT ? "h = h_mesa − d_rebaje = " + h + " mm (cubierta W: altura del cajón dentro del rebaje)" : "h = h_mesa = " + P.h_disc + " mm"), dem: kap * 1e3, unit: "1/m", ref: GREF });
       tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: flecha en el diámetro de la mesa (plancha libre)", formula: "s = κ·(D/2)²/2", dem: sag, unit: "mm", ref: GREF });
       tadd({ sub: "d", kind: "info", conf: "C", name: "Gradiente: tensión de flexión térmica si la mesa está restringida", formula: "σ = E·α·ΔT_grad/(2(1 − ν)); cota con la restricción total (la real depende de la caja)", dem: sigTh, cap: 0.6 * P.Fy, unit: "MPa", ref: GREF });
       const comb = (re, nombre) => { const c = out.find((x) => x.grp !== "Temperatura" && x.fu != null && re.test(x.name)); if (c) tadd({ sub: "d", conf: "C", name: nombre, formula: "FU actual (" + c.name + ") con σ_térmica sumada (suma conservadora): (dem + σ_th)/cap", dem: c.dem + sigTh, cap: c.cap, unit: c.unit, ref: GREF }); };
@@ -1951,6 +2126,8 @@ const TT = (() => {
     if (P.opt_wood > 0.5) {
       const w = out.find((x) => x.grp === "Cubierta" && /Madera: aplastamiento/.test(x.name)), p0 = P.p_wood / k.wood;
       tadd({ sub: "i", kind: "info", conf: "C", name: "Madera: factor C_t aplicado al aplastamiento perpendicular a la fibra y sensibilidad con madera húmeda (C_t = 0,50 a 125–150 °F)", formula: "FU(C_t) = q/(p_wood·C_t); C_t seca = " + nf(k.wood, 2) + " (NDS 2018 T2.3.3, copia AWC: A en la tabla, 80 °C = 176 °F fuera de ella, extrapolación C)", dem: w ? w.dem / (p0 * 0.5) : NaN, cap: w ? w.dem / p0 : NaN, unit: "– (FU con C_t = 0,50 / FU con C_t = 1)", ref: REG + ", «Madera dura»; NDS 2018 Tabla 2.3.3" });
+      const wgM = woodGeo(P);
+      if (wgM) tadd({ sub: "i", kind: "geo", conf: "C", name: "Madera: holgura perimetral frente a la dilatación transversal a T (madera y acero a T)", formula: "(α_madera,⊥ − α_acero)·ΔT·2·R_tablones ≤ 2·c_mad + (n − 1)·j_tab; α⊥ = " + nf(al.woodT * 1e6, 0) + "×10⁻⁶ (C), α_acero = " + nf(al.st * 1e6, 1) + "×10⁻⁶, ΔT = " + nf(dT, 0) + " K (holguras del diseño a 20 °C)", dem: Math.max(0, al.woodT - al.st) * dT * 2 * wgM.R_tablones, cap: 2 * P.c_mad + (wgM.tablones.n - 1) * P.j_tab, unit: "mm", ref: REG + ", «Madera dura»; docs/normas/registro.md, «Cubierta de madera W (rebaje)»" });
       tadd({ sub: "i", kind: "pend", conf: "C", name: "Madera: el secado al sol baja la humedad de equilibrio (sube la resistencia, aparecen grietas y deformación de tablones); NCh1198 sin factor de temperatura confirmado", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: REG + ", «Madera dura»" });
     }
 
@@ -2024,6 +2201,11 @@ const TT = (() => {
     return { E: [K.E, [-K.E[0], -K.E[1]]], R_E: K.RE, phi_E: P.pv_phE, L_qp: K.Lqp, L0: P.L0, carrera: P.stroke, s_libre: P.s_free, s_req: K.s_req, th_ini: K.ths, th_fin: K.the, paso: K.pitch,
       placas, t_placa: P.pv_tcam, bloque: { local: loc, nota: "marco local: origen en Q, eje x hacia el pasador tomado (s), eje y = t (hacia el centro O)", d_Q: P.pv_dq, h: P.pv_hu, R_cubo: P.pv_dq / 2 + 25 },
       pasadorQ: { d: P.pv_dq, largo: R.blk.lPin }, ojalE: { d: P.pv_dE, lado_cajon: P.pv_box } };
+  }
+  // 2b. Cubierta de madera W para el dibujo de la simulación (planta): círculo de los tablones, abertura de la tapa, cara interior de la pared y anillo; null sin cubierta
+  function cubiertaGeo(P) {
+    const g = woodGeo(P); if (!g) return null;
+    return { R_tablones: g.R_tablones, R_abertura: g.R_abertura, R_rebaje: g.R_rebaje, R_pared_ext: g.R_pared_ext, R_ext: g.R_ext, t_madera: g.t_madera, tablones: g.tablones.lista.map((t) => ({ y0: t.y0, y1: t.y1, corte: t.corte })), juntas: g.tablones.j };
   }
   // 3. Estado del modo pivotado en la posición s del vástago (s = L − L0, 0 … s_req). fase = «empuje» | «retorno»; sentido = «antihorario» | «horario» (cilindro 1).
   //    Empuje: s ≤ s_libre aproximación sin contacto (θ = θ_ini); luego |P(θ) − E| = L0 + s + L_qp. Retorno (mesa detenida en θ_fin): Q se desplaza w hacia afuera
@@ -2326,7 +2508,7 @@ const TT = (() => {
   /* ---------------- Verificaciones ---------------- */
   // kind: "fu" (FU = dem/cap), "geo" (FU con criterio geométrico), "info" (no afecta el veredicto), "pend" (pendiente de dato)
   function verifs(P, R, fea) {
-    const out = [];
+    const out = [], sAllW = (fy) => 0.6 * fy;
     const add = (o) => out.push(Object.assign({ kind: "fu" }, o, { fu: o.kind === "info" || o.kind === "pend" ? null : (o.fu != null ? o.fu : ((o.cap > 0 && o.dem >= 0) ? o.dem / o.cap : Infinity)) }));   // capacidad ≤ 0 o demanda negativa: no cumple
     const K = R.K, Nd = P.Nd, Fy = P.Fy;
     const dTe = P.__th ? Math.max(P.dT, P.__th.dT) : P.dT;          // ΔT de las filas térmicas heredadas: la de diseño (40 K) o la del escenario si es mayor
@@ -2584,30 +2766,68 @@ const TT = (() => {
         dem: c.m_desc, cap: c.m_neta, unit: "kg (descuento / neta)", ref: "Geometría (muesca de la barra b_tope + 2 por L, chaflán a_inf, juntas ≥ 1 mm); conciliación con el modelo 3D" });
     });
 
-    /* --- Cubierta de madera dura y altura de skidding --- */
-    const Htop = P.t_base + R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0);
-    if (P.opt_wood > 0.5) {
-      const RLw = P.D_load / 2, Aw = Math.PI * (RLw * RLw - ((P.D_piv + 80) / 2) ** 2), qTopW = P.phi_d * R.W * 1e3 / (P.f_apoyo * Aw) * (1 + 4 * P.e / RLw);
-      add({ grp: "Cubierta", sys: "est", name: "Madera: aplastamiento perpendicular a la fibra bajo la carga (área de contacto efectiva)", formula: "q = φd·W/(f_apoyo·A_círculo)·(1 + 4e/R_carga) ≤ p_adm,madera (sin acreditar reparto sobre la plancha)", dem: qTopW, cap: P.p_wood, unit: "MPa", ref: "Madera dura (datos de proveedor); criterio conservador" });
+    /* --- Cubierta de madera dura W (rebaje) y altura de skidding --- */
+    const wg = woodGeo(P), Htop = P.t_base + R.ifc.delta + P.h_disc;   // W: los tablones quedan enrasados con el anillo: la altura no aumenta
+    if (wg) {
+      const nfw = (v, d) => (+v).toFixed(d == null ? 1 : d).replace(".", ",");
+      const RLw = P.D_load / 2, Rab = wg.R_abertura, Rw = wg.R_tablones, Aw = Math.PI * (Math.min(RLw, Rw) ** 2 - Rab * Rab), qTopW = P.phi_d * R.W * 1e3 / (P.f_apoyo * Aw) * (1 + 4 * P.e / RLw);
+      const REGW = "docs/normas/registro.md, «Cubierta de madera W (rebaje)»";
+      add({ grp: "Cubierta", sys: "est", name: "Madera: aplastamiento perpendicular a la fibra bajo la carga (área de contacto efectiva)", formula: "q = φd·W/(f_apoyo·A)·(1 + 4e/R_carga) ≤ p_adm,madera; A = π·(mín(R_carga; R_tablones)² − R_abertura²), R_abertura = " + nfw(Rab) + " mm (tapa de inspección Ø" + wg.D_tapa_insp + " + holgura); sin acreditar reparto (los tablones apoyan de forma continua en la plancha rebajada: la misma presión en su cara inferior)", dem: qTopW, cap: P.p_wood, unit: "MPa", ref: "Madera dura (datos de proveedor); criterio conservador; " + REGW });
       add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: la ley lineal de presiones no admite tracción (q mín ≥ 0)", formula: "4e/R_carga ≤ 1 (e ≤ D_carga/8)", dem: 4 * P.e / RLw, cap: 1, unit: "–", ref: "Estática del apoyo" });
       add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: espesor mínimo (desgaste y fijación)", formula: "t_madera ≥ 30 mm", dem: 30, cap: P.t_wood, unit: "mm", ref: "Práctica constructiva" });
-      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)", formula: "m = ρ·A·t, A = π/4·((D − 2·t_anillo)² − Ø_abertura²): los tablones van dentro del anillo de acero; Ø_abertura = D_piv + 80 (el 3D usa una abertura mayor y N_pin bolsillos de perno y arandela que el núcleo no descuenta: conservador)", dem: R.m.wood, unit: "kg", ref: "Geometría" });
-      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Anillo de acero de contención de la madera (pletina t_anillo × t_madera en el borde, soldada a la plancha superior; incluida en la masa total y en m.disc)", formula: "m = ρ_acero·π·(R² − (R − t_anillo)²)·t_madera (alto del anillo = espesor de los tablones; ancho radial t_anillo = " + P.t_ring + " mm)", dem: R.m.ring, cap: R.m.wood, unit: "kg (anillo / madera)", ref: "Geometría; anillo adoptado por el mandante (pletina de 10 mm)" });
-      add({ grp: "Cubierta", sys: "est", kind: "pend", name: "Fijación de los tablones (tornillos avellanados), acceso a la tapa de inspección, humedad y pudrición, acabado antideslizante", formula: "Sin verificación numérica", dem: 0, unit: "–", ref: "Decisión del proyectista" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: huella de la carga dentro de los tablones", formula: "R_carga = D_carga/2 ≤ R_tablones = R_reb − c_mad = " + nfw(Rw) + " mm (fuera de los tablones la carga caería sobre la holgura y el anillo de acero)", dem: RLw, cap: Rw, unit: "mm", ref: "Geometría; " + REGW });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Masa de la cubierta de madera (gira con la mesa y carga la interfaz)", formula: "m = ρ·t·Σ A_pieza: " + wg.tablones.n + " tablones de " + P.b_tab + " mm (junta " + P.j_tab + " mm) dentro de R_tablones = " + nfw(Rw) + " mm, menos la abertura R = " + nfw(Rab) + " mm sobre la tapa de inspección; " + wg.tablones.n_piezas + " piezas; sin bolsillos (los pasadores quedan en el anillo, fuera del rebaje)", dem: R.m.wood, unit: "kg", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Rebaje de la mesa: masas del anillo superior, la pared y la plancha rebajada (en m.top) y altura de almas y nervios bajo el rebaje", formula: "anillo R" + P.R_reb + "…R" + P.D_top / 2 + " t = " + wg.t_anillo + " (máx(t_pr, t_top), una pieza, " + P.N_pin + " agujeros de pasador): " + nfw(wg.masas.anillo) + " kg; pared R" + P.R_reb + "…R" + wg.R_pared_ext + " × " + nfw(wg.h_pared) + " mm: " + nfw(wg.masas.pared) + " kg; plancha rebajada t = " + wg.t_reb + ", Ø" + wg.hole_top + "…R" + wg.R_reb_ext + ": " + nfw(wg.masas.plancha_rebajada) + " kg; almas y nervios h = " + nfw(wg.hw_reb) + " mm (antes " + nfw(wg.hw) + "); sin el anillo de contención 10×50", dem: R.m.top, cap: wg.hw_reb, unit: "kg (m.top) / mm (h almas)", ref: "Geometría; decisión del mandante (08-11-2026)" });
+      // pared en R_reb: momento del modelo FEA escalonado (envolvente de las dos variantes, × k_malla) + desvío del empuje global del ala (N_r·h_c) + apoyo lateral de los tablones (viga empotrada-apoyada)
+      const fe = fea && fea.top && fea.top.escalon, gb = fea && fea.glob, Nr = gb ? gb.MrReb / gb.hcTop : 0, Hh = P.k_hmad * P.phi_d * R.W * 1e3, Lc = 2 * Math.min(RLw, Rw), wl = Hh / Lc;
+      const Mlat = 3 * wl * wg.h_c / 16, Mjog = Nr * wg.h_c, tp = wg.t_pared, V = Nr + 11 / 16 * wl;
+      add({ grp: "Cubierta", sys: "est", name: "Madera: apoyo lateral de los tablones contra la pared (contención del escalón; empuje del skidding)", formula: "σ = H/(L_c·t_madera) ≤ p_adm,madera (perpendicular a la fibra, conservador: los extremos de testa resisten más); H = k_hmad·φd·W = " + nfw(Hh / 1e3, 0) + " kN, L_c = 2·mín(R_carga; R_tablones) = " + nfw(Lc, 0) + " mm", dem: Hh / (Lc * P.t_wood), cap: P.p_wood, unit: "MPa", ref: "Equilibrio; k_hmad supuesto (C); " + REGW });
+      if (fe) {
+        const sP = P.kFEA * fe.sPared + 6 * (Mjog + Mlat) / (tp * tp), Mb = sP * tp * tp / 6;
+        add({ grp: "Cubierta", sys: "est", name: "Pared del rebaje: flexión (FEA escalonada + desvío del ala + empuje lateral de los tablones)", formula: "σ = k_malla·σ_FEA,pared + 6·(N_r·h_c + M_lat)/t_pared²; σ_FEA = " + nfw(fe.sPared) + " MPa (envolvente: anillo con pasadores y pared empotrada), N_r = M_r,glob(R_reb)/h_c,glob = " + nfw(Nr) + " N/mm, h_c = " + nfw(wg.h_c) + " mm, M_lat = 3·(H/L_c)·h_c/16 = " + nfw(Mlat, 0) + " N·mm/mm; ≤ 0,6·Fy como las planchas de la caja (con ASME BTH-1 Fy/Nd = " + nfw(Fy / Nd, 0) + " MPa el FU sería " + nfw(sP / (Fy / Nd), 2) + ": la mesa no es un dispositivo bajo el gancho, ver registro)", dem: sP, cap: sAllW(Fy), unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy), criterio conservador de la mesa; " + REGW });
+        add({ grp: "Cubierta", sys: "est", name: "Pared del rebaje: corte (empuje del ala + reacción lateral de los tablones)", formula: "τ = 1,5·V/t_pared, V = N_r + 11/16·H/L_c = " + nfw(V) + " N/mm ≤ 0,6Fy/1,50", dem: 1.5 * V / tp, cap: 0.6 * Fy / 1.5, unit: "MPa", ref: "AISC 360-22 G2.1(a)" });
+        const aw = 0.707 * P.w_pared, S1 = wg.soldaduras.J1.S, E1 = Math.max(0, wg.soldaduras.J1.E);
+        add({ grp: "Cubierta", sys: "est", name: "Soldadura pared–plancha rebajada (2 filetes): momento de la pared + corte", formula: "f = √[(M/(t_pared·a))² + (V/(2a))²] ≤ 0,6FEXX/2,0; M = σ_pared·t²/6 = " + nfw(Mb, 0) + " N·mm/mm, a = 0,707·w_pared (brazo t_pared, conservador); con ASME BTH-1 §3-3.4 (0,6FEXX/(1,2Nd) = " + nfw(P.FEXX * 0.6 / (1.2 * Nd), 1) + " MPa) el FU sería " + nfw(Math.hypot(Mb / (tp * aw), V / (2 * aw)) / (P.FEXX * 0.6 / (1.2 * Nd)), 2), dem: Math.hypot(Mb / (tp * aw), V / (2 * aw)), cap: FwA, unit: "MPa", ref: "AISC 360-22 J2.4, Ec. J2-4 (como las soldaduras de la mesa); " + REGW });
+        add({ grp: "Cubierta", sys: "est", name: "Soldadura anillo–pared (PJP en bisel desde el rebaje + filete exterior): momento de la pared + corte", formula: "f = √[(M/(t_pared·mín(a; E)))² + (V/(a + E))²] ≤ 0,6FEXX/2,0; PJP S = " + S1 + " mm, E = S − 3 = " + E1 + " mm (AISC 360-22 Tabla J2.1, 45°, SMAW/FCAW); filete exterior a = 0,707·" + P.w_pared, dem: Math.hypot(Mb / (tp * Math.max(1e-9, Math.min(aw, E1))), V / (aw + E1)), cap: FwA, unit: "MPa", ref: "AISC 360-22 J2.1, J2.4 y Tabla J2.5 (PJP con tracción normal al eje: 0,6FEXX); " + REGW });
+        add({ grp: "Mesa (FEA)", sys: "est", kind: "info", name: "Piel escalonada (W): variante que gobierna, σ del anillo y flecha de la plancha rebajada", formula: "modelo desarrollado (plancha rebajada + pared de ancho L_dev + anillo): variantes «anillo» (L_dev = " + nfw(fe.variantes[0].L_dev) + ") y «empotrada» (L_dev = " + nfw(fe.variantes[1].L_dev) + "); gobierna «" + fe.gobierna + "»; σ_anillo = " + nfw(fe.sAnillo) + " MPa (modelado con t_reb)", dem: fea.top.wMax, cap: fe.sAnillo, unit: "mm / MPa", ref: "Modelo escalonado validado (tests/test_tt300c.js, tests/indep_madera.py); " + REGW });
+        const nW = 2 * P.turns_yr * P.life;
+        if (nW <= 20000) add({ grp: "Cubierta", sys: "est", kind: "info", name: "Fatiga: pared del rebaje y sus soldaduras (N = " + Math.round(nW) + " ≤ 20 000)", formula: "N = 2 ciclos de carga por vuelta (carga y descarga) × vueltas/año × vida; clase de servicio 0: no requiere verificación", dem: nW, unit: "ciclos", ref: "AISC 360-22 Apéndice 3, A-3.1 (N ≤ 20 000); ASME BTH-1 §3-4" });
+        else add({ grp: "Cubierta", sys: "est", name: "Fatiga: pared del rebaje (pie del filete pared–plancha rebajada, cat. E, N = " + Math.round(nW) + ")", formula: "Δσ = σ_pared ≤ F_SR = (Cf/N)^0,333 ≥ F_TH", dem: sP, cap: FSR("E", nW), unit: "MPa", ref: "AISC 360-22 Apéndice 3, Tabla A-3.1" });
+      }
+      const T2 = Math.max(tp, wg.t_reb), T1 = Math.max(tp, wg.t_anillo), wReq = Math.max(Math.min(wMin(T2), Math.min(tp, wg.t_reb)), Math.min(wMin(T1), Math.min(tp, wg.t_anillo)));
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: filete mínimo pared–plancha rebajada y de refuerzo anillo–pared", formula: "w_mín(T = máx(t_pared; t_reb) = " + T2 + ") y w_mín(T = máx(t_pared; t_anillo) = " + T1 + ") ≤ w_pared; no más que la parte más delgada", dem: wReq, cap: P.w_pared, unit: "mm", ref: REFWMIN });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: filete máximo según el canto de la pared", formula: "w_pared ≤ w_máx(t_pared = " + tp + ")", dem: P.w_pared, cap: wMax(tp), unit: "mm", ref: "AISC 360-22 §J2.2b" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: penetración parcial anillo–pared cabe en la altura libre de la pared", formula: "S = t_pared/2 = " + wg.soldaduras.J1.S + " ≤ h_pared = t_madera − t_anillo (bisel 45°)", dem: wg.soldaduras.J1.S, cap: wg.h_pared, unit: "mm", ref: "AWS D1.1/D1.1M:2020 (precalificadas PJP, bisel simple); geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: tablones libres del filete interior de la pared", formula: "w_pared + 2 ≤ c_mad", dem: P.w_pared + 2, cap: P.c_mad, unit: "mm", ref: "Geometría" });
+      const dist = Math.min(...parseRings(P.rings).map((r) => r < P.R_reb ? P.R_reb - r : r > wg.R_pared_ext ? r - wg.R_pared_ext : 0));
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: alma bajo la pared (apoyo de la plancha rebajada en R_reb y de la pared)", formula: "distancia del alma anular más cercana a la franja de la pared [R_reb; R_reb + t_pared] ≤ t_alma/2 (el modelo escalonado supone w = 0 en R_reb)", dem: dist, cap: P.t_web / 2, unit: "mm", ref: "Geometría; hipótesis del FEA escalonado" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: nervios dentro de la zona rebajada (sin cambio de altura)", formula: "R_nervio ≤ R_reb + t_pared: los nervios terminan en el alma de R_reb con la altura h_reb = " + nfw(wg.hw_reb) + " mm; ninguna alma cambia de altura (las de r ≤ R_pared bajan d_rebaje = " + nfw(wg.d_rebaje) + " mm)", dem: P.R_rib, cap: wg.R_pared_ext, unit: "mm", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: plancha rebajada libre de los pasadores", formula: "R_reb_ext = R_reb + t_pared + w_pared + 5 ≤ R_pin − d_pin/2 − 5", dem: wg.R_reb_ext, cap: P.R_pin - P.d_pin / 2 - 5, unit: "mm", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: arandelas de los pasadores sobre el anillo, fuera del rebaje (sin bolsillos en los tablones)", formula: "R_reb + t_pared ≤ R_pin − (d_pin + 30)/2 (arandela Ø d_pin + 30, cad/geom.py)", dem: wg.R_pared_ext, cap: P.R_pin - (P.d_pin + 30) / 2, unit: "mm", ref: "Geometría" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Rebaje: tapa retenedora y tapa de inspección en la plancha rebajada (accesibles por la abertura de los tablones)", formula: "3 (pivote sobre la cara inferior) + 6 (tapa retenedora mínima) + 1 + 8 (tapa de inspección en su rebaje) ≤ t_reb; abertura de los tablones Ø" + nfw(2 * Rab, 0) + " ≥ tapa Ø" + wg.D_tapa_insp + " + 2·c_mad", dem: 18, cap: wg.t_reb, unit: "mm", ref: "Geometría (cad/geom.py: cb_t = 8, cap_t = t − 12)" });
+      // fijación de los tablones
+      const fx = wg.fijacion;
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Fijación de los tablones: largo comercial del tornillo ISO 4762 con engrane ≥ 1,0·d sin tocar el fondo del taladro ciego", formula: "M" + fx.d + "×" + (fx.L || "—") + ": engrane = L − (t_madera − h_cajeado) = " + nfw(fx.engrane) + " mm ≥ d; punta ≥ 2 mm antes del fin de la rosca útil (" + nfw(fx.rosca_util) + " mm = taladro " + nfw(fx.prof_taladro) + " − 4); cajeado Ø" + fx.D_cajeado + " × " + nfw(fx.h_cajeado) + " (cabeza 3 mm bajo la superficie, arandela ISO 7093 Ø" + fx.d_arandela + ")", dem: fx.d, cap: fx.L ? fx.engrane : 0, unit: "mm", ref: "ISO 4762; ISO 7093-1; VDI 2230 (engrane en acero ≥ 1,0·d para 8.8); hallazgo de los planos (Ø8×80 no cabía)" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Fijación de los tablones: espesor mínimo de la plancha rebajada para el roscado ciego", formula: "1,0·d (engrane) + 2 (punta) + 4 (salida del macho y punta de broca) + 3 (remanente: la caja queda cerrada) ≤ t_reb", dem: fx.d + 9, cap: wg.t_reb, unit: "mm", ref: "Criterio de fabricación (como la tapa de inspección, cad/geom.py)" });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Fijación de los tablones: el tornillo de 80 mm de la versión anterior no cabía en 50 + 20 mm (madera + plancha)", formula: "L = 80 > t_madera + t_plancha = 70: pasaba 10 mm a la caja; ahora M" + fx.d + "×" + fx.L + " en cajeado y taladro ciego", dem: 80, cap: 70, unit: "mm", ref: "Revisión de planos (MAD-001)" });
+      add({ grp: "Cubierta", sys: "est", kind: "info", name: "Fijación de los tablones: cantidad, separaciones y par de apriete", formula: fx.n_total + " tornillos; ≥ 2 filas por pieza a ≥ 7d = " + fx.e_extremo + " mm de los extremos y ≤ " + P.s_tmad + " mm entre filas; 2 por fila a " + fx.e_borde + " mm de los cantos si el tablón tiene ≥ " + (2 * fx.e_borde + 4 * fx.d) + " mm (EN 1995-1-1 §8.5, de memoria); apriete hasta F = 0,8·p_madera·A_arandela = " + nfw(fx.apriete_kN, 2) + " kN (T ≈ 0,2·F·d)", dem: fx.n_total, cap: fx.par_Nm, unit: "– / N·m", ref: "Propuesta (confirmar con el mandante)" });
+      add({ grp: "Cubierta", sys: "est", kind: "geo", name: "Madera: holgura perimetral frente a la dilatación transversal de la cubierta (ΔT de diseño)", formula: "(α_madera,⊥ − α_acero)·ΔT·2·R_tablones ≤ 2·c_mad + (n − 1)·j_tab; α⊥ = 30×10⁻⁶ (C), ΔT = " + P.dT + " K; la humedad (hinchamiento ≈ 0,2 %/% de humedad) se deja como pendiente", dem: Math.max(0, TH_AL.woodT - AL_S) * P.dT * 2 * Rw, cap: 2 * P.c_mad + (wg.tablones.n - 1) * P.j_tab, unit: "mm", ref: "Termoelasticidad; " + REGW });
+      add({ grp: "Cubierta", sys: "est", kind: "pend", name: "Rebaje: drenaje del agua que entra entre los tablones (la plancha rebajada es una bandeja), humedad, pudrición y acabado antideslizante", formula: "Sin verificación numérica: proponer tubos de drenaje desde el fondo del rebaje al canto exterior de la mesa", dem: 0, unit: "–", ref: "Decisión del mandante" });
     }
-    add({ grp: "Geometría", sys: "est", kind: "info", name: "Altura total sobre el piso (base + interfaz + mesa + cubierta)", formula: "H = t_base + Δ_interfaz + h_mesa + t_madera", dem: Htop, unit: "mm", ref: "Geometría" });
+    add({ grp: "Geometría", sys: "est", kind: "info", name: "Altura total sobre el piso (base + interfaz + mesa + cubierta)", formula: "H = t_base + Δ_interfaz + h_mesa (cubierta W: los tablones van enrasados en el rebaje y no suman altura)", dem: Htop, unit: "mm", ref: "Geometría" });
     if (P.h_skid > 0) add({ grp: "Geometría", sys: "est", kind: "geo", name: "Enrase de la superficie superior con los rieles de skidding", formula: "|H − h_riel| ≤ tolerancia", dem: Math.abs(Htop - P.h_skid), cap: P.tol_skid, unit: "mm", ref: "Compatibilidad con el sistema de skidding" });
 
     /* --- Mesa --- */
     const sAll = 0.6 * Fy;
     if (fea) {
       const k = P.kFEA;
-      add({ grp: "Mesa (FEA)", sys: "est", name: "Plancha superior: σvm local (carga con e)", formula: "MITC4 × k_malla", dem: fea.top.vmMax * k, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy), criterio conservador" });
+      const fW = wg ? " (W: plancha rebajada t_reb = " + wg.t_reb + " mm bajo los tablones, modelo escalonado desarrollado con la pared y el anillo)" : "";
+      add({ grp: "Mesa (FEA)", sys: "est", name: "Plancha superior: σvm local (carga con e)", formula: "MITC4 × k_malla" + fW, dem: fea.top.vmMax * k, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy), criterio conservador" });
       add({ grp: "Mesa (FEA)", sys: "est", name: "Plancha inferior: σvm local (contacto q_max)", formula: "MITC4 × k_malla", dem: fea.bot.vmMax * k, cap: sAll, unit: "MPa", ref: "AISC 360-22 F11 (0,6Fy), criterio conservador" });
       const gb = fea.glob;
-      add({ grp: "Mesa", sys: "est", name: "Plancha superior: global + local", formula: "σ = M_glob/(t·h_c) + σvm_local", dem: gb.sigTop + fea.top.vmMax * k, cap: sAll, unit: "MPa", ref: "Placa sándwich axisimétrica (rev. M2)" });
-      add({ grp: "Mesa", sys: "est", name: "Plancha inferior: global + local", formula: "σ = M_glob/(t·h_c) + σvm_local", dem: gb.sigBot + fea.bot.vmMax * k, cap: sAll, unit: "MPa", ref: "Placa sándwich axisimétrica (rev. M2)" });
-      const hw = P.h_disc - P.t_top - P.t_bot;
+      add({ grp: "Mesa", sys: "est", name: "Plancha superior: global + local", formula: "σ = M_glob/(t·h_c) + σvm_local" + (wg ? "; W: t = t_reb, h_c = h_mesa − t_madera − (t_reb + t_bot)/2 = " + gb.hcTop + " mm (el cajón es más bajo dentro de R_reb; sin aporte de la madera)" : ""), dem: gb.sigTop + fea.top.vmMax * k, cap: sAll, unit: "MPa", ref: "Placa sándwich axisimétrica (rev. M2)" });
+      add({ grp: "Mesa", sys: "est", name: "Plancha inferior: global + local", formula: "σ = M_glob/(t·h_c) + σvm_local" + (wg ? "; W: h_c = " + gb.hcTop + " mm dentro de R_reb" : ""), dem: gb.sigBot + fea.bot.vmMax * k, cap: sAll, unit: "MPa", ref: "Placa sándwich axisimétrica (rev. M2)" });
+      const hw = wg ? wg.hw_reb : P.h_disc - P.t_top - P.t_bot;   // W: nervios bajo la plancha rebajada
       const tau = gb.Vmax * 1e3 / (P.N_rib * P.t_rib * hw);
       const lam = hw / P.t_rib, lamLim = 2.24 * Math.sqrt(P.E / Fy);
       add({ grp: "Mesa", sys: "est", name: "Corte en nervios radiales", formula: "τ = V/(N·t·h_w) ≤ 0,6Fy/1,50 (h/t ≤ 2,24√(E/Fy))", dem: tau, cap: 0.6 * Fy / (lam <= lamLim ? 1.50 : 1.67), unit: "MPa", ref: "AISC 360-22 G2.1(a), Ec. G2-1" });
@@ -2621,7 +2841,7 @@ const TT = (() => {
 
     /* --- Tamaño mínimo de filete según espesor de la parte más gruesa (wMin definido arriba, junto a los topes) --- */
     add({ grp: "Base", sys: "est", kind: "geo", name: "Espesor de la plancha base frente al mínimo por planitud", formula: "t_base_mín ≤ t_base", dem: P.t_base_min, cap: P.t_base, unit: "mm", ref: "Criterio de fabricación (planitud 0,20 de la cara de giro)" });
-    const Tw = Math.max(P.t_top, P.t_bot), Tb = Math.max(P.t_base, P.t_ch);
+    const Tw = Math.max(wg ? wg.t_reb : P.t_top, P.t_bot), Tb = Math.max(P.t_base, P.t_ch);   // W: almas soldadas a la plancha rebajada
     add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo almas/nervios–planchas", formula: "w_mín(T = " + Tw + ") ≤ w ≤ t_alma", dem: wMin(Tw), cap: Math.min(P.w_web, Math.min(P.t_web, P.t_rib)), unit: "mm", ref: REFWMIN });
     if (mode === 1) add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete mínimo mejillas–base", formula: "w_mín(T = máx(t_base; t_mejilla) = " + Tb + ") ≤ w_br; el mínimo no excede la parte más delgada (" + Math.min(P.t_base, P.t_ch) + " mm)", dem: Math.min(wMin(Tb), Math.min(P.t_base, P.t_ch)), cap: P.w_br, unit: "mm", ref: REFWMIN });
     if (mode === 1) add({ grp: "Soldaduras", sys: "est", kind: "geo", name: "Filete máximo mejillas–base según el borde de la mejilla", formula: "w_br ≤ w_máx(t_mejilla = " + P.t_ch + ") (t < 6: t; t ≥ 6: t − 2 mm): la mejilla es la parte que termina en el borde; la plancha base (" + P.t_base + " mm) se suelda por su cara, donde J2.2b no limita el cateto", dem: P.w_br, cap: wMax(P.t_ch), unit: "mm", ref: "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)" });
@@ -2753,7 +2973,7 @@ const TT = (() => {
         const rh = P.D_hub / 2, Awall = rh * rh - (Drb / 2) ** 2, Aring = Math.max(0, rh * rh - R.Ri * R.Ri);
         add({ grp: "Pivote", sys: "est", name: "Plancha inferior y pared del cubo junto al rebaje: aplastamiento de la pared del cubo bajo la presión de contacto del anillo interior", formula: "σ = q_máx·(r_cubo² − R_i²)/(r_cubo² − r_rebaje²) ≤ Fy/Nd (la presión sobre R_i … r_cubo entra por el pie del cubo; ligamento = (D_cubo − Ø rebaje)/2 = " + hg.wall + " mm)", dem: R.q_max * Aring / Awall, cap: P.Fy / P.Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento); estática del pie del cubo" });
       }
-      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Buje sobre el collar: el buje cabe bajo la plancha superior", formula: "h_collar + g_buje + L_buje ≤ δ + h_disc − t_top", dem: P.h_boss + P.g_bush + P.L_bush, cap: R.ifc.delta + P.h_disc - P.t_top, unit: "mm", ref: "Geometría" });
+      add({ grp: "Pivote", sys: "est", kind: "geo", name: "Buje sobre el collar: el buje cabe bajo la plancha " + (P.opt_wood > 0.5 ? "rebajada (cubierta W)" : "superior"), formula: P.opt_wood > 0.5 ? "h_collar + g_buje + L_buje ≤ δ + h_disc − t_madera − t_reb (el cubo y el pivote llegan a la plancha rebajada)" : "h_collar + g_buje + L_buje ≤ δ + h_disc − t_top", dem: P.h_boss + P.g_bush + P.L_bush, cap: R.ifc.delta + topUnder(P), unit: "mm", ref: "Geometría" });
       // Equilibrio del collar con el MISMO asiento rígido-lineal que da σ (no la simplificación V = H, M = H(e + L/2)): z desde la cara superior del collar,
       // w(z) = H/L·[1 + k(1 − 2z/L)], k = 6(e + L/2)/L, fuerza por unidad de profundidad (ΣF = H y ΣM_centro = H(e + L/2)). El collar (0 ≤ z ≤ h) recibe
       // V_c = ∫w dz y M_c = ∫w·(h − z) dz respecto del plano de la soldadura (cara superior de la base); la plancha base (h ≤ z ≤ L) toma la reacción de signo contrario.
@@ -2838,7 +3058,7 @@ const TT = (() => {
   /* FEA de la mesa con caché: con apoyos rígidos la solución es lineal en q y, en flexión, σ ∝ q/t².
      Se usa solo en la búsqueda del optimizador; la confirmación final corre una FEA nueva. */
   function discCached(P, R, which, opts) {
-    if (!opts.cache) return runDisc(P, R, which, opts.coarse);
+    if (!opts.cache || (which === "top" && P.opt_wood > 0.5)) return runDisc(P, R, which, opts.coarse);   // W: la escala σ ∝ q/t² no vale para el modelo escalonado
     const RL = Math.min(P.D_load / 2, P.D_top / 2);
     const q = which === "top" ? P.phi_d * R.W * 1e3 / (Math.PI * RL * RL) * (1 + 4 * P.e / RL) : R.qc;
     const t = which === "top" ? P.t_top : P.t_bot;
@@ -2903,7 +3123,7 @@ const TT = (() => {
     { id: "hydra", name: "Hydra-Slide 8′×8′×6″ (250/500 t)", mass: null, capKN: null, h: 152, D: null, nCyl: null, Fcyl: null, p: null, rot: null, arm: null, ru: null, src: "Texto en el video del fabricante; sin ficha de masa ni de cilindros" },
   ];
   function market(P) {
-    const R = compute(P), mu = R.mu, kN = R.W, Htop = P.t_base + R.ifc.delta + P.h_disc + (P.opt_wood > 0.5 ? P.t_wood : 0);
+    const R = compute(P), mu = R.mu, kN = R.W, Htop = P.t_base + R.ifc.delta + P.h_disc;   // cubierta W enrasada: no suma altura
     const ours = { name: "TT300-C (este diseño)", mass: R.m.total, capKN: kN, h: Htop, D: P.D_top, nCyl: P.n_cyl, Fcyl: R.Fstall, p: P.p_relief, rot: 360 / P.N_pin, arm: R.K.armMin / 1000, ru: R.r_u / 1000 };
     const impl = (r) => r.Fcyl && r.arm ? r.nCyl * r.Fcyl * r.arm / (r.capKN * r.ru) : null;
     const withK = (r) => Object.assign({}, r, { massPerKN: r.mass && r.capKN ? r.mass / r.capKN : null, muImpl: impl(r), FcylPerTon: r.Fcyl && r.capKN ? r.nCyl * r.Fcyl / (r.capKN / G) : null });
@@ -3100,7 +3320,7 @@ const TT = (() => {
     };
   }
 
-  return { driveAt: driveAtSim, pivotGeo, pivotAt, camGeo, camAt, guidedAt, designDrive, driveMode, camFam, camGuided, camPiv, kinPiv, pivKin, suggestE, pivSupGeo, pivBlkGeo, pivAsym, boltJ3, tapones, tapInfo, thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
+  return { woodGeo, designWood, plankLayout, stepPlate, discModelW, runDiscW, topUnder, cubiertaGeo, driveAt: driveAtSim, pivotGeo, pivotAt, camGeo, camAt, guidedAt, designDrive, driveMode, camFam, camGuided, camPiv, kinPiv, pivKin, suggestE, pivSupGeo, pivBlkGeo, pivAsym, boltJ3, tapones, tapInfo, thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
 })();
 if (false) module.exports = TT;
 
@@ -3236,6 +3456,12 @@ const AG = (() => {
     let vTop = 0; const nI = 4000;
     for (let i = 0; i < nI; i++) { const r = hole / 2 + (Rt - hole / 2) * (i + 0.5) / nI; vTop += 2 * Math.PI * r * (Rt - hole / 2) / nI * (r < rpr ? P.t_top : tprx); }
     vTop -= P.N_pin * Math.PI / 4 * P.d_pin ** 2 * tprx;
+    if (P.opt_wood > 0.5) {   // cubierta W: anillo (t = máx(t_pr, t_top) desde R_reb) + pared (R_reb…R_reb + t_pared, alto t_madera − t_anillo) + plancha rebajada (Ø hole … R_reb + t_pared + w_pared + 5)
+      const tR = P.t_reb > 0 ? P.t_reb : P.t_top, tP = P.t_pared > 0 ? P.t_pared : P.t_top, tA = Math.max(P.t_pr, P.t_top), Rq = P.R_reb + tP + P.w_pared + 5;
+      vTop = 0; const nW = 40000;   // malla fina: la pared mide t_pared de ancho
+      for (let i = 0; i < nW; i++) { const r = hole / 2 + (Rt - hole / 2) * (i + 0.5) / nW, dA = 2 * Math.PI * r * (Rt - hole / 2) / nW; vTop += dA * ((r >= P.R_reb ? tA : 0) + (r <= Rq ? tR : 0) + (r >= P.R_reb && r <= P.R_reb + tP ? P.t_wood - tA : 0)); }
+      vTop -= P.N_pin * Math.PI / 4 * P.d_pin ** 2 * tA;
+    }
     const mTop = 7.85e-6 * vTop;
     add("Masa plancha superior", R.m.top, mTop, 0.01, "kg");
     return out;
@@ -3486,17 +3712,19 @@ const PLANOS = (() => {
         const ifc = R.ifc;
         // 4.ª pasada: material descontado de las coronas (R.ifc.cortes: junta, muesca y chaflán por sector, masa bruta/descontada/neta), juntas efectivas y anillo de acero de la madera
     const cortes = (R.ifc.cortes || []).map((c) => Object.assign({}, c)), jS = cortes.filter((c) => !c.strip).map((c) => c.j), jU = cortes.filter((c) => c.strip).map((c) => c.j);
-    const anillo = R.m.ring > 0 ? { t_ring: P.t_ring, h_ring: P.t_wood, D_ext: P.D_top, D_int: P.D_top - 2 * P.t_ring, m: R.m.ring, m_madera: R.m.wood } : null;
+    const anillo = null;   // cubierta W (08-11-2026): sin anillo de contención 10×50; la geometría del rebaje va en la clave «madera»
     // Tapones de grafito (opción C): cantidad real colocable y fracciones real/ideal (R.ifc.tap; conciliado con el patrón S09 del dibujante), null sin la opción C
     const tapones = ifc.tap ? { conf: ifc.conf, N_real: ifc.Nreal, N_ideal: ifc.Nideal, fg_real: ifc.fgReal, fg_ideal: ifc.fgIdeal, fg_usado: ifc.fgUsed, modo: P.bz_fg_modo, cobertura: ifc.cobGrafito, cobertura_ideal: ifc.cobGrafitoIdeal, cov: ifc.cov,
       d: ifc.tap.d, p: ifc.tap.p, eta: ifc.eta, bz_edge: ifc.tap.edge, n_sectores: ifc.tap.n, junta: ifc.tap.junta, L_muesca: ifc.tap.L, radios_tornillos: ifc.tap.radios, n_tornillos_sector: ifc.tap.radios.length ? (ifc.tap.nTor >= 4 ? 4 : 2) : 0, d_cabeza: ifc.tap.dk,
       N_malla: ifc.tap.N_malla, perdidas: ifc.tap.perdidas, por_sector: ifc.tap.porSector, fg_min: P.bz_fg_min, cumple_lubricacion: ifc.fgUsed >= P.bz_fg_min - 1e-12 } : null;
     return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
-      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, t_ring: P.t_ring, anillo_madera: anillo, tapones,
+      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, anillo_madera: anillo, tapones,
           hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
           Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
-          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total" };
+          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = null (la cubierta W no tiene anillo de contención; ver la clave «madera»)" };
       })(),
+      // Cubierta de madera W (rebaje): geometría de fabricación (anillo, pared, plancha rebajada, almas recortadas, tablones, abertura, fijación, soldaduras) y FEA escalonado; null sin cubierta
+      madera: TT_.designWood(P, A),
       verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
       // Escenario térmico (exposición solar, registro.md «Temperatura (exposición solar, 80 °C)»): por alternativa y temperatura; geometría de 20 °C congelada; solo informativo (no entra en el veredicto)
       termica: TT_.thermal(P),

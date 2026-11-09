@@ -226,12 +226,12 @@ test("interfazGeom.topes: geometría resuelta de cada tope (R.ifc.topes), idént
     for (const k of ["Ri", "D_rebaje_bot", "h_rebaje", "h_rebaje_plancha", "h_rebaje_cubo", "m_ri", "d_bush", "hole_top"]) assert.equal(IG2[k], IG[k], `${nombre}: ${k} igual en tools/export_design.js`);
     assert.equal(IG.d_bush, P.D_piv + 30);
     // 4.ª pasada: descuentos de masa de las coronas (cortes), juntas efectivas, tolerancia h_c y anillo de acero de la madera: claves nuevas, iguales en los dos exportadores
-    for (const k of ["cortes", "junta_sector", "junta_uhmw", "j_sec", "tol_hc", "t_ring", "anillo_madera"]) { assert.ok(k in IG, `${nombre}: falta interfazGeom.${k}`); assert.deepEqual(IG2[k], IG[k], `${nombre}: ${k} igual en tools/export_design.js`); }
+    for (const k of ["cortes", "junta_sector", "junta_uhmw", "j_sec", "tol_hc", "anillo_madera"]) { assert.ok(k in IG, `${nombre}: falta interfazGeom.${k}`); assert.deepEqual(IG2[k], IG[k], `${nombre}: ${k} igual en tools/export_design.js`); }
     assert.deepEqual(IG.cortes, JSON.parse(JSON.stringify(A.R.ifc.cortes || [])), nombre + ": cortes = R.ifc.cortes");
-    assert.equal(IG.j_sec, P.j_sec); assert.equal(IG.tol_hc, P.tol_hc); assert.equal(IG.t_ring, P.t_ring);
+    assert.equal(IG.j_sec, P.j_sec); assert.equal(IG.tol_hc, P.tol_hc); assert.ok(!("t_ring" in IG), "cubierta W: sin anillo de contención (t_ring eliminado)");
     if (A.R.ifc.o > 0 && P.fix_mode < 1.5) { assert.ok(IG.cortes.length >= 2 && IG.cortes.every((c) => c.m_desc > 0 && Math.abs(c.m_neta - (c.m_bruta - c.m_desc)) < 1e-9), nombre + ": cortes con masa bruta, descontada y neta"); assert.ok(IG.junta_sector >= 1 || A.R.ifc.o === 2 && IG.junta_sector == null, nombre + ": junta en frío ≥ 1 mm"); }
     if (A.R.ifc.o === 2) assert.ok(IG.junta_uhmw >= 1, nombre + ": junta de la lámina UHMW ≥ 1 mm");
-    if (A.R.m.ring > 0) { assert.ok(IG.anillo_madera && IG.anillo_madera.m === A.R.m.ring && IG.anillo_madera.h_ring === P.t_wood, nombre + ": anillo de la madera"); const rg = pk.bom.items.find((i) => /Anillo de acero de contención/.test(i.desc)); assert.ok(rg && Math.abs(rg.mTot - A.R.m.ring) < 1e-9, nombre + ": anillo en la lista de materiales"); } else assert.equal(IG.anillo_madera, null);
+    assert.equal(A.R.m.ring, 0); assert.equal(IG.anillo_madera, null, nombre + ": cubierta W sin anillo de contención"); assert.ok(!pk.bom.items.some((it) => /Anillo de acero de contención/.test(it.desc)));
     // lista de materiales: las barras de los topes son una línea más y la lista cierra con m.total
     const bars = pk.bom.items.find((i) => /Barras de los topes/.test(i.desc));
     const mb = A.R.m.stopBars;
@@ -304,5 +304,19 @@ test("JSON de diseño: `termica` (escenario solar 80 °C, por alternativa y temp
     assert.equal(got.T_scn, over.T_serv || 80); assert.equal(got.gradiente_scn, over.dT_grad || 15);
     for (const a of got.alternativas) { assert.ok(a.byT.length >= 5 && a.byT.every((b) => b.FS > 0 && "fuEst" in b && Array.isArray(b.sensibles) && Array.isArray(b.cambian)), a.id); assert.equal(a.madera, !!over.opt_wood, "la madera sigue la casilla del formulario"); }
     assert.ok(got.avisos.length >= 3 && got.aceite.length === got.T.length);
+  }
+});
+
+/* ---- cubierta de madera W (rebaje): clave «madera» del JSON, igual en los dos exportadores ---- */
+test("JSON de diseño: clave «madera» (geometría de fabricación de la cubierta W y FEA escalonado), idéntica en tools/export_design.js y planos_export.js; null sin cubierta", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tt300c-")), script = path.join(__dirname, "..", "tools", "export_design.js");
+  for (const over of [{ opt_wood: 1 }, { opt_wood: 1, opt_bz: 1, bz_conf: 2 }, {}]) {
+    const P = Object.assign(TT.defaults(), over), A = TT.analyze(P), pf = path.join(tmp, "p.json"); fs.writeFileSync(pf, JSON.stringify(P));
+    const got = JSON.parse(PL.designJSON(PL.buildDesign(P, A))).madera, ref = JSON.parse(execFileSync(process.execPath, [script, pf], { maxBuffer: 1 << 28 }).toString()).madera;
+    assert.deepEqual(got, ref, JSON.stringify(over) + ": ambos exportadores iguales");
+    if (!P.opt_wood) { assert.equal(got, null); continue; }
+    for (const k of ["R_rebaje", "t_reb", "t_pared", "t_anillo", "R_pared_ext", "R_reb_ext", "h_pared", "d_rebaje", "hw_reb", "R_tablones", "R_abertura", "z", "almas", "nervios", "soldaduras", "tablones", "fijacion", "masas", "fea"]) assert.ok(k in got, "falta madera." + k);
+    assert.equal(got.tablones.lista.length, got.tablones.n); assert.equal(got.fijacion.posiciones.length, got.fijacion.n_total); assert.ok(got.fea && got.fea.s_pared > 0);
+    const m = A.R.m; assert.ok(Math.abs(got.masas.anillo + got.masas.pared + got.masas.plancha_rebajada - m.top) < 1e-9, "las piezas de la piel superior suman m.top (la lista de materiales cierra con el núcleo)");
   }
 });

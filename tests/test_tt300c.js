@@ -152,22 +152,21 @@ test("Bomba, retorno rápido, potencia y tiempo por vuelta", () => {
   near(TT.compute(Object.assign(TT.defaults(), { Q_pump: need, Q_ret: need })).tRev, 30, 1e-9, "el caudal requerido da el tiempo objetivo");
 });
 
-test("Cubierta de madera dura y enrase con los rieles de skidding", () => {
+test("Cubierta de madera dura (W, rebaje) y enrase con los rieles de skidding", () => {
+  // W (decisión del mandante, 08-11-2026): los tablones van enrasados dentro del rebaje R ≤ R_reb de la mesa; sin anillo de contención 10×50; la altura total no aumenta
   const P0 = TT.defaults(), A0 = TT.analyze(P0, { noFEA: true }), W = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1 }), { noFEA: true });
-  const hole = P0.D_piv + 80, area = Math.PI / 4 * (P0.D_top ** 2 - hole ** 2);
-  const Rw = P0.D_top / 2 - P0.t_ring, areaIn = Math.PI / 4 * ((2 * Rw) ** 2 - hole ** 2);   // 4.ª pasada: los tablones van dentro del anillo de acero
-  near(W.R.m.wood, P0.rho_wood * 1e-9 * areaIn * P0.t_wood, 1e-9, "masa de la madera (dentro del anillo de acero)");
-  assert.ok(W.R.m.wood < P0.rho_wood * 1e-9 * area * P0.t_wood, "la madera ya no ocupa la franja del anillo");
-  near(W.R.m.total - A0.R.m.total, W.R.m.wood + W.R.m.ring, 0.02, "la cubierta suma madera + anillo de acero (más el efecto sobre la interfaz)");
+  assert.ok(!("t_ring" in P0), "se elimina el anillo de contención (parámetro t_ring)"); assert.equal(W.R.m.ring, 0, "sin anillo de contención");
   assert.ok(W.R.q_max > A0.R.q_max, "la madera rotatoria carga la interfaz");
+  const g = TT.woodGeo(Object.assign(TT.defaults(), { opt_wood: 1 }));
   const row = W.checks.find((c) => /Madera: aplastamiento/.test(c.name));
-  const RL = P0.D_load / 2, Aw = Math.PI * (RL * RL - ((P0.D_piv + 80) / 2) ** 2);
-  near(row.dem, P0.phi_d * W.R.W * 1e3 / (P0.f_apoyo * Aw) * (1 + 4 * P0.e / RL), 1e-9, "presión sobre la madera con el área de contacto efectiva");
+  const RL = P0.D_load / 2, Rab = (P0.D_piv + 120) / 2 + P0.c_mad, Aw = Math.PI * (Math.min(RL, g.R_tablones) ** 2 - Rab ** 2);   // abertura real de los tablones sobre la tapa de inspección
+  near(row.dem, P0.phi_d * W.R.W * 1e3 / (P0.f_apoyo * Aw) * (1 + 4 * P0.e / RL), 1e-9, "presión sobre la madera con el área de contacto efectiva (sin la abertura de la tapa)");
   const w30 = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1, f_apoyo: 0.3 }), { noFEA: true }).checks.find((c) => /Madera: aplastamiento/.test(c.name));
   near(w30.dem / row.dem, TT.defaults().f_apoyo / 0.3, 1e-9, "q es inversamente proporcional a la fracción de apoyo"); assert.equal(w30.st, "fail", "con 30 % de apoyo la madera no cumple");
   assert.ok(W.verdict.estructura && W.verdict.gira, "con madera cumple");
   assert.ok(TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1, p_wood: 2 }), { noFEA: true }).checks.some((c) => /Madera: aplastamiento/.test(c.name) && c.st === "fail"), "con p_adm de 2 MPa no cumple");
-  const H = W.checks.find((c) => /Altura total sobre el piso/.test(c.name)).dem; near(H, P0.t_base + P0.h_disc + P0.t_wood, 1e-12, "altura total con madera");
+  const H = W.checks.find((c) => /Altura total sobre el piso/.test(c.name)).dem; near(H, P0.t_base + P0.h_disc, 1e-12, "altura total con madera = sin madera (tablones enrasados en el rebaje)");
+  near(TT.market(Object.assign(TT.defaults(), { opt_wood: 1 })).ours.h, P0.t_base + P0.h_disc, 1e-12, "altura en la comparación de mercado");
   assert.ok(!A0.checks.some((c) => /Enrase/.test(c.name)), "sin h_skid no hay verificación");
   const sk = TT.analyze(Object.assign(TT.defaults(), { h_skid: TT.defaults().t_base + TT.defaults().h_disc + 5 }), { noFEA: true }).checks.find((c) => /Enrase/.test(c.name));
   near(sk.dem, 5, 1e-9, "desnivel de 5 mm"); assert.equal(sk.st, "ok");
@@ -368,7 +367,7 @@ test("Rebaje del collar en la mesa: h_collar − δ + c_boss_a desde la cara inf
   const RHO = 7.85e-6;
   for (const [nm, o] of IFC_VARIANTS) {
     const A = TT.analyze(Object.assign(TT.defaults(), o), { noFEA: true }), R = A.R, P = A.P, m = R.m, I = R.ifc, H = R.hubG, ctx = nm + ": ";
-    const d_b = P.D_piv + 30, Drb = P.D_boss + 2 * P.c_boss_r, hw = P.h_disc - P.t_top - P.t_bot, hRec = P.h_boss - I.delta + P.c_boss_a;
+    const d_b = P.D_piv + 30, Drb = P.D_boss + 2 * P.c_boss_r, hw = P.opt_wood ? P.h_disc - P.t_bot - P.t_wood - (P.t_reb || P.t_top) : P.h_disc - P.t_top - P.t_bot, hRec = P.h_boss - I.delta + P.c_boss_a;   // cubierta W: el cubo llega a la plancha rebajada
     near(H.hRec, hRec, 1e-12, ctx + "profundidad del rebaje = h_collar − δ + c_boss_a"); near(H.Drb, Drb, 1e-12, ctx + "Ø del agujero de la plancha = D_collar + 2·c_boss_r"); near(H.delta, I.delta, 1e-12, ctx + "δ de la interfaz");
     assert.ok(H.hRec > 0, ctx + "el collar sobresale de la cara inferior de la mesa");
     const rpr = TT.prIn(P), Rt = P.D_top / 2, aRing = Math.PI * (Rt * Rt - rpr * rpr) - P.N_pin * Math.PI / 4 * P.d_pin ** 2;
@@ -507,21 +506,155 @@ test("4.ª pasada · masa de sectores: muescas, chaflanes y juntas descontadas c
   const cw = TT.compute(Object.assign(TT.defaults(), { opt_ss: 1 })); assert.ok(cw.ifc.topes.every((x) => x.F > 0 && x.a_inf === P0.w_tope + 1));
 });
 
-test("4.ª pasada · anillo de acero de la cubierta de madera (t_ring)", () => {
-  const P0 = TT.defaults(), W = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1 }), { noFEA: true }), A0 = TT.analyze(TT.defaults(), { noFEA: true }), m = W.R.m;
-  assert.equal(P0.t_ring, 10, "pletina de 10 mm (mandante)");
-  const q = TT.PARAM_GROUPS.find((g) => g.id === "cubierta").p.find((x) => x[0] === "t_ring"); assert.ok(q && /el alto es t_madera/.test(q[1]) && /anillo/i.test(q[1]), "parámetro documentado");
-  const Rt = P0.D_top / 2, Rw = Rt - P0.t_ring;
-  near(m.ring, RHO_S * Math.PI * (Rt ** 2 - Rw ** 2) * P0.t_wood, 1e-12, "m.ring = ρ·π·(R² − (R − t_ring)²)·t_madera (altura = espesor de los tablones)");
-  assert.ok(m.ring > 24 && m.ring < 25, "≈ 24,5 kg"); assert.equal(A0.R.m.ring, 0, "sin madera no hay anillo");
-  near(m.disc, A0.R.m.disc + m.wood + m.ring, 1e-12, "el anillo gira con la mesa: en m.disc");
-  near(m.total - A0.R.m.total, m.wood + m.ring, 0.02, "m.total incluye el anillo");
-  assert.ok(m.total > A0.R.m.total + m.wood, "más que solo la madera");
-  const r = W.checks.find((c) => /Anillo de acero de contención de la madera/.test(c.name)); assert.ok(r && r.kind === "info"); near(r.dem, m.ring, 1e-12, "fila informativa");
-  assert.ok(/R² − \(R − t_anillo\)²/.test(r.formula), "fórmula explícita");
-  const g = TT.analyze(Object.assign(TT.defaults(), { opt_wood: 1, t_ring: 20 }), { noFEA: true }).R.m; assert.ok(g.ring > 2 * m.ring * 0.99 && g.wood < m.wood, "más ancho: más anillo y menos madera");
-  // capacidad: la madera sigue cumpliendo
-  assert.ok(W.verdict.gira && W.verdict.estructura, "madera con anillo cumple");
+/* ---------------- Cubierta de madera W con rebaje (decisión del mandante, 08-11-2026) ----------------
+   Mesa con anillo superior R_reb…R (la plancha superior actual en esa zona, con los pasadores), plancha rebajada continua dentro de R_reb bajada t_madera,
+   pared cilíndrica en R_reb y tablones enrasados con la cara superior del anillo. Sin anillo de contención 10×50; la altura total no aumenta. */
+const PW = (o) => Object.assign(TT.defaults(), { opt_wood: 1 }, o || {});
+test("W · parámetros y geometría del rebaje por defecto (supuestos del mandante y ajuste de t_madera 50 → 45)", () => {
+  const P = PW(), g = TT.woodGeo(P), tAn = Math.max(P.t_pr, P.t_top);
+  assert.equal(TT.woodGeo(TT.defaults()), null, "sin cubierta no hay geometría de rebaje");
+  assert.equal(P.R_reb, 840, "R_rebaje = 840 (supuesto del mandante)"); assert.equal(P.t_reb, 0); assert.equal(P.t_pared, 0);
+  assert.equal(P.t_wood, 45, "t_madera 50 → 45: con 50 el buje no cabe bajo la plancha rebajada (142 > 140) y la plancha inferior pasa de FU 0,90; 45 = 2\" cepillado y paso del parámetro");
+  assert.equal(g.t_reb, P.t_top, "plancha rebajada = espesor de la plancha superior (0 = automático)"); assert.equal(g.t_pared, P.t_top, "pared = espesor de la plancha superior");
+  assert.equal(g.t_anillo, tAn, "anillo superior en una pieza de espesor máx(t_pr, t_top) desde R_reb (sin franja de 20 mm de ancho)");
+  near(g.R_pared_ext, P.R_reb + g.t_pared, 1e-12, "cara exterior de la pared"); near(g.R_reb_ext, P.R_reb + g.t_pared + P.w_pared + 5, 1e-12, "borde de la plancha rebajada: pie del filete exterior + 5");
+  near(g.h_pared, P.t_wood - tAn, 1e-12, "altura libre de la pared"); near(g.h_c, P.t_wood + g.t_reb / 2 - tAn / 2, 1e-12, "distancia entre planos medios plancha rebajada–anillo");
+  near(g.d_rebaje, P.t_wood + g.t_reb - P.t_top, 1e-12, "descenso de la cara inferior de la piel superior"); near(g.hw_reb, P.h_disc - P.t_bot - P.t_wood - g.t_reb, 1e-12, "altura de almas y nervios bajo la plancha rebajada");
+  near(g.R_tablones, P.R_reb - P.c_mad, 1e-12, "borde exterior de los tablones (holgura perimetral)"); near(g.R_abertura, (P.D_piv + 120) / 2 + P.c_mad, 1e-12, "abertura sobre la tapa de inspección Ø D_piv + 120 (cad: cb_D)");
+  near(g.z.reb_sup, P.h_disc - P.t_wood, 1e-12, "cota de la cara superior de la plancha rebajada (desde la cara inferior de la mesa)"); near(g.z.anillo_inf, P.h_disc - tAn, 1e-12);
+  assert.ok(g.almas.every((a) => a.r <= g.R_pared_ext ? a.h === g.hw_reb && a.recortada : !a.recortada), "almas dentro de R_pared bajan; fuera no cambian");
+  assert.ok(g.nervios.sin_cambio_altura, "nervios hasta R_nervio = R_reb: todos bajo la plancha rebajada");
+});
+test("W · masas: anillo + pared + plancha rebajada, almas/nervios/cubo/pivote más bajos, tablones netos, sin anillo 10×50", () => {
+  const P = PW(), P0 = TT.defaults(), m = TT.compute(P).m, m0 = TT.compute(P0).m, g = TT.woodGeo(P), R7 = 7.85e-6, tAn = Math.max(P.t_pr, P.t_top);
+  const Rt = P.D_top / 2, hole = P.D_piv + 80, aPins = P.N_pin * Math.PI / 4 * P.d_pin ** 2;
+  const mAn = R7 * (Math.PI * (Rt ** 2 - P.R_reb ** 2) - aPins) * tAn, mPar = R7 * Math.PI * (g.R_pared_ext ** 2 - P.R_reb ** 2) * g.h_pared, mReb = R7 * Math.PI * (g.R_reb_ext ** 2 - (hole / 2) ** 2) * g.t_reb;
+  near(m.top, mAn + mPar + mReb, 1e-12, "m.top (W) = anillo + pared + plancha rebajada");
+  near(g.masas.anillo, mAn, 1e-12); near(g.masas.pared, mPar, 1e-12); near(g.masas.plancha_rebajada, mReb, 1e-12);
+  const rings = TT.parseRings(P.rings);
+  near(m.webs, R7 * rings.reduce((s, r) => s + 2 * Math.PI * r * g.hw_reb * P.t_web, 0), 1e-12, "almas (todas dentro de R_pared) con h = hw_reb");
+  near(m.ribs / m0.ribs, g.hw_reb / (P.h_disc - P.t_top - P.t_bot), 1e-12, "nervios con h = hw_reb");
+  near(m.pivot, R7 * Math.PI / 4 * P.D_piv ** 2 * (P.t_base + P.h_disc - P.t_wood - g.t_reb + 3), 1e-12, "pivote hasta la plancha rebajada");
+  near(m.pins, m0.pins, 1e-12, "pasadores sin cambio (en el anillo)"); near(m.bot, m0.bot, 1e-12, "plancha inferior sin cambio");
+  assert.equal(m.ring, 0, "sin anillo de contención");
+  near(m.wood, P.rho_wood * 1e-9 * P.t_wood * g.tablones.area_neta, 1e-12, "masa de los tablones = ρ·t·Σ área neta de las piezas");
+  const aGross = Math.PI * (g.R_tablones ** 2 - g.R_abertura ** 2); assert.ok(g.tablones.area_neta < aGross && g.tablones.area_neta > 0.97 * aGross, "área neta = corona menos juntas");
+  near(m.disc, m.top + m.bot + m.webs + m.ribs + m.hub + m.pins + m.wood, 1e-12, "m.disc");
+  const dW = m.total - m0.total; assert.ok(dW > 40 && dW < 120, "Δ masa total con la cubierta W ≈ +70 kg (antes ≈ +162 kg con anillo 10×50 y tablones sobre la plancha): " + dW.toFixed(1));
+});
+test("W · tablones: disposición simétrica, piezas, abertura de la tapa y fijación ISO 4762 que cabe en t_madera + t_reb (el Ø8×80 no cabía en 50 + 20)", () => {
+  const P = PW(), g = TT.woodGeo(P), T = g.tablones, Rw = g.R_tablones;
+  assert.equal(T.b, P.b_tab); assert.equal(T.n, 9, "9 tablones de 200 en Ø" + (2 * Rw)); assert.equal(T.lista.length, T.n);
+  T.lista.forEach((t, i) => { assert.ok(t.y1 - t.y0 <= P.b_tab + 1e-9 && t.y0 >= -Rw - 1e-9 && t.y1 <= Rw + 1e-9, "dentro del círculo"); if (i) near(t.y0 - T.lista[i - 1].y1, P.j_tab, 1e-9, "junta"); });
+  near(T.lista[0].y0, -Rw, 1e-12, "cubre hasta el borde"); near(T.lista[T.n - 1].y1, Rw, 1e-12);
+  near(T.lista[0].ancho, T.lista[T.n - 1].ancho, 1e-12, "simétrica"); assert.ok(Math.min(...T.lista.map((t) => t.ancho)) >= P.b_tab / 2, "sin tiras angostas");
+  const c = T.lista[(T.n - 1) / 2]; assert.equal(c.piezas.length, 2, "el tablón central se corta en dos por la abertura"); assert.equal(c.corte, "abertura");
+  assert.ok(T.lista.some((t) => t.corte === "muesca"), "los vecinos llevan una muesca en arco R_abertura");
+  const F = (R, y) => { const yc = Math.max(-R, Math.min(R, y)); return yc * Math.sqrt(R * R - yc * yc) + R * R * Math.asin(yc / R); };
+  near(T.area_neta, T.lista.reduce((s, t) => s + (F(Rw, t.y1) - F(Rw, t.y0)) - (F(g.R_abertura, t.y1) - F(g.R_abertura, t.y0)), 0), 1e-9, "área neta exacta (franjas de círculo)");
+  // fijación: ISO 4762 en cajeado con arandela ISO 7093, roscada en taladro ciego de la plancha rebajada
+  const f = g.fijacion, d = P.d_tmad;
+  near(f.h_cajeado, d + f.h_arandela + 3, 1e-12, "cabeza 3 mm bajo la superficie"); near(f.t_bajo_arandela, P.t_wood - f.h_cajeado, 1e-12);
+  near(f.prof_taladro, g.t_reb - 3, 1e-12, "remanente 3 mm: la caja de la mesa queda cerrada"); near(f.rosca_util, f.prof_taladro - 4, 1e-12);
+  assert.ok([16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 80, 90, 100].includes(f.L), "largo comercial ISO 4762"); near(f.engrane, f.L - f.t_bajo_arandela, 1e-12);
+  assert.ok(f.engrane >= d - 1e-9 && f.engrane <= f.rosca_util - 2 + 1e-9, "engrane ≥ 1,0·d sin tocar el fondo"); assert.equal(f.L, 40, "M10×40");
+  assert.ok(f.n_total >= 2 * T.lista.reduce((s, t) => s + t.piezas.length, 0), "≥ 2 tornillos por pieza"); assert.equal(f.posiciones.length, f.n_total);
+  f.posiciones.forEach(([x, y]) => { const r = Math.hypot(x, y); assert.ok(r <= Rw && r >= g.R_abertura, "tornillo sobre la madera"); });
+  const W = TT.analyze(P, { noFEA: true }), row = (re) => W.checks.find((x) => re.test(x.name));
+  const fl = row(/Fijación de los tablones: largo comercial/); assert.ok(fl && fl.st === "ok"); near(fl.dem, d, 1e-12); near(fl.cap, f.engrane, 1e-12);
+  const old = row(/tornillo de 80 mm/); assert.ok(old && old.kind === "info" && old.dem === 80 && old.cap === 70, "registra el hallazgo de los planos (Ø8×80 en 50 + 20)");
+  assert.equal(TT.analyze(PW({ d_tmad: 16 }), { noFEA: true }).checks.find((x) => /Fijación de los tablones: espesor mínimo de la plancha rebajada/.test(x.name)).st, "fail", "M16 no cabe en el roscado ciego de 20");
+});
+test("W · FEA escalonada de la mesa (modelo desarrollado: plancha rebajada + pared + anillo con pasadores) y flexión global con h_c reducido", () => {
+  const P = PW(), A = TT.analyze(P), A0 = TT.analyze(TT.defaults()), t = A.fea.top, g = TT.woodGeo(P);
+  assert.ok(t.escalon && t.escalon.variantes.length === 2, "dos variantes: anillo con pasadores (h_c entre planos medios) y pared empotrada en el anillo (altura libre)");
+  assert.ok(t.vmMax > 0.85 * A0.fea.top.vmMax && t.vmMax < 1.15 * A0.fea.top.vmMax, "la plancha rebajada trabaja como la plancha superior (mismas luces): " + t.vmMax.toFixed(1));
+  assert.ok(t.escalon.sPared > 30 && t.escalon.sPared < 200, "pared: σ FEA " + t.escalon.sPared.toFixed(1));
+  assert.ok(t.maxAt[0] < P.R_reb, "máximo dentro del rebaje");
+  near(A.fea.glob.hcTop, P.h_disc - P.t_wood - g.t_reb / 2 - P.t_bot / 2, 1e-12, "h_c del sándwich dentro de R_reb");
+  near(A.fea.glob.sigBot, A.fea.glob.Mmax / (P.t_bot * A.fea.glob.hcTop), 1e-12); near(A.fea.glob.sigTop, A.fea.glob.Mmax / (g.t_reb * A.fea.glob.hcTop), 1e-12);
+  assert.ok(A.fea.glob.MrReb > 0 && A.fea.glob.MrReb < A.fea.glob.Mmax, "M_r global en R_reb (sale el empuje del escalón)");
+  const row = (re) => A.checks.find((x) => re.test(x.name));
+  for (const re of [/^Plancha superior: global \+ local$/, /^Plancha inferior: global \+ local$/, /^Plancha superior: σvm local/, /^Corte en nervios radiales$/]) { const c = row(re); assert.ok(c && c.fu <= 0.9, c.name + " FU " + c.fu); }
+  near(row(/^Corte en nervios radiales$/).dem, A.fea.glob.Vmax * 1e3 / (P.N_rib * P.t_rib * g.hw_reb), 1e-9, "corte en nervios con la altura reducida");
+  const b50 = TT.analyze(PW({ t_wood: 50 })); assert.equal(b50.checks.find((x) => /^Plancha inferior: global \+ local$/.test(x.name)).st, "warn", "con t_madera = 50 la plancha inferior pasa de FU 0,90 (motivo del ajuste a 45)");
+  assert.equal(b50.checks.find((x) => /Buje sobre el collar/.test(x.name)).st, "fail", "con t_madera = 50 el buje no cabe bajo la plancha rebajada");
+  assert.ok(/plancha rebajada/.test(row(/Buje sobre el collar/).name));
+  assert.ok(A.verdict.estructura && A.verdict.gira && A.verdict.warnEst === 0, "W cumple sin avisos");
+});
+test("W · FEA escalonada: caso de referencia axisimétrico frente a la solución cerrada de Kirchhoff (plancha + pared desarrollada + anillo con apoyo lineal)", () => {
+  // referencia: placa anular r0…b, D uniforme, empotrada en r0, apoyos lineales (w = 0) en a (alma), a + L (unión pared–anillo) y Rp (pasadores como línea), borde libre en b; q uniforme en r0…a.
+  // Solución por tramos w = C1 + C2·r² + C3·ln r + C4·r²·ln r + q·r⁴/(64D); continuidad de w′ y M_r en los apoyos interiores.
+  const r0 = 155, a = 600, L = 120, Rp = a + L + 90, b = a + L + 160, t = 10, E = 2e5, nu = 0.3, q = 0.05, D = E * t ** 3 / (12 * (1 - nu * nu));
+  const segs = [[r0, a, q], [a, a + L, 0], [a + L, Rp, 0], [Rp, b, 0]];
+  const fns = (r, qq) => ({ w: [1, r * r, Math.log(r), r * r * Math.log(r)], wp: [0, 2 * r, 1 / r, 2 * r * Math.log(r) + r], wpp: [0, 2, -1 / (r * r), 2 * Math.log(r) + 3], wppp: [0, 0, 2 / r ** 3, 2 / r],
+    pw: qq * r ** 4 / (64 * D), pwp: qq * r ** 3 / (16 * D), pwpp: 3 * qq * r * r / (16 * D), pwppp: 6 * qq * r / (16 * D) });
+  const nS = segs.length, N = 4 * nS, Am = Array.from({ length: N }, () => new Array(N).fill(0)), bv = new Array(N).fill(0); let row = 0;
+  const put = (s, coef, rhs) => { coef.forEach((v, i) => { Am[row][4 * s + i] += v; }); bv[row] -= rhs; };
+  const MrC = (r, qq) => { const f = fns(r, qq); return { c: f.wpp.map((v, i) => -D * (v + nu * f.wp[i] / r)), p: -D * (f.pwpp + nu * f.pwp / r) }; };
+  const QrC = (r, qq) => { const f = fns(r, qq); return { c: f.wppp.map((v, i) => -D * (v + f.wpp[i] / r - f.wp[i] / (r * r))), p: -D * (f.pwppp + f.pwpp / r - f.pwp / (r * r)) }; };
+  { const f = fns(r0, q); put(0, f.w, f.pw); row++; put(0, f.wp, f.pwp); row++; }
+  for (let s = 0; s < nS - 1; s++) { const r = segs[s][1], fL = fns(r, segs[s][2]), fR = fns(r, segs[s + 1][2]);
+    put(s, fL.w, fL.pw); row++; put(s + 1, fR.w, fR.pw); row++;
+    put(s, fL.wp, fL.pwp); put(s + 1, fR.wp.map((v) => -v), -fR.pwp); row++;
+    const mL = MrC(r, segs[s][2]), mR = MrC(r, segs[s + 1][2]); put(s, mL.c, mL.p); put(s + 1, mR.c.map((v) => -v), -mR.p); row++; }
+  { const m = MrC(b, 0), qv = QrC(b, 0); put(nS - 1, m.c, m.p); row++; put(nS - 1, qv.c, qv.p); row++; }
+  for (let i = 0; i < N; i++) { let p = i; for (let k = i + 1; k < N; k++) if (Math.abs(Am[k][i]) > Math.abs(Am[p][i])) p = k; [Am[i], Am[p]] = [Am[p], Am[i]]; [bv[i], bv[p]] = [bv[p], bv[i]];
+    for (let k = i + 1; k < N; k++) { const f = Am[k][i] / Am[i][i]; for (let j = i; j < N; j++) Am[k][j] -= f * Am[i][j]; bv[k] -= f * bv[i]; } }
+  const C = new Array(N).fill(0); for (let i = N - 1; i >= 0; i--) { let s = bv[i]; for (let j = i + 1; j < N; j++) s -= Am[i][j] * C[j]; C[i] = s / Am[i][i]; }
+  const segOf = (r) => segs.findIndex((sg) => r >= sg[0] - 1e-9 && r <= sg[1] + 1e-9);
+  const wA = (r) => { const s = segOf(r), f = fns(r, segs[s][2]); return f.w.reduce((acc, v, i) => acc + v * C[4 * s + i], f.pw); };
+  const MrA = (r) => { const s = segOf(r), m = MrC(r, segs[s][2]); return m.c.reduce((acc, v, i) => acc + v * C[4 * s + i], m.p); };
+  const MtA = (r) => { const s = segOf(r), f = fns(r, segs[s][2]); const wp = f.wp.reduce((acc, v, i) => acc + v * C[4 * s + i], f.pwp), wpp = f.wpp.reduce((acc, v, i) => acc + v * C[4 * s + i], f.pwpp); return -D * (wp / r + nu * wpp); };
+  // FEA del núcleo con el mismo constructor de malla que usa la cubierta W (TT.stepPlate), en modo axisimétrico (sin nervios, pasadores como línea)
+  const m = TT.stepPlate({ r0, Rd: b, alpha: Math.PI / 12, t, E, nu, keyR: [a, a + L, Rp], lines: [a, a + L, Rp], h: 8, dth: Math.PI / 12 / 10, load: (rc) => (rc <= a ? q : 0), zone: (rc) => (rc < a ? "reb" : rc < a + L ? "pared" : "anillo") });
+  const r = FEA.plate(m), wF = (rr) => { let best = 0, d = 1e9; m.pol.forEach((p, k) => { if (Math.abs(p[0] - rr) < d) { d = Math.abs(p[0] - rr); best = k; } }); return r.w[best]; };
+  const rMid = (r0 + a) / 2 + 60; let wmA = 0, rwm = 0; for (let rr = r0; rr <= a; rr += 1) { const v = Math.abs(wA(rr)); if (v > wmA) { wmA = v; rwm = rr; } }
+  near(Math.abs(wF(rwm)), wmA, 0.02, "flecha máxima de la plancha rebajada");
+  near(Math.abs(wF(b)), Math.abs(wA(b)), 0.05, "flecha del borde libre del anillo (rotación transmitida por la pared)");
+  const MrF = (rr) => { let best = null, d = 1e9; m.elems.forEach((e, i) => { const c = e.map((k) => m.pol[k]), rc = c.reduce((s2, p) => s2 + p[0], 0) / 4; if (Math.abs(rc - rr) < d) { d = Math.abs(rc - rr); best = i; } }); return { M: r.el[best].M, rc: m.elems[best].map((k) => m.pol[k]).reduce((s2, p) => s2 + p[0], 0) / 4, th: m.elems[best].map((k) => m.pol[k]).reduce((s2, p) => s2 + p[1], 0) / 4 }; };
+  const mr = (rr) => { const o = MrF(rr), c = Math.cos(o.th), s2 = Math.sin(o.th); return { Mr: o.M[0] * c * c + o.M[1] * s2 * s2 + 2 * o.M[2] * s2 * c, rc: o.rc }; };
+  const eA = mr(a - 6), eP = mr(a + L / 2), eS = mr(rwm);
+  near(Math.abs(eA.Mr), Math.abs(MrA(eA.rc)), 0.04, "M_r junto al alma/pared (concentración del escalón)");
+  near(Math.abs(eP.Mr), Math.abs(MrA(eP.rc)), 0.04, "M_r en la pared desarrollada");
+  near(Math.abs(eS.Mr), Math.abs(MrA(eS.rc)), 0.04, "M_r en el vano de la plancha rebajada");
+  assert.ok(Math.abs(MtA(a)) > 0, "M_t finito");
+});
+test("W · verificaciones nuevas: pared en R_reb, soldaduras anillo–pared y pared–plancha rebajada, tamaños AWS, holguras, apoyo lateral, tapas y fatiga", () => {
+  const P = PW(), A = TT.analyze(P), g = TT.woodGeo(P), row = (re, AA) => (AA || A).checks.find((x) => re.test(x.name));
+  const need = [/^Pared del rebaje: flexión/, /^Pared del rebaje: corte/, /^Soldadura pared–plancha rebajada/, /^Soldadura anillo–pared/, /^Rebaje: filete mínimo/, /^Rebaje: penetración parcial anillo–pared cabe/,
+    /^Rebaje: tablones libres del filete interior/, /^Rebaje: huella de la carga dentro de los tablones/, /^Rebaje: alma bajo la pared/, /^Rebaje: plancha rebajada libre de los pasadores/, /^Rebaje: arandelas de los pasadores sobre el anillo/,
+    /^Rebaje: tapa retenedora y tapa de inspección en la plancha rebajada/, /^Madera: apoyo lateral de los tablones contra la pared/, /^Madera: holgura perimetral frente a la dilatación/, /^Fatiga: pared del rebaje/];
+  for (const re of need) { const c = row(re); assert.ok(c, "falta " + re); if (c.kind !== "info" && c.kind !== "pend") assert.ok(c.st === "ok", c.name + ": " + c.st + " FU " + c.fu); }
+  const pf = row(/^Pared del rebaje: flexión/), sw = row(/^Soldadura pared–plancha rebajada/);
+  assert.ok(/AISC 360-22 F11/.test(pf.ref) && /J2\.4/.test(sw.ref) && /BTH-1/.test(pf.formula), "citas");
+  near(pf.cap, 0.6 * P.Fy, 1e-12); near(sw.cap, 0.6 * P.FEXX / 2, 1e-12);
+  const e = A.fea.top.escalon, H = P.k_hmad * P.phi_d * A.R.W * 1e3, Lc = 2 * Math.min(P.D_load / 2, g.R_tablones), Mlat = 3 * (H / Lc) * g.h_c / 16, Mjog = A.fea.glob.MrReb / A.fea.glob.hcTop * g.h_c;
+  near(pf.dem, P.kFEA * e.sPared + 6 * (Mjog + Mlat) / g.t_pared ** 2, 1e-9, "σ = k_malla·σ_FEA + 6(N_r·h_c + M_lat)/t²");
+  const aw = 0.707 * P.w_pared, M = pf.dem * g.t_pared ** 2 / 6, V = A.fea.glob.MrReb / A.fea.glob.hcTop + 11 / 16 * H / Lc;
+  near(sw.dem, Math.hypot(M / (g.t_pared * aw), V / (2 * aw)), 1e-9, "2 filetes con par M/(t·a) y corte V/(2a)");
+  near(row(/^Madera: apoyo lateral/).dem, H / (Lc * P.t_wood), 1e-9, "apoyo lateral = H/(L_c·t)");
+  near(row(/^Rebaje: filete mínimo/).dem, 8, 1e-12, "AWS T5.8: el anillo de 27 mm pide 8 mm");
+  // detecta fallas
+  assert.equal(row(/^Pared del rebaje: flexión/, TT.analyze(PW({ t_pared: 8 }))).st !== "ok", true, "pared de 8 mm no cumple");
+  assert.equal(row(/^Rebaje: filete mínimo/, TT.analyze(PW({ w_pared: 6 }), { noFEA: true })).st, "fail", "6 < 8");
+  assert.equal(row(/^Rebaje: tablones libres del filete interior/, TT.analyze(PW({ c_mad: 8 }), { noFEA: true })).st, "fail", "holgura 8 < w + 2");
+  assert.equal(row(/^Rebaje: huella de la carga dentro de los tablones/, TT.analyze(PW({ D_load: 1700 }), { noFEA: true })).st, "fail");
+  assert.equal(row(/^Rebaje: alma bajo la pared/, TT.analyze(PW({ R_reb: 780 }), { noFEA: true })).st, "fail", "sin alma bajo la pared");
+  assert.equal(row(/^Rebaje: penetración parcial anillo–pared cabe/, TT.analyze(PW({ t_wood: 30 }), { noFEA: true })).st, "fail", "t_madera 30 con anillo de 27: pared de 3 mm");
+  assert.ok(!TT.analyze(TT.defaults(), { noFEA: true }).checks.some((x) => /^Rebaje:|^Pared del rebaje|^Soldadura pared/.test(x.name)), "solo con cubierta");
+});
+test("W · combinada con las interfaces A, B, C y con el modo guiado: sin NaN, cumple, izaje y térmica con la masa y la cara superior nuevas", () => {
+  for (const [nm, o] of [["A", { opt_ss: 1 }], ["B", { opt_uhmw: 1 }], ["C1", { opt_bz: 1 }], ["C3", { opt_bz: 1, bz_conf: 3 }], ["guiado", { drive_mode: 1 }]]) {
+    const A = TT.analyze(PW(o), { coarse: true });
+    assert.ok(A.checks.every((c) => c.kind === "pend" || c.kind === "info" || (isFinite(c.dem) && (c.cap == null || isFinite(c.cap)))), nm + ": sin NaN");
+    assert.ok(A.verdict.estructura && A.verdict.gira, nm + ": cumple");
+    assert.equal(A.R.m.ring, 0); assert.ok(A.R.m.wood > 0);
+  }
+  const th = TT.thermal(PW({ drive_mode: 1 }), { T: [20, 80], alts: ["base"] }).alternativas[0], b80 = th.byT.find((b) => b.T === 80);
+  const gr = b80.filas.find((x) => /Gradiente: curvatura térmica/.test(x.nombre)), g = TT.woodGeo(PW());
+  assert.ok(gr && gr.formula.includes("h = h_mesa − d_rebaje = " + (TT.defaults().h_disc - g.d_rebaje) + " mm"), "gradiente con la altura de la caja dentro del rebaje");
+  const hold = b80.filas.find((x) => /Madera: holgura perimetral frente a la dilatación transversal a T/.test(x.nombre)); assert.ok(hold && hold.estado === "ok", "holgura térmica de los tablones");
 });
 
 test("4.ª pasada · filete mejillas–base: mínimo AWS D1.1 T5.8 (parte más gruesa) y máximo AISC 360-22 J2.2b (borde de la mejilla)", () => {

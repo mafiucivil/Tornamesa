@@ -130,6 +130,12 @@ const AG = (() => {
     let vTop = 0; const nI = 4000;
     for (let i = 0; i < nI; i++) { const r = hole / 2 + (Rt - hole / 2) * (i + 0.5) / nI; vTop += 2 * Math.PI * r * (Rt - hole / 2) / nI * (r < rpr ? P.t_top : tprx); }
     vTop -= P.N_pin * Math.PI / 4 * P.d_pin ** 2 * tprx;
+    if (P.opt_wood > 0.5) {   // cubierta W: anillo (t = máx(t_pr, t_top) desde R_reb) + pared (R_reb…R_reb + t_pared, alto t_madera − t_anillo) + plancha rebajada (Ø hole … R_reb + t_pared + w_pared + 5)
+      const tR = P.t_reb > 0 ? P.t_reb : P.t_top, tP = P.t_pared > 0 ? P.t_pared : P.t_top, tA = Math.max(P.t_pr, P.t_top), Rq = P.R_reb + tP + P.w_pared + 5;
+      vTop = 0; const nW = 40000;   // malla fina: la pared mide t_pared de ancho
+      for (let i = 0; i < nW; i++) { const r = hole / 2 + (Rt - hole / 2) * (i + 0.5) / nW, dA = 2 * Math.PI * r * (Rt - hole / 2) / nW; vTop += dA * ((r >= P.R_reb ? tA : 0) + (r <= Rq ? tR : 0) + (r >= P.R_reb && r <= P.R_reb + tP ? P.t_wood - tA : 0)); }
+      vTop -= P.N_pin * Math.PI / 4 * P.d_pin ** 2 * tA;
+    }
     const mTop = 7.85e-6 * vTop;
     add("Masa plancha superior", R.m.top, mTop, 0.01, "kg");
     return out;

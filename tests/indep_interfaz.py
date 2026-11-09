@@ -21,7 +21,7 @@ Cambios del núcleo modelados aquí (cada uno con su fórmula en el código):
     el chaflán a_inf²·L (2 cantos × a_inf²/2); en la lámina UHMW la franja libre (b_tope + j)·(R_o − R_i)·t en lugar de la junta; con pegado (fix_mode = 2)
     ni muescas ni chaflanes (UHMW conserva la junta); en C3 la junta ya está en la cobertura. La masa rotatoria m.ssTop queda bruta.
   - Filete mejillas–base: mínimo AWS D1.1 T5.8 por la parte más gruesa sin exceder la más delgada; máximo AISC 360-22 J2.2b en el borde de la mejilla (t − 2 mm).
-  - Cubierta de madera: anillo de acero t_ring × t_madera en el borde; los tablones van dentro del anillo (indep_nuevas.py).
+  - Cubierta de madera W (rebaje, 08-11-2026): anillo superior + pared + plancha rebajada, tablones enrasados, sin anillo de contención (5k; detalle en indep_madera.py).
 
 Ejecutar:  python3 -I tests/indep_interfaz.py   (≈ 5-6 min: barridos, umbrales y FEA de referencia)
 Imprime tablas y termina con «RESULTADO: ...». Sale con 0 si no hay discrepancias numéricas ni hallazgos críticos ni importantes; con 1 si los hay;
@@ -1628,7 +1628,7 @@ def check_cuts(case, DDx, PPx):
         comp("4h", f"{case} · junta_sector (mm)", js[0], ig["junta_sector"])
     if any(c_["tgt"] == "uhmw" for c_ in mine):
         comp("4h", f"{case} · junta_uhmw (mm)", next(c_["j"] for c_ in mine if c_["tgt"] == "uhmw"), ig["junta_uhmw"])
-    comp("4h", f"{case} · j_sec / tol_hc / t_ring del interfazGeom", PPx["j_sec"] + 1000 * PPx["tol_hc"] + 1e6 * PPx["t_ring"], ig["j_sec"] + 1000 * ig["tol_hc"] + 1e6 * ig["t_ring"])
+    comp("4h", f"{case} · j_sec / tol_hc del interfazGeom", PPx["j_sec"] + 1000 * PPx["tol_hc"], ig["j_sec"] + 1000 * ig["tol_hc"])
     # masa por sector (ISO 11228-1, neta)
     if PPx["fix_mode"] == 1:
         for sm in ig["sector_masa"]:
@@ -2392,47 +2392,73 @@ print(f"5j: geometría del accionamiento reflejada en {sg_ok} de {sg_n} puntos; 
       f"filete de las barras w_tope = {P['w_tope']:g} mm frente al máximo J2.2b del borde de la barra (b_tope − 2 = {s3(jmax_aisc(P['b_tope']))} mm): no limita")
 
 # ======================================================================================
-# 5k. Cubierta de madera con anillo de acero (4.ª pasada): anillo t_ring × t_madera en el borde, tablones dentro del anillo
+# 5k. Cubierta de madera W (rebaje, decisión del mandante 08-11-2026): anillo superior R_reb…R (t = máx(t_pr, t_top)), pared R_reb…R_reb + t_pared,
+#     plancha rebajada continua t_madera abajo, almas/nervios/cubo/pivote más bajos y tablones enrasados; sin anillo de contención (m.ring = 0)
 # ======================================================================================
-def madera_masas(PP):
-    """tablones: ρ_w·π/4·((D − 2·t_ring)² − Ø_abertura²)·t_w, Ø_abertura = D_piv + 80; anillo de acero: 7,85e-6·π/4·(D² − (D − 2·t_ring)²)·t_w (alto = espesor de los tablones)"""
-    D_, tr_, tw_ = PP["D_top"], PP["t_ring"], PP["t_wood"]; Dh = PP["D_piv"] + 80
-    return PP["rho_wood"] * 1e-9 * math.pi / 4 * ((D_ - 2 * tr_) ** 2 - Dh ** 2) * tw_, RHO * math.pi / 4 * (D_ ** 2 - (D_ - 2 * tr_) ** 2) * tw_
+def madera_W(PP):
+    """(masa de los tablones, Δ masa de acero de la mesa respecto de la mesa sin rebaje, Δ largo del pivote). Tablones: franjas de ancho b_tab y junta j_tab
+    dentro de R_w = R_reb − c_mad, menos la abertura R_ab = (D_piv + 120)/2 + c_mad, integradas numéricamente (Simpson) — sin las fórmulas del núcleo."""
+    tW, tT, tB = PP["t_wood"], PP["t_top"], PP["t_bot"]
+    tR = PP["t_reb"] or tT; tP = PP["t_pared"] or tT; tA = max(PP["t_pr"], tT)
+    Rt = PP["D_top"] / 2; Rr = PP["R_reb"]; Rp = Rr + tP; Rq = Rp + PP["w_pared"] + 5; hole = PP["D_piv"] + 80
+    hw = PP["h_disc"] - tT - tB; hwr = PP["h_disc"] - tB - tW - tR
+    rings = sorted(float(x) for x in PP["rings"].replace(";", ",").split(",") if x.strip())
+    rpr = max(PP["D_hub"] / 2, PP["R_pin"] - (Rt - PP["R_pin"])); ap = PP["N_pin"] * math.pi / 4 * PP["d_pin"] ** 2
+    top0 = (math.pi * rpr ** 2 - math.pi / 4 * hole ** 2) * tT + (math.pi * (Rt ** 2 - rpr ** 2) - ap) * max(PP["t_pr"], tT)
+    topW = (math.pi * (Rt ** 2 - Rr ** 2) - ap) * tA + math.pi * (Rp ** 2 - Rr ** 2) * (tW - tA) + math.pi * (Rq ** 2 - (hole / 2) ** 2) * tR
+    assert all(r <= Rp for r in rings) and PP["R_rib"] <= Rp, "5k cubre almas y nervios dentro del rebaje"
+    dh = hwr - hw
+    nin = sum(1 for r in rings if PP["D_hub"] / 2 < r < PP["R_rib"])
+    dsteel = topW - top0 + sum(2 * math.pi * r * dh * PP["t_web"] for r in rings) + PP["N_rib"] * (PP["R_rib"] - PP["D_hub"] / 2 - nin * PP["t_web"]) * dh * PP["t_rib"]
+    D_rec, dep = collar_rebaje(PP, 0.0); db = PP["D_piv"] + 30
+    hub = lambda h: math.pi / 4 * (PP["D_hub"] ** 2 - db ** 2) * h - (math.pi / 4 * (D_rec ** 2 - db ** 2) * min(max(dep - tB, 0.0), h) if D_rec > db else 0.0)
+    dsteel += hub(hwr) - hub(hw)
+    Rw, Rab, b, j = Rr - PP["c_mad"], (PP["D_piv"] + 120) / 2 + PP["c_mad"], PP["b_tab"], PP["j_tab"]
+    def strips(odd):
+        y00 = -b / 2 if odd else j / 2; out = []
+        for k in range(-40, 41):
+            y0 = y00 + k * (b + j); a0, a1 = max(y0, -Rw), min(y0 + b, Rw)
+            if a1 - a0 > 1e-9: out.append((a0, a1))
+        return out
+    L1, L0 = strips(True), strips(False); wof = lambda L: min(L[0][1] - L[0][0], L[-1][1] - L[-1][0])
+    L = L1 if wof(L1) >= wof(L0) else L0
+    ch = lambda R, y: 2 * math.sqrt(max(0.0, R * R - y * y))
+    def simpson(f, a_, b_, n=400):
+        h = (b_ - a_) / n; return h / 3 * (f(a_) + f(b_) + sum((4 if i % 2 else 2) * f(a_ + i * h) for i in range(1, n)))
+    area = sum(simpson(lambda y: ch(Rw, y) - ch(Rab, y), y0, y1) for y0, y1 in L)
+    return PP["rho_wood"] * 1e-9 * area * tW, RHO * dsteel, -(tW + tR - tT), len(L)
 
 
-def q_madera(PP, mw, mr):
-    """q_máx de la opción 0 con la cubierta: Wd = (mesa + ½ pivote + tablones + anillo)·g"""
+def q_madera(PP, mw, dst, dpiv):
+    """q_máx de la opción 0 con la cubierta W: Wd = (mesa + Δacero + tablones + ½ pivote más corto)·g"""
     Ro_, Ri_, A_, I_, ru_ = geom(PP); m_mesa_, rho_piv_ = mesa(PP, 0.0)
-    Wd_ = (m_mesa_ + 0.5 * rho_piv_ * (PP["t_base"] + PP["h_disc"] - PP["t_top"] + 3) + mw + mr) * g0 / 1e3
+    Wd_ = (m_mesa_ + dst + 0.5 * rho_piv_ * (PP["t_base"] + PP["h_disc"] - PP["t_top"] + dpiv + 3) + mw) * g0 / 1e3
     ND_ = PP["phi_d"] * PP["W_tf"] * g0 + Wd_
     return Wd_, ND_ * 1e3 / A_ + ND_ * 1e3 * PP["e"] * Ro_ / I_
 
 
-WOOD_OV = [{"opt_wood": 1}, {"opt_wood": 1, "t_ring": 6}, {"opt_wood": 1, "t_ring": 15}, {"opt_wood": 1, "t_wood": 30}, {"opt_wood": 1, "t_wood": 80, "t_ring": 8},
-           {"opt_wood": 1, "rho_wood": 750}, {"opt_wood": 1, "opt_ss": 1}, {"opt_wood": 1, "D_top": 1800}]
+WOOD_OV = [{"opt_wood": 1}, {"opt_wood": 1, "t_wood": 50}, {"opt_wood": 1, "t_wood": 60}, {"opt_wood": 1, "t_reb": 25}, {"opt_wood": 1, "c_mad": 20, "b_tab": 150},
+           {"opt_wood": 1, "rho_wood": 750}, {"opt_wood": 1, "opt_ss": 1}, {"opt_wood": 1, "t_pared": 16, "w_pared": 10}]
 prefetch(WOOD_OV)
 rows = []
 for ov in WOOD_OV:
     DDw = export_c(ov)
     if DDw is None:
         continue
-    Pw_ = DDw["P"]; mw, mr = madera_masas(Pw_); mmw = DDw["derivados"]["masas"]; cub = DDw["cubierta"]
-    ring_row = next(c_ for c_ in cub["checks"] if c_["nombre"].startswith("Anillo de acero"))
+    Pw_ = DDw["P"]; mw, dst, dpiv, nt = madera_W(Pw_); mmw = DDw["derivados"]["masas"]; cub = DDw["cubierta"]
     tag = ",".join(f"{k_}={v_}" for k_, v_ in ov.items() if k_ != "opt_wood") or "defecto"
     comp("5k", f"madera {tag}: m.wood tablones (kg)", mw, mmw["wood"]); comp("5k", f"madera {tag}: cubierta.mWood (kg)", mw, cub["mWood"])
-    comp("5k", f"madera {tag}: m.ring anillo (kg)", mr, mmw["ring"]); comp("5k", f"madera {tag}: fila del anillo (kg)", mr, ring_row["dem"])
-    comp("5k", f"madera {tag}: cubierta.dMasa = tablones + anillo (kg)", mw + mr, cub["dMasa"])
-    DD0 = export_c({k_: v_ for k_, v_ in ov.items() if k_ not in ("opt_wood", "t_ring", "t_wood", "rho_wood")})
-    comp("5k", f"madera {tag}: Δ m.total respecto de la misma mesa sin madera (kg)", mw + mr, mmw["total"] - DD0["derivados"]["masas"]["total"])
-    comp("5k", f"madera {tag}: m.disc incluye tablones y anillo (kg)", mw + mr, mmw["disc"] - DD0["derivados"]["masas"]["disc"])
+    comp("5k", f"madera {tag}: N° de tablones", nt, DDw["madera"]["tablones"]["n"])
+    comp("5k", f"madera {tag}: m.ring = 0 (sin anillo de contención)", 0.0, mmw["ring"])
+    DD0 = export_c({k_: v_ for k_, v_ in ov.items() if k_ not in ("opt_wood", "t_wood", "rho_wood", "t_reb", "c_mad", "b_tab", "t_pared", "w_pared")})
+    comp("5k", f"madera {tag}: Δ m.disc = Δacero + tablones (kg)", dst + mw, mmw["disc"] - DD0["derivados"]["masas"]["disc"])
+    comp("5k", f"madera {tag}: Δ pivote (kg)", RHO * math.pi / 4 * Pw_["D_piv"] ** 2 * dpiv, mmw["pivot"] - DD0["derivados"]["masas"]["pivot"])
     if "opt_ss" not in ov:
-        Wd_w, qw = q_madera(Pw_, mw, mr)
+        Wd_w, qw = q_madera(Pw_, mw, dst, dpiv)
         comp("5k", f"madera {tag}: Wd sobre la interfaz (kN)", Wd_w, DDw["apoyo"]["Wd"]); comp("5k", f"madera {tag}: q_máx de la interfaz (MPa)", qw, DDw["derivados"]["q_max"])
-    rows.append([tag, s3(mw), s3(mmw["wood"]), s3(mr), s3(mmw["ring"]), s3(mw + mr), s3(cub["dMasa"])])
-table("5k. Cubierta de madera con anillo de acero: tablones dentro del anillo (D − 2·t_ring) y anillo ρ_acero·π/4·(D² − (D − 2·t_ring)²)·t_madera; propio frente a núcleo",
-      ["Caso", "tablones propio kg", "tablones núcleo kg", "anillo propio kg", "anillo núcleo kg", "Σ propio kg", "dMasa núcleo kg"], rows)
-_mw0, _mr0 = madera_masas(dict(P, opt_wood=1))
-print(f"Madera por defecto: tablones {s3(_mw0)} kg (sin anillo serían {s3(P['rho_wood']*1e-9*math.pi/4*(P['D_top']**2-(P['D_piv']+80)**2)*P['t_wood'])} kg), anillo {s3(_mr0)} kg, Σ {s3(_mw0 + _mr0)} kg")
+    rows.append([tag, s3(mw), s3(mmw["wood"]), s3(dst), s3(mw + dst), s3(cub["dMasa"])])
+table("5k. Cubierta de madera W (rebaje): tablones por franjas (Simpson) y Δ de acero de la mesa (anillo + pared + plancha rebajada − plancha superior, almas, nervios y cubo más bajos); propio frente a núcleo",
+      ["Caso", "tablones propio kg", "tablones núcleo kg", "Δ acero propio kg", "Δ mesa propio kg", "dMasa núcleo kg"], rows)
 
 # invariancia de la opción 0 frente a los parámetros nuevos
 ok0 = True
