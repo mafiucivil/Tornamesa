@@ -285,13 +285,11 @@ def tornillos(ctx):
 
 def gdt_vistas(ctx, hojas):
     """B-20: en cada lámina de pieza, cada tolerancia geométrica de la tabla tiene su marco dibujado en una vista (sobre la superficie o la cota que controla),
-    cada letra de datum citada tiene su indicador ISO 5459 en una vista, y ninguna indicación declarada quedó sin lugar.
-    Fuera del alcance de esta emisión: láminas del accionamiento (ACC-* y las piezas de ménsula y bancada), que se redibujan con el modo pivotado."""
+    cada letra de datum citada tiene su indicador ISO 5459 en una vista, y ninguna indicación declarada quedó sin lugar. Incluye todas las láminas del accionamiento."""
     out = []
-    acc = {p.code for p in ctx.m.parts if p.key.startswith(("mensula", "bancada", "cilindro", "patin", "una", "pasador_vastago", "pasador_ojal"))}
     for h in hojas:
         t = h.plano.replace(CODE + "-", "")
-        if getattr(h, "serie", "") != "FAB" or t.startswith("ACC") or set(getattr(h, "items", []) or []) & acc:
+        if getattr(h, "serie", "") != "FAB":
             continue
         items = getattr(h, "gd_items", None) or []
         ok = getattr(h, "indic_ok", []) or []
@@ -309,7 +307,41 @@ def gdt_vistas(ctx, hojas):
     return out
 
 
+def cadenas_cerradas(ctx, hojas):
+    """ISO 129-1 §5.3: en una misma vista y dirección no se acotan todos los eslabones de una cadena y además su total
+    (sobreacotado). Se buscan cotas cuyo intervalo es exactamente la unión de una cadena de ≥ 2 cotas contiguas de la misma vista;
+    las cotas auxiliares (entre paréntesis) y las teóricamente exactas (recuadro) no cuentan."""
+    from vistas import COTAS
+    tol = 0.06
+    out = []
+    grp = {}
+    for r in COTAS.rows:
+        e = r.get("eje")
+        if not e or e[3] or str(r["texto"]).strip().startswith("(") or e[2] - e[1] < 0.05:
+            continue
+        grp.setdefault((r["sheet"], r["vista"], e[0]), []).append((e[1], e[2], r["texto"]))
+    for (sh, vi, ori), L in grp.items():
+        segs = sorted(set((round(a, 2), round(b, 2), t) for a, b, t in L))
+        for (A, B, tt) in segs:
+            inner = [(a, b, t) for a, b, t in segs if (a, b) != (A, B) and a >= A - tol and b <= B + tol]
+            # ¿hay camino de A a B con eslabones contiguos?
+            front, seen, camino = [(A, [])], set(), None
+            while front and camino is None:
+                x, path = front.pop()
+                for a, b, t in inner:
+                    if abs(a - x) <= tol and (a, b) not in seen:
+                        seen.add((a, b))
+                        if abs(b - B) <= tol and len(path) + 1 >= 2:
+                            camino = path + [t]
+                            break
+                        front.append((b, path + [t]))
+            if camino:
+                out.append(f"{sh.replace(CODE + '-', '')} · {vi}: cadena cerrada {' + '.join(camino)} = {tt}")
+    return sorted(set(out))
+
+
 def todos(ctx, hojas):
     import hojas_gen
-    res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas))
+    res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas),
+               cadenas_cerradas=cadenas_cerradas(ctx, hojas))
     return res

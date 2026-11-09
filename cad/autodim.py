@@ -412,14 +412,25 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
                 chain.pop(k)
         lv = lvl
         dimf = V.dimh if axis == 0 else V.dimv
+        # ISO 129-1: cadena completa + total = sobreacotado. Si se dibujan ambos, un elemento queda auxiliar (entre paréntesis, sin tolerancia):
+        # el total, salvo que el total sea la cota funcional (lleva tolerancia o texto propio): entonces el eslabón mayor sin tolerancia.
+        full = (len(chain) > 2) and overall
+        tot_lab = label(abs(hi[0] - lo[0]))
+        tot_func = full and (tot_lab != numtxt(abs(hi[0] - lo[0])))
+        aux_k = None
+        if tot_func:
+            vals = [(abs(b[0] - a[0]), i) for i, (a, b) in enumerate(zip(chain, chain[1:])) if abs(b[0] - a[0]) >= 0.2 and label(abs(b[0] - a[0])) == numtxt(abs(b[0] - a[0]))]
+            aux_k = max(vals)[1] if vals else None
+            if aux_k is None:
+                tot_func = False
         if len(chain) > 2 or (len(chain) == 2 and not overall):
             txts = []
-            for a, b in zip(chain, chain[1:]):
+            for i_, (a, b) in enumerate(zip(chain, chain[1:])):
                 val = abs(b[0] - a[0])
                 if val < 0.2:
                     continue
-                t_ = label(val)
-                txts.append(t_)
+                t_ = label(val) if i_ != aux_k else f"({numtxt(val)})"
+                txts.append(t_.strip("()") if i_ == aux_k else t_)
                 dimf(a[1], b[1], side, lv, on=on, text=t_, virt_a=a[2], virt_b=b[2])
             lv += 1
             tot_txt = label(abs(hi[0] - lo[0]))
@@ -433,7 +444,8 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         if overall or len(chain) <= 2:
             if len(chain) > 2 or len(chain) == 2:
                 val = abs(hi[0] - lo[0])
-                dimf(lo[1], hi[1], side, lv, on=on, text=label(val), virt_a=lo[2], virt_b=hi[2])
+                t_tot = f"({numtxt(val)})" if (full and not tot_func) else label(val)
+                dimf(lo[1], hi[1], side, lv, on=on, text=t_tot, virt_a=lo[2], virt_b=hi[2])
         return lv + 1
 
     if rev is not None:

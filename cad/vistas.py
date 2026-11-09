@@ -595,9 +595,11 @@ class View:
         self.S.leader(p, (p[0] + off[0], p[1] + off[1]), text, lines=lines, dot=dot)
 
     # -- acotado con verificación --
-    def _check(self, p3a, p3b, value, text, on, virt_a=None, virt_b=None, tipo="lineal"):
+    def _check(self, p3a, p3b, value, text, on, virt_a=None, virt_b=None, tipo="lineal", eje=None):
         keys = on or self.keys
         res = {"vista": self.label, "texto": text, "valor_dibujo": round(value, 3), "tipo": tipo}
+        if eje is not None:
+            res["eje"] = eje                  # (orientación, extremo a, extremo b, TED): control de cadenas cerradas
         da = COTAS.axis_ok(p3a, virt_a, keys) if virt_a else COTAS.dist_to_surface(p3a, keys)
         db = COTAS.axis_ok(p3b, virt_b, keys) if virt_b else COTAS.dist_to_surface(p3b, keys)
         ok_a = da is True or (not isinstance(da, bool) and da < 0.05)
@@ -617,7 +619,11 @@ class View:
         val = abs(ub - ua) if orient == "h" else abs(vb - va) if orient == "v" else math.hypot(ub - ua, vb - va)
         # valor 3D real a lo largo de la dirección acotada (la vista no debe distorsionar: se mide en pantalla = en el modelo)
         txt = clean_label(text if text is not None else f"{prefix}{numtxt(val, n)}{suffix}")
-        self._check(p3a, p3b, val, txt, on, virt_a, virt_b)
+        eje = None
+        if orient in ("h", "v"):
+            k_ = 0 if orient == "h" else 1
+            eje = (orient, round(min((ua, va)[k_], (ub, vb)[k_]), 3), round(max((ua, va)[k_], (ub, vb)[k_]), 3), bool(kw.get("ted")))
+        self._check(p3a, p3b, val, txt, on, virt_a, virt_b, eje=eje)
         self.S.dim(self.P(p3a), self.P(p3b), off, txt, orient, **kw)
         return val
 
