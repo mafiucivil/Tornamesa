@@ -216,7 +216,7 @@ table(["Campo", "Valor"], [
     ["Alcance de la revisión", "Accionamiento pivotado tipo KIET por defecto (7.2), placa-guía curva (7.3) y su comparación con el diseño original y con el concepto KIET (7.4); guiado con riel-leva como alternativa (7.5, 7.6); tornillos avellanados AF2 (6.3); alternativas de interfaz base, A, B, C1, C2 y C3 (capítulo 9) y escenario solar a 80 °C de placas y disco (capítulo 10). Cubierta de madera W: EN STAND BY, fuera de esta entrega (6.2). Datos faltantes en el capítulo 12 y modificaciones de la Rev. C en el capítulo 15"],
     ["Normas principales", "AISC 360-22 (ASD); ASME BTH-1, Categoría de diseño B (Nd = 3,0); AWS D1.1/D1.1M:2020"],
 ], widths=(50, 120), size=9.5)
-table(["", "Nombre", "Firma", "Fecha"], [["Elaboró", "", "", ""], ["Revisó (ingeniero calculista habilitado)", "", "", ""], ["Aprobó", "", "", ""]], widths=(25, 65, 45, 35), size=9.5)
+table(["", "Nombre", "Firma", "Fecha"], [["Elaboró", "", "", ""], ["Revisó (ingeniero calculista habilitado)", "", "", ""], ["Aprobó", "", "", ""]], widths=(45, 55, 40, 30), size=9.5)
 LEYENDA = ("ESTA MEMORIA DE CÁLCULO ES UN DOCUMENTO EMITIDO PARA REVISIÓN. NO ES VÁLIDA PARA FABRICACIÓN NI PARA MONTAJE HASTA SU REVISIÓN, APROBACIÓN Y FIRMA "
            "POR UN INGENIERO CALCULISTA HABILITADO, QUIEN ASUME LA RESPONSABILIDAD PROFESIONAL DEL CÁLCULO.")
 T(LEYENDA, bold=True, size=9, align=WD_ALIGN_PARAGRAPH.CENTER, after=6)
@@ -529,15 +529,17 @@ T(STANDBY_W, bold=True, size=9.5)
 AF2 = ACC["af2"]; TOR = AF2["tornillos"]
 H("6.3 Opción A pegada (AF2): tornillos avellanados del disco de la mesa", 2)
 T("Hipótesis. Decisión del mandante del 08-11-2026: en la opción A con fijación permanente (opt_ss = 1, fix_mode = 2, «AF2») el par de la interfaz pasa del disco inoxidable de la mesa "
-  "a la plancha inferior de la mesa con tornillos avellanados ISO 10642 clase 10.9, roscados en la plancha. El núcleo elige el número n como el menor múltiplo del número de ranuras radiales de engrase "
-  "con FU ≤ 0,85 y el radio r entre la ranura circunferencial exterior y el borde (cabeza a 5 mm de la ranura). Datos de TT.designDrive (clave tornillos_interfaz), modo pivotado por defecto.", size=9)
+  f"a la mesa con tornillos avellanados ISO 10642 clase 10.9. Ubicación según el núcleo: {TOR.get('aplica', '')}. {TOR['nota'][0].upper() + TOR['nota'][1:] if TOR.get('nota') else ''} "
+  "Datos de TT.designDrive (clave tornillos_interfaz), modo pivotado por defecto.", size=9)
 table(["Dato", "Valor", "Fuente"], [
     ["Designación", TOR["designacion"], "ISO 10642; registro, «Tornillos avellanados del disco de la mesa (AF2)»"],
-    ["Número y radio", f"{pint(TOR['n'])} tornillos en R{pint(TOR['r'])} (PCD {pint(TOR['PCD'])} mm), a {n(TOR['angulos_deg'][0])}° + k·{n(360 / TOR['n'])}°, entre las ranuras radiales", "Núcleo (n automático, FU ≤ 0,85)"],
+    ["Número y radio", f"{pint(TOR['n'])} tornillos en R{pint(TOR['r'])} (PCD {pint(TOR['PCD'])} mm), primer ángulo {n(TOR['angulos_deg'][0])}°", "Núcleo (tornillos_interfaz.angulos_deg)"],
     ["Avellanado en la cara de deslizamiento del disco de la mesa", f"Ø{pint(TOR['avellanado']['d_cabeza'])} × {pint(TOR['avellanado']['angulo_deg'])}°, profundidad k = {n(TOR['avellanado']['prof'])} mm; cabeza {n(TOR['avellanado']['bajo_cara'])} mm bajo la cara", "ISO 10642 (k máx.)"],
-    ["Rosca en la plancha inferior de la mesa", f"M{pint(TOR['rosca_en_mesa']['d'])} × {n(TOR['rosca_en_mesa']['paso'])}, pasante en t = {pint(TOR['t_plancha_mesa'])} mm, broca Ø{n(TOR['rosca_en_mesa']['d_broca'])}", "VDI 2230 (orientativo)"],
+    ["Rosca en la mesa", f"M{pint(TOR['rosca_en_mesa']['d'])} × {n(TOR['rosca_en_mesa']['paso'])} en {TOR.get('pieza_roscada', TOR['rosca_en_mesa'].get('pieza', 'la plancha inferior'))}; "
+     + (f"ciega, taladro {n(TOR['rosca_en_mesa']['prof_taladro'])} mm, remanente {n(TOR['rosca_en_mesa']['remanente'])} mm, engrane {n(TOR['rosca_en_mesa']['engrane'])} mm" if TOR['rosca_en_mesa'].get('ciega') else f"pasante en t = {pint(TOR['t_plancha_mesa'])} mm")
+     + f"; broca Ø{n(TOR['rosca_en_mesa']['d_broca'])}", "VDI 2230 (orientativo)"],
     ["Fuerza por tornillo", f"V = T_dis/(n·r) = {n(TOR['V_por_tornillo_kN'], unit='kN')}", "Equilibrio"],
-    ["Fu del disco / de la plancha", f"{pint(P['Fu_ss'])} / {pint(P['Fu'])} MPa", "ASTM A240 304; ASTM A572 Gr.50"],
+    ["Fu del disco / de la pieza roscada", f"{pint(P['Fu_ss'])} / {pint(P['Fu'])} MPa", "ASTM A240 304; ASTM A572 Gr.50"],
 ], widths=(55, 70, 45), size=8)
 T("Desarrollo. Criterios del registro (docs/normas/registro.md, «Tornillos avellanados del disco de la mesa (AF2)»):", bold=True, size=9, after=1)
 table(["Verificación", "Criterio", "Referencia", "Nota"], reg_rows("Tornillos avellanados del disco de la mesa (AF2)"), widths=(32, 55, 45, 38), size=7.5)
@@ -553,7 +555,7 @@ assert AF2["tss2"] > t_flex_com, "AF2: el disco de la mesa ya no lo fija la cabe
 T(f"Resultado: los {pint(TOR['n'])} tornillos {TOR['designacion']} en R{pint(TOR['r'])} cumplen todas las verificaciones (FU máximo {fu3(_fu)}: {_fun[6:].lower() if _fun.startswith('AF2 · ') else _fun}). "
   f"El disco inoxidable de la mesa pasa de {pint(t_flex_com)} a {pint(AF2['tss2'])} mm: por flexión sobre el vacío local basta t_req = {n(AF2['tss2Req'])} mm (comercial {pint(t_flex_com)} mm), "
   f"pero la cabeza avellanada exige k + 0,5 + sobreespesor = {n(_cab['dem'])} mm ≤ t, lo que lleva al comercial de {pint(AF2['tss2'])} mm. El disco de la base queda en {pint(AF2['tss'])} mm. "
-  f"Masa total de AF2 con el modo pivotado: {n(AF2['masa'], 5, 'kg')}; FS de giro {n(AF2['FS'])}.", bold=True, size=9)
+  f"Masa total de AF2 con el modo pivotado: {n(AF2['masa'], 5, 'kg')}; FS de giro {fu3(AF2['FS'])}.", bold=True, size=9)
 
 # ================================================================= 7. ACCIONAMIENTO
 assert D["modo"] == 2 and P["drive_mode"] == 2 and PVM["drive_mode"] == 2 and GUM["drive_mode"] == 1, "la memoria está redactada con el modo pivotado por defecto"
@@ -793,7 +795,7 @@ _h, _rows = md_table(CAMB, "2. Inconsistencias")
 T("Hipótesis: diseño original de la placa-leva poligonal (commit b928552, valores por defecto). Las inconsistencias se transcriben del registro del cambio:", size=9, after=1)
 table(_h, _rows, widths=(10, 95, 65), size=7.5)
 T(f"Resultado: el perfil original no era fabricable tal como se exportaba (canto que invade el seguidor), su sincronía declarada ({n(ORIG['placa_leva']['sincronia'])} mm) no era alcanzable y el empuje no estaba verificado con Q apoyado en el canto. "
-  "Las nueve se corrigen con la placa-guía curva (7.3.2 a 7.3.5) y la cara cilíndrica del bloque-uña (7.2.5).", bold=True, size=9)
+  f"Las {len(_rows)} se corrigen con la placa-guía curva (7.3.2 a 7.3.5) y la cara cilíndrica del bloque-uña (7.2.5).", bold=True, size=9)
 
 H("7.3.2 Construcción de la curva", 3)
 SC_, SK_ = PL_["segmentos_centro"], PL_["segmentos_canto"]
@@ -923,7 +925,7 @@ okf = [f_["nombre"] for f_ in FAM if f_["veredicto"]["estructura"]]
 nok = [f_ for f_ in FAM if not f_["veredicto"]["estructura"]]
 T(f"Resultado: cumplen las familias {', '.join(pint(f_['cam_mat']) for f_ in FAM if f_['veredicto']['estructura'])}"
   + (f"; no cumple la {', '.join(pint(f_['cam_mat']) for f_ in nok)} ({'; '.join(c['nombre'] for f_ in nok for c in f_['fallas'])})" if nok else "")
-  + ". En las familias 2 a 4 la forma de la zapata sobre el canto curvo queda PENDIENTE (fila «pend»: una zapata plana no apoya sobre radios de 74 a 79 mm); por eso el diseño por defecto usa la familia 1 "
+  + f". En las familias 2 a 4 la forma de la zapata sobre el canto curvo queda PENDIENTE (fila «pend»: una zapata plana no apoya sobre radios de {pint(PL_['radio_min_canto']['concavo'])} a {pint(PL_['radio_min_canto']['convexo'])} mm); por eso el diseño por defecto usa la familia 1 "
   "(acero templado), que no tiene zapata.", bold=True, size=9)
 
 # ---------------------------------------------------------------- 7.4 COMPARACIÓN ORIGINAL / CURVA / KIET
@@ -1243,7 +1245,7 @@ T(f"Resultado: las seis alternativas giran con FS ≥ {n(P['FS_min'])} y verific
   f"El FU máximo global es {fu3(AL['base']['veredicto']['fuMax'])} en todas: lo fijan límites geométricos y de presión (p. ej. alivio igual a la presión nominal del cilindro; filete mínimo igual al adoptado), no la resistencia.", bold=True, size=9)
 
 # ---- 9.2 topes
-H("9.2 Topes de los sectores (h_c,mín = 6 mm, tol_hc = 1 mm)", 2)
+H(f"9.2 Topes de los sectores (h_c,mín = {n(P['hc_min'])} mm, tol_hc = {n(P['tol_hc'])} mm)", 2)
 T("Hipótesis. Cada sector se retiene con un tope: barra soldada al respaldo que apoya sobre el canto del sector. La altura de contacto h_c = t − a_sup − a_inf no baja de h_c,mín y el aplastamiento se verifica con h_c − tol_hc. "
   "El largo del tope es L = máx(aplastamiento; soldadura)/0,9, limitado por el canto radial disponible (R_o − R_i − 100 mm). F_tope = (T_calado/r_u)/n·(q_máx/q_med). ASME BTH-1 §3-3.3 y §3-3.4 (Nd del proyecto), AWS D1.1/D1.1M:2020 para el filete.", size=9)
 rows = []
@@ -1283,7 +1285,7 @@ T(f"Resultado: R_i = {n(AL['base']['Ri'])} mm con holgura m_ri = {n(P['m_ri'])} 
   "el cubo no se rebaja.", bold=True, size=9)
 
 # ---- 9.4 orejas
-H("9.4 Orejas de izaje (R = 92 mm, Ø agujero 45 mm)", 2)
+H(f"9.4 Orejas de izaje (R = {pint(P['R_ear'])} mm, Ø agujero {pint(P['d_ear'])} mm)", 2)
 T(f"Hipótesis. Cuatro orejas de plancha t = {n(P['t_ear'])} mm en la base, c_lug = {n(P['c_lug'])} mm y x_lug = {n(P['x_lug'])} mm, grillete de pasador Ø {n(P['d_ear'] - P['g_ear'])} mm (holgura g = {n(P['g_ear'])} mm), "
   "3 ramales efectivos a 60°. Resistencia con ASME BTH-1 §3-2 y §3-3 (Nd = 3,0) y AISC 360-22 §D5; geometría de la oreja con AISC 360-22 §D5.2: extensión a ≥ 1,33·b_e y ancho 2R ≥ 2·b_e + d, con b_e = mín(2t + 16; (2R − d)/2).", size=9)
 table(CH, [crow(c) for c in AL["base"]["orejas"]], widths=CW, size=6.5, num_cols=(2, 3, 5))
