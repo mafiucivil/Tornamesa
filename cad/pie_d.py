@@ -108,7 +108,6 @@ def sheet_cilindro_pv(ctx):
     p.tables()
     p.notes(["Elemento comercial: este plano fija solo las dimensiones de interfaz que el cálculo exige; el diseño interno es del fabricante.",
              f"Prueba hidráulica a 1,5 × {f(P['p_relief'])} bar con certificado de fábrica. Pandeo biarticulado E–Q con el vástago al largo retraído + carrera: dato del proveedor (núcleo, ISO/TS 13725).",
-             "RETENIDA (requiere núcleo): con e_cuerpo del núcleo el cuerpo del cilindro entra en el cajón del ojal E (conflicto declarado, GEN-009).",
              "El mismo cilindro trabaja en ambos sentidos: para invertir el giro pivota en el mismo ojal E hacia el otro lado de la diagonal (CON-010)."],
             gd=[("par", "0,10", "A", "Caras del ojal del vástago paralelas a las del ojal trasero (A)")])
     p.build()

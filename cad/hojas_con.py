@@ -1345,7 +1345,7 @@ def sheet_interfaz_conj(ctx):
         TA_ = g.I.get("tornillos") if isinstance(g.I.get("tornillos"), dict) else None
         if TA_ and ctx.m.get("int_tornillo_af2"):
             notes += [f"Fijación modo 2 (decisión del mandante 08-11-2026): sectores pegados, sin topes (no existen en AF2). El par de la interfaz pasa del disco de la mesa a la mesa por {int(TA_['n'])} tornillos {TA_['designacion']} "
-                      f"en R{fm(TA_['r'], 0)} ({ctx.code('int_tornillo_af2').replace(CODE + '-', '')}; avellanados en INT-002, roscas en MES-004).", "Ver láminas de sector de la interfaz (INT) y el conflicto declarado de los tornillos con los pasadores (GEN-009)."]
+                      f"en R{fm(TA_['r'], 0)} ({ctx.code('int_tornillo_af2').replace(CODE + '-', '')}; avellanados en INT-002, roscas en MES-004).", "Ver láminas de sector de la interfaz (INT)." + (" RETENIDA (requiere núcleo): conflicto declarado de los tornillos con los pasadores de empuje (GEN-009)." if c.h.retener("af2_pasadores") else "")]
         else:
             notes += ["Fijación modo 2: sectores pegados, sin topes ni tornillos. La transmisión del par sin topes queda PENDIENTE de la decisión del cliente (adhesivo y su verificación: GEN-009).", "Ver láminas de sector de la interfaz (INT)."]
     if m.get("int_tope_uhmw"):
@@ -1441,7 +1441,8 @@ def sheet_cajon_conj(ctx):
         "la cara inferior de la tapa inferior y los filetes interiores pared–base quedan en una cavidad cerrada; la tapa superior queda a ras del borde de las paredes.",
         "Secuencia propuesta: (1) paredes en molinete punteadas sobre la base en plantilla (posición con estación total); (2) filetes pared–base y de esquinas; (3) tapa inferior y sus filetes; (4) tapa superior; "
         f"(5) alivio de tensiones con la base; (6) mandrinar Ø{f(S['tapas']['agujero_E'])} H9 de ambas tapas en línea (coaxialidad Ø0,10, perpendicular a A).",
-        "RETENIDA (requiere núcleo): el cuerpo del cilindro entra en el cajón con la geometría del núcleo (conflicto declarado, GEN-009); no fabricar hasta su corrección.",
+        *(["RETENIDA (requiere núcleo): el cuerpo del cilindro entra en el cajón con la geometría del núcleo (conflicto declarado, GEN-009); no fabricar hasta su corrección."]
+          if c.h.retener("cil_cajon") else []),
         f"Cajón del cilindro 2: el mismo, girado 180° respecto del eje de la mesa (E en {fm(-E[0], 1)}; {fm(-E[1], 1)}); datums en los bordes opuestos de la base."])
     c.build()
     return c.h
@@ -1510,7 +1511,9 @@ def sheet_accionamiento_pv(ctx):
         f"Cinemática (núcleo): Q = P + L_qp·(E − P)/|E − P|; toma con el cilindro en el largo retraído + recorrido libre; empuje entre θ = {fm(PV['theta_ini_deg'], 2)}° y {fm(PV['theta_fin_deg'], 2)}° (brazo efectivo mínimo {fm(PV['brazo_ef_min'], 1)} mm).",
         "Inversión del giro: el cilindro pivota en el mismo ojal E hacia el otro lado de la diagonal; el bloque-uña se monta volteado y el pasador Q trabaja en la placa-leva del otro sentido (las 4 placas quedan fijas en la base).",
         f"El extremo inferior del pasador Q corre contra el canto templado de la placa-leva (holgura {fm(PV['placa_leva']['holgura'], 0)} mm en el empuje); el bloque-uña pasa sobre la placa ({fm(F['bloque_una']['z'][0] - F['placas_leva']['z'][1], 0)} mm) y sobre las cabezas de los pernos.",
-        "Placas-leva RETENIDAS: perfil curvo continuo en rediseño en el núcleo (ACC-017). Las del sentido horario chocan con las orejas de izaje (conflicto declarado, GEN-009).",
+        *([f"RETENIDA (requiere núcleo): las placas-guía ({ctx.code('placa_leva').replace(CODE + '-', '')} / {ctx.code('placa_leva_h').replace(CODE + '-', '')}) chocan con las orejas de izaje (conflicto declarado, GEN-009)."]
+          if c.h.retener("placa_orejas") else []),
+        *(["RETENIDA (requiere núcleo): el cuerpo del cilindro entra en el cajón del ojal E (conflicto declarado, GEN-009)."] if c.h.retener("cil_cajon") else []),
         "Circuito hidráulico, bomba y válvulas: fuera del alcance de estos planos (GEN-008)."])
     c.build()
     return c.h

@@ -42,6 +42,9 @@ class Pieza(Plano):
         if len(wrapw(str(h.trat), 36, 3.0)) > 3:
             h.trat = "Ver ficha y notas"
         self.init_plano(ctx, h)
+        for cid, ks_ in RET_PIEZAS.items():
+            if set(ks_) & set(self.keys):
+                h.retener(cid)
         self.boost_main = True          # vista principal a la escala normalizada siguiente si cabe (ver layout._build_once)
         self.iso_keys = list(self.keys)
         self.fmt_try = ["A2", "A1"] if fmt == "auto" else (["A3", "A2", "A1"] if fmt == "auto3" else None)
@@ -60,11 +63,17 @@ class Pieza(Plano):
         if any(k in ("int_bronce", "int_tapones") for k in self.keys):
             # H-02: el patrón de tapones del bronce no cumple la fracción mínima de lubricación del cálculo; lámina retenida hasta los datos del proveedor
             T = ctx.g.IG.get("tapones") or {}
+            self.h.retenida["proveedor"] = "placa de bronce: patrón de tapones a definir con datos del proveedor"
             n0 = len(self.blocks)
             self.note_block("RETENIDA — A DEFINIR (DATOS DEL PROVEEDOR)", [
                 "Esta lámina queda RETENIDA: la placa de bronce con tapones de grafito se define con los datos del proveedor (patrón, Ø, paso y profundidad de los tapones, "
                 f"fracción de grafito). Con el patrón del cálculo la fracción real es {fm(T.get('fg_real', 0), 3)} (mínimo de lubricación {fm(T.get('fg_min', 0.2), 2)}): "
                 + ("NO cumple. " if not T.get("cumple_lubricacion", True) else "") + "No fabricar ni comprar hasta su definición y aprobación."])
+            self.blocks.insert(0, self.blocks.pop(n0))
+        rn = [cid for cid in self.h.retenida if ctx.conflicto(cid)]
+        if rn:
+            n0 = len(self.blocks)
+            self.note_block("RETENIDA — REQUIERE NÚCLEO (GEN-009)", [f"Lámina RETENIDA: {self.h.retenida[cid]} (conflicto geométrico declarado del núcleo, GEN-009). No fabricar hasta su corrección y aprobación." for cid in rn])
             self.blocks.insert(0, self.blocks.pop(n0))
         self.note_block("NOTAS DE FABRICACIÓN", list(specific), numbered=True)
         if gd:

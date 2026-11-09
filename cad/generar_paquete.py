@@ -128,6 +128,12 @@ def main():
         return (2, pref_rank[t.split("-")[0]], int(t.split("-")[1]))
     hojas.sort(key=okey)
     total = len(hojas)
+    # ---- estado de cada lámina: RETENIDA solo si el choque del núcleo existe en la geometría (Hoja.retener; piezas de RET_PIEZAS y láminas que lo declaran) ----
+    with open(out / "estado_laminas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["n", "lámina", "título", "estado", "motivo (conflicto del núcleo, GEN-009)"])
+        for n, h in enumerate(hojas, 1):
+            wr.writerow([n, h.plano, h.titulo, "RETENIDA" if h.retenida else "EMITIDA PARA REVISIÓN", "; ".join(h.retenida.values())])
     h1 = next(h for h in hojas if h.plano.startswith(f"{CODE}-GEN-001"))
     if hasattr(h1, "indice_pos"):
         if hojas_gen.tabla_indice(ctx, h1, hojas):

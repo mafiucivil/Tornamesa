@@ -92,6 +92,10 @@ class Ctx:
     def parts(self, *keys):
         return [self.m.get(k) for k in keys if self.m.get(k)]
 
+    def conflicto(self, cid):
+        """Conflicto geométrico del núcleo activo (existe en la geometría del JSON) o None."""
+        return (self.m.info.get("conflictos_ids") or {}).get(cid)
+
     def sh(self, *keys):
         return {k: self.shapes[k] for k in keys if k in self.shapes}
 
@@ -105,6 +109,12 @@ class Ctx:
         p = self.m.get(key)
         lead = self.group_of.get(key)
         return lead if lead else ("CATÁLOGO: " + (p.catalogo or "A DEFINIR POR CATÁLOGO") if p.comercial else p.code_lamina)
+
+
+# piezas cuya lámina de fabricación queda RETENIDA mientras el conflicto del núcleo exista en la geometría (ids de modelo3d_tt300c.CONFLICTOS_NUCLEO)
+RET_PIEZAS = {"cil_cajon": ("cilindro_pv", "cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"),
+              "placa_orejas": ("placa_leva", "placa_leva_h", "orejas"),
+              "af2_pasadores": ("int_tornillo_af2", "int_disco_mesa", "mesa_anillo_inf")}
 
 
 class Hoja:
@@ -123,6 +133,14 @@ class Hoja:
         COTAS.sheet = self.plano
         self.R = self.s.regions(ctx.revs)
         self.welds_here = []
+        self.retenida = {}          # id del conflicto del núcleo -> motivo corto (solo choques que existen en la geometría)
+
+    def retener(self, cid, motivo=None):
+        """Retiene la lámina si el conflicto cid del núcleo está activo; devuelve True si lo está."""
+        c = self.ctx.conflicto(cid)
+        if c:
+            self.retenida[cid] = motivo or c["corto"]
+        return bool(c)
 
     def begin(self):
         COTAS.sheet = self.plano
@@ -169,7 +187,8 @@ class Hoja:
         g = self.ctx.g
         return dict(proj="TT300-C · TORNAMESA HIDRÁULICA 300 tf", subproj=f"Variante {g.variante} · {g.variante_nombre}", titulo=self.titulo, plano=self.plano, lamina=f"{n} de {total}",
                     escala=self._escala_txt(), formato=f"{self.fmt} ({int(self.s.W)}×{int(self.s.H)})", material=self.material, masa=self.masa, trat=self.trat, rev=REV, fecha=g.FECHA, revs=self.ctx.revs,
-                    aviso=ADVERTENCIA, estado="EMITIDO PARA REVISIÓN — NO APTO PARA FABRICACIÓN HASTA SU APROBACIÓN",
+                    aviso=ADVERTENCIA, estado=("RETENIDA (REQUIERE NÚCLEO, GEN-009) — EMITIDA PARA REVISIÓN — NO FABRICAR" if self.retenida else
+                                               "EMITIDO PARA REVISIÓN — NO APTO PARA FABRICACIÓN HASTA SU APROBACIÓN"),
                     generales=("NOTAS GENERALES: EN ESTA LÁMINA." if self.tag.startswith("GEN-001") else "NOTAS GENERALES: VER GEN-001."))
 
     def _escala_txt(self):
@@ -566,7 +585,7 @@ def inspecciones(ctx):
                           "100 % (2 cajones)", "Cinta calibrada / estación total / CMM portátil")] if g.modo == 2 else []),
         ("Dimensional", f"Buje (PIV-002) DESPUÉS del calado s6/H7 en el cubo y del escariado o mandrinado final: Ø interior {f(P['D_piv'])} F7 = {fm(iso286.limits(P['D_piv'], 'F7')[0], 3)} / {fm(iso286.limits(P['D_piv'], 'F7')[1], 3)} medido en 3 secciones × 2 direcciones a 90°; coaxial con el agujero H7 del cubo Ø0,05. Fuera de tolerancia: rechazo (no se repasa el pivote).", "100 %", "Micrómetro de interiores / comparador"),
         *([("Dimensional", f"Ranura T de bancadas: ancho {f(P['w_slot'])} H8, paralelismo 0,10 en todo el largo, coaxial con el ojal de la ménsula ±0,2.", "100 %", "Calibre / comparador")] if g.modo == 1 else
-          [("Dimensional", f"Placas-leva: contorno del canto de contacto dentro de la tolerancia de perfil de ACC-017 respecto de los agujeros de los pernos; posición de las placas en la base según la tabla de BAS-001 (roscas M{f(g.FPV['placas_leva']['pernos']['d'])} en posición Ø0,5).", "100 %", "Plantilla / CMM portátil")]),
+          [("Dimensional", f"Placas-guía: contorno del canto de contacto dentro de la tolerancia de perfil de {ctx.code('placa_leva').replace(CODE + '-', '')} / {ctx.code('placa_leva_h').replace(CODE + '-', '')} respecto de los agujeros de los pernos; posición de las placas en la base según la tabla de BAS-001 (roscas M{f(g.FPV['placas_leva']['pernos']['d'])} en posición Ø0,5).", "100 %", "Plantilla / CMM portátil")]),
         *([("Dimensional", "Riel-leva: perfil del canto de leva según ACC-007 (tolerancia de perfil respecto de los agujeros); pórticos: tapas a la cota del núcleo bajo el riel, holgura riel–patín ≥ 2 mm en toda la carrera.", "100 %", "Plantilla / galgas")] if g.FLG else []),
         ("Montaje", ("Interfaz y engrase: película de grasa 0,3–0,5 mm por cara, sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt and g.opt != 2 else
                      "Interfaz: sectores de UHMW en el rebaje sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt == 2 else

@@ -429,8 +429,24 @@ def cajetin(ctx, hojas):
     return out
 
 
+def retencion(ctx, hojas):
+    """Estado RETENIDA coherente con la geometría: una lámina retenida lleva su nota «RETENIDA» y ninguna lámina (salvo GEN) dice «RETENIDA» si el conflicto
+    del núcleo que la motivaba ya no existe en el JSON (las retenciones se activan con Hoja.retener(), que consulta los choques detectados en el 3D)."""
+    out = []
+    for h in hojas:
+        t = h.plano.replace(CODE + "-", "")
+        if t.startswith("GEN"):
+            continue
+        dice = any("RETENID" in x.upper() for x in h.s.texts)
+        if h.retenida and not dice:
+            out.append(f"{t}: retenida ({'; '.join(h.retenida.values())}) sin nota RETENIDA en la lámina")
+        if dice and not h.retenida:
+            out.append(f"{t}: dice RETENIDA pero no hay conflicto activo que la retenga")
+    return out
+
+
 def todos(ctx, hojas):
     import hojas_gen
     res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas),
-               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas), volteo=volteo(ctx, hojas), cajetin=cajetin(ctx, hojas))
+               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas), volteo=volteo(ctx, hojas), cajetin=cajetin(ctx, hojas), retencion=retencion(ctx, hojas))
     return res

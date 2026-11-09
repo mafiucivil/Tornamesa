@@ -1134,12 +1134,12 @@ def interferencias(m, log=None):
 # Conflictos geométricos del propio núcleo (la geometría del JSON choca): no se ocultan ni se corrigen en el dibujo (no se inventan cotas); se declaran
 # como «requiere núcleo», se listan en GEN-009 (brechas), en el informe del paquete y en las láminas afectadas (RETENIDA). Cualquier otra interferencia falla.
 CONFLICTOS_NUCLEO = [
-    (("cilindro_pv",), ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"),
+    ("cil_cajon", "cilindro dentro del cajón del ojal E", ("cilindro_pv",), ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"),
      "El cuerpo del cilindro (Ø{D_body} desde E + e_cuerpo = {e_body} mm) entra en el cajón del ojal E (semilado {semi} mm; la ventana solo tiene {hv} mm de alto para el ojal): "
      "el núcleo debe alejar el cuerpo del cilindro (e_cuerpo ≥ semilado del cajón + holgura) o rediseñar el cajón."),
-    (("placa_leva", "placa_leva_h"), ("orejas",),
+    ("placa_orejas", "placa-guía sobre las orejas de izaje", ("placa_leva", "placa_leva_h"), ("orejas",),
      "Las placas-leva del sentido horario ocupan la posición de las orejas de izaje (±{x_lug}; ±{cl_lug}): el núcleo no verifica esa holgura; reubicar las orejas o las placas."),
-    (("int_tornillo_af2",), ("pasadores",),
+    ("af2_pasadores", "tornillos AF2 sobre los pasadores de empuje", ("int_tornillo_af2",), ("pasadores",),
      "AF2: tornillos avellanados en R{r_af2} (núcleo) a {d_af2} mm del eje de los pasadores de empuje (R{R_pin}, Ø{d_pin}): 8 de 24 cortan el agujero del pasador; además R{r_af2} cae en el anillo inferior de la mesa (e = {tpr}), no en la plancha inferior (e = {tbo})."),
 ]
 
@@ -1156,18 +1156,21 @@ def conflictos_nucleo(m, inter):
         d_af2 = fm(min(math.hypot(x - px, y - py) for x, y in TA["pos"] for px, py in pins), 1)
     vals = dict(D_body=f(P["D_body"]), e_body=f(P["e_body"]), semi=f(S.get("lado", 0) / 2), hv=f((S.get("ventana", {}).get("z", [0, 0])[1] - S.get("ventana", {}).get("z", [0, 0])[0])),
                 x_lug=f(P["x_lug"]), cl_lug=f(g.cl_lug), r_af2=fm(TA.get("r", 0), 0), d_af2=d_af2, R_pin=fm(g.R_pin, 0), d_pin=fm(g.d_pin, 0), tpr=fm(g.tpr, 0), tbo=fm(g.tbo, 0))
-    act = []
+    act, ids = [], {}
     for r in inter:
         r["declarado"] = None
         if r["ok"]:
             continue
         ka, kb = key_of.get(r["a"]), key_of.get(r["b"])
-        for A, B, txt in CONFLICTOS_NUCLEO:
+        for cid, corto, A, B, txt in CONFLICTOS_NUCLEO:
             if (ka in A and kb in B) or (kb in A and ka in B):
                 r["declarado"] = txt.format(**vals)
+                r["conflicto"] = cid
                 if r["declarado"] not in act:
                     act.append(r["declarado"])
+                ids.setdefault(cid, dict(corto=corto, texto=r["declarado"], piezas=sorted(set(A) | set(B))))
     m.info["conflictos_nucleo"] = act
+    m.info["conflictos_ids"] = ids      # solo los choques que existen en la geometría del JSON (las láminas se retienen por estos, no por texto fijo)
     return act
 
 
@@ -1191,7 +1194,7 @@ def run(D, out, verbose=True):
     mt, c = cog(m)
     inter, nchk, ntot = interferencias(m)
     conflictos_nucleo(m, inter)
-    rep = dict(masas=ms, masa_total_ensamble=mt, cg=c, interferencias=inter, pares_evaluados=nchk, pares_totales=ntot, conflictos_nucleo=m.info.get("conflictos_nucleo", []),
+    rep = dict(masas=ms, masa_total_ensamble=mt, cg=c, interferencias=inter, pares_evaluados=nchk, pares_totales=ntot, conflictos_nucleo=m.info.get("conflictos_nucleo", []), conflictos_ids=m.info.get("conflictos_ids", {}),
                partes={p.code: dict(nombre=p.name, qty=p.qty, masa_unit=p.mass_unit, masa_total=p.mass_total) for p in m.parts})
     json.dump(rep, open(out / "TT300-C_masas3d.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     return m, rep
