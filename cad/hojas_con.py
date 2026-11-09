@@ -501,7 +501,8 @@ def sheet_conjunto(ctx):
     c.vs("cA", sh, "front", cut=CUT_Y, lv=(2, 1, 3, 1), extra=(0, 22, 0, 22), mat=mm, hs=0.5, title="CORTE A-A (plano y = 0) CON GLOBOS DE POSICIÓN; CG: cruz en círculo", auto=False, w=1.3, mins=0.2,
          draw=chain(cAdims, balloon_cb(cortadas_y0(ctx, ks), pred=lambda q: abs(q[1]) < 0.6, gap=11.0, off=20.0, sides="tb")))
     c.iso_fill = False
-    c.compact_table()
+    if len(ctx.m.parts) <= 44:                 # con más ítems la tabla resumida desplaza las vistas: el despiece queda solo en CON-002
+        c.compact_table()
     mt = ctx.rep["masa_total_ensamble"]
     hol = holguras_base_mesa(ctx)
     area = (B / 1000) ** 2

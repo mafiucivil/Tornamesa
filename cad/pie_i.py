@@ -80,7 +80,7 @@ def int_sector_sheet(ctx, key, titulo, face):
                 av_ = TA_["avellanado"]
                 pos_ = ([f"en la bisectriz, a r = {fm(TA_['r'], 0)} del eje del equipo", f"(= {fm(u - xb_, 1)} desde el borde interior del sector)"] if abs(v) < 0.1 else
                         [f"centros a r = {fm(TA_['r'], 0)}, ±{fm(abs(math.degrees(math.atan2(v, u))), 1)}° de la bisectriz:", f"x = {fm(u, 1)} (= {fm(u - xb_, 1)} desde el borde interior), y = ±{fm(abs(v), 1)}"])
-                V.note_hole((u, v, ztop), r, 60, f"{len(ca_)} × {TA_['designacion']}", ext=70, on=on,
+                V.note_hole((u, v, ztop), r, 235, f"{len(ca_)} × {TA_['designacion']}", ext=60, on=on,
                             lines=[f"{len(ca_)} × avellanado Ø{fm(av_['d_cabeza'], 0)}×90° (cabeza {fm(av_['bajo_cara'], 2)} bajo la cara),", f"pasante Ø{fm(TA_['dh'], 0)}, para {TA_['designacion']} (AF2),"] + pos_)
         gs = V.circles(on, 2.9, 3.1)
         if m.info.get("grease_pts") and gs and face == "bot":
@@ -517,7 +517,7 @@ def sheet_int_ranuras(ctx):
             alt=("corte", "surf", [(r0 + g.w_gr / 2, 0, zg_), (r0 - g.w_gr / 2, 0, zg_)], [(-1, 0, 0), (1, 0, 0)], None))
     p.vs("corte", [nk], "front", cut=CUT_Y, center=(r0, 0, zs), win=(-22, zlo, 22, zhi), lv=(1, 2, 1, 2), hs=0.4, maxs=5.0, mins=2.0, title=f"CORTE A-A: RANURA CIRCUNFERENCIAL R{fm(r0, 0)} (ancho {fm(g.w_gr, 0)}, prof. {fm(g.h_gr, 1)})", w=1.0,
          auto=dict(tol={round(g.w_gr, 1): " (ancho)", round(g.h_gr, 1): " (prof.)", round(t, 1): " (e)"}, holes=False))
-    rows = [["Ranuras radiales", f"{g.n_gr_rad} × a k·{fm(360 / g.n_gr_rad, 2)}°; de R{fm(g.Ri, 0)} a R{fm(g.Ro, 0)}"], ["Ranuras circunferenciales", f"{g.n_gr_circ}; R = " + ", ".join(fm(r, 0) for r in rr)],
+    rows = [["Ranuras radiales", f"{g.n_gr_rad} × a k·{fm(360 / g.n_gr_rad, 2)}°; de R{fm(g.Ri, 0)} a R{fm(g.Ro, 0)}"], ["Ranuras circunferenciales", f"{g.n_gr_circ}; R = " + ", ".join(fm(r, 1) for r in rr) + " (bordes R " + "; ".join(f"{fm(r - g.w_gr / 2, 1)}–{fm(r + g.w_gr / 2, 1)}" for r in rr) + ")"],
             ["Ancho / profundidad", f"{fm(g.w_gr, 0)} / {fm(g.h_gr, 1)} mm (sección rectangular, aristas rotas 0,5×45°)"], ["Graseras", f"{g.n_greaser} a R_o − 30 (ver lámina de graseras)"], ["Área perdida", "ver núcleo (área de ranuras)"]]
     gp_ = m.info.get("grease_pts") or []
     if gp_:
