@@ -247,9 +247,10 @@ const TT = (() => {
       ["pv_RE", "Ojal trasero E (pasador vertical fijo a la base): radio desde el centro (0 = sugerencia automática que maximiza el brazo efectivo mínimo; valor por defecto = sugerencia con los demás valores por defecto)", "mm", 1604, 0, 2500, 1],
       ["pv_phE", "Ojal trasero E: ángulo en planta (diagonal de la base como KIET, 315°; el 2.° cilindro va a +180°; el otro sentido de giro es la imagen especular respecto de la diagonal)", "°", 315, 0, 360, 1],
       ["pv_Lqp", "Bloque-uña: pasador Q → centro del pasador tomado (0 = sugerencia automática; la sugerencia con los valores por defecto es 440 mm y se adopta 432 para dejar 2 mm sobre la holgura mínima con el pasador siguiente, por tolerancias y por la dilatación de la mesa a 80 °C)", "mm", 432, 0, 1000, 1],
-      ["pv_bu", "Bloque-uña: ancho del cuerpo en planta", "mm", 70, 30, 150, 1],
-      ["pv_ecr", "Bloque-uña: desplazamiento lateral del cuerpo hacia afuera (cuerpo acodado que libra el pasador siguiente; flexión F·e en el cuerpo)", "mm", 35, 0, 80, 1],
+      ["pv_bu", "Bloque-uña: ancho del cuerpo en planta (70 → 90 el 09-11-2026, ensanchado hacia afuera con e_cr: la resultante del contacto con roce pasa por Q y por el punto de contacto desplazado, y suma excentricidad al cuerpo)", "mm", 90, 30, 150, 1],
+      ["pv_ecr", "Bloque-uña: desplazamiento lateral del cuerpo hacia afuera (cuerpo acodado que libra el pasador siguiente; flexión F·e en el cuerpo; 35 → 45 el 09-11-2026 para conservar el borde interior al ensanchar el cuerpo)", "mm", 45, 0, 80, 1],
       ["pv_bf", "Bloque-uña: ancho de la cara de empuje (tramo de la cara centrado en la línea E–Q–P)", "mm", 80, 30, 160, 1],
+      ["pv_rface", "Bloque-uña: radio de la cara de empuje cilíndrica convexa en planta (0 = plana). Con cara plana y roce μ_s el contacto se va a μ_s·(L_qp − r) ≈ 58 mm del eje, fuera de la cara: la cara convexa lo mantiene a R·sen γ del eje (09-11-2026)", "mm", 120, 0, 400, 5],
       ["pv_lf", "Bloque-uña: largo del tramo de la cara", "mm", 60, 20, 200, 1],
       ["pv_hu", "Bloque-uña: alto (≤ luz libre entre anillos − 10)", "mm", 140, 40, 200, 1],
       ["pv_dq", "Pasador vertical Q (bloque-uña sobre el ojal del vástago; su extremo inferior es el seguidor de la placa-leva): Ø", "mm", 90, 30, 150, 1],
@@ -819,9 +820,16 @@ const TT = (() => {
   function pivBlkGeo(P, K) {
     const zc0 = hAxis(P) + P.t_base, r = P.d_pin / 2, Lqp = K && K.ok ? K.Lqp : (P.pv_Lqp || 300), eb = P.pv_dq / 2 + 25, s2 = Lqp - r, s1 = s2 - P.pv_lf;
     const tq = (P.pv_hu - P.b_eye - 2 * P.g_ch) / 2, zLc = zc0 - P.b_eye / 2 - P.g_ch - tq / 2, zCam = P.t_base + P.pv_tcam / 2, lq = zLc - zCam;
-    const mBlk = RHO * (P.pv_hu * ((s1 + eb) * P.pv_bu + P.pv_lf * P.pv_bf) - (P.b_eye + 2 * P.g_ch) * 2 * eb * eb), lPin = zc0 + P.pv_hu / 2 - (P.t_base + 2);
+    // cara de empuje: cilíndrica convexa de radio R_f (vértice en s₂, centro de curvatura en s_f = s₂ − R_f) o plana (R_f = 0). El bloque es libre en Q: la resultante
+    // del contacto (inclinada ρ = atan μ_s respecto de la normal) pasa a d_R = μ_Q·d_Q/2 de Q (roce del pasador Q); la normal pasa por el centro de curvatura y por P,
+    // de modo que sen γ = (s₂·sen ρ + d_R)/s_f y el contacto queda a e_c = R_f·sen γ del eje del bloque (cara plana: e_c = s₂·tan ρ + d_R). Signo ± (calado estático).
+    const Rf = P.pv_rface > 0 ? P.pv_rface : 0, rho = Math.atan(P.mu_s), dR = P.pv_muE * P.pv_dq / 2, half = P.pv_bf / 2;
+    const sf = Rf > 0 ? s2 - Rf : s2, sgam = Rf > 0 ? Math.min(1, (s2 * Math.sin(rho) + dR) / Math.max(1, sf)) : Math.sin(rho), gam = Math.asin(sgam);
+    const ec = Rf > 0 ? Rf * sgam : s2 * Math.tan(rho) + dR, dBlk = Math.asin(Math.min(1, (Rf > 0 ? (Rf + r) * sgam : ec) / Lqp));   // giro del bloque respecto de la recta Q–P
+    const sag = Rf > half ? Rf - Math.sqrt(Rf * Rf - half * half) : 0, a2 = Rf > half ? 2 * Math.asin(half / Rf) : 0, cut = Rf > half ? P.pv_bf * sag - Rf * Rf / 2 * (a2 - Math.sin(a2)) : 0;
+    const mBlk = RHO * (P.pv_hu * ((s1 + eb) * P.pv_bu + P.pv_lf * P.pv_bf - cut) - (P.b_eye + 2 * P.g_ch) * 2 * eb * eb), lPin = zc0 + P.pv_hu / 2 - (P.t_base + 2);
     const mPin = RHO * Math.PI / 4 * P.pv_dq ** 2 * lPin;
-    return { zc0, eb, s1, s2, tq, zLc, zCam, lq, lPin, mBlk, mPin, m: Math.max(0, mBlk) + mPin, zBot: zc0 - P.pv_hu / 2 };
+    return { zc0, eb, s1, s2, tq, zLc, zCam, lq, lPin, mBlk, mPin, m: Math.max(0, mBlk) + mPin, zBot: zc0 - P.pv_hu / 2, Rf, sf, gam, ec, dR, dBlk, sag, ecBody: P.pv_ecr + P.e_dog + ec * s1 / s2, ecFace: P.e_dog + ec };
   }
   // Masas sin las barras de los topes (estas dependen del par de calado y se suman en compute(), que es la fuente de m.total)
   function massesBase(P) {
@@ -1325,7 +1333,7 @@ const TT = (() => {
     const phiAt = (L) => { const o = onPath(L), u = V.unit(V.sub(o.p, E)); return Math.acos(Math.min(1, Math.abs(V.dot(o.t, u)))) / D2R; };
     const radAt = (o) => (o.s.tipo === "arco" ? (o.s.sentido === "horario" ? o.s.radio - rf : -(o.s.radio + rf)) : Infinity);   // radio del canto en el contacto (+ convexo, − cóncavo)
     // empuje guiado: Q en la trayectoria con |P − Q| = L_qp (el bloque libre en Q toca el pasador con la cara); fuerzas por unidad de fuerza F en Q
-    const dense = V.chain(core, 0.02, 1);
+    const dense = V.chain(core, 0.02, 1), dBlkG = pivBlkGeo(P, K).dBlk;
     function guidedAt(th) {
       const Pp = [R * Math.cos(th), R * Math.sin(th)], Lc = V.nrm(V.sub(Pp, E)) - Lqp; let bst = null;
       for (let i = 1; i < dense.length; i++) { const f0 = V.nrm(V.sub(Pp, dense[i - 1])) - Lqp, f1 = V.nrm(V.sub(Pp, dense[i])) - Lqp; if (f0 * f1 > 0 || f0 === f1) continue;
@@ -1333,7 +1341,7 @@ const TT = (() => {
       if (!bst) return { ok: false, th };
       const o = onPath(bst.L), q = o.p, tp = o.t, { uc, b, bp, nin, fn, h, arm } = eqQ(Pp, q, tp);
       const Bp = [R * Math.cos(th - K.pitch), R * Math.sin(th - K.pitch)], Cp = [R * Math.cos(th + K.pitch), R * Math.sin(th + K.pitch)];
-      const clrB = Math.min(unaDist(P, Bp[0], Bp[1], q, b, Lqp), unaDist(P, Cp[0], Cp[1], q, b, Lqp)) - r;
+      const dB = dBlkG, clrB = Math.min(...[0, -dB].map((d) => { const bb = V.rot(b, d); return Math.min(unaDist(P, Bp[0], Bp[1], q, bb, Lqp), unaDist(P, Cp[0], Cp[1], q, bb, Lqp)); })) - r;   // bloque alineado y girado hacia afuera el ángulo de equilibrio con el roce (el deslizamiento del pasador respecto del bloque es hacia afuera en todo el empuje: el giro hacia adentro pediría que la mesa retroceda)
       const body = segDistO(E[0] + P.e_body * uc[0], E[1] + P.e_body * uc[1], E[0] + (P.L0 - P.c_rod) * uc[0], E[1] + (P.L0 - P.c_rod) * uc[1]) - P.D_body / 2 - P.D_top / 2;
       const w = toLW(q)[1];
       return { ok: true, th, P: Pp, Q: q, L: bst.L, Lc, w, gap: w - wPush(Lc), uc, b, bp, tp, nin, fn, h, arm, ft: V.crs(Pp, bp) / R, fr: V.dot(Pp, bp) / R, phi: Math.acos(Math.min(1, Math.abs(V.dot(tp, uc)))) / D2R,
@@ -1989,7 +1997,7 @@ const TT = (() => {
     const loc = unaPolys(P, [0, 0], [1, 0], K.Lqp);
     return { E: [K.E, [-K.E[0], -K.E[1]]], R_E: K.RE, phi_E: P.pv_phE, L_qp: K.Lqp, L0: P.L0, carrera: P.stroke, s_libre: P.s_free, s_req: CP.sReqG, th_ini: K.ths, th_fin: K.the, paso: K.pitch,
       placas, t_placa: P.pv_tcam, flanco_deg: CP.alpha, radio_min_canto_convexo: g.rCanto.convexo, radio_min_canto_concavo: g.rCanto.concavo,
-      bloque: { local: loc, nota: "marco local: origen en Q, eje x hacia el pasador tomado (s), eje y = t (hacia el centro O)", d_Q: P.pv_dq, h: P.pv_hu, R_cubo: P.pv_dq / 2 + 25 },
+      bloque: { local: loc, nota: "marco local: origen en Q, eje x hacia el pasador tomado (s), eje y = t (hacia el centro O); la cara es cilíndrica convexa de radio R_cara con vértice en x = L_qp − r (el rectángulo es su envolvente)", d_Q: P.pv_dq, h: P.pv_hu, R_cubo: P.pv_dq / 2 + 25, R_cara: R.blk.Rf, contacto_desde_eje: R.blk.ec, giro_equilibrio_deg: R.blk.dBlk / D2R },
       pasadorQ: { d: P.pv_dq, largo: R.blk.lPin }, ojalE: { d: P.pv_dE, lado_cajon: P.pv_box } };
   }
   // 2b. Cubierta de madera W para el dibujo de la simulación (planta): círculo de los tablones, abertura de la tapa, cara interior de la pared y anillo; null sin cubierta
@@ -2116,7 +2124,7 @@ const TT = (() => {
         ventana: { sector_deg: [Math.min(sec[0], sec[2]) - 10, Math.max(sec[1], sec[3]) + 10], z: [sg.zL + P.pv_tl / 2, sg.zU - P.pv_tl / 2], nota: "abertura en las dos paredes que miran a la mesa para el giro del ojal en ambos sentidos (± 10° de holgura); la sección resistente es la U de las paredes completas" },
         soldadura: { filete: P.pv_wbox, paredes_base: "a ambos lados de las paredes, perimetral a la base", tapas_paredes: "filete a ambos lados del mismo tamaño" }, material: "S355J2 (Fy " + P.Fy + ")" },
       pasador_E: { d: P.pv_dE, largo: sg.forkH + 20, z: [sg.zL - P.pv_tl / 2 - 10, sg.zU + P.pv_tl / 2 + 10], material: "Fy " + P.Fy_pp + " MPa", ajuste: "H9/f8" },
-      bloque_una: { contorno_local: G.bloque.local, h: P.pv_hu, z: [bk.zBot, bk.zBot + P.pv_hu], agujero_Q: P.pv_dq, horquilla: { ranura_ojal: P.b_eye + 2 * P.g_ch, t_mejilla: bk.tq, R_cubo: bk.eb }, cuerpo: { b: P.pv_bu, e_acodado: P.pv_ecr }, cara: { b: P.pv_bf, l: P.pv_lf, templada: "≥ 55 HRC (Fy_sup " + P.Fy_surf + ")" }, material: "34CrNiMo6+QT (Fy " + P.Fy_dog + ")",
+      bloque_una: { contorno_local: G.bloque.local, h: P.pv_hu, z: [bk.zBot, bk.zBot + P.pv_hu], agujero_Q: P.pv_dq, horquilla: { ranura_ojal: P.b_eye + 2 * P.g_ch, t_mejilla: bk.tq, R_cubo: bk.eb }, cuerpo: { b: P.pv_bu, e_acodado: P.pv_ecr }, cara: { b: P.pv_bf, l: P.pv_lf, radio_planta: bk.Rf || null, flecha_arista: bk.sag, contacto_desde_eje: bk.ec, nota: bk.Rf > 0 ? "cara cilíndrica convexa en planta (generatriz vertical), vértice en s = L_qp − r; aristas con chaflán 3 × 45°" : "cara plana", templada: "≥ 55 HRC (Fy_sup " + P.Fy_surf + ")" }, material: "34CrNiMo6+QT (Fy " + P.Fy_dog + ")",
         nota: "marco local: origen en Q, x hacia el pasador tomado, y = t (hacia O); el cuerpo se desplaza e_acodado hacia −y" },
       pasador_Q: { d: P.pv_dq, largo: bk.lPin, z: [P.t_base + 2, bk.zBot + P.pv_hu], extremo_inferior: "seguidor de la placa-leva (" + (fam.tipo === "hertz" ? "templado" : "con zapata de " + CP.lpad + " mm") + ")", voladizo_bajo_horquilla: bk.lq, material: "Fy " + P.Fy_pp + " MPa" },
       placas_leva: { instancias: G.placas, t: P.pv_tcam, z: [P.t_base, P.t_base + P.pv_tcam], material: pl, familia: fam.f, revestimiento: fam.f > 1 ? { material: fam.nombre, t: P.pv_tlin } : null, zapata: fam.tipo === "pad" ? { largo: CP.lpad, alto: P.pv_tcam } : null,
@@ -2160,7 +2168,7 @@ const TT = (() => {
     brazo_min: K.aMin, brazo_max: K.aMax, brazo_ef_min: K.aEffMin, carrera_req: CP.sReqG, carrera_req_colineal: K.sReq, Q_min: K.QrMin, holgura_pasador_siguiente: K.clrB, holgura_cuerpo_mesa: K.body,
     cinematica: R.stroke.map((q) => ({ th: q.th / D2R, a: q.arm, a_ef: q.armEff, L: q.L, s: q.s, psi_deg: q.psi / D2R, f_tang: q.ft, f_rad: q.fr, F_cil: q.F, F_n: q.Fp, F_leva: q.Fcam, p: q.F * 1e3 / R.A * 10,
       w: q.w, separacion_colineal: q.gap, phi_presion_deg: q.phi_guia, a_colineal: q.a_colineal, a_ef_colineal: q.a_ef_colineal, F_cil_colineal: q.F_colineal })),
-    bloque_una: { b_cuerpo: P.pv_bu, e_acodado: P.pv_ecr, b_cara: P.pv_bf, l_cara: P.pv_lf, h: P.pv_hu, d_Q: P.pv_dq, R_cubo: bk.eb, s_cara_ini: bk.s1, s_cara: bk.s2, t_horquilla: bk.tq, z_inf: bk.zBot, l_pasador_Q: bk.lPin, voladizo_leva: bk.lq, masa: bk.m },
+    bloque_una: { b_cuerpo: P.pv_bu, e_acodado: P.pv_ecr, b_cara: P.pv_bf, l_cara: P.pv_lf, h: P.pv_hu, d_Q: P.pv_dq, R_cubo: bk.eb, s_cara_ini: bk.s1, s_cara: bk.s2, t_horquilla: bk.tq, z_inf: bk.zBot, l_pasador_Q: bk.lPin, voladizo_leva: bk.lq, masa: bk.m, R_cara: bk.Rf, contacto_cara: bk.ec, giro_equilibrio_deg: bk.dBlk / D2R },
     soporte_E: { lado_cajon: P.pv_box, t_pared: P.pv_tbox, filete: P.pv_wbox, t_tapas: P.pv_tl, d_E: P.pv_dE, alto: sg.hBox, z_tapa_sup: sg.zU, z_tapa_inf: sg.zL, S_U: sg.S, masa: sg.m, nota: "cajón centrado en E; paredes traseras en L hacia la esquina; ventana para el ojal hacia la mesa (sección resistente en U)" },
     placa_leva: { familia: CP.fam.f, familia_nombre: CP.fam.nombre, automatico: CP.fam.auto, mu: CP.fam.mu, t: P.pv_tcam, ancho_labio: P.pv_wlip, t_revestimiento: CP.fam.f > 1 ? P.pv_tlin : 0, l_zapata: CP.lpad, n_pernos: Math.round(P.pv_nb), d_perno: P.pv_db, Fy: P.Fy_camP,
       holgura: CP.c, margen_sincronia: CP.m, margen_diseno: CP.md, tolerancias_mm: CP.guia.dTol, sincronia: CP.sync, sincronia_peor: CP.guia.syncWorst, alpha_deg: CP.alpha, alpha_req_deg: CP.guia.flanco.phi_req_deg, bolsillo_w: CP.wPk, fraccion_empuje_retenida: CP.cover,
@@ -2238,7 +2246,7 @@ const TT = (() => {
   function pivFat(P, R, Fd) {
     const F = Fd * 1e3, sg = R.sup, Sbox = sg.S, Mb = F / 2 * (sg.hU + sg.hL), aw = 0.707 * P.pv_wbox;
     const m = pivPinM(P, R, F, P.mu_s * F);
-    return { blk: F / (P.pv_bu * P.pv_hu) + 6 * F * (P.pv_ecr + P.e_dog) / (P.pv_hu * P.pv_bu ** 2), pin: Math.max(m.MQ / (Math.PI * P.pv_dq ** 3 / 32), m.ME / (Math.PI * P.pv_dE ** 3 / 32)),
+    return { blk: F / (P.pv_bu * P.pv_hu) + 6 * F * R.blk.ecBody / (P.pv_hu * P.pv_bu ** 2), pin: Math.max(m.MQ / (Math.PI * P.pv_dq ** 3 / 32), m.ME / (Math.PI * P.pv_dE ** 3 / 32)),
       toe: Mb / Sbox, thr: Math.hypot(F / (4 * P.pv_box * aw), Mb / (aw * P.pv_box ** 2)) };
   }
   function pivGiroRows(P, R, add) {
@@ -2266,7 +2274,7 @@ const TT = (() => {
       add({ grp: G, sys: "giro", kind: "geo", name: "Canto de la placa-guía: continuidad G1 (máximo quiebre de tangente en los empalmes)", formula: "|∠(t_fin del tramo i; t_inicio del tramo i+1)| ≤ 0,01°; arcos del canto concéntricos con los de la trayectoria del centro (radio ± d_Q/2)", dem: g.g1Max / D2R, cap: 0.01, unit: "°", ref: REG_PV + "; geometría" });
       add({ grp: G, sys: "giro", kind: "geo", name: "Canto de la placa-guía: radio convexo mínimo sin socavado", formula: "R_canto = R_centro − d_Q/2 ≥ R_mín (R_centro ≥ d_Q/2 + R_mín); cóncavo mínimo " + nfx(g.rCanto.concavo, 1) + " mm; salto máximo de curvatura " + nfx(g.dKappa * 1e3, 2) + "×10⁻³ 1/mm", dem: P.pv_rmin, cap: g.rCanto.convexo, unit: "mm", ref: REG_PV + "; geometría" });
       add({ grp: G, sys: "giro", kind: "geo", name: "Placa-guía libre del seguidor en todo el recorrido (sin invasión del círculo d_Q/2)", formula: "mín dist(centro del seguidor, contorno de la placa) − d_Q/2 ≥ −0,001 (= 0 en el contacto)", dem: 0.001, cap: g.folClr + 0.002, unit: "mm", ref: "Geometría (planta)" });
-      add({ grp: G, sys: "giro", kind: "geo", name: "Bloque-uña libre de los pasadores en el empuje guiado (Q en el canto, bloque alineado con Q–P)", formula: "holgura mínima (cuerpo acodado, cara y cubo de Q frente al pasador anterior y al siguiente) ≥ holgura mínima", dem: P.pv_cB, cap: Math.min(...gp.map((q) => q.clrB)), unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Bloque-uña libre de los pasadores en el empuje guiado (Q en el canto, bloque alineado con Q–P y girado hacia afuera el ángulo de equilibrio con roce)", formula: "holgura mínima (cuerpo acodado, cara y cubo de Q frente al pasador anterior y al siguiente) ≥ holgura mínima; giro de equilibrio δ = asin((R_cara + r)·sen γ/L_qp)", dem: P.pv_cB, cap: Math.min(...gp.map((q) => q.clrB)), unit: "mm", ref: "Geometría (planta)" });
       add({ grp: G, sys: "giro", kind: "geo", name: "Cuerpo del cilindro fuera de la mesa en el empuje guiado", formula: "D/2 + D_cuerpo/2 + holgura ≤ mín dist(O, eje del cuerpo)", dem: P.D_top / 2 + P.D_body / 2 + P.pv_cc, cap: Math.min(...gp.map((q) => q.body)) + P.D_body / 2 + P.D_top / 2, unit: "mm", ref: "Geometría (planta)" });
       add({ grp: G, sys: "giro", kind: "geo", name: "Placas-guía dentro de la base", formula: "máx(|x|; |y|) del contorno ≤ B/2 − t_marco − 5", dem: CP.inBase, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
       add({ grp: G, sys: "giro", kind: "geo", name: "Placas-guía fuera de la mesa (la mesa apoya en la base hasta R = D/2)", formula: "D/2 + holgura ≤ mín |contorno|", dem: P.D_top / 2 + P.pv_cQ, cap: CP.Rin, unit: "mm", ref: "Geometría (planta)" });
@@ -2282,14 +2290,15 @@ const TT = (() => {
     if (!K.ok || !CP || !bk || !sg) return;
     const UN = "Uña", AR = "Articulaciones", SO = "Soporte del ojal E", PL = "Placas-leva", Ncam = CP.Ncam;
     // bloque-uña
-    const bu = P.pv_bu, hu = P.pv_hu, bf = P.pv_bf, ec = P.pv_ecr + P.e_dog;
-    add({ grp: UN, sys: "est", name: "Bloque-uña: compresión + flexión en el cuerpo acodado (a calado)", formula: "σ = F/(b·h) + 6F·(e_cr + e)/(h·b²) ≤ Fy/Nd; F = F_calado (cota de F_n), b = " + bu + ", h = " + hu + " mm", dem: Fs / (bu * hu) + 6 * Fs * ec / (hu * bu * bu), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.1 y §3-2.3" });
-    add({ grp: UN, sys: "est", name: "Bloque-uña: compresión + flexión en el tramo de la cara", formula: "σ = F/(b_f·h) + 6F·e/(h·b_f²) ≤ Fy/Nd", dem: Fs / (bf * hu) + 6 * Fs * P.e_dog / (hu * bf * bf), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.1 y §3-2.3" });
+    const bu = P.pv_bu, hu = P.pv_hu, bf = P.pv_bf, ec = bk.ecBody;
+    add({ grp: UN, sys: "est", name: "Bloque-uña: compresión + flexión en el cuerpo acodado (a calado)", formula: "σ = F/(b·h) + 6F·(e_cr + e + e_c·s₁/s₂)/(h·b²) ≤ Fy/Nd; e_c = " + nfx(bk.ec) + " mm (contacto desplazado por el roce: la resultante pasa por Q y por el contacto); F = F_calado, b = " + bu + ", h = " + hu + " mm", dem: Fs / (bu * hu) + 6 * Fs * ec / (hu * bu * bu), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.1 y §3-2.3" });
+    add({ grp: UN, sys: "est", name: "Bloque-uña: compresión + flexión en el tramo de la cara", formula: "σ = F/(b_f·h) + 6F·(e + e_c)/(h·b_f²) ≤ Fy/Nd", dem: Fs / (bf * hu) + 6 * Fs * bk.ecFace / (hu * bf * bf), cap: P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.1 y §3-2.3" });
     add({ grp: UN, sys: "est", name: "Bloque-uña: corte por la fuerza transversal del roce en la cara", formula: "τ = 1,5·μ_s·F/(b·h) ≤ Fy/(Nd·√3)", dem: 1.5 * P.mu_s * Fs / (bu * hu), cap: P.Fy_dog / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
     const Iu = hu * bu ** 3 / 12, Pcr = Math.PI ** 2 * P.E * Iu / (K.Lqp ** 2);
     add({ grp: UN, sys: "est", name: "Bloque-uña: pandeo en planta (biarticulado entre Q y el contacto)", formula: "F_calado ≤ Pcr/Nd; Pcr = π²·E·(h·b³/12)/L_qp²", dem: Fs / 1e3, cap: Pcr / Nd / 1e3, unit: "kN", ref: "Euler; factor Nd de ASME BTH-1 Cat. B" });
-    const Es = P.E / (2 * (1 - P.nu ** 2)), qE = P.k_edge * Fs / hu, p0 = Math.sqrt(qE * Es / (Math.PI * P.d_pin / 2));
-    add({ grp: UN, sys: "est", name: "Bloque-uña: contacto de Hertz cara–pasador (a calado; ambas caras templadas)", formula: "p₀ = √(q·E*/(π·r)), q = k_borde·F/h_bloque ≤ 1,67·Fy_sup", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
+    const Es = P.E / (2 * (1 - P.nu ** 2)), qE = P.k_edge * Fs / hu, Ref = 1 / (2 / P.d_pin + (bk.Rf > 0 ? 1 / bk.Rf : 0)), p0 = Math.sqrt(qE * Es / (Math.PI * Ref)), bH = Math.sqrt(4 * qE * Ref / (Math.PI * Es));
+    add({ grp: UN, sys: "est", name: "Bloque-uña: contacto de Hertz cara–pasador (a calado; ambas caras templadas" + (bk.Rf > 0 ? "; cara convexa R " + nfx(bk.Rf, 0) + " mm" : "") + ")", formula: "p₀ = √(q·E*/(π·R_ef)), 1/R_ef = 1/r + 1/R_cara, q = k_borde·F/h_bloque ≤ 1,67·Fy_sup", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
+    add({ grp: UN, sys: "est", kind: "geo", name: "Bloque-uña: contacto dentro de la cara (con el roce de la cara μ_s y el del pasador Q, ambos sentidos)", formula: (bk.Rf > 0 ? "cara convexa: e_c = R·sen γ, sen γ = (s₂·sen ρ + μ_Q·d_Q/2)/(s₂ − R)" : "cara plana: e_c = s₂·tan ρ + μ_Q·d_Q/2") + ", ρ = atan μ_s; e_c + b_Hertz ≤ b_f/2 − 3 (chaflán de la arista); γ = " + nfx(bk.gam / D2R, 1) + "°, giro del bloque " + nfx(bk.dBlk / D2R, 1) + "°", dem: bk.ec + bH, cap: P.pv_bf / 2 - 3, unit: "mm", ref: "Equilibrio del bloque libre en Q (miembro de dos fuerzas con roce); Hertz (semiancho b)" });
     add({ grp: UN, sys: "est", name: "Bloque-uña: aplastamiento de la horquilla en el pasador Q", formula: "σ = (F/2)/(d_Q·t_h) ≤ 1,25·Fy/Nd; t_h = (h_bloque − b_ojal − 2g)/2 = " + nfx(bk.tq) + " mm", dem: Fs / 2 / (P.pv_dq * bk.tq), cap: 1.25 * P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
     add({ grp: UN, sys: "est", name: "Bloque-uña: desgarro de la horquilla detrás del pasador Q", formula: "τ = (F/2)/(2·t_h·a), a = R_cubo − d_Q/2 ≤ Fy/(Nd·√3)", dem: Fs / 2 / (2 * bk.tq * (bk.eb - P.pv_dq / 2)), cap: P.Fy_dog / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-3.3 (2 planos de corte)" });
     // pasadores Q y E, orejas del soporte

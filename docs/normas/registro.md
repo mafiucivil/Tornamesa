@@ -224,6 +224,7 @@ Rediseño de las 4 placas-guía del modo 2 (detalle, cifras y trazabilidad: docs
 | Fatiga | Recorte con radio ≥ 25 mm: categoría C; sección neta en agujeros: categoría D; rango con la carga de diseño, N = N_pin·vueltas·años | AISC 360-22 Apéndice 3, Tabla A-3.1 | |
 | Vástago | Carga transversal: roce de los ojales E y Q (μ_E·F·d/2) y peso; la reacción de la placa no llega al vástago (miembro biarticulado de dos fuerzas). Flexocompresión a calado P_r/P_c + 8/9·B₁M_r/M_c ≤ 1 | AISC 360-22 §H1.1, §E3, Apéndice 8 | Fy del vástago y tipo de ojal: DATO DEL PROVEEDOR (hipótesis Fy = 520 MPa, μ = 0,20) |
 | Topes soldados de la interfaz | Se dimensionan con máx(T_calado del empuje guiado; T_calado colineal de tmaxOf) | Criterio conservador | La colineal da el par mayor |
+| Cara del bloque-uña | Cara cilíndrica convexa en planta (R = pv_rface): e_c = R·sen γ, sen γ = (s₂·sen ρ + μ_Q·d_Q/2)/(s₂ − R), ρ = atan μ_s; e_c + b_Hertz ≤ b_f/2 − 3; Hertz con 1/R_ef = 1/r + 1/R; la excentricidad e_c entra al cuerpo (e_cr + e + e_c·s₁/s₂) y a la cara (e + e_c); holguras con el bloque girado δ = asin((R + r)·sen γ/L_qp) hacia afuera | Equilibrio del bloque libre en Q con roce; Hertz; ASME BTH-1 §3-2 | Con cara plana el contacto queda a s₂·tan ρ + μ_Q·d_Q/2 ≈ 67 mm (fuera de una cara de 80 mm) |
 
 ## Valor por defecto del accionamiento (08-11-2026)
 

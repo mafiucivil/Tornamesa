@@ -3,7 +3,7 @@
 Uso: node tools/export_design.js > /tmp/d.json && python3 tools/fig_guia_curva.py /tmp/d.json
 Lee la geometría del núcleo como caja negra (export_design.js), la del estado original (docs/qa/guia_curva_KIET/original_b928552.json) y los recortes
 del plano de referencia KIET (sin escala: solo concepto). Escribe comparacion.svg/png y cinematica.svg/png en docs/qa/guia_curva_KIET/."""
-import json, math, pathlib, sys
+import json, math, pathlib, re, sys
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -38,8 +38,8 @@ pos = PV["posiciones"]["1_antihorario"]; E = pos["E"]
 COL = {"linea": "#1f4e9c", "convexa": "#c0392b", "cóncava": "#1e8449", None: "#7f8c8d"}
 
 # ---------------- Figura 1: comparación ----------------
-fig = plt.figure(figsize=(16, 17))
-gs = fig.add_gridspec(3, 3, height_ratios=[1.05, 1, 0.62])
+fig = plt.figure(figsize=(16, 19))
+gs = fig.add_gridspec(3, 3, height_ratios=[1.05, 1, 0.95])
 # (a) planta nuestra completa
 ax = fig.add_subplot(gs[0, 0]); ax.set_aspect("equal"); B = P["B"] / 2
 ax.add_patch(Rectangle((-B, -B), 2 * B, 2 * B, fill=False, lw=1.2)); ring(ax); pins(ax, PV["theta_ini_deg"], color="0.55", lw=0)
@@ -62,7 +62,7 @@ ax = fig.add_subplot(gs[2, :]); ax.axis("off")
 g = PL; o = O["placa_leva"]
 rows = [["", "Original (b928552)", "Curva (este cambio)", "KIET (concepto)"],
         ["Perfil del canto", "poligonal: tramo, rampa 65°,\nbolsillo plano, rampa 65°", "flanco recto %.1f° + 4 arcos\ntangentes + salida (G1)" % g["alpha_deg"], "media luna curva\ncon gancho en un extremo"],
-        ["Quiebre máx. de tangente", "70°", "%.1e°" % math.degrees(g["g1_max_rad"]), "—"],
+        ["Quiebre máx. de tangente", "70°", "≈ 0° (G1)" if math.degrees(g["g1_max_rad"]) < 1e-6 else "%.2f°" % math.degrees(g["g1_max_rad"]), "—"],
         ["Canto exportado", "w + d_Q/2 (no envolvente):\ninvade el seguidor 27 mm", "envolvente exacta\n(arcos concéntricos ± d_Q/2)", "—"],
         ["Sincronía (con el contorno real)", "−21 mm (choque con B)", "%.2f mm (peor caso %.2f)" % (g["sincronia"], g["sincronia_peor"]), "—"],
         ["Radios del canto", "0 (esquinas)", "convexo ≥ %.0f, cóncavo ≥ %.0f mm" % (g["radio_min_canto"]["convexo"], g["radio_min_canto"]["concavo"]), "no acotado"],
@@ -71,10 +71,15 @@ rows = [["", "Original (b928552)", "Curva (este cambio)", "KIET (concepto)"],
         ["Placa", "labio curvo de 80 mm\n6 pernos M20 (rosca en base 18)", "rectángulo %.0f × %.0f con recorte\n%d ISO 10642 M%d 8.8 + 2 pasadores" % (FAB["placas_leva"]["marco"]["largo"], FAB["placas_leva"]["marco"]["ancho"], FAB["placas_leva"]["pernos"]["n"], FAB["placas_leva"]["pernos"]["d"]), "rectángulo empernado\n(~6 pernos perimetrales)"],
         ["Material del canto", "S355J2 «templado» (no templable)", "42CrMo4+QT, inducción 52–56 HRC", "no indicado"],
         ["Posición (ángulo desde la diagonal del ojal)", "≈ ±22°", "±%.0f°" % abs(((math.degrees(math.atan2(*reversed([sum(p[0] for p in FAB["placas_leva"]["instancias"]["1_antihorario"]["contorno"]) / len(FAB["placas_leva"]["instancias"]["1_antihorario"]["contorno"]), sum(p[1] for p in FAB["placas_leva"]["instancias"]["1_antihorario"]["contorno"]) / len(FAB["placas_leva"]["instancias"]["1_antihorario"]["contorno"])]))) - P["pv_phE"] + 180) % 360) - 180), "±26° (medido en plano, no acotado)"]]
-tb = ax.table(cellText=rows, loc="center", cellLoc="left", colWidths=[0.2, 0.27, 0.3, 0.23]); tb.auto_set_font_size(False); tb.set_fontsize(8); tb.scale(1, 2.6)
+bq = PV["bloque_una"]
+rows.append(["Cara del bloque-uña", "plana 80 mm: con el roce el contacto\nva a 58 mm del eje (arista)", "cilíndrica convexa R %.0f: contacto a\n%.1f mm del eje (≤ %.0f)" % (P["pv_rface"], bq["contacto_cara"], P["pv_bf"] / 2 - 3), "—"])
+rows.append(["FS del accionamiento (diseño)", "%.3f (colineal)" % O["casos"][1]["FS"] if O["casos"][1]["id"] == "dis" else "—", "%.3f (empuje guiado)" % [c for c in D["derivados"]["casos"] if c["id"] == "dis"][0]["FS"], "—"])
+dec = lambda t: re.sub(r"(?<!M16 )(?<!M20 )(\d)\.(\d)", r"\1,\2", t).replace("8,8", "8.8")
+rows = [[dec(c) for c in r] for r in rows]
+tb = ax.table(cellText=rows, cellLoc="left", colWidths=[0.2, 0.27, 0.3, 0.23], bbox=[0, 0, 1, 0.9]); tb.auto_set_font_size(False); tb.set_fontsize(8)
 for (i, j), cl in tb.get_celld().items():
     if i == 0 or j == 0: cl.set_text_props(weight="bold")
-ax.set_title("Comparación (valores por defecto, 300 tf)", fontsize=9, pad=2)
+ax.text(0.5, 0.95, "Comparación (valores por defecto, 300 tf)", transform=ax.transAxes, ha="center", va="center", fontsize=10, weight="bold")
 # detalle: ventana común en el marco de la placa del cilindro 1, giro antihorario
 ins = FAB["placas_leva"]["instancias"]["1_antihorario"]; cx_ = [p[0] for p in ins["contorno"]]; cy_ = [p[1] for p in ins["contorno"]]
 xl = (min(cx_ + [p[0] for p in O["leva_borde_exterior"]]) - 60, max(cx_ + [p[0] for p in O["leva_borde_exterior"]]) + 60); yl = (min(cy_) - 120, max(cy_) + 60)

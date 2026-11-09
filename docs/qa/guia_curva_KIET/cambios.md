@@ -29,7 +29,7 @@ Figuras: `comparacion.svg/png` (original poligonal, curva y concepto KIET, con t
 | I6 | Pernos roscados en una base de 18 mm: M20 10.9 pide enganche ≥ 1,25·d = 25 mm; pasantes con tuerca no caben (la base apoya en la losa) | enganche 18 < 25 mm |
 | I7 | S355J2 no admite temple superficial a 55 HRC (C ≈ 0,2 %): la fila de Hertz con Fy_sup = 1.500 MPa no corresponde al material | — |
 | I8 | Esquinas cóncavas del bolsillo con radio 0 (concentración de tensiones, no fabricables) | — |
-| I9 (fuera de alcance, informado) | Bloque-uña: con μ_s = 0,15 y la resultante pasando por Q, el contacto en la cara queda a μ_s·(L_qp − r) = 58 mm del eje del bloque y la cara mide ± 40 mm: el pasador apoya en la arista de la cara | contacto de arista; revisar ancho de cara (≥ 2·(58 + margen)) o cara cilíndrica. No se cambia en esta tarea (pieza del bloque) |
+| I9 | Bloque-uña: con μ_s = 0,15 y la resultante pasando por Q, el contacto en la cara plana queda a μ_s·(L_qp − r) + μ_Q·d_Q/2 = 67 mm del eje del bloque y la cara mide ± 40 mm: el pasador apoya en la arista; además la excentricidad del contacto no estaba en la flexión del cuerpo | corregido en la sección 9 (cara cilíndrica convexa R 120) |
 
 ## 3. Solución
 
@@ -157,7 +157,7 @@ Cargas de la placa: N_atasco = F_ret/sen φ₁ = 64,9/sen 40,3° = 100,4 kN; H a
 | Carrera requerida | 220,41 mm | 220,43 mm |
 | Placa | labio de 80 mm, 6 pernos M20 | rectángulo 471 × 147, 8 ISO 10642 M16 8.8 + 2 pasadores |
 | Material | S355J2 | 42CrMo4+QT, canto templado por inducción |
-| Masa de las 4 placas / total | 34,4 / 2.770,8 kg | 51,0 / 2.787,5 kg |
+| Masa de las 4 placas / total | 34,4 / 2.770,8 kg | 51,0 / 2.787,5 kg (2.804,6 kg con el bloque-uña de la sección 9) |
 | Pasador Q (FU flexión) | 0,551 | 0,602 |
 
 Parámetros nuevos o con valor por defecto cambiado (tests/golden/params_defaults.json): `pv_dwell` 2 → 0, `Fy_camP` 355 → 750, `Fu_camP` 470 → 900, `pv_nb` 6 → 8, `pv_db` 20 → 16; nuevos `pv_rmin` 10, `pv_tolg` 0,4, `pv_Fub` 800, `pv_dd` 16, `pv_Fyrod` 520. `pv_alpha` pasa a ser el ángulo máximo admisible del flanco.
@@ -182,7 +182,7 @@ La posición del flanco empinado difiere de la del gancho de KIET porque la sinc
 |---|---|---|---|
 | Fy del vástago, tipo de ojal (rótula o casquillo) y μ de los ojales (proveedor del cilindro) | FALTA | Fy = 520 MPa (acero templado y cromado), μ = 0,20 (pv_muE), K = 1 con L = L0 + carrera | flexocompresión a calado FU 0,965: confirmar; con rótula autolubricada μ ≈ 0,1 el FU baja a ≈ 0,8 |
 | Diámetro del vástago y longitud real entre ojales | parámetros del proyecto (d_rod 63, L0 520) a confirmar con la ficha | — | pandeo y flexocompresión |
-| Geometría de la cara del bloque-uña frente al roce (ancho para el desplazamiento μ_s·s₂ = 58 mm) | FUERA DE ALCANCE | se mantiene la cara de 80 mm y el modelo de bloque alineado con Q–P | ver I9 |
+| Roce del pasador Q (μ_Q) para el desplazamiento del contacto en la cara del bloque | hipótesis | μ_Q = pv_muE = 0,20 | e_c, sección 9 |
 | Forma de la zapata para familias 2–4 sobre el canto curvo | PENDIENTE (fila «pend») | p = H/(l·t) con apoyo completo | flecha l²/(8R) = 13 mm con R = 74 mm: la zapata plana no apoya |
 | Bloque alineado con el vástago en el retorno | hipótesis del modelo original (conservadora) | — | w_nec |
 | Profundidad de temple real y dureza del canto | especificación (≥ 4 mm, 52–56 HRC) | Fy_sup = 1.500 MPa | Hertz |
@@ -220,3 +220,43 @@ La posición del flanco empinado difiere de la del gancho de KIET porque la sinc
 | filas de la placa | eliminadas: «Rampa …», «Placa-leva: …», «Pernos de la placa-leva …»; nuevas: «Placa-guía …», «Tornillos de la placa-guía …», «Canto …», «Empuje con Q apoyado …», «Vástago: flexocompresión …», fatiga de la placa | | rediseño |
 
 `tests/golden/tt300c_termica_alcance2.json`: las mismas causas en el escenario térmico del modo 2. `tests/golden/params_defaults.json`: parámetros de la sección 4. `tests/golden/tt300c_guiado.json` sin cambios (el modo guiado no se tocó).
+
+## 9. Cara del bloque-uña (corrección pedida por el orquestador, 09-11-2026)
+
+Con la cara plana de 80 mm el contacto con roce cae fuera de la cara (I9). Ensanchar la cara plana no sirve: con b_f = 120 la sincronía baja a 1,4 mm y con 150 mm a −4,2 mm (el borde interior de la cara pide sacar más el bloque sobre B y el flanco pasa de 65°). Se adopta una **cara cilíndrica convexa en planta** (generatriz vertical) de radio R = 120 mm con vértice en s₂ = L_qp − r: la normal pasa por el centro de curvatura y por el pasador, y el contacto queda cerca del eje.
+
+| Magnitud | Fórmula | Valor |
+|---|---|---|
+| Ángulo de rozamiento | ρ = atan μ_s | 8,53° |
+| Brazo del roce del pasador Q | d_R = μ_Q·d_Q/2 | 9,0 mm |
+| Ángulo de la normal | sen γ = (s₂·sen ρ + d_R)/(s₂ − R), s₂ = 387,5 | γ = 14,35° |
+| Contacto desde el eje (ambos sentidos) | e_c = R·sen γ | 29,7 mm |
+| Semiancho de Hertz | b = √(4·q·R_ef/(π·E*)), 1/R_ef = 1/r + 1/R | 1,2 mm |
+| **Contacto dentro de la cara** | e_c + b ≤ b_f/2 − 3 (chaflán) | 31,0 ≤ 37,0 mm, **FU 0,837** |
+| Giro de equilibrio del bloque (hacia afuera) | δ = asin((R + r)·sen γ/L_qp) | 5,35° |
+| Flecha de las aristas | R − √(R² − (b_f/2)²) | 6,9 mm |
+
+Consecuencias verificadas (filas del núcleo, `tests/indep_pivotado.py` y prueba «Bloque-uña · contacto dentro de la cara…»):
+
+| Fila | Antes (cara plana, cuerpo 70 × e_cr 35) | Después (cara R 120, cuerpo 90 × e_cr 45) | Norma |
+|---|---|---|---|
+| Contacto dentro de la cara | 67,1 + 1,4 > 37 → FU 1,85 (arista) | 31,0 ≤ 37 → FU 0,837 | equilibrio del bloque libre en Q; Hertz |
+| Hertz cara–pasador (a calado) | 1.859 MPa, FU 0,742 (no consideraba la arista) | 2.163 MPa, FU 0,864 | Hertz lineal, p₀ ≤ 1,67·Fy_sup |
+| Cuerpo acodado: compresión + flexión, e = e_cr + e + e_c·s₁/s₂ | e = 45 mm (sin e_c), FU 0,828 | e = 80,2 mm, b = 90 mm, FU 0,841 | ASME BTH-1 §3-2.1, §3-2.3 |
+| Tramo de la cara: e = e + e_c | 0,261 | 0,593 | ASME BTH-1 §3-2.3 |
+| Fatiga del cuerpo (cat. A) | 0,263 | 0,267 | AISC 360-22 Ap. 3 |
+| Bloque libre de los pasadores, empuje guiado (alineado y girado 5,35° hacia afuera) | 13,6 mm | 13,6 mm (FU 0,737) | geometría |
+| Bloque libre del pasador siguiente (colineal) / sincronía | 12,2 / 6,26 mm | 12,2 / 6,26 mm (el cuerpo se ensancha hacia afuera: el borde interior no cambia) | geometría |
+| Bloque sobre la placa / cajón E | 53 ≥ 50 mm / lejos | sin cambio | geometría |
+| Masa del bloque con pasador Q / 2 bloques | 40,5 / 81,0 kg | 49,1 / 98,2 kg | ρ·V (descuenta las aristas de la cara convexa) |
+| Masa total | 2.787,5 kg | 2.804,6 kg | — |
+
+El giro del bloque hacia adentro pediría que el pasador deslice hacia afuera respecto de la cara al revés, es decir, que la mesa retroceda; no ocurre en la operación. Por eso la holgura con los pasadores se verifica con el bloque alineado y girado hacia afuera. La cara rectangular sigue como envolvente en las holguras (conservador).
+
+Parámetros: `pv_rface` nuevo (120 mm; 0 = cara plana), `pv_bu` 70 → 90, `pv_ecr` 35 → 45.
+
+Golden (regenerados): `masa_total` 2.787,45 → 2.804,62; `masas.dogs` 80,99 → 98,15; FU del cuerpo acodado 0,828 → 0,841, del tramo de la cara 0,261 → 0,593, Hertz de la cara 0,742 → 0,864; fila nueva «Bloque-uña: contacto dentro de la cara» 0,837; FEA de izaje y filas de izaje +0,6 % por la masa. FS del accionamiento sin cambio (1,362).
+
+## 10. Integración
+
+Rebase sobre `origin/claude/dreamy-allen-r5dzqu` (6a9988b y 71ff5e0: cubierta W y planos) sin conflictos de texto; `params_defaults.json` quedó con la unión de los parámetros (W: R_reb, t_reb, t_pared, w_pared, c_mad, b_tab, j_tab, d_tmad, s_tmad, k_hmad; placa-guía y bloque: pv_rmin, pv_tolg, pv_Fub, pv_dd, pv_Fyrod, pv_rface) y los golden se regeneraron sobre el núcleo integrado.

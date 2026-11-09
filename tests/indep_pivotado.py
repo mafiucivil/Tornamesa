@@ -288,7 +288,16 @@ Ncam = max(NR, Tst)
 print("== 5. Verificaciones del bloque, pasadores, ojal E y placa-leva (BTH-1 Cat. B, AISC J3) ==")
 Nd, Fs, Fy = P["Nd"], Fst * 1e3, P["Fy"]
 bu, hu = P["pv_bu"], P["pv_hu"]
-chk("Bloque: F/(bh) + 6F(e_cr + e)/(hb²) (MPa)", Fs / (bu * hu) + 6 * Fs * (P["pv_ecr"] + P["e_dog"]) / (hu * bu * bu), row("Bloque-uña: compresión + flexión en el cuerpo acodado")["dem"])
+# cara convexa del bloque: la resultante del contacto (inclinada atan μ_s) pasa a μ_Q·d_Q/2 de Q; la normal pasa por el centro de curvatura y por P
+s2b = Lqp - r; Rfc = P["pv_rface"]; rho_ = math.atan(mu_s); dR_ = P["pv_muE"] * P["pv_dq"] / 2
+if Rfc > 0: sg_ = (s2b * math.sin(rho_) + dR_) / (s2b - Rfc); ecb = Rfc * sg_
+else: ecb = s2b * math.tan(rho_) + dR_
+Es_ = P["E"] / (2 * (1 - P["nu"] ** 2)); qb = P["k_edge"] * Fs / hu; Refb = 1 / (1 / r + (1 / Rfc if Rfc > 0 else 0))
+chk("Bloque: contacto dentro de la cara e_c + b_Hertz (mm)", ecb + math.sqrt(4 * qb * Refb / (math.pi * Es_)), row("Bloque-uña: contacto dentro de la cara")["dem"]); chk("  b_f/2 − 3 (mm)", P["pv_bf"] / 2 - 3, row("Bloque-uña: contacto dentro de la cara")["cap"])
+chk("Bloque: Hertz cara convexa–pasador (MPa)", math.sqrt(qb * Es_ / (math.pi * Refb)), row("Bloque-uña: contacto de Hertz cara–pasador")["dem"])
+s1b = s2b - P["pv_lf"]
+chk("Bloque: F/(bh) + 6F(e_cr + e + e_c·s₁/s₂)/(hb²) (MPa)", Fs / (bu * hu) + 6 * Fs * (P["pv_ecr"] + P["e_dog"] + ecb * s1b / s2b) / (hu * bu * bu), row("Bloque-uña: compresión + flexión en el cuerpo acodado")["dem"])
+if ecb + math.sqrt(4 * qb * Refb / (math.pi * Es_)) > P["pv_bf"] / 2 - 3: fails.append("contacto fuera de la cara del bloque"); print("XX  contacto fuera de la cara")
 zc0 = P["h_disc"] / 2 + P["t_base"]                              # interfaz acero–acero: δ = 0
 tq = (hu - P["b_eye"] - 2 * P["g_ch"]) / 2
 lq = (zc0 - P["b_eye"] / 2 - P["g_ch"] - tq / 2) - (P["t_base"] + P["pv_tcam"] / 2)

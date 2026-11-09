@@ -17,3 +17,5 @@ entregables/RevC/*
 !entregables/RevC/TT300-C_Memoria_RevC.pdf
 !entregables/RevC/TT300-C_design.json
 !entregables/RevC/TT300-C_alternativas.json
+# Figuras del rediseño de la placa-guía (entregable pedido en PNG y SVG) y recortes del plano KIET que usa tools/fig_guia_curva.py
+!docs/qa/guia_curva_KIET/*.png

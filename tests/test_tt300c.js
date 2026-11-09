@@ -1472,6 +1472,19 @@ test("Placa-guía curva · API: segmentos en designDrive y contacto de la simula
   assert.ok(pl.tolerancia_polilinea <= 0.1 && pl.material && /42CrMo4/.test(pl.material) && pl.pernos.norma);
   for (const s of [40, 120, 200]) { const q = TT.pivotAt(P, s, "empuje", "antihorario"); assert.ok(chainDist(TT.pivotGeo(P).placas["1_antihorario"].segmentos_canto, q.contactoLeva.punto) <= 0.5, "contacto sobre el canto en s = " + s); assert.ok(q.contactoLeva.F > 0); }
 });
+test("Bloque-uña · contacto dentro de la cara con el roce (cara cilíndrica convexa): la cara plana lo deja en la arista", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), R = A.R, bk = R.blk, rr = P.d_pin / 2, s2 = R.K.Lqp - rr, rho = Math.atan(P.mu_s), dR = P.pv_muE * P.pv_dq / 2;
+  const row = (X) => X.checks.find((c) => /contacto dentro de la cara/.test(c.name)), r0 = row(A);
+  const sg = (s2 * Math.sin(rho) + dR) / (s2 - P.pv_rface), ec = P.pv_rface * sg, Fs = R.Fstall * 1e3, q = P.k_edge * Fs / P.pv_hu, Es = P.E / (2 * (1 - P.nu ** 2)), Ref = 1 / (1 / rr + 1 / P.pv_rface);
+  near(r0.dem, ec + Math.sqrt(4 * q * Ref / (Math.PI * Es)), 1e-9, "e_c + b_Hertz"); near(r0.cap, P.pv_bf / 2 - 3, 1e-12); assert.ok(r0.fu <= 0.9, "contacto dentro de la cara con FU ≤ 0,90: " + r0.fu.toFixed(3));
+  const flat = TT.analyze(P2({ pv_rface: 0 }), { noFEA: true }), rf0 = row(flat);
+  near(rf0.dem - Math.sqrt(4 * P.k_edge * Fs / P.pv_hu * rr / (Math.PI * Es)), s2 * Math.tan(rho) + dR, 1e-9, "cara plana: e_c = s₂·tan ρ + d_R"); assert.equal(rf0.st, "fail", "con cara plana el pasador apoya en la arista");
+  // la excentricidad del contacto entra al cuerpo acodado y a la cara; el bloque girado hacia afuera sigue libre de los pasadores
+  const body = A.checks.find((c) => /compresión \+ flexión en el cuerpo acodado/.test(c.name));
+  near(body.dem, Fs / (P.pv_bu * P.pv_hu) + 6 * Fs * (P.pv_ecr + P.e_dog + ec * bk.s1 / bk.s2) / (P.pv_hu * P.pv_bu ** 2), 1e-9); assert.ok(body.fu <= 0.9);
+  assert.ok(R.camP.push.every((g) => g.clrB >= P.pv_cB), "bloque girado el ángulo de equilibrio libre de los pasadores");
+  const G = TT.pivotGeo(P); near(G.bloque.R_cara, P.pv_rface, 1e-12); assert.ok(bk.mBlk < TT.pivBlkGeo(P2({ pv_rface: 0 }), R.K).mBlk, "la cara convexa descuenta el material de las aristas");
+});
 test("Golden file · modo pivotado (drive_mode = 2): resultados por defecto sin cambios no justificados", () => {
   const A = TT.analyze(P2()), R = A.R, K = R.K;
   const snap = { masa_total: R.m.total, masas: { brackets: R.m.brackets, dogs: R.m.dogs, cam: R.m.cam }, brazo_min: K.aMin, brazo_ef_min: K.aEffMin, carrera_req: K.s_req, Q_min: K.QrMin, holgura_B: K.clrB,
