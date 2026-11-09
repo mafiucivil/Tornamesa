@@ -179,6 +179,11 @@ Pedido del mandante 07-11-2026 (Tarea 1). El riel-leva fijo reemplaza la depende
 | Pórticos del riel (08-11-2026) | patas: (R_x/2)·h/(l·b²/6) + (R_y/2)·h/(b·l²/6) ≤ Fy/Nd; soldadura pata–asiento √[(M_x/S_x + M_y/S_y)² + (V/(a·2(b + l)))²] ≤ 0,60FEXX/(1,20Nd) | ASME BTH-1 §3-2.3, §3-3.4; AISC 360-22 §J2.4 | Reemplazan a los soportes empernados a la bancada: bajo el soporte trasero pasa el cuerpo del cilindro y no cabía un patrón de pernos con brazo de vuelco. Dos patas (x = x_g ∓ (D_cuerpo/2 + 5 + b/2)) soldadas a un asiento sobre la bancada prolongada y ensanchada; el riel lleva una aleta hacia adentro en la zona de apoyo (el seguidor no llega) |
 | Pernos riel–pórtico | f_rv ≤ Fnv/Ω, Fnv = 0,45Fu (rosca incluida); aplastamiento R_n = 2,4·d·t·Fu, Ω = 2,00 | AISC 360-22 §J3.6, Tabla J3.2 (grupo 150 ≈ ISO 898-1 10.9); §J3.10 | Pernos verticales del riel a las tapas de las patas; sin tracción por vuelco (el pórtico la toma en las soldaduras) |
 | Material del contacto | cam_mat = 0 → familia 1 en el modo guiado | Criterio del proyecto | Las familias 2–4 (zapata deslizante) se calculan, pero la rampa que exige la sincronía (~62°) se autobloquea con μ ≥ 0,15 y la presión de atasco supera p_adm |
+| Seguidor: perno y retención (10-11-2026) | El perno llega a la cara superior del rodillo; rodillo apoyado 2 mm sobre la cara inferior del riel y retenido por una arandela de tope de 4 mm con tornillo axial; 2 + b + 4 + 1 ≤ mín(t_riel; z_sup_mesa − z_inf_riel) | Geometría (la carga puede volar sobre el borde de la mesa) | El perno anterior (largo l + 30) terminaba en el eje del rodillo (z 208) y el rodillo llega a z 223 |
+| Seguidor: grado del rodillo (10-11-2026) | 100Cr6 templado total 58–64 HRC, más duro que el canto (≥ 55 HRC): el Hertz usa Fy_sup del canto | ISO 683-17:2014 | Cojinete del rodillo: dato del proveedor (hipótesis: μ equivalente ≤ μ_rod) |
+| Ranura de la tapa del patín (10-11-2026) | Ajuste deslizante sobre la misma medida nominal: ranura d H9 y perno Ø d f8 (50 H9/f8: juego 0,025…0,126 mm) | ISO 286-1:2010 (Tablas 1 y 2), ISO 286-2:2010 | La ranura de 51 rotulada «H9/f8» no era un ajuste ISO 286 (1 mm de juego) |
+| Pernos riel–pórtico: rosca (10-11-2026) | Taladro ciego en la tapa de la pata con remanente 3 mm; rosca útil = taladro − 2·P (hipótesis: filetes incompletos y cono); 1,25·d ≤ l_e ≤ rosca útil − 2; espesor de la tapa = menor múltiplo de 5 mm que lo admite con un largo ISO 4762 (M20 → tapa 40 mm, M20 × 65, l_e 27 mm) | VDI 2230-1:2015 (orientativo, 10.9 en S355); criterio del registro (AF2) | La tapa de 15 mm daba un engrane < 1,25·d |
+| Pórtico del riel: material y soldaduras (10-11-2026) | Patas y tapas de S355J2 (Fy 345): flexión de la pata ≤ Fy/Nd; pata–tapa: filetes a ambos lados z = w_mín(máx(b_pata; t_tapa)) con R a la altura del riel (brazo t_tapa); prolongación–base: filete perimetral w_bed_f con el vuelco R·(z_riel − t_base), S_x = a(l·b + b²/3), S_y = a(b·l + l²/3) | AWS D1.1/D1.1M:2020 Tabla 5.3 (metales base precalificados) y Tabla 5.8; AISC 360-22 §J2.4; ASME BTH-1 §3-2.3, §3-3.4 | El 42CrMo4+QT soldado no es metal base precalificado (exigiría WPS calificado con PQR, precalentamiento y control de dureza de la ZAC): queda solo en el riel-leva, que se emperna |
 
 ## Accionamiento pivotado tipo KIET
 
@@ -196,7 +201,7 @@ Pedido del mandante 07-11-2026 (Tarea 2; drive_mode = 2; el valor por defecto si
 | Bloque-uña | F/(b·h) + 6F·(e_cr + e)/(h·b²) ≤ Fy/Nd; corte 1,5·μ_s·F/(b·h) ≤ Fy/(Nd√3); pandeo F ≤ π²EI/(L_qp²·Nd); Hertz p₀ ≤ 1,67Fy_sup; horquilla en Q: aplastamiento 1,25Fy/Nd y desgarro | ASME BTH-1 §3-2.1, §3-2.2, §3-2.3, §3-3.3; Hertz | Cuerpo acodado e_cr hacia afuera para librar el pasador siguiente |
 | Pasador Q | M = √[(F/2·(t/2 + g + b/4))² + (N_leva·l_Q)²] ≤ Fy/Nd·πd³/32; corte doble | ASME BTH-1 §3-3.3 | l_Q = horquilla inferior → mitad del espesor de la placa-leva |
 | Ojal trasero E | pasador: flexión F/2·(t/2 + g + b/4), corte doble; tapas: aplastamiento (F/2)/(d·t) ≤ 1,25Fy/Nd, desgarro (F/2)/(2·t·a) ≤ Fy/(Nd√3) | ASME BTH-1 §3-3.3 | |
-| Soporte del ojal E | cajón en U: F/2·(h_sup + h_inf)/S_U ≤ Fy/Nd; corte F/(2bt); soldadura √[(F/(4ba))² + (M/(a·b²))²] ≤ 0,60FEXX/(1,20Nd); filete mín./máx. | ASME BTH-1 §3-2.3, §3-2.2, §3-3.4; AISC 360-22 §J2.4, §J2.2b; AWS D1.1 Tabla 5.8 | Cajón centrado en E con ventana hacia la mesa (sección resistente en U) |
+| Soporte del ojal E | Ver «Soporte del ojal E: cajón abierto (10-11-2026)» (reemplaza el cajón en U con ventana) | ASME BTH-1 §3-2; AISC 360-22 §J2; AWS D1.1/D1.1M:2020 | Cajón centrado en E, abierto hacia la mesa en todo el barrido del cilindro |
 | Placa-guía: contacto | familia 1: Hertz p₀ ≤ 1,67Fy_sup con el radio real del canto en cada contacto (1/R_ef = 1/r_Q ± 1/R_c), capa templada ≥ 2·0,786·b; familias 2–4: p = T_dis/(l·t) ≤ p_adm, PV ≤ PV_adm (2 y 3), aplastamiento a calado ≤ 1,25·Fy_rev/Nd (3 y 4), respaldo de acero (2 y 3), zapata l ≤ 3·d_Q | Hertz; catálogo de cada material (opciones A, B, C de la interfaz); ASME BTH-1 §3-3.3 | Familia 2 (UHMW) no es practicable: la zapata que pide PV pasa de 3·d_Q. Familias 2–4 sobre el canto curvo: la forma de la cara de la zapata queda PENDIENTE (fila «pend») |
 | Placa-guía: ligamento y tornillos | Ver «Placa-guía curva (09-11-2026)» | ASME BTH-1 §3-2; AISC 360-22 §J3 | 42CrMo4+QT (Fy 750, Fu 900); ISO 10642 M16 8.8 roscados en la base |
 | Pandeo del cilindro | F_calado ≤ Pcr/3 con el vástago a L0 + carrera | Criterio conservador frente a ISO/TS 13725 | Dato del proveedor (la geometría del tubo no está en el núcleo) |
@@ -238,15 +243,61 @@ Decisión del mandante 08-11-2026: en la opción A pegada (opt_ss = 1, fix_mode 
 
 | Verificación | Criterio | Referencia | Nota |
 |---|---|---|---|
-| Fuerza por tornillo | V = T_dis/(n·r) | Equilibrio | T_dis = par del caso de diseño; n automático = menor múltiplo del N° de ranuras radiales con FU ≤ 0,85; r = entre la ranura circunferencial exterior y el borde (cabeza a 5 mm de la ranura) |
+| Fuerza por tornillo | V = T_dis/(n·r) | Equilibrio | T_dis = par del caso de diseño. Rediseño 10-11-2026: r = R_pin (corona de pasadores) y tornillos en las bisectrices entre pasadores (k·360°/N_pin; pasadores en (k + ½)·360°/N_pin), sin las que caen sobre una ranura radial; n automático = todas las libres (24 con 28 pasadores y 12 ranuras). El círculo anterior (R949, n múltiplo de las ranuras) cortaba 8 de los 24 agujeros de los pasadores y la rosca caía en el anillo inferior |
 | Corte del tornillo | V/A_b ≤ Fnv/Ω, Fnv = 0,45·Fu (rosca en el plano de corte), Ω = 2,00 | AISC 360-22 §J3.6, Tabla J3.2 (grupo 150 ≈ 10.9) | A_b nominal |
 | Aplastamiento en el disco | V ≤ R_n/Ω, R_n = mín(1,2·l_c·t_e·Fu; 2,4·d·t_e·Fu), t_e = t − k/2 | AISC 360-22 §J3.10 Ec. J3-6a; EN 1993-1-8 Tabla 3.4 (espesor con avellanado) | Fu del inoxidable ASTM A240 304 = 515 MPa |
 | Aplastamiento en la plancha de la mesa | V ≤ R_n/Ω con t = t_inf, Fu = 450 MPa | AISC 360-22 §J3.10 | Agujero roscado pasante |
-| Separación | s = 2πr/n ≥ 3·d | AISC 360-22 §J3.3 | |
-| Distancia al borde | R_o − r ≥ e_mín | AISC 360-22 §J3.4, Tabla J3.4M | La tabla empieza en M16; para M12 se toma 22 mm (conservador) |
+| Separación | s = cuerda mínima entre tornillos contiguos ≥ 3·d | AISC 360-22 §J3.3 | |
+| Ligamento al agujero del pasador (10-11-2026) | c − d_pas/2 − d_h/2 ≥ 3·d − d_h (el ligamento libre que dejan dos agujeros a 3d) y c − d_pas/2 ≥ e_mín (el agujero del pasador se trata como borde); sin interferencia: c ≥ d_pas/2 + d_h/2 | AISC 360-22 §J3.3 y §J3.4, Tabla J3.4M | c = distancia tornillo–pasador más cercano (104,3 mm con los valores por defecto); agujero del pasador = d_pas (como en los planos) |
+| Distancia al borde | R_o − r ≥ e_mín; r − R_anillo,int ≥ e_mín (unión anillo–plancha inferior) | AISC 360-22 §J3.4, Tabla J3.4M | La tabla empieza en M16; para M12 se toma 22 mm (conservador) |
 | Avellanado | k + 0,5 + sobreespesor de relapeado ≤ t | ISO 10642 (k máx.); criterio del mandante | El disco de la mesa se dimensiona con este mínimo: con M12 pasa de 8 a 10 mm |
-| Roscado | 1,25·d ≤ t_inf | VDI 2230 (orientativo, 10.9 en acero S355) | |
+| Roscado (10-11-2026) | En la pieza real: anillo inferior de pasadores (MES-004, t_pr) si r − d/2 > R_anillo,int; si no, la plancha inferior. En el anillo: taladro ciego con remanente 3 mm (la punta no asoma a la luz entre anillos, por donde pasa el bloque-uña), rosca útil = taladro − 2·P (hipótesis), l_e = L − (t − 0,5 − sobreespesor) ≥ 1,25·d y l_e + 2 ≤ rosca útil (M12 × 25: l_e 16 mm) | VDI 2230-1:2015 (orientativo, 10.9 en acero S355) | Antes se verificaba 1,25·d ≤ t_inf en la plancha de 16 mm, que no es la pieza donde caía R949 |
+| Aplastamiento en la pieza roscada | V ≤ R_n/Ω, R_n = mín(1,2·l_c·l_e·Fu; 2,4·d·l_e·Fu), l_c = mín(s − d_h; ligamento al agujero del pasador) | AISC 360-22 §J3.10 (Ec. J3-6a) | La fuerza es tangencial: el agujero del pasador más cercano está en esa dirección |
 | Ranuras de engrase | holgura cabeza–ranura circunferencial ≥ 3 mm; tornillos a mitad de camino entre ranuras radiales | Geometría | |
+
+## Soporte del ojal E: cajón abierto (10-11-2026)
+
+Corrección pedida por el generador de planos: el cuerpo del cilindro (Ø D_cuerpo desde E + e_cuerpo = 75 mm) entraba en el cajón de semilado 130 mm, cuya ventana de 54 mm solo dejaba pasar el ojal, y el cajón no era construible (tapas de 260 × 260 entre paredes de 210 de luz; filete exterior z21 sin lugar frente al marco; filetes interiores y cara inferior de la tapa inferior en una cavidad cerrada; tapa superior a ras; unión pared–pared sin tamaño). Rediseño: cajón centrado en E con las paredes traseras en L hacia la esquina de la base, prolongadas pv_ext = 100 mm hacia la mesa a lo largo de los bordes (fuera del barrido), muñones de las paredes delanteras y **sin pared delantera en todo el barrido del cuerpo**; tapas inferior y superior ENTRE las paredes, recortadas en «nariz». El cuerpo ocupa toda la altura de las tapas (z_eje ± D/2), de modo que las piezas quedan a lateral ≥ D/2 + c de los ejes extremos del barrido o a s ≤ e_cuerpo − c de E (c = pv_cE = 8 mm de diseño). El barrido son los ψ de todos los estados (empuje con Q en el canto, aproximación, retorno, envolvente del canto y referencia colineal) y su reflejo para el giro horario; el cilindro 2 por rotación de 180°. e_cuerpo no se cambia: es un dato del cilindro comercial.
+
+| Verificación | Criterio | Referencia | Ecuación / nota |
+|---|---|---|---|
+| Cuerpo del cilindro libre del soporte | mín dist(huella del cuerpo; piezas que comparten cota) ≥ 5 mm en todos los estados, ambos sentidos | Geometría | 1.532 estados; holgura 8,0 mm (FU 0,625) |
+| Flexión de las paredes en la base | σ = máx en las esquinas de la sección de rectángulos (paredes traseras con su prolongación + muñones), flexión biaxial con I_xx, I_yy, I_xy; M = F/2·(h_sup + h_inf) ⟂ −u en cada estado ≤ Fy/Nd | ASME BTH-1 §3-2.3 | Sin la prolongación la interfaz B (eje más alto) daba FU 1,22 |
+| Corte en las paredes | τ = F/A_v, A_v = Σ t·L·cos²(pared; −u) ≤ Fy/(Nd·√3) | ASME BTH-1 §3-2.2 | |
+| CJP paredes–base (J-E1, J-E2, J-E6) | TC-U4b (bisel 45° por el interior, resanado y respaldo por el exterior) + filete de refuerzo interior; resistencia = metal base: FU = máx(σ/(Fy/Nd); τ/(Fy/(Nd√3))) | AISC 360-22 §J2.4, Tabla J2.5; AWS D1.1/D1.1M:2020 Figura 5.4 | El exterior de las paredes traseras se suelda desde fuera de la base: el marco se interrumpe frente al soporte (hasta b + pv_ext + 50 mm del eje E) |
+| CJP pared–pared (J-E3 a J-E5) | τ = q/t, q = V·Q/I biaxial de la parte unida por la junta ≤ Fy/(Nd√3) | AISC 360-22 Tabla J2.5; ASME BTH-1 §3-2.2 | Juntas armadas en banco (ambas caras accesibles) |
+| PJP tapas–paredes (J-E7, J-E8) | TC-P4 en bisel simple 45° soldada solo desde arriba, S = t_tapa − 8, E = S − 3; grupo elástico de líneas (cantos de la tapa sobre paredes y muñones) con F/2 en E: f = q_máx/E ≤ 0,60FEXX/(1,20Nd); el filete de refuerzo no se cuenta | AISC 360-22 §J2.1a (Tabla J2.1), §J2.4 (Tabla J2.5); AISC Steel Construction Manual, Parte 8; ASME BTH-1 §3-3.4 | La cara inferior de las tapas no se suelda (sin acceso); la carga de las tapas está en su plano |
+| Garganta mínima de las PJP | E ≥ E_mín(parte más delgada) | AISC 360-22 §J2.1b, Tabla J2.3 | |
+| Filete de refuerzo mínimo | w ≥ w_mín(máx(t_pared; t_base; t_tapa)) | AWS D1.1/D1.1M:2020 Tabla 5.8 | z8 |
+| Acceso | Exterior: w + 5 ≤ distancia de la pared trasera al borde de la base (marco interrumpido); tapa superior rebajada pv_rebt ≥ w bajo el borde de las paredes (rincón del filete) | AWS D1.1/D1.1M:2020 §7 (acceso para resanado), Figura 5.2 | Secuencia: (1) marco interrumpido; (2) paredes y muñones armados en banco (J-E3 a J-E5); (3) paredes a la base desde el interior sin tapas y respaldo exterior (J-E1, J-E2, J-E6); (4) tapa inferior sobre calzas, desde arriba (J-E7); (5) tapa superior (J-E8); (6) agujero Ø d_E H9 en línea después de soldar; (7) VT 100 %, UT 100 % de las CJP, MT de PJP y filetes (cláusula 8) |
+| Tapas: desgarro | Hacia las paredes traseras: a = distancia del agujero a la cara interior de la pared en −u − d_E/2 (no hasta la cara exterior: la tapa termina en la pared); hacia la nariz con la tracción del retorno F_ret = A_anular·p_ret | ASME BTH-1 §3-3.3 | t_tapa 28 → 29 mm (con 28 el desgarro daba FU 0,909; con 30 la flexión del pasador E pasa de 0,90) |
+| Fatiga | Pie de la CJP pared–base: categoría E (conservador); garganta de la PJP de las tapas: categoría F | AISC 360-22 Apéndice 3, Tabla A-3.1 | |
+
+Espesores: paredes 25 → 30 mm. Masa por soporte 56,4 → 47,0 kg. Pendiente fuera del alcance de esta corrección: flexión local de la plancha base de 18 mm bajo el momento del soporte (≈ 47 kN·m a calado en la opción por defecto), que el núcleo no verificaba antes y tampoco verifica ahora (requiere un modelo local de la plancha apoyada en la losa).
+
+## Elementos sobre la base: holguras (10-11-2026)
+
+Huellas en planta con su cota z: orejas de izaje (2R × (t + 2w) radial, hasta h + R sobre la base), soportes del ojal E (piezas reales), placas-guía (4: cilindro 1 y 2, ambos sentidos, por rotación de 180° y reflexión respecto de la diagonal), mesa con la interfaz y sus topes (círculo R = D/2) y, en el modo pivotado, las partes móviles en todos los estados del empuje y del retorno (cuerpo y vástago del cilindro, bloque-uña y cubo de Q). En el modo guiado, la banda de cada lado (bancada y prolongaciones, patín, cilindro, riel-leva y pórticos).
+
+| Verificación | Criterio | Referencia | Nota |
+|---|---|---|---|
+| Placas-guía–orejas de izaje | ≥ 5 mm | Geometría | Con las orejas en (±600; ±1.030) la placa del sentido horario las cubría (−35 mm) y el bloque-uña del cilindro 2 en giro horario pasaba sobre ellas (−44 mm) |
+| Placas-guía–soportes E y mesa | ≥ 5 mm | Geometría | |
+| Orejas–partes móviles | ≥ 5 mm (todas comparten cota: la oreja llega a 182 mm) | Geometría | |
+| Orejas–placas, soportes E y mesa (modo guiado: accionamiento) | ≥ 5 mm | Geometría | |
+
+Corrección: orejas sobre las diagonales, x_lug 600 → 850 y c_lug 250 → 430 (centro en (±850; ±850), R 1.202 mm), entre los dos barridos del cilindro de cada esquina: holguras 214 mm a las placas, 85 mm a las partes móviles y 110 mm a la mesa. Las placas-guía no se mueven (sincronía y holguras verificadas sin cambios).
+
+## Placa-guía: holgura mínima de sincronía y pasadores de posición (10-11-2026)
+
+| Dato / verificación | Criterio | Referencia | Nota |
+|---|---|---|---|
+| Puntos de la holgura mínima de sincronía | Punto del bloque-uña (o del cubo de Q) y punto del pasador B más cercanos en el estado de holgura mínima del retorno (mesa detenida en θ_fin, Q contra el canto en L_sync, bloque alineado con E–Q); holgura nominal = distancia entre ambos; peor caso = nominal − δ | Geometría | Exportados en placas_leva.holgura_sincronia, en coordenadas globales de cada placa (rotación y reflexión) y en el marco de la placa (x' a lo largo de la cuerda del canto, y' hacia afuera) |
+| Pasadores de posición de la placa-guía | ISO 8734 m6 en H7 escariado; alojamientos ciegos en la base (desde arriba) y en la placa (desde abajo) con remanente ≥ 3 mm y 2 mm de fondo libre bajo la punta; enganche ≥ 1,5·d en cada pieza | Criterio de diseño de pasadores de posición (enganche 1,5·d a 2·d por pieza; de memoria, sin norma de producto que lo fije); ISO 8734 (serie de largos) | Ø16 → Ø8: en la base de 18 mm, 18 − 3 − 2 = 13 mm de enganche admiten d ≤ 8,7. ISO 8734 – 8 m6 × 26: 13 mm en la base y 13 mm en la placa; alojamientos de 15 mm. Salida de aire de los agujeros ciegos: hipótesis (taladro lateral o pasador con plano). No toman carga |
+
+## Pórtico del riel del modo guiado: patas de S355J2 (10-11-2026)
+
+cam_px 30 → 40 mm: con las patas de S355J2 (Fy 345 en lugar de 750) la flexión de la pata con la interfaz B daba FU 1,20; con 40 mm, 0,75 (por defecto 0,53).
 
 ## Cubierta de madera W (rebaje)
 

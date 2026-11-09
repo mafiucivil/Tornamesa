@@ -675,7 +675,7 @@ test("4.ª pasada · filete mejillas–base: mínimo AWS D1.1 T5.8 (parte más g
 });
 
 test("4.ª pasada · flecha al izar la base (C12): margen ≥ 10 % del límite B/300 en todas las variantes, incluso B con madera", () => {
-  const P0 = TT.defaults(); assert.equal(P0.c_lug, 250, "puntos de izaje a 250 mm del borde (150 dejaba B sin margen con hc_min = 6; 200 → 250 por la masa de la leva de reenganche, 08-11-2026)");
+  const P0 = TT.defaults(); assert.ok(P0.c_lug === 430 && P0.x_lug === 850, "puntos de izaje en las diagonales (±850; ±850) desde el 10-11-2026 (antes c = 250 mm, x = 600: las placas-guía del sentido horario y los bloques-uña pasaban sobre las orejas)");
   for (const [nm, o] of [...IFC_VARIANTS, ["B+madera", { opt_uhmw: 1, opt_wood: 1 }]]) {
     const P = Object.assign(TT.defaults(), o), R = TT.compute(P), L = TT.runLift(P, R, false);
     assert.ok(L.wMax <= 0.90 * P.B / 300, nm + ": flecha " + L.wMax.toFixed(2) + " mm vs límite " + (P.B / 300).toFixed(2));
@@ -1571,7 +1571,7 @@ test("Golden file · modo guiado (drive_mode = 1, alternativa con leva de reenga
 
 test("AF2 · opción A pegada: tornillos avellanados ISO 10642 M12 10.9 del disco de la mesa a la mesa (J3.6, J3.10, J3.3, J3.4M, avellanado)", () => {
   const P = Object.assign(TT.defaults(), { opt_ss: 1, fix_mode: 2 }), A = TT.analyze(P, { noFEA: true }), t = A.R.ifc.tornillos;
-  assert.ok(t && t.d === 12 && t.n % P.n_gr_rad === 0, "M12, n múltiplo de las ranuras radiales");
+  assert.ok(t && t.d === 12 && t.n === t.nAuto && t.n <= P.N_pin, "M12, n = bisectrices entre pasadores libres de las ranuras radiales (10-11-2026)");
   near(t.V, A.R.cd.T * 1e6 / (t.n * t.r), 1e-12, "V = T/(n·r)");
   const rows = A.checks.filter((c) => /^AF2 · Tornillos/.test(c.name));
   assert.ok(rows.length >= 8 && rows.every((c) => c.st !== "fail"));
@@ -1579,7 +1579,7 @@ test("AF2 · opción A pegada: tornillos avellanados ISO 10642 M12 10.9 del disc
   assert.ok(rows.some((c) => /J3\.6/.test(c.ref)) && rows.some((c) => /J3\.10/.test(c.ref)) && rows.some((c) => /J3\.3/.test(c.ref)) && rows.some((c) => /J3\.4/.test(c.ref)) && rows.some((c) => /ISO 10642/.test(c.ref)));
   assert.ok(t.k + 0.5 + P.ss_allow <= A.R.ifc.tss2, "la cabeza cabe en el disco de la mesa");
   const ta = TT.analyze(Object.assign({}, P, { tor2_n: 12 }), { noFEA: true }).checks.find((c) => /AF2 · Tornillos avellanados disco–mesa: corte/.test(c.name)); assert.ok(ta.fu > 0.85, "con 12 tornillos no alcanza FU 0,85");
-  const D = TT.designDrive(P, A.R).tornillos_interfaz; assert.ok(D && D.posiciones.length === t.n && D.avellanado.prof === t.k && D.rosca_en_mesa.prof === P.t_bot);
+  const D = TT.designDrive(P, A.R).tornillos_interfaz; assert.ok(D && D.posiciones.length === t.n && D.avellanado.prof === t.k && D.rosca_en_mesa.prof_taladro === P.t_pr - 3 && D.t_pieza_roscada === P.t_pr);
   assert.equal(TT.compute(TT.defaults()).ifc.tornillos, null, "solo en AF2"); assert.equal(TT.compute(Object.assign(TT.defaults(), { opt_ss: 1 })).ifc.tornillos, null, "con topes no hay tornillos");
 });
 test("Planos · designDrive exporta la geometría de fabricación de ambos modos en el sistema de la tornamesa", () => {
@@ -1587,11 +1587,178 @@ test("Planos · designDrive exporta la geometría de fabricación de ambos modos
   const P1 = TG(), F1 = TT.designDrive(P1, TT.compute(P1)).levaGuiada.fabricacion;
   assert.ok(F1.riel.contorno_local.length >= 8 && F1.porticos.patas_local.length === 4 && F1.porticos.pernos_local.length === P1.cam_nb * 2 && F1.prolongacion_bancada_local.length === 2);
   assert.deepEqual(Object.keys(F1.instancias).sort(), ["1_antihorario", "1_horario", "2_antihorario", "2_horario"]);
-  assert.ok(F1.seguidor.rodillo.d === P1.cam_df && F1.ranura_tapa_patin.ancho === P1.cam_dp + 1); fin(F1);
+  assert.ok(F1.seguidor.rodillo.d === P1.cam_df && F1.ranura_tapa_patin.ancho === P1.cam_dp && /H9/.test(F1.ranura_tapa_patin.ajuste)); fin(F1);
   const P2 = TT.defaults(), F2 = TT.designDrive(P2, TT.compute(P2)).pivotado.fabricacion;
   for (const k of ["soporte_E", "pasador_E", "bloque_una", "pasador_Q", "placas_leva"]) assert.ok(F2[k], "falta " + k);
-  assert.equal(Object.keys(F2.placas_leva.instancias).length, 4); assert.ok(F2.soporte_E.tapas.t === P2.pv_tl && F2.soporte_E.ventana.sector_deg.length === 2);
+  assert.equal(Object.keys(F2.placas_leva.instancias).length, 4); assert.ok(F2.soporte_E.tapas.t === P2.pv_tl && F2.soporte_E.ventana.sector_deg.length === 4 && F2.soporte_E.juntas.length >= 6);
   assert.ok(F2.bloque_una.contorno_local.cuerpo.length === 4 && F2.bloque_una.agujero_Q === P2.pv_dq); fin(F2);
   const ex = JSON.parse(require("child_process").execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "export_design.js")], { maxBuffer: 1 << 28 }).toString());
   assert.ok(ex.pivotado && ex.pivotado.fabricacion && ex.modo === 2, "export_design lleva la geometría del modo por defecto");
+});
+
+/* ======================= Inconsistencias geométricas del generador de planos (10-11-2026) ======================= */
+// Geometría plana propia de las pruebas (no usa las rutinas del núcleo): distancia entre polígonos con detección de solape
+const tIn = (pl, p) => { let c = false; for (let i = 0, j = pl.length - 1; i < pl.length; j = i++) { const a = pl[i], b = pl[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+const tSeg = (p, a, b) => { const ex = b[0] - a[0], ey = b[1] - a[1], l = ex * ex + ey * ey, t = l > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * ex + (p[1] - a[1]) * ey) / l)) : 0; return Math.hypot(p[0] - a[0] - t * ex, p[1] - a[1] - t * ey); };
+const tEdge = (pl, p) => Math.min(...pl.map((a, i) => tSeg(p, a, pl[(i + 1) % pl.length])));
+const tX = (a, b, c, d) => { const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])); return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0; };
+const tDist = (A, B) => {
+  if (A.some((p) => tIn(B, p)) || B.some((p) => tIn(A, p))) return -1;
+  for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length; j++) if (tX(A[i], A[(i + 1) % A.length], B[j], B[(j + 1) % B.length])) return -1;
+  return Math.min(...A.map((p) => tEdge(B, p)), ...B.map((p) => tEdge(A, p)));
+};
+const tRect = (E, u, s0, s1, w) => { const n = [-u[1], u[0]]; return [[s0, -w / 2], [s1, -w / 2], [s1, w / 2], [s0, w / 2]].map(([s, l]) => [E[0] + s * u[0] + l * n[0], E[1] + s * u[1] + l * n[1]]); };
+// estados de la simulación (TT.pivotAt) en ambos sentidos y fases, con el cilindro 2 por rotación de 180°
+const pivStates = (P, n) => {
+  const R = TT.compute(P), out = [], m = (p) => [-p[0], -p[1]];
+  for (const sen of ["antihorario", "horario"]) for (const f of ["empuje", "retorno"]) for (let i = 0; i <= n; i++) {
+    const q = TT.pivotAt(P, R.camP.sReqG * i / n, f, sen);
+    out.push(Object.assign({ cil: 1, sentido: sen, fase: f }, q));
+    out.push(Object.assign({}, q, { cil: 2, sentido: sen, fase: f, E: m(q.E), Q: m(q.Q), una: { cuerpo: q.una.cuerpo.map(m), cara: q.una.cara.map(m), cubo: q.una.cubo.map(m) } }));
+  }
+  return out;
+};
+
+test("Soporte E · el cuerpo del cilindro barre libre del soporte (≥ 5 mm) en todo el empuje y el retorno, ambos sentidos y cilindros", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).pivotado.fabricacion.soporte_E, zc0 = TT.hAxis(P) + P.t_base;
+  for (const c of ["cilindro1", "cilindro2"]) assert.ok(Array.isArray(F[c].piezas) && F[c].piezas.length >= 4, c + ": piezas del soporte exportadas");
+  const zb = [zc0 - P.D_body / 2, zc0 + P.D_body / 2];
+  let dmin = Infinity;
+  for (const q of pivStates(P, 60)) {
+    const L = Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]), u = [(q.Q[0] - q.E[0]) / L, (q.Q[1] - q.E[1]) / L], body = tRect(q.E, u, P.e_body, P.L0 - P.c_rod, P.D_body);
+    for (const pz of F["cilindro" + q.cil].piezas) if (pz.z[0] < zb[1] && pz.z[1] > zb[0]) dmin = Math.min(dmin, tDist(body, pz.poligono));
+  }
+  assert.ok(dmin >= 5, "holgura cuerpo del cilindro–soporte E ≥ 5 mm: " + dmin.toFixed(2));
+  const row = A.checks.find((c) => /^Cuerpo del cilindro libre del soporte del ojal E/.test(c.name));
+  assert.ok(row && row.st === "ok" && row.cap >= 5 && row.cap <= dmin + 1e-6 && row.fu === 5 / row.cap, "verificación del núcleo con FU (barrido de θ y ambos sentidos): " + (row && row.cap));
+  const lo = TT.analyze(P2({ pv_cE: 6 }), { noFEA: true }).checks.find((c) => /^Cuerpo del cilindro libre del soporte del ojal E/.test(c.name));
+  assert.ok(lo.cap >= 6 - 1e-6 && lo.st === "ok", "la holgura real es al menos la de diseño");
+});
+test("Soporte E · constructibilidad: tapas entre las paredes, juntas con tipo y tamaño (CJP/PJP), secuencia con acceso, marco interrumpido y masa de las piezas", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), R = A.R, F = TT.designDrive(P, R).pivotado.fabricacion.soporte_E, b = P.pv_box / 2, bi = b - P.pv_tbox;
+  // tapas: entre las paredes (lado interior 2·b_i), polígono dentro del interior y rebaje de la superior
+  assert.ok(F.tapas.lado <= 2 * bi + 1e-9 && F.tapas.lado < P.pv_box, "las tapas caben entre las paredes: " + F.tapas.lado);
+  F.tapas.poligono_local.forEach(([x, y]) => assert.ok(Math.abs(x) <= bi + 1e-6 && Math.abs(y) <= bi + 1e-6, "tapa dentro del interior"));
+  near(F.tapas.z_sup[1] + P.pv_rebt, F.z_paredes[1], 1e-9, "tapa superior rebajada bajo el borde de las paredes (rincón para el filete)");
+  assert.ok(F.tapas.z_inf[0] > P.t_base, "la tapa inferior no apoya en la base");
+  // juntas: tipo y tamaño de todas las uniones, incluida pared–pared; verificación con FU ≤ 0,90
+  assert.ok(F.juntas.length >= 6 && F.juntas.every((j) => j.tipo && j.tamano && (j.tamano.CJP || j.tamano.E) && j.tamano.filete_refuerzo >= 8 && j.verificacion && j.verificacion.fu <= 0.9 && /AWS D1\.1/.test(j.verificacion.norma)));
+  assert.ok(F.juntas.some((j) => j.piezas.includes("pared_Y") && j.piezas.includes("pared_X")), "unión pared–pared con tipo y tamaño");
+  assert.ok(F.juntas.filter((j) => /tapa/.test(j.piezas[0])).every((j) => /PJP/.test(j.tipo) && /desde arriba/.test(j.tipo)), "tapas soldadas solo desde arriba (la cara inferior queda sin soldar)");
+  // secuencia realizable: paredes a la base desde el interior ANTES de las tapas; acceso exterior con el marco interrumpido
+  const sq = F.secuencia.join(" "); assert.ok(F.secuencia.length >= 5 && sq.indexOf("J-E1") < sq.indexOf("J-E7") && sq.indexOf("J-E7") < sq.indexOf("J-E8"), "orden de la secuencia");
+  const Emax = Math.max(Math.abs(R.K.E[0]), Math.abs(R.K.E[1])), gap = P.B / 2 - (Emax + b);
+  assert.ok(gap >= P.pv_wbox + 5, "acceso exterior a las CJP de las paredes traseras: " + gap.toFixed(1));
+  assert.ok(F.marco_interrupcion.cilindro1.length === 2 && F.marco_interrupcion.cilindro2.length === 2);
+  // masa: piezas reales (paredes + muñones + tapas recortadas) + pasador E; marco descontado
+  const mP = F.piezas.reduce((a, q) => a + q.masa, 0); near(R.sup.m, mP + R.sup.mPin, 1e-9, "masa del soporte = Σ piezas + pasador");
+  near(R.m.brackets, P.n_cyl * R.sup.m, 1e-12);
+  assert.ok(R.m.rim < 7.85e-6 * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t, "marco interrumpido frente a los soportes");
+  // filas nuevas con norma
+  const row = (re) => A.checks.find((c) => re.test(c.name));
+  for (const re of [/^Soporte del ojal E: PJP tapas–paredes/, /^Soporte del ojal E: CJP paredes–base/, /^Soporte del ojal E: CJP pared–pared/, /^Soporte del ojal E: filete de refuerzo mínimo/, /^Soporte del ojal E: acceso exterior/, /^Soporte del ojal E: rincón para el filete/, /^Soporte del ojal E: flexión de las paredes/]) {
+    const r = row(re); assert.ok(r && r.st === "ok" && /AISC|AWS|BTH/.test(r.ref), "fila " + re + " " + (r && r.st));
+  }
+  assert.ok(/AWS D1\.1\/D1\.1M:2020 Tabla 5\.8/.test(row(/^Soporte del ojal E: filete de refuerzo mínimo/).ref) && /J2/.test(row(/^Soporte del ojal E: PJP tapas–paredes/).ref));
+  // con el filete de refuerzo bajo el mínimo de AWS (z6 para t = 30) la fila no cumple
+  assert.equal(TT.analyze(P2({ pv_wbox: 6 }), { noFEA: true }).checks.find((c) => /^Soporte del ojal E: filete de refuerzo mínimo/.test(c.name)).st, "fail");
+});
+test("Elementos sobre la base · placas-guía (con reflexiones y rotaciones), orejas de izaje, soportes E y partes móviles sin interferencias", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), G = TT.pivotGeo(P), F = TT.designDrive(P, A.R).pivotado.fabricacion.soporte_E;
+  const yl = P.B / 2 - P.c_lug, hw = P.t_ear / 2 + P.w_ear;
+  const ears = [[P.x_lug, yl], [-P.x_lug, yl], [P.x_lug, -yl], [-P.x_lug, -yl]].map((c) => { const r = Math.hypot(c[0], c[1]), u = [c[0] / r, c[1] / r]; return tRect([c[0] - P.R_ear * u[0], c[1] - P.R_ear * u[1]], u, 0, 2 * P.R_ear, 2 * hw); });
+  const plates = Object.values(G.placas).map((q) => q.contorno), sup = ["cilindro1", "cilindro2"].flatMap((c) => F[c].piezas.map((q) => q.poligono));
+  const dPE = Math.min(...plates.flatMap((pl) => ears.map((e) => tDist(pl, e)))), dPS = Math.min(...plates.flatMap((pl) => sup.map((s) => tDist(pl, s)))), dES = Math.min(...ears.flatMap((e) => sup.map((s) => tDist(e, s))));
+  assert.ok(dPE >= 5, "placas-guía libres de las orejas de izaje: " + dPE.toFixed(1)); assert.ok(dPS >= 5, "placas-guía libres de los soportes E: " + dPS.toFixed(1)); assert.ok(dES >= 5, "orejas libres de los soportes E");
+  ears.forEach((e) => e.forEach((p) => assert.ok(Math.hypot(p[0], p[1]) >= P.D_top / 2 + 5, "oreja fuera de la mesa")));
+  // partes móviles (cuerpo, vástago, bloque-uña y cubo de Q) en todos los estados de la simulación
+  let dM = Infinity;
+  for (const q of pivStates(P, 40)) {
+    const L = Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]), u = [(q.Q[0] - q.E[0]) / L, (q.Q[1] - q.E[1]) / L];
+    const parts = [tRect(q.E, u, P.e_body, P.L0 - P.c_rod, P.D_body), tRect(q.E, u, P.L0 - P.c_rod, L, P.d_rod), q.una.cuerpo, q.una.cara, q.una.cubo];
+    for (const e of ears) for (const pa of parts) dM = Math.min(dM, tDist(e, pa));
+  }
+  assert.ok(dM >= 5, "orejas libres de las partes móviles: " + dM.toFixed(1));
+  const rows = A.checks.filter((c) => /^Placas-guía libres de las orejas|^Placas-guía libres de los demás|^Orejas de izaje libres/.test(c.name));
+  assert.ok(rows.length >= 4 && rows.every((c) => c.st === "ok"), rows.map((c) => c.name + " " + c.st).join("; "));
+  // con las orejas en la posición anterior (±600; ±1.030) el núcleo detecta el choque con la placa del sentido horario y con el bloque-uña
+  const Ao = TT.analyze(P2({ x_lug: 600, c_lug: 250 }), { noFEA: true });
+  assert.equal(Ao.checks.find((c) => /^Placas-guía libres de las orejas/.test(c.name)).st, "fail");
+  assert.equal(Ao.checks.find((c) => /^Orejas de izaje libres de las partes móviles/.test(c.name)).st, "fail");
+  // modo guiado: las orejas en la diagonal quedan libres del accionamiento
+  assert.equal(TT.analyze(TG(), { noFEA: true }).checks.find((c) => /^Orejas de izaje libres del accionamiento guiado/.test(c.name)).st, "ok");
+});
+test("AF2 · tornillos intercalados con los pasadores: sin interferencia, ligamento (J3.3, J3.4M), rosca ciega en el anillo inferior y corte J3.6", () => {
+  const P = Object.assign(TT.defaults(), { opt_ss: 1, fix_mode: 2 }), A = TT.analyze(P, { noFEA: true }), t = A.R.ifc.tornillos, D = TT.designDrive(P, A.R).tornillos_interfaz;
+  const pins = Array.from({ length: P.N_pin }, (_, k) => (k + 0.5) * 360 / P.N_pin).map((a) => [P.R_pin * Math.cos(a * Math.PI / 180), P.R_pin * Math.sin(a * Math.PI / 180)]);
+  const dh = t.d + 1, clr = Math.min(...D.posiciones.map((p) => Math.min(...pins.map((q) => Math.hypot(p[0] - q[0], p[1] - q[1]))))) - P.d_pin / 2 - dh / 2;
+  assert.ok(clr >= 3 * t.d - dh, "ligamento libre al agujero del pasador ≥ 3d − d_h: " + clr.toFixed(1));
+  assert.ok(clr + dh / 2 >= 22, "distancia al borde del agujero del pasador ≥ e_mín (J3.4M)");
+  // ninguna cabeza sobre una ranura radial; n = bisectrices libres
+  const lat = (a) => Math.min(...Array.from({ length: P.n_gr_rad }, (_, q) => { const e = ((a - 360 * q / P.n_gr_rad + 540) % 360) - 180; return Math.abs(e) < 90 ? t.r * Math.abs(Math.sin(e * Math.PI / 180)) : Infinity; }));
+  const free = Array.from({ length: P.N_pin }, (_, k) => k * 360 / P.N_pin).filter((a) => lat(a) >= P.w_gr / 2 + t.dk / 2 + 3);
+  assert.equal(t.n, free.length); D.angulos_deg.forEach((a) => assert.ok(lat(a) >= P.w_gr / 2 + t.dk / 2 + 3));
+  // rosca en la pieza real: el anillo inferior (r − d/2 > R_anillo,int), ciega con remanente ≥ 3 mm y engrane ≥ 1,25·d
+  assert.ok(t.r - t.d / 2 > TT.prIn(P) && D.rosca_en_mesa.ciega && /anillo inferior/.test(D.pieza_roscada));
+  assert.ok(D.rosca_en_mesa.remanente >= 3 && D.rosca_en_mesa.engrane >= 1.25 * t.d && D.rosca_en_mesa.engrane + 2 <= D.rosca_en_mesa.prof);
+  near(t.V, A.R.cd.T * 1e6 / (t.n * t.r), 1e-12, "V = T/(n·r)");
+  const row = (re) => A.checks.find((c) => re.test(c.name));
+  assert.ok(row(/^AF2 · Tornillos: sin interferencia con los agujeros de los pasadores/).st === "ok" && row(/^AF2 · Tornillos: ligamento libre al agujero del pasador/).st === "ok" && row(/^AF2 · Tornillos: engrane de la rosca en la pieza real/).st === "ok");
+  assert.ok(row(/^AF2 · Tornillos avellanados disco–mesa: corte/).fu <= 0.85 && /J3\.6/.test(row(/^AF2 · Tornillos avellanados disco–mesa: corte/).ref) && /J3\.10/.test(row(/^AF2 · Tornillos: aplastamiento en la pieza roscada/).ref));
+  // con pasadores muy juntos (64 en R930) la bisectriz queda sobre los agujeros: el núcleo lo detecta (interferencia y ligamento)
+  const dense = TT.analyze(Object.assign({}, P, { N_pin: 64 }), { noFEA: true }).checks;
+  assert.equal(dense.find((c) => /^AF2 · Tornillos: sin interferencia/.test(c.name)).st, "fail"); assert.equal(dense.find((c) => /^AF2 · Tornillos: ligamento libre/.test(c.name)).st, "fail");
+  assert.equal(TT.analyze(Object.assign({}, P, { N_pin: 48 }), { noFEA: true }).checks.find((c) => /^AF2 · Tornillos: ligamento libre/.test(c.name)).st, "fail", "48 pasadores: sin ligamento J3.3");
+});
+test("Modo guiado · seguidor (perno, retención y grado del rodillo), ranura ISO 286, pernos del riel, filetes del pórtico y material soldable", () => {
+  const P = TG(), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).levaGuiada.fabricacion, c = A.R.camG;
+  const S = F.seguidor;
+  assert.ok(S.perno.z && S.perno.z[1] >= S.rodillo.z[1] - 1e-9, "el perno llega a la cara superior del rodillo");
+  near(S.perno.largo, S.perno.z[1] - S.perno.z[0], 1e-9); near(S.perno.z[0], S.perno.z_cara_sup_una - S.perno.empotrado_en_una, 1e-9);
+  assert.ok(S.retencion && S.retencion.z[1] <= Math.min(c.zPb + P.cam_t, c.zTop) - 1 + 1e-9, "retención bajo la cara superior del riel y de la mesa");
+  assert.ok(/100Cr6/.test(S.rodillo.material || ""), "grado del rodillo");
+  // ranura y perno: ajuste deslizante ISO 286 sobre la misma medida nominal
+  const Rn = F.ranura_tapa_patin; assert.equal(Rn.ancho, P.cam_dp); assert.ok(/H9/.test(Rn.ajuste) && /f8/.test(S.perno.ajuste));
+  near(Rn.juego[0], 0.025, 1e-9, "juego mínimo 50 H9/f8"); near(Rn.juego[1], 0.126, 1e-9, "juego máximo 50 H9/f8");
+  // pernos del riel: engrane ≥ 1,25·d en la tapa (taladro ciego con remanente 3 mm)
+  const pr = F.porticos.pernos.rosca; assert.ok(pr.engrane >= 1.25 * P.cam_db && pr.remanente >= 3 && pr.engrane + 2 <= pr.rosca_util, "engrane " + pr.engrane);
+  F.porticos.tapas_local.forEach((t) => near(t.z[1] - t.z[0], F.porticos.t_tapa, 1e-9));
+  // material soldable en patas y tapas; el riel templado solo se emperna
+  assert.ok(/S355/.test(F.porticos.material) && /no se suelda/.test(F.riel.material));
+  const row = (re) => A.checks.find((x) => re.test(x.name));
+  for (const re of [/^Pórtico del riel: soldadura pata–tapa/, /^Pórtico del riel: filete pata–tapa mínimo/, /^Prolongación de la bancada: soldadura a la base/, /^Prolongación de la bancada: filete mínimo/, /^Pernos riel–pórtico: engrane de la rosca/, /^Seguidor: rodillo y su retención/]) {
+    const r = row(re); assert.ok(r && r.st === "ok", "fila " + re + " " + (r && r.st));
+  }
+  assert.ok(row(/^Pórtico del riel: flexión de cada pata/).cap === P.Fy / P.Nd, "patas de S355J2 (Fy = " + P.Fy + ")");
+});
+test("Placa-guía · puntos de la holgura mínima de sincronía exportados (global y marco de la placa, θ, nominal y peor caso) y coherentes con la simulación", () => {
+  const P = P2(), R = TT.compute(P), F = TT.designDrive(P, R).pivotado.fabricacion.placas_leva, H = F.holgura_sincronia, g = R.camP.guia;
+  assert.ok(H && H.instancias && Object.keys(H.instancias).length === 4, "holgura_sincronia en placas_leva");
+  near(H.nominal, R.camP.sync, 1e-9, "nominal = sincronía verificada"); near(H.peor_caso, g.syncWorst, 1e-9, "peor caso = nominal − δ"); assert.ok(H.peor_caso >= P.pv_msync);
+  for (const [k, I] of Object.entries(H.instancias)) {
+    const db = Math.hypot(I.punto_bloque[0] - I.punto_pasador[0], I.punto_bloque[1] - I.punto_pasador[1]);
+    near(db, H.nominal, 1e-6, k + ": distancia entre los dos puntos = holgura");
+    near(Math.hypot(I.punto_pasador[0] - I.centro_pasador[0], I.punto_pasador[1] - I.centro_pasador[1]), P.d_pin / 2, 1e-9, k + ": el punto del pasador está en su contorno");
+    near(Math.hypot(...I.centro_pasador), P.R_pin, 1e-9, k + ": centro del pasador sobre R_pin");
+    // el pasador B está en la corona a θ_fin − paso del cilindro de esa instancia; θ de la instancia
+    const th = I.theta_deg * Math.PI / 180, pitch = 2 * Math.PI / P.N_pin, sen = k.endsWith("horario") && !k.endsWith("antihorario") ? -1 : 1;
+    const B = [P.R_pin * Math.cos(th - sen * pitch), P.R_pin * Math.sin(th - sen * pitch)];
+    assert.ok(Math.hypot(B[0] - I.centro_pasador[0], B[1] - I.centro_pasador[1]) < 1e-6, k + ": el pasador de la holgura es B (θ − paso en el sentido de giro)");
+  }
+  // marco de la placa: los mismos puntos en coordenadas locales de la placa del cilindro 1 antihorario
+  const mk = g.marco, I1 = H.instancias["1_antihorario"], loc = (p) => [(p[0] - mk.origen[0]) * mk.xh[0] + (p[1] - mk.origen[1]) * mk.xh[1], (p[0] - mk.origen[0]) * mk.yh[0] + (p[1] - mk.origen[1]) * mk.yh[1]];
+  near(loc(I1.punto_bloque)[0], H.marco_placa.punto_bloque[0], 1e-9); near(loc(I1.punto_pasador)[1], H.marco_placa.punto_pasador[1], 1e-9);
+  // la simulación del retorno alcanza esa misma holgura en el mismo L
+  const q = TT.pivotAt(P, H.s, "retorno", "antihorario"); assert.ok(Math.abs(q.holgura_leva - H.nominal) < 0.05, "pivotAt en L_sync: " + q.holgura_leva);
+});
+test("Placa-guía · pasadores de posición ISO 8734: largo, enganche ≥ 1,5·d en base y placa, alojamientos ciegos con remanente y fondo libre", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R).pivotado.fabricacion.placas_leva.pasadores_posicion;
+  assert.ok(D.largo > 0 && D.enganche_base + D.enganche_placa === D.largo, "largo = enganche en la base + en la placa");
+  assert.ok(D.enganche_base >= 1.5 * P.pv_dd && D.enganche_placa >= 1.5 * P.pv_dd, "enganche ≥ 1,5·d en cada pieza");
+  assert.ok(D.alojamiento_base.prof === D.enganche_base + D.alojamiento_base.fondo_libre && D.alojamiento_base.prof + D.alojamiento_base.remanente === P.t_base && D.alojamiento_base.remanente >= 3);
+  assert.ok(D.alojamiento_placa.prof + D.alojamiento_placa.remanente === P.pv_tcam && D.alojamiento_placa.remanente >= 3 && D.alojamiento_base.fondo_libre >= 2);
+  assert.ok([20, 22, 24, 26, 28, 30, 32].includes(D.largo) && /ISO 8734/.test(D.designacion), "largo de la serie ISO 8734");
+  assert.ok(A.checks.filter((c) => /^Pasadores de posición/.test(c.name) && c.kind === "geo").every((c) => c.st === "ok"));
+  // con Ø16 (valor anterior) la base de 18 mm no da 1,5·d con alojamiento ciego
+  assert.equal(TT.analyze(P2({ pv_dd: 16 }), { noFEA: true }).checks.find((c) => /^Pasadores de posición .*enganche en la base/.test(c.name)).st, "fail");
 });

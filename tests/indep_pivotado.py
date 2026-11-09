@@ -11,6 +11,9 @@ soldaduras 0,60FEXX/(1,20Nd)) y AISC 360-22 J3 (pernos: Fnv = 0,45·Fu, Ω = 2,0
     con E–P que pasa por Q); brazo efectivo por potencia virtual: F_n·(dL/dθ − μ_s·|v_s|) = T/n, con dL/dθ también numérico;
   - F_cil = máx F_n·(1 + μ_leva·μ_s)/η, T = μ·N·r + μ_buje·H_ecc·D_piv/2 (N tomado del núcleo: la masa de la mesa ya la verifica indep_tt300c.py);
   - holguras con geometría propia (bloque acodado como polígono, cuerpo del cilindro como segmento), perfil de la leva (w_nec por búsqueda propia),
+  - soporte del ojal E abierto (10-11-2026): sección de rectángulos de las piezas exportadas con flexión biaxial, corte, CJP y PJP (grupo elástico de líneas propio),
+    desgarro de las tapas por rayos propios y holgura cuerpo del cilindro–piezas en todos los estados (ambos sentidos); orejas de izaje frente a placas, soportes,
+    mesa y partes móviles; puntos de la holgura mínima de sincronía y pasadores de posición ISO 8734 (enganche ≥ 1,5·d),
     fuerzas de la leva, verificaciones de bloque, pasadores, cajón del ojal y pernos, asimetría al pivote y la sugerencia de E (malla gruesa propia).
 
 Ejecutar: python3 -I tests/indep_pivotado.py      Sale con 0 si todo coincide (tolerancia 0,1 % salvo indicación); 1 si hay diferencias; 2 sin node."""
@@ -283,6 +286,24 @@ chk("Sin autobloqueo en toda la conducción: máx dem/cap", lockmax, row("Placa-
 sync = min(clr_ret(L, W(L)) for L in [L0 + (first - L0) * k / 4000 for k in range(4001)])
 chk("Sincronía nominal: holgura mínima con Q contra el canto (mm, barrido propio)", sync, PL["sincronia"], tol=0, absol=0.05)
 if sync < m + dTol - 0.05: fails.append("sincronía bajo m + δ"); print("XX  sincronía bajo el margen")
+# puntos exportados de la holgura mínima de sincronía (caja negra) frente a la geometría propia: bloque en Q(L_sync) contra el canto y pasador B
+HS = PV["fabricacion"]["placas_leva"]["holgura_sincronia"]; I1 = HS["instancias"]["1_antihorario"]
+chk("Holgura de sincronía: distancia entre los dos puntos exportados (mm)", math.hypot(I1["punto_bloque"][0] - I1["punto_pasador"][0], I1["punto_bloque"][1] - I1["punto_pasador"][1]), sync, tol=0, absol=0.05)
+chk("Holgura de sincronía: peor caso = nominal − δ (mm)", HS["nominal"] - dTol, HS["peor_caso"], tol=1e-9)
+Qs_, us_ = Qof(HS["L"], W(HS["L"])); bpol, ebq = block_polys(Qs_, us_)
+onb = min(min(abs(poly_dist(pg, *I1["punto_bloque"])) for pg in bpol), abs(math.hypot(I1["punto_bloque"][0] - Qs_[0], I1["punto_bloque"][1] - Qs_[1]) - ebq))
+pinB = min(retpins, key=lambda q: math.hypot(q[0] - I1["centro_pasador"][0], q[1] - I1["centro_pasador"][1]))
+if onb > 0.05 or math.hypot(pinB[0] - I1["centro_pasador"][0], pinB[1] - I1["centro_pasador"][1]) > 1e-6 or abs(math.hypot(I1["punto_pasador"][0] - pinB[0], I1["punto_pasador"][1] - pinB[1]) - r) > 1e-6:
+    fails.append("puntos de la holgura de sincronía"); print("XX  puntos de la holgura de sincronía fuera del bloque o del pasador B")
+for k_, Ik in HS["instancias"].items():   # reflexión y rotación propias
+    f_ = (lambda q: q) if k_.endswith("antihorario") else (lambda q: (2 * (q[0] * math.cos(ph) + q[1] * math.sin(ph)) * math.cos(ph) - q[0], 2 * (q[0] * math.cos(ph) + q[1] * math.sin(ph)) * math.sin(ph) - q[1]))
+    g_ = (lambda q: (-f_(q)[0], -f_(q)[1])) if k_.startswith("2") else f_
+    if math.hypot(g_(I1["punto_bloque"])[0] - Ik["punto_bloque"][0], g_(I1["punto_bloque"])[1] - Ik["punto_bloque"][1]) > 1e-6: fails.append("holgura de sincronía " + k_); print("XX  instancia", k_)
+# pasadores de posición ISO 8734: enganche ≥ 1,5·d en base y placa con alojamientos ciegos (remanente 3 mm, 2 mm de fondo libre)
+PPd = PV["fabricacion"]["placas_leva"]["pasadores_posicion"]; dd_ = P["pv_dd"]
+lb_ = P["t_base"] - 3 - 2; Lser = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 35, 40, 45, 50]; Ld_ = next(x for x in Lser if x - lb_ >= 1.5 * dd_)
+chk("Pasadores de posición: largo ISO 8734 (mm)", Ld_, PPd["largo"]); chk("  enganche en la base (mm)", lb_, PPd["enganche_base"]); chk("  enganche en la placa (mm)", Ld_ - lb_, PPd["enganche_placa"])
+if min(lb_, Ld_ - lb_) < 1.5 * dd_ or P["pv_tcam"] - (Ld_ - lb_) - 2 < 3: fails.append("pasadores de posición"); print("XX  pasadores de posición")
 Ncam = max(NR, Tst)
 
 print("== 5. Verificaciones del bloque, pasadores, ojal E y placa-leva (BTH-1 Cat. B, AISC J3) ==")
@@ -305,15 +326,115 @@ MQ = math.hypot(Fs / 2 * (tq / 2 + P["g_ch"] + P["b_eye"] / 4), Ncam * lq)   # N
 chk("Pasador Q: flexión combinada (MPa)", MQ / (math.pi * P["pv_dq"] ** 3 / 32), row("Pasador Q: flexión")["dem"])
 ME = Fs / 2 * (P["pv_tl"] / 2 + P["g_ch"] + P["b_eye"] / 4)
 chk("Pasador E: flexión (MPa)", ME / (math.pi * P["pv_dE"] ** 3 / 32), row("Pasador vertical E: flexión")["dem"])
-b, t = P["pv_box"], P["pv_tbox"]
-yc = (b * t * t / 2 + 2 * t * b * b / 2) / (3 * b * t)                 # sección en U: pared trasera + 2 laterales
-I = b * t ** 3 / 12 + b * t * (yc - t / 2) ** 2 + 2 * (t * b ** 3 / 12 + t * b * (b / 2 - yc) ** 2)
-S = I / max(yc, b - yc)
-hsum = 2 * (zc0 - P["t_base"])                                        # h_sup + h_inf (tapas simétricas respecto del eje)
-chk("Cajón del ojal: flexión F/2·(h_sup + h_inf)/S_U (MPa)", Fs / 2 * hsum / S, row("Cajón del ojal E: flexión")["dem"])
-aw = 0.707 * P["pv_wbox"]
-chk("Soldadura cajón–base (MPa)", math.hypot(Fs / (4 * b * aw), Fs / 2 * hsum / (aw * b * b)), row("Soldadura cajón del ojal E–base")["dem"])
-chk("  capacidad 0,60FEXX/(1,20Nd)", P["FEXX"] * 0.6 / (1.2 * Nd), row("Soldadura cajón del ojal E–base")["cap"])
+# ---- soporte del ojal E (cajón abierto, 10-11-2026): piezas exportadas (caja negra) y mecánica propia (sección de rectángulos, grupo elástico de líneas)
+SE = PV["fabricacion"]["soporte_E"]; ML = SE["marco_local"]; sxE, syE = ML["s_x"], ML["s_y"]; bE, biE = ML["b"], ML["b_i"]
+pzs = {q["id"]: q for q in SE["piezas"]}
+rects = []                                            # paredes y muñones como rectángulos [x0, x1, y0, y1] en el marco local (esquina hacia +X, −Y)
+for k_, q in pzs.items():
+    if k_.startswith("pared") or k_.startswith("munon"):
+        xs_ = [v[0] for v in q["poligono_local"]]; ys_ = [v[1] for v in q["poligono_local"]]; rects.append((k_, (min(xs_), max(xs_), min(ys_), max(ys_))))
+def sec_props(R_):
+    A_ = sum((x1 - x0) * (y1 - y0) for x0, x1, y0, y1 in R_); cx = sum((x1 - x0) * (y1 - y0) * (x0 + x1) / 2 for x0, x1, y0, y1 in R_) / A_; cy = sum((x1 - x0) * (y1 - y0) * (y0 + y1) / 2 for x0, x1, y0, y1 in R_) / A_
+    Ixx = sum((x1 - x0) * (y1 - y0) ** 3 / 12 + (x1 - x0) * (y1 - y0) * ((y0 + y1) / 2 - cy) ** 2 for x0, x1, y0, y1 in R_)
+    Iyy = sum((y1 - y0) * (x1 - x0) ** 3 / 12 + (x1 - x0) * (y1 - y0) * ((x0 + x1) / 2 - cx) ** 2 for x0, x1, y0, y1 in R_)
+    Ixy = sum((x1 - x0) * (y1 - y0) * ((x0 + x1) / 2 - cx) * ((y0 + y1) / 2 - cy) for x0, x1, y0, y1 in R_)
+    return A_, cx, cy, Ixx, Iyy, Ixy
+A_w, cxw, cyw, Ixx, Iyy, Ixy = sec_props([r_ for _, r_ in rects]); Dw = Ixx * Iyy - Ixy ** 2
+def sigma_max(mx, my):   # equilibrio de la sección: σ = αx + βy con ∫yσ = m_x y −∫xσ = m_y
+    al = -(mx * Ixy + my * Ixx) / Dw; be = (mx * Iyy + my * Ixy) / Dw
+    return max(abs(al * (x - cxw) + be * (y - cyw)) for _, (x0, x1, y0, y1) in rects for x in (x0, x1) for y in (y0, y1))
+def loc(v): return (sxE * v[0], -syE * v[1])          # dirección real → marco local
+# estados del barrido: empuje (posiciones, Q en el canto), retorno (Q exportados) y colineal; horario = reflejo respecto de la diagonal O–E
+ed = (math.cos(ph), math.sin(ph))
+def refl(q):
+    d_ = q[0] * ed[0] + q[1] * ed[1]; return (2 * d_ * ed[0] - q[0], 2 * d_ * ed[1] - q[1])
+Qs_ah = [tuple(q) for q in PV["posiciones"]["1_antihorario"]["Q"]] + [tuple(q["Q"]) for q in PL["retorno"]] + [tuple(q) for q in PV["posiciones"]["1_antihorario"]["Q_colineal"]]
+dirs = []
+for Qa in Qs_ah:
+    for Q_, E_ in ((Qa, E), (refl(Qa), refl(E))):
+        dd = math.hypot(Q_[0] - E_[0], Q_[1] - E_[1]); dirs.append(loc(((Q_[0] - E_[0]) / dd, (Q_[1] - E_[1]) / dd)))
+zc0E = P["h_disc"] / 2 + P["t_base"]; hs_ = 2 * (zc0E - P["t_base"])     # h_sup + h_inf (tapas simétricas respecto del eje)
+sig_w = max(sigma_max(u_[1] * Fs / 2 * hs_, -u_[0] * Fs / 2 * hs_) for u_ in dirs)
+chk("Soporte E: flexión biaxial de las paredes en la base (MPa)", sig_w, row("Soporte del ojal E: flexión de las paredes")["dem"], tol=3e-3)
+def Av(f):
+    a_ = 0.0
+    for _, (x0, x1, y0, y1) in rects:
+        lx, ly = x1 - x0, y1 - y0; a_ += min(lx, ly) * max(lx, ly) * (f[0] if lx >= ly else f[1]) ** 2
+    return a_
+tau_w = max(Fs / Av((-u_[0], -u_[1])) for u_ in dirs)
+chk("Soporte E: corte F/A_v en las paredes (MPa)", tau_w, row("Soporte del ojal E: corte en las paredes")["dem"], tol=3e-3)
+chk("Soporte E: CJP paredes–base, FU = máx(σ/σ_adm, τ/τ_adm)", max(sig_w / (Fy / Nd), tau_w / (Fy / (Nd * math.sqrt(3)))), row("Soporte del ojal E: CJP paredes–base")["dem"], tol=3e-3)
+# flujo de corte en las CJP pared–pared (parte unida por la junta)
+def flow(sub, f):
+    Qx = sum((x1 - x0) * (y1 - y0) * ((y0 + y1) / 2 - cyw) for x0, x1, y0, y1 in sub); Qy = sum((x1 - x0) * (y1 - y0) * ((x0 + x1) / 2 - cxw) for x0, x1, y0, y1 in sub)
+    dm = (-f[1] * Fs, f[0] * Fs); al = -(dm[0] * Ixy + dm[1] * Ixx) / Dw; be = (dm[0] * Iyy + dm[1] * Ixy) / Dw; return abs(al * Qy + be * Qx)
+RR = dict(rects); subs = [[RR["pared_Y"]] + ([RR["munon_X"]] if "munon_X" in RR else [])] + ([[RR["munon_Y"]], [RR["munon_X"]]] if "munon_Y" in RR else [])
+tau_f = max(flow(sb, (-u_[0], -u_[1])) / P["pv_tbox"] for u_ in dirs for sb in subs)
+chk("Soporte E: CJP pared–pared, τ = V·Q/(I·t) (MPa)", tau_f, row("Soporte del ojal E: CJP pared–pared")["dem"], tol=3e-3)
+# PJP de las tapas: líneas = cantos de la tapa sobre las caras de paredes y muñones; F/2 en E; E_pjp = (t_tapa − 8) − 3
+cap_ = SE["tapas"]["poligono_local"]; lines_ = []
+def on_face(pt):
+    return any((min(abs(pt[0] - x0), abs(pt[0] - x1)) < 1e-6 and y0 - 1e-6 <= pt[1] <= y1 + 1e-6) or (min(abs(pt[1] - y0), abs(pt[1] - y1)) < 1e-6 and x0 - 1e-6 <= pt[0] <= x1 + 1e-6) for _, (x0, x1, y0, y1) in rects)
+for i_ in range(len(cap_)):
+    a_, b_ = cap_[i_], cap_[(i_ + 1) % len(cap_)]
+    if math.hypot(b_[0] - a_[0], b_[1] - a_[1]) > 1e-6 and on_face(((a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2)): lines_.append((a_, b_))
+seglen = lambda a_, b_: math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+Lc = sum(seglen(a_, b_) for a_, b_ in lines_)
+Cc = (sum(seglen(a_, b_) * (a_[0] + b_[0]) / 2 for a_, b_ in lines_) / Lc, sum(seglen(a_, b_) * (a_[1] + b_[1]) / 2 for a_, b_ in lines_) / Lc)
+Jc = sum(seglen(a_, b_) ** 3 / 12 + seglen(a_, b_) * (((a_[0] + b_[0]) / 2 - Cc[0]) ** 2 + ((a_[1] + b_[1]) / 2 - Cc[1]) ** 2) for a_, b_ in lines_)
+Epj = max(6, P["pv_tl"] - 8) - 3
+def qcap(f, F_):
+    M_ = -Cc[0] * f[1] * F_ + Cc[1] * f[0] * F_
+    return max(math.hypot(f[0] * F_ / Lc - M_ * (pt[1] - Cc[1]) / Jc, f[1] * F_ / Lc + M_ * (pt[0] - Cc[0]) / Jc) for a_, b_ in lines_ for pt in (a_, b_))
+f_pjp = max(qcap((-u_[0], -u_[1]), Fs / 2) / Epj for u_ in dirs)
+Fw_ = P["FEXX"] * 0.6 / (1.2 * Nd)
+chk("Soporte E: PJP tapas–paredes, grupo elástico de líneas (MPa)", f_pjp, row("Soporte del ojal E: PJP tapas–paredes")["dem"], tol=3e-3); chk("  capacidad 0,60FEXX/(1,20Nd)", Fw_, row("Soporte del ojal E: PJP tapas–paredes")["cap"])
+# desgarro de las tapas hacia las paredes (empuje) y hacia la nariz (retorno): rayos propios desde E
+def ray(pl, dv):
+    best = math.inf
+    for i_ in range(len(pl)):
+        a_, b_ = pl[i_], pl[(i_ + 1) % len(pl)]; e_ = (b_[0] - a_[0], b_[1] - a_[1]); den = dv[0] * e_[1] - dv[1] * e_[0]
+        if abs(den) < 1e-12: continue
+        tt = (a_[0] * e_[1] - a_[1] * e_[0]) / den; uu = (a_[0] * dv[1] - a_[1] * dv[0]) / den
+        if tt > 0 and -1e-9 <= uu <= 1 + 1e-9: best = min(best, tt)
+    return best
+aR = min(ray(cap_, (-u_[0], -u_[1])) for u_ in dirs) - P["pv_dE"] / 2; aN = min(ray(cap_, u_) for u_ in dirs) - P["pv_dE"] / 2
+chk("Tapas: desgarro hacia las paredes traseras (MPa)", Fs / 2 / (2 * P["pv_tl"] * aR), row("Tapas del cajón E: desgarro por corte hacia las paredes")["dem"], tol=3e-3)
+Fret_ = math.pi / 4 * (P["D_bore"] ** 2 - P["d_rod"] ** 2) * P["p_ret"] / 10
+chk("Tapas: desgarro hacia la nariz con la tracción del retorno (MPa)", Fret_ / 2 / (2 * P["pv_tl"] * aN), row("Tapas del cajón E: desgarro hacia la nariz")["dem"], tol=3e-3)
+# holgura cuerpo del cilindro–piezas del soporte (todas las piezas comparten cota con el cuerpo: z del eje ± D/2 cubre las tapas)
+def pin_poly(pl, p_):
+    c_ = False
+    for i_ in range(len(pl)):
+        a_, b_ = pl[i_], pl[i_ - 1]
+        if (a_[1] > p_[1]) != (b_[1] > p_[1]) and p_[0] < (b_[0] - a_[0]) * (p_[1] - a_[1]) / (b_[1] - a_[1]) + a_[0]: c_ = not c_
+    return c_
+def sdist(p_, a_, b_):
+    ex, ey = b_[0] - a_[0], b_[1] - a_[1]; l_ = ex * ex + ey * ey; tt = max(0, min(1, ((p_[0] - a_[0]) * ex + (p_[1] - a_[1]) * ey) / l_)) if l_ else 0
+    return math.hypot(p_[0] - a_[0] - tt * ex, p_[1] - a_[1] - tt * ey)
+def crosses(a_, b_, c_, d_):
+    o_ = lambda p_, q_, r_: (q_[0] - p_[0]) * (r_[1] - p_[1]) - (q_[1] - p_[1]) * (r_[0] - p_[0])
+    return o_(a_, b_, c_) * o_(a_, b_, d_) < 0 and o_(c_, d_, a_) * o_(c_, d_, b_) < 0
+def pdist(A_, B_):
+    if any(pin_poly(B_, p_) for p_ in A_) or any(pin_poly(A_, p_) for p_ in B_): return -1.0
+    if any(crosses(A_[i_], A_[(i_ + 1) % len(A_)], B_[j_], B_[(j_ + 1) % len(B_)]) for i_ in range(len(A_)) for j_ in range(len(B_))): return -1.0
+    return min(min(sdist(p_, B_[j_], B_[(j_ + 1) % len(B_)]) for j_ in range(len(B_)) for p_ in A_), min(sdist(p_, A_[j_], A_[(j_ + 1) % len(A_)]) for j_ in range(len(A_)) for p_ in B_))
+def rect_u(o_, u_, s0, s1, w_):
+    n_ = (-u_[1], u_[0]); return [(o_[0] + s * u_[0] + k * w_ / 2 * n_[0], o_[1] + s * u_[1] + k * w_ / 2 * n_[1]) for s, k in ((s0, -1), (s1, -1), (s1, 1), (s0, 1))]
+clrE = min(pdist(rect_u((0, 0), u_, P["e_body"], L0 - P["c_rod"], P["D_body"]), q["poligono_local"]) for u_ in dirs for q in SE["piezas"])
+print(f"    holgura cuerpo del cilindro–soporte E (barrido propio, {len(dirs)} estados): {clrE:.2f} mm; núcleo {row('Cuerpo del cilindro libre del soporte del ojal E')['cap']:.2f} mm")
+if clrE < 5 or row("Cuerpo del cilindro libre del soporte del ojal E")["cap"] > clrE + 1e-6: fails.append("holgura cuerpo del cilindro–soporte E"); print("XX  holgura cuerpo del cilindro–soporte E")
+# geometría constructiva: tapas entre las paredes, rebaje, acceso exterior y filete de refuerzo mínimo (AWS D1.1 Tabla 5.8)
+if not (SE["tapas"]["lado"] <= 2 * biE + 1e-9 and all(abs(v[0]) <= biE + 1e-6 and abs(v[1]) <= biE + 1e-6 for v in cap_)): fails.append("tapas fuera del interior del cajón"); print("XX  tapas fuera del interior")
+chk("Soporte E: rebaje de la tapa superior bajo el borde (mm)", SE["z_paredes"][1] - SE["tapas"]["z_sup"][1], P["pv_rebt"])
+wmin_ = lambda T: 3 if T <= 6 else 5 if T <= 12 else 6 if T <= 20 else 8
+chk("Soporte E: filete de refuerzo mínimo AWS D1.1 Tabla 5.8 (mm)", wmin_(max(P["pv_tbox"], P["t_base"], P["pv_tl"])), row("Soporte del ojal E: filete de refuerzo mínimo")["dem"])
+chk("Soporte E: distancia de la cara exterior al borde de la base (mm)", P["B"] / 2 - (max(abs(E[0]), abs(E[1])) + bE), row("Soporte del ojal E: acceso exterior")["cap"])
+mPin_ = 7.85e-6 * math.pi / 4 * P["pv_dE"] ** 2 * (P["b_eye"] + 2 * P["g_ch"] + 2 * P["pv_tl"] + 20)
+area_cap = abs(sum(cap_[i_][0] * cap_[(i_ + 1) % len(cap_)][1] - cap_[(i_ + 1) % len(cap_)][0] * cap_[i_][1] for i_ in range(len(cap_)))) / 2 - math.pi / 4 * P["pv_dE"] ** 2
+hW = SE["z_paredes"][1] - SE["z_paredes"][0]
+mOwn = 7.85e-6 * (sum((x1 - x0) * (y1 - y0) for _, (x0, x1, y0, y1) in rects) * hW + 2 * area_cap * P["pv_tl"]) + mPin_
+chk("Soporte E: masa propia (piezas + pasador E, kg)", mOwn, PV["soporte_E"]["masa"])
 # tornillos de la placa-guía: grupo elástico con la carga en el contacto (empuje a calado con roce del canto / atasco)
 inst = PV["fabricacion"]["placas_leva"]["instancias"]["1_antihorario"]; Bt = inst["pernos"]; nB = len(Bt)
 Gc = (sum(b[0] for b in Bt) / nB, sum(b[1] for b in Bt) / nB); J = sum((b[0] - Gc[0]) ** 2 + (b[1] - Gc[1]) ** 2 for b in Bt)
@@ -345,11 +466,47 @@ Mr = math.hypot(P["pv_muE"] * Pr * P["pv_dq"] / 2, P["m_cyl"] * 9.80665 * Lc_ / 
 chk("Vástago: P_r/P_c + 8/9·M_r/M_c", Pr / Pc + 8 / 9 * Mr / Mc, row("Vástago: flexocompresión")["dem"])
 est = [v for v in D["verificaciones"] if v["grp"] in ("Uña", "Articulaciones", "Soporte del ojal E", "Placas-leva") and v["fu"] is not None and v["estado"] not in ("info", "pend")]
 print(f"    FU máximo en las filas nuevas del modo 2: {max(v['fu'] for v in est):.3f} ({len(est)} filas)")
-GEO = ("Filete", "largo de la zapata", "distancia al borde", "enganche de la rosca", "capa templada", "deformación del ligamento", "separación mínima")              # criterios geométricos (FU ≤ 1), no de resistencia
+GEO = ("Filete", "Pasadores de posición", "filete de refuerzo", "acceso exterior", "rincón para el filete", "garganta efectiva", "largo de la zapata", "distancia al borde", "enganche de la rosca", "capa templada", "deformación del ligamento", "separación mínima")              # criterios geométricos (FU ≤ 1), no de resistencia
 res = [v for v in est if not any(g in v["nombre"] for g in GEO)]
 print(f"    FU máximo de resistencia: {max(v['fu'] for v in res):.3f} ({len(res)} filas)")
 if max(v["fu"] for v in res) > 0.90: fails.append("FU > 0,90 en el modo 2"); print("XX  FU > 0,90")
 
+print("== 5b. Elementos sobre la base: orejas de izaje, placas-guía (reflexiones y rotaciones), soportes E y partes móviles (geometría propia) ==")
+ylg = P["B"] / 2 - P["c_lug"]; hwe = P["t_ear"] / 2 + P["w_ear"]
+ears = []
+for cx_, cy_ in ((P["x_lug"], ylg), (-P["x_lug"], ylg), (P["x_lug"], -ylg), (-P["x_lug"], -ylg)):
+    rr_ = math.hypot(cx_, cy_); ur = (cx_ / rr_, cy_ / rr_)
+    ears.append(rect_u((cx_ - P["R_ear"] * ur[0], cy_ - P["R_ear"] * ur[1]), ur, 0, 2 * P["R_ear"], 2 * hwe))
+plates = [PV["fabricacion"]["placas_leva"]["instancias"][k]["contorno"] for k in ("1_antihorario", "1_horario", "2_antihorario", "2_horario")]
+sups = [q["poligono"] for c_ in ("cilindro1", "cilindro2") for q in SE[c_]["piezas"]]
+mesa = [(Ro * math.cos(2 * math.pi * k / 144), Ro * math.sin(2 * math.pi * k / 144)) for k in range(144)]
+dPE = min(pdist(pl, e_) for pl in plates for e_ in ears); dPS = min(pdist(pl, s_) for pl in plates for s_ in sups)
+dES = min(pdist(e_, s_) for e_ in ears for s_ in sups); dEM = min(sdist((0.0, 0.0), e_[i_], e_[(i_ + 1) % 4]) for e_ in ears for i_ in range(4)) - Ro   # distancia exacta al círculo R = D/2
+chk("Placas-guía–orejas de izaje: holgura mínima (mm)", dPE, row("Placas-guía libres de las orejas de izaje")["cap"], tol=1e-3)
+# partes móviles: empuje (Q en el canto, bloque alineado con Q–P) y retorno (bloque alineado con E–Q), cuatro instancias por rotación de 180° y reflexión
+def tr_(k):
+    rot = (lambda q: (-q[0], -q[1])); f1 = (lambda q: q) if k.endswith("antihorario") else refl
+    return (lambda q: rot(f1(q))) if k.startswith("2") else f1
+dmov = math.inf
+for k in ("1_antihorario", "1_horario", "2_antihorario", "2_horario"):
+    f_ = tr_(k); Ek = f_(E); st_ = [(f_(tuple(Q_)), f_(tuple(P_))) for Q_, P_ in zip(PV["posiciones"]["1_antihorario"]["Q"], PV["posiciones"]["1_antihorario"]["P"])]
+    st_ += [(f_(tuple(q["Q"])), None) for q in PL["retorno"]]
+    for Q_, P_ in st_:
+        Lk = math.hypot(Q_[0] - Ek[0], Q_[1] - Ek[1]); u_ = ((Q_[0] - Ek[0]) / Lk, (Q_[1] - Ek[1]) / Lk)
+        bb_ = u_ if P_ is None else (lambda d_: ((P_[0] - Q_[0]) / d_, (P_[1] - Q_[1]) / d_))(math.hypot(P_[0] - Q_[0], P_[1] - Q_[1]))
+        if P_ is not None:   # el bloque se alinea con Q–P (y gira el ángulo de equilibrio con roce: se toma alineado, como referencia)
+            pass
+        polys_, ebq = block_polys(Q_, bb_)
+        hub = [(Q_[0] + ebq * math.cos(k_ * math.pi / 12), Q_[1] + ebq * math.sin(k_ * math.pi / 12)) for k_ in range(24)]
+        parts = [rect_u(Ek, u_, P["e_body"], L0 - P["c_rod"], P["D_body"]), rect_u(Ek, u_, L0 - P["c_rod"], Lk, P["d_rod"]), hub] + polys_
+        for e_ in ears:
+            cxe = sum(v[0] for v in e_) / 4; cye = sum(v[1] for v in e_) / 4
+            if math.hypot(cxe - Q_[0], cye - Q_[1]) > 1500 and math.hypot(cxe - Ek[0], cye - Ek[1]) > 1500: continue
+            for pa in parts: dmov = min(dmov, pdist(e_, pa))
+print(f"    orejas–partes móviles: {dmov:.1f} mm (núcleo {row('Orejas de izaje libres de las partes móviles')['cap']:.1f}); placas–soportes E {dPS:.1f}; orejas–soportes E {dES:.1f}; orejas–mesa {dEM:.1f} mm")
+if min(dPE, dPS, dES, dEM, dmov) < 5: fails.append("interferencia entre elementos sobre la base"); print("XX  interferencia entre elementos sobre la base")
+if abs(dmov - row("Orejas de izaje libres de las partes móviles")["cap"]) > 0.02 * dmov: fails.append("holgura orejas–partes móviles difiere del núcleo"); print("XX  holgura orejas–partes móviles difiere")
+chk("Orejas de izaje–placas, soportes E y mesa: holgura mínima (mm)", min(dPE, dES, dEM), row("Orejas de izaje libres de las placas-guía")["cap"], tol=2e-3)   # el núcleo aproxima la mesa con un polígono de 144 lados
 print("== 6. Pivote: asimetría del par por roce desigual μ_s ± 0,05 (a calado) ==")
 F0 = Fst * eta
 H = 0.0
