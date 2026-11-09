@@ -40,6 +40,8 @@ def wps_family(w):
     """Clave de la familia WPS para un registro de junta de build_welds."""
     if w["groove"] and w["sym"] == "slot":
         return "RANURA"
+    if w["groove"] and w.get("pjp"):
+        return "PJP-BISEL"
     if w["groove"]:
         return "CJP-V" if w["sym"] == "V" else "CJP-BISEL"
     if "ER309L" in w["aporte"]:
@@ -52,6 +54,7 @@ FAM_TXT = {
     "FILETE-INOX": ("Filete en T con aporte inoxidable 309L sobre acero inoxidable (barras de topes UHMW), PT 100 %", "1F, 2F"),
     "CJP-V": ("Ranura en V 60° a tope con respaldo, penetración completa (CJP), serie AWS D1.1 Fig. 3.4 B-U4; confirmar designación", "1G, 2G"),
     "CJP-BISEL": ("Ranura con bisel 45° y respaldo, penetración completa (CJP), tipo AWS D1.1 Fig. 3.4 TC-U4; confirmar designación", "1G, 2G"),
+    "PJP-BISEL": ("Ranura con bisel 45° de penetración parcial (PJP), soldada de un lado, con filete de refuerzo, tipo AWS D1.1 Fig. 5.2 TC-P4; confirmar designación", "1G, 2F"),
     "RANURA": ("Soldadura de ranura (22 × 80) rellena por completo (AWS D1.1, soldaduras de tapón y ranura precalificadas), en posición plana", "1F"),
 }
 

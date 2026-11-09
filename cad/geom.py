@@ -321,8 +321,6 @@ def supuestos(g):
         "El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar).")
     if g.modo == 2:
         F = g.FPV
-        add("S20", "Disposición del cajón del ojal E", f"Paredes en molinete (cada pared {fm(F['soporte_E']['lado'] - F['soporte_E']['t_pared'], 0)} mm apoya su extremo contra la siguiente); tapas dentro de las paredes ({fm(F['soporte_E']['lado'] - 2 * F['soporte_E']['t_pared'], 0)} × {fm(F['soporte_E']['lado'] - 2 * F['soporte_E']['t_pared'], 0)}); ventana = sector del núcleo (PROVISORIO)",
-            "El núcleo da lado, espesor, alturas, tapas y ventana, pero no cómo se unen las paredes; las tapas de lado 260 no caben dentro de las paredes (requiere núcleo).")
         add("S21", "Ojales del cilindro (elemento comercial)", f"Pared de ojal 17,5 mm (Ø{fm(F['pasador_E']['d'] + 35, 0)} en E y Ø{fm(F['pasador_Q']['d'] + 35, 0)} en Q); cuello de ancho b_ojal hasta {fm(F['bloque_una']['horquilla']['R_cubo'] + 10, 0)} mm de Q (PROVISORIO)",
             "El núcleo solo exige Ø ojal ≥ d; la geometría la fija el proveedor del cilindro.")
         add("S22", "Posición dibujada del accionamiento", "Pasador de la mesa del modelo dentro del empuje, el más cercano a su inicio; Q = P + L_qp·(E − P)/|E − P| (cinemática del núcleo)", "Las láminas muestran una posición; el núcleo entrega 61.")

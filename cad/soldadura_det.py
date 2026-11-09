@@ -207,6 +207,58 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
         plano.h.weld(jid, a, (ox + (L + 40) * k + 12, a[1] + 20), sh=1)
 
 
+def tc_size(w):
+    t, tp = w["t_alma"], w["t_plancha"]
+    if w.get("pjp"):
+        return (w["t_plancha"] + 50.0 + 20.0, w["t_alma"] + 46.0)
+    return (2 * max(30.0, 1.4 * t) + t, tp + t + 3.0 + 42.0)
+
+
+def prep_tc(s, ox, oy, k, w, jid=None, plano=None, angle=45.0):
+    """Juntas del soporte del ojal E (núcleo: soporte_E.juntas). CJP TC-U4b (AWS D1.1 Fig. 5.4): pieza vertical de espesor t sobre la plancha de espesor tp,
+    bisel simple 45° en todo el espesor del lado interior, abertura de raíz 3, resanado de raíz y pasada de cierre del lado exterior, filete de refuerzo z
+    en el rincón interior. PJP TC-P4 (Fig. 5.2): tapa horizontal entre las paredes con bisel 45° de profundidad S desde arriba (garganta E), filete de
+    refuerzo z sobre el bisel y sin soldadura por debajo."""
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    t, tp, zr = w["t_alma"], w["t_plancha"], w.get("refuerzo", 0.0)
+    Wn, Hn = tc_size(w)
+    if w.get("pjp"):
+        S_, E_ = w["pjp"]
+        t, tp = w["t_plancha"], w["t_alma"]               # pared vertical (t) y tapa biselada (tp)
+        xw = 50.0                                         # cara de la pared (a la derecha la pared vertical de espesor t)
+        yb = 20.0                                         # cara inferior de la tapa
+        _poly(s, [P(xw, 0), P(xw + t, 0), P(xw + t, Hn), P(xw, Hn)], 90.0)
+        tapa = [P(0, yb), P(xw, yb), P(xw, yb + tp - S_), P(xw - S_, yb + tp), P(0, yb + tp)]
+        _poly(s, tapa, 0.0)
+        s.dim(P(0, yb), P(0, yb + tp), -8, f"{fm(tp, 0)} (tapa)", "v")
+        s.dim(P(xw, yb + tp - S_), P(xw, yb + tp), 8, f"S = {fm(S_, 0)}", "v", outside=True)
+        xr_ = ox + Wn * k + 4
+        s.leader(P(xw - S_ * 0.5, yb + tp - S_ * 0.5), (xr_, oy + Hn * k * 0.55), f"bisel {fm(angle, 0)}°; garganta E = {fm(E_, 0)}", dot=True)
+        s.leader(P(xw - zr * 0.3, yb + tp + zr * 0.3), (xr_, oy + Hn * k * 0.35), f"filete de refuerzo z{fm(zr, 0)}", dot=True)
+        s.leader(P(xw - 6, yb), (xr_, oy + Hn * k * 0.15), "sin soldadura por debajo", dot=True)
+        s.text(f"pared (t = {fm(t, 0)})", (P(xw + t / 2, 0)[0], P(0, Hn - 4)[1]), T_N, "TOP_CENTER")
+        if jid and plano is not None:
+            a = P(xw - S_ * 0.3, yb + tp - S_ * 0.3)
+            plano.h.weld(jid, a, (ox + Wn * k + 10, oy + Hn * k + 14), sh=1, prep=f"{fm(angle, 0)}°")
+        return
+    L = max(30.0, 1.4 * t)
+    R = 3.0
+    _poly(s, [P(0, 0), P(Wn, 0), P(Wn, tp), P(0, tp)], 0.0)
+    x0, x1 = L, L + t                                     # cara interior (izquierda) y exterior (derecha) de la pieza vertical
+    web = [P(x1, tp + R), P(x1, tp + R + t + 30), P(x0, tp + R + t + 30), P(x0, tp + R + t)]
+    _poly(s, web, 90.0)
+    s.dim(P(0, 0), P(0, tp), -8, f"{fm(tp, 0)}", "v")
+    s.dim(P(x0, tp + R + t + 30), P(x1, tp + R + t + 30), 6, f"t = {fm(t, 0)}", "h")
+    s.dim(P(x1, tp), P(x1, tp + R), 8, f"{fm(R, 0)} (raíz)", "v", outside=True)
+    xr_ = ox + Wn * k + 4
+    s.leader(P(x0 + t * 0.5, tp + R + t * 0.5), (xr_, oy + Hn * k * 0.55), f"bisel {fm(angle, 0)}° en todo el espesor (interior)", dot=True)
+    s.leader(P(x0 - zr * 0.3, tp + zr * 0.3), (xr_, oy + Hn * k * 0.35), f"filete de refuerzo z{fm(zr, 0)} (interior)", dot=True)
+    s.leader(P(x1 + 1, tp + 1), (xr_, oy + Hn * k * 0.15), "resanado + pasada de cierre (exterior)", dot=True)
+    if jid and plano is not None:
+        a = P(x0 + t * 0.35, tp + R + t * 0.65)
+        plano.h.weld(jid, a, (ox + Wn * k + 10, oy + Hn * k + 14), sh=1, prep=f"{fm(angle, 0)}°")
+
+
 # ------------------------------------------------------------------------------------------------
 def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None, edge=False):
     """Agrega a la lámina p un esquema de junta correspondiente al registro de soldaduras w (dict de ctx.welds). Devuelve la especificación."""
@@ -215,6 +267,12 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         (Wn, Hn), _ = tee_size(w["t"], w["t_alma"])
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: UNIÓN EN T CUBO–PLANCHA (bisel 45°, t = {fm(w['t'], 0)})",
                     custom=lambda s, ox, oy, k, pl: prep_tee(s, ox, oy, k, w["t"], w["t_alma"], jid, pl))
+    if w.get("soporte_E") is not None:
+        Wn, Hn = tc_size(w)
+        tit = (f"DETALLE {jid}: PREPARACIÓN DE JUNTA (PJP TC-P4, S{fm(w['pjp'][0], 0)}/E{fm(w['pjp'][1], 0)} + z{fm(w['refuerzo'], 0)})" if w.get("pjp") else
+               f"DETALLE {jid}: PREPARACIÓN DE JUNTA (CJP TC-U4b + z{fm(w['refuerzo'], 0)})")
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 1.0, maxs=maxs or 5.0, title=title or tit,
+                    custom=lambda s, ox, oy, k, pl: prep_tc(s, ox, oy, k, w, jid, pl))
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]
         kind = "V" if w["sym"] == "V" else "bevel"

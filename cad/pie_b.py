@@ -161,9 +161,12 @@ def notas_anillo_inf(ctx):
     ha = centros_xy(m.info.get("holes_af2"))
     if ha:
         TA = g.I["tornillos"]
-        pa = patron_txt(ha, f"M{fm(TA['d'], 0)}-6H pasante", rmin=g.prIn)
+        RS = TA.get("rosca") or {}
+        ciega = bool(RS.get("ciega"))
+        pa = patron_txt(ha, f"M{fm(TA['d'], 0)}-6H" + (" ciega" if ciega else " pasante"), rmin=g.prIn)
         out.append(f"Solo el anillo INFERIOR (MES-004), AF2: roscas de los {int(TA['n'])} tornillos {TA['designacion']} del disco de la mesa: " + "; ".join(pa) +
-                   f"; broca Ø{fm(TA['rosca']['d_broca'], 2)} (núcleo)." + (" Algunas cortan los agujeros de los pasadores de empuje: conflicto declarado del núcleo, RETENIDA (GEN-009)." if ctx.conflicto("af2_pasadores") else ""))
+                   (f"; desde la cara inferior del anillo: rosca útil {fm(RS['prof'], 1)}, taladro Ø{fm(RS['d_broca'], 2)} prof. {fm(RS['prof_taladro'], 1)}, remanente {fm(RS['remanente'], 0)} mm (núcleo: «{RS.get('pieza', TA.get('pieza', ''))}»); "
+                    f"en las bisectrices entre pasadores (ligamento al agujero del pasador {fm(TA['ligPin'], 1)} mm, núcleo)." if ciega else f"; broca Ø{fm(RS['d_broca'], 2)} (núcleo).") + (" Algunas cortan los agujeros de los pasadores de empuje: conflicto declarado del núcleo, RETENIDA (GEN-009)." if ctx.conflicto("af2_pasadores") else ""))
     gp = m.info.get("grease_pts") or []
     if gp:
         pg = patron_txt(gp, "taladro axial Ø6", rmin=0)

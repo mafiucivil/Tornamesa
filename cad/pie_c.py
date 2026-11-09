@@ -276,7 +276,12 @@ def sheet_patin(ctx):
     p.gd_in("corte_f", "surf", "par", "0,05", "A", at=[(-ws / 2 + 20, yc, zsh), (ws / 2 - 20, yc, zsh), (0, yc, zsh)], d=(0, 0, 1))
     p.gd_in("corte_f", "surf", "perp", "0,05", "A", at=[(ws / 2, yc, zb + 40), (-ws / 2, yc, zb + 40)], d=[(1, 0, 0), (-1, 0, 0)])
     p.tables()
-    p.notes([f"Pieza única sin soldadura, desde bloque de plancha gruesa a llama con sobremetal 5 mm; desbaste y alojamientos en mandrinadora/fresadora; Ø{f(P['d_pp'])} H9 en taladro radial.",
+    # paredes del alojamiento de la uña (caras planas ⟂ y de mayor área, sin contar los extremos): posición desde el extremo del patín, leída del sólido
+    fyp = sorted(((fc.Area(), round(fc.Center().y, 2)) for fc in so_.Faces() if BRepAdaptor_Surface(fc.wrapped).GetType() == GeomAbs_Plane and abs(abs(fc.normalAt().y) - 1) < 1e-6
+                  and bbp.ymin + 1 < fc.Center().y < bbp.ymax - 1), reverse=True)[:2]
+    aloj_ = sorted(y_ for _a, y_ in fyp)
+    p.notes(([f"Alojamiento de la uña: paredes a {fm(aloj_[0] - yE, 1)} y {fm(aloj_[1] - yE, 1)} del extremo del patín (ancho {fm(aloj_[1] - aloj_[0], 1)}; ajuste en el corte F-F)."] if len(aloj_) == 2 else []) +
+            [f"Pieza única sin soldadura, desde bloque de plancha gruesa a llama con sobremetal 5 mm; desbaste y alojamientos en mandrinadora/fresadora; Ø{f(P['d_pp'])} H9 en taladro radial.",
              f"Lengüeta T: cuello {f(g.neck_w)} f7 en ranura {f(P['w_slot'])} H8; cabeza {f(g.head_w)} × {f(g.head_h)} en {f(P['w_tee'])} × {f(P['h_tee'])}, 1 mm de juego por lado.",
              f"Alojamiento de la uña {f(P['dog_b'] + 2)} × {f(P['dog_h'] + 2)} H9; tapa {f(zsh - g.pk_top)} y fondo {f(g.pk_bot - zb)} sobre la bancada (espesor mínimo de pared {f(P['t_pk'])} mm).",
              f"Marco de boca e = {f(P['t_fw'])}; inset {f(KG['inset'])}; boca en x = {f(KG['mouthX'] - X, 1)} desde el eje de la guía.",
@@ -296,9 +301,12 @@ def _nota_ranura(ctx):
     c = ctx.D["cilindros"]["antihorario"][0]
     w = rn["ancho"]
     xa, xb = rn["x"][0] + w / 2 - c["x"], rn["x"][1] - w / 2 - c["x"]
-    return [f"Ranura de la tapa del alojamiento (perno del seguidor de la leva, núcleo): ancho {fm(w, 0)} pasante en la tapa, extremos R{fm(w / 2, 1)} con centros a x = {fm(xa - bb.xmin, 1)} y {fm(xb - bb.xmin, 1)} desde el borde "
+    aj_ = rn.get("ajuste")
+    return [f"Ranura de la tapa del alojamiento (perno del seguidor de la leva, núcleo): ancho {aj_ or fm(w, 0)} pasante en la tapa, extremos R{fm(w / 2, 1)} con centros a x = {fm(xa - bb.xmin, 1)} y {fm(xb - bb.xmin, 1)} desde el borde "
+            f"(extremos de la ranura a {fm(xa - w / 2 - bb.xmin, 1)} y {fm(xb + w / 2 - bb.xmin, 1)}) "
             f"(= {fm(xa, 1)} y {fm(xb, 1)} desde el eje del patín), a {fm(rn['y_respecto_pasador_vastago'], 1)} del eje del pasador del vástago hacia la uña "
-            f"(eje de la ranura a {fm(c['dir'] * rn['y_respecto_pasador_vastago'] - bb.ymin, 1)} / {fm(bb.ymax - c['dir'] * rn['y_respecto_pasador_vastago'], 1)} de los extremos del patín); ajuste del núcleo «H9/f8» con el perno Ø{fm(g.FLG['seguidor']['perno']['d'], 0)} (requiere núcleo, GEN-009)."]
+            f"(eje de la ranura a {fm(c['dir'] * rn['y_respecto_pasador_vastago'] - bb.ymin, 1)} / {fm(bb.ymax - c['dir'] * rn['y_respecto_pasador_vastago'], 1)} de los extremos del patín); " + (f"ajuste deslizante con el perno {g.FLG['seguidor']['perno'].get('ajuste', '')} (juego {fm(rn['juego'][0], 3)}…{fm(rn['juego'][1], 3)} mm, ISO 286-2, núcleo)." if aj_ else
+            f"ajuste del núcleo «H9/f8» con el perno Ø{fm(g.FLG['seguidor']['perno']['d'], 0)} (requiere núcleo, GEN-009).")]
 
 
 @pieza("una")

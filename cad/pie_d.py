@@ -1,5 +1,5 @@
 """Láminas de fabricación del accionamiento según el modo del núcleo.
-Modo 2 (pivotado tipo KIET, por defecto): cajón del ojal E (BAS-008), cilindro (ACC-013), pasadores E y Q (ACC-014), bloque-uña (ACC-015), placa-leva (ACC-017).
+Modo 2 (pivotado tipo KIET, por defecto): soporte abierto del ojal E (BAS-012…015), cilindro (ACC-013), pasadores E y Q (ACC-014), bloque-uña (ACC-023), placa-guía (ACC-020/024).
 Modo 1 (guiado, alternativa): riel-leva (ACC-007), pórtico y prolongación de la bancada (ACC-008), seguidor (ACC-011).
 Toda la geometría viene del JSON del núcleo (D.pivotado.fabricacion, D.levaGuiada.fabricacion) a través del modelo 3D."""
 import math, sys, pathlib
@@ -25,55 +25,75 @@ def loc1(ctx, key, nk, idx=0, rot=None, z0=None):
 
 
 # ====================================================================================================== MODO 2
-@pieza("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa")
+def soporte_ids(ctx, piezas=None):
+    """Juntas del soporte del ojal E (registro de soldaduras, una por junta del núcleo); piezas: filtra por id de pieza del núcleo."""
+    return [w["id"] for w in ctx.welds if w.get("soporte_E") is not None and (piezas is None or all(x in w["soporte_E"]["piezas"] for x in piezas))]
+
+
+@pieza("cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa")
 def sheet_cajon_piezas(ctx):
+    """Piezas del soporte abierto del ojal E (núcleo: pivotado.fabricacion.soporte_E.piezas): paredes traseras X e Y, muñones y tapas recortadas en nariz.
+    Medidas de cada pieza desde su polígono local (origen en E); juntas y secuencia en CON-007."""
     g, P = ctx.g, ctx.P
     S = g.FPV["soporte_E"]
-    t, L, h = S["t_pared"], S["lado"], S["alto_paredes"]
     tap = S["tapas"]
-    li = L - 2 * t
-    zv0, zv1 = S["ventana"]["z"]
-    ks = ["cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"]
-    loc1(ctx, "cajon_pared", "cp_L")
-    loc1(ctx, "cajon_ventana_a", "cva_L")
-    loc1(ctx, "cajon_ventana_b", "cvb_L")
+    loc = {pz["id"]: pz for pz in S["piezas"]}
+    ks = ["cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"]
+    loc1(ctx, "cajon_pared_x", "cpx_L")
+    loc1(ctx, "cajon_pared_y", "cpy_L")
+    loc1(ctx, "cajon_munon", "cmu_L")
     loc1(ctx, "cajon_tapa", "ct_L", idx=0, rot=0.0)
-    p = Pieza(ctx, ks, "CAJÓN DEL OJAL E: PAREDES Y TAPAS (PIEZAS, MODO PIVOTADO)", fmt="auto")
+    p = Pieza(ctx, ks, "SOPORTE DEL OJAL E (ABIERTO): PAREDES TRASERAS, MUÑONES Y TAPAS (PIEZAS, MODO PIVOTADO)", fmt="auto")
     s = p.s
-    p.iso_keys = ["cva_L"]
-    ids = jids(ctx, "Paredes del cajón", "Tapas del cajón", "Esquinas del cajón")
-    zt = S["z_paredes"][1]
+    p.iso_keys = ["ct_L"]
+    ids = soporte_ids(ctx)
+    sc = lambda k_: ctx.code(k_).replace(CODE + "-", "")
 
-    def el_p(V, p):
+    def dims(pid):
+        pz = loc[pid]
+        xs, ys = [q[0] for q in pz["poligono_local"]], [q[1] for q in pz["poligono_local"]]
+        a, b = max(xs) - min(xs), max(ys) - min(ys)
+        return max(a, b), min(a, b), pz["z"][1] - pz["z"][0]
+    tol = lambda *v: {round(x, 1): " ±0,5" for x in v}
+    for key_, lk_, pid_, nm_ in (("cajon_pared_x", "cpx_L", "pared_X", "PARED TRASERA X"), ("cajon_pared_y", "cpy_L", "pared_Y", "PARED TRASERA Y"), ("cajon_munon", "cmu_L", "munon_X", "MUÑÓN DELANTERO")):
+        L_, t_, h_ = dims(pid_)
+        p.vs(lk_ + "_el", [lk_], "front", lv=(1, 2, 1, 1), title=f"{sc(key_).rsplit('-', 1)[0]} {nm_} ({ctx.m.get(key_).qty} u.)", auto=dict(tol=tol(L_, h_)), w=(1.0 if L_ > 200 else 0.5), mins=0.2)
+        p.vs(lk_ + "_pl", [lk_], "top", lv=(1, 1, 1, 1), extra=(10, 20, 10, 20), title=f"{sc(key_).rsplit('-', 2)[0]} — PLANTA", auto=dict(tol=tol(t_)), w=(0.5 if L_ > 200 else 0.3), hatch=False, mins=0.2)
+    Lx, tx, hx = dims("pared_X")
+    zt = loc["pared_X"]["z"][1]
+    fr_ = (-0.4, -0.25, -0.1, 0.1, 0.25, 0.4)
+    p.datum_in("cpx_L_pl", "surf", "A", at=[(Lx * a_, tx / 2, zt) for a_ in fr_], d=[(0, 1, 0)] * len(fr_))
+    p.gd_in("cpx_L_pl", "surf", "flat", "0,5", None, at=[(Lx * a_, -tx / 2, zt) for a_ in fr_], d=[(0, -1, 0)] * len(fr_))
+    p.gd_in("cpx_L_pl", "surf", "perp", "0,5", "A", at=[(Lx / 2, 0, zt), (-Lx / 2, 0, zt), (Lx / 2, tx / 4, zt), (-Lx / 2, -tx / 4, zt)], d=[(1, 0, 0), (-1, 0, 0), (1, 0, 0), (-1, 0, 0)])
+    # tapa: polígono del núcleo (nariz recortada), agujero en E
+    so = ctx.shapes["ct_L"].Solids()[0]
+    bb = so.BoundingBox()
+    Et = [pz for pz in S["cilindro1"]["piezas"] if pz["id"] == "tapa_inf"][0]
+    E1 = S["cilindro1"]["centro"]
+    c0 = ctx.shapes["cajon_tapa"].Solids()[0].Center()
+    sh_ = (E1[0] - c0.x, E1[1] - c0.y)                    # posición de E en la copia local (centrada en el baricentro)
+
+    def tp(V, p_):
         if ids:
-            w_out(p, ids[0], V, ((L - t) / 2 * 0.4, -t / 2, S["z_paredes"][0] + 0.5), "right", dy=22)
-    tolp = {round(L - t, 1): " ±0,5", round(h, 1): " ±0,5"}
-    p.vs("cp_el", ["cp_L"], "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=el_p, title=f"{ctx.code('cajon_pared').replace(CODE + '-', '')} PARED COMPLETA — ELEVACIÓN ({ctx.m.get('cajon_pared').qty} en total)", auto=dict(tol=tolp), w=1.2)
-    p.vs("cp_pl", ["cp_L"], "top", lv=(1, 1, 1, 1), extra=(20, 30, 20, 30), title="PARED COMPLETA — PLANTA (espesor)", auto=dict(tol={round(t, 1): " ±0,5"}), w=0.6, hatch=False)
-    p.vs("cva_el", ["cva_L"], "front", lv=(1, 2, 2, 2), title=f"{ctx.code('cajon_ventana_a').replace(CODE + '-', '')} PARED CON VENTANA (ESQUINA) — ELEVACIÓN", auto=dict(tol=tolp), w=1.2)
-    p.vs("cvb_el", ["cvb_L"], "front", lv=(1, 2, 2, 2), title=f"{ctx.code('cajon_ventana_b').replace(CODE + '-', '')} PARED CON VENTANA (TOPE) — ELEVACIÓN", auto=dict(tol=tolp), w=1.2)
-
-    def tp(V, p):
-        if len(ids) > 1:
-            w_out(p, ids[1], V, (li / 2, 0, tap["z_inf"][1]), "right", dy=-18)
-    p.vs("ct_pl", ["ct_L"], "top", lv=(1, 2, 2, 1), extra=(0, 0, 90, 0), draw=tp, title=f"{ctx.code('cajon_tapa').replace(CODE + '-', '')} TAPA — PLANTA ({ctx.m.get('cajon_tapa').qty} en total)",
-         auto=dict(fits={tap["agujero_E"]: "H9"}, tol={round(li, 1): " −0,5"}), w=1.0, hatch=False)
-    p.vs("ct_c", ["ct_L"], "front", cut=CUT_Y, lv=(1, 1, 1, 1), title="TAPA — CORTE A-A", auto=dict(tol={round(tap["t"], 1): " ±0,5"}, hole_notes=False, holes=False, axes="v"), w=0.6, hs=0.4)
-    z0w = S["z_paredes"][0]
-    Lw = (L - t) / 2
-    p.datum_in("cp_pl", "surf", "A", at=[(-Lw * 0.6, t / 2, zt), (Lw * 0.6, t / 2, zt), (-Lw * 0.85, t / 2, zt), (Lw * 0.85, t / 2, zt), (-Lw * 0.6, -t / 2, zt), (Lw * 0.6, -t / 2, zt)],
-               d=[(0, 1, 0)] * 4 + [(0, -1, 0)] * 2)
-    p.gd_in("cp_pl", "surf", "flat", "0,5", None, at=[(Lw * 0.1, -t / 2, zt), (-Lw * 0.2, -t / 2, zt), (Lw * 0.3, -t / 2, zt)], d=(0, -1, 0))
-    p.gd_in("cp_el", "surf", "perp", "0,5", "A", at=[(Lw, -t / 2, z0w + h * 0.6), (-Lw, -t / 2, z0w + h * 0.6)], d=[(1, 0, 0), (-1, 0, 0)])
+            w_out(p_, soporte_ids(ctx, ["tapa_inf"])[0] if soporte_ids(ctx, ["tapa_inf"]) else ids[0], V, (bb.xmax, (bb.ymin + bb.ymax) / 2, bb.zmax), "right", dy=-18)
+    p.vs("ct_pl", ["ct_L"], "top", lv=(2, 2, 2, 2), extra=(0, 0, 60, 0), draw=tp, title=f"{sc('cajon_tapa').rsplit('-', 1)[0]} TAPA RECORTADA EN NARIZ ({ctx.m.get('cajon_tapa').qty} u.: 2 inf. y 2 sup.)",
+         auto=dict(fits={tap["agujero_E"]: "H9"}, tol=tol(tap["lado"])), w=2.0, hatch=False, mins=0.4)
+    p.vs("ct_c", ["ct_L"], "front", cut=((sh_[0], sh_[1], 0), (0, 1, 0)), lv=(1, 1, 1, 1), title="TAPA — CORTE A-A (por E)", auto=dict(tol=tol(tap["t"]), hole_notes=False, holes=False, axes="v"), w=0.6, hs=0.4)
+    rows = [[str(i + 1), fm(q[0], 2), fm(q[1], 2)] for i, q in enumerate(tap["poligono_local"])]
+    p.table_block("TAPA: VÉRTICES DEL CONTORNO (núcleo, soporte_E.tapas.poligono_local; origen en E = centro del agujero, X e Y paralelos a los bordes de la base)",
+                  [("N°", 9, "C"), ("X [mm]", 22, "R"), ("Y [mm]", 22, "R")], rows)
     if ids:
-        add_prep(p, "det_j23", wd(ctx, ids[0]), t1=t, t2=g.tb)
-    p.tables(ids)
-    p.notes([f"Paredes: plancha {f(t)} × {f(h)} × {f(L - t)} ({S['material']}); disposición en molinete: cada pared apoya su extremo contra la cara interior de la siguiente (CON-007).",
-             f"Ventana para el giro del ojal: z {fm(zv0, 0)}–{fm(zv1, 0)} desde la cara inferior de la base, en el sector {fm(S['ventana']['sector_deg'][0], 2)}°–{fm(S['ventana']['sector_deg'][1], 2)}° desde E (núcleo); "
-             "la pared que cubre la esquina lleva la ventana más larga (BAS-009) y la que apoya contra ella la más corta (BAS-010). Oxicorte con radio de rincón ≥ 5 mm.",
-             f"Tapas: {f(li)} × {f(li)} × {f(tap['t'])}, mecanizadas a {f(li)} −0,5 para entrar entre paredes (el núcleo da lado = {fm(tap['lado'], 0)}: requiere núcleo, GEN-009); agujero Ø{f(tap['agujero_E'])} H9 mandrinado en línea en el cajón soldado y aliviado (CON-007).",
-             "Soldaduras: ver la tabla y CON-007 (secuencia de armado y accesibilidad de los filetes, A DECIDIR POR EL CALCULISTA)."],
-            gd=[("flat", "0,5", None, "Planitud de las caras de cada pared y de cada tapa"), ("perp", "0,5", "A", "Cantos extremos perpendiculares a la cara de la pared (A)")])
+        add_prep(p, "det_tc", wd(ctx, ids[0]), maxs=0.5, mins=0.5)
+    p.tables()                  # tabla de soldaduras del soporte (8 juntas del núcleo) en CON-007; aquí solo la preparación de la pieza
+    Ly, ty, hy = dims("pared_Y")
+    Lm, tm, hm = dims("munon_X")
+    p.notes([f"Pared trasera X: plancha {fm(Lx, 1)} × {fm(hx, 0)} × {fm(tx, 0)}; pared trasera Y: {fm(Ly, 1)} × {fm(hy, 0)} × {fm(ty, 0)}; muñón: {fm(Lm, 2)} × {fm(hm, 0)} × {fm(tm, 0)} ({S['material']}); "
+             f"las paredes traseras se prolongan hacia la mesa (núcleo: {S['tipo']}).",
+             f"Tapas: plancha {f(tap['lado'])} × {f(tap['lado'])} × {f(tap['t'])} recortada en nariz con el polígono del núcleo (tabla; holgura de diseño {fm(S['barrido']['holgura_diseno'], 0)} mm al cuerpo del cilindro, "
+             f"mínima verificada {fm(S['barrido']['holgura_minima'], 1)} ≥ {fm(S['barrido']['holgura_exigida'], 0)} mm en {int(S['barrido']['n_estados'])} estados); corte CNC desde el JSON; agujero Ø{f(tap['agujero_E'])} {tap['ajuste']}.",
+             f"Preparaciones de soldadura (biseles 45° de las CJP TC-U4b {', '.join(ids[:6])} y de la PJP TC-P4 de las tapas {', '.join(ids[6:])}): detalle y tabla de soldaduras de CON-007; la tapa superior va {fm(tap.get('rebaje_sup', 0), 0)} mm bajo el borde de las paredes.",
+             "Corte térmico con radio de rincón ≥ 5 mm en los quiebres interiores de la nariz; cantos libres sin rebabas."],
+            gd=[("flat", "0,5", None, "Planitud de las caras de cada pieza"), ("perp", "0,5", "A", "Cantos extremos perpendiculares a la cara de la pared (A)")])
     p.build()
     return p.h
 
@@ -317,8 +337,39 @@ def sheet_placa_leva(ctx):
     BU = F["bloque_una"]
     rq = F["pasador_Q"]["d"] / 2
 
+    # holgura de sincronía (núcleo c4e12af: placas_leva.holgura_sincronia): estado de retorno con el bloque alineado con E–Q y el pasador B siguiente de la mesa
+    HS = PL.get("holgura_sincronia") or {}
+    hs1 = (HS.get("instancias") or {}).get("1_antihorario")
+    E1 = F["soporte_E"]["cilindro1"]["centro"]
+    rpin = g.d_pin / 2
+
+    def _bloque_ret():
+        Qg = hs1["Q"]
+        ux, uy = Qg[0] - E1[0], Qg[1] - E1[1]; n_ = math.hypot(ux, uy); ux, uy = ux / n_, uy / n_
+        vx, vy = -uy, ux
+        if vx * (-Qg[0]) + vy * (-Qg[1]) < 0:
+            vx, vy = -vx, -vy
+        return [[contorno.pt_local((Qg[0] + a * ux + b * vx, Qg[1] + a * uy + b * vy), T) for a, b in BU["contorno_local"][nm]] for nm in ("cuerpo", "cara")]
+
+    def sincr(s_, ox, oy, k):
+        P_ = lambda q: (ox + q[0] * k, oy + q[1] * k)
+        for poly in _bloque_ret():
+            s_.pline([P_(q) for q in poly], "FANT", closed=True)
+        qd = contorno.pt_local(hs1["Q"], T)
+        s_.circle(P_(qd), rq * k, "FANT")
+        cp = contorno.pt_local(hs1["centro_pasador"], T)
+        s_.circle(P_(cp), rpin * k, "FANT")
+        s_.cross(P_(cp), 2.0)
+        pb, pp = P_(contorno.pt_local(hs1["punto_bloque"], T)), P_(contorno.pt_local(hs1["punto_pasador"], T))
+        s_.dot(pb, 0.6); s_.dot(pp, 0.6)
+        return pb, pp
+
     def posic(s_, ox, oy, k, pl):
         P_ = lambda q: (ox + q[0] * k, oy + q[1] * k)
+        if hs1:
+            pb, pp = sincr(s_, ox, oy, k)
+            s_.leader(pb, (pb[0] - 34, pb[1] + 30), f"holgura de sincronía {fm(HS['nominal'], 2)} (detalle C)")
+            s_.text("R (retorno)", (P_(contorno.pt_local(hs1["Q"], T))[0] + rq * k + 1.5, P_(contorno.pt_local(hs1["Q"], T))[1] - 1.5), T_N, "TOP_LEFT")
         contorno.dibujar_custom(s_, ox, oy, k, segs, T, [], (0.0, 0.0, env[0], env[1]), layer="VIS", cotas=False)
         for i_, lab in sel:
             Qg, Pg = pos["Q"][i_], pos["P"][i_]
@@ -335,7 +386,7 @@ def sheet_placa_leva(ctx):
             s_.circle(P_(ql), BU["horquilla"]["R_cubo"] * k, "FANT")
             q_ = P_(ql)
             s_.text(f"{sel.index((i_, lab)) + 1}", (q_[0] - 1.5, q_[1] + rq * k + 1.5), T_N, "BOTTOM_LEFT")
-    # envolvente de lo que dibuja la vista de posiciones (canto, Q y bloque en las 3 posiciones), en el marco de la placa
+    # envolvente de lo que dibuja la vista de posiciones (canto, Q y bloque en las posiciones), en el marco de la placa
     pts_ = [(0.0, 0.0), (env[0], env[1])]
     for i_, lab in sel:
         Qg, Pg = pos["Q"][i_], pos["P"][i_]
@@ -346,13 +397,48 @@ def sheet_placa_leva(ctx):
         R_ = BU["horquilla"]["R_cubo"]
         for a, b in BU["contorno_local"]["cuerpo"] + BU["contorno_local"]["cara"] + [(R_, R_), (-R_, -R_), (R_, -R_), (-R_, R_)]:
             pts_.append(contorno.pt_local((Qg[0] + a * ux + b * vx, Qg[1] + a * uy + b * vy), T))
+    if hs1:
+        for poly in _bloque_ret():
+            pts_.extend(poly)
+        cp_ = contorno.pt_local(hs1["centro_pasador"], T)
+        pts_ += [(cp_[0] - rpin, cp_[1] - rpin), (cp_[0] + rpin, cp_[1] + rpin)]
     bx0, by0 = min(q[0] for q in pts_), min(q[1] for q in pts_)
     bx1, by1 = max(q[0] for q in pts_), max(q[1] for q in pts_)
     p.vs("posic", [], "top", nat=(bx1 - bx0, by1 - by0), lv=(1, 1, 1, 1), extra=(6, 6, 6, 6), title="POSICIONES 1–3 DEL PASADOR Q Y DEL BLOQUE-UÑA SOBRE EL CANTO",
          w=1.8, maxs=0.4, mins=0.4, custom=lambda s_, ox, oy, k, pl: posic(s_, ox - bx0 * k, oy - by0 * k, k, pl))
+    if hs1:
+        pbl, ppl = contorno.pt_local(hs1["punto_bloque"], T), contorno.pt_local(hs1["punto_pasador"], T)
+        cx_, cy_ = (pbl[0] + ppl[0]) / 2, (pbl[1] + ppl[1]) / 2
+        Wd = 70.0
+
+        def det_sinc(s_, ox, oy, k, pl):
+            # ventana de Wd × Wd mm alrededor de los dos puntos: se recortan el bloque, Q y el pasador B al recuadro del detalle
+            from shapely.geometry import Polygon as _Pg2, Point as _Pt2, box as _bx
+            win_ = _bx(cx_ - Wd / 2, cy_ - Wd / 2, cx_ + Wd / 2, cy_ + Wd / 2)
+            P_ = lambda q: (ox + (q[0] - cx_ + Wd / 2) * k, oy + (q[1] - cy_ + Wd / 2) * k)
+            geoms = [(_Pg2(poly).exterior, "FANT") for poly in _bloque_ret()]
+            geoms.append((_Pt2(contorno.pt_local(hs1["centro_pasador"], T)).buffer(rpin, 128).exterior, "FANT"))
+            geoms.append((_Pt2(contorno.pt_local(hs1["Q"], T)).buffer(rq, 128).exterior, "FANT"))
+            for gm, ly in geoms:
+                c_ = gm.intersection(win_)
+                parts = getattr(c_, "geoms", [c_])
+                for ln in parts:
+                    if ln.is_empty or ln.geom_type != "LineString":
+                        continue
+                    s_.pline([P_(q) for q in ln.coords], ly)
+            s_.rect(*P_((cx_ - Wd / 2, cy_ - Wd / 2)), *P_((cx_ + Wd / 2, cy_ + Wd / 2)), "FINA")
+            a, b = P_(pbl), P_(ppl)
+            s_.dot(a, 0.6); s_.dot(b, 0.6)
+            s_.dim(a, b, 9, f"{fm(HS['nominal'], 2)}", "a", outside=True)
+            s_.text("bloque-uña (cara R)", (P_((cx_ - Wd / 2 + 2, 0))[0], P_((0, cy_ + Wd / 2 - 4))[1]), T_N, "TOP_LEFT")
+            s_.text(f"pasador B de la mesa (Ø{fm(g.d_pin, 0)})", (P_((cx_ - Wd / 2 + 2, 0))[0], P_((0, cy_ - Wd / 2 + 3))[1]), T_N, "BOTTOM_LEFT")
+        p.vs("det_sinc", [], "top", nat=(Wd, Wd), lv=(1, 1, 2, 2), extra=(10, 10, 10, 10), w=0.9, maxs=2.0, mins=1.0, custom=det_sinc,
+             title=f"DETALLE C: HOLGURA DE SINCRONÍA EN EL RETORNO ({fm(HS['nominal'], 2)} nominal; peor caso {fm(HS['peor_caso'], 2)} ≥ {fm(HS['margen_exigido'], 0)})")
     p.table_block("POSICIONES DEL EMPUJE (núcleo, sentido antihorario)", [("N°", 8, "C"), ("Posición", 40, "L"), ("θ [°]", 18, "R"), ("Q x; y (marco de la placa)", 40, "L")],
                   [[str(n_ + 1), lab, fm(cin[i_]["th"], 2) if cin else "—", "; ".join(fm(v, 1) for v in contorno.pt_local(pos["Q"][i_], T))] for n_, (i_, lab) in enumerate(sel)] +
-                  [["—", f"Holgura de sincronía {fm(PV['placa_leva']['sincronia'], 2)} mm (peor {fm(PV['placa_leva'].get('sincronia_peor', PV['placa_leva']['sincronia']), 2)}); holgura de empuje {fm(PV['placa_leva']['holgura'], 0)} mm", "", ""]])
+                  ([["R", f"retorno: holgura de sincronía {fm(HS['nominal'], 2)} mm (peor caso {fm(HS['peor_caso'], 2)}, tolerancias {fm(HS['tolerancias'], 2)}; exigida ≥ {fm(HS['margen_exigido'], 0)})", fm(hs1["theta_deg"], 2),
+                     "; ".join(fm(v, 1) for v in contorno.pt_local(hs1["Q"], T))]] if hs1 else []) +
+                  [["—", f"Holgura de empuje {fm(PV['placa_leva']['holgura'], 0)} mm (Q contra el canto)" + ("" if hs1 else f"; sincronía {fm(PV['placa_leva']['sincronia'], 2)} mm"), "", ""]])
 
     def det_capa(s_, ox, oy, k, pl):
         t_ = PL["t"]
@@ -376,7 +462,8 @@ def sheet_placa_leva(ctx):
          auto=False)
     p.datum_in("corte", "surf", "A", at=[(pern[0][0] - d_av / 2 - 12, pern[0][1], zt), (pern[0][0] - d_av / 2 - 30, pern[0][1], zt), (pern[0][0] + d_av / 2 + 25, pern[0][1], zt)], d=(0, 0, 1))
     rows = [[f"T{i + 1}", fm(x, 1), fm(y, 1), f"Ø{fm(dh, 0)} + avellanado 90° Ø{fm(d_av, 1)} (ISO 10642 M{fm(PL['pernos']['d'], 0)})"] for i, (x, y) in enumerate(pern)]
-    rows += [[f"D{i + 1}", fm(x, 1), fm(y, 1), f"Ø{fm(d_p, 0)} H7 escariado (pasador ISO 8734 m6)"] for i, (x, y) in enumerate(pasd)]
+    AP_ = (PL.get("pasadores_posicion") or {}).get("alojamiento_placa") or {}
+    rows += [[f"D{i + 1}", fm(x, 1), fm(y, 1), f"Ø{fm(d_p, 0)} H7 escariado" + (f", ciego prof. {fm(AP_['prof'], 0)} desde la cara inferior" if AP_.get("prof") and AP_["prof"] < PL["t"] else "") + " (pasador ISO 8734 m6)"] for i, (x, y) in enumerate(pasd)]
     rows.append(["Envolvente", fm(env[0], 1), fm(env[1], 1), "—"])
     p.table_block("AGUJEROS (coordenadas teóricamente exactas en el marco de la placa)", [("Ag.", 16, "C"), ("x [mm]", 20, "R"), ("y [mm]", 20, "R"), ("Tipo", 70, "L")], rows)
     rows_c = []
@@ -425,7 +512,9 @@ def sheet_riel(ctx):
     p.datum_in("corte", "surf", "A", at=[(xin, 0, R["z"][0]), (xin - 25, 0, R["z"][0])], d=(0, 0, -1))
     hx, hy = F["porticos"]["pernos_local"][0][0] - c.x, F["porticos"]["pernos_local"][0][1] - c.y
     rh = F["porticos"]["agujero"] / 2
-    p.datum_in("planta", "surf", "B", at=[(hx + rh * 0.7071, hy + rh * 0.7071, zt)], d=(1, 1, 0))
+    # datum B: agujero del primer perno; varias posiciones candidatas alrededor del agujero (el colocador elige la libre)
+    cand_ = [(math.cos(math.radians(a_)), math.sin(math.radians(a_))) for a_ in (45, 135, 225, 315, 0, 90, 180, 270)]
+    p.datum_in("planta", "surf", "B", at=[(hx + rh * cx_, hy + rh * cy_, zt) for cx_, cy_ in cand_], d=[(cx_, cy_, 0) for cx_, cy_ in cand_])
     cq_ = R["contorno_local"][4]
     p.gd_in("planta", "surf", "prof", "0,3", ["A", "B"], at=[(cq_[0] - c.x, (cq_[1] + R["contorno_local"][5][1]) / 2 - c.y, zt)], d=(-1, 0, 0))
     rows = [[str(i + 1), fm(x - c.x, 1), fm(y - c.y, 1)] for i, (x, y) in enumerate(R["contorno_local"])]
@@ -459,7 +548,11 @@ def sheet_portico(ctx):
     p.vs("pata", ["pata_L"], "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=dp, title=f"{ctx.code('leva_pata').replace(CODE + '-', '')} PATA", auto=dict(tol={}), w=1.0)
     p.vs("pata_l", ["pata_L"], "right", lv=(1, 2, 1, 1), title="PATA — LATERAL", auto=dict(), w=0.8, hatch=False)
     p.vs("tapa", ["tapa_L"], "top", lv=(1, 2, 1, 1), title=f"{ctx.code('leva_tapa').replace(CODE + '-', '')} TAPA — PLANTA", auto=dict(hole_rmin=5), w=0.8, hatch=False)
-    p.vs("tapa_e", ["tapa_L"], "front", lv=(1, 1, 1, 1), title="TAPA — ELEVACIÓN", auto=dict(), w=0.6, hatch=False)
+    def dte(V, p_):
+        if len(ids) > 1:
+            bb_ = ctx.shapes["tapa_L"].BoundingBox()
+            w_out(p_, ids[1], V, ((bb_.xmin + bb_.xmax) / 2, bb_.ymin, bb_.zmin), "right", dy=-14)
+    p.vs("tapa_e", ["tapa_L"], "front", lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), title="TAPA — ELEVACIÓN", auto=dict(), w=0.6, hatch=False, draw=dte)
     tpz = F["porticos"]["tapas_local"][0]["z"]
     bbt = ctx.shapes["tapa_L"].BoundingBox()
     p.gd_in("tapa_e", "surf", "flat", "0,1", None, at=[(bbt.xmax - 8, bbt.ymin, tpz[1]), (bbt.xmin + 8, bbt.ymin, tpz[1]), ((bbt.xmin + bbt.xmax) / 2, bbt.ymin, tpz[1])], d=(0, 0, 1))
@@ -472,34 +565,51 @@ def sheet_portico(ctx):
     if ids:
         add_prep(p, "det_j26", wd(ctx, ids[0]), t1=30, t2=40)
     p.tables(ids)
-    p.notes([f"Patas y tapas: {F['porticos']['material']} (soldadas: WPS calificado con PQR, requiere núcleo); prolongación: {ctx.m.get('leva_prolong').material}.",
-             f"Tapas: 2 roscas M{f(F['porticos']['d_perno'])} pasantes tras soldar (pernos ISO 4762 M{f(F['porticos']['d_perno'])}×{ctx.m.info.get('perno_riel_L', '—')} 10.9 del riel).",
+    RSp = (F["porticos"].get("pernos") or {}).get("rosca") or {}
+    s355 = "S355" in F["porticos"]["material"]
+    p.notes([f"Patas y tapas: {F['porticos']['material']}" + ("" if s355 else " (soldadas: WPS calificado con PQR, requiere núcleo)") + f"; prolongación: {ctx.m.get('leva_prolong').material}.",
+             (f"Tapas: 2 roscas M{f(F['porticos']['d_perno'])} ciegas desde la cara superior tras soldar: taladro Ø{fm(RSp['d_broca'], 1)} prof. {fm(RSp['prof_taladro'], 0)}, rosca útil {fm(RSp['rosca_util'], 0)}, remanente {fm(RSp['remanente'], 0)} mm "
+              f"(engrane {fm(RSp['engrane'], 0)} mm, núcleo); pernos {F['porticos']['pernos']['norma']} del riel." if RSp.get("ciega") else
+              f"Tapas: 2 roscas M{f(F['porticos']['d_perno'])} pasantes tras soldar (pernos ISO 4762 M{f(F['porticos']['d_perno'])}×{ctx.m.info.get('perno_riel_L', '—')} 10.9 del riel)."),
              "Posiciones de patas, tapas y prolongaciones: tabla de CON-010 (coordenadas del núcleo, lado +x; el lado −x es el giro de 180°).",
-             f"Filete pata–asiento z{fm(F['porticos']['filete_pata_asiento'], 0)} (núcleo); pata–tapa: mínimo AWS (requiere núcleo)."],
+             f"Filete pata–asiento z{fm(F['porticos']['filete_pata_asiento'], 0)} (núcleo); pata–tapa " + (f"z{fm(F['porticos']['filete_pata_tapa'], 0)} (núcleo)" if F['porticos'].get('filete_pata_tapa') is not None else "mínimo AWS (requiere núcleo)") +
+             (f"; prolongación–base z{fm(F['prolongacion_soldadura']['filete'], 0)} perimetral (núcleo)." if (F.get('prolongacion_soldadura') or {}).get('filete') else ".")],
             gd=[("flat", "0,1", None, "Planitud de la cara superior de la tapa (apoyo del riel)")])
     p.build()
     return p.h
 
 
-@pieza("leva_rodillo", "leva_perno")
+@pieza("leva_rodillo", "leva_perno", "leva_arandela")
 def sheet_seguidor(ctx):
     g, P = ctx.g, ctx.P
     SG = g.FLG["seguidor"]
+    RT = SG.get("retencion") or {}
+    RN_ = g.FLG["ranura_tapa_patin"]
+    ks = [k for k in ("leva_rodillo", "leva_perno", "leva_arandela") if ctx.m.get(k)]
     loc1(ctx, "leva_rodillo", "rod_L", rot=0.0)
     loc1(ctx, "leva_perno", "per_L", rot=0.0)
-    p = Pieza(ctx, ["leva_rodillo", "leva_perno"], "SEGUIDOR DE LA LEVA: RODILLO Y PERNO (MODO GUIADO)", fmt="auto")
+    if ctx.m.get("leva_arandela"):
+        loc1(ctx, "leva_arandela", "ara_L", rot=0.0)
+    p = Pieza(ctx, ks, "SEGUIDOR DE LA LEVA: RODILLO, PERNO Y ARANDELA DE TOPE (MODO GUIADO)", fmt="auto")
     p.iso_keys = ["rod_L", "per_L"]
+    fit_p = (SG["perno"].get("ajuste") or "f8").split()[1] if len((SG["perno"].get("ajuste") or "").split()) > 1 else "f8"
     p.vs("rod", ["rod_L"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title=f"{ctx.code('leva_rodillo').replace(CODE + '-', '')} RODILLO — CORTE", hs=0.5, w=1.0,
          auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, fits={SG["perno"]["d"]: "H7"}))
-    p.vs("per", ["per_L"], "front", lv=(1, 2, 2, 1), title=f"{ctx.code('leva_perno').replace(CODE + '-', '')} PERNO", hatch=False, w=1.0,
-         auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, fits={SG["perno"]["d"]: "g6"}))
+    p.vs("per", ["per_L"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title=f"{ctx.code('leva_perno').replace(CODE + '-', '')} PERNO — CORTE", hs=0.5, w=1.0,
+         auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, fits={SG["perno"]["d"]: fit_p}))
+    if ctx.m.get("leva_arandela"):
+        p.vs("ara", ["ara_L"], "front", cut=CUT_Y, lv=(1, 1, 1, 1), title=f"{ctx.code('leva_arandela').replace(CODE + '-', '')} ARANDELA DE TOPE — CORTE", hs=0.5, w=0.6, auto=dict(rev=(0, 0), rev_side="top", hole_notes=False))
     bbp_ = ctx.shapes["per_L"].BoundingBox()
-    p.gd_in("per", "surf", "cyl", "0,02", None, at=[(SG["perno"]["d"] / 2, 0, bbp_.zmin + bbp_.zlen * f_) for f_ in (0.6, 0.3, 0.8)], d=(1, 0, 0))
+    p.gd_in("per", "surf", "cyl", "0,02", None, at=[(SG["perno"]["d"] / 2, 0, bbp_.zmin + bbp_.zlen * f_) for f_ in (0.6, 0.8)], d=(1, 0, 0))
     p.tables()
-    p.notes([f"Rodillo Ø{f(SG['rodillo']['d'])}/Ø{f(SG['perno']['d'])} × {f(SG['rodillo']['b'])}, templado ≥ 55 HRC y rectificado (grado A DEFINIR, requiere núcleo); ajuste en el perno H7/g6 (PROPUESTA).",
-             f"Perno Ø{f(SG['perno']['d'])}: empotrado {f(SG['perno']['empotrado_en_una'])} en la uña (ACC-004, agujero H7 PROPUESTA) y voladizo hasta la cara superior del rodillo; "
-             f"el largo del JSON ({f(SG['perno']['largo'])}) no alcanza el rodillo: requiere núcleo (GEN-009). Retención axial del rodillo A DEFINIR.",
-             f"Perno guiado en y por la ranura de la tapa del patín (ancho {f(g.FLG['ranura_tapa_patin']['ancho'])}, ACC-003)."],
+    Lpe = (SG["perno"]["z"][1] - SG["perno"]["z"][0]) if SG["perno"].get("z") else SG["perno"]["largo"]
+    p.notes([f"Rodillo Ø{f(SG['rodillo']['d'])}/Ø{f(SG['perno']['d'])} × {f(SG['rodillo']['b'])}: {SG['rodillo'].get('material', 'templado ≥ 55 HRC')}; rectificado; agujero Ø{f(SG['perno']['d'])} H7 sobre el perno {fit_p} (H7/{fit_p}, giro libre). "
+             f"Cojinete: {SG['rodillo'].get('cojinete', 'A DEFINIR')}.",
+             f"Perno Ø{f(SG['perno']['d'])} × {f(Lpe)} (núcleo, z {fm(SG['perno']['z'][0], 0) if SG['perno'].get('z') else '—'}–{fm(SG['perno']['z'][1], 0) if SG['perno'].get('z') else '—'}): empotrado {f(SG['perno']['empotrado_en_una'])} en la uña "
+             f"({SG['perno'].get('fijacion_en_una', 'ajuste A DEFINIR')}; zona empotrada Ø{f(SG['perno']['d'])} p6 PROPUESTA para el prensado) y Ø{f(SG['perno']['d'])} {fit_p} en la ranura y el rodillo.",
+             f"Ranura de la tapa del patín (ACC-003): {RN_.get('ajuste', f(RN_['ancho']))} con el perno {SG['perno'].get('ajuste', '')}: juego {fm(RN_['juego'][0], 3)}…{fm(RN_['juego'][1], 3)} mm (ISO 286-2, núcleo)." if RN_.get("juego") else
+             f"Perno guiado en y por la ranura de la tapa del patín (ancho {f(RN_['ancho'])}, ACC-003)."] +
+            ([f"Retención axial del rodillo (núcleo): {RT['tipo']}: arandela Ø{f(RT['d_arandela'])} × {f(RT['t_arandela'])} (z {fm(RT['z'][0], 0)}–{fm(RT['z'][1], 0)}) y {RT['tornillo']} roscado en el extremo del perno (rosca axial, prof. {fm(2 * float(__import__('re').search(r'M(\d+)', RT['tornillo']).group(1)) + 3, 0)})."] if RT else []),
             gd=[("cyl", "0,02", None, "Cilindricidad del perno")])
     p.build()
     return p.h

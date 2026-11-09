@@ -392,6 +392,11 @@ class Sheet:
                 self.pline([(x_s - 2.8, y0 + sd * 5.0), (x_s, y0), (x_s + 2.8, y0 + sd * 5.0)], "COTA")
             elif kd == "bevel":
                 self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + 4.5, y0 + sd * 5.0), "COTA")
+            elif kd == "bevel_fillet":            # bisel con filete de refuerzo superpuesto (ISO 2553, símbolos combinados)
+                self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + 4.5, y0 + sd * 5.0), "COTA")
+                self.line((x_s, y0 + sd * 5.0), (x_s + 5.0, y0), "COTA")
+            elif kd == "backrun":                 # pasada de cierre / soldadura por el reverso (ISO 2553, semicírculo)
+                self.arc((x_s, y0), 2.5, 0.0 if sd > 0 else 180.0, 180.0 if sd > 0 else 360.0, "COTA")
             elif kd == "J":
                 self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + 4.5, y0 + sd * 5.0), "COTA")
             elif kd == "U":

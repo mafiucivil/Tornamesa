@@ -153,7 +153,7 @@ def sheet_notas(ctx):
         # juego sin interfaz: los códigos INT no se usan; una fila los resume (el mapa completo va en los juegos con interfaz)
         rows = [["INT-001…014, INT-101…107", "Piezas y láminas de la interfaz (sectores, topes, tornillos, graseras, UHMW, bronce, disco duro): no se emiten en este juego; "
                  "mapa completo con sus sufijos por variante en GEN-001 de las variantes A, AF2, B y C1…C3", "A, AF2, B, C1…C3", "—"]]
-    DELTA_KEYS = ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "pasador_Q", "leva_pata")
+    DELTA_KEYS = ("cajon_pared_x", "cajon_pared_y", "cajon_munon", "pasador_Q", "leva_pata")
     dk_ = [ctx.m.get(k) for k in DELTA_KEYS if ctx.m.get(k)]
     if dk_:
         rows.append([", ".join(f"{p_.sub}-{p_.num:03d}" for p_ in dk_), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
@@ -171,7 +171,7 @@ def sheet_notas(ctx):
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
-    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-008…011, ACC-013…018",
+    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024",
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]
@@ -444,7 +444,7 @@ def nest_items(ctx):
     # piezas de plancha del accionamiento (cajón del ojal E, placas-leva; leva de reenganche del modo guiado): partida de la lista de cortes
     for r_ in lista.cut_rows(ctx):
         k_ = next((p.key for p in m.parts if p.code.replace(CODE + "-", "") == r_[0]), None)
-        if k_ in ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "placa_leva", "placa_leva_h", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
+        if k_ in ("cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "placa_leva", "placa_leva_h", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
             d_ = [float(x.replace(".", "").replace(",", ".")) for x in r_[3].split("×")]
             add(k_, m.get(k_).name, d_[0], d_[1], d_[2])
     add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)

@@ -12,7 +12,7 @@ def sheet_base_plancha(ctx):
     s = p.s
     on = ["base_plancha"]
     xl, cl, xg = P["x_lug"], g.cl_lug, P["x_g"]
-    ghosts = ["marco_largo", "marco_corto", "collar", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "orejas", "bancada",
+    ghosts = ["marco_largo", "marco_corto", "collar", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "orejas", "bancada",
               "leva_prolong", "leva_pata", "placa_leva", "placa_leva_h"]
 
     def planta(V, p):
@@ -33,7 +33,9 @@ def sheet_base_plancha(ctx):
                 dpp = g.FPV["placas_leva"]["pasadores_posicion"]["d"]
                 V.note_hole((pp_[0][0], pp_[0][1], tb), dpp / 2, 160, f"{len(pp_)} × Ø{fm(dpp, 0)} H7 (pasadores)", ext=26, on=on,
                             lines=[f"{len(pp_)} × Ø{fm(dpp, 0)} H7 ciegos", "(pasadores de las placas-guía)"])
-        cs = [c_ for c_ in V.circles(["base_plancha"], 2.0, 4.5)]
+        pp_all = ctx.m.info.get("placa_pas_holes") or []
+        # roscas de la interfaz en el respaldo: se excluyen los alojamientos de los pasadores de las placas-guía (mismo Ø que una M8)
+        cs = [c_ for c_ in V.circles(["base_plancha"], 2.0, 4.5) if not any(abs(c_[0] - q[0]) < 1.0 and abs(c_[1] - q[1]) < 1.0 for q in pp_all)]
         if cs:
             n = len(cs)
             u, v, r = cs[0]
@@ -81,12 +83,12 @@ def sheet_base_plancha(ctx):
         Sx = g.FPV["soporte_E"]
         for i_, lk_ in enumerate(("cilindro1", "cilindro2")):
             E_ = Sx[lk_]["centro"]
-            rows.append([f"C{i_ + 1} cajón del ojal E (eje E)", f(E_[0], 1), f(E_[1], 1), "—", f"cajón {f(Sx['lado'])} × {f(Sx['lado'])}; posición con tolerancia ajustada (CON-007)"])
+            rows.append([f"C{i_ + 1} soporte del ojal E (eje E)", f(E_[0], 1), f(E_[1], 1), "—", "soporte abierto del ojal E (paredes traseras X e Y, muñones, tapas); posición con tolerancia ajustada (CON-007)"])
         for k_, ins in [(k__, v__) for k__, v__ in g.FPV["placas_leva"]["instancias"].items() if k__.startswith("1")]:      # placas 2: simétricas respecto del centro
             for j_, (x_, y_) in enumerate(ins["pernos"]):
                 rows.append([f"Rosca M{fm(g.FPV['placas_leva']['pernos']['d'], 0)} placa {k_.replace('_', ' ')} T{j_ + 1}", f(x_, 1), f(y_, 1), "—", "pasante (Ø0,2 de posición)"])
             for j_, (x_, y_) in enumerate(ins.get("pasadores_posicion") or []):
-                rows.append([f"Pasador Ø{fm(g.FPV['placas_leva']['pasadores_posicion']['d'], 0)} H7 placa {k_.replace('_', ' ')} D{j_ + 1}", f(x_, 1), f(y_, 1), "—", f"ciego prof. {fm(ctx.m.info.get('placa_pas_L', 0) - g.FPV['placas_leva']['t'], 0)}, escariado con la placa"])
+                rows.append([f"Pasador Ø{fm(g.FPV['placas_leva']['pasadores_posicion']['d'], 0)} H7 placa {k_.replace('_', ' ')} D{j_ + 1}", f(x_, 1), f(y_, 1), "—", f"ciego prof. {fm(ctx.m.info['placa_pas_prof'][0], 0)}, escariado con plantilla"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS Y AGUJEROS (origen: centro de la plancha" + ("; placas-guía del cilindro 2: (−x; −y) de las del cilindro 1)" if g.modo == 2 else ")"), [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
     p.tables(jids(ctx, "Collar"))
@@ -169,12 +171,18 @@ def sheet_marcos(ctx):
     s = p.s
     p.iso_keys = ["ml1", "mc1"]
     ids = jids(ctx, "Marco perimetral largo", "Marco largo – marco corto", "Marco corto – plancha")
-    p.vs("larga", ["ml1"], "front", breaks=[(-900, 900)], lv=(1, 2, 1, 1), title="PLETINA LARGA (BAS-003) — 2 unidades, con rotura", mat={"ml1": "acero"},
+    MI_ = ctx.m.info.get("marco_long")
+    bbl_, bbc_ = ctx.shapes["ml1"].BoundingBox(), ctx.shapes["mc1"].BoundingBox()
+    cxl_, cyc_ = (bbl_.xmin + bbl_.xmax) / 2, (bbc_.ymin + bbc_.ymax) / 2
+    L_ml, L_mc = MI_ or (B, B - 2 * rt)
+    sy_ = 1 if MI_ else -1                       # esquina dibujada: en el modo 2 la esquina (+x, −y) no tiene marco (soporte del ojal E)
+    cl_, cc_ = ctx.code("marco_largo").replace(CODE + "-", "").replace("-" + REV, ""), ctx.code("marco_corto").replace(CODE + "-", "").replace("-" + REV, "")
+    p.vs("larga", ["ml1"], "front", breaks=[(cxl_ - 700, cxl_ + 700)], lv=(1, 2, 1, 1), title=f"PLETINA LARGA ({cl_}) — 2 unidades, con rotura", mat={"ml1": "acero"},
          auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5)
     def corta_(V, p):
         if len(ids) > 2:
-            w_out(p, ids[2], V, (B / 2 - rt, -B / 4, tb + 0.5), "bottom")
-    p.vs("corta", ["mc1"], "right", breaks=[(-900, 900)], lv=(1, 2, 1, 1), extra=(0, 0, 0, 0), title="PLETINA CORTA (BAS-004) — 2 unidades, con rotura", mat={"mc1": "acero"},
+            w_out(p, ids[2], V, (B / 2 - rt, cyc_ - 300, tb + 0.5), "bottom")
+    p.vs("corta", ["mc1"], "right", breaks=[(cyc_ - 700, cyc_ + 700)], lv=(1, 2, 1, 1), extra=(0, 0, 0, 0), title=f"PLETINA CORTA ({cc_}) — 2 unidades, con rotura", mat={"mc1": "acero"},
          auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5, draw=corta_)
     p.vs("perfil", ["ml1"], "left", lv=(1, 1, 1, 1), title="PERFIL DE LA PLETINA (sección)", maxs=5.0, auto=dict(), hatch=False, w=1.0)
 
@@ -185,15 +193,18 @@ def sheet_marcos(ctx):
     # B-20: datum A = cara superior de la plancha base; perpendicularidad de la cara interior de la pletina; rectitud del canto superior
     p.datum_in("junta", "surf", "A", at=[(0, -B / 2 + rt + 34, tb), (0, -B / 2 + rt + 44, tb)], d=(0, 0, 1))
     p.gd_in("junta", "surf", "perp", "0,5", "A", at=[(0, -B / 2 + rt, tb + rh * 0.65)], d=(0, 1, 0))
-    p.gd_in("larga", "surf", "straight", "2,0", None, at=[(-B / 2 + 160, -B / 2, tb + rh), (B / 2 - 160, -B / 2, tb + rh)], d=(0, 0, 1))
+    p.gd_in("larga", "surf", "straight", "2,0", None, at=[(cxl_ - 0.4 * L_ml, -B / 2, tb + rh), (cxl_ + 0.4 * L_ml, -B / 2, tb + rh)], d=(0, 0, 1))
 
     def esq(V, p):
-        w_out(p, ids[1], V, (B / 2 - rt, -B / 2 + rt, tb + rh), "top")          # N-12: la cola del símbolo no invade la cota 45 de la pletina corta
-    p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, -B / 2, tb), win=(-60, -20, 25, 60), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
+        w_out(p, ids[1], V, (B / 2 - rt, sy_ * (B / 2 - rt), tb + rh), "top" if sy_ < 0 else "bottom")          # N-12: la cola del símbolo no invade la cota 45 de la pletina corta
+    p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, sy_ * B / 2, tb), win=((-60, -20, 25, 60) if sy_ < 0 else (-60, -60, 25, 20)), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
          auto=dict(on=["marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
     add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=False, edge=True, title=f"DETALLE {ids[0]} / {ids[2] if len(ids) > 2 else ''}: FILETE INTERIOR z{fm(wd(ctx, ids[0])['z'], 0)} (pletina a ras del canto)")
     p.tables(ids)
-    p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {f(B)} y 2 cortas de {f(B - 2 * rt)} (entre las largas); corte a sierra o plasma con borde recto.",
+    MIx = (ctx.g.FPV or {}).get("soporte_E", {}).get("marco_interrupcion") if ctx.g.modo == 2 else None
+    p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {fm(L_ml, 1)} y 2 cortas de {fm(L_mc, 1)} (entre las largas); corte a sierra o plasma con borde recto."] +
+            ([f"Marco interrumpido frente a cada soporte del ojal E (núcleo: marco_interrupcion): " + "; ".join(f"{sg['borde']} entre ({fm(sg['desde'][0], 1)}; {fm(sg['desde'][1], 1)}) y ({fm(sg['hasta'][0], 1)}; {fm(sg['hasta'][1], 1)})" for sg in MIx["cilindro1"])
+              + f" y lo simétrico para el cilindro 2; extremos libres a ≥ {fm(MIx['holgura_acceso'], 0)} mm de las paredes traseras (acceso exterior al resanado de las CJP). Quedan 2 esquinas largas–cortas."] if MIx else []) + [
              "Armado: pletinas largas sobre la plancha con su cara exterior a ras del canto de la plancha; cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo solo por el lado interior (por fuera las caras quedan coplanares).",
              f"Esquinas: el extremo de la pletina corta apoya contra la cara interior de la larga; filete interior vertical en el rincón ({ids[1]}). Tamaños z: mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
              "El marco contiene la interfaz y protege el borde; no tiene función estructural en el cálculo."],

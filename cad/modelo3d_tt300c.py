@@ -165,17 +165,20 @@ VAR_CODIGOS = {
     "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
     # la muesca y el largo de los topes dependen del par de calado, que cambia con el modo del accionamiento: los juegos «-G» tienen su clase
     "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2", "AF2-G"), "liso, pegado", 1), (("A-G", "B-G"), "con muesca y avellanados (guiado)", 1)],
-    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2", "AF2-G"), "ranurado, pegado y atornillado (avellanados M12); 3 tipos", 3), (("B",), "liso, muesca", 1),
-                       (("A-G",), "ranurado, muesca (guiado); 3 tipos", 3), (("B-G",), "liso, muesca (guiado)", 1)],
+    # AF2: los tornillos pasan a R_pin en las bisectrices entre pasadores (núcleo c4e12af): 6 tipos nuevos al final; los sufijos -4…-6 (tornillos en R949) quedan anulados
+    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2-anulado",), "ANULADO: pegado y atornillado en R949 (núcleo anterior)", 3), (("B",), "liso, muesca", 1),
+                       (("A-G",), "ranurado, muesca (guiado); 3 tipos", 3), (("B-G",), "liso, muesca (guiado)", 1),
+                       (("AF2", "AF2-G"), "ranurado, pegado y atornillado (avellanados M12 en las bisectrices entre pasadores); 6 tipos", 6)],
     "int_tope_base": [(("A", "B"), "largo A/B", 1), (("C1", "C2", "C3"), "largo C", 1), (("A-G", "B-G"), "largo A/B (guiado)", 1), (("C1-G", "C2-G", "C3-G"), "largo C (guiado)", 1)],
     "int_tope_mesa": [(("A", "B"), "largo A/B", 1), (("C1", "C3"), "largo C1/C3", 1), (("C2",), "largo C2", 1), (("A-G", "B-G"), "largo A/B (guiado)", 1), (("C1-G", "C3-G"), "largo C1/C3 (guiado)", 1), (("C2-G",), "largo C2 (guiado)", 1)],
     "int_bronce": [(("C1",), "4 tipos de patrón de tapones", 4), (("C2",), "4 tipos de patrón de tapones", 4), (("C3",), "4 tipos de patrón de tapones", 4),
                    (("C1-G",), "4 tipos (guiado)", 4), (("C2-G",), "4 tipos (guiado)", 4), (("C3-G",), "4 tipos (guiado)", 4)],
     "int_cara": [(("C1", "C3"), "con / sin conducto de grasera", 2), (("C2",), "con / sin conducto de grasera", 2), (("C1-G", "C3-G"), "con / sin conducto (guiado)", 2), (("C2-G",), "con / sin conducto (guiado)", 2)],
     # accionamiento: la altura del eje de los cilindros sube con el espesor de la interfaz (δ): cajón, pasador Q y patas del pórtico tienen una clase por δ
-    "cajon_pared": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
-    "cajon_ventana_a": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
-    "cajon_ventana_b": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "cajon_pared_x": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "cajon_pared_y": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+    "cajon_munon": [(("BASE", "W"), "alto base", 1), (("A",), "alto A", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("C1", "C2", "C3"), "alto y ancho C", 1)],
+    "cajon_tapa": [(("BASE", "W", "A", "AF2", "B"), "nariz base/A/B", 1), (("C1", "C2", "C3"), "nariz C (cilindro de C)", 1)],
     "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
     "leva_pata": [(("BASE-G", "W-G"), "alto base", 1), (("A-G", "C1-G", "C2-G", "C3-G"), "alto A/C", 1), (("AF2-G",), "alto AF2", 1), (("B-G",), "alto B", 1)],
 }
@@ -499,8 +502,30 @@ def build(D, verbose=True):
     r_t, r_h = P["rim_t"], P["rim_h"]
     rim_l = [box(-B / 2, B / 2, -B / 2, -B / 2 + r_t, tb, tb + r_h), box(-B / 2, B / 2, B / 2 - r_t, B / 2, tb, tb + r_h)]
     rim_s = [box(-B / 2, -B / 2 + r_t, -B / 2 + r_t, B / 2 - r_t, tb, tb + r_h), box(B / 2 - r_t, B / 2, -B / 2 + r_t, B / 2 - r_t, tb, tb + r_h)]
-    m.add(Part("marco_largo", "BAS", "Marco perimetral largo", f"Pletina {f(r_t)}×{f(r_h)}×{f(B)}", compound(rim_l), 2, A572, "Corte a sierra/plasma; soldadura a la plancha base", core="rim", color=(0.55, 0.57, 0.6)))
-    m.add(Part("marco_corto", "BAS", "Marco perimetral corto", f"Pletina {f(r_t)}×{f(r_h)}×{f(B - 2 * r_t)}", compound(rim_s), 2, A572, "Corte a sierra/plasma; soldadura a la plancha base y a las largas", core="rim", color=(0.55, 0.57, 0.6)))
+    MI = (g.FPV or {}).get("soporte_E", {}).get("marco_interrupcion") if g.modo == 2 else None
+    L_l, L_s = B, B - 2 * r_t
+    if MI:
+        # modo 2 (núcleo c4e12af): el marco se corta frente a las paredes traseras del soporte del ojal E (acceso exterior al resanado y respaldo de las CJP)
+        def _cortar(lst):
+            out = []
+            for so in lst:
+                for lk in ("cilindro1", "cilindro2"):
+                    for sg in MI[lk]:
+                        (xa, ya), (xb, yb) = sg["desde"], sg["hasta"]
+                        e_ = r_t + 2
+                        bx = box(min(xa, xb) - (e_ if xa == xb else 0), max(xa, xb) + (e_ if xa == xb else 0), min(ya, yb) - (e_ if ya == yb else 0), max(ya, yb) + (e_ if ya == yb else 0), tb - 1, tb + r_h + 1)
+                        so = so.cut(bx)
+                out.append(so)
+            return out
+        rim_l, rim_s = _cortar(rim_l), _cortar(rim_s)
+        bbl = rim_l[0].val().BoundingBox() if hasattr(rim_l[0], "val") else rim_l[0].BoundingBox()
+        bbs = rim_s[0].val().BoundingBox() if hasattr(rim_s[0], "val") else rim_s[0].BoundingBox()
+        L_l, L_s = bbl.xlen, bbs.ylen
+        m.info["marco_long"] = (L_l, L_s)
+    m.add(Part("marco_largo", "BAS", "Marco perimetral largo" + (" (interrumpido frente al soporte E)" if MI else ""), f"Pletina {f(r_t)}×{f(r_h)}×{fm(L_l, 1)}", compound(rim_l), 2, A572, "Corte a sierra/plasma; soldadura a la plancha base", core="rim", color=(0.55, 0.57, 0.6),
+               num_fijo=(acc3d.BAS_NUM["marco_largo_int"] if MI else None)))
+    m.add(Part("marco_corto", "BAS", "Marco perimetral corto" + (" (interrumpido frente al soporte E)" if MI else ""), f"Pletina {f(r_t)}×{f(r_h)}×{fm(L_s, 1)}", compound(rim_s), 2, A572, "Corte a sierra/plasma; soldadura a la plancha base" + ("" if MI else " y a las largas"), core="rim", color=(0.55, 0.57, 0.6),
+               num_fijo=(acc3d.BAS_NUM["marco_corto_int"] if MI else None)))
     mej, osup, oinf = [], [], []
     for grp in (("horario", "antihorario") if g.modo == 1 else ()):
         for c in D["cilindros"][grp]:
@@ -796,8 +821,11 @@ def build_interfaz(m, g, D, log):
             scr = [screw_solid(lay_af2, x_, y_, zm0, av["bajo_cara"], +1, TA["L"])[0] for (x_, y_) in TA["pos"]]
             m.info["af2_screws"] = scr
             m.info["af2_lay"] = lay_af2
-            # rosca en el respaldo: Ø nominal pasante (núcleo: «pasante»); r = %s cae en el anillo inferior de la mesa (R > prIn), no en la plancha (requiere núcleo)
-            m.info["holes_af2"] = [cyl(TA["d"] / 2, g.tpr + 2, g.z0 - 1, x_, y_) for (x_, y_) in TA["pos"]]
+            # rosca en la mesa (núcleo c4e12af: apoyo.interfaz.tornillos.rosca): ciega en el anillo inferior desde su cara inferior, taladro prof_taladro;
+            # sin datos de rosca ciega, Ø nominal pasante en el anillo (versión anterior del núcleo)
+            RS = TA.get("rosca") or {}
+            h_ = float(RS["prof_taladro"]) + 1 if RS.get("ciega") and RS.get("prof_taladro") else g.tpr + 2
+            m.info["holes_af2"] = [cyl(TA["d"] / 2, h_, g.z0 - 1, x_, y_) for (x_, y_) in TA["pos"]]
         m.add(Part("int_disco_base", "INT", "Disco de la base (sector liso)" if n > 1 else "Disco de la base", f"Sector de disco de acero inoxidable e={f(t1)}, {n} sectores de {fm(th, 2)}°, junta {fm(jb, 1)}" + (f", muesca {fm(lay.b_tope + 2, 0)}×{f(lay.L_base)} para el tope, {len(radii)} agujeros avellanados M{fm(lay.d_tor, 0)}" if g.removable else ""),
                    compound(sec_b), n, ss_mat_b, "Corte por plasma/láser (subcontrato) del sector; rectificado/lapeado de la cara deslizante en rectificadora plana (subcontrato)" + ("; avellanado en taladro radial" if g.removable else ""), rho=RHO_SS,
                    core="ss", color=(0.8, 0.82, 0.85), obs=tor_note + f"; rugosidad Ra 0,4 en la cara deslizante; sobreespesor {fm(rec, 1)} mm (relapeado)", tratamiento="Decapado y pasivado"))
@@ -1018,13 +1046,13 @@ def apply_backing_holes(m):
         pp_ = m.info.get("placa_pas_holes")
         if pp_:                              # alojamientos H7 de los pasadores de posición (ciegos, desde la cara superior)
             dp_ = float(g.FPV["placas_leva"]["pasadores_posicion"]["d"])
-            hp_ = m.info["placa_pas_L"] - g.FPV["placas_leva"]["t"]
+            hp_ = m.info["placa_pas_prof"][0]          # alojamiento ciego en la base (núcleo: pasadores_posicion.alojamiento_base.prof)
             base.solid = base.solid.cut(compound([cyl(dp_ / 2, hp_ + 1, g.tb - hp_, x, y) for (x, y) in pp_]))
         base._vol = None
     ha = m.info.get("holes_af2")
     if ha:                                   # AF2: roscas de los tornillos del disco de la mesa (r > prIn: anillo inferior; y la plancha si cae dentro)
         hc = compound(ha)
-        for k_ in ("mesa_anillo_inf", "mesa_plancha_inf"):
+        for k_ in ("mesa_anillo_inf",) + (() if ((m.info.get("af2") or {}).get("rosca") or {}).get("ciega") else ("mesa_plancha_inf",)):
             p_ = m.get(k_)
             p_.solid = p_.solid.cut(hc)
             p_._vol = None
@@ -1134,7 +1162,7 @@ def interferencias(m, log=None):
 # Conflictos geométricos del propio núcleo (la geometría del JSON choca): no se ocultan ni se corrigen en el dibujo (no se inventan cotas); se declaran
 # como «requiere núcleo», se listan en GEN-009 (brechas), en el informe del paquete y en las láminas afectadas (RETENIDA). Cualquier otra interferencia falla.
 CONFLICTOS_NUCLEO = [
-    ("cil_cajon", "cilindro dentro del cajón del ojal E", ("cilindro_pv",), ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"),
+    ("cil_cajon", "cilindro dentro del soporte del ojal E", ("cilindro_pv",), ("cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"),
      "El cuerpo del cilindro (Ø{D_body} desde E + e_cuerpo = {e_body} mm) entra en el cajón del ojal E (semilado {semi} mm; la ventana solo tiene {hv} mm de alto para el ojal): "
      "el núcleo debe alejar el cuerpo del cilindro (e_cuerpo ≥ semilado del cajón + holgura) o rediseñar el cajón."),
     ("placa_orejas", "placa-guía sobre las orejas de izaje", ("placa_leva", "placa_leva_h"), ("orejas",),

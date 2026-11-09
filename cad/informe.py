@@ -73,17 +73,10 @@ def requiere_nucleo(ctx):
         F = g.FPV
         S, PL = F["soporte_E"], F["placas_leva"]
         t, L = S["t_pared"], S["lado"]
-        R.append((f"{RN}: tapas del cajón del ojal E", f"soporte_E.tapas.lado = {fm(S['tapas']['lado'], 0)} mm, pero las tapas van dentro de las paredes (z_paredes {fm(S['z_paredes'][0], 0)}–{fm(S['z_paredes'][1], 0)}; filetes «a ambos lados» contra las paredes): "
-                  f"se dibujan de {fm(L - 2 * t, 0)} × {fm(L - 2 * t, 0)} (lado − 2·t_pared). La masa del núcleo usa 3 paredes de {fm(L, 0)} y tapas de {fm(L, 0)}²: 3D {fm(sum(p.mass_total for p in ctx.m.parts if p.core == 'brackets'), 1)} kg frente a {fm(M['brackets'], 1)} kg.",
-                  "Corregir soporte_E.tapas.lado (o la disposición) y la masa del soporte en el núcleo."))
-        mx = max(abs(v) for c in ("cilindro1", "cilindro2") for q in S[c]["esquinas"] for v in q)
-        h_marco = g.B / 2 - P["rim_t"] - mx
-        from hojas_base import fillet_min
-        R.append((f"{RN}: soldaduras inaccesibles del cajón del ojal E", f"(1) Filete exterior z{fm(S['soldadura']['filete'], 0)} de las paredes completas exteriores: entre la pared y la cara interior del marco quedan {fm(h_marco, 1)} mm, ocupados por el filete del marco (J01, z{fillet_min(max(P['rim_t'], g.tb))}). "
-                  f"(2) La cara inferior de la tapa inferior y los filetes interiores pared–base quedan en una cavidad cerrada (z {fm(S['z_paredes'][0], 0)}–{fm(S['tapas']['z_inf'][0], 0)}): no se pueden hacer ambos. "
-                  f"(3) La tapa superior queda a ras del borde de las paredes (z {fm(S['z_paredes'][1], 0)}): su cara superior no forma rincón para un filete.",
-                  "A DECIDIR POR EL CALCULISTA: redefinir la unión (p. ej. soldadura de ranura o filetes de un solo lado verificados) y la posición del cajón; secuencia de armado en CON-007."))
-        R.append((f"{RN}: unión pared–pared del cajón", f"El núcleo no fija la soldadura entre paredes (esquinas en molinete): se adopta filete z{fillet_min(t)} en el rincón interior (mínimo AWS D1.1 T5.8 para t = {fm(t, 0)}).", "Confirmar o verificar en el núcleo."))
+        if not S.get("piezas"):
+            R.append((f"{RN}: piezas del soporte del ojal E", "El JSON no trae soporte_E.piezas (polígonos de paredes, muñones y tapas).", "Exportar la geometría del soporte abierto."))
+        if not S.get("juntas"):
+            R.append((f"{RN}: uniones del soporte del ojal E", "El JSON no trae soporte_E.juntas (tipo, tamaño y verificación).", "Exportar las juntas del soporte."))
         import contorno as _ct
         ins1 = PL["instancias"]["1_antihorario"]
         geo_ = _ct.geometrico(_ct.leer(ins1))
@@ -101,18 +94,29 @@ def requiere_nucleo(ctx):
     if g.modo == 1 and g.FLG:
         F = g.FLG
         SG, RN_ = F["seguidor"], F["ranura_tapa_patin"]
-        R.append((f"{RN}: largo del perno del seguidor", f"seguidor.perno.largo = {fm(SG['perno']['largo'], 0)} (empotrado {fm(SG['perno']['empotrado_en_una'], 0)} + voladizo {fm(SG['perno']['largo'] - SG['perno']['empotrado_en_una'], 0)}) termina en z {fm(SG['perno']['z_cara_sup_una'] - SG['perno']['empotrado_en_una'] + SG['perno']['largo'], 0)}, pero el rodillo llega a z {fm(SG['rodillo']['z'][1], 0)}: "
-                  f"se dibuja hasta la cara superior del rodillo ({fm(SG['rodillo']['z'][1] - SG['perno']['z_cara_sup_una'] + SG['perno']['empotrado_en_una'], 0)} mm); la retención axial del rodillo no está definida (bajo la mesa quedan {fm(F.get('z', {}).get('sup_riel', SG['rodillo']['z'][1]) - SG['rodillo']['z'][1], 0)} mm hasta la cara superior del riel).",
-                  "Corregir el largo del perno y definir la retención del rodillo."))
-        R.append((f"{RN}: ranura de la tapa del patín", f"Ancho {fm(RN_['ancho'], 0)} mm con «ajuste H9/f8» para el perno Ø{fm(SG['perno']['d'], 0)}: un ajuste H9/f8 corresponde a Ø{fm(SG['perno']['d'], 0)} H9; con {fm(RN_['ancho'], 0)} queda 1 mm de juego. Se dibuja {fm(RN_['ancho'], 0)} (ISO 2768-m).", "Aclarar el ancho o el ajuste."))
-        R.append((f"{RN}: pernos riel–pórtico", f"M{fm(F['porticos']['d_perno'], 0)} roscados en la tapa del pórtico de {fm(F['porticos']['tapas_local'][0]['z'][1] - F['porticos']['tapas_local'][0]['z'][0], 0)} mm: engrane < 1,25·d. Se dibujan con perno ISO 4762 M{fm(F['porticos']['d_perno'], 0)}×{ctx.m.info.get('perno_riel_L', '—')}.", "Verificar el arranque de la rosca o definir tuerca/espárrago."))
-        R.append((f"{RN}: soldaduras del pórtico sin tamaño", f"Pata–tapa del pórtico: el núcleo no fija el filete (se adopta el mínimo AWS D1.1 T5.8). Prolongación de la bancada–base: se adopta w_bed_f = {fm(P['w_bed_f'], 0)} mm de la bancada, sin verificación propia.", "Confirmar o verificar en el núcleo."))
-        R.append((f"{RN}: soldadura del 42CrMo4+QT", "Patas y tapas del pórtico en 42CrMo4+QT soldadas: no es metal base precalificado AWS D1.1 (Tabla 5.3): exige WPS calificado con PQR (precalentamiento, interpase, revenido posterior y dureza de la ZAC).", "Confirmar el material soldable de patas y tapas o el procedimiento calificado."))
-        R.append((f"{RN}: material del rodillo del seguidor", "El núcleo indica «rodillo de leva templado» (Fy_sup del Hertz) sin grado de acero.", "Definir el grado del rodillo."))
+        if not SG["perno"].get("z") or not SG.get("retencion"):
+            R.append((f"{RN}: largo del perno y retención del rodillo", f"seguidor.perno sin cotas z o sin retención axial del rodillo.", "Exportar perno.z y seguidor.retencion."))
+        RT_ = SG.get("retencion") or {}
+        if RT_.get("tornillo") and "10642" in RT_["tornillo"]:
+            import re as _re
+            md_ = _re.search(r"M(\d+)", RT_["tornillo"])
+            if md_ and 0.62 * float(md_.group(1)) > float(RT_.get("t_arandela", 0)):
+                R.append((f"{RN}: tornillo de la arandela de tope del seguidor", f"{RT_['tornillo']}: la cabeza avellanada (k ≈ {fm(0.62 * float(md_.group(1)), 1)} mm, Ø{fm(2 * float(md_.group(1)), 0)}) no cabe en la arandela de {fm(RT_['t_arandela'], 0)} mm; "
+                          f"se dibuja la cabeza sobre la arandela (envolvente) y su largo M{md_.group(1)} × {fm(2 * float(md_.group(1)) + RT_['t_arandela'], 0)} (PROPUESTA). Verificar la holgura bajo el riel y la mesa.", "Definir el tornillo (o el espesor de la arandela) y su largo."))
+        if not RN_.get("ajuste"):
+            R.append((f"{RN}: ranura de la tapa del patín", f"Ancho {fm(RN_['ancho'], 0)} mm sin ajuste definido para el perno Ø{fm(SG['perno']['d'], 0)}.", "Definir el ajuste."))
+        if not (F["porticos"].get("pernos") or {}).get("rosca"):
+            R.append((f"{RN}: pernos riel–pórtico", f"M{fm(F['porticos']['d_perno'], 0)} sin rosca definida en la tapa del pórtico.", "Exportar porticos.pernos.rosca."))
+        if F["porticos"].get("filete_pata_tapa") is None or not F.get("prolongacion_soldadura"):
+            R.append((f"{RN}: soldaduras del pórtico sin tamaño", "Pata–tapa del pórtico o prolongación de la bancada–base sin tamaño de filete en el núcleo.", "Exportar los filetes."))
+        if "42CrMo4" in F["porticos"].get("material", "").split("(")[0] and "S355" not in F["porticos"].get("material", ""):
+            R.append((f"{RN}: soldadura del 42CrMo4+QT", "Patas y tapas del pórtico en 42CrMo4+QT soldadas: no es metal base precalificado AWS D1.1 (Tabla 5.3).", "Confirmar el material soldable de patas y tapas."))
+        if not (SG.get("rodillo") or {}).get("material"):
+            R.append((f"{RN}: material del rodillo del seguidor", "El núcleo indica «rodillo de leva templado» sin grado de acero.", "Definir el grado del rodillo."))
     if g.opt == 1 and not g.removable and isinstance(g.I.get("tornillos"), dict):
         TA = g.I["tornillos"]
-        R.append((f"{RN}: roscas de los tornillos AF2", f"El núcleo verifica el roscado en la plancha inferior (t_inf = {fm(TA['tb'], 0)} mm, rosca pasante prof. {fm(TA['rosca']['prof'], 0)}), pero R{fm(TA['r'], 0)} > R{fm(g.prIn, 0)}: la rosca cae en el anillo inferior de la mesa (MES-004, e = {fm(g.tpr, 0)}); "
-                  "se dibuja pasante en el anillo. 8 de los 24 tornillos cortan los agujeros de los pasadores de empuje (conflicto declarado).", "Reubicar el círculo de tornillos (fuera de la corona de pasadores) y rehacer la verificación de roscado."))
+        if (TA.get("rosca") or {}).get("pasante", True) and not (TA.get("rosca") or {}).get("ciega"):
+            R.append((f"{RN}: roscas de los tornillos AF2", f"Rosca de los tornillos AF2 sin pieza ni profundidad definidas (R{fm(TA['r'], 0)}).", "Exportar rosca.pieza, ciega y profundidades."))
     return R
 
 

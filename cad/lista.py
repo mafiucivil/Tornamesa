@@ -78,8 +78,9 @@ def cut_rows(ctx):
     B, tb = g.B, g.tb
     add("base_plancha", "Plancha", f"{f(B + 10)}×{f(B + 10)}×{f(tb)}", "Sobremetal 5 por borde; planitud/planeado tras soldar")
     add("collar", "Disco", f"Ø{f(g.D_boss + 10)}×{f(g.h_boss + 5)}", f"De plancha de {f(g.h_boss + 5)}: caras planeadas a {f(g.h_boss)} y Ø{f(g.D_boss)} torneado; agujero tras soldar")
-    add("marco_largo", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{f(B)}")
-    add("marco_corto", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{f(B - 2 * P['rim_t'])}")
+    L_ml, L_mc = ctx.m.info.get("marco_long") or (B, B - 2 * P["rim_t"])
+    add("marco_largo", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_ml, 1)}")
+    add("marco_corto", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_mc, 1)}")
     if g.modo == 1:
         add("mensula_mejilla", "Plancha", f"{f(P['L_ch'])}×{f(BR['H'] + 5)}×{f(P['t_ch'])}")
         add("mensula_oreja_sup", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(P['t_ch'])}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 (sobremedida {fm(SOBRE_MEC, 0)}); agujero tras soldar")
@@ -88,10 +89,17 @@ def cut_rows(ctx):
         S = g.FPV["soporte_E"]
         t_, L_, h_ = S["t_pared"], S["lado"], S["alto_paredes"]
         li_ = L_ - 2 * t_
-        add("cajon_pared", "Plancha", f"{f(L_ - t_ + 5)}×{f(h_ + 5)}×{f(t_)}", "Oxicorte; cantos a escuadra a la cota de la lámina")
-        add("cajon_ventana_a", "Plancha", f"{f(L_ - t_ + 5)}×{f(h_ + 5)}×{f(t_)}", "Oxicorte; ventana por oxicorte (sector del ojal)")
-        add("cajon_ventana_b", "Plancha", f"{f(L_ - t_ + 5)}×{f(h_ + 5)}×{f(t_)}", "Oxicorte; ventana por oxicorte (sector del ojal)")
-        add("cajon_tapa", "Plancha", f"{f(li_ + SOBRE_MEC)}×{f(li_ + SOBRE_MEC)}×{f(S['tapas']['t'])}", f"Cantos mecanizados a {f(li_)} −0,5 (entra entre paredes); agujero Ø{f(S['tapas']['agujero_E'])} H9 tras soldar")
+        loc_ = {pz["id"]: pz for pz in S["piezas"]}
+
+        def _d(pid):
+            pz = loc_[pid]
+            xs, ys = [q[0] for q in pz["poligono_local"]], [q[1] for q in pz["poligono_local"]]
+            a, b = max(xs) - min(xs), max(ys) - min(ys)
+            return max(a, b), min(a, b), pz["z"][1] - pz["z"][0]
+        for k_, pid_ in (("cajon_pared_x", "pared_X"), ("cajon_pared_y", "pared_Y"), ("cajon_munon", "munon_X")):
+            L_, t_, h_ = _d(pid_)
+            add(k_, "Plancha", f"{fm(L_ + 5, 1)}×{f(h_ + 5)}×{f(t_)}", "Oxicorte; biseles 45° de las CJP (TC-U4b) según CON-007")
+        add("cajon_tapa", "Plancha", f"{f(S['tapas']['lado'] + 5)}×{f(S['tapas']['lado'] + 5)}×{f(S['tapas']['t'])}", f"Corte CNC del polígono del núcleo (nariz); bisel 45° de la PJP; agujero Ø{f(S['tapas']['agujero_E'])} H9 en línea tras soldar")
     add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte del perfil; agujero mecanizado H12")
     if g.modo == 1:
         add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")

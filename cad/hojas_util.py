@@ -104,7 +104,7 @@ class Pieza(Plano):
         }
         RA.update({"tapa_ret": [("Ra 3,2", "cara de apoyo y avellanados")], "tapa_insp": [("Ra 3,2", "cara de apoyo y avellanados")],
                    "bloque_una": [("Ra 0,8", "cara de empuje templada (rectificada)"), ("Ra 1,6", "agujero del pasador Q H9 y caras de la horquilla")],
-                   "pasador_E": [("Ra 0,8", "Ø f8 de los pasadores E y Q")], "cajon_pared": [("Ra 1,6", "agujeros H9 de las tapas (mandrinados)"), ("Ra 12,5", "cantos de corte térmico")],
+                   "pasador_E": [("Ra 0,8", "Ø f8 de los pasadores E y Q")], "cajon_tapa": [("Ra 1,6", "agujero H9 de las tapas (mecanizado en línea)"), ("Ra 12,5", "cantos de corte térmico")],
                    "placa_leva": [("Ra 1,6", "canto guía fresado y templado (ver nota 3)")], "cilindro_pv": [("Ra 1,6", "ojales H9 (proveedor)")],
                    "leva_riel": [("Ra 1,6", "canto de leva fresado y templado")], "leva_rodillo": [("Ra 0,8", "diámetro exterior del rodillo y del perno")], "leva_pata": [("Ra 6,3", "caras de apoyo fresadas")],
                    "pernos_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "arandela_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "marco_largo": [("Ra 12,5", "cantos de corte (a escuadra)")]})
