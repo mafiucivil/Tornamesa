@@ -314,7 +314,7 @@ def build_leva_guiada(m, g, D, Part, A572):
     mR = "42CrMo4+QT (EN 10083-3), Re ≥ %s MPa; canto templado ≥ 55 HRC" % f(R["Fy"])
     m.add(Part("leva_riel", "ACC", "Riel-leva", f"Pletina e = {f(R['t'])}, contorno del núcleo (toma, bolsillo y rampa en el canto interior; aletas de apoyo), {len(inst['1_antihorario']['pernos'])} agujeros Ø{f(dh)}",
                _compound(rieles), len(rieles), mR, "Oxicorte/plasma CNC desde plancha con sobremetal; canto de leva fresado y templado por inducción; agujeros taladrados", core="cam", color=(0.6, 0.45, 0.25),
-               tratamiento="Bonificado (QT); canto de leva templado por inducción ≥ 55 HRC", obs="Una por cilindro: se voltea para el otro sentido de giro", num_fijo=ACC_NUM["leva_riel"]))
+               tratamiento="QT; canto templado ≥ 55 HRC", obs="Una por cilindro: se voltea para el otro sentido de giro", num_fijo=ACC_NUM["leva_riel"]))
     m.get("leva_riel").volteable = True
     m.add(Part("leva_pata", "ACC", "Pórtico del riel: pata", f"Plancha {f(PO['patas_local'][0]['x'][1] - PO['patas_local'][0]['x'][0])}×{f(PO['patas_local'][0]['y'][1] - PO['patas_local'][0]['y'][0])}×{f(PO['patas_local'][0]['z'][1] - PO['patas_local'][0]['z'][0])}",
                _compound(patas), len(patas), "42CrMo4+QT (EN 10083-3) (núcleo: «%s»)" % PO["material"], "Oxicorte y fresado de caras; soldadura a la prolongación de la bancada y a la tapa", core="cam", color=(0.5, 0.52, 0.55),

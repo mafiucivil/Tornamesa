@@ -409,7 +409,7 @@ def sheet_riel(ctx):
     on = ["riel_L"]
     zt = R["z"][1]
     c = ctx.shapes["leva_riel"].Solids()[0].Center()
-    p.vs("planta", on, "top", lv=(2, 3, 2, 2), title="PLANTA (canto de leva: toma, bolsillo y rampa)", hatch=False, w=2.0,
+    p.vs("planta", on, "top", lv=(2, 3, 2, 2), extra=(30, 10, 30, 10), title="PLANTA (canto de leva: toma, bolsillo y rampa)", hatch=False, w=3.0, mins=0.2,
          auto=dict(fits={}, hole_rmin=5, tol={}))
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 1, 1, 1), title="CORTE A-A", hs=0.5, w=0.6, maxs=1.0, auto=dict(tol={round(R["t"], 1): " ±0,5"}))
     xin = max(q[0] for q in R["contorno_local"]) - c.x - 30
