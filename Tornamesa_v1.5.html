@@ -709,16 +709,21 @@ const TT = (() => {
       ["pv_tbox", "Soporte del ojal E: espesor de las paredes del cajón", "mm", 25, 6, 50, 1],
       ["pv_wbox", "Soporte del ojal E: filete cajón–base (a ambos lados de las tres paredes; 22 → 21 mm el 08-11-2026 para dejar el filete máximo en FU ≤ 0,95)", "mm", 21, 4, 30, 1],
       ["pv_muE", "μ del pasador del ojal E (resistencia al giro del cilindro en la rampa de la leva)", "–", 0.20, 0.05, 0.6, 0.01],
-      ["pv_c", "Placa-leva: holgura sobre la trayectoria de Q en el empuje", "mm", 3, 0.5, 20, 0.5],
+      ["pv_c", "Placa-guía: separación del canto sobre la trayectoria colineal de Q al final del empuje y nivel de toma en el retraído (en el empuje Q se apoya en el canto: la rodilla E–Q–P es inestable en compresión)", "mm", 3, 0.5, 20, 0.5],
       ["pv_msync", "Placa-leva: margen mínimo de sincronía (holgura bloque-uña–pasador siguiente con Q apoyado en la leva)", "mm", 5, 1, 30, 0.5],
-      ["pv_alpha", "Placa-leva: ángulo de la rampa del extremo retraído respecto de la trayectoria de Q (mínimo por sincronía; el giro del cilindro en E casi no ofrece roce)", "°", 65, 20, 80, 1],
-      ["pv_dwell", "Placa-leva: tramo a nivel de toma en el extremo retraído", "mm", 2, 0, 20, 0.5],
-      ["pv_tcam", "Placa-leva: espesor (alto del contacto con el seguidor; el bloque-uña pasa sobre ella)", "mm", 30, 10, 60, 1],
-      ["pv_wlip", "Placa-leva: ancho del labio detrás del recorte (lleva los pernos en su eje)", "mm", 80, 30, 200, 5],
-      ["Fy_camP", "Placa-leva: Fy del acero (S355J2: 355; familia 1 con canto templado o inserto templado)", "MPa", 355, 235, 1000, 5],
-      ["Fu_camP", "Placa-leva: Fu del acero (S355J2: 470)", "MPa", 470, 300, 1100, 10],
-      ["pv_nb", "Placa-leva: N° de pernos por placa", "–", 6, 2, 16, 1],
-      ["pv_db", "Placa-leva: Ø de los pernos", "mm", 20, 10, 36, 1],
+      ["pv_alpha", "Placa-guía: ángulo máximo admisible del flanco de reenganche respecto de la recta radial E–Q (el flanco recto usa el mínimo que exige la sincronía; con un límite menor la sincronía no cumple)", "°", 65, 20, 80, 1],
+      ["pv_dwell", "Placa-guía: el flanco de reenganche pasa por el nivel de toma c en L0 + tramo (0 = en el retraído; 2 → 0 el 09-11-2026: el flanco recto ya no necesita tramo a nivel)", "mm", 0, 0, 20, 0.5],
+      ["pv_tcam", "Placa-guía: espesor (alto del contacto con el seguidor; el bloque-uña y el cuerpo del cilindro pasan sobre ella)", "mm", 30, 10, 60, 1],
+      ["pv_wlip", "Placa-guía: ligamento entre el punto más profundo del canto y el borde exterior de la placa rectangular (lleva la fila exterior de pernos)", "mm", 80, 30, 200, 5],
+      ["pv_rmin", "Placa-guía: radio mínimo del canto convexo (sin socavado: radio de la trayectoria del centro ≥ d_Q/2 + este valor)", "mm", 10, 2, 100, 1],
+      ["pv_tolg", "Placa-guía: tolerancia de posición del canto (corte CNC ± 0,2 y pasadores de posición ± 0,2); se suma al margen de sincronía con el crecimiento del círculo de pasadores a 80 °C", "mm", 0.4, 0, 3, 0.05],
+      ["Fy_camP", "Placa-guía: Fy del acero (42CrMo4+QT, EN 10083-3, 16 < t ≤ 40 mm: Re ≥ 750; templable por inducción en el canto; era S355J2, que no admite el temple del canto que pide el contacto de Hertz)", "MPa", 750, 235, 1000, 5],
+      ["Fu_camP", "Placa-guía: Fu del acero (42CrMo4+QT, 16 < t ≤ 40 mm: Rm ≥ 1.000; se toma 900 como el riel-leva)", "MPa", 900, 300, 1100, 10],
+      ["pv_nb", "Placa-guía: N° de tornillos por placa (4 en las esquinas y el resto en la fila exterior; 6 → 8 el 09-11-2026: con M16 8.8 el grupo excéntrico pide 8)", "–", 8, 2, 16, 1],
+      ["pv_db", "Placa-guía: Ø de los tornillos avellanados ISO 10642 roscados en la base (20 → 16 el 09-11-2026: con t_base = 18 mm el enganche de rosca ≥ 1,0·d de un 8.8 pide d ≤ 18; los pasantes con tuerca no caben bajo la base apoyada en la losa)", "mm", 16, 10, 36, 1],
+      ["pv_Fub", "Placa-guía: Fu de los tornillos (clase 8.8: 800)", "MPa", 800, 400, 1200, 10],
+      ["pv_dd", "Placa-guía: Ø de los 2 pasadores de posición ISO 8734 (m6 en agujeros H7 escariados en placa y base)", "mm", 16, 6, 30, 1],
+      ["pv_Fyrod", "Vástago del cilindro: Fy (DATO DEL PROVEEDOR; hipótesis: acero templado y cromado ≥ 520 MPa)", "MPa", 520, 235, 1000, 5],
       ["pv_tlin", "Placa-leva: espesor del revestimiento del canto (familias 2–4)", "mm", 8, 2, 30, 1],
       ["pv_lpad", "Seguidor: largo de la zapata en el sentido de la leva (0 = automático: Ø del pasador Q o el que piden p_adm y PV de la familia con FU 0,90)", "mm", 0, 0, 600, 5],
       ["pv_cQ", "Holgura del pasador Q al borde de la mesa (la placa-leva va sobre la base, fuera de la mesa)", "mm", 10, 2, 50, 1],
@@ -1011,7 +1016,7 @@ const TT = (() => {
     const I = R.ifc, out = [];
     if (!(I.o > 0) || !(P.fix_mode < 1.5)) return out;
     const Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), aInf = stopAInf(P);
-    const Ftot = R.Tmax / (R.r_u / 1000), kpk = R.q_max / R.q_avg, Lav = R.Ro - R.Ri - 100;   // kN en el radio de fricción (T_calado); sector más cargado; canto radial disponible (mm)
+    const Ftot = (R.TmaxTopes || R.Tmax) / (R.r_u / 1000), kpk = R.q_max / R.q_avg, Lav = R.Ro - R.Ri - 100;   // kN en el radio de fricción (T_calado; en el pivotado, la cota colineal de tmaxOf, mayor que la del empuje guiado, como en ifaceDesign); sector más cargado; canto radial disponible (mm)
     const push = (o) => {
       const g = stopGeo(P, o.t), Tw = Math.max(P.b_tope, o.tResp), rho = o.uh ? RHO_SS : RHO, mB = g.hB > 0 && isFinite(o.L) ? rho * o.L * P.b_tope * g.hB : 0;   // las barras del rebaje de la lámina UHMW son de acero inoxidable (7,93)
       out.push(Object.assign(o, { pieza: o.nombre, a_sup: P.a_sup, a_inf: aInf, h_barra: g.hB, h_c: g.hC, h_c_min: P.hc_min, tol_hc: P.tol_hc, z: g.z, w_tope: P.w_tope, b_tope: P.b_tope, w_min: wMin(Tw), Tw, Lav, rho_barra: rho, m_barra: mB, m_barras: o.capas * o.n * mB }));
@@ -1566,48 +1571,260 @@ const TT = (() => {
     const R = P.R_pin, chord = 2 * R * Math.sin(K.pitch / 2);
     return Object.assign(K, { auto: !!sg, sugerencia: sg, armMin: K.aMin, armMax: K.aMax, s_req: K.sReq, margin: P.stroke - K.sReq, chord, gap: chord - P.d_pin, radial: 0, zc0: lite ? NaN : hAxis(P) + P.t_base, pitch: K.pitch });
   }
-  // Placa-leva del modo pivotado. w = desplazamiento lateral de Q hacia afuera (−t) respecto de la recta E–P al inicio: Q(L, w) = E + L·û(ψ₀ − w/L).
-  // Empuje: w_emp(L) (alineación E–Q–P); retorno (mesa detenida: B en θ_ini y el anterior a B): w_nec(L) = menor w con holgura ≥ margen
-  // (bloque alineado con el vástago). Canto de la leva (centro del seguidor): w_leva = máx(w_emp + c; bolsillo) con rampa a α desde L0 + tramo.
+  /* ---------------- Placa-guía curva del modo pivotado (rediseño 09-11-2026; docs/qa/guia_curva_KIET/cambios.md) ---------------- */
+  // Geometría plana de tramos tangentes {tipo: "linea" | "arco", p0, p1, centro, radio, sentido: "antihorario" | "horario"} (sentido de recorrido de p0 a p1).
+  const GV = (() => {
+    const add = (a, b) => [a[0] + b[0], a[1] + b[1]], sub = (a, b) => [a[0] - b[0], a[1] - b[1]], mul = (a, k) => [a[0] * k, a[1] * k];
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1], crs = (a, b) => a[0] * b[1] - a[1] * b[0], nrm = (a) => Math.hypot(a[0], a[1]), unit = (a) => mul(a, 1 / nrm(a));
+    const left = (a) => [-a[1], a[0]], right = (a) => [a[1], -a[0]], rot = (a, t) => [a[0] * Math.cos(t) - a[1] * Math.sin(t), a[0] * Math.sin(t) + a[1] * Math.cos(t)];
+    const sg = (s) => (s.sentido === "antihorario" ? 1 : -1);
+    function arcFrom(p0, t0, p1) {   // arco (o recta) desde p0, tangente t0, hasta p1
+      const n0 = left(t0), ch = sub(p1, p0), den = 2 * dot(n0, ch);
+      if (Math.abs(den) < 1e-9 * nrm(ch)) return { tipo: "linea", p0, p1 };
+      const k = dot(ch, ch) / den;
+      return { tipo: "arco", p0, p1, centro: add(p0, mul(n0, k)), radio: Math.abs(k), sentido: k > 0 ? "antihorario" : "horario" };
+    }
+    function biarc(p0, t0, p1, t1) {   // biarco de brazos iguales: dos arcos tangentes entre sí y a (p0, t0) y (p1, t1)
+      const v = sub(p1, p0), t = add(t0, t1), a = 2 * (1 - dot(t0, t1)), b = dot(v, t);
+      const d = a < 1e-12 ? dot(v, v) / (4 * dot(v, t1)) : (-b + Math.sqrt(b * b + a * dot(v, v))) / a;
+      const pm = mul(add(add(p0, mul(t0, d)), sub(p1, mul(t1, d))), 0.5), s1 = arcFrom(p0, t0, pm), r2 = arcFrom(p1, mul(t1, -1), pm);
+      return [s1, r2.tipo === "linea" ? { tipo: "linea", p0: pm, p1 } : { tipo: "arco", p0: pm, p1, centro: r2.centro, radio: r2.radio, sentido: r2.sentido === "antihorario" ? "horario" : "antihorario" }];
+    }
+    function tan(s, p) { if (s.tipo === "linea") return unit(sub(s.p1, s.p0)); const v = sub(p, s.centro); return mul(left(v), sg(s) / nrm(v)); }
+    function sweep(s) { const a0 = Math.atan2(s.p0[1] - s.centro[1], s.p0[0] - s.centro[0]), a1 = Math.atan2(s.p1[1] - s.centro[1], s.p1[0] - s.centro[0]); let d = sg(s) * (a1 - a0); while (d < 0) d += 2 * Math.PI; while (d >= 2 * Math.PI) d -= 2 * Math.PI; return { a0, d }; }
+    const len = (s) => (s.tipo === "linea" ? nrm(sub(s.p1, s.p0)) : s.radio * sweep(s).d);
+    function at(s, f) { if (s.tipo === "linea") return add(s.p0, mul(sub(s.p1, s.p0), f)); const { a0, d } = sweep(s), a = a0 + sg(s) * d * f; return add(s.centro, mul([Math.cos(a), Math.sin(a)], s.radio)); }
+    function pts(s, tol, step) {   // polilínea con flecha ≤ tol (y paso ≤ step si se pide); incluye p0 y p1 exactos
+      const L = len(s); let n = 1;
+      if (s.tipo === "arco") n = Math.ceil(sweep(s).d / (2 * Math.acos(Math.max(-1, 1 - tol / s.radio))) - 1e-9);
+      if (step) n = Math.max(n, Math.ceil(L / step));
+      n = Math.max(1, n);
+      return Array.from({ length: n + 1 }, (_, i) => (i === 0 ? s.p0 : i === n ? s.p1 : at(s, i / n)));
+    }
+    function chain(S, tol, step) { const o = []; S.forEach((s, i) => { const q = pts(s, tol, step); o.push(...(i ? q.slice(1) : q)); }); return o; }
+    function offset(s, d) {   // desplazamiento d a la derecha del recorrido (arcos concéntricos: radio ± d)
+      const q0 = add(s.p0, mul(right(tan(s, s.p0)), d)), q1 = add(s.p1, mul(right(tan(s, s.p1)), d));
+      return s.tipo === "linea" ? { tipo: "linea", p0: q0, p1: q1 } : { tipo: "arco", p0: q0, p1: q1, centro: s.centro, radio: s.radio + sg(s) * d, sentido: s.sentido };
+    }
+    function dist(s, p) {
+      if (s.tipo === "linea") { const e = sub(s.p1, s.p0), t = Math.max(0, Math.min(1, dot(sub(p, s.p0), e) / dot(e, e))); return nrm(sub(p, add(s.p0, mul(e, t)))); }
+      const { a0, d } = sweep(s); let a = sg(s) * (Math.atan2(p[1] - s.centro[1], p[0] - s.centro[0]) - a0); while (a < 0) a += 2 * Math.PI; while (a >= 2 * Math.PI) a -= 2 * Math.PI;
+      return a <= d + 1e-12 ? Math.abs(nrm(sub(p, s.centro)) - s.radio) : Math.min(nrm(sub(p, s.p0)), nrm(sub(p, s.p1)));
+    }
+    function tr(s, f, mir) { const o = Object.assign({}, s, { p0: f(s.p0), p1: f(s.p1) }); if (s.tipo === "arco") { o.centro = f(s.centro); if (mir) o.sentido = s.sentido === "antihorario" ? "horario" : "antihorario"; } return o; }
+    function g1(S) { let gap = 0, ang = 0, dk = 0; const k = (s) => (s.tipo === "linea" ? 0 : sg(s) / s.radio); for (let i = 1; i < S.length; i++) { const a = S[i - 1], b = S[i], t0 = tan(a, a.p1), t1 = tan(b, b.p0); gap = Math.max(gap, nrm(sub(a.p1, b.p0))); ang = Math.max(ang, Math.abs(Math.atan2(crs(t0, t1), dot(t0, t1)))); dk = Math.max(dk, Math.abs(k(a) - k(b))); } return { gap, ang, dk }; }
+    function lineCircle(p, t, c, R) {   // parámetros λ de p + λt sobre la circunferencia (c, R)
+      const d = sub(p, c), b = dot(d, t), q = dot(d, d) - R * R, D = b * b - q; if (D < 0) return []; const s = Math.sqrt(D); return [-b - s, -b + s];
+    }
+    function circles(c0, r0, c1, r1) {   // intersecciones de dos circunferencias
+      const d = nrm(sub(c1, c0)); if (d > r0 + r1 || d < Math.abs(r0 - r1) || d === 0) return [];
+      const a = (r0 * r0 - r1 * r1 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, r0 * r0 - a * a)), e = unit(sub(c1, c0)), m = add(c0, mul(e, a));
+      return [add(m, mul(left(e), h)), sub(m, mul(left(e), h))];
+    }
+    const area = (pl) => { let A = 0; for (let i = 0; i < pl.length; i++) { const p = pl[i], q = pl[(i + 1) % pl.length]; A += p[0] * q[1] - q[0] * p[1]; } return A / 2; };
+    return { add, sub, mul, dot, crs, nrm, unit, left, right, rot, arcFrom, biarc, tan, len, at, pts, chain, offset, dist, tr, g1, lineCircle, circles, area, sweep };
+  })();
+  // Placa-guía del modo pivotado (cilindro 1, giro antihorario; el resto por rotación de 180° y reflexión respecto de la diagonal).
+  // w = desplazamiento lateral de Q hacia afuera (−t) respecto de la recta E–P al inicio: Q(L, w) = E + L·û(ψ₀ − w/L).
+  // Seguidor = extremo inferior del pasador Q (radio r_f = d_Q/2); su centro recorre la trayectoria W(L) y el canto es el desplazamiento exacto a r_f hacia la placa.
+  // Requisitos de W: (1) retorno: W ≥ w_nec(L; m + δ) (sincronía con margen, tolerancia de posición del canto y crecimiento del círculo de pasadores a 80 °C);
+  // (2) empuje: la rodilla E–Q–P es inestable en compresión (rigidez lateral −F·(1/L + 1/L_qp)) y el roce de la cara empuja el bloque hacia afuera:
+  // Q se apoya en el canto, de modo que W ≥ w_emp + c; (3) el retorno libre (Q a ψ constante tras el último contacto con el pasador) no toca el canto antes del flanco.
+  // Trayectoria: flanco recto por (L0 + tramo, c) tangente por encima a w_nec (ángulo mínimo, ≤ α_máx), luego dos biarcos (hombro–cresta y bajada tangente a la
+  // trayectoria de empuje en L_fin) elegidos por búsqueda en malla, y salida tangente. G1 por construcción; los arcos del canto son concéntricos con los del centro.
   const camPivMemo = memoP((P) => camPivRaw(P, kinPiv(P)), true);
   function camPiv(P, K) { return K && K.ok ? (K === kinPiv(P) ? camPivMemo(P) : camPivRaw(P, K)) : null; }
   function camPivRaw(P, K) {
     if (!K || !K.ok) return null;
-    const r = P.d_pin / 2, R = P.R_pin, E = K.E, Lqp = K.Lqp, psi0 = K.pts[0].psi, L0 = P.L0, Ls = K.Ls, Le = K.Lend, fam = camFam(P);
+    const V = GV, r = P.d_pin / 2, R = P.R_pin, E = K.E, Lqp = K.Lqp, psi0 = K.pts[0].psi, L0 = P.L0, Ls = K.Ls, Le = K.Lend, fam = camFam(P), rf = P.pv_dq / 2;
     const Qof = (L, w) => { const ps = psi0 - w / L, u = [Math.cos(ps), Math.sin(ps)]; return { Q: [E[0] + L * u[0], E[1] + L * u[1]], u }; };
+    const toLW = (p) => { const d = V.sub(p, E), L = V.nrm(d); let a = psi0 - Math.atan2(d[1], d[0]); while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return [L, a * L]; };
     const pushW = K.pts.map((q) => [q.L, -q.L * (q.psi - psi0)]);
     const wPush = (L) => { if (L <= Ls) return 0; for (let i = 1; i < pushW.length; i++) if (L <= pushW[i][0]) { const [a0, b0] = pushW[i - 1], [a1, b1] = pushW[i]; return b0 + (b1 - b0) * (L - a0) / (a1 - a0); } return pushW[pushW.length - 1][1]; };
     const pins = [K.ths - K.pitch, K.ths].map((th) => [R * Math.cos(th), R * Math.sin(th)]);   // B y el anterior (A queda adelante de la cara: el retorno se aleja de él)
     const clrRet = (L, w) => { const { Q, u } = Qof(L, w); return Math.min(...pins.map((p) => unaDist(P, p[0], p[1], Q, u, Lqp))) - r; };
-    const m = P.pv_msync, c = P.pv_c, al = P.pv_alpha * D2R, ta = Math.tan(al), n = 160;
-    const wNeed = (L) => {
-      if (clrRet(L, 0) >= m) return 0;
-      let lo = 0, hi = NaN; for (let w = 5; w <= 400; w += 5) { if (clrRet(L, w) >= m) { hi = w; break; } lo = w; }
+    const m = P.pv_msync, c = P.pv_c, rmin = P.pv_rmin, tolF = 0.3, gF = 2;
+    const dT = alphaSteelMean(80, P.T_ref) * Math.max(0, 80 - P.T_ref) * R, dTol = P.pv_tolg + dT, md = m + dTol;
+    const wAt = (L, mm) => {
+      if (clrRet(L, 0) >= mm) return 0;
+      let lo = 0, hi = NaN; for (let w = 4; w <= 400; w += 4) { if (clrRet(L, w) >= mm) { hi = w; break; } lo = w; }
       if (!isFinite(hi)) return Infinity;
-      for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (clrRet(L, mid) >= m) hi = mid; else lo = mid; }
+      for (let i = 0; i < 26; i++) { const mid = (lo + hi) / 2; if (clrRet(L, mid) >= mm) hi = mid; else lo = mid; }
       return hi;
     };
-    const Lg = Array.from({ length: n + 1 }, (_, i) => L0 + (Le - L0) * i / n), need = Lg.map(wNeed), base = Lg.map((L) => wPush(L) + c);
-    const wPk = Math.max(0, ...need.map((x) => (isFinite(x) ? x : 1e9)));
-    let LX1 = -Infinity; Lg.forEach((L, i) => { if (need[i] > base[i]) LX1 = Math.max(LX1, L - (wPk - Math.min(need[i], wPk)) / ta); });
-    const hasPk = isFinite(LX1), Lend = L0 + P.pv_dwell;
-    if (hasPk) LX1 += 5;                                                // 5 mm de holgura de fabricación en la salida del bolsillo hacia la carrera de empuje
-    const wCam = (L) => { const b = wPush(L) + c; return !hasPk || L <= Lend ? b : Math.max(b, Math.min(wPk, c + ta * (L - Lend), wPk - ta * (L - LX1))); };
-    const Lr1 = Math.min(Lend + (wPk - c) / ta, (wPk - c + ta * (Lend + LX1)) / (2 * ta));   // fin de la rampa de reenganche (o vértice del bolsillo)
-    let sync = Infinity, Lsync = L0, syncOut = Infinity; Lg.forEach((L) => { const s = clrRet(L, wCam(L)); if (L <= Lr1) { if (s < sync) { sync = s; Lsync = L; } } else syncOut = Math.min(syncOut, s); });
-    { const dL = (Le - L0) / n, c0 = Lsync; for (let k = -40; k <= 40; k++) { const L = c0 + dL * k / 40; if (L < L0 || L > Lr1) continue; const s = clrRet(L, wCam(L)); if (s < sync) { sync = s; Lsync = L; } } }   // refinamiento local del mínimo
-    let held = 0, tot = 0; Lg.forEach((L) => { if (L >= Ls) { tot++; if (Math.abs(wCam(L) - (wPush(L) + c)) < 1e-9) held++; } });
-    // geometría en planta: trayectoria del centro del seguidor (Q a w_leva), canto (desplazado d_q/2 hacia −t), borde exterior y pernos sobre el eje del labio
-    const rf = P.pv_dq / 2, wOut = Math.max(...Lg.map(wCam)) + rf + P.pv_wlip, eEnd = rf + 30;
-    const Lp = [L0 - eEnd].concat(Lg, [Le + eEnd]);
-    const path = Lp.map((L) => { const w = wCam(Math.min(Math.max(L, L0), Le)), { Q, u } = Qof(L, w); return { L, w, x: Q[0], y: Q[1], cx: Q[0] + rf * u[1], cy: Q[1] - rf * u[0], ox: 0, oy: 0 }; });
-    path.forEach((p) => { const { Q, u } = Qof(p.L, wOut); p.ox = Q[0]; p.oy = Q[1]; const wl = wOut - P.pv_wlip / 2, q2 = Qof(p.L, wl); p.lx = q2.Q[0]; p.ly = q2.Q[1]; });
-    let Lb = 0, area = 0; for (let i = 1; i < path.length; i++) { Lb += Math.hypot(path[i].cx - path[i - 1].cx, path[i].cy - path[i - 1].cy); area += 0.5 * ((wOut - path[i].w - rf) + (wOut - path[i - 1].w - rf)) * (path[i].L - path[i - 1].L); }
-    const nb = Math.max(2, Math.round(P.pv_nb)), sb = Lb / (nb - 1), bolts = Array.from({ length: nb }, (_, k) => { const L = (L0 - eEnd) + (Le - L0 + 2 * eEnd) * k / (nb - 1), q = Qof(L, wOut - P.pv_wlip / 2).Q; return [q[0], q[1]]; });
-    const Bh = P.B / 2 - P.rim_t - 5, ed = [E[0] / K.RE, E[1] / K.RE], pts = path.flatMap((p) => [[p.cx, p.cy], [p.ox, p.oy]]);
-    const inBase = Math.max(...pts.map(([x, y]) => Math.max(Math.abs(x), Math.abs(y)))), side = pts.map(([x, y]) => x * ed[1] - y * ed[0]), sgn = Math.sign(side.reduce((a, b) => a + b, 0)) || 1;
-    const diag = Math.min(...side.map((s) => s * sgn)), Rin = Math.min(...path.map((p) => Math.hypot(p.cx, p.cy)));
-    return { fam, c, m, alpha: P.pv_alpha, Lend, LX1, Lr1, hasPk, wPk, sync, syncOut, Lsync, cover: tot ? held / tot : 1, need: Lg.map((L, i) => ({ L, w_nec: need[i], w_emp: wPush(L), w_leva: wCam(L) })), path, bolts, Lb, sb, area, wOut, rf, inBase, Bh, diag, Rin, wCam, wPush, Qof, clrRet, wNeed, psi0, pins };
+    // L_B: desde aquí la cara del bloque alcanza el pasador B con menos que el margen (escalón de w_nec)
+    let LB = Le; { let lo = L0, hi = Le; if (clrRet(L0, 0) >= md) { for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (clrRet(mid, 0) >= md) lo = mid; else hi = mid; } LB = hi; } else LB = L0; }
+    const ng = Math.max(80, Math.ceil(Le - L0)), Lg = Array.from({ length: ng + 1 }, (_, i) => L0 + (Le - L0) * i / ng);
+    const extra = [0, 0.05, 0.15, 0.35, 0.7, 1.2].map((d) => LB + d).filter((L) => L < Le);
+    const LL = Lg.concat(extra).sort((a, b) => a - b), need = LL.map((L) => (L < LB ? 0 : wAt(L, md))), need0 = LL.map((L) => wAt(L, 0)), needM = LL.map((L) => wAt(L, m));
+    const itp = (arr, L) => { if (L <= LL[0]) return arr[0]; for (let i = 1; i < LL.length; i++) if (L <= LL[i]) { if (arr === need && LL[i - 1] < LB && L >= LB) return arr[i]; return arr[i - 1] + (arr[i] - arr[i - 1]) * (L - LL[i - 1]) / (LL[i] - LL[i - 1]); } return arr[arr.length - 1]; };
+    // retorno libre: la mesa queda en θ_fin; Q parte del canto en L_fin (w_emp + c) y conserva ψ salvo cuando el pasador lo empuja hacia afuera (holgura 0)
+    let iPk = 0; LL.forEach((L, i) => { if (L >= LB && need0[i] > need0[iPk]) iPk = i; }); const Lpk = LL[iPk];
+    const wFree = new Array(LL.length); { let ps = psi0 - (wPush(Le) + c) / Le; for (let i = LL.length - 1; i >= 0; i--) { const w = Math.max((psi0 - ps) * LL[i], need0[i]); wFree[i] = w; ps = psi0 - w / LL[i]; } }
+    // requisito de W en grilla uniforme de 0,25 mm (consulta O(1)); la celda del escalón L_B toma el máximo de sus extremos
+    const hq = 0.25, nq = Math.max(4, Math.ceil((Le - L0) / hq)), Lq = (i) => Math.min(Le, L0 + i * hq), reqA = new Float64Array(nq + 1), wpA = new Float64Array(nq + 1);
+    for (let i = 0; i <= nq; i++) { const L = Lq(i); wpA[i] = wPush(L); reqA[i] = Math.max(L >= LB ? itp(need, L) + tolF : -Infinity, L >= Ls ? wpA[i] + c : -Infinity, c - 1e-9); }
+    const gq = (A, L, step) => { if (L <= L0) return A[0]; if (L >= Le) return A[nq]; const x = (L - L0) / hq, i = Math.min(nq - 1, Math.floor(x)), f = x - i; return step && Lq(i) < LB && Lq(i + 1) >= LB ? Math.max(A[i], A[i + 1]) : A[i] + (A[i + 1] - A[i]) * f; };
+    const req = (L) => gq(reqA, L, true), wpq = (L) => gq(wpA, L, false);
+    // flanco recto por A1 = Q(L0 + tramo, c), ángulo φ_f a la derecha de la radial (hacia la placa): el mínimo que deja W ≥ w_nec, limitado a α_máx
+    const LA = L0 + P.pv_dwell, A1 = Qof(LA, c).Q, uA = Qof(LA, c).u;
+    const angTo = (p) => { const d = V.unit(V.sub(p, A1)); return Math.atan2(-V.crs(uA, d), V.dot(uA, d)); };
+    let phiReq = 0, LT = Math.max(LB, LA + 1);
+    for (let L = Math.max(LB, LA + 0.5); L <= Math.min(Le, LB + 90); L += 0.1) { const a = angTo(Qof(L, itp(need, L) + tolF).Q); if (a > phiReq) { phiReq = a; LT = L; } }
+    const phiF = Math.min(phiReq + 1e-4, P.pv_alpha * D2R), dF = V.rot(uA, -phiF), capped = phiReq > P.pv_alpha * D2R;
+    const flankAt = (L) => { const ls = V.lineCircle(A1, dF, E, L).filter((x) => x >= -1e-9); return ls.length ? V.add(A1, V.mul(dF, Math.min(...ls))) : null; };
+    const pushDir = (L) => V.unit(V.sub(Qof(L, wPush(L) + c).Q, Qof(L - 1, wPush(L - 1) + c).Q));
+    const N6 = Qof(Le, wPush(Le) + c).Q, t6 = pushDir(Le);
+    const dirAng = (L, w, g) => V.unit(V.sub(Qof(L + 1e-3 * Math.cos(g), w + 1e-3 * Math.sin(g)).Q, Qof(L, w).Q));
+    const evalS = (S) => {   // holgura mínima sobre el requisito, exceso medio, separación máxima del empuje y radios
+      let worst = Infinity, sum = 0, nS = 0, gap = 0, Lp = -Infinity, back = false, rc = Infinity, rv = Infinity;
+      for (const s of S) {
+        const arc = s.tipo === "arco", sw = arc ? V.sweep(s) : null, k = s.sentido === "antihorario" ? 1 : -1, n = Math.max(1, Math.ceil(V.len(s) / 5));
+        if (arc) { if (k < 0) rv = Math.min(rv, s.radio); else rc = Math.min(rc, s.radio); }
+        for (let i = 1; i <= n; i++) {
+          let x, y; if (arc) { const a = sw.a0 + k * sw.d * i / n; x = s.centro[0] + s.radio * Math.cos(a); y = s.centro[1] + s.radio * Math.sin(a); } else { x = s.p0[0] + (s.p1[0] - s.p0[0]) * i / n; y = s.p0[1] + (s.p1[1] - s.p0[1]) * i / n; }
+          const dx = x - E[0], dy = y - E[1], L = Math.hypot(dx, dy); let aa = psi0 - Math.atan2(dy, dx); if (aa > Math.PI) aa -= 2 * Math.PI; else if (aa < -Math.PI) aa += 2 * Math.PI; const w = aa * L;
+          if (L < Lp - 1e-6) back = true; if (L > Lp) Lp = L; const q = w - req(L); if (q < worst) worst = q; sum += q; nS++; if (L >= Ls) { const gg = w - wpq(L); if (gg > gap) gap = gg; }
+        }
+      }
+      const ok = !back && rv >= rf + rmin;
+      return { worst: back ? -1e9 : worst, mean: sum / nS, gap, rc, rv, ok, score: -(sum / nS) - 0.25 * gap + 0.02 * Math.min(rv, 400) + 0.02 * Math.min(rc, 200) };
+    };
+    // cargas que eligen el tope del flanco: empuje a calado con Q apoyado en el canto (máx h·F_calado·η) y atasco del retorno con el giro en E trabado
+    // en el primer contacto del retorno libre (F_ret/sen φ₁); se toma el tope del flanco que hace mínima la mayor de las dos
+    const eps = Math.asin(r * Math.sin(Math.atan(P.mu_s)) / Lqp), muc = fam.mu;
+    const FeSt = Math.PI / 4 * P.D_bore ** 2 * P.p_relief / 10 * P.eta_c, FretN = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10;
+    const eqQ = (Pp, q, tp) => { const uc = V.unit(V.sub(q, E)), b = V.unit(V.sub(Pp, q)), bp = V.rot(b, eps), nin = V.left(tp), a2 = V.mul(V.sub(nin, V.mul(tp, muc)), -1), det = V.crs(bp, a2); return { uc, b, bp, nin, fn: V.crs(uc, a2) / det, h: V.crs(bp, uc) / det, arm: V.crs(q, bp) }; };
+    const rootOn = (pl, Pp) => { const Lc = V.nrm(V.sub(Pp, E)) - Lqp; let bs = null; for (let i = 1; i < pl.length; i++) { const f0 = V.nrm(V.sub(Pp, pl[i - 1])) - Lqp, f1 = V.nrm(V.sub(Pp, pl[i])) - Lqp; if (f0 * f1 > 0 || f0 === f1) continue; const q = V.add(pl[i - 1], V.mul(V.sub(pl[i], pl[i - 1]), f0 / (f0 - f1))), L = V.nrm(V.sub(q, E)); if (L >= Lc - 1 && (!bs || L < bs.L)) bs = { q, L, tp: V.unit(V.sub(pl[i], pl[i - 1])), Lc }; } return bs; };
+    const loadsOf = (S, N2) => {
+      const pl = V.chain([{ tipo: "linea", p0: A1, p1: N2 }].concat(S, [{ tipo: "linea", p0: N6, p1: V.add(N6, V.mul(t6, 20)) }]), 0.05, 1);
+      let hMax = 0; for (let k = 0; k < K.pts.length; k += 3) { const q = K.pts[k], g = rootOn(pl, q.P); if (!g) return { J: Infinity }; const e = eqQ(q.P, g.q, g.tp); if (!(e.h > 0)) return { J: Infinity }; hMax = Math.max(hMax, e.h); }
+      const lw = pl.map(toLW); let phi1 = 90;
+      for (let i = iPk; i >= 0; i--) { const L = LL[i]; if (L < LA) break; let j = 1; while (j < lw.length - 1 && lw[j][0] < L) j++; const W = lw[j - 1][1] + (lw[j][1] - lw[j - 1][1]) * (L - lw[j - 1][0]) / ((lw[j][0] - lw[j - 1][0]) || 1); if (wFree[i] >= W) { const t = V.unit(V.sub(pl[j], pl[j - 1])), u = V.unit(V.sub(pl[j], E)); phi1 = Math.acos(Math.min(1, Math.abs(V.dot(t, u)))) / D2R; break; } }
+      return { J: Math.max(hMax * FeSt, FretN / Math.sin(Math.max(1, phi1) * D2R)), hMax, phi1 };
+    };
+    const searchCrest = (L2, N2, coarse, seed) => {
+      let best = null; const build = (L3, d3, g3) => { const w3 = req(L3) + d3, N3 = Qof(L3, w3).Q, t3 = dirAng(L3, w3, g3); return V.biarc(N2, dF, N3, t3).concat(V.biarc(N3, t3, N6, t6)); };
+      const tryC = (L3, d3, g3) => { if (L3 <= L2 + 5 || L3 >= Le - 5 || d3 < 0) return; const S = build(L3, d3, g3), e = evalS(S), feas = e.ok && e.worst >= -1e-6; const key = feas ? 1e6 + e.score : e.worst - (e.ok ? 0 : 1e3); if (!best || key > best.key) best = { key, L3, d3, g3, S, e, feas }; };
+      if (!seed) for (let L3 = L2 + 15; L3 <= Le - 15; L3 += coarse ? 10 : 5) for (const d3 of (coarse ? [0, 1.5, 4] : [0, 1, 2, 4, 6])) for (let g = -25; g <= 15; g += coarse ? 5 : 2.5) tryC(L3, d3, g * D2R);
+      else { const b0 = seed; for (let L3 = b0.L3 - 6; L3 <= b0.L3 + 6; L3 += 1.5) for (let d3 = b0.d3 - 1; d3 <= b0.d3 + 1; d3 += 0.5) for (let g = b0.g3 / D2R - 4; g <= b0.g3 / D2R + 4; g += 1) tryC(L3, d3, g * D2R); }
+      return best;
+    };
+    let pick = null;
+    for (let L2c = LT; L2c <= Math.min(Le - 40, LT + 14); L2c += 2) {
+      const N2c = flankAt(L2c); if (!N2c) break;
+      const b = searchCrest(L2c, N2c, true); if (!b) continue;
+      const ld = b.feas ? loadsOf(b.S, N2c) : { J: Infinity };
+      const key = b.feas ? -ld.J + 1e-3 * b.e.score : -1e12 + b.e.worst;
+      if (!pick || key > pick.key) pick = { key, L2: L2c, N2: N2c, b, ld };
+    }
+    const L2 = pick.L2, N2 = pick.N2, best = searchCrest(L2, N2, false, pick.b) || pick.b;
+    const loads0 = loadsOf(best.S, N2);
+    const roles = ["hombro", "cresta", "bajada", "empalme de empuje"];
+    // marco de la placa: x' a lo largo de la cuerda A1–N6, y' hacia afuera (lado de la placa); lado interior por fuera de la mesa
+    const xh = V.unit(V.sub(N6, A1)), yh = V.right(xh), X = (p) => V.dot(V.sub(p, A1), xh), Y = (p) => V.dot(V.sub(p, A1), yh);
+    const lamB = rf + 20, N7 = V.add(N6, V.mul(t6, lamB));
+    const core = [{ tipo: "linea", p0: A1, p1: N2 }].concat(best.S, [{ tipo: "linea", p0: N6, p1: N7 }]);
+    const cTrav = V.chain(core.slice(0, -1), 0.1, 2), Rin = P.D_top / 2 + P.pv_cQ, yIn = Math.max(Math.min(...cTrav.map(Y)) - rf - 5, Y([0, 0]) + Rin);
+    const Fe0 = V.add(A1, V.mul(V.right(dF), rf)), lamA = Math.max(5, (Y(Fe0) - yIn) / V.dot(dF, yh));
+    const A0 = V.sub(A1, V.mul(dF, lamA));
+    const tramos = [{ tipo: "linea", p0: A0, p1: N2, rol: "flanco de reenganche (con entrada tangente)" }].concat(best.S.map((s, i) => Object.assign(s, { rol: roles[i] })), [{ tipo: "linea", p0: N6, p1: N7, rol: "salida tangente" }]);
+    const curv = (s) => (s.tipo !== "arco" ? null : s.sentido === "horario" ? "convexa" : "cóncava");   // vista desde el seguidor
+    const canto = tramos.map((s) => Object.assign(V.offset(s, rf), { rol: s.rol, curvatura: curv(s) }));
+    // cierre del bolsillo hacia la mesa: arco de cola (cóncavo, R = r_f + 15) que gira hasta la normal al lado interior, y recta hasta el lado interior
+    const E7 = canto[canto.length - 1].p1, rt = rf + 15, Ct = V.add(E7, V.mul(V.left(t6), rt)), Pt = V.add(Ct, V.mul(xh, rt));
+    if (Y(Pt) > yIn + 1) {
+      canto.push({ tipo: "arco", p0: E7, p1: Pt, centro: Ct, radio: rt, sentido: "antihorario", rol: "cierre del bolsillo (sin contacto)", curvatura: "cóncava" });
+      canto.push({ tipo: "linea", p0: Pt, p1: V.sub(Pt, V.mul(yh, Y(Pt) - yIn)), rol: "cierre del bolsillo (sin contacto)", curvatura: null });
+    } else {   // el lado interior corta el arco de cola antes de la normal: el arco termina sobre el lado interior
+      const arc0 = { tipo: "arco", p0: E7, p1: Pt, centro: Ct, radio: rt, sentido: "antihorario" }; let lo = 0, hi = 1; for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (Y(V.at(arc0, mid)) > yIn) lo = mid; else hi = mid; }
+      canto.push({ tipo: "arco", p0: E7, p1: V.at(arc0, hi), centro: Ct, radio: rt, sentido: "antihorario", rol: "cierre del bolsillo (sin contacto)", curvatura: "cóncava" });
+    }
+    const Bq = canto[canto.length - 1].p1;
+    const Aq = canto[0].p0;   // pie del flanco sobre el lado interior (diente del gancho)
+    // rectángulo: ligamento ≥ pv_wlip detrás del canto; extremos con lugar para los pernos fuera del recorte
+    const cPts = V.chain(canto, 0.1), yOut = Math.max(...cPts.map(Y)) + P.pv_wlip, db = P.pv_db, eb = Math.max(J34M(db), 1.5 * db);
+    let xMin = Math.min(...cPts.map(X)) - 2 * eb, xMax = Math.max(...cPts.map(X)) + 2 * eb;
+    const P2 = (x, y) => V.add(A1, V.add(V.mul(xh, x), V.mul(yh, y)));
+    const contourOf = (x0, x1) => canto.concat([{ tipo: "linea", p0: Bq, p1: P2(x1, yIn) }, { tipo: "linea", p0: P2(x1, yIn), p1: P2(x1, yOut) }, { tipo: "linea", p0: P2(x1, yOut), p1: P2(x0, yOut) }, { tipo: "linea", p0: P2(x0, yOut), p1: P2(x0, yIn) }, { tipo: "linea", p0: P2(x0, yIn), p1: Aq }]).map((s) => Object.assign({ rol: "contorno de la placa" }, s));
+    const nb = Math.max(2, Math.round(P.pv_nb)), boltsOf = (x0, x1) => {
+      const inner = nb >= 4 ? [P2(x0 + eb, yIn + eb), P2(x1 - eb, yIn + eb)] : [], no = nb - inner.length;
+      const outer = Array.from({ length: no }, (_, k) => P2(x0 + eb + (x1 - x0 - 2 * eb) * (no > 1 ? k / (no - 1) : 0.5), yOut - eb));
+      return { outer, inner, all: outer.concat(inner) };
+    };
+    let contorno, bl;
+    for (let it = 0; it < 40; it++) {   // alarga los extremos hasta que los pernos interiores quedan a ≥ e_mín del recorte
+      contorno = contourOf(xMin, xMax); bl = boltsOf(xMin, xMax);
+      const dA = bl.inner.length ? Math.min(...contorno.map((s) => V.dist(s, bl.inner[0]))) : Infinity, dB = bl.inner.length ? Math.min(...contorno.map((s) => V.dist(s, bl.inner[1]))) : Infinity;
+      if (dA >= eb - 1e-9 && dB >= eb - 1e-9) break;
+      if (dA < eb) xMin -= 5; if (dB < eb) xMax += 5;
+    }
+    const yMid = (yIn + yOut) / 2, dowels = [P2(xMin + eb, yMid), P2(xMax - eb, yMid)];
+    const polC = V.chain(contorno, 0.1), polCanto = V.chain(canto, 0.1), polCentro = V.chain(tramos, 0.1);
+    const travel = V.chain(core.slice(0, -1), 0.1).filter((p) => toLW(p)[0] >= L0 - 1e-9);
+    const g1t = V.g1(tramos), g1c = V.g1(canto);
+    // W(L): centro del seguidor sobre la trayectoria (intersección exacta de la circunferencia |Q − E| = L con el tramo que la contiene)
+    const segL = tramos.map((s) => [toLW(s.p0)[0], toLW(s.p1)[0]]);
+    const onPath = (L) => {
+      for (let i = 0; i < tramos.length; i++) { const s = tramos[i], [a, b] = segL[i]; if (L < Math.min(a, b) - 1e-9 || L > Math.max(a, b) + 1e-9) continue;
+        let cand = s.tipo === "linea" ? V.lineCircle(s.p0, V.unit(V.sub(s.p1, s.p0)), E, L).filter((x) => x >= -1e-6 && x <= V.len(s) + 1e-6).map((x) => V.add(s.p0, V.mul(V.unit(V.sub(s.p1, s.p0)), x))) : V.circles(s.centro, s.radio, E, L).filter((p) => V.dist(s, p) < 1e-6);
+        if (cand.length) { const p = cand[0]; return { p, s, i, t: V.tan(s, p) }; } }
+      const s = L < segL[0][0] ? tramos[0] : tramos[tramos.length - 1], p = L < segL[0][0] ? s.p0 : s.p1; return { p, s, i: L < segL[0][0] ? 0 : tramos.length - 1, t: V.tan(s, p) };
+    };
+    const wCam = (L) => toLW(onPath(L).p)[1];
+    const phiAt = (L) => { const o = onPath(L), u = V.unit(V.sub(o.p, E)); return Math.acos(Math.min(1, Math.abs(V.dot(o.t, u)))) / D2R; };
+    const radAt = (o) => (o.s.tipo === "arco" ? (o.s.sentido === "horario" ? o.s.radio - rf : -(o.s.radio + rf)) : Infinity);   // radio del canto en el contacto (+ convexo, − cóncavo)
+    // empuje guiado: Q en la trayectoria con |P − Q| = L_qp (el bloque libre en Q toca el pasador con la cara); fuerzas por unidad de fuerza F en Q
+    const dense = V.chain(core, 0.02, 1);
+    function guidedAt(th) {
+      const Pp = [R * Math.cos(th), R * Math.sin(th)], Lc = V.nrm(V.sub(Pp, E)) - Lqp; let bst = null;
+      for (let i = 1; i < dense.length; i++) { const f0 = V.nrm(V.sub(Pp, dense[i - 1])) - Lqp, f1 = V.nrm(V.sub(Pp, dense[i])) - Lqp; if (f0 * f1 > 0 || f0 === f1) continue;
+        const q = V.add(dense[i - 1], V.mul(V.sub(dense[i], dense[i - 1]), f0 / (f0 - f1))), Lq = V.nrm(V.sub(q, E)); if (Lq >= Lc - 1 && (!bst || Lq < bst.L)) bst = { q, L: Lq }; }
+      if (!bst) return { ok: false, th };
+      const o = onPath(bst.L), q = o.p, tp = o.t, { uc, b, bp, nin, fn, h, arm } = eqQ(Pp, q, tp);
+      const Bp = [R * Math.cos(th - K.pitch), R * Math.sin(th - K.pitch)], Cp = [R * Math.cos(th + K.pitch), R * Math.sin(th + K.pitch)];
+      const clrB = Math.min(unaDist(P, Bp[0], Bp[1], q, b, Lqp), unaDist(P, Cp[0], Cp[1], q, b, Lqp)) - r;
+      const body = segDistO(E[0] + P.e_body * uc[0], E[1] + P.e_body * uc[1], E[0] + (P.L0 - P.c_rod) * uc[0], E[1] + (P.L0 - P.c_rod) * uc[1]) - P.D_body / 2 - P.D_top / 2;
+      const w = toLW(q)[1];
+      return { ok: true, th, P: Pp, Q: q, L: bst.L, Lc, w, gap: w - wPush(Lc), uc, b, bp, tp, nin, fn, h, arm, ft: V.crs(Pp, bp) / R, fr: V.dot(Pp, bp) / R, phi: Math.acos(Math.min(1, Math.abs(V.dot(tp, uc)))) / D2R,
+        contacto: V.sub(q, V.mul(nin, rf)), Rc: radAt(o), tramo: o.i, clrB, body, psi: Math.atan2(uc[1], uc[0]) };
+    }
+    const push = K.pts.map((q) => guidedAt(q.th)), pOk = push.filter((g) => g.ok);
+    const sReqG = pOk.length ? Math.max(K.sReq, ...pOk.map((g) => g.L - L0)) : K.sReq;
+    // retorno (mesa detenida en θ_fin): Q sale del canto en L_fin, conserva ψ salvo que el pasador lo empuje (holgura 0) y el canto lo devuelve a la toma
+    const ret = []; { let ps = psi0 - wCam(Le) / Le; const nR = Math.max(200, Math.ceil(2 * (Le - L0)));
+      for (let k = 0; k <= nR; k++) { const L = Le - (Le - L0) * k / nR, Wv = wCam(L), w0 = L >= LB ? wAt(L, 0) : 0; let w = Math.max((psi0 - ps) * L, w0); const guia = w >= Wv - 1e-9; w = Math.min(w, Wv); ps = psi0 - w / L;
+        ret.push({ L, w, W: Wv, guia, hol: clrRet(L, w), holW: clrRet(L, Wv), phi: phiAt(L) }); } }
+    let iF = ret.length - 1; while (iF > 0 && ret[iF - 1].guia) iF--;   // primer contacto de la conducción final (de L_fin hacia L0)
+    const first = ret[iF], drive = ret.slice(iF);
+    let sync = Infinity, Lsync = L0; drive.forEach((q) => { if (q.holW < sync) { sync = q.holW; Lsync = q.L; } });
+    { const h = (Le - L0) / Math.max(200, Math.ceil(2 * (Le - L0))); for (let k = -50; k <= 50; k++) { const L = Lsync + h * k / 50; if (L < L0 || L > first.L) continue; const s = clrRet(L, wCam(L)); if (s < sync) { sync = s; Lsync = L; } } }
+    const syncOut = Math.min(...ret.slice(0, iF).map((q) => q.hol).concat([Infinity]));
+    const kE = P.pv_muE * P.pv_dE / (2 * L0), lockR = (ph) => { const a = ph * D2R; return { dem: kE * (Math.sin(a) + fam.mu * Math.cos(a)), cap: Math.cos(a) - fam.mu * Math.sin(a) }; };
+    const lockW = drive.reduce((acc, q) => { const l = lockR(q.phi), x = l.cap > 0 ? l.dem / l.cap : Infinity; return x > acc.x ? { x, dem: l.dem, cap: l.cap, phi: q.phi, L: q.L } : acc; }, { x: -Infinity });
+    // placa: holguras y posición
+    const Bh = P.B / 2 - P.rim_t - 5, ed = [E[0] / K.RE, E[1] / K.RE];
+    const inBase = Math.max(...polC.map(([x, y]) => Math.max(Math.abs(x), Math.abs(y)))), side = polC.map(([x, y]) => x * ed[1] - y * ed[0]), sgn = Math.sign(side.reduce((a, b) => a + b, 0)) || 1;
+    const diag = Math.min(...side.map((s) => s * sgn)), RinC = Math.min(...polC.map((p) => V.nrm(p))), boxClr = Math.min(...polC.map(([x, y]) => Math.max(Math.abs(x - E[0]), Math.abs(y - E[1])))) - P.pv_box / 2;
+    const folClr = Math.min(...travel.map((p) => Math.min(...contorno.map((s) => V.dist(s, p))))) - rf;
+    const Lb = canto.slice(0, tramos.length).reduce((a, s) => a + V.len(s), 0), area = Math.abs(V.area(polC));
+    const bo = bl.outer.map(X).sort((a, b) => a - b); let sb = 0; for (let i = 1; i < bo.length; i++) sb = Math.max(sb, bo[i] - bo[i - 1]); sb = Math.max(sb, yOut - yIn - 2 * eb);
+    const arcs = tramos.filter((s) => s.tipo === "arco"), arcsE = canto.slice(0, tramos.length).filter((s) => s.tipo === "arco");
+    const rCentroConv = Math.min(Infinity, ...arcs.filter((s) => s.sentido === "horario").map((s) => s.radio)), rCantoConv = Math.min(Infinity, ...arcsE.filter((s) => s.curvatura === "convexa").map((s) => s.radio)), rCantoConc = Math.min(Infinity, ...arcsE.filter((s) => s.curvatura === "cóncava").map((s) => s.radio));
+    const lig = (pt, nIn) => {   // ligamento: distancia desde el punto del canto, hacia la placa (−n_in), hasta el borde opuesto del contorno
+      const dir = V.mul(nIn, -1); let best = Infinity; polC.forEach((a, i) => { const b = polC[(i + 1) % polC.length], e = V.sub(b, a), den = V.crs(dir, e); if (Math.abs(den) < 1e-12) return; const w = V.sub(a, pt), t = V.crs(w, e) / den, u = V.crs(w, dir) / den; if (t > 1 && u >= 0 && u <= 1) best = Math.min(best, t); }); return best;
+    };
+    const ligPush = pOk.map((g) => lig(g.contacto, g.nin)), firstPt = onPath(first.L), ligJam = lig(V.sub(firstPt.p, V.mul(V.left(firstPt.t), rf)), V.left(firstPt.t));
+    const need_ = LL.map((L, i) => ({ L, w_nec: need[i], w_nec0: need0[i], w_nec_m: needM[i], w_emp: wPush(L), w_leva: wCam(L), w_libre: wFree[i] }));
+    const wPk = Math.max(...need_.map((q) => q.w_leva)), cover = pOk.length ? pOk.filter((g) => g.gap <= c + 0.5).length / pOk.length : 1;
+    const guia = { tramos, canto, contorno, polilinea_centro: polCentro, polilinea_canto: polCanto, polilinea_contorno: polC, polilinea_recorrido: travel, tol: 0.1,
+      flanco: { phi_deg: phiF / D2R, phi_req_deg: phiReq / D2R, limitado: capped, L_pie: LA, L_tope: L2, L_tangente: LT, A1, dir: dF }, nodos: { N2, N3: best.S[1].p1, N6, L3: best.L3, d3: best.d3, g3_deg: best.g3 / D2R, factible: best.feas, holgura_min_req: best.e.worst }, eleccion: Object.assign({ L2, FeSt, FretN }, loads0),
+      rCentro: { convexo: rCentroConv }, rCanto: { convexo: rCantoConv, concavo: rCantoConc }, g1Max: Math.max(g1t.ang, g1c.ang), joinMax: Math.max(g1t.gap, g1c.gap), dKappa: g1c.dk,
+      dTol, dT, md, LB, Lpk, ret, primer_contacto: { L: first.L, w: first.w, phi: first.phi }, syncWorst: sync - dTol, lockR: lockW, phiRetMax: Math.max(...drive.map((q) => q.phi)),
+      marco: { xh, yh, origen: A1, x: [xMin, xMax], y: [yIn, yOut], largo: xMax - xMin, ancho: yOut - yIn, Rin }, eb, folClr, boxClr, zCuerpo: hAxis(P) + P.t_base - P.D_body / 2, lig: { push: ligPush, jam: ligJam }, Aq, Bq };
+    return { fam, c, m, md, alpha: phiF / D2R, Lend: LA, LX1: best.L3, Lr1: L2, hasPk: true, wPk, sync, syncOut, Lsync, cover, need: need_,
+      path: travel.map((p) => { const [L, w] = toLW(p); return { L, w, x: p[0], y: p[1] }; }), bolts: bl.all, boltsOuter: bl.outer, dowels, Lb, sb, area, wOut: wPk + rf + P.pv_wlip, rf, inBase, Bh, diag, Rin: RinC, boxClr,
+      wCam, wPush, Qof, toLW, clrRet, wNeed: (L) => (L < LB ? 0 : wAt(L, md)), psi0, pins, guia, push, guidedAt, onPath, sReqG, kE };
   }
 
   /* ---------------- Accionamiento ---------------- */
@@ -1625,22 +1842,28 @@ const TT = (() => {
     const q_avg = ND * 1e3 / Ac, q_max = q_avg * (1 + kq), q_min = q_avg * (1 - kq);
     const H_ecc = (mu) => mu * N * P.e * (4 / 3) * (Ro ** 3 - Ri ** 3) / (Ro ** 4 - Ri ** 4);   // kN
     const T_piv = (mu) => P.mu_bush * H_ecc(mu) * (P.D_piv / 2) / 1e3;                        // kN·m
-    const mode = driveMode(P), fam = camFam(P);
+    const mode = driveMode(P), fam = camFam(P), kfCol = 1 + fam.mu * P.mu_s;
     const K = mode === 2 ? kinPiv(P) : kinematics(P);
     const A = Math.PI / 4 * P.D_bore ** 2, Aann = A - Math.PI / 4 * P.d_rod ** 2;
     const Fstall = A * P.p_relief / 10 / 1e3, Falarm = A * P.p_alarm / 10 / 1e3, Fret = Aann * P.p_ret / 10 / 1e3;
     const torque = (mu, r) => mu * N * r / 1e3 + T_piv(mu);                                   // kN·m
     let dpts, atPt, Fcyl, Kg, stallMax;
     if (mode === 2) {
-      // Pivotado: por unidad de par T (kN·m) en el pasador: F_n = (T/n)/a_ef (a_ef = a − μ_s·|v_s|, potencia virtual con el roce del contacto);
-      // la leva toma la fuerza transversal T_leva = μ_s·F_n en Q y su roce μ_leva·T_leva se suma al cilindro: F_cil·η = F_n·(1 + μ_leva·μ_s).
-      const kf = 1 + fam.mu * P.mu_s;
-      dpts = K.ok ? K.pts : [];
-      atPt = (d, T) => { const Fp = T * 1e3 / P.n_cyl / d.aEff; return { Fp, H: P.mu_s * Fp, Fcam: P.mu_s * Fp, Rf: 0, Rr: 0, F: Fp * kf / P.eta_c }; };
+      // Pivotado con Q apoyado en el canto de la placa-guía (la rodilla E–Q–P es inestable en compresión; docs/qa/guia_curva_KIET/cambios.md):
+      // para cada θ, Q está en la trayectoria del canto con |P − Q| = L_qp; equilibrio del pasador Q: F·u_c + H·(n − μ_leva·t) = F_n·b' (b' = Q→P girada
+      // el ángulo del círculo de rozamiento r·sen(atan μ_s)/L_qp), de donde F_n = f_n·F y H = h·F; el par es T/n = F_n·(Q × b'). Si no hay canto (sin
+      // placa) se usa la cinemática colineal con potencia virtual: F_n = (T/n)/a_ef, F_cil·η = F_n·(1 + μ_leva·μ_s).
+      const kf = 1 + fam.mu * P.mu_s, CPg = K.ok ? camPiv(P, K) : null;
+      dpts = K.ok ? K.pts.map((q, i) => Object.assign({}, q, { g: CPg && CPg.push[i] && CPg.push[i].ok ? CPg.push[i] : null })) : [];
+      atPt = (d, T) => {
+        if (d.g) { const Fp = T * 1e3 / P.n_cyl / d.g.arm, Fe = Fp / d.g.fn; return { Fp, H: P.mu_s * Fp, Fcam: d.g.h * Fe, Rf: 0, Rr: 0, F: Fe / P.eta_c }; }
+        const Fp = T * 1e3 / P.n_cyl / d.aEff; return { Fp, H: P.mu_s * Fp, Fcam: P.mu_s * Fp, Rf: 0, Rr: 0, F: Fp * kf / P.eta_c };
+      };
       Fcyl = (T) => Math.max(...dpts.map((d) => atPt(d, T).F));
       Kg = () => Fcyl(1) * P.n_cyl * K.armMin / 1e3;
-      const Fp = Fstall * P.eta_c / kf;
-      stallMax = { Fp, H: P.mu_s * Fp, Fcam: P.mu_s * Fp, R: 0, Rsum: 0 };
+      const Fe = Fstall * P.eta_c, gs = dpts.filter((d) => d.g).map((d) => d.g);
+      const Fp = gs.length ? Fe * Math.max(...gs.map((g) => g.fn)) : Fe / kf;
+      stallMax = { Fp, H: P.mu_s * Fp, Fcam: gs.length ? Fe * Math.max(...gs.map((g) => g.h)) : P.mu_s * Fp, R: 0, Rsum: 0 };
     } else {
     // Equilibrio del patín en planta (cara plana de la uña): en la posición θ el pasador recibe F_pas (normal a la cara, en y)
     // y la fricción H = s·μ_s·F_pas en x. El pasador gira con la mesa: el punto de contacto (a, y_p − r) se mueve en x con
@@ -1673,8 +1896,9 @@ const TT = (() => {
     const cd = cases.find((c) => c.id === "dis");
     const Tmax = K.ok ? Fstall / Fcyl(1) : 0;           // par vencible a calado (F lineal en T)
     const muMax = (r) => K.ok ? Tmax / (N * r / 1e3 + T_piv(1)) : 0;   // T(μ) = μ·(N·r + T_piv(1)), T_piv lineal en μ
-    const curve = !K.ok ? [] : mode === 2 ? K.pts.map((q) => ({ s: q.L - P.L0, arm: q.a, armEff: q.aEff, F: cd ? atPt(q, cd.T).F : 0 })) : K.pts.map((q) => ({ s: q.s, arm: q.arm, F: cd ? Fcyl(cd.T, q.arm) : 0 }));
-    const stroke = !(K.ok && cd) ? [] : mode === 2 ? dpts.map((d) => Object.assign({ th: d.th, s: d.L - P.L0, L: d.L, arm: d.a, armEff: d.aEff, psi: d.psi, ft: d.ft, fr: d.fr }, atPt(d, cd.T)))
+    const gArm = (d) => (d.g ? { L: d.g.L, arm: d.g.arm, armEff: d.g.arm * d.g.fn, psi: d.g.psi, ft: d.g.ft, fr: d.g.fr } : { L: d.L, arm: d.a, armEff: d.aEff, psi: d.psi, ft: d.ft, fr: d.fr });
+    const curve = !K.ok ? [] : mode === 2 ? dpts.map((q) => { const a = gArm(q); return { s: a.L - P.L0, arm: a.arm, armEff: a.armEff, F: cd ? atPt(q, cd.T).F : 0 }; }) : K.pts.map((q) => ({ s: q.s, arm: q.arm, F: cd ? Fcyl(cd.T, q.arm) : 0 }));
+    const stroke = !(K.ok && cd) ? [] : mode === 2 ? dpts.map((d) => { const a = gArm(d), f = atPt(d, cd.T); return Object.assign({ th: d.th, s: a.L - P.L0, L: a.L, arm: a.arm, armEff: a.armEff, psi: a.psi, ft: a.ft, fr: a.fr, H_guia: f.Fcam, phi_guia: d.g ? d.g.phi : NaN, w: d.g ? d.g.w : NaN, gap: d.g ? d.g.gap : NaN, Q: d.g ? d.g.Q : d.Q, a_colineal: d.a, a_ef_colineal: d.aEff, F_colineal: (cd.T * 1e3 / P.n_cyl / d.aEff) * kfCol / P.eta_c }, f); })
       : dpts.map((d) => Object.assign({ th: d.th, s: P.s_free + P.R_pin * (Math.sin(d.th) + Math.sin(K.pitch / 2)) }, atPt(d, cd.T)));
     const Vext = P.n_cyl * A * P.stroke, Vret = P.n_cyl * Aann * P.stroke;
     const Qr = P.Q_ret > 0 ? P.Q_ret : P.Q_pump;
@@ -1695,9 +1919,19 @@ const TT = (() => {
     else if (K.ok) {
       // pivotado: soporte del ojal, bloque-uña, placa-leva y zapata del seguidor (largo automático con p_adm y PV de la familia a FU 0,90)
       res.sup = pivSupGeo(P); res.blk = pivBlkGeo(P, K); res.camP = Object.assign({}, camPiv(P, K));   // copia: la leva memorizada no lleva las fuerzas, que dependen de la carga
-      const CP = res.camP, Fn = (T) => Math.max(...dpts.map((d) => atPt(d, T).Fp)), Tdis = cd ? P.mu_s * Fn(cd.T) * 1e3 : 0;   // N
-      const NR = Fret * 1e3 / Math.sin(P.pv_alpha * D2R), Tst = stallMax.Fcam * 1e3, Ncam = Math.max(NR, Tst);
-      const vQ = (P.Q_pump * 1e6 / 60 / (P.n_cyl * A)) / 1000 * Math.max(...K.pts.map((q, i) => (i ? Math.hypot(q.Q[0] - K.pts[i - 1].Q[0], q.Q[1] - K.pts[i - 1].Q[1]) / Math.max(1e-9, Math.abs(q.L - K.pts[i - 1].L)) : 0)));   // m/s del seguidor
+      // cargas de la placa-guía (N): empuje con Q apoyado en el canto (H = h·F en Q, a calado y en el diseño) y atasco del retorno con el giro en E trabado
+      // en el primer contacto de la conducción final (N = F_ret/sen φ₁, sin el roce que ayudaría: cota)
+      const CP = res.camP, g = CP.guia, Tdis = cd ? Math.max(...dpts.map((d) => atPt(d, cd.T).Fcam)) * 1e3 : 0;
+      const phi1 = g.primer_contacto.phi, NR = Fret * 1e3 / Math.sin(Math.max(1, phi1) * D2R), Tst = stallMax.Fcam * 1e3, Ncam = Math.max(NR, Tst);
+      const gp = CP.push.filter((q) => q.ok), Qs = gp.map((q) => q.Q);
+      const vQ = (P.Q_pump * 1e6 / 60 / (P.n_cyl * A)) / 1000 * Math.max(0, ...gp.map((q, i) => (i ? Math.hypot(q.Q[0] - gp[i - 1].Q[0], q.Q[1] - gp[i - 1].Q[1]) / Math.max(1e-9, Math.abs(q.L - gp[i - 1].L)) : 0)));   // m/s del seguidor
+      // Hertz con el radio real del canto en cada contacto (+ convexo, − cóncavo): 1/R_ef = 1/r_f + 1/R_c; longitud de contacto = t_placa − 2 (el pasador termina 2 mm sobre la base)
+      const Es = P.E / (2 * (1 - P.nu ** 2)), lc = P.pv_tcam - 2, rfQ = P.pv_dq / 2, hz = (N, Rc) => { const Reff = 1 / (1 / rfQ + (isFinite(Rc) ? 1 / Rc : 0)), q = N / lc; return { N, Rc, Reff, q, p0: Math.sqrt(q * Es / (Math.PI * Reff)), b: Math.sqrt(4 * q * Reff / (Math.PI * Es)) }; };
+      let hzP = null; gp.forEach((q) => { const z = hz(q.h * Fstall * P.eta_c * 1e3, q.Rc); z.th = q.th; z.contacto = q.contacto; if (!hzP || z.p0 > hzP.p0) hzP = z; });
+      const fo = CP.onPath(g.primer_contacto.L), Rc1 = fo.s.tipo === "arco" ? (fo.s.sentido === "horario" ? fo.s.radio - rfQ : -(fo.s.radio + rfQ)) : Infinity, hzJ = hz(NR, Rc1);
+      const iH = gp.reduce((k, q, i) => (q.h > gp[k].h ? i : k), 0);
+      CP.hz = { push: hzP, jam: hzJ }; CP.Hpt = gp.length ? { th: gp[iH].th, contacto: gp[iH].contacto, nin: gp[iH].nin, lig: g.lig.push[iH], h: gp[iH].h } : null;
+      CP.fe = Fstall * P.eta_c; CP.ratioMax = Math.max(...dpts.map((d) => (cd ? atPt(d, cd.T).F / ((cd.T * 1e3 / P.n_cyl / d.aEff) * kfCol / P.eta_c) : 1)));
       let lpad = P.pv_dq;
       if (fam.tipo === "pad") {   // p_adm y PV del material con la carga de diseño (como la interfaz de giro); a calado, aplastamiento BTH-1 (filas)
         const lp = Tdis / (0.9 * fam.pAdm * P.pv_tcam), lv = fam.PV ? Tdis * vQ / (0.9 * fam.PV * P.pv_tcam) : 0;
@@ -1709,6 +1943,7 @@ const TT = (() => {
     }
     // barras de los topes soldados: dependen del par de calado, así que se dimensionan aquí y suman a m.total (no están en ninguna otra pieza).
     // Las barras de la mesa giran y cargan la interfaz, pero no se realimentan a N (< 0,01 %; evita la dependencia circular con el par de calado).
+    res.TmaxTopes = mode === 2 ? Math.max(Tmax, tmaxOf(P)) : Tmax;          // topes: en el pivotado, la cota colineal de tmaxOf (mayor que la del empuje guiado), la misma de ifaceDesign (muescas y tapones)
     ifc.topes = stopsOf(P, res);
     ifc.tornillos = tornillosAF2(P, res);                                // AF2: tornillos avellanados disco de la mesa → mesa (null si no aplica)
     m.stopBars = ifc.topes.reduce((s, t) => s + t.m_barras, 0);
@@ -2168,9 +2403,11 @@ const TT = (() => {
     const R = simR(P), c = caseOf(R, caseId), T = c ? c.T : 0;
     if (driveMode(P) === 2) {
       const K = R.K; if (!K.ok) return null;
+      const g = R.camP && R.camP.guidedAt ? R.camP.guidedAt(th) : null;   // Q apoyado en el canto de la placa-guía (mismo modelo que compute)
+      if (g && g.ok) { const Fp = T * 1e3 / P.n_cyl / g.arm, Fe = Fp / g.fn; return { F: Fe / P.eta_c, Fp, H: P.mu_s * Fp, Fcam: g.h * Fe, Rf: 0, Rr: 0, arm: g.arm, armEff: g.arm * g.fn, ft: g.ft, fr: g.fr, caso: c.id }; }
       const q = K.at(th); q.aEff = q.a - P.mu_s * Math.abs(q.vs);
       const Fp = T * 1e3 / P.n_cyl / q.aEff;
-      return { F: Fp * (1 + R.fam.mu * P.mu_s) / P.eta_c, Fp, H: P.mu_s * Fp, Rf: 0, Rr: 0, arm: q.a, armEff: q.aEff, ft: q.ft, fr: q.fr, caso: c.id };
+      return { F: Fp * (1 + R.fam.mu * P.mu_s) / P.eta_c, Fp, H: P.mu_s * Fp, Fcam: P.mu_s * Fp, Rf: 0, Rr: 0, arm: q.a, armEff: q.aEff, ft: q.ft, fr: q.fr, caso: c.id };
     }
     const d = driveAtG(P, R.K, th, P.R_pin * Math.sin(th) >= P.d_pin / 2 ? 1 : -1), Fp = T * 1e3 / P.n_cyl / d.den;
     return { F: Fp * d.fr / P.eta_c, Fp, H: d.h * Fp, Rf: d.rf * Fp, Rr: d.rr * Fp, arm: P.R_pin * Math.cos(th), ft: Math.cos(th), fr: Math.sin(th), caso: c.id };
@@ -2188,18 +2425,21 @@ const TT = (() => {
     const Qs = [Q[0] - P.pv_ecr * t[0], Q[1] - P.pv_ecr * t[1]];
     return { cuerpo: rect(Qs, -eb, s1, P.pv_bu), cara: rect(Q, s1, s2, P.pv_bf), cubo: Array.from({ length: 24 }, (_, k) => [Q[0] + eb * Math.cos(k * Math.PI / 12), Q[1] + eb * Math.sin(k * Math.PI / 12)]) };
   }
-  // 2. Geometría fija del modo pivotado: ojales, placas-leva (recorte y contorno por cilindro y sentido), bloque-uña (marco local), pasador Q, L0 y carrera
+  // 2. Geometría fija del modo pivotado: ojales, placas-guía (canto curvo de tramos tangentes, contorno, tornillos y pasadores de posición por cilindro y sentido),
+  //    bloque-uña (marco local), pasador Q, L0 y carrera. segmentos_*: {tipo: "linea" | "arco", p0, p1, centro, radio, sentido, rol, curvatura} en orden (G1 en el canto).
   function pivotGeo(P) {
     const R = simR(P), K = R.K, CP = R.camP;
-    if (driveMode(P) !== 2 || !K.ok || !CP) return null;
-    const placas = {};
+    if (driveMode(P) !== 2 || !K.ok || !CP || !CP.guia) return null;
+    const g = CP.guia, placas = {};
     [1, 2].forEach((cil) => ["antihorario", "horario"].forEach((sen) => {
-      const f = pivTr(P, sen, cil), rec = CP.path.map((p) => f([p.cx, p.cy])), ext = CP.path.map((p) => f([p.ox, p.oy]));
-      placas[cil + "_" + sen] = { recorte: rec, contorno: rec.concat(ext.slice().reverse()), pernos: CP.bolts.map(f), centro_seguidor: CP.path.map((p) => f([p.x, p.y])) };
+      const f = pivTr(P, sen, cil), mir = sen === "horario", T = (S) => S.map((x) => GV.tr(x, f, mir));
+      placas[cil + "_" + sen] = { recorte: g.polilinea_canto.map(f), contorno: g.polilinea_contorno.map(f), pernos: CP.bolts.map(f), pasadores_posicion: CP.dowels.map(f), centro_seguidor: g.polilinea_recorrido.map(f),
+        segmentos_canto: T(g.canto), segmentos_centro: T(g.tramos), segmentos_contorno: T(g.contorno), tolerancia_polilinea: g.tol };
     }));
     const loc = unaPolys(P, [0, 0], [1, 0], K.Lqp);
-    return { E: [K.E, [-K.E[0], -K.E[1]]], R_E: K.RE, phi_E: P.pv_phE, L_qp: K.Lqp, L0: P.L0, carrera: P.stroke, s_libre: P.s_free, s_req: K.s_req, th_ini: K.ths, th_fin: K.the, paso: K.pitch,
-      placas, t_placa: P.pv_tcam, bloque: { local: loc, nota: "marco local: origen en Q, eje x hacia el pasador tomado (s), eje y = t (hacia el centro O)", d_Q: P.pv_dq, h: P.pv_hu, R_cubo: P.pv_dq / 2 + 25 },
+    return { E: [K.E, [-K.E[0], -K.E[1]]], R_E: K.RE, phi_E: P.pv_phE, L_qp: K.Lqp, L0: P.L0, carrera: P.stroke, s_libre: P.s_free, s_req: CP.sReqG, th_ini: K.ths, th_fin: K.the, paso: K.pitch,
+      placas, t_placa: P.pv_tcam, flanco_deg: CP.alpha, radio_min_canto_convexo: g.rCanto.convexo, radio_min_canto_concavo: g.rCanto.concavo,
+      bloque: { local: loc, nota: "marco local: origen en Q, eje x hacia el pasador tomado (s), eje y = t (hacia el centro O)", d_Q: P.pv_dq, h: P.pv_hu, R_cubo: P.pv_dq / 2 + 25 },
       pasadorQ: { d: P.pv_dq, largo: R.blk.lPin }, ojalE: { d: P.pv_dE, lado_cajon: P.pv_box } };
   }
   // 2b. Cubierta de madera W para el dibujo de la simulación (planta): círculo de los tablones, abertura de la tapa, cara interior de la pared y anillo; null sin cubierta
@@ -2208,36 +2448,47 @@ const TT = (() => {
     return { R_tablones: g.R_tablones, R_abertura: g.R_abertura, R_rebaje: g.R_rebaje, R_pared_ext: g.R_pared_ext, R_ext: g.R_ext, t_madera: g.t_madera, tablones: g.tablones.lista.map((t) => ({ y0: t.y0, y1: t.y1, corte: t.corte })), juntas: g.tablones.j };
   }
   // 3. Estado del modo pivotado en la posición s del vástago (s = L − L0, 0 … s_req). fase = «empuje» | «retorno»; sentido = «antihorario» | «horario» (cilindro 1).
-  //    Empuje: s ≤ s_libre aproximación sin contacto (θ = θ_ini); luego |P(θ) − E| = L0 + s + L_qp. Retorno (mesa detenida en θ_fin): Q se desplaza w hacia afuera
-  //    lo que exige el pasador siguiente (holgura 0) sin pasar del canto de la leva; la leva lo devuelve en la rampa. alertas.sincronia: con Q contra la leva la holgura
-  //    es menor que el margen (misma definición que la verificación); alertas.choque: la leva obliga a una posición con interferencia.
+  //    Empuje: aproximación con Q en el nivel de toma (w = c) hasta que la cara toca el pasador; la rodilla E–Q–P se abre hacia afuera (θ = θ_ini) hasta apoyar Q
+  //    en el canto, y desde ahí Q recorre el canto con |P(θ) − Q| = L_qp (empuje guiado, fuerzas del caso de diseño). Retorno (mesa detenida en θ_fin): Q conserva ψ
+  //    salvo que el pasador lo empuje hacia afuera (holgura 0) y el canto lo devuelve a la toma (conducción final, enRampa). alertas.sincronia: con Q contra el canto
+  //    la holgura es menor que el margen; alertas.choque: posición con interferencia.
   function pivotAt(P, s, fase, sentido) {
     const R = simR(P), K = R.K, CP = R.camP;
-    if (driveMode(P) !== 2 || !K.ok || !CP) return null;
-    const L = P.L0 + Math.max(0, Math.min(s, K.s_req)), f = pivTr(P, sentido, 1), cd = caseOf(R, "dis");
-    let th, w, Fc = 0, dr = null, hol, holL;
+    if (driveMode(P) !== 2 || !K.ok || !CP || !CP.guia) return null;
+    const V = GV, g = CP.guia, L = P.L0 + Math.max(0, Math.min(s, CP.sReqG)), f = pivTr(P, sentido, 1), rf = P.pv_dq / 2, c = P.pv_c;
+    const cantoAt = (LL) => { const o = CP.onPath(LL); return V.sub(o.p, V.mul(V.left(o.t), rf)); };
+    let th, Q, u, b, Fc = 0, dr = null, hol = Infinity, holL = Infinity, enRampa = false, enCanto = false, contacto;
     if (fase !== "retorno") {
-      th = L <= K.Ls ? K.ths : K.ths + Math.acos(Math.max(-1, Math.min(1, (P.R_pin ** 2 + K.RE ** 2 - (L + K.Lqp) ** 2) / (2 * P.R_pin * K.RE)))) - Math.acos(Math.max(-1, Math.min(1, (P.R_pin ** 2 + K.RE ** 2 - (K.Ls + K.Lqp) ** 2) / (2 * P.R_pin * K.RE))));
-      w = CP.wPush(L);
-      if (L > K.Ls) { dr = driveAtSim(P, th, "dis"); Fc = P.mu_s * dr.Fp; }
-      hol = Infinity; holL = Infinity;
+      th = K.ths; const Pi = [P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)], g0 = CP.push[0];
+      const dQP = (LL) => V.nrm(V.sub(CP.Qof(LL, c).Q, Pi)) - K.Lqp;
+      let Lc = P.L0; if (dQP(P.L0) > 0) { let lo = P.L0, hi = K.Lend; for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (dQP(mid) > 0) lo = mid; else hi = mid; } Lc = lo; }
+      if (L <= Lc || !g0.ok) { const o = CP.Qof(L, c); Q = o.Q; u = o.u; b = u; contacto = cantoAt(L); }
+      else if (L < g0.L) {   // la rodilla se abre con la mesa quieta hasta que Q apoya en el canto
+        const xs = V.circles(K.E, L, Pi, K.Lqp).sort((p, q) => CP.toLW(q)[1] - CP.toLW(p)[1]);
+        Q = xs.length ? xs[0] : CP.Qof(L, c).Q; u = V.unit(V.sub(Q, K.E)); b = V.unit(V.sub(Pi, Q)); contacto = cantoAt(L);
+      } else {
+        const pu = CP.push; let i = 1; while (i < pu.length - 1 && !(pu[i].ok && pu[i].L >= L)) i++;
+        let lo = pu[i - 1].th, hi = pu[i].th; for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2, gm = CP.guidedAt(mid); if (gm.ok && gm.L < L) lo = mid; else hi = mid; }
+        th = (lo + hi) / 2; const gd = CP.guidedAt(th);
+        Q = gd.Q; u = gd.uc; b = gd.b; contacto = gd.contacto; enCanto = true; dr = driveAtSim(P, th, "dis"); Fc = dr.Fcam;
+      }
     } else {
-      th = K.the;
-      const wA = CP.wPush(K.Lend), wc = CP.wCam(L);
-      let wn = 0; if (CP.clrRet(L, 0) < 0) { let lo = 0, hi = 400; for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (CP.clrRet(L, mid) >= 0) hi = mid; else lo = mid; } wn = hi; }
-      w = Math.max(Math.min(wA, wc), Math.min(wn, wc));
-      hol = CP.clrRet(L, w); holL = CP.clrRet(L, wc);
+      th = K.the; const rt = g.ret; let k = 1; while (k < rt.length - 1 && rt[k].L > L) k++;
+      const a = rt[k - 1], bb = rt[k], t = (a.L - L) / ((a.L - bb.L) || 1), Wv = CP.wCam(L);
+      let w = a.guia && bb.guia ? Wv : Math.min(Wv, a.w + (bb.w - a.w) * t);
+      if (w < Wv && CP.clrRet(L, w) < 0) { let lo = w, hi = Wv; for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (CP.clrRet(L, mid) >= 0) hi = mid; else lo = mid; } w = hi; }   // el pasador empuja el bloque (holgura 0)
+      const o = CP.Qof(L, w); Q = o.Q; u = o.u; b = u; contacto = cantoAt(L);
+      hol = CP.clrRet(L, w); holL = CP.clrRet(L, Wv); enRampa = L <= g.primer_contacto.L + 1e-9; enCanto = w >= Wv - 1e-9;
     }
-    const { Q, u } = CP.Qof(L, w), t = [-u[1], u[0]], rf = P.pv_dq / 2;
-    const pol = unaPolys(P, Q, u, K.Lqp), tr = (pg) => pg.map(f);
-    const enRampa = fase === "retorno" && L <= CP.Lr1 && L >= CP.Lend;
+    const w = CP.toLW(Q)[1], pol = unaPolys(P, Q, b, K.Lqp), tr = (pg) => pg.map(f);
     return { th: sentido === "horario" ? 2 * P.pv_phE * D2R - th : th, th_cil1_antihorario: th, L, s: L - P.L0, phi: Math.atan2(u[1], u[0]), phi_f: Math.atan2(f([u[0], u[1]])[1], f([u[0], u[1]])[0]), w, Q: f(Q), E: f(K.E),
       una: { poligono: tr(pol.cuerpo).concat(tr(pol.cara)), cuerpo: tr(pol.cuerpo), cara: tr(pol.cara), cubo: tr(pol.cubo) },
-      contactoLeva: { punto: f([Q[0] - rf * t[0], Q[1] - rf * t[1]]), F: Fc, enRampa },
+      contactoLeva: { punto: f(contacto), F: Fc, enRampa, enCanto },
       arm: dr ? dr.arm : null, armEff: dr ? dr.armEff : null, ft: dr ? dr.ft : null, fr: dr ? dr.fr : null, F: dr ? dr.F : 0,
       pasadores: { A: f([P.R_pin * Math.cos(th), P.R_pin * Math.sin(th)]), B: f([P.R_pin * Math.cos(th - K.pitch), P.R_pin * Math.sin(th - K.pitch)]) },
       holgura: hol, holgura_leva: holL, alertas: { sincronia: holL < P.pv_msync && enRampa, choque: hol < -1e-6 } };
   }
+
   // 4. Modo guiado con leva de reenganche: perfil del riel y estado en la posición s del vástago (s = 0 retraído … s_req).
   //    η = y_cara − y_B = s − r − s_libre; empuje: la uña en la toma (u = 0); retorno: u = salida que exige el pasador siguiente (chaflán), sin pasar de la leva.
   function camGeo(P) {
@@ -2307,7 +2558,7 @@ const TT = (() => {
     const sec = [Math.min(...psis), Math.max(...psis), Math.min(...psis.map(refl)), Math.max(...psis.map(refl))].map(deg);
     const box = (Ec, s1, s2) => ({ centro: Ec, esquinas: [[Ec[0] - b / 2, Ec[1] - b / 2], [Ec[0] + b / 2, Ec[1] - b / 2], [Ec[0] + b / 2, Ec[1] + b / 2], [Ec[0] - b / 2, Ec[1] + b / 2]],
       paredes_completas: [s1 > 0 ? "x+" : "x−", s2 > 0 ? "y+" : "y−"], paredes_con_ventana: [s1 > 0 ? "x−" : "x+", s2 > 0 ? "y−" : "y+"] });
-    const pl = fam.f === 1 ? "S355J2 con canto templado (inserto o placa templable) ≥ 55 HRC" : "S355J2 (respaldo) con revestimiento de " + fam.corto + " de " + P.pv_tlin + " mm en el canto";
+    const pl = fam.f === 1 ? "42CrMo4+QT (EN 10083-3), canto guía templado por inducción 52–56 HRC con capa efectiva ≥ 4 mm (EN 10328), revenido de alivio 180 °C" : "42CrMo4+QT (EN 10083-3) de respaldo con revestimiento de " + fam.corto + " de " + P.pv_tlin + " mm en el canto";
     return {
       sistema: "planta x, y (mm) con O en el centro de la mesa; z desde la cara inferior de la base (piso)",
       soporte_E: { cilindro1: box(E, sx, sy), cilindro2: box([-E[0], -E[1]], -sx, -sy), lado: b, t_pared: P.pv_tbox, alto_paredes: sg.hBox, z_paredes: [P.t_base, P.t_base + sg.hBox],
@@ -2319,7 +2570,12 @@ const TT = (() => {
         nota: "marco local: origen en Q, x hacia el pasador tomado, y = t (hacia O); el cuerpo se desplaza e_acodado hacia −y" },
       pasador_Q: { d: P.pv_dq, largo: bk.lPin, z: [P.t_base + 2, bk.zBot + P.pv_hu], extremo_inferior: "seguidor de la placa-leva (" + (fam.tipo === "hertz" ? "templado" : "con zapata de " + CP.lpad + " mm") + ")", voladizo_bajo_horquilla: bk.lq, material: "Fy " + P.Fy_pp + " MPa" },
       placas_leva: { instancias: G.placas, t: P.pv_tcam, z: [P.t_base, P.t_base + P.pv_tcam], material: pl, familia: fam.f, revestimiento: fam.f > 1 ? { material: fam.nombre, t: P.pv_tlin } : null, zapata: fam.tipo === "pad" ? { largo: CP.lpad, alto: P.pv_tcam } : null,
-        pernos: { d: P.pv_db, n: Math.round(P.pv_nb), agujero: P.pv_db + 2, clase: "10.9 a la base (roscado o pasante con tuerca bajo la base)" }, ancho_labio: P.pv_wlip },
+        tratamiento: fam.f === 1 ? { canto: "temple por inducción del canto guía (tramos de contacto: flanco, hombro, cresta, bajada y empalme) 52–56 HRC, capa efectiva ≥ 4 mm (EN 10328, 550 HV); resto del contorno sin temple", rugosidad_canto: "Ra ≤ 1,6 µm (rectificado o fresado de acabado después del temple)", bordes: "aristas superior e inferior del canto con chaflán 1 × 45°" } : { canto: "revestimiento pegado y atornillado", rugosidad_canto: "según proveedor" },
+        corte: "contorno por corte láser o agua con sobreespesor de 1 mm en el canto y fresado CNC final siguiendo los arcos (tolerancia de perfil ± 0,2 mm, ISO 1101); polilínea de exportación con flecha ≤ " + CP.guia.tol + " mm",
+        tolerancia_polilinea: CP.guia.tol, marco: { largo: CP.guia.marco.largo, ancho: CP.guia.marco.ancho, nota: "placa rectangular con recorte en media luna hacia la mesa (concepto KIET); x' a lo largo de la cuerda del canto, y' hacia afuera" },
+        pernos: { d: P.pv_db, n: Math.round(P.pv_nb), clase: "8.8", norma: "ISO 10642 M" + P.pv_db + " × " + Math.round(P.pv_tcam + P.t_base - 2) + " (cabeza avellanada a ras; roscado en la base de " + P.t_base + " mm, enganche ≥ 1,0·d)", avellanado: "90° Ø" + nfx(2 * P.pv_db - 1.84, 1) + " (ISO 10642, k ≈ 0,56·d)", agujero: P.pv_db + 1, par_apriete: "según VDI 2230 con μ 0,14 (8.8)" },
+        pasadores_posicion: { d: P.pv_dd, n: 2, norma: "ISO 8734 Ø" + P.pv_dd + " m6 (templado)", ajuste: "H7 escariado en placa y base, montados después de alinear la placa con plantilla al círculo de pasadores" },
+        ancho_labio: P.pv_wlip },
     };
   }
   /* ---------------- Datos de dibujo del accionamiento (export_design.js y planos_export.js) ---------------- */
@@ -2347,23 +2603,28 @@ const TT = (() => {
   const rot = (q) => [-q[0], -q[1]], refl = (q) => { const d = q[0] * ed[0] + q[1] * ed[1]; return [2 * d * ed[0] - q[0], 2 * d * ed[1] - q[1]]; };
   const tr = { "1_antihorario": (q) => q, "2_antihorario": rot, "1_horario": refl, "2_horario": (q) => rot(refl(q)) };
   const pts = (f) => ({
-    E: f(K.E), Q: K.pts.map((q) => f(q.Q)), P: K.pts.map((q) => f(q.P)),
-    leva_centro_seguidor: CP.path.map((p) => f([p.x, p.y])), leva_canto: CP.path.map((p) => f([p.cx, p.cy])), leva_borde_exterior: CP.path.map((p) => f([p.ox, p.oy])), leva_pernos: CP.bolts.map(f) });
+    E: f(K.E), Q: R.stroke.map((q) => f(q.Q)), Q_colineal: K.pts.map((q) => f(q.Q)), P: K.pts.map((q) => f(q.P)),
+    leva_centro_seguidor: CP.guia.polilinea_recorrido.map(f), leva_canto: CP.guia.polilinea_canto.map(f), leva_borde_exterior: CP.guia.polilinea_contorno.map(f), leva_pernos: CP.bolts.map(f), leva_pasadores_posicion: CP.dowels.map(f) });
   return {
     E: K.E, R_E: K.RE, phi_E: P.pv_phE, L_qp: K.Lqp, automatico: K.auto, sugerencia: K.sugerencia || suggestE(P), theta_ini_deg: K.ths / D2R, theta_fin_deg: K.the / D2R,
-    brazo_min: K.aMin, brazo_max: K.aMax, brazo_ef_min: K.aEffMin, carrera_req: K.sReq, Q_min: K.QrMin, holgura_pasador_siguiente: K.clrB, holgura_cuerpo_mesa: K.body,
-    cinematica: R.stroke.map((q) => ({ th: q.th / D2R, a: q.arm, a_ef: q.armEff, L: q.L, s: q.s, psi_deg: q.psi / D2R, f_tang: q.ft, f_rad: q.fr, F_cil: q.F, F_n: q.Fp, F_leva: q.Fcam, p: q.F * 1e3 / R.A * 10 })),
+    brazo_min: K.aMin, brazo_max: K.aMax, brazo_ef_min: K.aEffMin, carrera_req: CP.sReqG, carrera_req_colineal: K.sReq, Q_min: K.QrMin, holgura_pasador_siguiente: K.clrB, holgura_cuerpo_mesa: K.body,
+    cinematica: R.stroke.map((q) => ({ th: q.th / D2R, a: q.arm, a_ef: q.armEff, L: q.L, s: q.s, psi_deg: q.psi / D2R, f_tang: q.ft, f_rad: q.fr, F_cil: q.F, F_n: q.Fp, F_leva: q.Fcam, p: q.F * 1e3 / R.A * 10,
+      w: q.w, separacion_colineal: q.gap, phi_presion_deg: q.phi_guia, a_colineal: q.a_colineal, a_ef_colineal: q.a_ef_colineal, F_cil_colineal: q.F_colineal })),
     bloque_una: { b_cuerpo: P.pv_bu, e_acodado: P.pv_ecr, b_cara: P.pv_bf, l_cara: P.pv_lf, h: P.pv_hu, d_Q: P.pv_dq, R_cubo: bk.eb, s_cara_ini: bk.s1, s_cara: bk.s2, t_horquilla: bk.tq, z_inf: bk.zBot, l_pasador_Q: bk.lPin, voladizo_leva: bk.lq, masa: bk.m },
     soporte_E: { lado_cajon: P.pv_box, t_pared: P.pv_tbox, filete: P.pv_wbox, t_tapas: P.pv_tl, d_E: P.pv_dE, alto: sg.hBox, z_tapa_sup: sg.zU, z_tapa_inf: sg.zL, S_U: sg.S, masa: sg.m, nota: "cajón centrado en E; paredes traseras en L hacia la esquina; ventana para el ojal hacia la mesa (sección resistente en U)" },
     placa_leva: { familia: CP.fam.f, familia_nombre: CP.fam.nombre, automatico: CP.fam.auto, mu: CP.fam.mu, t: P.pv_tcam, ancho_labio: P.pv_wlip, t_revestimiento: CP.fam.f > 1 ? P.pv_tlin : 0, l_zapata: CP.lpad, n_pernos: Math.round(P.pv_nb), d_perno: P.pv_db, Fy: P.Fy_camP,
-      holgura: CP.c, margen_sincronia: CP.m, sincronia: CP.sync, alpha_deg: CP.alpha, bolsillo_w: CP.wPk, fraccion_empuje_retenida: CP.cover, L_fin_rampa: CP.Lend, L_tope_rampa: CP.Lr1, L_salida_bolsillo: CP.LX1, perfil: CP.need,
+      holgura: CP.c, margen_sincronia: CP.m, margen_diseno: CP.md, tolerancias_mm: CP.guia.dTol, sincronia: CP.sync, sincronia_peor: CP.guia.syncWorst, alpha_deg: CP.alpha, alpha_req_deg: CP.guia.flanco.phi_req_deg, bolsillo_w: CP.wPk, fraccion_empuje_retenida: CP.cover,
+      L_pie_flanco: CP.Lend, L_tope_flanco: CP.Lr1, L_cresta: CP.LX1, L_tope_rampa: CP.guia.primer_contacto.L, primer_contacto: CP.guia.primer_contacto, perfil: CP.need,
+      segmentos_centro: CP.guia.tramos, segmentos_canto: CP.guia.canto, segmentos_contorno: CP.guia.contorno, radio_min_canto: CP.guia.rCanto, radio_min_centro_convexo: CP.guia.rCentro.convexo, g1_max_rad: CP.guia.g1Max, salto_curvatura_max: CP.guia.dKappa, tolerancia_polilinea: CP.guia.tol,
+      hertz: CP.hz, relacion_F_guiado_colineal_max: CP.ratioMax, eleccion_flanco: CP.guia.eleccion,
+      retorno: CP.guia.ret.filter((q, i) => i % 4 === 0 || i === CP.guia.ret.length - 1).map((q) => ({ L: q.L, w: q.w, W: q.W, guia: q.guia, holgura: q.hol, holgura_canto: q.holW, phi_deg: q.phi, Q: CP.Qof(q.L, q.w).Q })),
       fuerzas_N: { rampa_atasco: CP.NR, transversal_calado: CP.Tst, transversal_diseno: CP.Tdis, diseno: CP.Ncam }, v_seguidor_m_s: CP.vQ, area: CP.area, largo_canto: CP.Lb },
     posiciones: Object.fromEntries(Object.entries(tr).map(([k, f]) => [k, pts(f)])),
     fabricacion: pivotFab(P, R),
-    nota: "coordenadas en planta (mm) con O en el centro; Q y P: 61 posiciones del empuje; leva_centro_seguidor: trayectoria del centro del extremo inferior de Q contra la leva (empuje + bolsillo + rampa); leva_canto: canto de contacto; leva_borde_exterior: borde de la placa; leva_pernos: ejes de los pernos" };
+    nota: "coordenadas en planta (mm) con O en el centro; Q: 61 posiciones del empuje con Q apoyado en el canto (Q_colineal: cinemática E–Q–P alineada de referencia); P: pasador tomado; leva_centro_seguidor: recorrido del centro del extremo inferior de Q (L0 … L_fin); leva_canto: canto guía (polilínea con flecha ≤ 0,1 mm de los segmentos de placa_leva.segmentos_canto); leva_borde_exterior: contorno cerrado de la placa; leva_pernos y leva_pasadores_posicion: ejes" };
 })();
   const masas_desc = MODE === 1 ? { brackets: "ménsulas del ojal trasero (n_br)", dogs: "uñas", shoes: "patines", beds: "bancadas", cam: "leva de reenganche: riel, soportes, prolongación de la bancada y seguidor (Tarea 1)" }
-  : { brackets: "soportes del ojal E (cajón, tapas y pasador vertical; uno por cilindro)", dogs: "bloques-uña con pasador Q (uno por cilindro)", shoes: "— (no hay patín)", beds: "— (no hay bancada)", cam: "4 placas-leva con revestimiento y zapatas del seguidor" };
+  : { brackets: "soportes del ojal E (cajón, tapas y pasador vertical; uno por cilindro)", dogs: "bloques-uña con pasador Q (uno por cilindro)", shoes: "— (no hay patín)", beds: "— (no hay bancada)", cam: "4 placas-guía curvas (concepto KIET) con revestimiento y zapatas del seguidor" };
     const tw = R.ifc && R.ifc.tornillos, tornillos_interfaz = tw ? { aplica: "AF2: opción A pegada (fix_mode = 2), disco de la mesa → plancha inferior de la mesa", designacion: tw.designacion, n: tw.n, d: tw.d, r: tw.r, PCD: 2 * tw.r, angulos_deg: tw.ang, posiciones: tw.pos,
       avellanado: tw.avellanado, rosca_en_mesa: tw.rosca, t_disco: tw.t, t_plancha_mesa: tw.tb, V_por_tornillo_kN: tw.V / 1e3, nota: "ángulos medidos desde +x, a mitad de camino entre las ranuras radiales de engrase; avellanado 90° (ISO 10642) en la cara de deslizamiento del disco de la mesa" } : null;
     return { modo: MODE, modo_nombre: MODE === 1 ? "guiado (patín y uña sobre bancada)" : "pivotado con guía de leva (tipo KIET)", levaGuiada, pivotado, masas_desc, tornillos_interfaz };
@@ -2443,13 +2704,26 @@ const TT = (() => {
     add({ grp: G, sys: "giro", kind: "geo", name: "Bloque-uña dentro de la luz libre entre anillos", formula: "h_bloque + 10 ≤ h − 2·t_anillo", dem: P.pv_hu + 10, cap: pinClear(P), unit: "mm", ref: "Geometría (alzado)" });
     if (R.blk) add({ grp: G, sys: "giro", kind: "geo", name: "Bloque-uña sobre la placa-leva", formula: "t_base + t_leva + 2 ≤ z_eje − h_bloque/2", dem: P.t_base + P.pv_tcam + 2, cap: R.blk.zBot, unit: "mm", ref: "Geometría (alzado)" });
     if (R.sup) add({ grp: G, sys: "giro", kind: "geo", name: "Oreja inferior del ojal E sobre la base", formula: "t_base ≤ z_eje − b_ojal/2 − g − t_oreja", dem: P.t_base, cap: R.sup.zLugBot, unit: "mm", ref: "Geometría (alzado)" });
-    if (CP) {
-      add({ grp: G, sys: "giro", kind: "geo", name: "Sincronía del retorno: holgura bloque-uña–pasador siguiente con Q contra la rampa de la placa-leva", formula: "mín holgura(bloque alineado con el vástago, Q en w_leva(L)) ≥ margen en la rampa de reenganche (α = " + P.pv_alpha + "°, desde L0 + tramo)", dem: P.pv_msync, cap: CP.sync, unit: "mm", ref: REG_PV + "; geometría" });
-      const al = P.pv_alpha * D2R, kE = P.pv_muE * P.pv_dE / (2 * P.L0);
-      add({ grp: G, sys: "giro", name: "Rampa de la placa-leva sin autobloqueo (" + fam.corto + ", μ = " + nfx(fam.mu, 2) + ")", formula: "μ_E·d_E/(2·L0)·(sen α + μ·cos α) < cos α − μ·sen α (el par que hace girar el cilindro en E vence el roce del pasador E)", dem: kE * (Math.sin(al) + fam.mu * Math.cos(al)), cap: Math.cos(al) - fam.mu * Math.sin(al), unit: "–", ref: REG_PV + "; equilibrio con fricción" });
-      add({ grp: G, sys: "giro", kind: "geo", name: "Placas-leva dentro de la base", formula: "máx(|x|; |y|) del contorno ≤ B/2 − t_marco − 5", dem: CP.inBase, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
-      add({ grp: G, sys: "giro", kind: "geo", name: "Placas-leva de ambos sentidos de giro a cada lado de la diagonal (no se solapan)", formula: "distancia mínima del contorno a la diagonal O–E ≥ 5 mm", dem: 5, cap: CP.diag, unit: "mm", ref: "Geometría (planta)" });
-      add({ grp: G, sys: "giro", kind: "info", name: "Placa-leva: profundidad del bolsillo (salida lateral de Q para pasar sobre el pasador siguiente) y fracción del empuje con Q retenido por la leva", formula: "w_bolsillo = máx w_nec(L); fracción = parte de la carrera de empuje con w_leva = w_emp + c", dem: CP.wPk, cap: CP.cover, unit: "mm / –", ref: REG_PV });
+    if (CP && CP.guia) {
+      const g = CP.guia, rf = P.pv_dq / 2, lr = g.lockR, phiLim = 90 - Math.atan(fam.mu) / D2R, gp = CP.push.filter((q) => q.ok);
+      add({ grp: G, sys: "giro", kind: "geo", name: "Sincronía del retorno: holgura bloque-uña–pasador siguiente con Q contra el canto de la placa-guía (nominal, en toda la conducción final)", formula: "mín holgura(bloque alineado con el vástago, Q en W(L)) ≥ m + δ, L0 ≤ L ≤ L₁ (primer contacto); δ = tolerancia de posición " + nfx(P.pv_tolg, 2) + " + α·ΔT·R_pin " + nfx(g.dT, 2) + " mm (mesa a 80 °C)", dem: P.pv_msync + g.dTol, cap: CP.sync, unit: "mm", ref: REG_PV + "; geometría (polígono del bloque frente al círculo del pasador)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Sincronía en el peor caso (canto en el extremo de su tolerancia y mesa a 80 °C)", formula: "holgura nominal − δ ≥ m", dem: P.pv_msync, cap: g.syncWorst, unit: "mm", ref: REG_PV });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Flanco de reenganche: ángulo de presión máximo en la conducción final ≤ α_máx" + (g.flanco.limitado ? " (el flanco quedó limitado: la sincronía no cumple)" : ""), formula: "φ = ángulo entre el canto y la recta radial E–Q; flanco recto por (L0 + tramo, c) tangente por arriba a w_nec(m + δ): φ_req = " + nfx(g.flanco.phi_req_deg, 1) + "°", dem: g.phiRetMax, cap: P.pv_alpha, unit: "°", ref: REG_PV });
+      add({ grp: G, sys: "giro", name: "Placa-guía sin autobloqueo en toda la conducción del retorno (" + fam.corto + ", μ = " + nfx(fam.mu, 2) + "; peor punto L = " + nfx(lr.L, 1) + " mm, φ = " + nfx(lr.phi, 1) + "°)", formula: "μ_E·d_E/(2·L0)·(sen φ + μ·cos φ) < cos φ − μ·sen φ en cada punto del canto que conduce a Q (el par que hace girar el cilindro en E vence el roce del pasador E)", dem: lr.dem, cap: lr.cap, unit: "–", ref: REG_PV + "; equilibrio con fricción" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Empuje con Q apoyado en el canto: ángulo de presión máximo bajo el de autobloqueo", formula: "φ_empuje = ∠(canto, E–Q) ≤ 90° − atan μ_leva en las 61 posiciones (la rodilla E–Q–P se abre hacia afuera y Q recorre el canto)", dem: Math.max(...gp.map((q) => q.phi)), cap: phiLim, unit: "°", ref: REG_PV + "; equilibrio del pasador Q" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Empuje con Q apoyado en el canto: reacción de la guía positiva en todas las posiciones (Q no se despega hacia la mesa)", formula: "h = H/F ≥ 0,005 con F·u_c + H·(n − μ·t) = F_n·b' (b' girada r·sen(atan μ_s)/L_qp hacia la mesa)", dem: 0.005, cap: Math.min(...gp.map((q) => q.h)), unit: "–", ref: REG_PV });
+      add({ grp: G, sys: "giro", kind: "info", name: "Empuje guiado: fuerza del cilindro frente a la cinemática colineal E–Q–P (máximo en la carrera)", formula: "F_guiado/F_colineal; la fuerza de diseño y el FS usan el empuje guiado", dem: CP.ratioMax, unit: "–", ref: REG_PV });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Canto de la placa-guía: continuidad G1 (máximo quiebre de tangente en los empalmes)", formula: "|∠(t_fin del tramo i; t_inicio del tramo i+1)| ≤ 0,01°; arcos del canto concéntricos con los de la trayectoria del centro (radio ± d_Q/2)", dem: g.g1Max / D2R, cap: 0.01, unit: "°", ref: REG_PV + "; geometría" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Canto de la placa-guía: radio convexo mínimo sin socavado", formula: "R_canto = R_centro − d_Q/2 ≥ R_mín (R_centro ≥ d_Q/2 + R_mín); cóncavo mínimo " + nfx(g.rCanto.concavo, 1) + " mm; salto máximo de curvatura " + nfx(g.dKappa * 1e3, 2) + "×10⁻³ 1/mm", dem: P.pv_rmin, cap: g.rCanto.convexo, unit: "mm", ref: REG_PV + "; geometría" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Placa-guía libre del seguidor en todo el recorrido (sin invasión del círculo d_Q/2)", formula: "mín dist(centro del seguidor, contorno de la placa) − d_Q/2 ≥ −0,001 (= 0 en el contacto)", dem: 0.001, cap: g.folClr + 0.002, unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Bloque-uña libre de los pasadores en el empuje guiado (Q en el canto, bloque alineado con Q–P)", formula: "holgura mínima (cuerpo acodado, cara y cubo de Q frente al pasador anterior y al siguiente) ≥ holgura mínima", dem: P.pv_cB, cap: Math.min(...gp.map((q) => q.clrB)), unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Cuerpo del cilindro fuera de la mesa en el empuje guiado", formula: "D/2 + D_cuerpo/2 + holgura ≤ mín dist(O, eje del cuerpo)", dem: P.D_top / 2 + P.D_body / 2 + P.pv_cc, cap: Math.min(...gp.map((q) => q.body)) + P.D_body / 2 + P.D_top / 2, unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Placas-guía dentro de la base", formula: "máx(|x|; |y|) del contorno ≤ B/2 − t_marco − 5", dem: CP.inBase, cap: Bh, unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Placas-guía fuera de la mesa (la mesa apoya en la base hasta R = D/2)", formula: "D/2 + holgura ≤ mín |contorno|", dem: P.D_top / 2 + P.pv_cQ, cap: CP.Rin, unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Placas-guía libres del cajón del ojal E", formula: "mín distancia de Chebyshev del contorno a E − lado/2 ≥ 5 mm", dem: 5, cap: CP.boxClr, unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Placas-guía de ambos sentidos de giro a cada lado de la diagonal (no se solapan)", formula: "distancia mínima del contorno a la diagonal O–E ≥ 5 mm", dem: 5, cap: CP.diag, unit: "mm", ref: "Geometría (planta)" });
+      add({ grp: G, sys: "giro", kind: "geo", name: "Cuerpo del cilindro sobre la placa-guía (alzado)", formula: "t_base + t_placa + 5 ≤ z_eje − D_cuerpo/2", dem: P.t_base + P.pv_tcam + 5, cap: g.zCuerpo, unit: "mm", ref: "Geometría (alzado)" });
+      add({ grp: G, sys: "giro", kind: "info", name: "Placa-guía: profundidad del bolsillo (máx W) y fracción del empuje con Q a ≤ c + 0,5 mm de la recta colineal", formula: "W(L) = trayectoria del centro del seguidor; la rodilla apoya Q en el canto en todo el empuje", dem: CP.wPk, cap: CP.cover, unit: "mm / –", ref: REG_PV });
     }
     add({ grp: G, sys: "giro", kind: "info", name: "Ojal comercial del vástago sobre el pasador Q y ojal trasero sobre el pasador E: admitir pasador y carga (pandeo del cilindro biarticulado: dato del proveedor)", formula: "Ø ojal ≥ d_Q, d_E; la fila de pandeo usa solo el vástago (L0 + carrera): confirmar con la ficha del cilindro", dem: P.pv_dq, cap: P.pv_dE, unit: "mm", ref: "Ficha del fabricante; ISO/TS 13725" });
   }
@@ -2483,26 +2757,50 @@ const TT = (() => {
     add({ grp: SO, sys: "est", name: "Soldadura cajón del ojal E–base (filetes a ambos lados de las tres paredes): corte y flexión", formula: "f = √[(F/(4·b·a))² + (M/(a·b²))²] ≤ 0,60FEXX/(1,20Nd); grupo en U de líneas: S = b²/2 por filete (dos filetes por pared), a = 0,707w", dem: Math.hypot(Fs / (4 * b * aw), Mb / (aw * b * b)), cap: Fw, unit: "MPa", ref: "AISC 360-22 §J2.4 (grupo de soldadura, método elástico); ASME BTH-1 §3-3.4" });
     add({ grp: SO, sys: "est", kind: "geo", name: "Filete cajón–base: mínimo según la parte más gruesa", formula: "w_mín(T = máx(t_cajón; t_base)) ≤ w; no más que la parte más delgada", dem: Math.min(wMin(Math.max(t, P.t_base)), Math.min(t, P.t_base)), cap: P.pv_wbox, unit: "mm", ref: "AWS D1.1/D1.1M:2020 Tabla 5.8; AISC 360-22 §J2.2b" });
     add({ grp: SO, sys: "est", kind: "geo", name: "Filete cajón–base: máximo según el borde de la pared", formula: "w ≤ w_máx(t_cajón) (t < 6: t; t ≥ 6: t − 2 mm)", dem: P.pv_wbox, cap: wMax(t), unit: "mm", ref: "AISC 360-22 §J2.2b" });
-    // placas-leva
-    const tc = P.pv_tcam, lp = CP.lpad;
-    add({ grp: PL, sys: "est", kind: "info", name: "Placa-leva (" + fam.nombre + (fam.auto ? ", automático" : "") + "): cargas del seguidor: atasco al retraer a p_ret / transversal a calado / transversal de diseño", formula: "N_rampa = F_ret/sen α; T = μ_s·F_n (roce del contacto uña–pasador); la placa se verifica con N = máx(N_rampa; T_calado)", dem: CP.NR / 1e3, cap: CP.Tst / 1e3, unit: "kN", ref: REG_PV });
+    // placas-guía curvas: cargas (empuje guiado a calado y atasco del retorno), contacto con el radio real, ligamento, tornillos, pasadores de posición y base
+    const tc = P.pv_tcam, lp = CP.lpad, g = CP.guia, V = GV, hz = CP.hz;
+    add({ grp: PL, sys: "est", kind: "info", name: "Placa-guía (" + fam.nombre + (fam.auto ? ", automático" : "") + "): cargas del seguidor: atasco del retorno con el giro en E trabado / empuje a calado con Q apoyado en el canto", formula: "N_atasco = F_ret/sen φ₁ (φ₁ = " + nfx(g.primer_contacto.phi, 1) + "° en el primer contacto del retorno, L = " + nfx(g.primer_contacto.L, 1) + " mm, sin el roce que ayuda); H = máx h·F_calado·η (empuje guiado); la placa se verifica con N = máx de ambas", dem: CP.NR / 1e3, cap: CP.Tst / 1e3, unit: "kN", ref: REG_PV });
     if (fam.tipo === "hertz") {
-      const q = Ncam / tc, p0c = Math.sqrt(q * Es / (Math.PI * P.pv_dq / 2));
-      add({ grp: PL, sys: "est", name: "Placa-leva: contacto de Hertz extremo del pasador Q–canto templado (a calado)", formula: "p₀ = √(q·E*/(π·r_Q)), q = N/t_leva ≤ 1,67·Fy_sup (canto plano, cota del recorte cóncavo)", dem: p0c, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: fam.pRef });
+      add({ grp: PL, sys: "est", name: "Placa-guía: contacto de Hertz extremo del pasador Q–canto templado, empuje a calado con el radio real del canto (R_c = " + (isFinite(hz.push.Rc) ? nfx(hz.push.Rc, 1) : "∞") + " mm)", formula: "p₀ = √(q·E*/(π·R_ef)), 1/R_ef = 1/r_Q + 1/R_c (R_c > 0 convexo, < 0 cóncavo), q = H/(t − 2) ≤ 1,67·Fy_sup; peor punto de las 61 posiciones", dem: hz.push.p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: fam.pRef });
+      add({ grp: PL, sys: "est", name: "Placa-guía: contacto de Hertz en el atasco del retorno (R_c = " + (isFinite(hz.jam.Rc) ? nfx(hz.jam.Rc, 1) : "∞, flanco recto") + " mm)", formula: "p₀ = √(q·E*/(π·R_ef)), q = N_atasco/(t − 2) ≤ 1,67·Fy_sup", dem: hz.jam.p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: fam.pRef });
+      const bz = Math.max(hz.push.b, hz.jam.b);
+      add({ grp: PL, sys: "est", kind: "geo", name: "Placa-guía: espesor de la capa templada frente a la profundidad del corte máximo de Hertz", formula: "2·0,786·b ≤ capa efectiva 4 mm, b = √(4·q·R_ef/(π·E*))", dem: 2 * 0.786 * bz, cap: 4, unit: "mm", ref: "Hertz, contacto lineal (τ_máx a z = 0,786·b); EN 10328 (profundidad de temple)" });
     } else {
-      const pS = Ncam / (lp * tc), pD = CP.Tdis / (lp * tc);
-      add({ grp: PL, sys: "est", name: "Placa-leva (" + fam.corto + "): presión de la zapata del seguidor en el empuje de diseño", formula: "p = T_dis/(l_zapata·t_leva) ≤ p_adm (carga de diseño, como la interfaz de giro); T_dis = μ_s·F_n,dis; l_zapata = " + lp + " mm" + (P.pv_lpad > 0 ? "" : " (automático, FU 0,90 con p_adm y PV)"), dem: pD, cap: fam.pAdm, unit: "MPa", ref: fam.pRef });
-      if (fam.PV) add({ grp: PL, sys: "est", name: "Placa-leva (" + fam.corto + "): valor PV de la zapata en el empuje de diseño", formula: "PV = (T_dis/(l·t))·v_Q ≤ PV_adm; v_Q = " + nfx(CP.vQ * 1000, 1) + " mm/s", dem: pD * CP.vQ, cap: fam.PV, unit: "MPa·m/s", ref: fam.pRef });
-      if (fam.FyL) add({ grp: PL, sys: "est", name: "Placa-leva (" + fam.corto + "): aplastamiento del revestimiento a calado", formula: "p ≤ 1,25·Fy_rev/Nd", dem: pS, cap: 1.25 * fam.FyL / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
-      if (fam.f === 2 || fam.f === 3) add({ grp: PL, sys: "est", name: "Placa-leva: respaldo de acero del revestimiento (aplastamiento a calado)", formula: "p ≤ 1,25·Fy_placa/Nd", dem: pS, cap: 1.25 * P.Fy_camP / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
+      const pS = CP.Ncam / (lp * tc), pD = CP.Tdis / (lp * tc);
+      add({ grp: PL, sys: "est", name: "Placa-guía (" + fam.corto + "): presión de la zapata del seguidor en el empuje de diseño", formula: "p = H_dis/(l_zapata·t_placa) ≤ p_adm (carga de diseño, como la interfaz de giro); l_zapata = " + lp + " mm" + (P.pv_lpad > 0 ? "" : " (automático, FU 0,90 con p_adm y PV)"), dem: pD, cap: fam.pAdm, unit: "MPa", ref: fam.pRef });
+      if (fam.PV) add({ grp: PL, sys: "est", name: "Placa-guía (" + fam.corto + "): valor PV de la zapata en el empuje de diseño", formula: "PV = (H_dis/(l·t))·v_Q ≤ PV_adm; v_Q = " + nfx(CP.vQ * 1000, 1) + " mm/s", dem: pD * CP.vQ, cap: fam.PV, unit: "MPa·m/s", ref: fam.pRef });
+      if (fam.FyL) add({ grp: PL, sys: "est", name: "Placa-guía (" + fam.corto + "): aplastamiento del revestimiento a calado", formula: "p ≤ 1,25·Fy_rev/Nd", dem: pS, cap: 1.25 * fam.FyL / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
+      if (fam.f === 2 || fam.f === 3) add({ grp: PL, sys: "est", name: "Placa-guía: respaldo de acero del revestimiento (aplastamiento a calado)", formula: "p ≤ 1,25·Fy_placa/Nd", dem: pS, cap: 1.25 * P.Fy_camP / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
       add({ grp: PL, sys: "est", kind: "geo", name: "Seguidor: largo de la zapata practicable", formula: "l_zapata ≤ 3·d_Q", dem: lp, cap: 3 * P.pv_dq, unit: "mm", ref: "Criterio del proyecto (zapata pivotante sobre el pasador Q)" });
+      const Rm = Math.min(g.rCanto.convexo, g.rCanto.concavo);
+      add({ grp: PL, sys: "est", kind: "pend", name: "Zapata plana sobre el canto curvo: flecha l²/(8·R_mín) = " + nfx(lp * lp / (8 * Rm), 1) + " mm con R_mín = " + nfx(Rm, 1) + " mm (PENDIENTE: definir la cara de la zapata o un buje cilíndrico; la presión p = H/(l·t) supone apoyo completo)", formula: "flecha ≤ 0,5 mm para usar p = H/(l·t)", dem: lp * lp / (8 * Rm), unit: "mm", ref: REG_PV });
     }
-    add({ grp: PL, sys: "est", name: "Placa-leva: flexión del labio entre pernos", formula: "σ = 6·(N·s/4)/(t·w_labio²) ≤ Fy/Nd; s = " + nfx(CP.sb) + " mm entre pernos", dem: 6 * (Ncam * CP.sb / 4) / (tc * P.pv_wlip ** 2), cap: P.Fy_camP / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
-    const bj = boltJ3(P, P.pv_db, Ncam / 2, 0), lc = P.pv_wlip / 2 - (P.pv_db + 2) / 2, Rn = Math.min(1.2 * lc * tc * P.Fu_camP, 2.4 * P.pv_db * tc * P.Fu_camP);
-    add({ grp: PL, sys: "est", name: "Pernos de la placa-leva: corte (M" + P.pv_db + ", " + Math.round(P.pv_nb) + " por placa; los dos más cercanos toman N)", formula: "f_rv = (N/2)/A_b ≤ Fnv/Ω, Fnv = 0,45·Fu, Ω = 2,00", dem: bj.frv, cap: bj.capV, unit: "MPa", ref: "AISC 360-22 §J3.6, Tabla J3.2" });
-    add({ grp: PL, sys: "est", name: "Pernos de la placa-leva: aplastamiento en el agujero de la placa", formula: "N/2 ≤ R_n/Ω, R_n = mín(1,2·l_c·t·Fu; 2,4·d·t·Fu), l_c = w_labio/2 − d_h/2", dem: Ncam / 2 / 1e3, cap: Rn / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.10 (Ec. J3-6a)" });
-    add({ grp: PL, sys: "est", kind: "geo", name: "Pernos de la placa-leva: distancia al borde del labio", formula: "e_mín (Tabla J3.4M) ≤ w_labio/2", dem: J34M(P.pv_db), cap: P.pv_wlip / 2, unit: "mm", ref: "AISC 360-22 §J3.4, Tabla J3.4M" });
-    add({ grp: PL, sys: "est", kind: "info", name: "Masas del modo pivotado: soporte del ojal E / bloque-uña con pasador Q (por cilindro) y 4 placas-leva", formula: "m = ρ·V", dem: sg.m, cap: bk.m, unit: "kg", ref: "Geometría" });
+    // ligamento de la placa entre el canto y el borde opuesto (viga entre tornillos, carga en el punto de contacto) y tornillos (grupo elástico)
+    const Np = CP.Tst, Nj = CP.NR, Hp = CP.Hpt, fo = CP.onPath(g.primer_contacto.L), ninJ = V.left(fo.t), cJ = V.sub(fo.p, V.mul(ninJ, P.pv_dq / 2));
+    const loads = [{ id: "empuje a calado", N: Np, p: Hp ? Hp.contacto : cJ, nin: Hp ? Hp.nin : ninJ, b: Hp ? Hp.lig : g.lig.jam, mu: fam.mu, tp: Hp ? V.right(Hp.nin) : V.right(ninJ) }, { id: "atasco del retorno", N: Nj, p: cJ, nin: ninJ, b: g.lig.jam, mu: 0, tp: V.right(ninJ) }];
+    const sb = CP.sb, sig = (L) => 6 * (L.N * sb / 4) / (tc * L.b * L.b), tau = (L) => 1.5 * (L.N / 2) / (tc * L.b), Lw = loads.reduce((a, L) => (sig(L) > sig(a) ? L : a));
+    add({ grp: PL, sys: "est", name: "Placa-guía: flexión del ligamento entre tornillos (" + Lw.id + ", ligamento " + nfx(Lw.b, 0) + " mm)", formula: "σ = 6·(N·s/4)/(t·b²) ≤ Fy/Nd; s = " + nfx(sb) + " mm entre tornillos, b = ligamento desde el contacto hasta el borde opuesto", dem: sig(Lw), cap: P.Fy_camP / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    add({ grp: PL, sys: "est", name: "Placa-guía: corte del ligamento", formula: "τ = 1,5·(N/2)/(t·b) ≤ Fy/(Nd·√3)", dem: Math.max(...loads.map(tau)), cap: P.Fy_camP / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2" });
+    const aN = Math.max(1, CP.wPk - P.pv_c), rN = Math.max(1, g.rCanto.concavo), Kt = 1 + 2 * Math.sqrt(aN / rN);
+    add({ grp: PL, sys: "est", name: "Placa-guía: concentración de tensiones en el radio cóncavo del recorte (sin fluencia local a calado)", formula: "K_t·σ_nom ≤ Fy; K_t = 1 + 2√(a/ρ) = " + nfx(Kt, 2) + " (entalla elíptica, cota superior), a = profundidad del bolsillo, ρ = radio cóncavo mínimo del canto (" + nfx(rN, 0) + " mm)", dem: Kt * sig(Lw), cap: P.Fy_camP, unit: "MPa", ref: "Pilkey, Peterson's Stress Concentration Factors (3.ª ed.), Ec. 4.3 (Inglis); ASME BTH-1 §3-2 no exige K_t en la verificación estática (material dúctil); la fatiga usa la categoría del detalle" });
+    const Ib = tc * Lw.b ** 3 / 12, dfl = Lw.N * sb ** 3 / (48 * P.E * Ib) + Lw.N * sb / (4 * (P.E / 2.6) * (5 / 6) * tc * Lw.b);
+    add({ grp: PL, sys: "est", kind: "geo", name: "Placa-guía: deformación del ligamento bajo la carga máxima (no altera la sincronía)", formula: "δ = N·s³/(48·E·I) + N·s/(4·κ·G·A) ≤ 0,1 mm (≈ 10 % del presupuesto de tolerancias δ = " + nfx(g.dTol, 2) + " mm)", dem: dfl, cap: 0.1, unit: "mm", ref: "Resistencia de materiales (viga de Timoshenko)" });
+    // tornillos ISO 10642 roscados en la base: grupo elástico (AISC Manual, Parte 7) con la carga en el contacto (normal + roce sobre la placa)
+    const B = CP.bolts, nB = B.length, Gc = B.reduce((a, b) => [a[0] + b[0] / nB, a[1] + b[1] / nB], [0, 0]), J = B.reduce((a, b) => a + (b[0] - Gc[0]) ** 2 + (b[1] - Gc[1]) ** 2, 0);
+    const Vmax = (L) => { const Fv = V.add(V.mul(L.nin, -L.N), V.mul(L.tp, L.mu * L.N)), M = V.crs(V.sub(L.p, Gc), Fv); return Math.max(...B.map((b) => { const r = V.sub(b, Gc), m = V.mul(V.left(r), M / J); return V.nrm(V.add(V.mul(Fv, 1 / nB), m)); })); };
+    const Vb = Math.max(...loads.map(Vmax)), Ab = Math.PI / 4 * P.pv_db ** 2, Fnv = 0.45 * P.pv_Fub, Fnt = 0.75 * P.pv_Fub, kH = 0.56 * P.pv_db, te = tc - kH / 2, dh = P.pv_db + 1, eb = g.eb;
+    add({ grp: PL, sys: "est", name: "Tornillos de la placa-guía: corte (ISO 10642 M" + P.pv_db + " 8.8, " + nB + " por placa; grupo elástico con la carga en el contacto)", formula: "V_i = F/n + M·r_i/Σr², M = (p − G) × F; f_rv = máx V_i/A_b ≤ Fnv/Ω, Fnv = 0,45·Fu (rosca incluida), Ω = 2,00", dem: Vb / Ab, cap: Fnv / 2, unit: "MPa", ref: "AISC 360-22 §J3.6, Tabla J3.2; AISC Steel Construction Manual, Parte 7 (método elástico)" });
+    const RnP = Math.min(1.2 * (eb - dh / 2) * te * P.Fu_camP, 2.4 * P.pv_db * te * P.Fu_camP), RnB = 2.4 * P.pv_db * P.t_base * P.Fu;
+    add({ grp: PL, sys: "est", name: "Tornillos de la placa-guía: aplastamiento en la placa (espesor útil con el avellanado)", formula: "V ≤ R_n/Ω, R_n = mín(1,2·l_c·t_e·Fu; 2,4·d·t_e·Fu), t_e = t − k/2 (k ≈ 0,56·d, ISO 10642), l_c = e − d_h/2", dem: Vb / 1e3, cap: RnP / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.10 (Ec. J3-6a); EN 1993-1-8 Tabla 3.4 (avellanado)" });
+    add({ grp: PL, sys: "est", name: "Tornillos de la placa-guía: aplastamiento en la plancha base (agujero roscado)", formula: "V ≤ 2,4·d·t_base·Fu/Ω, Ω = 2,00 (transferencia de la carga a la base)", dem: Vb / 1e3, cap: RnB / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.10 (Ec. J3-6a)" });
+    const zc = (tc + 2) / 2, Tb = Math.max(...loads.map((L) => L.N * zc / Math.max(1, L.b - eb) / 2)), frv = Vb / Ab, Fpnt = Math.min(Fnt, 1.3 * Fnt - (2 * Fnt / Fnv) * frv);
+    add({ grp: PL, sys: "est", name: "Tornillos de la placa-guía: tracción por el vuelco de la placa con corte combinado", formula: "T = N·z_c/(b − e)/2 (dos tornillos de la fila opuesta), z_c = (t + 2)/2; f_t = T/A_b ≤ F'nt/Ω, F'nt = 1,3·Fnt − (Ω·Fnt/Fnv)·f_rv ≤ Fnt, Fnt = 0,75·Fu, Ω = 2,00", dem: Tb / Ab, cap: Math.max(0, Fpnt) / 2, unit: "MPa", ref: "AISC 360-22 §J3.7 (Ec. J3-3b)" });
+    add({ grp: PL, sys: "est", kind: "geo", name: "Tornillos de la placa-guía: enganche de la rosca en la base", formula: "1,0·d ≤ t_base (8.8 en acero S355; 10.9 pediría 1,25·d)", dem: P.pv_db, cap: P.t_base, unit: "mm", ref: "VDI 2230-1:2015 (orientativo)" });
+    const dMin = Math.min(...B.concat(CP.dowels).map((b) => Math.min(...g.contorno.map((s) => V.dist(s, b))))), sMin = Math.min(...B.flatMap((a, i) => B.slice(i + 1).map((b) => V.nrm(V.sub(a, b)))));
+    add({ grp: PL, sys: "est", kind: "geo", name: "Tornillos y pasadores de posición de la placa-guía: distancia al borde (incluido el recorte)", formula: "e_mín (Tabla J3.4M) ≤ mín dist(eje, contorno)", dem: J34M(P.pv_db), cap: dMin, unit: "mm", ref: "AISC 360-22 §J3.4, Tabla J3.4M" });
+    add({ grp: PL, sys: "est", kind: "geo", name: "Tornillos de la placa-guía: separación mínima", formula: "3·d ≤ s_mín", dem: 3 * P.pv_db, cap: sMin, unit: "mm", ref: "AISC 360-22 §J3.3" });
+    add({ grp: PL, sys: "est", kind: "info", name: "Pasadores de posición ISO 8734 (2 por placa, m6/H7): fijan la posición del canto (tolerancia ± " + nfx(P.pv_tolg / 2, 2) + " mm); no se cuentan en la resistencia", formula: "el corte lo toman los tornillos (holgura del agujero 1 mm)", dem: P.pv_dd, unit: "mm", ref: REG_PV });
+    add({ grp: PL, sys: "est", kind: "info", name: "Masas del modo pivotado: soporte del ojal E / bloque-uña con pasador Q (por cilindro) y 4 placas-guía", formula: "m = ρ·V", dem: sg.m, cap: bk.m, unit: "kg", ref: "Geometría" });
   }
 
   /* ---------------- Verificaciones ---------------- */
@@ -2532,7 +2830,7 @@ const TT = (() => {
     add({ grp: "Giro", sys: "giro", name: "Gira con contacto en el borde (r = R)", formula: "F(μ_d, R) ≤ F_calado", dem: cs("borde").F, cap: Fs, unit: "kN", ref: "Revisión independiente M1" });
     const mode = driveMode(P);
     if (mode === 1) add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen", formula: "s_libre + ΔL(paso) + margen ≤ carrera", dem: K.ok ? K.s_req + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática (rev. C3)" });
-    else add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen (pivotado)", formula: "L(θ_fin) − L0 + margen ≤ carrera; L(θ) = |P_i − E| − L_qp, L(θ_ini) = L0 + s_libre", dem: K.ok ? K.s_req + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática del cilindro pivotado (docs/normas/registro.md, «Accionamiento pivotado tipo KIET»)" });
+    else add({ grp: "Giro", sys: "giro", kind: "geo", name: "Carrera requerida con margen (pivotado)", formula: "máx L(θ) − L0 + margen ≤ carrera; L(θ) = |Q(θ) − E| con Q apoyado en el canto y |P(θ) − Q| = L_qp (colineal: L = |P − E| − L_qp), L(θ_ini) ≥ L0 + s_libre", dem: K.ok ? (R.camP ? R.camP.sReqG : K.s_req) + P.s_margin : NaN, cap: P.stroke, unit: "mm", ref: "Cinemática del cilindro pivotado (docs/normas/registro.md, «Accionamiento pivotado tipo KIET»)" });
     const bgv = mode === 1 ? bracketGeo(P) : null, Bh = P.B / 2 - P.rim_t - 5, zBed = P.t_base + P.t_bed;
     if (mode === 1) {
           add({ grp: "Giro", sys: "giro", kind: "geo", name: "Uña entre pasadores (ancho en el sentido del empuje)", formula: "cuerda − d_pas ≥ b_uña + 2·10", dem: P.dog_b + 20, cap: K.gap, unit: "mm", ref: "Cinemática" });
@@ -2554,6 +2852,16 @@ const TT = (() => {
     const Ir = Math.PI * P.d_rod ** 4 / 64, Lext = P.L0 + P.stroke;
     const Pcr = Math.PI ** 2 * P.E * Ir / (Lext * Lext) / 1e3;
     add({ grp: "Giro", sys: "giro", name: "Pandeo del vástago (biarticulado, longitud extendida)", formula: "F_calado ≤ Pcr / 3; Pcr = π²EI/L²", dem: Fs, cap: Pcr / 3, unit: "kN", ref: "Euler, FS 3 (conservador frente a ISO/TS 13725)" });
+    if (mode === 2 && K.ok) {
+      // vástago del cilindro biarticulado (pasadores verticales E y Q): en planta solo recibe la fuerza axial, el momento de roce de los pasadores
+      // (μ·F·d/2 en cada ojal, corte V = (M_E + M_Q)/L) y, en alzado, su peso; la reacción de la placa-guía entra al pasador Q y al bloque, no al vástago
+      const Lc = P.L0 + P.stroke, d = P.d_rod, Ar = Math.PI / 4 * d * d, Ir = Math.PI * d ** 4 / 64, rg = d / 4, FyR = P.pv_Fyrod, Pr = Fs * 1e3;
+      const Fe_ = Math.PI ** 2 * P.E / (Lc / rg) ** 2, Fcr = FyR / Fe_ <= 2.25 ? Math.pow(0.658, FyR / Fe_) * FyR : 0.877 * Fe_, Pc = Fcr * Ar / 1.67, Mc = FyR * d ** 3 / 6 / 1.67;
+      const MQ = P.pv_muE * Pr * P.pv_dq / 2, ME = P.pv_muE * Pr * P.pv_dE / 2, Mw = P.m_cyl * G * Lc / 8, Pe1 = Math.PI ** 2 * P.E * Ir / Lc ** 2, B1 = 1 / Math.max(1e-6, 1 - 1.6 * Pr / Pe1);
+      const Mr = B1 * Math.hypot(MQ, Mw), ratio = Pr / Pc >= 0.2 ? Pr / Pc + 8 / 9 * Mr / Mc : Pr / (2 * Pc) + Mr / Mc;
+      add({ grp: "Giro", sys: "giro", kind: "info", name: "Vástago: carga transversal (roce de los pasadores E y Q a calado / peso del cilindro)", formula: "V = μ·F·(d_E + d_Q)/(2·L); la reacción de la placa-guía no llega al vástago (miembro biarticulado de dos fuerzas)", dem: P.pv_muE * Fs * (P.pv_dE + P.pv_dq) / 2 / Lc, cap: P.m_cyl * G / 2 / 1e3, unit: "kN", ref: REG_PV });
+      add({ grp: "Giro", sys: "giro", name: "Vástago: flexocompresión a calado con el roce del ojal Q (μ = " + nfx(P.pv_muE, 2) + ") y el peso (Fy = " + P.pv_Fyrod + " MPa: DATO DEL PROVEEDOR)", formula: "P_r/P_c + 8/9·B₁·M_r/M_c ≤ 1; P_c = F_cr·A/1,67 (E3, KL = L0 + carrera), M_c = Fy·d³/6/1,67, M_r = √((μ·F·d_Q/2)² + (m·g·L/8)²), B₁ = 1/(1 − 1,6·P_r/P_e1)", dem: ratio, cap: 1, unit: "–", ref: "AISC 360-22 §H1.1 (Ec. H1-1a), §E3, Apéndice 8 (B₁, ASD α = 1,6)" });
+    }
     add({ grp: "Giro", sys: "giro", kind: "info", name: "Retorno: fuerza disponible en el puerto B", formula: "F_ret = A_anular · p_ret", dem: R.Fret, unit: "kN", ref: "Hidráulica" });
     add({ grp: "Giro", sys: "giro", name: "Velocidad de retorno del vástago frente al máximo (rebote de la uña sobre el pasador)", formula: "v_ret = Q_ret/(n·A_anular) ≤ v_ret,máx", dem: R.pump.vRet, cap: P.v_ret_max, unit: "m/s", ref: "Criterio del proyecto" });
     add({ grp: "Giro", sys: "giro", kind: "info", name: "Potencia del motor de la bomba (el mayor entre avance y retorno, ÷ η)", formula: "P = p·Q/(600·η) a la presión de diseño (dem) y a la de alarma (cap)", dem: R.pump.Pmotor, cap: R.pump.PmotorAlarm, unit: "kW", ref: "Hidráulica" });
@@ -3040,6 +3348,12 @@ const TT = (() => {
       fat("Pasadores de articulación E y Q", f.pin, "A", nCyc);
       fat("Pie de soldadura cajón del ojal–base", f.toe, "E", nCyc);
       fat("Garganta soldadura cajón del ojal–base (corte)", f.thr, "F", nCyc);
+      const CP = R.camP;
+      if (CP && CP.guia && CP.Hpt) {   // placa-guía: rango de tensión del ligamento con la carga de diseño del empuje (cada carrera carga y descarga la placa)
+        const sb = CP.sb, b = CP.Hpt.lig, tc = P.pv_tcam, sOp = 6 * (CP.Tdis * sb / 4) / (tc * b * b), Ab = Math.PI / 4 * P.pv_db ** 2, eb = CP.guia.eb, dh = P.pv_db + 1;
+        fat("Placa-guía: recorte con radio ≥ 25 mm (borde cortado térmicamente y fresado)", sOp, "C", nCyc);
+        fat("Placa-guía: sección neta en los agujeros de los tornillos", CP.Tdis / Math.max(1, (CP.bolts.length)) / ((2 * eb - dh) * (tc - 0.28 * P.pv_db)), "D", nCyc);
+      }
     }
 
     if (P.__th) thermalRows(P, R, fea, out, add);                      // escenario térmico (TT.thermal): filas del grupo «Temperatura»
@@ -3491,7 +3805,20 @@ const AG = (() => {
     }
     add2("Pivotado: brazo a(θ) frente a dL/dθ numérico (máx. diferencia)", dmax, 0, 0, "mm");
     out[out.length - 1].ok = dmax < 1e-3;
-    add2("Pivotado: fuerza de diseño por cilindro por potencia virtual (deslizamiento por diferencias finitas)", R.cd.F, Fmax, 0.1, "kN");
+    add2("Pivotado: fuerza colineal de referencia por potencia virtual (deslizamiento por diferencias finitas)", Math.max(...R.stroke.map((q) => q.F_colineal)), Fmax, 0.1, "kN");
+    // empuje guiado (Q apoyado en el canto de la placa-guía): potencia virtual con L(θ) = |Q(θ) − E| por diferencias finitas sobre la geometría del núcleo,
+    // deslizamiento cara–pasador por puntos materiales y roce del canto: F·η·dL/dθ = T/n + μ_s·F_n·v_s + μ_leva·H·|dQ/dθ| (F·η = fuerza en Q; F_n y H del equilibrio)
+    if (R.camP && R.camP.guidedAt) {
+      let Fg = 0; const hh = 1e-4, sAl = Lqp - r;
+      for (let i = 1; i < 60; i++) {
+        const th = K.ths + K.pitch * i / 60, g0 = R.camP.guidedAt(th), gp = R.camP.guidedAt(th + hh), gm = R.camP.guidedAt(th - hh); if (!(g0.ok && gp.ok && gm.ok)) continue;
+        const dL = (gp.L - gm.L) / (2 * hh), dQ = Math.hypot(gp.Q[0] - gm.Q[0], gp.Q[1] - gm.Q[1]) / (2 * hh);
+        const C = [g0.Q[0] + sAl * g0.b[0], g0.Q[1] + sAl * g0.b[1]], cpin = [C[0] * Math.cos(hh) - C[1] * Math.sin(hh), C[0] * Math.sin(hh) + C[1] * Math.cos(hh)], cbl = [gp.Q[0] + sAl * gp.b[0], gp.Q[1] + sAl * gp.b[1]];
+        const vs = Math.hypot(cpin[0] - cbl[0], cpin[1] - cbl[1]) / hh, den = dL - P.mu_s * g0.fn * vs - R.fam.mu * g0.h * dQ;
+        Fg = Math.max(Fg, Tn / den);   // fuerza en Q (después del rendimiento del cilindro)
+      }
+      add2("Pivotado: fuerza de diseño del empuje guiado por potencia virtual (dL/dθ, deslizamiento y roce del canto por diferencias finitas)", R.cd.F * P.eta_c, Fg, 1.5, "kN");
+    }
     add2("Pivotado: carrera requerida por coordenadas (L(θ_fin) − L0)", R.K.s_req, geo(K.the).L - P.L0, 0.1, "mm");
     let num = 0, den = 0; const nr = 400;
     for (let i = 0; i < nr; i++) { const rr = R.Ri + (R.Ro - R.Ri) * (i + 0.5) / nr, dA = rr * (R.Ro - R.Ri) / nr; num += rr * dA; den += dA; }

@@ -204,7 +204,8 @@ test("Fijación desmontable por sectores con topes (y pegado como alternativa) y
   // tope: F = (T_calado/r_u)/n·(q_máx/q_med); contacto sobre la altura útil h_c = t − a_sup − a_inf (no sobre t completo);
   // soldadura con brazo z = a_inf + h_c/2 (la resultante del aplastamiento está sobre el filete delantero, no a t/2); L = máx(aplastamiento; soldadura)/0,9, múltiplo de 5 mm
   const A = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true }), R = A.R, Nd = P0.Nd;
-  const Fst = R.Tmax / (R.r_u / 1000) / P0.n_sec * R.q_max / R.q_avg, adm = 1.25 * P0.Fy_ss / Nd, tB = R.ifc.tss;
+  const Fst = R.TmaxTopes / (R.r_u / 1000) / P0.n_sec * R.q_max / R.q_avg, adm = 1.25 * P0.Fy_ss / Nd, tB = R.ifc.tss;   // pivotado: par de calado colineal (cota de los topes, 09-11-2026)
+  assert.ok(R.TmaxTopes >= R.Tmax);
   const aInf = P0.w_tope + 1, hC = tB - P0.a_sup - aInf, z = aInf + hC / 2, aw = 0.707 * P0.w_tope;
   const Fw = 0.60 * P0.FEXX / (1.2 * Nd), wf = (L) => Math.hypot(Fst * 1e3 / (2 * aw * L), Fst * 1e3 * z / (P0.b_tope * aw * L));
   const Lreq = Math.max(Fst * 1e3 / (adm * (hC - P0.tol_hc)), wf(1) / Fw), Lt = Math.ceil(Lreq / 0.9 / 5) * 5;   // 4.ª pasada: el largo se dimensiona con h_c − tol_hc (el tope tolera 1 mm menos de contacto)
@@ -1314,11 +1315,17 @@ test("Pivotado · cinemática: E–Q–P alineados, L = |P − E| − L_qp, a = 
     near(q.aEff, q.a - P.mu_s * Math.abs(P.d_pin / 2 * (1 - (q.P[0] * q.u[0] + q.P[1] * q.u[1]) / d)), 1e-9, "a_ef");
   }
   near(K.s_req, Math.max(...K.pts.map((q) => q.L)) - P.L0, 1e-12, "carrera requerida");
-  const kf = 1 + R.fam.mu * P.mu_s;
-  near(R.cd.F, Math.max(...K.pts.map((q) => R.cd.T * 1e3 / P.n_cyl / q.aEff)) * kf / P.eta_c, 1e-12, "F_cil = máx T/(n·a_ef·η)·(1 + μ_leva·μ_s)");
+  // empuje guiado (Q apoyado en el canto, 09-11-2026): equilibrio del pasador Q F·u_c + H·(n − μ_leva·t) = F_n·b' y par T/n = F_n·(Q × b')
+  R.stroke.forEach((q, i) => {
+    const g = R.camP.push[i], Fe = q.F * P.eta_c, res = [0, 1].map((k) => Fe * g.uc[k] + q.H_guia * (g.nin[k] - R.fam.mu * g.tp[k]) - q.Fp * g.bp[k]);
+    assert.ok(Math.hypot(...res) <= 1e-9 * Fe, "equilibrio del pasador Q en θ = " + q.th);
+    near(q.Fp * (g.Q[0] * g.bp[1] - g.Q[1] * g.bp[0]), R.cd.T * 1e3 / P.n_cyl, 1e-12, "par en el pasador tomado");
+    near(q.ft ** 2 + q.fr ** 2, 1, 1e-9, "f_t² + f_r² = 1"); near(Math.hypot(...g.bp), 1, 1e-12);
+  });
+  near(R.cd.F, Math.max(...R.stroke.map((q) => q.F)), 1e-12, "F_cil = máximo del empuje guiado");
   near(R.cd.FS, R.Fstall / R.cd.F, 1e-12);
-  // tabla de la carrera: fracciones tangencial y radial del empuje sobre el pasador
-  R.stroke.forEach((q) => { near(q.ft ** 2 + q.fr ** 2, 1, 1e-9, "f_t² + f_r² = 1"); near(q.Fcam, P.mu_s * q.Fp, 1e-12, "fuerza en la leva = μ_s·F_n"); });
+  const kf = 1 + R.fam.mu * P.mu_s, Fcol = Math.max(...K.pts.map((q) => R.cd.T * 1e3 / P.n_cyl / q.aEff)) * kf / P.eta_c;
+  assert.ok(R.cd.F >= Fcol && R.cd.F <= 1.10 * Fcol, "el empuje guiado pide hasta 10 % más que la cinemática colineal: " + (R.cd.F / Fcol).toFixed(3));
   // sugerencia de E: factible y con el brazo efectivo máximo de su entorno
   const sg = TT.suggestE(Object.assign(P2(), { pv_RE: 0, pv_Lqp: 0 }));
   assert.ok(sg.ok && sg.RE <= sg.REmax);
@@ -1340,8 +1347,8 @@ test("Pivotado · las 4 familias del contacto seguidor–leva (μ, p_adm, PV pro
   for (const f of [1, 2, 3, 4]) {
     const A = TT.analyze(P2({ cam_mat: f }), { noFEA: true }), F = A.R.fam, rows = A.checks.filter((c) => c.grp === "Placas-leva");
     assert.equal(F.f, f); near(F.mu, exp[f], 1e-12, "μ de la familia " + f);
-    assert.ok(A.checks.some((c) => /^Rampa de la placa-leva sin autobloqueo/.test(c.name) && c.name.includes(F.corto)), "autobloqueo con su μ");
-    assert.ok(rows.some((c) => /Pernos de la placa-leva: corte/.test(c.name)) && rows.some((c) => /flexión del labio/.test(c.name)), "pernos y labio");
+    assert.ok(A.checks.some((c) => /^Placa-guía sin autobloqueo/.test(c.name) && c.name.includes(F.corto)), "autobloqueo con su μ");
+    assert.ok(rows.some((c) => /Tornillos de la placa-guía: corte/.test(c.name)) && rows.some((c) => /flexión del ligamento/.test(c.name)), "tornillos y ligamento");
     if (f === 1) assert.ok(rows.some((c) => /Hertz/.test(c.name)));
     else { assert.ok(rows.some((c) => /presión de la zapata/.test(c.name))); assert.ok(A.R.camP.lpad >= P2().pv_dq); }
     if (f === 2 || f === 3) assert.ok(rows.some((c) => /respaldo de acero/.test(c.name)) && rows.some((c) => /valor PV/.test(c.name)), "respaldo y PV");
@@ -1388,6 +1395,83 @@ test("Pivotado · casos límite: geometría sin toma, ojal fuera de la base, uñ
   assert.ok(TT.analyze(P2(), { noFEA: true }).R.cd.F < TT.analyze(P2({ mu_s: 0.3 }), { noFEA: true }).R.cd.F, "el roce del contacto sube la fuerza");
   assert.equal(TT.driveMode(P2({ drive_mode: 1.4 })), 1); assert.equal(TT.driveMode(P2({ drive_mode: 1.6 })), 2);
 });
+/* ======================= Placa-guía curva del modo pivotado (rediseño 09-11-2026, docs/qa/guia_curva_KIET/cambios.md) ======================= */
+const segTan = (s, p) => { if (s.tipo === "linea") { const d = Math.hypot(s.p1[0] - s.p0[0], s.p1[1] - s.p0[1]); return [(s.p1[0] - s.p0[0]) / d, (s.p1[1] - s.p0[1]) / d]; } const v = [p[0] - s.centro[0], p[1] - s.centro[1]], r = Math.hypot(v[0], v[1]), k = s.sentido === "antihorario" ? 1 : -1; return [-k * v[1] / r, k * v[0] / r]; };
+const segDist = (s, p) => {   // distancia de p al segmento (línea o arco recorrido en su sentido)
+  if (s.tipo === "linea") { const dx = s.p1[0] - s.p0[0], dy = s.p1[1] - s.p0[1], t = Math.max(0, Math.min(1, ((p[0] - s.p0[0]) * dx + (p[1] - s.p0[1]) * dy) / (dx * dx + dy * dy))); return Math.hypot(p[0] - s.p0[0] - t * dx, p[1] - s.p0[1] - t * dy); }
+  const ang = (q) => Math.atan2(q[1] - s.centro[1], q[0] - s.centro[0]), k = s.sentido === "antihorario" ? 1 : -1, a0 = ang(s.p0);
+  const sw = (a) => { let d = k * (a - a0); while (d < 0) d += 2 * Math.PI; while (d >= 2 * Math.PI) d -= 2 * Math.PI; return d; }, span = sw(ang(s.p1)) || 2 * Math.PI;
+  return sw(ang(p)) <= span + 1e-12 ? Math.abs(Math.hypot(p[0] - s.centro[0], p[1] - s.centro[1]) - s.radio) : Math.min(Math.hypot(p[0] - s.p0[0], p[1] - s.p0[1]), Math.hypot(p[0] - s.p1[0], p[1] - s.p1[1]));
+};
+const chainDist = (segs, p) => Math.min(...segs.map((s) => segDist(s, p)));
+test("Placa-guía curva · canto y trayectoria del seguidor: cadena de líneas y arcos tangentes (G1) sin quiebres, en las 4 placas", () => {
+  const P = P2(), G = TT.pivotGeo(P), C = TT.compute(P).camP;
+  assert.ok(C.guia && C.guia.g1Max <= 1e-6, "sin quiebres de tangente en el canto: " + (C.guia && C.guia.g1Max));
+  for (const [k, pl] of Object.entries(G.placas)) {
+    for (const key of ["segmentos_canto", "segmentos_centro"]) {
+      const S = pl[key]; assert.ok(Array.isArray(S) && S.length >= 5, k + " " + key);
+      S.forEach((s, i) => {
+        assert.ok(["linea", "arco"].includes(s.tipo) && s.p0 && s.p1, k + " tipo");
+        if (s.tipo === "arco") { assert.ok(s.radio > 0 && ["antihorario", "horario"].includes(s.sentido)); near(Math.hypot(s.p0[0] - s.centro[0], s.p0[1] - s.centro[1]), s.radio, 1e-9, k + " p0 sobre el arco"); near(Math.hypot(s.p1[0] - s.centro[0], s.p1[1] - s.centro[1]), s.radio, 1e-9, k + " p1 sobre el arco"); }
+        if (i) {
+          const a = S[i - 1]; assert.ok(Math.hypot(a.p1[0] - s.p0[0], a.p1[1] - s.p0[1]) <= 1e-6, k + " " + key + " continuidad de posición en el empalme " + i);
+          const t0 = segTan(a, a.p1), t1 = segTan(s, s.p0); assert.ok(Math.abs(Math.atan2(t0[0] * t1[1] - t0[1] * t1[0], t0[0] * t1[0] + t0[1] * t1[1])) <= 1e-6, k + " " + key + " G1 en el empalme " + i);
+        }
+      });
+    }
+    // el canto es el desplazamiento exacto de la trayectoria del centro del seguidor (envolvente a d_Q/2)
+    pl.segmentos_centro.forEach((s, i) => { const e = pl.segmentos_canto[i]; assert.equal(e.tipo, s.tipo); if (s.tipo === "arco") { near(e.centro[0], s.centro[0], 1e-9); near(e.centro[1], s.centro[1], 1e-9); near(Math.abs(e.radio - s.radio), P.pv_dq / 2, 1e-9, "radios concéntricos a ± d_Q/2"); } });
+    // contorno cerrado y polilíneas con flecha ≤ 0,1 mm
+    const Cn = pl.segmentos_contorno; assert.ok(Math.hypot(Cn[0].p0[0] - Cn[Cn.length - 1].p1[0], Cn[0].p0[1] - Cn[Cn.length - 1].p1[1]) <= 1e-6, "contorno cerrado");
+    for (let i = 1; i < pl.recorte.length; i++) { const m = [(pl.recorte[i - 1][0] + pl.recorte[i][0]) / 2, (pl.recorte[i - 1][1] + pl.recorte[i][1]) / 2]; assert.ok(chainDist(pl.segmentos_canto, m) <= 0.1 + 1e-9, k + " flecha de la polilínea del canto ≤ 0,1 mm"); }
+  }
+});
+test("Placa-guía curva · radio mínimo sin socavado, no autobloqueo en toda la curva y empuje estable contra la guía", () => {
+  const P = P2(), R = TT.compute(P), C = R.camP, g = C.guia, rf = P.pv_dq / 2, fam = R.fam;
+  g.canto.slice(0, g.tramos.length).forEach((e, i) => { if (e.tipo !== "arco") return; const s = g.tramos[i]; if (e.curvatura === "convexa") { near(s.radio, e.radio + rf, 1e-9, "canto convexo: R_centro = R_canto + d_Q/2"); assert.ok(e.radio >= P.pv_rmin - 1e-9, "radio convexo ≥ mínimo: " + e.radio); } else { assert.equal(e.curvatura, "cóncava"); near(e.radio, s.radio + rf, 1e-9); } });
+  assert.ok(g.rCanto.convexo >= P.pv_rmin && g.rCentro.convexo >= rf + P.pv_rmin, "sin socavado con margen");
+  // retorno: en toda la zona en que la guía conduce el seguidor (del primer contacto al retraído) el ángulo de presión no autobloquea
+  const kE = P.pv_muE * P.pv_dE / (2 * P.L0), drv = g.ret.filter((q) => q.guia);
+  assert.ok(drv.length > 20, "zona de conducción muestreada");
+  drv.forEach((q) => { const a = q.phi * Math.PI / 180; assert.ok(q.phi <= P.pv_alpha + 1e-9, "φ ≤ α_máx"); assert.ok(kE * (Math.sin(a) + fam.mu * Math.cos(a)) < Math.cos(a) - fam.mu * Math.sin(a), "sin autobloqueo en L = " + q.L.toFixed(1)); });
+  // empuje: la rodilla E–Q–P es inestable en compresión y Q se apoya en el canto: reacción positiva y ángulo bajo el de rozamiento en todas las posiciones
+  assert.equal(R.stroke.length, R.K.pts.length);
+  R.stroke.forEach((q) => { assert.ok(q.H_guia > 0, "Q apoyado en la guía (H > 0) en θ = " + (q.th * 180 / Math.PI).toFixed(2)); assert.ok(q.phi_guia < 90 - Math.atan(fam.mu) * 180 / Math.PI, "sin autobloqueo en el empuje"); });
+  assert.ok(Math.max(...R.stroke.map((q) => q.F)) <= R.cd.F + 1e-9 && R.cd.FS >= P.FS_min, "la fuerza de diseño es la del empuje guiado y cumple FS");
+});
+test("Placa-guía curva · sincronía (con tolerancias y dilatación) y sin interferencias en todo el recorrido", () => {
+  const P = P2(), R = TT.compute(P), K = R.K, C = R.camP, g = C.guia, rf = P.pv_dq / 2, E = K.E;
+  // sincronía recalculada desde la polilínea del centro del seguidor (local, cilindro 1 antihorario)
+  const lw = (p) => { const L = Math.hypot(p[0] - E[0], p[1] - E[1]); let d = C.psi0 - Math.atan2(p[1] - E[1], p[0] - E[0]); while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return [L, d * L]; };
+  let sMin = Infinity; g.polilinea_centro.map(lw).forEach(([L, w]) => { if (L >= P.L0 - 1e-9 && L <= g.primer_contacto.L + 1e-9) sMin = Math.min(sMin, C.clrRet(L, w)); });
+  assert.ok(g.dTol > 0.5 && sMin >= P.pv_msync + g.dTol - 0.05, "sincronía nominal ≥ margen + tolerancias: " + sMin.toFixed(2));
+  assert.ok(g.syncWorst >= P.pv_msync && C.sync >= P.pv_msync + g.dTol - 1e-6);
+  // retorno: el bloque nunca penetra los pasadores; vuelve a la toma (w = c en L0)
+  g.ret.forEach((q) => assert.ok(q.hol >= -1e-6, "retorno sin choque en L = " + q.L.toFixed(1)));
+  near(C.wCam(P.L0), P.pv_c, 1e-6, "reenganche en la toma");
+  // empuje guiado: bloque libre de los pasadores y cuerpo del cilindro fuera de la mesa
+  C.push.forEach((q) => { assert.ok(q.clrB >= P.pv_cB, "bloque–pasadores en el empuje: " + q.clrB.toFixed(2)); assert.ok(q.body >= P.pv_cc, "cuerpo del cilindro–mesa"); });
+  // la placa no invade el seguidor en ninguna posición; fuera de la mesa, dentro de la base, lejos del cajón E y sin solape entre sentidos
+  const G = TT.pivotGeo(P), Bh = P.B / 2 - P.rim_t - 5;
+  for (const [k, pl] of Object.entries(G.placas)) {
+    pl.centro_seguidor.forEach((q) => assert.ok(chainDist(pl.segmentos_contorno, q) >= rf - 1e-6, k + ": la placa no invade el seguidor"));
+    pl.contorno.forEach(([x, y]) => { assert.ok(Math.hypot(x, y) >= P.D_top / 2 + P.pv_cQ - 1e-6, k + ": fuera de la mesa"); assert.ok(Math.max(Math.abs(x), Math.abs(y)) <= Bh, k + ": dentro de la base"); });
+    const Ek = k.startsWith("1") ? E : [-E[0], -E[1]];
+    pl.contorno.forEach(([x, y]) => assert.ok(Math.max(Math.abs(x - Ek[0]), Math.abs(y - Ek[1])) >= P.pv_box / 2 + 5 - 1e-6, k + ": libre del cajón del ojal E"));
+  }
+  assert.ok(C.diag >= 5, "placas de ambos sentidos sin solape");
+  assert.ok(g.zCuerpo - (P.t_base + P.pv_tcam) >= 5, "cuerpo del cilindro sobre la placa");
+});
+test("Placa-guía curva · API: segmentos en designDrive y contacto de la simulación sobre el canto", () => {
+  const P = P2(), R = TT.compute(P), D = TT.designDrive(P, R).pivotado, pl = D.fabricacion.placas_leva;
+  for (const k of ["1_antihorario", "2_antihorario", "1_horario", "2_horario"]) {
+    const I = pl.instancias[k]; assert.ok(I.segmentos_canto.length >= 5 && I.segmentos_contorno.length >= I.segmentos_canto.length && I.recorte.length > 10 && I.contorno.length > 10);
+    I.segmentos_canto.forEach((s) => assert.ok(s.tipo === "linea" || (s.centro && s.radio > 0 && s.sentido), "segmento completo"));
+    assert.ok(I.pernos.length === Math.round(P.pv_nb) && I.pasadores_posicion.length === 2);
+  }
+  assert.ok(pl.tolerancia_polilinea <= 0.1 && pl.material && /42CrMo4/.test(pl.material) && pl.pernos.norma);
+  for (const s of [40, 120, 200]) { const q = TT.pivotAt(P, s, "empuje", "antihorario"); assert.ok(chainDist(TT.pivotGeo(P).placas["1_antihorario"].segmentos_canto, q.contactoLeva.punto) <= 0.5, "contacto sobre el canto en s = " + s); assert.ok(q.contactoLeva.F > 0); }
+});
 test("Golden file · modo pivotado (drive_mode = 2): resultados por defecto sin cambios no justificados", () => {
   const A = TT.analyze(P2()), R = A.R, K = R.K;
   const snap = { masa_total: R.m.total, masas: { brackets: R.m.brackets, dogs: R.m.dogs, cam: R.m.cam }, brazo_min: K.aMin, brazo_ef_min: K.aEffMin, carrera_req: K.s_req, Q_min: K.QrMin, holgura_B: K.clrB,
@@ -1420,16 +1504,16 @@ test("Simulación · TT.driveAt: fuerzas en cualquier θ y caso, coherentes con 
 test("Simulación · modo pivotado: pivotGeo y pivotAt (θ final = θ inicial + paso, carrera, retorno con salida sobre el pasador siguiente y reenganche)", () => {
   const P = P2(), R = TT.compute(P), K = R.K, G = TT.pivotGeo(P);
   assert.equal(G.E.length, 2); near(G.E[1][0], -G.E[0][0], 1e-12); assert.deepEqual(Object.keys(G.placas).sort(), ["1_antihorario", "1_horario", "2_antihorario", "2_horario"]);
-  for (const k of Object.keys(G.placas)) assert.ok(G.placas[k].recorte.length > 10 && G.placas[k].contorno.length === 2 * G.placas[k].recorte.length && G.placas[k].pernos.length === Math.round(P.pv_nb));
-  assert.equal(G.L0, P.L0); assert.equal(G.carrera, P.stroke); near(G.s_req, K.s_req, 1e-12);
-  const a0 = TT.pivotAt(P, 0, "empuje", "antihorario"), a1 = TT.pivotAt(P, K.s_req, "empuje", "antihorario");
-  near(a0.th, K.ths, 1e-12, "inicio"); near(a1.th - a0.th, 2 * Math.PI / P.N_pin, 1e-9, "θ final = θ inicial + paso al final del empuje"); near(a1.L, K.Lend, 1e-9);
-  near(a1.Q[0], K.pts[K.pts.length - 1].Q[0], 1e-6); near(a1.Q[1], K.pts[K.pts.length - 1].Q[1], 1e-6, "Q en el final del empuje");
-  const mid = TT.pivotAt(P, 120, "empuje", "antihorario"); near(mid.F, TT.driveAt(P, mid.th, "dis").F, 1e-12); near(mid.contactoLeva.F, P.mu_s * TT.driveAt(P, mid.th, "dis").Fp, 1e-12);
+  for (const k of Object.keys(G.placas)) assert.ok(G.placas[k].recorte.length > 10 && G.placas[k].contorno.length > G.placas[k].recorte.length && G.placas[k].pernos.length === Math.round(P.pv_nb));
+  assert.equal(G.L0, P.L0); assert.equal(G.carrera, P.stroke); near(G.s_req, R.camP.sReqG, 1e-12); assert.ok(G.s_req >= K.s_req - 1e-9);
+  const a0 = TT.pivotAt(P, 0, "empuje", "antihorario"), a1 = TT.pivotAt(P, G.s_req, "empuje", "antihorario");
+  near(a0.th, K.ths, 1e-12, "inicio"); near(a1.th - a0.th, 2 * Math.PI / P.N_pin, 1e-9, "θ final = θ inicial + paso al final del empuje"); near(a1.L, P.L0 + G.s_req, 1e-9);
+  const qe = R.stroke[R.stroke.length - 1].Q; near(a1.Q[0], qe[0], 1e-6); near(a1.Q[1], qe[1], 1e-6, "Q en el final del empuje (apoyado en el canto)");
+  const mid = TT.pivotAt(P, 120, "empuje", "antihorario"); near(mid.F, TT.driveAt(P, mid.th, "dis").F, 1e-12); near(mid.contactoLeva.F, TT.driveAt(P, mid.th, "dis").Fcam, 1e-12); assert.ok(mid.contactoLeva.enCanto);
   // retorno: la uña sale sobre el pasador siguiente (w mayor que en el empuje) y la leva la reengancha (w = c en el extremo retraído) sin choque
   let wMax = 0, holMin = Infinity, syncMin = Infinity;
   for (let i = 0; i <= 400; i++) { const s = K.s_req * (1 - i / 400), q = TT.pivotAt(P, s, "retorno", "antihorario"); wMax = Math.max(wMax, q.w); holMin = Math.min(holMin, q.holgura); if (q.contactoLeva.enRampa) syncMin = Math.min(syncMin, q.holgura_leva); assert.ok(!q.alertas.choque, "sin choque en s = " + s.toFixed(1)); }
-  assert.ok(wMax > TT.pivotAt(P, 30, "empuje", "antihorario").w + 20, "sale sobre el pasador siguiente"); assert.ok(holMin >= -1e-6);
+  assert.ok(wMax > R.camP.wPush(P.L0 + 30) + 20, "sale sobre el pasador siguiente"); assert.ok(holMin >= -1e-6);
   near(TT.pivotAt(P, 0, "retorno", "antihorario").w, P.pv_c, 1e-9, "reenganche: Q vuelve al canto de toma");
   assert.ok(Math.abs(syncMin - R.camP.sync) < 0.05 && syncMin >= R.camP.sync - 1e-3, "la sincronía de la simulación coincide con la verificación: " + syncMin.toFixed(3) + " vs " + R.camP.sync.toFixed(3));
   const h = TT.pivotAt(P, 120, "empuje", "horario"), ph = P.pv_phE * Math.PI / 180;

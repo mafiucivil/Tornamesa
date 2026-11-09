@@ -165,7 +165,20 @@ const AG = (() => {
     }
     add2("Pivotado: brazo a(θ) frente a dL/dθ numérico (máx. diferencia)", dmax, 0, 0, "mm");
     out[out.length - 1].ok = dmax < 1e-3;
-    add2("Pivotado: fuerza de diseño por cilindro por potencia virtual (deslizamiento por diferencias finitas)", R.cd.F, Fmax, 0.1, "kN");
+    add2("Pivotado: fuerza colineal de referencia por potencia virtual (deslizamiento por diferencias finitas)", Math.max(...R.stroke.map((q) => q.F_colineal)), Fmax, 0.1, "kN");
+    // empuje guiado (Q apoyado en el canto de la placa-guía): potencia virtual con L(θ) = |Q(θ) − E| por diferencias finitas sobre la geometría del núcleo,
+    // deslizamiento cara–pasador por puntos materiales y roce del canto: F·η·dL/dθ = T/n + μ_s·F_n·v_s + μ_leva·H·|dQ/dθ| (F·η = fuerza en Q; F_n y H del equilibrio)
+    if (R.camP && R.camP.guidedAt) {
+      let Fg = 0; const hh = 1e-4, sAl = Lqp - r;
+      for (let i = 1; i < 60; i++) {
+        const th = K.ths + K.pitch * i / 60, g0 = R.camP.guidedAt(th), gp = R.camP.guidedAt(th + hh), gm = R.camP.guidedAt(th - hh); if (!(g0.ok && gp.ok && gm.ok)) continue;
+        const dL = (gp.L - gm.L) / (2 * hh), dQ = Math.hypot(gp.Q[0] - gm.Q[0], gp.Q[1] - gm.Q[1]) / (2 * hh);
+        const C = [g0.Q[0] + sAl * g0.b[0], g0.Q[1] + sAl * g0.b[1]], cpin = [C[0] * Math.cos(hh) - C[1] * Math.sin(hh), C[0] * Math.sin(hh) + C[1] * Math.cos(hh)], cbl = [gp.Q[0] + sAl * gp.b[0], gp.Q[1] + sAl * gp.b[1]];
+        const vs = Math.hypot(cpin[0] - cbl[0], cpin[1] - cbl[1]) / hh, den = dL - P.mu_s * g0.fn * vs - R.fam.mu * g0.h * dQ;
+        Fg = Math.max(Fg, Tn / den);   // fuerza en Q (después del rendimiento del cilindro)
+      }
+      add2("Pivotado: fuerza de diseño del empuje guiado por potencia virtual (dL/dθ, deslizamiento y roce del canto por diferencias finitas)", R.cd.F * P.eta_c, Fg, 1.5, "kN");
+    }
     add2("Pivotado: carrera requerida por coordenadas (L(θ_fin) − L0)", R.K.s_req, geo(K.the).L - P.L0, 0.1, "mm");
     let num = 0, den = 0; const nr = 400;
     for (let i = 0; i < nr; i++) { const rr = R.Ri + (R.Ro - R.Ri) * (i + 0.5) / nr, dA = rr * (R.Ro - R.Ri) / nr; num += rr * dA; den += dA; }
