@@ -3,9 +3,9 @@
 Estado del juego de planos: **EMITIDO PARA REVISIÓN, revisión C** (códigos TT300C-…-C). **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.** DIBUJÓ/REVISÓ/APROBÓ: A DEFINIR (con casillas de firma y fecha).
 
 ## Contenido de esta carpeta
-- `TT300-C_Memoria_RevC.docx/.pdf`: memoria de cálculo (texto negro, hipótesis → desarrollo → resultado). Regenerar con `npm run memoria` (necesita `python-docx` y LibreOffice `soffice`); el .docx y el .pdf se copian a esta carpeta.
+- `TT300-C_Memoria_RevC.docx/.pdf`: memoria de cálculo (texto negro, hipótesis → desarrollo → resultado, FU con 3 decimales): accionamiento pivotado tipo KIET con placa-guía curva y empuje guiado (cap. 7.2–7.4), guiado con riel-leva (7.5), AF2 (6.3), alternativas A, B, C1–C3 (cap. 9 y 10), datos faltantes (cap. 12) y modificaciones de la Rev. C (cap. 15). La cubierta de madera W está EN STAND BY y no se incluye (docs/standby/madera_W/LEEME.md). Regenerar con `npm run memoria` (necesita `python-docx`, `pymupdf`, `matplotlib` y LibreOffice `soffice`); el .docx, el .pdf y los dos JSON se copian a esta carpeta.
 - `TT300-C_design.json`: diseño por defecto exportado por `node tools/export_design.js` (fuente única del cálculo y de los planos).
-- `TT300-C_alternativas.json`: datos de los capítulos 9 y 10 de la memoria (`node tools/export_alternativas.js`).
+- `TT300-C_alternativas.json`: datos de los capítulos 7, 9 y 10 de la memoria (`node tools/export_alternativas.js`; sin la variante W, que se exporta solo con `TT_CON_MADERA=1`).
 
 Desde el 08-11-2026 el repositorio **no guarda juegos de planos** (ni PDF, DXF, STEP, despiece ni los controles del paquete). Los juegos anteriores siguen en el historial de git.
 

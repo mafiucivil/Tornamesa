@@ -258,7 +258,9 @@ for ln in reg:
 table(["Ámbito", "Criterio", "Referencia"], rows, widths=(38, 82, 50), size=8)
 SEC_CAP = {"Temperatura (exposición solar, 80 °C)": "Capítulo 10 y Anexo B", "Uña de empuje: material y excepción del criterio FU ≤ 0,90": "7.5.5 (modo guiado)",
            "Leva de reenganche positiva (modo guiado)": "7.5", "Accionamiento pivotado tipo KIET": "7.2 y 7.3 (incluye «Placa-guía curva»)", "Valor por defecto del accionamiento (08-11-2026)": "7.2.7 y 7.6",
-           "Tornillos avellanados del disco de la mesa (AF2)": "6.3", "Cubierta de madera W (rebaje)": "En stand by (6.2): no se aplica en esta entrega"}
+           "Tornillos avellanados del disco de la mesa (AF2)": "6.3", "Cubierta de madera W (rebaje)": "En stand by (6.2): no se aplica en esta entrega",
+           "Soporte del ojal E: cajón abierto (10-11-2026)": "7.2.6 b)", "Elementos sobre la base: holguras (10-11-2026)": "7.3.5 D)",
+           "Placa-guía: holgura mínima de sincronía y pasadores de posición (10-11-2026)": "7.2.4 y 7.3.4", "Pórtico del riel del modo guiado: patas de S355J2 (10-11-2026)": "7.5"}
 _secs = [ln[3:].strip() for ln in reg if ln.startswith("## ")]
 T("El registro tiene además secciones propias, cuyos criterios se transcriben en el capítulo donde se aplican:", size=9, after=1)
 table(["Sección de docs/normas/registro.md", "Dónde se aplica"], [[x, SEC_CAP.get(x, "—")] for x in _secs], widths=(110, 60), size=8)
@@ -278,6 +280,27 @@ def reg_rows(title, sub=None):
             c = [x.strip().replace("\\|", "|") for x in re.split(r"(?<!\\)\|", ln.strip().strip("|"))]
             out.append(c)
     return out[1:] if out else []   # sin la fila de encabezado
+
+
+def reg_table(title, sub=None, intro=None):
+    """Tabla de criterios de una sección del registro (si la sección tiene tabla)."""
+    rows = reg_rows(title, sub)
+    if not rows:
+        return
+    T(intro or f"Criterios aplicados (docs/normas/registro.md, «{sub or title}»):", size=9, after=1)
+    table(["Verificación", "Criterio", "Referencia", "Ecuación / nota"], [r_ + [""] * (4 - len(r_)) if len(r_) < 4 else r_[:4] for r_ in rows], widths=(28, 60, 36, 46), size=6.5)
+
+
+def reg_pend(title):
+    """Frases «Pendiente …» del texto de una sección del registro."""
+    txt, on = [], False
+    for ln in reg:
+        if ln.startswith("## "):
+            on = ln[3:].strip() == title
+            continue
+        if on and not ln.startswith("|"):
+            txt.append(ln)
+    return re.findall(r"(Pendiente[^.]*(?:\.\d[^.]*)*\.)", " ".join(txt))
 
 
 def md_table(text, heading):
@@ -321,8 +344,8 @@ table(["Componente", "Descripción"], [
     ["Cilindros (pos 9)", f"{pint(P['n_cyl'])} × doble efecto Ø{pint(P['D_bore'])}/Ø{pint(P['d_rod'])}, carrera {pint(P['stroke'])}, clase {pint(P['p_rated'])} psi ({pint(psi_bar)} bar), "
                           f"alivio {pint(P['p_relief'])} bar, alarma {pint(P['p_alarm'])} bar; pivotados sobre pasadores verticales E (Ø{pint(P['pv_dE'])}) en la diagonal, "
                           f"φ_E = {pint(P['pv_phE'])}° y {pint((P['pv_phE'] + 180) % 360)}°, R_E = {pint(PIV['R_E'])} mm"],
-    ["Soporte del ojal E", f"Cajón soldado a la base, lado {pint(PIV['soporte_E']['lado_cajon'])} mm, paredes de {pint(PIV['soporte_E']['t_pared'])} mm (sección en U: ventana del ojal hacia la mesa), "
-                           f"tapas de {pint(PIV['soporte_E']['t_tapas'])} mm que hacen de orejas del pasador E; filete {pint(PIV['soporte_E']['filete'])} mm; {PIV['fabricacion']['soporte_E']['material']}"],
+    ["Soporte del ojal E", f"{PIV['fabricacion']['soporte_E']['tipo'][0].upper() + PIV['fabricacion']['soporte_E']['tipo'][1:]}; lado {pint(PIV['soporte_E']['lado_cajon'])} mm, paredes de {pint(PIV['soporte_E']['t_pared'])} mm, "
+                           f"tapas de {pint(PIV['soporte_E']['t_tapas'])} mm que hacen de orejas del pasador E; uniones: {PIV['fabricacion']['soporte_E']['soldadura']['paredes_base']}; {PIV['fabricacion']['soporte_E']['material']}"],
     ["Bloque-uña y pasador Q", f"Bloque {PIV['fabricacion']['bloque_una']['material']} que gira libre sobre el pasador vertical Q (Ø{pint(PIV['bloque_una']['d_Q'])}) del ojal del vástago; "
                                f"Q a L_qp = {pint(PIV['L_qp'])} mm del centro del pasador tomado; cuerpo {pint(PIV['bloque_una']['b_cuerpo'])} × {pint(PIV['bloque_una']['h'])} acodado e_cr = {pint(PIV['bloque_una']['e_acodado'])} mm hacia afuera "
                                f"para librar el pasador siguiente; cara de empuje {pint(PIV['bloque_una']['b_cara'])} × {pint(PIV['bloque_una']['l_cara'])} cilíndrica convexa R{pint(PIV['bloque_una']['R_cara'])} templada ≥ 55 HRC. El extremo inferior de Q es el seguidor de la placa-guía"],
@@ -615,8 +638,8 @@ table(["Hipótesis", "Valor adoptado (núcleo)", "Origen"], [
      f"cara de empuje {pint(BU['b_cara'])} × {pint(BU['l_cara'])} mm cilíndrica convexa en planta R{pint(BU['R_cara'])}, templada ≥ 55 HRC; horquilla de {pint(BU['t_horquilla'])} mm en Q", "Registro, «Cara del bloque-uña»; 7.2.5"],
     ["Seguidor", f"Extremo inferior del pasador Q (r_f = d_Q/2 = {n(BU['d_Q'] / 2)} mm, voladizo {n(BU['voladizo_leva'])} mm bajo la horquilla) apoyado en el canto de la placa-guía", "Geometría del modo 2"],
     ["Placas-guía", f"4 (una por cilindro y sentido de giro), t = {pint(PL_['t'])} mm, sobre la base y fuera de la mesa; recorte en media luna con canto curvo G1 (7.3)", "La mesa apoya sobre la base hasta R_o: no hay lugar bajo ella"],
-    ["Soporte del ojal E", f"Cajón {pint(SE['lado_cajon'])} × {pint(SE['lado_cajon'])} mm, paredes de {pint(SE['t_pared'])} mm, alto {pint(SE['alto'])} mm, sección resistente en U (ventana del ojal hacia la mesa); "
-     f"tapas de {pint(SE['t_tapas'])} mm; filete {pint(SE['filete'])} mm; {FAB['soporte_E']['material']}", "Registro, «Soporte del ojal E»"],
+    ["Soporte del ojal E", f"{FAB['soporte_E']['tipo'][0].upper() + FAB['soporte_E']['tipo'][1:]}; lado {pint(SE['lado_cajon'])} mm, paredes de {pint(SE['t_pared'])} mm, alto {pint(SE['alto'])} mm; "
+     f"tapas de {pint(SE['t_tapas'])} mm; holgura del cuerpo del cilindro {n(SE['holgura_cuerpo'])} mm; {FAB['soporte_E']['material']}", "Registro, «Soporte del ojal E»"],
     ["Inversión del sentido de giro", "El cilindro pivota en el mismo ojal hacia el otro lado de la diagonal (imagen especular respecto de O–E) y trabaja con la otra placa-guía; no se trasladan cilindros", "Concepto KIET"],
     ["Roce", f"μ_s (cara–pasador) = {n(P['mu_s'])}; μ_leva (seguidor–canto) = {n(PL_['mu'])} ({PL_['familia_nombre']}); μ_E = μ_Q = {n(P['pv_muE'])}; η_c = {n(P['eta_c'])}", "Parámetros; familia automática (7.3.6)"],
     ["Cilindro", f"Ø{pint(P['D_bore'])}/Ø{pint(P['d_rod'])} × {pint(P['stroke'])} mm, L0 = {pint(P['L0'])} mm, s_libre = {pint(P['s_free'])} mm; alivio {pint(P['p_relief'])} bar, alarma {pint(P['p_alarm'])} bar, retorno {pint(P['p_ret'])} bar",
@@ -688,6 +711,18 @@ table(["N°", "Magnitud", "Ecuación", "Valor (núcleo)", "Norma o referencia"],
 ir = sorted(set(list(range(0, len(RET), max(1, len(RET) // 10))) + [len(RET) - 1]))
 table(["L (mm)", "W centro del seguidor (mm)", "Holgura bloque–B (mm)", "φ (°)", "¿Conducido por el canto?"],
       [[n(RET[i]["L"]), n(RET[i]["W"]), "0 (en contacto con B)" if abs(RET[i]["holgura"]) < 1e-3 else n(RET[i]["holgura"]), n(RET[i]["phi_deg"]), "Sí" if RET[i]["guia"] else ("No: B empuja el bloque hacia afuera" if abs(RET[i]["holgura"]) < 1e-3 else "No (libre)")] for i in ir], widths=(28, 36, 36, 26, 44), size=7.5, num_cols=(0, 1, 2, 3))
+HS = FPL.get("holgura_sincronia")
+reg_table("Placa-guía: holgura mínima de sincronía y pasadores de posición (10-11-2026)")
+if HS:
+    _i1 = HS["instancias"]["1_antihorario"]
+    T("Punto de holgura mínima del retorno (núcleo, fabricacion.placas_leva.holgura_sincronia), para el control dimensional:", size=9, after=1)
+    table(["Magnitud", "Valor (núcleo)"], [
+        ["Fase / pasador", f"{HS['fase']}; pasador {HS['pasador']}"],
+        ["Holgura nominal / peor caso / exigida", f"{n(HS['nominal'])} / {n(HS['peor_caso'])} / {n(HS['margen_exigido'])} mm (tolerancias {n(HS['tolerancias'])} mm)"],
+        ["Largo del cilindro y carrera en ese punto", f"L = {n(HS['L'], 4)} mm; s = {n(HS['s'])} mm"],
+        ["Punto del bloque / del pasador, marco de la placa (x′; y′)", f"{pt(HS['marco_placa']['punto_bloque'])} / {pt(HS['marco_placa']['punto_pasador'])} mm"],
+        ["Punto del bloque / del pasador, cilindro 1 antihorario (x; y)", f"{pt(_i1['punto_bloque'])} / {pt(_i1['punto_pasador'])} mm; Q = {pt(_i1['Q'])} mm; θ = {n(_i1['theta_deg'])}°"],
+    ], widths=(60, 110), size=7.5)
 vblock("Verificaciones del retorno y de la sincronía", "ecuaciones (12) a (17); placa-guía en su posición nominal y en el extremo de la tolerancia, mesa a 80 °C.",
        take(r"^Sincronía|^Flanco de reenganche|sin autobloqueo en toda la conducción", "Giro") + take(r"^Velocidad de retorno", "Giro"))
 
@@ -714,12 +749,22 @@ T("Desarrollo: cada fila indica la fórmula, la demanda, la capacidad, el FU (de
   f"{n(FST, unit='kN')} por cilindro en las piezas de la cadena de empuje (ASME BTH-1 Cat. B, Nd = {n(P['Nd'])}).", size=9)
 vblock("a) Pasadores Q y E y tapas del cajón", f"pasadores verticales en doble corte; Q con la reacción de la placa-guía en su extremo inferior (voladizo {n(BU['voladizo_leva'])} mm); F_calado; ASME BTH-1 §3-2 y §3-3.",
        take(r"^(?!Pasador Q)", "Articulaciones"))
-vblock("b) Soporte del ojal E (cajón)", f"F_calado repartida en las dos tapas; sección en U (S_U = {n(SE['S_U'] / 1e3)}·10³ mm³); filetes a ambos lados de las tres paredes; ASME BTH-1 §3-2, §3-3.4; AISC 360-22 §J2.",
-       take(r".", "Soporte del ojal E"))
+T("b) Soporte del ojal E: uniones soldadas", bold=True, size=9.5, after=1)
+T(f"Hipótesis. {SE['nota'][0].upper() + SE['nota'][1:]}. Uniones del núcleo (fabricacion.soporte_E.juntas) con su tipo, tamaño, largo, acceso y FU:", size=9)
+table(["Junta", "Piezas", "Tipo", "Tamaño (mm)", "Largo (mm)", "FU", "Norma"],
+      [[j["id"], " – ".join(j["piezas"]), j["tipo"], "; ".join(f"{k.replace('_', ' ')} {pint(v) if float(v).is_integer() else n(v)}" for k, v in j["tamano"].items()) if isinstance(j.get("tamano"), dict) else str(j.get("tamano", "—")),
+        n(j["largo"]) if isinstance(j.get("largo"), (int, float)) else "—", fu3((j.get("verificacion") or {}).get("fu")), (j.get("verificacion") or {}).get("norma", "—")] for j in FAB["soporte_E"]["juntas"]],
+      widths=(12, 24, 52, 18, 13, 11, 40), size=6.5, num_cols=(4, 5))
+T("Secuencia de armado y soldadura (núcleo):", size=9, after=1)
+for _sq in (FAB["soporte_E"]["secuencia"] if isinstance(FAB["soporte_E"]["secuencia"], list) else [str(FAB["soporte_E"]["secuencia"])]):
+    T(_sq, size=8.5, after=1)
+reg_table("Soporte del ojal E: cajón abierto (10-11-2026)")
+vblock("Verificaciones del soporte del ojal E", "F_calado repartida en las dos tapas; paredes traseras en L con muñones; CJP y PJP con AISC 360-22 §J2.4 (Tabla J2.5) y AWS D1.1/D1.1M:2020; ASME BTH-1 §3-2.",
+       take(r"^(?!.*secuencia de armado)", "Soporte del ojal E"))
 vblock("c) Pivote central: componentes del empuje", "con el par en la diagonal las componentes radiales se anulan; al pivote llega la asimetría del roce (μ_s ± 0,05) a calado; ASME BTH-1 §3-2.3.", take(r"Pivotado|Empuje neto", "Pivote"))
 vblock("d) Fatiga del bloque-uña y de las articulaciones", f"{pint(P['turns_yr'])} vueltas/año × {pint(P['life'])} años; AISC 360-22 Apéndice 3, Ec. A-3-1, Tabla A-3.1.", take(r"Bloque|articulación|ojal|cajón|Pasador", "Fatiga"))
 vblock("e) Geometría del cilindro, del bloque y del ojal E", "geometría en planta y alzado del modo pivotado en toda la carrera; las dos holguras ajustadas se tratan en 7.2.7.",
-       take(r"^Pivotado:|^Pasador Q fuera|^Holgura cilindro–mesa|^Bloque-uña libre del pasador siguiente|^Soporte del ojal E dentro|^Bloque-uña dentro de la luz|^Bloque-uña sobre la placa|^Oreja inferior del ojal E|^Cuerpo del cilindro libre sobre la base", "Giro"))
+       take(r"^Pivotado:|^Pasador Q fuera|^Holgura cilindro–mesa|^Bloque-uña libre del pasador siguiente|^Soporte del ojal E dentro|^Bloque-uña dentro de la luz|^Bloque-uña sobre la placa|^Oreja inferior del ojal E|^Cuerpo del cilindro libre sobre la base|^Cuerpo del cilindro libre del soporte", "Giro"))
 
 H("7.2.7 Holguras geométricas ajustadas y decisión del mandante", 3)
 HO, H1 = ACC["holguras"]["adoptada"], ACC["holguras"]["B2760"]
@@ -823,7 +868,7 @@ table(["Dato", "Valor (núcleo)", "Norma o referencia"], [
     ["Corte", FPL["corte"], "ISO 1101"],
     ["Tornillos", f"{pint(PBT['n'])} × {PBT['norma']}, clase {PBT['clase']}; avellanado {PBT['avellanado']}; agujero Ø{pint(PBT['agujero'])}; par {PBT['par_apriete']}", "ISO 10642; VDI 2230-1"],
     ["Tornillos (cilindro 1, antihorario)", "; ".join(pt(p) for p in INS["pernos"]), "Ejes"],
-    ["Pasadores de posición", f"{pint(PPS['n'])} × {PPS['norma']}; {PPS['ajuste']}; en {'; '.join(pt(p) for p in INS['pasadores_posicion'])}", "ISO 8734; ISO 286"],
+    ["Pasadores de posición", f"{pint(PPS['n'])} × {PPS.get('designacion', PPS['norma'])}; {PPS['ajuste']}" + (f"; enganche {n(PPS['enganche_base'])} mm en la base y {n(PPS['enganche_placa'])} mm en la placa (≥ {n(PPS['enganche_min'])})" if "enganche_base" in PPS else "") + f"; en {'; '.join(pt(p) for p in INS['pasadores_posicion'])}", "ISO 8734; ISO 286"],
     ["Masa", f"{n(m['cam'] / 4)} kg por placa; {n(m['cam'])} kg las 4 (original: {n(ORIG['placa_leva']['area'] * ORIG['placa_leva']['t'] * 7.85e-6 * 4)} kg con ρ = 7.850 kg/m³)", "ρ·V del núcleo"],
 ], widths=(36, 104, 30), size=7)
 
@@ -848,9 +893,10 @@ vblock("C) Hidráulica, vástago y pasador Q",
        take(r"^FS del accionamiento|^Presión de diseño|^Alivio dentro|^Alarma bajo|^Retorno dentro|^Gira con|^Carrera requerida|^Empuje guiado: fuerza|^Vástago|^Pandeo del vástago|^Ojal comercial", "Giro") +
        take(r"^Pasador Q", "Articulaciones"),
        f"El vástago queda con FU {fu3(_vas['fu'])} con Fy = {pint(P['pv_Fyrod'])} MPa: es HIPÓTESIS hasta recibir la ficha del cilindro (capítulo 12).")
+reg_table("Elementos sobre la base: holguras (10-11-2026)")
 vblock("D) Apoyos y geometría: empuje con Q apoyado, canto, interferencias y holguras",
        "geometría en planta y alzado de las 4 placas (rotación y reflexión), bloque girado el ángulo de equilibrio δ (23) hacia afuera.",
-       take(r"^Empuje con Q apoyado|^Canto de la placa-guía|^Placa-guía libre del seguidor|^Bloque-uña libre de los pasadores en el empuje guiado|^Cuerpo del cilindro fuera de la mesa en el empuje|^Placas-guía|^Cuerpo del cilindro sobre la placa-guía|^Placa-guía: profundidad del bolsillo", "Giro"))
+       take(r"^Empuje con Q apoyado|^Canto de la placa-guía|^Placa-guía libre del seguidor|^Bloque-uña libre de los pasadores en el empuje guiado|^Cuerpo del cilindro fuera de la mesa en el empuje|^Placas-guía|^Cuerpo del cilindro sobre la placa-guía|^Placa-guía: profundidad del bolsillo", "Giro") + take(r"placas?-guía", "Orejas de izaje", opt=True))
 T("Resultado: la placa-guía curva, sus tornillos, la hidráulica y la geometría cumplen; las filas de mayor FU son las de tornillos, distancia al borde, enganche de rosca y capa templada, "
   "y el vástago depende de la ficha del proveedor.", bold=True, size=9)
 
@@ -921,7 +967,7 @@ LG = GUM["levaGuiada"]; KG = GUM["K"]; cdg = GUM["cd"]
 ET = ACC["etiquetas"]
 _prev = lambda lab, cur: (lambda mm: (int(mm[-1][0]), int(mm[-1][1])) if mm and abs(int(mm[-1][1]) - cur) < 1e-9 else (None, cur))(re.findall(r"(\d+) → (\d+) mm", lab))
 sf0, sf1 = _prev(ET["s_free"], P["s_free"]); cl0, cl1 = _prev(ET["c_lug"], P["c_lug"])
-assert sf0 is not None and cl0 is not None, "etiquetas de s_free o c_lug sin el valor anterior"
+assert sf0 is not None, "etiqueta de s_free sin el valor anterior"
 H("7.5.1 Hipótesis", 3)
 POR = LG["soportes"]; RIEL = LG["riel"]; SEG = LG["seguidor"]
 table(["Hipótesis", "Valor adoptado", "Origen"], [
@@ -934,7 +980,7 @@ table(["Hipótesis", "Valor adoptado", "Origen"], [
      f"familia {pint(LG['familia'])} ({LG['familia_nombre']}), μ del rodillo {n(LG['mu_seguidor'])}", "Registro, «Material del contacto»"],
     ["Rampa de reenganche", f"α = {pint(LG['alpha_deg'])}° respecto del eje de la bancada; holgura de toma {n(LG['holgura_toma'])} mm; margen de sincronía {n(P['cam_msync'])} mm", "Mínimo por sincronía, máximo por autobloqueo"],
     ["Recorrido libre antes de tomar el pasador", f"s_libre: {pint(sf0)} → {pint(sf1)} mm (con {pint(sf0)} mm no cabe la rampa detrás del pasador siguiente)", "Etiqueta del parámetro s_free del núcleo; registro, «Sincronía»"],
-    ["Distancia de los puntos de izaje al borde", f"c_lug: {pint(cl0)} → {pint(cl1)} mm (la leva suma masa sobre la base; flecha de izaje con margen ≥ 10 %)", "Etiqueta del parámetro c_lug del núcleo"],
+    ["Orejas de izaje de la base", f"c_lug = {pint(P['c_lug'])} mm, x_lug = {pint(P['x_lug'])} mm (en las diagonales, libres de las placas-guía y del accionamiento en los dos modos)", "Parámetros c_lug y x_lug del núcleo; filas «Orejas de izaje»"],
 ], widths=(36, 94, 40), size=7.5)
 T("Criterios aplicados (docs/normas/registro.md, «Leva de reenganche positiva (modo guiado)»):", size=9, after=1)
 table(["Verificación", "Criterio", "Referencia", "Ecuación / nota"], reg_rows("Leva de reenganche positiva (modo guiado)"), widths=(28, 60, 36, 46), size=6.5)
@@ -1827,6 +1873,7 @@ _DF = [
     ["Roce de la cara y del canto", "HIPÓTESIS", f"μ_s = {n(P['mu_s'])}; μ_leva = {n(PL_['mu'])} ({PL_['familia_nombre']})", "Fuerza del cilindro y autobloqueo; ensayo de aceptación"],
     ["Bloque alineado con el vástago en el retorno", "HIPÓTESIS (conservadora)", "Modelo del retorno", "w_nec y sincronía"],
     ["Dilatación", "HIPÓTESIS", f"Mesa a 80 °C y base a 20 °C: δ = pv_tolg + α·ΔT·R_pin = {n(PL_['tolerancias_mm'])} mm", "Margen de sincronía m + δ"],
+] + [["Pendiente declarado en el registro (soporte del ojal E)", "PENDIENTE", _pd, "docs/normas/registro.md, «Soporte del ojal E: cajón abierto (10-11-2026)»"] for _pd in reg_pend("Soporte del ojal E: cajón abierto (10-11-2026)")] + [
     ["Dimensiones de KIET", "NO SE TRASLADAN", "Solo el concepto constructivo (placa rectangular empernada con recorte en media luna)", "—"],
 ]
 table(["Dato", "Estado", "Hipótesis usada en esta memoria", "Efecto o acción"], _DF, widths=(34, 28, 58, 50), size=7.5)
@@ -1948,7 +1995,7 @@ T("Los datos que el cálculo aún no define (WPS, sistema de pintura, grado del 
 H("15. Modificaciones de la Rev. C y control de cambios")
 H("15.1 Lista de modificaciones de esta edición", 2)
 _gx = lambda args: subprocess.run(["git"] + args, cwd=ROOT, capture_output=True, text=True, timeout=30).stdout.strip().splitlines()
-_PCH = ["pv_dwell", "Fy_camP", "Fu_camP", "pv_nb", "pv_db", "pv_rmin", "pv_tolg", "pv_Fub", "pv_dd", "pv_Fyrod", "pv_rface", "pv_bu", "pv_ecr"]
+_PCH = ["pv_dwell", "Fy_camP", "Fu_camP", "pv_nb", "pv_db", "pv_rmin", "pv_tolg", "pv_Fub", "pv_dd", "pv_Fyrod", "pv_rface", "pv_bu", "pv_ecr", "pv_tl", "pv_tbox", "pv_wbox", "pv_ext", "pv_cE", "pv_rebt", "c_lug", "x_lug"]
 table(["N°", "Modificación", "Dónde", "Origen"], [
     ["1", f"Placa-guía curva G1 en lugar de la placa-leva poligonal: flanco recto a {n(PL_['alpha_deg'])}°, biarcos tangentes y canto como envolvente exacta a d_Q/2; placa {n(FPL['marco']['largo'])} × {n(FPL['marco']['ancho'])} × {pint(FPL['t'])} mm "
           f"de {FPL['material'].split(',')[0]} con canto templado; {pint(PBT['n'])} tornillos {PBT['norma'].split(' (')[0]} {PBT['clase']} y {pint(PPS['n'])} pasadores de posición por placa", "7.3", "Inconsistencias I1 a I8 del diseño original (7.3.1); docs/qa/guia_curva_KIET/cambios.md"],
@@ -1961,7 +2008,7 @@ table(["N°", "Modificación", "Dónde", "Origen"], [
     ["8", "Datos faltantes e hipótesis del accionamiento (proveedor del cilindro, temple, zapata de las familias 2–4, retención axial del pivote, pendientes PROPUESTO, unión J17)", "12.1", "Pedido del mandante"],
     ["9", "Modo guiado con riel-leva renumerado como alternativa; comparación de modos con el empuje guiado", "7.5, 7.6", "Reordenamiento del capítulo 7"],
     ["10", "Formato: FU con 3 decimales; texto negro; leyenda de revisión por ingeniero calculista habilitado; norma y ecuación en cada verificación", "Todo el documento", "Formato del usuario"],
-    ["11", "Parámetros nuevos o con valor por defecto cambiado: " + "; ".join(f"{k} = {pint(P[k]) if float(P[k]).is_integer() else n(P[k], 3)}" for k in _PCH if k in P), "Anexo D", "Núcleo (tests/golden/params_defaults.json)"],
+    ["11", "Parámetros nuevos o con valor por defecto cambiado (placa-guía, bloque-uña, soporte E, orejas): " + "; ".join(f"{k} = {pint(P[k]) if float(P[k]).is_integer() else n(P[k], 3)}" for k in _PCH if k in P), "Anexo D", "Núcleo (tests/golden/params_defaults.json)"],
 ], widths=(9, 92, 24, 45), size=7.5)
 H("15.2 Control de cambios", 2)
 _mem = [l.split(" ", 2) for l in _gx(["log", "--date=short", "--format=%h %ad %s", "--", "tools/memoria_tt300c.py"]) if "emoria" in l][:8]
