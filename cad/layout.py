@@ -618,7 +618,27 @@ class Plano:
     def build(self, iso_fill=None):
         """Compone la lámina; si alguna vista usó más líneas de cota (o un título más bajo) que las reservadas, corrige la reserva y recompone (máx. 3 veces)."""
         for it in range(4):
-            self._build_once(iso_fill)
+            for relax in range(4):
+                try:
+                    self._build_once(iso_fill)
+                    break
+                except RuntimeError:
+                    # la reserva de líneas de cota/globos creció y ya no cabe a la escala mínima pedida: se baja un escalón normalizado la escala mínima
+                    # de las vistas que la fijan (ISO 5455) y se recompone; sin vistas con mínimo, el error sube
+                    rel = [sp for sp in self.specs if sp.mins]
+                    if not rel or relax == 3:
+                        raise
+                    for sp in rel:
+                        lo = [x for x in STD_SCALES if x < sp.mins * 0.9999]
+                        sp.mins = lo[-1] if lo else None
+                    self.s.reset()
+                    COTAS.rows[:] = [r for r in COTAS.rows if r["sheet"] != self.h.plano]
+                    autodim.CADENAS[:] = [c for c in autodim.CADENAS if c["sheet"] != self.h.plano]
+                    self.ctx.balloons[self.h.plano] = set()
+                    self.h.welds_here = []
+                    self.named, self.scales, self.vlist = {}, [], []
+                    for sp in self.specs:
+                        sp.V = None
             grow = False
             for sp in self.specs:
                 V = sp.V

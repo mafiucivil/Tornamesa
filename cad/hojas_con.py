@@ -501,7 +501,7 @@ def sheet_conjunto(ctx):
     c.vs("cA", sh, "front", cut=CUT_Y, lv=(2, 1, 3, 1), extra=(0, 22, 0, 22), mat=mm, hs=0.5, title="CORTE A-A (plano y = 0) CON GLOBOS DE POSICIÓN; CG: cruz en círculo", auto=False, w=1.3, mins=0.2,
          draw=chain(cAdims, balloon_cb(cortadas_y0(ctx, ks), pred=lambda q: abs(q[1]) < 0.6, gap=11.0, off=20.0, sides="tb")))
     c.iso_fill = False
-    if len(ctx.m.parts) <= 44:                 # con más ítems la tabla resumida desplaza las vistas: el despiece queda solo en CON-002
+    if len(ctx.m.parts) <= 40:                 # con más ítems la tabla resumida desplaza las vistas (C1…C3: 43 ítems): el despiece queda solo en CON-002
         c.compact_table()
     mt = ctx.rep["masa_total_ensamble"]
     hol = holguras_base_mesa(ctx)
@@ -518,7 +518,7 @@ def sheet_conjunto(ctx):
     rows += [["Holguras mesa–base (mínimas, 3D)", "; ".join(f"{nm} {fm(d, 1)} mm" for nm, d in hol)]]
     rows += [["Carga de diseño / variante", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm / variante {g.variante}: {g.variante_nombre}"]]
     c.table_block("DATOS Y COTAS DE INSTALACIÓN", [("Dato", 50, "L"), ("Valor", 190, "L")], rows, wide=True)
-    subs = "CON-006/023 (base), CON-007 (" + ("cajón del ojal E" if piv_ else "ménsula") + "), CON-008/009 (mesa), CON-010 (accionamiento" + (" pivotado" if piv_ else "") + "), CON-011 (pivote)" + (", CON-012 (interfaz)" if g.opt else "") + \
+    subs = "CON-006/023 (base), CON-007 (" + ("soporte del ojal E" if piv_ else "ménsula") + "), CON-008/009 (mesa), CON-010 (accionamiento" + (" pivotado" if piv_ else "") + "), CON-011 (pivote)" + (", CON-012 (interfaz)" if g.opt else "") + \
         (", MAD-001/002 (cubierta de madera)" if g.wood else "") + ". Corte B-B y vistas complementarias: CON-003."
     hojas_bom = "CON-002" + (" y CON-030 (hoja 2)" if getattr(ctx, "bom_hojas", 1) > 1 else "")
     c.note_block("NOTAS DE CONJUNTO", ["Subconjuntos: " + subs, f"Despiece completo en {hojas_bom}; explosionadas CON-004 y CON-018; instructivo de armado CON-005, CON-014 a CON-017 y CON-019 a CON-022.",
