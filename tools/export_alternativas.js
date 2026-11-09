@@ -1,5 +1,5 @@
-/* Exporta, para la memoria de cálculo, el análisis completo de cada alternativa de interfaz (base, A, B, C1, C2, C3 y cubierta de madera)
-   más el escenario térmico de la cubierta de madera (TT.thermal con wood = 1), los tapones de grafito de la opción C (TT.tapones: cantidad real frente a ideal),
+/* Exporta, para la memoria de cálculo, el análisis completo de cada alternativa de interfaz (base, A, B, C1, C2, C3)
+   y los tapones de grafito de la opción C (TT.tapones: cantidad real frente a ideal),
    las medidas recomendadas del escenario solar (alcance placas y disco, term_alcance = 1) y la nota informativa del accionamiento fuera de alcance.
    Fuente única: TT.analyze / TT.thermal / TT.tapones; la memoria solo redacta.
    Uso: node tools/export_alternativas.js [parametros.json] > cad/out/TT300-C_alternativas.json */
@@ -7,8 +7,11 @@ const fs = require("fs");
 const TT = require("../packages/core/tt300c.js");
 const P = Object.assign(TT.defaults(), process.argv[2] ? JSON.parse(fs.readFileSync(process.argv[2], "utf8")) : {});
 const brief = (c) => (c ? { grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref } : null);
-const ALTS = TT.TH_ALTS.map(([id, nombre, flags]) => ({ id, nombre, flags, wood: 0 })).concat([{ id: "W", nombre: "Base + cubierta de madera dura con anillo de acero", flags: {}, wood: 1 }]);
-const out = { version: 1, P_ref: { hc_min: P.hc_min, tol_hc: P.tol_hc, m_ri: P.m_ri, R_ear: P.R_ear, d_ear: P.d_ear, t_ring: P.t_ring, t_wood: P.t_wood, j_sec: P.j_sec }, alternativas: [] };
+// Cubierta de madera W: EN STAND BY por decisión del mandante (09-11-2026; docs/standby/madera_W/LEEME.md). No entra a la entrega RevC; TT_CON_MADERA=1 la vuelve a exportar.
+const CON_W = process.env.TT_CON_MADERA === "1";
+const ALTS = TT.TH_ALTS.map(([id, nombre, flags]) => ({ id, nombre, flags, wood: 0 })).concat(CON_W ? [{ id: "W", nombre: "Base + cubierta de madera W (plancha rebajada)", flags: {}, wood: 1 }] : []);
+const out = { version: 1, madera_W: CON_W ? "incluida" : "stand by (docs/standby/madera_W/LEEME.md)",
+  P_ref: { hc_min: P.hc_min, tol_hc: P.tol_hc, m_ri: P.m_ri, R_ear: P.R_ear, d_ear: P.d_ear, t_wood: P.t_wood, j_sec: P.j_sec }, alternativas: [] };
 let m0 = null;
 ALTS.forEach((a) => {
   const Pa = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0, bz_conf: 1 }, a.flags, { opt_wood: a.wood });
@@ -34,11 +37,11 @@ ALTS.forEach((a) => {
     hub: R.hubG, collar: byGrp(/^Pivote$/).filter((c) => /ollar|Rebaje|R_i|buje/.test(c.name)).map(brief),
     orejas: byGrp(/^Orejas de izaje$/).map(brief),
     filetes: ck.filter((c) => /filete (m[ií]nimo|m[aá]ximo)/i.test(c.name)).map(brief),
-    madera: a.wood ? { m_madera: R.m.wood, m_anillo: R.m.ring, t_ring: Pa.t_ring, t_wood: Pa.t_wood, checks: byGrp(/^Cubierta$/).map(brief) } : null,
+    madera: a.wood ? { m_madera: R.m.wood, m_anillo: R.m.ring, t_wood: Pa.t_wood, checks: byGrp(/^Cubierta$/).map(brief) } : null,
   });
 });
-// escenario térmico de la cubierta de madera (la clave `termica` de export_design.js la deja sin madera)
-out.termica_madera = TT.thermal(P, { alts: ["base"], wood: 1 }).alternativas.filter((x) => x.madera);
+// escenario térmico de la cubierta de madera (solo con TT_CON_MADERA=1; la clave `termica` de export_design.js la deja sin madera)
+out.termica_madera = CON_W ? TT.thermal(P, { alts: ["base"], wood: 1 }).alternativas.filter((x) => x.madera) : [];
 // Tapones de grafito (opción C): ideal frente a real, barridos de f_g, de (Ø, paso), de la franja de borde y de los tornillos, y patrón recomendado (TT.tapones)
 out.tapones = TT.tapones(P);
 // Cota de viabilidad de bz_fg_min: patrón de perforaciones minúsculas (Ø5,5 · paso 10) que llegaría al f_g mínimo con η = bz_eta_min; mismo núcleo (TT.analyze, cuenta real)
@@ -66,6 +69,63 @@ out.modos_accionamiento = ALTS.map((a) => ({ id: a.id, nombre: a.nombre, modos: 
     brazo_min: K.armMin, brazo_ef_min: dm === 2 ? K.aEffMin : null, carrera_req: K.s_req, sincronia: dm === 1 ? (R.camG ? R.camG.sync : null) : (R.camP ? R.camP.sync : null), veredicto: A.verdict, gobernante: brief(gov),
     fallas: A.checks.filter((c) => c.st === "fail").map(brief) };
 }) }));
+// Accionamiento (decisiones del mandante del 08-11-2026): pivotado tipo KIET por defecto (drive_mode = 2) y guiado con leva de reenganche positiva como alternativa
+// (drive_mode = 1, opt_cam = 1); familias del material del contacto seguidor–placa-leva; base de 2.760 mm como alternativa a las holguras; AF2 (tornillos avellanados disco–mesa).
+{
+  const casosOf = (R) => R.cases.map((c) => ({ id: c.id, nombre: c.name, mu: c.mu, r: c.r, T: c.T, F: c.F, p: c.p, FS: c.FS, gira: c.turns }));
+  const govOf = (A, sysEst) => A.checks.filter((c) => c.kind !== "info" && c.fu != null && isFinite(c.fu) && c.st !== "pend" && (!sysEst || (c.kind === "fu" && c.sys === "est"))).reduce((b, c) => (!b || c.fu > b.fu ? c : b), null);
+  const modo = (Pm) => {
+    const A = TT.analyze(Pm), R = A.R, K = R.K, DRV = TT.designDrive(Pm, R), dm = TT.driveMode(Pm);
+    const row = (re) => brief(A.checks.find((c) => re.test(c.name)));
+    let radial = null;
+    if (dm === 1) {   // guiado: componente radial por cilindro en el pasador a lo largo de la carrera (caso de diseño); el par simétrico la anula en el pivote
+      const fr = R.stroke.map((q) => q.Fp * Math.sin(q.th) + q.H * Math.cos(q.th));
+      radial = { por_cilindro_dis: Math.max(...fr.map(Math.abs)), por_cilindro_calado: null, neta: row(/^Empuje neto al pivote/) };
+    } else {
+      const r = row(/^Pivotado: componente radial/);
+      radial = { por_cilindro_dis: r.dem, por_cilindro_calado: r.cap, neta: row(/^Empuje neto al pivote/) };
+    }
+    const carrera = dm === 1 ? (() => {
+      const st = R.stroke, thX = Math.asin(Pm.d_pin / 2 / Pm.R_pin), pick = [["Inicio (toma)", st[0]]];
+      const xs = st.filter((q) => Math.abs(q.th - thX) < 1e-12);
+      if (xs.length === 2) { pick.push(["Cambio de sentido de la fricción (antes)", xs[0]]); pick.push(["Cambio de sentido de la fricción (después)", xs[1]]); }
+      pick.push(["Final", st[st.length - 1]]);
+      return pick.map(([pos, q]) => ({ pos, th: q.th * 180 / Math.PI, s: q.s, F: q.F, p: q.F * 1e3 / R.A * 10, Fpin: q.Fp, H: q.H, Ft: q.Fp * Math.cos(q.th) - q.H * Math.sin(q.th), Fr: q.Fp * Math.sin(q.th) + q.H * Math.cos(q.th), Rf: q.Rf, Rr: q.Rr }));
+    })() : null;
+    const lg = DRV.levaGuiada ? Object.assign({}, DRV.levaGuiada, { fabricacion: undefined }) : null;
+    return { drive_mode: dm, modo_nombre: DRV.modo_nombre, masa: R.m.total, masas: R.m, masas_desc: DRV.masas_desc, casos: casosOf(R), cd: { F: R.cd.F, p: R.cd.p, FS: R.cd.FS, T: R.cd.T },
+      K: dm === 1 ? { armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, DeltaMax: K.DeltaMax, L_s: K.L_s, Lg: K.Lg, travel: K.travel } : { armMin: K.armMin, armMax: K.armMax, aEffMin: K.aEffMin, s_req: K.s_req, margin: K.margin, chord: K.chord },
+      Kguide: R.Kguide, Rguide: R.Rguide, chaflan: TT.chamferGeo(Pm), familia: { f: R.fam.f, nombre: R.fam.nombre, mu: R.fam.mu, auto: R.fam.auto }, veredicto: A.verdict,
+      gobernante: brief(govOf(A, false)), gobernante_resistencia: brief(govOf(A, true)), radial, carrera, levaGuiada: lg,
+      verificaciones: A.checks.map(brief), stroke: Pm.stroke,
+      P: { s_free: Pm.s_free, c_lug: Pm.c_lug, B: Pm.B, opt_cam: Pm.opt_cam, cam_mat: Pm.cam_mat } };
+  };
+  const Pp = Object.assign({}, P, { drive_mode: 2 }), Pg = Object.assign({}, P, { drive_mode: 1, opt_cam: 1 });
+  const piv = modo(Pp), gui = modo(Pg);
+  // familias del contacto seguidor–placa-leva en el modo pivotado (cam_mat = 1…4) y regla automática por interfaz
+  const familias = [1, 2, 3, 4].map((cm) => {
+    const A = TT.analyze(Object.assign({}, Pp, { cam_mat: cm }), { noFEA: true }), R = A.R;
+    return { cam_mat: cm, nombre: R.fam.nombre, corto: R.fam.corto, mu: R.fam.mu, muRef: R.fam.muRef, pRef: R.fam.pRef, tipo: R.fam.tipo, pAdm: R.fam.pAdm, PV: R.fam.PV, masa: R.m.total, FS: R.cd.FS, F: R.cd.F, veredicto: A.verdict,
+      filas: A.checks.filter((c) => c.grp === "Placas-leva" || /Rampa de la placa-leva/.test(c.name)).map(brief), fallas: A.checks.filter((c) => c.st === "fail").map(brief) };
+  });
+  const auto = TT.TH_ALTS.map(([id, nombre, flags]) => { const R = TT.analyze(Object.assign({}, Pp, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0, bz_conf: 1, cam_mat: 0 }, flags), { noFEA: true }).R; return { id, nombre, f: R.fam.f, familia: R.fam.nombre }; });
+  // holguras «cajón del ojal E dentro de la base» y «Q fuera de la mesa»: base adoptada (B = 2.560, aceptada por el mandante) frente a B = 2.760 con la sugerencia de E a FU 0,95
+  const hol = (Pm) => { const A = TT.analyze(Pm, { noFEA: true }), R = A.R, K = R.K, f = (re) => brief(A.checks.find((c) => re.test(c.name)));
+    return { B: Pm.B, R_E: Math.hypot(K.E[0], K.E[1]), L_qp: K.Lqp, fugeo: Pm.pv_fugeo, cajon: f(/^Soporte del ojal E dentro de la base/), Q: f(/^Pasador Q fuera de la mesa/), FS: R.cd.FS, masa: R.m.total, veredicto: A.verdict }; };
+  const h0 = hol(Pp), h1 = hol(Object.assign({}, Pp, { B: 2760, pv_fugeo: 0.95, pv_RE: 0, pv_Lqp: 0 }));
+  // AF2: opción A pegada (fix_mode = 2) con tornillos avellanados ISO 10642 del disco de la mesa a la plancha inferior
+  const Pa = Object.assign({}, Pp, { opt_ss: 1, opt_uhmw: 0, opt_bz: 0, fix_mode: 2 }), Aa = TT.analyze(Pa, { noFEA: true }), Ra = Aa.R, Da = TT.designDrive(Pa, Ra);
+  const tor = Object.assign({}, Da.tornillos_interfaz); delete tor.posiciones;
+  const af2 = { tornillos: tor, filas: Aa.checks.filter((c) => /^AF2/.test(c.name)).map(brief), tss: Ra.ifc.tss, tss2: Ra.ifc.tss2, tssReq: Ra.ifc.tssReq, tss2Req: Ra.ifc.tss2Req, masa: Ra.m.total, veredicto: Aa.verdict, t_bot: Pa.t_bot,
+    ss_allow: Pa.ss_allow, ss_tmin: Pa.ss_tmin, FS: Ra.cd.FS };
+  const lab = (id) => { const q = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []).find((x) => x[0] === id); return q ? q[1] : null; };
+  out.accionamiento = { pivotado: piv, guiado: gui, familias, familias_auto: auto, holguras: { adoptada: h0, B2760: h1 }, af2, etiquetas: { s_free: lab("s_free"), c_lug: lab("c_lug"), drive_mode: lab("drive_mode"), cam_mat: lab("cam_mat") } };
+}
+// Parámetros del accionamiento (v1.5: modo, levas y pivotado), definición del núcleo
+{
+  const allP = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []);
+  out.parametros_accionamiento = allP.filter((q) => /^(drive_mode|cam_mat|opt_cam|cam_|pv_)/.test(q[0])).map((q) => ({ id: q[0], lab: q[1], u: q[2], def: q[3], min: q[4], max: q[5], valor: P[q[0]] }));
+}
 // Parámetros añadidos en la v1.2 (definición del núcleo: etiqueta, unidad, valor por defecto, mínimo, máximo)
 const NEW_IDS = ["term_alcance", "bz_fg_modo", "bz_edge", "bz_fg_min", "bz_fg_estricto", "bz_eta_min", "bz_n_tor", "d_tor"];
 const allP = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []);
