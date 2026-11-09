@@ -166,8 +166,7 @@ def sheet_notas(ctx):
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
-    rows.append(["ACC / BAS", "Accionamiento por modo: guiado (alternativa, juegos «-G»): BAS-005…007 ménsulas, ACC-001…006 bancada, cilindro, patín, uña y pasadores, ACC-007…012 y ACC-019 leva de reenganche (riel, pórtico, prolongación, seguidor, pernos); "
-                 "pivotado tipo KIET (por defecto): BAS-008…011 cajón del ojal E, ACC-013 cilindro, ACC-014 pasador E, ACC-015 bloque-uña, ACC-016 pasador Q, ACC-017 placa-leva, ACC-018 pernos de las placas-leva",
+    rows.append(["ACC / BAS", "Accionamiento: guiado (juegos «-G») BAS-005…007, ACC-001…012, ACC-019; pivotado (por defecto) BAS-008…011, ACC-013…018 (detalle en CON-002)",
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]
@@ -215,7 +214,7 @@ def tabla_indice(ctx, h, hojas):
         falt = [n for n in range(1, lim + 1) if n not in u]
         if falt:
             res.append(f"{sr}-" + ", ".join(f"{n:03d}" for n in falt))
-    txt = "Números no emitidos en este juego (reservados o anulados): " + ("; ".join(res) if res else "ninguno") + ". CON-030 y siguientes: hojas de continuación del despiece CON-002; GEN-021 y siguientes: continuación de GEN-009."
+    txt = "Números no emitidos en este juego (reservados o anulados): " + ("; ".join(res) if res else "ninguno") + ". CON-030 y siguientes: hojas de continuación del despiece CON-002; GEN-021 y siguientes: continuación de GEN-009; GEN-025: continuación de GEN-005."
     s.notes_block(x, min(y1, y2) - 4, "NUMERACIÓN", [txt], h=T_N, width=w)
     return bool(l1 or l2)
 
@@ -299,8 +298,14 @@ def sheet_materiales(ctx):
         gr += [["Pasador E (Ø%s)" % f(F_["pasador_E"]["d"]), propuestas.grado(P["Fy_pp"], F_["pasador_E"]["d"], "barra")], ["Pasador Q (Ø%s)" % f(F_["pasador_Q"]["d"]), propuestas.grado(P["Fy_pp"], F_["pasador_Q"]["d"], "barra")]]
     gr += [["Pasadores de empuje (Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")]]
     gr += [["Uña (forja, %s mm)" % fm(P["dog_b"], 0), propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]] if g.modo == 1 else [["Bloque-uña (forja, %s mm)" % fm(g.FPV["bloque_una"]["cuerpo"]["b"], 0), propuestas.grado(P["Fy_dog"], g.FPV["bloque_una"]["cuerpo"]["b"], "barra")]]
-    last.s.table(R[0], y - 8, [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")], gr, h=T_S,
-                 title="GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy")
+    cols_g = [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")]
+    tit_g = "GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy"
+    _, left = last.s.table(R[0], y - 8, cols_g, gr, h=T_S, ymin=R[1] + 3, title=tit_g)
+    if left:                                  # no cabe bajo la tabla de materiales: hoja de continuación
+        g2 = Gen(ctx, 25, "MATERIALES Y CERTIFICADOS (CONTINUACIÓN): GRADOS PROPUESTOS")
+        R2 = g2.R["main"]
+        g2.s.table(R2[0], R2[3], cols_g, left, h=T_S, ymin=R2[1] + 3, title=tit_g + " (continuación)")
+        out = list(out) + [g2.h]
     return out
 
 

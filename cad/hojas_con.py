@@ -485,7 +485,7 @@ def sheet_conjunto(ctx):
         c.cut_mark("planta", "B", (0, -B / 2 - 20, tb), (0, B / 2 + 20, tb), 180)
         a0x = ctx.D["pasadores"][0]                     # A-08: traza del corte X-X de CON-003 (plano radial por el eje del pasador n.° 1)
         c.cut_mark("planta", "X", polar(g.R_pin - 170, a0x) + (top,), polar(g.Rt + 60, a0x) + (top,), (a0x - 90) % 360)
-    c.vs("planta", sh, "top", lv=(1, 2, 2, 1), draw=planta, mat=mm, hatch=False, title="PLANTA (cotas de instalación desde el eje del pivote)", auto=False, w=1.6, extra=(0, 0, 0, 0))
+    c.vs("planta", sh, "top", lv=(1, 2, 2, 1), draw=planta, mat=mm, hatch=False, title="PLANTA (cotas de instalación desde el eje del pivote)", auto=False, w=1.6, extra=(0, 0, 0, 0), maxs=0.1)
 
     ycb = (bc.ymin + bc.ymax) / 2
 
@@ -979,7 +979,7 @@ def sheet_base_soldada(ctx):
     c1 = ctx.D["cilindros"]["horario"][0]["eye"] if not piv_ else g.FPV["soporte_E"]["cilindro2"]["centro"]
 
     def planta(V, c):
-        balloons_auto(c, V, ks, gap=12, off=14, hug=True)
+        balloons_auto(c, V, [k for k in ks if not k.startswith(("leva_", "cajon_"))], gap=12, off=14, hug=True)      # leva y cajón del ojal E: globos en CON-010 / CON-007
         V.dimh((-B / 2, B / 2, tb), (B / 2, B / 2, tb), "top", 0, on=["base_plancha"], text=f"{f(B)}")
         if not piv_:
             V.dimh((-xg, B / 2, tb), (xg, B / 2, tb), "top", 1, on=["base_plancha"], text=f"{f(2 * xg)} (entre ejes de bancadas)")
@@ -996,7 +996,7 @@ def sheet_base_soldada(ctx):
     c.vs("planta", sh, "top", lv=(1, 1, 1, 2), extra=(20, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA (llamadas D1–D4: detalles en CON-023" + ("; roscas de las placas-leva en BAS-001)" if piv_ else ")"), auto=False, w=4.0, mins=0.1)
 
     def cA(V, c):
-        balloons_auto(c, V, [k for k in ks if k not in ("orejas",)], pred=lambda q: q[1] >= -0.5, gap=12, off=12, hug=True)
+        balloons_auto(c, V, [k for k in ks if k not in ("orejas",) and not k.startswith(("leva_", "cajon_"))], pred=lambda q: q[1] >= -0.5, gap=12, off=12, hug=True)
         V.dimv((B / 2, 0, 0), (B / 2, 0, tb), "right", 0, on=["base_plancha"], text=f"{f(tb)}")
         V.dimh((-B / 2, 0, 0), (B / 2, 0, 0), "bottom", 0, on=["base_plancha"], text=f"{f(B)}")
     c.vs("cA", sh, "front", cut=CUT_Y, lv=(1, 1, 1, 1), extra=(16, 4, 16, 4), draw=cA, mat=mm, hs=0.5, title="CORTE A-A", auto=False, w=1.0, mins=0.1)
@@ -1504,7 +1504,7 @@ def sheet_accionamiento_pv(ctx):
         rows.append([f"Placa-leva {k_.replace('_', ' ')}: agujeros P1 / P{len(ins['pernos'])}", f"{fm(p1[0], 1)} / {fm(p6[0], 1)}", f"{fm(p1[1], 1)} / {fm(p6[1], 1)}", "las del sentido horario, volteadas"])
     c.table_block("POSICIONES EN PLANTA (núcleo; origen en el eje de la mesa)", [("Elemento", 64, "L"), ("x [mm]", 26, "R"), ("y [mm]", 26, "R"), ("Observación", 50, "L")], rows)
     c.tail(ks, [], [
-        f"Cinemática (núcleo): Q = P + L_qp·(E − P)/|E − P|; toma con el cilindro en L0 + s_libre; empuje entre θ = {fm(PV['theta_ini_deg'], 2)}° y {fm(PV['theta_fin_deg'], 2)}° (brazo efectivo mínimo {fm(PV['brazo_ef_min'], 1)} mm).",
+        f"Cinemática (núcleo): Q = P + L_qp·(E − P)/|E − P|; toma con el cilindro en el largo retraído + recorrido libre; empuje entre θ = {fm(PV['theta_ini_deg'], 2)}° y {fm(PV['theta_fin_deg'], 2)}° (brazo efectivo mínimo {fm(PV['brazo_ef_min'], 1)} mm).",
         "Inversión del giro: el cilindro pivota en el mismo ojal E hacia el otro lado de la diagonal; el bloque-uña se monta volteado y el pasador Q trabaja en la placa-leva del otro sentido (las 4 placas quedan fijas en la base).",
         f"El extremo inferior del pasador Q corre contra el canto templado de la placa-leva (holgura {fm(PV['placa_leva']['holgura'], 0)} mm en el empuje); el bloque-uña pasa sobre la placa ({fm(F['bloque_una']['z'][0] - F['placas_leva']['z'][1], 0)} mm) y sobre las cabezas de los pernos.",
         "Placas-leva RETENIDAS: perfil curvo continuo en rediseño en el núcleo (ACC-017). Las del sentido horario chocan con las orejas de izaje (conflicto declarado, GEN-009).",

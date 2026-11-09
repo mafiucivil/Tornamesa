@@ -466,7 +466,7 @@ def _welds_leva(ctx, add_n):
     add_n(27, "Patas del pórtico – tapa del pórtico", "ACC-008 / ACC-009", "Filete perimetral de la pata bajo la tapa, continuo", "fillet", t=max(bx, tp["z"][1] - tp["z"][0]),
           len_total=n_p * 2 * (bx + by), wps=13, end="VT 100 % · MT 100 %", contorno=True)
     add_n(28, "Prolongación de la bancada – plancha base", "ACC-010 / BAS-001", "Filete en T, ambos lados, continuo (a continuación de la bancada)", "fillet",
-          core=(P["w_bed_f"], "tamaño de la soldadura bancada–base (w_bed_f); el núcleo no verifica la prolongación: a confirmar"), t=PB[0]["z"][1] - PB[0]["z"][0],
+          core=(P["w_bed_f"], "tamaño calculado de la soldadura bancada–base (núcleo); el núcleo no verifica la prolongación: a confirmar"), t=PB[0]["z"][1] - PB[0]["z"][0],
           len_total=len(PB) * int(P["n_cyl"]) * 2 * (PB[0]["y"][1] - PB[0]["y"][0]), wps=3, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_bed_f'], 0)}"))
 
 

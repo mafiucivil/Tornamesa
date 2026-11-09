@@ -91,7 +91,7 @@ def sheet_cilindro_pv(ctx):
     dE, dQ = F["pasador_E"]["d"], F["pasador_Q"]["d"]
 
     def pl(V, p):
-        V.dimh((0, 0, g.zc), (fr["L"], 0, g.zc), "bottom", 1, on=on, text=f"({fm(fr['L'], 1)}: entre ejes en la posición dibujada; retraído L0 = {f(P['L0'])})", virt_a=dE / 2, virt_b=dQ / 2)
+        V.dimh((0, 0, g.zc), (fr["L"], 0, g.zc), "bottom", 1, on=on, text=f"({fm(fr['L'], 1)}: entre ejes en la posición dibujada; retraído {f(P['L0'])})", virt_a=dE / 2, virt_b=dQ / 2)
     p.vs("planta", on, "top", lv=(1, 2, 2, 1), draw=pl, title="PLANTA (posición de toma dibujada en CON-010)", hatch=False, w=1.5, auto=dict(fits={dE: "H9", dQ: "H9"}, hole_rmin=10))
     p.vs("lat", on, "front", lv=(1, 2, 2, 1), title="ELEVACIÓN", hatch=False, w=1.2, auto=dict())
     zc_ = g.zc
@@ -99,7 +99,7 @@ def sheet_cilindro_pv(ctx):
     p.datum_in("lat", "surf", "A", at=[(0, 0, zc_ + P["b_eye"] / 2), (0, 0, zc_ - P["b_eye"] / 2)], d=[(0, 0, 1), (0, 0, -1)])
     p.gd_in("lat", "surf", "par", "0,10", "A", at=[(fr["L"], 0, zc_ + P["b_eye"] / 2), (fr["L"], 0, zc_ - P["b_eye"] / 2)], d=[(0, 0, 1), (0, 0, -1)])
     rows = [["Diámetro de camisa / vástago", f"{f(P['D_bore'])} / {f(P['d_rod'])} mm"], ["Carrera", f"{f(P['stroke'])} mm (requerida {fm(g.PV['carrera_req'], 1)} mm, núcleo)"],
-            ["Largo ojal–ojal retraído L0", f"{f(P['L0'])} mm"], ["Cuerpo: Ø exterior / inicio desde el ojal trasero", f"{f(P['D_body'])} mm / {f(P['e_body'])} mm (núcleo)"],
+            ["Largo ojal–ojal retraído", f"{f(P['L0'])} mm"], ["Cuerpo: Ø exterior / inicio desde el ojal trasero", f"{f(P['D_body'])} mm / {f(P['e_body'])} mm (núcleo)"],
             ["Presión nominal / alivio", f"{f(P['p_rated'])} psi = {fm(P['p_rated'] * 0.0689476, 0)} bar / {f(P['p_relief'])} bar"],
             ["Ojal trasero (pasador E)", f"Ø{f(dE)} H9 con rótula; ancho {f(P['b_eye'])} mm (entre tapas del cajón, juego {fm(P['g_ch'], 0)} mm por lado)"],
             ["Ojal del vástago (pasador Q)", f"Ø{f(dQ)} H9 con rótula; ancho {f(P['b_eye'])} mm (horquilla del bloque-uña {f(F['bloque_una']['horquilla']['ranura_ojal'])}); Ø exterior ≤ {f(2 * F['bloque_una']['horquilla']['R_cubo'] - 2 * P['g_ch'])} (A CONFIRMAR, supuesto S21)"],
@@ -107,7 +107,7 @@ def sheet_cilindro_pv(ctx):
     p.table_block("ESPECIFICACIÓN DE COMPRA", [("Característica requerida", 70, "L"), ("Valor (del cálculo)", 110, "L")], rows)
     p.tables()
     p.notes(["Elemento comercial: este plano fija solo las dimensiones de interfaz que el cálculo exige; el diseño interno es del fabricante.",
-             f"Prueba hidráulica a 1,5 × {f(P['p_relief'])} bar con certificado de fábrica. Pandeo biarticulado E–Q con el vástago a L0 + carrera: dato del proveedor (núcleo, ISO/TS 13725).",
+             f"Prueba hidráulica a 1,5 × {f(P['p_relief'])} bar con certificado de fábrica. Pandeo biarticulado E–Q con el vástago al largo retraído + carrera: dato del proveedor (núcleo, ISO/TS 13725).",
              "RETENIDA (requiere núcleo): con e_cuerpo del núcleo el cuerpo del cilindro entra en el cajón del ojal E (conflicto declarado, GEN-009).",
              "El mismo cilindro trabaja en ambos sentidos: para invertir el giro pivota en el mismo ojal E hacia el otro lado de la diagonal (CON-010)."],
             gd=[("par", "0,10", "A", "Caras del ojal del vástago paralelas a las del ojal trasero (A)")])
@@ -190,7 +190,7 @@ def sheet_bloque(ctx):
     p.notes([f"Forja o bloque; {ctx.m.get('bloque_una').material}; UT EN 10228-3.",
              f"Contorno del núcleo (marco local: origen en Q, x hacia el pasador tomado, y hacia O): cuerpo b = {f(BU['cuerpo']['b'])} desplazado {f(BU['cuerpo']['e_acodado'])} hacia −y; cara {f(BU['cara']['b'])} × {f(BU['cara']['l'])}; cubo R{f(hq['R_cubo'])}.",
              f"Horquilla: ranura {f(hq['ranura_ojal'])} +0,5/0 (ojal del vástago {f(P['b_eye'])} + 2 × {fm(P['g_ch'], 0)}), mejillas {f(hq['t_mejilla'])}; agujero Ø{f(BU['agujero_Q'])} H9 en ambas mejillas en un solo montaje.",
-             f"Cara de empuje: temple por inducción {BU['cara']['templada']}, profundidad {g.z_hard_txt}; rectificada (planitud 0,05, Ra 0,8) y perpendicular a la base A.",
+             f"Cara de empuje: temple por inducción {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}, profundidad {g.z_hard_txt}; rectificada (planitud 0,05, Ra 0,8) y perpendicular a la base A.",
              "Para el sentido horario el mismo bloque se monta volteado (la pieza es simétrica en altura respecto de la ranura)."],
             gd=[("flat", "0,05", None, "Cara de empuje plana"), ("perp", "0,05", "A", "Cara de empuje perpendicular a la cara superior (A)"), ("perp", "0,05", "A", f"Agujero Ø{f(BU['agujero_Q'])} H9 perpendicular a A")])
     p.build()

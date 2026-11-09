@@ -78,10 +78,10 @@ def int_sector_sheet(ctx, key, titulo, face):
                 u, v, r = max(ca_, key=lambda q: q[1])
                 xb_ = ctx.shapes[on[0]].BoundingBox().xmin
                 av_ = TA_["avellanado"]
-                V.note_hole((u, v, ztop), r, 120, f"{len(ca_)} × {TA_['designacion']}", ext=40, on=on,
-                            lines=[f"{len(ca_)} × avellanado Ø{fm(av_['d_cabeza'], 0)}×90° (cabeza {fm(av_['bajo_cara'], 2)} bajo la cara), pasante Ø{fm(TA_['dh'], 0)}",
-                                   f"para {TA_['designacion']} (AF2); centros a r = {fm(TA_['r'], 0)}, ±{fm(abs(math.degrees(math.atan2(v, u))), 1)}° de la bisectriz:",
-                                   f"x = {fm(u, 1)} (= {fm(u - xb_, 1)} desde el borde interior), y = ±{fm(abs(v), 1)}"])
+                pos_ = ([f"en la bisectriz, a r = {fm(TA_['r'], 0)} del eje del equipo", f"(= {fm(u - xb_, 1)} desde el borde interior del sector)"] if abs(v) < 0.1 else
+                        [f"centros a r = {fm(TA_['r'], 0)}, ±{fm(abs(math.degrees(math.atan2(v, u))), 1)}° de la bisectriz:", f"x = {fm(u, 1)} (= {fm(u - xb_, 1)} desde el borde interior), y = ±{fm(abs(v), 1)}"])
+                V.note_hole((u, v, ztop), r, 60, f"{len(ca_)} × {TA_['designacion']}", ext=70, on=on,
+                            lines=[f"{len(ca_)} × avellanado Ø{fm(av_['d_cabeza'], 0)}×90° (cabeza {fm(av_['bajo_cara'], 2)} bajo la cara),", f"pasante Ø{fm(TA_['dh'], 0)}, para {TA_['designacion']} (AF2),"] + pos_)
         gs = V.circles(on, 2.9, 3.1)
         if m.info.get("grease_pts") and gs and face == "bot":
             u, v, r = [q for q in gs if abs(q[2] - 3.0) < 0.1][0]

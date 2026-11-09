@@ -199,13 +199,13 @@ def _acc(m, g, D, Part, info):
     m.add(Part("cilindro_pv", "ACC", "Cilindro hidráulico doble efecto (modo pivotado)",
                f"Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, {f(P['p_rated'])} psi ({fm(P['p_rated'] * 0.0689476, 0)} bar); ojal trasero Ø{f(PE['d'])} (pasador E) y ojal del vástago Ø{f(PQ['d'])} (pasador Q), ancho {f(P['b_eye'])}",
                _compound(cyls), len(cyls), "Comercial (acero; sellos)", "Comercial", mass_override=len(cyls) * P["m_cyl"], core="cyl", comercial=True,
-               catalogo="A DEFINIR POR CATÁLOGO (largo ojal–ojal retraído L0, ojal del vástago para pasador Ø%s y geometría de extremos con el proveedor)" % f(PQ["d"]), color=(0.95, 0.78, 0.1),
+               catalogo="A DEFINIR POR CATÁLOGO (largo ojal–ojal retraído, ojal del vástago para pasador Ø%s y geometría de extremos con el proveedor)" % f(PQ["d"]), color=(0.95, 0.78, 0.1),
                cert="Certificado de prueba hidráulica del fabricante", num_fijo=ACC_NUM["cilindro_pv"]))
     m.add(Part("bloque_una", "ACC", "Bloque-uña acodado",
                f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}, cara {f(BU['cara']['b'])}×{f(BU['cara']['l'])} templada, cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
                _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
                "Forja o bloque; fresado del contorno y de la horquilla en mandrinadora/fresadora; agujero Q mandrinado; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
-               tratamiento=f"Temple por inducción de la cara {BU['cara']['templada']}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una"]))
+               tratamiento=f"Temple por inducción de la cara {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una"]))
     m.add(Part("pasador_Q", "ACC", "Pasador Q del vástago (seguidor de la placa-leva)", f"Pasador Ø{f(PQ['d'])} f8 × {f(PQ['largo'])} (z {f(PQ['z'][0])}–{f(PQ['z'][1])}); extremo inferior templado (seguidor)", _compound(pins_q), len(pins_q),
                gq, "Barra rectificada; corte y chaflanes en torno horizontal; temple por inducción del extremo inferior", core="dogs", color=(0.3, 0.3, 0.32),
                tratamiento="Bonificado (QT); extremo inferior templado por inducción ≥ 55 HRC (seguidor de la placa-leva)", num_fijo=ACC_NUM["pasador_Q"]))
