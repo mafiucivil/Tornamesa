@@ -423,10 +423,19 @@ const PLANOS = (() => {
     d.notes = lines;
   }
 
+  function segsView(v, segs, l) {
+    segs.forEach((q) => {
+      if (q.tipo === "arco" && q.radio > 0 && q.centro) {
+        const ang = (p) => Math.atan2(p[1] - q.centro[1], p[0] - q.centro[0]) / D2R, a0 = ang(q.p0), a1 = ang(q.p1);
+        if (q.sentido === "horario") v.arc(q.centro[0], q.centro[1], q.radio, a1, a0, l); else v.arc(q.centro[0], q.centro[1], q.radio, a0, a1, l);
+      } else v.line(q.p0[0], q.p0[1], q.p1[0], q.p1[1], l);
+    });
+  }
   // modo pivotado en planta: ojales E en diagonal (cajón), 4 placas-leva con pernos (activas las del giro antihorario), cilindros y bloques-uña al tomar el pasador
   function pivotPlanta(v, c) {
     const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {};
-    Object.entries(g.placas).forEach(([k, pc]) => { const act = k.endsWith("_antihorario"); v.poly(pc.contorno, true, act ? "CONTORNO" : "OCULTO"); if (act) pc.pernos.forEach(([a, b]) => v.circ(a, b, (pl.d_perno || 20) / 2)); });
+    // placas-guía curvas: rectas y arcos de los segmentos del núcleo (ARC de DXF, antihorario de a0 a a1); el giro horario es la imagen especular (ACC-024)
+    Object.entries(g.placas).forEach(([k, pc]) => { const act = k.endsWith("_antihorario"); segsView(v, pc.segmentos_contorno || [], act ? "CONTORNO" : "OCULTO"); if (act) { pc.pernos.forEach(([a, b]) => v.circ(a, b, (pl.d_perno || 20) / 2)); (pc.pasadores_posicion || []).forEach(([a, b]) => v.circ(a, b, (P.pv_dd || 16) / 2, "OCULTO")); } });
     g.E.forEach(([ex, ey]) => { const h = g.ojalE.lado_cajon / 2; v.rect(ex - h, ey - h, ex + h, ey + h); v.circ(ex, ey, g.ojalE.d / 2); v.cross(ex, ey, h + 10); });
     if (!q) return;
     [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f]) => {

@@ -25,7 +25,7 @@ const PYGIF = "import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]); n=
     const hayModo2 = !!(await page.$("#p_drive_mode"));
     async function preparar(modo, v, madera) {
       await page.click("#bReset"); await settle();
-      if (modo === 2) await setP("drive_mode", 2);
+      if (hayModo2) await setP("drive_mode", modo);                       // el modo por defecto es el pivotado (2): el guiado se fija explícitamente
       await page.selectOption("#altSel", v); await settle();
       if (madera) { await page.check("#p_opt_wood"); await settle(); }
       if (modo === 2 && errs.length) { console.log(`  aviso: ${errs.length} errores de consola al pasar a drive_mode = 2 FUERA de la simulación (pestañas de la herramienta): ${errs[0]}`); errs.length = 0; }
@@ -45,12 +45,12 @@ const PYGIF = "import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]); n=
       console.log(`${nombre}${dir < 0 ? " (horario)" : ""}: ${N} carreras en ${((Date.now() - t0) / 1000).toFixed(1)} s a ×8 → θ = ${th.toFixed(4)}° (paso ${pasoDeg.toFixed(4)}°)`);
     }
     async function fases(modo) {
-      for (const f of ["empuje", "retorno", "reenganche"]) {
+      for (const f of modo === 2 ? ["toma", "empuje", "retorno"] : ["empuje", "retorno", "reenganche"]) {   // modo 2: toma → empuje → retorno (reenganche como subfase del retorno)
         const t = await page.evaluate((f) => SIM.seek(SIM.buscarFase(f)), f);
         assert.equal(await page.getAttribute("#simBox", "data-fase"), f, "fase " + f + " en t = " + t);
         await page.locator("#simBox").screenshot({ path: path.join(out, `sim_${modo === 2 ? "pivotado" : "guiado"}_${f}.png`) });
       }
-      console.log(`capturas: empuje, retorno y reenganche (${modo === 2 ? "pivotado" : "guiado"})`);
+      console.log(`capturas: ${modo === 2 ? "toma, empuje y retorno (pivotado)" : "empuje, retorno y reenganche (guiado)"}`);
     }
     async function gif(etq, dir) {
       await abrir(dir);
@@ -77,7 +77,8 @@ const PYGIF = "import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]); n=
     }
     await preparar(1, "0", true); await correr("guiado · madera"); await cerrar();
     await page.click("#bReset"); await settle();
-    const sReq = await page.evaluate(() => SIM.proveedor(TT.defaults(), TT.analyze(TT.defaults(), { noFEA: true })).sUse);
+    if (hayModo2) await setP("drive_mode", 1);
+    const sReq = await page.evaluate(() => { const P = Object.assign(TT.defaults(), { drive_mode: 1 }); return SIM.proveedor(P, TT.analyze(P, { noFEA: true })).sUse; });
     await setP("stroke", Math.floor(sReq - 30));
     await page.click("#bSim"); await page.waitForSelector("#simDet");
     await page.evaluate(() => SIM.seek(SIM._S.prov.tExt - 1e-6));
@@ -102,8 +103,8 @@ const PYGIF = "import sys\nfrom PIL import Image\nim=Image.open(sys.argv[1]); n=
         await correr("pivotado · " + v);
         if (v === "0") {
           await fases(2);
-          const placas = await page.$$eval("#simPlan polygon.sim-cam", (ps) => ps.length);
-          assert.equal(placas, 4, "las 4 placas-leva en planta");
+          const placas = await page.$$eval("#simPlan path.sim-cam", (ps) => ps.length);
+          assert.equal(placas, 4, "las 4 placas-guía curvas en planta (trayectos con arcos)");
           await cerrar(); await correr("pivotado · base", -1);
         }
         await cerrar();

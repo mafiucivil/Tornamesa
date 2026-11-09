@@ -18,7 +18,8 @@
     let d = a >= 1000 ? 0 : a === 0 ? 0 : Math.max(0, Math.min(3, sig - 1 - Math.floor(Math.log10(a))));
     return v.toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
-  const fu2 = (v) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fu3 = (v) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const fu2 = fu3;                                                     // FU con 3 decimales en toda la UI
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const ST = { ok: "Cumple", warn: "Monitoreo", fail: "No cumple", info: "Info", pend: "Pendiente" };
@@ -53,7 +54,7 @@
   function buildForm() {
     $("#form").innerHTML = TT.PARAM_GROUPS.map((g, gi) => `<details ${gi < 5 ? "open" : ""}><summary>${esc(g.t)}</summary>${g.p.map(([id, lab, u, def, mn, mx, st]) => {
       const txt = typeof def === "string";
-      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
+      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${id === "opt_wood" ? `<span class="standby" id="woodStandby">Cubierta de madera W: en stand by (no incluida en la entrega RevC)</span>` : ""}${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
@@ -199,11 +200,19 @@
     const g = TT.pivotGeo(P); if (!g) return "";
     const D = TT.designDrive(P, R).pivotado || {}, pl = D.placa_leva || {}, y = (v) => -v, o = [];
     const pts = (arr) => arr.map(([a, b]) => `${a},${y(b)}`).join(" ");
+    // placas-guía curvas: trayecto con arcos SVG desde los segmentos del núcleo (las del giro horario son la imagen especular, ACC-024)
+    const sp = (segs, z) => SIM.segPath(segs, (v) => v, y, (v) => v, z);
     Object.entries(g.placas).forEach(([k, pc]) => {
-      const op = k.endsWith("_antihorario") ? 1 : 0.35;
-      o.push(`<g opacity="${op}"><polygon points="${pts(pc.contorno)}" fill="#c9b37e" fill-opacity=".5" stroke="#8a6d2f" stroke-width="4"/>${pc.pernos.map(([a, b]) => `<circle cx="${a}" cy="${y(b)}" r="${(pl.d_perno || 20) / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`).join("")}</g>`);
+      const act = k.endsWith("_antihorario");
+      o.push(`<g opacity="${act ? 1 : 0.35}" class="mdl-placa" data-placa="${k}"><path d="${sp(pc.segmentos_contorno, true)}" fill="#c9b37e" fill-opacity=".5" stroke="#8a6d2f" stroke-width="4"/>${act ? `<path d="${sp(pc.segmentos_canto)}" fill="none" stroke="#b4570b" stroke-width="7"/>` : ""}${pc.pernos.map(([a, b]) => `<circle cx="${a}" cy="${y(b)}" r="${(pl.d_perno || 20) / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`).join("")}${(pc.pasadores_posicion || []).map(([a, b]) => `<circle cx="${a}" cy="${y(b)}" r="${(P.pv_dd || 16) / 2}" fill="var(--pendbg)" stroke="var(--pend)" stroke-width="2"/>`).join("")}</g>`);
     });
-    g.E.forEach(([ex, ey]) => { const h = g.ojalE.lado_cajon / 2; o.push(`<rect x="${ex - h}" y="${y(ey) - h}" width="${2 * h}" height="${2 * h}" fill="var(--soft)" stroke="var(--ink)" stroke-width="5"/><circle cx="${ex}" cy="${y(ey)}" r="${g.ojalE.d / 2}" fill="var(--ink)"/>`); });
+    const sE = (D.fabricacion || {}).soporte_E || {};               // soporte del ojal E abierto hacia la mesa: piezas en planta del núcleo
+    g.E.forEach(([ex, ey], i) => {
+      const pz = ((sE["cilindro" + (i + 1)] || {}).piezas || []).filter((q) => q.poligono && !/tapa_inf/.test(q.id));
+      if (pz.length) pz.forEach((q) => o.push(`<polygon points="${pts(q.poligono)}" fill="var(--soft)" fill-opacity="${/tapa/.test(q.id) ? 0.6 : 1}" stroke="var(--ink)" stroke-width="4"/>`));
+      else { const h = g.ojalE.lado_cajon / 2; o.push(`<rect x="${ex - h}" y="${y(ey) - h}" width="${2 * h}" height="${2 * h}" fill="var(--soft)" stroke="var(--ink)" stroke-width="5"/>`); }
+      o.push(`<circle cx="${ex}" cy="${y(ey)}" r="${g.ojalE.d / 2}" fill="var(--ink)"/>`);
+    });
     ["horario", "antihorario"].forEach((sen) => {
       const q = TT.pivotAt(P, P.s_free, "empuje", sen); if (!q) return;
       const act = sen === "antihorario";
@@ -211,7 +220,7 @@
         const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
         const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
         o.push(`<g opacity="${act ? 1 : 0.3}"><polygon points="${pts(bar(0, lb, P.D_body))}" fill="var(--acc)" opacity=".55"/><polygon points="${pts(bar(lb, L, P.d_rod))}" fill="var(--acc)"/>
-          <polygon points="${pts(q.una.cuerpo.map(f))}" fill="var(--load)" opacity=".85"/><polygon points="${pts(q.una.cara.map(f))}" fill="var(--load)"/><polygon points="${pts(q.una.cubo.map(f))}" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/>
+          <polygon points="${pts(q.una.cuerpo.map(f))}" fill="var(--load)" opacity=".85"/><polygon points="${pts(SIM.caraBloque(g, q.una.cara).map(f))}" fill="var(--load)"/><polygon points="${pts(q.una.cubo.map(f))}" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/>
           <circle cx="${Q[0]}" cy="${y(Q[1])}" r="${g.pasadorQ.d / 2}" fill="none" stroke="var(--ink)" stroke-width="3"/></g>`);
         if (act) { const A_ = f(q.pasadores.A); o.push(`<circle cx="${A_[0]}" cy="${y(A_[1])}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`); }
       });
@@ -272,7 +281,7 @@
       }
     }
     o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
-    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">${isPiv() ? "Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario) · ojales E en diagonal, 4 placas-leva" : "Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")}</text>`);
+    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">${isPiv() ? "Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario) · ojales E en diagonal, 4 placas-guía curvas (canto guía en naranja)" : "Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")}</text>`);
     return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
   }
   // modo pivotado en alzado desarrollado (distancias radiales al eje de giro): placa-leva, bloque-uña con su pasador Q, cilindro y soporte del ojal E
@@ -290,7 +299,7 @@
     o.push(`<rect x="${X(Math.min(rm, rE))}" y="${Z(zc + P.D_body / 2)}" width="${Math.abs(rE - rm)}" height="${P.D_body}" fill="var(--acc)" opacity=".55"/>`);
     o.push(`<rect x="${X(Math.min(rQ, rm))}" y="${Z(zc + P.d_rod / 2)}" width="${Math.abs(rm - rQ)}" height="${P.d_rod}" fill="var(--acc)"/>`);
     o.push(`<line x1="${X(rE)}" y1="${Z(tb)}" x2="${X(rE)}" y2="${Z(tb + se.alto + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
-    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-leva ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(tb + se.alto) - 6}" font-size="13" text-anchor="middle">ojal E (cajón ${fmt(se.lado_cajon)})</text>`);
+    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-guía ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(tb + se.alto) - 6}" font-size="13" text-anchor="middle">ojal E (cajón ${fmt(se.lado_cajon)})</text>`);
     o.push(`<text x="${X(rQ)}" y="${Z(0) + 36}" font-size="12" text-anchor="middle" fill="var(--ink2)">alzado desarrollado a lo largo del cilindro 1 (distancias radiales)</text>`);
     return o.join("");
   }
@@ -373,7 +382,22 @@
           <span>Voladizo de la uña / holgura radial</span><span>${fmt(A.R.K.lever, 3)} / ${fmt(A.R.K.radial)} mm</span>
           <span>Cuerda / hueco entre pasadores</span><span>${fmt(A.R.K.chord, 4)} / ${fmt(A.R.K.gap, 4)} mm</span>
           <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
-        </div>`}</div></div>`;
+        </div>`}</div></div>${isPiv() ? placaGuiaCard() : ""}`;
+  }
+  // placa-guía curva del modo pivotado: detalle en toma, empuje y retorno (simulación, TT.pivotAt) y tabla de los segmentos del canto (núcleo)
+  function placaGuiaCard() {
+    const g = TT.pivotGeo(P); if (!g || typeof SIM === "undefined") return "";
+    const D = TT.designDrive(P, A.R).pivotado || {}, pl = D.placa_leva || {}, seg = g.placas["1_antihorario"].segmentos_canto || [];
+    const fases = [["toma", "Toma: Q en la toma y la cara R" + fmt(g.bloque.R_cara) + " llega al pasador"], ["empuje", "Empuje: Q apoyado en el canto (contacto Q–canto)"], ["retorno", "Retorno: el bloque-uña sale sobre el pasador siguiente y la placa lo conduce a la toma"]];
+    return `<div class="card" style="margin-top:12px" id="mdlPlaca"><h3>Placa-guía curva (cilindro 1, giro antihorario) · toma → empuje → retorno</h3>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${fases.map(([id, t]) => `<div><div class="note"><b>${esc(t)}</b></div>${SIM.vistaFase(P, A, id)}</div>`).join("")}</div>
+      <div class="note">Canto (naranja) y trayectoria del centro de Q (trazos) dibujados con arcos SVG desde <code>pivotGeo().placas[k].segmentos_*</code>; las placas del giro horario son la imagen especular (ACC-024). Bloque-uña con cara cilíndrica R${fmt(g.bloque.R_cara)} (polilínea con flecha ≤ 0,1 mm), pasador Q Ø${fmt(g.pasadorQ.d)}, ojal E Ø${fmt(g.ojalE.d)} en su cajón y pasador tomado en naranja.</div>
+      <div class="scroll"><table id="mdlSeg"><tr><th>#</th><th>Rol</th><th>Tipo</th><th>Sentido</th><th>Curvatura</th><th class="n">R canto (mm)</th><th class="n">Centro (mm)</th><th class="n">Inicio (mm)</th><th class="n">Fin (mm)</th></tr>
+        ${seg.map((q, i) => `<tr><td class="n">${i + 1}</td><td>${esc(q.rol)}</td><td>${q.tipo === "arco" ? "arco" : "recta"}</td><td>${esc(q.sentido || "—")}</td><td>${esc(q.curvatura || "—")}</td><td class="n">${q.radio ? fmt(q.radio, 3) : "—"}</td><td class="n">${q.centro ? fmt(q.centro[0], 5) + "; " + fmt(q.centro[1], 5) : "—"}</td><td class="n">${fmt(q.p0[0], 5)}; ${fmt(q.p0[1], 5)}</td><td class="n">${fmt(q.p1[0], 5)}; ${fmt(q.p1[1], 5)}</td></tr>`).join("")}</table></div>
+      <div class="kv" style="margin-top:8px"><span>Radio mínimo del canto convexo / cóncavo</span><span>${fmt((pl.radio_min_canto || {}).convexo, 3)} / ${fmt((pl.radio_min_canto || {}).concavo, 3)} mm</span>
+        <span>Continuidad G1 (quiebre máximo de tangente)</span><span>${fmt((pl.g1_max_rad || 0) / D2R, 3)}°</span>
+        <span>Largo del canto / área de la placa</span><span>${fmt(pl.largo_canto, 4)} mm / ${fmt(pl.area / 100, 4)} cm²</span>
+        <span>Ángulo del flanco de reenganche</span><span>${fmt(pl.alpha_deg, 3)}° (máx. admisible ${fmt(P.pv_alpha, 3)}°)</span></div></div>`;
   }
 
   /* ---------- Accionamiento ---------- */
@@ -452,6 +476,106 @@
         <div class="note">Ensayo de aceptación: con la presión de despegue medida p, μ_real = (n·p·A·η_c·brazo_mín − T_piv)/(N·${fmt(P.r_ef, 4)} mm). Aceptar si μ_real ≤ ${fmt(P.mu_d)}.</div></div></div>`;
   }
 
+  /* ---------- Cinemática del modo pivotado (drive_mode = 2): datos de TT.designDrive().pivotado y del núcleo (sin recalcular) ---------- */
+  // gráfico compacto: series [{pts:[[x,y]], c, n, dash}], marcas verticales [{v, t, c}], líneas horizontales [{v, t, c}], eje derecho opcional (k·y)
+  function kinChart(o) {
+    const Wd = 440, Hd = 230, m = { l: 52, r: o.y2 ? 46 : 14, t: 14, b: 34 };
+    const xs = o.series.flatMap((s) => s.pts.map((q) => q[0])), ys = o.series.flatMap((s) => s.pts.map((q) => q[1])).concat((o.hl || []).map((h) => h.v));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(0, ...ys), y1 = Math.max(...ys) * 1.1 || 1;
+    const X = (v) => (m.l + (v - x0) / (x1 - x0 || 1) * (Wd - m.l - m.r)).toFixed(1), Y = (v) => (Hd - m.b - (v - y0) / (y1 - y0 || 1) * (Hd - m.t - m.b)).toFixed(1);
+    const g = [];
+    for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; g.push(`<line x1="${m.l}" x2="${Wd - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${m.l - 5}" y="${+Y(v) + 4}" font-size="10.5" text-anchor="end">${fmt(v, 3)}</text>${o.y2 ? `<text x="${Wd - m.r + 5}" y="${+Y(v) + 4}" font-size="10.5" fill="var(--load)">${fmt(v * o.y2.k, 3)}</text>` : ""}`); }
+    for (let i = 0; i <= 4; i++) { const v = x0 + (x1 - x0) * i / 4; g.push(`<text x="${X(v)}" y="${Hd - m.b + 14}" font-size="10.5" text-anchor="middle">${fmt(v, 4)}</text>`); }
+    (o.hl || []).forEach((h) => g.push(`<line x1="${m.l}" x2="${Wd - m.r}" y1="${Y(h.v)}" y2="${Y(h.v)}" stroke="${h.c}" stroke-dasharray="5 4" stroke-width="1.2"/><text x="${Wd - m.r - 18}" y="${+Y(h.v) - 4}" font-size="10" text-anchor="end" fill="${h.c}">${esc(h.t)}</text>`));
+    (o.marks || []).forEach((h) => { const xm = +X(h.v), xt = xm > Wd - m.r - 12 ? xm - 4 : xm + 11; g.push(`<line x1="${xm}" x2="${xm}" y1="${m.t}" y2="${Hd - m.b}" stroke="${h.c}" stroke-dasharray="3 3" stroke-width="1.1" class="kin-mark"/><text x="${xt}" y="${m.t + 3}" font-size="10" fill="${h.c}" text-anchor="end" transform="rotate(-90 ${xt} ${m.t + 3})">${esc(h.t)}</text>`); });
+    o.series.forEach((s) => g.push(`<polyline fill="none" stroke="${s.c}" stroke-width="${s.w || 1.8}"${s.dash ? ` stroke-dasharray="${s.dash}"` : ""} points="${s.pts.map((q) => X(q[0]) + "," + Y(q[1])).join(" ")}"/>`));
+    g.push(`<line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${Hd - m.b}" stroke="var(--ink2)"/><line x1="${m.l}" x2="${Wd - m.r}" y1="${Hd - m.b}" y2="${Hd - m.b}" stroke="var(--ink2)"/>`);
+    g.push(`<text x="${(m.l + Wd - m.r) / 2}" y="${Hd - 4}" font-size="11" text-anchor="middle">${esc(o.xl)}</text><text x="11" y="${(m.t + Hd - m.b) / 2}" font-size="11" text-anchor="middle" transform="rotate(-90 11 ${(m.t + Hd - m.b) / 2})">${esc(o.yl)}</text>`);
+    if (o.y2) g.push(`<text x="${Wd - 8}" y="${(m.t + Hd - m.b) / 2}" font-size="11" text-anchor="middle" fill="var(--load)" transform="rotate(90 ${Wd - 8} ${(m.t + Hd - m.b) / 2})">${esc(o.y2.lab)}</text>`);
+    const leg = o.series.filter((s) => s.n).map((s) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:16px;height:0;border-top:2px ${s.dash ? "dashed" : "solid"} ${s.c};display:inline-block"></i>${esc(s.n)}</span>`).join("");
+    return `<div class="card kin-card" data-k="${o.id}"><h3>${esc(o.title)}</h3><svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${esc(o.title)}">${g.join("")}</svg>${leg ? `<div class="note">${leg}</div>` : ""}</div>`;
+  }
+  function renderCinem() {
+    const el = document.querySelector('section[data-t="cinem"]'); if (!el) return;
+    if (!A) { el.innerHTML = msgs(); return; }
+    if (!isPiv()) { el.innerHTML = `<div class="msg warn" id="kinNo">La cinemática de esta pestaña es la del accionamiento pivotado tipo KIET (drive_mode = 2). Con el modo guiado (drive_mode = 1) la fuerza a lo largo de la carrera está en «Accionamiento».</div>`; return; }
+    const D = TT.designDrive(P, A.R).pivotado || {}, cin = D.cinematica || [], pl = D.placa_leva || {}, R = A.R;
+    if (!cin.length) { el.innerHTML = `<div class="msg warn">El núcleo no entrega la cinemática del empuje guiado (designDrive().pivotado.cinematica).</div>`; return; }
+    const push = (R.camP && R.camP.push || []).filter((q) => q.ok), hb = push.length === cin.length ? push.map((q) => q.clrB) : null;
+    const iCal = cin.reduce((b, c, i) => c.F_cil > cin[b].F_cil ? i : b, 0), thHz = pl.hertz && pl.hertz.push ? pl.hertz.push.th / D2R : null;
+    const near = (th) => cin.reduce((b, c, i) => Math.abs(((c.th - th) % 360 + 540) % 360 - 180) < Math.abs(((cin[b].th - th) % 360 + 540) % 360 - 180) ? i : b, 0);
+    const iHz = thHz != null ? near(thHz) : null, iHb = hb ? hb.reduce((b, v, i) => v < hb[b] ? i : b, 0) : null, iFin = cin.length - 1;
+    const tc = cin.map((c) => c.th), mk = [{ v: cin[0].th, t: "toma", c: "var(--ok)" }, { v: cin[iCal].th, t: "calado (F_cil máx.)", c: "var(--fail)" }, { v: cin[iFin].th, t: "fin del empuje", c: "var(--acc)" }];
+    const xl = "θ del pasador tomado (°)", ser = (k, c, n, dash) => ({ pts: cin.map((q) => [q.th, q[k]]), c, n, dash });
+    const kp = cin[0].F_cil ? cin[0].p / cin[0].F_cil : 0;
+    const chP = A.checks.find((c) => /ángulo de presión máximo bajo el de autobloqueo/.test(c.name)), chB = A.checks.find((c) => /Bloque-uña libre de los pasadores en el empuje guiado/.test(c.name));
+    const ret = pl.retorno || [], rg = [];                            // tramos contiguos con Q conducido por la placa-guía
+    ret.forEach((q, i) => { if (!q.guia) return; if (!i || !ret[i - 1].guia) rg.push([]); rg[rg.length - 1].push([q.L, q.holgura]); });
+    const charts = [
+      kinChart({ id: "L", title: "Largo del cilindro L = |Q − E|", xl, yl: "L (mm)", series: [ser("L", "var(--acc)", "L del cilindro (Q apoyado en el canto)")], marks: mk, hl: [{ v: P.L0 + P.stroke, t: `L máx. ${fmt(P.L0 + P.stroke, 4)} mm`, c: "var(--ink2)" }] }),
+      kinChart({ id: "F", title: "Fuerza del cilindro y presión (caso de diseño)", xl, yl: "F_cil (kN)", y2: { k: kp, lab: "p (bar)" }, series: [ser("F_cil", "var(--acc)", "F_cil, empuje guiado"), ser("F_cil_colineal", "var(--ink2)", "F_cil colineal (referencia)", "5 4")], marks: mk, hl: [{ v: R.Fstall, t: `alivio ${fmt(R.Fstall)} kN (${fmt(P.p_relief)} bar)`, c: "var(--fail)" }] }),
+      kinChart({ id: "H", title: "Carga H sobre la placa-guía (caso de diseño)", xl, yl: "H (kN)", series: [ser("F_leva", "var(--load)", "H en el contacto Q–canto")], marks: mk }),
+      kinChart({ id: "phi", title: "Ángulo de presión φ en el contacto Q–canto (empuje)", xl, yl: "φ (°)", series: [ser("phi_presion_deg", "#7b3fa0", "φ empuje")], marks: mk, hl: chP ? [{ v: chP.cap, t: `autobloqueo 90° − atan μ = ${fmt(chP.cap, 3)}°`, c: "var(--fail)" }] : [] }),
+      hb ? kinChart({ id: "hb", title: "Holgura bloque-uña–pasadores en el empuje guiado", xl, yl: "holgura (mm)", series: [{ pts: cin.map((q, i) => [q.th, hb[i]]), c: "var(--ok)", n: "holgura mínima a los pasadores anterior y siguiente" }], marks: mk, hl: [{ v: P.pv_cB, t: `mínimo ${fmt(P.pv_cB)} mm`, c: "var(--fail)" }] }) : `<div class="card"><div class="msg warn">El núcleo no entrega la holgura bloque–pasadores por posición.</div></div>`,
+      ret.length ? kinChart({ id: "sync", title: "Holgura de sincronía en el retorno (mesa detenida en θ_fin)", xl: "L del cilindro en el retorno (mm)", yl: "holgura (mm)", series: [{ pts: ret.map((q) => [q.L, q.holgura]), c: "var(--ink2)", n: "retorno: el pasador siguiente levanta el bloque (0 = deslizamiento previsto)", w: 1.2 }, ...rg.map((pts, k) => ({ pts, c: "var(--ok)", n: k ? "" : "conducción por la placa-guía (sincronía)", w: 2.4 }))], hl: [{ v: pl.margen_diseno, t: `margen con tolerancias ${fmt(pl.margen_diseno, 3)} mm`, c: "var(--fail)" }], marks: [{ v: pl.primer_contacto ? pl.primer_contacto.L : P.L0, t: "primer contacto del retorno", c: "var(--acc)" }] }) : "",
+    ];
+    // puntos característicos: toma, calado (F_cil máx.), cambios de tramo del canto (push[].tramo ↔ segmentos_canto) y fin del empuje
+    const segC = (TT.pivotGeo(P) || { placas: {} }).placas["1_antihorario"], rolT = (i) => push[i] && segC && segC.segmentos_canto[push[i].tramo] ? segC.segmentos_canto[push[i].tramo].rol : null;
+    const trans = push.length === cin.length ? push.map((q, i) => i).filter((i) => i > 0 && push[i].tramo !== push[i - 1].tramo && i !== iCal && i !== iFin) : [];
+    const sel = [0, iCal, iFin]; trans.forEach((i) => { if (sel.length < 5 && !sel.includes(i)) sel.push(i); });
+    const pts5 = [...new Set(sel)].sort((a, b) => a - b).map((i) => { const tg = []; if (i === 0) tg.push("Toma"); if (i === iCal) tg.push("Calado (F_cil máx.)"); if (i === iFin) tg.push("Fin del empuje"); if (i === iHz) tg.push("Hertz crítico del canto"); if (i === iHb) tg.push("holgura bloque–pasadores mín."); if (!tg.length) tg.push("Cambio de tramo del canto"); return [tg.join(" · ") + (rolT(i) ? ` — Q en «${rolT(i)}»` : ""), i]; });
+    const tabla = `<table id="kinPts"><tr><th>Punto</th><th class="n">θ (°)</th><th class="n">L (mm)</th><th class="n">s (mm)</th><th class="n">F_cil (kN)</th><th class="n">p (bar)</th><th class="n">H guía (kN)</th><th class="n">φ (°)</th><th class="n">Holgura bloque–pasadores (mm)</th><th class="n">Brazo ef. (mm)</th></tr>
+      ${pts5.map(([n, i]) => { const c = i != null ? cin[i] : null; return `<tr data-i="${i == null ? "" : i}"><td>${esc(n)}</td>${c ? `<td class="n">${fmt(c.th, 5)}</td><td class="n">${fmt(c.L, 4)}</td><td class="n">${fmt(c.s, 4)}</td><td class="n">${fmt(c.F_cil, 4)}</td><td class="n">${fmt(c.p, 3)}</td><td class="n">${fmt(c.F_leva, 3)}</td><td class="n">${fmt(c.phi_presion_deg, 3)}</td><td class="n">${hb ? fmt(hb[i], 3) : "—"}</td><td class="n">${fmt(c.a_ef, 4)}</td>` : `<td colspan="9" class="ref">sin dato del núcleo</td>`}</tr>`; }).join("")}</table>`;
+    el.innerHTML = `<div class="note">Accionamiento pivotado tipo KIET (drive_mode = 2), cilindro 1, giro antihorario, caso de diseño (μ ${fmt(R.mu.d)}). Datos: <code>TT.designDrive().pivotado.cinematica</code> (${cin.length} posiciones del empuje guiado con Q apoyado en el canto), <code>placa_leva.retorno</code> y la holgura bloque–pasadores de <code>analyze().R.camP.push[].clrB</code>; la UI no recalcula.</div>
+      <div class="grid kin-grid" id="kinGrid" style="grid-template-columns:repeat(auto-fit,minmax(360px,1fr))">${charts.join("")}</div>
+      <div class="card" style="margin-top:12px"><h3>Puntos característicos del empuje (${pts5.length})</h3><div class="scroll">${tabla}</div>
+        <div class="kv" style="margin-top:8px"><span>θ toma / fin del empuje</span><span>${fmt(D.theta_ini_deg, 5)}° / ${fmt(D.theta_fin_deg, 5)}°</span>
+          <span>Carrera requerida / del cilindro</span><span>${fmt(D.carrera_req, 4)} / ${fmt(P.stroke, 4)} mm</span>
+          <span>Sincronía nominal / peor caso (retorno)</span><span>${fmt(pl.sincronia, 3)} / ${fmt(pl.sincronia_peor, 3)} mm (margen ${fmt(pl.margen_diseno, 3)} mm)</span>
+          <span>Primer contacto del retorno: L / φ</span><span>${pl.primer_contacto ? fmt(pl.primer_contacto.L, 4) + " mm / " + fmt(pl.primer_contacto.phi, 3) + "°" : "—"}</span>
+          <span>Bolsillo (máx W) / ángulo del flanco</span><span>${fmt(pl.bolsillo_w, 3)} mm / ${fmt(pl.alpha_deg, 3)}°</span>
+          ${chB ? `<span>Holgura bloque–pasadores mínima (verificación)</span><span>${fmt(chB.cap, 3)} mm ≥ ${fmt(chB.dem, 3)} mm · FU ${fu3(chB.fu)}</span>` : ""}</div>
+        <div class="note">Calado: posición de fuerza máxima del cilindro en el empuje (la primera en calar si la fricción sube). Hertz crítico: peor punto de contacto Q–canto a la fuerza de calado (placa_leva.hertz.push). La holgura de sincronía se grafica frente a L porque en el retorno la mesa queda detenida en θ_fin.</div></div>`;
+  }
+
+  /* ---------- Comparación de la guía: original poligonal (b928552, histórico fijo) / curva (núcleo) / concepto KIET (medido en el plano) ---------- */
+  const ORIG = { ref: "commit b928552 · docs/qa/guia_curva_KIET/cambios.md §1, §2 y §4 (valores históricos fijos)" };
+  function renderComp() {
+    const el = document.querySelector('section[data-t="comp"]'); if (!el) return;
+    if (!A) { el.innerHTML = msgs(); return; }
+    const img = typeof TT_IMG !== "undefined" && TT_IMG.comparacion ? `<img id="compImg" src="${TT_IMG.comparacion}" alt="Comparación de la placa-guía: original poligonal, curva y concepto KIET" style="display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff">` : `<div class="msg warn">Figura no embebida en esta compilación.</div>`;
+    const piv = isPiv(), Pp = piv ? P : Object.assign({}, P, { drive_mode: 2 }), Ap = piv ? A : TT.analyze(Pp, { noFEA: true });
+    const D = TT.designDrive(Pp, Ap.R).pivotado || {}, pl = D.placa_leva || {}, g = TT.pivotGeo(Pp) || {}, dis = Ap.R.cases.find((c) => c.id === "dis") || {};
+    const seg = g.placas ? g.placas["1_antihorario"].segmentos_canto : [], nA = seg.filter((q) => q.tipo === "arco").length, nL = seg.filter((q) => q.tipo !== "arco").length;
+    const chk = (re) => Ap.checks.find((c) => re.test(c.name)), fab = (D.fabricacion || {}).placas_leva || {}, marco = fab.marco || {};
+    const qF = chk(/^Pasador Q: flexión/);
+    const rows = [
+      ["Perfil del canto", "poligonal: 4 vértices, quiebre de tangente máx. 70,2°", `${nL} rectas + ${nA} arcos tangentes (${seg.filter((q) => q.tipo === "arco" && !/sin contacto/.test(q.rol)).length} de contacto y el cierre del bolsillo), G1: quiebre máx. ${fmt((pl.g1_max_rad || 0) / D2R, 3)}°`, "media luna con arco continuo y gancho en un extremo"],
+      ["Radio mínimo del canto convexo / cóncavo", "0 (vértices)", `${fmt((pl.radio_min_canto || {}).convexo, 3)} / ${fmt((pl.radio_min_canto || {}).concavo, 3)} mm`, "no acotado"],
+      ["Ángulo de presión del flanco de reenganche", "65° (vértices sin definir)", `${fmt(pl.alpha_deg, 3)}° (máximo, en el pie del flanco)`, "no acotado"],
+      ["Canto exportado", "desplazamiento en w (invade el seguidor 27,1 mm)", `envolvente exacta del seguidor (polilínea con flecha ≤ ${fmt(pl.tolerancia_polilinea, 1)} mm)`, "—"],
+      ["Sincronía nominal (declarada)", "7,07 mm", `${fmt(pl.sincronia, 3)} mm (margen ${fmt(pl.margen_diseno, 3)} con tolerancias)`, "—"],
+      ["Sincronía con el contorno fabricado", "−21,0 mm (choque con B)", `${fmt(pl.sincronia, 3)} mm (peor caso ${fmt(pl.sincronia_peor, 3)})`, "—"],
+      ["Bolsillo (máx. W)", "57,9 mm", `${fmt(pl.bolsillo_w, 3)} mm`, "—"],
+      ["Carga de diseño de la placa", "71,6 kN (atasco)", `${fmt((pl.fuerzas_N || {}).diseno / 1e3, 4)} kN (empuje a calado)`, "—"],
+      ["F del cilindro, caso de diseño", "308,1 kN", `${fmt(dis.F, 4)} kN`, "—"],
+      ["Presión de diseño", "484 bar", `${fmt(dis.p, 3)} bar`, "—"],
+      ["FS del accionamiento (diseño)", "1,446", fmt(dis.FS, 4), "—"],
+      ["Carrera requerida", "220,41 mm", `${fmt(D.carrera_req, 5)} mm`, "—"],
+      ["Placa", "labio de 80 mm, 6 pernos M20", `rectángulo ${fmt(marco.largo, 3)} × ${fmt(marco.ancho, 3)} × ${fmt(pl.t)} mm, ${pl.n_pernos} ISO 10642 M${Math.round(pl.d_perno)} 8.8 + 2 pasadores de posición`, "rectangular, ~6 pernos en el perímetro"],
+      ["Material", "S355J2 «con canto templado ≥ 55 HRC»", esc(String(fab.material || "—").split(",")[0]) + ", canto templado por inducción", "no indicado"],
+      ["Masa de las 4 placas", "34,4 kg", `${fmt(Ap.R.m.cam, 3)} kg`, "—"],
+      ["Pasador Q: FU de flexión", "0,551", qF ? fu3(qF.fu) : "—", "—"],
+      ["Disposición", "2 cilindros en esquinas opuestas, 2 placas por cilindro", `ojales a ${fmt(D.phi_E, 3)}° y ${fmt(((D.phi_E || 0) + 180) % 360, 3)}°; 2 placas por cilindro (una por sentido; la del horario es la imagen especular, ACC-024)`, "ojales a 134,9° y 315,1°; 2 placas por cilindro"],
+      ["Posición angular de las placas respecto de la diagonal del ojal", "—", "± 20,9°", "−26,0° y +25,1° (cil. 1); +26,3° y −26,1° (cil. 2)"],
+      ["Radio del centro de la placa / radio del anillo", "—", "1,18 (sobre R = D/2)", "1,02–1,08"],
+    ];
+    el.innerHTML = `<div class="note">Valores por defecto, cilindro 1, giro antihorario${piv ? "" : " (calculado con drive_mode = 2: la guía curva es del accionamiento pivotado)"}. Original: ${esc(ORIG.ref)}. Curva: núcleo actual (<code>designDrive().pivotado</code>, <code>pivotGeo()</code>, <code>analyze()</code>). KIET: plano KIET-1024-REF-TT-400T, <b>concepto medido en el plano, no acotado</b> (solo proporciones; sus dimensiones no se trasladan).</div>
+      <div class="card scroll"><table id="compTab"><tr><th>Aspecto</th><th>Original poligonal (b928552)</th><th>Curva (este diseño, núcleo)</th><th>Concepto KIET (medido en el plano, no acotado)</th></tr>
+        ${rows.map(([a, o, c, k]) => `<tr><td>${esc(a)}</td><td class="ref">${esc(o)}</td><td><b>${c}</b></td><td class="ref">${esc(k)}</td></tr>`).join("")}</table></div>
+      <div class="card" style="margin-top:12px"><h3>Figura: original poligonal, curva y concepto KIET</h3>${img}<div class="note">docs/qa/guia_curva_KIET/comparacion.png (tools/fig_guia_curva.py), embebida en la herramienta.</div></div>`;
+  }
+
   /* ---------- Verificaciones ---------- */
   function fuBar(c) {
     if (c.fu == null || !isFinite(c.fu)) return "";
@@ -462,14 +586,14 @@
     const el = document.querySelector('section[data-t="verif"]');
     if (!A) { el.innerHTML = msgs(); return; }
     let g = "", rows = "";
-    A.checks.forEach((c) => {
+    A.checks.forEach((c, i) => {
       if (c.grp !== g) { g = c.grp; rows += `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`; }
-      rows += `<tr><td><span class="st st-${c.st}">${ST[c.st]}</span></td><td>${esc(c.name)}<div class="form">${esc(c.formula)}</div></td>
+      rows += `<tr class="chk-row" data-i="${i}" data-st="${c.st}"><td><span class="st st-${c.st}">${ST[c.st]}</span></td><td>${esc(c.name)}<div class="form">${esc(c.formula)}</div></td>
         <td class="n">${fmt(c.dem)}</td><td class="n">${c.cap != null ? fmt(c.cap) : ""}</td><td>${esc(c.unit || "")}</td>
-        <td class="n">${c.fu != null && isFinite(c.fu) ? fu2(c.fu) : ""}${fuBar(c)}</td><td class="ref">${esc(c.ref)}</td></tr>`;
+        <td class="n">${fu3(c.fu)}${fuBar(c)}</td><td class="ref">${esc(c.ref)}</td></tr>`;
     });
     el.innerHTML = `<div class="note">Clasificación: FU ≤ 0,90 cumple; 0,90–1,00 monitoreo; &gt; 1,00 no cumple. Los chequeos de giro y geométricos son límites con margen propio: cumplen con FU ≤ 1,00. Cadena de empuje verificada a la fuerza de calado ${fmt(A.R.Fstall)} kN con ASME BTH-1 Nd = ${fmt(P.Nd)}.</div>
-      <div class="card scroll"><table><tr><th>Estado</th><th>Verificación</th><th class="n">Demanda</th><th class="n">Capacidad</th><th>Unidad</th><th class="n">FU</th><th>Referencia</th></tr>${rows}</table></div>`;
+      <div class="card scroll"><table><tr><th>Estado</th><th>Verificación</th><th class="n">Demanda</th><th class="n">Capacidad</th><th>Unidad</th><th class="n">FU</th><th>Norma / referencia</th></tr>${rows}</table></div>`;
   }
 
   /* ---------- FEA ---------- */
@@ -966,7 +1090,7 @@
   }
 
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderPlanos(); renderTemp(); renderTapones();
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderCinem(); renderComp(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderPlanos(); renderTemp(); renderTapones();
   }
   buildForm(); recalc();
 })();
