@@ -128,6 +128,12 @@ class G:
         self.insp_rem = self.tt - self.cb_t                # espesor remanente bajo el rebaje
         self.ch_pin, self.ch_piv, self.ch_pp = 2.0, 3.0, 2.0      # chaflanes de dibujo (1×45° mínimo ISO 13715): pasador de empuje, pivote, pasadores de articulación
         # --- accionamiento ---
+        # modo del accionamiento (núcleo, D.modo): 1 = guiado (patín, uña y leva de reenganche); 2 = pivotado tipo KIET (cajón del ojal E, bloque-uña, placas-leva)
+        self.modo = int(D.get("modo") or P.get("drive_mode", 1))
+        self.PV = D.get("pivotado") or {}
+        self.LG = D.get("levaGuiada") or {}
+        self.FPV = self.PV.get("fabricacion") if self.modo == 2 else None
+        self.FLG = self.LG.get("fabricacion") if (self.modo == 1 and self.LG.get("activa")) else None
         self.BR = DV["bracket"]
         self.KG = DV["K"]
         self.forkH = DV["forkH"]
@@ -137,15 +143,20 @@ class G:
         self.fondo = P["t_bed"] - P["h_slot"] - P["h_tee"]
         self.neck_w, self.head_w, self.head_h = P["w_slot"] - 2, P["w_tee"] - 2, P["h_tee"] - 2
         self.neck_h = P["h_slot"] + 1
-        self.z_shoe = self.KG["shoeTop"]
-        self.Hs = self.z_shoe - self.zb
-        self.ch_dx = self.KG["travel"]
-        self.ch_dy = self.ch_dx / math.tan(math.radians(P["beta_ch"]))
-        self.paw_L = self.KG["mouthX"] + P["L_in"] - self.KG["tipX"]
+        if self.modo == 1:
+            self.z_shoe = self.KG["shoeTop"]
+            self.Hs = self.z_shoe - self.zb
+            self.ch_dx = self.KG["travel"]
+            self.ch_dy = self.ch_dx / math.tan(math.radians(P["beta_ch"]))
+            self.paw_L = self.KG["mouthX"] + P["L_in"] - self.KG["tipX"]
         self.pk_top = self.zc + P["dog_h"] / 2 + 1
         self.pk_bot = self.zc - P["dog_h"] / 2 - 1
-        zh = next(v["dem"] for v in D["verificaciones"] if v["nombre"].startswith("Profundidad mínima de temple"))
-        self.z_hard = math.ceil(zh * 10) / 10
+        # franja de contacto con el pasador de empuje: alto de la uña (modo 1) o del bloque-uña (modo 2)
+        self.h_contact = P["dog_h"] if self.modo == 1 else float(self.FPV["bloque_una"]["h"])
+        zh = next((v["dem"] for v in D["verificaciones"] if v["nombre"].startswith("Profundidad mínima de temple")), None)
+        self.z_hard = math.ceil(zh * 10) / 10 if zh is not None else None
+        # el núcleo no entrega la profundidad mínima de temple en el modo pivotado (requiere núcleo)
+        self.z_hard_txt = (f"≥ {fm(self.z_hard, 1)} mm" if self.z_hard is not None else "A DEFINIR (el núcleo no entrega la profundidad mínima de temple en el modo pivotado)")
         # --- izaje ---
         self.cl_lug = self.B / 2 - P["c_lug"]
         self.ear_pos = [(P["x_lug"], self.cl_lug), (-P["x_lug"], self.cl_lug), (P["x_lug"], -self.cl_lug), (-P["x_lug"], -self.cl_lug)]
@@ -211,6 +222,8 @@ class G:
             c += "F2"
         if self.wood:
             c = "W" if self.opt == 0 else c + "-W"
+        if self.modo == 1:
+            c += "-G"                     # alternativa: accionamiento guiado con leva de reenganche (el juego por defecto es el pivotado)
         return c
 
     @property
@@ -218,12 +231,17 @@ class G:
         """Descripción completa de la variante: interfaz, fijación y cubierta."""
         I = self.I
         t = self.interfaz_nombre
-        if self.opt in (1, 2) and not self.removable:
+        tor = I.get("tornillos") if isinstance(I.get("tornillos"), dict) else None
+        if self.opt in (1, 2) and not self.removable and tor:
+            t = t.split(":")[0] + f", fijación modo 2: discos inoxidables e{fm(I['tss'], 0)}/e{fm(I['tss2'], 0)} pegados" + (" (base liso, mesa ranurado)" if self.opt == 1 else "") + \
+                f", sin topes; disco de la mesa con {int(tor['n'])} tornillos avellanados {tor['designacion'].replace(' – ', ' ')} a la mesa (no desmontable)"
+        elif self.opt in (1, 2) and not self.removable:
             t = t.split(":")[0] + f", fijación modo 2: discos inoxidables e{fm(I['tss'], 0)}/e{fm(I['tss2'], 0)} pegados" + (" (base liso, mesa ranurado)" if self.opt == 1 else "") + ", sin topes ni tornillos (no desmontable)"
         elif self.opt and not self.removable:
             t += "; fijación modo 2: sectores pegados, sin topes ni tornillos (no desmontable)"
         if self.wood:
             t += f"; con cubierta de madera e = {fm(self.P['t_wood'], 0)} y anillo de contención {fm(self.t_ring, 0)}×{fm(self.P['t_wood'], 0)}"
+        t += "; accionamiento pivotado tipo KIET (por defecto)" if self.modo == 2 else "; accionamiento guiado con leva de reenganche (alternativa)"
         return t
 
     def tope(self, which):
@@ -301,6 +319,17 @@ def supuestos(g):
             "El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
     add("S15", "Atornillado de las tapas del pivote", f"Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø{fm(g.cap_pcd, 0)} a 45°+90°·k, roscados prof. {fm(g.cap_tap, 0)} en el pivote; tapa de inspección: 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (ISO 10642) en PCD Ø{fm(g.insp_pcd, 0)} a 30°+60°·k, roscados prof. {fm(g.insp_tap, 0)} en el fondo del rebaje; avellanado y roscado con borde ≥ {fm(BORDE_MIN, 0)} mm (PROPUESTA)",
         "El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar).")
+    if g.modo == 2:
+        F = g.FPV
+        add("S20", "Disposición del cajón del ojal E", f"Paredes en molinete (cada pared {fm(F['soporte_E']['lado'] - F['soporte_E']['t_pared'], 0)} mm apoya su extremo contra la siguiente); tapas dentro de las paredes ({fm(F['soporte_E']['lado'] - 2 * F['soporte_E']['t_pared'], 0)} × {fm(F['soporte_E']['lado'] - 2 * F['soporte_E']['t_pared'], 0)}); ventana = sector del núcleo (PROVISORIO)",
+            "El núcleo da lado, espesor, alturas, tapas y ventana, pero no cómo se unen las paredes; las tapas de lado 260 no caben dentro de las paredes (requiere núcleo).")
+        add("S21", "Ojales del cilindro (elemento comercial)", f"Pared de ojal 17,5 mm (Ø{fm(F['pasador_E']['d'] + 35, 0)} en E y Ø{fm(F['pasador_Q']['d'] + 35, 0)} en Q); cuello de ancho b_ojal hasta {fm(F['bloque_una']['horquilla']['R_cubo'] + 10, 0)} mm de Q (PROVISORIO)",
+            "El núcleo solo exige Ø ojal ≥ d; la geometría la fija el proveedor del cilindro.")
+        add("S22", "Posición dibujada del accionamiento", "Pasador de la mesa del modelo dentro del empuje, el más cercano a su inicio; Q = P + L_qp·(E − P)/|E − P| (cinemática del núcleo)", "Las láminas muestran una posición; el núcleo entrega 61.")
+        add("S23", "Pernos de las placas-leva", f"ISO 4762 M{fm(F['placas_leva']['pernos']['d'], 0)}×{fm(min(45, F['placas_leva']['t'] + g.tb - 1), 0)} 10.9 roscados pasantes en la base, sin sobresalir bajo la base (PROVISORIO)",
+            "El núcleo admite roscado o tuerca bajo la base; la base apoya en la losa (requiere núcleo: engrane).")
+    if g.modo == 1 and g.FLG:
+        add("S24", "Pasador del vástago bajo el riel-leva", "A ras de la cara superior del patín; retención por anillo elástico inferior (PROPUESTA)", "El riel-leva queda 2 mm sobre el patín (núcleo): no cabe la placa de retención superior.")
     add("S13", "Izaje de la mesa", "No se dibujan puntos de izaje de la mesa (A DEFINIR)", "El cálculo solo define las 4 orejas de izaje de la base (espesor, radio y agujero: parámetros t_ear, R_ear, d_ear); la mesa debe izarse con medios definidos por el montajista.")
     add("S14", "Retención axial del pivote", "Zona p6 del pivote calada H7/p6, sin soldadura ni tope inferior (A DEFINIR)", "El cálculo verifica asiento y flexión pero no la extracción axial del pivote.")
     return S

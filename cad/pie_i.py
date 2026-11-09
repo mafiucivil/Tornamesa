@@ -71,6 +71,17 @@ def int_sector_sheet(ctx, key, titulo, face):
             sc_ = sorted({round(math.hypot(u, v), 1) for (u, v, r) in cs if abs(v) < 1})
             u, v, r = min(cs, key=lambda q: abs(q[1]))
             V.note_hole((u, v, ztop), r, 90, f"{len(sc_)} × M{fm(lay.d_tor, 0)} ISO 10642 (avellanado Ø{fm(lay.dk_av, 0)}×90°, pasante Ø{fm(lay.d_clear, 1)}) a r = " + " y ".join(fm(x, 1) for x in sc_), ext=46, on=on)
+        TA_ = m.info.get("af2")
+        if TA_ and key == "int_disco_mesa":
+            ca_ = V.circles(on, TA_["dh"] / 2 - 0.05, TA_["dh"] / 2 + 0.05)
+            if ca_:
+                u, v, r = max(ca_, key=lambda q: q[1])
+                xb_ = ctx.shapes[on[0]].BoundingBox().xmin
+                av_ = TA_["avellanado"]
+                V.note_hole((u, v, ztop), r, 120, f"{len(ca_)} × {TA_['designacion']}", ext=40, on=on,
+                            lines=[f"{len(ca_)} × avellanado Ø{fm(av_['d_cabeza'], 0)}×90° (cabeza {fm(av_['bajo_cara'], 2)} bajo la cara), pasante Ø{fm(TA_['dh'], 0)}",
+                                   f"para {TA_['designacion']} (AF2); centros a r = {fm(TA_['r'], 0)}, ±{fm(abs(math.degrees(math.atan2(v, u))), 1)}° de la bisectriz:",
+                                   f"x = {fm(u, 1)} (= {fm(u - xb_, 1)} desde el borde interior), y = ±{fm(abs(v), 1)}"])
         gs = V.circles(on, 2.9, 3.1)
         if m.info.get("grease_pts") and gs and face == "bot":
             u, v, r = [q for q in gs if abs(q[2] - 3.0) < 0.1][0]
@@ -492,7 +503,7 @@ def sheet_int_ranuras(ctx):
         pts = [(g.Ri, 0, zs)] + [(r, 0, zf) for r in sorted(rr)] + [(g.Ro, 0, zs)]
         for a_, b_ in zip(pts, pts[1:]):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
-        V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"{fm(g.Ro - g.Ri, 0)} (ancho radial)")
+        V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"({fm(g.Ro - g.Ri, 0)}: ancho radial, lámina del sector)")
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
          auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=min(lay.dk_av, P["bz_plug_d"]) / 2 - 0.2,
                    hole_txt={**({round(P["bz_plug_d"], 1): f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102)"} if g.opt == 3 else {}),

@@ -12,7 +12,8 @@ def sheet_base_plancha(ctx):
     s = p.s
     on = ["base_plancha"]
     xl, cl, xg = P["x_lug"], g.cl_lug, P["x_g"]
-    ghosts = ["marco_largo", "marco_corto", "collar", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "orejas", "bancada"]
+    ghosts = ["marco_largo", "marco_corto", "collar", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "orejas", "bancada",
+              "leva_prolong", "leva_pata", "placa_leva"]
 
     def planta(V, p):
         ghost(p, V, ghosts)
@@ -21,7 +22,13 @@ def sheet_base_plancha(ctx):
         V.dimv((-B / 2, -B / 2, tb), (-B / 2, B / 2, tb), "left", 0, on=on, text=f"{f(B)} ±2")
         s.circle(V.P(0, 0, tb), g.D_boss / 2 * V.scale, "FANT")
         s.circle(V.P(0, 0, tb), (P["D_top"] + 20) / 2 * V.scale, "FANT")
-        cs = V.circles(["base_plancha"], 2.0, 4.5)
+        ph = ctx.m.info.get("placa_leva_holes")
+        if ph:                             # roscas de los pernos de las placas-leva (modo 2)
+            dpl = g.FPV["placas_leva"]["pernos"]["d"]
+            x_, y_ = ph[0]
+            V.note_hole((x_, y_, tb), dpl / 2, 200, f"{len(ph)} × M{fm(dpl, 0)} pasantes (placas-leva; coordenadas en la tabla)", ext=26, on=on,
+                        lines=[f"{len(ph)} × M{fm(dpl, 0)}-6H pasantes", "(placas-leva; coordenadas en la tabla)"])
+        cs = [c_ for c_ in V.circles(["base_plancha"], 2.0, 4.5)]
         if cs:
             n = len(cs)
             u, v, r = cs[0]
@@ -59,11 +66,20 @@ def sheet_base_plancha(ctx):
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):
         rows.append([f"O{i + 1} oreja de izaje", f(ex), f(ey), "—", f"plano radial {fm(math.degrees(math.atan2(ey, ex)), 2)}°"])
-    for grp in ("horario", "antihorario"):
-        for k, c in enumerate(D["cilindros"][grp]):
-            rows.append([f"M{len(rows) - 3} ménsula {grp}", f(c["eye"][0], 1), f(c["eye"][1], 1), f(c["phiMean"], 1) + "°", "eje del ojal"])
-    for sx in (1, -1):
-        rows.append(["Bancada (eje de guía)", f(sx * P["x_g"]), "0", "90°", f"largo {f(g.KG['L_bed'], 1)}"])
+    if g.modo == 1:
+        for grp in ("horario", "antihorario"):
+            for k, c in enumerate(D["cilindros"][grp]):
+                rows.append([f"M{len(rows) - 3} ménsula {grp}", f(c["eye"][0], 1), f(c["eye"][1], 1), f(c["phiMean"], 1) + "°", "eje del ojal"])
+        for sx in (1, -1):
+            rows.append(["Bancada (eje de guía)", f(sx * P["x_g"]), "0", "90°", f"largo {f(g.KG['L_bed'], 1)}"])
+    else:
+        Sx = g.FPV["soporte_E"]
+        for i_, lk_ in enumerate(("cilindro1", "cilindro2")):
+            E_ = Sx[lk_]["centro"]
+            rows.append([f"C{i_ + 1} cajón del ojal E (eje E)", f(E_[0], 1), f(E_[1], 1), "—", f"cajón {f(Sx['lado'])} × {f(Sx['lado'])}; posición con tolerancia ajustada (CON-007)"])
+        for k_, ins in g.FPV["placas_leva"]["instancias"].items():
+            for j_, (x_, y_) in enumerate(ins["pernos"]):
+                rows.append([f"Rosca M{fm(g.FPV['placas_leva']['pernos']['d'], 0)} placa {k_.replace('_', ' ')} P{j_ + 1}", f(x_, 1), f(y_, 1), "—", "pasante (Ø0,5 de posición)"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS (origen: centro de la plancha)", [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
     p.tables(jids(ctx, "Collar"))
@@ -210,6 +226,9 @@ def sheet_mensula_piezas(ctx):
     p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), extra=(80, 0, 0, 34), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): ""}), w=0.9)
     # corte por el eje del agujero de la oreja superior
     p.vs("os_corte", k2, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(1, 2, 1, 1), title="CORTE A-A: AGUJERO DE LA OREJA", hatch=True, auto=dict(tol={}, hole_notes=False, text={round(P["d_pp"], 1): f"Ø{f(P['d_pp'])} H9"}), w=0.8, hs=0.4)
+    p.datum_in("os_el", "surf", "A", at=[(-rear + 15, 0, zt), (Llug - rear - 15, 0, zt), ((Llug - 2 * rear) / 2, 0, zt)], d=(0, 0, 1))
+    p.gd_in("os_corte", "dim", "coax", "Ø0,10", "A", prefix=f"Ø{f(P['d_pp'])} H9")
+    p.gd_in("oi_pl", "dim", "perp", "0,10", "A", prefix=f"Ø{f(P['d_pp'])} H9", alt=("os_pl", "dim", None, None, f"Ø{f(P['d_pp'])} H9"))
     if len(ids) >= 4:
         add_prep(p, "det_j4", wd(ctx, ids[0]), t1=tc, t2=tb)
         add_prep(p, "det_j5", wd(ctx, ids[1]), t1=tc, t2=tc)
@@ -292,7 +311,9 @@ def sheet_bancada(ctx):
         s.line(V.P(0, 0, tb - 6), V.P(0, 0, zb + 8), "EJE")
         w_sym(p, jid, V, (-P["w_bed"] / 2, 0, tb + 3), (-25, -25), sh=-1)
         ra(s, V, (P["w_slot"] / 2 + 2, 0, zb), "Ra 1,6")
-        s.datum((V.P(0, 0, zb)[0] - 30, V.P(0, 0, zb)[1] + 10), "A", up=True)
+    p.datum_in("corte", "surf", "A", at=[(-P["w_bed"] / 2 + 15, 0, tb), (P["w_bed"] / 2 - 15, 0, tb)], d=(0, 0, -1))
+    p.gd_in("corte", "surf", "par", "0,10", "A", at=[(P["w_slot"] / 2, 0, zb - P["h_slot"] / 2), (-P["w_slot"] / 2, 0, zb - P["h_slot"] / 2)], d=[(1, 0, 0), (-1, 0, 0)])
+    p.gd_in("det_ranura", "surf", "pos", "Ø0,2", "A", at=[(-P["w_slot"] / 2, 0, zb - P["h_slot"] * 0.3), (P["w_slot"] / 2, 0, zb - P["h_slot"] * 0.3)], d=[(-1, 0, 0), (1, 0, 0)])
     p.vs("corte", on, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(2, 2, 2, 2), draw=corte, title="CORTE A-A (ranura T)", hs=0.6,
          auto=dict(tol={round(P["t_bed"], 1): " ±0,5", round(P["w_slot"], 1): " H8", round(P["h_slot"], 1): " +0,1/0", round(P["w_tee"], 1): " +0,2/0", round(P["h_tee"], 1): " +0,2/0"}), w=1.5)
     p.vs("det_ranura", on, "front", cut=((0, 0, 0), (0, 1, 0)), center=(0, 0, zb - 12), win=(-42, -22, 42, 16), lv=(1, 2, 1, 2), title="DETALLE B: RANURA T (ampliado)", hs=0.3, maxs=2.0,
@@ -305,6 +326,6 @@ def sheet_bancada(ctx):
              f"Soldadura a la base: filete continuo z{fm(P['w_bed_f'], 0)} ambos lados, precalentar 65 °C ({jid}); eje de guía en x = ±{f(X)} ±0,5 respecto del centro.",
              "Paralelismo de la ranura 0,10 (datum A = eje de la bancada) y coaxialidad con el ojal ±0,2: verificar antes de montar el patín.",
              "Flancos de la ranura con grasa grafitada en montaje."],
-            gd=[("par", "0,10", "A", "Ranura paralela al eje de la bancada en todo el largo"), ("pos", "Ø0,2", "A", "Ranura coaxial con el ojal de la ménsula (±0,2)")])
+            gd=[("par", "0,10", "A", "Flancos de la ranura paralelos entre sí y a la cara de apoyo (A) en todo el largo"), ("pos", "Ø0,2", "A", "Ranura en posición respecto del eje de la bancada (alineada con el ojal de la ménsula)")])
     p.build()
     return p.h

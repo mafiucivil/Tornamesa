@@ -158,6 +158,12 @@ def notas_anillo_inf(ctx):
         rr_ = (ctx.m.info.get("screw_resp") or {}).get("mesa_anillo")
         prof_ = ("pasantes" if rr_ and rr_["pasante"] else f"rosca útil {fm(rr_['thr'], 0)}, taladro Ø{fm(rr_['broca'], 1)} prof. {fm(rr_['drill'], 0)}") if rr_ else "según la lámina de tornillos"
         out.append("Solo el anillo INFERIOR (MES-004): roscas M{0}-6H de los tornillos de posición de los sectores de la mesa: ".format(fm(ctx.P["d_tor"], 0)) + "; ".join(pat) + f"; {prof_} (INT-005).")
+    ha = centros_xy(m.info.get("holes_af2"))
+    if ha:
+        TA = g.I["tornillos"]
+        pa = patron_txt(ha, f"M{fm(TA['d'], 0)}-6H pasante", rmin=g.prIn)
+        out.append(f"Solo el anillo INFERIOR (MES-004), AF2: roscas de los {int(TA['n'])} tornillos {TA['designacion']} del disco de la mesa: " + "; ".join(pa) +
+                   f"; broca Ø{fm(TA['rosca']['d_broca'], 2)} (núcleo). 8 de ellas cortan los agujeros de los pasadores de empuje: conflicto declarado del núcleo, RETENIDO (GEN-009).")
     gp = m.info.get("grease_pts") or []
     if gp:
         pg = patron_txt(gp, "taladro axial Ø6", rmin=0)
@@ -286,7 +292,8 @@ def sheet_nervios(ctx):
              title=f"NERVIO TRAMO {i + 1} ({ctx.code(k).replace(CODE + '-', '')}) — {int(P['N_rib'])} unidades", w=1.2,
              auto=dict(tol={round(g.hw, 1): " ±0,5"}, text={round(L, 1): f"{fm(L, 0)} ±0,5 (terminado, entre caras del nervio)", round(L - 30, 1): f"({fm(L - 30, 0)})", round(g.hw - 30, 1): f"({fm(g.hw - 30, 0)})"}, axes="hv" if i == 0 else "h"))
         if i == 0:
-            p.gd_in(f"n{i}", "surf", "straight", "1,0", None, at=[((bb.xmin + bb.xmax) / 2 + dx_, 0.0, z0) for dx_ in (0.0, 30.0, -30.0)], d=(0, 0, -1))
+            p.gd_in(f"n{i}", "surf", "straight", "1,0", None, at=[((bb.xmin + bb.xmax) / 2 + dx_, 0.0, z0) for dx_ in (0.0, 30.0, -30.0, 60.0, -60.0)], d=(0, 0, -1),
+                    alt=(f"n{i}", "surf", [((bb.xmin + bb.xmax) / 2 + dx_, 0.0, z0 + g.hw) for dx_ in (0.0, 40.0, -40.0)], (0, 0, 1), None))
         rows.append([f"{i + 1}", ctx.code(k).replace(CODE + "-", ""), fm(bb.xmin, 0), fm(bb.xmax, 0), f"({fm(L + hol, 0)})", fm(L, 0), fm(L + 4, 0), f"{fm(g.hw, 0)} × {fm(P['t_rib'], 0)}", f"{int(P['N_rib'])}"])
     p.table_block("TRAMOS DE NERVIO (largo de corte = terminado + 2 × 2 de sobremetal; terminado = entre caras de cubo/almas − holgura de armado)",
                   [("Tramo", 12, "C"), ("Código", 20, "L"), ("R interior", 18, "R"), ("R exterior", 18, "R"), ("Entre caras de cubo/almas (ref.)", 26, "R"), ("Terminado", 18, "R"), ("Largo de corte", 18, "R"), ("h × t", 20, "C"), ("Cant", 10, "C")], rows)
@@ -395,7 +402,7 @@ def sheet_pasador(ctx):
     p.detail("det_ch", "elev", (r - 1, 0, zt - 1), 9, "B", lv=(1, 1, 1, 1), title="DETALLE B: CHAFLÁN DE EXTREMO (5:1)", maxs=5.0, hatch=False)
     p.tables()
     p.notes([f"Barra Ø{f(g.d_pin + 5)} laminada/rectificada; torno horizontal o rectificado externo: Ø{f(g.d_pin)} m6 ({iso286.fmt_dev(g.d_pin, 'm6')} mm), Ra 0,8; largo {f(g.hd)} ±0,1.",
-             f"Tratamiento (ISO 15787): bonificado y temple por inducción de la franja de contacto ({f(P['dog_h'])} mm, ubicada desde la cara sin rosca según la elevación) ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva ≥ {fm(g.z_hard, 1)} mm; Fy ≥ {f(P['Fy_pin'])} MPa (34CrNiMo6+QT, EN 10083-3).",
+             f"Tratamiento (ISO 15787): bonificado y temple por inducción de la franja de contacto ({f(P['dog_h'])} mm, ubicada desde la cara sin rosca según la elevación) ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva {g.z_hard_txt}; Fy ≥ {f(P['Fy_pin'])} MPa (34CrNiMo6+QT, EN 10083-3).",
              f"Chaflán {fm(g.ch_pin, 0)}×45° en ambos extremos (ISO 13715). Rosca M20-6H en un extremo (ISO 262): rosca útil {fm(g.pin_thr, 0)}, taladro Ø{fm(g.pin_drill, 1)} prof. {fm(g.pin_drill_L, 0)}; perno ISO 4762 M20×45 cl. 10.9; torque propuesto en GEN-008 (PROPUESTA, A CONFIRMAR POR EL CALCULISTA).",
              f"Ajuste en los anillos {f(g.d_pin)} H7/m6 (transición, desmontable). Montar con grasa; sin soldadura.",
              f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en el extremo roscado; 10 % de dureza superficial por lote."],

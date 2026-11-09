@@ -137,6 +137,10 @@ class Sheet:
     def arc(self, c, r, a0, a1, layer="VIS"):
         self.m.add_arc(c, r, a0, a1, dxfattribs={"layer": layer})
 
+    def spline(self, pts, layer="VIS"):
+        """Curva de transición por puntos de paso (DXF SPLINE por puntos de ajuste; no polilínea densa)."""
+        self.m.add_spline(fit_points=[(x, y, 0.0) for x, y in pts], dxfattribs={"layer": layer})
+
     def dot(self, p, r=0.8):
         self.m.add_circle(p, r, dxfattribs={"layer": "COTA"})
         self.hatch_poly([(p[0] + r * math.cos(t / 8 * math.pi * 2), p[1] + r * math.sin(t / 8 * math.pi * 2)) for t in range(8)], solid=True)

@@ -11,6 +11,8 @@ import cadquery as cq
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from geom import *
 import propuestas
+import acc3d
+from acc3d import ACC_NUM, BAS_NUM
 
 # ----------------------------------------------------------------------------------------------
 # primitivas
@@ -76,11 +78,13 @@ GAP_NERVIO = 1.0                # holgura de armado de cada extremo del nervio c
 
 class Part:
     def __init__(self, key, sub, name, desc, solid, qty=1, material="", process="", rho=RHO, mass_override=None, core=None,
-                 comercial=False, obs="", color=(0.6, 0.6, 0.62), tratamiento="—", cert="EN 10204 3.1", catalogo=None, in_core=True):
+                 comercial=False, obs="", color=(0.6, 0.6, 0.62), tratamiento="—", cert="EN 10204 3.1", catalogo=None, in_core=True, num_fijo=None):
         self.key, self.sub, self.name, self.desc, self.solid, self.qty = key, sub, name, desc, solid, qty
         self.material, self.process, self.rho, self.mass_override, self.core = material, process, rho, mass_override, core
         self.comercial, self.obs, self.color, self.tratamiento, self.cert, self.catalogo = comercial, obs, color, tratamiento, cert, catalogo
         self.in_core = in_core
+        self.num_fijo = num_fijo  # número de pieza fijo (accionamiento y cajón del ojal E: un código = una geometría en todos los juegos)
+        self.volteable = False    # pieza plana sin rasgos asimétricos en z: su imagen especular es la misma pieza volteada (firma con |Ixy|)
         self.num = 0
         self.pos = 0
         self._vol = None
@@ -138,6 +142,7 @@ INT_CODIGOS = {
     "int_cara/1": (13, "Disco duro de la mesa (sector)", "C1, C3"),
     "int_cara/3": (13, "Disco duro de la mesa (sector)", "C1, C3"),
     "int_cara/2": (14, "2.ª placa de bronce de la mesa (sector)", "C2"),
+    "int_tornillo_af2": (15, "Tornillo avellanado disco de la mesa–mesa (par de la interfaz)", "AF2"),
 }
 # láminas de características de la interfaz (sin pieza propia): número fijo
 INT_LAMINAS = {101: "Ranuras de engrase (cara deslizante de la mesa o de la placa de bronce)", 102: "Patrón de tapones de grafito",
@@ -152,13 +157,14 @@ LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_
 # Las clases y los tipos se midieron sobre la geometría real (cad/firmas.py, registro cad/firmas_codigos.json); el control de cada juego y
 # el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
 VAR_CODIGOS = {
-    "base_plancha": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
+    "base_plancha": [(("BASE-G", "AF2-G", "W-G"), "sin agujeros de interfaz (accionamiento guiado)", 1), (("A-G", "B-G", "C1-G", "C2-G", "C3-G"), "con roscas de interfaz (accionamiento guiado)", 1),
+                     (("BASE", "AF2", "W"), "roscas de las placas-leva (accionamiento pivotado)", 1), (("A", "B", "C1", "C2", "C3"), "roscas de las placas-leva y de interfaz (accionamiento pivotado)", 1)],
     "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
-    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras", 1), (("B",), "roscas", 1)],
+    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1)],
     "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
     "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
     "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2",), "liso, pegado", 1)],
-    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2",), "ranurado, pegado; 3 tipos", 3), (("B",), "liso, muesca", 1)],
+    "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2",), "ranurado, pegado y atornillado (avellanados M12); 3 tipos", 3), (("B",), "liso, muesca", 1)],
     "int_tope_base": [(("A", "B"), "largo A/B", 1), (("C1", "C2", "C3"), "largo C", 1)],
     "int_tope_mesa": [(("A", "B"), "largo A/B", 1), (("C1", "C3"), "largo C1/C3", 1), (("C2",), "largo C2", 1)],
     "int_bronce": [(("C1", "C2"), "4 tipos de patrón de tapones", 4), (("C3",), "4 tipos de patrón de tapones", 4)],
@@ -166,9 +172,15 @@ VAR_CODIGOS = {
 }
 
 
-def variante_de(g):
-    v = g.variante
-    return "BASE" if v == "BASE" else v.replace("-W", "")
+MODO_DEP = ("base_plancha",)       # piezas cuya geometría depende del modo del accionamiento (roscas de las placas-leva en la base)
+
+
+def variante_de(g, key=None):
+    v = g.variante.replace("-G", "")
+    v = "BASE" if v == "BASE" else v.replace("-W", "")
+    if key in MODO_DEP and g.modo == 1:
+        v += "-G"
+    return v
 
 
 def _num_clase(key, variantes):
@@ -184,11 +196,11 @@ def asignar_codigos(m):
     según el registro VAR_CODIGOS. Idempotente."""
     import firmas
     g = m.g
-    var = variante_de(g)
     m.info["codigos_fallas"] = []
     for p in m.parts:
-        if p.comercial or p.sub == "ACC" or p.key.startswith("mensula"):
+        if p.comercial or p.key.startswith("mensula") or p.key in ("bancada", "patin", "una", "pasador_vastago", "pasador_ojal", "cilindro"):
             continue
+        var = variante_de(g, p.key)
         ts = firmas.tipos(p)
         clases = VAR_CODIGOS.get(p.key)
         off, n_esp = 0, None
@@ -234,6 +246,10 @@ class Model:
     def add(self, p):
         self.sub_count[p.sub] = self.sub_count.get(p.sub, 0) + 1
         p.num = self.sub_count[p.sub]
+        if p.num_fijo is None and p.sub == "ACC" and p.key in ACC_NUM:
+            p.num_fijo = ACC_NUM[p.key]
+        if p.num_fijo is not None:
+            p.num = p.num_fijo
         if p.sub == "INT":
             ck = int_clave(p.key, self.g.conf)
             assert ck in INT_CODIGOS, f"pieza de interfaz sin código fijo: {p.key}"
@@ -467,17 +483,20 @@ def build(D, verbose=True):
     m.add(Part("marco_largo", "BAS", "Marco perimetral largo", f"Pletina {f(r_t)}×{f(r_h)}×{f(B)}", compound(rim_l), 2, A572, "Corte a sierra/plasma; soldadura a la plancha base", core="rim", color=(0.55, 0.57, 0.6)))
     m.add(Part("marco_corto", "BAS", "Marco perimetral corto", f"Pletina {f(r_t)}×{f(r_h)}×{f(B - 2 * r_t)}", compound(rim_s), 2, A572, "Corte a sierra/plasma; soldadura a la plancha base y a las largas", core="rim", color=(0.55, 0.57, 0.6)))
     mej, osup, oinf = [], [], []
-    for grp in ("horario", "antihorario"):
+    for grp in (("horario", "antihorario") if g.modo == 1 else ()):
         for c in D["cilindros"][grp]:
             x0, x1 = -BR["rear"], P["L_ch"] - BR["rear"]
             mej.append(place(box(x0, x1, BR["Win"] / 2, BR["Wout"] / 2, tb, tb + BR["H"]).union(box(x0, x1, -BR["Wout"] / 2, -BR["Win"] / 2, tb, tb + BR["H"])), c["phiMean"], c["eye"]))
             osup.append(place(box(x0, Llug - BR["rear"], -BR["Win"] / 2, BR["Win"] / 2, tb + BR["H"] - P["t_ch"], tb + BR["H"]).cut(cyl(P["d_pp"] / 2, BR["H"] + 2, tb - 1)), c["phiMean"], c["eye"]))
             oinf.append(place(box(x0, Llug - BR["rear"], -BR["Win"] / 2, BR["Win"] / 2, tb, tb + BR["spacer"] + P["t_ch"]).cut(cyl(P["d_pp"] / 2, BR["H"] + 2, tb - 1)), c["phiMean"], c["eye"]))
     nb = len(osup)
-    m.add(Part("mensula_mejilla", "BAS", "Mejilla de ménsula", f"Plancha {f(P['L_ch'])}×{f(BR['H'])}×{f(P['t_ch'])}", compound(mej), 2 * nb, A572, "Plasma; soldadura a la base (filete 4 líneas por ménsula)", core="brackets", color=(0.5, 0.52, 0.55)))
-    m.add(Part("mensula_oreja_sup", "BAS", "Oreja superior de ménsula", f"Plancha {f(BR['Win'])}×{f(Llug)}×{f(P['t_ch'])}, agujero Ø{f(P['d_pp'])} H9 (mandrinado después de soldar)", compound(osup), nb, A572,
+    if g.modo == 2:
+        acc3d.build_pivotado(m, g, D, Part, A572, parte="cajon")
+    if g.modo == 1:
+      m.add(Part("mensula_mejilla", "BAS", "Mejilla de ménsula", f"Plancha {f(P['L_ch'])}×{f(BR['H'])}×{f(P['t_ch'])}", compound(mej), 2 * nb, A572, "Plasma; soldadura a la base (filete 4 líneas por ménsula)", core="brackets", color=(0.5, 0.52, 0.55)))
+      m.add(Part("mensula_oreja_sup", "BAS", "Oreja superior de ménsula", f"Plancha {f(BR['Win'])}×{f(Llug)}×{f(P['t_ch'])}, agujero Ø{f(P['d_pp'])} H9 (mandrinado después de soldar)", compound(osup), nb, A572,
                "Plasma; soldadura a las mejillas; agujero H9 en línea en taladro radial/mandrinadora tras soldar", core="brackets", color=(0.5, 0.52, 0.55)))
-    m.add(Part("mensula_oreja_inf", "BAS", "Oreja inferior (bloque) de ménsula", f"Plancha {f(BR['Win'])}×{f(Llug)}×{f(BR['spacer'] + P['t_ch'])}, agujero Ø{f(P['d_pp'])} H9", compound(oinf), nb, A572,
+      m.add(Part("mensula_oreja_inf", "BAS", "Oreja inferior (bloque) de ménsula", f"Plancha {f(BR['Win'])}×{f(Llug)}×{f(BR['spacer'] + P['t_ch'])}, agujero Ø{f(P['d_pp'])} H9", compound(oinf), nb, A572,
                "Plasma (o pletinas apiladas); soldadura a mejillas y base; agujero H9 en línea tras soldar", core="brackets", color=(0.5, 0.52, 0.55)))
     # ===================== IZA: orejas de izaje =====================
     Rr, hE, tE, dE = P["R_ear"], P["h_ear"], P["t_ear"], P["d_ear"]
@@ -491,14 +510,15 @@ def build(D, verbose=True):
                core="base", color=(0.9, 0.35, 0.2), obs="Agujero de la oreja mecanizado H12 (Ra 6,3); grillete con pasador ≤ d − 3"))
     # ===================== ACC: bancadas =====================
     beds = []
-    for sx in (1, -1):
+    for sx in ((1, -1) if g.modo == 1 else ()):
         X = sx * P["x_g"]
         bd = box(X - P["w_bed"] / 2, X + P["w_bed"] / 2, -KG["Y_bed"], KG["Y_bed"], tb, zb).cut(
             box(X - P["w_slot"] / 2, X + P["w_slot"] / 2, -KG["Y_bed"] - 1, KG["Y_bed"] + 1, zb - P["h_slot"], zb + 1))
         if P["h_tee"] > 0:
             bd = bd.cut(box(X - P["w_tee"] / 2, X + P["w_tee"] / 2, -KG["Y_bed"] - 1, KG["Y_bed"] + 1, g.zT0, g.zT1))
         beds.append(bd)
-    m.add(Part("bancada", "ACC", "Bancada de guía con ranura T", f"Plancha {f(P['w_bed'])}×{f(P['t_bed'])}×{f(KG['L_bed'])}; ranura T: cuello {f(P['w_slot'])} H8 × {f(P['h_slot'])}, cabeza {f(P['w_tee'])}×{f(P['h_tee'])}, fondo {f(g.fondo)}",
+    if g.modo == 1:
+      m.add(Part("bancada", "ACC", "Bancada de guía con ranura T", f"Plancha {f(P['w_bed'])}×{f(P['t_bed'])}×{f(KG['L_bed'])}; ranura T: cuello {f(P['w_slot'])} H8 × {f(P['h_slot'])}, cabeza {f(P['w_tee'])}×{f(P['h_tee'])}, fondo {f(g.fondo)}",
                compound(beds), P["n_cyl"], A572, "Plasma/sierra; soldadura a la base; ranura T pasante fresada en mandrinadora o cepillo tras soldar y relevar; flancos Ra 1,6", core="beds", color=(0.45, 0.47, 0.5),
                obs="Ranura T pasante: el patín entra por el extremo"))
 
@@ -562,7 +582,7 @@ def build(D, verbose=True):
     pins = pins.cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.pin_drill_L).pushPoints(pin_xy).circle(g.pin_drill / 2).extrude(g.pin_drill_L + 1))   # M20-6H: taladro Ø17,5 prof. 45 (rosca 40)
     m.add(Part("pasadores", "MES", "Pasador de empuje", f"Barra Ø{f(d_pin)} m6 × {f(hd)}, rosca M20 prof. 40 en un extremo", pins, g.N_pin, f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa — PROPUESTO",
                "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción de la franja de contacto", core="pins", color=(0.75, 0.75, 0.78),
-               tratamiento=f"Bonificado; temple por inducción ≥ 55 HRC, prof. ≥ {fm(g.z_hard, 1)} mm (MES-012)", obs=f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa"))
+               tratamiento=f"Bonificado; temple por inducción ≥ 55 HRC, prof. {g.z_hard_txt} (MES-012)", obs=f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa"))
     # B-13/N-18: perno comercial (cabeza Ø30 × 20 con hexágono interior s = 17, vástago M20 × 45) y arandela fabricada, piezas separadas.
     # El vástago se modela con Ø20 en la arandela y con el Ø de taladro (17,5) dentro de la rosca del pasador (engrane de la rosca, sin interferencia).
     zh = z0 + hd + g.washer_t
@@ -588,9 +608,12 @@ def build(D, verbose=True):
     m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9", csk(cyl(g.cb_D / 2 - 1, g.cb_t, z0 + hd - g.cb_t).cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - 1).pushPoints(insp_xy).circle(g.insp_clear / 2).extrude(g.cb_t + 2)), insp_xy, z0 + hd, g.insp_clear, g.insp_csk), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
 
     # ===================== ACC: cilindros, patines, uñas, pasadores =====================
+    if g.modo == 2:
+        acc3d.build_pivotado(m, g, D, Part, A572, parte="acc")
     cyls, dogs, apins_b, apins_s, shoes = [], [], [], [], []
     srt = lambda a, b: (min(a, b), max(a, b))
-    for c in D["cilindros"]["antihorario"]:
+    pp_up = 0.0 if g.FLG else 10.0          # con el riel-leva sobre el patín (2 mm), el pasador del vástago queda a ras de la cara superior del patín
+    for c in (D["cilindros"]["antihorario"] if g.modo == 1 else ()):
         sx, dy, X = c["side"], c["dir"], c["x"]
         ye, yr, yps = c["eye"][1], c["rodEngage"][1], c["pinStart"][1]
         yb0, yb1 = srt(ye + dy * P["e_body"], c["rodRetracted"][1] - dy * P["c_rod"])
@@ -617,27 +640,41 @@ def build(D, verbose=True):
         ge0, ge1 = srt(yr - dy * KG["rear"] - 1, yr + dy * (52.5 + 5))
         sh = sh.cut(box(X - 57.5, X + 57.5, ge0, ge1, zc - P["b_eye"] / 2 - P["g_ch"], zc + P["b_eye"] / 2 + P["g_ch"]))
         zpp0 = max(zb, zc - g.forkH / 2 - 10)
-        sh = sh.cut(cyl(P["d_pp"] / 2, KG["shoeTop"] + 10 - zpp0, zpp0, X, yr))
+        sh = sh.cut(cyl(P["d_pp"] / 2, KG["shoeTop"] + pp_up - zpp0 + (1.0 if not pp_up else 0.0), zpp0, X, yr))
         gr0, gr1 = srt(yr - dy * (KG["rear"] + 5), yr - dy * 40)
         sh = sh.cut(box(X - (P["d_rod"] + 10) / 2, X + (P["d_rod"] + 10) / 2, gr0, gr1, zc - (P["d_rod"] + 10) / 2, zc + (P["d_rod"] + 10) / 2))
         px0, px1 = srt(sx * KG["mouthX"], sx * (KG["pocketEnd"] + CL1))
         sh = sh.cut(box(px0 - CL1, px1, yd0 - CL1, yd1 + CL1, zc - P["dog_h"] / 2 - CL1, zc + P["dog_h"] / 2 + CL1))
         shoes.append(sh)
-        apins_s.append(cyl(P["d_pp"] / 2, KG["shoeTop"] + 10 - zpp0, zpp0, X, yr).faces(">Z or <Z").edges().chamfer(g.ch_pp))
+        apins_s.append(cyl(P["d_pp"] / 2, KG["shoeTop"] + pp_up - zpp0, zpp0, X, yr).faces(">Z or <Z").edges().chamfer(g.ch_pp))
         apins_b.append(cyl(P["d_pp"] / 2, BR["H"] + 15, tb, X, ye).faces(">Z or <Z").edges().chamfer(g.ch_pp))
     nc = len(cyls)
-    m.add(Part("cilindro", "ACC", "Cilindro hidráulico doble efecto", f"Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, {f(P['p_rated'])} psi ({fm(P['p_rated'] * 0.0689476, 0)} bar), ojales con rótula Ø{f(P['d_pp'])}",
+    if g.FLG:
+        # leva de reenganche (modo 1): ranura de la tapa del patín y alojamiento del perno del seguidor en la uña
+        SG = g.FLG["seguidor"]
+        shoes = [sh.cut(r_) for sh, r_ in zip(shoes, acc3d.ranura_patin(g, D))]
+        hp = []
+        for c in D["cilindros"]["antihorario"]:
+            xs, ys = c["side"] * SG["x_eje_toma"], c["rodEngage"][1] + c["dir"] * SG["y_respecto_pasador_vastago"]
+            z1_ = SG["perno"]["z_cara_sup_una"]
+            hp.append(cyl(SG["perno"]["d"] / 2, SG["perno"]["empotrado_en_una"] + 1, z1_ - SG["perno"]["empotrado_en_una"], xs, ys))
+        dogs = [d_.cut(h_) for d_, h_ in zip(dogs, hp)]
+    if g.modo == 1:
+     m.add(Part("cilindro", "ACC", "Cilindro hidráulico doble efecto", f"Ø{f(P['D_bore'])}/Ø{f(P['d_rod'])}, carrera {f(P['stroke'])}, {f(P['p_rated'])} psi ({fm(P['p_rated'] * 0.0689476, 0)} bar), ojales con rótula Ø{f(P['d_pp'])}",
                compound(cyls), nc, "Comercial (acero; sellos)", "Comercial", mass_override=nc * P["m_cyl"], core="cyl", comercial=True,
                catalogo="A DEFINIR POR CATÁLOGO (confirmar el largo ojal–ojal retraído y la geometría de extremos con el proveedor)", color=(0.95, 0.78, 0.1), cert="Certificado de prueba hidráulica del fabricante"))
-    m.add(Part("patin", "ACC", "Patín guiado", f"Pieza única {f(KG['L_s'])}×{f(P['w_s'])}, lengüeta T (cuello {f(g.neck_w)} f7, cabeza {f(g.head_w)}×{f(g.head_h)}), marco de boca e={f(P['t_fw'])}", compound(shoes), nc,
+     m.add(Part("patin", "ACC", "Patín guiado", f"Pieza única {f(KG['L_s'])}×{f(P['w_s'])}, lengüeta T (cuello {f(g.neck_w)} f7, cabeza {f(g.head_w)}×{f(g.head_h)}), marco de boca e={f(P['t_fw'])}", compound(shoes), nc,
                propuestas.grado(P['Fy_shoe'], g.Hs, 'barra'), "Bloque de plancha gruesa cortado a llama con sobremetal; fresado del alojamiento, lengüeta T y ojales en mandrinadora; taladros con radial; sin soldadura", core="shoes", color=(0.25, 0.25, 0.28)))
-    m.add(Part("una", "ACC", "Uña de empuje", f"Forja/bloque {f(g.paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])}, cara de empuje plana templada, chaflán de retorno {fm(P['beta_ch'], 0)}° ({fm(g.ch_dx, 1)}×{fm(g.ch_dy, 1)})", compound(dogs), nc,
+     m.add(Part("una", "ACC", "Uña de empuje", f"Forja/bloque {f(g.paw_L)}×{f(P['dog_b'])}×{f(P['dog_h'])}, cara de empuje plana templada, chaflán de retorno {fm(P['beta_ch'], 0)}° ({fm(g.ch_dx, 1)}×{fm(g.ch_dy, 1)})", compound(dogs), nc,
                f"34CrNiMo6+QT (EN 10083-3), Re ≥ {f(P['Fy_dog'])} MPa medido en la propia forja (3.1)", "Corte de bloque forjado; fresado en mandrinadora/fresadora; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
-               tratamiento=f"Temple por inducción ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva según el cálculo (≥ {fm(g.z_hard, 1)} mm); alivio de borde 10 mm (factor de concentración de borde {fm(P['k_edge'], 2)} considerado en el cálculo)"))
-    m.add(Part("pasador_vastago", "ACC", "Pasador del vástago (patín)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(KG['shoeTop'] + 10 - max(zb, zc - g.forkH / 2 - 10))}, placa de retención", compound(apins_s), nc, propuestas.grado(P['Fy_pp'], P['d_pp'], 'barra'),
+               tratamiento=f"Temple por inducción ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva según el cálculo ({g.z_hard_txt}); alivio de borde 10 mm (factor de concentración de borde {fm(P['k_edge'], 2)} considerado en el cálculo)"))
+     m.add(Part("pasador_vastago", "ACC", "Pasador del vástago (patín)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(KG['shoeTop'] + pp_up - max(zb, zc - g.forkH / 2 - 10))}" + (", placa de retención" if pp_up else ", a ras de la cara superior del patín (bajo el riel-leva); retención por anillo elástico inferior (PROPUESTA)"), compound(apins_s), nc, propuestas.grado(P['Fy_pp'], P['d_pp'], 'barra'),
                "Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal", in_core=False, color=(0.3, 0.3, 0.32), tratamiento="Bonificado 28–34 HRC"))
-    m.add(Part("pasador_ojal", "ACC", "Pasador del ojal trasero (ménsula)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(BR['H'] + 15)}, placa de retención", compound(apins_b), nc, propuestas.grado(P['Fy_pp'], P['d_pp'], 'barra'),
+     m.add(Part("pasador_ojal", "ACC", "Pasador del ojal trasero (ménsula)", f"Pasador Ø{f(P['d_pp'])} f8 × {f(BR['H'] + 15)}, placa de retención", compound(apins_b), nc, propuestas.grado(P['Fy_pp'], P['d_pp'], 'barra'),
                "Barra rectificada Ø70 f8 (comercial), corte y chaflanes en torno horizontal", in_core=False, color=(0.3, 0.3, 0.32), tratamiento="Bonificado 28–34 HRC"))
+
+    if g.FLG:
+        acc3d.build_leva_guiada(m, g, D, Part, A572)
 
     # ===================== INT: interfaz =====================
     build_interfaz(m, g, D, log)
@@ -725,12 +762,34 @@ def build_interfaz(m, g, D, log):
             hole = cq.Workplane("XY").workplane(offset=zm0 - 1).pushPoints(grease_pts).circle(3).extrude(t2 + 2)
             sec_m = [s.cut(hole) for s in sec_m]
         m.info["grease_pts"] = grease_pts
+        # AF2 (fijación pegada, decisión del mandante 08-11-2026): el disco de la mesa lleva los tornillos avellanados ISO 10642 del núcleo (apoyo.interfaz.tornillos)
+        TA = I.get("tornillos") if (not g.removable and isinstance(I.get("tornillos"), dict)) else None
+        m.info["af2"] = TA
+        if TA:
+            from types import SimpleNamespace
+            av = TA["avellanado"]
+            lay_af2 = SimpleNamespace(d_tor=float(TA["d"]), dk=float(ISO10642_DK.get(int(TA["d"]), av["d_cabeza"])), dk_av=float(av["d_cabeza"]), d_clear=float(TA["dh"]))
+            cuts_af2 = []
+            for (x_, y_) in TA["pos"]:
+                cuts_af2.extend(csink_cut(lay_af2, x_, y_, zm0, av["bajo_cara"], +1, t2))
+            cc_ = compound(cuts_af2)
+            sec_m = [s_.cut(cc_) for s_ in sec_m]
+            scr = [screw_solid(lay_af2, x_, y_, zm0, av["bajo_cara"], +1, TA["L"])[0] for (x_, y_) in TA["pos"]]
+            m.info["af2_screws"] = scr
+            m.info["af2_lay"] = lay_af2
+            # rosca en el respaldo: Ø nominal pasante (núcleo: «pasante»); r = %s cae en el anillo inferior de la mesa (R > prIn), no en la plancha (requiere núcleo)
+            m.info["holes_af2"] = [cyl(TA["d"] / 2, g.tpr + 2, g.z0 - 1, x_, y_) for (x_, y_) in TA["pos"]]
         m.add(Part("int_disco_base", "INT", "Disco de la base (sector liso)" if n > 1 else "Disco de la base", f"Sector de disco de acero inoxidable e={f(t1)}, {n} sectores de {fm(th, 2)}°, junta {fm(jb, 1)}" + (f", muesca {fm(lay.b_tope + 2, 0)}×{f(lay.L_base)} para el tope, {len(radii)} agujeros avellanados M{fm(lay.d_tor, 0)}" if g.removable else ""),
                    compound(sec_b), n, ss_mat_b, "Corte por plasma/láser (subcontrato) del sector; rectificado/lapeado de la cara deslizante en rectificadora plana (subcontrato)" + ("; avellanado en taladro radial" if g.removable else ""), rho=RHO_SS,
                    core="ss", color=(0.8, 0.82, 0.85), obs=tor_note + f"; rugosidad Ra 0,4 en la cara deslizante; sobreespesor {fm(rec, 1)} mm (relapeado)", tratamiento="Decapado y pasivado"))
         m.add(Part("int_disco_mesa", "INT", "Disco de la mesa (sector ranurado)" if g.opt == 1 else "Disco de la mesa (sector liso)", f"Sector de disco de acero inoxidable e={f(t2)}, {n} sectores de {fm(th, 2)}°, junta {fm(jb, 1)}" + (f", ranuras de engrase {fm(g.w_gr, 0)}×{fm(g.h_gr, 1)}" if g.opt == 1 and gr > 0 else "") + (f", muesca para el tope, avellanados M{fm(lay.d_tor, 0)}" if g.removable else ""),
                    compound(sec_m), n, ss_mat_m, "Corte por plasma/láser (subcontrato); " + ("ranuras fresadas en mandrinadora/fresadora; " if g.opt == 1 and gr > 0 else "") + "rectificado/lapeado de la cara deslizante (subcontrato)" + ("; avellanado en taladro radial" if g.removable else ""), rho=RHO_SS, core="ss",
                    color=(0.8, 0.82, 0.85), obs=tor_note + "; rugosidad Ra 0,4 en la cara deslizante" + ("; dureza ≥ 50 HB sobre la del disco de la base (ASTM G98)" if g.opt == 1 else ""), tratamiento="Decapado y pasivado"))
+        if m.info.get("af2"):
+            TA = m.info["af2"]
+            m.add(Part("int_tornillo_af2", "INT", "", f"Tornillo {TA['designacion']}, {int(TA['n'])} en R{fm(TA['r'], 0)} (cabeza {fm(TA['avellanado']['bajo_cara'], 2)} bajo la cara deslizante)", compound(m.info["af2_screws"]), int(TA["n"]),
+                       "10.9 (ISO 10642), zincado", "Comercial", in_core=False, comercial=True, catalogo=f"{TA['designacion']} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32),
+                       obs="Transmiten el par de la interfaz del disco de la mesa a la mesa (núcleo, AF2); roscados en el respaldo de la mesa"))
         if g.removable:
             tpb, tpm = lay.tp_base, lay.tp_mesa
             assert abs(tpb["t"] - t1) < 1e-6 and abs(tpm["t"] - t2) < 1e-6, "espesor de sector distinto del de interfazGeom.topes"
@@ -932,6 +991,19 @@ def build_interfaz(m, g, D, log):
 def apply_backing_holes(m):
     """Corta en las planchas base y inferior de la mesa los agujeros roscados de los tornillos y los conductos de engrase."""
     g = m.g
+    base = m.get("base_plancha")
+    ph = m.info.get("placa_leva_holes")
+    if ph:                                   # roscas de los pernos de las placas-leva en la plancha base (modo 2)
+        d_ = g.FPV["placas_leva"]["pernos"]["d"]
+        base.solid = base.solid.cut(compound([cyl(d_ / 2, g.tb + 2, -1, x, y) for (x, y) in ph]))
+        base._vol = None
+    ha = m.info.get("holes_af2")
+    if ha:                                   # AF2: roscas de los tornillos del disco de la mesa (r > prIn: anillo inferior; y la plancha si cae dentro)
+        hc = compound(ha)
+        for k_ in ("mesa_anillo_inf", "mesa_plancha_inf"):
+            p_ = m.get(k_)
+            p_.solid = p_.solid.cut(hc)
+            p_._vol = None
     if not g.opt or not g.removable and not m.info.get("grease_pts"):
         return
     base = m.get("base_plancha")
@@ -971,11 +1043,13 @@ def apply_backing_holes(m):
 def masas(m, tol_pct=0.5):
     D, g = m.D, m.g
     M = D["derivados"]["masas"]
-    core_keys = {"base": ["base"], "rim": ["rim"], "brackets": ["brackets"], "beds": ["beds"], "dogs": ["dogs"], "shoes": ["shoes"], "pivot": ["pivot"], "cyl": ["cyl"],
+    core_keys = {"base": ["base"], "rim": ["rim"], "brackets": ["brackets"], "beds": ["beds"], "dogs": ["dogs"], "shoes": ["shoes"], "cam": ["cam"], "pivot": ["pivot"], "cyl": ["cyl"],
                  "mesa": ["top", "bot", "webs", "ribs", "hub", "pins"], "ss": ["ss"], "uhmw": ["uhmw"], "bz": ["bz"], "wood": ["wood"], "ring": ["ring"], "stopBars": ["stopBars"]}
-    groups = {"base": "base", "rim": "rim", "brackets": "brackets", "beds": "beds", "dogs": "dogs", "shoes": "shoes", "pivot": "pivot", "cyl": "cyl",
+    groups = {"base": "base", "rim": "rim", "brackets": "brackets", "beds": "beds", "dogs": "dogs", "shoes": "shoes", "cam": "cam", "pivot": "pivot", "cyl": "cyl",
               "top": "mesa", "bot": "mesa", "webs": "mesa", "ribs": "mesa", "hub": "mesa", "pins": "mesa", "ss": "ss", "uhmw": "uhmw", "bz": "bz", "wood": "wood", "ring": "ring", "stopBars": "stopBars"}
-    nombres = {"base": "Plancha base + collar + orejas de izaje", "rim": "Marco perimetral", "brackets": "Ménsulas de cilindro", "beds": "Bancadas de guía", "dogs": "Uñas", "shoes": "Patines",
+    piv = g.modo == 2
+    nombres = {"base": "Plancha base + collar + orejas de izaje", "rim": "Marco perimetral", "brackets": "Cajones del ojal E con pasador E" if piv else "Ménsulas de cilindro", "beds": "Bancadas de guía",
+               "dogs": "Bloques-uña con pasador Q" if piv else "Uñas", "shoes": "Patines", "cam": "Placas-leva" if piv else "Leva de reenganche (riel, pórticos, prolongación, seguidor)",
                "pivot": "Pivote", "cyl": "Cilindros (masa de catálogo)", "mesa": "Mesa (planchas, almas, nervios, cubo, pasadores)", "ss": "Discos de interfaz (inox / duro)", "uhmw": "Lámina UHMW",
                "bz": "Bronce con grafito (o 2.ª placa)", "wood": "Cubierta de madera (tablones)", "ring": "Anillo de acero de la madera", "stopBars": "Barras de los topes (m.stopBars)"}
     mod = {}
@@ -1033,6 +1107,46 @@ def interferencias(m, log=None):
     return res, n_chk, len(names) * (len(names) - 1) // 2
 
 
+# Conflictos geométricos del propio núcleo (la geometría del JSON choca): no se ocultan ni se corrigen en el dibujo (no se inventan cotas); se declaran
+# como «requiere núcleo», se listan en GEN-009 (brechas), en el informe del paquete y en las láminas afectadas (RETENIDA). Cualquier otra interferencia falla.
+CONFLICTOS_NUCLEO = [
+    (("cilindro_pv",), ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"),
+     "El cuerpo del cilindro (Ø{D_body} desde E + e_cuerpo = {e_body} mm) entra en el cajón del ojal E (semilado {semi} mm; la ventana solo tiene {hv} mm de alto para el ojal): "
+     "el núcleo debe alejar el cuerpo del cilindro (e_cuerpo ≥ semilado del cajón + holgura) o rediseñar el cajón."),
+    (("placa_leva",), ("orejas",),
+     "Las placas-leva del sentido horario ocupan la posición de las orejas de izaje (±{x_lug}; ±{cl_lug}): el núcleo no verifica esa holgura; reubicar las orejas o las placas."),
+    (("int_tornillo_af2",), ("pasadores",),
+     "AF2: tornillos avellanados en R{r_af2} (núcleo) a {d_af2} mm del eje de los pasadores de empuje (R{R_pin}, Ø{d_pin}): 8 de 24 cortan el agujero del pasador; además R{r_af2} cae en el anillo inferior de la mesa (e = {tpr}), no en la plancha inferior (e = {tbo})."),
+]
+
+
+def conflictos_nucleo(m, inter):
+    """Marca las interferencias que son conflictos declarados del núcleo (r['declarado'] = texto); devuelve la lista de textos activos."""
+    g, P = m.g, m.g.P
+    key_of = {p.code: p.key for p in m.parts}
+    S = (g.FPV or {}).get("soporte_E", {})
+    TA = m.info.get("af2") or {}
+    d_af2 = "—"
+    if TA:
+        pins = [(g.R_pin * math.cos(math.radians(a)), g.R_pin * math.sin(math.radians(a))) for a in m.D["pasadores"]]
+        d_af2 = fm(min(math.hypot(x - px, y - py) for x, y in TA["pos"] for px, py in pins), 1)
+    vals = dict(D_body=f(P["D_body"]), e_body=f(P["e_body"]), semi=f(S.get("lado", 0) / 2), hv=f((S.get("ventana", {}).get("z", [0, 0])[1] - S.get("ventana", {}).get("z", [0, 0])[0])),
+                x_lug=f(P["x_lug"]), cl_lug=f(g.cl_lug), r_af2=fm(TA.get("r", 0), 0), d_af2=d_af2, R_pin=fm(g.R_pin, 0), d_pin=fm(g.d_pin, 0), tpr=fm(g.tpr, 0), tbo=fm(g.tbo, 0))
+    act = []
+    for r in inter:
+        r["declarado"] = None
+        if r["ok"]:
+            continue
+        ka, kb = key_of.get(r["a"]), key_of.get(r["b"])
+        for A, B, txt in CONFLICTOS_NUCLEO:
+            if (ka in A and kb in B) or (kb in A and ka in B):
+                r["declarado"] = txt.format(**vals)
+                if r["declarado"] not in act:
+                    act.append(r["declarado"])
+    m.info["conflictos_nucleo"] = act
+    return act
+
+
 def export_step_glb(m, out):
     assy = cq.Assembly(name="TT300-C")
     for p in m.parts:
@@ -1052,7 +1166,8 @@ def run(D, out, verbose=True):
     ms = masas(m)
     mt, c = cog(m)
     inter, nchk, ntot = interferencias(m)
-    rep = dict(masas=ms, masa_total_ensamble=mt, cg=c, interferencias=inter, pares_evaluados=nchk, pares_totales=ntot,
+    conflictos_nucleo(m, inter)
+    rep = dict(masas=ms, masa_total_ensamble=mt, cg=c, interferencias=inter, pares_evaluados=nchk, pares_totales=ntot, conflictos_nucleo=m.info.get("conflictos_nucleo", []),
                partes={p.code: dict(nombre=p.name, qty=p.qty, masa_unit=p.mass_unit, masa_total=p.mass_total) for p in m.parts})
     json.dump(rep, open(out / "TT300-C_masas3d.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     return m, rep
@@ -1072,9 +1187,10 @@ if __name__ == "__main__":
         print(f"{r['pieza']:52s} {r['modelo3d']:9.1f} {r['nucleo']:10.1f} {r['dif_pct']:7.2f}")
     print(f"TOTAL comparable: 3D {ms['total_3d']:.1f} kg · núcleo {ms['total_nucleo']:.1f} kg · Δ {ms['dif_pct']:+.2f} % (tolerancia {ms['tol_pct']} %)")
     print(f"Piezas fuera del núcleo: {ms['masa_fuera']:.1f} kg; masa del ensamble {rep['masa_total_ensamble']:.1f} kg; CG = ({rep['cg'][0]:.1f}, {rep['cg'][1]:.1f}, {rep['cg'][2]:.1f}) mm")
-    bad = [r for r in rep["interferencias"] if not r["ok"]]
-    print(f"Interferencias: {len(bad)} con volumen > 1 mm³ de {rep['pares_evaluados']} pares evaluados (de {rep['pares_totales']})")
-    for r in bad:
-        print("  XX", r["a"], r["b"], r["vol_mm3"])
+    bad = [r for r in rep["interferencias"] if not r["ok"] and not r.get("declarado")]
+    print(f"Interferencias: {len(bad)} con volumen > 1 mm³ de {rep['pares_evaluados']} pares evaluados (de {rep['pares_totales']}); conflictos declarados del núcleo: {len(rep['conflictos_nucleo'])}")
+    for r in rep["interferencias"]:
+        if not r["ok"]:
+            print("  XX" if not r.get("declarado") else "  NÚCLEO", r["a"], r["b"], r["vol_mm3"])
     if bad:
         sys.exit("Hay interferencias entre piezas: revisar geometría")

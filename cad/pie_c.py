@@ -194,13 +194,18 @@ def sheet_cilindro(ctx):
     def lat(V, p):
         s.line(V.P(X, ye + 90 * c["dir"], zc), V.P(X, yr - 90 * c["dir"], zc), "EJE") if False else None
     p.vs("lateral", on, "right", breaks=[(min(ye, yr) + 420, max(ye, yr) - 420)], lv=(1, 2, 1, 2), title="ELEVACIÓN LATERAL (posición de empuje, con rotura)", hatch=False, w=1.5,
-         auto=dict(text={round(abs(ye - yr), 1): f"{fm(abs(ye - yr), 1)} (L entre ejes de ojales)"}))
+         auto=dict(text={round(abs(ye - yr), 1): f"({fm(abs(ye - yr), 1)}: L entre ejes de ojales)"}))
     def planta_c(V, p):
-        V.dimv((X, ye, zc), (X, yr, zc), "right", 1, on=on, text=f"{fm(abs(ye - yr), 1)} (entre ejes de ojales, posición de empuje)", virt_a=P["d_pp"] / 2, virt_b=P["d_pp"] / 2)
+        V.dimv((X, ye, zc), (X, yr, zc), "right", 1, on=on, text=f"({fm(abs(ye - yr), 1)}: entre ejes de ojales, posición de empuje)", virt_a=P["d_pp"] / 2, virt_b=P["d_pp"] / 2)
     p.vs("planta", on, "top", hidden=False, lv=(1, 2, 2, 1), extra=(0, 0, 70, 0), draw=planta_c, title="PLANTA DEL CILINDRO", hatch=False, w=1.0, breaks=[(min(ye, yr) + 420, max(ye, yr) - 420)] if False else None,
          auto=dict(fits={P["d_pp"]: "H9"}, hole_rmin=10))
     p.detail("det_ojal", "planta", (X, ye, zc), 75, "A", lv=(1, 1, 1, 1), title="DETALLE A: OJAL CON RÓTULA (EXTREMO TRASERO)", maxs=2.0, hatch=False)
     p.detail("det_vast", "planta", (X, yr, zc), 75, "B", lv=(1, 1, 1, 1), title="DETALLE B: OJAL DEL VÁSTAGO", maxs=2.0, hatch=False)
+    rpp = P["d_pp"] / 2
+    zt_eye = zc + P["b_eye"] / 2
+    p.datum_in("det_ojal", "surf", "A", at=[(X + rpp * 0.7071, ye + rpp * 0.7071, zt_eye), (X - rpp * 0.7071, ye + rpp * 0.7071, zt_eye)], d=[(1, 1, 0), (-1, 1, 0)])
+    p.gd_in("det_vast", "surf", "par", "0,10", "A", at=[(X + rpp * 0.7071, yr - rpp * 0.7071, zt_eye), (X - rpp * 0.7071, yr - rpp * 0.7071, zt_eye)], d=[(1, -1, 0), (-1, -1, 0)])
+    p.gd_in("planta", "surf", "coax", "Ø0,20", "A", at=[(X + P["d_rod"] / 2, ym, zc + 1), (X - P["d_rod"] / 2, ym, zc + 1)], d=[(1, 0, 0), (-1, 0, 0)])
     rows = [["Diámetro de camisa", f"{f(P['D_bore'])} mm"], ["Diámetro de vástago", f"{f(P['d_rod'])} mm"], ["Carrera", f"{f(P['stroke'])} mm"],
             ["Largo ojal–ojal retraído", f"{f(P['L0'])} mm"], ["Diámetro exterior del cuerpo", f"{f(P['D_body'])} mm"], ["Presión nominal", f"{f(P['p_rated'])} psi = {fm(P['p_rated'] * 0.0689476, 0)} bar"],
             ["Presión de alivio", f"{f(P['p_relief'])} bar"], ["Ojales con rótula esférica autolubricada", f"ancho de ojal {f(P['b_eye'])} mm; Ø{f(P['d_pp'])} H9 (pasador {f(P['d_pp'])} f8); Ø105 exterior"], ["Masa de catálogo", f"{fm(P['m_cyl'], 0)} kg c/u"],
@@ -211,7 +216,7 @@ def sheet_cilindro(ctx):
              f"Prueba hidráulica a 1,5 × {f(P['p_relief'])} bar con certificado de fábrica (EN 10204 3.1 / certificado de prueba).",
              "Ojales con rótula esférica autolubricada; sellos NBR/PU según el fabricante; protección de vástago (cromo duro) y pintura del fabricante.",
              f"Pasadores de articulación Ø{f(P['d_pp'])} f8 con placa de retención (ACC-005).", "Capacidad y velocidad: ver memoria de cálculo (capítulo de cilindros y bomba)."],
-            gd=[("par", "0,10", "A", "Ejes de los dos ojales paralelos entre sí (A = eje del ojal trasero)"), ("coax", "Ø0,20", "A", "Vástago coaxial con la camisa en la posición de empuje")])
+            gd=[("par", "0,10", "A", "Ejes de los dos ojales paralelos entre sí (A = agujero del ojal trasero)"), ("coax", "Ø0,20", "A", "Vástago coaxial con la camisa en la posición de empuje")])
     p.build()
     return p.h
 
@@ -267,15 +272,33 @@ def sheet_patin(ctx):
     p.vs("lateral", on, "right", lv=(1, 2, 2, 1), title="ELEVACIÓN LATERAL", hatch=False, w=1.0, hidden=True, auto=dict())
     p.vs("corte_g", on, "right", cut=((0, 0, 0), (-1, 0, 0)), center=(0, 0, zb), lv=(1, 2, 1, 1), title="CORTE G-G (longitudinal, por el eje)", hs=0.5, w=1.0, auto=dict(tol={}), win=(-250, -60, 900, 150)) if False else None
     p.detail("det_t", "corte_f", (0, yc, g.zT0 + g.head_h / 2 + 4), 45, "A", lv=(1, 2, 1, 1), title="DETALLE A: LENGÜETA T (CUELLO Y CABEZA)", maxs=2.0, hs=0.3)
+    p.datum_in("corte_f", "surf", "A", at=[(ws / 2 - 15, yc, zb), (-ws / 2 + 15, yc, zb)], d=(0, 0, -1))
+    p.gd_in("corte_f", "surf", "par", "0,05", "A", at=[(-ws / 2 + 20, yc, zsh), (ws / 2 - 20, yc, zsh), (0, yc, zsh)], d=(0, 0, 1))
+    p.gd_in("corte_f", "surf", "perp", "0,05", "A", at=[(ws / 2, yc, zb + 40), (-ws / 2, yc, zb + 40)], d=[(1, 0, 0), (-1, 0, 0)])
     p.tables()
     p.notes([f"Pieza única sin soldadura, desde bloque de plancha gruesa a llama con sobremetal 5 mm; desbaste y alojamientos en mandrinadora/fresadora; Ø{f(P['d_pp'])} H9 en taladro radial.",
              f"Lengüeta T: cuello {f(g.neck_w)} f7 en ranura {f(P['w_slot'])} H8; cabeza {f(g.head_w)} × {f(g.head_h)} en {f(P['w_tee'])} × {f(P['h_tee'])}, 1 mm de juego por lado.",
              f"Alojamiento de la uña {f(P['dog_b'] + 2)} × {f(P['dog_h'] + 2)} H9; tapa {f(zsh - g.pk_top)} y fondo {f(g.pk_bot - zb)} sobre la bancada (espesor mínimo de pared {f(P['t_pk'])} mm).",
              f"Marco de boca e = {f(P['t_fw'])}; inset {f(KG['inset'])}; boca en x = {f(KG['mouthX'] - X, 1)} desde el eje de la guía.",
-             f"Material: {propuestas.grado(P['Fy_shoe'], g.Hs, 'barra')}; certificado 3.1. Reacción de guía a calado {f(ctx.DV['Rguide'], 1)} kN (núcleo)."],
-            gd=[("par", "0,05", "A", "Cara inferior de la lengüeta paralela a la cara de apoyo (A)"), ("perp", "0,05", "A", "Alojamiento de la uña perpendicular a la cara de empuje")])
+             f"Material: {propuestas.grado(P['Fy_shoe'], g.Hs, 'barra')}; certificado 3.1. Reacción de guía a calado {f(ctx.DV['Rguide'], 1)} kN (núcleo)."] + _nota_ranura(ctx),
+            gd=[("par", "0,05", "A", "Cara superior del patín paralela a la cara de apoyo (A)"), ("perp", "0,05", "A", "Caras laterales del patín perpendiculares a la cara de apoyo (A)")])
     p.build()
     return p.h
+
+
+def _nota_ranura(ctx):
+    """Modo 1 con leva: ranura de la tapa del patín para el perno del seguidor (núcleo, levaGuiada.fabricacion.ranura_tapa_patin)."""
+    g = ctx.g
+    if not g.FLG:
+        return []
+    rn = g.FLG["ranura_tapa_patin"]
+    bb = ctx.shapes["patin_L"].BoundingBox()
+    c = ctx.D["cilindros"]["antihorario"][0]
+    w = rn["ancho"]
+    xa, xb = rn["x"][0] + w / 2 - c["x"], rn["x"][1] - w / 2 - c["x"]
+    return [f"Ranura de la tapa del alojamiento (perno del seguidor de la leva, núcleo): ancho {fm(w, 0)} pasante en la tapa, extremos R{fm(w / 2, 1)} con centros a x = {fm(xa - bb.xmin, 1)} y {fm(xb - bb.xmin, 1)} desde el borde "
+            f"(= {fm(xa, 1)} y {fm(xb, 1)} desde el eje del patín), a {fm(rn['y_respecto_pasador_vastago'], 1)} del eje del pasador del vástago hacia la uña "
+            f"(eje de la ranura a {fm(c['dir'] * rn['y_respecto_pasador_vastago'] - bb.ymin, 1)} / {fm(bb.ymax - c['dir'] * rn['y_respecto_pasador_vastago'], 1)} de los extremos del patín); ajuste del núcleo «H9/f8» con el perno Ø{fm(g.FLG['seguidor']['perno']['d'], 0)} (requiere núcleo, GEN-009)."]
 
 
 @pieza("una")
@@ -306,16 +329,19 @@ def sheet_una(ctx):
     p.vs("elev", on, "front", center=(0, 0, zc), lv=(1, 2, 3, 2), draw=elev, hatch=False, title="ELEVACIÓN (cara de empuje)", w=1.3, auto=dict(tol={round(hd_, 1): " f8"}))
     p.vs("lateral", on, "right", center=(0, 0, zc), lv=(1, 2, 1, 1), hatch=False, title="VISTA LATERAL (sección de la uña)", w=0.8, auto=dict(tol={round(b, 1): " f8", round(hd_, 1): " f8"}), maxs=2.0)
     p.detail("det_ch", "planta", (g.ch_dx / 2, -b + g.ch_dy / 2, zt), 30, "A", lv=(1, 2, 1, 1), title="DETALLE A: CHAFLÁN DE RETORNO", maxs=2.0, hatch=False)
+    p.datum_in("elev", "surf", "A", at=[(L * 0.6, -b / 2, zc + hd_ / 2), (L * 0.3, -b / 2, zc + hd_ / 2), (L * 0.8, -b / 2, zc + hd_ / 2)], d=(0, 0, 1))
+    p.gd_in("planta", "surf", "flat", "0,05", None, at=[(L * 0.75, 0, zt), (L * 0.2, 0, zt)], d=(0, 1, 0))
+    p.gd_in("lateral", "surf", "perp", "0,05", "A", at=[(L / 2, 0, zc + hd_ * 0.3), (L / 2, 0, zc - hd_ * 0.3)], d=(0, 1, 0))
     p.vs("corte_b", on, "right", cut=((L / 2, 0, 0), (-1, 0, 0)), center=(L / 2, -b / 2, zc), lv=(1, 2, 2, 1), title="CORTE B-B (sección transversal de la uña)", hs=0.5, w=0.8, maxs=2.0, auto=dict(tol={round(b, 1): " f8", round(hd_, 1): " f8"}))
     p.vs("corte_c", on, "front", cut=((0, -b / 2, 0), (0, 1, 0)), center=(0, 0, zc), lv=(1, 2, 2, 1), title="CORTE C-C (longitudinal por el eje)", hs=0.5, w=0.8, maxs=2.0, auto=dict(tol={round(L, 1): " ±0,2"}))
     p.tables()
     p.notes([f"Forja o bloque; 34CrNiMo6+QT (EN 10083-3), Re ≥ {f(P['Fy_dog'])} MPa medido en la propia forja, certificado 3.1; UT EN 10228-3.",
-             temple_txt(P) + f" (fila «Profundidad mínima de temple» del núcleo: ≥ {fm(g.z_hard, 1)} mm); revenido; MT de la cara.",
+             temple_txt(P) + f" (fila «Profundidad mínima de temple» del núcleo: {g.z_hard_txt}); revenido; MT de la cara.",
              alivio_txt(P) + f": {fm(RELIEF, 0)} mm desde el borde superior e inferior de la cara; perfil de bombeo logarítmico con caída ≤ 0,05 mm (PROPUESTA, confirmar con el calculista).",
              "Rectificar la cara templada después del temple (rectificadora plana, sin torno). Planitud 0,05; Ra 0,8.",
              f"Ajuste en el alojamiento del patín {f(b)} H9/f8 × {f(hd_)} H9/f8; retorno radial {fm(KG['travel'], 1)} mm; resorte comercial (tipo y fuerza: GEN-008).",
              "Aristas 1×45° salvo la cara de empuje (0,5×45°)."],
-            gd=[("flat", "0,05", None, "Cara de empuje plana"), ("perp", "0,05", "A", "Cara de empuje perpendicular a la base (A)")])
+            gd=[("flat", "0,05", None, "Cara de empuje plana"), ("perp", "0,05", "A", "Cara de empuje perpendicular a la cara superior (A)")])
     p.build()
     return p.h
 
@@ -344,6 +370,10 @@ def sheet_pasadores_art(ctx):
              title=f"{ctx.code(kk).replace(CODE + '-', '')} — {'PASADOR DEL VÁSTAGO (patín)' if i == 0 else 'PASADOR DEL OJAL TRASERO (ménsula)'}",
              auto=dict(rev=(0, 0), fits={P["d_pp"]: "f8"}, rev_side="top", tol={round(z1_ - z0_, 1): " ±0,2"}, hole_notes=False))
     p.vs("extremo", ["pv1"], "top", lv=(1, 1, 1, 1), title="VISTA DE EXTREMO", hatch=False, w=0.7, maxs=2.0, auto=dict(hole_rmin=5.0))
+    bb0 = ctx.shapes["pv1"].BoundingBox()
+    p.datum_in("el0", "dim", "A", prefix=f"Ø{f(P['d_pp'])} f8")
+    p.gd_in("el0", "surf", "cyl", "0,02", None, at=[(r, 0, bb0.zmin + bb0.zlen * f_) for f_ in (0.3, 0.7, 0.5)], d=(1, 0, 0))
+    p.gd_in("el0", "surf", "perp", "0,05", "A", at=[(-r * 0.5, 0, bb0.zmin), (r * 0.5, 0, bb0.zmin), (-r * 0.5, 0, bb0.zmax), (r * 0.5, 0, bb0.zmax)], d=[(0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1)])
     p.detail("det_ch", "el0", (r - 1, 0, ctx.shapes["pv1"].BoundingBox().zmax - 1), 8, "A", lv=(1, 1, 1, 1), title="DETALLE A: CHAFLÁN (5:1)", maxs=5.0, hatch=False)
     p.vs("corte", ["po1"], "front", cut=CUT_Y, lv=(1, 2, 2, 1), title="CORTE A-A DEL PASADOR DEL OJAL", hs=0.5, w=0.8, maxs=2.0, auto=dict(rev=(0, 0), rev_side="top", hole_notes=False, tol={}))
     p.table_block("VARIANTES DE LONGITUD", [("Pieza", 16, "C"), ("Aplicación", 40, "L"), ("Diámetro", 26, "L"), ("Largo [mm]", 20, "R"), ("Chaflán", 18, "C"), ("Cant", 10, "C")], rows)

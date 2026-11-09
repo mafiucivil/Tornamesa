@@ -99,7 +99,7 @@ def zonas_sin_pintura(ctx):
     """Lista ÚNICA de zonas sin pintura (GEN-006); el resto de las láminas remite a ella (A-21)."""
     P, g = ctx.P, ctx.g
     z = [f"cara de apoyo de la base y cara inferior de la mesa (zona Ø{f(P['D_top'] + 20)})" + (" y caras deslizantes de la interfaz" if g.opt else ""), "agujeros con ajuste (H7/H9) y superficies de contacto de pasadores y pivote",
-         "roscas", "ranura T de las bancadas", "zona de soldadura hasta su inspección (enmascarar 50 mm)"]
+         "roscas", "ranura T de las bancadas" if g.modo == 1 else "canto de contacto de las placas-leva y agujeros H9 de las tapas del cajón", "zona de soldadura hasta su inspección (enmascarar 50 mm)"]
     if g.wood:
         z.append("cara superior de la mesa bajo la cubierta de madera (imprimación solamente)")
     return "; ".join(z)
@@ -149,13 +149,17 @@ def grado_corto(Fy, d=None, kind="plancha"):
 def catalogo_rows(ctx):
     P, g = ctx.P, ctx.g
     rows = [
-        ["Cilindro hidráulico de doble efecto (×2)", f"Camisa Ø{f(P['D_bore'])}, vástago Ø{f(P['d_rod'])}, carrera {f(P['stroke'])} mm, largo ojal–ojal retraído {f(P['L0'])} mm, presión nominal {fm(P['p_rated'] * 0.0689476, 0)} bar (700 bar), alivio {f(P['p_relief'])} bar, ojales con rótula esférica autolubricada Ø{f(P['d_pp'])}, b = {f(P['b_eye'])} mm, masa ≈ {fm(P['m_cyl'], 0)} kg",
+        ["Cilindro hidráulico de doble efecto (×2)", f"Camisa Ø{f(P['D_bore'])}, vástago Ø{f(P['d_rod'])}, carrera {f(P['stroke'])} mm, largo ojal–ojal retraído {f(P['L0'])} mm, presión nominal {fm(P['p_rated'] * 0.0689476, 0)} bar (700 bar), alivio {f(P['p_relief'])} bar, ojales con rótula esférica autolubricada "
+         + (f"Ø{f(P['d_pp'])}" if g.modo == 1 else f"Ø{f(g.FPV['pasador_E']['d'])} (trasero, pasador E) y Ø{f(g.FPV['pasador_Q']['d'])} (vástago, pasador Q; ACC-013)") + f", b = {f(P['b_eye'])} mm, masa ≈ {fm(P['m_cyl'], 0)} kg",
          f"Certificado de prueba hidráulica a 1,5 × {f(P['p_relief'])} bar; EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO (proveedor)"],
         *([["Grasera recta DIN 71412 M10×1", f"{g.n_greaser} unidades; acero zincado; rosca M10×1 (ISO 261), conducto Ø6", "Lote con certificado de conformidad", "marca/modelo A DEFINIR POR CATÁLOGO"]] if ctx.m.get("graseras") else []),
         ["Tornillo ISO 4762 M20×45 cl. 10.9 con arandela", f"{g.N_pin} unidades; recubrimiento zincado/dacromet; arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)} de {WASHER_MAT} (MES-013)", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Grillete de izaje ASME B30.26 (×4)", f"Pasador ≤ {fm(P['d_ear'] - P['g_ear'], 0)} mm; WLL ≥ lo calculado en la fila «Orejas de izaje» del núcleo; con certificado de prueba", "Prueba de carga 1,25 × WLL", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Buje autolubricado", f"Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}; presión ≤ {fm(P['p_bush'], 0)} MPa; μ ≤ {fm(P['mu_bush'], 2)}; sobre aleación de bronce con lubricante sólido", "Certificado del proveedor", "marca/modelo A DEFINIR POR CATÁLOGO"],
-        ["Resorte de retorno de la uña (compresión) (×2)", f"Carrera ≥ {f(g.KG['travel'] + 5)} mm; fuerza 150–300 N", "—", "marca/modelo A DEFINIR POR CATÁLOGO"],
+        *([["Resorte de retorno de la uña (compresión) (×2)", f"Carrera ≥ {f(g.KG['travel'] + 5)} mm; fuerza 150–300 N", "—", "marca/modelo A DEFINIR POR CATÁLOGO"]] if g.modo == 1 else []),
+        *([[f"Perno ISO 4762 M{f(g.FPV['placas_leva']['pernos']['d'])}×{ctx.m.info.get('perno_placa_L')} cl. 10.9 (placas-leva)", f"{len(ctx.m.info.get('placa_leva_holes', []))} unidades; zincados; roscados en la plancha base", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"]] if g.modo == 2 else []),
+        *([[f"Perno ISO 4762 M{f(g.FLG['porticos']['d_perno'])}×{ctx.m.info.get('perno_riel_L')} cl. 10.9 (riel–pórtico)", f"{ctx.m.get('leva_pernos').qty} unidades; zincados; roscados en las tapas de los pórticos", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"]] if g.FLG and ctx.m.get("leva_pernos") else []),
+        *([[f"Tornillo {g.I['tornillos']['designacion']} (disco de la mesa, AF2)", f"{int(g.I['tornillos']['n'])} unidades; zincados; roscados en el respaldo de la mesa (MES-004)", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"]] if ctx.m.get("int_tornillo_af2") else []),
         ["Grasa grafitada NLGI 2", "≥ 10 % grafito, aditivos EP; película 0,3–0,5 mm por cara", "Hoja de datos del fabricante", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Tornillos ISO 10642 cl. 10.9 (tapas del pivote)", f"4 × M10×{g.cap_L:.0f} (tapa retenedora) y 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
     ]

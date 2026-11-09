@@ -118,7 +118,7 @@ def sheet_notas(ctx):
                {p.code.replace(CODE + "-", "").rsplit("-", 1)[0] for p in ctx.m.parts}
     CORTO = {1: "Disco de la base (sector inox.)", 2: "Disco de la mesa (sector inox.)", 3: "Tope soldado a la base", 4: "Tope soldado a la mesa", 5: "Tornillo de posición, base",
              6: "Tornillo de posición, mesa", 7: "Grasera DIN 71412 M10×1", 8: "Sector de UHMW-PE", 9: "Barra del rebaje UHMW", 10: "Sector de bronce con tapones", 11: "Pastilla de bronce con tapones",
-             12: "Tapón de grafito", 13: "Disco duro de la mesa (sector)", 14: "2.ª placa de bronce (sector)"}
+             12: "Tapón de grafito", 13: "Disco duro de la mesa (sector)", 14: "2.ª placa de bronce (sector)", 15: "Tornillo avellanado disco de la mesa–mesa (AF2)"}
     rows = []
     por_num = {}
     for k, (n, nm, vv) in M3.INT_CODIGOS.items():
@@ -165,6 +165,10 @@ def sheet_notas(ctx):
             cl2.append((vs, desc, o + 1, o + nt))
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
+    # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
+    rows.append(["ACC / BAS", "Accionamiento por modo: guiado (alternativa, juegos «-G»): BAS-005…007 ménsulas, ACC-001…006 bancada, cilindro, patín, uña y pasadores, ACC-007…012 y ACC-019 leva de reenganche (riel, pórtico, prolongación, seguidor, pernos); "
+                 "pivotado tipo KIET (por defecto): BAS-008…011 cajón del ojal E, ACC-013 cilindro, ACC-014 pasador E, ACC-015 bloque-uña, ACC-016 pasador Q, ACC-017 placa-leva, ACC-018 pernos de las placas-leva",
+                 "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]
     rows = [r_ for r_ in rows if r_[3] != "—"]
@@ -262,8 +266,11 @@ def sheet_tolerancias(ctx):
     y, _ = s.table(R[0], R[3], [("Ajuste", 0.17 * w, "L"), ("Nom.", 0.05 * w, "C"), ("Aguj.", 0.05 * w, "C"), ("Eje", 0.05 * w, "C"), ("Límites agujero [mm]", 0.11 * w, "C"), ("Límites eje [mm]", 0.11 * w, "C"),
                                       ("Juego mín / máx", 0.10 * w, "C"), ("Tipo", 0.08 * w, "L"), ("Aplicación", 0.28 * w, "L")], rows, h=T_S, title="TABLA DE AJUSTES ISO 286-1/-2 (límites calculados)")
     gd = [["Planitud", "Cara de apoyo de la base (Ø%s)" % f(P["D_top"] + 20), "0,20", "—"], ["Planitud", "Cara inferior de la mesa", "0,20", "—"], ["Perpendicularidad", "Agujero Ø%s H7 respecto de la cara de apoyo" % f(P["D_piv"]), "0,05", "A"],
-          ["Coaxialidad", "Collar – agujero de la base", "Ø0,05", "A"], ["Coaxialidad", "Ojales de ménsula (Ø%s H9)" % f(P["d_pp"]), "Ø0,10", "A"], ["Paralelismo", "Ranura T de la bancada", "0,10", "A"],
-          ["Posición", "PCD de %d pasadores Ø%s" % (g.N_pin, f(g.d_pin)), "Ø0,3", "A"], ["Coaxialidad", "Agujeros de pasadores del anillo superior respecto del eje común de cada par superior–inferior (mandrinado en línea; CON-009 n.° 5)", "Ø0,05", "eje común"], ["Planitud", "Cara de empuje de la uña", "0,05", "—"],
+          ["Coaxialidad", "Collar – agujero de la base", "Ø0,05", "A"], *([["Coaxialidad", "Ojales de ménsula (Ø%s H9)" % f(P["d_pp"]), "Ø0,10", "A"], ["Paralelismo", "Ranura T de la bancada", "0,10", "A"]] if g.modo == 1 else
+            [["Coaxialidad", "Agujeros Ø%s H9 de las tapas del cajón del ojal E (mandrinado en línea)" % f(g.FPV["pasador_E"]["d"]), "Ø0,10", "A"],
+             ["Posición", "Caras exteriores del cajón del ojal E respecto de los bordes de la base (CON-007; holgura al marco aceptada por el mandante)", "1", "A, B, C"],
+             ["Posición", "Eje del agujero E respecto de los bordes de la base (CON-007)", "Ø1", "A, B, C"]]),
+          ["Posición", "PCD de %d pasadores Ø%s" % (g.N_pin, f(g.d_pin)), "Ø0,3", "A"], ["Coaxialidad", "Agujeros de pasadores del anillo superior respecto del eje común de cada par superior–inferior (mandrinado en línea; CON-009 n.° 5)", "Ø0,05", "eje común"], ["Planitud", "Cara de empuje de la uña" if g.modo == 1 else "Cara de empuje del bloque-uña", "0,05", "—"],
           ["Cilindricidad", "Pasadores y pivote", "0,02", "—"]]
     y2, _ = s.table(R[0], y - 8, [("Característica (ISO 1101)", 0.16 * w, "L"), ("Elemento", 0.40 * w, "L"), ("Tolerancia [mm]", 0.10 * w, "C"), ("Datum", 0.07 * w, "C")], gd, h=T_S, title="TOLERANCIAS GEOMÉTRICAS PRINCIPALES")
     gen_t = [[r] + [("±" + v) if v != "—" else v for v in vals] for r, vals in ISO2768_LINEAL]
@@ -284,9 +291,14 @@ def sheet_materiales(ctx):
                                   ("Estado del grado", 0.09 * w, "L"), ("Tratamiento", 0.15 * w, "L")], rows, "MATERIALES POR PIEZA (certificado EN 10204 3.1; donde el cálculo solo fija Fy el grado es PROPUESTO por Fy, a confirmar)", "MATERIALES Y CERTIFICADOS", 5)
 
     g, P = ctx.g, ctx.P
-    gr = [["Plancha, pletinas y barras soldadas (Fy = %s MPa)" % f(P["Fy"]), propuestas.grado(P["Fy"], 20, "plancha")], ["Pivote (Ø%s)" % f(P["D_piv"]), propuestas.grado(P["Fy_piv"], P["D_piv"], "barra")],
-          ["Pasadores de articulación (Ø%s)" % f(P["d_pp"]), propuestas.grado(P["Fy_pp"], P["d_pp"], "barra")], ["Patín (bloque de %s mm)" % fm(g.Hs, 0), propuestas.grado(P["Fy_shoe"], g.Hs, "barra")],
-          ["Pasadores de empuje (Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")], ["Uña (forja, %s mm)" % fm(P["dog_b"], 0), propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]]
+    gr = [["Plancha, pletinas y barras soldadas (Fy = %s MPa)" % f(P["Fy"]), propuestas.grado(P["Fy"], 20, "plancha")], ["Pivote (Ø%s)" % f(P["D_piv"]), propuestas.grado(P["Fy_piv"], P["D_piv"], "barra")]]
+    if g.modo == 1:
+        gr += [["Pasadores de articulación (Ø%s)" % f(P["d_pp"]), propuestas.grado(P["Fy_pp"], P["d_pp"], "barra")], ["Patín (bloque de %s mm)" % fm(g.Hs, 0), propuestas.grado(P["Fy_shoe"], g.Hs, "barra")]]
+    else:
+        F_ = g.FPV
+        gr += [["Pasador E (Ø%s)" % f(F_["pasador_E"]["d"]), propuestas.grado(P["Fy_pp"], F_["pasador_E"]["d"], "barra")], ["Pasador Q (Ø%s)" % f(F_["pasador_Q"]["d"]), propuestas.grado(P["Fy_pp"], F_["pasador_Q"]["d"], "barra")]]
+    gr += [["Pasadores de empuje (Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")]]
+    gr += [["Uña (forja, %s mm)" % fm(P["dog_b"], 0), propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]] if g.modo == 1 else [["Bloque-uña (forja, %s mm)" % fm(g.FPV["bloque_una"]["cuerpo"]["b"], 0), propuestas.grado(P["Fy_dog"], g.FPV["bloque_una"]["cuerpo"]["b"], "barra")]]
     last.s.table(R[0], y - 8, [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")], gr, h=T_S,
                  title="GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy")
     return out
@@ -299,10 +311,14 @@ def sheet_tratamientos(ctx):
     R = c.R["main"]
     w = R[2] - R[0]
     rows = [["Base soldada, mesa soldada", "Alivio de tensiones 590–620 °C (2 h/25 mm), enfriamiento lento; antes del mecanizado final", "Fabricante (registro de horno)"],
-            ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad ≥ {fm(g.z_hard, 1)} mm", "Dureza 10 % por lote; macrografía"],
-            ["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. ≥ {fm(g.z_hard, 1)} mm; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"],
+            ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad {g.z_hard_txt}", "Dureza 10 % por lote; macrografía"],
+            *([["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. {g.z_hard_txt}; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"]] if g.modo == 1 else
+              [["Bloque-uña (ACC-015)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara de empuje ≥ 55 HRC, profundidad {g.z_hard_txt}; revenido", "Dureza 100 %; MT cara"],
+               ["Pasador Q (ACC-016)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa; extremo inferior (seguidor) templado por inducción ≥ 55 HRC, profundidad {g.z_hard_txt}", "Dureza 100 %"],
+               ["Placa-leva (ACC-017)", f"Canto de contacto templado ≥ 55 HRC (núcleo: «{g.FPV['placas_leva']['material']}»; inserto o placa templable A DEFINIR)", "Dureza 100 % del canto"]]),
             ["Pivote (PIV-001)", f"Bonificado (QT) según Fy ≥ {f(P['Fy_piv'])} MPa: {propuestas.grado_corto(P['Fy_piv'], P['D_piv'], 'barra')} ({propuestas.ROTULO_GRADO})", "Certificado 3.1"],
-            ["Pasadores de articulación (ACC-005)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa: {propuestas.grado_corto(P['Fy_pp'], P['d_pp'], 'barra')} ({propuestas.ROTULO_GRADO}); 28–34 HRC de referencia", "Certificado 3.1"],
+            ["Pasadores de articulación (ACC-005)" if g.modo == 1 else "Pasadores E y Q (ACC-014, ACC-016)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa: {propuestas.grado_corto(P['Fy_pp'], P['d_pp'], 'barra')} ({propuestas.ROTULO_GRADO}); 28–34 HRC de referencia", "Certificado 3.1"],
+            *([["Riel-leva y pórticos (ACC-007…010)", f"Riel 42CrMo4+QT Re ≥ {f(g.FLG['riel']['Fy'])} MPa con canto de leva templado por inducción ≥ 55 HRC; patas y tapas 42CrMo4+QT soldadas (WPS calificado con PQR: requiere núcleo, GEN-009); rodillo templado ≥ 55 HRC", "Dureza 100 % del canto y del rodillo"]] if g.FLG else []),
             *([["Discos de interfaz inoxidables", "Decapado y pasivado; rectificado/lapeado de la cara deslizante Ra 0,4", "Rugosidad 100 % de caras"]] if g.opt in (1, 2) else []),
             *([["Disco duro 17-4PH", f"Condición H1025 (endurecido por precipitación); ≥ {f(P['HB_cara'])} HB, Fy ≥ {f(P['Fy_cara'])} MPa", "Dureza 100 %"]] if g.opt == 3 and g.conf != 2 else []),
             *([["Bronce con tapones de grafito", f"≥ {f(P['HB_bz'])} HB, Fy ≥ {f(P['Fy_bz'])} MPa; tapones encastrados al {fm((g.IG.get('tapon_prof_frac') or 0.7) * 100, 0)} % del espesor", "Certificado del proveedor"]] if g.opt == 3 else []),
@@ -327,6 +343,13 @@ def torque_rows(ctx):
     items = [("Perno ISO 4762 M20×45 cl. 10.9 (retención de pasador)", 20, 10.9, g.N_pin), (f"Tornillo ISO 10642 M10×{g.cap_L:.0f} cl. 10.9 (tapa retenedora)", 10, 10.9, 4), (f"Tornillo ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} cl. 10.9 (tapa de inspección)", int(g.insp_d), 10.9, 6)]
     if g.opt and g.removable:
         items.append((f"Tornillo ISO 10642 M{fm(P['d_tor'], 0)} cl. 10.9 (posición de sectores; no transmiten carga)", int(P["d_tor"]), 10.9, None))
+    if ctx.m.get("int_tornillo_af2"):
+        TA = g.I["tornillos"]
+        items.append((f"Tornillo {TA['designacion']} (disco de la mesa, AF2; transmite el par de la interfaz)", int(TA["d"]), 10.9, int(TA["n"])))
+    if ctx.m.get("pernos_placa_leva"):
+        items.append((f"Perno ISO 4762 M{fm(g.FPV['placas_leva']['pernos']['d'], 0)}×{ctx.m.info.get('perno_placa_L')} cl. 10.9 (placas-leva a la base)", int(g.FPV["placas_leva"]["pernos"]["d"]), 10.9, ctx.m.get("pernos_placa_leva").qty))
+    if ctx.m.get("leva_pernos"):
+        items.append((f"Perno ISO 4762 M{fm(g.FLG['porticos']['d_perno'], 0)}×{ctx.m.info.get('perno_riel_L')} cl. 10.9 (riel–pórtico)", int(g.FLG["porticos"]["d_perno"]), 10.9, ctx.m.get("leva_pernos").qty))
     for nm, d, cl, n in items:
         As = AS_M.get(d, math.pi / 4 * (0.9 * d) ** 2)
         rp = 940.0 if cl == 10.9 else 640.0
@@ -399,11 +422,19 @@ def nest_items(ctx):
             L.append((k, lab, w, h, t, q if q is not None else p.qty, p.mass_unit if q is None else p.mass_total / q))
     add("base_plancha", "Plancha base", B + 10, B + 10, g.tb)
     add("collar", "Collar (disco)", g.D_boss + 10, g.D_boss + 10, g.h_boss + 5)
-    add("mensula_mejilla", "Mejilla", P["L_ch"], BR["H"] + 5, P["t_ch"])
-    add("mensula_oreja_sup", "Oreja sup. ménsula", BR["Win"] + lista.SOBRE_MEC, BR["Llug"] + 5, P["t_ch"])
-    add("mensula_oreja_inf", "Oreja inf. ménsula", BR["Win"] + lista.SOBRE_MEC, BR["Llug"] + 5, BR["spacer"] + P["t_ch"] + 2)
+    if g.modo == 1:
+        add("mensula_mejilla", "Mejilla", P["L_ch"], BR["H"] + 5, P["t_ch"])
+        add("mensula_oreja_sup", "Oreja sup. ménsula", BR["Win"] + lista.SOBRE_MEC, BR["Llug"] + 5, P["t_ch"])
+        add("mensula_oreja_inf", "Oreja inf. ménsula", BR["Win"] + lista.SOBRE_MEC, BR["Llug"] + 5, BR["spacer"] + P["t_ch"] + 2)
     add("orejas", "Oreja de izaje", 2 * P["R_ear"] + 10, P["h_ear"] + P["R_ear"] + 10, P["t_ear"])
-    add("bancada", "Bancada", P["w_bed"] + 10, KG["L_bed"] + 10, P["t_bed"] + 5)
+    if g.modo == 1:
+        add("bancada", "Bancada", P["w_bed"] + 10, KG["L_bed"] + 10, P["t_bed"] + 5)
+    # piezas de plancha del accionamiento (cajón del ojal E, placas-leva; leva de reenganche del modo guiado): partida de la lista de cortes
+    for r_ in lista.cut_rows(ctx):
+        k_ = next((p.key for p in m.parts if p.code.replace(CODE + "-", "") == r_[0]), None)
+        if k_ in ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "placa_leva", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
+            d_ = [float(x.replace(".", "").replace(",", ".")) for x in r_[3].split("×")]
+            add(k_, m.get(k_).name, d_[0], d_[1], d_[2])
     add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)
     add("mesa_plancha_inf", "Mesa: plancha inferior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tbo + 3)
     add("mesa_anillo_sup", "Anillo sup. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
@@ -412,7 +443,8 @@ def nest_items(ctx):
         if p.key.startswith("mesa_nervio"):
             Lr = lista.rib_len(ctx, p)                   # largo terminado del tramo; partida = terminado + 2 × 2 (misma partida que la lista de cortes)
             L.append((p.key, p.name, Lr + 4, g.hw + 4, P["t_rib"], p.qty, p.mass_unit))
-    add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
+    if g.modo == 1:
+        add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
     if g.opt:
@@ -625,6 +657,7 @@ def sheet_verificacion(ctx):
 @gen
 def sheet_wps(ctx):
     c = Gen(ctx, 12, "WPS PRE-CALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1 CL. 3) Y PRECALENTAMIENTO")
+    g = ctx.g
     s = c.s
     R = c.R["main"]
     w = R[2] - R[0]
@@ -637,6 +670,6 @@ def sheet_wps(ctx):
     s.notes_block(R[0], y2 - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
                                        "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte con resistencia a tracción ≥ %s MPa." % f(ctx.P["FEXX"]),
                                        "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
-                                       *(["Soldadura de acero inoxidable 309L (barras del rebaje UHMW): sin precalentamiento; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), "Aceros bonificados (pasadores, pivote, uña) NO se sueldan.",
+                                       *(["Soldadura de acero inoxidable 309L (barras del rebaje UHMW): sin precalentamiento; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), ("Aceros bonificados (pasadores, pivote, uña) NO se sueldan" + ("; excepción del núcleo: patas y tapas del pórtico de la leva en 42CrMo4+QT (J26/J27), solo con WPS calificado con PQR (requiere núcleo, GEN-009)." if g.FLG else ".")) if g.modo == 1 else "Aceros bonificados (pasadores E y Q, pivote, bloque-uña) NO se sueldan.",
                                        "Soldadores calificados según AWS D1.1 cl. 4 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.9 * w, numbered=True)
     return c.h

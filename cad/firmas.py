@@ -23,7 +23,7 @@ def _sig(v, n=5):
     return round(v, -int(math.floor(math.log10(abs(v)))) + (n - 1))
 
 
-def firma_solido(so):
+def firma_solido(so, volteable=False, libre=False):
     import cadquery as cq
     from OCP.GProp import GProp_GProps
     from OCP.BRepGProp import BRepGProp
@@ -36,7 +36,20 @@ def firma_solido(so):
     BRepGProp.VolumeProperties_s(s2.wrapped, pr)
     M = pr.MatrixOfInertia()
     ixx, iyy, ixy = M.Value(1, 1), M.Value(2, 2), M.Value(1, 2)
+    if libre:
+        # pieza recta montada en distintas orientaciones (paredes y tapas del cajón): se lleva a sus ejes principales de inercia en planta
+        th = 0.5 * math.degrees(math.atan2(2 * ixy, ixx - iyy))
+        s2 = s2.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), -th)
+        pr = GProp_GProps()
+        BRepGProp.VolumeProperties_s(s2.wrapped, pr)
+        M = pr.MatrixOfInertia()
+        ixx, iyy, ixy = M.Value(1, 1), M.Value(2, 2), M.Value(1, 2)
+        if ixx > iyy:
+            s2 = s2.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), 90)
+            ixx, iyy, ixy = iyy, ixx, -ixy
     ixy = 0.0 if abs(ixy) < 1e-5 * (abs(ixx) + abs(iyy) + 1e-9) else _sig(ixy, 3)
+    if volteable:
+        ixy = abs(ixy)            # pieza plana simétrica en espesor: su imagen especular es la misma pieza volteada
     bb = s2.BoundingBox()
     rad = {}
     for fc in s2.Faces():
@@ -67,7 +80,7 @@ def tipos(p, maxn=400):
     grupos = {}
     orden = []
     for i, so in enumerate(sol):
-        k = clave(firma_solido(so))
+        k = clave(firma_solido(so, getattr(p, "volteable", False), getattr(p, "libre", False)))
         if k not in grupos:
             grupos[k] = []
             orden.append(k)

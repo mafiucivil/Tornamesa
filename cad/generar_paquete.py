@@ -54,8 +54,11 @@ def main():
     m, rep = M3.run(D, out)
     ms = rep["masas"]
     print(f"  3D vs núcleo: {ms['total_3d']:.1f} / {ms['total_nucleo']:.1f} kg ({ms['dif_pct']:+.2f} %); fuera del núcleo {ms['masa_fuera']:.1f} kg; CG {tuple(round(x, 1) for x in rep['cg'])}", flush=True)
-    inter_bad = [r for r in rep["interferencias"] if not r["ok"]]
-    print(f"  interferencias: {len(inter_bad)}", flush=True)
+    inter_bad = [r for r in rep["interferencias"] if not r["ok"] and not r.get("declarado")]
+    print(f"  interferencias: {len(inter_bad)}; conflictos declarados del núcleo (requiere núcleo, GEN-009): {len(rep.get('conflictos_nucleo', []))}", flush=True)
+    for r in rep["interferencias"]:
+        if not r["ok"]:
+            print(f"    {'NÚCLEO' if r.get('declarado') else 'INTERFERENCIA'} {r['a']} × {r['b']}: {r['vol_mm3']} mm³", flush=True)
     ctx = Ctx(m)
     ctx.rep = rep
     ctx.gaps = informe.brechas(ctx, rep)
@@ -355,6 +358,12 @@ def main():
     import controles, firmas
     json.dump(dict(base=firmas.base_hash(D), variante=M3.variante_de(ctx.g), firmas=firmas.firmas_juego(ctx)), open(out / "TT300-C_firmas.json", "w", encoding="utf-8"), indent=1, ensure_ascii=False, sort_keys=True)
     CTL = controles.todos(ctx, hojas)
+    with open(out / "control_cadenas_cerradas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["control", "detalle"])
+        for k_, v_ in CTL.items():
+            for x_ in v_:
+                wr.writerow([k_, x_])
     n_ctl = sum(len(v) for v in CTL.values())
     with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
         fh.write("\n## Controles de coherencia del juego\n\n")

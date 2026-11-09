@@ -240,6 +240,12 @@ def control_lamina(ctx, h, union=None, hechos=None):
             continue
         txt = (union or {}).get(p.code) or h.s.texts
         n, fl = faltantes(txt, sols[0])
+        if getattr(p, "contorno_cnc", False):
+            # contorno poligonal provisional del núcleo (placa-leva RETENIDA): las facetas del polígono no se acotan, salen del programa CNC
+            cnc = [x for x in fl if "inclinada" in x]
+            fl = [x for x in fl if "inclinada" not in x]
+            if cnc:
+                just.append((p.code, "contorno poligonal provisional del núcleo (programa CNC desde el JSON; lámina RETENIDA)"))
         tot += n
         miss += [(p.code, x) for x in fl]
     return tot, miss, just
