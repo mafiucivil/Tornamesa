@@ -134,7 +134,7 @@ def sheet_notas(ctx):
                     e["cl"].append((vs, desc, o + 1, o + nt))
                 o += nt
     def cods(base, cl):
-        return " · ".join(f"-{a}" + (f"…-{b}" if b > a else "") + f" {'/'.join(vs)}: {desc}" for vs, desc, a, b in cl)
+        return " · ".join(f"-{a}" + (f"…-{b}" if b > a else "") + f" {'/'.join(vs)}" + ("" if "guiado" in desc else f": {desc}") for vs, desc, a, b in cl)
     for n, e in sorted(por_num.items()):
         base = f"INT-{n:03d}"
         actual = sorted({c_ for c_ in en_juego if c_.startswith(base)})
@@ -153,8 +153,13 @@ def sheet_notas(ctx):
         # juego sin interfaz: los códigos INT no se usan; una fila los resume (el mapa completo va en los juegos con interfaz)
         rows = [["INT-001…014, INT-101…107", "Piezas y láminas de la interfaz (sectores, topes, tornillos, graseras, UHMW, bronce, disco duro): no se emiten en este juego; "
                  "mapa completo con sus sufijos por variante en GEN-001 de las variantes A, AF2, B y C1…C3", "A, AF2, B, C1…C3", "—"]]
+    DELTA_KEYS = ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "pasador_Q", "leva_pata")
+    dk_ = [ctx.m.get(k) for k in DELTA_KEYS if ctx.m.get(k)]
+    if dk_:
+        rows.append([", ".join(f"{p_.sub}-{p_.num:03d}" for p_ in dk_), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
+                     ", ".join(p_.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:] for p_ in dk_)])
     for key, cl in M3.VAR_CODIGOS.items():
-        if key.startswith("int_"):
+        if key.startswith("int_") or key in DELTA_KEYS:
             continue
         p0 = ctx.m.get(key)
         if p0 is None:
@@ -191,7 +196,7 @@ def tabla_indice(ctx, h, hojas):
     tit = f"ÍNDICE DE PLANOS — VARIANTE {ctx.g.variante} (el título de cada lámina termina en «{suf.strip(' —')}»)"
     from draw import Sheet as _Sh
     hh_, pd_ = T_MIN, 0.8
-    for h_try, p_try in ((T_S, 1.3), (2.75, 1.3), (T_MIN, 1.3), (T_MIN, 0.8), (T_MIN, 0.5)):     # letra de tabla densa; mínimo absoluto 2,5 mm (ISO 3098) y celdas compactas
+    for h_try, p_try in ((T_S, 1.3), (2.75, 1.3), (T_MIN, 1.3), (T_MIN, 0.8), (T_MIN, 0.5), (T_MIN, 0.3)):     # letra de tabla densa; mínimo absoluto 2,5 mm (ISO 3098) y celdas compactas
         sc_ = _Sh(h.fmt)
         _, lft = sc_.table(x, y, cols, rows, h=h_try, pad=p_try, ymin=ymin + 18, title=tit)
         _, lft2 = sc_.table(x + wc + 6, yR, cols, lft, h=h_try, pad=p_try, ymin=ymin + 18) if lft else (0, [])
