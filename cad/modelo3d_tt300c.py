@@ -1015,6 +1015,11 @@ def apply_backing_holes(m):
     if ph:                                   # roscas de los pernos de las placas-leva en la plancha base (modo 2)
         d_ = g.FPV["placas_leva"]["pernos"]["d"]
         base.solid = base.solid.cut(compound([cyl(d_ / 2, g.tb + 2, -1, x, y) for (x, y) in ph]))
+        pp_ = m.info.get("placa_pas_holes")
+        if pp_:                              # alojamientos H7 de los pasadores de posición (ciegos, desde la cara superior)
+            dp_ = float(g.FPV["placas_leva"]["pasadores_posicion"]["d"])
+            hp_ = m.info["placa_pas_L"] - g.FPV["placas_leva"]["t"]
+            base.solid = base.solid.cut(compound([cyl(dp_ / 2, hp_ + 1, g.tb - hp_, x, y) for (x, y) in pp_]))
         base._vol = None
     ha = m.info.get("holes_af2")
     if ha:                                   # AF2: roscas de los tornillos del disco de la mesa (r > prIn: anillo inferior; y la plancha si cae dentro)

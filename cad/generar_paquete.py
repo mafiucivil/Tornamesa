@@ -371,6 +371,10 @@ def main():
             fh.write(f"- {k}: {len(v)} falla(s)" + ("" if not v else ": " + "; ".join(v[:12])) + "\n")
     for k, v in CTL.items():
         print(f"  control {k}: {len(v)}" + (f" {v[:6]}" if v else ""), flush=True)
+    if ctx.m.info.get("placa_guia_ctl"):
+        print(f"  placa-guía: {ctx.m.info['placa_guia_ctl']}", flush=True)
+        with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+            fh.write(f"\n## Placa-guía curva: G1 y desviación\n\n- {ctx.m.info['placa_guia_ctl']}\n")
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)

@@ -12,7 +12,9 @@ from geom import *
 # números de pieza FIJOS (un código = una geometría en todos los juegos; H-04). Modo 1: 1…12; modo 2: 13…17. BAS: cajón del ojal E 8…11.
 ACC_NUM = {"bancada": 1, "cilindro": 2, "patin": 3, "una": 4, "pasador_vastago": 5, "pasador_ojal": 6,
            "leva_riel": 7, "leva_pata": 8, "leva_tapa": 9, "leva_prolong": 10, "leva_rodillo": 11, "leva_perno": 12,
-           "cilindro_pv": 13, "pasador_E": 14, "bloque_una": 15, "pasador_Q": 16, "placa_leva": 17}
+           "cilindro_pv": 13, "pasador_E": 14, "bloque_una": 15, "pasador_Q": 16, "placa_leva": 17,
+           # placa-guía curva (núcleo 7dfd06a) y bloque-uña con cara R120 (3dab1ce): geometría nueva → números nuevos (17 y 18 quedan anulados)
+           "placa_guia": 20, "pernos_placa_guia": 21, "pasadores_placa_guia": 22, "bloque_una_r": 23}
 BAS_NUM = {"cajon_pared": 8, "cajon_ventana_a": 9, "cajon_ventana_b": 10, "cajon_tapa": 11}
 
 EYE_WALL = 17.5          # pared del ojal comercial del cilindro (52,5 − 35 del ojal Ø70 del modelo de la Rev. B): radio exterior = d/2 + 17,5 (supuesto S21)
@@ -148,7 +150,12 @@ def _acc(m, g, D, Part, info):
     zs0 = z0b + hq["t_mejilla"]
     zs1 = zs0 + hq["ranura_ojal"]
     Rc = hq["R_cubo"]
-    base_local = _poly(loc["cuerpo"], z0b, z1b - z0b).union(_poly(loc["cara"], z0b, z1b - z0b)).union(_cyl(Rc, z1b - z0b, z0b))
+    cara_ = _poly(loc["cara"], z0b, z1b - z0b)
+    R_f = float(BU["cara"].get("radio_planta") or 0.0)
+    if R_f > 0:                                        # cara cilíndrica convexa en planta (núcleo: pv_rface), vértice en el frente de la cara
+        x_f = max(q[0] for q in loc["cara"])
+        cara_ = cara_.intersect(_cyl(R_f, z1b - z0b + 2, z0b - 1, x_f - R_f, 0.0))
+    base_local = _poly(loc["cuerpo"], z0b, z1b - z0b).union(cara_).union(_cyl(Rc, z1b - z0b, z0b))
     base_local = base_local.cut(_cyl(BU["agujero_Q"] / 2, z1b - z0b + 2, z0b - 1))
     slot = _cyl(Rc + 1.0, zs1 - zs0, zs0).union(_box(-Rc - 10, 0, -Rc - 10, Rc + 10, zs0, zs1))
     blk_local = base_local.cut(slot)
@@ -202,44 +209,62 @@ def _acc(m, g, D, Part, info):
                catalogo="A DEFINIR POR CATÁLOGO (largo ojal–ojal retraído, ojal del vástago para pasador Ø%s y geometría de extremos con el proveedor)" % f(PQ["d"]), color=(0.95, 0.78, 0.1),
                cert="Certificado de prueba hidráulica del fabricante", num_fijo=ACC_NUM["cilindro_pv"]))
     m.add(Part("bloque_una", "ACC", "Bloque-uña acodado",
-               f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}, cara {f(BU['cara']['b'])}×{f(BU['cara']['l'])} templada, cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
+               f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}, cara {f(BU['cara']['b'])}×{f(BU['cara']['l'])} templada" + (f" cilíndrica R{fm(R_f, 0)}" if R_f > 0 else "") + f", cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
                _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
                "Forja o bloque; fresado del contorno y de la horquilla en mandrinadora/fresadora; agujero Q mandrinado; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
-               tratamiento=f"Temple por inducción de la cara {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una"]))
+               tratamiento=f"Temple por inducción de la cara {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una_r"] if R_f > 0 else ACC_NUM["bloque_una"]))
     m.add(Part("pasador_Q", "ACC", "Pasador Q del vástago (seguidor de la placa-leva)", f"Pasador Ø{f(PQ['d'])} f8 × {f(PQ['largo'])} (z {f(PQ['z'][0])}–{f(PQ['z'][1])}); extremo inferior templado (seguidor)", _compound(pins_q), len(pins_q),
                gq, "Barra rectificada; corte y chaflanes en torno horizontal; temple por inducción del extremo inferior", core="dogs", color=(0.3, 0.3, 0.32),
                tratamiento="Bonificado (QT); extremo inferior templado por inducción ≥ 55 HRC (seguidor de la placa-leva)", num_fijo=ACC_NUM["pasador_Q"]))
     # placas-leva: 4 (una por cilindro y sentido); se fabrican iguales: la del sentido horario es la del antihorario volteada (imagen especular, sin rasgos asimétricos en z)
     zp0, zp1 = PL["z"]
+    import contorno, re as _re
     plates = []
-    holes_base = []
+    holes_base, holes_pas = [], []
     dh = PL["pernos"]["agujero"]
+    d_b = PL["pernos"]["d"]
+    m_av = _re.search(r"Ø\s*([\d,\.]+)", str(PL["pernos"].get("avellanado", "")))
+    d_av = float(m_av.group(1).replace(",", ".")) if m_av else 2.0 * d_b
+    m_L = _re.search(r"M\d+\s*[×x]\s*(\d+)", str(PL["pernos"].get("norma", "")))
+    Lb = int(m_L.group(1)) if m_L else _perno_len(PL["t"], g.tb, d_b)
+    PP = PL.get("pasadores_posicion") or {}
+    d_p = float(PP.get("d", 0) or 0)
+    L_p = PL["t"] + (g.tb - 3.0)                     # pasador: espesor de la placa + base − 3 mm (supuesto S25; el núcleo no da el largo)
+    h_av = (d_av - dh) / 2.0                          # avellanado de 90°
     for k in ("1_antihorario", "1_horario", "2_antihorario", "2_horario"):
         ins = PL["instancias"][k]
-        import contorno
-        pl = contorno.solido(contorno.leer(ins), zp0, zp1 - zp0)          # segmentos geométricos del núcleo (o el polígono provisional)
+        pl = contorno.solido(contorno.leer(ins), zp0, zp1 - zp0)          # segmentos geométricos del núcleo (ARC/LINE exactos)
         pl = pl.cut(cq.Workplane("XY").workplane(offset=zp0 - 1).pushPoints([tuple(q) for q in ins["pernos"]]).circle(dh / 2).extrude(zp1 - zp0 + 2))
+        for (x, y) in ins["pernos"]:                  # avellanado ISO 10642 a ras de la cara superior
+            pl = pl.cut(cq.Workplane("XY").newObject([cq.Solid.makeCone(dh / 2, d_av / 2 + 0.5, h_av + 0.5, cq.Vector(x, y, zp1 - h_av), cq.Vector(0, 0, 1))]))
+        if d_p and ins.get("pasadores_posicion"):
+            pl = pl.cut(cq.Workplane("XY").workplane(offset=zp0 - 1).pushPoints([tuple(q) for q in ins["pasadores_posicion"]]).circle(d_p / 2).extrude(zp1 - zp0 + 2))
+            holes_pas.extend([tuple(q) for q in ins["pasadores_posicion"]])
         plates.append(pl)
         holes_base.extend([tuple(q) for q in ins["pernos"]])
-    mat_pl = "S355J2 (EN 10025-2), Fy ≥ %s MPa; canto de contacto templado ≥ 55 HRC (núcleo: «%s»)" % (f(PV["placa_leva"]["Fy"]), PL["material"])
-    pt = Part("placa_leva", "ACC", "Placa-leva", f"Plancha e = {f(PL['t'])}, contorno del núcleo (canto de contacto cóncavo y labio de {f(PL['ancho_labio'])}), {int(PL['pernos']['n'])} agujeros Ø{f(dh)} para pernos M{f(PL['pernos']['d'])}",
-              _compound(plates), len(plates), mat_pl, "Oxicorte/plasma CNC del contorno (programa desde el JSON); canto de contacto fresado y templado; agujeros taladrados", core="cam", color=(0.6, 0.45, 0.25),
-              tratamiento="Canto de contacto templado ≥ 55 HRC (inserto o placa templable, A DEFINIR)", obs="4 placas iguales: las del sentido horario se montan volteadas (imagen especular)", num_fijo=ACC_NUM["placa_leva"])
+    pt = Part("placa_leva", "ACC", "Placa-guía curva", f"Plancha e = {f(PL['t'])}, {fm(PL['marco']['largo'], 0)} × {fm(PL['marco']['ancho'], 0)} con recorte curvo (arcos tangentes del núcleo), "
+              f"{int(PL['pernos']['n'])} avellanados M{f(d_b)} y {int(PP.get('n', 0))} agujeros Ø{fm(d_p, 0)} H7 de pasadores",
+              _compound(plates), len(plates), PL["material"], PL.get("corte", "Corte láser/agua y fresado CNC del canto"), core="cam", color=(0.6, 0.45, 0.25),
+              tratamiento=(PL.get("tratamiento") or {}).get("canto", "Canto templado"), obs="4 placas iguales: las del sentido horario se montan volteadas (imagen especular)", num_fijo=ACC_NUM["placa_guia"])
     pt.volteable = True
     pt.contorno_cnc = not contorno.geometrico(contorno.leer(PL["instancias"]["1_antihorario"]))
     m.add(pt)
-    # pernos de las placas-leva (comerciales): roscados en la plancha base (el núcleo admite roscado o pasante con tuerca; la base apoya en la losa)
-    d_b = PL["pernos"]["d"]
-    Lb = _perno_len(PL["t"], g.tb, d_b)
+    # tornillos avellanados ISO 10642 (roscados en la plancha base) y pasadores ISO 8734 de posición
     bolts = []
     for (x, y) in holes_base:
-        hd = _cyl(1.5 * d_b / 2, d_b, zp1, x, y)                 # cabeza ISO 4762: Ø1,5·d × d (dk = 30, k = 20 para M20)
-        sh = _cyl(d_b / 2, Lb, zp1 - Lb, x, y)
-        bolts.append(hd.union(sh))
-    m.add(Part("pernos_placa_leva", "ACC", f"Perno ISO 4762 M{f(d_b)}×{Lb} cl. 10.9 (placa-leva)", f"Perno ISO 4762 M{f(d_b)}×{Lb} cl. 10.9 roscado en la plancha base", _compound(bolts), len(bolts),
-               "Perno ISO 898-1 cl. 10.9", "Comercial", in_core=False, comercial=True, catalogo=f"ISO 4762 M{f(d_b)}×{Lb} cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32),
-               num_fijo=18))
+        cone = cq.Workplane("XY").newObject([cq.Solid.makeCone(d_av / 2 - 0.6, d_b / 2, (d_av - 1.2 - d_b) / 2, cq.Vector(x, y, zp1), cq.Vector(0, 0, -1))])
+        bolts.append(cone.union(_cyl(d_b / 2, Lb - (d_av - 1.2 - d_b) / 2, zp1 - Lb, x, y)))
+    m.add(Part("pernos_placa_guia", "ACC", f"Tornillo ISO 10642 M{f(d_b)}×{Lb} cl. {PL['pernos'].get('clase', '8.8')} (placa-guía)", f"Tornillo avellanado ISO 10642 M{f(d_b)}×{Lb} cl. {PL['pernos'].get('clase', '8.8')}, roscado en la plancha base",
+               _compound(bolts), len(bolts), f"ISO 898-1 cl. {PL['pernos'].get('clase', '8.8')}", "Comercial", in_core=False, comercial=True,
+               catalogo=f"ISO 10642 M{f(d_b)}×{Lb} cl. {PL['pernos'].get('clase', '8.8')} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32), num_fijo=ACC_NUM["pernos_placa_guia"]))
+    if holes_pas:
+        pins = [_cyl(d_p / 2, L_p, zp1 - L_p, x, y) for (x, y) in holes_pas]
+        m.add(Part("pasadores_placa_guia", "ACC", f"Pasador ISO 8734 Ø{fm(d_p, 0)} m6 × {fm(L_p, 0)} (placa-guía)", f"Pasador cilíndrico templado ISO 8734 Ø{fm(d_p, 0)} m6 × {fm(L_p, 0)}, en agujeros H7 escariados en placa y base",
+                   _compound(pins), len(pins), "ISO 8734 (templado)", "Comercial", in_core=False, comercial=True, catalogo=f"ISO 8734 Ø{fm(d_p, 0)} m6 × {fm(L_p, 0)} (código de catálogo: A DEFINIR POR CATÁLOGO)",
+                   color=(0.3, 0.3, 0.32), num_fijo=ACC_NUM["pasadores_placa_guia"]))
     m.info["placa_leva_holes"] = holes_base
+    m.info["placa_pas_holes"] = holes_pas
+    m.info["placa_pas_L"] = L_p
     m.info["perno_placa_L"] = Lb
 
 
@@ -286,7 +311,7 @@ def build_leva_guiada(m, g, D, Part, A572):
         pern.append(_cyl(SG["perno"]["d"] / 2, pz1 - pz0, pz0, xs, ys))
         rz0, rz1 = SG["rodillo"]["z"]
         rod.append(_cyl(SG["rodillo"]["d"] / 2, rz1 - rz0, rz0, xs, ys).cut(_cyl(SG["perno"]["d"] / 2, rz1 - rz0 + 2, rz0 - 1, xs, ys)))
-    mR = "42CrMo4+QT (EN 10083-3), Re ≥ %s MPa (16 < t ≤ 40); canto templado por inducción ≥ 55 HRC (núcleo: «%s»)" % (f(R["Fy"]), R["material"])
+    mR = "42CrMo4+QT (EN 10083-3), Re ≥ %s MPa; canto templado ≥ 55 HRC" % f(R["Fy"])
     m.add(Part("leva_riel", "ACC", "Riel-leva", f"Pletina e = {f(R['t'])}, contorno del núcleo (toma, bolsillo y rampa en el canto interior; aletas de apoyo), {len(inst['1_antihorario']['pernos'])} agujeros Ø{f(dh)}",
                _compound(rieles), len(rieles), mR, "Oxicorte/plasma CNC desde plancha con sobremetal; canto de leva fresado y templado por inducción; agujeros taladrados", core="cam", color=(0.6, 0.45, 0.25),
                tratamiento="Bonificado (QT); canto de leva templado por inducción ≥ 55 HRC", obs="Una por cilindro: se voltea para el otro sentido de giro", num_fijo=ACC_NUM["leva_riel"]))

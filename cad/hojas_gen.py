@@ -356,8 +356,10 @@ def torque_rows(ctx):
     if ctx.m.get("int_tornillo_af2"):
         TA = g.I["tornillos"]
         items.append((f"Tornillo {TA['designacion']} (disco de la mesa, AF2; transmite el par de la interfaz)", int(TA["d"]), 10.9, int(TA["n"])))
-    if ctx.m.get("pernos_placa_leva"):
-        items.append((f"Perno ISO 4762 M{fm(g.FPV['placas_leva']['pernos']['d'], 0)}×{ctx.m.info.get('perno_placa_L')} cl. 10.9 (placas-leva a la base)", int(g.FPV["placas_leva"]["pernos"]["d"]), 10.9, ctx.m.get("pernos_placa_leva").qty))
+    for k_ in ("pernos_placa_leva", "pernos_placa_guia"):
+        if ctx.m.get(k_):
+            cl_ = float(str(g.FPV["placas_leva"]["pernos"].get("clase", "10.9")).replace(",", "."))
+            items.append((f"{ctx.m.get(k_).name} (placas-guía a la base)", int(g.FPV["placas_leva"]["pernos"]["d"]), cl_, ctx.m.get(k_).qty))
     if ctx.m.get("leva_pernos"):
         items.append((f"Perno ISO 4762 M{fm(g.FLG['porticos']['d_perno'], 0)}×{ctx.m.info.get('perno_riel_L')} cl. 10.9 (riel–pórtico)", int(g.FLG["porticos"]["d_perno"]), 10.9, ctx.m.get("leva_pernos").qty))
     for nm, d, cl, n in items:

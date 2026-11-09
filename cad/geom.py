@@ -290,7 +290,7 @@ def supuestos(g):
 
     def add(id_, tema, valor, motivo):
         S.append(dict(id=id_, tema=tema, valor=valor, motivo=motivo))
-    if g.opt:
+    if g.opt and g.removable:                 # en la fijación pegada (AF2) no hay topes ni tornillos de posición (H-03)
         add("S01", "Tornillos de posición por sector", "2 por sector (ADOPTADO por el mandante); posición radial en la bisectriz, fuera del tope y de las ranuras (PROVISORIO)",
             f"El cálculo fija solo el diámetro d_tor = M{fm(P['d_tor'], 0)} ISO 10642 y la verificación de la cabeza; no entrega la cantidad ni la posición.")
     if g.opt and g.removable:

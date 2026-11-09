@@ -84,20 +84,17 @@ def requiere_nucleo(ctx):
                   f"(3) La tapa superior queda a ras del borde de las paredes (z {fm(S['z_paredes'][1], 0)}): su cara superior no forma rincón para un filete.",
                   "A DECIDIR POR EL CALCULISTA: redefinir la unión (p. ej. soldadura de ranura o filetes de un solo lado verificados) y la posición del cajón; secuencia de armado en CON-007."))
         R.append((f"{RN}: unión pared–pared del cajón", f"El núcleo no fija la soldadura entre paredes (esquinas en molinete): se adopta filete z{fillet_min(t)} en el rincón interior (mínimo AWS D1.1 T5.8 para t = {fm(t, 0)}).", "Confirmar o verificar en el núcleo."))
-        R.append((f"{RN}: pernos de las placas-leva", f"{int(PL['pernos']['n'])} × M{fm(PL['pernos']['d'], 0)} 10.9 por placa «{PL['pernos']['clase']}»: la base apoya en la losa (no admite tuerca inferior) y la plancha base tiene {fm(g.tb, 0)} mm: "
-                  f"engrane {fm(g.tb, 0)} mm < 1,25·d = {fm(1.25 * PL['pernos']['d'], 0)} mm (criterio VDI 2230 del registro, AF2). Se dibujan roscados pasantes en la base con perno ISO 4762 M{fm(PL['pernos']['d'], 0)}×{ctx.m.info.get('perno_placa_L', '—')} que no sobresale bajo la base.",
-                  "Verificar el arranque de la rosca o definir otra fijación (suplemento roscado soldado, espárrago, base más gruesa)."))
+        import contorno as _ct
         ins1 = PL["instancias"]["1_antihorario"]
-        try:
-            from shapely.geometry import Polygon as _Pg, Point as _Pt
-            pg_ = _Pg(ins1["contorno"])
-            cortan = [i + 1 for i, q in enumerate(ins1["pernos"]) if pg_.exterior.distance(_Pt(q)) < PL["pernos"]["agujero"] / 2]
-        except Exception:
-            cortan = []
-        R.append((f"{RN}: perfil de la placa-leva", "El mandante pidió un perfil curvo, continuo y suave (tipo KIET) calculado desde la cinemática; el núcleo exportará el contorno como segmentos geométricos (arcos tangentes y curva de transición). "
-                  f"El polígono actual ({len(ins1['contorno'])} vértices) queda provisional y la lámina ACC-017 RETENIDA" + (f"; además, con ese polígono los agujeros P{', P'.join(str(i) for i in cortan)} cortan el contorno" if cortan else "") + ".",
-                  "Exportar instancias[k].segmentos (recta / arco con centro, radio y sentido / curva con puntos de paso); la lámina y el DXF ya los dibujan con ARC/SPLINE."))
-        R.append((f"{RN}: canto templado de la placa-leva", f"Material del núcleo: «{PL['material']}». El S355J2 no alcanza 55 HRC: el inserto templable (material, espesor, fijación) no está definido.", "Definir el inserto o el material templable de la placa."))
+        geo_ = _ct.geometrico(_ct.leer(ins1))
+        if g.tb < 1.0 * PL["pernos"]["d"]:
+            R.append((f"{RN}: tornillos de las placas-guía", f"M{fm(PL['pernos']['d'], 0)} roscados en la base de {fm(g.tb, 0)} mm: engrane menor que 1,0·d.", "Verificar el arranque de la rosca."))
+        if not (PL.get("pasadores_posicion") or {}).get("largo"):
+            R.append((f"{RN}: largo de los pasadores de posición", f"El núcleo da ISO 8734 Ø{fm((PL.get('pasadores_posicion') or {}).get('d', 0), 0)} m6 sin largo: se dibuja {fm(ctx.m.info.get('placa_pas_L', 0), 0)} (placa + base − 3 mm, supuesto S25).", "Confirmar el largo."))
+        if not geo_:
+            R.append((f"{RN}: perfil de la placa-leva", "El JSON no trae segmentos geométricos: contorno poligonal provisional, lámina ACC-017 RETENIDA.", "Exportar segmentos_contorno."))
+        if "S355" in PL["material"]:
+            R.append((f"{RN}: canto templado de la placa-leva", f"Material del núcleo: «{PL['material']}». El S355J2 no alcanza 55 HRC.", "Definir el inserto o el material templable de la placa."))
         R.append((f"{RN}: profundidad de temple (modo pivotado)", "El núcleo no entrega la fila «Profundidad mínima de temple» en el modo pivotado: cara del bloque-uña, extremo inferior del pasador Q, canto de la placa-leva y franja de los pasadores de empuje quedan con profundidad A DEFINIR.", "Agregar la fila al núcleo."))
         R.append((f"{RN}: ajuste y retención de los pasadores E y Q", f"El núcleo da H9/f8 para E; para Q solo el agujero Ø{fm(F['bloque_una']['agujero_Q'], 0)}. Se adopta H9/f8 también para Q (PROPUESTA) y retención axial por placa y tornillo de catálogo (PROPUESTA, como en el modo guiado).", "Confirmar el ajuste de Q y la retención axial de E y Q."))
         R.append((f"{RN}: ojal del vástago para el pasador Q", f"Ø exterior y cuello del ojal del vástago para Q Ø{fm(F['pasador_Q']['d'], 0)}: el modelo usa pared {fm(17.5, 1)} mm (Ø{fm(F['pasador_Q']['d'] + 35, 0)}) dentro de la horquilla R{fm(F['bloque_una']['horquilla']['R_cubo'], 0)}; el núcleo solo pide «Ø ojal ≥ d_Q».", "Confirmar con el proveedor del cilindro (supuesto S21)."))

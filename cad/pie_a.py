@@ -26,8 +26,13 @@ def sheet_base_plancha(ctx):
         if ph:                             # roscas de los pernos de las placas-leva (modo 2)
             dpl = g.FPV["placas_leva"]["pernos"]["d"]
             x_, y_ = ph[0]
-            V.note_hole((x_, y_, tb), dpl / 2, 200, f"{len(ph)} × M{fm(dpl, 0)} pasantes (placas-leva; coordenadas en la tabla)", ext=26, on=on,
-                        lines=[f"{len(ph)} × M{fm(dpl, 0)}-6H pasantes", "(placas-leva; coordenadas en la tabla)"])
+            V.note_hole((x_, y_, tb), dpl / 2, 200, f"{len(ph)} × M{fm(dpl, 0)} pasantes (placas-guía; coordenadas en la tabla)", ext=26, on=on,
+                        lines=[f"{len(ph)} × M{fm(dpl, 0)}-6H pasantes", "(placas-guía; coordenadas en la tabla)"])
+            pp_ = ctx.m.info.get("placa_pas_holes")
+            if pp_:
+                dpp = g.FPV["placas_leva"]["pasadores_posicion"]["d"]
+                V.note_hole((pp_[0][0], pp_[0][1], tb), dpp / 2, 160, f"{len(pp_)} × Ø{fm(dpp, 0)} H7 (pasadores)", ext=26, on=on,
+                            lines=[f"{len(pp_)} × Ø{fm(dpp, 0)} H7 ciegos", "(pasadores de las placas-guía)"])
         cs = [c_ for c_ in V.circles(["base_plancha"], 2.0, 4.5)]
         if cs:
             n = len(cs)
@@ -77,11 +82,13 @@ def sheet_base_plancha(ctx):
         for i_, lk_ in enumerate(("cilindro1", "cilindro2")):
             E_ = Sx[lk_]["centro"]
             rows.append([f"C{i_ + 1} cajón del ojal E (eje E)", f(E_[0], 1), f(E_[1], 1), "—", f"cajón {f(Sx['lado'])} × {f(Sx['lado'])}; posición con tolerancia ajustada (CON-007)"])
-        for k_, ins in g.FPV["placas_leva"]["instancias"].items():
+        for k_, ins in [(k__, v__) for k__, v__ in g.FPV["placas_leva"]["instancias"].items() if k__.startswith("1")]:      # placas 2: simétricas respecto del centro
             for j_, (x_, y_) in enumerate(ins["pernos"]):
-                rows.append([f"Rosca M{fm(g.FPV['placas_leva']['pernos']['d'], 0)} placa {k_.replace('_', ' ')} P{j_ + 1}", f(x_, 1), f(y_, 1), "—", "pasante (Ø0,5 de posición)"])
+                rows.append([f"Rosca M{fm(g.FPV['placas_leva']['pernos']['d'], 0)} placa {k_.replace('_', ' ')} T{j_ + 1}", f(x_, 1), f(y_, 1), "—", "pasante (Ø0,2 de posición)"])
+            for j_, (x_, y_) in enumerate(ins.get("pasadores_posicion") or []):
+                rows.append([f"Pasador Ø{fm(g.FPV['placas_leva']['pasadores_posicion']['d'], 0)} H7 placa {k_.replace('_', ' ')} D{j_ + 1}", f(x_, 1), f(y_, 1), "—", f"ciego prof. {fm(ctx.m.info.get('placa_pas_L', 0) - g.FPV['placas_leva']['t'], 0)}, escariado con la placa"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
-    p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS (origen: centro de la plancha)", [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
+    p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS Y AGUJEROS (origen: centro de la plancha" + ("; placas-guía del cilindro 2: (−x; −y) de las del cilindro 1)" if g.modo == 2 else ")"), [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
     p.tables(jids(ctx, "Collar"))
     nz = [
         f"Plancha {f(B)} × {f(B)} × {f(tb)} de {p.p0.material.split(',')[0]}; sobrematerial de corte 5 mm por borde, recortar a medida después del alivio. Corte por oxicorte/plasma con tolerancia ISO 9013 clase 3.",

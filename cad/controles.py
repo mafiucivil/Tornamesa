@@ -340,8 +340,58 @@ def cadenas_cerradas(ctx, hojas):
     return sorted(set(out))
 
 
+def placa_guia(ctx, hojas):
+    """Placa-guía curva (modo pivotado): canto G1 (quiebre ≤ 0,01° entre tramos consecutivos), desviación de las entidades del DXF, del sólido 3D
+    y de la polilínea del núcleo respecto de los segmentos del núcleo ≤ tolerancia_polilinea (0,1 mm), y códigos nuevos para la geometría nueva."""
+    import contorno
+    g = ctx.g
+    out = []
+    if g.modo != 2 or not ctx.m.get("placa_leva"):
+        return out
+    PL = g.FPV["placas_leva"]
+    ins = PL["instancias"]["1_antihorario"]
+    segs = contorno.leer(ins)
+    if not contorno.geometrico(segs):
+        return out
+    tol = float(PL.get("tolerancia_polilinea", 0.1) or 0.1)
+    canto = contorno.leer(ins, "segmentos_canto") if ins.get("segmentos_canto") else segs
+    q = contorno.quiebres(canto)
+    g1 = max((a for _, a, _ in q), default=0.0)
+    g0 = max((d for _, _, d in q), default=0.0)
+    if g1 > 0.01 or g0 > 1e-3:
+        out.append(f"placa-guía: canto no G1 (quiebre máx. {g1:.4f}°, salto {g0:.4f} mm)")
+    h = next((h_ for h_ in hojas if getattr(h_, "placa_dxf_pts", None)), None)
+    dev_dxf = contorno.desviacion(segs, h.placa_dxf_pts) if h else None
+    if dev_dxf is None or dev_dxf > tol:
+        out.append(f"placa-guía: desviación del DXF {dev_dxf} mm (máx. {tol})")
+    so = ctx.shapes["placa_leva"].Solids()[0]
+    zt = PL["z"][1]
+    pts = []
+    for e in so.Edges():
+        a, b = e.startPoint(), e.endPoint()
+        if abs(a.z - zt) < 1e-3 and abs(b.z - zt) < 1e-3:
+            for i in range(11):
+                v = e.positionAt(i / 10)
+                pts.append((v.x, v.y))
+    from shapely.geometry import Point as _Pt
+    hol = [_Pt(x, y).buffer(PL["pernos"]["agujero"] + 20) for x, y in ins["pernos"]] + [_Pt(x, y).buffer(30) for x, y in (ins.get("pasadores_posicion") or [])]
+    pts = [q_ for q_ in pts if not any(h_.contains(_Pt(*q_)) for h_ in hol)]
+    dev_3d = contorno.desviacion(segs, pts)
+    dev_pl = contorno.desviacion(segs, [tuple(q_) for q_ in ins["contorno"]])
+    if dev_3d > tol:
+        out.append(f"placa-guía: desviación del sólido 3D {dev_3d:.4f} mm (máx. {tol})")
+    if dev_pl > tol:
+        out.append(f"placa-guía: la polilínea del núcleo se aparta {dev_pl:.4f} mm de sus segmentos (máx. {tol})")
+    usados = {p_.code for p_ in ctx.m.parts}
+    for viejo in (f"{CODE}-ACC-017-{REV}", f"{CODE}-ACC-018-{REV}") + ((f"{CODE}-ACC-015-{REV}",) if g.FPV["bloque_una"]["cara"].get("radio_planta") else ()):
+        if viejo in usados:
+            out.append(f"{viejo}: código de la geometría anterior usado para la geometría nueva")
+    ctx.m.info["placa_guia_ctl"] = dict(g1_deg=g1, g0_mm=g0, dev_dxf=dev_dxf, dev_3d=dev_3d, dev_polilinea=dev_pl, tol=tol)
+    return out
+
+
 def todos(ctx, hojas):
     import hojas_gen
     res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas),
-               cadenas_cerradas=cadenas_cerradas(ctx, hojas))
+               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas))
     return res

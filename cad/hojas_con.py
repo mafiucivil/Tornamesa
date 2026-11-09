@@ -620,7 +620,7 @@ def sheet_bom(ctx):
 
 # ====================================================================================================== ARMADO
 ACC_KEYS = ("cilindro", "patin", "una", "pasador_vastago", "pasador_ojal", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong", "leva_rodillo", "leva_perno", "leva_pernos",
-            "cilindro_pv", "pasador_E", "bloque_una", "pasador_Q", "placa_leva", "pernos_placa_leva")
+            "cilindro_pv", "pasador_E", "bloque_una", "pasador_Q", "placa_leva", "pernos_placa_leva", "pernos_placa_guia", "pasadores_placa_guia")
 PIV_KEYS = ("pivote", "buje", "tapa_ret")
 
 
@@ -779,7 +779,7 @@ def pasos(ctx):
     if g.modo == 2:
         rows1 = [[pq(*G["base"]), "Armar sobre caballetes nivelados: plancha base, collar, marco, cajones del ojal E (paredes en molinete y tapas) y orejas de izaje; soldar en secuencia simétrica (GEN-007; secuencia del cajón en CON-007)",
                   "Posiciones ±1 (BAS-001); cajones: caras exteriores y eje E en posición 1 / Ø1 respecto de los bordes de la base (CON-007)", "Plantilla, estación total", insp("CONTROL DIMENSIONAL DEL CAJÓN")],
-                 ["—", f"Alivio de tensiones; mandrinar Ø{f(P['D_piv'])} H7 (plancha + collar) y las tapas de los cajones Ø{f(g.FPV['pasador_E']['d'])} H9 en línea; roscar las {len(ctx.m.info.get('placa_leva_holes', []))} M{f(g.FPV['placas_leva']['pernos']['d'])} de las placas-leva; planear la zona de apoyo",
+                 ["—", f"Alivio de tensiones; mandrinar Ø{f(P['D_piv'])} H7 (plancha + collar) y las tapas de los cajones Ø{f(g.FPV['pasador_E']['d'])} H9 en línea; roscar las {len(ctx.m.info.get('placa_leva_holes', []))} M{f(g.FPV['placas_leva']['pernos']['d'])} y escariar los {len(ctx.m.info.get('placa_pas_holes', []))} alojamientos H7 de los pasadores de las placas-guía (con plantilla, después de alinear cada placa); planear la zona de apoyo",
                   f"Planitud 0,20 en Ø{f(P['D_top'] + 20)}; coaxialidad de las tapas Ø0,10; roscas en posición Ø0,5", "Mandrinadora, regla", insp("Planitud de la cara de apoyo")]]
     else:
         rows1 = [[pq(*G["base"]), "Armar sobre caballetes nivelados: plancha base, collar, marco, ménsulas, orejas de izaje y bancadas" + (" con sus prolongaciones y los pórticos de la leva" if g.FLG else "") + "; soldar en secuencia simétrica (GEN-007)",
@@ -847,7 +847,7 @@ def pasos(ctx):
         for a_ in (aE, aQ):
             fz = iso286.fit(a_["d"], a_["hole"], a_["shaft"])
             a_["juego"] = f"juego {fz['cmin']} a {fz['cmax']} µm"
-        rows7 = [[pq("placa_leva", "pernos_placa_leva"), f"Empernar las 4 placas-leva a la base (las del sentido horario volteadas): pernos ISO 4762 M{f(F_['placas_leva']['pernos']['d'])}×{ctx.m.info.get('perno_placa_L', '—')} 10.9 en las roscas de BAS-001",
+        rows7 = [[pq("placa_leva", "pernos_placa_guia", "pasadores_placa_guia"), f"Alinear las 4 placas-guía con la plantilla al círculo de pasadores (las del sentido horario volteadas), colocar los pasadores ISO 8734 Ø{fm(F_['placas_leva']['pasadores_posicion']['d'], 0)} m6 y apretar los tornillos ISO 10642 M{f(F_['placas_leva']['pernos']['d'])}×{ctx.m.info.get('perno_placa_L', '—')} {F_['placas_leva']['pernos'].get('clase', '8.8')} en las roscas de BAS-001",
                   f"Par {T(int(F_['placas_leva']['pernos']['d']))} N·m (propuesta GEN-008); canto de contacto libre de rebabas", "Torquímetro", insp("Placas-leva")],
                  [pq("bloque_una", "pasador_Q"), f"Montar el bloque-uña sobre el ojal del vástago con el pasador Q Ø{f(F_['pasador_Q']['d'])} f8 engrasado (extremo templado hacia abajo) y su retención; para el sentido horario el bloque va volteado",
                   f"H9/f8: {aQ['juego']}; el extremo de Q queda {fm(F_['pasador_Q']['z'][0] - g.tb, 0)} mm sobre la base, junto al canto de la placa-leva", "Manual, galgas", insp("Placas-leva")],
@@ -1363,7 +1363,7 @@ def sheet_interfaz_conj(ctx):
 # Accionamiento pivotado (modo 2): subconjunto del cajón del ojal E (CON-007), accionamiento (CON-010), explosionada (CON-018)
 # ======================================================================================================
 CAJON_KEYS = ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa")
-PV_ACC_KEYS = ("cilindro_pv", "pasador_E", "bloque_una", "pasador_Q", "placa_leva", "pernos_placa_leva")
+PV_ACC_KEYS = ("cilindro_pv", "pasador_E", "bloque_una", "pasador_Q", "placa_leva", "pernos_placa_leva", "pernos_placa_guia", "pasadores_placa_guia")
 
 
 def _crop(ctx, key, nk, x0, x1, y0, y1, z0=-1.0, z1=400.0):
@@ -1453,7 +1453,7 @@ def sheet_accionamiento_pv(ctx):
     F, PV = g.FPV, g.PV
     fr = ctx.m.info["pivotado"]["frames"]["1_antihorario"]
     E, Q, P_ = fr["E"], fr["Q"], fr["P"]
-    ks = ["cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "pasador_E", "cilindro_pv", "bloque_una", "pasador_Q", "placa_leva", "pernos_placa_leva"]
+    ks = ["cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "pasador_E", "cilindro_pv", "bloque_una", "pasador_Q", "placa_leva", "pernos_placa_leva", "pernos_placa_guia", "pasadores_placa_guia"]
     ks = [k for k in ks if ctx.m.get(k)]
     cx, cy = (E[0] + P_[0]) / 2, (E[1] + P_[1]) / 2
     lk = []
@@ -1477,8 +1477,9 @@ def sheet_accionamiento_pv(ctx):
         s.line(V.P((0, 0, g.zc)), V.P((E[0], E[1], g.zc)), "EJE")
         pe, pq, pp = V.P((E[0], E[1], g.zc)), V.P((Q[0], Q[1], g.zc)), V.P((P_[0], P_[1], g.zc))
         s.line(pe, pp, "EJE")
-        for q_, t_ in ((pe, "E"), (pq, "Q"), (pp, "P (pasador tomado)")):
-            s.text(t_, (q_[0] + 4, q_[1] + 3), T_N, "BOTTOM_LEFT")
+        for q_, t_, r_ in ((pe, "E", F["pasador_E"]["d"] / 2), (pq, "Q", F["pasador_Q"]["d"] / 2), (pp, "P (pasador tomado)", g.d_pin / 2)):
+            d_ = r_ * V.scale + 2.0                          # el rótulo queda fuera del círculo del pasador
+            s.text(t_, (q_[0] + d_, q_[1] + d_), T_N, "BOTTOM_LEFT")
         V.dim((E[0], E[1], g.zc), (Q[0], Q[1], g.zc), 14, orient="a", on=["cilindro_pv_V"], virt_a=F["pasador_E"]["d"] / 2, virt_b=F["pasador_Q"]["d"] / 2, text=f"{fm(fr['L'], 1)} (L en la posición dibujada)")
         V.dim((Q[0], Q[1], g.zc), (P_[0], P_[1], g.zc), -14, orient="a", on=["bloque_una_V", "pasadores_V"], virt_a=F["bloque_una"]["agujero_Q"] / 2, virt_b=g.d_pin / 2, text=f"{fm(PV['L_qp'], 0)} (L_qp)")
     c.vs("planta", sh, "top", lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), draw=planta, mat=mm, hatch=False, title=f"PLANTA (sentido antihorario dibujado; pasador tomado a {fm(a_p, 3)}° de +x)", auto=False, w=2.2)
@@ -1497,7 +1498,7 @@ def sheet_accionamiento_pv(ctx):
         _niveles_pv(ctx, V, c)
     c.vs("cA", shw, "front", cut=((0, 0, 0), (0, 1, 0)), center=(fr["L"] / 2, 0, 100), win=(-fr["L"] / 2 - 180, -110, fr["L"] / 2 + 160, 130), lv=(1, 2, 2, 1), mat={k: ctx.mat.get(k, "acero") for k in wk}, hs=0.4,
          title="CORTE A-A POR EL EJE E–Q (cajón, cilindro, bloque-uña, pasador Q y placa-leva)", w=1.6, auto=dict(on=[k for k in wk if not k.startswith(("base", "cilindro"))], maxn=6, tol={}),
-         nocut=("pasador_E_W", "pasador_Q_W", "pernos_placa_leva_W", "pasadores_W", "cilindro_pv_W"), draw=cAd)
+         nocut=("pasador_E_W", "pasador_Q_W", "pernos_placa_leva_W", "pernos_placa_guia_W", "pasadores_placa_guia_W", "pasadores_W", "cilindro_pv_W"), draw=cAd)
     rows = [["E (eje del ojal trasero)", fm(E[0], 1), fm(E[1], 1), f"R_E = {f(PV['R_E'])}; φ_E = {fm(PV['phi_E'], 0)}°"],
             ["Cajón del cilindro 2", fm(-E[0], 1), fm(-E[1], 1), "giro de 180° del cilindro 1"]]
     for k_, ins in F["placas_leva"]["instancias"].items():
@@ -1543,7 +1544,7 @@ def sheet_explosion_acc_pv(ctx):
         with alias(ctx, "_P"):
             balloons_auto(c, V, pk, gap=12.0, off=22.0, hug=True)
     c.vs("piv", {k: ctx.shapes[k] for k in pk}, "iso", iso=True, lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), mat=mats(ctx, pk), hatch=False, draw=cbp, title="PIVOTE, BUJE Y TAPA RETENEDORA (sobre el collar de la base)", auto=False, w=1.0)
-    plan = [(k, 0) for k in CAJON_KEYS] + [("placa_leva", 0), ("pernos_placa_leva", 150), ("pasador_E", 700), ("cilindro_pv", 420), ("bloque_una", 260), ("pasador_Q", 560)]
+    plan = [(k, 0) for k in CAJON_KEYS] + [("placa_leva", 0), ("pernos_placa_leva", 150), ("pernos_placa_guia", 150), ("pasadores_placa_guia", 100), ("pasador_E", 700), ("cilindro_pv", 420), ("bloque_una", 260), ("pasador_Q", 560)]
     ak = []
     for k, dz in plan:
         if k in ctx.shapes:

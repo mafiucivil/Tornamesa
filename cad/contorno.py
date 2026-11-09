@@ -14,15 +14,17 @@ import cadquery as cq
 TIPOS_CURVA = ("curva", "transicion", "clotoide", "spline")
 
 
-def leer(ins):
-    segs = ins.get("segmentos")
+def leer(ins, clave=None):
+    """Segmentos del contorno: «segmentos_contorno» del núcleo (tipo linea/arco, radio, sentido antihorario/horario, rol) o «segmentos»."""
+    segs = ins.get(clave) if clave else (ins.get("segmentos_contorno") or ins.get("segmentos"))
     if segs:
         out = []
         for s in segs:
-            t = s.get("tipo", "recta")
-            d = dict(tipo=t, p0=tuple(s["p0"]), p1=tuple(s["p1"]))
+            t = {"linea": "recta", "línea": "recta"}.get(s.get("tipo", "recta"), s.get("tipo", "recta"))
+            d = dict(tipo=t, p0=tuple(s["p0"]), p1=tuple(s["p1"]), rol=s.get("rol", ""))
             if t == "arco":
-                d.update(centro=tuple(s["centro"]), r=float(s["r"]), sentido=s.get("sentido", "ccw"))
+                sen = s.get("sentido", "ccw")
+                d.update(centro=tuple(s["centro"]), r=float(s.get("r", s.get("radio"))), sentido={"antihorario": "ccw", "horario": "cw"}.get(sen, sen))
             elif t in TIPOS_CURVA:
                 d.update(puntos=[tuple(q) for q in s.get("puntos", [s["p0"], s["p1"]])])
             out.append(d)
@@ -96,7 +98,7 @@ def dibujar(s, V, segs, T, z, cotas=True):
             s.dim_rad(pc, sg["r"] * V.scale, am, f"R{sg['r']:.1f}".replace(".", ","))
 
 
-def dibujar_custom(s, ox, oy, k, segs, T, holes, bb, layer="VIS"):
+def dibujar_custom(s, ox, oy, k, segs, T, holes, bb, layer="VIS", cotas=True):
     """Planta del contorno con entidades exactas (ARC, SPLINE, LINE) en una vista «custom» del compositor: (ox, oy) esquina inferior izquierda, k escala."""
     x0, y0 = bb[0], bb[1]
     P = lambda q: (ox + (q[0] - x0) * k, oy + (q[1] - y0) * k)
@@ -112,6 +114,9 @@ def dibujar_custom(s, ox, oy, k, segs, T, holes, bb, layer="VIS"):
             if sg["sentido"] == "cw":
                 a0, a1 = a1, a0
             s.arc(pc, sg["r"] * k, a0 % 360, a1 % 360, layer)
+            if not cotas:
+                s.dot(a, 0.6)
+                continue
             s.cross(pc, 2.0)
             am = math.radians((a0 + (a1 if a1 > a0 else a1 + 360)) / 2)
             s.leader((pc[0] + sg["r"] * k * math.cos(am), pc[1] + sg["r"] * k * math.sin(am)), (pc[0] + (sg["r"] * k + 12) * math.cos(am), pc[1] + (sg["r"] * k + 12) * math.sin(am)),
@@ -165,3 +170,81 @@ def tabla(segs, T):
             ex = f"{len(sg['puntos'])} puntos de paso (DXF)"
         rows.append([str(i), nm, pt(sg["p0"]), pt(sg["p1"]), ex])
     return rows
+
+
+def tangente(sg, fin):
+    """Dirección (unitaria) de avance del segmento en su inicio (fin=False) o en su final (fin=True)."""
+    if sg["tipo"] == "arco":
+        c = sg["centro"]
+        q = sg["p1"] if fin else sg["p0"]
+        rx, ry = q[0] - c[0], q[1] - c[1]
+        t = (-ry, rx) if sg["sentido"] == "ccw" else (ry, -rx)
+    elif sg["tipo"] in TIPOS_CURVA:
+        a, b = (sg["puntos"][-2], sg["puntos"][-1]) if fin else (sg["puntos"][0], sg["puntos"][1])
+        t = (b[0] - a[0], b[1] - a[1])
+    else:
+        t = (sg["p1"][0] - sg["p0"][0], sg["p1"][1] - sg["p0"][1])
+    n = math.hypot(*t) or 1.0
+    return (t[0] / n, t[1] / n)
+
+
+def quiebres(segs):
+    """[(i, ángulo de quiebre en grados, salto de posición mm)] en cada unión de segmentos consecutivos (G0/G1)."""
+    out = []
+    for i, (a, b) in enumerate(zip(segs, segs[1:])):
+        ta, tb = tangente(a, True), tangente(b, False)
+        ang = math.degrees(math.acos(max(-1.0, min(1.0, ta[0] * tb[0] + ta[1] * tb[1]))))
+        out.append((i + 1, ang, math.hypot(a["p1"][0] - b["p0"][0], a["p1"][1] - b["p0"][1])))
+    return out
+
+
+def dist_segmento(sg, q):
+    """Distancia de un punto al segmento (recta o arco)."""
+    if sg["tipo"] == "arco":
+        c, r = sg["centro"], sg["r"]
+        a = math.degrees(math.atan2(q[1] - c[1], q[0] - c[0]))
+        if _en_arco(sg, a):
+            return abs(math.hypot(q[0] - c[0], q[1] - c[1]) - r)
+        return min(math.hypot(q[0] - sg["p0"][0], q[1] - sg["p0"][1]), math.hypot(q[0] - sg["p1"][0], q[1] - sg["p1"][1]))
+    a, b = sg["p0"], sg["p1"]
+    vx, vy = b[0] - a[0], b[1] - a[1]
+    L2 = vx * vx + vy * vy or 1e-12
+    t = max(0.0, min(1.0, ((q[0] - a[0]) * vx + (q[1] - a[1]) * vy) / L2))
+    return math.hypot(q[0] - a[0] - t * vx, q[1] - a[1] - t * vy)
+
+
+def desviacion(segs, puntos):
+    """Máxima distancia de una nube de puntos (muestreo del DXF o del sólido) al contorno del núcleo."""
+    return max((min(dist_segmento(sg, q) for sg in segs) for q in puntos), default=0.0)
+
+
+def offset(sg, d):
+    """Segmento paralelo a distancia d hacia la izquierda del sentido de avance (para la línea de la capa templada)."""
+    if sg["tipo"] == "arco":
+        k = -1 if sg["sentido"] == "ccw" else 1          # izquierda del avance: hacia el centro en un arco antihorario
+        r2 = sg["r"] + k * d
+        c = sg["centro"]
+        f = lambda q: (c[0] + (q[0] - c[0]) * r2 / sg["r"], c[1] + (q[1] - c[1]) * r2 / sg["r"])
+        return dict(sg, r=r2, p0=f(sg["p0"]), p1=f(sg["p1"]))
+    t = tangente(sg, False)
+    n = (-t[1] * d, t[0] * d)
+    return dict(sg, p0=(sg["p0"][0] + n[0], sg["p0"][1] + n[1]), p1=(sg["p1"][0] + n[0], sg["p1"][1] + n[1]))
+
+
+def muestras(segs, T, n=40):
+    """Puntos de muestreo de las entidades dibujadas (marco de la placa) → vuelta al sistema de la tornamesa, para el control de desviación."""
+    out = []
+    c_, s_ = math.cos(T[2]), math.sin(T[2])
+    back = lambda q: (T[0] + q[0] * c_ - q[1] * s_, T[1] + q[0] * s_ + q[1] * c_)
+    for sg in segs:
+        if sg["tipo"] == "arco":
+            c = pt_local(sg["centro"], T)
+            a0, a1 = _ang(sg["centro"], sg["p0"]), _ang(sg["centro"], sg["p1"])
+            span = ((a1 - a0) % 360) if sg["sentido"] == "ccw" else -((a0 - a1) % 360)
+            for i in range(n + 1):
+                a = math.radians(a0 + span * i / n - math.degrees(T[2]))
+                out.append(back((c[0] + sg["r"] * math.cos(a), c[1] + sg["r"] * math.sin(a))))
+        else:
+            q0, q1 = pt_local(sg["p0"], T), pt_local(sg["p1"], T)
+            out += [back((q0[0] + (q1[0] - q0[0]) * i / n, q0[1] + (q1[1] - q0[1]) * i / n)) for i in range(n + 1)]
+    return out
