@@ -14,7 +14,7 @@ ACC_NUM = {"bancada": 1, "cilindro": 2, "patin": 3, "una": 4, "pasador_vastago":
            "leva_riel": 7, "leva_pata": 8, "leva_tapa": 9, "leva_prolong": 10, "leva_rodillo": 11, "leva_perno": 12,
            "cilindro_pv": 13, "pasador_E": 14, "bloque_una": 15, "pasador_Q": 16, "placa_leva": 17,
            # placa-guía curva (núcleo 7dfd06a) y bloque-uña con cara R120 (3dab1ce): geometría nueva → números nuevos (17 y 18 quedan anulados)
-           "placa_guia": 20, "pernos_placa_guia": 21, "pasadores_placa_guia": 22, "bloque_una_r": 23}
+           "placa_guia": 20, "pernos_placa_guia": 21, "pasadores_placa_guia": 22, "bloque_una_r": 23, "placa_guia_h": 24}
 BAS_NUM = {"cajon_pared": 8, "cajon_ventana_a": 9, "cajon_ventana_b": 10, "cajon_tapa": 11}
 
 EYE_WALL = 17.5          # pared del ojal comercial del cilindro (52,5 − 35 del ojal Ø70 del modelo de la Rev. B): radio exterior = d/2 + 17,5 (supuesto S21)
@@ -242,13 +242,14 @@ def _acc(m, g, D, Part, info):
             holes_pas.extend([tuple(q) for q in ins["pasadores_posicion"]])
         plates.append(pl)
         holes_base.extend([tuple(q) for q in ins["pernos"]])
-    pt = Part("placa_leva", "ACC", "Placa-guía curva", f"Plancha e = {f(PL['t'])}, {fm(PL['marco']['largo'], 0)} × {fm(PL['marco']['ancho'], 0)} con recorte curvo (arcos tangentes del núcleo), "
-              f"{int(PL['pernos']['n'])} avellanados M{f(d_b)} y {int(PP.get('n', 0))} agujeros Ø{fm(d_p, 0)} H7 de pasadores",
-              _compound(plates), len(plates), PL["material"], PL.get("corte", "Corte láser/agua y fresado CNC del canto"), core="cam", color=(0.6, 0.45, 0.25),
-              tratamiento=(PL.get("tratamiento") or {}).get("canto", "Canto templado"), obs="4 placas iguales: las del sentido horario se montan volteadas (imagen especular)", num_fijo=ACC_NUM["placa_guia"])
-    pt.volteable = True
-    pt.contorno_cnc = not contorno.geometrico(contorno.leer(PL["instancias"]["1_antihorario"]))
-    m.add(pt)
+    # la placa del sentido horario es la imagen especular con los avellanados también en la cara superior: no se puede voltear (un código por geometría)
+    desc_ = (f"Plancha e = {f(PL['t'])}, {fm(PL['marco']['largo'], 0)} × {fm(PL['marco']['ancho'], 0)} con recorte curvo (arcos tangentes del núcleo), "
+             f"{int(PL['pernos']['n'])} avellanados M{f(d_b)} en la cara superior y {int(PP.get('n', 0))} agujeros Ø{fm(d_p, 0)} H7 de pasadores")
+    for key_, nm_, idx_, num_ in (("placa_leva", "Placa-guía curva, sentido antihorario", (0, 2), ACC_NUM["placa_guia"]), ("placa_leva_h", "Placa-guía curva, sentido horario (simétrica)", (1, 3), ACC_NUM["placa_guia_h"])):
+        pt = Part(key_, "ACC", nm_, desc_ + ("" if key_ == "placa_leva" else "; simétrica de ACC-020"), _compound([plates[i_] for i_ in idx_]), 2, PL["material"], PL.get("corte", "Corte láser/agua y fresado CNC del canto"),
+                  core="cam", color=(0.6, 0.45, 0.25), tratamiento=(PL.get("tratamiento") or {}).get("canto", "Canto templado"), num_fijo=num_)
+        pt.contorno_cnc = not contorno.geometrico(contorno.leer(PL["instancias"]["1_antihorario"]))
+        m.add(pt)
     # tornillos avellanados ISO 10642 (roscados en la plancha base) y pasadores ISO 8734 de posición
     bolts = []
     for (x, y) in holes_base:

@@ -183,6 +183,7 @@ def sheet_bloque(ctx):
         planta(V, p)
         if R_f > 0:                                  # cara cilíndrica convexa en planta (núcleo: radio_planta)
             V.dim_rad((xc1 - R_f, 0, z1b), R_f, 18, on=on, text=f"R{fm(R_f, 0)}", ext=14)
+            V.dimh((-hq["R_cubo"], 0, z1b), (xc1, 0, z1b), "top", 1, on=on, text=f"{fm(xc1 + hq['R_cubo'], 1)} ±0,2 (al vértice de la cara R{fm(R_f, 0)})")
     p.vs("planta", on, "top", lv=(2, 3, 2, 2), draw=planta2, hatch=False, title="PLANTA (origen en el eje de Q; x hacia el pasador tomado)", w=1.6,
          auto=dict(fits={BU["agujero_Q"]: "H9"}, hole_rmin=10, tol={round(xc1 + hq["R_cubo"], 1): " ±0,2"}))
     p.vs("elev", on, "front", lv=(1, 2, 2, 2), title="ELEVACIÓN (horquilla del ojal del vástago)", hatch=False, w=1.2, auto=dict(tol={round(BU["h"], 1): " ±0,2", round(hq["ranura_ojal"], 1): " +0,5/0"}))
@@ -204,7 +205,7 @@ def sheet_bloque(ctx):
     return p.h
 
 
-@pieza("placa_leva")
+@pieza("placa_leva", "placa_leva_h")
 def sheet_placa_leva(ctx):
     """Placa-guía curva del modo pivotado: contorno desde pivotado.fabricacion.placas_leva[*].segmentos_contorno / segmentos_canto (núcleo) con
     entidades DXF exactas (ARC y LINE, contorno.py); radios, centros y puntos de tangencia acotados en el marco de la placa; zona templada;
@@ -227,7 +228,9 @@ def sheet_placa_leva(ctx):
     ctx.shapes["pl_L"] = cq.Compound.makeCompound([contorno.a_local(so, T)])
     ctx.mat["pl_L"] = "acero"
     geo = contorno.geometrico(segs)
-    p = Pieza(ctx, ["placa_leva"], "PLACA-GUÍA CURVA DEL MODO PIVOTADO (4 IGUALES; LAS DEL SENTIDO HORARIO SE MONTAN VOLTEADAS)", fmt="auto")
+    p = Pieza(ctx, ["placa_leva", "placa_leva_h"], "PLACA-GUÍA CURVA: ACC-020 (SENTIDO ANTIHORARIO) Y ACC-024 SIMÉTRICA (SENTIDO HORARIO)", fmt="auto",
+              mat_override="42CrMo4+QT, canto templado (ver nota 3)")
+    p.h.trat = "Canto templado (ver nota 3)"
     s = p.s
     p.iso_keys = ["pl_L"]
     on = ["pl_L"]
@@ -306,7 +309,7 @@ def sheet_placa_leva(ctx):
         for i_, (x, y) in enumerate(pasd):
             q = P_((x, y)); s_.text(f"D{i_ + 1}", (q[0] + d_p / 2 * k + 1, q[1] + 1), T_N, "BOTTOM_LEFT")
     p.vs("planta", [], "top", nat=(env[0], env[1]), lv=(2, 2, 3, 2), extra=(20, 20, 60, 30), title="PLANTA (marco de la placa: origen en la esquina de la envolvente, x a lo largo del borde recto mayor; ARC y LINE exactos)",
-         w=2.2, maxs=1.0, mins=0.4, custom=planta_c)
+         w=2.2, maxs=0.5, mins=0.4, custom=planta_c)
     # vista de posiciones del pasador Q y del bloque-uña sobre el canto (toma, calado y fin del empuje)
     pos = PV["posiciones"]["1_antihorario"]
     cin = PV.get("cinematica") or []
@@ -347,7 +350,7 @@ def sheet_placa_leva(ctx):
     bx0, by0 = min(q[0] for q in pts_), min(q[1] for q in pts_)
     bx1, by1 = max(q[0] for q in pts_), max(q[1] for q in pts_)
     p.vs("posic", [], "top", nat=(bx1 - bx0, by1 - by0), lv=(1, 1, 1, 1), extra=(6, 6, 6, 6), title="POSICIONES 1–3 DEL PASADOR Q Y DEL BLOQUE-UÑA SOBRE EL CANTO",
-         w=1.8, maxs=0.4, mins=0.2, custom=lambda s_, ox, oy, k, pl: posic(s_, ox - bx0 * k, oy - by0 * k, k, pl))
+         w=1.8, maxs=0.4, mins=0.4, custom=lambda s_, ox, oy, k, pl: posic(s_, ox - bx0 * k, oy - by0 * k, k, pl))
     p.table_block("POSICIONES DEL EMPUJE (núcleo, sentido antihorario)", [("N°", 8, "C"), ("Posición", 40, "L"), ("θ [°]", 18, "R"), ("Q x; y (marco de la placa)", 40, "L")],
                   [[str(n_ + 1), lab, fm(cin[i_]["th"], 2) if cin else "—", "; ".join(fm(v, 1) for v in contorno.pt_local(pos["Q"][i_], T))] for n_, (i_, lab) in enumerate(sel)] +
                   [["—", f"Holgura de sincronía {fm(PV['placa_leva']['sincronia'], 2)} mm (peor {fm(PV['placa_leva'].get('sincronia_peor', PV['placa_leva']['sincronia']), 2)}); holgura de empuje {fm(PV['placa_leva']['holgura'], 0)} mm", "", ""]])
@@ -363,9 +366,16 @@ def sheet_placa_leva(ctx):
         s_.roughness((Pq(40, t_ / 2)[0] + 2, Pq(40, t_ / 2)[1] + 2), "Ra 1,6")
         s_.text("canto guía: temple por inducción 52–56 HRC" if "52" in str(PL["material"]) else "canto guía templado", (Pq(0, -6)[0], Pq(0, -6)[1]), T_N, "TOP_LEFT")
     p.vs("det_capa", [], "front", nat=(40.0, PL["t"]), lv=(1, 1, 2, 2), extra=(10, 20, 20, 10), title="DETALLE B: CAPA TEMPLADA DEL CANTO (corte normal al canto)", w=0.6, maxs=2.0, mins=1.0, custom=det_capa)
-    p.vs("corte", on, "front", cut=((0, pern[0][1], 0), (0, 1, 0)), lv=(1, 1, 1, 1), extra=(20, 30, 20, 30), title="CORTE A-A (por el tornillo T1: avellanado y espesor)", hs=0.5, w=1.0,
-         auto=dict(tol={round(PL["t"], 1): " ±0,5"}, hole_notes=False))
-    p.datum_in("corte", "surf", "A", at=[(pern[0][0] + d_av / 2 + 12, pern[0][1], zt), (pern[0][0] - d_av / 2 - 12, pern[0][1], zt), (pern[0][0] + d_av / 2 + 40, pern[0][1], zt)], d=(0, 0, 1))
+    h_av = (d_av - dh) / 2
+
+    def corte_d(V, p_):
+        x1_ = pern[0][0]
+        V.dimv((x1_ + dh / 2, pern[0][1], zt - h_av), (x1_ + d_av / 2, pern[0][1], zt), "right", 0, on=on, text=f"{fm(h_av, 1)} (avellanado 90° Ø{fm(d_av, 1)})")
+        V.dimv((x1_ - 40, pern[0][1], z0p), (x1_ - 40, pern[0][1], zt), "left", 0, on=on, text=f"{fm(PL['t'], 0)} ±0,5")
+    p.vs("corte", on, "front", cut=((0, pern[0][1], 0), (0, 1, 0)), center=(pern[0][0], pern[0][1], (z0p + zt) / 2), win=(-60, -(zt - z0p) / 2 - 4, 60, (zt - z0p) / 2 + 4), lv=(1, 1, 2, 1), extra=(20, 30, 20, 30),
+         title="CORTE A-A (por el tornillo T1: avellanado y espesor; posiciones en la tabla)", hs=0.5, w=1.0, maxs=2.0, draw=corte_d,
+         auto=False)
+    p.datum_in("corte", "surf", "A", at=[(pern[0][0] - d_av / 2 - 12, pern[0][1], zt), (pern[0][0] - d_av / 2 - 30, pern[0][1], zt), (pern[0][0] + d_av / 2 + 25, pern[0][1], zt)], d=(0, 0, 1))
     rows = [[f"T{i + 1}", fm(x, 1), fm(y, 1), f"Ø{fm(dh, 0)} + avellanado 90° Ø{fm(d_av, 1)} (ISO 10642 M{fm(PL['pernos']['d'], 0)})"] for i, (x, y) in enumerate(pern)]
     rows += [[f"D{i + 1}", fm(x, 1), fm(y, 1), f"Ø{fm(d_p, 0)} H7 escariado (pasador ISO 8734 m6)"] for i, (x, y) in enumerate(pasd)]
     rows.append(["Envolvente", fm(env[0], 1), fm(env[1], 1), "—"])
@@ -386,8 +396,8 @@ def sheet_placa_leva(ctx):
              f"Corte: {PL.get('corte', 'láser/agua y fresado CNC')}. El DXF de esta lámina tiene el canto con ARC y LINE exactos del núcleo (G1, quiebre ≤ 0,01°; desviación ≤ {fm(PL.get('tolerancia_polilinea', 0.1), 1)} mm: control «placa_guia»).",
              f"Canto: {tr.get('canto', 'templado')}; rugosidad: {tr.get('rugosidad_canto', 'Ra ≤ 1,6')}; aristas: {tr.get('bordes', '1 × 45°')}.",
              f"{int(PL['pernos']['n'])} tornillos {PL['pernos'].get('norma', '')}; {int((PL.get('pasadores_posicion') or {}).get('n', 0))} pasadores {(PL.get('pasadores_posicion') or {}).get('norma', '')}: {(PL.get('pasadores_posicion') or {}).get('ajuste', '')}.",
-             f"Ángulo del flanco acotado respecto del borde recto mayor; el α = {fm(PV['placa_leva']['alpha_deg'], 1)}° del núcleo se mide respecto de la trayectoria de Q.",
-             "Las 4 placas son iguales: las del sentido horario son la imagen especular y se montan volteadas."],
+             f"Ángulo del flanco acotado respecto del borde recto mayor (el α = {fm(PV['placa_leva']['alpha_deg'], 1)}° del núcleo se mide respecto de la trayectoria de Q); su tolerancia la gobierna el perfil 0,2 del canto.",
+             "ACC-024 (horario): simétrica de ACC-020 respecto del eje x (y → ancho − y), avellanados en la cara superior; no se voltean."],
             gd=[("prof", "0,2", ["A", "B", "C"], "Perfil del canto guía respecto de la cara superior (A) y de los pasadores D1 (B) y D2 (C)"), ("pos", "Ø0,2", ["A", "B", "C"], "Agujeros de tornillos y pasadores en posición")])
     p.build()
     p.h.placa_dxf_pts = drawn

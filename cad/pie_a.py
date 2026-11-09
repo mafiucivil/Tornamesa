@@ -13,7 +13,7 @@ def sheet_base_plancha(ctx):
     on = ["base_plancha"]
     xl, cl, xg = P["x_lug"], g.cl_lug, P["x_g"]
     ghosts = ["marco_largo", "marco_corto", "collar", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "orejas", "bancada",
-              "leva_prolong", "leva_pata", "placa_leva"]
+              "leva_prolong", "leva_pata", "placa_leva", "placa_leva_h"]
 
     def planta(V, p):
         ghost(p, V, ghosts)

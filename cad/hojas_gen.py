@@ -444,7 +444,7 @@ def nest_items(ctx):
     # piezas de plancha del accionamiento (cajón del ojal E, placas-leva; leva de reenganche del modo guiado): partida de la lista de cortes
     for r_ in lista.cut_rows(ctx):
         k_ = next((p.key for p in m.parts if p.code.replace(CODE + "-", "") == r_[0]), None)
-        if k_ in ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "placa_leva", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
+        if k_ in ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "placa_leva", "placa_leva_h", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
             d_ = [float(x.replace(".", "").replace(",", ".")) for x in r_[3].split("×")]
             add(k_, m.get(k_).name, d_[0], d_[1], d_[2])
     add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)

@@ -1137,7 +1137,7 @@ CONFLICTOS_NUCLEO = [
     (("cilindro_pv",), ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa"),
      "El cuerpo del cilindro (Ø{D_body} desde E + e_cuerpo = {e_body} mm) entra en el cajón del ojal E (semilado {semi} mm; la ventana solo tiene {hv} mm de alto para el ojal): "
      "el núcleo debe alejar el cuerpo del cilindro (e_cuerpo ≥ semilado del cajón + holgura) o rediseñar el cajón."),
-    (("placa_leva",), ("orejas",),
+    (("placa_leva", "placa_leva_h"), ("orejas",),
      "Las placas-leva del sentido horario ocupan la posición de las orejas de izaje (±{x_lug}; ±{cl_lug}): el núcleo no verifica esa holgura; reubicar las orejas o las placas."),
     (("int_tornillo_af2",), ("pasadores",),
      "AF2: tornillos avellanados en R{r_af2} (núcleo) a {d_af2} mm del eje de los pasadores de empuje (R{R_pin}, Ø{d_pin}): 8 de 24 cortan el agujero del pasador; además R{r_af2} cae en el anillo inferior de la mesa (e = {tpr}), no en la plancha inferior (e = {tbo})."),

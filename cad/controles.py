@@ -390,8 +390,47 @@ def placa_guia(ctx, hojas):
     return out
 
 
+def volteo(ctx, hojas):
+    """Una pieza declarada «volteable» (su imagen especular se obtiene volteándola) no puede tener rasgos de una sola cara:
+    avellanados (caras cónicas) o una cara de referencia/temple propia. Se mira el B-rep: caras cónicas = avellanado."""
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.GeomAbs import GeomAbs_Cone
+    out = []
+    for p in ctx.m.parts:
+        if not getattr(p, "volteable", False) or p.key not in ctx.shapes:
+            continue
+        so = ctx.shapes[p.key].Solids()[0]
+        if any(BRepAdaptor_Surface(fc.wrapped).GetType() == GeomAbs_Cone for fc in so.Faces()):
+            out.append(f"{p.code}: pieza avellanada declarada «montada volteada» (los avellanados quedarían contra el apoyo)")
+    for h in hojas:
+        if getattr(h, "serie", "") != "FAB":
+            continue
+        if any("se montan volteadas" in t or "se monta volteado" in t for t in getattr(h, "notas_reg", []) or []):
+            for c in h.items:
+                p = next((q for q in ctx.m.parts if q.code == c), None)
+                if p is not None and p.key in ctx.shapes and any(BRepAdaptor_Surface(fc.wrapped).GetType() == GeomAbs_Cone for fc in ctx.shapes[p.key].Solids()[0].Faces()):
+                    out.append(f"{h.tag}: nota de montaje volteado para una pieza avellanada ({c})")
+    return out
+
+
+def cajetin(ctx, hojas):
+    """Desborde de texto en el cajetín: material y tratamiento caben en 3 renglones de sus celdas (ancho 94 y 36 mm, letra 3 mm),
+    el título en 3 renglones y el subtítulo en 2 (mismo corte de renglones que draw.frame)."""
+    from draw import wrapw
+    out = []
+    for h in hojas:
+        t = h.plano.replace(CODE + "-", "")
+        if len(wrapw(str(h.material), 94, 3.0)) > 3:
+            out.append(f"{t}: el material no cabe en el cajetín ({len(wrapw(str(h.material), 94, 3.0))} renglones)")
+        if len(wrapw(str(h.trat), 36, 3.0)) > 3:
+            out.append(f"{t}: el tratamiento no cabe en el cajetín ({len(wrapw(str(h.trat), 36, 3.0))} renglones)")
+        if len(wrapw(h.titulo, 174, 3.6, True)) > 3:
+            out.append(f"{t}: el título no cabe en el cajetín")
+    return out
+
+
 def todos(ctx, hojas):
     import hojas_gen
     res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas),
-               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas))
+               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas), volteo=volteo(ctx, hojas), cajetin=cajetin(ctx, hojas))
     return res

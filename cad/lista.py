@@ -121,11 +121,11 @@ def cut_rows(ctx):
         add("pasador_vastago", "Barra", f"Ø{f(P['d_pp'] + 5)}×{fm(m.get('pasador_vastago').solid.val().BoundingBox().zlen + 10, 0)}")
         add("pasador_ojal", "Barra", f"Ø{f(P['d_pp'] + 5)}×{fm(m.get('pasador_ojal').solid.val().BoundingBox().zlen + 10, 0)}")
     for k_, forma_, nota_ in (("leva_riel", "Plancha", "42CrMo4+QT; contorno CNC con sobremetal 5; canto de leva fresado y templado"), ("leva_pata", "Plancha", "Caras fresadas"),
-                              ("leva_tapa", "Plancha", "Caras fresadas; roscas tras soldar"), ("leva_prolong", "Plancha", "Oxicorte"), ("placa_leva", "Plancha", "Contorno CNC (programa desde el JSON) con sobremetal 5 en el canto de contacto")):
+                              ("leva_tapa", "Plancha", "Caras fresadas; roscas tras soldar"), ("leva_prolong", "Plancha", "Oxicorte"), ("placa_leva_h", "Plancha", "Contorno CNC simétrico de ACC-020 (programa desde el JSON)"), ("placa_leva", "Plancha", "Contorno CNC (programa desde el JSON) con sobremetal 5 en el canto de contacto")):
         if m.get(k_):
             bb_ = m.get(k_).solid.vals()[0].Solids()[0].BoundingBox()
             dims_ = sorted([bb_.xlen, bb_.ylen, bb_.zlen], reverse=True)
-            if k_ in ("leva_riel", "placa_leva"):
+            if k_ in ("leva_riel", "placa_leva", "placa_leva_h"):
                 ss_ = m.get(k_).solid.vals()[0].Solids()[0]
                 import cadquery as _cq
                 c_ = ss_.Center()
