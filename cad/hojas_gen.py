@@ -159,7 +159,18 @@ def sheet_notas(ctx):
         rows.append([", ".join(f"{p_.sub}-{p_.num:03d}" for p_ in dk_), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
                      ", ".join(p_.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:] for p_ in dk_)])
     for key, cl in M3.VAR_CODIGOS.items():
-        if key.startswith("int_") or key in DELTA_KEYS:
+        if key.startswith("int_") or key in DELTA_KEYS or key == "placa_leva_h":
+            continue
+        if key == "placa_leva" and ctx.m.get("placa_leva_h"):
+            # las dos placas-guía (antihoraria y simétrica) tienen las mismas clases: una sola fila (la lámina GEN-001 no da para dos)
+            p0, p1 = ctx.m.get("placa_leva"), ctx.m.get("placa_leva_h")
+            b0, b1 = f"{p0.sub}-{p0.num:03d}", f"{p1.sub}-{p1.num:03d}"
+            o, cl2 = 0, []
+            for (vs, desc, nt) in cl:
+                cl2.append((vs, desc.replace(" (simétrica)", ""), o + 1, o + nt))
+                o += nt
+            rows.append([f"{b0} {b1}", "Placas-guía curvas (antihoraria y simétrica horaria, mismo sufijo): " + cods("", cl2).lstrip(" ·"), "todas",
+                         ", ".join(q.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:] for q in (p0, p1))])
             continue
         p0 = ctx.m.get(key)
         if p0 is None:
@@ -195,16 +206,26 @@ def tabla_indice(ctx, h, hojas):
     cols = [("Plano", 30 * sc, "L"), ("Título", 105 * sc, "L"), ("Fmt", 12 * sc, "C"), ("Escala", 30 * sc, "L"), ("Rev", 13 * sc, "C")]
     tit = f"ÍNDICE DE PLANOS — VARIANTE {ctx.g.variante} (el título de cada lámina termina en «{suf.strip(' —')}»)"
     from draw import Sheet as _Sh
+    # tercera columna (si hace falta): la banda derecha libre sobre la tabla de revisiones, con las mismas columnas a su ancho
+    bx0, by0, bx1, by1 = h.R["right"]
+    w3 = bx1 - bx0 - 2
+    sc3 = w3 / 190.0
+    cols3 = [("Plano", 30 * sc3 * 1.25, "L"), ("Título", 105 * sc3 * 0.8, "L"), ("Fmt", 12 * sc3 * 1.2, "C"), ("Escala", 30 * sc3 * 1.15, "L"), ("Rev", 13 * sc3 * 1.2, "C")]
+    tot3 = sum(c_[1] for c_ in cols3)
+    cols3 = [(a_, b_ * w3 / tot3, c_) for a_, b_, c_ in cols3]
     hh_, pd_ = T_MIN, 0.8
     for h_try, p_try in ((T_S, 1.3), (2.75, 1.3), (T_MIN, 1.3), (T_MIN, 0.8), (T_MIN, 0.5), (T_MIN, 0.3)):     # letra de tabla densa; mínimo absoluto 2,5 mm (ISO 3098) y celdas compactas
         sc_ = _Sh(h.fmt)
         _, lft = sc_.table(x, y, cols, rows, h=h_try, pad=p_try, ymin=ymin + 18, title=tit)
         _, lft2 = sc_.table(x + wc + 6, yR, cols, lft, h=h_try, pad=p_try, ymin=ymin + 18) if lft else (0, [])
-        if not lft2:
+        _, lft3 = sc_.table(bx0, by1 - 1, cols3, lft2, h=h_try, pad=p_try, ymin=by0 + 2) if lft2 else (0, [])
+        if not lft3:
             hh_, pd_ = h_try, p_try
             break
     y1, l1 = s.table(x, y, cols, rows, h=hh_, pad=pd_, ymin=ymin + 18, title=tit)
     y2, l2 = s.table(x + wc + 6, yR, cols, l1, h=hh_, pad=pd_, ymin=ymin + 18) if l1 else (y1, [])
+    if l2:
+        _, l2 = s.table(bx0, by1 - 1, cols3, l2, h=hh_, pad=pd_, ymin=by0 + 2)
     l1 = []
     # números de lámina no emitidos en este juego (reservados para otras variantes o anulados) y hojas de continuación
     usados = {}
