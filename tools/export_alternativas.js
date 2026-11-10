@@ -121,6 +121,30 @@ out.modos_accionamiento = ALTS.map((a) => ({ id: a.id, nombre: a.nombre, modos: 
   const lab = (id) => { const q = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []).find((x) => x[0] === id); return q ? q[1] : null; };
   out.accionamiento = { pivotado: piv, guiado: gui, familias, familias_auto: auto, holguras: { adoptada: h0, B2760: h1 }, af2, etiquetas: { s_free: lab("s_free"), c_lug: lab("c_lug"), drive_mode: lab("drive_mode"), cam_mat: lab("cam_mat") } };
 }
+// Plancha base: base de t_base con inserto de esquina bajo cada soporte del cilindro (decisión del mandante 10-11-2026; registro, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»).
+// Por modo e interfaz: inserto exportado por el núcleo (TT.designDrive; sin los polígonos del rebaje), filas «Plancha base bajo …», masas y veredicto (TT.analyze completo).
+// «antes»: el diseño de la memoria anterior (base de 18 mm sin inserto, ins_on = 0), con el mismo núcleo, para el cambio de masa.
+{
+  const sinPoligonos = (I) => {
+    if (!I) return null;
+    const o = Object.assign({}, I); delete o.poligono;   // «esquinas» y «esquinas_espesor_pleno» quedan (figura de 7.10); «poligono» las repite
+    if (o.rebaje) { o.rebaje = Object.assign({}, o.rebaje); delete o.rebaje.poligonos; }
+    return o;
+  };
+  const mas = (R) => ({ total: R.m.total, base: R.m.base, rim: R.m.rim, brackets: R.m.brackets, insertos: R.m.insertos, insBrackets: R.m.insBrackets, insRim: R.m.insRim });
+  const modelo = (id, nombre, over) => {
+    const Pm = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0, bz_conf: 1 }, over), A = TT.analyze(Pm), R = A.R, DRV = TT.designDrive(Pm, R), dm = TT.driveMode(Pm);
+    const I = dm === 2 ? DRV.pivotado.fabricacion.soporte_E.inserto : (DRV.levaGuiada && DRV.levaGuiada.fabricacion ? DRV.levaGuiada.fabricacion.inserto : null);
+    return { id, nombre, drive_mode: dm, over, t_base: Pm.t_base, ins_on: Pm.ins_on, ins_fsv: Pm.ins_fsv, inserto: sinPoligonos(I),
+      filas: A.checks.filter((c) => /^Plancha base bajo/.test(c.name)).map(brief), masas: mas(R), veredicto: A.verdict };
+  };
+  const PIVM = [["base", "Pivotado, interfaz base (por defecto)", {}], ["A", "Pivotado, interfaz A", { opt_ss: 1 }], ["B", "Pivotado, interfaz B", { opt_uhmw: 1 }],
+    ["C1", "Pivotado, interfaz C1", { opt_bz: 1, bz_conf: 1 }], ["C2", "Pivotado, interfaz C2", { opt_bz: 1, bz_conf: 2 }], ["C3", "Pivotado, interfaz C3", { opt_bz: 1, bz_conf: 3 }],
+    ["G", "Guiado, interfaz base", { drive_mode: 1, opt_cam: 1 }], ["GB", "Guiado, interfaz B", { drive_mode: 1, opt_cam: 1, opt_uhmw: 1 }]];
+  const modelos = PIVM.map(([id, nombre, over]) => modelo(id, nombre, Object.assign({ drive_mode: 2 }, over)));
+  const A0 = TT.analyze(Object.assign({}, P, { drive_mode: 2, ins_on: 0, t_base: 18 }), { noFEA: true });
+  out.plancha_base = { modelos, antes: { descripcion: "base de 18 mm sin inserto (ins_on = 0), diseño de la memoria anterior", t_base: 18, ins_on: 0, masas: mas(A0.R), estado_global: A0.verdict.estado_global } };
+}
 // Parámetros del accionamiento (v1.5: modo, levas y pivotado), definición del núcleo
 {
   const allP = TT.PARAM_GROUPS.reduce((a, g) => a.concat(g.p), []);

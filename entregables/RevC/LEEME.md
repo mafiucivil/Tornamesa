@@ -3,9 +3,9 @@
 Estado del juego de planos: **EMITIDO PARA REVISIÓN, revisión C** (códigos TT300C-…-C). **ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.** DIBUJÓ/REVISÓ/APROBÓ: A DEFINIR (con casillas de firma y fecha).
 
 ## Contenido de esta carpeta
-- `TT300-C_Memoria_RevC.docx/.pdf`: memoria de cálculo (texto negro, hipótesis → desarrollo → resultado, FU con 3 decimales): accionamiento pivotado tipo KIET con placa-guía curva y empuje guiado (cap. 7.2–7.4), guiado con riel-leva (7.5), AF2 (6.3), alternativas A, B, C1–C3 (cap. 9 y 10), datos faltantes (cap. 12) y modificaciones de la Rev. C (cap. 15). La cubierta de madera W está EN STAND BY y no se incluye (docs/standby/madera_W/LEEME.md). Regenerar con `npm run memoria` (necesita `python-docx`, `pymupdf`, `matplotlib` y LibreOffice `soffice`); el .docx, el .pdf y los dos JSON se copian a esta carpeta.
+- `TT300-C_Memoria_RevC.docx/.pdf`: memoria de cálculo (texto negro, hipótesis → desarrollo → resultado, FU con 3 decimales): accionamiento pivotado tipo KIET con placa-guía curva y empuje guiado (cap. 7.2–7.4), guiado con riel-leva (7.5), plancha base de 20 mm con inserto de esquina bajo los soportes del cilindro (7.10), AF2 (6.3), alternativas A, B, C1–C3 (cap. 9 y 10), limitaciones de uso (cap. 11: no operar a presión de alivio con la mesa sin carga), datos faltantes (cap. 13), modificaciones de la Rev. C (cap. 16) y verificación de citas normativas (Anexo E). La cubierta de madera W está EN STAND BY y no se incluye (docs/standby/madera_W/LEEME.md). Regenerar con `npm run memoria` (necesita `python-docx`, `pymupdf`, `matplotlib` y LibreOffice `soffice`); el .docx, el .pdf y los dos JSON se copian a esta carpeta.
 - `TT300-C_design.json`: diseño por defecto exportado por `node tools/export_design.js` (fuente única del cálculo y de los planos).
-- `TT300-C_alternativas.json`: datos de los capítulos 7, 9 y 10 de la memoria (`node tools/export_alternativas.js`; sin la variante W, que se exporta solo con `TT_CON_MADERA=1`).
+- `TT300-C_alternativas.json`: datos de los capítulos 7 (incluida la plancha base por modo e interfaz, clave `plancha_base`, 7.10), 9 y 10 de la memoria (`node tools/export_alternativas.js`; sin la variante W, que se exporta solo con `TT_CON_MADERA=1`).
 
 Desde el 08-11-2026 el repositorio **no guarda juegos de planos** (ni PDF, DXF, STEP, despiece ni los controles del paquete). Los juegos anteriores siguen en el historial de git.
 
@@ -59,7 +59,7 @@ node tools/gif_simulacion.js --alt C1 --param drive_mode=2 --sentido horario --s
 
 ## Reglas del juego de planos
 - Cada pieza del despiece tiene plano propio (código de la pieza = número de plano) o referencia a catálogo; cada ítem aparece con globo en un plano de conjunto o subconjunto.
-- Cada junta soldada J## tiene símbolo ISO 2553 (flecha, línea de referencia, tamaño a/z, proceso, nivel ISO 5817, WPS, END) y fila en la tabla de soldaduras (global GEN-007 y por lámina). Tamaños: parámetros w_* del núcleo; donde el núcleo no los da, mínimo AWS D1.1 T5.8 por la parte más gruesa, rotulado «mínimo AWS, a confirmar».
+- Cada junta soldada J## tiene símbolo ISO 2553 (flecha, línea de referencia, tamaño a/z, proceso, nivel ISO 5817, WPS, END) y fila en la tabla de soldaduras (global GEN-007 y por lámina). Tamaños: parámetros w_* del núcleo; donde el núcleo no los da, mínimo AWS D1.1/D1.1M:2020 §7.13, Tabla 7.7 (cita corregida el 10-11-2026; las láminas pueden rotularlo aún como T5.8) por la parte más gruesa, rotulado «mínimo AWS, a confirmar».
 - Materiales: donde el cálculo solo fija Fy, el grado comercial más económico que lo cumple se rotula «PROPUESTO por Fy del cálculo; confirmar» (GEN-005). WPS: tabla de WPS pre-calificados propuestos (GEN-012, «PROPUESTA — A CALIFICAR/CONFIRMAR POR EL FABRICANTE»). Pintura: ISO 12944 C4 alta, 240 µm, «PROPUESTA, CONFIRMAR» (GEN-006). «A DEFINIR» queda solo para firmas del cajetín, decisiones del mandante (retención axial del pivote, izaje de la mesa) y marca/modelo de catálogo.
 - Torques de pernos: PROPUESTA, A CONFIRMAR POR EL CALCULISTA (GEN-008).
 
