@@ -425,13 +425,21 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
                 tot_func = False
         if len(chain) > 2 or (len(chain) == 2 and not overall):
             txts = []
+            segs_ = [i_ for i_, (a, b) in enumerate(zip(chain, chain[1:])) if abs(b[0] - a[0]) >= 0.2]
             for i_, (a, b) in enumerate(zip(chain, chain[1:])):
                 val = abs(b[0] - a[0])
                 if val < 0.2:
                     continue
                 t_ = label(val) if i_ != aux_k else f"({numtxt(val)})"
                 txts.append(t_.strip("()") if i_ == aux_k else t_)
-                dimf(a[1], b[1], side, lv, on=on, text=t_, virt_a=a[2], virt_b=b[2])
+                # texto que no cabe en su tramo: hacia afuera de la cadena en los tramos extremos; del otro lado de la línea en los interiores
+                pa_, pb_ = V.P(a[1]), V.P(b[1])
+                ka_ = 0 if axis == 0 else 1
+                a_low = pa_[ka_] <= pb_[ka_]
+                t_out = "flip" if 0 < segs_.index(i_) < len(segs_) - 1 else (("a" if a_low else "b") if segs_.index(i_) == 0 else ("b" if a_low else "a"))
+                if len(segs_) == 1:
+                    t_out = None
+                dimf(a[1], b[1], side, lv, on=on, text=t_, virt_a=a[2], virt_b=b[2], txt_out=t_out)
             lv += 1
             tot_txt = label(abs(hi[0] - lo[0]))
             nums = [_num(t) for t in txts]

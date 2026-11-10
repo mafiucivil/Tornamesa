@@ -75,7 +75,7 @@ def sheet_cajon_piezas(ctx):
 
     def tp(V, p_):
         if ids:
-            w_out(p_, soporte_ids(ctx, ["tapa_inf"])[0] if soporte_ids(ctx, ["tapa_inf"]) else ids[0], V, (bb.xmax, (bb.ymin + bb.ymax) / 2, bb.zmax), "right", dy=-18)
+            w_out(p_, soporte_ids(ctx, ["tapa_inf"])[0] if soporte_ids(ctx, ["tapa_inf"]) else ids[0], V, (bb.xmax, bb.ymax - 0.1 * (bb.ymax - bb.ymin), bb.zmax), "top")      # sobre la vista: la línea de referencia no cruza la pieza
     p.vs("ct_pl", ["ct_L"], "top", lv=(2, 2, 2, 2), extra=(0, 0, 60, 0), draw=tp, title=f"{sc('cajon_tapa').rsplit('-', 1)[0]} TAPA RECORTADA EN NARIZ ({ctx.m.get('cajon_tapa').qty} u.: 2 inf. y 2 sup.)",
          auto=dict(fits={tap["agujero_E"]: "H9"}, tol=tol(tap["lado"])), w=2.0, hatch=False, mins=0.4)
     p.vs("ct_c", ["ct_L"], "front", cut=((sh_[0], sh_[1], 0), (0, 1, 0)), lv=(1, 1, 1, 1), title="TAPA — CORTE A-A (por E)", auto=dict(tol=tol(tap["t"]), hole_notes=False, holes=False, axes="v"), w=0.6, hs=0.4)
@@ -83,7 +83,7 @@ def sheet_cajon_piezas(ctx):
     p.table_block("TAPA: VÉRTICES DEL CONTORNO (núcleo, soporte_E.tapas.poligono_local; origen en E = centro del agujero, X e Y paralelos a los bordes de la base)",
                   [("N°", 9, "C"), ("X [mm]", 22, "R"), ("Y [mm]", 22, "R")], rows)
     if ids:
-        add_prep(p, "det_tc", wd(ctx, ids[0]), maxs=0.5, mins=0.5)
+        add_prep(p, "det_tc", wd(ctx, ids[0]), maxs=0.5, mins=0.5, title=f"DETALLE {ids[0]}: PREPARACIÓN DE JUNTA")
     p.tables()                  # tabla de soldaduras del soporte (8 juntas del núcleo) en CON-007; aquí solo la preparación de la pieza
     Ly, ty, hy = dims("pared_Y")
     Lm, tm, hm = dims("munon_X")

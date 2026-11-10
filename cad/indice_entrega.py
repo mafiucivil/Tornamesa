@@ -17,6 +17,23 @@ ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN
 CASOS = ["base", "A", "AF2", "B", "C1", "C2", "C3", "base_G", "A_G"]
 NOTA_W = ("Cubierta de madera W: EN STAND BY por decisión del mandante. No forma parte de esta entrega; su trabajo de planos está respaldado en "
           "docs/standby/madera_W/ y se retomará cuando el mandante lo indique.")
+NOTA_E = ("Soporte del ojal E (modo pivotado): la flexión local de la plancha base bajo el soporte E está EN VERIFICACIÓN por el núcleo de cálculo; "
+          "podría agregar cartelas o un refuerzo local. Las láminas de la base y del soporte del ojal E se emiten para revisión con esa salvedad.")
+
+
+def nota_plancha(C):
+    """Nota de la plancha base bajo el soporte E: si el JSON del núcleo trae el resultado de la verificación (pivotado.fabricacion.soporte_E.plancha_base
+    o .verificacion_plancha) se informa ese estado; si no, la verificación figura como pendiente (NOTA_E). Solo para los casos del modo pivotado."""
+    piv = [c for c in C if c.get("soporte_E") is not None]
+    if not piv:
+        return None
+    for c in piv:
+        se = c["soporte_E"]
+        v = se.get("plancha_base") or se.get("verificacion_plancha")
+        if isinstance(v, dict) and v.get("estado"):
+            return (f"Soporte del ojal E: verificación de la flexión local de la plancha base según el núcleo — {v.get('estado')}"
+                    + (f" ({v['nota']})" if v.get("nota") else "") + ".")
+    return NOTA_E
 
 
 def _csv(p):
@@ -47,6 +64,7 @@ def leer_caso(d, logs=None, caso=None):
                 cotas=len(cot), cotas_mal=sum(1 for r in cot if r[-1] != "OK"), controles=len(ctl), interf=sum(1 for r in inter if not r.get("ok") and not r.get("declarado")),
                 conflictos=rep.get("conflictos_ids") or {t[:60]: dict(corto=t[:60]) for t in rep.get("conflictos_nucleo", [])}, interfaz=interfaz,
                 modo=D.get("modo_nombre") or ("guiado" if P.get("drive_mode") == 1 else "pivotado"), fecha=D.get("fecha", "—"), salida=salida,
+                soporte_E=(D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") if D.get("modo") == 2 else None,
                 variante=(re.search(r"VARIANTE (\S+)$", est[0]["titulo"]).group(1) if est and re.search(r"VARIANTE (\S+)$", est[0]["titulo"]) else caso))
 
 
@@ -61,7 +79,7 @@ def escribir(dest, casos, logs=None, nota_w=NOTA_W, nucleo=None):
     L = [f"# TT300-C · Índice general de la entrega de planos (Rev. C)", "", f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else ""), "",
          f"**{ADVERTENCIA}**", "", "Estado de las láminas: todas EMITIDAS PARA REVISIÓN (sin aprobación; firmas DIBUJÓ/REVISÓ/APROBÓ A DEFINIR). "
          "Las RETENIDAS no deben fabricarse: dependen de un conflicto geométrico declarado del núcleo (GEN-009 de cada juego) o de datos del proveedor; "
-         "una lámina deja de estar retenida solo cuando el choque ya no existe en la geometría del JSON.", "", f"**{nota_w}**", "",
+         "una lámina deja de estar retenida solo cuando el choque ya no existe en la geometría del JSON.", "", f"**{nota_w}**", ""] + ([f"**{nota_plancha(C)}**", ""] if nota_plancha(C) else []) + [
          "## Resumen por caso", "", "| Caso | Variante | Accionamiento | Interfaz | Láminas | Emitidas p/ revisión | Retenidas | Ítems | Cotas (fallas) | Fallas de controles | Interferencias no declaradas | Salida | Carpeta |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for c in C:
@@ -140,7 +158,7 @@ def _pdf(path, C, cods, tit, est_of, fecha, nota_w, nucleo):
                             title="TT300-C Índice general de la entrega de planos", author="Generador de planos TT300-C (cad/)")
     st = [Paragraph("TT300-C · Tornamesa hidráulica 300 tf · Índice general de la entrega de planos (Rev. C)", sH1),
           Paragraph(esc(f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else "") + " Estado: EMITIDO PARA REVISIÓN (sin aprobación)."), sN),
-          Spacer(1, 3), Paragraph(esc(ADVERTENCIA), sW), Spacer(1, 3), Paragraph(esc(nota_w), sW), Spacer(1, 3),
+          Spacer(1, 3), Paragraph(esc(ADVERTENCIA), sW), Spacer(1, 3), Paragraph(esc(nota_w), sW), Spacer(1, 3)] + ([Paragraph(esc(nota_plancha(C)), sW), Spacer(1, 3)] if nota_plancha(C) else []) + [
           Paragraph(esc("Las láminas RETENIDAS no deben fabricarse: dependen de un conflicto geométrico declarado del núcleo (GEN-009 de cada juego) o de datos del proveedor; "
                         "una lámina deja de estar retenida solo cuando el choque ya no existe en la geometría del JSON. El cajetín de cada lámina RETENIDA lo indica en el campo de estado."), sN),
           Paragraph("Resumen por caso", sH2)]

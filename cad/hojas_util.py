@@ -33,7 +33,7 @@ class Pieza(Plano):
         self.keys = [k for k in keys if ctx.m.get(k)]
         self.p0 = ctx.m.get(self.keys[0])
         self.lead = self.p0.code_lamina
-        masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys[:3]) + " kg c/u"
+        masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys) + " kg c/u"      # todas las piezas de la lámina (con más, «ver ficha»)
         h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 30 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
         # el cajetín admite 3 renglones de material y de tratamiento: si no caben, remite a la ficha/notas (el texto completo va en la ficha de la pieza)

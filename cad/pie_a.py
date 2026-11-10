@@ -38,8 +38,9 @@ def sheet_base_plancha(ctx):
         cs = [c_ for c_ in V.circles(["base_plancha"], 2.0, 4.5) if not any(abs(c_[0] - q[0]) < 1.0 and abs(c_[1] - q[1]) < 1.0 for q in pp_all)]
         if cs:
             n = len(cs)
-            u, v, r = cs[0]
-            V.note_hole((u, v, tb), r, 60, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
+            # llamada desde la rosca más alta de la planta (eje +y, lejos de las placas-guía y de sus pasadores, que están en las diagonales)
+            u, v, r = max(cs, key=lambda c_: c_[1] - abs(c_[0]))
+            V.note_hole((u, v, tb), r, 75, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
         c0 = V.P(0, 0, tb)
         s.circle(c0, (P["D_top"] + 20) / 2 * V.scale, "FANT")
         s.text(f"zona de apoyo Ø{f(P['D_top'] + 20)}", (c0[0], c0[1] - (P["D_top"] + 20) / 2 * V.scale + 3), T_N, "BOTTOM_CENTER")

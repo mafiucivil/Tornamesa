@@ -551,6 +551,8 @@ class Plano:
                 hh += 6
             else:
                 col_h = hi
+        if over:
+            col_h += (T_N + 0.5) * 1.6       # el primer bloque de cada columna repite su título «(cont.)», que no entra en la altura medida
         strip_wide = sum(b.h + gap for b in wide)
         strip_h = strip_wide + (col_h + gap if over else 0)
         return dict(placed=placed, over=over, ncol=ncol, col_h=col_h, wide=wide, strip_h=strip_h, band_end=band_end, bw=bw, gap=gap, Wl=Wl, R=R)
@@ -586,7 +588,7 @@ class Plano:
                     y1 = b.draw(s, xx, yc, pk["bw"])
                     s.reserved.append((xx, y1, xx + pk["bw"], yc))
                     s.block_rects.append((xx, y1, xx + pk["bw"], yc))
-                    yc -= b.h + gap
+                    yc = min(yc - b.h, y1) - gap      # altura real dibujada (con el título «(cont.)» si lo repitió)
             yy = ytop - pk["col_h"] - gap
         for b in pk["wide"]:
             y1 = b.draw(s, x0, yy, pk["Wl"])

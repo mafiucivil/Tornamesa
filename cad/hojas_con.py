@@ -1435,22 +1435,23 @@ def sheet_cajon_conj(ctx):
     c.gd_in("planta", "surf", "pos", "1", ["A", "B", "C"], at=[(x1, (y0 + y1) / 2 + 60, zt)], d=(1, 0, 0))
     c.gd_in("planta", "surf", "pos", "1", ["A", "B", "C"], at=[((x0 + x1) / 2 - 60, y0, zt)], d=(0, -1, 0))
     c.gd_in("planta", "surf", "pos", "Ø1", ["A", "B", "C"], at=[(E[0] + tap["agujero_E"] / 2, E[1], zt)], d=(1, 1, 0))
-    c.vs("planta", sh, "top", lv=(2, 2, 2, 2), extra=(30, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA (esquina de la base; cotas teóricamente exactas desde los bordes B y C)", auto=False, w=4.0, mins=0.2)
+    c.vs("planta", sh, "top", lv=(2, 2, 2, 2), extra=(30, 20, 20, 20), draw=planta, mat=mm, hatch=False, title="PLANTA (esquina de la base; cotas teóricamente exactas desde los bordes B y C)", auto=False, w=4.0, mins=0.4)
 
     def cA(V, c):
         for jid_, pt_, side_, dy_ in ((jx("tapa_inf"), (E[0], E[1] + 60, tap["z_inf"][1]), "right", 10), (jx("tapa_sup"), (E[0], E[1] + 60, tap["z_sup"][1]), "right", 26),
-                                      (jx("pared_X", "base"), (E[0], y1 - 1, tb + 1), "left", -6)):
+                                      (jx("pared_Y", "base"), (E[0], y0 + 1, tb + 1), "left", -6)):
             if jid_:
                 w_out(c, jid_, V, pt_, side_, dy=dy_)
-        V.dimv((E[0], y1, 0), (E[0], y1, zt), "right", 0, on=["base_K", "cajon_pared_x_K"], text=f"{f(zt)}")
+        # el plano A-A (x = E_x) corta la pared trasera Y (la pared X queda detrás, fuera del corte): altura total desde la cara inferior de la base
+        V.dimv((E[0], y0, 0), (E[0], y0, zt), "left", 0, on=["base_K", "cajon_pared_y_K"], text=f"{f(zt)}")
     c.datum_in("cA", "surf", "A", at=[(E[0], y0 - 80, tb), (E[0], y0 - 40, tb)], d=(0, 0, 1))
-    c.vs("cA", sh, "right", cut=((E[0], 0, 0), (-1, 0, 0)), center=(E[0], (y0 + y1) / 2, 100), win=(-(y1 - y0) / 2 - 80, -105, (y1 - y0) / 2 + 80, 130), lv=(2, 2, 2, 2), mat=mm, hs=0.4,
-         title="CORTE A-A (por el eje E: tapas inferior y superior, pasador y pared trasera X)", w=1.4, auto=dict(on=lk, maxn=8, tol={}), nocut=("pasador_E_K",), draw=cA)
+    c.vs("cA", sh, "right", cut=((E[0], 0, 0), (-1, 0, 0)), center=(E[0], y0 + 90, 100), win=(-190, -105, 190, 105), lv=(2, 2, 2, 2), mat=mm, hs=0.4,
+         title="CORTE A-A (por el eje E: tapas inferior y superior, pasador y pared trasera Y)", w=1.4, mins=0.1, maxs=0.2, auto=dict(on=lk, maxn=8, tol={}), nocut=("pasador_E_K",), draw=cA)
     if ids:
         add_prep(c, "det_cjp", ctx.weld_by_id(jx("pared_X", "base") or ids[0]), maxs=0.5, mins=0.5)
     jp = jx("tapa_inf")
     if jp:
-        add_prep(c, "det_pjp", ctx.weld_by_id(jp), maxs=0.5, mins=0.5)
+        add_prep(c, "det_pjp", ctx.weld_by_id(jp), maxs=0.5, mins=0.4)
     sec = [x.split(". ", 1)[1] if x[:2].strip(". ").isdigit() else x for x in S.get("secuencia", [])]
     c.tail(ks, ids, [
         f"Soporte abierto hacia la mesa (núcleo): {S['tipo']}. Holgura del cuerpo del cilindro al soporte {fm(S['barrido']['holgura_minima'], 1)} mm ≥ {fm(S['barrido']['holgura_exigida'], 0)} mm "

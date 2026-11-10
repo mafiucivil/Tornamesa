@@ -186,7 +186,7 @@ class Sheet:
         bx, by = tip[0] - size * ca, tip[1] - size * sa
         self.m.add_solid([tip, (bx - w * sa, by + w * ca), (bx + w * sa, by - w * ca)], dxfattribs={"layer": "COTA"})
 
-    def dim(self, p1, p2, off, txt, orient="h", h=T_N, txt_shift=0.0, outside=False, ted=False):
+    def dim(self, p1, p2, off, txt, orient="h", h=T_N, txt_shift=0.0, outside=False, ted=False, txt_out=None):
         """Cota lineal. orient 'h' (mide dx), 'v' (mide dy), 'a' alineada. off: distancia firmada de la línea de cota (papel).
         ted: cota teóricamente exacta (ISO 1101/ISO 5458): valor en recuadro, sin tolerancia; el texto queda fijo (no lo mueve el ordenador)."""
         x1, y1 = p1
@@ -219,23 +219,43 @@ class Sheet:
             deg += 180
         r = math.radians(deg)
         mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+        side_ = 1.0                      # texto del lado normal de la línea de cota (+1) o del opuesto (−1, txt_out = «flip»)
         if L < 8.5 or outside:           # flechas por fuera
             self.arrow(a, ang); self.arrow(b, ang + math.pi)
             self.line(a, (a[0] - 5 * math.cos(ang), a[1] - 5 * math.sin(ang)), "COTA")
             self.line(b, (b[0] + 5 * math.cos(ang), b[1] + 5 * math.sin(ang)), "COTA")
-            if wtxt + 2 > L:             # texto fuera, a continuación del extremo b
+            if wtxt + 2 > L and txt_out == "flip":
+                side_ = -1.0             # tramo interior de una cadena: texto centrado del otro lado de la línea de cota
+            elif wtxt + 2 > L and txt_out == "a":
+                d = 6 + wtxt / 2
+                ex, ey = (b[0] - a[0]) / max(L, 1e-9), (b[1] - a[1]) / max(L, 1e-9)
+                mx, my = a[0] - ex * d, a[1] - ey * d
+            elif wtxt + 2 > L:           # texto fuera, a continuación del extremo b
                 d = 6 + wtxt / 2
                 ux, uy = math.cos(math.radians(deg)), math.sin(math.radians(deg))
                 sgn = 1 if (b[0] - a[0]) * ux + (b[1] - a[1]) * uy >= 0 else -1
                 mx, my = b[0] + sgn * ux * d, b[1] + sgn * uy * d
         else:
             self.arrow(a, ang + math.pi); self.arrow(b, ang)
-            if wtxt + 7 > L:             # no cabe entre flechas: texto fuera
-                d = 4 + wtxt / 2
-                ux, uy = math.cos(math.radians(deg)), math.sin(math.radians(deg))
-                mx, my = b[0] + ux * d, b[1] + uy * d
-        tx = mx - math.sin(r) * 1.0 + math.cos(r) * txt_shift
-        ty = my + math.cos(r) * 1.0 + math.sin(r) * txt_shift
+            # el texto va sobre la línea de cota (no sobre las flechas): basta que quepa entre las líneas de referencia
+            if wtxt + 1.0 > L:           # no cabe entre las líneas de referencia: texto fuera
+                # txt_out (cadenas de autodim): «a»/«b» = a continuación de ese extremo, hacia afuera de la cadena; «flip» = tramo interior de una
+                # cadena: centrado sobre su tramo, del otro lado de la línea de cota (fuera del tramo vecino, que si no lo leería como su valor)
+                h2 = max(T_MIN, h * (L - 1.3) / max(wtxt, 1e-9))
+                if txt_out == "flip" and tw(txt, h2) + 1.0 <= L:
+                    h = h2               # tramo interior: el valor se reduce hasta la altura mínima (ISO 3098, 2,5 mm) y queda centrado en su tramo
+                elif txt_out == "flip":
+                    side_ = -1.0
+                else:
+                    d = 4 + wtxt / 2
+                    ex, ey = (b[0] - a[0]) / max(L, 1e-9), (b[1] - a[1]) / max(L, 1e-9)
+                    if txt_out == "a":
+                        mx, my = a[0] - ex * d, a[1] - ey * d
+                    else:
+                        mx, my = b[0] + ex * d, b[1] + ey * d
+        nofs = 1.0 if side_ > 0 else -(2.9 + h)      # del otro lado: más allá del sobrepaso de 2,5 de las líneas de referencia
+        tx = mx - math.sin(r) * nofs + math.cos(r) * txt_shift
+        ty = my + math.cos(r) * nofs + math.sin(r) * txt_shift
         t_ = self.text(txt, (tx, ty), h, "BOTTOM_CENTER", rot=deg)
         if ted:
             wt_, rr_ = tw(txt, h) / 2 + 1.0, math.radians(deg)
