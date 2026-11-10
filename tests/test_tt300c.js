@@ -1854,8 +1854,10 @@ test("Veredicto · pendientes críticos visibles: las filas «pend» con FU > 1 
   near(v.fuMaxPend, Math.max(...crit.map((c) => c.fu)), 1e-12, "FU máximo de los pendientes críticos");
   assert.equal(v.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");
   assert.ok(v.gira && v.estructura, "verdict.estructura sigue resumiendo las verificaciones resueltas (no cambia su significado)");
-  // sin pendientes críticos el estado global sigue al veredicto (modo guiado por defecto: gira y cumple)
-  const G = TT.analyze(TG(), { noFEA: true });
+  // sin pendientes críticos el estado global sigue al veredicto. Desde el 10-11-2026 el modo guiado tiene la misma decisión pendiente (plancha base bajo
+  // la ménsula del ojal trasero, docs/qa/plancha_base_modo_guiado.md): el caso «cumple» se arma con una plancha que la franja y la torsión admiten
+  const G = TT.analyze(Object.assign(TG(), { t_base: 64 }), { noFEA: true });
+  assert.ok(G.checks.some((c) => /^Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje/.test(c.name) && c.st === "pend" && c.fu <= 1), "con 64 mm la franja admite el momento (la fila sigue «pend»: el anclaje no está definido)");
   assert.equal(G.verdict.pendientes_criticos.length, 0); assert.equal(G.verdict.fuMaxPend, 0);
   assert.equal(G.verdict.estado_global, "CUMPLE");
   // un incumplimiento resuelto manda sobre el pendiente (y los pendientes siguen listados)
@@ -1869,4 +1871,51 @@ test("Veredicto · pendientes críticos visibles: las filas «pend» con FU > 1 
   // con term_alcance = 1 el soporte E (accionamiento) queda fuera del alcance térmico: la decisión pendiente se lista igual, marcada
   assert.ok(b.pendientes_criticos.every((p) => p.fuera_alcance_termico === true), "marcadas fuera del alcance térmico");
   assert.ok(v.pendientes_criticos.every((p) => !("fuera_alcance_termico" in p)), "sin escenario térmico no hay marca");
+});
+
+test("Ménsula del ojal trasero (modo guiado) · plancha base de 18 mm sin anclaje: franja, torsión de la base entre las dos ménsulas y estado global (docs/qa/plancha_base_modo_guiado.md)", () => {
+  // Modo guiado: la ménsula (dos mejillas soldadas a la plancha) recibe −F·ŷ a la altura del eje h; en el empuje la reacción la da la mesa (roce de la interfaz
+  // y el otro cilindro), de modo que M = F·h no se cierra en la bancada: con los dos cilindros M₂ = −M₁ entre (x_g; y_ojal) y (−x_g; −y_ojal) y el par
+  // cruza la base como torsión, igual que en el modo pivotado. El retorno con la uña trabada en la rampa del riel-leva se cierra en la franja de la bancada.
+  const P = TG(), A = TT.analyze(P, { noFEA: true }), R = A.R, K = R.K, bg = TT.bracketGeo(P), Fa = P.Fy / P.Nd;
+  const row = (re) => A.checks.find((c) => re.test(c.name));
+  const rE = row(/^Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, empuje a calado/), rR = row(/^Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, retorno/);
+  const rT = row(/^Plancha base bajo la ménsula del ojal trasero: torsión de la base/), rV = row(/^Plancha base bajo la ménsula del ojal trasero: corte de la franja/);
+  const rI = row(/^Plancha base bajo la ménsula del ojal trasero: modelo/), rL = row(/^Plancha base bajo la ménsula del ojal trasero: levantamiento/);
+  assert.ok(rE && rR && rT && rV && rI && rL, "seis filas de la plancha base en el modo guiado");
+  [rE, rR, rT, rV, rI, rL].forEach((c) => assert.equal(c.grp, "Articulaciones", c.name));
+  // franja: huella de las dos mejillas (marco local con origen en el ojal, empuje −ŷ sobre la ménsula), retención en el borde más lejano de la mesa
+  const h = R.hax, t = P.t_base, a = P.L_ch, w = bg.Win + 2 * P.t_ch, b = w + a, M = R.Fstall * 1e3 * h;
+  near(h, P.h_disc / 2, 1e-12, "h = altura del eje sobre la plancha (interfaz por defecto)");
+  const sH = bg.rear + Math.abs(K.y_eye) + P.D_top / 2, Mc = M * (1 - a / sH);
+  near(rE.dem, 6 * Mc / (b * t * t), 1e-9, "σ = 6·M_corte/(b·t²) en el empuje"); near(rE.cap, Fa, 1e-12);
+  const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10, sHr = (P.L_ch - bg.rear) - Math.abs(K.y_eye) + P.D_top / 2;
+  assert.ok(sHr <= a, "en el retorno la mesa queda delante del pie: sin retención detrás del talón");
+  near(rR.dem, 6 * Fret * h / (b * t * t), 1e-9, "retorno: toda la M cruza la línea del pie");
+  near(rV.dem, 1.5 * (M / a) / (b * t), 1e-9, "corte de la franja con V = M/a"); near(rV.cap, P.Fy / (P.Nd * Math.sqrt(3)), 1e-12);
+  // torsión de la base (cota inferior, placa libre): fuerza de esquina M/B, m_xy = M/(2B), τ = 6·m_xy/t² ≤ Fy/(Nd·√3)
+  near(rT.dem, 6 * (M / (2 * P.B)) / (t * t), 1e-9, "τ de la torsión de la base"); near(rT.cap, P.Fy / (P.Nd * Math.sqrt(3)), 1e-12);
+  [rE, rR, rT].forEach((c) => { assert.equal(c.st, "pend", c.name); assert.ok(c.fu > 1, c.name + ": FU " + c.fu); assert.ok(/docs\/qa\/plancha_base_modo_guiado\.md/.test(c.ref), c.name + ": referencia al estudio"); });
+  assert.ok(rV.fu <= 1 && rV.st !== "pend", "el corte de la franja cumple");
+  assert.equal(rL.kind, "pend"); assert.ok(/torsión/.test(rL.formula) && /M₂ = −M₁/.test(rL.formula), "la fila del levantamiento declara la torsión de la base");
+  // estado global: los pendientes críticos del modo guiado
+  const v = A.verdict, crit = [rE, rR, rT];
+  assert.equal(v.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");
+  crit.forEach((c) => assert.ok(v.pendientes_criticos.some((p) => p.nombre === c.name && p.fu === c.fu && p.grp === "Articulaciones"), "pendiente crítico: " + c.name));
+  near(v.fuMaxPend, Math.max(...v.pendientes_criticos.map((p) => p.fu)), 1e-12); assert.ok(v.gira && v.estructura, "las verificaciones resueltas siguen cumpliendo");
+  // exportación (designDrive; no va en tools/export_design.js, que tiene que coincidir con packages/web/planos_export.js): plancha base del modo guiado
+  const X = TT.designDrive(P, R).guiado.plancha_base;
+  assert.equal(X.estudio, "docs/qa/plancha_base_modo_guiado.md");
+  near(X.M_kNm, M / 1e6, 1e-9); near(X.V_esquina_kN, M / 1e6 / (P.B / 1e3), 1e-9, "fuerza de esquina ≈ M/B");
+  near(X.fu_torsion_cota_inferior, rT.fu, 1e-12); near(X.casos[0].fu, rE.fu, 1e-12); near(X.casos[1].fu, rR.fu, 1e-12);
+  near(X.ojal[0], P.x_g, 1e-12); near(X.ojal[1], K.y_eye, 1e-12); near(X.h, h, 1e-12);
+  assert.ok(/M₂ = −M₁/.test(X.modelo) && /torsión/.test(X.modelo) && /mesa/.test(X.cierre_empuje) && /bancada/.test(X.cierre_retorno_rampa), "mecánica de cargas declarada");
+  assert.ok(X.mesa_vacia && X.mesa_vacia.T_req_kN > X.mesa_vacia.W_mesa_kN && X.mesa_vacia.cumple === false, "mesa vacía: no retiene");
+  assert.ok(/NO/.test(X.conclusion) && /anclaje/.test(X.conclusion), "conclusión");
+  assert.equal(TT.designDrive(TT.defaults(), TT.compute(TT.defaults())).guiado, null, "solo en el modo guiado");
+  // interfaz B: el eje sube (h = 160 mm) y el par crece en la misma proporción
+  const AB = TT.analyze(Object.assign(TG(), { opt_uhmw: 1 }), { noFEA: true }), rTB = AB.checks.find((c) => /^Plancha base bajo la ménsula del ojal trasero: torsión de la base/.test(c.name));
+  near(rTB.fu / rT.fu, AB.R.hax / h, 1e-9, "torsión ∝ h");
+  // el modo pivotado no cambia: sus filas de la plancha base siguen siendo las del soporte E
+  assert.ok(!TT.analyze(TT.defaults(), { noFEA: true }).checks.some((c) => /ménsula del ojal trasero/.test(c.name)), "sin filas del modo guiado en el pivotado");
 });

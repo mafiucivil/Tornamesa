@@ -124,7 +124,7 @@ Notas:
 |---|---|
 | ¿Hay una solución C o D fabricable, de < 600 kg y sin interferencias? | **No.** Las opciones abiertas no dan torsión y no cumplen con la mesa vacía en ningún tamaño probado. El cajón cerrado cumple por defecto desde ≈ 730 kg, pero no con la mesa cargada ni con la interfaz B. Además, roza el barrido (10–20 mm) y obliga a rehacer las paredes traseras del soporte |
 | ¿Cuál es la de menor masa que cumple sin datos de losa? | Por defecto, B con 64 mm de plancha (+2,4 t; FU ≈ 1,0 junto al soporte con la mesa vacía, 0,67 con la mesa cargada; la tornamesa sube 46 mm). Con la interfaz B, ninguna de las estudiadas |
-| ¿Cuál es la técnicamente más eficiente? | A2: marco continuo con cartelas (≈ 300×25, ≈ 600 kg, a dimensionar) y un perno por esquina libre, de 48 kN (75 kN con B). Requiere los datos de la losa |
+| ¿Cuál es la técnicamente más eficiente? | A2: marco continuo con cartelas y un perno por esquina libre, de 48 kN (75 kN con B). Requiere los datos de la losa. Dimensionado en §5: pletina de 420 × 30 o cajón de 80 × 200 t 25 (≈ 1,0 t; B ≈ 1,6–1,8 t) y rediseño de las paredes traseras del soporte E |
 | ¿Qué alternativa operativa existe? | Impedir el calado con la mesa vacía, por ejemplo con un alivio reducido mientras la mesa no está cargada (decisión hidráulica del mandante). Así gobierna la mesa cargada, y la solución pasa a ser local: C abierto de 300×25 deja la plancha en FU 0,62, pero el marco sigue en 1,7 y hay que redimensionarlo |
 
 No se implementó ninguna geometría. Las filas de la plancha siguen con su FU y el estado «pend», ahora visibles en el estado global (punto 4).
@@ -143,6 +143,87 @@ Cambio mínimo en el núcleo (`analyze()`, `packages/core/tt300c.js`):
 
 Por defecto: `estado_global = "NO CUMPLE / PENDIENTE DE DECISIÓN"`, `fuMaxPend = 8,37`, con 2 filas (empuje 8,37 y retorno 1,43). Lo que falta en la UI (otro agente): mostrar `estado_global` en la insignia y la tarjeta «Estructura», y listar `pendientes_criticos` con su FU y su referencia. La memoria puede leerlos de `verdict` en `cad/out/TT300-C_design.json`.
 
+## 5. Estimación de A2 para la decisión del mandante (10-11-2026; no implementada)
+
+Pedido: dimensionar el marco de A2 (marco perimetral continuo con cartelas y un perno en cada esquina libre), que en §2.1 quedó con FU 2,6 en el marco 200×20, e indicar la masa y los requisitos mínimos de anclaje a especificar. **No se cambió la geometría por defecto.**
+
+### 5.1 Modelo
+
+Es el de §2 (malla de 80 mm, `a2.py`):
+
+- Marco continuo en los cuatro bordes, sobre las líneas de borde de la malla, como viga de Timoshenko con flexión y torsión. La sección es compuesta, con un ancho efectivo de plancha de 12·t (máximo 200 mm).
+- Cartelas ligadas al soporte rígido hasta 280 mm.
+- Un perno bilateral en cada esquina libre, (1.200; 1.200) y (−1.200; −1.200).
+- Casos: empuje a calado con dos y con un cilindro, con la mesa vacía y con la mesa cargada; retorno con la mesa vacía. Se toman los dos extremos de la banda de ψ.
+- Criterio:
+  - Marco: √(σ_b² + 3τ_t²) ≤ Fy/Nd, con σ_b = M·c/I de la sección compuesta (ASME BTH-1 §3-2.3 y §3-2.2; Nd = 3,0).
+  - Plancha: σ_vM ≤ Fy/Nd.
+- Reproduce §2.1: con el marco 200×20 da 48,2 kN por perno y FU 2,61 en el marco con la mesa vacía. Con la mesa cargada el marco llega a 2,83 y el perno a 32 kN.
+
+En el marco el momento es de flexión a lo largo del borde del soporte. El máximo está al final de la cartela y baja casi linealmente hasta la esquina anclada: con 300×25, de 97 a 55 kN·m. Por eso un acartelamiento local no alcanza: el marco necesita casi toda su sección en todo el borde. Al rigidizar el marco el momento crece (el marco atrae el par que antes llevaba la plancha) y el perno se descarga.
+
+### 5.2 Marcos probados (máximo de todos los casos; masa del marco en los cuatro bordes)
+
+| Marco | Masa | Por defecto: marco / plancha / perno / levantamiento | Interfaz B: marco / plancha / perno |
+|---|---|---|---|
+| 200×20 (A2 de §2.1) | 322 kg | 2,83 / 0,62 / 48 kN / 2,1 mm | 4,31 / 0,96 / 75 kN |
+| 300×25 | 603 kg | 1,55 / 0,26 / 22 kN / 0,7 mm | — |
+| 350×30 | 844 kg | 1,14 / 0,20 / 19 kN | — |
+| 400×30 | 965 kg | 1,03 / 0,19 / 19 kN | — |
+| **420×30** | **1.013 kg** | **0,99** / 0,19 / 19 kN / 0,25 mm | 1,51 / 0,32 / 30 kN |
+| 400×35 | 1.125 kg | 0,88 / 0,18 / 18 kN | — |
+| 500×35 | 1.407 kg | — | 1,15 / 0,30 / 30 kN |
+| **550×40** | **1.768 kg** | — | **0,95** / 0,28 / 29 kN |
+| T: alma 200×25 + ala 80×30 | 595 kg | 1,59 / 0,33 / 28 kN | — |
+| T: alma 200×25 + ala 80×40 | 659 kg | 1,53 / 0,29 / 26 kN | — |
+| Cajón 80 × 200, t 20 | 772 kg | 1,23 / 0,40 / 41 kN | — |
+| **Cajón 80 × 200, t 25** | **965 kg** | **1,00** / 0,35 / 36 kN / 0,7 mm | — |
+| Cajón 80 × 200, t 30 | 1.158 kg | 0,84 / 0,32 / 32 kN | — |
+| Cajón 80 × 250, t 25 | 1.166 kg | 0,83 / 0,23 / 24 kN | — |
+| **Cajón 80 × 200, t 40** | **1.543 kg** | — | **1,00** / 0,41 / 42 kN |
+| **Cajón 80 × 250, t 35** | **1.632 kg** | — | **0,92** / 0,30 / 31 kN |
+| Cajón 80 × 300, t 30 | 1.640 kg | — | 0,91 / 0,23 / 27 kN |
+
+Salidas: `resultados/a2_marcos_def_malla80.jsonl` y `resultados/a2_marcos_B_malla80.jsonl`. En el retorno los pernos piden ≤ 4 kN (B 12 kN) con cualquier marco.
+
+### 5.3 Marco que haría falta y masa
+
+| | Por defecto (h = 105) | Interfaz B (h = 160) |
+|---|---|---|
+| Pletina de canto (marco abierto) | **420 × 30**: FU 0,99, ≈ **1,0 t** | **550 × 40**: FU 0,95, ≈ **1,8 t** |
+| Con la altura limitada bajo la cara superior de la mesa (210 mm por defecto, 265 con B, sobre la plancha) | **Cajón 80 × 200, t 25**: FU 1,00, ≈ **1,0 t** | **Cajón 80 × 250, t 35**: FU 0,92, ≈ 1,6 t (u 80 × 200, t 40: FU 1,00, 1,5 t) |
+| Masa neta de A2 | ≈ +1,0 t (el marco reemplaza el perimetral de 45 × 10, de 30 kg) más los 2 pernos y sus placas | ≈ +1,6 a 1,8 t |
+
+Condiciones y consecuencias que hay que confirmar antes de adoptarlo:
+
+- **Altura.** La pletina de 420 mm (550 con B) sobresale unos 210 mm (285) sobre la cara superior de la mesa. Si la carga puede volar sobre el borde de la mesa, que es una hipótesis a confirmar con el mandante, la pletina no sirve y queda el cajón, que no sobresale de la cara superior de la mesa.
+- **Ancho.** Junto a cada borde hay una franja libre de unos 80 mm (§2: cuerpo del cilindro a 91 mm, placas-guía a 90 mm). El cajón de 80 mm la ocupa entera y queda a unos 10 mm del barrido del cilindro y de las placas-guía. Las pletinas de 30–40 mm entran con holgura.
+- **Soportes E.** Las paredes traseras están a 16 mm del borde: ningún marco de 30–80 mm pasa por fuera de ellas.
+  - El marco se interrumpe y se une con CJP a las paredes traseras, que pasan a ser parte del marco. La cartela del modelo es esa unión rígida, hasta 280 mm.
+  - El soporte E tiene que tomar el momento del marco en ese punto: 84–141 kN·m por defecto con los marcos que cumplen, más que los 47 kN·m del cilindro. **Esto no se verificó**: hay que rediseñar las paredes traseras (espesor, unión con el marco) y revisar sus CJP con la base.
+  - Se pierde el acceso exterior a las CJP pared–base (§2.1).
+- **Comparación de masas.** A2 pesa algo más que el cajón sin anclaje (733 kg, que no cumple con la mesa cargada ni con B) y menos que la plancha de 64 mm (+2,4 t, que con B tampoco cumple). Es la única opción estudiada que cumple también con la interfaz B, a costa de los pernos.
+
+### 5.4 Requisitos mínimos de anclaje a especificar a terceros
+
+Los datos de la losa no existen en el proyecto: f'c, espesor, armadura, fisuración, distancia de los pernos a bordes, juntas y aberturas. Todo lo que sigue es **orientativo** y lo tiene que verificar quien diseñe el anclaje con esos datos (`anclaje_aci.py`, salida en `resultados/a2_anclaje_aci_fc25.txt`).
+
+| Requisito | Por defecto | Interfaz B | Nota |
+|---|---|---|---|
+| Ubicación | 1 perno en cada esquina libre: (1.200; 1.200) y (−1.200; −1.200), a 80 mm de los dos bordes de la base | ídem | Las esquinas que suben en el empuje con los ojales E en (1.134; −1.134) y (−1.134; 1.134). Fuera del barrido |
+| Fuerza característica por perno (a calado, sin factor) | **N_k = 48 kN de tracción** | **N_k = 75 kN** | Envolvente de los marcos ≥ 200×20: con el marco que cumple baja a 19–36 kN (B 29–42), pero se especifica la envolvente para no atar el anclaje al marco final. Retorno ≤ 4 kN (B 12) |
+| Corte por perno | ≈ 0 (hipótesis) | ≈ 0 | En planta las fuerzas se cierran dentro de la tornamesa (§1.2): la losa no toma corte. Si el mandante quiere un corte accidental (por ejemplo, para el montaje), hay que declararlo |
+| Fuerza de diseño | **N_ua = 1,6·N_k = 77 kN** | **N_ua = 120 kN** | Hipótesis: la fuerza a calado se toma como carga variable L (ACI 318-19 §5.3.1, U = 1,2D + 1,6L) y no se descuenta el peso propio |
+| Tipo sugerido | **Químico (adhesivo)** calificado según **ACI 355.4** para hormigón fisurado y tracción sostenida; si la losa es nueva, perno hormigonado con cabeza | ídem | Frente al expansivo (ACI 355.2): la tracción se repite en cada calado y, con menos fuerza, en la operación normal. El adhesivo no depende de la precarga ni de la expansión, admite menores distancias a los bordes según su informe y se coloca después de posicionar la base |
+| Varilla | **M20, ISO 898-1 8.8** (por acero alcanzaría M16: φN_sa = 0,75·A_se·f_uta = 94 kN ≥ 77) | **M24, 8.8** (φN_sa = 212 kN; M20 da 147) | ACI 318-19 §17.6.1 y Tabla 17.5.3 (φ = 0,75, acero dúctil). El diámetro mayor que el estrictamente necesario da área de adherencia |
+| Profundidad efectiva | **h_ef ≥ 230–250 mm** | **h_ef ≥ 310 mm** | Arrancamiento del hormigón, perno aislado y lejos de los bordes: φ·k_c·λ·√f'c·h_ef^1,5 ≥ N_ua con k_c = 7 (posinstalado; 10 si se hormigona), φ = 0,65 (condición B, categoría 1), **f'c = 25 MPa y hormigón fisurado (hipótesis)**. Con f'c = 30 MPa: 212 y 285 mm (ACI 318-19 §17.6.2) |
+| Adherencia | τ_cr ≥ 7,6 MPa (M20, h_ef 250, fisurado) | τ_cr ≥ 7,9 MPa (M24, h_ef 310) | φ·τ_cr·π·d·h_ef ≥ N_ua (§17.6.5). Con los valores mínimos de la Tabla 17.6.5.2.5 (1,4–2,1 MPa fisurado) no hay solución práctica: el producto tiene que tener informe de evaluación (ACI 355.4) con su τ_cr |
+| Distancias | Al borde de la losa, a juntas y a aberturas: ≥ 1,5·h_ef ≈ 375 mm (B 465) para no reducir el cono, y no menos que lo que pida el informe del producto. Espesor de la losa del orden de h_ef + 100 mm o más (§17.9 e informe del producto) | ídem | Si los pernos quedan más cerca de un borde, la capacidad baja (ψ_ed,N, A_Nc) y hay que rehacer el cálculo |
+| Fatiga | La tracción se repite: con la mesa cargada el perno lleva 32 kN a calado con el marco 200×20, y menos en la operación normal | ídem | ACI 318-19 cap. 17 no cubre cargas predominantemente de fatiga de alto ciclo ni de impacto (§17.1). Si el número de ciclos de calado o de operación con tracción es alto, hay que usar un producto con datos de fatiga (por ejemplo, EN 1992-4 con su evaluación técnica) |
+| Pieza de la base | Placa de anclaje en la esquina del marco (arandela de placa y agujero sobredimensionado según el producto). La tracción entra al marco por la esquina | ídem | A verificar con el marco elegido |
+
+En resumen, a terceros se les especifica: **2 anclajes, uno en cada esquina libre, de 48 kN de tracción característica a calado (75 kN con la interfaz B), sin corte, con tracción repetida, en hormigón fisurado de f'c y espesor a informar.** Como orientación: químico M20 8.8 con h_ef ≈ 250 mm (M24 con h_ef ≈ 310 mm con B). El diseño final del anclaje (ACI 318-19 cap. 17, o EN 1992-4) lo hace quien tenga los datos de la losa.
+
 ## Reproducción
 
 ```
@@ -151,6 +232,10 @@ node docs/qa/plancha_base_soporte_E/exportar.js '{"opt_uhmw":1}' /tmp/e_B.json
 python3 docs/qa/plancha_base_soporte_E/casos.py /tmp/e_def.json 40 placa         # tabla 1.4 (≈ 10 min)
 python3 docs/qa/plancha_base_soporte_E/casos.py /tmp/e_def.json 80 anclajes      # A1 y A2
 python3 docs/qa/plancha_base_soporte_E/opciones.py /tmp/e_def.json 80 placa,B52,B64,C300x25,Cbox250,D   # tabla 2.1
+python3 docs/qa/plancha_base_soporte_E/a2.py /tmp/e_def.json 80 C200x20,C300x25,C420x30,K200+80x25   # tabla 5.2 (C: pletina h×t; T<h>+<b>x<t>; K<h>+<b>x<t>: cajón)
+python3 docs/qa/plancha_base_soporte_E/anclaje_aci.py 25                                                # §5.4 (f'c en MPa, hipótesis)
 ```
+
+El modo guiado (drive_mode = 1) tiene el mismo mecanismo con valores menores: `docs/qa/plancha_base_modo_guiado.md`.
 
 Las salidas usadas están en `docs/qa/plancha_base_soporte_E/resultados/`. El verificador independiente (`tests/indep_pivotado.py` §5c) replica con código propio la base completa en malla de 80 mm (mesa vacía: queda apoyada en los pies; mesa cargada: pocos mm), la fuerza de esquina M/B, el τ de torsión y el estado global.

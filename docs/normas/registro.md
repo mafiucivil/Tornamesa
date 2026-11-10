@@ -340,6 +340,52 @@ Con la mesa cargada, la FEA coincide con la de d94d7c4 (13,9). La retención `me
 
 **Estado global.** `analyze()` exporta `verdict.pendientes_criticos[]` (filas «pend» con FU > 1, con su referencia), `verdict.fuMaxPend` y `verdict.estado_global` («NO CUMPLE» / «NO CUMPLE / PENDIENTE DE DECISIÓN» / «CUMPLE»). TT.thermal agrega ambos en `byT[]`. `verdict.estructura` no cambia de significado: resume las verificaciones resueltas y la usa el generador de planos. La exportación del soporte agrega `plancha_base.revision_base_completa`.
 
+### Estimación de A2 para la decisión del mandante (10-11-2026; no implementada)
+
+Detalle en `docs/qa/plancha_base_soporte_E.md` §5; scripts `a2.py` y `anclaje_aci.py`.
+
+| Ítem | Por defecto | Interfaz B | Criterio |
+|---|---|---|---|
+| Marco que cumple (pletina de canto) | 420 × 30, FU 0,99, ≈ 1,0 t | 550 × 40, FU 0,95, ≈ 1,8 t | ASME BTH-1 §3-2: √(σ_b² + 3τ_t²) ≤ Fy/Nd en el marco |
+| Marco que cumple bajo la cara superior de la mesa (cajón de 80 mm de ancho) | 80 × 200, t 25: FU 1,00, ≈ 1,0 t | 80 × 250, t 35: FU 0,92, ≈ 1,6 t | Ídem |
+| Fuerza característica por perno (a calado, envolvente de los marcos ≥ 200×20) | 48 kN de tracción, sin corte | 75 kN | FEA de la base completa, malla 80 |
+| Orientación del anclaje (hipótesis f'c = 25 MPa, fisurado, lejos de los bordes, N_ua = 1,6·N_k) | Químico (ACI 355.4), M20 8.8, h_ef ≈ 250 mm, τ_cr ≥ 7,6 MPa | M24 8.8, h_ef ≈ 310 mm, τ_cr ≥ 7,9 MPa | ACI 318-19 §17.6.1, §17.6.2, §17.6.5, Tabla 17.5.3; orientativo (dependen de f'c, espesor, armadura y bordes, que no se conocen) |
+
+Consecuencias no verificadas: las paredes traseras del soporte E pasan a ser parte del marco y toman 84–141 kN·m; la pletina sobresale de la cara superior de la mesa (conflicto si la carga vuela sobre el borde); la tracción se repite (ACI 318-19 cap. 17 no cubre la fatiga de alto ciclo). No se implementó ninguna geometría.
+
+## Plancha base bajo la ménsula del ojal trasero (modo guiado, 10-11-2026)
+
+Pregunta: ¿el modo guiado (drive_mode = 1) tiene el mismo problema que el soporte E del modo pivotado? Estudio completo en `docs/qa/plancha_base_modo_guiado.md`; scripts y salidas en `docs/qa/plancha_base_modo_guiado/`.
+
+**Mecánica.**
+- La ménsula del ojal trasero (dos mejillas soldadas a la plancha) recibe −F·ŷ a la altura del eje (h = 105 mm; con B, 160) en (x_g; y_ojal) = (1.140; −945).
+- En el empuje la reacción la da la mesa (roce de la interfaz y el otro cilindro). La guía de la bancada solo toma las reacciones laterales del patín (a z_T = 31 mm), el roce y el vuelco del roce. El par de la ménsula no se cierra en la bancada: por cilindro quedan 44,4 kN·m en x y 6,7 en y sobre la base.
+- Con los dos cilindros, M₂ = −M₁ entre las ménsulas diagonalmente opuestas, y el par cruza la base como torsión. Las bancadas corren en y y son secciones abiertas.
+- El retorno con la uña trabada en la rampa del riel-leva se cierra en la franja de la bancada: ménsula, patín y pórticos están sobre la misma bancada y la suma por cilindro es cero.
+- El atasco a nivel de toma cruza la base: h·√(F_ret² + N_toma²) = 8,4 kN·m.
+
+| Verificación | Criterio | Referencia | Ecuación / nota |
+|---|---|---|---|
+| Casos | Empuje a calado (F_calado) y retorno (F_ret = A_anular·p_ret, en la rampa y a nivel de toma); dos cilindros y uno; mesa vacía y cargada | ASME BTH-1 §3-2 (Nd = 3) | Térmico: no aplica. Gobierna la interfaz B |
+| Flexión de la plancha bajo la ménsula (franja) | σ = 6·M_corte/(b·t²) ≤ Fy/Nd, con la huella de las mejillas (a = L_mejilla = 325, w = 200) y la retención en el borde más lejano de la mesa | ASME BTH-1 §3-2.3 | Mismo modelo que el soporte E; no cuenta la bancada. Empuje FU 12,1 (B 18,4); retorno 2,09 (B 3,18), sin retención detrás del talón. Estado «pend» |
+| Corte de la franja | τ = 1,5·(M/a)/(b·t) ≤ Fy/(Nd·√3) | ASME BTH-1 §3-2.2 | 0,34 (B 0,52) |
+| Torsión de la base entre las dos ménsulas | τ = 6·m_xy/t² ≤ Fy/(Nd·√3), m_xy = M/(2B) | ASME BTH-1 §3-2.2 | Cota inferior (placa libre): FU 2,55 (B 3,88). Estado «pend» |
+| Levantamiento / anclaje | Anclaje no definido en el proyecto | — | Fila «pend» con el momento a anclar y la retención con la mesa vacía (45,4 kN pedidos frente a 14,0 kN de peso) |
+| Contraste | FEA de Mindlin de la base completa: bancadas ortótropas con la sección real (J de Prandtl con la ranura abierta), ménsulas rígidas, contacto unilateral, peso propio | Estudio y tests/indep_accionamiento.py, prueba 9 | Malla 40, mesa vacía con dos cilindros: plancha lejos FU 2,0 (B 3,5), bancada 4,7 (B 7,6), esquinas libres a 0,13 m (B 0,23), junto a las mejillas 8,5 (21 con malla 20); mesa cargada 3,9 / 2,2 / 1,8; un cilindro con la mesa vacía, sin equilibrio; retorno 1,3–1,7 junto a las mejillas |
+
+**Resultado: el modo guiado NO cumple sin anclaje ni base rígida.** Tiene el mismo mecanismo que el pivotado, con valores menores. Ningún refuerzo menor lo resuelve:
+- Cerrar la franja de 52 mm de plancha sola entre las mejillas y la prolongación de la bancada deja la bancada en FU ≈ 4 con la mesa vacía y en 1,9 con la mesa cargada.
+- Un perno por esquina libre pide ≈ 75 kN (126 con B), y la bancada sigue en 3,7 (B 5,8).
+
+**Implementado.**
+- Seis filas «Plancha base bajo la ménsula del ojal trasero: …» en «Articulaciones», con FU y estado «pend» en la franja (empuje y retorno) y en la torsión.
+- Con eso el modo guiado pasa a `verdict.estado_global` = «NO CUMPLE / PENDIENTE DE DECISIÓN» (`fuMaxPend` 12,08).
+- Exportación: `designDrive().guiado.plancha_base` (no va en `tools/export_design.js`, que tiene que coincidir con `packages/web/planos_export.js`).
+
+Golden del modo guiado: agrega solo las cuatro filas con FU; no cambia ningún valor.
+
+**Observación fuera del alcance.** Por defecto, el cuerpo del cilindro (Ø 130, eje a 105 mm) pasa sobre la prolongación de la bancada (cara superior a 40 mm) con 0 mm de holgura, y ninguna fila lo verifica. No se cambió.
+
 ## Elementos sobre la base: holguras (10-11-2026)
 
 Huellas en planta con su cota z: orejas de izaje (2R × (t + 2w) radial, hasta h + R sobre la base), soportes del ojal E (piezas reales), placas-guía (4: cilindro 1 y 2, ambos sentidos, por rotación de 180° y reflexión respecto de la diagonal), mesa con la interfaz y sus topes (círculo R = D/2) y, en el modo pivotado, las partes móviles en todos los estados del empuje y del retorno (cuerpo y vástago del cilindro, bloque-uña y cubo de Q). En el modo guiado, la banda de cada lado (bancada y prolongaciones, patín, cilindro, riel-leva y pórticos).

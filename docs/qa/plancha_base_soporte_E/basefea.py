@@ -94,8 +94,9 @@ class Base:
         self.W_table_applied = q * self.hm * self.hm * ring.sum()
         return f
 
-    def solve(self, moments, fz, hold=None, kc=1e7, maxit=300, masters_w=None):
-        """moments: [(Mx, My)] por soporte (N·mm); fz: fuerzas nodales verticales (N, + hacia arriba). hold: nodos bilaterales (mesa cargada)."""
+    def solve(self, moments, fz, hold=None, kc=1e7, maxit=300, masters_w=None, fext=None):
+        """moments: [(Mx, My)] por soporte (N·mm); fz: fuerzas nodales verticales (N, + hacia arriba). hold: nodos bilaterales (mesa cargada).
+        fext: cargas nodales adicionales (vector 3·nn: [w, β_x, β_y] por nudo; un momento (Mx, My) en un nudo libre entra como −My en β_x y Mx en β_y)."""
         nn = self.nn
         if getattr(self, "_T", None) is None:
             sup = [self.support_nodes(1), self.support_nodes(2)]
@@ -112,6 +113,7 @@ class Base:
             W = sp.csr_matrix((np.ones(nn), (np.arange(nn), 3 * np.arange(nn))), shape=(nn, 3 * nn)); self._Tw = (W @ T).tocsr()
         T, Kr, nf, inS = self._T, self._Kr, self._nf, self.inS
         fg = np.zeros(3 * nn); fg[0::3] = fz
+        if fext is not None: fg = fg + fext
         rhs = T.T @ fg
         for si, (Mx, My) in enumerate(moments):
             rhs[nf + 3 * si + 1] += -My; rhs[nf + 3 * si + 2] += Mx

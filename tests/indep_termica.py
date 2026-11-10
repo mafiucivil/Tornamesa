@@ -490,7 +490,8 @@ for wood in (False, True):
             # sección informativa «Accionamiento (fuera de alcance)»: 51 filas calculadas, sin entrar a estado, FU ni veredicto (term_alcance = 1)
             if ALC == 1:
                 fa = rT["fuera_alcance"]
-                stdd = [c for c in alt_export(aid, wood)["verificaciones"] if c["grp"] in DRIVE_GRPS]
+                # las filas de decisión pendiente sin FU (kind «pend», p. ej. el levantamiento sin anclaje) van al estado global, no al bloque informativo
+                stdd = [c for c in alt_export(aid, wood)["verificaciones"] if c["grp"] in DRIVE_GRPS and not (c["fu"] is None and c["estado"] == "pend")]
                 # la fila informativa «Bomba con viscosidad baja» (kW / mm²/s; sin FU ni estado) no se replica: es la única fila del bloque sin réplica
                 BOMBA = "Bomba con viscosidad baja"
                 sin_rep = [f["nombre"].split(":")[0] for f in fa if f["grp"] not in DRIVE_GRPS and not any(f["nombre"].startswith(r["key"]) for r in aux["drive"])]
@@ -675,7 +676,9 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
     stds = std_at(aid, wood, k, P, kfy_extra=kfy_extra)
     fs20 = [c for c in D["derivados"]["casos"] if c["id"] == "dis"][0]["FS"]
     FS = fs20 / k["mu"] / FSfac
-    est_items = [s for s in stds if s["sys"] == "est" and s["unidad"] == "MPa" and s["fuT"] is not None and not s["nombre"].startswith("Lámina UHMW: espesor")]
+    # filas «pend» (decisión pendiente del mandante, p. ej. la plancha base sin anclaje bajo la ménsula o el soporte E): no entran al FU gobernante ni al
+    # conteo de fallas; el estado global las lista aparte (docs/qa/plancha_base_soporte_E.md §4, criterio del registro, no del código del núcleo)
+    est_items = [s for s in stds if s["sys"] == "est" and s["unidad"] == "MPa" and s["fuT"] is not None and s["st20"] != "pend" and not s["nombre"].startswith("Lámina UHMW: espesor")]
     # fuEst: máx. FU de las verificaciones estándar de resistencia (MPa), sin las de «giro»
     fuEst = max(est_items, key=lambda s: s["fuT"]) if est_items else None
     th_est = [r for r in rows if r["sys"] == "est" and r["fu"] is not None]
@@ -684,6 +687,7 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
     fail = warn = 0
     giro_fail = est_fail = term_bad = False
     for s in stds:
+        if s["st20"] == "pend": continue
         stt = state_std(s, s["fuT"])
         if stt == "fail": fail += 1
         if stt == "warn": warn += 1

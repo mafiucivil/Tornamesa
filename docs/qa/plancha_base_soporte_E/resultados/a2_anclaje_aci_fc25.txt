@@ -1,0 +1,26 @@
+f'c = 25 MPa (hipótesis), hormigón fisurado (ψ_c,N = 1,0), anclaje aislado y lejos de los bordes (A_Nc = A_Nco, ψ_ed,N = 1,0), varilla ISO 898-1 8.8
+
+por defecto: N_k = 48.2 kN por perno (a calado, sin factor; envolvente de los marcos ≥ 200×20), N_ua = 1.6·N_k = 77.1 kN
+   M16: φN_sa =   94.2 kN (FU 0.82); h_ef ≥  226 mm por arrancamiento; con h_ef = 230 mm la adherencia pide τ_cr ≥ 10.3 MPa (fisurado)
+   M16: φN_sa =   94.2 kN (FU 0.82); h_ef ≥  226 mm por arrancamiento; con h_ef = 250 mm la adherencia pide τ_cr ≥  9.4 MPa (fisurado)
+   M16: φN_sa =   94.2 kN (FU 0.82); h_ef ≥  226 mm por arrancamiento; con h_ef = 300 mm la adherencia pide τ_cr ≥  7.9 MPa (fisurado)
+   M16: φN_sa =   94.2 kN (FU 0.82); h_ef ≥  226 mm por arrancamiento; con h_ef = 350 mm la adherencia pide τ_cr ≥  6.7 MPa (fisurado)
+   M20: φN_sa =  147.0 kN (FU 0.52); h_ef ≥  226 mm por arrancamiento; con h_ef = 230 mm la adherencia pide τ_cr ≥  8.2 MPa (fisurado)
+   M20: φN_sa =  147.0 kN (FU 0.52); h_ef ≥  226 mm por arrancamiento; con h_ef = 250 mm la adherencia pide τ_cr ≥  7.6 MPa (fisurado)
+   M20: φN_sa =  147.0 kN (FU 0.52); h_ef ≥  226 mm por arrancamiento; con h_ef = 300 mm la adherencia pide τ_cr ≥  6.3 MPa (fisurado)
+   M20: φN_sa =  147.0 kN (FU 0.52); h_ef ≥  226 mm por arrancamiento; con h_ef = 350 mm la adherencia pide τ_cr ≥  5.4 MPa (fisurado)
+   M24: φN_sa =  211.8 kN (FU 0.36); h_ef ≥  226 mm por arrancamiento; con h_ef = 230 mm la adherencia pide τ_cr ≥  6.8 MPa (fisurado)
+   M24: φN_sa =  211.8 kN (FU 0.36); h_ef ≥  226 mm por arrancamiento; con h_ef = 250 mm la adherencia pide τ_cr ≥  6.3 MPa (fisurado)
+   M24: φN_sa =  211.8 kN (FU 0.36); h_ef ≥  226 mm por arrancamiento; con h_ef = 300 mm la adherencia pide τ_cr ≥  5.2 MPa (fisurado)
+   M24: φN_sa =  211.8 kN (FU 0.36); h_ef ≥  226 mm por arrancamiento; con h_ef = 350 mm la adherencia pide τ_cr ≥  4.5 MPa (fisurado)
+
+interfaz B: N_k = 75.1 kN por perno (a calado, sin factor; envolvente de los marcos ≥ 200×20), N_ua = 1.6·N_k = 120.2 kN
+   M20: φN_sa =  147.0 kN (FU 0.82); h_ef ≥  303 mm por arrancamiento; con h_ef = 310 mm la adherencia pide τ_cr ≥  9.5 MPa (fisurado)
+   M20: φN_sa =  147.0 kN (FU 0.82); h_ef ≥  303 mm por arrancamiento; con h_ef = 350 mm la adherencia pide τ_cr ≥  8.4 MPa (fisurado)
+   M24: φN_sa =  211.8 kN (FU 0.57); h_ef ≥  303 mm por arrancamiento; con h_ef = 310 mm la adherencia pide τ_cr ≥  7.9 MPa (fisurado)
+   M24: φN_sa =  211.8 kN (FU 0.57); h_ef ≥  303 mm por arrancamiento; con h_ef = 350 mm la adherencia pide τ_cr ≥  7.0 MPa (fisurado)
+   M30: φN_sa =  336.6 kN (FU 0.36); h_ef ≥  303 mm por arrancamiento; con h_ef = 310 mm la adherencia pide τ_cr ≥  6.3 MPa (fisurado)
+   M30: φN_sa =  336.6 kN (FU 0.36); h_ef ≥  303 mm por arrancamiento; con h_ef = 350 mm la adherencia pide τ_cr ≥  5.6 MPa (fisurado)
+
+Tabla 17.6.5.2.5 (valores mínimos sin informe del producto): τ_cr = 1,4 MPa (exterior, fisurado) o 2,1 MPa (interior, fisurado): no hay solución práctica con
+esos valores; el producto tiene que estar calificado según ACI 355.4 (adhesivos) y su informe dar τ_cr y las distancias mínimas a los bordes y entre anclajes.
