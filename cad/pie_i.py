@@ -504,8 +504,23 @@ def sheet_int_ranuras(ctx):
         for a_, b_ in zip(pts, pts[1:]):
             V.dimh(a_, b_, "bottom", 0, on=[nk], text=fm(abs(b_[0] - a_[0]), 1))
         V.dimh(pts[0], pts[-1], "bottom", 1, on=[nk], text=f"({fm(g.Ro - g.Ri, 0)}: ancho radial, lámina del sector)")
+        if g.opt == 3:
+            # con tapones las dos llamadas automáticas salían en la misma franja horizontal y se superponían: llamadas propias hacia arriba,
+            # desde el tapón más alto del tramo exterior y desde el avellanado más alto (cada una con su agujero)
+            from vistas import COTAS as _C
+            cyl = lambda r_: [(rr_, loc_) for rr_, loc_, _d in _C.cylinders(nk) if abs(rr_ - r_) < 0.25]
+            tp_ = cyl(P["bz_plug_d"] / 2)
+            av_ = cyl(lay.dk_av / 2)
+            if tp_:
+                umax = max(V.P(l_)[0] for _, l_ in tp_)
+                rr_, l_ = max((q_ for q_ in tp_ if V.P(q_[1])[0] > umax - 0.25 * (umax - min(V.P(l2)[0] for _, l2 in tp_))), key=lambda q_: V.P(q_[1])[1])
+                V.note_hole(l_, rr_, 70, f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102)", ext=22, on=[nk])
+            if av_:
+                rr_, l_ = max(av_, key=lambda q_: V.P(q_[1])[1])
+                V.note_hole(l_, rr_, 100, f"M{fm(lay.d_tor, 0)} ISO 10642: avellanado Ø{fm(lay.dk_av, 0)}×90° y pasante Ø{fm(lay.d_clear, 1)} (lámina del sector)", ext=78, on=[nk],
+                            lines=[f"M{fm(lay.d_tor, 0)} ISO 10642: avellanado Ø{fm(lay.dk_av, 0)}×90°", f"y pasante Ø{fm(lay.d_clear, 1)} (lámina del sector)"])
     p.vs("sector", [nk], "bottom" if face == "bot" else "top", lv=(1, 2, 1, 1), draw=sec, hatch=False, title=f"SECTOR DE {fm(th, 1)}° CON SUS RANURAS (distancias entre ejes de ranuras sobre la bisectriz)", w=1.4,
-         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=min(lay.dk_av, P["bz_plug_d"]) / 2 - 0.2,
+         auto=dict(holes=True, hole_pos=False, verts=False, only_extents=True, overall=False, hole_rmin=min(lay.dk_av, P["bz_plug_d"]) / 2 - 0.2, hole_notes=(g.opt != 3),
                    hole_txt={**({round(P["bz_plug_d"], 1): f"Ø{fm(P['bz_plug_d'], 0)}: alojamientos de tapones (INT-102)"} if g.opt == 3 else {}),
                              round(lay.dk_av, 1): f"M{fm(lay.d_tor, 0)} ISO 10642: avellanado Ø{fm(lay.dk_av, 0)}×90° y pasante Ø{fm(lay.d_clear, 1)} (lámina del sector)"}, fits={}))
     r0 = rr[0] if rr else (g.Ri + g.Ro) / 2
