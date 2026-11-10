@@ -202,6 +202,7 @@ Pedido del mandante 07-11-2026 (Tarea 2; drive_mode = 2; el valor por defecto si
 | Pasador Q | M = √[(F/2·(t/2 + g + b/4))² + (N_leva·l_Q)²] ≤ Fy/Nd·πd³/32; corte doble | ASME BTH-1 §3-3.3 | l_Q = horquilla inferior → mitad del espesor de la placa-leva |
 | Ojal trasero E | pasador: flexión F/2·(t/2 + g + b/4), corte doble; tapas: aplastamiento (F/2)/(d·t) ≤ 1,25Fy/Nd, desgarro (F/2)/(2·t·a) ≤ Fy/(Nd√3) | ASME BTH-1 §3-3.3 | |
 | Soporte del ojal E | Ver «Soporte del ojal E: cajón abierto (10-11-2026)» (reemplaza el cajón en U con ventana) | ASME BTH-1 §3-2; AISC 360-22 §J2; AWS D1.1/D1.1M:2020 | Cajón centrado en E, abierto hacia la mesa en todo el barrido del cilindro |
+| Plancha base bajo el soporte E | Ver «Plancha base bajo el soporte del ojal E (10-11-2026)» | ASME BTH-1 §3-2.3, §3-2.2 | Sin anclaje NO cumple (filas «pend»: decisión de anclaje del mandante) |
 | Placa-guía: contacto | familia 1: Hertz p₀ ≤ 1,67Fy_sup con el radio real del canto en cada contacto (1/R_ef = 1/r_Q ± 1/R_c), capa templada ≥ 2·0,786·b; familias 2–4: p = T_dis/(l·t) ≤ p_adm, PV ≤ PV_adm (2 y 3), aplastamiento a calado ≤ 1,25·Fy_rev/Nd (3 y 4), respaldo de acero (2 y 3), zapata l ≤ 3·d_Q | Hertz; catálogo de cada material (opciones A, B, C de la interfaz); ASME BTH-1 §3-3.3 | Familia 2 (UHMW) no es practicable: la zapata que pide PV pasa de 3·d_Q. Familias 2–4 sobre el canto curvo: la forma de la cara de la zapata queda PENDIENTE (fila «pend») |
 | Placa-guía: ligamento y tornillos | Ver «Placa-guía curva (09-11-2026)» | ASME BTH-1 §3-2; AISC 360-22 §J3 | 42CrMo4+QT (Fy 750, Fu 900); ISO 10642 M16 8.8 roscados en la base |
 | Pandeo del cilindro | F_calado ≤ Pcr/3 con el vástago a L0 + carrera | Criterio conservador frente a ISO/TS 13725 | Dato del proveedor (la geometría del tubo no está en el núcleo) |
@@ -273,7 +274,42 @@ Corrección pedida por el generador de planos: el cuerpo del cilindro (Ø D_cuer
 | Tapas: desgarro | Hacia las paredes traseras: a = distancia del agujero a la cara interior de la pared en −u − d_E/2 (no hasta la cara exterior: la tapa termina en la pared); hacia la nariz con la tracción del retorno F_ret = A_anular·p_ret | ASME BTH-1 §3-3.3 | t_tapa 28 → 29 mm (con 28 el desgarro daba FU 0,909; con 30 la flexión del pasador E pasa de 0,90) |
 | Fatiga | Pie de la CJP pared–base: categoría E (conservador); garganta de la PJP de las tapas: categoría F | AISC 360-22 Apéndice 3, Tabla A-3.1 | |
 
-Espesores: paredes 25 → 30 mm. Masa por soporte 56,4 → 47,0 kg. Pendiente fuera del alcance de esta corrección: flexión local de la plancha base de 18 mm bajo el momento del soporte (≈ 47 kN·m a calado en la opción por defecto), que el núcleo no verificaba antes y tampoco verifica ahora (requiere un modelo local de la plancha apoyada en la losa).
+Espesores: paredes 25 → 30 mm. Masa por soporte 56,4 → 47,0 kg. La flexión de la plancha base de 18 mm bajo el momento del soporte (≈ 47 kN·m a calado en la opción por defecto), pendiente en esta corrección, se verifica desde el 10-11-2026 en «Plancha base bajo el soporte del ojal E (10-11-2026)»: sin anclaje NO cumple.
+
+## Plancha base bajo el soporte del ojal E (10-11-2026)
+
+Cierre de la hipótesis del rediseño del soporte E (la flexión de la plancha base no se verificaba). **Resultado: la plancha de 18 mm apoyada en la losa sin anclaje NO puede tomar el momento del soporte; ningún refuerzo local lo resuelve.** Las filas quedan con su FU y estado «pend» (no «fail») hasta la decisión del mandante, para no cambiar el veredicto del diseño por defecto sin esa decisión.
+
+**Datos del proyecto.** Base «apoyada en losa o mats» (HANDOFF TT300-B, §9); no hay anclaje, pernos de fundación ni datos de la losa (f'c, espesor, armadura, bordes). Se declara: contacto unilateral (la losa solo comprime), losa rígida, sin anclaje, peso propio de la plancha despreciable (ρ·g·t = 0,0014 MPa).
+
+**Transferencia de carga.** El soporte es un cuerpo rígido soldado a la plancha (CJP pared–base). La fuerza del cilindro F·f actúa en E a h = (h_sup + h_inf)/2 = altura del eje sobre la plancha (resultante de F/2 en cada tapa): M = F·h alrededor del eje horizontal ⟂ f. En planta F se cierra dentro de la tornamesa (el otro cilindro, a 180°, y el roce de la mesa forman un par horizontal): la losa no toma corte y la plancha lleva F en su plano. M tiene que bajar a la losa como un par vertical: compresión bajo el pie (paredes del lado de f) y retención del talón. Sin anclaje, lo único que retiene el talón es la mesa cargada (R ≤ D/2), a través de la flexión de la plancha. En el empuje (f = −u) el talón queda del lado de la mesa, a 0,3–0,5 m de ella y con el barrido del cilindro, las placas-guía y la oreja de izaje de la diagonal en medio; en el retorno (f = +u) el talón es la esquina de la base, con la mesa entera delante del pie: no hay retención detrás del talón y toda la M cruza la plancha.
+
+| Verificación | Criterio | Referencia | Ecuación / nota |
+|---|---|---|---|
+| Casos | Empuje a calado F_calado (−u) y atasco del retorno F_ret = A_anular·p_ret (+u); todos los estados del barrido (empuje, aproximación, retorno, envolvente del canto, colineal) en ambos sentidos | ASME BTH-1 §3-2 (Nd = 3) | Térmico: no aplica (F sale de las presiones de alivio y de retorno; la base queda a la sombra y h no cambia). Gobierna la interfaz B (eje más alto: h = 160 mm) |
+| Flexión de la plancha (franja) | σ = 6·M_corte/(b·t²) ≤ Fy/Nd; M_corte = M·(1 − a/s_H) en la línea del talón (∥ al vector momento) si la mesa queda detrás del talón (s_H > a), M si no; b = w + a | ASME BTH-1 §3-2.3; equilibrio del cuerpo libre soporte + plancha del lado del pie | a = extensión de la huella de las paredes en f; w = ancho ⟂ f; s_H = brazo desde el pie hasta el borde MÁS LEJANO de la mesa (el brazo más largo: favorable para la retención T = M/s_H y conservador para M_corte, que crece con s_H); b: reparto a 45° desde el centro de la huella (criterio de ingeniería) |
+| Corte de la franja | τ = 1,5·V/(b·t) ≤ Fy/(Nd·√3), V = M/a (cota superior: retención en el talón) | ASME BTH-1 §3-2.2 | Cumple con holgura (FU 0,21 / 0,32 con B) |
+| Levantamiento | Anclaje a la losa | — | No definido en el proyecto: fila «pend» con el momento a anclar por soporte |
+| Retención con la mesa vacía | n_cil·M/s_H ≤ W_mesa (W_d = mesa + disco rotatorio + ½ pivote, más los bloques-uña: cota superior) | Equilibrio | El calado no depende de la carga (atasco con la mesa vacía). Por defecto 38,6 kN pedidos frente a 15,0 kN de peso propio; con B, 58,9 frente a 18,8 kN: la retención por la mesa no es fiable ni con el brazo más largo. Se exporta en `plancha_base.mesa_vacia` |
+| Punzonamiento / desgarro | — | — | Sin anclaje no hay carga concentrada que punzone la plancha (el pie apoya directo en la losa; el talón tira de la plancha a lo largo de las CJP, ya verificadas como metal base). Con anclaje se verifica la pieza que reciba el perno |
+| Contraste (segundo método) | FEA propia de Mindlin (Q4, integración selectiva) con soporte rígido (3 grados de libertad maestros), contacto unilateral por conjunto activo y la huella de la mesa como apoyo bilateral | tests/indep_pivotado.py, sección 5c | fea.js no admite contacto unilateral, vínculos rígidos ni cargas nodales: no se modificó; se usa la franja en el núcleo y la FEA en el verificador |
+
+Resultados (FU = σ/(Fy/Nd), Fy/Nd = 115 MPa):
+
+| Interfaz | h (mm) | M empuje / retorno (kN·m) | Franja empuje | Franja retorno | FEA empuje / retorno (malla 40, por defecto) |
+|---|---|---|---|---|---|
+| Por defecto | 105 | 46,8 / 6,8 | 8,37 | 1,43 | 13,9 / 3,2 |
+| A (inox) / C (bronce) | 135 | 60,1 / 8,8 | 10,8 | 1,84 | — |
+| B (UHMW) | 160 | 71,3 / 10,4 | 12,8 | 2,19 | (malla 20: picos ≈ 27 / 6, percentil 99,5 ≈ 11 / 2,8) |
+
+Aun con la capacidad plástica (m_p = Fy·t²/4) y sin factor de diseño, la franja del empuje por defecto da 962/(1,5·345) = 1,86 > 1. Sin anclaje, la franja pediría t ≥ 18·√8,37 ≈ 52 mm (por defecto) y ≈ 64 mm (B) en toda la zona entre el soporte y la mesa.
+
+**Por qué no se aplicó una solución en el núcleo.** El caso que manda es el de la retención: sin anclaje, el par del soporte solo puede bajar a la losa a través de la plancha hasta un punto retenido, y el único es la mesa, que con la mesa vacía no alcanza (fila anterior). Un refuerzo local (cartela, plancha de refuerzo, espesor local) aumenta la resistencia de la plancha pero no crea retención, de modo que no cierra el caso. Las dos soluciones que sí lo cierran (anclaje o base rígida) piden datos o decisiones que el proyecto no tiene: la losa (f'c, espesor, armadura, bordes) o si la tornamesa debe poder apoyarse en mats. No se inventan.
+
+**Soluciones (decisión del mandante; no se aplicó ninguna).**
+1. Refuerzo local (cartelas hacia atrás, plancha de refuerzo bajo el soporte, aumento local de espesor): no resuelve. Lo que falta es la retención del talón; un refuerzo bajo el soporte o hacia atrás no la crea, y llevar el momento hasta la mesa pide una sección del orden de 50–60 mm de espesor (o nervios) a lo largo de 0,3–0,5 m entre el soporte y la mesa, justo donde barre el cilindro (el cuerpo pasa a 40 mm sobre la plancha por defecto), van las placas-guía y está la oreja de izaje de la diagonal.
+2. Anclaje a la losa (mínimo en masa): pernos en bloques soldados al extremo de las paredes traseras prolongadas (fuera del barrido). Orden de magnitud con el pie en el eje de la pared opuesta: T ≈ M/0,38 m ≈ 120 kN por defecto y ≈ 185 kN con B en el empuje; ≈ 20–30 kN en el retorno. Consecuencias que hay que verificar antes de adoptarlo: (a) el cuerpo del soporte pasa a llevar ≈ 0,7·M en flexión vertical hasta el perno (paredes con las tapas como alas, estimación gruesa sin descontar el agujero del pasador: FU ≈ 0,8 por defecto y ≈ 1,0 con B; hay que reforzarlo); (b) la losa (arrancamiento, cono, bordes) la verifican terceros con f'c y espesor, datos que hoy no existen; (c) la tornamesa deja de poder apoyarse en mats.
+3. Base rígida (sin anclaje): plancha de ≥ 52–64 mm o emparrillado bajo la base entre los soportes y la mesa; sube el eje y la masa (≈ +1,7 t con 52 mm y ≈ +2,4 t con 64 mm en toda la base).
 
 ## Elementos sobre la base: holguras (10-11-2026)
 

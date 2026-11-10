@@ -507,6 +507,83 @@ print(f"    orejas–partes móviles: {dmov:.1f} mm (núcleo {row('Orejas de iza
 if min(dPE, dPS, dES, dEM, dmov) < 5: fails.append("interferencia entre elementos sobre la base"); print("XX  interferencia entre elementos sobre la base")
 if abs(dmov - row("Orejas de izaje libres de las partes móviles")["cap"]) > 0.02 * dmov: fails.append("holgura orejas–partes móviles difiere del núcleo"); print("XX  holgura orejas–partes móviles difiere")
 chk("Orejas de izaje–placas, soportes E y mesa: holgura mínima (mm)", min(dPE, dES, dEM), row("Orejas de izaje libres de las placas-guía")["cap"], tol=2e-3)   # el núcleo aproxima la mesa con un polígono de 144 lados
+print("== 5c. Plancha base bajo el soporte E: contacto unilateral sin anclaje (franja propia y FEA de Mindlin propia con contacto unilateral) ==")
+# Método 1 (franja, réplica): soporte rígido; M = F·h, h = altura del eje sobre la plancha; losa solo a compresión; retención solo en la mesa (R ≤ D/2);
+# M_corte = M·(1 − a/s_H) si la mesa queda detrás del talón (s_H > a), si no M; b = w + a; σ = 6·M_corte/(b·t²); τ = 1,5·(M/a)/(b·t).
+hE = zc0E - P["t_base"]; tB = P["t_base"]; O_loc = (-sxE * E[0], syE * E[1])
+VV = [(x, y) for _, (x0, x1, y0, y1) in rects for x in (x0, x1) for y in (y0, y1)]
+def strip(F_, sgn):
+    best = None
+    for u_ in dirs:
+        f_ = (sgn * u_[0], sgn * u_[1]); g_ = (-f_[1], f_[0]); pf = [p[0] * f_[0] + p[1] * f_[1] for p in VV]; pg = [p[0] * g_[0] + p[1] * g_[1] for p in VV]
+        toe = max(pf); a_ = toe - min(pf); w_ = max(pg) - min(pg); sH_ = toe - (O_loc[0] * f_[0] + O_loc[1] * f_[1]) + P["D_top"] / 2; M_ = F_ * hE
+        Mc_ = M_ * (1 - a_ / sH_) if sH_ > a_ else M_; b_ = w_ + a_; s_ = 6 * Mc_ / (b_ * tB * tB)
+        if best is None or s_ > best[0]: best = (s_, M_, a_, b_, u_, sH_)
+    return best
+stE, stR = strip(Fs, -1), strip(Fret_, 1)
+chk("Plancha base: σ de la franja, empuje a calado (MPa)", stE[0], row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, empuje")["dem"], tol=3e-3)
+chk("Plancha base: σ de la franja, retorno (MPa)", stR[0], row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, retorno")["dem"], tol=3e-3)
+chk("Plancha base: τ = 1,5·(M/a)/(b·t), empuje (MPa)", 1.5 * stE[1] / stE[2] / (stE[3] * tB), row("Plancha base bajo el soporte del ojal E: corte")["dem"], tol=3e-3)
+for nm_, st_ in (("empuje", stE), ("retorno", stR)):
+    if st_[0] <= Fy / Nd: fails.append("plancha base sin anclaje (" + nm_ + "): la franja debería exceder Fy/Nd"); print("XX  franja " + nm_)
+    if row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, " + nm_).get("st") not in (None, "pend"): fails.append("estado de la fila de la plancha (" + nm_ + ")")
+# Mesa vacía (el calado no depende de la carga): retención disponible = peso propio de la parte que gira (mesa + disco rotatorio + medio pivote + bloques-uña;
+# masas de derivados.masas, verificadas por indep_tt300c.py) frente a la pedida por los n_cil soportes con el brazo más largo, n_cil·M/s_H.
+MS_ = DV["masas"]; Wmv = (MS_["disc"] + MS_["ssTop"] + 0.5 * MS_["pivot"] + MS_["dogs"]) * 9.80665 / 1e3; Tmv = P["n_cyl"] * stE[1] / stE[5] / 1e3
+MV_ = PV["fabricacion"]["soporte_E"]["plancha_base"]["mesa_vacia"]
+chk("Plancha base: peso propio de la mesa vacía que retiene (kN)", Wmv, MV_["W_mesa_kN"], tol=2e-3)
+chk("Plancha base: retención pedida por los soportes, n_cil·M/s_H (kN)", Tmv, MV_["T_req_kN"], tol=3e-3)
+if not (Tmv > Wmv and MV_["cumple"] is False): fails.append("mesa vacía: la retención debería faltar"); print("XX  mesa vacía")
+# Método 2 (contraste): FEA propia de Mindlin (Q4 con integración selectiva: flexión 2×2, corte 1 punto) de la plancha (cuadrante del cilindro 1, malla
+# de 40 mm), soporte rígido por 3 grados de libertad maestros (w₀, θ_x, θ_y) en los nudos de la huella de las paredes, momento aplicado al cuerpo rígido,
+# resortes de contacto unilaterales en todos los nudos (conjunto activo: se liberan los traccionados y se reactivan los que penetran) y apoyo bilateral en
+# la huella de la mesa (R ≤ D/2: la mesa cargada retiene la plancha). Se compara la conclusión (σ > Fy/Nd en ambos casos), no el valor: la FEA tiene
+# picos en las esquinas de la huella rígida que dependen de la malla.
+try:
+    import numpy as np, scipy.sparse as sp_, scipy.sparse.linalg as spl_
+    hm_ = 40.0; Bh_ = P["B"] / 2; nx_ = ny_ = int(round(Bh_ / hm_)); Es_, nu_ = P["E"], P["nu"]
+    Xn = np.repeat(np.linspace(0, Bh_, nx_ + 1), ny_ + 1); Yn = np.tile(np.linspace(-Bh_, 0, ny_ + 1), nx_ + 1); nn_ = Xn.size
+    els_ = np.array([[i * (ny_ + 1) + j, (i + 1) * (ny_ + 1) + j, (i + 1) * (ny_ + 1) + j + 1, i * (ny_ + 1) + j + 1] for i in range(nx_) for j in range(ny_)])
+    Xl, Yl = sxE * (Xn - E[0]), -syE * (Yn - E[1])                  # marco local del soporte
+    inF_ = np.zeros(nn_, bool)
+    for _, (x0, x1, y0, y1) in rects: inF_ |= (Xl >= x0 - hm_ / 2) & (Xl <= x1 + hm_ / 2) & (Yl >= y0 - hm_ / 2) & (Yl <= y1 + hm_ / 2)
+    hold_ = np.hypot(Xn, Yn) <= P["D_top"] / 2
+    Db_ = Es_ * tB ** 3 / (12 * (1 - nu_ ** 2)) * np.array([[1, nu_, 0], [nu_, 1, 0], [0, 0, (1 - nu_) / 2]]); Ds_ = 5 / 6 * Es_ / (2 * (1 + nu_)) * tB * np.eye(2)
+    def Bm(xi, et, a_):
+        sgx, sgy = (-1, 1, 1, -1), (-1, -1, 1, 1); Bb_ = np.zeros((3, 12)); Bs_ = np.zeros((2, 12))
+        for k in range(4):
+            N_ = 0.25 * (1 + xi * sgx[k]) * (1 + et * sgy[k]); dx_ = 0.25 * sgx[k] * (1 + et * sgy[k]) / a_; dy_ = 0.25 * sgy[k] * (1 + xi * sgx[k]) / a_
+            Bb_[0, 3 * k + 1] = dx_; Bb_[1, 3 * k + 2] = dy_; Bb_[2, 3 * k + 1] = dy_; Bb_[2, 3 * k + 2] = dx_; Bs_[0, 3 * k] = dx_; Bs_[0, 3 * k + 1] = -N_; Bs_[1, 3 * k] = dy_; Bs_[1, 3 * k + 2] = -N_
+        return Bb_, Bs_
+    ah = hm_ / 2; gq = (-1 / math.sqrt(3), 1 / math.sqrt(3)); Ke_ = sum(Bm(x_, y_, ah)[0].T @ Db_ @ Bm(x_, y_, ah)[0] * ah * ah for x_ in gq for y_ in gq)
+    B0b, B0s = Bm(0, 0, ah); Ke_ = Ke_ + B0s.T @ Ds_ @ B0s * 4 * ah * ah
+    dof_ = np.stack([3 * els_, 3 * els_ + 1, 3 * els_ + 2], axis=2).reshape(len(els_), 12)
+    K0_ = sp_.csr_matrix((np.tile(Ke_.ravel(), len(els_)), (np.repeat(dof_, 12, axis=1).ravel(), np.tile(dof_, (1, 12)).ravel())), shape=(3 * nn_, 3 * nn_))
+    fr_ = np.array([d_ for k in range(nn_) if not inF_[k] for d_ in (3 * k, 3 * k + 1, 3 * k + 2)]); nf_ = fr_.size
+    Tr_, Tc_, Tv_ = list(fr_), list(range(nf_)), [1.0] * nf_
+    for k in np.where(inF_)[0]:     # w = w₀ + θ₁·(x − E_x) + θ₂·(y − E_y); β_x = θ₁, β_y = θ₂ (cuerpo rígido)
+        Tr_ += [3 * k, 3 * k, 3 * k, 3 * k + 1, 3 * k + 2]; Tc_ += [nf_, nf_ + 1, nf_ + 2, nf_ + 1, nf_ + 2]; Tv_ += [1.0, Xn[k] - E[0], Yn[k] - E[1], 1.0, 1.0]
+    T_ = sp_.csr_matrix((Tv_, (Tr_, Tc_)), shape=(3 * nn_, nf_ + 3)); Kr_ = (T_.T @ K0_ @ T_).tocsr(); kc_ = 1e8
+    def fea_(F_, u_, sgn):
+        f_ = (sgn * u_[0], sgn * u_[1]); fg_ = (sxE * f_[0], -syE * f_[1]); mx_, my_ = hE * F_ * (-fg_[1]), hE * F_ * fg_[0]
+        rhs_ = np.zeros(nf_ + 3); rhs_[nf_ + 1] = -my_; rhs_[nf_ + 2] = mx_; act_ = inF_.copy()
+        for it_ in range(200):
+            kv_ = np.where(act_ | hold_, kc_, 0.0); Kc_ = sp_.csr_matrix((kv_, (3 * np.arange(nn_), 3 * np.arange(nn_))), shape=(3 * nn_, 3 * nn_))
+            uu_ = T_ @ spl_.spsolve((Kr_ + T_.T @ Kc_ @ T_).tocsc(), rhs_); w_ = uu_[0::3]
+            new_ = act_.copy(); new_[(w_ > 1e-9) & ~hold_] = False; new_[w_ < -1e-9] = True
+            if (new_ == act_).all(): break
+            act_ = new_
+        sg_ = 0.0
+        for ie, e in enumerate(els_):
+            if inF_[e].all(): continue
+            s_ = 6 * (Db_ @ (B0b @ uu_[dof_[ie]])) / tB ** 2; sg_ = max(sg_, math.sqrt(s_[0] ** 2 - s_[0] * s_[1] + s_[1] ** 2 + 3 * s_[2] ** 2))
+        return sg_, it_, float(w_.max())
+    for nm_, F_, st_, sgn in (("empuje a calado", Fs, stE, -1), ("retorno (atasco)", Fret_, stR, 1)):
+        sF, itF, wF = fea_(F_, st_[4], sgn)
+        print(f"    {nm_:18s} franja σ = {st_[0]:8.1f} MPa (FU {st_[0] / (Fy / Nd):5.2f}); FEA unilateral σ_vm máx (malla 40) = {sF:8.1f} MPa (FU {sF / (Fy / Nd):5.2f}), levantamiento {wF:5.2f} mm, {itF} iteraciones")
+        if sF <= Fy / Nd: fails.append("FEA de la plancha (" + nm_ + "): la conclusión no coincide con la franja"); print("XX  FEA " + nm_)
+except ImportError:
+    print("    numpy/scipy no disponibles: se omite la FEA de contraste")
 print("== 6. Pivote: asimetría del par por roce desigual μ_s ± 0,05 (a calado) ==")
 F0 = Fst * eta
 H = 0.0

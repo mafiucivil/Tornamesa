@@ -2391,7 +2391,12 @@ const TT = (() => {
         juntas, secuencia: sg.secuencia,
         marco_interrupcion: { cilindro1: rimCut(1), cilindro2: rimCut(2), holgura_acceso: sg.marco.holgura, nota: "el marco perimetral se corta frente a las paredes traseras (acceso exterior al resanado y respaldo de las CJP); extremos del marco libres, con chaflán" },
         soldadura: { filete: P.pv_wbox, paredes_base: "CJP TC-U4b (bisel interior, resanado y respaldo exterior) + filete de refuerzo interior z" + P.pv_wbox, pared_pared: "CJP TC-U4b + filete de refuerzo interior z" + P.pv_wbox, tapas_paredes: "PJP TC-P4 S = " + sg.S_pjp + " (E = " + sg.E_pjp + ") desde arriba + filete de refuerzo z" + P.pv_wbox + "; sin soldadura por debajo" },
-        material: "S355J2 (Fy " + P.Fy + ")", masa: sg.m },
+        material: "S355J2 (Fy " + P.Fy + ")", masa: sg.m,
+        plancha_base: (() => { const BP = pivBasePlate(P, R), Fa = P.Fy / P.Nd, cs = (nm, c, st) => ({ caso: nm, F_kN: c.F / 1e3, h: c.h, M_kNm: c.M / 1e6, a: c.a, w: c.w, b: c.b, s_H: c.sH, retencion_detras_del_talon: c.ret, M_corte_kNm: c.Mc / 1e6, sigma: c.sig, cap: Fa, fu: c.sig / Fa, tau: c.tau, fu_corte: c.tau / (Fa / Math.sqrt(3)), sentido: c.sentido, psi_deg: ((c.psi / D2R) % 360 + 360) % 360, norma: "ASME BTH-1 §3-2.3 (flexión), §3-2.2 (corte)", estado: st });
+          return { t: P.t_base, material: "S355J2 (Fy " + P.Fy + " MPa)", anclaje: "no definido en el proyecto (base apoyada en losa o mats): contacto unilateral, sin retención propia", modelo: "soporte rígido; losa rígida solo a compresión; retención del talón solo por la mesa (R ≤ D/2) a través de la plancha; franja M_corte = M·(1 − a/s_H) (M si s_H ≤ a), b = w + a; coordenadas del marco local del soporte",
+            casos: [cs("empuje a calado", BP.empuje, BP.empuje.sig > Fa ? "no cumple sin anclaje" : "cumple"), cs("retorno (atasco)", BP.retorno, BP.retorno.sig > Fa ? "no cumple sin anclaje" : "cumple")],
+            mesa_vacia: { W_mesa_kN: BP.mesaVacia.W / 1e3, T_req_kN: BP.mesaVacia.Treq / 1e3, cumple: BP.mesaVacia.ok, nota: "calado con la mesa vacía (atasco): retención disponible = peso propio de la parte que gira (mesa + disco rotatorio + medio pivote + bloques-uña); pedida = n_cil·M/s_H con el brazo más largo" },
+            caso_termico: "no aplica (F de la presión de alivio y de retorno; la base queda a la sombra)", estado: "PENDIENTE: decisión de anclaje a la losa (o rediseño de la base) por el mandante; datos de la losa no definidos (f'c, espesor, armadura, bordes)", referencia: "docs/normas/registro.md, «Plancha base bajo el soporte del ojal E (10-11-2026)»" }; })() },
       pasador_E: { d: P.pv_dE, largo: sg.forkH + 20, z: [sg.zL - P.pv_tl / 2 - 10, sg.zU + P.pv_tl / 2 + 10], material: "Fy " + P.Fy_pp + " MPa", ajuste: "H9/f8" },
       bloque_una: { contorno_local: G.bloque.local, h: P.pv_hu, z: [bk.zBot, bk.zBot + P.pv_hu], agujero_Q: P.pv_dq, horquilla: { ranura_ojal: P.b_eye + 2 * P.g_ch, t_mejilla: bk.tq, R_cubo: bk.eb }, cuerpo: { b: P.pv_bu, e_acodado: P.pv_ecr }, cara: { b: P.pv_bf, l: P.pv_lf, radio_planta: bk.Rf || null, flecha_arista: bk.sag, contacto_desde_eje: bk.ec, nota: bk.Rf > 0 ? "cara cilíndrica convexa en planta (generatriz vertical), vértice en s = L_qp − r; aristas con chaflán 3 × 45°" : "cara plana", templada: "≥ 55 HRC (Fy_sup " + P.Fy_surf + ")" }, material: "34CrNiMo6+QT (Fy " + P.Fy_dog + ")",
         nota: "marco local: origen en Q, x hacia el pasador tomado, y = t (hacia O); el cuerpo se desplaza e_acodado hacia −y" },
@@ -2547,6 +2552,38 @@ const TT = (() => {
     });
     return out;
   }
+  // Plancha base bajo el soporte del ojal E (docs/normas/registro.md, «Plancha base bajo el soporte del ojal E (10-11-2026)»). El soporte es un cuerpo rígido
+  // soldado a la plancha; la fuerza del cilindro F·f actúa en E a h = (h_sup + h_inf)/2 sobre la plancha (resultante de F/2 en cada tapa) y le aplica M = F·h
+  // alrededor del eje horizontal ⟂ f. En el plano de la plancha F se cierra con el otro cilindro y el roce de la mesa (par horizontal): la losa no toma corte.
+  // La losa es rígida y solo comprime (contacto unilateral); el proyecto no define anclaje (base apoyada en losa o mats) y el peso propio de la plancha es
+  // despreciable (ρ·g·t ≈ 0,0014 MPa), de modo que la única retención del talón es la mesa (R ≤ D/2), a través de la plancha.
+  // Franja (equilibrio del cuerpo libre soporte + plancha del lado del pie de la línea del talón, ∥ al vector momento): con la compresión de la losa en el pie
+  // (brazo a = extensión de la huella de las paredes en f) y la retención en el borde MÁS LEJANO de la mesa (s_H = brazo desde el pie: el brazo más largo,
+  // favorable para la retención T = M/s_H y conservador para M_corte, que crece con s_H),
+  // M_corte = M·(1 − a/s_H) cruza la línea del talón; si s_H ≤ a (la mesa no queda detrás del talón: retorno) no hay retención y M_corte = M.
+  // Ancho b = w + a (w = ancho de la huella ⟂ f; reparto a 45° desde el centro de la huella, a a/2 de la línea crítica; criterio de ingeniería). σ = 6·M_corte/(b·t²) ≤ Fy/Nd.
+  // Corte de la franja con la cota superior V = M/a (retención en el talón): τ = 1,5·V/(b·t) ≤ Fy/(Nd·√3). Empuje con F_calado (−u); retorno con
+  // F_ret = A_anular·p_ret (atasco del retorno, +u); todos los estados del barrido en ambos sentidos (marco canónico del cilindro 1; el 2 por rotación de 180°).
+  function pivBasePlate(P, R) {
+    const sg = R.sup, K = R.K, E = K.E, O = [-sg.sx * E[0], sg.sy * E[1]], h = (sg.hU + sg.hL) / 2, t = P.t_base, Rh = P.D_top / 2;
+    const V = sg.walls.flatMap((w) => { const [x0, x1, y0, y1] = w.rect; return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }), d = (p, v) => p[0] * v[0] + p[1] * v[1];
+    const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10, out = {};
+    [["empuje", R.Fstall * 1e3, -1], ["retorno", Fret, 1]].forEach(([k, F, s]) => {
+      let best = null;
+      sg.sweep.estados.map((q) => Object.assign({ sentido: "antihorario" }, q)).concat(sg.sweep.horario.map((q) => Object.assign({ sentido: "horario" }, q))).forEach((q) => {
+        const f = [s * Math.cos(q.psi), s * Math.sin(q.psi)], g = [-f[1], f[0]], pf = V.map((p) => d(p, f)), pg = V.map((p) => d(p, g));
+        const toe = Math.max(...pf), a = toe - Math.min(...pf), w = Math.max(...pg) - Math.min(...pg), sH = toe - d(O, f) + Rh, M = F * h;
+        const ret = sH > a, Mc = ret ? M * (1 - a / sH) : M, b = w + a, sig = 6 * Mc / (b * t * t), Vs = M / a, tau = 1.5 * Vs / (b * t);
+        if (!best || sig > best.sig) best = { F, M, h, a, w, b, sH, ret, Mc, sig, Vs, tau, T: ret ? M / sH : Infinity, psi: q.psi, sentido: q.sentido, fase: q.fase };
+      });
+      out[k] = best;
+    });
+    // Mesa vacía: el calado no depende de la carga (atasco con la mesa vacía). La retención disponible es el peso propio de la parte que gira (W_d = mesa +
+    // disco rotatorio + medio pivote, más los bloques-uña: cota superior) y la piden los dos soportes a la vez con el brazo más largo: T_req = 2·M/s_H.
+    const Wm = R.Wd * 1e3 + (R.m.dogs || 0) * G, Treq = P.n_cyl * out.empuje.T;
+    out.mesaVacia = { W: Wm, Treq, ok: Treq <= Wm };
+    return out;
+  }
   function pivFat(P, R, Fd) {
     const F = Fd * 1e3, sg = R.sup, L = pivSupLoads(P, sg, F);
     const m = pivPinM(P, R, F, P.mu_s * F);
@@ -2633,6 +2670,14 @@ const TT = (() => {
     add({ grp: SO, sys: "est", kind: "geo", name: "Soporte del ojal E: acceso exterior a las CJP de las paredes traseras (marco interrumpido frente al soporte)", formula: "w_refuerzo + 5 ≤ distancia de la cara exterior de la pared al borde de la base (resanado y soldadura de respaldo desde fuera de la base; el marco se interrumpe hasta " + nfx(sg.marco.alcance, 0) + " mm del eje E a lo largo de los dos bordes)", dem: wr + 5, cap: gapEdge, unit: "mm", ref: "AWS D1.1/D1.1M:2020 §7 (acceso para resanado y respaldo); " + REG_SE });
     add({ grp: SO, sys: "est", kind: "geo", name: "Soporte del ojal E: rincón para el filete de refuerzo de la tapa superior (rebaje bajo el borde de las paredes)", formula: "w_refuerzo ≤ rebaje", dem: wr, cap: P.pv_rebt, unit: "mm", ref: "AWS D1.1/D1.1M:2020 Figura 5.2 (filete en T: el cateto vertical necesita la pared sobre la tapa)" });
     add({ grp: SO, sys: "est", kind: "info", name: "Soporte del ojal E: secuencia de armado y soldadura (todas las uniones accesibles; la cara inferior de las tapas no se suelda)", formula: sg.secuencia.join(" "), dem: sg.m, unit: "kg (por soporte)", ref: REG_SE });
+    // plancha base bajo el soporte: contacto unilateral sin anclaje (no definido en el proyecto); filas con FU y estado «pend» (decisión de anclaje del mandante)
+    const BP = pivBasePlate(P, R), REG_BP = "docs/normas/registro.md, «Plancha base bajo el soporte del ojal E (10-11-2026)»", be = BP.empuje, br = BP.retorno, Fa = Fy / Nd;
+    const stTxt = (c) => " (peor estado: " + c.sentido + ", " + (c.fase || "") + ", eje a " + nfx(((c.psi / D2R) % 360 + 360) % 360, 1) + "° en el marco del soporte)";
+    add({ grp: SO, sys: "est", kind: "info", name: "Plancha base bajo el soporte del ojal E: modelo de la transferencia de carga y casos", formula: "Soporte rígido soldado a la plancha de " + P.t_base + " mm; F en E a h = (h_sup + h_inf)/2 = " + nfx(be.h, 1) + " mm sobre la plancha, M = F·h ⟂ f. En planta F se cierra con el otro cilindro y el roce de la mesa (la losa no toma corte). Losa rígida con contacto unilateral (solo compresión); anclaje a la losa: NO definido en el proyecto (base apoyada en losa o mats); peso propio despreciable: la única retención del talón es la mesa (R ≤ D/2) a través de la plancha. Casos: empuje a calado (F = " + nfx(be.F / 1e3) + " kN, M = " + nfx(be.M / 1e6, 2) + " kN·m) y atasco del retorno (F_ret = A_anular·p_ret = " + nfx(br.F / 1e3) + " kN, M = " + nfx(br.M / 1e6, 2) + " kN·m), todos los estados del barrido en ambos sentidos; caso térmico: no aplica (F sale de la presión de alivio y de retorno, y la base queda a la sombra: h no cambia). La interfaz B (eje más alto) gobierna", dem: be.M / 1e6, cap: br.M / 1e6, unit: "kN·m (empuje / retorno)", ref: REG_BP });
+    add({ grp: SO, sys: "est", stFix: "pend", name: "Plancha base bajo el soporte del ojal E: flexión sin anclaje, empuje a calado — NO CUMPLE sin anclaje a la losa (PENDIENTE: decisión del mandante)", formula: "σ = 6·M_corte/(b·t²) ≤ Fy/Nd; M_corte = M·(1 − a/s_H) en la línea del talón con la retención en el borde más lejano de la mesa (s_H = " + nfx(be.sH, 0) + " mm: el brazo más largo, conservador para M_corte), a = " + nfx(be.a, 0) + " mm, b = w + a = " + nfx(be.b, 0) + " mm (reparto a 45° desde el centro de la huella); M_corte = " + nfx(be.Mc / 1e6, 2) + " kN·m" + stTxt(be) + ". La FEA con contacto unilateral del verificador independiente da tensiones mayores", dem: be.sig, cap: Fa, unit: "MPa", ref: "ASME BTH-1 §3-2.3; " + REG_BP });
+    add({ grp: SO, sys: "est", stFix: "pend", name: "Plancha base bajo el soporte del ojal E: flexión sin anclaje, retorno (atasco) — sin retención detrás del talón (PENDIENTE: anclaje)", formula: "σ = 6·M/(b·t²) ≤ Fy/Nd: la mesa queda delante del pie (s_H = " + nfx(br.sH, 0) + " mm ≤ a = " + nfx(br.a, 0) + " mm) y toda la M cruza la línea del pie; b = w + a = " + nfx(br.b, 0) + " mm" + stTxt(br), dem: br.sig, cap: Fa, unit: "MPa", ref: "ASME BTH-1 §3-2.3; " + REG_BP });
+    add({ grp: SO, sys: "est", name: "Plancha base bajo el soporte del ojal E: corte de la franja (empuje a calado)", formula: "τ = 1,5·V/(b·t) ≤ Fy/(Nd·√3), V = M/a = " + nfx(be.Vs / 1e3) + " kN (cota superior: retención en el talón)", dem: be.tau, cap: Fy / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.2; " + REG_BP });
+    add({ grp: SO, sys: "est", kind: "pend", name: "Plancha base bajo el soporte del ojal E: levantamiento del talón — anclaje a la losa no definido en el proyecto (PENDIENTE: anclaje y datos de la losa: f'c, espesor, armadura, bordes)", formula: "Sin anclaje la plancha despega del lado traccionado y la retención llega solo desde la mesa (filas de flexión). Momento a anclar por soporte: empuje " + nfx(be.M / 1e6, 2) + " kN·m, retorno " + nfx(br.M / 1e6, 2) + " kN·m; con la retención en el borde más lejano de la mesa T = M/s_H = " + nfx(be.T / 1e3) + " kN por soporte (empuje). Con la mesa vacía (el calado no depende de la carga) la retención disponible es su peso propio, " + nfx(BP.mesaVacia.W / 1e3) + " kN, " + (BP.mesaVacia.ok ? "≥" : "<") + " " + nfx(BP.mesaVacia.Treq / 1e3) + " kN que piden los " + P.n_cyl + " soportes", dem: be.M / 1e6, unit: "kN·m", ref: REG_BP });
     // placas-guía curvas: cargas (empuje guiado a calado y atasco del retorno), contacto con el radio real, ligamento, tornillos, pasadores de posición y base
     const tc = P.pv_tcam, lp = CP.lpad, g = CP.guia, V = GV, hz = CP.hz;
     add({ grp: PL, sys: "est", kind: "info", name: "Placa-guía (" + fam.nombre + (fam.auto ? ", automático" : "") + "): cargas del seguidor: atasco del retorno con el giro en E trabado / empuje a calado con Q apoyado en el canto", formula: "N_atasco = F_ret/sen φ₁ (φ₁ = " + nfx(g.primer_contacto.phi, 1) + "° en el primer contacto del retorno, L = " + nfx(g.primer_contacto.L, 1) + " mm, sin el roce que ayuda); H = máx h·F_calado·η (empuje guiado); la placa se verifica con N = máx de ambas", dem: CP.NR / 1e3, cap: CP.Tst / 1e3, unit: "kN", ref: REG_PV });
@@ -3366,8 +3411,9 @@ const TT = (() => {
     const woodMode = opts.wood == null ? "form" : opts.wood;
     const ids = opts.alts || TH_ALTS.map((a) => a[0]);
     const cache = new Map(), alts = [];
-    const fuEstOf = (A) => { let best = null; A.checks.forEach((c) => { if (!c.fuera && c.grp !== "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
-    const fuTermOf = (A) => { let best = null; A.checks.forEach((c) => { if (!c.fuera && c.grp === "Temperatura" && c.sys === "est" && c.kind === "fu" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
+    // FU gobernante del escenario: filas que entran al veredicto (las «pend» con FU, p. ej. la plancha base sin anclaje, quedan fuera de la comparación)
+    const fuEstOf = (A) => { let best = null; A.checks.forEach((c) => { if (!c.fuera && c.grp !== "Temperatura" && c.sys === "est" && c.kind === "fu" && c.st !== "pend" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
+    const fuTermOf = (A) => { let best = null; A.checks.forEach((c) => { if (!c.fuera && c.grp === "Temperatura" && c.sys === "est" && c.kind === "fu" && c.st !== "pend" && isFinite(c.fu) && (!best || c.fu > best.fu)) best = c; }); return best; };
     const brief = (c) => (c ? { grp: c.grp, nombre: c.name, fu: c.fu } : null);
     const woods = woodMode === "both" ? [0, 1] : [woodMode === true || woodMode === 1 ? 1 : woodMode === false || woodMode === 0 ? 0 : (P.opt_wood > 0.5 ? 1 : 0)];
     TH_ALTS.filter((a) => ids.includes(a[0])).forEach(([id, nombre, flags]) => woods.forEach((w) => {

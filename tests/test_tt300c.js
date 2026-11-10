@@ -293,7 +293,11 @@ test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
   assert.ok(A.verdict.estructura, "estructura");
   // Excepción aceptada por el mandante el 07-11-2026: uña con Fy = 800 MPa (34CrNiMo6+QT, EN 10083-3, 40 < t ≤ 100 mm), FU 0,907 ≤ 1,0 (BTH-1 §3-2.3, Nd 3,0)
   const ACEPTADAS = [/^Flexión en la boca del patín/];
-  const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu");
+  // Pendiente abierto (10-11-2026, docs/normas/registro.md «Plancha base bajo el soporte del ojal E»): la plancha base sin anclaje NO cumple; las filas llevan
+  // su FU con estado «pend» hasta la decisión de anclaje del mandante. Se listan aquí de forma explícita (no se excluye ninguna otra fila).
+  const PEND_PLANCHA = /^Plancha base bajo el soporte del ojal E: flexión sin anclaje/;
+  const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && !PEND_PLANCHA.test(c.name));
+  assert.ok(A.checks.filter((c) => PEND_PLANCHA.test(c.name)).every((c) => c.st === "pend" && c.fu > 1), "plancha base sin anclaje: pendiente con FU > 1");
   assert.ok(est.filter((c) => !ACEPTADAS.some((r) => r.test(c.name))).every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura");
   assert.ok(est.filter((c) => ACEPTADAS.some((r) => r.test(c.name))).every((c) => c.fu <= 0.92), "excepción aceptada: FU ≤ 0,92 (holgura sobre 0,907)");
 });
@@ -1291,7 +1295,9 @@ const P2 = (o) => Object.assign(TG(), { drive_mode: 2 }, o || {});
 test("Pivotado · modo 2 por defecto: gira, la estructura cumple con FU ≤ 0,90 y no hay patín, bancada ni ménsulas", () => {
   const A = TT.analyze(P2()), R = A.R;
   assert.equal(TT.defaults().drive_mode, 2, "el modo pivotado es el valor por defecto (mandante, 08-11-2026)"); assert.ok(A.verdict.gira, "gira"); assert.ok(A.verdict.estructura, "estructura");
-  const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu");
+  const PEND_PLANCHA = /^Plancha base bajo el soporte del ojal E: flexión sin anclaje/;   // pendiente abierto (anclaje): ver «Soporte E · plancha base de 18 mm…»
+  const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && !PEND_PLANCHA.test(c.name));
+  assert.ok(A.checks.filter((c) => PEND_PLANCHA.test(c.name)).length === 2 && A.checks.filter((c) => PEND_PLANCHA.test(c.name)).every((c) => c.st === "pend"));
   assert.ok(est.every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura: " + est.filter((c) => c.fu > 0.9).map((c) => c.name + " " + c.fu.toFixed(3)).join("; "));
   assert.ok(!A.checks.some((c) => c.grp === "Patín y guía" || /patín/.test(c.name) && c.grp === "Giro"), "sin filas del patín");
   assert.equal(R.m.shoes, 0); assert.equal(R.m.beds, 0);
@@ -1761,4 +1767,60 @@ test("Placa-guía · pasadores de posición ISO 8734: largo, enganche ≥ 1,5·d
   assert.ok(A.checks.filter((c) => /^Pasadores de posición/.test(c.name) && c.kind === "geo").every((c) => c.st === "ok"));
   // con Ø16 (valor anterior) la base de 18 mm no da 1,5·d con alojamiento ciego
   assert.equal(TT.analyze(P2({ pv_dd: 16 }), { noFEA: true }).checks.find((c) => /^Pasadores de posición .*enganche en la base/.test(c.name)).st, "fail");
+});
+test("Soporte E · plancha base de 18 mm bajo el momento del soporte: contacto unilateral sin anclaje, empuje a calado y retorno, ambos sentidos (NO cumple: anclaje pendiente)", () => {
+  // Modelo (docs/normas/registro.md, «Plancha base bajo el soporte del ojal E»): soporte rígido; F en h = (h_sup + h_inf)/2 sobre la plancha, M = F·h;
+  // losa rígida solo a compresión, sin anclaje (no definido en el proyecto); la única retención del talón es la mesa (R ≤ D/2) a través de la plancha.
+  // Franja: M_corte = M·(1 − a/s_H) en la línea del talón (s_H = brazo hasta el borde más lejano de la mesa; si s_H ≤ a no hay retención y M_corte = M),
+  // b = w + a (reparto a 45° desde el centro de la huella), σ = 6·M_corte/(b·t²) ≤ Fy/Nd (ASME BTH-1 §3-2.3).
+  const run = (o) => { const P = P2(o), A = TT.analyze(P, { noFEA: true }); return { P, A, R: A.R, D: TT.designDrive(P, A.R).pivotado.fabricacion.soporte_E }; };
+  const own = (P, R) => {
+    const sg = R.sup, E = R.K.E, O = [-sg.sx * E[0], sg.sy * E[1]], h = (sg.hU + sg.hL) / 2, t = P.t_base;
+    const V = sg.walls.flatMap((w) => { const [x0, x1, y0, y1] = w.rect; return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; });
+    const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10, out = {};
+    for (const [k, F, sg_] of [["empuje", R.Fstall * 1e3, -1], ["retorno", Fret, 1]]) {
+      let best = { sig: 0 }; const bySense = [0, 0];
+      sg.sweep.estados.map((q) => [0, q]).concat(sg.sweep.horario.map((q) => [1, q])).forEach(([k2, q]) => {
+        const f = [sg_ * Math.cos(q.psi), sg_ * Math.sin(q.psi)], g = [-f[1], f[0]], d = (p, v) => p[0] * v[0] + p[1] * v[1];
+        const pf = V.map((p) => d(p, f)), pg = V.map((p) => d(p, g)), toe = Math.max(...pf), a = toe - Math.min(...pf), w = Math.max(...pg) - Math.min(...pg);
+        const sH = toe - d(O, f) + P.D_top / 2, M = F * h, Mc = sH > a ? M * (1 - a / sH) : M, b = w + a, sig = 6 * Mc / (b * t * t);
+        bySense[k2] = Math.max(bySense[k2], sig);
+        if (sig > best.sig) best = { sig, M, Mc, a, w, b, sH, ret: sH > a };
+      });
+      out[k] = Object.assign(best, { bySense });
+    }
+    return out;
+  };
+  const C = run({}), mine = own(C.P, C.R), Fa = C.P.Fy / C.P.Nd;
+  const row = (re) => C.A.checks.find((c) => re.test(c.name));
+  const rE = row(/^Plancha base bajo el soporte del ojal E: flexión sin anclaje.*empuje a calado/), rR = row(/^Plancha base bajo el soporte del ojal E: flexión sin anclaje.*retorno/);
+  assert.ok(rE && rR, "filas de flexión de la plancha (empuje y retorno)");
+  near(rE.dem, mine.empuje.sig, 1e-9, "σ empuje"); near(rR.dem, mine.retorno.sig, 1e-9, "σ retorno"); near(rE.cap, Fa, 1e-12, "Fy/Nd");
+  assert.ok(/BTH-1/.test(rE.ref) && /registro/.test(rE.ref));
+  // sin anclaje no cumple (FU > 1 en el empuje); la fila queda «pend» (decisión de anclaje del mandante) para no ocultar el FU ni cambiar el veredicto sin decisión
+  assert.ok(rE.fu > 1 && rE.st === "pend", "empuje sin anclaje: FU " + rE.fu.toFixed(2));
+  assert.ok(rR.fu > 1 && rR.st === "pend", "retorno sin anclaje: FU " + rR.fu.toFixed(2));
+  assert.ok(mine.empuje.ret && !mine.retorno.ret, "en el empuje la mesa queda detrás del talón; en el retorno no hay retención detrás del talón");
+  // ambos sentidos: el barrido horario (reflejo respecto de la diagonal) da el mismo máximo por simetría del soporte en L
+  for (const k of ["empuje", "retorno"]) near(mine[k].bySense[0], mine[k].bySense[1], 1e-6, k + ": antihorario = horario");
+  // levantamiento: anclaje no definido → fila pendiente con el momento a anclar
+  const rL = row(/^Plancha base bajo el soporte del ojal E: levantamiento/); assert.ok(rL && rL.st === "pend" && /anclaje/.test(rL.name));
+  const rV = row(/^Plancha base bajo el soporte del ojal E: corte/); assert.ok(rV && rV.st === "ok");
+  near(rV.dem, 1.5 * mine.empuje.M / mine.empuje.a / (mine.empuje.b * C.P.t_base), 1e-9, "τ = 1,5·(M/a)/(b·t)");
+  const rI = row(/^Plancha base bajo el soporte del ojal E: modelo/); assert.ok(rI && rI.kind === "info" && /térmic/.test(rI.formula) && /unilateral/.test(rI.formula));
+  // interfaz B (eje más alto): gobierna (σ ∝ h)
+  const B = run({ opt_uhmw: 1 }), mB = own(B.P, B.R);
+  assert.ok(mB.empuje.sig > mine.empuje.sig && B.R.sup.zc0 > C.R.sup.zc0);
+  near(B.A.checks.find((c) => /^Plancha base bajo el soporte del ojal E: flexión sin anclaje.*empuje a calado/.test(c.name)).dem, mB.empuje.sig, 1e-9, "σ empuje con B");
+  // exportación en soporte_E
+  const X = C.D.plancha_base; assert.ok(X && X.t === C.P.t_base && X.anclaje && /no definido/.test(X.anclaje) && /pendiente/i.test(X.estado));
+  assert.ok(X.casos.length === 2 && X.casos.every((c) => c.fu > 0 && isFinite(c.M_kNm) && c.norma && /BTH-1/.test(c.norma)));
+  near(X.casos.find((c) => c.caso === "empuje a calado").fu, rE.fu, 1e-12);
+  // el calado no depende de la carga (atasco con la mesa vacía): la retención de la mesa vacía es su peso propio (W_d = mesa + disco rotatorio + medio
+  // pivote, más los bloques-uña montados en la mesa: cota superior), que no alcanza para los dos soportes ni con el brazo más largo: 2·M/s_H > W_mesa
+  const mv = X.mesa_vacia, Wm = C.R.Wd + C.R.m.dogs * 9.80665 / 1e3, Treq = 2 * mine.empuje.M / mine.empuje.sH / 1e3;
+  assert.ok(mv, "export de la retención con la mesa vacía");
+  near(mv.W_mesa_kN, Wm, 1e-9, "peso propio de la mesa"); near(mv.T_req_kN, Treq, 1e-9, "retención pedida por los dos soportes");
+  assert.ok(mv.T_req_kN > mv.W_mesa_kN && mv.cumple === false, "mesa vacía: no retiene");
+  assert.ok(/mesa vacía/.test(rL.formula), "la fila del levantamiento declara el caso de la mesa vacía");
 });
