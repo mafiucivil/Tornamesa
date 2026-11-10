@@ -132,7 +132,8 @@ def int_sector_sheet(ctx, key, titulo, face):
 
     # B-20/H-26/H-29: rugosidad y planitud sobre la cara deslizante en el corte; datums B y C en las dos juntas (plano medio común B-C = bisectriz)
     dz_ = 1 if face == "top" else -1
-    p.ra_in("corte", "Ra 0,4" if key != "int_uhmw" else "Ra 3,2", [(g.r_u - 100, 0, zs), (g.r_u + 100, 0, zs), (g.r_u - 60, 0, zs)], (0, 0, dz_))
+    # candidatos sobre la cara deslizante en orden de preferencia (los primeros son los de siempre; el resto, si las cotas ocupan esos lugares)
+    p.ra_in("corte", "Ra 0,4" if key != "int_uhmw" else "Ra 3,2", [(g.r_u + k_, 0, zs) for k_ in (-100, 100, -60, 60, -140, 140, -20, 20, -180, 180, -220, 220)], (0, 0, dz_))
     p.gd_in("corte", "surf", "flat", "0,05" if key != "int_uhmw" else "0,5", None, at=[(g.r_u + 70, 0, zs), (g.r_u - 30, 0, zs), (g.r_u + 115, 0, zs)], d=(0, 0, dz_))
     muesca_ = g.removable and key != "int_uhmw" and Ln
     if muesca_:
