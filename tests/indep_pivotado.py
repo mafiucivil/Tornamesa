@@ -434,7 +434,15 @@ chk("Soporte E: rebaje de la tapa superior bajo el borde (mm)", SE["z_paredes"][
 wmin_ = lambda T: 3 if T <= 6 else 5 if T <= 12 else 6 if T <= 20 else 8
 chk("Soporte E: filete de refuerzo mínimo AWS D1.1 Tabla 5.8 (mm)", wmin_(max(P["pv_tbox"], P["t_base"], P["pv_tl"])), row("Soporte del ojal E: filete de refuerzo mínimo")["dem"])
 chk("Soporte E: distancia de la cara exterior al borde de la base (mm)", P["B"] / 2 - (max(abs(E[0]), abs(E[1])) + bE), row("Soporte del ojal E: acceso exterior")["cap"])
-mPin_ = 7.85e-6 * math.pi / 4 * P["pv_dE"] ** 2 * (P["b_eye"] + 2 * P["g_ch"] + 2 * P["pv_tl"] + 20)
+# pasador E (22-11-2026): 10 mm sobre la tapa superior; por debajo, al ras de la tapa inferior o hasta 10 mm, dejando 10 mm de diseño (≥ 5) sobre la cara del
+# inserto de esquina (con el saliente fijo de 10 mm el extremo quedaba bajo la cara del inserto)
+PE_ = PV["fabricacion"]["pasador_E"]; tIns_ = SE["inserto"]["t"] if SE.get("inserto") else P["t_base"]
+zTi_ = SE["tapas"]["z_inf"][0]; zTs_ = SE["tapas"]["z_sup"][1]
+z0_ = min(zTi_, max(zTi_ - 10, tIns_ + 10)); z1_ = zTs_ + 10
+chk("Pasador E: extremo inferior (z, mm)", z0_, PE_["z"][0]); chk("Pasador E: extremo superior (z, mm)", z1_, PE_["z"][1]); chk("Pasador E: largo (mm)", z1_ - z0_, PE_["largo"])
+if z0_ - tIns_ < 5: fails.append("pasador E bajo la cara del inserto"); print("XX  pasador E bajo la cara del inserto")
+else: print(f"OK  pasador E: extremo inferior a {z0_ - tIns_:.0f} mm sobre la cara del inserto de {tIns_} mm (≥ 5)")
+mPin_ = 7.85e-6 * math.pi / 4 * P["pv_dE"] ** 2 * (z1_ - z0_)
 area_cap = abs(sum(cap_[i_][0] * cap_[(i_ + 1) % len(cap_)][1] - cap_[(i_ + 1) % len(cap_)][0] * cap_[i_][1] for i_ in range(len(cap_)))) / 2 - math.pi / 4 * P["pv_dE"] ** 2
 hW = SE["z_paredes"][1] - SE["z_paredes"][0]
 mOwn = 7.85e-6 * (sum((x1 - x0) * (y1 - y0) for _, (x0, x1, y0, y1) in rects) * hW + 2 * area_cap * P["pv_tl"]) + mPin_

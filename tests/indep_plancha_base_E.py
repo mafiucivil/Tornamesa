@@ -10,8 +10,8 @@ Revisor independiente. No lee packages/*.js. Parámetros: tests/golden/params_de
   §3 Criterio: ASME BTH-1-2020 Cat. B (Nd = 3,0). Plancha en flexión fuera de su plano (sección rectangular maciza en flexión respecto del eje
      menor): §3-2.3.4, F_b = 1,25·Fy/Nd (registro normativo 7030ee3; número de ecuación: verificar). Corte §3-2.3.6. Referencias: Cat. A y AISC F11.
   §3b Inserto de esquina (exportado): geometría propia desde los vértices (hipotenusa, catetos, rotación de 180°, CJP), holguras propias en planta a las
-     placas-guía y al cubo de Q (posiciones exportadas) y en altura al cuerpo del cilindro (con el rebaje local), masa propia (cuña de la transición
-     1:2,5 y rebaje), casos (F de las presiones y de los casos de fricción, M = F·h), 1,25·Fy/Nd, limitación de uso en el veredicto, estado global.
+     placas-guía y al cubo de Q (posiciones exportadas) y en altura al cuerpo del cilindro (con el rebaje local), masa propia (sólido con biseles planos
+     1:2,5 y rebaje integrado en grilla; 22-11-2026), pie de las orejas de la diagonal, mejillas de la ménsula y pasador E sobre el espesor pleno, J-I1, casos (F de las presiones y de los casos de fricción, M = F·h), 1,25·Fy/Nd, limitación de uso en el veredicto, estado global.
   §4 FEA propia de Mindlin (Q4, flexión 2×2, corte 1 punto) de la base completa: dos soportes rígidos (3 gdl maestros cada uno, M₂ = −M₁),
      losa unilateral (conjunto activo) y mesa CARGADA como cuerpo rígido (3 gdl) apoyado en la plancha por contacto unilateral en R ≤ D/2 con
      su peso (no un empotramiento: el borde de la mesa puede despegar); mesa vacía: su peso en el anillo. Tensión en la cara σ = 6m/t² (von Mises).
@@ -122,6 +122,41 @@ except ImportError:
 RHO = 7.85e-6
 
 
+def vol_inserto(I, Px, C1, h=2.0):
+    """Volumen sobre t_base del inserto de la esquina C1 (marco canónico desde los signos del contorno): cara = t_base + mín(Δ; d/2,5) con d el mínimo de la
+    distancia a la hipotenusa y la de cada muesca (semiespacios con chaflán); rebaje: cara ≤ z_cara + d_fuera/2,5 (borde 1:2,5). Integración por puntos medios."""
+    import numpy as np
+    from matplotlib.path import Path
+    Bh = Px["B"] / 2; tb = Px["t_base"]; D_ = I["delta"]; k = 2.5; c = I["hipotenusa_dist_centro"] * math.sqrt(2)
+    sx = 1 if sum(x for x, _ in C1) > 0 else -1; sy = 1 if sum(y for _, y in C1) > 0 else -1
+    toC = lambda p: (sx * p[0], -sy * p[1])
+    g = np.arange(-Bh + h / 2, Bh, h); X, Y = np.meshgrid(g, g, indexing="ij"); X = X.ravel(); Y = Y.ravel()
+    m = (X - Y >= c - 1) & Path(np.array([toC(p) for p in C1])).contains_points(np.column_stack([X, Y]))
+    X, Y = X[m], Y[m]; d = (X - Y - c) / math.sqrt(2)
+    mx, my = I["muescas"].get("lado_x"), I["muescas"].get("lado_y")
+    if mx:
+        dn = np.maximum(mx["a"] - X, mx["b"] - Y)
+        if mx.get("chaflan", 0) > 0: dn = np.maximum(dn, (mx["a"] + mx["b"] + mx["chaflan"] - X - Y) / math.sqrt(2))
+        d = np.minimum(d, dn)
+    if my:
+        dn = np.maximum(X - my["a"], Y - my["b"])
+        if my.get("chaflan", 0) > 0: dn = np.maximum(dn, (my["chaflan"] - (my["a"] - X) - (my["b"] - Y)) / math.sqrt(2))
+        d = np.minimum(d, dn)
+    z = tb + np.clip(d / k, 0, D_)
+    rb = I.get("rebaje")
+    if rb:
+        pts = np.column_stack([X, Y])
+        for pl in rb["poligonos"]:
+            if not Path(np.array(C1)).contains_points(np.array(pl)).any(): continue
+            q = np.array([toC(p) for p in pl]); ins = Path(q).contains_points(pts); dd = np.full(X.size, 1e18)
+            for a, b in zip(q, np.roll(q, -1, 0)):
+                ab = b - a; L2 = ab @ ab
+                if L2 < 1e-12: continue
+                tt = np.clip(((pts - a) @ ab) / L2, 0, 1); dd = np.minimum(dd, np.hypot(*(pts - (a + tt[:, None] * ab)).T))
+            dd[ins] = 0.0; z = np.minimum(z, np.maximum(rb["z_cara"] + dd / k, tb))
+    return float(((z - tb) * h * h).sum())
+
+
 def ins_check(Dx, I, label, mode, nexp):
     Px = Dx["P"]; Bh = Px["B"] / 2; tb = Px["t_base"]; Fyx, Ndx = Px["Fy"], Px["Nd"]; DVx = Dx["derivados"]
     need(I is not None and I["estado"] == "cumple", f"{label}: inserto exportado y cumple")
@@ -152,10 +187,38 @@ def ins_check(Dx, I, label, mode, nexp):
         need(dmin >= 2.5 * I["delta"] - 1e-6, f"{label}: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)")
         A_out, A_full = out.area, full.area
         rb = I.get("rebaje")
-        m_pk = (sum(Polygon(pl).intersection(out).area for pl in rb["poligonos"][::2]) * rb["profundidad"] * RHO) if rb else 0.0
-        m_own = RHO * (A_full * I["delta"] + (A_out - A_full) * I["delta"] / 2) - m_pk
-        chk(f"{label}: masa añadida por inserto (kg)", m_own, I["masa"])
-        chk(f"{label}: masa de los insertos en la masa total (kg)", I["n"] * m_own, DVx["masas"]["insertos"])
+        # masa propia (22-11-2026): sólido con biseles planos 1:2,5 entre el contorno y el espesor pleno (cara = t_base + mín(Δ; d/2,5), d = distancia a la
+        # hipotenusa y a cada muesca con su chaflán a 45°), menos el rebaje con su borde 1:2,5; integración en una grilla de 2 mm (numpy), no la cuña (A_c − A_p)·Δ/2
+        m_own = RHO * vol_inserto(I, Px, C1)
+        m_cuna = RHO * (A_full * I["delta"] + (A_out - A_full) * I["delta"] / 2)
+        print(f"    {label}: masa con biseles planos {m_own:.2f} kg (cuña anterior {m_cuna:.2f} kg); núcleo {I['masa']:.2f} kg")
+        chk(f"{label}: masa añadida por inserto, biseles planos (kg)", m_own, I["masa"], tol=5e-3)
+        chk(f"{label}: masa de los insertos en la masa total (kg)", I["n"] * I["masa"], DVx["masas"]["insertos"])
+        # pie de las orejas de la diagonal y mejillas de la ménsula (modo guiado) sobre el espesor pleno con ≥ 5 mm; pasador E sobre la cara del inserto
+        yl = Bh - Px["c_lug"]; hwe = Px["t_ear"] / 2 + Px["w_ear"]; nOn = 0
+        for cx_, cy_ in ((Px["x_lug"], yl), (-Px["x_lug"], yl), (Px["x_lug"], -yl), (-Px["x_lug"], -yl)):
+            r_ = math.hypot(cx_, cy_); ux, uy = cx_ / r_, cy_ / r_
+            foot = Polygon([(cx_ + a * Px["R_ear"] * ux - k * hwe * uy, cy_ + a * Px["R_ear"] * uy + k * hwe * ux) for a, k in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+            for i_, pl in enumerate(I["esquinas"]):
+                if not Polygon(pl).contains(Point(cx_, cy_)): continue
+                nOn += 1; Fp = Polygon(I["esquinas_espesor_pleno"][i_]); mg = Fp.exterior.distance(foot) if Fp.contains(foot) else -foot.difference(Fp).area
+                if rb:
+                    for q in rb["poligonos"]: mg = min(mg, Polygon(q).distance(foot) - 2.5 * rb["profundidad"])
+                need(mg >= 5 - 1e-6, f"{label}: pie de la oreja de izaje en ({cx_:.0f}; {cy_:.0f}) sobre el espesor pleno con {mg:.1f} mm (≥ 5)")
+        need(nOn >= 2, f"{label}: orejas de la diagonal sobre el inserto ({nOn})")
+        if mode == 1:
+            Mx = Dx["levaGuiada"]["fabricacion"]["mensula"]; bgx = DVx["bracket"]
+            need(abs(Mx["y_mejillas"][1] - Mx["y_mejillas"][0] - Px["L_ch"]) < 1e-9 and Mx["y_mejillas"][0] <= -bgx["rear"] + 1e-9 and Mx["y_mejillas"][1] >= bgx["lugF"] - 1e-9, f"{label}: mejillas de L_ch que cubren las orejas (retroceso {Mx['retroceso']:.0f} mm)")
+            for h_ in Mx["huellas"]:
+                hp = Polygon(h_["poly"]); i_ = next(i for i, pl in enumerate(I["esquinas"]) if Polygon(pl).intersects(hp)); Fp = Polygon(I["esquinas_espesor_pleno"][i_])
+                mg = Fp.exterior.distance(hp) if Fp.contains(hp) else -hp.difference(Fp).area
+                need(mg >= 5 - 1e-6, f"{label}: {h_['id']} de la ménsula {h_['mensula']} sobre el espesor pleno con {mg:.1f} mm (≥ 5)")
+        else:
+            pe = Dx["pivotado"]["fabricacion"]["pasador_E"]; tpi = [p for p in Dx["pivotado"]["fabricacion"]["soporte_E"]["piezas"] if p["id"] == "tapa_inf"][0]["z"]
+            need(pe["z"][0] - I["t"] >= 5 - 1e-9 and pe["z"][0] <= tpi[0] + 1e-9, f"{label}: pasador E de z {pe['z'][0]:.0f} (tapa inferior desde z {tpi[0]:.0f}) sobre el inserto de {I['t']} con {pe['z'][0] - I['t']:.0f} mm")
+        Jx = [j for j in I["juntas"] if j["id"] == "J-I1"][0]; pr = Jx["preparacion"]
+        need(Jx["designacion"].startswith("B-U3") and pr["T1"] == tb and pr["espesor_en_la_junta"]["inserto"] == tb and pr["angulo_alfa"] == 60 and pr["raiz_R"] == [0, 3] and pr["talon_f"] == [0, 3],
+             f"{label}: J-I1 {Jx['designacion']} ({Jx['designacion_estado']}), T1 = t_base = {tb} en la junta (transición 1:2,5), R 0–3, f 0–3, 60°")
         # holguras en planta: placas-guía y cubo de Q (modo 2); banda del accionamiento (modo 1, con la holgura de la fila del núcleo)
         if mode == 2:
             FB = Dx["pivotado"]["fabricacion"]; Rc = FB["bloque_una"]["horquilla"]["R_cubo"]
@@ -192,6 +255,10 @@ def ins_check(Dx, I, label, mode, nexp):
 IN = {"por defecto": (D, SE["inserto"], 2, 2), "interfaz B": (DB, DB["pivotado"]["fabricacion"]["soporte_E"]["inserto"], 2, 2),
       "guiado": (DG, DG["levaGuiada"]["fabricacion"]["inserto"], 1, round(DG["P"]["n_br"])), "guiado B": (DGB, DGB["levaGuiada"]["fabricacion"]["inserto"], 1, round(DGB["P"]["n_br"]))}
 for lb, (Dx, I, md, nx) in IN.items(): ins_check(Dx, I, lb, md, nx)
+# interfaces A (inserto de 90 con rebaje y chaflán en las muescas) y A en el modo guiado: solo §3b (geometría, masa, asientos), no entran a la FEA
+DA = export({"drive_mode": 2, "opt_ss": 1}); DGA = export({"drive_mode": 1, "opt_ss": 1})
+ins_check(DA, DA["pivotado"]["fabricacion"]["soporte_E"]["inserto"], "interfaz A", 2, 2)
+ins_check(DGA, DGA["levaGuiada"]["fabricacion"]["inserto"], "guiado A", 1, round(DGA["P"]["n_br"]))
 need(IN["interfaz B"][1]["t"] > IN["por defecto"][1]["t"], "la interfaz B (eje más alto) pide un inserto más grueso")
 p0 = D0["P"]; need(p0["t_base"] == 20, "base de 20 mm por defecto")
 
@@ -335,7 +402,7 @@ def geom(Dx, mode):
         SEx = Dx["pivotado"]["fabricacion"]["soporte_E"]
         rc = [(min(x for x, _ in p["poligono_local"]), max(x for x, _ in p["poligono_local"]), min(y for _, y in p["poligono_local"]), max(y for _, y in p["poligono_local"])) for p in SEx["piezas"] if p["id"].startswith(("pared", "munon"))]
         ps = SEx["ventana"]["sector_deg"][0]; return rc, tuple(Dx["pivotado"]["E"]), (math.cos(math.radians(ps)), math.sin(math.radians(ps)))
-    BR = DVx["bracket"]; x0 = BR["Win"] / 2; x1 = x0 + Px["t_ch"]; y0 = -BR["rear"]; y1 = Px["L_ch"] - BR["rear"]
+    BR = DVx["bracket"]; x0 = BR["Win"] / 2; x1 = x0 + Px["t_ch"]; y0, y1 = Dx["levaGuiada"]["fabricacion"]["mensula"]["y_mejillas"]   # 22-11-2026: mejillas corridas sobre el espesor pleno
     yE = -Px["R_pin"] * math.sin(math.pi / Px["N_pin"]) - Px["l_p"] - Px["s_free"] - Px["L0"]
     return [(x0, x1, y0, y1), (-x1, -x0, y0, y1)], (Px["x_g"], yE), (0.0, 1.0)
 

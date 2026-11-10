@@ -293,8 +293,8 @@ const TT = (() => {
       ["t_base_min", "Espesor mínimo de base por planitud (criterio de fabricación)", "mm", 16, 6, 60, 1],
       ["rim_h", "Alto del marco perimetral", "mm", 45, 0, 200, 1],
       ["rim_t", "Espesor del marco perimetral", "mm", 10, 0, 40, 1],
-      ["c_lug", "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite. 08-11-2026: 200 → 250 mm, la leva de reenganche suma ≈ 160 kg sobre la base y con 200 mm la variante B + madera quedaba a 8 % del límite, bajo el margen de 10 % del hallazgo C12; con 250 mm queda 23 % bajo el límite)", "mm", 430, 30, 600, 5],
-      ["x_lug", "Puntos de izaje: distancia al eje y (10-11-2026: 600 → 850 y c 250 → 430, orejas sobre las diagonales (±850; ±850): en (±600; ±1.030) las placas-guía del sentido horario y los bloques-uña del modo pivotado pasaban sobre las orejas; en la diagonal quedan entre los dos barridos del cilindro, a 110 mm de la mesa)", "mm", 850, 0, 2000, 5],
+      ["c_lug", "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite. 08-11-2026: 200 → 250 mm, la leva de reenganche suma ≈ 160 kg sobre la base y con 200 mm la variante B + madera quedaba a 8 % del límite, bajo el margen de 10 % del hallazgo C12; con 250 mm queda 23 % bajo el límite. 22-11-2026: 430 → 350 con x_lug 850 → 930, ver x_lug)", "mm", 350, 30, 600, 5],
+      ["x_lug", "Puntos de izaje: distancia al eje y (10-11-2026: 600 → 850 y c 250 → 430, orejas sobre las diagonales (±850; ±850): en (±600; ±1.030) las placas-guía del sentido horario y los bloques-uña del modo pivotado pasaban sobre las orejas; en la diagonal quedan entre los dos barridos del cilindro, a 110 mm de la mesa. 22-11-2026: 850 → 930 y c 430 → 350, (±930; ±930): el pie de la oreja de la diagonal apoya entero en el espesor pleno del inserto de esquina (con 850 caía sobre la transición 1:2,5); a ≥ 5 mm del cuerpo del cilindro hasta ≈ 955)", "mm", 930, 0, 2000, 5],
       ["t_ear", "Orejas de izaje (4, soldadas a la base): espesor de la placa", "mm", 18, 6, 50, 1],
       ["R_ear", "Orejas de izaje: radio exterior (ancho = 2R; AISC 360-22 D5.2(3): a = R − d/2 ≥ 1,33·b_e)", "mm", 92, 30, 150, 1],
       ["d_ear", "Orejas de izaje: diámetro del agujero (grillete: pasador = d − g_ear)", "mm", 45, 20, 100, 1],
@@ -1708,7 +1708,7 @@ const TT = (() => {
       const Dz = INS.delta, rimL = (L) => RHO * P.rim_t * P.rim_h * L;
       m.insertos = INS.n * INS.mass;
       if (mode === 2) {
-        m.insBrackets = P.n_cyl * RHO * res.sup.walls.reduce((a, q) => a + Math.abs(PG.area(q.poly)), 0) * Dz;
+        m.insBrackets = P.n_cyl * RHO * res.sup.walls.reduce((a, q) => a + Math.abs(PG.area(q.poly)), 0) * Dz + P.n_cyl * (res.sup.mPin - pinEOf(P, res).masa);   // + pasador E acortado sobre el inserto
         const h = res.sup.marco.alcance, Lx = Math.max(0, P.B / 2 - (Math.abs(K.E[1]) - h)), Ly = Math.max(0, P.B / 2 - (Math.abs(K.E[0]) - h));
         m.insRim = P.n_cyl * rimL(Math.max(0, INS.legX + 50 - Lx) + Math.max(0, INS.legY + 50 - Ly));
       } else {
@@ -2416,7 +2416,7 @@ const TT = (() => {
         juntas, secuencia: sg.secuencia,
         marco_interrupcion: { cilindro1: rimCut(1), cilindro2: rimCut(2), holgura_acceso: sg.marco.holgura, nota: "el marco perimetral se corta frente a las paredes traseras (acceso exterior al resanado y respaldo de las CJP) y a lo largo de los catetos del inserto de esquina hasta 50 mm más allá de su extremo; extremos del marco libres, con chaflán" },
         soldadura: { filete: P.pv_wbox, paredes_base: "CJP TC-U4b (bisel interior, resanado y respaldo exterior) + filete de refuerzo interior z" + P.pv_wbox, pared_pared: "CJP TC-U4b + filete de refuerzo interior z" + P.pv_wbox, tapas_paredes: "PJP TC-P4 S = " + sg.S_pjp + " (E = " + sg.E_pjp + ") desde arriba + filete de refuerzo z" + P.pv_wbox + "; sin soldadura por debajo" },
-        material: "S355J2 (Fy " + P.Fy + ")", masa: sg.m - (INS && INS.ok ? RHO * sg.walls.reduce((a, q) => a + Math.abs(PG.area(q.poly)), 0) * dzS : 0),
+        material: "S355J2 (Fy " + P.Fy + ")", masa: sg.m - sg.mPin + pinEOf(P, R).masa - (INS && INS.ok ? RHO * sg.walls.reduce((a, q) => a + Math.abs(PG.area(q.poly)), 0) * dzS : 0),
         inserto: insertExport(P, R),
         plancha_base: (() => { const BP = pivBasePlate(P, R), Fa = INS_FB * P.Fy / P.Nd, cs = (nm, c, st) => ({ caso: nm, F_kN: c.F / 1e3, h: c.h, M_kNm: c.M / 1e6, a: c.a, w: c.w, b: c.b, s_H: c.sH, retencion_detras_del_talon: c.ret, M_corte_kNm: c.Mc / 1e6, sigma: c.sig, cap: Fa, fu: c.sig / Fa, tau: c.tau, fu_corte: c.tau / (Fa / Math.sqrt(3)), sentido: c.sentido, psi_deg: ((c.psi / D2R) % 360 + 360) % 360, norma: "ASME BTH-1-2020 §3-2.3.4 (flexión, F_b = 1,25·Fy/Nd), §3-2.3.6 (corte)", estado: st });
           return { t: P.t_base, material: "S355J2 (Fy " + P.Fy + " MPa)", anclaje: "no definido en el proyecto (base apoyada en losa o mats): contacto unilateral, sin retención propia", modelo: "soporte rígido; losa rígida solo a compresión; retención del talón solo por la mesa (R ≤ D/2) a través de la plancha; franja M_corte = M·(1 − a/s_H) (M si s_H ≤ a), b = w + a; coordenadas del marco local del soporte",
@@ -2437,7 +2437,8 @@ const TT = (() => {
                 ],
                 conclusion: "NO cumple sin anclaje ni base rígida; ninguna opción C o D cumple con < 600 kg sin interferencias: no se implementó ninguna (decisión del mandante: anclaje con datos de la losa, base rígida o restricción del calado con la mesa vacía)" }; })(),
             caso_termico: "no aplica (F de la presión de alivio y de retorno; la base queda a la sombra)", estado: "PENDIENTE: decisión de anclaje a la losa (o rediseño de la base) por el mandante; datos de la losa no definidos (f'c, espesor, armadura, bordes)", referencia: "docs/normas/registro.md, «Plancha base bajo el soporte del ojal E (10-11-2026)»" }; })() },
-      pasador_E: { d: P.pv_dE, largo: sg.forkH + 20, z: [sg.zL - P.pv_tl / 2 - 10, sg.zU + P.pv_tl / 2 + 10], material: "Fy " + P.Fy_pp + " MPa", ajuste: "H9/f8" },
+      pasador_E: (() => { const pe = pinEOf(P, R); return { d: P.pv_dE, largo: pe.largo, z: [pe.z0, pe.z1], masa: pe.masa, saliente_inferior: pe.salInf, saliente_superior: 10, cara_bajo_el_pasador: pe.face, holgura_inferior: pe.holgura,
+        nota: "el extremo inferior sobresale de la tapa inferior lo que permite la cara del inserto de esquina con " + INS_SEAT + " mm de diseño (de 0 = al ras de la tapa a 10 mm; se exige ≥ " + INS_CLR + "; 22-11-2026: con 10 mm el extremo quedaba bajo la cara del inserto); retención por arriba", material: "Fy " + P.Fy_pp + " MPa", ajuste: "H9/f8" }; })(),
       bloque_una: { contorno_local: G.bloque.local, h: P.pv_hu, z: [bk.zBot, bk.zBot + P.pv_hu], agujero_Q: P.pv_dq, horquilla: { ranura_ojal: P.b_eye + 2 * P.g_ch, t_mejilla: bk.tq, R_cubo: bk.eb }, cuerpo: { b: P.pv_bu, e_acodado: P.pv_ecr }, cara: { b: P.pv_bf, l: P.pv_lf, radio_planta: bk.Rf || null, flecha_arista: bk.sag, contacto_desde_eje: bk.ec, nota: bk.Rf > 0 ? "cara cilíndrica convexa en planta (generatriz vertical), vértice en s = L_qp − r; aristas con chaflán 3 × 45°" : "cara plana", templada: "≥ 55 HRC (Fy_sup " + P.Fy_surf + ")" }, material: "34CrNiMo6+QT (Fy " + P.Fy_dog + ")",
         nota: "marco local: origen en Q, x hacia el pasador tomado, y = t (hacia O); el cuerpo se desplaza e_acodado hacia −y" },
       pasador_Q: { d: P.pv_dq, largo: bk.lPin, z: [P.t_base + 2, bk.zBot + P.pv_hu], extremo_inferior: "seguidor de la placa-leva (" + (fam.tipo === "hertz" ? "templado" : "con zapata de " + CP.lpad + " mm") + ")", voladizo_bajo_horquilla: bk.lq, material: "Fy " + P.Fy_pp + " MPa" },
@@ -2470,7 +2471,7 @@ const TT = (() => {
     x: { perno_seguidor_toma: c.xFp0, canto_toma: c.xE0, borde_exterior: c.xPo, soporte_interior: c.xPo - P.cam_px, ancho_neto_bolsillo: c.wNet },
     riel: { t: P.cam_t, ancho: P.cam_w, largo: c.Lpl, luz_soportes: c.Lsp, y_soportes: [-c.Lsp / 2, c.Lsp / 2], Fy: P.Fy_cam },
     soportes: { tipo: "pórtico de dos patas soldadas a un asiento; el cuerpo del cilindro pasa bajo el pórtico trasero", largo_y: P.cam_ls, espesor_pata_x: P.cam_px, alto: c.hPed, x_patas: [c.portico.xL, c.portico.xR], ancho_tapa: c.portico.capW, filete_pata: P.cam_wf, n_pernos: P.cam_nb, d_perno: P.cam_db, prolongacion_bancada_por_extremo: P.cam_ls, ancho_prolongacion: c.portico.wExt },
-    fabricacion: Object.assign(camGuidedFab(P, R, c), { inserto: insertExport(P, R) }),
+    fabricacion: Object.assign(camGuidedFab(P, R, c), { inserto: insertExport(P, R), mensula: mensulaExport(P, R) }),
     seguidor: { d_rodillo: P.cam_df, b_rodillo: P.cam_bf, d_perno: P.cam_dp, voladizo_perno: c.lFp },
     fuerzas_N: { F_ret: c.Fret, rampa: c.NR, rampa_x: c.NRx, toma: c.NT, diseno: c.Nd }, autobloqueo: { dem: c.lockDem, cap: c.lockCap, k_t: c.kt, k_p: c.kp }, masas: c.m };
 })();
@@ -2490,7 +2491,7 @@ const TT = (() => {
     cinematica: R.stroke.map((q) => ({ th: q.th / D2R, a: q.arm, a_ef: q.armEff, L: q.L, s: q.s, psi_deg: q.psi / D2R, f_tang: q.ft, f_rad: q.fr, F_cil: q.F, F_n: q.Fp, F_leva: q.Fcam, p: q.F * 1e3 / R.A * 10,
       w: q.w, separacion_colineal: q.gap, phi_presion_deg: q.phi_guia, a_colineal: q.a_colineal, a_ef_colineal: q.a_ef_colineal, F_cil_colineal: q.F_colineal })),
     bloque_una: { b_cuerpo: P.pv_bu, e_acodado: P.pv_ecr, b_cara: P.pv_bf, l_cara: P.pv_lf, h: P.pv_hu, d_Q: P.pv_dq, R_cubo: bk.eb, s_cara_ini: bk.s1, s_cara: bk.s2, t_horquilla: bk.tq, z_inf: bk.zBot, l_pasador_Q: bk.lPin, voladizo_leva: bk.lq, masa: bk.m, R_cara: bk.Rf, contacto_cara: bk.ec, giro_equilibrio_deg: bk.dBlk / D2R },
-    soporte_E: { lado_cajon: P.pv_box, t_pared: P.pv_tbox, filete: P.pv_wbox, t_tapas: P.pv_tl, d_E: P.pv_dE, alto: sg.hW - ((cornerInsertOf(P, R) || {}).ok ? cornerInsertOf(P, R).delta : 0), z_tapa_sup: sg.zU, z_tapa_inf: sg.zL, rebaje_tapa_sup: P.pv_rebt, holgura_cuerpo: sg.clr.d, masa: (() => { const I = cornerInsertOf(P, R); return sg.m - (I && I.ok ? RHO * sg.walls.reduce((q, w) => q + Math.abs(PG.area(w.poly)), 0) * I.delta : 0); })(), nota: "cajón centrado en E, abierto hacia la mesa en todo el barrido del cilindro: paredes traseras en L, muñones y tapas recortadas en nariz (geometría constructiva en fabricacion.soporte_E)" },
+    soporte_E: { lado_cajon: P.pv_box, t_pared: P.pv_tbox, filete: P.pv_wbox, t_tapas: P.pv_tl, d_E: P.pv_dE, alto: sg.hW - ((cornerInsertOf(P, R) || {}).ok ? cornerInsertOf(P, R).delta : 0), z_tapa_sup: sg.zU, z_tapa_inf: sg.zL, rebaje_tapa_sup: P.pv_rebt, holgura_cuerpo: sg.clr.d, masa: (() => { const I = cornerInsertOf(P, R); return sg.m - sg.mPin + pinEOf(P, R).masa - (I && I.ok ? RHO * sg.walls.reduce((q, w) => q + Math.abs(PG.area(w.poly)), 0) * I.delta : 0); })(), nota: "cajón centrado en E, abierto hacia la mesa en todo el barrido del cilindro: paredes traseras en L, muñones y tapas recortadas en nariz (geometría constructiva en fabricacion.soporte_E)" },
     placa_leva: { familia: CP.fam.f, familia_nombre: CP.fam.nombre, automatico: CP.fam.auto, mu: CP.fam.mu, t: P.pv_tcam, ancho_labio: P.pv_wlip, t_revestimiento: CP.fam.f > 1 ? P.pv_tlin : 0, l_zapata: CP.lpad, n_pernos: Math.round(P.pv_nb), d_perno: P.pv_db, Fy: P.Fy_camP,
       holgura: CP.c, margen_sincronia: CP.m, margen_diseno: CP.md, tolerancias_mm: CP.guia.dTol, sincronia: CP.sync, sincronia_peor: CP.guia.syncWorst, alpha_deg: CP.alpha, alpha_req_deg: CP.guia.flanco.phi_req_deg, bolsillo_w: CP.wPk, fraccion_empuje_retenida: CP.cover,
       L_pie_flanco: CP.Lend, L_tope_flanco: CP.Lr1, L_cresta: CP.LX1, L_tope_rampa: CP.guia.primer_contacto.L, primer_contacto: CP.guia.primer_contacto, perfil: CP.need,
@@ -2648,7 +2649,8 @@ const TT = (() => {
   // siguiente) la toma la mesa y cruza la base como el empuje. Mismo modelo de franja que pivBasePlate (soporte rígido, losa solo a compresión, retención en el borde
   // más lejano de la mesa; no cuenta la bancada) y la cota inferior de la torsión de la placa libre, τ = 6·m_xy/t² con m_xy = M/(2·B).
   function guidedBasePlate(P, R) {
-    const K = R.K, bg = bracketGeo(P), h = R.hax, t = P.t_base, Rh = P.D_top / 2, x0 = bg.Win / 2, x1 = x0 + P.t_ch, y0 = -bg.rear, y1 = P.L_ch - bg.rear;
+    const INSg = cornerInsertOf(P, R), dl = INSg && INSg.ok && INSg.mensula ? INSg.mensula.retroceso : 0;   // mejillas corridas δ hacia la esquina sobre el espesor pleno del inserto
+    const K = R.K, bg = bracketGeo(P), h = R.hax, t = P.t_base, Rh = P.D_top / 2, x0 = bg.Win / 2, x1 = x0 + P.t_ch, y0 = -bg.rear - dl, y1 = P.L_ch - bg.rear - dl;
     const walls = [[x0, x1, y0, y1], [-x1, -x0, y0, y1]], O = [-P.x_g, -K.y_eye];
     const V = walls.flatMap(([a0, a1, b0, b1]) => [[a0, b0], [a1, b0], [a1, b1], [a0, b1]]), d = (p, v) => p[0] * v[0] + p[1] * v[1];
     const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10, out = { h, walls, O, ojal: [P.x_g, K.y_eye] };
@@ -2682,6 +2684,7 @@ const TT = (() => {
   // eje menor de secciones rectangulares macizas), Nd del proyecto.
   const INS_T = [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100, 110, 120];   // espesores comerciales de plancha (mm)
   const INS_SLOPE = 2.5, INS_KAPPA = 1.03, INS_FB = 1.25, INS_FUOBJ = 0.90, INS_PHI = 0.5;   // FU objetivo interno del proyecto (sobre 0,90: advertencia)
+  const INS_CLR = 5, INS_SEAT = 10;   // holgura mínima del proyecto (mm) y margen de diseño del asiento de las piezas soldadas sobre el espesor pleno (orejas, mejillas; se exige ≥ INS_CLR)
   const hull2 = (pts) => {   // envolvente convexa (cadena monótona), antihoraria
     const q = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
     q.forEach((p) => { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); });
@@ -2699,9 +2702,13 @@ const TT = (() => {
   // Región {Y ≥ −Bh, X ≤ Bh, X − Y ≥ c} menos {X ≥ a, Y ≥ b} (nx) y {X ≤ a′, Y ≤ b′} (ny): para cada X es un solo intervalo de Y
   // [lo(X), up(X)] (lo = b′ si X ≤ a′, si no −Bh; up = mín(X − c; b si X ≥ a)); el contorno es la cadena superior de izquierda a derecha, el borde X = Bh y
   // la cadena inferior de vuelta. ok = el conjunto de X con intervalo no vacío es conexo (si no, las muescas parten el inserto).
+  // Chaflán de la esquina de la muesca (ch ≥ 0, 22-11-2026): muesca del lado X {X ≥ a, Y ≥ b, X + Y ≥ a + b + ch}; del lado Y {X ≤ a′, Y ≤ b′, (a′ − X) + (b′ − Y) ≥ ch′}.
+  // Con el chaflán el borde superior para X ∈ [a, a + ch] es la recta Y = a + b + ch − X (y el inferior, Y = a′ + b′ − ch′ − X): sigue siendo un solo intervalo por X.
   function insPoly(Bh, c, nx, ny) {
-    const up = (x, s) => Math.min(x - c, nx && (s > 0 ? x >= nx.a : x > nx.a) ? nx.b : Infinity), lo = (x, s) => (ny && (s > 0 ? x < ny.a : x <= ny.a) ? Math.max(-Bh, ny.b) : -Bh);
-    const brk = [nx && nx.a, ny && ny.a, nx && nx.b + c, ny && ny.b + c, -Bh + c, Bh].filter((x) => x != null && isFinite(x) && x >= -Bh + c - 1e-9 && x <= Bh + 1e-9);
+    const chx = nx && nx.ch > 0 ? nx.ch : 0, chy = ny && ny.ch > 0 ? ny.ch : 0, Ax = nx ? nx.a + nx.b + chx : 0, Ay = ny ? ny.a + ny.b - chy : 0;
+    const up = (x, s) => Math.min(x - c, nx && (s > 0 ? x >= nx.a : x > nx.a) ? Math.max(nx.b, Ax - x) : Infinity), lo = (x, s) => (ny && (s > 0 ? x < ny.a : x <= ny.a) ? Math.max(-Bh, Math.min(ny.b, Ay - x)) : -Bh);
+    const brk = [nx && nx.a, ny && ny.a, nx && nx.b + c, ny && ny.b + c, -Bh + c, Bh].concat(chx ? [nx.a + chx, (Ax + c) / 2] : [], chy ? [ny.a - chy, (Ay + c) / 2, Ay + Bh] : [])
+      .filter((x) => x != null && x !== false && isFinite(x) && x >= -Bh + c - 1e-9 && x <= Bh + 1e-9);
     const xs = brk.slice().sort((p, q) => p - q).filter((x, i, A) => i === 0 || x - A[i - 1] > 1e-9);   // sin redondear: los saltos en a y a′ se evalúan con los valores exactos
     const valid = (x, s) => up(x, s) - lo(x, s) > 1e-6, segs = [];   // tramos [x_i, x_i+1] con región (muestra en el punto medio)
     for (let i = 0; i + 1 < xs.length; i++) { const m = (xs[i] + xs[i + 1]) / 2; if (valid(m, 0)) segs.push([xs[i], xs[i + 1]]); }
@@ -2723,6 +2730,14 @@ const TT = (() => {
     return { V: k > 0 ? C.slice(k).concat(C.slice(0, k)) : C, ok };
   }
   const insCache = new WeakMap(), cornerInsertOf = (P, R) => { if (!insCache.has(R)) insCache.set(R, cornerInsert(P, R)); return insCache.get(R); };
+  // Pasador vertical E (modo 2): sobresale 10 mm sobre la tapa superior; bajo la tapa inferior sobresale lo que permite la cara del inserto de esquina con INS_SEAT
+  // (10 mm de diseño), hasta quedar al ras de la cara inferior de la tapa (22-11-2026: con 10 mm el extremo inferior quedaba a z 59 con el inserto de 60 y a z 89 con
+  // el de 90). Se exige ≥ INS_CLR; el asiento del inserto (t + INS_CLR ≤ z de la tapa inferior) lo garantiza. Masa con el largo real (sg.mPin: largo nominal forkH + 20).
+  function pinEOf(P, R) {
+    const sg = R.sup, I = cornerInsertOf(P, R), ins = !!(I && I.ok), face = ins ? I.t : P.t_base, z1 = sg.zU + P.pv_tl / 2 + 10, zc = sg.zLugBot;
+    const z0 = Math.min(zc, Math.max(zc - 10, face + INS_SEAT)), largo = z1 - z0;
+    return { ins, face, z0, z1, largo, salInf: zc - z0, holgura: z0 - face, masa: RHO * Math.PI / 4 * P.pv_dE ** 2 * largo };
+  }
   function guidedBand(P, R, sx) {   // banda del accionamiento guiado del lado sx (sin la holgura): bancada (± prolongación), patín, cilindro, riel-leva y pórticos
     const g = guideGeo(P), c = R.camG;
     const x0 = Math.min(P.x_g - P.w_s / 2, P.x_g - P.w_bed / 2, P.x_g - P.D_body / 2, c ? Math.min(c.xFp0 - P.cam_df / 2, c.portico.xL - c.portico.capW / 2) : Infinity);
@@ -2752,27 +2767,47 @@ const TT = (() => {
     const h = mode === 2 ? (R.sup.hU + R.sup.hL) / 2 : R.hax, Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10 / 1e3;
     const cs = (id) => R.cases.find((q) => q.id === id), Nv = R.Wd, Fvac0 = Math.max(...["dis", "borde", "cont"].map((id) => cs(id) ? cs(id).F : 0)) * Nv / R.N, Fvac = P.ins_fsv * Fvac0;
     const lugBot = mode === 2 ? R.sup.zLugBot : tb + bracketGeo(P).spacer, Fb = INS_FB * P.Fy / P.Nd, cand = INS_T.filter((t) => t >= tb + 5);
+    // asiento: modo 2, la tapa inferior del ojal E sobre el inserto con la holgura del extremo del pasador E (≥ 5 mm, 22-11-2026); modo 1, el suplemento alcanza
+    const seatOk = (t) => (mode === 2 ? t + INS_CLR <= lugBot + 1e-9 : t <= lugBot + 1e-9);
+    // orejas de izaje en el marco canónico (huella 2R × (t + 2w), con los filetes)
+    const earsC = earPolys(P).map((e, i) => ({ id: "oreja de izaje " + (i + 1), poly: e.poly.map(toC), centro: toC(e.centro), real: e.poly }));
     // variantes de planta calibradas (hipotenusa a D/2 + gap, muescas con clr), en orden de preferencia (inserto menor primero): la primera variante con un
     // espesor que cumple la flexión y las holguras manda; dentro de la variante, el menor espesor comercial
     const variant = (cal) => {
       const gap = cal.gap, clr = cal.clr, c = (P.D_top / 2 + gap) * Math.SQRT2;
       // muescas: cada obstáculo que alcanza el triángulo (con la holgura) va a la muesca del lado más cercano
-      let nx = null, ny = null;
+      let nx = null, ny = null; const qx = [], qy = [];
       obst.forEach((o) => { const q = o.poly.map(toC), xs = q.map((p) => p[0]), ys = q.map((p) => p[1]), bx = [Math.min(...xs), Math.max(...xs)], by = [Math.min(...ys), Math.max(...ys)];
         if (bx[1] - by[0] < c - clr) return;   // no alcanza el triángulo
         const cx = (bx[0] + bx[1]) / 2, cy = (by[0] + by[1]) / 2;
-        if (Bh - cx <= cy + Bh) nx = { a: Math.min(nx ? nx.a : Infinity, bx[0] - clr), b: Math.min(nx ? nx.b : Infinity, by[0] - clr) };
-        else ny = { a: Math.max(ny ? ny.a : -Infinity, bx[1] + clr), b: Math.max(ny ? ny.b : -Infinity, by[1] + clr) }; });
-      const out0 = insPoly(Bh, c, nx, ny), Vc = out0.V, outline = Vc.map(toR);
-      if (!out0.ok || Math.abs(PG.area(Vc)) < 1) return { ok: false, msg: "las muescas parten el inserto (sin tramo de hipotenusa)", outline, nx, ny, c, gap, clr };
-      const fullOf = (t) => { const s = INS_SLOPE * (t - tb); return insPoly(Bh, c + s * Math.SQRT2, nx && { a: nx.a - s, b: nx.b - s }, ny && { a: ny.a + s, b: ny.b + s }).V.map(toR); };
-      // holguras: en planta a los obstáculos; en altura (con la transición) a lo que pasa por encima
-      const dOut = (o) => PG.dist(o.poly, outline), dObst = obst.map((o) => ({ o, d: dOut(o) }));
-      const plan = dObst.reduce((m, x) => (x.d < m.d ? x : m), { d: Infinity, o: null });
-      const ovr = over.map((o) => ({ o, d: dOut(o) })).filter((x) => x.d < 5);   // solapan en planta (d < 0) o pasan a menos de 5 mm
+        if (Bh - cx <= cy + Bh) { nx = { a: Math.min(nx ? nx.a : Infinity, bx[0] - clr), b: Math.min(nx ? nx.b : Infinity, by[0] - clr) }; qx.push(...q); }
+        else { ny = { a: Math.max(ny ? ny.a : -Infinity, bx[1] + clr), b: Math.max(ny ? ny.b : -Infinity, by[1] + clr) }; qy.push(...q); } });
+      const out0 = insPoly(Bh, c, nx, ny);
+      if (!out0.ok || Math.abs(PG.area(out0.V)) < 1) return { ok: false, msg: "las muescas parten el inserto (sin tramo de hipotenusa)", outline: out0.V.map(toR), nx, ny, c, gap, clr };
+      // chaflán de la esquina de cada muesca (22-11-2026): lo que pide el pie de las orejas de izaje que caen sobre el inserto para quedar sobre el espesor pleno con
+      // INS_SEAT (separación por la recta del chaflán desplazada s = 2,5·Δ), sin acercar la recta del chaflán a menos de INS_CLR + 1 mm (holgura mínima del proyecto
+      // más 1 mm de tolerancia de oxicorte) de los obstáculos de la muesca (placas-guía, trayectoria del cubo de Q, banda del accionamiento guiado)
+      const R2 = Math.SQRT2, clCh = INS_CLR + 1, chMaxX = nx ? Math.max(0, Math.min(Bh - nx.a, ...qx.map((q) => q[0] + q[1] - nx.a - nx.b - clCh * R2))) : 0;
+      const chMaxY = ny ? Math.max(0, Math.min(ny.b + Bh, ...qy.map((q) => (ny.a - q[0]) + (ny.b - q[1]) - clCh * R2))) : 0;
+      const earsOn = earsC.filter((e) => PG.inside(out0.V, e.centro));
+      const chReq = (t) => { const s = INS_SLOPE * (t - tb), m = INS_SEAT; let rx = 0, ry = 0;
+        earsOn.forEach((e) => { const V = e.poly, sm = V.map((p) => p[0] + p[1]);
+          if (nx && !(V.every((p) => p[0] <= nx.a - s - m) || V.every((p) => p[1] <= nx.b - s - m))) rx = Math.max(rx, Math.max(...sm) - nx.a - nx.b + (s + m) * R2);
+          if (ny && !(V.every((p) => p[0] >= ny.a + s + m) || V.every((p) => p[1] >= ny.b + s + m))) ry = Math.max(ry, ny.a + ny.b - Math.min(...sm) + (s + m) * R2); });
+        return [Math.min(rx, chMaxX), Math.min(ry, chMaxY)]; };
+      const geoCache = {};
+      const geoOf = (t) => { if (geoCache[t]) return geoCache[t];
+        const [chx, chy] = chReq(t), nxT = nx && Object.assign({}, nx, { ch: chx }), nyT = ny && Object.assign({}, ny, { ch: chy });
+        const Vc = insPoly(Bh, c, nxT, nyT).V, outline = Vc.map(toR);
+        // espesor pleno: el contorno desplazado s = 2,5·(z − t_base) hacia adentro (biseles planos 1:2,5 desde cada borde interior; chaflán: ch + s·(2 − √2))
+        const shrunk = (s) => insPoly(Bh, c + s * R2, nxT && { a: nxT.a - s, b: nxT.b - s, ch: chx > 0 ? chx + s * (2 - R2) : 0 }, nyT && { a: nyT.a + s, b: nyT.b + s, ch: chy > 0 ? chy + s * (2 - R2) : 0 }).V;
+        const fullC = (tt) => shrunk(INS_SLOPE * (tt - tb)), fullOf = (tt) => fullC(tt).map(toR);
+        const dObst = obst.map((o) => ({ o, d: PG.dist(o.poly, outline) })), plan = dObst.reduce((mm, x) => (x.d < mm.d ? x : mm), { d: Infinity, o: null });
+        const ovr = over.map((o) => ({ o, d: PG.dist(o.poly, outline) })).filter((x) => x.d < 5);   // solapan en planta (d < 0) o pasan a menos de 5 mm
+        return (geoCache[t] = { nx: nxT, ny: nyT, Vc, outline, shrunk, fullC, fullOf, dObst, plan, ovr, chMax: [chMaxX, chMaxY] }); };
       // holgura de cada pieza que pasa por encima; con rebaje local (pk = {tr, polys}) la cara bajo las piezas cubiertas por el rebaje queda a tr
-      const vList = (t, pk) => { const full = fullOf(t);
-        return ovr.map((x) => { let d, top = t;
+      const vList = (t, pk) => { const G = geoOf(t), full = G.fullOf(t);
+        return G.ovr.map((x) => { let d, top = t;
           if (x.d < 0) { const df = x.o.z[0] - t >= 5 ? 0 : PG.dist(x.o.poly, full); top = df <= 0 ? t : Math.max(tb, t - df / INS_SLOPE);   // sobre la transición: cara a t − d/2,5 (si la pieza deja 5 mm sobre t, no hace falta)
             if (pk && pk.grupos.includes(x.o.grupo || x.o.id)) top = Math.min(top, pk.tr);   // el rebaje es la envolvente convexa del barrido de su grupo: lo cubre entero
             d = x.o.z[0] - top; }
@@ -2800,10 +2835,10 @@ const TT = (() => {
           if (tr >= tb + 5 && tr < t) { pk = { tr, depth: t - tr, polys: Object.keys(groups).map((k) => hull2(groups[k])), grupos: Object.keys(groups) }; L = vList(t, pk); vc = vMin(L); }
         }
         const ev = evalT(t, pk ? pk.tr : null);
-        return { t, ev, fu: Math.max(...ev.map((q) => q.fu)), vc, pk, geoOk: vc.d >= 5 && t <= lugBot };
+        return { t, ev, fu: Math.max(...ev.map((q) => q.fu)), vc, pk, geoOk: vc.d >= 5 && seatOk(t) };
       };
       const rows = []; for (const t of cand) { const r = rowOf(t); rows.push(r); if (r.geoOk && r.fu <= INS_FUOBJ) break; }   // perezoso: hasta el primer espesor que llega al objetivo
-      return { ok: true, gap, clr, c, cal, nx, ny, Vc, outline, fullOf, plan, dObst, rows,
+      return { ok: true, gap, clr, c, cal, nx, ny, geoOf, rows,
         pick: rows.find((r) => r.geoOk && r.fu <= INS_FUOBJ) || rows.find((r) => r.geoOk && r.fu <= 1) || null,
         best: rows.filter((r) => r.geoOk).reduce((m, r) => (!m || r.fu < m.fu ? r : m), null) };
     };
@@ -2811,24 +2846,53 @@ const TT = (() => {
     const okv = vars.filter((v) => v.ok);
     if (!okv.length) return Object.assign({ mode, ok: false }, vars[0]);
     const V = okv.find((v) => v.pick && v.pick.fu <= INS_FUOBJ) || okv.find((v) => v.pick) || okv.reduce((m, v) => (v.best && (!m.best || v.best.fu < m.best.fu) ? v : m), okv[0]);
-    const sel = V.pick || V.best || V.rows[0], { gap, clr, c, cal, nx, ny, Vc, outline, plan, dObst } = V;
-    const t = sel.t, D = t - tb, full = V.fullOf(t), Aout = Math.abs(PG.area(outline)), Afull = Math.abs(PG.area(full));
+    const sel = V.pick || V.best || V.rows[0], { gap, clr, c, cal } = V, t = sel.t, G = V.geoOf(t), { nx, ny, Vc, outline, plan, dObst } = G;
+    const D = t - tb, full = G.fullOf(t), Aout = Math.abs(PG.area(outline)), Afull = Math.abs(PG.area(full));
     const legX = Math.max(0, ...Vc.filter((p) => Math.abs(p[0] - Bh) < 1e-6).map((p) => p[1] + Bh)), legY = Math.max(0, ...Vc.filter((p) => Math.abs(p[1] + Bh) < 1e-6).map((p) => Bh - p[0]));   // catetos sobre los bordes X = B/2 e Y = −B/2 (marco canónico)
-    const mass = RHO * (Afull * D + (Aout - Afull) * D / 2);   // kg por inserto, masa añadida sobre la base de t_base (la transición es una cuña)
     const nIns = mode === 2 ? P.n_cyl : Math.max(2, Math.round(P.n_br));
     const reflect = (pl) => pl.map((p) => [p[0], -p[1]]).reverse();   // esquina (+x; +y) del mismo lado (modo 1, ménsula del otro sentido)
-    const corners = [outline, outline.map((p) => [-p[0], -p[1]])].concat(nIns > 2 ? [reflect(outline), reflect(outline).map((p) => [-p[0], -p[1]])] : []);
-    const fullCorners = [full, full.map((p) => [-p[0], -p[1]])].concat(nIns > 2 ? [reflect(full), reflect(full).map((p) => [-p[0], -p[1]])] : []);
+    const allCorners = (pl) => [pl, pl.map((p) => [-p[0], -p[1]])].concat(nIns > 2 ? [reflect(pl), reflect(pl).map((p) => [-p[0], -p[1]])] : []);
+    const corners = allCorners(outline), fullCorners = allCorners(full);
     // bordes interiores (CJP con la base) y bordes sobre el borde de la base (sin junta)
     const edges = []; for (let i = 0; i < outline.length; i++) { const p = outline[i], q = outline[(i + 1) % outline.length], onB = (Math.abs(p[0] - q[0]) < 1e-6 && Math.abs(Math.abs(p[0]) - Bh) < 1e-6) || (Math.abs(p[1] - q[1]) < 1e-6 && Math.abs(Math.abs(p[1]) - Bh) < 1e-6); edges.push({ p, q, L: Math.hypot(q[0] - p[0], q[1] - p[1]), borde_base: onB }); }
     const Lcjp = edges.filter((e) => !e.borde_base).reduce((s, e) => s + e.L, 0);
     const fuB = Math.max(...sel.ev.map((q) => q.fu));
     const pk = sel.pk ? Object.assign({}, sel.pk, { polys: sel.pk.polys, polysAll: [].concat(...sel.pk.polys.map((pl) => [pl, pl.map((p) => [-p[0], -p[1]])])) }) : null;
-    const mPk = pk ? RHO * pk.polys.reduce((a, pl) => a + Math.abs(PG.area(PG.clip(outline, pl))), 0) * pk.depth : 0;   // material quitado por el rebaje dentro del contorno (sin descontar el solape de los dos sentidos ni la transición: cota)
-    return { mode, ok: true, t, t_base: tb, delta: D, gap, clr, c, hip_dist: c / Math.SQRT2, nx, ny, outline, full, corners, fullCorners, n: nIns, Aout, Afull, mass: mass - mPk, legX, legY, rebaje: pk, mRebaje: mPk,
+    // masa exacta (22-11-2026): volumen sobre t_base del sólido con biseles planos 1:2,5 entre el contorno y el espesor pleno, V = ∫₀^Δ A(z) dz con A(z) el área del
+    // contorno desplazado s = 2,5·z (la misma regla de «esquinas_espesor_pleno»; exacta donde las transiciones se superponen), menos el rebaje con su borde 1:2,5:
+    // ∫ área(cara > z ∩ ∪ polígono desplazado (z − z_r)·2,5 hacia afuera) dz. Simpson compuesto (A es cuadrática por tramos)
+    const simpson = (f, a, b, n) => { const hh = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += (i % 2 ? 4 : 2) * f(a + i * hh); return s * hh / 3; };
+    const Vadd = simpson((z) => Math.abs(PG.area(G.shrunk(INS_SLOPE * z))), 0, D, 64);
+    const ccw = (pl) => (PG.area(pl) < 0 ? pl.slice().reverse() : pl);
+    const offConvex = (pl, d) => { const n = pl.length, L = pl.map((p, i) => { const q = pl[(i + 1) % n], ex = q[0] - p[0], ey = q[1] - p[1], l = Math.hypot(ex, ey) || 1, nn = [ey / l, -ex / l]; return { p: [p[0] + d * nn[0], p[1] + d * nn[1]], e: [ex, ey] }; }).filter((x) => Math.hypot(x.e[0], x.e[1]) > 1e-9);
+      return L.map((l1, i) => { const l0 = L[(i + L.length - 1) % L.length], den = l0.e[0] * l1.e[1] - l0.e[1] * l1.e[0]; if (Math.abs(den) < 1e-12) return l1.p; const tt = ((l1.p[0] - l0.p[0]) * l1.e[1] - (l1.p[1] - l0.p[1]) * l1.e[0]) / den; return [l0.p[0] + tt * l0.e[0], l0.p[1] + tt * l0.e[1]]; }); };
+    const pkC = pk ? pk.polys.map((pl) => ccw(pl.map(toC))) : [];
+    const mPk = pk ? RHO * simpson((z) => { const S = G.shrunk(INS_SLOPE * (z - tb)); if (S.length < 3) return 0; const O = pkC.map((pl) => offConvex(pl, INS_SLOPE * (z - pk.tr)));
+      let A = O.reduce((a, o) => a + Math.abs(PG.area(PG.clip(S, o))), 0); for (let i = 0; i < O.length; i++) for (let j = i + 1; j < O.length; j++) A -= Math.abs(PG.area(PG.clip(PG.clip(S, O[i]), O[j]))); return A; }, pk.tr, t, 16) : 0;
+    const mass = RHO * Vadd - mPk, massCuna = RHO * (Afull * D + (Aout - Afull) * D / 2);   // kg por inserto (masa añadida sobre la base de t_base); cuña: fórmula anterior, informativa
+    // margen de una huella A dentro de un polígono B (distancia entre fronteras; negativo si sale)
+    const inMargin = (A, B) => { let m = Infinity; A.forEach((p) => { const e = PG.edgeDist(B, p); m = Math.min(m, PG.inside(B, p) ? e : -e); }); B.forEach((q) => { const e = PG.edgeDist(A, q); m = Math.min(m, PG.inside(A, q) ? -e : e); }); return m; };
+    // orejas de izaje sobre el inserto: pie (con los filetes) dentro del espesor pleno y fuera del rebaje con su borde 1:2,5; las que no caen en el inserto, fuera del contorno
+    const fullCv = G.fullC(t), earSeat = earsC.map((e) => {
+      if (!PG.inside(Vc, e.centro)) { const d = PG.dist(e.poly, Vc); return { id: e.id, sobre: false, d }; }
+      let d = inMargin(e.poly, fullCv), dReb = Infinity; pkC.forEach((pl) => { dReb = Math.min(dReb, PG.dist(e.poly, pl) - INS_SLOPE * pk.depth); });
+      return { id: e.id, sobre: true, d: Math.min(d, dReb), dPleno: d, dRebaje: dReb };
+    }).filter((x) => x.sobre || x.d < 50);
+    // modo 1: mejillas y suplemento de la ménsula sobre el espesor pleno: las mejillas se corren hacia la esquina (retroceso δ, sin pasar de las orejas)
+    let mensula = null;
+    if (mode === 1) {
+      const bg = bracketGeo(P), w = P.w_br, E = toC(E1), dmax = Math.max(0, P.L_ch - bg.rear - bg.lugF);
+      const feet = (dl) => [{ id: "mejilla exterior", poly: PG.rect(E[0] + bg.Win / 2 - w, E[0] + bg.Wout / 2 + w, E[1] - bg.rear - dl - w, E[1] - bg.rear - dl + P.L_ch + w) },
+        { id: "mejilla interior", poly: PG.rect(E[0] - bg.Wout / 2 - w, E[0] - bg.Win / 2 + w, E[1] - bg.rear - dl - w, E[1] - bg.rear - dl + P.L_ch + w) },
+        { id: "suplemento", poly: PG.rect(E[0] - bg.Win / 2, E[0] + bg.Win / 2, E[1] - bg.rear - w, E[1] + bg.lugF + w) }];
+      const marg = (dl) => feet(dl).reduce((m, f) => Math.min(m, inMargin(f.poly, fullCv)), Infinity);
+      let dl = 0; while (dl < dmax && marg(dl) < INS_SEAT) dl = Math.min(dmax, dl + 5);   // múltiplos de 5 mm
+      mensula = { retroceso: dl, y_mejillas: [-bg.rear - dl, P.L_ch - bg.rear - dl], margen: marg(dl), retroceso_max: dmax, w, huellas0: feet(dl).map((f) => ({ id: f.id, poly: f.poly.map(toR) })) };
+    }
+    return { mode, ok: true, t, t_base: tb, delta: D, gap, clr, c, hip_dist: c / Math.SQRT2, nx, ny, outline, full, corners, fullCorners, allCorners, n: nIns, Aout, Afull, mass, massCuna, legX, legY, rebaje: pk, mRebaje: mPk,
       casos: sel.ev, fu: fuB, cumple: fuB <= 1 && sel.geoOk, geoOk: sel.geoOk, vClr: sel.vc, plan, obst: dObst.map((x) => ({ id: x.o.id, d: x.d })), Fvac, Fvac0, h, Fb, edges, Lcjp,
-      zTop: tb + D, lugBot, slope: INS_SLOPE, kappa: INS_KAPPA, cal, variantes: vars.map((v) => ({ gap: v.gap, clr: v.clr, ok: v.ok, t: v.pick ? v.pick.t : null })),
-      candidatos: V.rows.map((r) => ({ t: r.t, fu: r.fu, holgura_vertical: r.vc.d, asiento: r.t <= lugBot, rebaje: r.pk ? { z: r.pk.tr, profundidad: r.pk.depth } : null })) };
+      zTop: tb + D, lugBot, slope: INS_SLOPE, kappa: INS_KAPPA, cal, chMax: G.chMax, earSeat, mensula, toC, toR, variantes: vars.map((v) => ({ gap: v.gap, clr: v.clr, ok: v.ok, t: v.pick ? v.pick.t : null })),
+      candidatos: V.rows.map((r) => ({ t: r.t, fu: r.fu, holgura_vertical: r.vc.d, asiento: seatOk(r.t), rebaje: r.pk ? { z: r.pk.tr, profundidad: r.pk.depth } : null })) };
   }
   const REG_INS = "docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md";
   const LIM_USO_VACIA = { id: "atasco_mesa_vacia", texto: "No operar el accionamiento a presión de alivio con la mesa sin carga; ante un atasco sin carga, detener y liberar.",
@@ -2852,33 +2916,47 @@ const TT = (() => {
     add({ grp: G, sys: "est", kind: "geo", name: N + "inserto: holgura en planta a las piezas apoyadas en la base", formula: "mín dist(" + (I.plan.o ? I.plan.o.id : "—") + "; contorno del inserto) ≥ 5 mm (muesca con " + nfx(I.clr, 0) + " mm de diseño)", dem: 5, cap: I.plan.d, unit: "mm", ref: "Geometría; " + REG_INS });
     add({ grp: G, sys: "est", kind: "geo", name: N + "inserto: holgura vertical a las piezas que pasan por encima", formula: "z_inferior − z_cara del inserto ≥ 5 mm (sobre la transición la cara está a t − d/" + nfx(INS_SLOPE, 1) + "); mínimo: " + (I.vClr.id || "—") + " a z = " + nfx(I.vClr.z, 0) + " sobre la cara a " + nfx(I.vClr.top, 0), dem: 5, cap: I.vClr.d, unit: "mm", ref: "Geometría; " + REG_INS });
     add({ grp: G, sys: "est", kind: "geo", name: N + "inserto: holgura a la mesa (hipotenusa fuera de R = D/2)", formula: "dist(hipotenusa; O) − D/2 = ins_gap ≥ 5 mm", dem: 5, cap: I.hip_dist - P.D_top / 2, unit: "mm", ref: "Geometría; " + REG_INS });
-    add({ grp: G, sys: "est", kind: "geo", name: N + "inserto: " + (I.mode === 2 ? "la tapa inferior del ojal E queda sobre el inserto" : "el suplemento bajo la oreja inferior de la ménsula alcanza para el inserto"), formula: (I.mode === 2 ? "t_inserto ≤ z inferior de la tapa inferior" : "t_inserto ≤ t_base + suplemento (el suplemento y las mejillas se acortan Δ)"), dem: I.t, cap: I.lugBot, unit: "mm", ref: "Geometría; " + REG_INS });
+    add({ grp: G, sys: "est", kind: "geo", name: N + "inserto: " + (I.mode === 2 ? "la tapa inferior del ojal E queda sobre el inserto" : "el suplemento bajo la oreja inferior de la ménsula alcanza para el inserto"), formula: (I.mode === 2 ? "t_inserto + " + INS_CLR + " ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)" : "t_inserto ≤ t_base + suplemento (el suplemento y las mejillas se acortan Δ)"), dem: I.t + (I.mode === 2 ? INS_CLR : 0), cap: I.lugBot, unit: "mm", ref: "Geometría; " + REG_INS });
+    if (I.mode === 1 && I.mensula) { const M = I.mensula;
+      add({ grp: G, sys: "est", kind: "geo", name: N + "mejillas y suplemento sobre el espesor pleno del inserto", formula: "huellas de las dos mejillas (" + P.t_ch + " × " + P.L_ch + " mm) y del suplemento, con los filetes w = " + M.w + " mm, dentro del contorno «espesor pleno» con ≥ " + INS_CLR + " mm; mejillas corridas δ = " + nfx(M.retroceso, 0) + " mm hacia la esquina (y = " + nfx(M.y_mejillas[0], 0) + " … " + nfx(M.y_mejillas[1], 0) + " mm desde el ojal; δ máx. " + nfx(M.retroceso_max, 0) + " para cubrir las orejas)", dem: INS_CLR, cap: M.margen, unit: "mm", ref: "Geometría (planta); " + REG_INS }); }
+    { const J = jI1(I); add({ grp: G, sys: "est", kind: "info", name: N + "inserto: J-I1: designación precalificada de la CJP", formula: J.designacion + " (" + J.designacion_estado + "): doble V simétrica a tope con resanado de raíz, T1 = " + J.preparacion.T1 + " mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; " + J.preparacion.nota, dem: J.preparacion.T1, unit: "mm (T1 en la junta)", ref: J.norma_designacion }); }
     const Fv = I.Fvac, Mv = Fv * 1e3 * I.h, Tv = P.n_cyl * (be.ret ? Mv / be.sH : Infinity), Wv = BP.mesaVacia.W;
     add({ grp: G, sys: "est", name: N + "retención con la mesa vacía en servicio (sin anclaje)", formula: "n_cil·M/s_H ≤ W_mesa (peso propio de la parte que gira); M = F_servicio·h = " + nfx(Mv / 1e6, 3) + " kN·m, s_H = " + nfx(be.sH, 0) + " mm", dem: Tv / 1e3, cap: Wv / 1e3, unit: "kN", ref: "Equilibrio; " + REG_INS });
     add({ grp: G, sys: "est", kind: "info", name: N + "limitación de uso: atasco a presión de alivio con la mesa vacía EXCLUIDO como caso de diseño", formula: LIM_USO_VACIA.texto + " " + LIM_USO_VACIA.motivo, dem: R.Fstall, cap: Fv, unit: "kN (calado excluido / servicio verificado)", ref: REG_INS });
     return true;
   }
+  // J-I1 (22-11-2026): junta precalificada. La transición 1:2,5 lleva la cara superior del inserto a t_base en la línea de la junta, de modo que la CJP une dos
+  // espesores iguales T1 = t_base (el espesor pleno del inserto queda a 2,5·Δ de la junta). Doble V simétrica a tope con resanado de raíz: B-U3b de AWS D1.1:2020
+  // Figura 5.1 (SMAW, GMAW, FCAW; R = 0–3 mm, f = 0–3 mm, α = β = 60°). Designación citada de memoria: verificar contra la figura (registro normativo).
+  function jI1(I) {
+    const T1 = I.t_base, S = [(T1 - 3) / 2, T1 / 2];
+    return { designacion: "B-U3b", designacion_estado: "verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)", norma_designacion: "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))",
+      preparacion: { tipo: "doble V simétrica a tope", T1, espesor_en_la_junta: { base: T1, inserto: T1 }, espesor_pleno_inserto: I.t, raiz_R: [0, 3], talon_f: [0, 3], angulo_alfa: 60, angulo_beta: 60, profundidad_bisel_S: S, resanado: true, procesos: ["SMAW", "GMAW", "FCAW"],
+        nota: "la transición 1:2,5 (ancho " + nfx(INS_SLOPE * I.delta, 0) + " mm) lleva la cara del inserto de " + I.t + " mm a t_base = " + T1 + " mm en la línea de la junta: la CJP une dos espesores de " + T1 + " mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras" } };
+  }
   function insertExport(P, R) {
     const I = cornerInsertOf(P, R); if (!I) return null;
     if (!I.ok) return { estado: "NO CUMPLE: " + I.msg, referencia: REG_INS };
     const r2 = (pl) => pl.map((p) => [p[0], p[1]]), norma = REF_FB;
-    const juntas = [{ id: "J-I1", piezas: ["inserto", "base"], tipo: "CJP a tope en doble V (soldada desde arriba; la base se voltea en taller: resanado de raíz y soldadura por la cara inferior, amolada al ras) con transición 1:2,5 en la cara superior del inserto",
-      tamano: { CJP: I.t_base, transicion_ancho: INS_SLOPE * I.delta, transicion_pendiente: "1:2,5" }, largo: I.Lcjp, largo_total: I.n * I.Lcjp,
-      verificacion: { fu: Math.max(...I.casos.map((q) => q.fu)), norma: REF_CJP + "; " + norma } }];
+    const juntas = [Object.assign({ id: "J-I1", piezas: ["inserto", "base"], tipo: "CJP a tope en doble V (soldada desde arriba; la base se voltea en taller: resanado de raíz y soldadura por la cara inferior, amolada al ras) con transición 1:2,5 en la cara superior del inserto",
+      tamano: { CJP: I.t_base, transicion_ancho: INS_SLOPE * I.delta, transicion_pendiente: "1:2,5" }, largo: I.Lcjp, largo_total: I.n * I.Lcjp }, jI1(I), {
+      verificacion: { fu: Math.max(...I.casos.map((q) => q.fu)), norma: REF_CJP + "; " + norma } })];
     const secuencia = [
       "1. Oxicorte de la base de " + I.t_base + " mm con las " + I.n + " ventanas del inserto (contorno «esquinas»; los bordes sobre el borde de la base no llevan junta).",
-      "2. Oxicorte de los insertos de " + I.t + " mm; bisel de la transición 1:2,5 en la cara superior a lo largo de los bordes interiores (ancho " + nfx(INS_SLOPE * I.delta, 0) + " mm, hasta el contorno «espesor pleno») y biseles de la CJP en doble V.",
-      "3. Presentar base e insertos sobre mesa plana, al ras por la cara inferior; punteo con separación de raíz según la junta precalificada.",
+      "2. Oxicorte de los insertos de " + I.t + " mm" + ([I.nx, I.ny].some((n) => n && n.ch > 0) ? " (esquinas de las muescas con chaflán a 45°: " + [I.nx, I.ny].filter(Boolean).map((n) => nfx(n.ch || 0, 1)).join(" / ") + " mm)" : "") + "; bisel de la transición 1:2,5 en la cara superior a lo largo de los bordes interiores (ancho " + nfx(INS_SLOPE * I.delta, 0) + " mm, hasta el contorno «espesor pleno») y biseles de la CJP en doble V.",
+      "3. Presentar base e insertos sobre mesa plana, al ras por la cara inferior; punteo con separación de raíz según la junta precalificada (" + jI1(I).designacion + ": R 0–3 mm, f 0–3 mm, α = β = 60°).",
       "4. CJP J-I1 por la cara superior; voltear, resanar la raíz y soldar por la cara inferior; amolar al ras la cara inferior (apoyo en la losa).",
       "5. Inspección: VT 100 % y UT 100 % de J-I1 (AWS D1.1/D1.1M:2020, cláusula 8); control de planitud de la base.",
       ...(I.rebaje ? ["5b. Rebaje local de la cara superior a z = " + nfx(I.rebaje.tr, 0) + " (" + nfx(I.rebaje.depth, 0) + " mm) bajo el barrido de: " + I.rebaje.grupos.join(", ") + " (fresado o cepillado, borde a 1:2,5)."] : []),
       "6. Marco perimetral interrumpido a lo largo de los catetos del inserto (hasta 50 mm más allá de su extremo): el marco no cumple función resistente.",
-      "7. " + (I.mode === 2 ? "Soporte del ojal E (paredes, muñones y tapas) y oreja de izaje de la diagonal soldados sobre el inserto (las paredes y la oreja arrancan en z = " + I.t + ")" : "Mejillas de la ménsula, suplemento y oreja de izaje de la diagonal soldados sobre el inserto (mejillas y suplemento " + nfx(I.delta, 0) + " mm más cortos)") + "; después, el resto del accionamiento.",
+      "7. " + (I.mode === 2 ? "Soporte del ojal E (paredes, muñones y tapas) y oreja de izaje de la diagonal soldados sobre el inserto (las paredes y la oreja arrancan en z = " + I.t + ")" : "Mejillas de la ménsula, suplemento y oreja de izaje de la diagonal soldados sobre el inserto (mejillas y suplemento " + nfx(I.delta, 0) + " mm más cortos; mejillas corridas " + nfx(I.mensula ? I.mensula.retroceso : 0, 0) + " mm hacia la esquina, sobre el espesor pleno)") + "; después, el resto del accionamiento.",
     ];
     const casos = I.casos.map((q) => ({ id: q.id, caso: q.nombre, F_kN: q.F, h: I.h, M_kNm: q.M, sigma: q.sig, cap: I.Fb, fu: q.fu, norma }));
     const out = { estado: I.cumple ? "cumple" : "NO CUMPLE", t: I.t, t_base: I.t_base, delta: I.delta, z: [0, I.t], material: "S355J2 (EN 10025-2), Fy " + P.Fy + " MPa", n: I.n,
       catetos: [I.legX, I.legY], hipotenusa_dist_centro: I.hip_dist, holgura_mesa: I.hip_dist - P.D_top / 2, holgura_diseno_muescas: I.clr,
-      muescas: { lado_x: I.nx, lado_y: I.ny, marco: "canónico de la esquina (+B/2; −B/2); real = (s_x·X, −s_y·Y)" },
+      muescas: { lado_x: I.nx && { a: I.nx.a, b: I.nx.b, chaflan: I.nx.ch || 0 }, lado_y: I.ny && { a: I.ny.a, b: I.ny.b, chaflan: I.ny.ch || 0 }, marco: "canónico de la esquina (+B/2; −B/2); real = (s_x·X, −s_y·Y)",
+        chaflan: "esquina de cada muesca cortada a 45° (22-11-2026): lado x {X ≥ a, Y ≥ b, X + Y ≥ a + b + chaflán}; lado y {X ≤ a, Y ≤ b, (a − X) + (b − Y) ≥ chaflán}; en el espesor pleno el chaflán pasa a chaflán + s·(2 − √2) con s = 2,5·Δ (biseles planos: la cara superior es t_base + mín(Δ; d/2,5) con d la distancia a la hipotenusa y a cada muesca, d_muesca = máx(a − X; b − Y; (a + b + chaflán − X − Y)/√2) en el lado x)",
+        chaflan_max: I.chMax },
       esquinas: I.corners.map(r2), esquinas_espesor_pleno: I.fullCorners.map(r2), poligono: I.mode === 2 ? { cilindro1: r2(I.corners[0]), cilindro2: r2(I.corners[1]) } : { esquinas: I.corners.map(r2) },
       transicion: { cara: "superior", pendiente: "1:2,5", ancho: INS_SLOPE * I.delta, norma: REF_CJP },
       rebaje: I.rebaje ? { z_cara: I.rebaje.tr, profundidad: I.rebaje.depth, bajo: I.rebaje.grupos, poligonos: I.rebaje.polysAll.map(r2), borde: "pendiente 1:2,5 fuera del polígono", masa_quitada: I.mRebaje, nota: "rebaje local de la cara superior del inserto bajo el barrido de las piezas móviles que no dejan 5 mm sobre el espesor pleno (envolvente convexa del barrido de cada pieza y sentido, cilindro 1 y su rotación de 180°); se mecaniza después de soldar J-I1" } : null,
@@ -2889,6 +2967,17 @@ const TT = (() => {
       candidatos: I.candidatos, modelo: { S_tabla: I.cal, kappa: INS_KAPPA, criterio: "σ_vM a más de 100 mm de la huella rígida del soporte (verificación independiente)", fea: "tests/indep_plancha_base_E.py" },
       limitaciones_uso: [LIM_USO_VACIA], referencia: REG_INS };
     return out;
+  }
+  // Ménsula del ojal trasero (modo guiado) sobre el inserto: posición de las mejillas a lo largo del eje del cilindro desde el ojal (y > 0 hacia el vástago) y huellas
+  // en planta (coordenadas de la tornamesa, con los filetes w_br) de las mejillas y del suplemento de cada ménsula. 22-11-2026: las mejillas se corren δ hacia la
+  // esquina para apoyar enteras en el espesor pleno (antes salían 30,5 mm en el modo guiado y 55,5 mm con la interfaz A); las orejas no se mueven.
+  function mensulaExport(P, R) {
+    const I = cornerInsertOf(P, R), bg = bracketGeo(P);
+    if (!I || !I.ok || !I.mensula) return { y_mejillas: [-bg.rear, P.L_ch - bg.rear], retroceso: 0, huellas: [], nota: "sin inserto: mejillas desde la saliente trasera de la oreja" };
+    const M = I.mensula, tr = [(p) => p, (p) => [-p[0], -p[1]], (p) => [p[0], -p[1]], (p) => [-p[0], p[1]]].slice(0, I.n);
+    return { y_mejillas: M.y_mejillas, retroceso: M.retroceso, retroceso_max: M.retroceso_max, largo: P.L_ch, saliente_trasera_oreja: bg.rear, saliente_delantera_oreja: bg.lugF, margen_espesor_pleno: M.margen, filete: M.w,
+      huellas: [].concat(...tr.map((f, k) => M.huellas0.map((hh) => ({ id: hh.id, mensula: k + 1, poly: hh.poly.map(f) })))),
+      nota: "y a lo largo del eje del cilindro desde el ojal trasero, positivo hacia el vástago; las mejillas (L_ch) van de y_mejillas[0] a y_mejillas[1] y se corren «retroceso» mm hacia la esquina para apoyar enteras (con los filetes) en el espesor pleno del inserto con ≥ " + INS_SEAT + " mm de diseño (exigido ≥ " + INS_CLR + "); las orejas superior e inferior (suplemento) quedan en el ojal (de −saliente_trasera a +saliente_delantera); huellas con los filetes w_br" };
   }
   const REG_BPG = "docs/normas/registro.md, «Plancha base bajo la ménsula del ojal trasero (modo guiado, 10-11-2026)»; docs/qa/plancha_base_modo_guiado.md";
   function guidedBasePlateRows(P, R, add) {
@@ -2974,6 +3063,7 @@ const TT = (() => {
     add({ grp: AR, sys: "est", name: "Pasador vertical E: flexión (orejas del soporte)", formula: "M = F/2·(t_oreja/2 + g + b/4); σ ≤ Fy/Nd", dem: m.ME / (Math.PI * P.pv_dE ** 3 / 32), cap: P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / §3-2.3" });
     add({ grp: AR, sys: "est", name: "Pasador vertical E: corte doble", formula: "τ = (F/2)/A ≤ Fy/(Nd·√3)", dem: Fs / 2 / AE, cap: P.Fy_pp / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.3.6" });
     add({ grp: AR, sys: "est", name: "Tapas del cajón E (orejas del pasador): aplastamiento", formula: "σ = (F/2)/(d_E·t_tapa) ≤ 1,25Fy/Nd", dem: Fs / 2 / (P.pv_dE * P.pv_tl), cap: 1.25 * Fy / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
+    { const pe = pinEOf(P, R); if (pe.ins) add({ grp: AR, sys: "giro", kind: "geo", name: "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina", formula: "z_inf,pasador − t_inserto ≥ " + INS_CLR + " mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + " + INS_SEAT + ")) = " + nfx(pe.z0, 1) + " (saliente bajo la tapa inferior " + nfx(pe.salInf, 1) + " mm), cara del inserto a z = " + nfx(pe.face, 0), dem: INS_CLR, cap: pe.holgura, unit: "mm", ref: "Geometría (alzado); " + REG_INS }); }
     add({ grp: AR, sys: "est", name: "Tapas del cajón E: desgarro por corte hacia las paredes traseras (empuje a calado)", formula: "τ = (F/2)/(2·t·a) ≤ Fy/(Nd·√3), a = mín sobre el barrido de la distancia del agujero a la pared en la dirección −u menos d_E/2 = " + nfx(sg.aTear) + " mm", dem: Fs / 2 / (2 * P.pv_tl * sg.aTear), cap: Fy / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-3.3 (2 planos de corte)" });
     const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10;
     add({ grp: AR, sys: "est", name: "Tapas del cajón E: desgarro hacia la nariz recortada con la tracción del retorno", formula: "τ = (F_ret/2)/(2·t·a_n) ≤ Fy/(Nd·√3), F_ret = A_anular·p_ret = " + nfx(Fret / 1e3) + " kN, a_n = mín sobre el barrido de la distancia del agujero a la nariz en la dirección +u menos d_E/2 = " + nfx(sg.aNose) + " mm", dem: Fret / 2 / (2 * P.pv_tl * sg.aNose), cap: Fy / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-3.3 (2 planos de corte)" });
@@ -3583,7 +3673,11 @@ const TT = (() => {
       add({ grp: "Orejas de izaje", sys: "est", kind: P.ear_gira > 0.5 ? "geo" : "info", name: "Oreja: holgura agujero–pasador ≤ 1 mm si el pasador gira bajo carga plena (AISC D5.2(2))", formula: P.ear_gira > 0.5 ? "g = d − d_pasador ≤ 1 mm" : "g = d − d_pasador = " + P.g_ear + " mm; no aplica el límite de 1 mm (izaje estático: el pasador no gira bajo la carga plena); con ear_gira = 1 exige ≤ 1 mm", dem: P.g_ear, cap: 1, unit: "mm", ref: "AISC 360-22 §D5.2(2)" });
       // filete: mínimo AWS D1.1 Tabla 7.7 por la parte más gruesa (AISC J2.4 lo da por la más delgada; el mínimo no excede la parte más delgada), máximo AISC J2.2b en el borde de la oreja
       { const INSo = R.K.ok ? cornerInsertOf(P, R) : null, onIns = INSo && INSo.ok && earPolys(P).some((e) => INSo.corners.some((pl) => PG.inside(pl, e.centro))), tS = onIns ? Math.max(P.t_base, INSo.t) : P.t_base;   // orejas de las diagonales del soporte: soldadas sobre el inserto
-        add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: filete mínimo según la parte más gruesa (oreja o plancha base" + (onIns ? " o inserto de esquina" : "") + ")", formula: "w_mín(T = máx(t_oreja; t_asiento) = " + Math.max(P.t_ear, tS) + ") ≤ w_oreja; no más que la parte más delgada" + (onIns ? " (las orejas de las diagonales del soporte van sobre el inserto de " + INSo.t + " mm)" : ""), dem: Math.min(wMin(Math.max(P.t_ear, tS)), Math.min(P.t_ear, tS)), cap: P.w_ear, unit: "mm", ref: REFWMIN }); }
+        add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: filete mínimo según la parte más gruesa (oreja o plancha base" + (onIns ? " o inserto de esquina" : "") + ")", formula: "w_mín(T = máx(t_oreja; t_asiento) = " + Math.max(P.t_ear, tS) + ") ≤ w_oreja; no más que la parte más delgada" + (onIns ? " (las orejas de las diagonales del soporte van sobre el inserto de " + INSo.t + " mm)" : ""), dem: Math.min(wMin(Math.max(P.t_ear, tS)), Math.min(P.t_ear, tS)), cap: P.w_ear, unit: "mm", ref: REFWMIN });
+        if (INSo && INSo.ok && INSo.earSeat && INSo.earSeat.length) {   // 22-11-2026: el pie de la oreja de la diagonal apoya entero en el espesor pleno (con 850 caía sobre la transición)
+          const es = INSo.earSeat, on = es.filter((e) => e.sobre), w = es.reduce((m, e) => (e.d < m.d ? e : m), es[0]);
+          add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: pie sobre el espesor pleno del inserto de esquina (orejas de la diagonal)", formula: (on.length ? on.length * INSo.n + " orejas sobre los insertos de " + INSo.t + " mm: " : "") + "huella del pie con los filetes 2R × (t + 2w) = " + 2 * P.R_ear + " × " + (P.t_ear + 2 * P.w_ear) + " mm dentro del contorno «espesor pleno» (y fuera del rebaje con su borde 1:" + nfx(INS_SLOPE, 1) + ") con ≥ " + INS_CLR + " mm; las que no caen en el inserto, a ≥ " + INS_CLR + " mm de su contorno; mínimo: " + w.id + " (" + nfx(w.d, 1) + " mm" + (w.sobre ? "; espesor pleno " + nfx(w.dPleno, 1) + (isFinite(w.dRebaje) ? ", rebaje " + nfx(w.dRebaje, 1) : "") : "; fuera del inserto") + "). Chaflán de las muescas: " + [INSo.nx, INSo.ny].filter(Boolean).map((n) => nfx(n.ch || 0, 1)).join(" / ") + " mm", dem: INS_CLR, cap: w.d, unit: "mm", ref: "Geometría (planta); " + REG_INS });
+        } }
       add({ grp: "Orejas de izaje", sys: "est", kind: "geo", name: "Oreja: filete máximo según el borde de la placa", formula: "w_oreja ≤ w_máx(t_oreja) (t < 6: t; t ≥ 6: t − 2 mm)", dem: P.w_ear, cap: wMax(P.t_ear), unit: "mm", ref: "AISC 360-22 §J2.2b (tamaño máximo del filete a lo largo de bordes)" });
       add({ grp: "Orejas de izaje", sys: "est", kind: "info", name: "Tensión por oreja (3 ramales efectivos a 60°) y WLL mínimo del grillete", formula: "T = m·φ·g/(3·sen 60°)", dem: T, unit: "kN", ref: "ASME B30.9; B30.26" });
       const dLug = Math.hypot(P.x_lug, P.B / 2 - P.c_lug);

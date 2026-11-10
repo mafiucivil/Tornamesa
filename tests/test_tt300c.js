@@ -679,7 +679,7 @@ test("4.ª pasada · filete mejillas–base: mínimo AWS D1.1 T5.8 (parte más g
 });
 
 test("4.ª pasada · flecha al izar la base (C12): margen ≥ 10 % del límite B/300 en todas las variantes, incluso B con madera", () => {
-  const P0 = TT.defaults(); assert.ok(P0.c_lug === 430 && P0.x_lug === 850, "puntos de izaje en las diagonales (±850; ±850) desde el 10-11-2026 (antes c = 250 mm, x = 600: las placas-guía del sentido horario y los bloques-uña pasaban sobre las orejas)");
+  const P0 = TT.defaults(); assert.ok(P0.c_lug === 350 && P0.x_lug === 930, "puntos de izaje en las diagonales (±930; ±930) desde el 22-11-2026 (10-11-2026: ±850, el pie de la oreja de la diagonal caía sobre la transición del inserto de esquina; antes c = 250 mm, x = 600: las placas-guía del sentido horario y los bloques-uña pasaban sobre las orejas)");
   for (const [nm, o] of [...IFC_VARIANTS, ["B+madera", { opt_uhmw: 1, opt_wood: 1 }]]) {
     const P = Object.assign(TT.defaults(), o), R = TT.compute(P), L = TT.runLift(P, R, false);
     assert.ok(L.wMax <= 0.90 * P.B / 300, nm + ": flecha " + L.wMax.toFixed(2) + " mm vs límite " + (P.B / 300).toFixed(2));
@@ -1658,7 +1658,8 @@ test("Soporte E · constructibilidad: tapas entre las paredes, juntas con tipo y
   assert.ok(F.marco_interrupcion.cilindro1.length === 2 && F.marco_interrupcion.cilindro2.length === 2);
   // masa: piezas reales (paredes + muñones + tapas recortadas) + pasador E; marco descontado
   // desde el 10-11-2026 las paredes y muñones arrancan sobre el inserto de esquina (Δ más cortos): masa exportada = Σ piezas + pasador
-  const mP = F.piezas.reduce((a, q) => a + q.masa, 0); near(F.masa, mP + R.sup.mPin, 1e-9, "masa del soporte = Σ piezas + pasador");
+  // desde el 22-11-2026 el pasador E tiene el largo real (extremo inferior sobre la cara del inserto): pivotado.fabricacion.pasador_E.masa
+  const mP = F.piezas.reduce((a, q) => a + q.masa, 0); near(F.masa, mP + TT.designDrive(P, R).pivotado.fabricacion.pasador_E.masa, 1e-9, "masa del soporte = Σ piezas + pasador");
   near(R.m.brackets, P.n_cyl * F.masa + R.m.insertos, 1e-9, "m.brackets = soportes + insertos de esquina");
   assert.ok(R.m.rim < 7.85e-6 * (4 * P.B - 4 * P.rim_t) * P.rim_h * P.rim_t, "marco interrumpido frente a los soportes");
   // filas nuevas con norma
@@ -1998,4 +1999,101 @@ test("Ménsula del ojal trasero (modo guiado) · base de 20 mm con inserto bajo 
   assert.ok(A.verdict.limitaciones_uso.length >= 1);
   const PB = Object.assign(TG(), { opt_uhmw: 1 }), AB = TT.analyze(PB, { noFEA: true });
   insCheck(PB, TT.designDrive(PB, AB.R).levaGuiada.fabricacion.inserto, AB, AB.checks.filter((c) => /^Plancha base bajo la ménsula del ojal trasero: inserto/.test(c.name)), "guiado B");
+});
+
+/* ======================= Conflictos del generador de planos con el inserto de esquina (378675e; docs/qa/plancha_base_inserto.md §7) ======================= */
+// Geometría propia del test (sin las funciones del núcleo): punto en polígono, distancia a la frontera, huellas en planta.
+const gPin = (pl, p) => { let c = false; for (let i = 0, j = pl.length - 1; i < pl.length; j = i++) { const a = pl[i], b = pl[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+const gSeg = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
+const gBd = (pl, p) => { let d = Infinity; for (let i = 0; i < pl.length; i++) d = Math.min(d, gSeg(p, pl[i], pl[(i + 1) % pl.length])); return d; };
+const gSd = (pl, p) => (gPin(pl, p) ? 1 : -1) * gBd(pl, p);   // > 0 dentro
+const gDense = (q, n) => { const o = []; for (let j = 0; j < q.length; j++) for (let s = 0; s < n; s++) { const a = q[j], b = q[(j + 1) % q.length]; o.push([a[0] + (b[0] - a[0]) * s / n, a[1] + (b[1] - a[1]) * s / n]); } return o; };
+const gIn = (pl, q) => Math.min(...gDense(q, 40).map((p) => gSd(pl, p)));   // margen de la huella q dentro de pl (frontera de la huella densificada)
+const VARS_INS = { "por defecto": {}, "AF2": { opt_ss: 1, fix_mode: 2 }, "A": { opt_ss: 1 }, "B": { opt_uhmw: 1 }, "C": { opt_bz: 1 } };
+const VARS_G = { "base_G": {}, "A_G": { opt_ss: 1 }, "B_G": { opt_uhmw: 1 } };
+const insOf = (D) => (D.levaGuiada ? D.levaGuiada.fabricacion.inserto : D.pivotado.fabricacion.soporte_E.inserto);
+test("Inserto · pasador E: el extremo inferior queda sobre la cara del inserto con ≥ 5 mm (antes z 59 con t 60; z 89 con t 90 en A/C)", () => {
+  Object.entries(VARS_INS).forEach(([lb, o]) => {
+    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).pivotado.fabricacion, I = F.soporte_E.inserto, pe = F.pasador_E;
+    const tapaInf = F.soporte_E.piezas.find((q) => q.id === "tapa_inf"), tapaSup = F.soporte_E.piezas.find((q) => q.id === "tapa_sup");
+    assert.ok(pe.z[0] - I.t >= 5 - 1e-9, lb + ": pasador E a z " + pe.z[0] + " sobre el inserto de " + I.t);
+    assert.ok(pe.z[0] <= tapaInf.z[0] + 1e-9 && pe.z[1] >= tapaSup.z[1] - 1e-9, lb + ": el pasador atraviesa las dos tapas");
+    near(pe.largo, pe.z[1] - pe.z[0], 1e-12, lb + ": largo = z₁ − z₀");
+    near(pe.masa, 7.85e-6 * Math.PI / 4 * pe.d ** 2 * pe.largo, 1e-9, lb + ": masa del pasador");
+    near(F.soporte_E.masa, F.soporte_E.piezas.reduce((a, q) => a + q.masa, 0) + pe.masa, 1e-9, lb + ": masa del soporte = Σ piezas + pasador");
+    const r = A.checks.find((c) => /Pasador vertical E: extremo inferior sobre la cara del inserto/.test(c.name));
+    assert.ok(r && r.kind === "geo" && r.dem === 5 && r.st === "ok", lb + ": fila de la holgura del pasador E");
+    near(r.cap, pe.z[0] - I.t, 1e-9, lb + ": holgura exportada");
+  });
+});
+test("Inserto · orejas de izaje de la diagonal (modo pivotado y guiado): pie completo sobre el espesor pleno (≥ 5 mm), fuera del rebaje; holguras e izaje", () => {
+  Object.entries(Object.assign({}, VARS_INS, Object.fromEntries(Object.entries(VARS_G).map(([k, v]) => [k, Object.assign({ drive_mode: 1 }, v)])))).forEach(([lb, o]) => {
+    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R));
+    let nOn = 0;
+    TT.earPolys(P).forEach((e) => I.esquinas.forEach((pl, i) => {
+      if (!gPin(pl, e.centro)) { assert.ok(gIn(pl, e.poly) <= -5 + 1e-6, lb + ": oreja fuera del inserto con ≥ 5 mm"); return; }
+      nOn++;
+      const m = gIn(I.esquinas_espesor_pleno[i], e.poly);   // huella 2R × (t + 2w), con los filetes
+      assert.ok(m >= 5 - 1e-6, lb + ": pie de la oreja dentro del espesor pleno con " + m.toFixed(1) + " mm");
+      if (I.rebaje) I.rebaje.poligonos.forEach((rp) => { const d = -gIn(rp, e.poly); assert.ok(d >= I.rebaje.profundidad * 2.5 + 5 - 1e-6, lb + ": oreja fuera del rebaje y de su borde 1:2,5 (" + d.toFixed(1) + " mm)"); });
+    }));
+    assert.ok(nOn >= 2, lb + ": orejas de la diagonal sobre el inserto");
+    const r = A.checks.find((c) => /Oreja: pie sobre el espesor pleno del inserto/.test(c.name));
+    assert.ok(r && r.kind === "geo" && r.dem === 5 && r.cap >= 5 - 1e-6 && r.st === "ok", lb + ": fila «pie de la oreja sobre espesor pleno» " + (r && r.cap));
+    // holguras ya existentes (placas, cilindro, soporte E, accionamiento guiado, mesa) y verificación del izaje
+    const izaje = A.checks.filter((c) => c.grp === "Orejas de izaje" || /izaje/i.test(c.name));
+    assert.ok(izaje.length >= 10, lb + ": filas del izaje");
+    izaje.forEach((c) => assert.ok(c.st === "ok" || c.st === "info", lb + ": " + c.name + " " + c.st + " " + c.fu));
+    assert.equal(A.verdict.estado_global, "CUMPLE", lb);
+  });
+});
+test("Inserto · mejillas de la ménsula (modo guiado): apoyan enteras sobre el espesor pleno (antes 30,5 mm fuera en base_G y 55,5 en A_G)", () => {
+  Object.entries(VARS_G).forEach(([lb, o]) => {
+    const P = Object.assign(TG(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).levaGuiada.fabricacion, I = F.inserto, M = F.mensula, bg = TT.bracketGeo(P);
+    assert.ok(M && Array.isArray(M.y_mejillas) && M.retroceso >= 0, lb + ": ménsula exportada");
+    near(M.y_mejillas[1] - M.y_mejillas[0], P.L_ch, 1e-12, lb + ": largo de la mejilla L_ch");
+    assert.ok(M.y_mejillas[0] <= -bg.rear + 1e-9 && M.y_mejillas[1] >= bg.lugF - 1e-9, lb + ": las mejillas cubren las orejas");
+    let n = 0;
+    M.huellas.forEach((h) => { const i = I.esquinas.findIndex((pl) => gPin(pl, h.poly[0]) || gPin(pl, h.poly[2])); assert.ok(i >= 0, lb + ": huella sobre un inserto");
+      const m = gIn(I.esquinas_espesor_pleno[i], h.poly); assert.ok(m >= 5 - 1e-6, lb + ": " + h.id + " dentro del espesor pleno con " + m.toFixed(1) + " mm"); n++; });
+    assert.equal(n, 3 * Math.round(P.n_br), lb + ": dos mejillas y el suplemento por ménsula");
+    const r = A.checks.find((c) => /mejillas y suplemento sobre el espesor pleno del inserto/.test(c.name));
+    assert.ok(r && r.kind === "geo" && r.dem === 5 && r.st === "ok", lb + ": fila de las mejillas");
+    assert.equal(A.verdict.estado_global, "CUMPLE", lb);
+  });
+});
+test("Inserto · masa exacta de la transición (biseles planos entre el contorno y el espesor pleno, con el rebaje): integración numérica propia < 0,5 %", () => {
+  Object.entries(Object.assign({}, VARS_INS, { "base_G": { drive_mode: 1 }, "B_G": { drive_mode: 1, opt_uhmw: 1 } })).forEach(([lb, o]) => {
+    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R)), Bh = P.B / 2, tb = P.t_base, k = 2.5, D = I.delta;
+    const c = I.hipotenusa_dist_centro * Math.SQRT2, mx = I.muescas.lado_x, my = I.muescas.lado_y, C0 = I.esquinas[0];
+    const sx = Math.sign(C0.reduce((a, p) => a + p[0], 0)) || 1, sy = Math.sign(C0.reduce((a, p) => a + p[1], 0)) || -1, toC = (p) => [sx * p[0], -sy * p[1]];
+    // cara superior del sólido (semiespacios con pendiente 1:k desde la hipotenusa y desde cada muesca, con su chaflán), como el 3D del generador de planos
+    const face = (X, Y) => { let d = (X - Y - c) / Math.SQRT2;
+      if (mx) d = Math.min(d, Math.max(mx.a - X, mx.b - Y, mx.chaflan ? (mx.a + mx.b + mx.chaflan - X - Y) / Math.SQRT2 : -Infinity));
+      if (my) d = Math.min(d, Math.max(X - my.a, Y - my.b, my.chaflan ? (my.chaflan - (my.a - X) - (my.b - Y)) / Math.SQRT2 : -Infinity));
+      return Math.max(0, Math.min(D, d / k)); };
+    const Cc = C0.map(toC), pk = I.rebaje ? I.rebaje.poligonos.filter((pl) => pl.some((p) => gPin(C0, p))).map((pl) => pl.map(toC)) : [];
+    const h = 2; let V = 0;
+    for (let X = -Bh + h / 2; X < Bh; X += h) for (let Y = -Bh + h / 2; Y < Bh; Y += h) {
+      if (X - Y < c - 1 || !gPin(Cc, [X, Y])) continue;
+      let z = tb + face(X, Y);
+      pk.forEach((pl) => { const dout = gPin(pl, [X, Y]) ? 0 : gBd(pl, [X, Y]); z = Math.min(z, Math.max(I.rebaje.z_cara + dout / k, tb)); });
+      V += (z - tb) * h * h;
+    }
+    const m = 7.85e-6 * V;
+    assert.ok(Math.abs(I.masa / m - 1) < 0.005, lb + ": masa del núcleo " + I.masa.toFixed(2) + " frente a la integración " + m.toFixed(2) + " kg");
+    near(A.R.m.insertos, I.n * I.masa, 1e-9, lb + ": masa en el total");
+  });
+});
+test("Inserto · J-I1: designación precalificada de la CJP en doble V (AWS D1.1:2020 Figura 5.1) con raíz, talón y ángulo, coherente con t_base frente a t_inserto", () => {
+  Object.entries(Object.assign({}, VARS_INS, { "base_G": { drive_mode: 1 } })).forEach(([lb, o]) => {
+    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R)), J = I.juntas.find((j) => j.id === "J-I1");
+    assert.ok(/^B-U3b/.test(J.designacion) && /verificar/.test(J.designacion_estado), lb + ": designación " + J.designacion);
+    const pr = J.preparacion;
+    assert.ok(pr && pr.T1 === P.t_base && pr.raiz_R[0] === 0 && pr.raiz_R[1] === 3 && pr.talon_f[0] === 0 && pr.talon_f[1] === 3 && pr.angulo_alfa === 60 && pr.angulo_beta === 60 && pr.resanado === true, lb + ": preparación " + JSON.stringify(pr));
+    assert.equal(pr.espesor_en_la_junta.inserto, P.t_base, lb + ": la transición lleva el inserto a t_base en la línea de la junta");
+    assert.equal(pr.espesor_en_la_junta.base, P.t_base); assert.equal(pr.espesor_pleno_inserto, I.t);
+    assert.ok(/Figura 5\.1/.test(J.norma_designacion), lb);
+    assert.ok(A.checks.some((c) => c.kind === "info" && /J-I1: designación/.test(c.name) && /B-U3b/.test(c.formula)), lb + ": fila informativa");
+  });
 });

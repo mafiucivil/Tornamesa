@@ -449,6 +449,36 @@ Resultados (FU con la mesa cargada a calado, que gobierna):
 
 **Verificador.** `tests/indep_plancha_base_E.py`: §3b en modo rápido (entra a `npm test`) y §4 con la FEA completa de los cuatro modelos y cinco casos. Exige FU de la FEA ≤ 1 y no más del 2 % sobre el núcleo.
 
+### Conflictos del generador de planos con el inserto (22-11-2026)
+
+El generador de planos (378675e) encontró cinco conflictos al dibujar el inserto. Detalle en `docs/qa/plancha_base_inserto.md` §7.
+
+| Conflicto | Corrección en el núcleo | Verificación (exigido ≥ 5 mm) |
+|---|---|---|
+| Pasador E bajo la cara del inserto (z 59 con t 60; z 89 con t 90 en A/C) | El pasador sobresale 10 mm sobre la tapa superior. Por debajo sobresale lo que deja 10 mm de diseño sobre la cara del inserto, desde 0 (al ras de la tapa inferior) hasta 10 mm. El asiento del inserto pasa a t + 5 ≤ z de la tapa inferior | Fila «Pasador vertical E: extremo inferior sobre la cara del inserto de esquina»: 9 mm por defecto y en A/C, 10 en AF2, 24 en B |
+| Orejas de la diagonal sobre la transición | Orejas a (±930; ±930), con x_lug 850 → 930 y c_lug 430 → 350. En el inserto de 90 la transición de las muescas igual alcanzaba el pie: la esquina de cada muesca lleva un chaflán a 45° de lo que pide el pie, limitado por los obstáculos de la muesca con 5 + 1 mm. Así quedan 80,5 mm en A/C y 76,5 en B (12,5 en AF2, 0 por defecto) | Fila «Oreja: pie sobre el espesor pleno del inserto de esquina», con la huella 2R × (t + 2w) y el rebaje con su borde 1:2,5: 12,5 mm por defecto, 10,0 en AF2, 8,1 en A/B/C y ≥ 54 en el guiado. Holgura a las partes móviles: 85 → 25 mm. Izaje: flecha 0,37 → 0,62 del límite (guiado 0,43 → 0,72), σ 0,18 → 0,25 |
+| Mejillas de la ménsula fuera del espesor pleno (30,5 mm en base_G, 55,5 en A_G) | Las mejillas, de L_ch, se corren δ hacia la esquina en múltiplos de 5 mm: 65 mm en G, 90 en A_G y 100 en B_G (máx. L_ch − saliente trasera − saliente delantera = 150). Las orejas quedan en el ojal. La franja de `guidedBasePlate` usa la posición corrida | Fila «… mejillas y suplemento sobre el espesor pleno del inserto», con los filetes w_br: 14,5 mm en G y A_G, 12,0 en B_G |
+| Masa del inserto como cuña | Volumen exacto: V = ∫₀^Δ A(z) dz, con A el área del contorno desplazado 2,5·z (la regla de «esquinas_espesor_pleno»), menos el rebaje con su borde 1:2,5. Simpson compuesto. Diferencia con una integración propia en grilla de 2 mm < 0,1 % | Test del núcleo y verificador independiente (grilla numpy), tolerancia 0,5 % |
+| J-I1 sin designación | B-U3b de AWS D1.1/D1.1M:2020 Figura 5.1: doble V simétrica a tope con resanado de raíz, R 0–3 mm, f 0–3 mm, α = β = 60°, SMAW/GMAW/FCAW. **Cita de memoria: verificar contra la figura.** La transición 1:2,5 lleva la cara del inserto a t_base en la línea de la junta, así que la CJP une 20 + 20 mm (T1 = t_base), no 20 + 60/70/90 | Fila informativa «inserto: J-I1: designación precalificada de la CJP»; `juntas[J-I1].designacion`, `designacion_estado`, `preparacion` |
+
+Masas (añadidas por inserto, sobre la base de t_base):
+
+| Modelo | Antes (cuña) | Ahora |
+|---|---|---|
+| Por defecto | 83,0 kg | 82,4 kg |
+| AF2 | 104,1 kg | 101,9 kg |
+| A / C | 130,6 kg | 130,7 kg |
+| B | 138,9 kg | 136,4 kg |
+| Guiado | 110,6 kg | 110,2 kg |
+| Guiado A | 141,9 kg | 140,9 kg |
+| Guiado B | 156,6 kg | 155,2 kg |
+
+En A, B y C la masa incluye el chaflán de las muescas.
+
+Masa total por defecto: 3.031,7 → 3.029,9 kg. Se compone de los insertos (−1,2 kg) y del pasador E acortado (−0,6 kg).
+
+El FU de la flexión del inserto no cambia. La FEA del verificador (§4) repite el inserto de B con el chaflán y el guiado con las mejillas corridas, a partir de los polígonos y de `levaGuiada.fabricacion.mensula` exportados.
+
 ## Elementos sobre la base: holguras (10-11-2026)
 
 Huellas en planta con su cota z: orejas de izaje (2R × (t + 2w) radial, hasta h + R sobre la base), soportes del ojal E (piezas reales), placas-guía (4: cilindro 1 y 2, ambos sentidos, por rotación de 180° y reflexión respecto de la diagonal), mesa con la interfaz y sus topes (círculo R = D/2) y, en el modo pivotado, las partes móviles en todos los estados del empuje y del retorno (cuerpo y vástago del cilindro, bloque-uña y cubo de Q). En el modo guiado, la banda de cada lado (bancada y prolongaciones, patín, cilindro, riel-leva y pórticos).

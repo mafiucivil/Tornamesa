@@ -113,3 +113,26 @@ python3 -I tests/indep_plancha_base_E.py                                        
 ```
 
 Las salidas usadas están en `docs/qa/plancha_base_inserto/resultados/`.
+
+## 7. Conflictos del generador de planos (22-11-2026)
+
+El generador de planos (378675e) dibujó el inserto desde el JSON y declaró cinco conflictos con «requiere núcleo». El núcleo los corrige así:
+
+1. **Pasador E.** Antes sobresalía 10 mm bajo la tapa inferior y su extremo quedaba bajo la cara del inserto (z 59 con t 60; z 89 con t 90 en A/C). Ahora sobresale lo que deja 10 mm de diseño sobre el inserto (de 0 a 10 mm), y se exige ≥ 5. El asiento del inserto pasa a t + 5 ≤ z de la tapa inferior. Resultados: z 69–191 por defecto (al ras, 9 mm), 80–207 en AF2 (10 mm), 99–221 en A/C (9 mm) y 114–246 en B (24 mm). `pasador_E` exporta `z`, `largo`, `masa`, `saliente_inferior`, `cara_bajo_el_pasador` y `holgura_inferior`.
+2. **Orejas de la diagonal.** Pasan a (±930; ±930), con x_lug 930 y c_lug 350. Con 850 el pie caía sobre la transición.
+   - Con el inserto de 90 (A, B, C) la transición de las dos muescas igual alcanzaba el pie, porque el pie de una oreja centrada en la diagonal tiene X + Y = ±(t/2 + w)·√2 en cualquier radio. Por eso la esquina de cada muesca lleva un chaflán a 45° (`muescas.lado_x.chaflan`, `lado_y.chaflan`): lo que pide el pie con 10 mm de diseño, limitado a que la recta del chaflán quede a ≥ 6 mm (5 + 1 de oxicorte) de los obstáculos de la muesca (`muescas.chaflan_max`).
+   - Chaflán resultante: 0 por defecto, 12,5 mm en AF2, 80,5 en A/C y 76,5 en B.
+   - Pie de la oreja sobre el espesor pleno: 12,5 mm por defecto, 10,0 en AF2, 8,1 en A/B/C y ≥ 54 en el guiado.
+   - Holguras de la oreja: 25 mm al cuerpo del cilindro (antes 85; el límite está en x ≈ 955), 118 mm a las placas, a los soportes E y a la mesa, y 214 mm a la banda del guiado.
+   - Holgura en planta del inserto a los obstáculos de la muesca: 6,0 mm en A/B/C.
+   - El izaje se rehízo (flecha 0,62 del límite, σ 0,25) y todas sus filas cumplen.
+3. **Mejillas de la ménsula (guiado).** Se corren δ hacia la esquina, en múltiplos de 5 mm, hasta que las dos mejillas (con los filetes w_br) y el suplemento quedan a ≥ 10 mm dentro del espesor pleno: δ = 65 / 90 / 100 mm en G / A_G / B_G, con margen de 14,5 / 14,5 / 12,0 mm. Las orejas quedan en el ojal y L_ch no cambia. Nuevo `levaGuiada.fabricacion.mensula` con `y_mejillas` (a lo largo del eje desde el ojal), `retroceso` y `huellas` (polígonos reales de cada ménsula). La franja `guidedBasePlate` y la FEA del verificador usan la posición corrida.
+4. **Masa.** V = ∫₀^Δ A(z) dz, con A(z) el área del contorno desplazado 2,5·z (la misma regla que «esquinas_espesor_pleno»), menos el rebaje con su borde 1:2,5. Las masas por inserto están en el registro normativo. La diferencia con la integración en grilla del test y del verificador es < 0,1 %.
+5. **J-I1.** `juntas[J-I1]` exporta `designacion` B-U3b, `designacion_estado` «verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)», `norma_designacion` y `preparacion`. La preparación es: T1 = t_base; espesor en la junta 20 + 20; R 0–3; f 0–3; α = β = 60°; S = 8,5–10 mm; resanado; SMAW/GMAW/FCAW. La transición 1:2,5 lleva la cara del inserto a t_base en la línea de la junta.
+
+**Cambios del JSON que el generador de planos debe leer:**
+- El chaflán de las muescas: el 3D por semiespacios necesita el tercer plano, (a + b + chaflán − X − Y)/√2.
+- `levaGuiada.fabricacion.mensula`, para la posición de las mejillas.
+- `pasador_E.z`.
+- `juntas[J-I1].preparacion`.
+- `x_lug` y `c_lug`.
