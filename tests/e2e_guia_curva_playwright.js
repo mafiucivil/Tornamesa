@@ -12,7 +12,13 @@
      5. «Verificaciones»: todas las filas de TT.analyze(P).checks aparecen en el DOM con estado, FU con 3 decimales y norma (ninguna falta, ninguna sobra);
      6. 0 «NaN», «undefined» ni «Infinity» en el DOM (texto y atributos) en el modo 2 por defecto, el modo 1 y cada alternativa (base, A, AF2, B, C1, C2, C3),
         con todas las pestañas y la simulación en sus fases;
-     7. el control opt_wood funciona y muestra el rótulo «Cubierta de madera W: en stand by (no incluida en la entrega RevC)». */
+     7. el control opt_wood funciona y muestra el rótulo «Cubierta de madera W: en stand by (no incluida en la entrega RevC)»;
+     8. veredicto global del núcleo (verdict.estado_global) en la insignia, el veredicto del resumen y la tarjeta «Estructura»; pendientes críticos
+        (ins_on = 0) con FU de 3 decimales y referencia; limitaciones de uso (verdict.limitaciones_uso) en el resumen y en la simulación;
+     9. inserto de esquina (designDrive().pivotado.fabricacion.soporte_E.inserto / levaGuiada.fabricacion.inserto) dibujado en la planta del Modelo
+        (polígono con muescas = núcleo, rótulo de espesor), en el corte o alzado (con su espesor) y en la planta de la simulación, en los modos 1 y 2;
+        lista de materiales con la plancha base de t_base mm y el inserto (espesor y masa) en la ménsula o el soporte E;
+    10. las filas de verificación del núcleo frente al DOM también en el modo 1 (guiado). */
 const path = require("path"), fs = require("fs"), assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
@@ -27,7 +33,8 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
   try {
     const page = await (await browser.newContext({ viewport: { width: 1360, height: 1500 }, deviceScaleFactor: 2 })).newPage(), errs = [];
     page.on("pageerror", (e) => errs.push(String(e))); page.on("console", (m) => { if (m.type() === "error" && !/ERR_CONNECTION_REFUSED/.test(m.text())) errs.push(m.text()); });
-    await page.goto(html);
+    page.setDefaultTimeout(180000);                                     // pestañas que calculan en el hilo principal (Tapones, Temperatura) en una máquina cargada
+    await page.goto(html, { timeout: 240000 });
     await page.waitForSelector("#bSim");
     const settle = () => page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando"), null, { timeout: 120000 }).then(() => page.waitForTimeout(250));
     const setP = async (id, v) => {
@@ -47,6 +54,78 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tt300c-params-v1")).opt_wood), 1, "opt_wood = 1 aplicado");
     await setP("opt_wood", 0);
     console.log("cubierta W: rótulo «en stand by» visible y el control opt_wood funciona");
+
+    // ---- 8. veredicto global, pendientes críticos y limitaciones de uso
+    const fu3 = (v) => v.toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    const veredicto = async (etq) => {
+      const r = await page.evaluate(() => {
+        const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), v = TT.analyze(P).verdict, tx = (s) => (document.querySelector(s) || { textContent: null }).textContent;
+        return { v, badge: tx("#estadoGlobal"), res: tx("#estadoGlobalRes"), est: tx("#estadoGlobalEst"), lim: tx("#limUso"),
+          pend: [...document.querySelectorAll("#pendCrit li")].map((li) => li.textContent), pendEst: document.querySelectorAll("#pendCritEst li").length };
+      });
+      const eg = r.v.estado_global;
+      assert.ok(["CUMPLE", "NO CUMPLE", "NO CUMPLE / PENDIENTE DE DECISIÓN"].includes(eg), etq + ": estado_global del núcleo");
+      assert.ok(r.badge && r.badge.includes("ESTADO GLOBAL: " + eg), `${etq}: insignia con el estado global (${r.badge})`);
+      assert.equal((r.res || "").trim(), eg, etq + ": veredicto del resumen");
+      assert.equal((r.est || "").trim(), eg, etq + ": tarjeta «Estructura»");
+      assert.equal(r.pend.length, r.v.pendientes_criticos.length, etq + ": pendientes críticos listados");
+      assert.equal(r.pendEst, r.v.pendientes_criticos.length, etq + ": pendientes críticos en la tarjeta «Estructura»");
+      r.v.pendientes_criticos.forEach((q, i) => { assert.ok(r.pend[i].includes("FU " + fu3(q.fu)), `${etq}: FU con 3 decimales (${q.nombre})`); assert.ok(r.pend[i].includes(q.nombre) && r.pend[i].includes(q.ref), `${etq}: nombre y referencia (${q.nombre})`); });
+      if (r.v.pendientes_criticos.length) assert.ok(r.badge.includes("FU pend. " + fu3(r.v.fuMaxPend)), etq + ": FU máximo de los pendientes en la insignia");
+      r.v.limitaciones_uso.forEach((l) => assert.ok(r.lim && r.lim.includes("Limitación de uso: " + l.texto), `${etq}: limitación de uso visible (${l.id})`));
+      if (!r.v.limitaciones_uso.length) assert.equal(r.lim, null, etq + ": sin limitaciones, sin recuadro");
+      if (r.v.limitaciones_uso.length) {
+        await page.click("#bSim"); await page.waitForSelector("#simDet");
+        const sl = await page.textContent("#simLim");
+        r.v.limitaciones_uso.forEach((l) => assert.ok(sl.includes("Limitación de uso: " + l.texto), etq + ": limitación de uso en la simulación"));
+        await page.click("#bSimClose");
+      }
+      return r;
+    };
+    let vr = await veredicto("pivotado");
+    assert.equal(vr.v.estado_global, "CUMPLE"); assert.equal(vr.v.limitaciones_uso.length, 1);
+    console.log(`veredicto (pivotado): «${vr.v.estado_global}» en la insignia, el resumen y «Estructura»; limitación de uso «${vr.v.limitaciones_uso[0].texto}» en el resumen y la simulación`);
+    await setP("ins_on", 0);
+    vr = await veredicto("pivotado sin inserto");
+    assert.equal(vr.v.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN"); assert.ok(vr.v.pendientes_criticos.length >= 1);
+    assert.equal(await page.$$eval(".mdl-ins, #secIns", (e) => e.length), 0, "sin inserto: no se dibuja");
+    console.log(`veredicto (ins_on = 0): «${vr.v.estado_global}», ${vr.v.pendientes_criticos.length} pendiente(s) crítico(s): ${vr.v.pendientes_criticos.map((q) => "FU " + fu3(q.fu)).join(", ")}`);
+    await setP("ins_on", 1);
+
+    // ---- 9. inserto de esquina: Modelo (planta y corte), simulación y lista de materiales, en los dos modos
+    const inserto = async (modo) => {
+      await tab("modelo");
+      const r = await page.evaluate(() => {
+        const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R);
+        const I = D.modo === 2 ? D.pivotado.fabricacion.soporte_E.inserto : D.levaGuiada.fabricacion.inserto;
+        const g = [...document.querySelectorAll('section[data-t="modelo"] g.mdl-ins')];
+        const pts = g.map((e) => e.querySelector("polygon").getAttribute("points").trim().split(/\s+/).map((q) => q.split(",").map(Number)));
+        const dmax = Math.max(...pts.map((pp, k) => Math.max(...pp.map(([x, y], i) => Math.hypot(x - I.esquinas[k][i][0], -y - I.esquinas[k][i][1])))));
+        const bom = PLANOS.buildBOM(P, A).items.filter((it) => it.sub === "BASE").map((it) => it.desc);
+        return { modo: D.modo, n: I.n, t: I.t, tb: I.t_base, masa: I.masa, mt: I.masa_total, nv: I.esquinas.map((e) => e.length), ng: g.length, nvDom: pts.map((p) => p.length), dmax,
+          rot: g.map((e) => e.querySelector("text").textContent), sec: !!document.querySelector("#secIns"), secT: (document.querySelector("#secInsT") || {}).textContent, ley: (document.querySelector("#mdlInsRot") || {}).textContent, bom };
+      });
+      const nf = (v) => String(+(+v).toFixed(1)).replace(".", ",");
+      const nf1 = (v) => (+v).toFixed(1).replace(".", ",");
+      assert.equal(r.modo, modo);
+      assert.equal(r.ng, r.n, `modo ${modo}: ${r.n} insertos en la planta`);
+      assert.deepEqual(r.nvDom, r.nv, `modo ${modo}: polígono con las muescas del núcleo (vértices)`);
+      assert.ok(r.dmax < 1e-6, `modo ${modo}: vértices del inserto = núcleo (${r.dmax})`);
+      r.rot.forEach((t) => assert.equal(t, "inserto t " + r.t, `modo ${modo}: rótulo de espesor`));
+      assert.ok(r.sec && r.secT.startsWith(`inserto t ${r.t} sobre la base de ${r.tb}`), `modo ${modo}: inserto en el corte con su espesor (${r.secT})`);
+      assert.ok(r.ley.includes(`Base t = ${r.tb} mm`) && r.ley.includes(`insertos de esquina t = ${r.t} mm`), `modo ${modo}: leyenda de la planta`);
+      assert.ok(r.bom.some((d) => d.startsWith("Plancha base ") && d.includes(` x ${nf(r.tb)} mm `)), `modo ${modo}: plancha base de ${r.tb} mm en la lista de materiales`);
+      assert.ok(r.bom.some((d) => /^(Ménsula|Soporte)/.test(d) && d.includes(`t = ${nf(r.t)} mm`) && d.includes(`${r.n} x ${nf1(r.masa)} kg = ${nf1(r.mt)} kg`)), `modo ${modo}: inserto (espesor y masa) en la ménsula o el soporte E: ${r.bom.join(" | ")}`);
+      await page.click("#bSim"); await page.waitForSelector("#simDet");
+      const ns = await page.$$eval("#simPlan polygon.sim-ins", (e) => e.length), nt = await page.$$eval("#simPlan text.sim-tins", (e) => e.map((t) => t.textContent));
+      assert.equal(ns, r.n, `modo ${modo}: insertos en la planta de la simulación`);
+      nt.forEach((t) => assert.equal(t, "inserto t " + r.t));
+      assert.match(await page.textContent("#simIns"), new RegExp(`t ${r.tb} mm / t ${r.t} mm`));
+      await page.click("#bSimClose");
+      return r;
+    };
+    const ins2 = await inserto(2);
+    console.log(`inserto (pivotado): ${ins2.n} polígonos con ${ins2.nv.join("/")} vértices = núcleo, t ${ins2.t} sobre base ${ins2.tb}, en la planta, el alzado y la simulación; lista de materiales: «${ins2.bom.find((d) => /^Soporte/.test(d))}»`);
 
     // ---- 1. arcos de las 4 placas: trayecto SVG frente a la geometría analítica del núcleo
     const geo = await page.evaluate(() => {
@@ -144,8 +223,7 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
 
     await abierto.evaluate((e) => e.remove());
     // ---- 5. verificaciones: filas del núcleo frente al DOM
-    await tab("verif");
-    const ver = await page.evaluate(() => {
+    const verifDOM = async () => { await tab("verif"); return page.evaluate(() => {
       const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), A = TT.analyze(P), ST = { ok: "Cumple", warn: "Monitoreo", fail: "No cumple", info: "Info", pend: "Pendiente" };
       const rows = [...document.querySelectorAll('section[data-t="verif"] tr.chk-row')], falt = [], mal = [];
       A.checks.forEach((c, i) => {
@@ -155,14 +233,27 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
         const fu = c.fu != null && isFinite(c.fu) ? c.fu.toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 }) : "—";
         if (td[0] !== ST[c.st] || !td[1].startsWith(c.name) || td[5] !== fu || td[6] !== c.ref) mal.push({ i, n: c.name, td0: td[0], fu: td[5], esperado: fu });
       });
-      return { n: A.checks.length, dom: rows.length, falt, mal, grupos: [...new Set(A.checks.map((c) => c.grp))] };
-    });
+      return { n: A.checks.length, dom: rows.length, falt, mal, grupos: [...new Set(A.checks.map((c) => c.grp))], ins: A.checks.filter((c) => /inserto/.test(c.name)).length };
+    }); };
+    const ver = await verifDOM();
     assert.deepEqual(ver.falt, [], "filas del núcleo que la UI no muestra");
     assert.deepEqual(ver.mal, [], "filas con estado, FU (3 decimales) o norma distintos");
     assert.equal(ver.dom, ver.n, "la UI no muestra filas que no estén en el núcleo");
+    assert.ok(ver.ins >= 10, "filas de la plancha base con inserto en el grupo del soporte E");
     const nuevas = await page.evaluate(() => [/Placa-guía: contacto de Hertz/, /capa templada/, /ligamento/, /Tornillos de la placa-guía: corte \(ISO 10642 M16/, /enganche de la rosca/, /Sincronía/, /Flanco de reenganche/, /autobloqueo/, /Bloque-uña: contacto dentro de la cara/, /Vástago: flexocompresión/, /Pasador Q: flexión/].map((re) => [re.source, [...document.querySelectorAll('section[data-t="verif"] tr.chk-row')].some((tr) => re.test(tr.textContent))]));
     assert.deepEqual(nuevas.filter((x) => !x[1]).map((x) => x[0]), [], "filas nuevas de la placa-guía, bloque-uña, vástago y pasador Q");
-    console.log(`verificaciones: ${ver.n} filas del núcleo = ${ver.dom} filas en el DOM (0 faltan, 0 sobran), ${ver.grupos.length} grupos; FU con 3 decimales, norma y estado coinciden`);
+    console.log(`verificaciones: ${ver.n} filas del núcleo = ${ver.dom} filas en el DOM (0 faltan, 0 sobran), ${ver.grupos.length} grupos, ${ver.ins} filas del inserto; FU con 3 decimales, norma y estado coinciden`);
+    // ---- 10. y 9. en el modo 1 (guiado): filas del núcleo frente al DOM, veredicto e inserto
+    await setP("drive_mode", 1);
+    const ver1 = await verifDOM();
+    assert.deepEqual(ver1.falt, [], "modo 1: filas del núcleo que la UI no muestra");
+    assert.deepEqual(ver1.mal, [], "modo 1: filas con estado, FU (3 decimales) o norma distintos");
+    assert.equal(ver1.dom, ver1.n, "modo 1: la UI no muestra filas que no estén en el núcleo");
+    assert.ok(ver1.ins >= 10, "modo 1: filas de la plancha base con inserto en el grupo de la ménsula");
+    await tab("resumen"); vr = await veredicto("guiado");
+    const ins1 = await inserto(1);
+    console.log(`modo 1 (guiado): ${ver1.n} filas del núcleo = ${ver1.dom} en el DOM (${ver1.ins} del inserto); veredicto «${vr.v.estado_global}»; ${ins1.n} insertos t ${ins1.t} con ${ins1.nv.join("/")} vértices; lista de materiales: «${ins1.bom.find((d) => /^Ménsula/.test(d))}»`);
+    await page.click("#bReset"); await settle();
 
     // ---- 6. 0 NaN / undefined / Infinity en el DOM: modo 2 y modo 1 × alternativas
     const malos = () => page.evaluate(() => {

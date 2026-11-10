@@ -218,12 +218,36 @@ const SIM = (() => {
     return o.join("");
   }
 
+  // insertos de esquina de la base bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.inserto o levaGuiada.fabricacion.inserto)
+  function insertoSim(pv) {
+    if (pv._ins === undefined) {
+      let I = null;
+      try { const D = TT.designDrive(pv.P, pv.R), f = D.modo === 2 ? ((D.pivotado || {}).fabricacion || {}).soporte_E : ((D.levaGuiada || {}).fabricacion || {}); I = f && f.inserto && Array.isArray(f.inserto.esquinas) && f.inserto.esquinas.length ? f.inserto : null; } catch (e) { I = null; }
+      pv._ins = I;
+    }
+    return pv._ins;
+  }
+  // insertos: polígono con muescas y borde de espesor pleno (bajo la estación); rótulos aparte, al final, sobre la diagonal junto a la hipotenusa
+  function insSvg(pv, X, Y) {
+    const I = insertoSim(pv); if (!I) return "";
+    return I.esquinas.map((pl, k) => { const pf = (I.esquinas_espesor_pleno || [])[k]; return `<polygon points="${pl.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="sim-ins"/>${pf ? `<polygon points="${pf.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="sim-ins-pl"/>` : ""}`; }).join("");
+  }
+  function insRot(pv, X, Y) {
+    const I = insertoSim(pv); if (!I) return "";
+    const d = ((I.hipotenusa_dist_centro || pv.P.D_top / 2) + 75) / Math.SQRT2;
+    return I.esquinas.map((pl) => { const sx = Math.sign(pl[0][0]) || 1, sy = Math.sign(pl[0][1]) || 1; return `<text x="${X(sx * d)}" y="${Y(sy * d)}" text-anchor="middle" class="sim-t sim-tins">inserto t ${num(I.t, 0)}</text>`; }).join("");
+  }
+  function limUso(A) {
+    const L = (A && A.verdict && A.verdict.limitaciones_uso) || [];
+    return L.length ? `<div class="limuso" id="simLim">${L.map((l) => `<div><b>Limitación de uso:</b> ${esc(l.texto)}</div>`).join("")}</div>` : "";
+  }
   function planGuiado(pv, st, rot) {
     const P = pv.P, B = P.B, W = 520, sc = W / (B + 200), X = (x) => (W / 2 + x * sc).toFixed(1), Y = (y) => (W / 2 - y * sc).toFixed(1), r = (d) => (d * sc).toFixed(2);
     const pairs = S.dir > 0 ? [[1, 1], [-1, -1]] : [[1, -1], [-1, 1]];
     const al = st.alerta.length > 0;
     let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" class="sim-svg" id="simPlan" role="img" aria-label="Planta animada">`;
     s += `<rect x="${X(-B / 2)}" y="${Y(B / 2)}" width="${r(B)}" height="${r(B)}" class="sim-base"/>`;
+    s += insSvg(pv, X, Y);
     pairs.forEach(([sx, dy]) => { s += stationSvg(pv, st, map(sx, dy), X, Y, r, al); });
     s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2)}" class="sim-table"/>`;
     s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_hub / 2)}" class="sim-hub"/>`;
@@ -231,6 +255,7 @@ const SIM = (() => {
     s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0.9 * P.D_top / 2 * Math.cos(ang))}" y2="${Y(0.9 * P.D_top / 2 * Math.sin(ang))}" class="sim-mark"/>`;
     const cps = st.contact ? pairs.map(([sx, dy]) => map(sx, dy)(P.R_pin * Math.cos(st.thLoc), P.R_pin * Math.sin(st.thLoc))) : [];   // pasador tomado por cada uña
     s += pinsSvg(pv, ang, X, Y, r, (x, y) => cps.some(([cx, cy]) => Math.hypot(x - cx, y - cy) < P.d_pin / 2));
+    s += insRot(pv, X, Y);
     s += `<rect x="4" y="3" width="${W - 8}" height="18" rx="3" class="sim-tbg"/><text x="8" y="16" class="sim-t">Planta · ${S.dir > 0 ? "giro antihorario" : "giro horario"} · θ = ${num(rot / D2R * S.dir, 3)}°</text></svg>`;
     return s;
   }
@@ -262,11 +287,13 @@ const SIM = (() => {
     const al = st.alerta.length > 0, q = st.q, hitA = (x, y) => st.contact && [q.pasadores.A, [-q.pasadores.A[0], -q.pasadores.A[1]]].some((c) => Math.hypot(x - c[0], y - c[1]) < P.d_pin / 2);
     let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}" class="sim-svg" id="simPlan" role="img" aria-label="Planta animada">`;
     s += `<rect x="${X(-B / 2)}" y="${Y(B / 2)}" width="${r(B)}" height="${r(B)}" class="sim-base"/>`;
+    s += insSvg(pv, X, Y);
     s += `<circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_top / 2)}" class="sim-table"/><circle cx="${X(0)}" cy="${Y(0)}" r="${r(P.D_hub / 2)}" class="sim-hub"/>`;
     const a = pv.pinBase() + rot;
     s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0.9 * P.D_top / 2 * Math.cos(a))}" y2="${Y(0.9 * P.D_top / 2 * Math.sin(a))}" class="sim-mark"/>`;
     s += pinsSvg(pv, rot, X, Y, r, hitA);
     s += pivotSvg(pv, st, X, Y, r, al, false);
+    s += insRot(pv, X, Y);
     s += `<rect x="4" y="3" width="${W - 8}" height="18" rx="3" class="sim-tbg"/><text x="8" y="16" class="sim-t">Planta · ${S.dir > 0 ? "giro antihorario" : "giro horario"} · θ = ${num(rot / D2R * S.dir, 3)}° · φ cilindro 1 = ${num(st.phi / D2R, 1)}°</text></svg>`;
     return s;
   }
@@ -401,6 +428,7 @@ const SIM = (() => {
       <span>Tiempo de empuje / retorno por carrera</span><span id="simTiempos">${num(pv.tExt, 1)} / ${num(pv.tRet, 1)} s</span>
       <span>Tiempo por vuelta (núcleo, carrera completa)</span><span>${num(R.tRev, 2)} min</span>
       ${pv.leva ? `<span>Guía de reenganche</span><span>${esc(pv.leva)}</span>` : ""}
+      ${(() => { const I = insertoSim(pv); return I ? `<span>Base / inserto de esquina (verde azulado en la planta)</span><span id="simIns">t ${num(I.t_base, 0)} mm / t ${num(I.t, 0)} mm · ${I.n} insertos de ${num(I.masa, 1)} kg</span>` : ""; })()}
     </div>`;
   }
 
@@ -417,7 +445,7 @@ const SIM = (() => {
     }
     S.prov = pv;
     S.label = etiqueta(P, A);
-    body.innerHTML = `${header(pv)}
+    body.innerHTML = `${header(pv)}${limUso(A)}
       <div class="sim-ctl">
         <button class="pri" id="bSimPlay">Reproducir</button><button id="bSimStep">Paso a paso</button><button id="bSimReset">Reiniciar</button><button id="bSimGif" title="GIF animado de la planta y el detalle con las carreras, el sentido y la velocidad elegidos">Exportar GIF</button>
         <label>Velocidad <select id="simSpeed">${SPEEDS.map((v) => `<option value="${v}"${v === S.speed ? " selected" : ""}>×${num(v, v < 1 ? 2 : 0)}</option>`).join("")}</select></label>
@@ -508,7 +536,7 @@ const SIM = (() => {
 
   // hoja de estilo autónoma para rasterizar los SVG fuera de la página: reglas .sim-* y svg con las variables del tema resueltas
   function estiloSvg() {
-    const cs = getComputedStyle(document.documentElement), vars = ["--bg", "--panel", "--ink", "--ink2", "--line", "--soft", "--acc", "--ok", "--okbg", "--warn", "--warnbg", "--fail", "--failbg", "--info", "--infobg", "--pend", "--pendbg", "--steel", "--load", "--sans", "--mono"];
+    const cs = getComputedStyle(document.documentElement), vars = ["--bg", "--panel", "--ink", "--ink2", "--line", "--soft", "--acc", "--ok", "--okbg", "--warn", "--warnbg", "--fail", "--failbg", "--info", "--infobg", "--pend", "--pendbg", "--steel", "--load", "--ins", "--insk", "--sans", "--mono"];
     const decl = vars.map((v) => `${v}:${cs.getPropertyValue(v).trim()}`).join(";");
     let rules = "";
     for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; } for (const r of rs) if (r.selectorText && /sim-|^svg/.test(r.selectorText)) rules += r.cssText + "\n"; }

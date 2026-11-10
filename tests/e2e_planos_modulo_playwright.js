@@ -50,7 +50,7 @@ async function juego(page, req, sel) {
     const watch = (pg) => { pg.on("pageerror", (e) => errs.push(String(e))); pg.on("console", (m) => { if (m.type() === "error" && !/ERR_CONNECTION_REFUSED/.test(m.text())) errs.push(m.text()); }); };
     // 1. servidor caído
     if (!(await ping())) {
-      const pf = await ctx.newPage(); watch(pf);
+      const pf = await ctx.newPage(); watch(pf); pf.setDefaultTimeout(180000);
       await pf.goto("file://" + path.join(root, htmlName) + "#planos");
       await pf.waitForSelector('#genEstado[data-srv="inactivo"]', { timeout: 15000 });
       const t = await pf.textContent("#plSrv");
@@ -64,7 +64,7 @@ async function juego(page, req, sel) {
       proc = await servidor();
     } else console.log("servidor caído: omitido (ya había un generador activo en 127.0.0.1:8765)");
     // 2. servidor activo
-    const page = await ctx.newPage(); watch(page);
+    const page = await ctx.newPage(); watch(page); page.setDefaultTimeout(180000);   // cálculo en el hilo principal en una máquina cargada
     await page.goto(`${BASE}/${htmlName}#planos`);
     await page.waitForSelector('#genEstado[data-srv="activo"]', { timeout: 15000 });
     await page.click("#bReset"); await settle(page);

@@ -23,6 +23,26 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const ST = { ok: "Cumple", warn: "Monitoreo", fail: "No cumple", info: "Info", pend: "Pendiente" };
+  /* ---------- veredicto global del núcleo (verdict.estado_global, pendientes_criticos, limitaciones_uso) ---------- */
+  const egCls = (eg) => (eg === "CUMPLE" ? "ok" : "fail");
+  function pendCritHTML(v, id) {
+    const pc = (v && v.pendientes_criticos) || [];
+    if (!pc.length) return "";
+    return `<div class="pcrit"${id ? ` id="${id}"` : ""}><b>Pendientes críticos (FU &gt; 1, a la espera de decisión): ${pc.length} · FU máx. ${fu3(v.fuMaxPend)}</b><ul>${pc.map((q) => `<li class="pcrit-i"><span class="st st-fail">FU ${fu3(q.fu)}</span> ${esc(q.grp)} · ${esc(q.nombre)}${q.fuera_alcance_termico ? ' <span class="ref">(fuera del alcance térmico)</span>' : ""}<div class="ref">${esc(q.ref || "")}</div></li>`).join("")}</ul></div>`;
+  }
+  function limUsoHTML(v, id) {
+    const L = (v && v.limitaciones_uso) || [];
+    if (!L.length) return "";
+    return `<div class="limuso"${id ? ` id="${id}"` : ""}>${L.map((l) => `<div class="limuso-i" data-id="${esc(l.id || "")}"><b>Limitación de uso:</b> ${esc(l.texto)}<div class="ref">${esc(l.motivo || "")}${l.alcance ? ` Alcance: ${esc(l.alcance)}.` : ""}${l.referencia ? ` Ref.: ${esc(l.referencia)}` : ""}</div></div>`).join("")}</div>`;
+  }
+  // inserto de esquina bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.inserto o levaGuiada.fabricacion.inserto)
+  const areaC = (pl) => { let A2 = 0, cx = 0, cy = 0; pl.forEach((p, i) => { const q = pl[(i + 1) % pl.length], w = p[0] * q[1] - q[0] * p[1]; A2 += w; cx += (p[0] + q[0]) * w; cy += (p[1] + q[1]) * w; }); return Math.abs(A2) > 1e-9 ? [cx / (3 * A2), cy / (3 * A2)] : pl[0]; };   // centroide de área de un polígono
+  function insertoOf(R) {
+    try {
+      const D = TT.designDrive(P, R), f = D.modo === 2 ? ((D.pivotado || {}).fabricacion || {}).soporte_E : ((D.levaGuiada || {}).fabricacion || {});
+      const I = f && f.inserto; return I && Array.isArray(I.esquinas) && I.esquinas.length ? I : null;
+    } catch (e) { return null; }
+  }
 
   /* ---------- pestañas ---------- */
   const tabs = [...document.querySelectorAll(".tab")];
@@ -120,8 +140,9 @@
     const fuEst = Math.max(0, ...A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && isFinite(c.fu)).map((c) => c.fu));
     const nF = A.checks.filter((c) => c.st === "fail").length;
     $("#badges").innerHTML = [
+      `<span class="badge b-eg b-${egCls(v.estado_global)}" id="estadoGlobal" title="Estado global del núcleo (verdict.estado_global)">${v.estado_global === "CUMPLE" ? "✓" : "✗"} ESTADO GLOBAL: ${esc(v.estado_global)}${(v.pendientes_criticos || []).length ? ` · FU pend. ${fu2(v.fuMaxPend)}` : ""}</span>`,
       `<span class="badge ${v.gira ? "b-ok" : "b-fail"}">${v.gira ? "✓ GIRA" : "✗ NO GIRA"} · FS ${fmt(A.R.cd ? A.R.cd.FS : NaN, 3)}</span>`,
-      `<span class="badge ${v.estructura ? (v.warnEst ? "b-warn" : "b-ok") : "b-fail"}">${v.estructura ? "✓ ESTRUCTURA CUMPLE" : `✗ ${nF} NO CUMPLE`} · FU ${fu2(fuEst)}</span>`,
+      `<span class="badge ${v.estructura && !(v.pendientes_criticos || []).length ? (v.warnEst ? "b-warn" : "b-ok") : "b-fail"}">${v.estructura ? ((v.pendientes_criticos || []).length ? "✗ ESTRUCTURA PENDIENTE DE DECISIÓN" : "✓ ESTRUCTURA CUMPLE") : `✗ ${nF} NO CUMPLE`} · FU ${fu2(fuEst)}</span>`,
       `<span class="badge b-info">Masa ${fmt(A.R.m.total, 4)} kg</span>`,
       v.pend ? `<span class="badge b-pend">${v.pend} pendiente</span>` : "",
       X && X.every((c) => c.ok) && AU && AU.ok ? `<span class="badge b-ok">Revisión cruzada OK</span>` : `<span class="badge b-warn">Revisar agentes</span>`,
@@ -140,7 +161,11 @@
     const notOk = A.checks.filter((x) => x.st === "fail" || x.st === "warn");
     const bar = (v, ref, col) => `<div class="fu" style="height:10px"><i style="width:${Math.min(100, v / ref * 100)}%;background:${col}"></i></div>`;
     const mx = Math.max(R.m.total, REF.TT300B);
+    const v = A.verdict, eg = v.estado_global, ok = egCls(eg);
     el.innerHTML = msgs() + `
+    <div class="card vered vd-${ok}" id="veredicto" style="margin-top:10px"><h3>Veredicto global</h3><div class="big vd-${ok}" id="estadoGlobalRes">${esc(eg)}</div>
+      <div class="note">¿Gira? ${v.gira ? "sí" : "NO"} · estructura ${v.estructura ? "cumple" : "NO cumple"} · pendientes críticos ${(v.pendientes_criticos || []).length}${(v.pendientes_criticos || []).length ? ` (FU máx. ${fu2(v.fuMaxPend)})` : ""} · limitaciones de uso ${(v.limitaciones_uso || []).length}</div>
+      ${pendCritHTML(v, "pendCrit")}${limUsoHTML(v, "limUso")}</div>
     <div class="grid" style="margin-top:10px">
       <div class="card"><h3>¿Gira?</h3><div class="big" style="color:var(${A.verdict.gira ? "--ok" : "--fail"})">${A.verdict.gira ? "Sí, con margen" : "No asegurado"}</div>
         <div class="kv" style="margin-top:6px">
@@ -152,13 +177,15 @@
           <span>μ máx vencible (r_ef, alivio)</span><span>${fmt(R.muMax(P.r_ef))}</span>
           <span>Tiempo por vuelta</span><span>${fmt(R.tRev)} min</span>
         </div></div>
-      <div class="card"><h3>Estructura</h3><div class="big" style="color:var(${A.verdict.estructura ? "--ok" : "--fail"})">${A.verdict.estructura ? "Cumple" : "No cumple"}</div>
-        <div class="kv" style="margin-top:6px">
+      <div class="card" id="cardEst"><h3>Estructura</h3><div class="big" style="color:var(${A.verdict.estructura && !(v.pendientes_criticos || []).length ? "--ok" : "--fail"})">${A.verdict.estructura ? ((v.pendientes_criticos || []).length ? "Pendiente de decisión" : "Cumple") : "No cumple"}</div>
+        <div class="note" style="margin:4px 0 0">Estado global: <b id="estadoGlobalEst" style="color:var(--${ok})">${esc(eg)}</b></div>
+        <div class="kv" style="margin-top:6px;grid-template-columns:minmax(120px,auto) 1fr">
           <span>FU máximo</span><span>${est.length ? fu2(est[0].fu) : "—"}</span>
           <span>Gobierna</span><span style="font-family:var(--sans);text-align:right">${est.length ? esc(est[0].grp + ": " + est[0].name) : ""}</span>
           <span>No cumple / monitoreo</span><span>${A.checks.filter((x) => x.st === "fail").length} / ${A.checks.filter((x) => x.st === "warn").length}</span>
-          <span>Pendientes</span><span>${A.verdict.pend}</span>
+          <span>Pendientes / críticos (FU &gt; 1)</span><span>${A.verdict.pend} / ${(v.pendientes_criticos || []).length}</span>
         </div>
+        ${pendCritHTML(v, "pendCritEst")}
         ${notOk.length ? `<div class="note">${notOk.map((x) => `<span class="st st-${x.st}">${ST[x.st]}</span> ${esc(x.grp)} · ${esc(x.name)} (FU ${fu2(x.fu)})`).join("<br>")}</div>` : ""}</div>
       <div class="card"><h3>Masa del equipo</h3><div class="big">${fmt(R.m.total, 4)} kg</div>
         <div class="kv" style="margin-top:6px"><span>Este diseño</span><span>${fmt(R.m.total, 4)} kg</span></div>${bar(R.m.total, mx, "var(--acc)")}
@@ -234,6 +261,14 @@
     const o = [];
     o.push(`<rect x="${-B / 2}" y="${-B / 2}" width="${B}" height="${B}" fill="var(--soft)" stroke="var(--steel)" stroke-width="4"/>`);
     if (P.rim_t > 0) o.push(`<rect x="${-B / 2 + P.rim_t / 2}" y="${-B / 2 + P.rim_t / 2}" width="${B - P.rim_t}" height="${B - P.rim_t}" fill="none" stroke="var(--steel)" stroke-width="${P.rim_t}" opacity=".6"/>`);
+    const INS = insertoOf(R);
+    if (INS) {                                                        // insertos de esquina (núcleo): contorno con muescas, borde de espesor pleno (fin de la transición) y rótulo de espesor
+      INS.esquinas.forEach((pl, k) => {
+        const c = areaC(pl), pf = (INS.esquinas_espesor_pleno || [])[k];
+        o.push(`<g class="mdl-ins" data-k="${k}"><polygon points="${pl.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="var(--ins)" fill-opacity=".35" stroke="var(--insk)" stroke-width="5"/>${pf ? `<polygon points="${pf.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="none" stroke="var(--insk)" stroke-width="3" stroke-dasharray="16 10"/>` : ""}
+          <text x="${c[0]}" y="${y(c[1]) + 14}" font-size="40" text-anchor="middle" fill="var(--insk)" font-weight="700" class="mdl-ins-t">inserto t ${fmt(INS.t, 2)}</text></g>`);
+      });
+    }
     const Rt = P.D_top / 2;
     o.push(`<circle r="${Rt}" fill="var(--panel)" stroke="var(--ink)" stroke-width="5"/>`);
     o.push(`<circle r="${TT.prIn(P)}" fill="none" stroke="var(--steel)" stroke-width="2" stroke-dasharray="14 10"/>`);
@@ -281,8 +316,10 @@
       }
     }
     o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
-    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">${isPiv() ? "Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario) · ojales E en diagonal, 4 placas-guía curvas (canto guía en naranja)" : "Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")}</text>`);
-    return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
+    const ley = (isPiv() ? ["Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario)", "Ojales E en diagonal · 4 placas-guía curvas (canto guía en naranja)"] : ["Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")]).map((t) => [t, "var(--ink2)", ""]);
+    if (INS) ley.push([`Base t = ${fmt(INS.t_base, 2)} mm · ${INS.n} insertos de esquina t = ${fmt(INS.t, 2)} mm (${fmt(INS.masa, 3)} kg c/u) bajo ${isPiv() ? "los soportes del ojal E" : "las ménsulas del ojal trasero"} · trazos: fin de la transición 1:2,5`, "var(--insk)", ' id="mdlInsRot"']);
+    ley.forEach(([t, c, id], k) => o.push(`<text x="0" y="${B / 2 + 80 + 50 * k}" text-anchor="middle" font-size="40" fill="${c}"${id}>${esc(t)}</text>`));
+    return `<svg viewBox="${-S} ${-S} ${2 * S} ${S + B / 2 + 100 + 50 * (ley.length - 1)}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
   }
   // modo pivotado en alzado desarrollado (distancias radiales al eje de giro): placa-leva, bloque-uña con su pasador Q, cilindro y soporte del ojal E
   function pivotSection(R, pv, gP, X, Z, zc, tb) {
@@ -293,13 +330,14 @@
     o.push(`<rect x="${X(p0)}" y="${Z(tb + pl.t)}" width="${p1 - p0}" height="${pl.t}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Placa-leva t = ${fmt(pl.t)} mm</title></rect>`);
     o.push(`<rect x="${X(b0)}" y="${Z(bl.z_inf + bl.h)}" width="${b1 - b0}" height="${bl.h}" fill="var(--load)" opacity=".75"><title>Bloque-uña h = ${fmt(bl.h)} mm</title></rect>`);
     o.push(`<rect x="${X(rQ - bl.d_Q / 2)}" y="${Z(R.blk.zCam + bl.l_pasador_Q)}" width="${bl.d_Q}" height="${bl.l_pasador_Q}" fill="none" stroke="var(--ink)" stroke-width="2"><title>Pasador Q Ø${fmt(bl.d_Q)} × ${fmt(bl.l_pasador_Q)}</title></rect>`);
-    o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(tb + se.alto)}" width="${se.lado_cajon}" height="${se.alto}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>Soporte del ojal E</title></rect>`);
+    const zp = (((pv.fabricacion || {}).soporte_E || {}).z_paredes) || [tb, tb + se.alto], zs0 = zp[0], zs1 = zp[1];   // paredes del soporte (núcleo: fabricacion.soporte_E.z_paredes, sobre el inserto)
+    o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(zs1)}" width="${se.lado_cajon}" height="${zs1 - zs0}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>Soporte del ojal E</title></rect>`);
     [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => o.push(`<line x1="${X(rE - se.lado_cajon / 2)}" y1="${Z(zt)}" x2="${X(rE + se.lado_cajon / 2)}" y2="${Z(zt)}" stroke="var(--ink)" stroke-width="3"/>`));
     const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
     o.push(`<rect x="${X(Math.min(rm, rE))}" y="${Z(zc + P.D_body / 2)}" width="${Math.abs(rE - rm)}" height="${P.D_body}" fill="var(--acc)" opacity=".55"/>`);
     o.push(`<rect x="${X(Math.min(rQ, rm))}" y="${Z(zc + P.d_rod / 2)}" width="${Math.abs(rm - rQ)}" height="${P.d_rod}" fill="var(--acc)"/>`);
-    o.push(`<line x1="${X(rE)}" y1="${Z(tb)}" x2="${X(rE)}" y2="${Z(tb + se.alto + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
-    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-guía ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(tb + se.alto) - 6}" font-size="13" text-anchor="middle">ojal E (cajón ${fmt(se.lado_cajon)})</text>`);
+    o.push(`<line x1="${X(rE)}" y1="${Z(tb)}" x2="${X(rE)}" y2="${Z(zs1 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
+    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-guía ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(zs1) - 6}" font-size="13" text-anchor="middle">ojal E (cajón ${fmt(se.lado_cajon)})</text>`);
     o.push(`<text x="${X(rQ)}" y="${Z(0) + 36}" font-size="12" text-anchor="middle" fill="var(--ink2)">alzado desarrollado a lo largo del cilindro 1 (distancias radiales)</text>`);
     return o.join("");
   }
@@ -310,6 +348,19 @@
     const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
+    const INS = insertoOf(R);
+    if (INS) {                                                        // inserto de esquina cortado por la línea del soporte: E (pivotado, radial) o y = y_ojal (guiado); transición 1:2,5 en la cara superior
+      const g0 = gP ? [0, 0] : [0, R.K.y_eye], u = gP ? (() => { const E = gP.E[0], L = Math.hypot(E[0], E[1]); return [E[0] / L, E[1] / L]; })() : [1, 0];
+      const pip = (q, pl) => { let c = false; for (let i = 0, j = pl.length - 1; i < pl.length; j = i++) { const [xi, yi] = pl[i], [xj, yj] = pl[j]; if ((yi > q[1]) !== (yj > q[1]) && q[0] < (xj - xi) * (q[1] - yi) / (yj - yi) + xi) c = !c; } return c; };
+      const span = (pls) => { let a = null, b = null; for (let r = 0; r <= 2600; r += 2) { const q = [g0[0] + u[0] * r, g0[1] + u[1] * r]; if (pls.some((pl) => pip(q, pl))) { if (a == null) a = r; b = r; } } return [a, b]; };
+      const [s0, s1r] = span(INS.esquinas), sf = span(INS.esquinas_espesor_pleno || [])[0], s1 = s1r == null ? null : Math.min(s1r, gP ? r1 - 20 : P.B / 2);
+      if (s0 != null && s1 > s0) {
+        const sF = sf != null ? Math.min(Math.max(sf, s0), s1) : s0;
+        o.push(`<polygon id="secIns" points="${[[s0, 0], [s0, tb], [sF, INS.t], [s1, INS.t], [s1, 0]].map(([r, z]) => `${X(r)},${Z(z)}`).join(" ")}" fill="var(--ins)" fill-opacity="${gP ? 0.55 : 0.3}" stroke="var(--insk)" stroke-width="1.5"${gP ? "" : ' stroke-dasharray="6 4"'}><title>Inserto de esquina t = ${fmt(INS.t)} mm sobre la base de ${fmt(INS.t_base)} mm</title></polygon>`);
+        o.push(`<line x1="${X(s1 - 14)}" y1="${Z(0)}" x2="${X(s1 - 14)}" y2="${Z(INS.t)}" stroke="var(--insk)" stroke-width="1"/><text x="${X(s1 - 20)}" y="${Z(INS.t / 2) + 4}" font-size="13" text-anchor="end" fill="var(--insk)" font-weight="700">t ${fmt(INS.t, 2)}</text>`);
+        o.push(`<text x="${X(Math.max(s0, r0)) + 4}" y="${Z(0) + 14}" font-size="13" fill="var(--insk)" font-weight="700" id="secInsT">inserto t ${fmt(INS.t, 2)} sobre la base de ${fmt(INS.t_base, 2)} (transición 1:2,5)${gP ? "" : " · proyectado desde y_ojal"}</text>`);
+      }
+    }
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
     const Rt = P.D_top / 2, rpr = TT.prIn(P);
     if (P.opt_wood > 0.5) o.push(`<rect x="${X(r0)}" y="${Z(tm + hd + P.t_wood)}" width="${X(Rt) - X(r0)}" height="${P.t_wood}" fill="#8b5a2b" opacity=".85" stroke="var(--ink)" stroke-width=".6"><title>Madera dura ${fmt(P.t_wood, 3)} mm</title></rect>`);
@@ -764,7 +815,8 @@
     const at = (a, T) => a.byT.find((b) => Math.abs(b.T - T) < 1e-9), id0 = altId(), act = r.alternativas.find((a) => a.id === id0) || r.alternativas[0], Tn = r.T_scn;
     const bitem = (a) => at(a, Tn), b20 = (a) => at(a, r.T_ref) || a.byT[0];
     const ver = (b) => (b.gira && b.estructura && b.termico ? "ok" : !b.gira || !b.estructura ? "fail" : "warn");
-    const tags = (b) => `${b.gira ? "" : '<span class="st st-fail">No gira con FS_mín</span> '}${b.estructura ? "" : '<span class="st st-fail">Estructura/juntas</span> '}${b.termico ? "" : `<span class="st st-fail">Térmica: ${r.alcance === 2 ? "aceite/" : ""}gradiente/juntas</span>`}${b.gira && b.estructura && b.termico ? '<span class="st st-ok">Cumple</span>' : ""}`;
+    const npc = (b) => (b.pendientes_criticos || []).length;
+    const tags = (b) => `${b.gira ? "" : '<span class="st st-fail">No gira con FS_mín</span> '}${b.estructura ? "" : '<span class="st st-fail">Estructura/juntas</span> '}${b.termico ? "" : `<span class="st st-fail">Térmica: ${r.alcance === 2 ? "aceite/" : ""}gradiente/juntas</span> `}${npc(b) ? `<span class="st st-fail" title="${esc(b.estado_global || "")}">Pendiente de decisión (${npc(b)}, FU ${fu2(b.fuMaxPend)})</span>` : ""}${b.gira && b.estructura && b.termico && !npc(b) ? '<span class="st st-ok">Cumple</span>' : ""}`;
     const gov = (g) => (g ? esc(g.grp + ": " + g.nombre) + ` <span class="ref">(FU ${fu2(g.fu)})</span>` : "—");
     const warns = `<div class="msg warn"><b>Datos supuestos (confianza C):</b> los de UHMW-PE, acero inoxidable y bronce son de ficha de fabricante o supuestos (el UHMW-PE no tiene curva publicada a 80 °C y 80 °C es su límite de servicio continuo): confirmar con el proveedor antes de decidir.</div>
       <div class="msg warn"><b>ASME BTH-1:</b> el rango estándar es −4 a 66 °C; a 80 °C (176 °F) la sección de BTH-1 sobre temperatura no está confirmada y exige decisión de persona calificada (Nd = 3,0 no incluye margen térmico).</div>
@@ -999,7 +1051,8 @@
     h += `<div class="kv" id="plResKv"><span>Alternativa</span><span>${esc(altLabel())}</span>
       <span>Interfaz de giro</span><span>${esc(PLANOS.ifaceName(P, R.ifc))}</span><span>Fijación</span><span>${esc(PLANOS.fixText(P, R.ifc))}</span><span>Cubierta</span><span>${esc(PLANOS.woodText(P))}</span>
       <span>Capacidad / masa total</span><span>${fmt(P.W_tf, 3)} tf / ${fmt(R.m.total, 4)} kg</span>
-      <span>¿Gira? / ¿Estructura?</span><span>${v.gira ? "sí" : "NO"} / ${v.estructura ? "cumple" : "NO cumple"}</span></div>`;
+      <span>¿Gira? / ¿Estructura?</span><span>${v.gira ? "sí" : "NO"} / ${v.estructura ? "cumple" : "NO cumple"}</span>
+      <span>Estado global</span><span>${esc(v.estado_global)}</span></div>`;
     if (!(v.gira && v.estructura)) h += `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador se negará a emitir planos.</div>`;
     h += `<details${ch.length && ch.length <= 8 ? " open" : ""}><summary>Parámetros distintos de los valores por defecto (${ch.length} de ${Object.keys(DEF).length})</summary>${ch.length ? `<div class="scroll"><table id="plParams"><tr><th>Parámetro</th><th>Nombre</th><th class="n">Valor</th><th class="n">Por defecto</th></tr>
       ${ch.map((k) => `<tr><td class="form">${esc(k)}</td><td>${esc(PLAB[k] ? PLAB[k][0] : "")}${PLAB[k] && PLAB[k][1] && PLAB[k][1] !== "–" ? ` <span class="ref">[${esc(PLAB[k][1])}]</span>` : ""}</td><td class="n">${esc(vTxt(P[k]))}</td><td class="n">${esc(vTxt(DEF[k]))}</td></tr>`).join("")}</table></div>` : `<div class="note">Todos los parámetros están en su valor por defecto.</div>`}</details>

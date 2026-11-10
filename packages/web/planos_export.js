@@ -144,17 +144,21 @@ const PLANOS = (() => {
     const plate = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
     const collar = P.h_boss > 0 ? RHO * Math.PI / 4 * (P.D_boss ** 2 - P.D_piv ** 2) * P.h_boss : 0;
     const ears = 4 * RHO * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * P.t_ear;
-    add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(P.t_base)} con agujero Ø${nf(P.D_piv)}`, steel, 1, plate);
-    add("BASE", 2, `Marco perimetral ${nf(P.rim_t)} x ${nf(P.rim_h)} mm`, steel, 1, m.rim);
     // accionamiento: guiado (bancada, ménsula, patín, uña y leva de reenganche) o pivotado tipo KIET (soporte del ojal E, bloque-uña, placas-leva); descripciones del núcleo (designDrive)
     const DRV = TT_.designDrive ? TT_.designDrive(P, R) : null, md = (DRV && DRV.masas_desc) || {}, piv = !!(DRV && DRV.modo === 2);
+    // inserto de esquina bajo cada soporte del cilindro (núcleo: pivotado.fabricacion.soporte_E.inserto / levaGuiada.fabricacion.inserto); su masa va en m.brackets
+    const INSf = DRV ? (piv ? ((DRV.pivotado || {}).fabricacion || {}).soporte_E : ((DRV.levaGuiada || {}).fabricacion || {})) : null;
+    const INS = INSf && INSf.inserto && Array.isArray(INSf.inserto.esquinas) ? INSf.inserto : null, tB = INS ? INS.t_base : P.t_base;
+    const insTxt = INS ? `, con inserto de esquina en la base t = ${nf(INS.t)} mm (${INS.n} x ${nf(INS.masa, 1)} kg = ${nf(INS.masa_total, 1)} kg, incluido en la masa)` : "";
+    add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(tB)} mm con agujero Ø${nf(P.D_piv)}${INS ? ` y ${INS.n} ventanas para los insertos de esquina` : ""}`, steel, 1, plate);
+    add("BASE", 2, `Marco perimetral ${nf(P.rim_t)} x ${nf(P.rim_h)} mm${INS ? " (interrumpido a lo largo de los insertos)" : ""}`, steel, 1, m.rim);
     if (!piv) {
       add("BASE", 3, `Bancada ${nf(P.w_bed)} x ${nf(P.t_bed)} x ${nf(R.K.L_bed)} con ranura T de guía`, steel, P.n_cyl, m.beds);
-      add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)", steel, P.n_br, m.brackets);
+      add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)" + insTxt, steel, P.n_br, m.brackets);
       add("BASE", 5, "Patín guiado con alojamiento de la uña", `Acero Fy ${nf(P.Fy_shoe)} MPa`, P.n_cyl, m.shoes);
       add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
     } else {
-      add("BASE", 4, md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1) : "Soporte del ojal E", steel, P.n_cyl, m.brackets);
+      add("BASE", 4, (md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1) : "Soporte del ojal E") + (INS ? ` (inserto t = ${nf(INS.t)} mm: ${INS.n} x ${nf(INS.masa, 1)} kg = ${nf(INS.masa_total, 1)} kg, incluido en la masa)` : ""), steel, P.n_cyl, m.brackets);
       add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
     }
     if (m.cam > 0) add("BASE", 7, (md.cam ? md.cam.charAt(0).toUpperCase() + md.cam.slice(1) : "Leva de reenganche") + " (masa del núcleo)", steel, piv ? 4 : P.n_cyl, m.cam);
