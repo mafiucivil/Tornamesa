@@ -717,7 +717,9 @@ class Sheet:
         for i, ln in enumerate(wrapw(info["subproj"], 174, hs_)[:2]):
             self.text(ln, (x0 + 3, b - 9.8 - i * 3.2), hs_, "TOP_LEFT")
         a, b = ys["estado"]
-        self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), 3.4 if tw(info["estado"], 3.4, True) < 176 else T_MIN + 0.4, "MIDDLE_CENTER", bold=True)
+        # estado (EMITIDO / RETENIDA): altura que cabe en el ancho del cajetín con margen (el de RETENIDA es más largo)
+        h_est = max(T_MIN, min(3.4, 3.4 * (x1 - x0 - 6.0) / max(tw(info["estado"], 3.4, True), 1e-9)))
+        self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), h_est, "MIDDLE_CENTER", bold=True)
         # --- tabla de revisiones sobre el cajetín ---
         rv = info["revs"]
         cols = [("REV", 10), ("FECHA", 24), ("DESCRIPCIÓN", 76), ("DIB.", 24), ("REV.", 23), ("APR.", 23)]
