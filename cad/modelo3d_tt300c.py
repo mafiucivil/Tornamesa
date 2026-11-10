@@ -1191,11 +1191,14 @@ def plancha_E(D):
     if not malos and not pend:
         return None
     peor = max(casos, key=lambda c: c.get("fu") or 0) if casos else {}
+    rb = pb.get("revision_base_completa") or {}
     txt = (f"Plancha base de {fm(pb.get('t', 0), 0)} mm bajo el soporte del ojal E sin anclaje: "
            + "; ".join(f"«{c['caso']}» flexión FU {fm(c.get('fu') or 0, 2)} ({c.get('estado', '')})" for c in casos)
            + (f"; mesa vacía: retención {fm(pb['mesa_vacia']['W_mesa_kN'], 1)} kN < {fm(pb['mesa_vacia']['T_req_kN'], 1)} kN pedidos" if (pb.get("mesa_vacia") or {}).get("cumple") is False else "")
-           + f". Estado del núcleo: {pb.get('estado', '—')}. Solución en estudio (marco perimetral tipo KIET, nervios radiales o base rígida); "
-           + f"referencia: {pb.get('referencia', 'registro de normas')}.")
+           + (f"; base completa con los dos soportes: torsión de la plancha FU ≥ {fm(rb['fu_torsion_cota_inferior'], 2)} (cota inferior)" if rb.get("fu_torsion_cota_inferior") else "")
+           + f". Estado del núcleo: {pb.get('estado', '—')}" + (f"; estado global del cálculo: {D['verdict']['estado_global']}" if (D.get("verdict") or {}).get("estado_global") else "")
+           + ". Solución en estudio (" + ("; ".join(f"{o['id']}: {o['nombre']}" for o in rb["opciones"]) if rb.get("opciones") else "marco perimetral tipo KIET, nervios radiales o base rígida")
+           + f"); referencia: {pb.get('referencia', 'registro de normas')}" + (f", estudio {rb['estudio']}" if rb.get("estudio") else "") + ".")
     return dict(corto="plancha base bajo el soporte E: no verificada, solución en estudio (ver GEN-009)", texto=txt, tipo="verificacion",
                 piezas=["base_plancha", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"], fu=peor.get("fu"))
 

@@ -35,8 +35,11 @@ def nota_plancha(C):
         fu = max((k.get("fu") or 0) for k in pb.get("casos") or [{}])
         res.append(f"{c['caso']} FU {fu:.2f}".replace(".", ","))
     pb = piv[0]["soporte_E"]["plancha_base"]
+    rb = pb.get("revision_base_completa") or {}
+    ops = "; ".join(f"{o['id']}: {o['nombre']}" for o in rb.get("opciones", [])) or "marco perimetral tipo KIET, nervios radiales o base rígida"
+    tor = f" Con la base completa (dos soportes) gobierna la torsión de la plancha (FU ≥ {rb['fu_torsion_cota_inferior']:.2f}, cota inferior).".replace(".", ",", 1) if rb.get("fu_torsion_cota_inferior") else ""
     return (f"Plancha base de {pb.get('t', '—')} mm bajo el soporte del ojal E (modo pivotado): según el núcleo NO cumple en flexión sin anclaje a la losa "
-            f"(peor caso por juego: {'; '.join(res)}); estado: {pb.get('estado', '—')}. Solución en estudio (marco perimetral tipo KIET, nervios radiales o base rígida). "
+            f"(peor caso por juego: {'; '.join(res)}); estado: {pb.get('estado', '—')}." + tor + f" Solución en estudio ({ops}). "
             "En los juegos del modo pivotado BAS-001, BAS-012 y CON-007 quedan RETENIDAS con ese motivo; los juegos del modo guiado no se afectan.")
 
 
