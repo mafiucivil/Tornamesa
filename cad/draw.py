@@ -712,9 +712,18 @@ class Sheet:
         a, b = ys["proj"]
         lab("proj", 0, "PROYECTO")
         self.text(info["proj"], (x0 + 3, b - 5.0), T_N, "TOP_LEFT", bold=True)
-        sl_ = wrapw(info["subproj"], 174, 3.0)
+        sub_ = info["subproj"]
+        if len(wrapw(sub_, 174, T_MIN)) > 2:
+            # no entra en dos renglones ni a 2,5 mm: se quitan las aclaraciones entre paréntesis (la descripción completa de la variante está en GEN-001);
+            # si aún no entra, se corta en palabra con «…» (nunca un renglón cortado por el borde)
+            import re as _re
+            sub_ = _re.sub(r"\s*\([^()]*\)", "", sub_)
+            while len(wrapw(sub_, 174, T_MIN)) > 2 and " " in sub_:
+                sub_ = sub_.rsplit(" ", 1)[0].rstrip(" ,;·") + "…"
+                sub_ = sub_.replace("……", "…")
+        sl_ = wrapw(sub_, 174, 3.0)
         hs_ = 3.0 if len(sl_) == 1 else T_MIN               # subtítulo de la variante: en dos renglones baja a 2,5 mm para no invadir la fila siguiente
-        for i, ln in enumerate(wrapw(info["subproj"], 174, hs_)[:2]):
+        for i, ln in enumerate(wrapw(sub_, 174, hs_)[:2]):
             self.text(ln, (x0 + 3, b - 9.8 - i * 3.2), hs_, "TOP_LEFT")
         a, b = ys["estado"]
         # estado (EMITIDO / RETENIDA): altura que cabe en el ancho del cajetín con margen (el de RETENIDA es más largo)
