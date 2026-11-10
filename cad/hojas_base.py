@@ -24,7 +24,7 @@ def polar(r, deg):
 
 
 def fillet_min(t):
-    """Tamaño mínimo de filete (mm) según la parte más gruesa — AWS D1.1 Tabla 5.8: ≤6,4: 3; ≤12,7: 5; ≤19: 6; >19: 8."""
+    """Tamaño mínimo de filete (mm) según la parte más gruesa — AWS D1.1:2020 §7.13, Tabla 7.7: ≤6,4: 3; ≤12,7: 5; ≤19: 6; >19: 8."""
     return 3 if t <= 6.4 else 5 if t <= 12.7 else 6 if t <= 19 else 8
 
 
@@ -115,7 +115,10 @@ class Ctx:
 RET_PIEZAS = {"cil_cajon": ("cilindro_pv", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"),
               "placa_orejas": ("placa_leva", "placa_leva_h", "orejas"),
               "af2_pasadores": ("int_tornillo_af2", "int_disco_mesa", "mesa_anillo_inf"),
-              "plancha_E": ("base_plancha", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa")}      # verificación pendiente del núcleo (no es choque)
+              "plancha_E": ("base_plancha", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"),      # verificación pendiente del núcleo (no es choque)
+              "pasE_inserto": ("pasador_E",),            # el pasador E entra en el inserto: se corrige en el pasador (núcleo)
+              "oreja_inserto": ("orejas",),
+              "mensula_inserto": ("mensula_mejilla", "mensula_oreja_inf")}     # modo guiado: mejillas de la ménsula sobre la transición del inserto              # oreja de la diagonal sobre la transición del inserto: posición de la oreja (núcleo)
 
 
 class Hoja:
@@ -322,7 +325,7 @@ def build_welds(ctx):
             if core is not None:
                 zz, org = float(core[0]), core[1]
             else:
-                zz, org = float(fillet_min(t)), f"mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa (t = {fm(t, 0)} mm), a confirmar"
+                zz, org = float(fillet_min(t)), f"mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa (t = {fm(t, 0)} mm), a confirmar"
             j["z"] = zz
             j["a"] = round(zz * 0.7071, 1)
             j["size_txt"] = f"z{fm(zz, 0)}"
@@ -331,9 +334,9 @@ def build_welds(ctx):
             j["pasadas"] = passes(z=zz)
             j["origen"] = org
             j["t"] = t
-        j["t_pre"] = float(t_pre if t_pre is not None else (t or 0.0))     # espesor de la parte más gruesa de la junta (precalentamiento AWS D1.1-2020 T5.11)
+        j["t_pre"] = float(t_pre if t_pre is not None else (t or 0.0))     # espesor de la parte más gruesa de la junta (precalentamiento AWS D1.1:2020 Tabla 5.8)
         if "ER309L" in aporte:
-            j["t_pre"] = 0.0                  # inoxidable sobre inoxidable: sin precalentamiento (GEN-012), fuera de la Tabla 5.11
+            j["t_pre"] = 0.0                  # inoxidable sobre inoxidable: sin precalentamiento (GEN-012), fuera de la Tabla 5.8
         W_.append(j)
         return j
 
@@ -349,28 +352,46 @@ def build_welds(ctx):
     # BAS
     sc_ = lambda k_: ctx.code(k_).replace(CODE + "-", "").replace("-" + REV, "")
     L_ml, L_mc = m.info.get("marco_long") or (B, B - 2 * P["rim_t"])
-    n_esq = 2 if m.info.get("marco_long") else 4          # modo 2: el marco se interrumpe en las esquinas de los soportes del ojal E (núcleo: marco_interrupcion)
+    n_esq = m.info.get("marco_esquinas", 2 if m.info.get("marco_long") else 4)     # esquinas largas–cortas que quedan (el marco se interrumpe en los soportes y en los insertos)
     add_n(1, "Marco perimetral largo – plancha base", f"{sc_('marco_largo')} / {sc_('base_plancha')}", "Filete en T, solo lado interior (pletina a ras del canto), continuo", "fillet", t=max(P["rim_t"], tb), len_total=2 * L_ml, wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C",
         contorno=False, len_txt="")
     add_n(2, "Marco corto – plancha base", f"{sc_('marco_corto')} / {sc_('base_plancha')}", "Filete en T, solo lado interior (pletina a ras del canto), continuo", "fillet", t=max(P["rim_t"], tb), len_total=2 * L_mc, wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C")
-    add_n(3, "Marco largo – marco corto (esquinas)", f"{sc_('marco_largo')} / {sc_('marco_corto')}", f"Filete vertical en el rincón interior (extremo de la corta contra la cara interior de la larga), {n_esq} esquinas", "fillet", t=P["rim_t"], len_total=n_esq * P["rim_h"], wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C")
+    if n_esq:
+     add_n(3, "Marco largo – marco corto (esquinas)", f"{sc_('marco_largo')} / {sc_('marco_corto')}", f"Filete vertical en el rincón interior (extremo de la corta contra la cara interior de la larga), {n_esq} esquinas", "fillet", t=P["rim_t"], len_total=n_esq * P["rim_h"], wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C")
     if g.modo == 2:
         _welds_pivotado(ctx, add_n, c)
+    INS = m.info.get("inserto")
+    sob = sc_("inserto") if (INS and g.modo == 1) else sc_("base_plancha")
     if g.modo == 1:
-     add_n(4, "Mejillas de ménsula – plancha base", "BAS-005 / BAS-001", "Filete en T, ambos lados de cada mejilla", "fillet", core=(P["w_br"], f"calculado (memoria, soldadura mejillas–base); mín. AWS D1.1 Tabla 5.8 = {c('Filete mínimo mejillas–base')}, máx. AISC 360-22 J2.2b = t − 2 = {fm(P['t_ch'] - 2, 0)} mm"),
+     add_n(4, "Mejillas de ménsula – " + ("inserto de esquina" if INS else "plancha base"), f"BAS-005 / {sob}", "Filete en T, ambos lados de cada mejilla", "fillet", core=(P["w_br"], f"calculado (memoria, soldadura mejillas–base); mín. AWS D1.1:2020 Tabla 7.7 = {c('Filete mínimo mejillas–base')}, máx. AISC 360-22 J2.2b = t − 2 = {fm(P['t_ch'] - 2, 0)} mm"),
         t=P["t_ch"], len_total=2 * 2 * nb * L_ch, wps=2, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_br'], 0)}"))
      add_n(5, "Oreja superior – mejillas de ménsula", "BAS-006 / BAS-005", "Filete en T, 2 caras de la oreja contra cada mejilla", "fillet", t=P["t_ch"], len_total=nb * 2 * 2 * Llug, wps=2, end="VT 100 % · MT 100 %",
         other=dict(kind="fillet", size=f"z{fillet_min(P['t_ch'])}"))
      add_n(6, "Oreja inferior (bloque) – mejillas de ménsula", "BAS-007 / BAS-005", "Filete en T, ambos lados, cara superior del bloque", "fillet", t=BR["spacer"] + P["t_ch"], len_total=nb * 2 * Llug, wps=11, end="VT 100 % · MT 100 %",
         other=dict(kind="fillet", size=f"z{fillet_min(BR['spacer'] + P['t_ch'])}"))
-     add_n(7, "Oreja inferior (bloque) – plancha base", "BAS-007 / BAS-001", "Filete perimetral del bloque", "fillet", t=max(BR["spacer"] + P["t_ch"], tb), len_total=nb * 2 * (Win + Llug), wps=11, end="VT 100 % · MT 100 %", contorno=True)
+     add_n(7, "Oreja inferior (bloque) – " + ("inserto de esquina" if INS else "plancha base"), f"BAS-007 / {sob}", "Filete perimetral del bloque", "fillet", t=max(BR["spacer"] + P["t_ch"] - ((INS["t"] - tb) if INS else 0), (INS["t"] if INS else tb)), len_total=nb * 2 * (Win + Llug), wps=11, end="VT 100 % · MT 100 %", contorno=True)
      add_n(8, "Bancada – plancha base", "ACC-001 / BAS-001", "Filete en T, ambos lados, continuo, precalentar 65 °C", "fillet", core=(P["w_bed_f"], "calculado (memoria, soldadura bancada–base)"), t=P["t_bed"], len_total=int(P["n_cyl"]) * 2 * 2 * KG["L_bed"], wps=3,
         end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_bed_f'], 0)}"))
     if g.boss:
-        add_n(9, "Collar del pivote – plancha base", "BAS-002 / BAS-001", "Filete perimetral continuo", "fillet", core=(g.w_collar, f"calculado (memoria, collar del pivote); mín. AWS D1.1 Tabla 5.8 = {c('Collar: filete mínimo')}"), t=g.h_boss,
+        add_n(9, "Collar del pivote – plancha base", "BAS-002 / BAS-001", "Filete perimetral continuo", "fillet", core=(g.w_collar, f"calculado (memoria, collar del pivote); mín. AWS D1.1:2020 Tabla 7.7 = {c('Collar: filete mínimo')}"), t=g.h_boss,
             len_total=math.pi * g.D_boss, wps=4, end="VT 100 % · MT 100 %", contorno=True)
-    add_n(10, "Orejas de izaje – plancha base", "IZA-001 / BAS-001", "Filete en T, ambos lados, L = 2R", "fillet", core=(P["w_ear"], f"calculado (memoria, orejas de izaje); mín. AWS D1.1 Tabla 5.8 = {c('Oreja: filete mínimo')}"), t=P["t_ear"],
+    ois = [o for o in m.info.get("orejas_inserto", [])]
+    add_n(10, "Orejas de izaje – plancha base" + (f" ({len(ois)} sobre el inserto de esquina)" if ois else ""), "IZA-001 / BAS-001" + (f", {sc_('inserto')}" if ois else ""), "Filete en T, ambos lados, L = 2R", "fillet", core=(P["w_ear"], f"calculado (memoria, orejas de izaje); mín. AWS D1.1:2020 Tabla 7.7 = {c('Oreja: filete mínimo')}"), t=P["t_ear"],
         len_total=4 * 2 * 2 * P["R_ear"], wps=5, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_ear'], 0)}"))
+    if INS:
+        for jn in INS.get("juntas") or []:
+            tam = jn.get("tamano") or {}
+            ver = jn.get("verificacion") or {}
+            wI = add(f"Inserto de esquina – plancha base ({jn['id']}: CJP a tope en doble V; transición 1:{fm(INS['_k'], 1)} en la cara superior del inserto)",
+                     f"{sc_('inserto')} / {sc_('base_plancha')}", f"CJP a tope en doble V, soldada por arriba y por abajo (base volteada), cara inferior amolada al ras; transición 1:{fm(INS['_k'], 1)} en el inserto", "V", t=float(tam.get("CJP", tb)), t_pre=float(INS["t"]),
+                     prep="Doble V 60° (X), raíz 0–3, talón 0–3, resanado por la cara inferior (PROPUESTA; AWS D1.1:2020 Figura 5.1, B-U3: verificar designación)",
+                     prep_txt="60°", groove=True, len_total=float(jn.get("largo_total", 0)), wps=6, end="VT 100 % · UT 100 %", jid=jn["id"],
+                     other=dict(kind="V", size=""), nota=(f"Núcleo ({'soporte_E' if g.modo == 2 else 'levaGuiada'}.inserto.juntas {jn['id']}: FU {fm(ver['fu'], 3)}; {ver.get('norma', '')}). "
+                                                        "Cara inferior amolada al ras (apoyo en la losa); cara superior: el cordón empalma con la transición 1:2,5"))
+            wI["inserto"] = dict(t=float(INS["t"]), tb=float(tb), k=float(INS["_k"]), ancho=float(tam.get("transicion_ancho", 0) or 0), pend=str(tam.get("transicion_pendiente", "")))
+            wI["origen"] = f"núcleo (inserto.juntas {jn['id']}" + (f": FU {fm(ver['fu'], 3)}" if ver.get("fu") is not None else "") + ")"
+            wI["size_txt"] = f"s{fm(tam.get('CJP', tb), 0)}"
+            wI["garganta"] = f"CJP t = {fm(tam.get('CJP', tb), 0)} (doble V)"
     # MES
     tp = g.tpr
     # N-03: secuencia de espesores de los anillos: partida tp + 3; empalmes (J11) en la partida; MES-002 se planea a tp antes de J12;
@@ -385,7 +406,7 @@ def build_welds(ctx):
     j12.update(t_thick=tp, land=land_)
     j13.update(t_thick=tp + 3, land=land_)
     rin = [r for r in D["almas"]]
-    add_n(14, "Almas anulares – planchas inferior y superior", "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios) ({'supera el máx. AISC 360-22 J2.2b = t − 2 = ' + fm(P['t_web'] - 2, 0) + ' mm: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'cumple mín. AWS D1.1 Tabla 5.8'})"),
+    add_n(14, "Almas anulares – planchas inferior y superior", "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios) ({'supera el máx. AISC 360-22 J2.2b = t − 2 = ' + fm(P['t_web'] - 2, 0) + ' mm: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'cumple mín. AWS D1.1:2020 Tabla 7.7'})"),
         t=P["t_web"], len_total=sum(2 * 2 * 2 * math.pi * r for r in rin), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
     n_tr = len(rin)                                               # tramos de nervio por línea radial (cubo–A1, A1–A2, …)
     L_rib = sum(rib_lengths(ctx))
@@ -406,7 +427,7 @@ def build_welds(ctx):
     if g.opt and g.removable:
         tpb = g.tope("base")
         if tpb:
-            wt = (P["w_tope"], f"calculado (memoria, topes de la interfaz); mín. AWS D1.1 Tabla 5.8 = {fm(tpb['w_min'], 0)}; cabe bajo el chaflán de {fm(tpb['a_inf'], 0)} mm del sector")
+            wt = (P["w_tope"], f"calculado (memoria, topes de la interfaz); mín. AWS D1.1:2020 Tabla 7.7 = {fm(tpb['w_min'], 0)}; cabe bajo el chaflán de {fm(tpb['a_inf'], 0)} mm del sector")
             nsec = g.n_sec if g.opt != 3 or g.conf != 3 else int(P["bz_npad"])
             add_n(19, "Barras de tope – plancha base", "INT tope base / BAS-001", "2 filetes (frente y dorso de la barra), continuos", "fillet", core=wt, t=max(tb, P["b_tope"]), len_total=nsec * 2 * tpb["L"], wps=8,
                 end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"), nota="soldar antes del alivio y del rectificado de las caras")
@@ -428,7 +449,7 @@ def build_welds(ctx):
         w["len_txt"] = w.get("len_txt", "")
     # respaldo de las CJP (B-32): removible (MR) donde la cara queda funcional; permanente (M) en el interior de la mesa
     for w in W_:
-        if w["groove"] and "respaldo" in w["prep"]:
+        if w["groove"] and "respaldo" in w["prep"] and not w.get("inserto"):
             mr = any(x in w["desc"] for x in ("Empalmes de los anillos", "Plancha superior – anillo", "Plancha inferior – anillo"))
             w["backing"] = "MR" if mr else "M"
             w["backing_txt"] = "MR: respaldo removible cerámico (PROPUESTA)" if mr else "M: respaldo permanente de acero 6×40 (PROPUESTA)"
@@ -442,7 +463,7 @@ def build_welds(ctx):
         sub = {}
         for w in grp[n]:
             sub.setdefault((propuestas.wps_family(w), propuestas.precalentamiento(w["t_pre"])), []).append(w)
-        for i, (_k, ws) in enumerate(sorted(sub.items(), key=lambda kv: kv[1][0]["id"])):
+        for i, (_k, ws) in enumerate(sorted(sub.items(), key=lambda kv: (any(w.get("inserto") for w in kv[1]), kv[1][0]["id"]))):
             if i == 0:
                 continue
             for w in ws:
@@ -460,9 +481,12 @@ def _welds_pivotado(ctx, add_n, c):
     cod = {"pared_X": "cajon_pared_x", "pared_Y": "cajon_pared_y", "munon_X": "cajon_munon", "munon_Y": "cajon_munon", "tapa_inf": "cajon_tapa", "tapa_sup": "cajon_tapa"}
     loc = {pz["id"]: pz for pz in S["piezas"]}
 
+    INS = ctx.m.info.get("inserto")
+
     def code_of(pid):
         if pid == "base":
-            return ctx.code("base_plancha").replace(CODE + "-", "").replace("-" + REV, "")
+            # núcleo e9a0eb3: el soporte se suelda sobre el inserto de esquina (la «base» de la junta es el inserto)
+            return ctx.code("inserto" if INS else "base_plancha").replace(CODE + "-", "").replace("-" + REV, "")
         if pid in cod and ctx.m.get(cod[pid]):
             return ctx.code(cod[pid]).replace(CODE + "-", "").replace("-" + REV, "")
         return "BAS-012…014"
@@ -471,12 +495,13 @@ def _welds_pivotado(ctx, add_n, c):
         zr = float(tam.get("filete_refuerzo", 0) or 0)
         pz = [x for x in jn["piezas"]]
         pzs = " / ".join(dict.fromkeys(code_of(x) for x in pz))
-        ts = [float(loc[x]["t"]) for x in pz if x in loc] + ([float(g.tb)] if "base" in pz else [])
+        tbase_ = float(INS["t"]) if INS else float(g.tb)
+        ts = [float(loc[x]["t"]) for x in pz if x in loc] + ([tbase_] if "base" in pz else [])
         t_pre = max(ts + [float(S["t_pared"])])
         ver = jn.get("verificacion") or {}
         org = f"núcleo (soporte_E.juntas {jn['id']}: FU {fm(ver['fu'], 3)}; {ver.get('norma', '')})" if ver.get("fu") is not None else "núcleo (soporte_E.juntas)"
         pjp = "PJP" in jn["tipo"]
-        desc = f"Soporte del ojal E: {' – '.join(pz)}".replace("pared_X", "pared X").replace("pared_Y", "pared Y").replace("munon_X", "muñón X").replace("munon_Y", "muñón Y").replace("tapa_inf", "tapa inferior").replace("tapa_sup", "tapa superior")
+        desc = f"Soporte del ojal E: {' – '.join(('inserto' if (x == 'base' and INS) else x) for x in pz)}".replace("pared_X", "pared X").replace("pared_Y", "pared Y").replace("munon_X", "muñón X").replace("munon_Y", "muñón Y").replace("tapa_inf", "tapa inferior").replace("tapa_sup", "tapa superior")
         back = ("resanado" in jn["tipo"] or "respaldo" in jn["tipo"]) and not pjp
         prep = ("Bisel 45° en el canto de la tapa, PJP S = %s (E = %s), soldada desde arriba; filete de refuerzo z%s; sin soldadura por debajo" % (fm(tam["S"], 0), fm(tam["E"], 0), fm(zr, 0)) if pjp else
                 "Bisel simple 45° (TC-U4b) %s, raíz 3; resanado de raíz y pasada de cierre del otro lado; filete de refuerzo interior z%s" % ("por el interior" if "interior" in jn["tipo"] else "", fm(zr, 0)))
@@ -496,7 +521,7 @@ def _welds_pivotado(ctx, add_n, c):
         w["soporte_E"] = jn
         # espesores del esquema de junta: pieza que se suelda (alma) y la que la recibe (plancha)
         w["t_alma"] = float(loc[pz[0]]["t"]) if pz[0] in loc else float(S["t_pared"])
-        w["t_plancha"] = float(g.tb) if "base" in pz else (float(loc[pz[1]]["t"]) if len(pz) > 1 and pz[1] in loc else float(S["t_pared"]))
+        w["t_plancha"] = tbase_ if "base" in pz else (float(loc[pz[1]]["t"]) if len(pz) > 1 and pz[1] in loc else float(S["t_pared"]))
 
 
 def _welds_leva(ctx, add_n):
@@ -610,10 +635,15 @@ def inspecciones(ctx):
                        f"Pasadores de empuje, bloque-uña, extremo del pasador Q y canto de las placas-leva: dureza superficial ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad de temple {g.z_hard_txt}; Re ≥ {f(P['Fy_dog'])} MPa en la forja del bloque-uña."),
          "100 % uñas; 10 % pasadores" if g.modo == 1 else "100 % bloques, pasadores Q y placas; 10 % pasadores de empuje", "HRC / macro"),
         ("Soldadura", "WPS/PQR calificados según AWS D1.1 y soldadores calificados; registro de precalentamiento e interpase (≤ 250 °C).", "Todas", "Doc."),
-        ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1 cl. 6) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
+        ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1:2020 cláusula 8) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
         ("Soldadura", "Partículas magnéticas MT en filetes críticos (" + ("mejillas, collar, orejas de izaje, bancadas" if g.modo == 1 else "PJP y filetes de refuerzo del soporte del ojal E, collar, orejas de izaje") + (", pórticos y prolongaciones de la leva" if g.FLG else "") + (", topes de la interfaz" if g.opt and g.removable else "") + ", almas y nervios) y en ranuras; 10 % en marco" + (" y anillo de la madera" if g.wood else "") + ".", "Según programa (100 % / 10 %)", "MT"),
-        ("Soldadura", "Ultrasonido UT de uniones CJP (anillos, planchas de la mesa, cubo, empalmes de almas" + (", paredes y muñones del soporte del ojal E" if g.modo == 2 else "") + "), según AWS D1.1 cl. 8 (cargas estáticas). Los filetes (collar, orejas de izaje) se controlan con MT 100 % y medición del tamaño; UT de laminación de la plancha base bajo esos filetes (ASTM A578 nivel B).", "100 %", "UT"),
+        ("Soldadura", "Ultrasonido UT de uniones CJP (anillos, planchas de la mesa, cubo, empalmes de almas" + (", paredes y muñones del soporte del ojal E" if g.modo == 2 else "") + (", inserto de esquina–plancha base J-I1" if ctx.m.info.get("inserto") else "") + "), según AWS D1.1:2020 cláusula 8 (cargas estáticas). Los filetes (collar, orejas de izaje) se controlan con MT 100 % y medición del tamaño; UT de laminación de la plancha base bajo esos filetes (ASTM A578 nivel B).", "100 %", "UT"),
         *([("Soldadura", "Líquidos penetrantes PT en soldaduras de acero inoxidable (barras del rebaje UHMW).", "100 %", "PT")] if any("ER309L" in w["aporte"] for w in getattr(ctx, "welds", [])) else []),
+        *([("Dimensional", (lambda I_: f"Insertos de esquina J-I1 ({ctx.code('inserto').replace(CODE + '-', '')}, {len(I_['esquinas'])} u.): cara inferior al ras con la base (amolada, escalón ≤ 0,5 mm; apoyo en la losa); "
+                                         f"espesor pleno {fm(I_['t'], 0)} ±0,5 y transición 1:{fm(I_['_k'], 1)} (ancho {fm(I_['_k'] * I_['delta'], 0)}) con plantilla; "
+                                         + (f"rebaje a z {fm(I_['rebaje']['z_cara'], 0)} ±0,5 después de soldar; " if I_.get("rebaje") else "")
+                                         + "contorno ±2 (ISO 9013 clase 3) respecto de los bordes de la base (BAS-001). UT 100 % de J-I1 antes del alivio.")(ctx.m.info["inserto"]), "100 %", "Regla, plantilla, UT")]
+          if ctx.m.info.get("inserto") else []),
         ("Dimensional", f"Planitud de la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) ≤ 0,20 mm y de la cara inferior de la mesa ≤ 0,20 mm antes de montar la interfaz.", "100 %", "Regla/nivel láser"),
         ("Dimensional", f"Pasadores de empuje: agujeros Ø{f(g.d_pin)} H7 en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos); coaxialidad de los agujeros de ambos anillos Ø0,05 (mandrinado en línea, CON-009).", "100 %", "CMM / plantilla"),
         ("Dimensional", f"Pivote: perpendicularidad ≤ 0,05 respecto de la cara de apoyo; coaxialidad collar–plancha base 0,05. " + (f"Ménsulas: centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 sobre la cara de apoyo (A); agujeros de las orejas perpendiculares a A (CON-007, BAS-005)." if g.modo == 1 else
@@ -688,7 +718,7 @@ REF_GEN = "Tolerancias y ajustes: GEN-004 · materiales y certificados: GEN-005 
 
 def notas_gen_fab(ctx):
     return ["Tolerancias generales ISO 2768-mK (piezas soldadas ISO 13920-BF); geométricas ISO 1101; rugosidad ISO 1302 (no indicada: Ra 12,5); ajustes ISO 286-1/-2.",
-            "Soldadura ISO 2553; calidad ISO 5817 en cada símbolo; WPS-P pre-calificados AWS D1.1 cl. 3 PROPUESTOS (GEN-012), a calificar/confirmar por el fabricante.",
+            "Soldadura ISO 2553; calidad ISO 5817 en cada símbolo; WPS-P precalificados AWS D1.1:2020 cláusula 5 PROPUESTOS (GEN-012), a calificar/confirmar por el fabricante.",
             "Materiales con certificado EN 10204 3.1; punzonar la marca de colada y el código de la pieza en zona no crítica.",
             "Aristas vivas rotas 1×45° (o R1) salvo indicación; sin torno vertical: gran diámetro por corte a llama/plasma, soldadura y mandrinadora.",
             pintura(ctx)]

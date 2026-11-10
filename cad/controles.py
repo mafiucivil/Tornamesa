@@ -7,7 +7,7 @@ Cada control devuelve una lista de fallas (texto). El generador los escribe en i
   - notas:       ninguna nota se repite dentro de una lámina; las notas generales de GEN-001 no se copian en otras láminas; textos contradictorios prohibidos.
   - codigos:     los códigos de pieza INT salen del registro fijo (un código = una pieza en todas las variantes) y la lámina de cada pieza lleva su código.
   - variante:    el rótulo (subtítulo) y el título de cada lámina identifican la variante del juego.
-  - wps:         cada WPS agrupa juntas de una sola familia y un solo rango de precalentamiento (AWS D1.1-2020 Tabla 5.11, por la parte más gruesa)."""
+  - wps:         cada WPS agrupa juntas de una sola familia y un solo rango de precalentamiento (AWS D1.1:2020 Tabla 5.8, por la parte más gruesa)."""
 import math
 import re
 import sys

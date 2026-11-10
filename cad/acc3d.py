@@ -19,7 +19,14 @@ ACC_NUM = {"bancada": 1, "cilindro": 2, "patin": 3, "una": 4, "pasador_vastago":
            "leva_arandela": 25, "leva_tornillo_ret": 26}
 ISO10642_DK_ = {4: 8.0, 5: 10.0, 6: 12.0, 8: 16.0, 10: 20.0, 12: 24.0}
 # BAS 8…11: cajón cerrado anterior (anulado). Soporte abierto (núcleo c4e12af): 12…15; marco perimetral interrumpido frente al soporte (modo 2): 16, 17
-BAS_NUM = {"cajon_pared_x": 12, "cajon_pared_y": 13, "cajon_munon": 14, "cajon_tapa": 15, "marco_largo_int": 16, "marco_corto_int": 17}
+BAS_NUM = {"cajon_pared_x": 12, "cajon_pared_y": 13, "cajon_munon": 14, "cajon_tapa": 15, "marco_largo_int": 16, "marco_corto_int": 17,
+           # inserto de esquina (núcleo e9a0eb3): un número por espesor y modo (cada espesor es otra geometría); marco del modo guiado interrumpido en los insertos
+           "inserto_E60": 18, "inserto_E70": 19, "inserto_E90": 20, "inserto_G50": 21, "inserto_G60": 22, "inserto_G65": 23,
+           "marco_largo_ins_g": 24, "marco_corto_ins_g": 25,
+           # modo pivotado con el inserto de la interfaz B (gap 10: catetos 556,4): el marco se interrumpe 2 mm más (otra geometría, otro número)
+           "marco_largo_int_b": 26, "marco_corto_int_b": 27}
+# registro de la interrupción del marco del modo pivotado por largo de cateto del inserto (mm, redondeado a 0,1) → sufijo de BAS_NUM
+MARCO_PIV_CATETO = {554.4: "", 556.4: "_b"}
 
 EYE_WALL = 17.5          # pared del ojal comercial del cilindro (52,5 − 35 del ojal Ø70 del modelo de la Rev. B): radio exterior = d/2 + 17,5 (supuesto S21)
 

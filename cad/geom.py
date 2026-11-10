@@ -82,7 +82,7 @@ class G:
         self.B, self.tb = P["B"], P["t_base"]
         self.boss = P["h_boss"] > 0
         self.h_boss, self.D_boss = (P["h_boss"], P["D_boss"]) if self.boss else (0.0, 0.0)
-        self.w_collar = float(P["w_collar"])         # filete del collar: parámetro del JSON (mínimo AWS D1.1 T5.8 y máximo AISC J2.2b verificados por el núcleo)
+        self.w_collar = float(P["w_collar"])         # filete del collar: parámetro del JSON (mínimo AWS D1.1:2020 Tabla 7.7 y máximo AISC J2.2b verificados por el núcleo)
         # --- mesa ---
         self.hd, self.tt, self.tbo = P["h_disc"], P["t_top"], P["t_bot"]
         self.tpr = max(P["t_pr"], self.tt, self.tbo)

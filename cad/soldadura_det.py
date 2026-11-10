@@ -1,11 +1,11 @@
-"""Esquemas ampliados de juntas soldadas: preparación de junta a tope (V, bisel) con ángulo, abertura de raíz, talón y respaldo (ISO 9692-1 / AWS D1.1 cl. 3),
+"""Esquemas ampliados de juntas soldadas: preparación de junta a tope (V, bisel) con ángulo, abertura de raíz, talón y respaldo (ISO 9692-1 / AWS D1.1:2020 cláusula 5),
 cordón de filete en T con catetos z y garganta a, y ranura de cierre. Se dibujan a escala normalizada elegida por el compositor y se acotan en papel."""
 import math, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from draw import T_N, T_S, tw
 from geom import fm, f
 
-BACKING = (6.0, 40.0)        # respaldo de acero propuesto: espesor × ancho (AWS D1.1 cl. 3, a confirmar)
+BACKING = (6.0, 40.0)        # respaldo de acero propuesto: espesor × ancho (AWS D1.1:2020 cláusula 5, a confirmar)
 
 
 def _poly(s, pts, ang=0.0, solid=False, layer="VIS", scale=0.35):
@@ -215,7 +215,7 @@ def tc_size(w):
 
 
 def prep_tc(s, ox, oy, k, w, jid=None, plano=None, angle=45.0):
-    """Juntas del soporte del ojal E (núcleo: soporte_E.juntas). CJP TC-U4b (AWS D1.1 Fig. 5.4): pieza vertical de espesor t sobre la plancha de espesor tp,
+    """Juntas del soporte del ojal E (núcleo: soporte_E.juntas). CJP TC-U4b (AWS D1.1:2020 Figura 5.1): pieza vertical de espesor t sobre la plancha de espesor tp,
     bisel simple 45° en todo el espesor del lado interior, abertura de raíz 3, resanado de raíz y pasada de cierre del lado exterior, filete de refuerzo z
     en el rincón interior. PJP TC-P4 (Fig. 5.2): tapa horizontal entre las paredes con bisel 45° de profundidad S desde arriba (garganta E), filete de
     refuerzo z sobre el bisel y sin soldadura por debajo."""
@@ -259,6 +259,51 @@ def prep_tc(s, ox, oy, k, w, jid=None, plano=None, angle=45.0):
         plano.h.weld(jid, a, (ox + Wn * k + 10, oy + Hn * k + 14), sh=1, prep=f"{fm(angle, 0)}°")
 
 
+
+
+def x_size(w):
+    I = w["inserto"]
+    Lh = 40.0
+    return (Lh + 3.0 + I["ancho"] + 40.0, I["t"] + 34.0), Lh
+
+
+def prep_x(s, ox, oy, k, w, jid=None, plano=None, angle=60.0, root=3.0, face=3.0):
+    """J-I1 (núcleo: inserto.juntas): CJP a tope en doble V (X) entre la plancha base (t_base, izquierda) y el inserto de esquina (derecha), al ras por
+    debajo. La X se reparte en el espesor de la base (los dos al ras abajo; en el borde de la junta el inserto también tiene t_base: allí arranca la
+    transición 1:k de la cara superior, que llega al espesor pleno t a k·Δ del borde). Resanado de raíz por la cara inferior y amolado al ras."""
+    I = w["inserto"]
+    tb, T, kk, A = I["tb"], I["t"], I["k"], I["ancho"]
+    (Wn, Hn), Lh = x_size(w)
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    y0 = 8.0
+    d = (tb - face) / 2.0                     # profundidad de cada V
+    hb = math.tan(math.radians(angle / 2)) * d
+    xr0, xr1 = Lh, Lh + root
+    left = [P(0, y0), P(xr0 - hb, y0), P(xr0, y0 + d), P(xr0, y0 + d + face), P(xr0 - hb, y0 + tb), P(0, y0 + tb)]
+    xe = xr1 + A + 40.0
+    # cara superior del inserto: del borde de la junta (z = tb) al espesor pleno (z = T) en A = k·Δ
+    tau = math.tan(math.radians(angle / 2))
+    u = d * tau / (1.0 - tau / kk)              # el bisel superior corta la pendiente de la transición
+    right = [P(xr1 + hb, y0), P(xe, y0), P(xe, y0 + T), P(xr1 + A, y0 + T), P(xr1 + u, y0 + tb + u / kk), P(xr1, y0 + d + face), P(xr1, y0 + d)]
+    _poly(s, left, 0.0)
+    _poly(s, right, 90.0)
+    s.line(P(0, y0), P(xe, y0), "FINA")
+    s.dim(P(0, y0), P(0, y0 + tb), -9, f"t = {fm(tb, 0)} (base)", "v")
+    s.dim(P(xe, y0), P(xe, y0 + T), 8, f"t = {fm(T, 0)} (inserto)", "v")
+    s.dim(P(xr1, y0 + T), P(xr1 + A, y0 + T), 8, f"{fm(A, 0)} = {fm(kk, 1)}·Δ (transición 1:{fm(kk, 1)})", "h")
+    s.dim(P(xr0, y0 + tb + 2), P(xr1, y0 + tb + 2), 10, f"b = 0–{fm(root, 0)}", "h", outside=True)
+    apex = P((xr0 + xr1) / 2, y0 + d + face)
+    s.dim_ang(apex, d * k * 0.6, 90 - angle / 2, 90 + angle / 2, f"{fm(angle, 0)}°")
+    apex2 = P((xr0 + xr1) / 2, y0 + d)
+    s.dim_ang(apex2, d * k * 0.6, 270 - angle / 2, 270 + angle / 2, f"{fm(angle, 0)}°")
+    xl_ = ox - 4
+    s.leader(P(xr0, y0 + d + face / 2), (xl_ - 30, oy + (y0 + tb / 2) * k - 18), f"talón c = 0–{fm(face, 0)}", dot=True)
+    s.leader(P((xr0 + xr1) / 2, y0), (P(xr0, 0)[0] + 20, oy - 6), "resanado de raíz por la cara inferior; amolar al ras (apoyo en la losa)", dot=True)
+    s.leader(P(xr1 + A * 0.3, y0 + tb + A * 0.3 / kk), (P(xr1 + A * 0.3, 0)[0] + 25, oy + (y0 + T) * k + 22), f"cara superior del inserto: pendiente 1:{fm(kk, 1)} desde el borde de la junta", dot=True)
+    if jid and plano is not None:
+        a = P(xr0 + root / 2, y0 + tb - 0.5)
+        plano.h.weld(jid, a, (ox + 10, oy + (y0 + T + 12) * k), sh=-1, prep=f"{fm(angle, 0)}°")
+
 # ------------------------------------------------------------------------------------------------
 def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None, edge=False):
     """Agrega a la lámina p un esquema de junta correspondiente al registro de soldaduras w (dict de ctx.welds). Devuelve la especificación."""
@@ -273,6 +318,11 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
                f"DETALLE {jid}: PREPARACIÓN DE JUNTA (CJP TC-U4b + z{fm(w['refuerzo'], 0)})")
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 1.0, maxs=maxs or 5.0, title=title or tit,
                     custom=lambda s, ox, oy, k, pl: prep_tc(s, ox, oy, k, w, jid, pl))
+    if w.get("inserto"):
+        (Wn, Hn), _ = x_size(w)
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 0.5, maxs=maxs or 2.0,
+                    title=title or f"DETALLE {jid}: CJP A TOPE EN DOBLE V, BASE {fm(w['inserto']['tb'], 0)} / INSERTO {fm(w['inserto']['t'], 0)} (TRANSICIÓN 1:{fm(w['inserto']['k'], 1)})",
+                    custom=lambda s, ox, oy, k, pl: prep_x(s, ox, oy, k, w, jid, pl))
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]
         kind = "V" if w["sym"] == "V" else "bevel"

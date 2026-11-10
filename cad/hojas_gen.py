@@ -52,6 +52,12 @@ def losa_txt(ctx):
     return f"{fm(v['cap'], 0)} {v['unidad']}" if v else "la admisible del cálculo"
 
 
+def limitaciones_uso_txt(ctx):
+    """Limitaciones de uso del núcleo (verdict.limitaciones_uso[]): van en GEN-001 y en el instructivo de armado y prueba (CON-022)."""
+    L = (ctx.D.get("verdict") or {}).get("limitaciones_uso") or []
+    return [f"LIMITACIÓN DE USO (núcleo, verdict.limitaciones_uso): {x['texto']} Motivo y referencia en GEN-009; figura también en el instructivo (paso 9)." for x in L if x.get("texto")]
+
+
 def notas_generales(ctx):
     """Notas generales del juego: se escriben UNA sola vez, en GEN-001; las demás láminas remiten a ellas (control de notas duplicadas)."""
     g = ctx.g
@@ -61,6 +67,7 @@ def notas_generales(ctx):
             "GEN-005 (materiales), GEN-006 (tratamientos, pintura y zonas sin pintura), GEN-007 y GEN-012 (soldaduras y WPS), GEN-008 (tornillería, torques y compras).",
             f"Sin anclaje ni análisis de viento (decisión del mandante): el equipo apoya sobre losa/mats con presión sobre la losa ≤ {losa_txt(ctx)} (admisible del cálculo; la verificación de la losa es de terceros). "
             + NOTA_VIENTO,
+            *limitaciones_uso_txt(ctx),
             "Fuente única: todos los valores salen del JSON de diseño del núcleo de cálculo (exportado por la herramienta TT300-C); si el JSON cambia, regenerar el juego completo.",
             "Unidades: mm, kg, MPa, grados. Cotas en mm salvo indicación. No medir sobre el plano. Método de proyección E (ISO 5456-2).",
             "Tolerancias generales ISO 2768-mK (lineales y angulares, tabla en GEN-004); piezas soldadas ISO 13920-BF; rugosidad no indicada Ra 12,5 (ISO 1302 / ISO 21920-1).",
@@ -81,10 +88,10 @@ def normas(ctx):
          ("ISO 5457 / ISO 7200 / ISO 5456-2", "Formatos, cajetín, método de proyección"), ("ISO 3098", "Escritura"), ("ISO 286-1/-2", "Sistema de tolerancias y ajustes ISO"),
          ("ISO 2768-1 / ISO 13920", "Tolerancias generales / tolerancias de construcciones soldadas"), ("ISO 13715", "Aristas de forma indefinida"), ("ISO 6410-1", "Representación de roscas"),
          ("ISO 9013", "Corte térmico: tolerancias"), ("ISO 261 / 262 / 724 / 273", "Roscas métricas / agujeros pasantes"), ("ISO 4762 / ISO 10642 / ISO 898-1", "Tornillos / propiedades mecánicas"),
-         ("VDI 2230", "Uniones atornilladas (torques propuestos)"), ("AWS D1.1-2020", "Soldadura de acero estructural (T5.8 filete mínimo, T5.11 precalentamiento, cl. 8 END)"),
+         ("VDI 2230", "Uniones atornilladas (torques propuestos)"), ("AWS D1.1:2020", "Soldadura de acero estructural (cláusula 5 WPS precalificados, Figura 5.1 juntas CJP precalificadas, Tabla 7.7 filete mínimo, Tabla 5.8 precalentamiento, cláusula 8 END)"),
          ("AWS A5.1 / A5.18" + (" / A5.9" if g.opt == 2 else ""), "Metales de aporte"), ("ISO 9606-1 / ISO 17637", "Calificación de soldadores / inspección visual"),
          ("AISC 360-22", "Especificación (J2.2b filete máximo, D5.2 orejas)"), ("ASME BTH-1 Cat. B / ASME B30.26", "Dispositivos de izaje / grilletes"),
-         ("EN 10204 3.1", "Certificados de inspección"), ("ASTM A572 Gr.50, A36 (ref.), A578, EN 10164", "Aceros estructurales, UT de planchas, propiedades en espesor"),
+         ("EN 10204 3.1", "Certificados de inspección"), ("EN 10025-2 (S355J2)" if (g.modo == 2 or ctx.m.info.get("inserto")) else "", "Acero del soporte del ojal E y de los insertos de esquina"), ("ASTM A572 Gr.50, A36 (ref.), A578, EN 10164", "Aceros estructurales, UT de planchas, propiedades en espesor"),
          ("EN 10083-3 (34CrNiMo6+QT) / EN 10228-3", "Aceros bonificados (pasadores, uña) / UT de forjas"), ("ISO 15787", "Indicación de tratamientos térmicos en los planos (pasadores)"), ("DIN 71412" if g.n_greaser and g.opt in (1, 3) else "", "Graseras"),
          ("ISO 12944-5 / ISO 8501-1 / ISO 8503 / ISO 19840 / ISO 4624", "Protección anticorrosiva (C4 alta propuesto, GEN-006), preparación, EPS y adherencia")]
     if g.opt in (1, 2):
@@ -182,7 +189,8 @@ def sheet_notas(ctx):
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
-    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024",
+    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024. Inserto de esquina, un número por espesor: "
+                 "BAS-018 t60, 019 t70, 020 t90 (-1 A, -2 C1…C3, -3 B), 021 t50 «-G», 022 t60 «-G», 023 t65 «-G» (en «-G», -1/-2 simétricos); marco «-G» interrumpido BAS-024/025; marco de B (catetos del inserto de B) BAS-026/027",
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]
@@ -252,10 +260,24 @@ def sheet_soldaduras_global(ctx):
     sc = (R[2] - R[0]) / sum(w for _, w, _ in WELD_COLS)
     cols = [(t, w * sc, a) for t, w, a in WELD_COLS]
     out, last, y = c.table_pages(cols, weld_rows(ctx), "PROGRAMA DE SOLDADURAS (Junta N°, piezas, tipo, preparación, garganta a, cateto z, longitud, pasadas, proceso, aporte, WPS, END)", "PROGRAMA DE SOLDADURAS", 7)
-    last.s.notes_block(R[0], y - 6, "NOTAS", ["Tamaños: los calculados en la memoria; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1 Tabla 5.8 por la parte más gruesa y se rotula «mínimo AWS, a confirmar».",
-                                              "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte con resistencia a tracción ≥ %s MPa (E70xx)." % f(ctx.P["FEXX"]),
-                                              "Todas las juntas llevan símbolo ISO 2553 con su número J## en las láminas de pieza o de subconjunto; la tabla de cada lámina repite las juntas que contiene.",
-                                              "END: VT 100 % de todas las juntas; MT/UT/PT según columna (AWS D1.1 y BTH-1 Cat. B). Soldadores y WPS calificados por el fabricante."], h=T_N, width=700, numbered=True)
+    notas = ["Tamaños: los calculados en la memoria; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa y se rotula «mínimo AWS, a confirmar».",
+             "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte con resistencia a tracción ≥ %s MPa (E70xx)." % f(ctx.P["FEXX"]),
+             "Todas las juntas llevan símbolo ISO 2553 con su número J## en las láminas de pieza o de subconjunto; la tabla de cada lámina repite las juntas que contiene.",
+             "END: VT 100 % de todas las juntas; MT/UT/PT según columna (AWS D1.1 y BTH-1 Cat. B). Soldadores y WPS calificados por el fabricante."]
+    I = ctx.m.info.get("inserto")
+    if I:
+        notas.append(f"SECUENCIA DE SOLDADURA DE LOS INSERTOS DE ESQUINA ({', '.join(w['id'] for w in ctx.welds if w.get('inserto'))}; núcleo inserto.secuencia), antes de soldar cualquier otra pieza a la base: "
+                     + " ".join(I.get("secuencia") or []))
+    W_ = min(700.0, R[2] - R[0] - 12.0)
+    need = (T_N + 0.5) * 1.6 + sum(len(wrapw(f"{i + 1}. {n}", W_, T_N)) * T_N * 1.4 + T_N * 0.25 for i, n in enumerate(notas))
+    if y - 6 - need >= R[1] + 2:
+        last.s.notes_block(R[0], y - 6, "NOTAS", notas, h=T_N, width=W_, numbered=True)
+    else:
+        # no caben en la última hoja de la tabla: hoja de continuación (notas y secuencia)
+        c2 = Gen(ctx, 14, "PROGRAMA DE SOLDADURAS (CONTINUACIÓN DE GEN-007): NOTAS Y SECUENCIA DE SOLDADURA")
+        R2 = c2.R["main"]
+        c2.s.notes_block(R2[0], R2[3], "NOTAS DEL PROGRAMA DE SOLDADURAS (GEN-007)", notas, h=T_N, width=W_, numbered=True)
+        out = out + [c2.h]
     return out
 
 
@@ -326,7 +348,10 @@ def sheet_materiales(ctx):
     gr += [["Uña (forja, %s mm)" % fm(P["dog_b"], 0), propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]] if g.modo == 1 else [["Bloque-uña (forja, %s mm)" % fm(g.FPV["bloque_una"]["cuerpo"]["b"], 0), propuestas.grado(P["Fy_dog"], g.FPV["bloque_una"]["cuerpo"]["b"], "barra")]]
     cols_g = [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")]
     tit_g = "GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy"
-    _, left = last.s.table(R[0], y - 8, cols_g, gr, h=T_S, ymin=R[1] + 3, title=tit_g)
+    if y - 8 - 32 < R[1] + 3:                 # no entra ni el título con la cabecera y una fila: todo a la hoja de continuación
+        left = gr
+    else:
+        _, left = last.s.table(R[0], y - 8, cols_g, gr, h=T_S, ymin=R[1] + 3, title=tit_g)
     if left:                                  # no cabe bajo la tabla de materiales: hoja de continuación
         g2 = Gen(ctx, 25, "MATERIALES Y CERTIFICADOS (CONTINUACIÓN): GRADOS PROPUESTOS")
         R2 = g2.R["main"]
@@ -689,7 +714,7 @@ def sheet_verificacion(ctx):
 
 @gen
 def sheet_wps(ctx):
-    c = Gen(ctx, 12, "WPS PRE-CALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1 CL. 3) Y PRECALENTAMIENTO")
+    c = Gen(ctx, 12, "WPS PRECALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1:2020 CLÁUSULA 5) Y PRECALENTAMIENTO")
     g = ctx.g
     s = c.s
     R = c.R["main"]
@@ -698,11 +723,12 @@ def sheet_wps(ctx):
     y, _ = s.table(R[0], R[3], cols, propuestas.wps_rows(ctx), h=T_S, title=propuestas.ROTULO_WPS)
     # N-16: el A572 Gr.50 (Grupo II) solo admite procesos de bajo hidrógeno (categoría B); la categoría A (SMAW sin bajo hidrógeno) no se aplica
     pre = [["≤ 19 (3/4 in)", "sin precalentar (T ≥ 10 °C)"], ["> 19 a 38 (1½ in)", "10 °C"], ["> 38 a 65 (2½ in)", "65 °C"], ["> 65", "110 °C"]]
-    y2, _ = s.table(R[0], y - 8, [("Espesor de la parte más gruesa [mm]", 0.30 * w, "L"), ("Categoría B: E7018, ER70S-6, E71T-1 (procesos de bajo hidrógeno, los únicos admitidos)", 0.70 * w, "C")], pre, h=T_S,
-                    title="PRECALENTAMIENTO MÍNIMO — AWS D1.1-2020 TABLA 5.11, acero Grupo II (ASTM A572 Gr.50), por el espesor de la parte más gruesa de la junta (no se admiten electrodos que no sean de bajo hidrógeno)")
-    s.notes_block(R[0], y2 - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
+    # tabla de precalentamiento (izquierda) y notas (derecha) lado a lado: la tabla de WPS crece con los juegos que tienen más familias de junta
+    y2, _ = s.table(R[0], y - 8, [("Espesor de la parte más gruesa [mm]", 0.16 * w, "L"), ("Categoría B: E7018, ER70S-6, E71T-1 (procesos de bajo hidrógeno, los únicos admitidos)", 0.30 * w, "C")], pre, h=T_S,
+                    title="PRECALENTAMIENTO MÍNIMO — AWS D1.1:2020 TABLA 5.8, acero Grupo II (ASTM A572 Gr.50), por el espesor de la parte más gruesa de la junta (no se admiten electrodos que no sean de bajo hidrógeno)")
+    s.notes_block(R[0] + 0.50 * w, y - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
                                        "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte con resistencia a tracción ≥ %s MPa." % f(ctx.P["FEXX"]),
                                        "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
                                        *(["Soldadura de acero inoxidable 309L (barras del rebaje UHMW): sin precalentamiento; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), ("Aceros bonificados (pasadores, pivote, uña) NO se sueldan" + ("; excepción del núcleo: patas y tapas del pórtico de la leva en 42CrMo4+QT (J26/J27), solo con WPS calificado con PQR (requiere núcleo, GEN-009)." if g.FLG else ".")) if g.modo == 1 else "Aceros bonificados (pasadores E y Q, pivote, bloque-uña) NO se sueldan.",
-                                       "Soldadores calificados según AWS D1.1 cl. 4 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.9 * w, numbered=True)
+                                       "Soldadores calificados según AWS D1.1:2020 cláusula 6 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.49 * w, numbered=True)
     return c.h

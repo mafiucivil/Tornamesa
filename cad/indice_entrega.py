@@ -21,9 +21,36 @@ NOTA_E = ("Soporte del ojal E (modo pivotado): la flexión local de la plancha b
           "podría agregar cartelas o un refuerzo local. Las láminas de la base y del soporte del ojal E se emiten para revisión con esa salvedad.")
 
 
+def nota_inserto(C):
+    """Núcleo e9a0eb3: base de 20 mm con insertos de esquina (soporte_E.inserto / levaGuiada.fabricacion.inserto): resultado por caso, leído del JSON."""
+    res = []
+    for c in C:
+        I = c.get("inserto")
+        if not I:
+            continue
+        res.append(f"{c['caso']}: t = {I['t']:g} mm, FU {I.get('fu_max', 0):.3f}".replace(".", ",") + (" (advertencia > 0,90)" if (I.get("fu_max") or 0) > 0.9 else ""))
+    if not res:
+        return None
+    tb = next((c["inserto"]["t_base"] for c in C if c.get("inserto")), 20)
+    return (f"Plancha base de {tb:g} mm con inserto de esquina bajo cada soporte del cilindro (núcleo: «{next(c['inserto'].get('estado', '—') for c in C if c.get('inserto'))}»; "
+            "ASME BTH-1-2020 §3-2.3.4, F_b = 1,25·Fy/Nd): " + "; ".join(res) + ". La retención anterior «plancha base bajo el soporte E» ya no figura: "
+            "la verificación sin inserto queda como antecedente del núcleo. Lámina del inserto por espesor (BAS-018…023); juntas J-I1 (CJP a tope en doble V, UT 100 %).")
+
+
+def nota_limitacion(C):
+    L = []
+    for c in C:
+        for x in c.get("limitaciones") or []:
+            if x.get("texto") and x["texto"] not in L:
+                L.append(x["texto"])
+    return ("LIMITACIÓN DE USO (núcleo, verdict.limitaciones_uso): " + " ".join(L) + " Figura en GEN-001 de cada juego y en el instructivo (paso 9).") if L else None
+
+
 def nota_plancha(C):
     """Nota de la plancha base bajo el soporte E (casos del modo pivotado): con la verificación del núcleo en el JSON (pivotado.fabricacion.soporte_E.plancha_base)
-    se informa su resultado por caso; sin ella, la verificación figura como en curso (NOTA_E)."""
+    se informa su resultado por caso; sin ella, la verificación figura como en curso (NOTA_E). Con el inserto de esquina verificado (núcleo e9a0eb3) la nota es la del inserto."""
+    if nota_inserto(C):
+        return nota_inserto(C)
     piv = [c for c in C if c.get("soporte_E") is not None]
     if not piv:
         return None
@@ -72,6 +99,8 @@ def leer_caso(d, logs=None, caso=None):
                 conflictos=rep.get("conflictos_ids") or {t[:60]: dict(corto=t[:60]) for t in rep.get("conflictos_nucleo", [])}, interfaz=interfaz,
                 modo=D.get("modo_nombre") or ("guiado" if P.get("drive_mode") == 1 else "pivotado"), fecha=D.get("fecha", "—"), salida=salida,
                 soporte_E=(D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") if D.get("modo") == 2 else None,
+                inserto=(((D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") or {}).get("inserto") if D.get("modo") == 2 else ((D.get("levaGuiada") or {}).get("fabricacion") or {}).get("inserto")),
+                limitaciones=(D.get("verdict") or {}).get("limitaciones_uso") or [],
                 variante=(re.search(r"VARIANTE (\S+)$", est[0]["titulo"]).group(1) if est and re.search(r"VARIANTE (\S+)$", est[0]["titulo"]) else caso))
 
 
@@ -86,7 +115,8 @@ def escribir(dest, casos, logs=None, nota_w=NOTA_W, nucleo=None):
     L = [f"# TT300-C · Índice general de la entrega de planos (Rev. C)", "", f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else ""), "",
          f"**{ADVERTENCIA}**", "", "Estado de las láminas: todas EMITIDAS PARA REVISIÓN (sin aprobación; firmas DIBUJÓ/REVISÓ/APROBÓ A DEFINIR). "
          "Las RETENIDAS no deben fabricarse: dependen de un conflicto geométrico o de una verificación no cumplida declarados por el núcleo (GEN-009 de cada juego) o de datos del proveedor; "
-         "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo.", "", f"**{nota_w}**", ""] + ([f"**{nota_plancha(C)}**", ""] if nota_plancha(C) else []) + [
+         "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo.", "", f"**{nota_w}**", ""] + ([f"**{nota_plancha(C)}**", ""] if nota_plancha(C) else []) + (
+         [f"**{nota_limitacion(C)}**", ""] if nota_limitacion(C) else []) + [
          "## Resumen por caso", "", "| Caso | Variante | Accionamiento | Interfaz | Láminas | Emitidas p/ revisión | Retenidas | Ítems | Cotas (fallas) | Fallas de controles | Interferencias no declaradas | Salida | Carpeta |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for c in C:
@@ -165,7 +195,8 @@ def _pdf(path, C, cods, tit, est_of, fecha, nota_w, nucleo):
                             title="TT300-C Índice general de la entrega de planos", author="Generador de planos TT300-C (cad/)")
     st = [Paragraph("TT300-C · Tornamesa hidráulica 300 tf · Índice general de la entrega de planos (Rev. C)", sH1),
           Paragraph(esc(f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else "") + " Estado: EMITIDO PARA REVISIÓN (sin aprobación)."), sN),
-          Spacer(1, 3), Paragraph(esc(ADVERTENCIA), sW), Spacer(1, 3), Paragraph(esc(nota_w), sW), Spacer(1, 3)] + ([Paragraph(esc(nota_plancha(C)), sW), Spacer(1, 3)] if nota_plancha(C) else []) + [
+          Spacer(1, 3), Paragraph(esc(ADVERTENCIA), sW), Spacer(1, 3), Paragraph(esc(nota_w), sW), Spacer(1, 3)] + ([Paragraph(esc(nota_plancha(C)), sW), Spacer(1, 3)] if nota_plancha(C) else []) + (
+          [Paragraph(esc(nota_limitacion(C)), sW), Spacer(1, 3)] if nota_limitacion(C) else []) + [
           Paragraph(esc("Las láminas RETENIDAS no deben fabricarse: dependen de un conflicto geométrico o de una verificación no cumplida declarados por el núcleo (GEN-009 de cada juego) o de datos del proveedor; "
                         "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo. El cajetín de cada lámina RETENIDA lo indica en el campo de estado."), sN),
           Paragraph("Resumen por caso", sH2)]

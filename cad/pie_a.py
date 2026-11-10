@@ -13,13 +13,15 @@ def sheet_base_plancha(ctx):
     on = ["base_plancha"]
     xl, cl, xg = P["x_lug"], g.cl_lug, P["x_g"]
     ghosts = ["marco_largo", "marco_corto", "collar", "mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "orejas", "bancada",
-              "leva_prolong", "leva_pata", "placa_leva", "placa_leva_h"]
+              "leva_prolong", "leva_pata", "placa_leva", "placa_leva_h", "inserto"]
+    INS = ctx.m.info.get("inserto")
+    ci_ = ctx.code("inserto").replace(CODE + "-", "").rsplit("-", 1)[0] if INS else ""
 
     def planta(V, p):
         ghost(p, V, ghosts)
         s.line(V.P(-B / 2 - 70, 0, tb), V.P(B / 2 + 70, 0, tb), "EJE"); s.line(V.P(0, -B / 2 - 70, tb), V.P(0, B / 2 + 70, tb), "EJE")
-        V.dimh((-B / 2, B / 2, tb), (B / 2, B / 2, tb), "top", 0, on=on, text=f"{f(B)} ±2")
-        V.dimv((-B / 2, -B / 2, tb), (-B / 2, B / 2, tb), "left", 0, on=on, text=f"{f(B)} ±2")
+        V.dimh((-B / 2, 0, tb), (B / 2, 0, tb), "top", 0, on=on, text=f"{f(B)} ±2")
+        V.dimv((0, -B / 2, tb), (0, B / 2, tb), "left", 0, on=on, text=f"{f(B)} ±2")
         s.circle(V.P(0, 0, tb), g.D_boss / 2 * V.scale, "FANT")
         s.circle(V.P(0, 0, tb), (P["D_top"] + 20) / 2 * V.scale, "FANT")
         ph = ctx.m.info.get("placa_leva_holes")
@@ -43,13 +45,44 @@ def sheet_base_plancha(ctx):
             V.note_hole((u, v, tb), r, 75, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
         c0 = V.P(0, 0, tb)
         s.circle(c0, (P["D_top"] + 20) / 2 * V.scale, "FANT")
-        s.text(f"zona de apoyo Ø{f(P['D_top'] + 20)}", (c0[0], c0[1] - (P["D_top"] + 20) / 2 * V.scale + 3), T_N, "BOTTOM_CENTER")
+        if V.scale >= 0.0999:          # a 1:20 el rótulo choca con las llamadas de las placas-guía: la zona se define en las notas y en la rugosidad
+            s.text(f"zona de apoyo Ø{f(P['D_top'] + 20)}", (c0[0] - (P["D_top"] + 20) / 2 * V.scale + 3, c0[1] - 22), T_N, "TOP_LEFT")
         s.circle(c0, g.D_boss / 2 * V.scale, "FANT")
         s.text(f"collar Ø{f(g.D_boss)} (BAS-002)", (c0[0], c0[1] - g.D_boss / 2 * V.scale - 3), T_N, "TOP_CENTER")
         p.cut_mark("planta", "A", (-B / 2 - 38, 0, tb), (B / 2 + 38, 0, tb), 90)
+        if INS:
+            from shapely.geometry import Polygon as _Pg
+            for i_, pol in enumerate(INS["esquinas"]):
+                q_ = _Pg(pol).representative_point()
+                qq = V.P(pol[0][0] + 0.45 * (q_.x - pol[0][0]), pol[0][1] + 0.45 * (q_.y - pol[0][1]), tb)
+                s.text(f"V{i_ + 1}", (qq[0], qq[1]), T_N + 0.5, "MIDDLE_CENTER", bold=True)
+            # corte B-B por la bisectriz de la esquina (+x; −y): base e inserto al ras por debajo, transición y junta J-I1
+            d_ = B / 2 * 2 ** 0.5
+            p.cut_mark("planta", "B", (B / 2 + 25, -B / 2 - 25, tb), (B / 2 - (d_ - INS["hipotenusa_dist_centro"] + 160) / 2 ** 0.5, -B / 2 + (d_ - INS["hipotenusa_dist_centro"] + 160) / 2 ** 0.5, tb), 45)
         p.cut_mark("planta", "D", (B / 2 - 150, B / 2 + 30, tb), (B / 2 - 150, B / 2 - 150, tb), 0) if False else None
 
-    p.vs("planta", on, "top", lv=(2, 0, 0, 2), draw=planta, auto=False, title="PLANTA DE LA PLANCHA BASE", w=2.0, extra=(0, 0, 0, 0))
+    p.vs("planta", on, "top", lv=(2, 0, 0, 2), draw=planta, auto=False, title="PLANTA DE LA PLANCHA BASE" + (f" ({len(INS['esquinas'])} VENTANAS DE ESQUINA PARA LOS INSERTOS {ci_})" if INS else ""), w=2.0, extra=(0, 0, 0, 0),
+         mins=(0.1 if INS else None))
+    if INS:
+        # copias giradas 135° alrededor del eje de la tornamesa: la bisectriz de la esquina (+x; −y) queda sobre +x (plano de corte y = 0)
+        import cadquery as _cq
+        for k_, nk_ in (("base_plancha", "bp_B"), ("inserto", "ins_B")):
+            ctx.shapes[nk_] = ctx.shapes[k_].rotate(_cq.Vector(0, 0, 0), _cq.Vector(0, 0, 1), 45.0)
+            ctx.mat[nk_] = "acero"
+        dC = B / 2 * 2 ** 0.5
+        hC = float(INS["hipotenusa_dist_centro"])
+        tI = float(INS["t"])
+        jI_ = [w["id"] for w in ctx.welds if w.get("inserto")]
+
+        def corteB(V, p_):
+            V.dimv((dC - 2, 0, 0), (dC - 2, 0, tI), "right", 0, on=["ins_B"], text=f"{f(tI)}")
+            V.dimv((hC - 60, 0, 0), (hC - 60, 0, tb), "left", 0, on=["bp_B"], text=f"{f(tb)} (t_base)")
+            V.dimh((hC, 0, 0), (dC, 0, 0), "bottom", 0, on=["ins_B", "bp_B"], text=f"{fm(dC - hC, 1)} (esquina–hipotenusa)")
+            if jI_:
+                w_out(p_, jI_[0], V, (hC, 0, tb), "top", dy=10)
+        p.vs("corteB", ["bp_B", "ins_B"], "front", cut=((0, 0, 0), (0, 1, 0)), center=(dC - (dC - hC + 160) / 2, 0, tI / 2), win=(-(dC - hC + 200) / 2, -tI / 2 - 6, (dC - hC + 200) / 2, tI / 2 + 10),
+             lv=(1, 1, 1, 1), mat={"bp_B": "acero", "ins_B": "acero"}, hs=0.5, draw=corteB, auto=False, w=0.8, mins=0.1, maxs=0.2,
+             title=f"CORTE B-B (bisectriz de la esquina +x −y: inserto {ci_} y junta {', '.join(jI_)})")
 
     def corte(V, p):
         s.line(V.P(0, 0, -10), V.P(0, 0, g.tb + g.h_boss + 10), "EJE")
@@ -69,7 +102,7 @@ def sheet_base_plancha(ctx):
     p.ra_in("corte", "Ra 1,6", prefix=f"Ø{f(P['D_piv'])} H7")
     p.ra_in("corte", "Ra 3,2", [(-240, 0, tb), (240, 0, tb)], (0, 1))
     p.vs("corte", ["base_plancha", "collar"], "front", cut=CUT_Y, win=(-290, -4, 290, tb + g.h_boss + 12), lv=(1, 2, 1, 1), draw=corte, title="CORTE A-A (central, collar soldado)", extra=(0, 0, 115, 0), mat={"base_plancha": "acero", "collar": "acero"},
-         auto=False, w=2.0, hs=0.5)
+         auto=False, w=2.0, hs=0.5, maxs=(0.2 if INS else None))
     # tabla de posiciones
     rows = []
     for i, (ex, ey) in enumerate(g.ear_pos):
@@ -91,8 +124,23 @@ def sheet_base_plancha(ctx):
             for j_, (x_, y_) in enumerate(ins.get("pasadores_posicion") or []):
                 rows.append([f"Pasador Ø{fm(g.FPV['placas_leva']['pasadores_posicion']['d'], 0)} H7 placa {k_.replace('_', ' ')} D{j_ + 1}", f(x_, 1), f(y_, 1), "—", f"ciego prof. {fm(ctx.m.info['placa_pas_prof'][0], 0)}, escariado con plantilla"])
     rows.append(["Collar / agujero H7", "0", "0", "—", f"Ø{f(g.D_boss)} / Ø{f(P['D_piv'])}"])
+    if INS:
+        tr_ = {"id": "", "rot": "girada 180°", "esp": "simétrica respecto del eje x", "esprot": "simétrica respecto del eje y"}
+        import inserto3d
+        for i_, pol in enumerate(INS["esquinas"]):
+            rows.append([f"V{i_ + 1} ventana del inserto {ci_} (esquina {'+' if pol[0][0] > 0 else '−'}x {'+' if pol[0][1] > 0 else '−'}y)", f(pol[0][0]), f(pol[0][1]), "—",
+                         ("vértices en la tabla de ventanas" if i_ == 0 else f"V1 {tr_[inserto3d._transformacion(INS, i_)]}") + "; corte CNC, inserto al ras por debajo (J-I1)"])
     p.table_block("POSICIONES DE LAS PIEZAS SOLDADAS Y AGUJEROS (origen: centro de la plancha" + ("; placas-guía del cilindro 2: (−x; −y) de las del cilindro 1)" if g.modo == 2 else ")"), [("Elemento", 60, "L"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("Ángulo", 18, "C"), ("Observación", 52, "L")], rows)
-    p.tables(jids(ctx, "Collar"))
+    if INS:
+        import inserto3d
+        V1_ = INS["esquinas"][0]
+        n_ = len(V1_)
+        inter_ = [i_ for i_, (a_, b_) in enumerate(zip(V1_, V1_[1:] + V1_[:1])) if any(math.dist(a_, q[0]) < 1e-6 and math.dist(b_, q[1]) < 1e-6 for q in inserto3d.bordes_interiores(INS, 0, B))]
+        p.table_block(f"VENTANA V1 (núcleo «esquinas»; V2…V{len(INS['esquinas'])} por simetría, tabla de posiciones). Bordes interiores con J-I1: "
+                      + ", ".join(f"{i_ + 1}–{(i_ + 1) % n_ + 1}" for i_ in inter_) + "; el resto, sobre el borde de la base (sin junta)",
+                      [("N°", 8, "C"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("desde el borde x", 24, "R"), ("desde el borde y", 24, "R")],
+                      [[str(j_ + 1), fm(q[0], 1), fm(q[1], 1), fm(abs(B / 2 - abs(q[0])), 1), fm(abs(B / 2 - abs(q[1])), 1)] for j_, q in enumerate(V1_)])
+    p.tables(jids(ctx, "Collar") + ([w["id"] for w in ctx.welds if w.get("inserto")] if INS else []))
     nz = [
         f"Plancha {f(B)} × {f(B)} × {f(tb)} de {p.p0.material.split(',')[0]}; sobrematerial de corte 5 mm por borde, recortar a medida después del alivio. Corte por oxicorte/plasma con tolerancia ISO 9013 clase 3.",
         f"Agujero central Ø{f(P['D_piv'])} H7: mandrinar plancha y collar en un solo montaje (mandrinadora) después de soldar el collar y aliviar tensiones; Ra 1,6; perpendicular a la cara de apoyo 0,05.",
@@ -101,6 +149,10 @@ def sheet_base_plancha(ctx):
         "Soldaduras de la base: ver CON-023 (detalles D1–D4 y tabla del subconjunto) y el programa de soldaduras (GEN-007); detalle del collar (J09) en BAS-002. Alivio de tensiones 590–620 °C después de soldar y antes del mecanizado final.",
         "La plancha NO lleva anclajes: equipo sin anclaje (apoyo sobre losa).",
     ]
+    if INS:
+        nz.insert(1, f"Ventanas de esquina V1…V{len(INS['esquinas'])} para los insertos {ci_} (t = {f(INS['t'])}): oxicorte CNC con el contorno del núcleo (tabla de la ventana V1); el inserto va al ras por debajo, "
+                     f"unido con CJP a tope en doble V ({', '.join(w['id'] for w in ctx.welds if w.get('inserto'))}; corte B-B y detalle en {ci_}); cara inferior amolada al ras (apoyo en la losa). "
+                     "Los bordes de la ventana sobre el borde de la base no llevan junta.")
     if g.opt:
         hb = centros_xy(ctx.m.info.get("holes_base"))
         pat = patron_txt(hb, f"M{fm(P['d_tor'], 0)}")
@@ -166,24 +218,32 @@ def sheet_collar(ctx):
 def sheet_marcos(ctx):
     g, P = ctx.g, ctx.P
     B, tb, rt, rh = g.B, g.tb, P["rim_t"], P["rim_h"]
-    ctx.local("marco_largo", "ml1", near=(0, -B / 2 + 5, tb + 20), r=300)
-    ctx.local("marco_corto", "mc1", near=(B / 2 - 5, 0, tb + 20), r=300)
+    # una pletina de cada tipo: la larga del borde y = −B/2 y la corta del borde x = +B/2 (la más larga si el marco está interrumpido)
+    _ml = max([x for x in ctx.shapes["marco_largo"].Solids() if x.Center().y < 0], key=lambda x: x.BoundingBox().xlen)
+    _mc = max([x for x in ctx.shapes["marco_corto"].Solids() if x.Center().x > 0], key=lambda x: x.BoundingBox().ylen)
+    ctx.local("marco_largo", "ml1", near=(_ml.Center().x, _ml.Center().y, _ml.Center().z), r=5)
+    ctx.local("marco_corto", "mc1", near=(_mc.Center().x, _mc.Center().y, _mc.Center().z), r=5)
     p = Pieza(ctx, ["marco_largo", "marco_corto"], "MARCO PERIMETRAL: PLETINAS LARGA Y CORTA", fmt="auto")
     s = p.s
     p.iso_keys = ["ml1", "mc1"]
-    ids = jids(ctx, "Marco perimetral largo", "Marco largo – marco corto", "Marco corto – plancha")
+    ids = [J(ctx, "Marco perimetral largo"), J(ctx, "Marco largo – marco corto"), J(ctx, "Marco corto – plancha")]
+    n_esq = ctx.m.info.get("marco_esquinas", 4)
     MI_ = ctx.m.info.get("marco_long")
     bbl_, bbc_ = ctx.shapes["ml1"].BoundingBox(), ctx.shapes["mc1"].BoundingBox()
     cxl_, cyc_ = (bbl_.xmin + bbl_.xmax) / 2, (bbc_.ymin + bbc_.ymax) / 2
     L_ml, L_mc = MI_ or (B, B - 2 * rt)
     sy_ = 1 if MI_ else -1                       # esquina dibujada: en el modo 2 la esquina (+x, −y) no tiene marco (soporte del ojal E)
+    n_l, n_c = ctx.m.get("marco_largo").qty, ctx.m.get("marco_corto").qty
+    brk = lambda c_, L_: [(c_ - 700, c_ + 700)] if L_ > 1700 else None
     cl_, cc_ = ctx.code("marco_largo").replace(CODE + "-", "").replace("-" + REV, ""), ctx.code("marco_corto").replace(CODE + "-", "").replace("-" + REV, "")
-    p.vs("larga", ["ml1"], "front", breaks=[(cxl_ - 700, cxl_ + 700)], lv=(1, 2, 1, 1), title=f"PLETINA LARGA ({cl_}) — 2 unidades, con rotura", mat={"ml1": "acero"},
+    p.vs("larga", ["ml1"], "front", breaks=brk(cxl_, L_ml), lv=(1, 2, 1, 1), title=f"PLETINA LARGA ({cl_}) — {n_l} unidades" + (", con rotura" if brk(cxl_, L_ml) else ""), mat={"ml1": "acero"},
          auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5)
+    j_corta = ids[2]
+
     def corta_(V, p):
-        if len(ids) > 2:
-            w_out(p, ids[2], V, (B / 2 - rt, cyc_ - 300, tb + 0.5), "bottom")
-    p.vs("corta", ["mc1"], "right", breaks=[(cyc_ - 700, cyc_ + 700)], lv=(1, 2, 1, 1), extra=(0, 0, 0, 0), title=f"PLETINA CORTA ({cc_}) — 2 unidades, con rotura", mat={"mc1": "acero"},
+        if j_corta and j_corta != "J??":
+            w_out(p, j_corta, V, (B / 2 - rt, cyc_ - min(300, 0.3 * L_mc), tb + 0.5), "bottom")
+    p.vs("corta", ["mc1"], "right", breaks=brk(cyc_, L_mc), lv=(1, 2, 1, 1), extra=(0, 0, 0, 0), title=f"PLETINA CORTA ({cc_}) — {n_c} unidades" + (", con rotura" if brk(cyc_, L_mc) else ""), mat={"mc1": "acero"},
          auto=dict(tol={round(rh, 1): " ±0,5"}), w=1.5, draw=corta_)
     p.vs("perfil", ["ml1"], "left", lv=(1, 1, 1, 1), title="PERFIL DE LA PLETINA (sección)", maxs=5.0, auto=dict(), hatch=False, w=1.0)
 
@@ -198,16 +258,24 @@ def sheet_marcos(ctx):
 
     def esq(V, p):
         w_out(p, ids[1], V, (B / 2 - rt, sy_ * (B / 2 - rt), tb + rh), "top" if sy_ < 0 else "left")          # N-12: la cola del símbolo no invade la cota 45 de la pletina corta
-    p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, sy_ * B / 2, tb), win=((-60, -20, 25, 60) if sy_ < 0 else (-60, -60, 25, 20)), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
-         auto=dict(on=["marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
-    add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=False, edge=True, title=f"DETALLE {ids[0]} / {ids[2] if len(ids) > 2 else ''}: FILETE INTERIOR z{fm(wd(ctx, ids[0])['z'], 0)} (pletina a ras del canto)")
+    if n_esq:
+        p.vs("esquina", ["marco_largo", "marco_corto", "base_plancha"], "top", center=(B / 2, sy_ * B / 2, tb), win=((-60, -20, 25, 60) if sy_ < 0 else (-60, -60, 25, 20)), lv=(1, 1, 1, 1), draw=esq, title="DETALLE B: ESQUINA (PLANTA)", hatch=False,
+             auto=dict(on=["marco_largo", "marco_corto"]), maxs=2.0, w=1.0)
+    else:
+        ids = [ids[0], ids[2]]
+    add_prep(p, "det_j1", wd(ctx, ids[0]), t1=rt, t2=tb, both=False, edge=True, title=f"DETALLE {ids[0]} / {ids[-1]}: FILETE INTERIOR z{fm(wd(ctx, ids[0])['z'], 0)} (pletina a ras del canto)")
     p.tables(ids)
     MIx = (ctx.g.FPV or {}).get("soporte_E", {}).get("marco_interrupcion") if ctx.g.modo == 2 else None
-    p.notes([f"Pletinas {f(rt)} × {f(rh)}; 2 largas de {fm(L_ml, 1)} y 2 cortas de {fm(L_mc, 1)} (entre las largas); corte a sierra o plasma con borde recto."] +
+    INS_ = ctx.m.info.get("inserto")
+    p.notes([f"Pletinas {f(rt)} × {f(rh)}; {n_l} largas de {fm(L_ml, 1)} y {n_c} cortas de {fm(L_mc, 1)}" + (" (entre las largas)" if n_esq else "") + "; corte a sierra o plasma con borde recto."] +
+            ([f"Marco interrumpido a lo largo de los dos catetos de cada uno de los {len(INS_['esquinas'])} insertos de esquina hasta {fm(max(INS_['marco_interrupcion']['largo_desde_la_esquina']) - max(INS_['catetos']), 0)} mm "
+              f"más allá de su extremo (núcleo: inserto.marco_interrupcion; tramos desde la esquina {fm(INS_['marco_interrupcion']['largo_desde_la_esquina'][0], 1)} y {fm(INS_['marco_interrupcion']['largo_desde_la_esquina'][1], 1)}): "
+              f"no quedan esquinas largas–cortas; extremos libres." ] if (INS_ and ctx.g.modo == 1) else []) +
             ([f"Marco interrumpido frente a cada soporte del ojal E (núcleo: marco_interrupcion): " + "; ".join(f"{sg['borde']} entre ({fm(sg['desde'][0], 1)}; {fm(sg['desde'][1], 1)}) y ({fm(sg['hasta'][0], 1)}; {fm(sg['hasta'][1], 1)})" for sg in MIx["cilindro1"])
-              + f" y lo simétrico para el cilindro 2; extremos libres a ≥ {fm(MIx['holgura_acceso'], 0)} mm de las paredes traseras (acceso exterior al resanado de las CJP). Quedan 2 esquinas largas–cortas."] if MIx else []) + [
+              + f" y lo simétrico para el cilindro 2 (frente a las paredes traseras y a lo largo de los catetos del inserto de esquina); extremos libres a ≥ {fm(MIx['holgura_acceso'], 0)} mm de las paredes traseras (acceso exterior al resanado de las CJP). Quedan {n_esq} esquinas largas–cortas."] if MIx else []) + [
              "Armado: pletinas largas sobre la plancha con su cara exterior a ras del canto de la plancha; cortas entre ellas; puntear y soldar en secuencia simétrica; filete continuo solo por el lado interior (por fuera las caras quedan coplanares).",
-             f"Esquinas: el extremo de la pletina corta apoya contra la cara interior de la larga; filete interior vertical en el rincón ({ids[1]}). Tamaños z: mínimo AWS D1.1 T5.8 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
+             (f"Esquinas: el extremo de la pletina corta apoya contra la cara interior de la larga; filete interior vertical en el rincón ({ids[1]}). " if n_esq else "")
+             + "Tamaños z: mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa (a confirmar, el cálculo no fija el marco).",
              "El marco contiene la interfaz y protege el borde; no tiene función estructural en el cálculo."],
             gd=[("straight", "2,0", None, "Rectitud del canto en todo el largo (pletinas largas y cortas)"), ("perp", "0,5", "A", "Pletina perpendicular a la cara mayor (A) tras soldar")])
     p.build()
@@ -222,19 +290,22 @@ def sheet_mensula_piezas(ctx):
     for k in ("mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf"):
         ctx.local(k, k + "_L", near=(E[0], E[1], 80), r=300, shift=(-E[0], -E[1], 0), rot=-ph)
     tb, H_, rear, Llug, Win, Wout, tc = g.tb, BR["H"], BR["rear"], BR["Llug"], BR["Win"], BR["Wout"], P["t_ch"]
+    INS = ctx.m.info.get("inserto")
+    zi = float(INS["t"]) if INS else tb             # núcleo e9a0eb3: mejillas y suplemento sobre el inserto, Δ más cortos
+    Hm = tb + H_ - zi                              # alto real de la mejilla
     p = Pieza(ctx, ["mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf"], "MÉNSULA DE CILINDRO: MEJILLA Y OREJAS (PIEZAS)", fmt="auto")
     s = p.s
     p.iso_keys = [k + "_L" for k in ("mensula_mejilla", "mensula_oreja_sup", "mensula_oreja_inf")]
     zt = tb + H_
-    hb = BR["spacer"] + tc
-    ids = jids(ctx, "Mejillas de ménsula", "Oreja superior", "Oreja inferior (bloque) – mejillas", "Oreja inferior (bloque) – plancha")
+    hb = BR["spacer"] + tc - (zi - tb)
+    ids = jids(ctx, "Mejillas de ménsula", "Oreja superior", "Oreja inferior (bloque) – mejillas", "Oreja inferior (bloque) – inserto" if INS else "Oreja inferior (bloque) – plancha")
     k1, k2, k3 = ["mensula_mejilla_L"], ["mensula_oreja_sup_L"], ["mensula_oreja_inf_L"]
 
     def d1(V, p):
         if len(ids) >= 4:
-            w_out(p, ids[0], V, (P["L_ch"] / 2 - rear, -Wout / 2, tb + 0.5), "right", dy=24)
+            w_out(p, ids[0], V, (P["L_ch"] / 2 - rear, -Wout / 2, zi + 0.5), "right", dy=24)
         s.roughness((V.P(0, -Wout / 2, zt)[0] + 6, V.P(0, 0, zt)[1] + 3), "Ra 12,5 (corte)") if False else None
-    p.vs("mej_el", k1, "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=d1, title="MEJILLA — ELEVACIÓN (2 por ménsula, 8 en total)", auto=dict(tol={round(H_, 1): " ±0,5", round(P["L_ch"], 1): " ±1"}), w=1.5)
+    p.vs("mej_el", k1, "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=d1, title="MEJILLA — ELEVACIÓN (2 por ménsula, 8 en total)", auto=dict(tol={round(Hm, 1): " ±0,5", round(P["L_ch"], 1): " ±1"}), w=1.5)
     p.vs("mej_pl", k1, "top", lv=(1, 2, 1, 1), title="MEJILLAS — PLANTA", auto=dict(), w=0.8)
     p.vs("os_pl", k2, "top", lv=(1, 2, 1, 1), extra=(0, 0, 72, 0), title="OREJA SUPERIOR (BAS-006) — PLANTA", auto=dict(fits={P["d_pp"]: "H9"}, tol={round(Llug, 1): " ±0,5", round(Win, 1): " −0,5"}), w=1.0)
     p.vs("os_el", k2, "front", lv=(1, 2, 1, 1), title="OREJA SUPERIOR — ELEVACIÓN", auto=dict(tol={round(tc, 1): " ±0,2"}), w=0.7)
@@ -242,7 +313,7 @@ def sheet_mensula_piezas(ctx):
 
     def d3(V, p):
         if len(ids) >= 4:
-            w_out(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, tb + 0.5), "top", dy=14, sh=-1)
+            w_out(p, ids[3], V, ((Llug - rear) / 2, -Win / 2, zi + 0.5), "top", dy=14, sh=-1)
     p.vs("oi_el", k3, "front", lv=(1, 2, 1, 1), extra=(80, 0, 0, 34), draw=d3, title="OREJA INFERIOR — ELEVACIÓN (bloque)", auto=dict(tol={round(hb, 1): ""}), w=0.9)
     # corte por el eje del agujero de la oreja superior
     p.vs("os_corte", k2, "front", cut=((0, 0, 0), (0, 1, 0)), lv=(1, 2, 1, 1), title="CORTE A-A: AGUJERO DE LA OREJA", hatch=True, auto=dict(tol={}, hole_notes=False, text={round(P["d_pp"], 1): f"Ø{f(P['d_pp'])} H9"}), w=0.8, hs=0.4)
@@ -250,14 +321,15 @@ def sheet_mensula_piezas(ctx):
     p.gd_in("os_corte", "dim", "coax", "Ø0,10", "A", prefix=f"Ø{f(P['d_pp'])} H9")
     p.gd_in("oi_pl", "dim", "perp", "0,10", "A", prefix=f"Ø{f(P['d_pp'])} H9", alt=("os_pl", "dim", None, None, f"Ø{f(P['d_pp'])} H9"))
     if len(ids) >= 4:
-        add_prep(p, "det_j4", wd(ctx, ids[0]), t1=tc, t2=tb)
+        add_prep(p, "det_j4", wd(ctx, ids[0]), t1=tc, t2=zi)
         add_prep(p, "det_j5", wd(ctx, ids[1]), t1=tc, t2=tc)
-        add_prep(p, "det_j6", wd(ctx, ids[2]), t1=tc, t2=BR["spacer"] + tc)
+        add_prep(p, "det_j6", wd(ctx, ids[2]), t1=tc, t2=hb)
     p.tables(ids)
-    p.notes([f"Mejillas: plancha {f(tc)} × {f(H_)} × {f(P['L_ch'])}, 2 por ménsula ({int(P['n_br'])} ménsulas, {int(2 * P['n_br'])} mejillas); plasma, borde recto.",
+    p.notes([f"Mejillas: plancha {f(tc)} × {f(Hm)} × {f(P['L_ch'])}, 2 por ménsula ({int(P['n_br'])} ménsulas, {int(2 * P['n_br'])} mejillas); plasma, borde recto"
+             + (f"; se sueldan sobre el inserto de esquina {ctx.code('inserto').replace(CODE + '-', '').rsplit('-', 1)[0]} (cara a z = {f(zi)}), {f(zi - tb)} mm más cortas que sobre la base." if INS else "."),
              f"Orejas: planchas {f(Win)} (−0,5 para entrar entre mejillas con luz interior {f(Win)}) × {f(Llug)}; la inferior es un bloque {f(hb)} de espesor (pletinas apiladas o plancha gruesa).",
              f"Agujero Ø{f(P['d_pp'])} H9 de ambas orejas: mandrinar en línea DESPUÉS de soldar la ménsula, en un solo montaje; coaxialidad 0,10; centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 sobre la cara de apoyo.",
-             "Armar la ménsula en una plantilla sobre la base; soldadura de mejillas: secuencia alternada para limitar la distorsión (filete z de la tabla).",
+             "Armar la ménsula en una plantilla sobre " + ("el inserto" if INS else "la base") + "; soldadura de mejillas: secuencia alternada para limitar la distorsión (filete z de la tabla).",
              "Para la ménsula completa ver el subconjunto CON-007 y la lámina de la base."],
             gd=[("coax", "Ø0,10", "A", f"Agujeros Ø{f(P['d_pp'])} H9 de las dos orejas coaxiales (mandrinado en línea)"), ("perp", "0,10", "A", "Eje del agujero perpendicular a la cara de apoyo (A)")])
     p.build()
@@ -271,6 +343,8 @@ def sheet_orejas(ctx):
     ang = math.degrees(math.atan2(y, x))
     ctx.local("orejas", "oreja_L", near=(x, y, g.tb + 50), r=200, shift=(-x, -y, 0), rot=-ang)
     tb, R, hE, tE, dE = g.tb, P["R_ear"], P["h_ear"], P["t_ear"], P["d_ear"]
+    tb = ctx.shapes["oreja_L"].BoundingBox().zmin            # cara de apoyo de la oreja dibujada (sobre la base o sobre el inserto de esquina)
+    OI = ctx.m.info.get("orejas_inserto") or []
     p = Pieza(ctx, ["orejas"], "OREJA DE IZAJE (4 UNIDADES)", fmt="auto")
     s = p.s
     p.iso_keys = ["oreja_L"]
@@ -299,8 +373,11 @@ def sheet_orejas(ctx):
     add_prep(p, "det_j", wd(ctx, jid), t1=tE, t2=tb)
 
     p.tables([jid])
+    ci_ = ctx.code("inserto").replace(CODE + "-", "").rsplit("-", 1)[0] if ctx.m.get("inserto") else ""
     p.notes([f"Plancha e = {f(tE)}; perfil 2R × h + semicírculo R{f(R)}; agujero Ø{f(dE)} H12 ({iso286.fmt_dev(dE, 'H12')}) mecanizado (taladro y mandrinado) después del corte, Ra 6,3, aristas 1×45°; grillete con pasador de Ø ≤ {fm(dE - P['g_ear'], 0)} mm (agujero Ø{f(dE)} menos {fm(P['g_ear'], 0)} mm de juego).",
-             f"Posición en la base: (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±1, plano vertical radial hacia el centro (plano BAS-001, tabla de posiciones).",
+             f"Posición en la base: (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±1, plano vertical radial hacia el centro (plano BAS-001, tabla de posiciones)."
+             + (f" {len(OI)} de las 4 orejas (" + "; ".join(f"({f(o['pos'][0])}; {f(o['pos'][1])})" for o in OI) + f") apoyan sobre el inserto de esquina {ci_} (cara a z = {f(ctx.m.info['inserto']['t'])}, núcleo)"
+                + (f"; las otras sobre la plancha base (z = {f(g.tb)})." if len(OI) < 4 else ".") if OI else ""),
              f"Soldadura a la base: filete z{fm(P['w_ear'], 0)} a ambos lados (L = 2R), base de la oreja a escuadra sin bisel ({jid}); MT 100 % antes y después de la prueba de carga; UT de laminación de la plancha base bajo la oreja (ASTM A578 nivel B).",
              ramales_txt_short(ctx),
              f"Factor dinámico del cálculo φ_lift = {fm(P['phi_lift'], 2)}; uso: eslinga de 4 ramales con grillete certificado ASME B30.26 (marca/modelo por catálogo; WLL ≥ lo calculado, ver GEN-008)."],

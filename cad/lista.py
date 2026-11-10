@@ -81,10 +81,17 @@ def cut_rows(ctx):
     L_ml, L_mc = ctx.m.info.get("marco_long") or (B, B - 2 * P["rim_t"])
     add("marco_largo", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_ml, 1)}")
     add("marco_corto", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_mc, 1)}")
+    I = m.info.get("inserto")
+    if I:
+        xs_ = [q[0] for q in I["esquinas"][0]]
+        ys_ = [q[1] for q in I["esquinas"][0]]
+        add("inserto", "Plancha", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{f(I['t'])}",
+            f"Contorno CNC del núcleo con sobremetal 5 (se recorta al ras con la base); biseles de la transición 1:{fm(I['_k'], 1)} y de la CJP J-I1" + ("; rebaje tras soldar" if I.get("rebaje") else ""))
+    zi_ = float(I["t"]) if (I and g.modo == 1) else tb
     if g.modo == 1:
-        add("mensula_mejilla", "Plancha", f"{f(P['L_ch'])}×{f(BR['H'] + 5)}×{f(P['t_ch'])}")
+        add("mensula_mejilla", "Plancha", f"{f(P['L_ch'])}×{f(tb + BR['H'] - zi_ + 5)}×{f(P['t_ch'])}")
         add("mensula_oreja_sup", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(P['t_ch'])}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 (sobremedida {fm(SOBRE_MEC, 0)}); agujero tras soldar")
-        add("mensula_oreja_inf", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(BR['spacer'] + P['t_ch'] + 2)}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 y caras planeadas a {f(BR['spacer'] + P['t_ch'])}; agujero tras soldar")
+        add("mensula_oreja_inf", "Plancha", f"{f(BR['Win'] + SOBRE_MEC)}×{f(BR['Llug'] + 5)}×{f(tb + BR['spacer'] + P['t_ch'] - zi_ + 2)}", f"Ancho mecanizado a {f(BR['Win'])} −0,5 y caras planeadas a {f(tb + BR['spacer'] + P['t_ch'] - zi_)}; agujero tras soldar")
     if g.modo == 2:
         S = g.FPV["soporte_E"]
         t_, L_, h_ = S["t_pared"], S["lado"], S["alto_paredes"]

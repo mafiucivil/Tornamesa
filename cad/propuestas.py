@@ -1,20 +1,20 @@
 """Propuestas técnicas del dibujante para lo que el cálculo no fija (rotuladas PROPUESTA / PROPUESTO, a confirmar por el responsable):
-WPS pre-calificados (AWS D1.1 cl. 3), sistema de pintura (ISO 12944), grado comercial por Fy y especificación de componentes de catálogo.
+WPS precalificados (AWS D1.1:2020 cláusula 5), sistema de pintura (ISO 12944), grado comercial por Fy y especificación de componentes de catálogo.
 Nada de esto sustituye una calificación de procedimiento ni la decisión del calculista; el rótulo obligatorio se imprime con cada uso."""
 import math, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from geom import f, fm, WASHER_MAT
 
-ROTULO_WPS = "PROPUESTA — A CALIFICAR/CONFIRMAR POR EL FABRICANTE (AWS D1.1 cl. 3/4)"
+ROTULO_WPS = "PROPUESTA — A CALIFICAR/CONFIRMAR POR EL FABRICANTE (AWS D1.1:2020 cláusulas 5 y 6)"
 ROTULO_PINT = "PROPUESTA, CONFIRMAR"
 ROTULO_GRADO = "PROPUESTO por Fy del cálculo; confirmar"
 
 # ------------------------------------------------------------------------------------------------
-# precalentamiento mínimo AWS D1.1-2020 Tabla 5.11 (acero Grupo II: ASTM A572 Gr.50; categoría B: bajo hidrógeno SMAW, GMAW, FCAW)
+# precalentamiento mínimo AWS D1.1:2020 Tabla 5.8 (acero Grupo II: ASTM A572 Gr.50; categoría B: bajo hidrógeno SMAW, GMAW, FCAW)
 # espesor de la parte más gruesa de la junta [mm] -> °C
 # ------------------------------------------------------------------------------------------------
 def precalentamiento(t, categoria="B"):
-    """AWS D1.1-2020 Tabla 5.11, aceros Grupo I/II, por el espesor de la parte más gruesa de la junta. Categoría B (E7018, ER70S-6, E71T-1): ≤19 mm: ninguno (≥ 10 °C de ambiente); 19–38: 10 °C; 38–65: 65 °C; >65: 110 °C.
+    """AWS D1.1:2020 Tabla 5.8, aceros Grupo I/II, por el espesor de la parte más gruesa de la junta. Categoría B (E7018, ER70S-6, E71T-1): ≤19 mm: ninguno (≥ 10 °C de ambiente); 19–38: 10 °C; 38–65: 65 °C; >65: 110 °C.
     Categoría A (electrodos no bajo hidrógeno): 0; 65; 110; 150 °C."""
     if categoria == "A":
         return 0 if t <= 19 else 65 if t <= 38 else 110 if t <= 65 else 150
@@ -42,6 +42,8 @@ def wps_family(w):
         return "RANURA"
     if w["groove"] and w.get("pjp"):
         return "PJP-BISEL"
+    if w["groove"] and w.get("inserto"):
+        return "CJP-X"
     if w["groove"]:
         return "CJP-V" if w["sym"] == "V" else "CJP-BISEL"
     if "ER309L" in w["aporte"]:
@@ -52,9 +54,10 @@ def wps_family(w):
 FAM_TXT = {
     "FILETE": ("Filete en T (todas las posiciones de taller: 1F/2F; vertical 3F ascendente con SMAW/FCAW)", "1F, 2F (3F SMAW/FCAW)"),
     "FILETE-INOX": ("Filete en T con aporte inoxidable 309L sobre acero inoxidable (barras de topes UHMW), PT 100 %", "1F, 2F"),
-    "CJP-V": ("Ranura en V 60° a tope con respaldo, penetración completa (CJP), serie AWS D1.1 Fig. 3.4 B-U4; confirmar designación", "1G, 2G"),
-    "CJP-BISEL": ("Ranura con bisel 45° y respaldo, penetración completa (CJP), tipo AWS D1.1 Fig. 3.4 TC-U4; confirmar designación", "1G, 2G"),
-    "PJP-BISEL": ("Ranura con bisel 45° de penetración parcial (PJP), soldada de un lado, con filete de refuerzo, tipo AWS D1.1 Fig. 5.2 TC-P4; confirmar designación", "1G, 2F"),
+    "CJP-V": ("Ranura en V 60° a tope con respaldo, penetración completa (CJP), serie AWS D1.1:2020 Figura 5.1 B-U4; confirmar designación", "1G, 2G"),
+    "CJP-X": ("Ranura a tope en doble V 60° (X), penetración completa (CJP), sin respaldo: resanado de raíz y soldadura por la cara opuesta (pieza volteada), AWS D1.1:2020 Figura 5.1, serie B-U3; confirmar designación", "1G"),
+    "CJP-BISEL": ("Ranura con bisel 45° y respaldo, penetración completa (CJP), tipo AWS D1.1:2020 Figura 5.1 TC-U4; confirmar designación", "1G, 2G"),
+    "PJP-BISEL": ("Ranura con bisel 45° de penetración parcial (PJP), soldada de un lado, con filete de refuerzo, tipo AWS D1.1:2020 Figura 5.2 TC-P4; confirmar designación", "1G, 2F"),
     "RANURA": ("Soldadura de ranura (22 × 80) rellena por completo (AWS D1.1, soldaduras de tapón y ranura precalificadas), en posición plana", "1F"),
 }
 
@@ -79,7 +82,7 @@ def wps_rows(ctx):
 
 
 WPS_COLS = [("WPS", 13, "C"), ("Juntas", 22, "L"), ("Tipo de junta", 62, "L"), ("Posición", 20, "L"), ("GMAW 135 (típico)", 40, "L"), ("SMAW 111 (típico)", 44, "L"), ("FCAW 136 (típico)", 38, "L"),
-            ("Precalentamiento (AWS D1.1-2020 Tabla 5.11, Gr. II, cat. B)", 38, "L"), ("Interpase", 24, "L"), ("Pasadas", 28, "L")]
+            ("Precalentamiento (AWS D1.1:2020 Tabla 5.8, Gr. II, cat. B)", 38, "L"), ("Interpase", 24, "L"), ("Pasadas", 28, "L")]
 
 
 # ------------------------------------------------------------------------------------------------
