@@ -114,7 +114,8 @@ class Ctx:
 # piezas cuya lámina de fabricación queda RETENIDA mientras el conflicto del núcleo exista en la geometría (ids de modelo3d_tt300c.CONFLICTOS_NUCLEO)
 RET_PIEZAS = {"cil_cajon": ("cilindro_pv", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"),
               "placa_orejas": ("placa_leva", "placa_leva_h", "orejas"),
-              "af2_pasadores": ("int_tornillo_af2", "int_disco_mesa", "mesa_anillo_inf")}
+              "af2_pasadores": ("int_tornillo_af2", "int_disco_mesa", "mesa_anillo_inf"),
+              "plancha_E": ("base_plancha", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa")}      # verificación pendiente del núcleo (no es choque)
 
 
 class Hoja:

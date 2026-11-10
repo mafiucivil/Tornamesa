@@ -1461,7 +1461,9 @@ def sheet_cajon_conj(ctx):
         f"Posición del soporte respecto de los bordes de la base con tolerancia ajustada (marcos ISO 1101, datums A cara superior de la base, B y C bordes); control dimensional en GEN-003.",
         f"Soporte del cilindro 2: el mismo, girado 180° respecto del eje de la mesa (E en {fm(-E[0], 1)}; {fm(-E[1], 1)}); datums en los bordes opuestos de la base.",
         *(["RETENIDA (requiere núcleo): el cuerpo del cilindro entra en el soporte con la geometría del núcleo (conflicto declarado, GEN-009); no fabricar hasta su corrección."]
-          if c.h.retener("cil_cajon") else [])])
+          if c.h.retener("cil_cajon") else []),
+        *([f"RETENIDA (requiere núcleo): {ctx.conflicto('plancha_E')['corto']}; la plancha base de {fm(tb, 0)} mm no cumple bajo el momento del soporte sin anclaje "
+           f"(FU máx. {fm(ctx.conflicto('plancha_E').get('fu') or 0, 2)}); el soporte puede cambiar con la solución. No fabricar."] if c.h.retener("plancha_E") else [])])
     c.build()
     return c.h
 

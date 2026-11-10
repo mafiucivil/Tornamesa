@@ -1172,6 +1172,29 @@ CONFLICTOS_NUCLEO = [
 ]
 
 
+def plancha_E(D):
+    """Verificación del núcleo de la plancha base bajo el soporte del ojal E (pivotado.fabricacion.soporte_E.plancha_base): si algún caso no cumple o el
+    estado es PENDIENTE, las láminas de la plancha base y del soporte E quedan RETENIDAS (no es un choque geométrico: es una verificación pendiente)."""
+    if not D.get("pivotado") or D.get("modo") != 2:
+        return None
+    pb = ((D["pivotado"].get("fabricacion") or {}).get("soporte_E") or {}).get("plancha_base")
+    if not pb:
+        return None
+    casos = pb.get("casos") or []
+    malos = [c for c in casos if "no cumple" in str(c.get("estado", "")).lower() or (c.get("fu") or 0) > 1.0]
+    pend = str(pb.get("estado", "")).upper().startswith("PENDIENTE")
+    if not malos and not pend:
+        return None
+    peor = max(casos, key=lambda c: c.get("fu") or 0) if casos else {}
+    txt = (f"Plancha base de {fm(pb.get('t', 0), 0)} mm bajo el soporte del ojal E sin anclaje: "
+           + "; ".join(f"«{c['caso']}» flexión FU {fm(c.get('fu') or 0, 2)} ({c.get('estado', '')})" for c in casos)
+           + (f"; mesa vacía: retención {fm(pb['mesa_vacia']['W_mesa_kN'], 1)} kN < {fm(pb['mesa_vacia']['T_req_kN'], 1)} kN pedidos" if (pb.get("mesa_vacia") or {}).get("cumple") is False else "")
+           + f". Estado del núcleo: {pb.get('estado', '—')}. Solución en estudio (marco perimetral tipo KIET, nervios radiales o base rígida); "
+           + f"referencia: {pb.get('referencia', 'registro de normas')}.")
+    return dict(corto="plancha base bajo el soporte E: no verificada, solución en estudio (ver GEN-009)", texto=txt, tipo="verificacion",
+                piezas=["base_plancha", "cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa"], fu=peor.get("fu"))
+
+
 def conflictos_nucleo(m, inter):
     """Marca las interferencias que son conflictos declarados del núcleo (r['declarado'] = texto); devuelve la lista de textos activos."""
     g, P = m.g, m.g.P
@@ -1197,6 +1220,9 @@ def conflictos_nucleo(m, inter):
                 if r["declarado"] not in act:
                     act.append(r["declarado"])
                 ids.setdefault(cid, dict(corto=corto, texto=r["declarado"], piezas=sorted(set(A) | set(B))))
+    pv = plancha_E(m.D)
+    if pv:
+        ids["plancha_E"] = pv
     m.info["conflictos_nucleo"] = act
     m.info["conflictos_ids"] = ids      # solo los choques que existen en la geometría del JSON (las láminas se retienen por estos, no por texto fijo)
     return act

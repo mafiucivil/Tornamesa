@@ -73,7 +73,8 @@ class Pieza(Plano):
         rn = [cid for cid in self.h.retenida if ctx.conflicto(cid)]
         if rn:
             n0 = len(self.blocks)
-            self.note_block("RETENIDA — REQUIERE NÚCLEO (GEN-009)", [f"Lámina RETENIDA: {self.h.retenida[cid]} (conflicto geométrico declarado del núcleo, GEN-009). No fabricar hasta su corrección y aprobación." for cid in rn])
+            self.note_block("RETENIDA — REQUIERE NÚCLEO (GEN-009)", [f"Lámina RETENIDA: {self.h.retenida[cid]} (" + ("verificación del núcleo no cumplida" if ctx.conflicto(cid).get("tipo") == "verificacion" else "conflicto geométrico declarado del núcleo")
+                                                                     + ", GEN-009). No fabricar hasta su corrección y aprobación." for cid in rn])
             self.blocks.insert(0, self.blocks.pop(n0))
         self.note_block("NOTAS DE FABRICACIÓN", list(specific), numbered=True)
         if gd:

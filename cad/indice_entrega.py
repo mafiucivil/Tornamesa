@@ -22,18 +22,22 @@ NOTA_E = ("Soporte del ojal E (modo pivotado): la flexión local de la plancha b
 
 
 def nota_plancha(C):
-    """Nota de la plancha base bajo el soporte E: si el JSON del núcleo trae el resultado de la verificación (pivotado.fabricacion.soporte_E.plancha_base
-    o .verificacion_plancha) se informa ese estado; si no, la verificación figura como pendiente (NOTA_E). Solo para los casos del modo pivotado."""
+    """Nota de la plancha base bajo el soporte E (casos del modo pivotado): con la verificación del núcleo en el JSON (pivotado.fabricacion.soporte_E.plancha_base)
+    se informa su resultado por caso; sin ella, la verificación figura como en curso (NOTA_E)."""
     piv = [c for c in C if c.get("soporte_E") is not None]
     if not piv:
         return None
+    res = []
     for c in piv:
-        se = c["soporte_E"]
-        v = se.get("plancha_base") or se.get("verificacion_plancha")
-        if isinstance(v, dict) and v.get("estado"):
-            return (f"Soporte del ojal E: verificación de la flexión local de la plancha base según el núcleo — {v.get('estado')}"
-                    + (f" ({v['nota']})" if v.get("nota") else "") + ".")
-    return NOTA_E
+        pb = c["soporte_E"].get("plancha_base")
+        if not pb:
+            return NOTA_E
+        fu = max((k.get("fu") or 0) for k in pb.get("casos") or [{}])
+        res.append(f"{c['caso']} FU {fu:.2f}".replace(".", ","))
+    pb = piv[0]["soporte_E"]["plancha_base"]
+    return (f"Plancha base de {pb.get('t', '—')} mm bajo el soporte del ojal E (modo pivotado): según el núcleo NO cumple en flexión sin anclaje a la losa "
+            f"(peor caso por juego: {'; '.join(res)}); estado: {pb.get('estado', '—')}. Solución en estudio (marco perimetral tipo KIET, nervios radiales o base rígida). "
+            "En los juegos del modo pivotado BAS-001, BAS-012 y CON-007 quedan RETENIDAS con ese motivo; los juegos del modo guiado no se afectan.")
 
 
 def _csv(p):

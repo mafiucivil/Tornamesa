@@ -58,6 +58,10 @@ def brechas(ctx, rep):
         add("Diferencias de fórmula del patín", "La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza.", "Informativo (dentro de tolerancia).")
     for txt in (rep or {}).get("conflictos_nucleo", []):
         add("CONFLICTO GEOMÉTRICO DEL NÚCLEO (requiere núcleo)", txt, "A DECIDIR POR EL CALCULISTA: corregir la geometría en el núcleo; las láminas afectadas quedan RETENIDAS (no fabricar) hasta su corrección.")
+    pv = (ctx.m.info.get("conflictos_ids") or {}).get("plancha_E")
+    if pv:
+        add("REQUIERE NÚCLEO: plancha base bajo el soporte del ojal E (verificación no cumplida)", pv["texto"],
+            "A DECIDIR POR EL MANDANTE Y EL CALCULISTA: anclaje a la losa o rediseño de la base (en estudio). BAS-001, BAS-012 y CON-007 quedan RETENIDAS hasta la solución.")
     for tema, desc, dec in requiere_nucleo(ctx):
         add(tema, desc, dec)
     add("Cilindro comercial", f"Largo ojal–ojal L0 = {fm(P['L0'], 0)} mm y masa {fm(P['m_cyl'], 0)} kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo.", "Confirmar con el proveedor del cilindro.")
