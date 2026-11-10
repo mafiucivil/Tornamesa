@@ -1427,8 +1427,11 @@ def sheet_cajon_conj(ctx):
         # símbolos apilados sobre la zona libre de la plancha (arriba a la izquierda del soporte): no se cruzan con cotas ni globos
         juntas_ = [(jx("pared_X", "base"), q_xy("pared_X", 0.0, 0.9)), (jx("pared_Y", "base"), q_xy("pared_Y", 0.15, 1.0)), (jx("pared_Y", "pared_X"), (x1 - tw_, y0 + tw_)),
                    (jx("munon_Y", "pared_X"), (x1 - tw_, q_xy("munon_Y")[1])), (jx("munon_X", "pared_Y"), (q_xy("munon_X")[0], y0 + tw_)), (jx("munon_Y", "munon_X", "base"), q_xy("munon_X", 0.0, 1.0))]
-        for i_, (jid_, pt_) in enumerate(j_ for j_ in juntas_ if j_[0]):
-            c.h.weld(jid_, V.P((pt_[0], pt_[1], zt)), V.P((x0 - 125, y1 + 105 - i_ * 48, zt)), sh=1)
+        # orden de la pila = orden vertical de los puntos (las líneas de referencia no se cruzan); el codo en el extremo derecho de la línea de
+        # referencia (sh = −1: la flecha no atraviesa el propio símbolo) y la pila por encima de los globos del lado izquierdo
+        js_ = sorted((j_ for j_ in juntas_ if j_[0]), key=lambda j_: -j_[1][1])
+        for i_, (jid_, pt_) in enumerate(js_):
+            c.h.weld(jid_, V.P((pt_[0], pt_[1], zt)), V.P((x0 - 15, y1 + 150 - i_ * 48, zt)), sh=-1)
         c.cut_mark("planta", "A", (E[0], y0 - 50, zt), (E[0], y1 + 50, zt), 0)
     c.datum_in("planta", "surf", "B", at=[(B / 2, y1 + 100, tb), (B / 2, y0 - 60, tb)], d=(1, 0, 0))
     c.datum_in("planta", "surf", "C", at=[(x0 - 100, -B / 2, tb), (x1 - 160, -B / 2, tb)], d=(0, -1, 0))
