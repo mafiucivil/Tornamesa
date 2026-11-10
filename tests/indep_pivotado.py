@@ -27,15 +27,19 @@ if not shutil.which("node"):
 with tempfile.TemporaryDirectory() as td:
     f = pathlib.Path(td) / "p.json"; f.write_text(json.dumps({"drive_mode": 2}))
     D = json.loads(subprocess.run(["node", str(ROOT / "tools" / "export_design.js"), str(f)], capture_output=True, text=True, check=True, cwd=str(ROOT)).stdout)
+    # sin inserto (ins_on = 0): el modelo de la franja sin anclaje (§5c) se replica sobre esta exportación; por defecto la base lleva el inserto de esquina
+    f.write_text(json.dumps({"drive_mode": 2, "ins_on": 0}))
+    D0 = json.loads(subprocess.run(["node", str(ROOT / "tools" / "export_design.js"), str(f)], capture_output=True, text=True, check=True, cwd=str(ROOT)).stdout)
 PV, DV = D["pivotado"], D["derivados"]
 V = {v["nombre"]: v for v in D["verificaciones"]}
+V0 = {v["nombre"]: v for v in D0["verificaciones"]}
 fails = []
 def chk(name, mine, tool, tol=1e-3, absol=1e-6):
     ok = abs(mine - tool) <= tol * abs(tool) + absol
     print(f"{'OK ' if ok else 'XX '} {name:78s} indep {mine:13.4f}  núcleo {tool:13.4f}")
     if not ok: fails.append(name)
-def row(prefix):
-    for k, v in V.items():
+def row(prefix, VV_=None):
+    for k, v in (VV_ or V).items():
         if k.startswith(prefix): return v
     fails.append("falta la fila: " + prefix); print("XX  falta la fila:", prefix); return {"dem": float("nan"), "cap": float("nan")}
 
@@ -466,7 +470,7 @@ Mr = math.hypot(P["pv_muE"] * Pr * P["pv_dq"] / 2, P["m_cyl"] * 9.80665 * Lc_ / 
 chk("Vástago: P_r/P_c + 8/9·M_r/M_c", Pr / Pc + 8 / 9 * Mr / Mc, row("Vástago: flexocompresión")["dem"])
 est = [v for v in D["verificaciones"] if v["grp"] in ("Uña", "Articulaciones", "Soporte del ojal E", "Placas-leva") and v["fu"] is not None and v["estado"] not in ("info", "pend")]
 print(f"    FU máximo en las filas nuevas del modo 2: {max(v['fu'] for v in est):.3f} ({len(est)} filas)")
-GEO = ("Filete", "Pasadores de posición", "filete de refuerzo", "acceso exterior", "rincón para el filete", "garganta efectiva", "largo de la zapata", "distancia al borde", "enganche de la rosca", "capa templada", "deformación del ligamento", "separación mínima")              # criterios geométricos (FU ≤ 1), no de resistencia
+GEO = ("holgura vertical", "holgura en planta", "holgura a la mesa", "queda sobre el inserto", "Filete", "Pasadores de posición", "filete de refuerzo", "acceso exterior", "rincón para el filete", "garganta efectiva", "largo de la zapata", "distancia al borde", "enganche de la rosca", "capa templada", "deformación del ligamento", "separación mínima")              # criterios geométricos (FU ≤ 1), no de resistencia
 res = [v for v in est if not any(g in v["nombre"] for g in GEO)]
 print(f"    FU máximo de resistencia: {max(v['fu'] for v in res):.3f} ({len(res)} filas)")
 if max(v["fu"] for v in res) > 0.90: fails.append("FU > 0,90 en el modo 2"); print("XX  FU > 0,90")
@@ -507,7 +511,8 @@ print(f"    orejas–partes móviles: {dmov:.1f} mm (núcleo {row('Orejas de iza
 if min(dPE, dPS, dES, dEM, dmov) < 5: fails.append("interferencia entre elementos sobre la base"); print("XX  interferencia entre elementos sobre la base")
 if abs(dmov - row("Orejas de izaje libres de las partes móviles")["cap"]) > 0.02 * dmov: fails.append("holgura orejas–partes móviles difiere del núcleo"); print("XX  holgura orejas–partes móviles difiere")
 chk("Orejas de izaje–placas, soportes E y mesa: holgura mínima (mm)", min(dPE, dES, dEM), row("Orejas de izaje libres de las placas-guía")["cap"], tol=2e-3)   # el núcleo aproxima la mesa con un polígono de 144 lados
-print("== 5c. Plancha base bajo el soporte E: contacto unilateral sin anclaje (franja propia y FEA de Mindlin propia con contacto unilateral) ==")
+print("== 5c. Plancha base bajo el soporte E SIN inserto (ins_on = 0): contacto unilateral sin anclaje (franja propia y FEA de Mindlin propia con contacto unilateral) ==")
+row0 = lambda prefix: row(prefix, V0)
 # Método 1 (franja, réplica): soporte rígido; M = F·h, h = altura del eje sobre la plancha; losa solo a compresión; retención solo en la mesa (R ≤ D/2);
 # M_corte = M·(1 − a/s_H) si la mesa queda detrás del talón (s_H > a), si no M; b = w + a; σ = 6·M_corte/(b·t²); τ = 1,5·(M/a)/(b·t).
 hE = zc0E - P["t_base"]; tB = P["t_base"]; O_loc = (-sxE * E[0], syE * E[1])
@@ -521,22 +526,23 @@ def strip(F_, sgn):
         if best is None or s_ > best[0]: best = (s_, M_, a_, b_, u_, sH_)
     return best
 stE, stR = strip(Fs, -1), strip(Fret_, 1)
-chk("Plancha base: σ de la franja, empuje a calado (MPa)", stE[0], row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, empuje")["dem"], tol=3e-3)
-chk("Plancha base: σ de la franja, retorno (MPa)", stR[0], row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, retorno")["dem"], tol=3e-3)
-chk("Plancha base: τ = 1,5·(M/a)/(b·t), empuje (MPa)", 1.5 * stE[1] / stE[2] / (stE[3] * tB), row("Plancha base bajo el soporte del ojal E: corte")["dem"], tol=3e-3)
+chk("Plancha base: σ de la franja, empuje a calado (MPa)", stE[0], row0("Plancha base bajo el soporte del ojal E: flexión sin anclaje, empuje")["dem"], tol=3e-3)
+chk("Plancha base: σ de la franja, retorno (MPa)", stR[0], row0("Plancha base bajo el soporte del ojal E: flexión sin anclaje, retorno")["dem"], tol=3e-3)
+chk("Plancha base: τ = 1,5·(M/a)/(b·t), empuje (MPa)", 1.5 * stE[1] / stE[2] / (stE[3] * tB), row0("Plancha base bajo el soporte del ojal E: corte")["dem"], tol=3e-3)
 for nm_, st_ in (("empuje", stE), ("retorno", stR)):
-    if st_[0] <= Fy / Nd: fails.append("plancha base sin anclaje (" + nm_ + "): la franja debería exceder Fy/Nd"); print("XX  franja " + nm_)
-    if row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, " + nm_).get("estado") != "pend": fails.append("estado de la fila de la plancha (" + nm_ + ")")
+    # con 1,25·Fy/Nd y la base de 20 mm el retorno de la franja queda bajo 1 (FU ≈ 0,93); el empuje no cumple sin inserto
+    if nm_ == "empuje" and st_[0] <= 1.25 * Fy / Nd: fails.append("plancha base sin anclaje (" + nm_ + "): la franja debería exceder 1,25·Fy/Nd"); print("XX  franja " + nm_)
+    if row0("Plancha base bajo el soporte del ojal E: flexión sin anclaje, " + nm_).get("estado") != "pend": fails.append("estado de la fila de la plancha (" + nm_ + ")")
 # Mesa vacía (el calado no depende de la carga): retención disponible = peso propio de la parte que gira (mesa + disco rotatorio + medio pivote + bloques-uña;
 # masas de derivados.masas, verificadas por indep_tt300c.py) frente a la pedida por los n_cil soportes con el brazo más largo, n_cil·M/s_H.
 MS_ = DV["masas"]; Wmv = (MS_["disc"] + MS_["ssTop"] + 0.5 * MS_["pivot"] + MS_["dogs"]) * 9.80665 / 1e3; Tmv = P["n_cyl"] * stE[1] / stE[5] / 1e3
-MV_ = PV["fabricacion"]["soporte_E"]["plancha_base"]["mesa_vacia"]
+MV_ = D0["pivotado"]["fabricacion"]["soporte_E"]["plancha_base"]["mesa_vacia"]
 chk("Plancha base: peso propio de la mesa vacía que retiene (kN)", Wmv, MV_["W_mesa_kN"], tol=2e-3)
 chk("Plancha base: retención pedida por los soportes, n_cil·M/s_H (kN)", Tmv, MV_["T_req_kN"], tol=3e-3)
 if not (Tmv > Wmv and MV_["cumple"] is False): fails.append("mesa vacía: la retención debería faltar"); print("XX  mesa vacía")
 # Revisión con la base completa (docs/qa/plancha_base_soporte_E.md): con M₂ = −M₁ el par pasa de un soporte al otro por torsión de la base; fuerza de
 # esquina ≈ M/B y m_xy ≈ M/(2·B) (placa libre en torsión pura: τ = 6·m_xy/t², cota inferior frente a Fy/(Nd·√3))
-RV_ = PV["fabricacion"]["soporte_E"]["plancha_base"]["revision_base_completa"]
+RV_ = D0["pivotado"]["fabricacion"]["soporte_E"]["plancha_base"]["revision_base_completa"]
 chk("Plancha base, base completa: fuerza de esquina de la torsión M/B (kN)", stE[1] / P["B"] / 1e3, RV_["V_esquina_kN"])
 chk("Plancha base, base completa: τ de torsión 6·m_xy/t² (MPa)", 6 * stE[1] / (2 * P["B"]) / tB ** 2, RV_["tau_torsion_MPa"])
 if RV_["fu_torsion_cota_inferior"] <= 1: fails.append("torsión de la base: la cota inferior debería exceder 1"); print("XX  torsión de la base")

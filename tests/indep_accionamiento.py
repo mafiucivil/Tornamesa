@@ -592,11 +592,19 @@ table("Prueba 8 – Guía, bancada y pivote", ["Frente", "Propio", "Núcleo", "A
 # Método 2 (contraste): FEA propia de Mindlin de la base entera (malla 80) con las dos ménsulas rígidas, las bancadas como elementos de espesor
 # equivalente (misma rigidez a flexión de la sección compuesta con la ranura T; isótropo: sobrestima su torsión, de modo que la conclusión es conservadora
 # en el sentido de «no cumple»), contacto unilateral, peso propio y la mesa vacía en el anillo, o la huella de la mesa bilateral si está cargada.
-print("\n### Prueba 9 – Plancha base bajo la ménsula del ojal trasero (modo guiado)")
+print("\n### Prueba 9 – Plancha base bajo la ménsula del ojal trasero (modo guiado, SIN inserto: ins_on = 0)")
+# Desde el 10-11-2026 la base lleva el inserto de esquina (tests/indep_plancha_base_E.py); el modelo de la franja sin anclaje se replica con ins_on = 0.
+D9 = export({"ins_on": 0}); VER9 = {v["nombre"]: v for v in D9["verificaciones"]}
+def ver9(sub):
+    for k, v in VER9.items():
+        if sub in k:
+            return v
+    raise KeyError(sub)
+
 # Solo con la salida de tools/export_design.js (filas de verificación y veredicto; designDrive().guiado no va en ese JSON, que tiene que coincidir con
 # el de packages/web/planos_export.js): la geometría se rearma aquí y se compara con dem, fu y estado de las filas.
 try:
-    VR9 = {k_: ver("Plancha base bajo la ménsula del ojal trasero: " + k_) for k_ in ("modelo", "flexión sin anclaje, empuje", "flexión sin anclaje, retorno", "corte de la franja", "torsión de la base", "levantamiento")}
+    VR9 = {k_: ver9("Plancha base bajo la ménsula del ojal trasero: " + k_) for k_ in ("modelo", "flexión sin anclaje, empuje", "flexión sin anclaje, retorno", "corte de la franja", "torsión de la base", "levantamiento")}
 except KeyError:
     VR9 = None
     FIND.append(("N10", "importante", "Plancha base bajo la ménsula: el núcleo no tiene las filas del modo guiado", "—", "filas «Plancha base bajo la ménsula del ojal trasero»"))
@@ -613,11 +621,11 @@ if VR9 is not None:
         Mc_ = M_ * (1 - a_ / sH_) if sH_ > a_ else M_; b_ = w_ + a_
         return dict(M=M_, a=a_, w=w_, b=b_, sH=sH_, Mc=Mc_, sig=6 * Mc_ / (b_ * t9 * t9), tau=1.5 * (M_ / a_) / (b_ * t9), T=M_ / sH_ if sH_ > a_ else float("inf"))
     fe9, fr9 = franja9(F_st, -1.0), franja9(Fret9, 1.0)
-    comp("9", "Franja, empuje: σ (MPa)", fe9["sig"], ver("Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, empuje")["dem"])
-    comp("9", "Franja, retorno: σ (MPa)", fr9["sig"], ver("Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, retorno")["dem"])
-    comp("9", "Franja, corte τ (MPa)", fe9["tau"], ver("Plancha base bajo la ménsula del ojal trasero: corte de la franja")["dem"])
+    comp("9", "Franja, empuje: σ (MPa)", fe9["sig"], ver9("Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, empuje")["dem"])
+    comp("9", "Franja, retorno: σ (MPa)", fr9["sig"], ver9("Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, retorno")["dem"])
+    comp("9", "Franja, corte τ (MPa)", fe9["tau"], ver9("Plancha base bajo la ménsula del ojal trasero: corte de la franja")["dem"])
     tq9 = 6 * (fe9["M"] / (2 * B9)) / t9 ** 2
-    comp("9", "Torsión de la base (cota inferior) τ (MPa)", tq9, ver("Plancha base bajo la ménsula del ojal trasero: torsión de la base")["dem"])
+    comp("9", "Torsión de la base (cota inferior) τ (MPa)", tq9, ver9("Plancha base bajo la ménsula del ojal trasero: torsión de la base")["dem"])
     comp("9", "Momento por ménsula en el empuje M = F·h (kN·m)", fe9["M"] / 1e6, VR9["modelo"]["dem"])
     comp("9", "Momento por ménsula en el retorno M = F_ret·h (kN·m)", fr9["M"] / 1e6, VR9["modelo"]["cap"])
     Wm9 = (DV["masas"]["disc"] + DV["masas"]["ssTop"] + 0.5 * DV["masas"]["pivot"]) * g0      # mesa + disco rotatorio + medio pivote (las uñas van en los patines)
@@ -629,10 +637,10 @@ if VR9 is not None:
     if not (fr9["sH"] <= fr9["a"]):
         FIND.append(("N10", "importante", "Retorno: la mesa debería quedar delante del pie de la ménsula (sin retención detrás del talón)", s3(fr9["sH"]), s3(fr9["a"])))
     for nm9 in ("flexión sin anclaje, empuje", "flexión sin anclaje, retorno", "torsión de la base"):
-        v9 = ver("Plancha base bajo la ménsula del ojal trasero: " + nm9)
+        v9 = ver9("Plancha base bajo la ménsula del ojal trasero: " + nm9)
         if v9["estado"] != "pend" or not (v9["fu"] > 1):
             FIND.append(("N10", "importante", "Plancha base bajo la ménsula (" + nm9 + "): debería quedar «pend» con FU > 1 (sin anclaje)", f"{v9['estado']} FU {s3(v9['fu'])}", "pend, FU > 1"))
-    VD9 = D0["verdict"]; pc9 = sorted([v for v in D0["verificaciones"] if v["estado"] == "pend" and v["fu"] is not None and not (math.isfinite(v["fu"]) and v["fu"] <= 1)], key=lambda v: -v["fu"])
+    VD9 = D9["verdict"]; pc9 = sorted([v for v in D9["verificaciones"] if v["estado"] == "pend" and v["fu"] is not None and not (math.isfinite(v["fu"]) and v["fu"] <= 1)], key=lambda v: -v["fu"])
     comp("9", "Pendientes críticos: FU máximo", pc9[0]["fu"] if pc9 else 0.0, VD9["fuMaxPend"], tol=1e-9)
     if VD9["estado_global"] != ("NO CUMPLE / PENDIENTE DE DECISIÓN" if pc9 and VD9["gira"] and VD9["estructura"] else VD9["estado_global"]) or len(VD9["pendientes_criticos"]) != len(pc9):
         FIND.append(("N10", "importante", "Estado global del modo guiado con pendientes críticos", VD9["estado_global"], "NO CUMPLE / PENDIENTE DE DECISIÓN"))

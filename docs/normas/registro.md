@@ -4,6 +4,7 @@
 |---|---|---|---|
 | Cadena de empuje (pasadores, uña, articulaciones, mejillas) | Tensiones admisibles Fy/Nd; corte Fy/(Nd·√3); aplastamiento 1,25Fy/Nd; soldaduras 0,60FEXX/(1,20Nd) | ASME BTH-1, Categoría de diseño B (Nd = 3,0, §3-1.3), §3-2 y §3-3; corte §3-2.3.6 | Decisión del usuario 30-10-2026. Se aplica por analogía (no es dispositivo bajo el gancho). Verificación a la fuerza de calado (área × presión de alivio). La flexión con Fy/Nd es más conservadora que BTH-1 §3-2.3.4 (1,25Fy/Nd para barras macizas redondas/cuadradas y secciones rectangulares macizas respecto del eje menor); ver «Verificación de citas (10-11-2026)» |
 | Planchas de la mesa y de la base | σvm ≤ 0,6Fy (criterio del proyecto, más conservador que F11) | AISC 360-22 ASD; F11 da Mn = Mp = Fy·Z para barras rectangulares respecto de cualquier eje (≈ 1,5Fy·S), Ωb = 1,67, es decir ≈ 0,90Fy·S: no da 0,6Fy | Flexión local por FEA × k_malla 1,15 más membrana global axisimétrica |
+| Plancha base bajo los soportes del cilindro (base de 20 mm con inserto de esquina) | σ_vM ≤ 1,25·Fy/Nd (Nd 3,0) a más de 100 mm de la huella rígida del soporte; mesa cargada hasta el calado y mesa vacía en servicio; atasco con la mesa vacía excluido (limitación de uso) | ASME BTH-1-2020 §3-2.3.4 (eje menor; ecuación: verificar); §3-2.3.6 corte | Decisión del mandante 10-11-2026; modelo calibrado con la FEA del verificador («Plancha base: base de 20 mm con inserto de esquina») |
 | Corte en nervios | 0,6Fy·Aw·Cv1/Ω, Ω = 1,50 si h/t ≤ 2,24√(E/Fy) | AISC 360-22 G2.1(a), Ec. G2-1 | |
 | Soldaduras de la mesa | 0,60FEXX/Ω, Ω = 2,00, sin aumento direccional | AISC 360-22 J2.4 | |
 | Fluencia local de almas | q/t ≤ Fy/1,50 | AISC 360-22 J10.2 | Simplificación conservadora |
@@ -278,6 +279,8 @@ Espesores: paredes 25 → 30 mm. Masa por soporte 56,4 → 47,0 kg. La flexión 
 
 ## Plancha base bajo el soporte del ojal E (10-11-2026)
 
+> **Superada el 10-11-2026** por «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)». La verificación independiente mostró que la frase «ningún refuerzo local lo resuelve» es falsa: el inserto de esquina lo resuelve con la mesa cargada. Además, los FU de esta sección usan Fy/Nd (corresponde 1,25·Fy/Nd, BTH-1-2020 §3-2.3.4) e incluyen picos singulares. Se conserva como antecedente (modelo disponible con `ins_on = 0`).
+
 Cierre de la hipótesis del rediseño del soporte E (la flexión de la plancha base no se verificaba). **Resultado: la plancha de 18 mm apoyada en la losa sin anclaje NO puede tomar el momento del soporte; ningún refuerzo local lo resuelve.** Las filas quedan con su FU y estado «pend» (no «fail») hasta la decisión del mandante, para no cambiar el veredicto del diseño por defecto sin esa decisión.
 
 **Datos del proyecto.** Base «apoyada en losa o mats» (HANDOFF TT300-B, §9); no hay anclaje, pernos de fundación ni datos de la losa (f'c, espesor, armadura, bordes). Se declara: contacto unilateral (la losa solo comprime), losa rígida, sin anclaje, peso propio de la plancha despreciable (ρ·g·t = 0,0014 MPa).
@@ -355,6 +358,8 @@ Consecuencias no verificadas: las paredes traseras del soporte E pasan a ser par
 
 ## Plancha base bajo la ménsula del ojal trasero (modo guiado, 10-11-2026)
 
+> **Superada el 10-11-2026** por «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»: inserto bajo cada ménsula, dimensionado igual. El estado «NO CUMPLE / PENDIENTE» de esta sección vale solo sin inserto (`ins_on = 0`).
+
 Pregunta: ¿el modo guiado (drive_mode = 1) tiene el mismo problema que el soporte E del modo pivotado? Estudio completo en `docs/qa/plancha_base_modo_guiado.md`; scripts y salidas en `docs/qa/plancha_base_modo_guiado/`.
 
 **Mecánica.**
@@ -385,6 +390,64 @@ Pregunta: ¿el modo guiado (drive_mode = 1) tiene el mismo problema que el sopor
 Golden del modo guiado: agrega solo las cuatro filas con FU; no cambia ningún valor.
 
 **Observación fuera del alcance.** Por defecto, el cuerpo del cilindro (Ø 130, eje a 105 mm) pasa sobre la prolongación de la bancada (cara superior a 40 mm) con 0 mm de holgura, y ninguna fila lo verifica. No se cambió.
+
+## Plancha base: base de 20 mm con inserto de esquina (10-11-2026)
+
+Decisión del mandante del 10-11-2026, tomada tras la verificación independiente (`tests/indep_plancha_base_E.py`). Estudio completo en `docs/qa/plancha_base_inserto.md`; scripts y salidas en `docs/qa/plancha_base_inserto/`.
+
+**Qué corrige la verificación independiente.**
+- La estática del núcleo era correcta: M = F·h, con h = 105 mm por defecto y 160 mm con la interfaz B.
+- Los FU 8,37, 13,8, 21 y 33 de las secciones anteriores estaban inflados por tres causas:
+  - picos singulares en la esquina de la huella rígida;
+  - F_b = Fy/Nd en lugar de 1,25·Fy/Nd;
+  - la afirmación de que «ningún refuerzo local resuelve», que es **falsa**: el inserto de esquina tipo KIET lo resuelve con la mesa cargada.
+
+**Decisión 1. Base de 20 mm en toda la planta más un inserto de esquina bajo cada soporte del cilindro.**
+- Modo 2: un inserto bajo cada soporte del ojal E. Modo 1: uno bajo cada una de las `n_br` ménsulas del ojal trasero.
+- El inserto va al ras por debajo con la base y con la cara superior más alta.
+- La interfaz B dimensiona su propio inserto: la geometría sale del cálculo.
+
+**Decisión 2. El atasco a presión de alivio con la mesa vacía queda EXCLUIDO como caso de diseño.** Es una limitación de uso:
+
+> No operar el accionamiento a presión de alivio con la mesa sin carga; ante un atasco sin carga, detener y liberar.
+
+Se exporta en `verdict.limitaciones_uso[]` y en `inserto.limitaciones_uso[]`, y figura en una fila informativa del núcleo. La memoria y los planos tienen que citarla. Con la mesa vacía se verifica la fuerza de servicio.
+
+| Verificación | Criterio | Referencia | Ecuación / nota |
+|---|---|---|---|
+| Flexión de la plancha con el inserto | σ_vM ≤ F_b = 1,25·Fy/Nd, Nd = 3,0; FU objetivo interno ≤ 0,90 (advertencia hasta 1,0) | ASME BTH-1-2020 §3-2.3.4, flexión respecto del eje menor de barras y secciones rectangulares macizas (registro normativo 7030ee3; **número de ecuación: verificar**) | σ = κ·M·S(t_base; t_inserto), M = F·h. S = σ/M se tabula desde la FEA de Mindlin de la base completa del verificador: mesa cargada como cuerpo rígido con contacto unilateral, losa unilateral, dos soportes rígidos con M₂ = −M₁, inserto con su transición, malla de 40 mm. **σ a más de 100 mm de la huella rígida del soporte** (criterio de la verificación independiente, fuera de la singularidad de la esquina rígida). κ = 1,03. Retorno: S_ret propio (talón en la esquina libre). Mesa vacía: factor 1,8. Rebaje local: φ = 0,5 |
+| Casos | Mesa cargada: nominal, diseño y calado (A·p_alivio = 445 kN a 700 bar); atasco del retorno con la mesa cargada (A_anular·p_ret); mesa vacía en servicio, F = 1,25·máx(F_dis; F_borde; F_cont)·W_d/N | Criterio del proyecto (decisión del mandante 10-11-2026) | El factor 1,25 es el FS de giro del proyecto (F_calado/F_diseño ≥ 1,25), usado como margen de arranque (parámetro `ins_fsv`). Caso térmico: no aplica |
+| Corte bajo el soporte | τ = 1,5·(M/a)/(b·t_inserto) ≤ Fy/(Nd·√3) | ASME BTH-1-2020 §3-2.3.6 | Cota superior V = M/a |
+| CJP inserto–base (J-I1) | Metal base de la parte más delgada: FU = σ/(1,25·Fy/Nd) con la tensión máxima de la plancha | AISC 360-22 §J2.4, Tabla J2.5; AWS D1.1/D1.1M:2020 Figura 5.1 (junta precalificada a tope en doble V, B-U3: **verificar designación**) | Se suelda por arriba; se voltea la base, se resana y se suelda por abajo; la cara inferior se amola al ras. UT 100 % |
+| Transición de espesor | 1:2,5 en la cara superior del inserto, a lo largo de los bordes interiores | AWS D1.1/D1.1M:2020, cláusula 4 (transición de juntas a tope entre partes de distinto espesor; **verificar el número de cláusula y de figura, y si es exigible a una estructura cargada estáticamente**) | Se aplica porque la tensión de flexión en la junta supera 1/3 de la admisible (conservador). Ancho 2,5·Δ |
+| Geometría | Triángulo de la esquina con la hipotenusa a D/2 + gap del centro, menos las muescas rectangulares que dejan libres (con `clr`) las piezas que apoyan en la base: placas-guía y trayectoria del cubo y pasador Q (modo 2) o banda del accionamiento guiado (modo 1). Rebaje local bajo las piezas móviles que no dejan 5 mm | Geometría | Variantes calibradas en orden de preferencia: gap 30 / clr 10 y gap 10 / clr 8 (modo 2); gap 10 / clr 8 (modo 1) |
+| Holguras | En planta a placas-guía, cubo de Q o banda ≥ 5 mm; vertical a las partes móviles ≥ 5 mm (sobre la transición la cara está a t − d/2,5); hipotenusa a ≥ 5 mm de la mesa; tapa inferior del ojal E o suplemento de la ménsula sobre el inserto | Geometría | |
+| Retención con la mesa vacía en servicio | n_cil·M/s_H ≤ W_mesa | Equilibrio | FU 0,014 (por defecto) |
+| Espesor | El menor comercial con FU ≤ 0,90 y las holguras; si ninguno llega a 0,90, el primero con FU ≤ 1 | Criterio del proyecto | Lista 25…80, 90, 100, 110, 120 mm |
+
+Resultados (FU con la mesa cargada a calado, que gobierna):
+
+| Modelo | Inserto | Catetos | Rebaje | FU calado | Holgura vertical | Masa añadida |
+|---|---|---|---|---|---|---|
+| Por defecto (pivotado, h = 105) | 60 mm (gap 30) | 554 / 554 mm | 5 mm bajo el barrido del cuerpo del cilindro | 0,889 | 5,0 mm (cuerpo del cilindro) | 2 × 83,0 kg |
+| Interfaz B (h = 160) | 90 mm (gap 10) | 556 / 556 mm | no | **0,985 (advertencia)** | 25 mm | 2 × 138,9 kg |
+| Interfaces A y C (h = 135) | 90 mm (gap 30) | 554 / 554 mm | 5 mm | 0,882 | 5,0 mm | 2 × 130,6 kg |
+| Guiado (h = 105) | 50 mm (gap 10) | 589 / 1.132 mm | no | 0,821 | 10 mm | 4 × 110,6 kg |
+| Guiado B (h = 160) | 65 mm (gap 10) | 589 / 1.132 mm | no | 0,893 | 50 mm | 4 × 156,6 kg |
+
+**Interfaz B.** La plancha de 20 mm bajo el borde de la mesa satura en FU ≈ 0,98 con cualquier espesor del inserto. Cumple el límite de 1,0, pero no el objetivo interno de 0,90. Queda como advertencia, **pendiente de aceptación del mandante**, igual que la uña (FU 0,907). La alternativa es una base mayor solo para la variante B.
+
+**Implementado en el núcleo.**
+- `cornerInsert` / `insertRows` / `insertExport`.
+- Filas «… inserto de t mm sobre la base de 20 mm, flexión con la mesa cargada / vacía …», corte, CJP, transición, holguras, asiento, retención con la mesa vacía y la limitación de uso.
+- Exportación en `pivotado.fabricacion.soporte_E.inserto` y `levaGuiada.fabricacion.inserto`: polígonos de cada esquina, espesor pleno, rebaje, juntas con tipo, tamaño y verificación, secuencia, masa, casos, holguras y candidatos.
+- Las paredes del soporte E arrancan en la cara del inserto.
+- La masa de los insertos va en `R.m.brackets` (con el soporte, para la lista de materiales); `R.m.insertos` es informativo.
+- El marco se interrumpe a lo largo de los catetos.
+- `verdict.limitaciones_uso`.
+- Con `ins_on = 0` vuelve el modelo de la franja sin anclaje (pendiente), ahora con 1,25·Fy/Nd.
+
+**Verificador.** `tests/indep_plancha_base_E.py`: §3b en modo rápido (entra a `npm test`) y §4 con la FEA completa de los cuatro modelos y cinco casos. Exige FU de la FEA ≤ 1 y no más del 2 % sobre el núcleo.
 
 ## Elementos sobre la base: holguras (10-11-2026)
 

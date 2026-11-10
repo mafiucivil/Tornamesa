@@ -306,10 +306,15 @@ def evaluar(label, D, detalle=False):
     out = {}
     # ---- (c) masas ----
     mb, md, mp_, mr, mc = m_base(PP), m_disc(PP), m_pivot(PP), m_rim(PP), PP["n_cyl"] * PP["m_cyl"]
+    # inserto de esquina bajo las ménsulas (decisión del mandante 10-11-2026; geometría exportada): el marco se interrumpe a lo largo de los dos catetos de
+    # cada inserto (+50 mm); la masa del inserto y el acortamiento de mejillas y suplemento van dentro de «brackets» (del núcleo)
+    INS = (D.get("levaGuiada") or {}).get("fabricacion", {}).get("inserto") if D.get("levaGuiada") else None
+    if INS and INS.get("estado") == "cumple":
+        mr -= INS["n"] * RHO * PP["rim_h"] * PP["rim_t"] * sum(min(PP["B"], L_ + 50) for L_ in INS["catetos"])
     c("m.base (plancha − taladro + collar + 4 orejas)", mb, M["base"])
     c("m.disc (mesa, con rebaje del cubo)", md, M["disc"])
     c("m.pivote", mp_, M["pivot"]); c("m.rim", mr, M["rim"]); c("m.cilindros", mc, M["cyl"])
-    resto = M["brackets"] + M["dogs"] + M["shoes"] + M["beds"] + M.get("cam", 0.0)  # componentes fuera del alcance (se toman del núcleo; cam = leva de reenganche)
+    resto = M["brackets"] + M["dogs"] + M["shoes"] + M["beds"] + M.get("cam", 0.0)  # componentes fuera del alcance (se toman del núcleo; cam = leva de reenganche; brackets incluye los insertos de esquina)
     mtot = md + mb + mp_ + mr + mc + resto
     c("m.total (propias + ménsulas/uñas/patines/bancadas del núcleo)", mtot, M["total"])
     suma = sum(M.get(k, 0.0) for k in ("disc", "base", "rim", "brackets", "dogs", "shoes", "beds", "cam", "pivot", "cyl"))
@@ -338,7 +343,16 @@ def evaluar(label, D, detalle=False):
     ear.append(("Oreja: placa en la base: corte", tau_pl, cap_v, True))
     ear.append(("Oreja: extensión a", 1.33 * be, R - d / 2, False))                  # AISC D5.2: a ≥ 1,33·b_e (extremo semicircular centrado: a = R − d/2)
     ear.append(("Oreja: ancho de la placa", 2 * be + d, 2 * R, False))               # AISC D5.2: ancho en el agujero ≥ 2·b_e + d
-    t_thick, t_thin = max(t, PP["t_base"]), min(t, PP["t_base"])
+    # orejas de las diagonales: si su centro cae dentro de un inserto de esquina exportado, se sueldan sobre el inserto (parte más gruesa = t_inserto)
+    yl_ = PP["B"] / 2 - PP["c_lug"]; cen_ = [(sx_ * PP["x_lug"], sy_ * yl_) for sx_ in (1, -1) for sy_ in (1, -1)]
+    def inside_(pl, q):
+        c_ = False
+        for i_ in range(len(pl)):
+            a_, b_ = pl[i_], pl[i_ - 1]
+            if (a_[1] > q[1]) != (b_[1] > q[1]) and q[0] < (b_[0] - a_[0]) * (q[1] - a_[1]) / (b_[1] - a_[1]) + a_[0]: c_ = not c_
+        return c_
+    t_seat = INS["t"] if INS and INS.get("estado") == "cumple" and any(inside_(pl, q) for pl in INS["esquinas"] for q in cen_) else PP["t_base"]
+    t_thick, t_thin = max(t, t_seat), min(t, t_seat)
     ear.append(("Oreja: filete mínimo", min(wmin_aws(t_thick), t_thin), we, False))   # AWS D1.1 Tabla 5.8 (parte más gruesa), sin exceder la más delgada
     ear.append(("Oreja: filete máximo", we, wmax_aisc(t), False))                    # AISC 360-22 J2.2b
     for nm, dem, cap, banda in ear:

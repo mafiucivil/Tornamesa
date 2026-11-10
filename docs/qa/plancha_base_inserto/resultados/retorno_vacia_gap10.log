@@ -1,0 +1,8 @@
+ret t 55.0 F 64.89 M 6.813 pico 87.7 lejos 87.65 base 87.65 ins 69.94 en (660, -740, np.float64(20.0)) w 3.929 ok
+ret t 80.0 F 64.89 M 6.813 pico 84.1 lejos 84.11 base 84.11 ins 69.56 en (660, -740, np.float64(20.0)) w 3.369 ok
+vac t 55.0 F 3.00 M 0.315 pico 0.7 lejos 0.21 base 0.19 ins 0.21 en (-1260, 740, np.float64(26.56826685170258)) w 0.002 ok
+vac t 55.0 F 10.00 M 1.050 pico 4.2 lejos 2.28 base 2.28 ins 1.69 en (1260, -700, np.float64(20.0)) w 0.049 ok
+vac t 55.0 F 30.00 M 3.150 pico 16.2 lejos 10.38 base 10.38 ins 10.37 en (1140, -700, np.float64(20.0)) w 0.490 ok
+vac t 80.0 F 3.00 M 0.315 pico 0.4 lejos 0.13 base 0.09 ins 0.13 en (-1260, 740, np.float64(26.56826685170258)) w 0.001 ok
+vac t 80.0 F 10.00 M 1.050 pico 1.9 lejos 1.48 base 1.48 ins 1.09 en (1260, -700, np.float64(20.0)) w 0.024 ok
+vac t 80.0 F 30.00 M 3.150 pico 9.8 lejos 9.78 base 9.78 ins 9.69 en (780, -620, np.float64(20.0)) w 0.349 ok
