@@ -158,7 +158,12 @@ LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_
 # el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
 VAR_CODIGOS = {
     "base_plancha": [(("BASE-G", "AF2-G", "W-G"), "lisa (guiado)", 1), (("A-G", "B-G", "C1-G", "C2-G", "C3-G"), "roscas de interfaz (guiado)", 1),
-                     (("BASE", "AF2", "W"), "roscas de placas-leva", 1), (("A", "B", "C1", "C2", "C3"), "placas-leva e interfaz", 1)],
+                     (("BASE", "AF2", "W"), "roscas de placas-leva", 1), (("A", "B"), "placas-leva e interfaz", 1),
+                     # C1…C3: la placa-guía de C tiene otro canto (cinemática con la δ de C) y sus roscas y pasadores quedan en otras posiciones
+                     (("C1", "C2", "C3"), "placas-leva de C e interfaz", 1)],
+    # placa-guía: el canto sale de la cinemática del núcleo, que cambia con la altura de la interfaz (δ): C1…C3 tienen su propia geometría
+    "placa_leva": [(("BASE", "A", "AF2", "B"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1)],
+    "placa_leva_h": [(("BASE", "A", "AF2", "B"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1)],
     "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
     "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1)],
     "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
