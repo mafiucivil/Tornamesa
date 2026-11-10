@@ -1824,3 +1824,49 @@ test("Soporte E · plancha base de 18 mm bajo el momento del soporte: contacto u
   assert.ok(mv.T_req_kN > mv.W_mesa_kN && mv.cumple === false, "mesa vacía: no retiene");
   assert.ok(/mesa vacía/.test(rL.formula), "la fila del levantamiento declara el caso de la mesa vacía");
 });
+
+test("Soporte E · plancha base: revisión con la base completa (dos soportes, M₂ = −M₁) declarada en la fila del levantamiento y en la exportación", () => {
+  // docs/qa/plancha_base_soporte_E.md: con los dos cilindros F₂ = −F₁ y M₂ = −M₁, la base no vuelca como cuerpo libre; el par pasa de un soporte al
+  // otro por torsión de la base (fuerzas de esquina ≈ M/B en las esquinas libres), que la plancha de 18 mm no tiene. La retención n_cil·M/s_H de
+  // mesa_vacia queda como cota del modelo de un soporte; las filas y sus FU no cambian.
+  const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), R = A.R, X = TT.designDrive(P, R).pivotado.fabricacion.soporte_E.plancha_base;
+  const rL = A.checks.find((c) => /^Plancha base bajo el soporte del ojal E: levantamiento/.test(c.name));
+  assert.ok(/docs\/qa\/plancha_base_soporte_E\.md/.test(rL.formula) && /M₂ = −M₁/.test(rL.formula) && /torsión/.test(rL.formula), "la fila remite a la revisión");
+  const rv = X.revision_base_completa;
+  assert.ok(rv && rv.estudio === "docs/qa/plancha_base_soporte_E.md" && /M₂ = −M₁/.test(rv.modelo) && /torsión/.test(rv.modelo), "exportación de la revisión");
+  const M = R.Fstall * (R.sup.hU + R.sup.hL) / 2 / 1e3;   // kN·m
+  near(rv.M_kNm, M, 1e-9, "M = F·h por soporte"); near(rv.V_esquina_kN, M / (P.B / 1e3), 1e-9, "fuerza de esquina de la torsión ≈ M/B");
+  assert.ok(/paralelo/.test(rv.un_cilindro) && /mesa vacía/.test(rv.mesa_vacia) && Array.isArray(rv.opciones) && rv.opciones.length >= 4, "un solo cilindro, mesa vacía y opciones");
+  assert.ok(/NO/.test(rv.conclusion) && /anclaje/.test(rv.conclusion), "conclusión: no cumple sin anclaje o base rígida");
+});
+
+test("Veredicto · pendientes críticos visibles: las filas «pend» con FU > 1 entran a verdict.pendientes_criticos y al estado global (no se excluyen en silencio)", () => {
+  // docs/qa/plancha_base_soporte_E.md §4: las filas con estado «pend» y FU > 1 (p. ej. la plancha base bajo el soporte E sin anclaje) no entran a
+  // verdict.estructura (resume las verificaciones resueltas; el generador de planos la usa) ni a fuEstOf/fuTermOf, pero el estado global no puede
+  // decir «cumple»: queda «NO CUMPLE / PENDIENTE DE DECISIÓN» con la lista de las filas, su FU, norma y registro.
+  const A = TT.analyze(TT.defaults(), { noFEA: true }), v = A.verdict;
+  const crit = A.checks.filter((c) => c.st === "pend" && !c.fuera && c.kind !== "info" && c.fu != null && !(isFinite(c.fu) && c.fu <= 1));
+  assert.ok(crit.length >= 2 && crit.every((c) => /^Plancha base bajo el soporte del ojal E/.test(c.name)), "la plancha base sin anclaje (empuje y retorno)");
+  assert.ok(Array.isArray(v.pendientes_criticos), "campo pendientes_criticos[]");
+  assert.equal(v.pendientes_criticos.length, crit.length);
+  crit.forEach((c) => assert.ok(v.pendientes_criticos.some((p) => p.nombre === c.name && p.fu === c.fu && p.grp === c.grp && p.ref === c.ref && p.sys === c.sys), "fila " + c.name));
+  assert.ok(v.pendientes_criticos.every((p, i, a) => i === 0 || a[i - 1].fu >= p.fu), "ordenadas por FU decreciente");
+  near(v.fuMaxPend, Math.max(...crit.map((c) => c.fu)), 1e-12, "FU máximo de los pendientes críticos");
+  assert.equal(v.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");
+  assert.ok(v.gira && v.estructura, "verdict.estructura sigue resumiendo las verificaciones resueltas (no cambia su significado)");
+  // sin pendientes críticos el estado global sigue al veredicto (modo guiado por defecto: gira y cumple)
+  const G = TT.analyze(TG(), { noFEA: true });
+  assert.equal(G.verdict.pendientes_criticos.length, 0); assert.equal(G.verdict.fuMaxPend, 0);
+  assert.equal(G.verdict.estado_global, "CUMPLE");
+  // un incumplimiento resuelto manda sobre el pendiente (y los pendientes siguen listados)
+  const X = TT.analyze(Object.assign(TT.defaults(), { pv_tbox: 12 }), { noFEA: true });   // paredes del soporte E de 12 mm: no cumplen
+  assert.ok(!X.verdict.estructura && X.verdict.estado_global === "NO CUMPLE" && X.verdict.pendientes_criticos.length >= 2, "NO CUMPLE con pendientes listados");
+  // escenario térmico: cada fila de la tabla por temperatura lleva los pendientes críticos y el estado global (fuEstOf los excluye del FU gobernante)
+  const th = TT.thermal(TT.defaults(), { T: [20], alts: ["base"] }), b = th.alternativas[0].byT[0];
+  assert.ok(Array.isArray(b.pendientes_criticos) && b.pendientes_criticos.length >= 2 && b.pendientes_criticos.every((p) => p.fu > 1 && p.nombre && p.grp && p.ref), "byT.pendientes_criticos");
+  assert.equal(b.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");
+  assert.ok(b.fuEst < b.pendientes_criticos[0].fu, "el FU gobernante del escenario excluye la fila pendiente, que queda visible aparte");
+  // con term_alcance = 1 el soporte E (accionamiento) queda fuera del alcance térmico: la decisión pendiente se lista igual, marcada
+  assert.ok(b.pendientes_criticos.every((p) => p.fuera_alcance_termico === true), "marcadas fuera del alcance térmico");
+  assert.ok(v.pendientes_criticos.every((p) => !("fuera_alcance_termico" in p)), "sin escenario térmico no hay marca");
+});

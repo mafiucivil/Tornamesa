@@ -202,7 +202,7 @@ Pedido del mandante 07-11-2026 (Tarea 2; drive_mode = 2; el valor por defecto si
 | Pasador Q | M = √[(F/2·(t/2 + g + b/4))² + (N_leva·l_Q)²] ≤ Fy/Nd·πd³/32; corte doble | ASME BTH-1 §3-3.3 | l_Q = horquilla inferior → mitad del espesor de la placa-leva |
 | Ojal trasero E | pasador: flexión F/2·(t/2 + g + b/4), corte doble; tapas: aplastamiento (F/2)/(d·t) ≤ 1,25Fy/Nd, desgarro (F/2)/(2·t·a) ≤ Fy/(Nd√3) | ASME BTH-1 §3-3.3 | |
 | Soporte del ojal E | Ver «Soporte del ojal E: cajón abierto (10-11-2026)» (reemplaza el cajón en U con ventana) | ASME BTH-1 §3-2; AISC 360-22 §J2; AWS D1.1/D1.1M:2020 | Cajón centrado en E, abierto hacia la mesa en todo el barrido del cilindro |
-| Plancha base bajo el soporte E | Ver «Plancha base bajo el soporte del ojal E (10-11-2026)» | ASME BTH-1 §3-2.3, §3-2.2 | Sin anclaje NO cumple (filas «pend»: decisión de anclaje del mandante) |
+| Plancha base bajo el soporte E | Ver «Plancha base bajo el soporte del ojal E (10-11-2026)» y su revisión con la base completa | ASME BTH-1 §3-2.3, §3-2.2 | Sin anclaje NO cumple (filas «pend»: decisión del mandante; visibles en `verdict.estado_global` = «NO CUMPLE / PENDIENTE DE DECISIÓN») |
 | Placa-guía: contacto | familia 1: Hertz p₀ ≤ 1,67Fy_sup con el radio real del canto en cada contacto (1/R_ef = 1/r_Q ± 1/R_c), capa templada ≥ 2·0,786·b; familias 2–4: p = T_dis/(l·t) ≤ p_adm, PV ≤ PV_adm (2 y 3), aplastamiento a calado ≤ 1,25·Fy_rev/Nd (3 y 4), respaldo de acero (2 y 3), zapata l ≤ 3·d_Q | Hertz; catálogo de cada material (opciones A, B, C de la interfaz); ASME BTH-1 §3-3.3 | Familia 2 (UHMW) no es practicable: la zapata que pide PV pasa de 3·d_Q. Familias 2–4 sobre el canto curvo: la forma de la cara de la zapata queda PENDIENTE (fila «pend») |
 | Placa-guía: ligamento y tornillos | Ver «Placa-guía curva (09-11-2026)» | ASME BTH-1 §3-2; AISC 360-22 §J3 | 42CrMo4+QT (Fy 750, Fu 900); ISO 10642 M16 8.8 roscados en la base |
 | Pandeo del cilindro | F_calado ≤ Pcr/3 con el vástago a L0 + carrera | Criterio conservador frente a ISO/TS 13725 | Dato del proveedor (la geometría del tubo no está en el núcleo) |
@@ -310,6 +310,35 @@ Aun con la capacidad plástica (m_p = Fy·t²/4) y sin factor de diseño, la fra
 1. Refuerzo local (cartelas hacia atrás, plancha de refuerzo bajo el soporte, aumento local de espesor): no resuelve. Lo que falta es la retención del talón; un refuerzo bajo el soporte o hacia atrás no la crea, y llevar el momento hasta la mesa pide una sección del orden de 50–60 mm de espesor (o nervios) a lo largo de 0,3–0,5 m entre el soporte y la mesa, justo donde barre el cilindro (el cuerpo pasa a 40 mm sobre la plancha por defecto), van las placas-guía y está la oreja de izaje de la diagonal.
 2. Anclaje a la losa (mínimo en masa): pernos en bloques soldados al extremo de las paredes traseras prolongadas (fuera del barrido). Orden de magnitud con el pie en el eje de la pared opuesta: T ≈ M/0,38 m ≈ 120 kN por defecto y ≈ 185 kN con B en el empuje; ≈ 20–30 kN en el retorno. Consecuencias que hay que verificar antes de adoptarlo: (a) el cuerpo del soporte pasa a llevar ≈ 0,7·M en flexión vertical hasta el perno (paredes con las tapas como alas, estimación gruesa sin descontar el agujero del pasador: FU ≈ 0,8 por defecto y ≈ 1,0 con B; hay que reforzarlo); (b) la losa (arrancamiento, cono, bordes) la verifican terceros con f'c y espesor, datos que hoy no existen; (c) la tornamesa deja de poder apoyarse en mats.
 3. Base rígida (sin anclaje): plancha de ≥ 52–64 mm o emparrillado bajo la base entre los soportes y la mesa; sube el eje y la masa (≈ +1,7 t con 52 mm y ≈ +2,4 t con 64 mm en toda la base).
+
+### Revisión con la base completa: dos soportes (10-11-2026)
+
+Estudio completo en `docs/qa/plancha_base_soporte_E.md`; scripts y salidas en `docs/qa/plancha_base_soporte_E/`.
+
+**Modelo.** Los dos cilindros van en ojales diagonalmente opuestos, alimentados en paralelo con un alivio común, sin divisor de caudal ni válvulas por cilindro en el núcleo. F₂ = −F₁ y M₂ = −M₁: la base no vuelca como cuerpo libre. El par de un soporte llega al otro solo rodeando la mesa, y el vector momento, casi paralelo a un borde, se traslada en las dos direcciones del plano: es **torsión de la base**, con fuerzas de esquina ≈ M/B (las esquinas libres suben) y m_xy ≈ M/(2·B). Por defecto, V = 18,3 kN y τ = 6·m_xy/t² = 169 MPa en 18 mm (FU 2,55 frente a Fy/(Nd·√3)); con B, 27,8 kN y FU 3,9. Es una cota inferior: placa libre, sin peso ni contacto. Un calado con un solo cilindro es posible si el otro no tiene reacción (bloque-uña sin tomar o émbolo a fin de carrera).
+
+**FEA de la base completa.** Mindlin Q4, los dos soportes rígidos, contacto unilateral en todos los nudos, peso propio de la plancha y mesa vacía en R_i…R_o, o la huella de la mesa bilateral si está cargada.
+
+| Caso (malla 40) | Por defecto | Interfaz B |
+|---|---|---|
+| Mesa cargada, uno o dos cilindros | FU 13,8; levantamiento 20 mm junto al talón | FU 21,1; 31 mm |
+| Mesa vacía, dos cilindros | FU 21 junto al soporte y 7,4 lejos; queda apoyada en los dos pies (279 mm lineal) | FU 33 y 11,5 (462 mm) |
+| Mesa vacía, un cilindro | Sin equilibrio sin anclaje | Ídem |
+| Retorno, mesa vacía | FU 3,2; la esquina del soporte sube 34 mm | FU 4,9; 58 mm |
+
+Con la mesa cargada, la FEA coincide con la de d94d7c4 (13,9). La retención `mesa_vacia` (n_cil·M/s_H) queda como cota del modelo de un soporte, porque los pedidos de los dos soportes no se suman. La conclusión no cambia: NO cumple sin anclaje.
+
+**Opciones** (malla 80; detalle en el estudio):
+
+- **C, marco perimetral abierto continuo con cartelas.** No da rigidez a torsión: con 300×25 (603 kg) la plancha queda en 1,6 y el marco en 2,1, con 104 mm de levantamiento.
+- **C, cajón cerrado de 70 mm de ancho.** Es lo que cabe entre el borde y el barrido. Con 70 × 250, t 16 (733 kg) cumple con la mesa vacía por defecto (0,92; 10 mm), pero no con la mesa cargada (1,40) ni con B (1,31).
+- **D, nervios diagonales.** No dan torsión ni crean retención: con la mesa vacía, 7,6.
+- **B, plancha de 64 mm.** Con +2,4 t queda en el límite por defecto (1,03; 4 mm) y no cumple con B (1,66).
+- **A, anclaje.** A1, con 2 pernos por soporte, pide 116 kN por perno (177 con B). A2, con el marco 200×20 y 1 perno por esquina libre, pide 48 kN (75 con B), con el marco a redimensionar. Los pernos se diseñan con datos de la losa que no existen.
+
+**Decisión.** No hay una solución C o D de < 600 kg sin interferencias, de modo que no se implementó ninguna geometría. Decide el mandante: anclaje (A2 es el de menor fuerza), base rígida o restricción del calado con la mesa vacía, por ejemplo con un alivio reducido sin carga.
+
+**Estado global.** `analyze()` exporta `verdict.pendientes_criticos[]` (filas «pend» con FU > 1, con su referencia), `verdict.fuMaxPend` y `verdict.estado_global` («NO CUMPLE» / «NO CUMPLE / PENDIENTE DE DECISIÓN» / «CUMPLE»). TT.thermal agrega ambos en `byT[]`. `verdict.estructura` no cambia de significado: resume las verificaciones resueltas y la usa el generador de planos. La exportación del soporte agrega `plancha_base.revision_base_completa`.
 
 ## Elementos sobre la base: holguras (10-11-2026)
 

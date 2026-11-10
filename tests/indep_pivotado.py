@@ -526,7 +526,7 @@ chk("Plancha base: σ de la franja, retorno (MPa)", stR[0], row("Plancha base ba
 chk("Plancha base: τ = 1,5·(M/a)/(b·t), empuje (MPa)", 1.5 * stE[1] / stE[2] / (stE[3] * tB), row("Plancha base bajo el soporte del ojal E: corte")["dem"], tol=3e-3)
 for nm_, st_ in (("empuje", stE), ("retorno", stR)):
     if st_[0] <= Fy / Nd: fails.append("plancha base sin anclaje (" + nm_ + "): la franja debería exceder Fy/Nd"); print("XX  franja " + nm_)
-    if row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, " + nm_).get("st") not in (None, "pend"): fails.append("estado de la fila de la plancha (" + nm_ + ")")
+    if row("Plancha base bajo el soporte del ojal E: flexión sin anclaje, " + nm_).get("estado") != "pend": fails.append("estado de la fila de la plancha (" + nm_ + ")")
 # Mesa vacía (el calado no depende de la carga): retención disponible = peso propio de la parte que gira (mesa + disco rotatorio + medio pivote + bloques-uña;
 # masas de derivados.masas, verificadas por indep_tt300c.py) frente a la pedida por los n_cil soportes con el brazo más largo, n_cil·M/s_H.
 MS_ = DV["masas"]; Wmv = (MS_["disc"] + MS_["ssTop"] + 0.5 * MS_["pivot"] + MS_["dogs"]) * 9.80665 / 1e3; Tmv = P["n_cyl"] * stE[1] / stE[5] / 1e3
@@ -534,6 +534,20 @@ MV_ = PV["fabricacion"]["soporte_E"]["plancha_base"]["mesa_vacia"]
 chk("Plancha base: peso propio de la mesa vacía que retiene (kN)", Wmv, MV_["W_mesa_kN"], tol=2e-3)
 chk("Plancha base: retención pedida por los soportes, n_cil·M/s_H (kN)", Tmv, MV_["T_req_kN"], tol=3e-3)
 if not (Tmv > Wmv and MV_["cumple"] is False): fails.append("mesa vacía: la retención debería faltar"); print("XX  mesa vacía")
+# Revisión con la base completa (docs/qa/plancha_base_soporte_E.md): con M₂ = −M₁ el par pasa de un soporte al otro por torsión de la base; fuerza de
+# esquina ≈ M/B y m_xy ≈ M/(2·B) (placa libre en torsión pura: τ = 6·m_xy/t², cota inferior frente a Fy/(Nd·√3))
+RV_ = PV["fabricacion"]["soporte_E"]["plancha_base"]["revision_base_completa"]
+chk("Plancha base, base completa: fuerza de esquina de la torsión M/B (kN)", stE[1] / P["B"] / 1e3, RV_["V_esquina_kN"])
+chk("Plancha base, base completa: τ de torsión 6·m_xy/t² (MPa)", 6 * stE[1] / (2 * P["B"]) / tB ** 2, RV_["tau_torsion_MPa"])
+if RV_["fu_torsion_cota_inferior"] <= 1: fails.append("torsión de la base: la cota inferior debería exceder 1"); print("XX  torsión de la base")
+# Estado global (docs/qa/plancha_base_soporte_E.md §4): las filas «pend» con FU > 1 no se excluyen en silencio: van a verdict.pendientes_criticos
+# (ordenadas por FU) y el estado global queda «NO CUMPLE / PENDIENTE DE DECISIÓN» si el resto cumple
+VD_ = D["verdict"]; pc_ = sorted([v for v in D["verificaciones"] if v["estado"] == "pend" and v.get("fu") is not None and v["fu"] > 1], key=lambda v: -v["fu"])
+if [v["nombre"] for v in pc_] != [v["nombre"] for v in VD_["pendientes_criticos"]]: fails.append("pendientes críticos del veredicto"); print("XX  pendientes críticos del veredicto")
+chk("Pendientes críticos: FU máximo (plancha base sin anclaje)", pc_[0]["fu"] if pc_ else 0.0, VD_["fuMaxPend"], tol=1e-9)
+est_ = "NO CUMPLE" if not (VD_["gira"] and VD_["estructura"]) else ("NO CUMPLE / PENDIENTE DE DECISIÓN" if pc_ else "CUMPLE")
+print(f"    estado global: {VD_['estado_global']} (propio: {est_}); {len(pc_)} pendientes críticos")
+if est_ != VD_["estado_global"]: fails.append("estado global del veredicto"); print("XX  estado global")
 # Método 2 (contraste): FEA propia de Mindlin (Q4 con integración selectiva: flexión 2×2, corte 1 punto) de la plancha (cuadrante del cilindro 1, malla
 # de 40 mm), soporte rígido por 3 grados de libertad maestros (w₀, θ_x, θ_y) en los nudos de la huella de las paredes, momento aplicado al cuerpo rígido,
 # resortes de contacto unilaterales en todos los nudos (conjunto activo: se liberan los traccionados y se reactivan los que penetran) y apoyo bilateral en
@@ -582,6 +596,56 @@ try:
         sF, itF, wF = fea_(F_, st_[4], sgn)
         print(f"    {nm_:18s} franja σ = {st_[0]:8.1f} MPa (FU {st_[0] / (Fy / Nd):5.2f}); FEA unilateral σ_vm máx (malla 40) = {sF:8.1f} MPa (FU {sF / (Fy / Nd):5.2f}), levantamiento {wF:5.2f} mm, {itF} iteraciones")
         if sF <= Fy / Nd: fails.append("FEA de la plancha (" + nm_ + "): la conclusión no coincide con la franja"); print("XX  FEA " + nm_)
+    # Método 3 (revisión con la base completa, docs/qa/plancha_base_soporte_E.md): plancha entera con los DOS soportes (cilindro 2 por rotación de 180°:
+    # F₂ = −F₁, M₂ = −M₁), malla de 80 mm, peso propio de la plancha (ρ·g·t), mesa vacía uniforme en R_i…R_o (W_d + bloques-uña) y soportes con medio
+    # cilindro en los maestros; contacto unilateral en todos los nudos (conjunto activo; ante un ciclo se cambia solo el 10 % de los peores). Se verifica la
+    # conclusión: con la mesa vacía la base no tiene rigidez a torsión y queda apoyada en pocos nudos (los pies) con levantamientos de decenas de mm; con la
+    # mesa cargada (huella bilateral) el levantamiento es de pocos mm junto al talón (el caso del modelo de un soporte).
+    hb_ = 80.0; nb_ = int(round(P["B"] / hb_)); xs_ = np.linspace(-P["B"] / 2, P["B"] / 2, nb_ + 1)
+    Xb = np.repeat(xs_, nb_ + 1); Yb = np.tile(xs_, nb_ + 1); nnb = Xb.size
+    elb = np.array([[i * (nb_ + 1) + j, (i + 1) * (nb_ + 1) + j, (i + 1) * (nb_ + 1) + j + 1, i * (nb_ + 1) + j + 1] for i in range(nb_) for j in range(nb_)])
+    a2_ = hb_ / 2; Kb_ = sum(Bm(x_, y_, a2_)[0].T @ Db_ @ Bm(x_, y_, a2_)[0] * a2_ * a2_ for x_ in gq for y_ in gq); _, B0s2 = Bm(0, 0, a2_); Kb_ = Kb_ + B0s2.T @ Ds_ @ B0s2 * 4 * a2_ * a2_
+    dfb = np.stack([3 * elb, 3 * elb + 1, 3 * elb + 2], axis=2).reshape(len(elb), 12)
+    Kf_ = sp_.csr_matrix((np.tile(Kb_.ravel(), len(elb)), (np.repeat(dfb, 12, axis=1).ravel(), np.tile(dfb, (1, 12)).ravel())), shape=(3 * nnb, 3 * nnb))
+    sups_ = []
+    for sg_ in (1, -1):
+        Xl_, Yl_ = sxE * (sg_ * Xb - E[0]), -syE * (sg_ * Yb - E[1]); m_ = np.zeros(nnb, bool)
+        for _, (x0, x1, y0, y1) in rects: m_ |= (Xl_ >= x0 - hb_ / 2) & (Xl_ <= x1 + hb_ / 2) & (Yl_ >= y0 - hb_ / 2) & (Yl_ <= y1 + hb_ / 2)
+        sups_.append(m_)
+    inS_ = sups_[0] | sups_[1]; fn_ = np.where(~inS_)[0]; frb = np.stack([3 * fn_, 3 * fn_ + 1, 3 * fn_ + 2], axis=1).ravel(); nfb = frb.size
+    Tr_, Tc_, Tv_ = [frb], [np.arange(nfb)], [np.ones(nfb)]
+    for si_, (m_, c_) in enumerate(zip(sups_, (E, (-E[0], -E[1])))):
+        k_ = np.where(m_)[0]; o_ = np.ones(k_.size)
+        Tr_ += [3 * k_, 3 * k_, 3 * k_, 3 * k_ + 1, 3 * k_ + 2]; Tc_ += [o_ * (nfb + 3 * si_), o_ * (nfb + 3 * si_ + 1), o_ * (nfb + 3 * si_ + 2), o_ * (nfb + 3 * si_ + 1), o_ * (nfb + 3 * si_ + 2)]
+        Tv_ += [o_, Xb[k_] - c_[0], Yb[k_] - c_[1], o_, o_]
+    Tb_ = sp_.csr_matrix((np.concatenate(Tv_), (np.concatenate(Tr_), np.concatenate(Tc_).astype(int))), shape=(3 * nnb, nfb + 6)); Krb = (Tb_.T @ Kf_ @ Tb_).tocsr()
+    Tw_ = (sp_.csr_matrix((np.ones(nnb), (np.arange(nnb), 3 * np.arange(nnb))), shape=(nnb, 3 * nnb)) @ Tb_).tocsr()
+    fz_ = np.zeros(nnb)
+    for e in elb: fz_[e] -= 7.85e-6 * 9.80665 * tB * hb_ * hb_ / 4                    # peso propio de la plancha
+    rb_ = np.hypot(Xb, Yb); ring_ = (rb_ >= D["apoyo"]["Ri"]) & (rb_ <= D["apoyo"]["Ro"])
+    fz_[ring_] -= Wmv * 1e3 / ring_.sum()                                                 # mesa vacía, uniforme en el anillo de contacto
+    rhsb = Tb_.T @ np.concatenate([np.stack([fz_, np.zeros(nnb), np.zeros(nnb)], axis=1).ravel()])
+    Wsup_ = (MS_["brackets"] + MS_["cyl"] / 2) / P["n_cyl"] * 9.80665                    # soporte + medio cilindro en cada maestro (N)
+    def fea_full(F_, u_, sgn, holdT):
+        f_ = (sgn * u_[0], sgn * u_[1]); fg_ = (sxE * f_[0], -syE * f_[1]); mx_, my_ = hE * F_ * (-fg_[1]), hE * F_ * fg_[0]
+        r_ = rhsb.copy()
+        for si_, s_ in enumerate((1, -1)): r_[nfb + 3 * si_] -= Wsup_; r_[nfb + 3 * si_ + 1] += -s_ * my_; r_[nfb + 3 * si_ + 2] += s_ * mx_
+        hold = (rb_ <= P["D_top"] / 2) if holdT else np.zeros(nnb, bool); act_ = np.ones(nnb, bool); seen_ = set(); part_ = False
+        for it_ in range(400):
+            w_ = Tw_ @ spl_.spsolve((Krb + Tw_.T @ sp_.diags(np.where(act_ | hold, 1e7, 1e-3)) @ Tw_).tocsc(), r_)
+            rel_ = act_ & ~hold & (w_ > 1e-9); add_ = ~act_ & (w_ < -1e-9)
+            if not rel_.any() and not add_.any(): break
+            new_ = act_.copy()
+            if part_:
+                if add_.any(): ix_ = np.where(add_)[0]; new_[ix_[np.argsort(w_[ix_])[:max(1, ix_.size // 10)]]] = True
+                if rel_.any(): ix_ = np.where(rel_)[0]; new_[ix_[np.argsort(-w_[ix_])[:max(1, ix_.size // 10)]]] = False
+            else: new_[rel_] = False; new_[add_] = True
+            k_ = hash(new_.tobytes()); part_ = part_ or k_ in seen_; seen_.add(k_); act_ = new_
+        return float(w_.max()), int(act_.sum()), it_
+    wV, nV, iV = fea_full(Fs, stE[4], -1, False); wC, nC, iC = fea_full(Fs, stE[4], -1, True)
+    print(f"    base completa, dos soportes (M₂ = −M₁), malla 80: mesa vacía → levantamiento máx {wV:7.1f} mm, {nV} nudos en contacto de {nnb} ({iV} it.); mesa cargada → {wC:5.1f} mm, {nC} nudos ({iC} it.)")
+    if not (wV > 50 and nV <= 20): fails.append("base completa con la mesa vacía: debería quedar apoyada solo en los pies"); print("XX  base completa, mesa vacía")
+    if not (wC < 40): fails.append("base completa con la mesa cargada: levantamiento de pocos mm junto al talón"); print("XX  base completa, mesa cargada")
 except ImportError:
     print("    numpy/scipy no disponibles: se omite la FEA de contraste")
 print("== 6. Pivote: asimetría del par por roce desigual μ_s ± 0,05 (a calado) ==")
