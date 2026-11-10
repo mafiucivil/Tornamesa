@@ -85,13 +85,13 @@ def escribir(dest, casos, logs=None, nota_w=NOTA_W, nucleo=None):
     fecha = max((c["fecha"] for c in C), default="—")
     L = [f"# TT300-C · Índice general de la entrega de planos (Rev. C)", "", f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else ""), "",
          f"**{ADVERTENCIA}**", "", "Estado de las láminas: todas EMITIDAS PARA REVISIÓN (sin aprobación; firmas DIBUJÓ/REVISÓ/APROBÓ A DEFINIR). "
-         "Las RETENIDAS no deben fabricarse: dependen de un conflicto geométrico declarado del núcleo (GEN-009 de cada juego) o de datos del proveedor; "
-         "una lámina deja de estar retenida solo cuando el choque ya no existe en la geometría del JSON.", "", f"**{nota_w}**", ""] + ([f"**{nota_plancha(C)}**", ""] if nota_plancha(C) else []) + [
+         "Las RETENIDAS no deben fabricarse: dependen de un conflicto geométrico o de una verificación no cumplida declarados por el núcleo (GEN-009 de cada juego) o de datos del proveedor; "
+         "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo.", "", f"**{nota_w}**", ""] + ([f"**{nota_plancha(C)}**", ""] if nota_plancha(C) else []) + [
          "## Resumen por caso", "", "| Caso | Variante | Accionamiento | Interfaz | Láminas | Emitidas p/ revisión | Retenidas | Ítems | Cotas (fallas) | Fallas de controles | Interferencias no declaradas | Salida | Carpeta |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for c in C:
         L.append(f"| {c['caso']} | {c['variante']} | {c['modo']} | {c['interfaz']} | {c['n']} | {c['n'] - len(c['ret'])} | {len(c['ret'])} | {c['items']} | {c['cotas']} ({c['cotas_mal']}) | {c['controles']} | {c['interf']} | {c['salida']} | `{c['caso']}/` |")
-    L += ["", "## Conflictos del núcleo activos (geometría del JSON) por caso", ""]
+    L += ["", "## Retenciones del núcleo activas (JSON) por caso", ""]
     for c in C:
         L.append(f"- **{c['caso']}**: " + ("; ".join(v.get("corto", k) for k, v in c["conflictos"].items()) or "ninguno"))
     # matriz lámina × caso
@@ -166,10 +166,10 @@ def _pdf(path, C, cods, tit, est_of, fecha, nota_w, nucleo):
     st = [Paragraph("TT300-C · Tornamesa hidráulica 300 tf · Índice general de la entrega de planos (Rev. C)", sH1),
           Paragraph(esc(f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else "") + " Estado: EMITIDO PARA REVISIÓN (sin aprobación)."), sN),
           Spacer(1, 3), Paragraph(esc(ADVERTENCIA), sW), Spacer(1, 3), Paragraph(esc(nota_w), sW), Spacer(1, 3)] + ([Paragraph(esc(nota_plancha(C)), sW), Spacer(1, 3)] if nota_plancha(C) else []) + [
-          Paragraph(esc("Las láminas RETENIDAS no deben fabricarse: dependen de un conflicto geométrico declarado del núcleo (GEN-009 de cada juego) o de datos del proveedor; "
-                        "una lámina deja de estar retenida solo cuando el choque ya no existe en la geometría del JSON. El cajetín de cada lámina RETENIDA lo indica en el campo de estado."), sN),
+          Paragraph(esc("Las láminas RETENIDAS no deben fabricarse: dependen de un conflicto geométrico o de una verificación no cumplida declarados por el núcleo (GEN-009 de cada juego) o de datos del proveedor; "
+                        "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo. El cajetín de cada lámina RETENIDA lo indica en el campo de estado."), sN),
           Paragraph("Resumen por caso", sH2)]
-    hdr = ["Caso", "Var.", "Accionamiento", "Interfaz dibujada", "Láminas", "Emitidas p/ rev.", "Retenidas", "Ítems", "Cotas (fallas)", "Fallas controles", "Interf. no decl.", "Salida", "Conflictos del núcleo activos"]
+    hdr = ["Caso", "Var.", "Accionamiento", "Interfaz dibujada", "Láminas", "Emitidas p/ rev.", "Retenidas", "Ítems", "Cotas (fallas)", "Fallas controles", "Interf. no decl.", "Salida", "Retenciones del núcleo activas"]
     rows = [[Paragraph(esc(h), ParagraphStyle("hh", parent=sS, fontName=fb)) for h in hdr]]
     for c in C:
         rows.append([Paragraph(esc(x), sS) for x in (c["caso"], c["variante"], c["modo"], c["interfaz"], c["n"], c["n"] - len(c["ret"]), len(c["ret"]), c["items"], f"{c['cotas']} ({c['cotas_mal']})",
