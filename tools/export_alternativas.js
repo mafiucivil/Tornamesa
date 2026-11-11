@@ -135,12 +135,18 @@ out.modos_accionamiento = ALTS.map((a) => ({ id: a.id, nombre: a.nombre, modos: 
   const modelo = (id, nombre, over) => {
     const Pm = Object.assign({}, P, { opt_ss: 0, opt_uhmw: 0, opt_bz: 0, bz_conf: 1 }, over), A = TT.analyze(Pm), R = A.R, DRV = TT.designDrive(Pm, R), dm = TT.driveMode(Pm);
     const I = dm === 2 ? DRV.pivotado.fabricacion.soporte_E.inserto : (DRV.levaGuiada && DRV.levaGuiada.fabricacion ? DRV.levaGuiada.fabricacion.inserto : null);
-    return { id, nombre, drive_mode: dm, over, t_base: Pm.t_base, ins_on: Pm.ins_on, ins_fsv: Pm.ins_fsv, inserto: sinPoligonos(I),
-      filas: A.checks.filter((c) => /^Plancha base bajo/.test(c.name)).map(brief), masas: mas(R), veredicto: A.verdict };
+    // piezas soldadas sobre el inserto (núcleo f2dc2b5): pasador E sobre la cara del inserto (pivotado), mejillas de la ménsula corridas (guiado), pie de las orejas de la diagonal
+    const pE = dm === 2 ? Object.assign({}, DRV.pivotado.fabricacion.pasador_E) : null;
+    const mens = dm === 1 && DRV.levaGuiada && DRV.levaGuiada.fabricacion && DRV.levaGuiada.fabricacion.mensula ? Object.assign({}, DRV.levaGuiada.fabricacion.mensula) : null;
+    if (mens) delete mens.huellas;
+    return { id, nombre, drive_mode: dm, over, t_base: Pm.t_base, ins_on: Pm.ins_on, ins_fsv: Pm.ins_fsv, inserto: sinPoligonos(I), pasador_E: pE, mensula: mens,
+      filas: A.checks.filter((c) => /^Plancha base bajo/.test(c.name)).map(brief), masas: mas(R), veredicto: A.verdict,
+      filas_sobre_inserto: A.checks.filter((c) => /^Pasador vertical E: extremo inferior sobre la cara del inserto|^Oreja: pie sobre el espesor pleno del inserto/.test(c.name)).map(brief),
+      izaje: A.checks.filter((c) => c.grp === "Base" && /izaje/i.test(c.name)).map(brief) };
   };
-  const PIVM = [["base", "Pivotado, interfaz base (por defecto)", {}], ["A", "Pivotado, interfaz A", { opt_ss: 1 }], ["B", "Pivotado, interfaz B", { opt_uhmw: 1 }],
+  const PIVM = [["base", "Pivotado, interfaz base (por defecto)", {}], ["A", "Pivotado, interfaz A", { opt_ss: 1 }], ["AF2", "Pivotado, interfaz A pegada (AF2)", { opt_ss: 1, fix_mode: 2 }], ["B", "Pivotado, interfaz B", { opt_uhmw: 1 }],
     ["C1", "Pivotado, interfaz C1", { opt_bz: 1, bz_conf: 1 }], ["C2", "Pivotado, interfaz C2", { opt_bz: 1, bz_conf: 2 }], ["C3", "Pivotado, interfaz C3", { opt_bz: 1, bz_conf: 3 }],
-    ["G", "Guiado, interfaz base", { drive_mode: 1, opt_cam: 1 }], ["GB", "Guiado, interfaz B", { drive_mode: 1, opt_cam: 1, opt_uhmw: 1 }]];
+    ["G", "Guiado, interfaz base", { drive_mode: 1, opt_cam: 1 }], ["GA", "Guiado, interfaz A", { drive_mode: 1, opt_cam: 1, opt_ss: 1 }], ["GB", "Guiado, interfaz B", { drive_mode: 1, opt_cam: 1, opt_uhmw: 1 }]];
   const modelos = PIVM.map(([id, nombre, over]) => modelo(id, nombre, Object.assign({ drive_mode: 2 }, over)));
   const A0 = TT.analyze(Object.assign({}, P, { drive_mode: 2, ins_on: 0, t_base: 18 }), { noFEA: true });
   out.plancha_base = { modelos, antes: { descripcion: "base de 18 mm sin inserto (ins_on = 0), diseño de la memoria anterior", t_base: 18, ins_on: 0, masas: mas(A0.R), estado_global: A0.verdict.estado_global } };

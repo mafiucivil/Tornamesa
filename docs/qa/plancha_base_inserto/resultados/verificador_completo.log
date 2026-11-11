@@ -27,8 +27,14 @@ OK  por defecto: largo de la CJP inserto–base por inserto (mm)             ind
 OK  por defecto: J-I1 CJP con transición 1:2,5 y FU ≤ 1
     por defecto: el espesor pleno empieza a 100.0 mm de los bordes interiores (≥ 2,5·Δ = 100.0)
 OK  por defecto: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)
-OK  por defecto: masa añadida por inserto (kg)                             indep     82.9915  núcleo     82.9915
-OK  por defecto: masa de los insertos en la masa total (kg)                indep    165.9829  núcleo    165.9829
+    por defecto: masa con biseles planos 82.40 kg (cuña anterior 87.03 kg); núcleo 82.40 kg
+OK  por defecto: masa añadida por inserto, biseles planos (kg)             indep     82.3993  núcleo     82.3979
+OK  por defecto: masa de los insertos en la masa total (kg)                indep    164.7958  núcleo    164.7958
+OK  por defecto: pie de la oreja de izaje en (-930; 930) sobre el espesor pleno con 12.5 mm (≥ 5)
+OK  por defecto: pie de la oreja de izaje en (930; -930) sobre el espesor pleno con 12.5 mm (≥ 5)
+OK  por defecto: orejas de la diagonal sobre el inserto (2)
+OK  por defecto: pasador E de z 69 (tapa inferior desde z 69) sobre el inserto de 60 con 9 mm
+OK  por defecto: J-I1 B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)), T1 = t_base = 20 en la junta (transición 1:2,5), R 0–3, f 0–3, 60°
     por defecto: holgura en planta a placas-guía y cubo de Q (propia) 10.0 mm; núcleo 10.0 mm
 OK  por defecto: holgura en planta ≥ 5 mm
     por defecto: cuerpo del cilindro a z = 60.0 sobre la cara del inserto a 55.0 (rebaje: sí, 5 mm): 5.0 mm; núcleo 5.0 mm
@@ -48,7 +54,7 @@ OK  por defecto: σ proporcional a F con la mesa cargada
 OK  por defecto: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4
 OK  por defecto: estado global CUMPLE sin pendientes críticos
 OK  por defecto: limitación de uso en el veredicto
-    por defecto: t = 60 mm (Δ 40), catetos 554 / 554 mm, hipotenusa a 1030 mm, masa 83.0 kg × 2; FU núcleo: nom 0.414, dis 0.653, cal 0.889, ret 0.664, vac 0.009
+    por defecto: t = 60 mm (Δ 40), catetos 554 / 554 mm, hipotenusa a 1030 mm, masa 82.4 kg × 2; FU núcleo: nom 0.414, dis 0.653, cal 0.889, ret 0.664, vac 0.009
 OK  interfaz B: inserto exportado y cumple
 OK  interfaz B: t = 90 mm > t_base, al ras por debajo (z = [0; t])
 OK  interfaz B: 2 insertos
@@ -56,13 +62,19 @@ OK  interfaz B: vértices dentro de la base
 OK  interfaz B: el segundo inserto es la rotación de 180°
 OK  interfaz B: distancia de la hipotenusa al centro (mm)                  indep   1010.0000  núcleo   1010.0000
 OK  interfaz B: hipotenusa fuera de la mesa con ≥ 5 mm (10 mm)
-OK  interfaz B: largo de la CJP inserto–base por inserto (mm)              indep   1761.0436  núcleo   1761.0436
+OK  interfaz B: largo de la CJP inserto–base por inserto (mm)              indep   1671.4451  núcleo   1671.4451
 OK  interfaz B: J-I1 CJP con transición 1:2,5 y FU ≤ 1
-    interfaz B: el espesor pleno empieza a 177.8 mm de los bordes interiores (≥ 2,5·Δ = 175.0)
+    interfaz B: el espesor pleno empieza a 175.0 mm de los bordes interiores (≥ 2,5·Δ = 175.0)
 OK  interfaz B: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)
-OK  interfaz B: masa añadida por inserto (kg)                              indep    138.9301  núcleo    138.9301
-OK  interfaz B: masa de los insertos en la masa total (kg)                 indep    277.8601  núcleo    277.8601
-    interfaz B: holgura en planta a placas-guía y cubo de Q (propia) 8.0 mm; núcleo 8.0 mm
+    interfaz B: masa con biseles planos 136.43 kg (cuña anterior 141.89 kg); núcleo 136.43 kg
+OK  interfaz B: masa añadida por inserto, biseles planos (kg)              indep    136.4265  núcleo    136.4264
+OK  interfaz B: masa de los insertos en la masa total (kg)                 indep    272.8527  núcleo    272.8527
+OK  interfaz B: pie de la oreja de izaje en (-930; 930) sobre el espesor pleno con 8.1 mm (≥ 5)
+OK  interfaz B: pie de la oreja de izaje en (930; -930) sobre el espesor pleno con 8.1 mm (≥ 5)
+OK  interfaz B: orejas de la diagonal sobre el inserto (2)
+OK  interfaz B: pasador E de z 114 (tapa inferior desde z 124) sobre el inserto de 90 con 24 mm
+OK  interfaz B: J-I1 B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)), T1 = t_base = 20 en la junta (transición 1:2,5), R 0–3, f 0–3, 60°
+    interfaz B: holgura en planta a placas-guía y cubo de Q (propia) 8.0 mm; núcleo 6.0 mm
 OK  interfaz B: holgura en planta ≥ 5 mm
     interfaz B: cuerpo del cilindro a z = 115.0 sobre la cara del inserto a 90.0 (rebaje: no): 25.0 mm; núcleo 20.0 mm
 OK  interfaz B: holgura vertical al cuerpo del cilindro ≥ 5 mm
@@ -81,7 +93,7 @@ OK  interfaz B: σ proporcional a F con la mesa cargada
 OK  interfaz B: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4
 OK  interfaz B: estado global CUMPLE sin pendientes críticos
 OK  interfaz B: limitación de uso en el veredicto
-    interfaz B: t = 90 mm (Δ 70), catetos 556 / 556 mm, hipotenusa a 1010 mm, masa 138.9 kg × 2; FU núcleo: nom 0.245, dis 0.724, cal 0.985, ret 0.967, vac 0.012
+    interfaz B: t = 90 mm (Δ 70), catetos 556 / 556 mm, hipotenusa a 1010 mm, masa 136.4 kg × 2; FU núcleo: nom 0.245, dis 0.724, cal 0.985, ret 0.967, vac 0.012
 OK  guiado: inserto exportado y cumple
 OK  guiado: t = 50 mm > t_base, al ras por debajo (z = [0; t])
 OK  guiado: 4 insertos
@@ -93,8 +105,28 @@ OK  guiado: largo de la CJP inserto–base por inserto (mm)                  ind
 OK  guiado: J-I1 CJP con transición 1:2,5 y FU ≤ 1
     guiado: el espesor pleno empieza a 75.0 mm de los bordes interiores (≥ 2,5·Δ = 75.0)
 OK  guiado: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)
-OK  guiado: masa añadida por inserto (kg)                                  indep    110.5884  núcleo    110.5884
-OK  guiado: masa de los insertos en la masa total (kg)                     indep    442.3534  núcleo    442.3534
+    guiado: masa con biseles planos 110.17 kg (cuña anterior 110.59 kg); núcleo 110.17 kg
+OK  guiado: masa añadida por inserto, biseles planos (kg)                  indep    110.1655  núcleo    110.1657
+OK  guiado: masa de los insertos en la masa total (kg)                     indep    440.6630  núcleo    440.6630
+OK  guiado: pie de la oreja de izaje en (930; 930) sobre el espesor pleno con 104.6 mm (≥ 5)
+OK  guiado: pie de la oreja de izaje en (-930; 930) sobre el espesor pleno con 104.6 mm (≥ 5)
+OK  guiado: pie de la oreja de izaje en (930; -930) sobre el espesor pleno con 104.6 mm (≥ 5)
+OK  guiado: pie de la oreja de izaje en (-930; -930) sobre el espesor pleno con 104.6 mm (≥ 5)
+OK  guiado: orejas de la diagonal sobre el inserto (4)
+OK  guiado: mejillas de L_ch que cubren las orejas (retroceso 65 mm)
+OK  guiado: mejilla exterior de la ménsula 1 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: mejilla interior de la ménsula 1 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: suplemento de la ménsula 1 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado: mejilla exterior de la ménsula 2 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: mejilla interior de la ménsula 2 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: suplemento de la ménsula 2 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado: mejilla exterior de la ménsula 3 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: mejilla interior de la ménsula 3 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: suplemento de la ménsula 3 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado: mejilla exterior de la ménsula 4 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: mejilla interior de la ménsula 4 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado: suplemento de la ménsula 4 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado: J-I1 B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)), T1 = t_base = 20 en la junta (transición 1:2,5), R 0–3, f 0–3, 60°
     guiado: cuerpo del cilindro a z = 60.0 sobre la cara del inserto a 50.0 (rebaje: no): 10.0 mm; núcleo 10.0 mm
 OK  guiado: holgura vertical al cuerpo del cilindro ≥ 5 mm
 OK  guiado: F a calado (kN)                                                indep    445.3208  núcleo    445.3208
@@ -112,7 +144,7 @@ OK  guiado: σ proporcional a F con la mesa cargada
 OK  guiado: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4
 OK  guiado: estado global CUMPLE sin pendientes críticos
 OK  guiado: limitación de uso en el veredicto
-    guiado: t = 50 mm (Δ 30), catetos 589 / 1132 mm, hipotenusa a 1010 mm, masa 110.6 kg × 4; FU núcleo: nom 0.376, dis 0.593, cal 0.821, ret 0.557, vac 0.008
+    guiado: t = 50 mm (Δ 30), catetos 589 / 1132 mm, hipotenusa a 1010 mm, masa 110.2 kg × 4; FU núcleo: nom 0.376, dis 0.593, cal 0.821, ret 0.557, vac 0.008
 OK  guiado B: inserto exportado y cumple
 OK  guiado B: t = 65 mm > t_base, al ras por debajo (z = [0; t])
 OK  guiado B: 4 insertos
@@ -124,8 +156,28 @@ OK  guiado B: largo de la CJP inserto–base por inserto (mm)                ind
 OK  guiado B: J-I1 CJP con transición 1:2,5 y FU ≤ 1
     guiado B: el espesor pleno empieza a 112.5 mm de los bordes interiores (≥ 2,5·Δ = 112.5)
 OK  guiado B: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)
-OK  guiado B: masa añadida por inserto (kg)                                indep    156.6018  núcleo    156.6018
-OK  guiado B: masa de los insertos en la masa total (kg)                   indep    626.4072  núcleo    626.4072
+    guiado B: masa con biseles planos 155.18 kg (cuña anterior 156.60 kg); núcleo 155.18 kg
+OK  guiado B: masa añadida por inserto, biseles planos (kg)                indep    155.1755  núcleo    155.1754
+OK  guiado B: masa de los insertos en la masa total (kg)                   indep    620.7018  núcleo    620.7018
+OK  guiado B: pie de la oreja de izaje en (930; 930) sobre el espesor pleno con 53.7 mm (≥ 5)
+OK  guiado B: pie de la oreja de izaje en (-930; 930) sobre el espesor pleno con 53.7 mm (≥ 5)
+OK  guiado B: pie de la oreja de izaje en (930; -930) sobre el espesor pleno con 53.7 mm (≥ 5)
+OK  guiado B: pie de la oreja de izaje en (-930; -930) sobre el espesor pleno con 53.7 mm (≥ 5)
+OK  guiado B: orejas de la diagonal sobre el inserto (4)
+OK  guiado B: mejillas de L_ch que cubren las orejas (retroceso 100 mm)
+OK  guiado B: mejilla exterior de la ménsula 1 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: mejilla interior de la ménsula 1 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: suplemento de la ménsula 1 sobre el espesor pleno con 62.0 mm (≥ 5)
+OK  guiado B: mejilla exterior de la ménsula 2 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: mejilla interior de la ménsula 2 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: suplemento de la ménsula 2 sobre el espesor pleno con 62.0 mm (≥ 5)
+OK  guiado B: mejilla exterior de la ménsula 3 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: mejilla interior de la ménsula 3 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: suplemento de la ménsula 3 sobre el espesor pleno con 62.0 mm (≥ 5)
+OK  guiado B: mejilla exterior de la ménsula 4 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: mejilla interior de la ménsula 4 sobre el espesor pleno con 12.0 mm (≥ 5)
+OK  guiado B: suplemento de la ménsula 4 sobre el espesor pleno con 62.0 mm (≥ 5)
+OK  guiado B: J-I1 B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)), T1 = t_base = 20 en la junta (transición 1:2,5), R 0–3, f 0–3, 60°
     guiado B: cuerpo del cilindro a z = 115.0 sobre la cara del inserto a 65.0 (rebaje: no): 50.0 mm; núcleo 50.0 mm
 OK  guiado B: holgura vertical al cuerpo del cilindro ≥ 5 mm
 OK  guiado B: F a calado (kN)                                              indep    445.3208  núcleo    445.3208
@@ -143,7 +195,97 @@ OK  guiado B: σ proporcional a F con la mesa cargada
 OK  guiado B: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4
 OK  guiado B: estado global CUMPLE sin pendientes críticos
 OK  guiado B: limitación de uso en el veredicto
-    guiado B: t = 65 mm (Δ 45), catetos 589 / 1132 mm, hipotenusa a 1010 mm, masa 156.6 kg × 4; FU núcleo: nom 0.219, dis 0.646, cal 0.893, ret 0.848, vac 0.011
+    guiado B: t = 65 mm (Δ 45), catetos 589 / 1132 mm, hipotenusa a 1010 mm, masa 155.2 kg × 4; FU núcleo: nom 0.219, dis 0.646, cal 0.893, ret 0.848, vac 0.011
+OK  interfaz A: inserto exportado y cumple
+OK  interfaz A: t = 90 mm > t_base, al ras por debajo (z = [0; t])
+OK  interfaz A: 2 insertos
+OK  interfaz A: vértices dentro de la base
+OK  interfaz A: el segundo inserto es la rotación de 180°
+OK  interfaz A: distancia de la hipotenusa al centro (mm)                  indep   1030.0000  núcleo   1030.0000
+OK  interfaz A: hipotenusa fuera de la mesa con ≥ 5 mm (30 mm)
+OK  interfaz A: largo de la CJP inserto–base por inserto (mm)              indep   1568.5334  núcleo   1568.5334
+OK  interfaz A: J-I1 CJP con transición 1:2,5 y FU ≤ 1
+    interfaz A: el espesor pleno empieza a 175.0 mm de los bordes interiores (≥ 2,5·Δ = 175.0)
+OK  interfaz A: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)
+    interfaz A: masa con biseles planos 130.68 kg (cuña anterior 137.56 kg); núcleo 130.68 kg
+OK  interfaz A: masa añadida por inserto, biseles planos (kg)              indep    130.6816  núcleo    130.6808
+OK  interfaz A: masa de los insertos en la masa total (kg)                 indep    261.3616  núcleo    261.3616
+OK  interfaz A: pie de la oreja de izaje en (-930; 930) sobre el espesor pleno con 8.1 mm (≥ 5)
+OK  interfaz A: pie de la oreja de izaje en (930; -930) sobre el espesor pleno con 8.1 mm (≥ 5)
+OK  interfaz A: orejas de la diagonal sobre el inserto (2)
+OK  interfaz A: pasador E de z 99 (tapa inferior desde z 99) sobre el inserto de 90 con 9 mm
+OK  interfaz A: J-I1 B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)), T1 = t_base = 20 en la junta (transición 1:2,5), R 0–3, f 0–3, 60°
+    interfaz A: holgura en planta a placas-guía y cubo de Q (propia) 10.0 mm; núcleo 6.0 mm
+OK  interfaz A: holgura en planta ≥ 5 mm
+    interfaz A: cuerpo del cilindro a z = 90.0 sobre la cara del inserto a 85.0 (rebaje: sí, 5 mm): 5.0 mm; núcleo 5.0 mm
+OK  interfaz A: holgura vertical al cuerpo del cilindro ≥ 5 mm
+OK  interfaz A: F a calado (kN)                                            indep    445.3208  núcleo    445.3208
+OK  interfaz A: F del atasco del retorno (kN)                              indep     64.8896  núcleo     64.8896
+OK  interfaz A: F nominal = caso nominal (kN)                              indep    207.7606  núcleo    207.7606
+OK  interfaz A: F de diseño (kN)                                           indep    327.2705  núcleo    327.2705
+OK  interfaz A: F de servicio con la mesa vacía, ins_fsv·máx(F_dis; F_borde; F_cont)·W_d/N (kN) indep      3.0594  núcleo      3.0594
+OK  interfaz A: M = F·h, caso nom (kN·m)                                   indep     28.0477  núcleo     28.0477
+OK  interfaz A: M = F·h, caso dis (kN·m)                                   indep     44.1815  núcleo     44.1815
+OK  interfaz A: M = F·h, caso cal (kN·m)                                   indep     60.1183  núcleo     60.1183
+OK  interfaz A: M = F·h, caso ret (kN·m)                                   indep      8.7601  núcleo      8.7601
+OK  interfaz A: M = F·h, caso vac (kN·m)                                   indep      0.4130  núcleo      0.4130
+OK  interfaz A: F_b = 1,25·Fy/Nd (MPa)                                     indep    143.7500  núcleo    143.7500
+OK  interfaz A: σ proporcional a F con la mesa cargada
+OK  interfaz A: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4
+OK  interfaz A: estado global CUMPLE sin pendientes críticos
+OK  interfaz A: limitación de uso en el veredicto
+    interfaz A: t = 90 mm (Δ 70), catetos 554 / 554 mm, hipotenusa a 1030 mm, masa 130.7 kg × 2; FU núcleo: nom 0.412, dis 0.649, cal 0.882, ret 0.854, vac 0.011
+OK  guiado A: inserto exportado y cumple
+OK  guiado A: t = 60 mm > t_base, al ras por debajo (z = [0; t])
+OK  guiado A: 4 insertos
+OK  guiado A: vértices dentro de la base
+OK  guiado A: el segundo inserto es la rotación de 180°
+OK  guiado A: distancia de la hipotenusa al centro (mm)                    indep   1010.0000  núcleo   1010.0000
+OK  guiado A: hipotenusa fuera de la mesa con ≥ 5 mm (10 mm)
+OK  guiado A: largo de la CJP inserto–base por inserto (mm)                indep   1760.1132  núcleo   1760.1132
+OK  guiado A: J-I1 CJP con transición 1:2,5 y FU ≤ 1
+    guiado A: el espesor pleno empieza a 100.0 mm de los bordes interiores (≥ 2,5·Δ = 100.0)
+OK  guiado A: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)
+    guiado A: masa con biseles planos 140.86 kg (cuña anterior 141.86 kg); núcleo 140.86 kg
+OK  guiado A: masa añadida por inserto, biseles planos (kg)                indep    140.8558  núcleo    140.8558
+OK  guiado A: masa de los insertos en la masa total (kg)                   indep    563.4230  núcleo    563.4230
+OK  guiado A: pie de la oreja de izaje en (930; 930) sobre el espesor pleno con 70.3 mm (≥ 5)
+OK  guiado A: pie de la oreja de izaje en (-930; 930) sobre el espesor pleno con 70.3 mm (≥ 5)
+OK  guiado A: pie de la oreja de izaje en (930; -930) sobre el espesor pleno con 70.3 mm (≥ 5)
+OK  guiado A: pie de la oreja de izaje en (-930; -930) sobre el espesor pleno con 70.3 mm (≥ 5)
+OK  guiado A: orejas de la diagonal sobre el inserto (4)
+OK  guiado A: mejillas de L_ch que cubren las orejas (retroceso 90 mm)
+OK  guiado A: mejilla exterior de la ménsula 1 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: mejilla interior de la ménsula 1 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: suplemento de la ménsula 1 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado A: mejilla exterior de la ménsula 2 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: mejilla interior de la ménsula 2 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: suplemento de la ménsula 2 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado A: mejilla exterior de la ménsula 3 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: mejilla interior de la ménsula 3 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: suplemento de la ménsula 3 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado A: mejilla exterior de la ménsula 4 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: mejilla interior de la ménsula 4 sobre el espesor pleno con 14.5 mm (≥ 5)
+OK  guiado A: suplemento de la ménsula 4 sobre el espesor pleno con 65.0 mm (≥ 5)
+OK  guiado A: J-I1 B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)), T1 = t_base = 20 en la junta (transición 1:2,5), R 0–3, f 0–3, 60°
+    guiado A: cuerpo del cilindro a z = 90.0 sobre la cara del inserto a 60.0 (rebaje: no): 30.0 mm; núcleo 30.0 mm
+OK  guiado A: holgura vertical al cuerpo del cilindro ≥ 5 mm
+OK  guiado A: F a calado (kN)                                              indep    445.3208  núcleo    445.3208
+OK  guiado A: F del atasco del retorno (kN)                                indep     64.8896  núcleo     64.8896
+OK  guiado A: F nominal = caso nominal (kN)                                indep    204.5347  núcleo    204.5347
+OK  guiado A: F de diseño (kN)                                             indep    322.1891  núcleo    322.1891
+OK  guiado A: F de servicio con la mesa vacía, ins_fsv·máx(F_dis; F_borde; F_cont)·W_d/N (kN) indep      3.0119  núcleo      3.0119
+OK  guiado A: M = F·h, caso nom (kN·m)                                     indep     27.6122  núcleo     27.6122
+OK  guiado A: M = F·h, caso dis (kN·m)                                     indep     43.4955  núcleo     43.4955
+OK  guiado A: M = F·h, caso cal (kN·m)                                     indep     60.1183  núcleo     60.1183
+OK  guiado A: M = F·h, caso ret (kN·m)                                     indep      8.7601  núcleo      8.7601
+OK  guiado A: M = F·h, caso vac (kN·m)                                     indep      0.4066  núcleo      0.4066
+OK  guiado A: F_b = 1,25·Fy/Nd (MPa)                                       indep    143.7500  núcleo    143.7500
+OK  guiado A: σ proporcional a F con la mesa cargada
+OK  guiado A: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4
+OK  guiado A: estado global CUMPLE sin pendientes críticos
+OK  guiado A: limitación de uso en el veredicto
+    guiado A: t = 60 mm (Δ 40), catetos 589 / 1132 mm, hipotenusa a 1010 mm, masa 140.9 kg × 4; FU núcleo: nom 0.377, dis 0.594, cal 0.821, ret 0.716, vac 0.010
 OK  la interfaz B (eje más alto) pide un inserto más grueso
 OK  base de 20 mm por defecto
 == §4 FEA propia (malla 40 mm; mesa cargada como cuerpo rígido con contacto unilateral; σ a más de 100 mm de la huella rígida del soporte) ==
@@ -153,21 +295,21 @@ OK  base de 20 mm por defecto
     por defecto    cal     46.76     212    122.5   0.852     0.889    2.54  (-780; 580; 20)
     por defecto    ret      6.81      91     91.4   0.636     0.664    4.27  (620; -780; 20)
     por defecto    vac      0.25       0      0.1   0.001     0.009    0.00  (-1260; 740; 26)
-    interfaz B     nom     17.73      34     34.1   0.237     0.245    0.51  (780; -580; 20)
-    interfaz B     dis     52.36     101    101.1   0.703     0.724    1.60  (-780; 580; 20)
-    interfaz B     cal     71.25     137    137.5   0.956     0.985    2.19  (-780; 580; 20)
-    interfaz B     ret     10.38     136    136.0   0.946     0.967    5.43  (-660; 740; 20)
+    interfaz B     nom     17.73      32     30.9   0.215     0.245    0.45  (780; -580; 20)
+    interfaz B     dis     52.36      96     91.0   0.633     0.724    1.42  (780; -580; 20)
+    interfaz B     cal     71.25     131    123.8   0.861     0.985    1.95  (780; -580; 20)
+    interfaz B     ret     10.38     135    134.7   0.937     0.967    5.15  (-660; 740; 20)
     interfaz B     vac      0.49       1      0.3   0.002     0.012    0.00  (1260; -700; 20)
-    guiado         nom     21.45      86     51.7   0.360     0.376    0.80  (940; -700; 48)
-    guiado         dis     33.79     136     82.3   0.573     0.593    1.28  (940; -700; 48)
-    guiado         cal     46.76     189    114.5   0.797     0.821    1.80  (940; -700; 48)
-    guiado         ret      6.81      68     68.3   0.475     0.557    2.52  (-620; 780; 20)
-    guiado         vac      0.25       0      0.2   0.001     0.008    0.00  (-1140; 660; 20)
-    guiado B       nom     17.45      47     29.9   0.208     0.219    0.43  (820; -540; 20)
-    guiado B       dis     51.55     140     89.6   0.623     0.646    1.34  (900; -740; 65)
-    guiado B       cal     71.25     194    124.3   0.865     0.893    1.87  (900; -740; 65)
-    guiado B       ret     10.38     105    104.7   0.728     0.848    3.72  (-620; 780; 20)
-    guiado B       vac      0.48       1      0.3   0.002     0.011    0.00  (1140; -660; 20)
+    guiado         nom     21.45      83     48.6   0.338     0.376    0.81  (820; -540; 20)
+    guiado         dis     33.79     132     76.5   0.532     0.593    1.30  (820; -540; 20)
+    guiado         cal     46.76     184    105.9   0.736     0.821    1.82  (820; -540; 20)
+    guiado         ret      6.81      68     68.5   0.476     0.557    2.52  (620; -780; 20)
+    guiado         vac      0.25       0      0.1   0.001     0.008    0.00  (1260; -700; 24)
+    guiado B       nom     17.45      45     29.3   0.204     0.219    0.44  (-780; 580; 20)
+    guiado B       dis     51.55     136     86.7   0.603     0.646    1.37  (-780; 580; 20)
+    guiado B       cal     71.25     188    119.7   0.833     0.893    1.91  (-780; 580; 20)
+    guiado B       ret     10.38     105    105.1   0.731     0.848    3.74  (-620; 780; 20)
+    guiado B       vac      0.48       0      0.2   0.002     0.011    0.00  (-1260; 700; 24)
     sin inserto    cal     46.76    1406    467.0   3.249         —   16.59  (1140; -860; 20)
     sin inserto (base de 20 mm) a calado: FU 3.25 > 1: el inserto hace falta
     KIET medido: 20 + 20 en la esquina           M 38.30 kN·m, σ pico 391, σ > 100 mm 173 MPa (FU 1.20), w 2.13 mm

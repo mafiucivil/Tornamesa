@@ -1,6 +1,6 @@
 {
  "proyecto": "TT300-C",
- "fecha": "2026-11-10",
+ "fecha": "2026-11-11",
  "P": {
   "W_tf": 300,
   "e": 150,
@@ -252,8 +252,8 @@
   "t_base_min": 16,
   "rim_h": 45,
   "rim_t": 10,
-  "c_lug": 430,
-  "x_lug": 850,
+  "c_lug": 350,
+  "x_lug": 930,
   "t_ear": 18,
   "R_ear": 92,
   "d_ear": 45,
@@ -1595,7 +1595,7 @@
    "z_tapa_inf": 83.5,
    "rebaje_tapa_sup": 10,
    "holgura_cuerpo": 7.999999999999994,
-   "masa": 39.77808384819904,
+   "masa": 39.47598044464821,
    "nota": "cajón centrado en E, abierto hacia la mesa en todo el barrido del cilindro: paredes traseras en L, muñones y tapas recortadas en nariz (geometría constructiva en fabricacion.soporte_E)"
   },
   "placa_leva": {
@@ -12093,7 +12093,7 @@
      "tapas_paredes": "PJP TC-P4 S = 21 (E = 18) desde arriba + filete de refuerzo z8; sin soldadura por debajo"
     },
     "material": "S355J2 (Fy 345)",
-    "masa": 39.77808384819904,
+    "masa": 39.47598044464821,
     "inserto": {
      "estado": "cumple",
      "t": 60,
@@ -12115,13 +12115,20 @@
      "muescas": {
       "lado_x": {
        "a": 928.0562442355606,
-       "b": -725.5793328707435
+       "b": -725.5793328707435,
+       "chaflan": 0
       },
       "lado_y": {
        "a": 725.579332870743,
-       "b": -928.0562442355608
+       "b": -928.0562442355608,
+       "chaflan": 0
       },
-      "marco": "canónico de la esquina (+B/2; −B/2); real = (s_x·X, −s_y·Y)"
+      "marco": "canónico de la esquina (+B/2; −B/2); real = (s_x·X, −s_y·Y)",
+      "chaflan": "esquina de cada muesca cortada a 45° (22-11-2026): lado x {X ≥ a, Y ≥ b, X + Y ≥ a + b + chaflán}; lado y {X ≤ a, Y ≤ b, (a − X) + (b − Y) ≥ chaflán}; en el espesor pleno el chaflán pasa a chaflán + s·(2 − √2) con s = 2,5·Δ (biseles planos: la cara superior es t_base + mín(Δ; d/2,5) con d la distancia a la hipotenusa y a cada muesca, d_muesca = máx(a − X; b − Y; (a + b + chaflán − X − Y)/√2) en el lado x)",
+      "chaflan_max": [
+       80.47706552376947,
+       80.4770655237697
+      ]
      },
      "esquinas": [
       [
@@ -16421,7 +16428,7 @@
        ]
       ],
       "borde": "pendiente 1:2,5 fuera del polígono",
-      "masa_quitada": 4.041712723873479,
+      "masa_quitada": 3.1550979290705468,
       "nota": "rebaje local de la cara superior del inserto bajo el barrido de las piezas móviles que no dejan 5 mm sobre el espesor pleno (envolvente convexa del barrido de cada pieza y sentido, cilindro 1 y su rotación de 180°); se mecaniza después de soldar J-I1"
      },
      "casos": [
@@ -16510,6 +16517,39 @@
        },
        "largo": 1662.8181817388452,
        "largo_total": 3325.6363634776903,
+       "designacion": "B-U3b",
+       "designacion_estado": "verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)",
+       "norma_designacion": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))",
+       "preparacion": {
+        "tipo": "doble V simétrica a tope",
+        "T1": 20,
+        "espesor_en_la_junta": {
+         "base": 20,
+         "inserto": 20
+        },
+        "espesor_pleno_inserto": 60,
+        "raiz_R": [
+         0,
+         3
+        ],
+        "talon_f": [
+         0,
+         3
+        ],
+        "angulo_alfa": 60,
+        "angulo_beta": 60,
+        "profundidad_bisel_S": [
+         8.5,
+         10
+        ],
+        "resanado": true,
+        "procesos": [
+         "SMAW",
+         "GMAW",
+         "FCAW"
+        ],
+        "nota": "la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras"
+       },
        "verificacion": {
         "fu": 0.8894203470912831,
         "norma": "AISC 360-22 §J2.4, Tabla J2.5 (CJP: resistencia del metal base); AWS D1.1/D1.1M:2020 Figura 5.1 (junta precalificada a tope en doble V, B-U3: verificar designación), cláusula 4 (transición de espesores 1:2,5 en juntas a tope de partes de distinto espesor: verificar número de cláusula y figura); ASME BTH-1-2020 §3-2.3.4 (flexión respecto del eje menor de barras y secciones rectangulares macizas: F_b = 1,25·Fy/Nd; número de ecuación: verificar)"
@@ -16519,15 +16559,15 @@
      "secuencia": [
       "1. Oxicorte de la base de 20 mm con las 2 ventanas del inserto (contorno «esquinas»; los bordes sobre el borde de la base no llevan junta).",
       "2. Oxicorte de los insertos de 60 mm; bisel de la transición 1:2,5 en la cara superior a lo largo de los bordes interiores (ancho 100 mm, hasta el contorno «espesor pleno») y biseles de la CJP en doble V.",
-      "3. Presentar base e insertos sobre mesa plana, al ras por la cara inferior; punteo con separación de raíz según la junta precalificada.",
+      "3. Presentar base e insertos sobre mesa plana, al ras por la cara inferior; punteo con separación de raíz según la junta precalificada (B-U3b: R 0–3 mm, f 0–3 mm, α = β = 60°).",
       "4. CJP J-I1 por la cara superior; voltear, resanar la raíz y soldar por la cara inferior; amolar al ras la cara inferior (apoyo en la losa).",
       "5. Inspección: VT 100 % y UT 100 % de J-I1 (AWS D1.1/D1.1M:2020, cláusula 8); control de planitud de la base.",
       "5b. Rebaje local de la cara superior a z = 55 (5 mm) bajo el barrido de: cuerpo del cilindro (antihorario), cuerpo del cilindro (horario) (fresado o cepillado, borde a 1:2,5).",
       "6. Marco perimetral interrumpido a lo largo de los catetos del inserto (hasta 50 mm más allá de su extremo): el marco no cumple función resistente.",
       "7. Soporte del ojal E (paredes, muñones y tapas) y oreja de izaje de la diagonal soldados sobre el inserto (las paredes y la oreja arrancan en z = 60); después, el resto del accionamiento."
      ],
-     "masa": 82.99147272893829,
-     "masa_total": 165.98294545787658,
+     "masa": 82.39787732845735,
+     "masa_total": 164.7957546569147,
      "marco_interrupcion": {
       "largo_desde_la_esquina": [
        604.4206671292565,
@@ -16764,11 +16804,17 @@
    },
    "pasador_E": {
     "d": 70,
-    "largo": 132,
+    "largo": 122,
     "z": [
-     59,
+     69,
      191
     ],
+    "masa": 3.685661523320107,
+    "saliente_inferior": 0,
+    "saliente_superior": 10,
+    "cara_bajo_el_pasador": 60,
+    "holgura_inferior": 9,
+    "nota": "el extremo inferior sobresale de la tapa inferior lo que permite la cara del inserto de esquina con 10 mm de diseño (de 0 = al ras de la tapa a 10 mm; se exige ≥ 5; 22-11-2026: con 10 mm el extremo quedaba bajo la cara del inserto); retención por arriba",
     "material": "Fy 650 MPa",
     "ajuste": "H9/f8"
    },
@@ -20890,7 +20936,7 @@
    "bz": 0,
    "base": 1060.9081044099905,
    "rim": 27.561685973463593,
-   "brackets": 245.53911315427467,
+   "brackets": 243.74771554621114,
    "dogs": 98.15259010881255,
    "shoes": 0,
    "beds": 0,
@@ -20898,10 +20944,10 @@
    "pivot": 18.910439987165326,
    "cyl": 110,
    "stopBars": 0,
-   "total": 3031.6904169813465,
+   "total": 3029.8990193732834,
    "camPad": 0,
-   "insertos": 165.98294545787658,
-   "insBrackets": 14.496248283778652,
+   "insertos": 164.7957546569147,
+   "insBrackets": 15.10045509088031,
    "insRim": 2.523899810874527,
    "sectorCuts": 0
   },
@@ -22443,12 +22489,12 @@
     },
     {
      "id": "c_lug",
-     "lab": "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite. 08-11-2026: 200 → 250 mm, la leva de reenganche suma ≈ 160 kg sobre la base y con 200 mm la variante B + madera quedaba a 8 % del límite, bajo el margen de 10 % del hallazgo C12; con 250 mm queda 23 % bajo el límite)",
+     "lab": "Puntos de izaje (lados y): distancia al borde (4.ª pasada: 150 → 200 mm; con hc_min = 6 la opción B pesa ≈ 4,1 t y con 150 mm la flecha de izaje pasaba del límite B/300; con 200 mm queda 15 % bajo el límite. 08-11-2026: 200 → 250 mm, la leva de reenganche suma ≈ 160 kg sobre la base y con 200 mm la variante B + madera quedaba a 8 % del límite, bajo el margen de 10 % del hallazgo C12; con 250 mm queda 23 % bajo el límite. 22-11-2026: 430 → 350 con x_lug 850 → 930, ver x_lug)",
      "u": "mm"
     },
     {
      "id": "x_lug",
-     "lab": "Puntos de izaje: distancia al eje y (10-11-2026: 600 → 850 y c 250 → 430, orejas sobre las diagonales (±850; ±850): en (±600; ±1.030) las placas-guía del sentido horario y los bloques-uña del modo pivotado pasaban sobre las orejas; en la diagonal quedan entre los dos barridos del cilindro, a 110 mm de la mesa)",
+     "lab": "Puntos de izaje: distancia al eje y (10-11-2026: 600 → 850 y c 250 → 430, orejas sobre las diagonales (±850; ±850): en (±600; ±1.030) las placas-guía del sentido horario y los bloques-uña del modo pivotado pasaban sobre las orejas; en la diagonal quedan entre los dos barridos del cilindro, a 110 mm de la mesa. 22-11-2026: 850 → 930 y c 430 → 350, (±930; ±930): el pie de la oreja de la diagonal apoya entero en el espesor pleno del inserto de esquina (con 850 caía sobre la transición 1:2,5); a ≥ 5 mm del cuerpo del cilindro hasta ≈ 955)",
      "u": "mm"
     },
     {
@@ -23016,7 +23062,7 @@
     "tss": 0,
     "tuh": 0,
     "delta": 0,
-    "mass": 3031.6904169813465,
+    "mass": 3029.8990193732834,
     "mu_d": 0.2,
     "F": 326.8622031002085,
     "p": 513.7949168721503,
@@ -23038,7 +23084,7 @@
     "tssReq": 5.553765589365775,
     "tuhReq": 0,
     "delta": 30,
-    "mass": 3871.0976180025978,
+    "mass": 3870.6094685003663,
     "mu_d": 0.2,
     "F": 327.2705475654073,
     "p": 514.4367938116131,
@@ -23050,7 +23096,7 @@
     "tFlex": 5.053765589365775,
     "tuhConf": 0,
     "qAvg": 1.0538297830071983,
-    "dTot": 839.4072010212512
+    "dTot": 840.7104491270829
    },
    {
     "k": 2,
@@ -23063,7 +23109,7 @@
     "tssReq": 5.553765589365775,
     "tuhReq": 14.07952313487774,
     "delta": 55,
-    "mass": 4034.0556289047117,
+    "mass": 4029.0482027055914,
     "mu_d": 0.2,
     "F": 327.27635449962435,
     "p": 514.4459217354141,
@@ -23075,7 +23121,7 @@
     "tFlex": 5.053765589365775,
     "tuhConf": 14.07952313487774,
     "qAvg": 1.0538297830071983,
-    "dTot": 1002.3652119233652
+    "dTot": 999.149183332308
    },
    {
     "k": 3,
@@ -23090,7 +23136,7 @@
     "tssReq": 6,
     "tuhReq": 0,
     "delta": 30,
-    "mass": 3827.4725958915524,
+    "mass": 3826.9967063490076,
     "mu_d": 0.15,
     "F": 239.66403797239937,
     "p": 376.72806246588715,
@@ -23102,7 +23148,7 @@
     "tFlex": 2.2881896904786565,
     "tuhConf": 0,
     "qAvg": 1.0538297830071983,
-    "dTot": 795.7821789102059
+    "dTot": 797.0976869757242
    }
   ]
  },
@@ -24514,7 +24560,7 @@
   }
  ],
  "cubierta": {
-  "dMasa": 65.17632624738008,
+  "dMasa": 65.17632624737962,
   "mWood": 83.75583974597616,
   "checks": [
    {
@@ -24740,7 +24786,7 @@
  "mercado": {
   "ours": {
    "name": "TT300-C (este diseño)",
-   "mass": 3031.6904169813465,
+   "mass": 3029.8990193732834,
    "capKN": 2941.995,
    "h": 230,
    "D": 2000,
@@ -24750,7 +24796,7 @@
    "rot": 12.857142857142858,
    "arm": 0.8437404928298289,
    "ru": 0.6767821986442675,
-   "massPerKN": 1.0304879569752317,
+   "massPerKN": 1.0298790512469544,
    "muImpl": 0.3774165765602588,
    "FcylPerTon": 2.9688050576423546
   },
@@ -25121,6 +25167,10 @@
     1
    ],
    [
+    "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md",
+    1
+   ],
+   [
     "ASME BTH-1 §3-2.3; docs/normas/registro.md, «Soporte del ojal E: cajón abierto (10-11-2026)»",
     1
    ],
@@ -25158,6 +25208,10 @@
    ],
    [
     "ASME BTH-1-2020 §3-2.3.6; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md",
+    1
+   ],
+   [
+    "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))",
     1
    ],
    [
@@ -25294,6 +25348,10 @@
    ],
    [
     "AISC 360-22 §D5.2(2)",
+    1
+   ],
+   [
+    "Geometría (planta); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md",
     1
    ],
    [
@@ -26237,6 +26295,17 @@
   },
   {
    "grp": "Articulaciones",
+   "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+   "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 69,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 60",
+   "dem": 5,
+   "cap": 9,
+   "unidad": "mm",
+   "fu": 0.5555555555555556,
+   "estado": "ok",
+   "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+  },
+  {
+   "grp": "Articulaciones",
    "nombre": "Tapas del cajón E: desgarro por corte hacia las paredes traseras (empuje a calado)",
    "formula": "τ = (F/2)/(2·t·a) ≤ Fy/(Nd·√3), a = mín sobre el barrido de la distancia del agujero a la pared en la dirección −u menos d_E/2 = 65,9 mm",
    "dem": 58.26356310124249,
@@ -26500,13 +26569,23 @@
   {
    "grp": "Soporte del ojal E",
    "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-   "formula": "t_inserto ≤ z inferior de la tapa inferior",
-   "dem": 60,
+   "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+   "dem": 65,
    "cap": 69,
    "unidad": "mm",
-   "fu": 0.8695652173913043,
+   "fu": 0.9420289855072463,
    "estado": "ok",
    "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+  },
+  {
+   "grp": "Soporte del ojal E",
+   "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+   "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+   "dem": 20,
+   "unidad": "mm (T1 en la junta)",
+   "fu": null,
+   "estado": "info",
+   "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
   },
   {
    "grp": "Soporte del ojal E",
@@ -26960,10 +27039,10 @@
    "grp": "Base",
    "nombre": "Izaje del conjunto: σvm en la plancha base",
    "formula": "MITC4 × k_malla, φ_izaje; máximo a ≥ 2·pad del cáncamo (la esquina de la placa de apoyo es singular)",
-   "dem": 37.13002797392399,
+   "dem": 51.6929303341451,
    "cap": 207,
    "unidad": "MPa",
-   "fu": 0.17937211581605791,
+   "fu": 0.24972430113113575,
    "estado": "ok",
    "ref": "criterio del proyecto 0,6Fy (más conservador que AISC 360-22 F11-1)"
   },
@@ -26971,10 +27050,10 @@
    "grp": "Base",
    "nombre": "Izaje: flecha de la base",
    "formula": "w ≤ B/300",
-   "dem": 3.173335995099702,
+   "dem": 5.277600902554467,
    "cap": 8.533333333333333,
    "unidad": "mm",
-   "fu": 0.37187531192574635,
+   "fu": 0.6184688557681016,
    "estado": "ok",
    "ref": "Criterio del proyecto"
   },
@@ -26983,9 +27062,9 @@
    "nombre": "Punto de izaje fuera de la mesa",
    "formula": "D/2 + 10 + 35 ≤ √(x_izaje² + (B/2 − c)²) (huella Ø70)",
    "dem": 1045,
-   "cap": 1202.081528017131,
+   "cap": 1315.2186130069786,
    "unidad": "mm",
-   "fu": 0.8693253956940495,
+   "fu": 0.7945447164945614,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -26994,9 +27073,9 @@
    "nombre": "Punto de izaje dentro del marco",
    "formula": "t_marco + 35 ≤ c",
    "dem": 45,
-   "cap": 430,
+   "cap": 350,
    "unidad": "mm",
-   "fu": 0.10465116279069768,
+   "fu": 0.12857142857142856,
    "estado": "ok",
    "ref": "Geometría"
   },
@@ -27005,20 +27084,20 @@
    "nombre": "Orejas de izaje libres de las partes móviles del accionamiento (cuerpo y vástago del cilindro, bloque-uña y cubo de Q) en todo el empuje y el retorno, ambos sentidos y cilindros",
    "formula": "mín dist(huella de la oreja; huellas móviles en 880 estados) ≥ 5 mm (la oreja llega a h + R = 182 mm: comparte cota con todas las partes) (mínimo: oreja de izaje 2 – cuerpo del cilindro (cilindro 2, antihorario))",
    "dem": 5,
-   "cap": 85.06127533083573,
+   "cap": 25.02081565737024,
    "unidad": "mm",
-   "fu": 0.058781154885734946,
+   "fu": 0.1998336132789971,
    "estado": "ok",
    "ref": "Geometría (planta); docs/normas/registro.md, «Elementos sobre la base: holguras (10-11-2026)»"
   },
   {
    "grp": "Orejas de izaje",
    "nombre": "Orejas de izaje libres de las placas-guía, los soportes del ojal E y la mesa",
-   "formula": "mín dist(huella de la oreja; placas-guía, piezas de los soportes E, círculo R = D/2) ≥ 5 mm (mínimo: oreja de izaje 4 – mesa con la interfaz y sus topes (R = D/2))",
+   "formula": "mín dist(huella de la oreja; placas-guía, piezas de los soportes E, círculo R = D/2) ≥ 5 mm (mínimo: oreja de izaje 2 – soporte E 2 · tapa_inf)",
    "dem": 5,
-   "cap": 110.08152801713082,
+   "cap": 118.00146425382307,
    "unidad": "mm",
-   "fu": 0.045420881142037774,
+   "fu": 0.04237235556030829,
    "estado": "ok",
    "ref": "Geometría (planta); docs/normas/registro.md, «Elementos sobre la base: holguras (10-11-2026)»"
   },
@@ -27026,10 +27105,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: aplastamiento del agujero (pasador del grillete d − g)",
    "formula": "σ = T/(d_p·t) ≤ 1,25·Fy/Nd",
-   "dem": 19.677739046138583,
+   "dem": 19.66611165355856,
    "cap": 143.75,
    "unidad": "MPa",
-   "fu": 0.13688861945139885,
+   "fu": 0.1368077332421465,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.3; ASME B30.26 (grillete)"
   },
@@ -27037,10 +27116,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: tracción en la sección neta del agujero",
    "formula": "σ = T/(2(R − d/2)·t) ≤ Fy/Nd",
-   "dem": 5.945791654228924,
+   "dem": 5.942278341363018,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.05170253612372978,
+   "fu": 0.05167198557706972,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.1; AISC 360-22 D2"
   },
@@ -27048,10 +27127,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: desgarro por corte detrás del agujero",
    "formula": "τ = T/(2(R − d/2)·t) ≤ Fy/(Nd·√3)",
-   "dem": 5.945791654228924,
+   "dem": 5.942278341363018,
    "cap": 66.39528095680696,
    "unidad": "MPa",
-   "fu": 0.08955141944646522,
+   "fu": 0.08949850434745099,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3.6; AISC 360-22 D5"
   },
@@ -27059,10 +27138,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: soldadura a la base (filete a ambos lados, T vertical + T horizontal con brazo h)",
    "formula": "f = √[(Tv/(2aL) + Th·h/S)² + (Th/(2aL))²] ≤ 0,60FEXX/(1,2Nd); L = 2R, a = 0,707w, S = 2aL²/6",
-   "dem": 17.05612184349857,
+   "dem": 17.046043540086675,
    "cap": 81.66666666666667,
    "unidad": "MPa",
-   "fu": 0.2088504715530437,
+   "fu": 0.20872706375616334,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-3.4; AISC 360-22 J2.4"
   },
@@ -27070,10 +27149,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: placa en la base: flexión Th·h + tracción Tv",
    "formula": "σ = Th·h/(t·(2R)²/6) + Tv/(2R·t) ≤ Fy/Nd",
-   "dem": 10.480909417815816,
+   "dem": 10.474716346136653,
    "cap": 115,
    "unidad": "MPa",
-   "fu": 0.09113834276361579,
+   "fu": 0.09108448996640567,
    "estado": "ok",
    "ref": "AISC 360-22 D2; ASME BTH-1 §3-2.1 y §3-2.3"
   },
@@ -27081,10 +27160,10 @@
    "grp": "Orejas de izaje",
    "nombre": "Oreja: placa en la base: corte Th",
    "formula": "τ = Th/(2R·t) ≤ Fy/(Nd·√3)",
-   "dem": 2.245828912874513,
+   "dem": 2.2445018735039666,
    "cap": 66.39528095680696,
    "unidad": "MPa",
-   "fu": 0.0338251285409203,
+   "fu": 0.03380514158776003,
    "estado": "ok",
    "ref": "ASME BTH-1 §3-2.3.6"
   },
@@ -27134,6 +27213,17 @@
   },
   {
    "grp": "Orejas de izaje",
+   "nombre": "Oreja: pie sobre el espesor pleno del inserto de esquina (orejas de la diagonal)",
+   "formula": "2 orejas sobre los insertos de 60 mm: huella del pie con los filetes 2R × (t + 2w) = 184 × 34 mm dentro del contorno «espesor pleno» (y fuera del rebaje con su borde 1:2,5) con ≥ 5 mm; las que no caen en el inserto, a ≥ 5 mm de su contorno; mínimo: oreja de izaje 3 (12,5 mm; espesor pleno 27,3, rebaje 12,5). Chaflán de las muescas: 0,0 / 0,0 mm",
+   "dem": 5,
+   "cap": 12.520815657370239,
+   "unidad": "mm",
+   "fu": 0.39933500634655583,
+   "estado": "ok",
+   "ref": "Geometría (planta); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+  },
+  {
+   "grp": "Orejas de izaje",
    "nombre": "Oreja: filete máximo según el borde de la placa",
    "formula": "w_oreja ≤ w_máx(t_oreja) (t < 6: t; t ≥ 6: t − 2 mm)",
    "dem": 8,
@@ -27147,7 +27237,7 @@
    "grp": "Orejas de izaje",
    "nombre": "Tensión por oreja (3 ramales efectivos a 60°) y WLL mínimo del grillete",
    "formula": "T = m·φ·g/(3·sen 60°)",
-   "dem": 14.87637071888077,
+   "dem": 14.867580410090271,
    "unidad": "kN",
    "fu": null,
    "estado": "info",
@@ -27156,9 +27246,9 @@
   {
    "grp": "Orejas de izaje",
    "nombre": "Ramales: longitud mínima para un ángulo ≥ 60° sobre la horizontal (el 60° es una cota mínima)",
-   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1202 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
-   "dem": 2404.1630560342614,
-   "cap": 2082.066281365701,
+   "formula": "ángulo ≥ 60° (cota mínima) ⇒ L ≥ d/cos 60° = 2·d (d = distancia oreja–eje = 1315 mm; altura del vértice ≥ d·tan 60°): ramales más cortos bajan el ángulo y suben T = W/(n·sen θ) y Th; en las cifras de arriba el ángulo es 60°",
+   "dem": 2630.4372260139567,
+   "cap": 2278.0254607883553,
    "unidad": "mm (longitud mínima / altura del vértice)",
    "fu": null,
    "estado": "info",
@@ -27168,7 +27258,7 @@
    "grp": "Base",
    "nombre": "WLL requerido por cáncamo (eslinga 4 ramales, 3 efectivas, 60°)",
    "formula": "m·φ / (3·sin 60°)",
-   "dem": 1.516967641231284,
+   "dem": 1.5160712791922086,
    "unidad": "t",
    "fu": null,
    "estado": "info",
@@ -27277,7 +27367,7 @@
      "tss": 0,
      "tuh": 0,
      "tbz": 0,
-     "masa20": 3031.6904169813465,
+     "masa20": 3029.8990193732834,
      "L": {}
     },
     "FS20": 1.362411298775429,
@@ -27319,7 +27409,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8504092051123628
       },
-      "masa": 3031.6904169813465,
+      "masa": 3029.8990193732834,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -27575,6 +27665,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 69,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 60",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -27914,15 +28018,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 60,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 65,
         "cap": 69,
         "unidad": "mm",
-        "fu": 0.8695652173913043,
-        "fu20": 0.8695652173913043,
+        "fu": 0.9420289855072463,
+        "fu20": 0.9420289855072463,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -28525,7 +28642,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 0,
        "warn": 0
       },
@@ -28829,7 +28946,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8926452299570833
       },
-      "masa": 3031.6904169813465,
+      "masa": 3029.8990193732834,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -29085,6 +29202,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 69,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 60",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -29424,15 +29555,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 60,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 65,
         "cap": 69,
         "unidad": "mm",
-        "fu": 0.8695652173913043,
-        "fu20": 0.8695652173913043,
+        "fu": 0.9420289855072463,
+        "fu20": 0.9420289855072463,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -30035,7 +30179,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 2,
        "warn": 1
       },
@@ -30473,7 +30617,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9354333597017348
       },
-      "masa": 3031.6904169813465,
+      "masa": 3029.8990193732834,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -30729,6 +30873,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 69,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 60",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -31068,15 +31226,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 60,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 65,
         "cap": 69,
         "unidad": "mm",
-        "fu": 0.8695652173913043,
-        "fu20": 0.8695652173913043,
+        "fu": 0.9420289855072463,
+        "fu20": 0.9420289855072463,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -31679,7 +31850,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 4,
        "warn": 0
       },
@@ -32141,7 +32312,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9787735943463174
       },
-      "masa": 3031.6904169813465,
+      "masa": 3029.8990193732834,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -32397,6 +32568,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 69,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 60",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -32736,15 +32921,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 60,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 65,
         "cap": 69,
         "unidad": "mm",
-        "fu": 0.8695652173913043,
-        "fu20": 0.8695652173913043,
+        "fu": 0.9420289855072463,
+        "fu20": 0.9420289855072463,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -33347,7 +33545,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 4,
        "warn": 2
       },
@@ -33810,7 +34008,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 1.0226659338908308
       },
-      "masa": 3031.6904169813465,
+      "masa": 3029.8990193732834,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 2,
@@ -34066,6 +34264,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 69,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 60",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -34405,15 +34617,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 60,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 65,
         "cap": 69,
         "unidad": "mm",
-        "fu": 0.8695652173913043,
-        "fu20": 0.8695652173913043,
+        "fu": 0.9420289855072463,
+        "fu20": 0.9420289855072463,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 100 mm) lleva la cara del inserto de 60 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -35016,7 +35241,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 5,
        "warn": 1
       },
@@ -35528,7 +35753,7 @@
      "tss2": 15,
      "tuh": 0,
      "tbz": 0,
-     "masa20": 3871.0976180025978,
+     "masa20": 3870.6094685003663,
      "L": {
       "disc0": 175,
       "disc1": 175
@@ -35573,7 +35798,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8504273457491902
       },
-      "masa": 3871.0976180025978,
+      "masa": 3870.6094685003663,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -35829,6 +36054,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -36098,7 +36337,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -36126,12 +36365,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -36168,15 +36407,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -36779,7 +37031,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 0,
        "warn": 0
       },
@@ -37133,7 +37385,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8926633705939107
       },
-      "masa": 3871.0976180025978,
+      "masa": 3870.6094685003663,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -37389,6 +37641,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -37658,7 +37924,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -37686,12 +37952,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -37728,15 +37994,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -38339,7 +38618,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 2,
        "warn": 1
       },
@@ -38935,7 +39214,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9354515003385622
       },
-      "masa": 3871.0976180025978,
+      "masa": 3870.6094685003663,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 2,
@@ -39191,6 +39470,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -39460,7 +39753,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -39488,12 +39781,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -39530,15 +39823,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -40141,7 +40447,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 4,
        "warn": 0
       },
@@ -40781,7 +41087,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9787917349831448
       },
-      "masa": 3871.0976180025978,
+      "masa": 3870.6094685003663,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 2,
@@ -41037,6 +41343,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -41306,7 +41626,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -41334,12 +41654,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -41376,15 +41696,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -41987,7 +42320,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 4,
        "warn": 2
       },
@@ -42628,7 +42961,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 1.0226840745276582
       },
-      "masa": 3871.0976180025978,
+      "masa": 3870.6094685003663,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 4,
@@ -42884,6 +43217,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -43153,7 +43500,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -43181,12 +43528,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -43223,15 +43570,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -43834,7 +44194,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 5,
        "warn": 1
       },
@@ -44539,7 +44899,7 @@
      "tss2": 15,
      "tuh": 25,
      "tbz": 0,
-     "masa20": 4034.0556289047117,
+     "masa20": 4029.0482027055914,
      "L": {
       "disc0": 175,
       "uhmw": 769
@@ -44584,7 +44944,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8504276037212766
       },
-      "masa": 4034.0556289047117,
+      "masa": 4029.0482027055914,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -44840,6 +45200,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 114,0 (saliente bajo la tapa inferior 10,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 24,
+        "unidad": "mm",
+        "fu": 0.20833333333333334,
+        "fu20": 0.20833333333333334,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -45109,7 +45483,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1761 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1671 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 141.6405017780937,
         "cap": 143.75,
@@ -45137,12 +45511,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
         "dem": 5,
-        "cap": 8,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.625,
-        "fu20": 0.625,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -45179,15 +45553,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 124,
         "unidad": "mm",
-        "fu": 0.7258064516129032,
-        "fu20": 0.7258064516129032,
+        "fu": 0.7661290322580645,
+        "fu20": 0.7661290322580645,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -45790,7 +46177,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 0,
        "warn": 3
       },
@@ -46208,7 +46595,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.892663628565997
       },
-      "masa": 4034.0556289047117,
+      "masa": 4029.0482027055914,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 1,
@@ -46464,6 +46851,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 114,0 (saliente bajo la tapa inferior 10,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 24,
+        "unidad": "mm",
+        "fu": 0.20833333333333334,
+        "fu20": 0.20833333333333334,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -46733,7 +47134,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1761 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1671 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 141.6405017780937,
         "cap": 143.75,
@@ -46761,12 +47162,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
         "dem": 5,
-        "cap": 8,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.625,
-        "fu20": 0.625,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -46803,15 +47204,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 124,
         "unidad": "mm",
-        "fu": 0.7258064516129032,
-        "fu20": 0.7258064516129032,
+        "fu": 0.7661290322580645,
+        "fu20": 0.7661290322580645,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -47414,7 +47828,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 2,
        "warn": 4
       },
@@ -48095,7 +48509,7 @@
        "nombre": "Lámina UHMW (24 sectores): junta de dilatación requerida frente a la disponible en frío (no debe cerrarse)",
        "fu": 1.0307508370515006
       },
-      "masa": 4034.0556289047117,
+      "masa": 4029.0482027055914,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 4,
@@ -48351,6 +48765,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 114,0 (saliente bajo la tapa inferior 10,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 24,
+        "unidad": "mm",
+        "fu": 0.20833333333333334,
+        "fu20": 0.20833333333333334,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -48620,7 +49048,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1761 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1671 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 141.6405017780937,
         "cap": 143.75,
@@ -48648,12 +49076,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
         "dem": 5,
-        "cap": 8,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.625,
-        "fu20": 0.625,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -48690,15 +49118,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 124,
         "unidad": "mm",
-        "fu": 0.7258064516129032,
-        "fu20": 0.7258064516129032,
+        "fu": 0.7661290322580645,
+        "fu20": 0.7661290322580645,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -49301,7 +49742,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 4,
        "warn": 3
       },
@@ -50025,7 +50466,7 @@
        "nombre": "Lámina UHMW (24 sectores): junta de dilatación requerida frente a la disponible en frío (no debe cerrarse)",
        "fu": 1.5454301158854107
       },
-      "masa": 4034.0556289047117,
+      "masa": 4029.0482027055914,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 6,
@@ -50281,6 +50722,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 114,0 (saliente bajo la tapa inferior 10,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 24,
+        "unidad": "mm",
+        "fu": 0.20833333333333334,
+        "fu20": 0.20833333333333334,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -50550,7 +51005,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1761 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1671 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 141.6405017780937,
         "cap": 143.75,
@@ -50578,12 +51033,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
         "dem": 5,
-        "cap": 8,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.625,
-        "fu20": 0.625,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -50620,15 +51075,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 124,
         "unidad": "mm",
-        "fu": 0.7258064516129032,
-        "fu20": 0.7258064516129032,
+        "fu": 0.7661290322580645,
+        "fu20": 0.7661290322580645,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -51231,7 +51699,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 4,
        "warn": 5
       },
@@ -51986,7 +52454,7 @@
        "nombre": "Lámina UHMW (24 sectores): junta de dilatación requerida frente a la disponible en frío (no debe cerrarse)",
        "fu": 2.059645301591427
       },
-      "masa": 4034.0556289047117,
+      "masa": 4029.0482027055914,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 10,
@@ -52242,6 +52710,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 114,0 (saliente bajo la tapa inferior 10,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 24,
+        "unidad": "mm",
+        "fu": 0.20833333333333334,
+        "fu20": 0.20833333333333334,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -52511,7 +52993,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1761 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1671 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 141.6405017780937,
         "cap": 143.75,
@@ -52539,12 +53021,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 8 mm de diseño)",
         "dem": 5,
-        "cap": 8,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.625,
-        "fu20": 0.625,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -52581,15 +53063,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 124,
         "unidad": "mm",
-        "fu": 0.7258064516129032,
-        "fu20": 0.7258064516129032,
+        "fu": 0.7661290322580645,
+        "fu20": 0.7661290322580645,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -53192,7 +53687,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 86,
+       "n": 88,
        "fail": 5,
        "warn": 4
       },
@@ -53950,6 +54445,13 @@
         "fu": 0.9176634733139823
        },
        {
+        "grp": "Orejas de izaje",
+        "nombre": "Oreja: pie sobre el espesor pleno del inserto de esquina (orejas de la diagonal)",
+        "de": "ok",
+        "a": "fail",
+        "fu": null
+       },
+       {
         "grp": "Temperatura",
         "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
         "de": "warn",
@@ -54112,7 +54614,7 @@
      "tss2": 15,
      "tuh": 0,
      "tbz": 15,
-     "masa20": 3827.4725958915524,
+     "masa20": 3826.9967063490076,
      "L": {
       "bz0": 215,
       "bz1": 155
@@ -54157,7 +54659,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8504273457491902
       },
-      "masa": 3827.4725958915524,
+      "masa": 3826.9967063490076,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -54413,6 +54915,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -54682,7 +55198,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -54710,12 +55226,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -54752,15 +55268,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -55391,7 +55920,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 0,
        "warn": 0
       },
@@ -55757,7 +56286,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8926633705939107
       },
-      "masa": 3827.4725958915524,
+      "masa": 3826.9967063490076,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -56013,6 +56542,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -56282,7 +56825,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -56310,12 +56853,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -56352,15 +56895,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -56991,7 +57547,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 0,
        "warn": 2
       },
@@ -57539,7 +58095,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9354515003385622
       },
-      "masa": 3827.4725958915524,
+      "masa": 3826.9967063490076,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -57795,6 +58351,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -58064,7 +58634,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -58092,12 +58662,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -58134,15 +58704,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -58773,7 +59356,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 4,
        "warn": 0
       },
@@ -59345,7 +59928,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9787917349831448
       },
-      "masa": 3827.4725958915524,
+      "masa": 3826.9967063490076,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -59601,6 +60184,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -59870,7 +60467,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -59898,12 +60495,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -59940,15 +60537,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -60579,7 +61189,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 4,
        "warn": 2
       },
@@ -61152,7 +61762,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 1.0226840745276582
       },
-      "masa": 3827.4725958915524,
+      "masa": 3826.9967063490076,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 2,
@@ -61408,6 +62018,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -61677,7 +62301,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -61705,12 +62329,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -61747,15 +62371,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -62386,7 +63023,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 5,
        "warn": 1
       },
@@ -63042,7 +63679,7 @@
      "tss2": 15,
      "tuh": 0,
      "tbz": 15,
-     "masa20": 3801.936343060709,
+     "masa20": 3801.4604535181643,
      "L": {
       "bz0": 215,
       "bz1": 375
@@ -63087,7 +63724,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8504262747968172
       },
-      "masa": 3801.936343060709,
+      "masa": 3801.4604535181643,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -63343,6 +63980,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -63612,7 +64263,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -63640,12 +64291,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -63682,15 +64333,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -64321,7 +64985,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 0,
        "warn": 0
       },
@@ -64687,7 +65351,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.8926622996415376
       },
-      "masa": 3801.936343060709,
+      "masa": 3801.4604535181643,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -64943,6 +65607,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -65212,7 +65890,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -65240,12 +65918,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -65282,15 +65960,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -65921,7 +66612,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 0,
        "warn": 2
       },
@@ -66469,7 +67160,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9354504293861892
       },
-      "masa": 3801.936343060709,
+      "masa": 3801.4604535181643,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -66725,6 +67416,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -66994,7 +67699,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -67022,12 +67727,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -67064,15 +67769,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -67703,7 +68421,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 4,
        "warn": 0
       },
@@ -68275,7 +68993,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 0.9787906640307718
       },
-      "masa": 3801.936343060709,
+      "masa": 3801.4604535181643,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -68531,6 +69249,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -68800,7 +69532,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -68828,12 +69560,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -68870,15 +69602,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -69509,7 +70254,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 4,
        "warn": 2
       },
@@ -70082,7 +70827,7 @@
        "nombre": "Gradiente: plancha superior (global + local) más σ térmica restringida",
        "fu": 1.0226830035752852
       },
-      "masa": 3801.936343060709,
+      "masa": 3801.4604535181643,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 2,
@@ -70338,6 +71083,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -70607,7 +71366,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -70635,12 +71394,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -70677,15 +71436,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -71316,7 +72088,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 5,
        "warn": 1
       },
@@ -71972,7 +72744,7 @@
      "tss2": 15,
      "tuh": 0,
      "tbz": 15,
-     "masa20": 3797.026832238748,
+     "masa20": 3796.550942696203,
      "L": {
       "bz0": 215,
       "bz1": 155
@@ -72017,7 +72789,7 @@
        "nombre": "Gradiente: plancha inferior (global + local) más σ térmica restringida",
        "fu": 0.9199297987397775
       },
-      "masa": 3797.026832238748,
+      "masa": 3796.550942696203,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -72273,6 +73045,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -72542,7 +73328,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -72570,12 +73356,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -72612,15 +73398,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -73251,7 +74050,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 0,
        "warn": 0
       },
@@ -73617,7 +74416,7 @@
        "nombre": "Gradiente: plancha inferior (global + local) más σ térmica restringida",
        "fu": 0.962165823584498
       },
-      "masa": 3797.026832238748,
+      "masa": 3796.550942696203,
       "pendientes_criticos": [],
       "estado_global": "CUMPLE",
       "nFail": 0,
@@ -73873,6 +74672,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -74142,7 +74955,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -74170,12 +74983,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -74212,15 +75025,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -74851,7 +75677,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 0,
        "warn": 2
       },
@@ -75399,7 +76225,7 @@
        "nombre": "Gradiente: plancha inferior (global + local) más σ térmica restringida",
        "fu": 1.0049539533291494
       },
-      "masa": 3797.026832238748,
+      "masa": 3796.550942696203,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 1,
@@ -75655,6 +76481,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -75924,7 +76764,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -75952,12 +76792,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -75994,15 +76834,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -76633,7 +77486,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 4,
        "warn": 0
       },
@@ -77205,7 +78058,7 @@
        "nombre": "Gradiente: plancha inferior (global + local) más σ térmica restringida",
        "fu": 1.048294187973732
       },
-      "masa": 3797.026832238748,
+      "masa": 3796.550942696203,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 1,
@@ -77461,6 +78314,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -77730,7 +78597,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -77758,12 +78625,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -77800,15 +78667,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -78439,7 +79319,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 4,
        "warn": 2
       },
@@ -79012,7 +79892,7 @@
        "nombre": "Gradiente: plancha inferior (global + local) más σ térmica restringida",
        "fu": 1.0921865275182454
       },
-      "masa": 3797.026832238748,
+      "masa": 3796.550942696203,
       "pendientes_criticos": [],
       "estado_global": "NO CUMPLE",
       "nFail": 2,
@@ -79268,6 +80148,20 @@
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "ASME BTH-1 §3-3.3"
+       },
+       {
+        "grp": "Articulaciones",
+        "sub": null,
+        "nombre": "Pasador vertical E: extremo inferior sobre la cara del inserto de esquina",
+        "formula": "z_inf,pasador − t_inserto ≥ 5 mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10)) = 99,0 (saliente bajo la tapa inferior 0,0 mm), cara del inserto a z = 90",
+        "dem": 5,
+        "cap": 9,
+        "unidad": "mm",
+        "fu": 0.5555555555555556,
+        "fu20": 0.5555555555555556,
+        "estado_informativo": "ok",
+        "estado20": "ok",
+        "ref": "Geometría (alzado); docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
        },
        {
         "grp": "Articulaciones",
@@ -79537,7 +80431,7 @@
        {
         "grp": "Soporte del ojal E",
         "sub": null,
-        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1663 mm por inserto) en la línea de la junta",
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: CJP inserto–base (J-I1, a tope, 1569 mm por inserto) en la línea de la junta",
         "formula": "La CJP desarrolla el metal base de la parte más delgada (t_base = 20 mm): FU = σ/(1,25·Fy/Nd) con la tensión máxima de las filas de flexión (cota: la tensión en la junta no la supera)",
         "dem": 126.85774910081564,
         "cap": 143.75,
@@ -79565,12 +80459,12 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: holgura en planta a las piezas apoyadas en la base",
-        "formula": "mín dist(placa-guía 1_antihorario; contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
+        "formula": "mín dist(cubo y pasador Q (antihorario); contorno del inserto) ≥ 5 mm (muesca con 10 mm de diseño)",
         "dem": 5,
-        "cap": 10,
+        "cap": 5.999999999999969,
         "unidad": "mm",
-        "fu": 0.5,
-        "fu20": 0.5,
+        "fu": 0.8333333333333377,
+        "fu20": 0.8333333333333377,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
@@ -79607,15 +80501,28 @@
         "grp": "Soporte del ojal E",
         "sub": null,
         "nombre": "Plancha base bajo el soporte del ojal E: inserto: la tapa inferior del ojal E queda sobre el inserto",
-        "formula": "t_inserto ≤ z inferior de la tapa inferior",
-        "dem": 90,
+        "formula": "t_inserto + 5 ≤ z inferior de la tapa inferior (holgura del extremo inferior del pasador E sobre la cara del inserto)",
+        "dem": 95,
         "cap": 99,
         "unidad": "mm",
-        "fu": 0.9090909090909091,
-        "fu20": 0.9090909090909091,
+        "fu": 0.9595959595959596,
+        "fu20": 0.9595959595959596,
         "estado_informativo": "ok",
         "estado20": "ok",
         "ref": "Geometría; docs/normas/registro.md, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md"
+       },
+       {
+        "grp": "Soporte del ojal E",
+        "sub": null,
+        "nombre": "Plancha base bajo el soporte del ojal E: inserto: J-I1: designación precalificada de la CJP",
+        "formula": "B-U3b (verificar contra AWS D1.1/D1.1M:2020 Figura 5.1 (cita de memoria)): doble V simétrica a tope con resanado de raíz, T1 = 20 mm, raíz R = 0–3 mm, talón f = 0–3 mm, α = β = 60°; la transición 1:2,5 (ancho 175 mm) lleva la cara del inserto de 90 mm a t_base = 20 mm en la línea de la junta: la CJP une dos espesores de 20 mm (T1 = t_base) y el bisel de la transición se mecaniza antes de preparar la doble V; resanado de raíz por la cara inferior (base volteada) y amolado al ras",
+        "dem": 20,
+        "unidad": "mm (T1 en la junta)",
+        "fu": null,
+        "fu20": null,
+        "estado_informativo": "info",
+        "estado20": "info",
+        "ref": "AWS D1.1/D1.1M:2020 Figura 5.1 (CJP precalificadas: junta a tope (B), en doble V (U3), con resanado de raíz (b))"
        },
        {
         "grp": "Soporte del ojal E",
@@ -80246,7 +81153,7 @@
        }
       ],
       "fuera_resumen": {
-       "n": 88,
+       "n": 90,
        "fail": 5,
        "warn": 1
       },

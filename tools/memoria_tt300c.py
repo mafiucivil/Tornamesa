@@ -27,6 +27,24 @@ PB = ALT["plancha_base"]                               # plancha base: base de t
 MOD = {x["id"]: x for x in PB["modelos"]}
 INS = PIV["fabricacion"]["soporte_E"]["inserto"]       # inserto del diseño por defecto
 LIM = D["verdict"]["limitaciones_uso"]                 # limitaciones de uso (casos excluidos del diseño)
+# J-I1 (núcleo f2dc2b5): la designación precalificada es inserto.juntas[0].designacion (B-U3b, AWS D1.1:2020 Figura 5.1); la referencia de las filas de la CJP
+# conserva el texto anterior «B-U3: verificar designación». La memoria cita en todas las filas la designación que exporta el núcleo.
+_JDES = INS["juntas"][0]["designacion"]
+
+
+def _ref_ji1(o):
+    if isinstance(o, dict):
+        for k_, v_ in o.items():
+            if k_ in ("ref", "norma") and isinstance(v_, str):
+                o[k_] = v_.replace("B-U3: verificar designación", _JDES + ": verificar designación")
+            else:
+                _ref_ji1(v_)
+    elif isinstance(o, list):
+        for v_ in o:
+            _ref_ji1(v_)
+
+
+_ref_ji1(D); _ref_ji1(ALT)
 # El control 3D de masas solo vale si el modelo 3D es del mismo diseño que el núcleo (los juegos de planos se generan a pedido; un masas3d.json de otro juego se descarta)
 if M3:
     _g3 = {"mesa": "disc"}
@@ -188,6 +206,7 @@ ABBR = {"Demanda": "Dem.", "Capacidad": "Cap.", "Referencia": "Ref.", "Verificac
         "Independiente": "Indep.", "Herramienta": "Herram.", "Cantidad": "Cant.", "Espesor": "Esp.", "Magnitud": "Magn.", "Velocidad": "Veloc.",
         "Potencia": "Pot.", "Tolerancia": "Tol.", "Modificación": "Modif.", "Resultado": "Result.", "diseño": "dis.", "agregada": "agr."}
 HDR_CORTE = []
+UNI_CORTE = []
 _CELL_PAD_MM = 2 * 1.905
 
 
@@ -233,6 +252,8 @@ def table(headers, rows, widths=None, size=8.5, num_cols=(), repeat=True):
                     sz -= 0.25
                 if max((_w_mm(w, sz, False) for w in sv.split()), default=0) > widths[i] - _CELL_PAD_MM:
                     sv = " ".join(ABBR.get(w, w) for w in sv.split())
+            if widths and headers[i] in ("Unidad", "Ud.") and max((_w_mm(w, sz, False) for w in sv.split()), default=0) > widths[i] - _CELL_PAD_MM:
+                UNI_CORTE.append((sv, widths[i], sz))     # palabra que no cabe en una columna «Unidad»: el generador se detiene (assert al final)
             r = par.add_run(sv); r.font.size = Pt(sz); r.font.color.rgb = BLACK
             if i in num_cols: par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     if widths:
@@ -493,8 +514,8 @@ table(["Componente (pivotado / guiado)", "Pivotado (kg)", "Guiado con leva (kg)"
       [[_lab(k, a), n(m[k], 4) if m[k] else "—", n(mg[k], 4) if mg[k] else "—"] for a, k in mrows], widths=(110, 30, 30), num_cols=(1, 2), size=8.5)
 T(f"Resultado: masa total {n(m['total'], 5, 'kg')} con el modo pivotado y {n(mg['total'], 5, 'kg')} con el guiado con leva ({n(mg['total'] - m['total'], 3, 'kg')} más). "
   "La mesa, la base y el pivote son iguales en los dos modos; la diferencia está en el accionamiento (patines, bancadas, ménsulas y riel-leva con pórticos frente a cajones del ojal E, bloques-uña y placas-guía).", bold=True, size=9)
-T(f"La fila del soporte del ojal E incluye los {pint(INS['n'])} insertos de esquina de la base ({n(m['insertos'], 4, 'kg')}, menos {n(m['insBrackets'], 3, 'kg')} de paredes más cortas; el marco, {n(m['insRim'], 3, 'kg')} menos). "
-  f"Frente a la memoria anterior (base de {pint(PB['antes']['t_base'])} mm sin inserto: {n(PB['antes']['masas']['total'], 5, 'kg')}) la masa total aumenta {n(m['total'] - PB['antes']['masas']['total'], 4, 'kg')} (7.10.8).", size=9)
+T(f"La fila del soporte del ojal E incluye los {pint(INS['n'])} insertos de esquina de la base ({n(m['insertos'], 4, 'kg')}, menos {n(m['insBrackets'], 3, 'kg')} de paredes del soporte y pasadores E más cortos; el marco, {n(m['insRim'], 3, 'kg')} menos). "
+  f"Frente a la memoria anterior (base de {pint(PB['antes']['t_base'])} mm sin inserto: {n(PB['antes']['masas']['total'], 5, 'kg')}) la masa total aumenta {n(m['total'] - PB['antes']['masas']['total'], 4, 'kg')} (7.10.9).", size=9)
 if M3:
     M3m = M3["masas"]
     T(f"Control: las masas se recalculan sobre el modelo 3D (CadQuery). Diferencia 3D frente al núcleo (masa comparable {n(M3m['total_nucleo'])} kg): {n(M3m['dif_pct'])} % (tolerancia {n(M3m['tol_pct'])} %). "
@@ -553,19 +574,26 @@ table(["Alternativa", "Disco inox o duro: t_flex / t_req → adoptado (mm)", "UH
       [[r["name"], "—" if r["k"] == 0 else f"{n(r['tFlex'])} / {n(r['tssReq'])} → {n(r['tss'])}" + ("" if (r['tss2'] == r['tss'] and r['tss2Req'] == r['tssReq']) else f" · mesa {n(r['tss2Req'])} → {n(r['tss2'])}"), "—" if r["k"] != 2 else f"{n(r['tuhReq'])} → {n(r['tuh'])}", "—" if r["k"] != 3 else f"{n(r['tFlexB'])} / {n(r['tbzReq'])} → {n(r['tbz'])}",
         "—" if r["k"] == 0 else n(r["delta"]), "—" if r["k"] == 0 else "+" + n(r["dTot"]), n(r["mass"]), n(r["mu_d"]), n(r["F"]), n(r["p"]), n(r["FS"])] for r in IF],
       widths=(30, 22, 16, 22, 12, 12, 12, 10, 12, 11, 11), size=6.5, num_cols=tuple(range(4, 11)))
+def usplit(nombre, unidad):
+    """Columna «Unidad» angosta: la aclaración entre paréntesis de la unidad («kg (descuento / neta)») pasa al nombre de la verificación, entre corchetes."""
+    u, *par = str(unidad).split(" (", 1)
+    return (nombre + f" [{par[0][:-1] if par[0].endswith(')') else par[0]}]" if par else nombre), u
+
+
 def ifrows(L, only=None):
     out = []
     for c in L:
         if only and not any(k in c["nombre"] for k in only): continue
         info = c["estado"] == "info"
-        out.append([c["nombre"], c["formula"], nd(c["dem"], c["unidad"]), "—" if c.get("cap") is None else nd(c["cap"], c["unidad"]), c["unidad"], "—" if info or c.get("fu") is None else fu3(c["fu"]), EST.get(c["estado"], c["estado"]), c["ref"]])
+        nm, u = usplit(c["nombre"], c["unidad"])
+        out.append([nm, c["formula"], nd(c["dem"], c["unidad"]), "—" if c.get("cap") is None else nd(c["cap"], c["unidad"]), u, "—" if info or c.get("fu") is None else fu3(c["fu"]), EST.get(c["estado"], c["estado"]), c["ref"]])
     return out
 T("Verificaciones de la opción A (los discos de la opción B tienen las mismas, con q levemente mayor por el peso del disco y la lámina):", size=9, after=1)
 table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["A"]),
-      widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
+      widths=(38, 38, 12, 12, 14, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
 T("Verificaciones adicionales de la opción B (lámina de UHMW):", size=9, after=1)
 table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["B"], ("UHMW", "Masa agregada", "Altura")),
-      widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
+      widths=(38, 38, 12, 12, 14, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
 _g1 = TPA["C1"]["geom"]
 T("Opción C. La placa de bronce con tapones de grafito va fija a la base y desliza contra un disco duro (≥ 100 HB sobre el bronce) fijo a la mesa; el desgaste queda en el bronce, que se reemplaza. "
   "Espesor: t_flex = a·√(0,75q_loc/(0,6Fy_bz)); t_req = t_flex/√η + sobreespesor, con η = (p − d)/p = {0} por los tapones de grafito. "
@@ -574,7 +602,7 @@ T("Opción C. La placa de bronce con tapones de grafito va fija a la base y desl
       n(_g1["eta"]), pint(P["bz_fg_modo"]), n(_g1["fg_real"]), pint(_g1["N_real"]), n(_g1["fg_ideal"]), n(P["bz_cover"])), size=9)
 T("Verificaciones de la opción C (bronce con tapones de grafito):", size=9, after=1)
 table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(D["interfazChecks"]["C"]),
-      widths=(38, 42, 12, 12, 10, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
+      widths=(38, 38, 12, 12, 14, 12, 13, 31), size=6.5, num_cols=(2, 3, 5))
 T("Conclusión. Con los datos de entrada, cada disco inoxidable debe tener {0} (requerido {1}; espesor comercial inmediato) y la lámina de UHMW de la opción B {2} (requerido {3}). "
   "La opción A agrega {4} de masa total y {5} de altura; la B, {6} y {7}. Con los μ de diseño adoptados la fuerza por cilindro es {8} (A) y {9} (B), frente a {10} con acero–acero: "
   "la ventaja de B aparece en la operación normal (μ nominal {11} frente a {12}) y en la protección contra la corrosión y el gripado, no en el caso de diseño, que supone la película de grasa expulsada.".format(
@@ -610,7 +638,7 @@ T("Desarrollo. Criterios del registro (docs/normas/registro.md, «Tornillos avel
 table(["Verificación", "Criterio", "Referencia", "Nota"], reg_rows("Tornillos avellanados del disco de la mesa (AF2)"), widths=(32, 55, 45, 38), size=7.5)
 T("Resultado.", bold=True, size=9.5, after=1)
 table(["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], ifrows(AF2["filas"]),
-      widths=(36, 44, 12, 12, 10, 10, 12, 34), size=6.5, num_cols=(2, 3, 5))
+      widths=(36, 40, 12, 12, 14, 10, 12, 34), size=6.5, num_cols=(2, 3, 5))
 COM = (3, 4, 5, 6, 8, 10, 12, 15, 20, 25)     # espesores comerciales ASTM A240 (lista de 6.1)
 t_flex_com = next(t for t in COM if t >= AF2["tss2Req"] - 1e-9)
 _cab = next(c for c in AF2["filas"] if "cabeza avellanada dentro del espesor" in c["nombre"])
@@ -627,7 +655,7 @@ assert D["modo"] == 2 and P["drive_mode"] == 2 and PVM["drive_mode"] == 2 and GU
 assert abs(PVM["cd"]["F"] - cd["F"]) < 1e-9, "exportadores con resultados distintos del modo pivotado"
 VG = GUM["verificaciones"]                                   # verificaciones del modo guiado con leva (mismo formato que VER)
 VH = ["Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"]
-VW = (33, 41, 14, 14, 11, 11, 16, 30)
+VW = (33, 38, 14, 14, 14, 11, 16, 30)
 
 
 def vres(L):
@@ -1205,8 +1233,11 @@ assert all(MOD[k]["inserto"] and MOD[k]["inserto"].get("casos") for k in MOD), "
 CASO_ID = ["nom", "dis", "cal", "ret", "vac"]
 CASO_LB = {"nom": "nominal", "dis": "diseño", "cal": "calado", "ret": "retorno", "vac": "vacía"}
 fuc = lambda I, k: next(q["fu"] for q in I["casos"] if q["id"] == k)
-MLB = {"base": "Pivotado, interfaz base (por defecto)", "A": "Pivotado, interfaz A", "B": "Pivotado, interfaz B", "C1": "Pivotado, interfaz C1", "C2": "Pivotado, interfaz C2",
-       "C3": "Pivotado, interfaz C3", "G": "Guiado, interfaz base", "GB": "Guiado, interfaz B"}
+MLB = {"base": "Pivotado, interfaz base (por defecto)", "A": "Pivotado, interfaz A", "AF2": "Pivotado, interfaz A pegada (AF2)", "B": "Pivotado, interfaz B", "C1": "Pivotado, interfaz C1",
+       "C2": "Pivotado, interfaz C2", "C3": "Pivotado, interfaz C3", "G": "Guiado, interfaz base", "GA": "Guiado, interfaz A", "GB": "Guiado, interfaz B"}
+assert set(MOD) <= set(MLB), "modelo de plancha base sin rótulo en MLB"
+JI1 = INS["juntas"][0]                                  # J-I1: CJP inserto–base (designación precalificada del núcleo)
+assert JI1["id"] == "J-I1" and JI1.get("designacion"), "el núcleo no exporta la designación de J-I1"
 # --- salida del verificador independiente (§4 FEA y comparación con KIET)
 PBD = ROOT / "docs" / "qa" / "plancha_base_inserto"
 _vlog = (PBD / "resultados" / "verificador_completo.log").read_text(encoding="utf-8").splitlines()
@@ -1249,7 +1280,7 @@ def pb_ref(r):
     """Referencia de una fila de la plancha base sin la cita común del registro (se da una vez bajo la tabla) y con las citas largas abreviadas."""
     r = r.replace("; " + REG_INS_TXT, "").replace(REG_INS_TXT, "")
     r = r.replace("(flexión respecto del eje menor de barras y secciones rectangulares macizas: F_b = 1,25·Fy/Nd; número de ecuación: verificar)", "(F_b = 1,25·Fy/Nd; n.º de ecuación: verificar)")
-    r = r.replace("(CJP: resistencia del metal base)", "(CJP)").replace("(junta precalificada a tope en doble V, B-U3: verificar designación)", "(doble V, B-U3: verificar)")
+    r = r.replace("(CJP: resistencia del metal base)", "(CJP)").replace(f"(junta precalificada a tope en doble V, {JI1['designacion']}: verificar designación)", f"(doble V, {JI1['designacion']}: verificar)")
     r = r.replace("cláusula 4 (transición de espesores 1:2,5 en juntas a tope de partes de distinto espesor: verificar número de cláusula y figura)", "transición 1:2,5, cláusula 4 (verificar)")
     return r.strip("; ") or "Registro (nota)"
 
@@ -1345,7 +1376,9 @@ table(["Punto", "Adoptado", "Referencia"], [
                  "Al ras por debajo con la base, cara superior más alta, CJP a tope con transición 1:2,5 en la cara superior", "Registro, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»"],
     ["Flexión", f"F_b = 1,25·Fy/Nd = {n(Fb_, unit='MPa')}, Nd = {n(P['Nd'])}; FU objetivo interno ≤ 0,90 (advertencia hasta 1,0)", "ASME BTH-1-2020 §3-2.3.4"],
     ["Corte", f"F_v = Fy/(Nd·√3) = {n(P['Fy'] / (P['Nd'] * math.sqrt(3)), unit='MPa')}", "ASME BTH-1-2020 §3-2.3.6"],
-    ["CJP inserto–base (J-I1)", "Desarrolla el metal base de la parte más delgada; doble V, resanado de raíz, cara inferior amolada al ras; UT 100 %", "AISC 360-22 §J2.4, Tabla J2.5; AWS D1.1/D1.1M:2020 Figura 5.1"],
+    ["J-I1: CJP inserto–base", f"{JI1['designacion']} ({JI1['designacion_estado']}): {JI1['preparacion']['tipo']}, T1 = {pint(JI1['preparacion']['T1'])} mm en la junta (la transición 1:2,5 lleva el inserto a t_base), "
+     f"R = {pint(JI1['preparacion']['raiz_R'][0])}–{pint(JI1['preparacion']['raiz_R'][1])} mm, f = {pint(JI1['preparacion']['talon_f'][0])}–{pint(JI1['preparacion']['talon_f'][1])} mm, α = β = {pint(JI1['preparacion']['angulo_alfa'])}°, "
+     "resanado de raíz, cara inferior amolada al ras; desarrolla el metal base de la parte más delgada; UT 100 %", "AISC 360-22 §J2.4, Tabla J2.5; " + JI1["norma_designacion"]],
     ["Casos de diseño", "Mesa cargada: nominal, diseño y calado; atasco del retorno con la mesa cargada; mesa vacía en servicio (31)", "Criterio del proyecto"],
     ["Caso excluido", "Atasco a presión de alivio con la mesa vacía: limitación de uso (capítulo 11)", "Decisión del mandante 10-11-2026"],
     ["Espesor", "El menor comercial con FU ≤ 0,90 y las holguras; si ninguno llega a 0,90, el primero con FU ≤ 1 (advertencia)", "Criterio del proyecto"],
@@ -1421,22 +1454,74 @@ pblock("c) Modo guiado: plancha bajo la ménsula del ojal trasero", f"mismo meca
 H("7.10.7 Holguras", 3)
 T("Hipótesis: mínimo del proyecto 5 mm en planta (placas-guía, cubo de Q o banda del accionamiento), en altura (partes móviles sobre el inserto; sobre la transición la cara está a t − d/2,5) y a la mesa; "
   "la tapa inferior del ojal E (pivotado) o el suplemento de la ménsula (guiado) debe quedar sobre el inserto.", size=9)
-table(["Modelo", "En planta (mm)", "A qué", "Vertical (mm)", "A qué", "A la mesa (mm)", "Asiento: t ≤ z (mm)"],
+_hx = INS["holguras"]["exigida"]                          # holgura mínima del proyecto (núcleo); el asiento del modo pivotado la exige al extremo del pasador E
+table(["Modelo", "En planta (mm)", "A qué", "Vertical (mm)", "A qué", "A la mesa (mm)", "Asiento (mm)"],
       [[MLB[k_], n(x_["inserto"]["holguras"]["planta"]), x_["inserto"]["holguras"]["planta_a"] or "—", n(x_["inserto"]["holguras"]["vertical"]), x_["inserto"]["holguras"]["vertical_a"] or "—",
-        n(x_["inserto"]["holguras"]["mesa"]), f"{pint(x_['inserto']['holguras']['asiento']['t'])} ≤ {pint(x_['inserto']['holguras']['asiento']['z_max'])}"] for k_, x_ in MOD.items()],
+        n(x_["inserto"]["holguras"]["mesa"]), (f"{pint(x_['inserto']['holguras']['asiento']['t'])} + {pint(_hx)} ≤ {pint(x_['inserto']['holguras']['asiento']['z_max'])}" if x_["drive_mode"] == 2 else
+                                               f"{pint(x_['inserto']['holguras']['asiento']['t'])} ≤ {pint(x_['inserto']['holguras']['asiento']['z_max'])}")] for k_, x_ in MOD.items()],
       widths=(38, 15, 32, 15, 32, 15, 23), size=7, num_cols=(1, 3, 5))
+T(f"Asiento: modo pivotado, t_inserto + {pint(_hx)} ≤ z de la cara inferior de la tapa inferior del ojal E (holgura del extremo inferior del pasador E sobre la cara del inserto, 7.10.8); "
+  "modo guiado, t_inserto ≤ z del suplemento bajo la oreja inferior de la ménsula. Geometría del núcleo (filas «… queda sobre el inserto» y «… alcanza para el inserto»).", size=8)
 _hv = INS["holguras"]["vertical"]
 assert abs(_hv - INS["holguras"]["exigida"]) < 1e-9, "la holgura vertical por defecto ya no es el mínimo exacto: revisar el texto"
 T(f"Resultado: todas las holguras cumplen. Por defecto la holgura vertical es exactamente el mínimo: {n(_hv, 2)} mm = {n(INS['holguras']['exigida'], 2)} mm (FU {fu3(_rv['fu'])}), del {INS['holguras']['vertical_a']} "
   f"sobre el rebaje de la cara superior a z = {pint(INS['rebaje']['z_cara'])} mm. No admite desviación negativa: la profundidad del rebaje ({pint(INS['rebaje']['profundidad'])} mm) se especifica como mínima "
   "y se controla en la inspección dimensional.", bold=True, size=9)
 
-H("7.10.8 Cambio de masa", 3)
+H("7.10.8 Piezas soldadas sobre el inserto: pasador E, orejas de la diagonal y mejillas de la ménsula", 3)
+T("Hipótesis.", bold=True, size=9.5, after=1)
+table(["Hipótesis", "Valor adoptado (núcleo)", "Origen"], [
+    ["Asiento de las piezas", f"Todo pie soldado sobre el inserto apoya entero (con sus filetes) en el contorno «espesor pleno», fuera de la transición 1:2,5 y del rebaje con su borde 1:2,5, con ≥ {pint(_hx)} mm exigidos", "Registro, «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; geometría del núcleo"],
+    ["Pasador vertical E (pivotado)", "El extremo inferior sobresale bajo la tapa inferior del ojal E solo lo que deja la cara del inserto (de 0 = al ras de la tapa a 10 mm); retención por arriba", "pivotado.fabricacion.pasador_E"],
+    ["Orejas de izaje de la diagonal", f"(±{pint(P['x_lug'])}; ±{pint(P['B'] / 2 - P['c_lug'])}) mm: x_lug = {pint(P['x_lug'])} mm, c_lug = {pint(P['c_lug'])} mm; si la transición de una muesca alcanza el pie, la esquina de la muesca se corta con un chaflán a 45°", "Parámetros x_lug y c_lug; inserto.muescas"],
+    ["Mejillas de la ménsula (guiado)", "Se corren δ hacia la esquina (múltiplos de 5 mm, sin pasar de las orejas) hasta apoyar enteras en el espesor pleno; las orejas quedan en el ojal", "levaGuiada.fabricacion.mensula"],
+], widths=(40, 88, 42), size=7.5)
+T("Desarrollo.", bold=True, size=9.5, after=1)
+table(["N°", "Magnitud", "Ecuación", "Norma o referencia"], [
+    ["(33)", "Extremo inferior del pasador E", f"z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_inserto + 10));  z_inf − t_inserto ≥ {pint(_hx)} mm", "Geometría (alzado); criterio del proyecto"],
+    ["(34)", "Asiento de la tapa inferior del ojal E", f"t_inserto + {pint(_hx)} ≤ z_tapa,inf", "Geometría; criterio del proyecto"],
+    ["(35)", "Contorno de espesor pleno", "contorno del inserto desplazado s = 2,5·Δ hacia adentro; chaflán de la muesca en el espesor pleno: ch + s·(2 − √2)", "AWS D1.1/D1.1M:2020 cláusula 4, transición 1:2,5 (verificar número)"],
+    ["(36)", "Pie de la oreja y mejillas", f"margen de la huella (2R × (t + 2w) o mejilla con filetes) dentro del espesor pleno ≥ {pint(_hx)} mm", "Geometría (planta); criterio del proyecto"],
+], widths=(10, 40, 82, 38), size=7)
+T("Piezas sobre el inserto por modo e interfaz (núcleo: inserto.muescas, filas «Oreja: pie …», pasador_E y levaGuiada.fabricacion.mensula):", size=9, after=1)
+_ps = []
+_chf = lambda I_: max(I_["muescas"][s_]["chaflan"] for s_ in ("lado_x", "lado_y") if I_["muescas"].get(s_))
+for k_, x_ in MOD.items():
+    I_, mu_ = x_["inserto"], x_["inserto"]["muescas"]
+    ch_ = " / ".join(n(mu_[s_]["chaflan"], 3) if mu_.get(s_) else "—" for s_ in ("lado_x", "lado_y"))
+    ear_ = next((c for c in x_["filas_sobre_inserto"] if c["nombre"].startswith("Oreja: pie")), None)
+    pE_, ms_ = x_.get("pasador_E"), x_.get("mensula")
+    _ps.append([MLB[k_], pint(I_["t"]), ch_, "—" if ear_ is None else n(ear_["cap"]), "—" if ear_ is None else fu3(ear_["fu"]),
+                f"{pint(pE_['z'][0])} / {n(pE_['holgura_inferior'])} / {n(pE_['saliente_inferior'])}" if pE_ else "—",
+                f"{pint(ms_['retroceso'])} / {n(ms_['margen_espesor_pleno'])}" if ms_ else "—"])
+table(["Modelo", "t inserto (mm)", "Chaflán muescas x / y (mm)", "Pie oreja: margen (mm)", "FU pie oreja", "Pasador E: z inf / holgura / saliente (mm)", "Mejillas: δ / margen (mm)"], _ps,
+      widths=(40, 14, 24, 20, 15, 32, 25), size=7, num_cols=(1, 3, 4))
+_rs = [c for c in MOD["base"]["filas_sobre_inserto"]] + [c for c in _rows_pb if "queda sobre el inserto" in c["nombre"]] + [c for c in MOD["G"]["filas"] if "mejillas y suplemento" in c["nombre"]]
+assert len(_rs) == 4, "filas de las piezas sobre el inserto distintas de las redactadas"
+table(VH, [r_[:7] + [pb_ref(r_[7])] for r_ in ifrows(_rs)], widths=VW, size=6.5, num_cols=(2, 3, 5))
+T("Referencia común de las filas: " + REG_INS_TXT + ".", size=8)
+T(vres(_rs), bold=True, size=9)
+_pe0, _mg = MOD["base"]["pasador_E"], MOD["G"]["mensula"]
+_chg = {}                                               # chaflán de las muescas agrupado por valor: {texto del valor: [modelos]}
+for k_, x_ in MOD.items():
+    if _chf(x_["inserto"]) > 0:
+        _chg.setdefault(n(_chf(x_["inserto"]), 3), []).append(MLB[k_].replace("Pivotado, interfaz ", "").replace("Guiado, interfaz ", "guiado ").replace("A pegada (AF2)", "AF2"))
+_yj = lambda L: L[0] if len(L) == 1 else ", ".join(L[:-1]) + " y " + L[-1]
+_chs = [f"{v_} mm en {_yj(L_)}" for v_, L_ in _chg.items()]
+T(f"Las piezas soldadas sobre el inserto apoyan en el espesor pleno en todos los modelos. Por defecto el pasador E termina a z = {pint(_pe0['z'][0])} mm, {n(_pe0['holgura_inferior'])} mm sobre la cara del inserto "
+  f"de {pint(_pe0['cara_bajo_el_pasador'])} mm (saliente bajo la tapa {n(_pe0['saliente_inferior'])} mm; largo {pint(_pe0['largo'])} mm). Las orejas de la diagonal, en (±{pint(P['x_lug'])}; ±{pint(P['B'] / 2 - P['c_lug'])}), quedan sobre el espesor pleno "
+  + (f"con chaflán en las muescas donde la transición alcanzaba el pie ({'; '.join(_chs)}). " if _chs else "sin chaflán en las muescas. ")
+  + f"En el guiado las mejillas se corren {pint(_mg['retroceso'])} mm (margen {n(_mg['margen_espesor_pleno'])} mm"
+  + "".join(f"; con la interfaz {k_[1:]}: {pint(x_['mensula']['retroceso'])} mm, margen {n(x_['mensula']['margen_espesor_pleno'])} mm" for k_, x_ in MOD.items() if x_.get("mensula") and k_ != "G") + ").", bold=True, size=9)
+
+H("7.10.9 Cambio de masa", 3)
+T("Hipótesis. Masa de cada inserto sobre la base de t_base: V = ∫ A(z) dz entre z = 0 y z = Δ, con A(z) el área del contorno desplazado 2,5·z hacia adentro (la misma regla del contorno de espesor pleno, biseles planos 1:2,5), "
+  "menos el rebaje de la cara superior con su borde 1:2,5; integración de Simpson del núcleo. Las paredes del soporte E y el pasador E se acortan con el inserto.", size=9)
 MA0, MA1 = PB["antes"]["masas"], MOD["base"]["masas"]
 table(["Concepto", f"Memoria anterior: base de {pint(PB['antes']['t_base'])} mm sin inserto (kg)", f"Esta edición: base de {pint(P['t_base'])} mm con inserto (kg)", "Diferencia (kg)"], [
     ["Plancha base (con collar y orejas de izaje)", n(MA0["base"], 5), n(MA1["base"], 5), n(MA1["base"] - MA0["base"], 4)],
     [f"Insertos ({pint(INS['n'])} × {n(INS['masa'])} kg)", "—", n(MA1["insertos"], 4), "+" + n(MA1["insertos"], 4)],
-    ["Paredes del soporte E sobre el inserto (más cortas)", "—", "−" + n(MA1["insBrackets"], 3), "−" + n(MA1["insBrackets"], 3)],
+    ["Paredes del soporte E y pasadores E sobre el inserto (más cortos)", "—", "−" + n(MA1["insBrackets"], 3), "−" + n(MA1["insBrackets"], 3)],
     ["Marco perimetral interrumpido a lo largo de los catetos", "—", "−" + n(MA1["insRim"], 3), "−" + n(MA1["insRim"], 3)],
     ["Masa total", n(MA0["total"], 5), n(MA1["total"], 5), "+" + n(MA1["total"] - MA0["total"], 4)],
 ], widths=(60, 40, 40, 30), size=7.5, num_cols=(1, 2, 3))
@@ -1444,7 +1529,7 @@ T(f"Resultado: la masa total por defecto pasa de {n(MA0['total'], 5, 'kg')} a {n
   f"La masa de los insertos va con el soporte del cilindro en la lista de materiales (capítulo 5). Masa de insertos por modelo: "
   + "; ".join(f"{MLB[k_]}: {n(x_['masas']['insertos'], 4)} kg" for k_, x_ in MOD.items()) + ".", size=9)
 
-H("7.10.9 Resultado de la plancha base", 3)
+H("7.10.10 Resultado de la plancha base", 3)
 _wB = [MLB[k_] for k_, x_ in MOD.items() if est_of(x_) == EST["warn"]]
 T(f"Con la base de {pint(P['t_base'])} mm y el inserto de esquina la plancha cumple en todos los modos e interfaces con la mesa cargada hasta el calado y con la mesa vacía en servicio "
   f"(FU máximo por defecto {fu3(INS['fu_max'])}). " + (f"Queda con advertencia (0,90 < FU ≤ 1): {', '.join(_wB)}, pendiente de aceptación del mandante. " if _wB else "") +
@@ -1486,7 +1571,8 @@ for gi, g in enumerate(order, 1):
     for v in [x for x in VER if x["grp"] == g]:
         k += 1
         info = v["estado"] == "info"
-        rows.append([str(k), v["nombre"], v["formula"], nd(v["dem"], v["unidad"]), "—" if v.get("cap") is None else nd(v["cap"], v["unidad"]), v["unidad"],
+        nm_, u_ = usplit(v["nombre"], v["unidad"])
+        rows.append([str(k), nm_, v["formula"], nd(v["dem"], v["unidad"]), "—" if v.get("cap") is None else nd(v["cap"], v["unidad"]), u_,
                      "—" if info or v.get("fu") is None else fu3(v["fu"]), EST.get(v["estado"], v["estado"]), v["ref"]])
     table(["N°", "Verificación", "Fórmula", "Demanda", "Capacidad", "Unidad", "FU", "Estado", "Referencia"], rows,
           widths=(8, 52, 70, 17, 17, 13, 14, 18, 58), size=7, num_cols=(3, 4, 6))
@@ -1505,7 +1591,8 @@ def plab(pid):
 
 def crow(c, conf=False):
     info = c["estado"] == "info"
-    r = [c["nombre"], c["formula"], nd(c["dem"], c["unidad"]), "—" if c.get("cap") is None else nd(c["cap"], c["unidad"]), c["unidad"],
+    nm_, u_ = usplit(c["nombre"], c["unidad"])
+    r = [nm_, c["formula"], nd(c["dem"], c["unidad"]), "—" if c.get("cap") is None else nd(c["cap"], c["unidad"]), u_,
          "—" if info or c.get("fu") is None else fu3(c["fu"]), EST.get(c["estado"], c["estado"])]
     if conf:
         r.append(c.get("conf", "—"))
@@ -1608,7 +1695,7 @@ for i in ("A", "B", "C3"):
     for c in find(AL[i], "collar", r"Rebaje del cubo|Buje sobre el collar|Interfaz: R_i"):
         r = crow(c); r[0] = f"[{i}] " + r[0]; rows.append(r)
 table(CH, rows, widths=CW, size=6.5, num_cols=(2, 3, 5))
-T(f"Resultado: R_i = {n(AL['base']['Ri'])} mm con holgura m_ri = {n(P['m_ri'])} mm (FU 1,00: es la holgura mínima adoptada). En B (δ = {n(AL['B']['interfaz']['delta'])} mm) el rebaje se reduce a {n(AL['B']['hub']['hRaw'])} mm de profundidad y queda todo en la plancha inferior; "
+T(f"Resultado: R_i = {n(AL['base']['Ri'])} mm con holgura m_ri = {n(P['m_ri'])} mm (FU {fu3(find(AL['base'], 'collar', r'^Interfaz: R_i libre')[0]['fu'])}: es la holgura mínima adoptada). En B (δ = {n(AL['B']['interfaz']['delta'])} mm) el rebaje se reduce a {n(AL['B']['hub']['hRaw'])} mm de profundidad y queda todo en la plancha inferior; "
   "el cubo no se rebaja.", bold=True, size=9)
 
 # ---- 9.4 orejas
@@ -1617,7 +1704,26 @@ T(f"Hipótesis. Cuatro orejas de plancha t = {n(P['t_ear'])} mm en la base, c_lu
   "3 ramales efectivos a 60°. Resistencia con ASME BTH-1 §3-2 y §3-3 (Nd = 3,0) y AISC 360-22 §D5; geometría de la oreja con AISC 360-22 §D5.2: extensión a ≥ 1,33·b_e y ancho 2R ≥ 2·b_e + d, con b_e = mín(2t + 16; (2R − d)/2).", size=9)
 table(CH, [crow(c) for c in AL["base"]["orejas"]], widths=CW, size=6.5, num_cols=(2, 3, 5))
 ea = find(AL["base"], "orejas", r"extensión a")[0]
-T(f"Resultado: las orejas cumplen; la extensión tras el agujero gobierna con FU {fu3(ea['fu'])} ({n(ea['dem'])} frente a {n(ea['cap'])} mm). La holgura de {n(P['g_ear'])} mm solo es admisible porque el izaje es estático (el pasador no gira bajo carga plena).", bold=True, size=9)
+_ep = find(AL["base"], "orejas", r"^Oreja: pie sobre el espesor pleno")
+assert _ep, "el núcleo no exporta la fila del pie de la oreja sobre el inserto"
+T(f"Resultado: las orejas cumplen; la extensión tras el agujero gobierna con FU {fu3(ea['fu'])} ({n(ea['dem'])} frente a {n(ea['cap'])} mm). La holgura de {n(P['g_ear'])} mm solo es admisible porque el izaje es estático (el pasador no gira bajo carga plena). "
+  f"Las orejas de la diagonal, en (±{pint(P['x_lug'])}; ±{pint(P['B'] / 2 - P['c_lug'])}) mm, apoyan sobre el espesor pleno del inserto con {n(_ep[0]['cap'])} mm (FU {fu3(_ep[0]['fu'])}; 7.10.8).", bold=True, size=9)
+T(f"Izaje del conjunto vacío con las orejas en (±{pint(P['x_lug'])}; ±{pint(P['B'] / 2 - P['c_lug'])}) mm. Hipótesis: 4 puntos, factor dinámico φ = {n(P['phi_lift'])}; FEA de placa de un cuarto de la base "
+  "(σ_vM ≤ 0,6·Fy, criterio del proyecto, más conservador que AISC 360-22 ec. F11-1; flecha ≤ B/300, criterio del proyecto). Diseño por defecto:", size=9, after=1)
+_iz = [c for c in VER if c["grp"] == "Base" and re.search("izaje", c["nombre"], re.I)]
+assert len(_iz) == 4, "filas de izaje del conjunto distintas de las redactadas"
+table(CH, [crow(c) for c in _iz], widths=CW, size=6.5, num_cols=(2, 3, 5))
+_IZK = (("σ", r"^Izaje del conjunto: σ"), ("flecha", r"^Izaje: flecha"), ("fuera", r"^Punto de izaje fuera de la mesa"), ("marco", r"^Punto de izaje dentro del marco"))
+_izr = []
+for k_, x_ in MOD.items():
+    f_ = {kk: next((c for c in x_["izaje"] if re.search(rx, c["nombre"])), None) for kk, rx in _IZK}
+    assert all(f_.values()), f"filas de izaje incompletas en {k_}"
+    _izr.append([MLB[k_], n(x_["masas"]["total"], 4)] + [fu3(f_[kk]["fu"]) for kk, _ in _IZK])
+T("FU del izaje del conjunto por modo e interfaz (mismas filas del núcleo):", size=9, after=1)
+table(["Modelo", "Masa (kg)", "FU σ base", "FU flecha", "FU fuera de la mesa", "FU dentro del marco"], _izr, widths=(54, 22, 22, 22, 25, 25), size=7.5, num_cols=(1, 2, 3, 4, 5))
+_izmax = max((c for x_ in MOD.values() for c in x_["izaje"] if c.get("fu") is not None), key=lambda c: c["fu"])
+assert all(c["estado"] == "ok" for x_ in MOD.values() for c in x_["izaje"]), "alguna fila de izaje no cumple: revisar el texto de 9.4"
+T(f"Resultado: el izaje del conjunto cumple en todos los modos e interfaces; gobierna «{_izmax['nombre']}» con FU {fu3(_izmax['fu'])}.", bold=True, size=9)
 
 # ---- 9.5 filetes
 H("9.5 Filetes: mínimo AWS D1.1 y máximo AISC 360-22 J2.2b", 2)
@@ -1632,7 +1738,7 @@ T("Filetes de los topes de cada alternativa (mismo criterio AWS D1.1/D1.1M:2020,
 table(CH, rows, widths=CW, size=6.5, num_cols=(2, 3, 5))
 fm = find(AL["base"], "filetes", r"Filete mínimo almas")[0]
 wmax_web = P["t_web"] - 2 if P["t_web"] >= 6 else P["t_web"]
-T(f"Resultado: los filetes de mejillas, collar y orejas quedan entre el mínimo de AWS y el máximo de AISC. Los de almas y nervios están en el mínimo exacto ({n(fm['dem'])} mm = {n(fm['cap'])} mm, FU 1,00). "
+T(f"Resultado: los filetes de mejillas, collar y orejas quedan entre el mínimo de AWS y el máximo de AISC. Los de almas y nervios están en el mínimo exacto ({n(fm['dem'])} mm = {n(fm['cap'])} mm, FU {fu3(fm['fu'])}). "
   f"Queda un punto abierto: el núcleo exige w_mín ≤ w ≤ t_alma, pero el máximo de borde de AISC 360-22 §J2.2b para un alma de {n(P['t_web'])} mm sería t − 2 = {n(wmax_web)} mm, menor que el mínimo de AWS de {n(fm['dem'])} mm (fijado por la plancha de 20 mm). "
   "No es un incumplimiento del núcleo, pero el filete máximo de almas y nervios sigue pendiente de revisión (se resuelve con el procedimiento de soldadura o con el espesor del alma).", bold=True, size=9)
 
@@ -1945,8 +2051,8 @@ for i in IDS:
 table(["Alternativa", "Masa (kg)", "20 °C: ¿gira?", "20 °C: ¿estructura?", "20 °C: ¿térmico?", "20 °C: fallas / adv.", f"{pint(TS)} °C: ¿gira?", f"{pint(TS)} °C: ¿estructura?", f"{pint(TS)} °C: ¿térmico?", f"{pint(TS)} °C: fallas / adv."],
       rows, widths=(56, 20, 22, 26, 24, 26, 22, 26, 24, 21), size=7, num_cols=(1,))
 sB, sC3, sA = bT("B"), bT("C3"), bT("A")
-T(f"Resultado a {pint(TS)} °C: base FU de estructura {n(bT('base')['fuEst'])} y térmico {n(bT('base')['fuTerm'])}, cumple; A no gira (aplastamiento del tope de los discos inoxidables con Fy × {n(F80['k']['Fy_ss'], 2)}), estructura sí y térmico {fu3(sA['fuTerm'])}; "
-  f"B no gira ni cumple estructura (lámina UHMW: FU {fu3(sB['fuEst'])}) y su FU térmico es {fu3(sB['fuTerm'])}; C1 FU de estructura {n(bT('C1')['fuEst'])} y C2 {n(bT('C2')['fuEst'])}, ambas cumplen; "
+T(f"Resultado a {pint(TS)} °C: base FU de estructura {fu3(bT('base')['fuEst'])} y térmico {fu3(bT('base')['fuTerm'])}, cumple; A no gira (aplastamiento del tope de los discos inoxidables con Fy × {n(F80['k']['Fy_ss'], 2)}), estructura sí y térmico {fu3(sA['fuTerm'])}; "
+  f"B no gira ni cumple estructura (lámina UHMW: FU {fu3(sB['fuEst'])}) y su FU térmico es {fu3(sB['fuTerm'])}; C1 FU de estructura {fu3(bT('C1')['fuEst'])} y C2 {fu3(bT('C2')['fuEst'])}, ambas cumplen; "
   f"C3 FU de estructura {fu3(sC3['fuEst'])} y FU térmico {fu3(sC3['fuTerm'])}: no cumple (plancha inferior con la σ térmica restringida). "
   "El FS de giro no cambia con la temperatura porque el μ de entrada no cambia (sensibilidad en 10.9). El aceite atrapado, los sellos y la viscosidad no se evalúan en este escenario (10.12).", bold=True, size=9)
 
@@ -1967,9 +2073,9 @@ table(["Alternativa"] + TT_, [[SHORT[i]] + [fu3(b["fuTerm"]) for b in THA[i]["by
 T("Estado (¿gira? / ¿estructura? / ¿térmico?) y número de fallas:", size=9, after=1)
 table(["Alternativa"] + TT_, [[SHORT[i]] + [f"{yn(b['gira'])} / {yn(b['estructura'])} / {yn(b['termico'])} · {b['nFail']} f." for b in THA[i]["byT"]] for i in IDS], widths=(70, 39, 39, 39, 39, 41), size=7.5)
 fgB, fgA = first_fail("B", "gira"), first_fail("A", "gira")
-T(f"Resultado: la base, C1 y C2 son estructuralmente insensibles a la temperatura hasta {pint(TH['T'][3])} °C (el acero no pierde Fy); lo que crece con T es el FU térmico (gradiente de la plancha) de {n(bT('base', 0)['fuTerm'])} a {n(bT('base')['fuTerm'])} a {pint(TS)} °C. "
-  f"B es la más sensible: pierde el giro desde {pint(fgB)} °C y la estructura desde {pint(first_fail('B', 'estructura'))} °C (FU {n(bT('B', 2)['fuEst'])} a {pint(TH['T'][2])} °C). A pierde el giro desde {pint(fgA)} °C. "
-  f"C3 supera FU térmico 1,00 desde {pint(first_fail('C3', 'termico'))} °C. A {pint(TH['T'][4])} °C todas pierden la estructura, incluso la base (gradiente de {n(bT('base', 4)['gradiente'])} K, FU térmico {n(bT('base', 4)['fuTerm'])}).", bold=True, size=9)
+T(f"Resultado: la base, C1 y C2 son estructuralmente insensibles a la temperatura hasta {pint(TH['T'][3])} °C (el acero no pierde Fy); lo que crece con T es el FU térmico (gradiente de la plancha) de {fu3(bT('base', 0)['fuTerm'])} a {fu3(bT('base')['fuTerm'])} a {pint(TS)} °C. "
+  f"B es la más sensible: pierde el giro desde {pint(fgB)} °C y la estructura desde {pint(first_fail('B', 'estructura'))} °C (FU {fu3(bT('B', 2)['fuEst'])} a {pint(TH['T'][2])} °C). A pierde el giro desde {pint(fgA)} °C. "
+  f"C3 supera FU térmico 1,00 desde {pint(first_fail('C3', 'termico'))} °C. A {pint(TH['T'][4])} °C todas pierden la estructura, incluso la base (gradiente de {n(bT('base', 4)['gradiente'])} K, FU térmico {fu3(bT('base', 4)['fuTerm'])}).", bold=True, size=9)
 
 # ---- 10.5 cambios de estado
 H("10.5 Verificaciones que cambian de estado entre 20 y 80 °C", 2)
@@ -2027,7 +2133,7 @@ T(f"Hipótesis. Plancha superior al sol, inferior a la sombra, gradiente de {n(T
 table(CHC, [crow(c, True) for c in filas("base", ("d",))], widths=CWC, size=6.5, num_cols=(2, 3, 5))
 gs = filas("base", ("d",))
 T(f"Resultado: κ = {n(gs[0]['dem'])} 1/m y flecha {n(gs[1]['dem'])} mm en el diámetro de la mesa, despreciable; la tensión térmica restringida de {n(gs[2]['dem'])} MPa lleva la plancha superior a FU {fu3(gs[3]['fu'])} y la inferior a {fu3(gs[4]['fu'])} (advertencia, no falla). "
-  f"En C3, que ya tiene la plancha inferior a FU {n(bT('C3', 0)['fuEst'])} a 20 °C, la suma pasa de 1,00 (ver 10.5 y 10.11).", bold=True, size=9)
+  f"En C3, que ya tiene la plancha inferior a FU {fu3(bT('C3', 0)['fuEst'])} a 20 °C, la suma pasa de 1,00 (ver 10.5 y 10.11).", bold=True, size=9)
 
 # ---- 10.9 sensibilidades
 H("10.9 Sensibilidades: μ, Fy del acero, bronce y k_p / k_E del UHMW", 2)
@@ -2048,7 +2154,7 @@ for i in IDS:
 table(["Alternativa", "FU estructura (k = 1)", "FU estructura (k = 0,92)", "Gobernante", "FU térmico (k = 1)", "FU térmico (k = 0,92)", "¿Gira?", "¿Estructura?", "Verificaciones que empeoran"],
       rows, widths=(50, 25, 27, 60, 24, 26, 13, 20, 22), size=7, num_cols=(1, 2, 4, 5, 8))
 bz = THA["C3"]["sens"]["bz090"]
-T(f"Resultado: con k = 0,92 el FU de estructura sube {n(THA['base']['sens']['kFy092']['dFu'])} (de {n(bT('base')['fuEst'])} a {fu3(THA['base']['sens']['kFy092']['fuEst'])}) y varias verificaciones pasan a advertencia; la plancha superior con la σ térmica llega a FU "
+T(f"Resultado: con k = 0,92 el FU de estructura sube {fu3(THA['base']['sens']['kFy092']['dFu'])} (de {fu3(bT('base')['fuEst'])} a {fu3(THA['base']['sens']['kFy092']['fuEst'])}) y varias verificaciones pasan a advertencia; la plancha superior con la σ térmica llega a FU "
   f"{fu3(THA['base']['sens']['kFy092']['fuTerm'])} y la estructura deja de cumplir. Con bronce × 0,90 (C1 a C3) no cambia ninguna: C3 queda con FU de estructura {fu3(bz['fuEst'])}.", bold=True, size=9)
 T("c) UHMW-PE (alternativa B): k_p (p_adm y PV) y k_E (módulo) a 80 °C.", bold=True, size=9, after=1)
 us = THA["B"]["sens"]["uhmw"]
@@ -2084,7 +2190,7 @@ table(["N°", "Medida", "Efecto cuantificado por el núcleo", "Fuente o referenc
     ["3", "C3: engrosar la plancha inferior o reducir el gradiente (sombra, pintura clara, cubierta)", f"t_bot {n(c3[0]['t_bot'])} → {n(c3[1]['t_bot'])} mm: FU de estructura {fu3(c3[0]['fuEst'])} → {fu3(c3[1]['fuEst'])}, FU térmico {fu3(c3[0]['fuTerm'])} → {fu3(c3[1]['fuTerm'])}, +{n(c3[1]['masa20'] - c3[0]['masa20'])} kg. "
      f"Con gradiente de {n(g10['gradiente'])} K (en vez de {n(TH['gradiente_scn'])}) el FU térmico de C3 es {fu3(g10['alts']['C3']['fuTerm'])} y su estructura {'cumple' if g10['alts']['C3']['estructura'] else 'no cumple'}; sin gradiente, FU térmico {fu3(g0['C3']['fuTerm'])}", "AISC 360-22 (σ ≤ 0,6Fy); EN 1991-1-5 Tabla 6.1 (gradiente, C)"],
     ["4", "B: no acreditar la lámina de UHMW a 80 °C sin la curva del proveedor (límite de servicio continuo = 80 °C)", f"Falla en espesor, canto, tope, PV y junta; solo cumpliría con k_p ≥ {n(us['kp_crit'], 2)}", "Fichas Quadrant/Mitsubishi TIVAR 1000, Ensinger PE1000, Röchling Polystone M"],
-    ["5", "Protección solar de la mesa (sombra, pintura clara, ventilación)", f"FU térmico de la base {fu3(g0['base']['fuTerm'])} sin gradiente, {fu3(g10['alts']['base']['fuTerm'])} con {n(g10['gradiente'])} K y {n(bT('base')['fuTerm'])} con {n(TH['gradiente_scn'])} K; a {pint(TH['T'][4])} °C ya {n(bT('base', 4)['fuTerm'])} (10.4)", "Registro, «Temperatura superficial estimada»"],
+    ["5", "Protección solar de la mesa (sombra, pintura clara, ventilación)", f"FU térmico de la base {fu3(g0['base']['fuTerm'])} sin gradiente, {fu3(g10['alts']['base']['fuTerm'])} con {n(g10['gradiente'])} K y {fu3(bT('base')['fuTerm'])} con {n(TH['gradiente_scn'])} K; a {pint(TH['T'][4])} °C ya {fu3(bT('base', 4)['fuTerm'])} (10.4)", "Registro, «Temperatura superficial estimada»"],
     ["6", "Registrar la decisión de persona calificada sobre el rango térmico de BTH-1", f"{pint(TS)} °C excede −4 a 66 °C en {pint(TS - 66)} K", "ASME BTH-1 (sección por confirmar)"],
 ], widths=(8, 78, 118, 63), size=7)
 
@@ -2164,9 +2270,13 @@ table(["Resultado", "Valor"], [
     ["Plancha base (7.10)", f"Base de {pint(P['t_base'])} mm con {pint(INS['n'])} insertos de esquina de {pint(INS['t'])} mm bajo los soportes del ojal E: FU máx {fu3(INS['fu_max'])} (calado, mesa cargada); "
      f"guiado: {pint(MOD['G']['inserto']['n'])} × {pint(MOD['G']['inserto']['t'])} mm, FU {fu3(MOD['G']['inserto']['fu_max'])}; interfaz B: inserto de {pint(MOD['B']['inserto']['t'])} mm, FU {fu3(MOD['B']['inserto']['fu_max'])} "
      f"(ADVERTENCIA: cumple, pero supera el objetivo de 0,90; pendiente de aceptación del mandante); holgura vertical por defecto {n(INS['holguras']['vertical'], 2)} mm = mínimo"],
+    ["Piezas soldadas sobre el inserto (7.10.8)", f"Pasador E: extremo inferior a z = {pint(MOD['base']['pasador_E']['z'][0])} mm, {n(MOD['base']['pasador_E']['holgura_inferior'])} mm sobre la cara del inserto; "
+     f"orejas de la diagonal sobre el espesor pleno ({n(_ep[0]['cap'])} mm, FU {fu3(_ep[0]['fu'])})" + (f", chaflán de las muescas en {'; '.join(_chs)}" if _chs else "")
+     + f"; mejillas de la ménsula del guiado corridas {pint(MOD['G']['mensula']['retroceso'])} mm; J-I1 {JI1['designacion']} ({JI1['norma_designacion'].split(' (')[0]}; verificar)"],
+    ["Izaje del conjunto (9.4)", f"Orejas en (±{pint(P['x_lug'])}; ±{pint(P['B'] / 2 - P['c_lug'])}) mm; FU máximo {fu3(_izmax['fu'])} ({_izmax['nombre'][0].lower() + _izmax['nombre'][1:]}) entre todos los modos e interfaces"],
     ["Utilización máxima (global / de resistencia)", f"{fu3(vd['fuMax'])} / {fu3(PVM['gobernante_resistencia']['fu'])} ({PVM['gobernante_resistencia']['nombre']})"],
     ["FS del accionamiento (diseño / contaminado / borde)", f"{fu3(cd['FS'])} / {fu3(casos['cont']['FS'])} / {fu3(casos['borde']['FS'])}"], ["Presión de diseño", n(cd["p"], unit="bar")],
-    ["Masa total (interfaz base)", f"{n(m['total'], 5, 'kg')} pivotado (+{n(m['total'] - PB['antes']['masas']['total'], 4, 'kg')} por la base de {pint(P['t_base'])} mm con insertos, 7.10.8); {n(GUM['masa'], 5, 'kg')} con el guiado con leva (alternativa, 7.5)"],
+    ["Masa total (interfaz base)", f"{n(m['total'], 5, 'kg')} pivotado (+{n(m['total'] - PB['antes']['masas']['total'], 4, 'kg')} por la base de {pint(P['t_base'])} mm con insertos, 7.10.9); {n(GUM['masa'], 5, 'kg')} con el guiado con leva (alternativa, 7.5)"],
     ["Holguras ajustadas aceptadas por el mandante (7.2.7)", f"Cajón del ojal E dentro de la base FU {fu3(HO_['cajon']['fu'])}; Q fuera de la mesa FU {fu3(HO_['Q']['fu'])}; B = {pint(HO_['B'])} mm; tolerancia de posición del cajón ajustada en planos"],
     ["AF2 (6.3)", f"{pint(ACC['af2']['tornillos']['n'])} × {ACC['af2']['tornillos']['designacion']} en R{pint(ACC['af2']['tornillos']['r'])}; disco de la mesa {pint(ACC['af2']['tss2'])} mm"],
     ["Verificaciones", f"{len(VER)}: {cnt['ok']} cumplen, {cnt['warn']} advertencias, {cnt['fail']} no cumplen, {cnt['info']} informativas, {cnt['pend']} pendientes"],
@@ -2181,10 +2291,10 @@ T("Accionamiento: pivotado (por defecto) frente a guiado con leva (7.6):", bold=
 table(["Magnitud", "Pivotado (por defecto)", "Guiado con leva", "Observación"], [r for r in cmp_rows if not r[0].startswith(("Componente", "Empuje neto", "Advertencias"))], widths=(44, 42, 42, 42), size=7.5)
 T(f"Alternativas de interfaz (capítulo 9) y escenario solar a {pint(TS)} °C, sistema de placas y disco (capítulo 10):", bold=True, size=9.5)
 table(["Alternativa", "Masa (kg)", "FS giro", "FU estructura 20 °C", f"FU estructura {pint(TS)} °C", f"FU térmico {pint(TS)} °C", f"¿Cumple a {pint(TS)} °C? (giro / estructura / térmico)"],
-      [[SHORT[i], n(AL[i]["masa"]), n(AL[i]["giro"]["FS"]), n(bT(i, 0)["fuEst"]), n(bT(i)["fuEst"]), n(bT(i)["fuTerm"]), f"{yn(bT(i)['gira'])} / {yn(bT(i)['estructura'])} / {yn(bT(i)['termico'])}"] for i in IDS],
+      [[SHORT[i], n(AL[i]["masa"]), n(AL[i]["giro"]["FS"]), fu3(bT(i, 0)["fuEst"]), fu3(bT(i)["fuEst"]), fu3(bT(i)["fuTerm"]), f"{yn(bT(i)['gira'])} / {yn(bT(i)['estructura'])} / {yn(bT(i)['termico'])}"] for i in IDS],
       widths=(48, 16, 13, 20, 20, 20, 33), size=7.5, num_cols=(1, 2, 3, 4, 5))
 T(f"A {pint(TS)} °C la base, C1 y C2 conservan giro, estructura y grupo térmico; A no gira (tope de los discos con Fy × {n(F80['k']['Fy_ss'], 2)}) pero cumple estructura y térmico; "
-  f"B no gira ni cumple estructura (lámina UHMW) y su FU térmico es {n(bT('B')['fuTerm'])}; C3 no cumple (FU de estructura {n(bT('C3')['fuEst'])}, FU térmico {n(bT('C3')['fuTerm'])}: plancha inferior más σ térmica). "
+  f"B no gira ni cumple estructura (lámina UHMW) y su FU térmico es {fu3(bT('B')['fuTerm'])}; C3 no cumple (FU de estructura {fu3(bT('C3')['fuEst'])}, FU térmico {fu3(bT('C3')['fuTerm'])}: plancha inferior más σ térmica). "
   "El alcance del escenario es solo el sistema de placas y disco: el aceite atrapado, la válvula de alivio térmico, los sellos, la viscosidad/bomba y el accionamiento mecánico están fuera (nota informativa 10.12).", size=9)
 T(f"Opción C, tapones de grafito (9.7): con el patrón Ø{ng(d_)} · paso {ng(p_)} caben {pint(TG['C1']['N_real'])} tapones en C1 y C2 y {pint(TG['C3']['N_real'])} en C3 (ideal {pint(TG['C1']['N_ideal'])} y {pint(TG['C3']['N_ideal'])}); "
   f"f_g real {n(TG['C1']['fg_real'])} frente a {n(TG['C1']['fg_ideal'])} ideal y {n2(P['bz_fg_min'])} exigido como aviso. El máximo alcanzable con η ≥ {n2(P['bz_eta_min'])} es {n(cn1['fg_max_alcanzable'])}: el criterio de lubricación queda como aviso permanente "
@@ -2197,7 +2307,7 @@ T(("Con los parámetros indicados la tornamesa TT300-C gira la carga de {0} tf e
   f"ATENCIÓN: la configuración actual no cumple todas las verificaciones (estado global: {vd['estado_global']}); ver capítulo 8.", bold=True)
 T("La plancha base se resuelve con la base de {0} mm y un inserto de esquina bajo cada soporte del cilindro (7.10), verificado por un cálculo independiente; con la interfaz B la plancha queda en advertencia (FU {1}). "
   "Limitación de uso (capítulo 11): {2}".format(pint(P["t_base"]), fu3(MOD["B"]["inserto"]["fu_max"]), " ".join(x["texto"] for x in vd["limitaciones_uso"])), bold=True)
-T(f"A {pint(TS)} °C (capítulo 10) la geometría dimensionada a {pint(T0)} °C sigue girando y verificando la estructura y el grupo térmico en la configuración base (FU {n(bT('base')['fuEst'])} y {n(bT('base')['fuTerm'])}): "
+T(f"A {pint(TS)} °C (capítulo 10) la geometría dimensionada a {pint(T0)} °C sigue girando y verificando la estructura y el grupo térmico en la configuración base (FU {fu3(bT('base')['fuEst'])} y {fu3(bT('base')['fuTerm'])}): "
   "el servicio a 80 °C del sistema de placas y disco queda condicionado a la decisión sobre el rango térmico de ASME BTH-1 y a confirmar los supuestos de confianza C. "
   "El accionamiento y el circuito hidráulico no se evaluaron en este escenario (nota 10.12). En la opción C la fracción real de grafito está por debajo del criterio de lubricación y debe confirmarse con el proveedor.", bold=True)
 
@@ -2237,7 +2347,7 @@ _PEND = [
     ["2", "Ojales del cilindro pivotado y pandeo", f"Ojal del vástago para pasador Ø{pint(P['pv_dq'])} (Q) y ojal trasero para Ø{pint(P['pv_dE'])} (E), con rótula; pandeo del cilindro biarticulado con el vástago a L0 + carrera (la fila del núcleo usa solo el vástago)", "Proveedor del cilindro"],
     ["3", "Fricción de la cara del bloque-uña y del contacto con la placa-guía", f"μ_s = {n(P['mu_s'])}; μ de la leva = {n(PIV['placa_leva']['mu'])} ({PIV['placa_leva']['familia_nombre']}); μ_E = {n(P['pv_muE'])}", "Ensayo de aceptación (plan de inspección TT300C-GEN-003-C)"],
     ["4", "Números de ecuación de ASME BTH-1-2020", "Cláusulas revisadas el 10-11-2026 sin copia oficial (Anexo E): Nd §3-1.3; flexión respecto del eje menor §3-2.3.4 (F_b = 1,25·Fy/Nd); corte §3-2.3.6. Los números de ecuación quedan con «verificar texto»", "Revisor"],
-    ["5", "Citas de AWS D1.1/D1.1M:2020 con «verificar texto»", "Filete mínimo §7.13, Tabla 7.7; precalentamiento Tabla 5.8; CJP precalificada Figura 5.1 (designación B-U3 de J-I1: verificar); transición de espesores entre partes de distinto espesor (Figura 4.8 / 4.17: verificar número y exigibilidad con carga estática) (Anexo E)", "Revisor"],
+    ["5", "Citas de AWS D1.1/D1.1M:2020 con «verificar texto»", "Filete mínimo §7.13, Tabla 7.7; precalentamiento Tabla 5.8; CJP precalificada Figura 5.1 (designación " + JI1["designacion"] + " de J-I1: verificar); transición de espesores entre partes de distinto espesor (Figura 4.8 / 4.17: verificar número y exigibilidad con carga estática) (Anexo E)", "Revisor"],
     ["6", "Puntos de izaje soldables (1d)", "Comerciales certificados, WLL ≥ 1,6 t c/u", "Proveedor"],
     ["7", "Losa o mats de apoyo", f"q ≈ {n(DV['q_max'], unit='MPa')}", "Tercero"],
     ["8", "Artículo de ISO 4413:2010 (sobrepresión por aceite atrapado)", "Fuera del alcance térmico (10.12); numeral por citar solo si el mandante amplía a term_alcance = 2", "Revisor"],
@@ -2362,12 +2472,16 @@ table(["N°", "Modificación", "Dónde", "Origen"], [
     ["11", f"Plancha base: t_base {pint(PB['antes']['t_base'])} → {pint(P['t_base'])} mm con inserto de esquina bajo cada soporte del cilindro ({pint(INS['t'])} mm por defecto; {pint(MOD['B']['inserto']['t'])} mm con B; {pint(MOD['G']['inserto']['t'])} mm en el guiado): mecanismo F·h, verificación independiente, comparación con KIET, FU con BTH-1-2020 §3-2.3.4 y §3-2.3.6, holguras y masa (+{n(m['total'] - PB['antes']['masas']['total'], 4, 'kg')})", "7.10", "Decisión del mandante 10-11-2026"],
     ["12", "Limitación de uso: atasco a presión de alivio con la mesa vacía EXCLUIDO como caso de diseño; estado global del núcleo en el resumen", "4.1, 11, 12", "Decisión del mandante 10-11-2026 (verdict.limitaciones_uso, verdict.estado_global)"],
     ["13", "Citas de norma corregidas (BTH-1 §3-2.3.4 y §3-2.3.6; AWS D1.1:2020 Tabla 7.7, Tabla 5.8 y Figura 5.1; AISC 360-22 J3.4/J3.5/J3.7/J3.8/J3.11; 0,6Fy como criterio del proyecto) y anexo de verificación de citas", "2, 6.1, 7.3.5, 9.5, 13, Anexo E", "Registro normativo, «Verificación de citas (10-11-2026)»"],
-    ["14", "Capítulos renumerados desde el 11 (nuevo capítulo 11, Limitaciones de uso); encabezados de tabla sin corte de palabra (abreviaturas al final del capítulo 2)", "Todo el documento", "Revisión de la edición anterior"],
-    ["15", "Parámetros nuevos o con valor por defecto cambiado (placa-guía, bloque-uña, soporte E, orejas): " + "; ".join(f"{k} = {pint(P[k]) if float(P[k]).is_integer() else n(P[k], 3)}" for k in _PCH if k in P), "Anexo D", "Núcleo (tests/golden/params_defaults.json)"],
+    ["14", "Capítulos renumerados desde el 11 (nuevo capítulo 11, Limitaciones de uso); encabezados de tabla sin corte de palabra (abreviaturas al final del capítulo 2); columnas «Unidad» sin corte de palabra (la aclaración de la unidad pasa al nombre, entre corchetes) y FU con 3 decimales también en los capítulos 10 y 12", "Todo el documento", "Revisión de la edición anterior"],
+    ["15", f"Conflictos del inserto de esquina con los planos (núcleo f2dc2b5): pasador E sobre la cara del inserto (extremo inferior a z = {pint(MOD['base']['pasador_E']['z'][0])} mm, holgura {n(MOD['base']['pasador_E']['holgura_inferior'])} mm; asiento t + {pint(_hx)} ≤ z); "
+           f"orejas de izaje de la diagonal en (±{pint(P['x_lug'])}; ±{pint(P['B'] / 2 - P['c_lug'])}) mm con chaflán de las muescas donde hace falta ({'; '.join(_chs) if _chs else 'ninguno'}) y nuevas verificaciones de izaje (FU máx {fu3(_izmax['fu'])}); "
+           f"mejillas de la ménsula del guiado corridas {pint(MOD['G']['mensula']['retroceso'])} mm sobre el espesor pleno; masa exacta del inserto ({n(INS['masa'])} kg por defecto; total {n(m['total'], 5, 'kg')}); "
+           f"J-I1 como {JI1['designacion']} ({JI1['norma_designacion'].split(' (')[0]}); modelos AF2 y guiado A agregados a 7.10", "5, 7.10.4–7.10.9, 9.4, 12, 13.2", "Revisión de planos 378675e; núcleo f2dc2b5"],
+    ["16", "Parámetros nuevos o con valor por defecto cambiado (placa-guía, bloque-uña, soporte E, orejas): " + "; ".join(f"{k} = {pint(P[k]) if float(P[k]).is_integer() else n(P[k], 3)}" for k in _PCH if k in P), "Anexo D", "Núcleo (tests/golden/params_defaults.json)"],
 ], widths=(9, 92, 24, 45), size=7.5)
 H("16.2 Control de cambios", 2)
 _mem = [l.split(" ", 2) for l in _gx(["log", "--date=short", "--format=%h %ad %s", "--", "tools/memoria_tt300c.py"]) if "emoria" in l][:8]
-table(["Edición", "Fecha", "Descripción", "Commit"], [["Rev. C (esta edición)", D["fecha"], "Plancha base de 20 mm con inserto de esquina (7.10), limitación de uso con la mesa vacía (capítulo 11), estado global, citas de norma corregidas (Anexo E); además placa-guía curva, empuje guiado, cara del bloque-uña, comparación con KIET, W en stand by y datos faltantes", NUCLEO]] +
+table(["Edición", "Fecha", "Descripción", "Commit"], [["Rev. C (esta edición)", D["fecha"], "Piezas soldadas sobre el inserto, orejas de izaje en la diagonal, masa exacta del inserto y J-I1 " + JI1["designacion"] + " (7.10.8, 9.4; núcleo f2dc2b5); plancha base de 20 mm con inserto de esquina (7.10), limitación de uso con la mesa vacía (capítulo 11), estado global, citas de norma corregidas (Anexo E); además placa-guía curva, empuje guiado, cara del bloque-uña, comparación con KIET, W en stand by y datos faltantes", NUCLEO]] +
       [["Rev. C (anterior)", c[1], c[2], c[0]] for c in _mem], widths=(26, 18, 100, 26), size=7.5)
 _core = [l.split(" ", 2) for l in _gx(["log", "--date=short", "--format=%h %ad %s", "-12", "--", "packages/core"])]
 T("Historial reciente del núcleo de cálculo (packages/core; la memoria se regenera con el último):", size=9, after=1)
@@ -2463,6 +2577,7 @@ T("Estado actual de las citas con la numeración anterior (controlado al generar
 T("Aplicación en esta memoria: las citas escritas en el generador se corrigieron según esta tabla (lista de modificaciones, 16.1); las referencias de las filas de verificación salen del núcleo"
   + (", que ya no tiene citas con la numeración anterior." if not any(_hits.values()) else "; quedan citas con la numeración anterior en el núcleo (ver arriba)."), bold=True, size=9)
 
+assert not UNI_CORTE, "palabras cortadas en columnas «Unidad»: " + "; ".join(f"«{u}» ({w:.0f} mm, {s} pt)" for u, w, s in UNI_CORTE)
 assert not HDR_CORTE, "encabezados de tabla con palabras cortadas: " + "; ".join(f"«{h}» ({w:.0f} mm, {s} pt)" for h, w, s in HDR_CORTE)
 
 # ================================================================= salida
