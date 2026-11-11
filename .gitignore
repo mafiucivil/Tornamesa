@@ -19,3 +19,6 @@ entregables/RevC/*
 !entregables/RevC/TT300-C_alternativas.json
 # Figuras del rediseño de la placa-guía (entregable pedido en PNG y SVG) y recortes del plano KIET que usa tools/fig_guia_curva.py
 !docs/qa/guia_curva_KIET/*.png
+
+# Copias de trabajo aisladas de los agentes (no se versionan)
+.claude/worktrees/
