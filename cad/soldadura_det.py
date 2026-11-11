@@ -273,6 +273,8 @@ def prep_x(s, ox, oy, k, w, jid=None, plano=None, angle=60.0, root=3.0, face=3.0
     transición 1:k de la cara superior, que llega al espesor pleno t a k·Δ del borde). Resanado de raíz por la cara inferior y amolado al ras."""
     I = w["inserto"]
     tb, T, kk, A = I["tb"], I["t"], I["k"], I["ancho"]
+    # preparación del núcleo (inserto.juntas[].preparacion, B-U3b): raíz, talón y ángulo; los argumentos quedan como respaldo
+    angle, root, face = I.get("alfa", angle), I.get("raiz", root), I.get("talon", face)
     (Wn, Hn), Lh = x_size(w)
     P = lambda x, y: (ox + x * k, oy + y * k)
     y0 = 8.0
@@ -291,13 +293,13 @@ def prep_x(s, ox, oy, k, w, jid=None, plano=None, angle=60.0, root=3.0, face=3.0
     s.dim(P(0, y0), P(0, y0 + tb), -9, f"t = {fm(tb, 0)} (base)", "v")
     s.dim(P(xe, y0), P(xe, y0 + T), 8, f"t = {fm(T, 0)} (inserto)", "v")
     s.dim(P(xr1, y0 + T), P(xr1 + A, y0 + T), 8, f"{fm(A, 0)} = {fm(kk, 1)}·Δ (transición 1:{fm(kk, 1)})", "h")
-    s.dim(P(xr0, y0 + tb + 2), P(xr1, y0 + tb + 2), 10, f"b = 0–{fm(root, 0)}", "h", outside=True)
+    s.dim(P(xr0, y0 + tb + 2), P(xr1, y0 + tb + 2), 10, f"R = 0–{fm(root, 0)}", "h", outside=True)
     apex = P((xr0 + xr1) / 2, y0 + d + face)
-    s.dim_ang(apex, d * k * 0.6, 90 - angle / 2, 90 + angle / 2, f"{fm(angle, 0)}°")
+    s.dim_ang(apex, d * k * 0.6, 90 - angle / 2, 90 + angle / 2, f"α = {fm(angle, 0)}°")
     apex2 = P((xr0 + xr1) / 2, y0 + d)
-    s.dim_ang(apex2, d * k * 0.6, 270 - angle / 2, 270 + angle / 2, f"{fm(angle, 0)}°")
+    s.dim_ang(apex2, d * k * 0.6, 270 - angle / 2, 270 + angle / 2, f"β = {fm(I.get('beta', angle), 0)}°")
     xl_ = ox - 4
-    s.leader(P(xr0, y0 + d + face / 2), (xl_ - 30, oy + (y0 + tb / 2) * k - 18), f"talón c = 0–{fm(face, 0)}", dot=True)
+    s.leader(P(xr0, y0 + d + face / 2), (xl_ - 30, oy + (y0 + tb / 2) * k - 18), f"talón f = 0–{fm(face, 0)}", dot=True)
     s.leader(P((xr0 + xr1) / 2, y0), (P(xr0, 0)[0] + 20, oy - 6), "resanado de raíz por la cara inferior; amolar al ras (apoyo en la losa)", dot=True)
     s.leader(P(xr1 + A * 0.3, y0 + tb + A * 0.3 / kk), (P(xr1 + A * 0.3, 0)[0] + 25, oy + (y0 + T) * k + 22), f"cara superior del inserto: pendiente 1:{fm(kk, 1)} desde el borde de la junta", dot=True)
     if jid and plano is not None:
@@ -321,7 +323,7 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
     if w.get("inserto"):
         (Wn, Hn), _ = x_size(w)
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 0.5, maxs=maxs or 2.0,
-                    title=title or f"DETALLE {jid}: CJP A TOPE EN DOBLE V, BASE {fm(w['inserto']['tb'], 0)} / INSERTO {fm(w['inserto']['t'], 0)} (TRANSICIÓN 1:{fm(w['inserto']['k'], 1)})",
+                    title=title or f"DETALLE {jid}" + (f" ({w['inserto']['designacion']})" if w["inserto"].get("designacion") else "") + f": CJP A TOPE EN DOBLE V, BASE {fm(w['inserto']['tb'], 0)} / INSERTO {fm(w['inserto']['t'], 0)} (TRANSICIÓN 1:{fm(w['inserto']['k'], 1)})",
                     custom=lambda s, ox, oy, k, pl: prep_x(s, ox, oy, k, w, jid, pl))
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]

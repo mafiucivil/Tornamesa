@@ -85,7 +85,7 @@ def _semiespacio(P0, n, L=8000.0):
 def _canonico(I, B, tb):
     """Inserto en el marco canónico de la esquina (+B/2; −B/2) (núcleo: insPoly con los parámetros desplazados s = k·(z − t_base)):
     cara superior = t_base + mín(Δ; d/k), con d la distancia a la hipotenusa (X − Y ≥ c) y la «distancia» a cada muesca
-    (lado x: máx(a − X; b − Y); lado y: máx(X − a'; Y − b')). Biseles planos: coinciden con «esquinas» a z = t_base y con «esquinas_espesor_pleno» a z = t."""
+    (lado x: máx(a − X; b − Y; (a + b + ch − X − Y)/√2); lado y: máx(X − a'; Y − b'; (X + Y − a' − b' + ch')/√2), ch = chaflán de la esquina de la muesca). Biseles planos: coinciden con «esquinas» a z = t_base y con «esquinas_espesor_pleno» a z = t."""
     k, t = I["_k"], float(I["t"])
     h = B / 2
     C0 = I["esquinas"][0]
@@ -94,13 +94,19 @@ def _canonico(I, B, tb):
     c = float(I["hipotenusa_dist_centro"]) * math.sqrt(2.0)
     top = top.cut(_semiespacio((c / 2, -c / 2, tb), (-1.0, 1.0, math.sqrt(2.0) * k)))
     M = I.get("muescas") or {}
+    r2 = math.sqrt(2.0)
     if M.get("lado_x"):
-        a, b = M["lado_x"]["a"], M["lado_x"]["b"]
+        a, b, ch = M["lado_x"]["a"], M["lado_x"]["b"], float(M["lado_x"].get("chaflan") or 0.0)
         w = _semiespacio((a, 0.0, tb), (1.0, 0.0, k)).intersect(_semiespacio((0.0, b, tb), (0.0, 1.0, k)))
+        if ch > 0:
+            # chaflán a 45° de la esquina de la muesca (núcleo f2dc2b5): d = (a + b + ch − X − Y)/√2 → bisel plano 1:k desde la recta del chaflán
+            w = w.intersect(_semiespacio((a + b + ch, 0.0, tb), (1.0, 1.0, r2 * k)))
         top = top.cut(w)
     if M.get("lado_y"):
-        a, b = M["lado_y"]["a"], M["lado_y"]["b"]
+        a, b, ch = M["lado_y"]["a"], M["lado_y"]["b"], float(M["lado_y"].get("chaflan") or 0.0)
         w = _semiespacio((a, 0.0, tb), (-1.0, 0.0, k)).intersect(_semiespacio((0.0, b, tb), (0.0, -1.0, k)))
+        if ch > 0:
+            w = w.intersect(_semiespacio((a + b - ch, 0.0, tb), (-1.0, -1.0, r2 * k)))
         top = top.cut(w)
     return bot.union(top).clean()
 

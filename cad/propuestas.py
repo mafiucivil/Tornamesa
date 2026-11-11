@@ -77,7 +77,13 @@ def wps_rows(ctx):
         else:
             passes = str(max(x["pasadas"] for x in ws))
         assert len({wps_family(x) for x in ws}) == 1 and len({precalentamiento(x["t_pre"]) for x in ws}) == 1, f"WPS-P{n:02d} agrupa juntas de familia o rango de precalentamiento distintos"
-        rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), FAM_TXT[fam][0], FAM_TXT[fam][1], CORR["GMAW"], CORR["SMAW"], CORR["FCAW"], pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)", INTERPASE, passes])
+        fam_txt = FAM_TXT[fam][0]
+        I_ = ws[0].get("inserto") or {}
+        if fam == "CJP-X" and I_.get("designacion"):
+            # J-I1: designación precalificada y preparación del núcleo (inserto.juntas[].preparacion)
+            fam_txt = (f"Ranura a tope en doble V precalificada {I_['designacion']} (AWS D1.1:2020 Figura 5.1; núcleo: verificar contra la figura), CJP sin respaldo, "
+                       f"raíz R 0–{fm(I_['raiz'], 0)}, talón f 0–{fm(I_['talon'], 0)}, α = {fm(I_['alfa'], 0)}°, β = {fm(I_['beta'], 0)}°" + (", resanado de raíz y soldadura por la cara opuesta (pieza volteada)" if I_.get("resanado") else ""))
+        rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), fam_txt, FAM_TXT[fam][1], CORR["GMAW"], CORR["SMAW"], CORR["FCAW"], pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)", INTERPASE, passes])
     return rows
 
 

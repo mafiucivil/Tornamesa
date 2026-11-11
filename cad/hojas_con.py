@@ -1097,24 +1097,27 @@ def sheet_mensula_conj(ctx):
     sh = {k: v for k, v in sh.items() if k != "inserto_C"}
 
     def planta(V, c):
-        V.dimh((-rear, Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), "top", 0, on=["mensula_mejilla_C"], text=f"{f(P['L_ch'])}")
-        V.dimv((P["L_ch"] - rear, -Wout / 2, zt), (P["L_ch"] - rear, Wout / 2, zt), "right", 0, on=["mensula_mejilla_C"], text=f"{f(Wout)}", txt_shift=-30)
+        ym0, ym1 = g.mej_y                    # mejillas corridas δ hacia la esquina (núcleo levaGuiada.fabricacion.mensula)
+        V.dimh((ym0, Wout / 2, zt), (ym1, Wout / 2, zt), "top", 0, on=["mensula_mejilla_C"], text=f"{f(P['L_ch'])}")
+        if g.mej_dl > 0:
+            V.dimh((ym0, Wout / 2, zt), (0, 0, zt), "top", 1, on=["mensula_mejilla_C", "mensula_oreja_sup_C"], virt_b=P["d_pp"] / 2, text=f"{f(-ym0)} (al eje del ojal)")
+        V.dimv((ym1, -Wout / 2, zt), (ym1, Wout / 2, zt), "right", 0, on=["mensula_mejilla_C"], text=f"{f(Wout)}", txt_shift=-30)
         V.dimv((Llug - rear, -Win / 2, zt), (Llug - rear, Win / 2, zt), "right", 1, on=["mensula_oreja_sup_C"], text=f"{f(Win)} (luz)", txt_shift=30)
         V.dim_dia((0, 0, zt), P["d_pp"] / 2, 60, on=["mensula_oreja_sup_C"], text=tol_txt(P["d_pp"], "H9"), ext=24)
-        c.cut_mark("planta", "A", (-rear - 20, 0, zt), (P["L_ch"] - rear + 42, 0, zt), 90)
+        c.cut_mark("planta", "A", (min(-rear, g.mej_y[0]) - 20, 0, zt), (max(Llug - rear, g.mej_y[1]) + 42, 0, zt), 90)
         with alias(ctx, "_C"):
             # globos a la izquierda, fuera de la marca de corte; anclajes fuera del eje (la línea del eje es la del corte)
             balloons_auto(c, V, [k for k in lk if k != "inserto_C"], pred=lambda q: (22 < q[1] < Win / 2 - 3) or q[1] > Win / 2 + 3, gap=12, off=34, sides="l")
     c.vs("planta", sh, "top", lv=(1, 1, 2, 2), extra=(20, 20, 30, 20), draw=planta, mat=mm, hatch=False, title="PLANTA", auto=False, w=1.4)
     c.vs("cA", sh2, "front", cut=CUT_Y, lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE A-A (plano del eje; base parcial)", w=1.2,
-         center=(P["L_ch"] / 2 - rear, 0, tb), win=(-P["L_ch"] / 2 - 60, -tb - 4, P["L_ch"] / 2 + 60, H_ + 8),
+         center=((g.mej_y[0] + g.mej_y[1]) / 2, 0, tb), win=(-P["L_ch"] / 2 - 60, -tb - 4, P["L_ch"] / 2 + 60, H_ + 8),
          draw=lambda V, c: V.dimv((Llug - rear, 0, zi), (Llug - rear, 0, zt), "right", 0, on=["mensula_oreja_inf_C", "mensula_oreja_sup_C"], text=f"({f(zt - zi)})"), auto=dict(on=[k for k in lk if k != "inserto_C"], maxn=6))
     c.vs("cB", sh2, "right", cut=((0, 0, 0), (-1, 0, 0)), lv=(1, 1, 2, 1), mat=mm, hs=0.4, title="CORTE B-B (por el eje del ojal; base parcial" + (" e inserto)" if INS else ")"), w=1.0, auto=dict(on=[k for k in lk if k != "inserto_C"], maxn=6),
          center=(0, 0, tb), win=(-Wout / 2 - 60, -tb - 4, Wout / 2 + 60, H_ + 8))
     if ids:
         add_prep(c, "det_j", ctx.weld_by_id(ids[0]), t1=tc, t2=zi, mins=1.0, maxs=1.0)
     c.tail(ks, ids, [f"Armar en plantilla sobre " + (f"el inserto de esquina {ctx.code('inserto').replace(CODE + '-', '').rsplit('-', 1)[0]} (t = {f(zi)}, cara superior a z = {f(zi)}; núcleo levaGuiada.fabricacion.inserto)" if INS else "la base")
-                     + f": mejillas {f(tc)} × {f(zt - zi)} a {f(Win)} de luz; orejas entre mejillas; centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 de la cara de apoyo.",
+                     + f": mejillas {f(tc)} × {f(zt - zi)} a {f(Win)} de luz" + (f", corridas {f(g.mej_dl)} mm hacia la esquina (extremo trasero a {f(-g.mej_y[0])} del eje del ojal; núcleo levaGuiada.fabricacion.mensula), sobre el espesor pleno del inserto" if g.mej_dl > 0 else "") + f"; orejas entre mejillas; centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 de la cara de apoyo.",
                      *([f"El inserto se suelda a la base antes que la ménsula ({', '.join(jI)}: CJP a tope en doble V, al ras por debajo, UT 100 %; secuencia en GEN-007 y en el instructivo, paso 1)."] if INS else []),
                      f"Mandrinar Ø{f(P['d_pp'])} H9 de ambas orejas en línea después de soldar (coaxialidad 0,10). Se fabrican {int(P['n_br'])} ménsulas.", "Filetes: ver tabla; secuencia alternada por lados; MT 100 %.",
                      *([f"RETENIDA (requiere núcleo): {ctx.conflicto('mensula_inserto')['corto']}; el extremo delantero de las mejillas queda sobre la transición del inserto (corte A-A). No fabricar hasta su corrección (GEN-009)."]

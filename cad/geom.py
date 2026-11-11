@@ -135,6 +135,11 @@ class G:
         self.FPV = self.PV.get("fabricacion") if self.modo == 2 else None
         self.FLG = self.LG.get("fabricacion") if (self.modo == 1 and self.LG.get("activa")) else None
         self.BR = DV["bracket"]
+        # modo guiado: posición de las mejillas de la ménsula a lo largo del eje del cilindro desde el ojal (núcleo f2dc2b5, levaGuiada.fabricacion.mensula:
+        # corridas «retroceso» mm hacia la esquina para apoyar sobre el espesor pleno del inserto; las orejas quedan en el ojal)
+        _MS = ((self.LG.get("fabricacion") or {}).get("mensula") or {}) if self.modo == 1 else {}
+        self.mej_y = tuple(float(v) for v in (_MS.get("y_mejillas") or (-self.BR["rear"], P["L_ch"] - self.BR["rear"])))
+        self.mej_dl = float(_MS.get("retroceso") or 0.0)
         self.KG = DV["K"]
         self.forkH = DV["forkH"]
         self.zb = self.tb + P["t_bed"]

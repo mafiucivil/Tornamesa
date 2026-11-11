@@ -85,7 +85,15 @@ def sheet_inserto(ctx):
         if qy_[1] > ey + 0.5:
             V.dimv((0, 0, 0), (qy_[0], qy_[1], 0), "right", 1, on=["ins_L"], text=f"{fm(qy_[1], 1)}")
         # hipotenusa: distancia desde la esquina (perpendicular) y largo de la cara (vértices en la tabla)
-        hyp = [(a, b) for a, b in zip(C0, C0[1:] + C0[:1]) if abs(abs(b[0] - a[0]) - abs(b[1] - a[1])) < 1e-6 and abs(b[0] - a[0]) > 1]
+        e45 = sorted([(a, b) for a, b in zip(C0, C0[1:] + C0[:1]) if abs(abs(b[0] - a[0]) - abs(b[1] - a[1])) < 1e-6 and abs(b[0] - a[0]) > 1], key=lambda e: -math.dist(*e))
+        hyp = e45[:1]                       # la hipotenusa es la arista a 45° más larga; las demás son los chaflanes de las muescas (núcleo f2dc2b5)
+        chf = e45[1:]
+        if len(chf) == 2:
+            m1 = ((chf[0][0][0] + chf[0][1][0]) / 2, (chf[0][0][1] + chf[0][1][1]) / 2)
+            m2 = ((chf[1][0][0] + chf[1][1][0]) / 2, (chf[1][0][1] + chf[1][1][1]) / 2)
+            V.dim((m1[0], m1[1], tb / 2), (m2[0], m2[1], tb / 2), 30, text=f"{fm(math.dist(m1, m2), 1)} (entre chaflanes 45°)", orient="a", on=["ins_L"], txt_shift=-45)   # texto fuera de la bisectriz (marca del corte A-A)
+        for a_, b_ in chf:
+            V.dim((a_[0], a_[1], tb / 2), (b_[0], b_[1], tb / 2), -18, text=f"{fm(math.dist(a_, b_), 1)} (chaflán 45°)", orient="a", on=["ins_L"])
         if hyp:
             a_, b_ = hyp[0]
             V.dim((a_[0], a_[1], tb), (b_[0], b_[1], tb), 36, text=f"{fm(math.dist(a_, b_), 1)} (hipotenusa)", orient="a", on=["ins_L"])
@@ -121,15 +129,16 @@ def sheet_inserto(ctx):
            ["Catetos sobre los bordes de la base", f"{fm(c_leg[0], 1)} / {fm(c_leg[1], 1)} mm"],
            ["Hipotenusa: distancia al centro de la tornamesa / a la esquina", f"{fm(I['hipotenusa_dist_centro'], 1)} / {fm(hyp_c, 1)} mm"],
            ["Ancho paralelo a la hipotenusa (entre los extremos de los catetos)", f"{fm(math.hypot(ex, ey), 1)} mm"],
-           ["Muesca lado x (placa-guía / banda del accionamiento)" if M.get("lado_x") else "Muesca lado x", (f"zona libre: a ≤ {fm(B / 2 - M['lado_x']['a'], 1)} del borde x y a ≥ {fm(M['lado_x']['b'] + B / 2, 1)} del borde y" if M.get("lado_x") else "no lleva")],
-           ["Muesca lado y (placa-guía / paso de Q)" if M.get("lado_y") else "Muesca lado y", (f"zona libre: a ≤ {fm(M['lado_y']['b'] + B / 2, 1)} del borde y y a ≥ {fm(B / 2 - M['lado_y']['a'], 1)} del borde x" if M.get("lado_y") else "no lleva")],
+           ["Muesca lado x (placa-guía / banda del accionamiento)" if M.get("lado_x") else "Muesca lado x", (f"zona libre: a ≤ {fm(B / 2 - M['lado_x']['a'], 1)} del borde x y a ≥ {fm(M['lado_x']['b'] + B / 2, 1)} del borde y" + (f"; esquina con chaflán 45° de {fm(M['lado_x']['chaflan'], 1)} mm (núcleo)" if M['lado_x'].get('chaflan') else "") if M.get("lado_x") else "no lleva")],
+           ["Muesca lado y (placa-guía / paso de Q)" if M.get("lado_y") else "Muesca lado y", (f"zona libre: a ≤ {fm(M['lado_y']['b'] + B / 2, 1)} del borde y y a ≥ {fm(B / 2 - M['lado_y']['a'], 1)} del borde x" + (f"; esquina con chaflán 45° de {fm(M['lado_y']['chaflan'], 1)} mm (núcleo)" if M['lado_y'].get('chaflan') else "") if M.get("lado_y") else "no lleva")],
            ["Transición de la cara superior", f"1:{fm(k, 1)}, ancho {fm(I['transicion']['ancho'], 0)} mm desde los bordes interiores (los bordes sobre el borde de la base no llevan junta ni transición)"],
            ["Rebaje local", (f"z = {f(R_['z_cara'])} (prof. {f(R_['profundidad'])}) bajo: {', '.join(R_.get('bajo', []))}; borde 1:{fm(k, 1)}; {len(RB)} polígonos (envolvente convexa del barrido), "
                              f"coordenadas en el JSON (programa CNC); mecanizar después de soldar J-I1" if RB else "no lleva")],
            ["Holguras (núcleo)", f"planta {fm(H.get('planta', 0), 0)} mm ({H.get('planta_a', '—')}); vertical {fm(H.get('vertical', 0), 0)} mm ({H.get('vertical_a', '—')}); a la mesa {fm(H.get('mesa', 0), 0)} mm; exigida {fm(H.get('exigida', 0), 0)} mm"],
            ["Verificación del núcleo", f"FU máx. {fm(I.get('fu_max', 0), 3)} (F_b = 1,25·Fy/Nd = {fm(I.get('Fb', 0), 1)} MPa, ASME BTH-1-2020 §3-2.3.4); estado «{I.get('estado', '—')}»"
                                        + (" — sobre el objetivo interno 0,90: advertencia, pendiente de aceptación del mandante" if (I.get("fu_max") or 0) > 0.9 else "")],
-           ["Masa (núcleo, excedente sobre la base / 3D, pieza completa)", f"{fm(I['masa'], 1)} kg / {fm(pI.mass_unit, 1)} kg por inserto"]]
+           ["Masa (núcleo, excedente sobre la base / 3D, mismo excedente / 3D, pieza completa)",
+            (lambda me_: f"{fm(I['masa'], 1)} kg / {fm(me_, 1)} kg ({fm((me_ / I['masa'] - 1) * 100, 2)} %) / {fm(pI.mass_unit, 1)} kg por inserto")(pI.mass_unit - __import__('shapely.geometry', fromlist=['Polygon']).Polygon(I['esquinas'][0]).area * tb * pI.rho)]]
     p.table_block("DATOS DEL INSERTO (núcleo: " + ("pivotado.fabricacion.soporte_E.inserto" if piv else "levaGuiada.fabricacion.inserto") + ")", [("Concepto", 44, "L"), ("Valor", 96, "L")], dat)
     p.tables(jI)
     tipos = getattr(pI, "tipos", []) or []

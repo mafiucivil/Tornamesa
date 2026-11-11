@@ -80,11 +80,15 @@ def requiere_nucleo(ctx):
         pI = ctx.m.get("inserto")
         from shapely.geometry import Polygon as _Pg
         m_exc = pI.mass_unit - _Pg(I["esquinas"][0]).area * g.tb * pI.rho
-        R.append((f"{RN}: masa del inserto de esquina", f"El núcleo toma la transición como una cuña (A_contorno − A_pleno)·Δ/2 (masa {fm(I['masa'], 1)} kg por inserto, excedente sobre la base); "
-                  f"con los biseles planos entre «esquinas» y «esquinas_espesor_pleno» el excedente es {fm(m_exc, 1)} kg ({fm((m_exc / I['masa'] - 1) * 100, 1)} %). Donde las transiciones se superponen "
-                  "(muescas cerca de la hipotenusa) la cuña cuenta material de más.", "Calcular la masa del inserto con los biseles planos (o exportar el volumen); el dibujo usa la geometría."))
-        R.append((f"{RN}: preparación de la junta J-I1", "El núcleo da la junta como CJP a tope en doble V (AWS D1.1:2020 Figura 5.1, B-U3: verificar designación) pero no la abertura de raíz, el talón ni el ángulo; "
-                  "el dibujo PROPONE X 60°, raíz 0–3, talón 0–3 con resanado (B-U3c).", "Confirmar la designación precalificada y los parámetros (o el WPS del fabricante)."))
+        dif_ = (m_exc / I["masa"] - 1) * 100 if I.get("masa") else float("inf")
+        if abs(dif_) > 0.5:
+            # núcleo f2dc2b5: V = ∫ A(z) dz con biseles planos y rebaje; el 3D debe coincidir dentro de ±0,5 %
+            R.append((f"{RN}: masa del inserto de esquina", f"Masa del núcleo {fm(I['masa'], 1)} kg por inserto (excedente sobre la base); el sólido 3D con los biseles planos entre «esquinas» y «esquinas_espesor_pleno» "
+                      f"(y el rebaje) da {fm(m_exc, 1)} kg ({fm(dif_, 2)} %), fuera de ±0,5 %.", "Revisar la integración de la masa del inserto en el núcleo o la geometría exportada."))
+        J_ = ((I.get("juntas") or [{}])[0])
+        if not (J_.get("designacion") and J_.get("preparacion")):
+            R.append((f"{RN}: preparación de la junta J-I1", "El núcleo da la junta como CJP a tope en doble V (AWS D1.1:2020 Figura 5.1, B-U3: verificar designación) pero no la abertura de raíz, el talón ni el ángulo; "
+                      "el dibujo PROPONE X 60°, raíz 0–3, talón 0–3 con resanado (B-U3c).", "Confirmar la designación precalificada y los parámetros (o el WPS del fabricante)."))
         if (I.get("fu_max") or 0) > 0.9:
             R.append(("ADVERTENCIA DEL NÚCLEO: inserto de esquina", f"FU máx. {fm(I['fu_max'], 3)} > 0,90 (objetivo interno; límite 1,0): con esta interfaz la plancha de {fm(g.tb, 0)} mm bajo el borde de la mesa satura con cualquier espesor del inserto.",
                       "PENDIENTE DE ACEPTACIÓN DEL MANDANTE (o base local mayor para esta variante). Las láminas se emiten para revisión con esta salvedad."))
@@ -92,6 +96,13 @@ def requiere_nucleo(ctx):
         F = g.FPV
         S, PL = F["soporte_E"], F["placas_leva"]
         t, L = S["t_pared"], S["lado"]
+        if PL.get("revestimiento"):
+            # familias 3/4 del núcleo: placa de respaldo con revestimiento en el canto (inox–inox o bronce) y zapata; el JSON no trae su geometría
+            Rv, Z = PL["revestimiento"], PL.get("zapata") or {}
+            R.append((f"{RN}: revestimiento del canto de la placa-guía", f"El núcleo declara la placa-guía con revestimiento «{Rv.get('material', '—')}» de {fm(Rv.get('t', 0), 0)} mm en el canto"
+                      + (f" y zapata {fm(Z.get('largo', 0), 0)} × {fm(Z.get('alto', 0), 0)} mm" if Z else "") + " (familia " + str(PL.get("familia")) + "), pero no exporta su contorno, su fijación ni su "
+                      "ubicación a lo largo del canto: el modelo 3D y las láminas dibujan la placa de respaldo sin el revestimiento (masa de las placas-leva por debajo del núcleo).",
+                      "Exportar la geometría del revestimiento y de la zapata (contorno, tramo del canto, fijación) para dibujarlos."))
         if not S.get("piezas"):
             R.append((f"{RN}: piezas del soporte del ojal E", "El JSON no trae soporte_E.piezas (polígonos de paredes, muñones y tapas).", "Exportar la geometría del soporte abierto."))
         if not S.get("juntas"):

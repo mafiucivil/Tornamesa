@@ -159,11 +159,13 @@ LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_
 # el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
 VAR_CODIGOS = {
     "base_plancha": [(("BASE-G", "AF2-G", "W-G"), "lisa (guiado)", 1), (("A-G", "B-G", "C1-G", "C2-G", "C3-G"), "roscas de interfaz (guiado)", 1),
-                     (("BASE", "AF2", "W"), "roscas de placas-leva", 1), (("A",), "placas-leva e interfaz", 1),
+                     (("BASE", "W"), "roscas de placas-leva", 1), (("A",), "placas-leva e interfaz", 1),
                      # C1…C3: la placa-guía de C tiene otro canto (cinemática con la δ de C) y sus roscas y pasadores quedan en otras posiciones
                      (("C1", "C2", "C3"), "placas-leva de C e interfaz", 1),
                      # B (núcleo e9a0eb3): el inserto de B (gap 10) deja otra ventana en la plancha
-                     (("B",), "placas-leva e interfaz, ventanas del inserto de B", 1)],
+                     (("B",), "placas-leva e interfaz, ventanas del inserto de B", 1),
+                     # AF2 (núcleo f2dc2b5): el inserto de AF2 (t 70) lleva chaflán en las esquinas de las muescas y la ventana de la plancha ya no es la de BASE
+                     (("AF2",), "ventanas del inserto de AF2", 1)],
     # placa-guía: el canto sale de la cinemática del núcleo, que cambia con la altura de la interfaz (δ): C1…C3 tienen su propia geometría
     "placa_leva": [(("BASE", "A", "AF2", "B"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1)],
     "placa_leva_h": [(("BASE", "A", "AF2", "B"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1)],
@@ -187,6 +189,8 @@ VAR_CODIGOS = {
     "cajon_pared_y": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
     "cajon_munon": [(("BASE", "W"), "alto base", 1), (("A",), "alto A", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("C1", "C2", "C3"), "alto y ancho C", 1)],
     "cajon_tapa": [(("BASE", "W", "A", "AF2", "B"), "nariz base/A/B", 1), (("C1", "C2", "C3"), "nariz C (cilindro de C)", 1)],
+    # pasador E (núcleo f2dc2b5): el extremo inferior queda sobre la cara del inserto de esquina; el largo cambia con el espesor del inserto y la δ
+    "pasador_E": [(("BASE", "W", "A", "C1", "C2", "C3"), "L 122", 1), (("AF2",), "L 127", 1), (("B",), "L 132", 1)],
     "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
     "leva_pata": [(("BASE-G", "W-G"), "alto base", 1), (("A-G", "C1-G", "C2-G", "C3-G"), "alto A/C", 1), (("AF2-G",), "alto AF2", 1), (("B-G",), "alto B", 1)],
 }
@@ -580,7 +584,8 @@ def build(D, verbose=True):
     for grp in (("horario", "antihorario") if g.modo == 1 else ()):
         for c in D["cilindros"][grp]:
             x0, x1 = -BR["rear"], P["L_ch"] - BR["rear"]
-            mej.append(place(box(x0, x1, BR["Win"] / 2, BR["Wout"] / 2, zi, tb + BR["H"]).union(box(x0, x1, -BR["Wout"] / 2, -BR["Win"] / 2, zi, tb + BR["H"])), c["phiMean"], c["eye"]))
+            xm0, xm1 = g.mej_y                     # mejillas corridas δ hacia la esquina (núcleo levaGuiada.fabricacion.mensula.y_mejillas)
+            mej.append(place(box(xm0, xm1, BR["Win"] / 2, BR["Wout"] / 2, zi, tb + BR["H"]).union(box(xm0, xm1, -BR["Wout"] / 2, -BR["Win"] / 2, zi, tb + BR["H"])), c["phiMean"], c["eye"]))
             osup.append(place(box(x0, Llug - BR["rear"], -BR["Win"] / 2, BR["Win"] / 2, tb + BR["H"] - P["t_ch"], tb + BR["H"]).cut(cyl(P["d_pp"] / 2, BR["H"] + 2, tb - 1)), c["phiMean"], c["eye"]))
             oinf.append(place(box(x0, Llug - BR["rear"], -BR["Win"] / 2, BR["Win"] / 2, zi, tb + BR["spacer"] + P["t_ch"]).cut(cyl(P["d_pp"] / 2, BR["H"] + 2, tb - 1)), c["phiMean"], c["eye"]))
     nb = len(osup)
@@ -592,7 +597,8 @@ def build(D, verbose=True):
         for grp in ("horario", "antihorario"):
             for c in D["cilindros"][grp]:
                 x0, x1 = -BR["rear"], P["L_ch"] - BR["rear"]
-                for nm_, bx_ in (("mejilla", _sbox(x0, BR["Win"] / 2, x1, BR["Wout"] / 2)), ("mejilla", _sbox(x0, -BR["Wout"] / 2, x1, -BR["Win"] / 2)),
+                xm0, xm1 = g.mej_y
+                for nm_, bx_ in (("mejilla", _sbox(xm0, BR["Win"] / 2, xm1, BR["Wout"] / 2)), ("mejilla", _sbox(xm0, -BR["Wout"] / 2, xm1, -BR["Win"] / 2)),
                                  ("suplemento", _sbox(x0, -BR["Win"] / 2, Llug - BR["rear"], BR["Win"] / 2))):
                     hu = _aff.translate(_aff.rotate(bx_, c["phiMean"], origin=(0, 0)), c["eye"][0], c["eye"][1])
                     i_, fr_, zmin_, dmax_ = inserto3d.apoyo(INS, hu, tb)

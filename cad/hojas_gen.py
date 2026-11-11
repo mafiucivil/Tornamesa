@@ -163,7 +163,10 @@ def sheet_notas(ctx):
     DELTA_KEYS = ("cajon_pared_x", "cajon_pared_y", "cajon_munon", "pasador_Q", "leva_pata")
     dk_ = [ctx.m.get(k) for k in DELTA_KEYS if ctx.m.get(k)]
     if dk_:
-        rows.append([", ".join(f"{p_.sub}-{p_.num:03d}" for p_ in dk_), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
+        _gr = {}
+        for p_ in dk_:
+            _gr.setdefault(p_.sub, []).append(f"{p_.num:03d}")
+        rows.append([" ".join(f"{sb}-{'/'.join(ns)}" for sb, ns in _gr.items()), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
                      ", ".join(p_.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:] for p_ in dk_)])
     for key, cl in M3.VAR_CODIGOS.items():
         if key.startswith("int_") or key in DELTA_KEYS or key == "placa_leva_h":

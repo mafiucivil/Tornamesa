@@ -34,7 +34,9 @@ def nota_inserto(C):
     tb = next((c["inserto"]["t_base"] for c in C if c.get("inserto")), 20)
     return (f"Plancha base de {tb:g} mm con inserto de esquina bajo cada soporte del cilindro (núcleo: «{next(c['inserto'].get('estado', '—') for c in C if c.get('inserto'))}»; "
             "ASME BTH-1-2020 §3-2.3.4, F_b = 1,25·Fy/Nd): " + "; ".join(res) + ". La retención anterior «plancha base bajo el soporte E» ya no figura: "
-            "la verificación sin inserto queda como antecedente del núcleo. Lámina del inserto por espesor (BAS-018…023); juntas J-I1 (CJP a tope en doble V, UT 100 %).")
+            "la verificación sin inserto queda como antecedente del núcleo. Lámina del inserto por espesor (BAS-018…023); juntas J-I1 (CJP a tope en doble V"
+            + (lambda J: f", {J['designacion']} de {J.get('norma_designacion', 'AWS D1.1:2020 Figura 5.1')} (núcleo: {J.get('designacion_estado', '')})" if J.get("designacion") else "")(
+                next(((c["inserto"].get("juntas") or [{}])[0] for c in C if c.get("inserto")), {})) + ", UT 100 %).")
 
 
 def nota_limitacion(C):

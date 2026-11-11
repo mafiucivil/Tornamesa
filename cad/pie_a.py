@@ -303,7 +303,7 @@ def sheet_mensula_piezas(ctx):
 
     def d1(V, p):
         if len(ids) >= 4:
-            w_out(p, ids[0], V, (P["L_ch"] / 2 - rear, -Wout / 2, zi + 0.5), "right", dy=24)
+            w_out(p, ids[0], V, ((g.mej_y[0] + g.mej_y[1]) / 2, -Wout / 2, zi + 0.5), "right", dy=24)
         s.roughness((V.P(0, -Wout / 2, zt)[0] + 6, V.P(0, 0, zt)[1] + 3), "Ra 12,5 (corte)") if False else None
     p.vs("mej_el", k1, "front", lv=(1, 2, 1, 1), extra=(0, 0, 115, 0), draw=d1, title="MEJILLA — ELEVACIÓN (2 por ménsula, 8 en total)", auto=dict(tol={round(Hm, 1): " ±0,5", round(P["L_ch"], 1): " ±1"}), w=1.5)
     p.vs("mej_pl", k1, "top", lv=(1, 2, 1, 1), title="MEJILLAS — PLANTA", auto=dict(), w=0.8)
@@ -327,6 +327,8 @@ def sheet_mensula_piezas(ctx):
     p.tables(ids)
     p.notes([f"Mejillas: plancha {f(tc)} × {f(Hm)} × {f(P['L_ch'])}, 2 por ménsula ({int(P['n_br'])} ménsulas, {int(2 * P['n_br'])} mejillas); plasma, borde recto"
              + (f"; se sueldan sobre el inserto de esquina {ctx.code('inserto').replace(CODE + '-', '').rsplit('-', 1)[0]} (cara a z = {f(zi)}), {f(zi - tb)} mm más cortas que sobre la base." if INS else "."),
+             *([f"Mejillas corridas {f(g.mej_dl)} mm hacia la esquina respecto de la oreja (núcleo levaGuiada.fabricacion.mensula: y = {f(g.mej_y[0])} … {f(g.mej_y[1])} desde el eje del ojal), "
+                f"para apoyar enteras sobre el espesor pleno del inserto; las orejas quedan en el ojal (CON-007)."] if g.mej_dl > 0 else []),
              f"Orejas: planchas {f(Win)} (−0,5 para entrar entre mejillas con luz interior {f(Win)}) × {f(Llug)}; la inferior es un bloque {f(hb)} de espesor (pletinas apiladas o plancha gruesa).",
              f"Agujero Ø{f(P['d_pp'])} H9 de ambas orejas: mandrinar en línea DESPUÉS de soldar la ménsula, en un solo montaje; coaxialidad 0,10; centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 sobre la cara de apoyo.",
              "Armar la ménsula en una plantilla sobre " + ("el inserto" if INS else "la base") + "; soldadura de mejillas: secuencia alternada para limitar la distorsión (filete z de la tabla).",

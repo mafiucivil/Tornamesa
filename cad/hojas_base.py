@@ -382,13 +382,24 @@ def build_welds(ctx):
         for jn in INS.get("juntas") or []:
             tam = jn.get("tamano") or {}
             ver = jn.get("verificacion") or {}
-            wI = add(f"Inserto de esquina – plancha base ({jn['id']}: CJP a tope en doble V; transición 1:{fm(INS['_k'], 1)} en la cara superior del inserto)",
+            PR = jn.get("preparacion") or {}
+            des = jn.get("designacion")
+            rR, fT, aA, aB = (PR.get("raiz_R") or [0, 3]), (PR.get("talon_f") or [0, 3]), PR.get("angulo_alfa", 60), PR.get("angulo_beta", PR.get("angulo_alfa", 60))
+            rng = lambda v: f"{fm(v[0], 0)}–{fm(v[1], 0)}"
+            if des and PR:
+                prep_ = (f"{des} (núcleo, {jn.get('norma_designacion', 'AWS D1.1:2020 Figura 5.1')}; {jn.get('designacion_estado', '')}): {PR.get('tipo', 'doble V')}, T1 = {fm(PR.get('T1', tb), 0)}, "
+                         f"raíz R {rng(rR)}, talón f {rng(fT)}, α = {fm(aA, 0)}°, β = {fm(aB, 0)}°" + (f", S = {fm(PR['profundidad_bisel_S'][0], 1)} / {fm(PR['profundidad_bisel_S'][1], 1)}" if PR.get("profundidad_bisel_S") else "")
+                         + (", resanado de raíz por la cara inferior" if PR.get("resanado") else "") + (f"; procesos {', '.join(PR['procesos'])}" if PR.get("procesos") else ""))
+            else:
+                prep_ = "Doble V 60° (X), raíz 0–3, talón 0–3, resanado por la cara inferior (PROPUESTA; AWS D1.1:2020 Figura 5.1, B-U3: verificar designación)"
+            wI = add(f"Inserto de esquina – plancha base ({jn['id']}" + (f" {des}" if des else "") + f": CJP a tope en doble V; transición 1:{fm(INS['_k'], 1)} en la cara superior del inserto)",
                      f"{sc_('inserto')} / {sc_('base_plancha')}", f"CJP a tope en doble V, soldada por arriba y por abajo (base volteada), cara inferior amolada al ras; transición 1:{fm(INS['_k'], 1)} en el inserto", "V", t=float(tam.get("CJP", tb)), t_pre=float(INS["t"]),
-                     prep="Doble V 60° (X), raíz 0–3, talón 0–3, resanado por la cara inferior (PROPUESTA; AWS D1.1:2020 Figura 5.1, B-U3: verificar designación)",
-                     prep_txt="60°", groove=True, len_total=float(jn.get("largo_total", 0)), wps=6, end="VT 100 % · UT 100 %", jid=jn["id"],
+                     prep=prep_,
+                     prep_txt=f"{fm(aA, 0)}°", groove=True, len_total=float(jn.get("largo_total", 0)), wps=6, end="VT 100 % · UT 100 %", jid=jn["id"],
                      other=dict(kind="V", size=""), nota=(f"Núcleo ({'soporte_E' if g.modo == 2 else 'levaGuiada'}.inserto.juntas {jn['id']}: FU {fm(ver['fu'], 3)}; {ver.get('norma', '')}). "
                                                         "Cara inferior amolada al ras (apoyo en la losa); cara superior: el cordón empalma con la transición 1:2,5"))
-            wI["inserto"] = dict(t=float(INS["t"]), tb=float(tb), k=float(INS["_k"]), ancho=float(tam.get("transicion_ancho", 0) or 0), pend=str(tam.get("transicion_pendiente", "")))
+            wI["inserto"] = dict(t=float(INS["t"]), tb=float(tb), k=float(INS["_k"]), ancho=float(tam.get("transicion_ancho", 0) or 0), pend=str(tam.get("transicion_pendiente", "")),
+                                 designacion=des, raiz=float(rR[1]), talon=float(fT[1]), alfa=float(aA), beta=float(aB), resanado=bool(PR.get("resanado", True)))
             wI["origen"] = f"núcleo (inserto.juntas {jn['id']}" + (f": FU {fm(ver['fu'], 3)}" if ver.get("fu") is not None else "") + ")"
             wI["size_txt"] = f"s{fm(tam.get('CJP', tb), 0)}"
             wI["garganta"] = f"CJP t = {fm(tam.get('CJP', tb), 0)} (doble V)"
