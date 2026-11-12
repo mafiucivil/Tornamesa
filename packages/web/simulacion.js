@@ -218,27 +218,31 @@ const SIM = (() => {
     return o.join("");
   }
 
-  // insertos de esquina de la base bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.inserto o levaGuiada.fabricacion.inserto)
+  // refuerzos cuadrados soldados sobre la base bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.refuerzo o levaGuiada.fabricacion.refuerzo)
   function insertoSim(pv) {
     if (pv._ins === undefined) {
       let I = null;
-      try { const D = TT.designDrive(pv.P, pv.R), f = D.modo === 2 ? ((D.pivotado || {}).fabricacion || {}).soporte_E : ((D.levaGuiada || {}).fabricacion || {}); I = f && f.inserto && Array.isArray(f.inserto.esquinas) && f.inserto.esquinas.length ? f.inserto : null; } catch (e) { I = null; }
+      try { const D = TT.designDrive(pv.P, pv.R), f = D.modo === 2 ? ((D.pivotado || {}).fabricacion || {}).soporte_E : ((D.levaGuiada || {}).fabricacion || {}), q = f && (f.refuerzo || f.inserto); I = q && q.cuadrado && Array.isArray(q.cuadrado.vertices) && q.cuadrado.vertices.length ? q : null; pv._pe = D.pasadores_empuje || null; } catch (e) { I = null; }
       pv._ins = I;
     }
     return pv._ins;
   }
-  // insertos: polígono con muescas y borde de espesor pleno (bajo la estación); rótulos aparte, al final, sobre la diagonal junto a la hipotenusa
+  // refuerzos: cuadrado, tapones y atiesador tangencial (si lo hay), bajo la estación; rótulos aparte, al final, en el centro del cuadrado
   function insSvg(pv, X, Y) {
     const I = insertoSim(pv); if (!I) return "";
-    return I.esquinas.map((pl, k) => { const pf = (I.esquinas_espesor_pleno || [])[k]; return `<polygon points="${pl.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="sim-ins"/>${pf ? `<polygon points="${pf.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="sim-ins-pl"/>` : ""}`; }).join("");
+    const tp = I.tapones || {}, at = I.atiesadores, rt = Math.abs(X((tp.d || 44) / 2) - X(0)).toFixed(2);
+    return I.cuadrado.vertices.map((pl, k) => {
+      const ra = at && at.por_esquina && at.por_esquina[k];
+      return `<polygon points="${pl.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="sim-ins"/>${((tp.posiciones || [])[k] || []).map(([x, y]) => `<circle cx="${X(x)}" cy="${Y(y)}" r="${rt}" class="sim-tap"/>`).join("")}${ra ? `<polygon points="${ra.poligono.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" class="sim-ati"/>` : ""}`;
+    }).join("");
   }
   function insRot(pv, X, Y) {
     const I = insertoSim(pv); if (!I) return "";
-    const d = ((I.hipotenusa_dist_centro || pv.P.D_top / 2) + 75) / Math.SQRT2;
-    return I.esquinas.map((pl) => { const sx = Math.sign(pl[0][0]) || 1, sy = Math.sign(pl[0][1]) || 1; return `<text x="${X(sx * d)}" y="${Y(sy * d)}" text-anchor="middle" class="sim-t sim-tins">inserto t ${num(I.t, 0)}</text>`; }).join("");
+    return I.cuadrado.vertices.map((pl) => { const c = pl.reduce((s, p) => [s[0] + p[0] / pl.length, s[1] + p[1] / pl.length], [0, 0]); return `<text x="${X(c[0])}" y="${(+Y(c[1]) + 3).toFixed(1)}" text-anchor="middle" class="sim-t sim-tins">refuerzo t ${num(I.t_d, 0)}</text>`; }).join("");
   }
   function limUso(A) {
-    const L = (A && A.verdict && A.verdict.limitaciones_uso) || [];
+    const L = ((A && A.verdict && A.verdict.limitaciones_uso) || []).slice();
+    try { const pe = TT.designDrive(S.P, A.R).pasadores_empuje; ((pe && pe.limitaciones) || []).forEach((t) => L.push({ texto: "pasador de empuje no reemplazable. " + t })); } catch (e) { /* sin designDrive */ }
     return L.length ? `<div class="limuso" id="simLim">${L.map((l) => `<div><b>Limitación de uso:</b> ${esc(l.texto)}</div>`).join("")}</div>` : "";
   }
   function planGuiado(pv, st, rot) {
@@ -428,7 +432,7 @@ const SIM = (() => {
       <span>Tiempo de empuje / retorno por carrera</span><span id="simTiempos">${num(pv.tExt, 1)} / ${num(pv.tRet, 1)} s</span>
       <span>Tiempo por vuelta (núcleo, carrera completa)</span><span>${num(R.tRev, 2)} min</span>
       ${pv.leva ? `<span>Guía de reenganche</span><span>${esc(pv.leva)}</span>` : ""}
-      ${(() => { const I = insertoSim(pv); return I ? `<span>Base / inserto de esquina (verde azulado en la planta)</span><span id="simIns">t ${num(I.t_base, 0)} mm / t ${num(I.t, 0)} mm · ${I.n} insertos de ${num(I.masa, 1)} kg</span>` : ""; })()}
+      ${(() => { const I = insertoSim(pv); return I ? `<span>Base / refuerzo cuadrado soldado (verde azulado en la planta)</span><span id="simIns">t ${num(I.t_base, 0)} mm / t ${num(I.t, 0)} mm · ${I.n} refuerzos ${num(I.lado, 0)} × ${num(I.lado, 0)} × ${num(I.t_d, 0)} mm de ${num(I.masa, 1)} kg · ${(I.tapones || {}).n_por_esquina || 0} tapones Ø${num((I.tapones || {}).d || 0, 0)}${I.atiesadores ? ` · atiesador ${num(I.atiesadores.t, 0)} × ${num(I.atiesadores.h, 0)}` : ""}</span>` : ""; })()}
     </div>`;
   }
 

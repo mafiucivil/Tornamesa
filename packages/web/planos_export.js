@@ -146,19 +146,26 @@ const PLANOS = (() => {
     const ears = 4 * RHO * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * P.t_ear;
     // accionamiento: guiado (bancada, ménsula, patín, uña y leva de reenganche) o pivotado tipo KIET (soporte del ojal E, bloque-uña, placas-leva); descripciones del núcleo (designDrive)
     const DRV = TT_.designDrive ? TT_.designDrive(P, R) : null, md = (DRV && DRV.masas_desc) || {}, piv = !!(DRV && DRV.modo === 2);
-    // inserto de esquina bajo cada soporte del cilindro (núcleo: pivotado.fabricacion.soporte_E.inserto / levaGuiada.fabricacion.inserto); su masa va en m.brackets
-    const INSf = DRV ? (piv ? ((DRV.pivotado || {}).fabricacion || {}).soporte_E : ((DRV.levaGuiada || {}).fabricacion || {})) : null;
-    const INS = INSf && INSf.inserto && Array.isArray(INSf.inserto.esquinas) ? INSf.inserto : null, tB = INS ? INS.t_base : P.t_base;
-    const insTxt = INS ? `, con inserto de esquina en la base t = ${nf(INS.t)} mm (${INS.n} x ${nf(INS.masa, 1)} kg = ${nf(INS.masa_total, 1)} kg, incluido en la masa)` : "";
-    add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(tB)} mm con agujero Ø${nf(P.D_piv)}${INS ? ` y ${INS.n} ventanas para los insertos de esquina` : ""}`, steel, 1, plate);
-    add("BASE", 2, `Marco perimetral ${nf(P.rim_t)} x ${nf(P.rim_h)} mm${INS ? " (interrumpido a lo largo de los insertos)" : ""}`, steel, 1, m.rim);
+    // refuerzo cuadrado soldado sobre la base bajo cada soporte del cilindro (núcleo: pivotado.fabricacion.soporte_E.refuerzo / levaGuiada.fabricacion.refuerzo);
+    // el núcleo lo suma a m.brackets: aquí va en su propia partida (BASE-08) y se descuenta del soporte, así la suma por subconjunto no cambia
+    const INSf = DRV ? (piv ? ((DRV.pivotado || {}).fabricacion || {}).soporte_E : ((DRV.levaGuiada || {}).fabricacion || {})) : null, INSq = INSf && (INSf.refuerzo || INSf.inserto);
+    const INS = INSq && INSq.cuadrado && Array.isArray(INSq.cuadrado.vertices) ? INSq : null, tB = INS ? INS.t_base : P.t_base, mIns = INS ? INS.masa_total : 0;
+    const insTxt = INS ? " (el refuerzo cuadrado de la base va aparte: BASE-08)" : "";
+    add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(tB)} mm entera con agujero Ø${nf(P.D_piv)}`, steel, 1, plate);
+    add("BASE", 2, `Marco perimetral ${nf(P.rim_t)} x ${nf(P.rim_h)} mm`, steel, 1, m.rim);
+    if (INS) {
+      const tp = INS.tapones || {}, at = INS.atiesadores;
+      add("BASE", 8, `Refuerzo cuadrado soldado sobre la base ${nf(INS.lado)} x ${nf(INS.lado)} x t_d = ${nf(INS.t_d)} mm (cara superior a z = ${nf(INS.t)} mm), ${nf(tp.n_por_esquina || 0)} tapones Ø${nf(tp.d || 0)} por refuerzo`
+        + (at ? `, atiesador tangencial ${nf(at.t)} x ${nf(at.h)} x ${nf(at.largo)} mm (${nf(at.masa, 1)} kg c/u)` : ", sin atiesador") + ` (${INS.n} x ${nf(INS.masa, 1)} kg = ${nf(INS.masa_total, 1)} kg)`,
+        INS.material || steel, INS.n, mIns, "Tapones, filete en los bordes interiores y PJP en bisel en los exteriores (núcleo); masa del núcleo");
+    }
     if (!piv) {
       add("BASE", 3, `Bancada ${nf(P.w_bed)} x ${nf(P.t_bed)} x ${nf(R.K.L_bed)} con ranura T de guía`, steel, P.n_cyl, m.beds);
-      add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)" + insTxt, steel, P.n_br, m.brackets);
+      add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)" + insTxt, steel, P.n_br, m.brackets - mIns);
       add("BASE", 5, "Patín guiado con alojamiento de la uña", `Acero Fy ${nf(P.Fy_shoe)} MPa`, P.n_cyl, m.shoes);
       add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
     } else {
-      add("BASE", 4, (md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1) : "Soporte del ojal E") + (INS ? ` (inserto t = ${nf(INS.t)} mm: ${INS.n} x ${nf(INS.masa, 1)} kg = ${nf(INS.masa_total, 1)} kg, incluido en la masa)` : ""), steel, P.n_cyl, m.brackets);
+      add("BASE", 4, (md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1).replace(/, con su refuerzo de esquina soldado sobre la base/, "") : "Soporte del ojal E") + insTxt, steel, P.n_cyl, m.brackets - mIns);
       add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
     }
     if (m.cam > 0) add("BASE", 7, (md.cam ? md.cam.charAt(0).toUpperCase() + md.cam.slice(1) : "Leva de reenganche") + " (masa del núcleo)", steel, piv ? 4 : P.n_cyl, m.cam);
@@ -169,7 +176,8 @@ const PLANOS = (() => {
     add("MESA", 3, `Almas anulares t = ${nf(P.t_web)} (radios ${rings.map((r) => nf(r)).join(", ")} mm)`, steel, 1, m.webs);
     add("MESA", 4, `Nervios radiales t = ${nf(P.t_rib)}`, steel, P.N_rib, m.ribs);
     add("MESA", 5, `Cubo Ø${nf(P.D_hub)}`, steel, 1, m.hub);
-    add("MESA", 6, `Pasador de empuje Ø${nf(P.d_pin)} x ${nf(P.h_disc)}`, `34CrNiMo6+QT (Fy ${nf(P.Fy_pin)} MPa)`, P.N_pin, m.pins);
+    const PE = DRV && DRV.pasadores_empuje, PEu = (PE && PE.union) || null;   // pasadores a ras del disco y soldados (núcleo: designDrive().pasadores_empuje); sin perno ni arandela
+    add("MESA", 6, `Pasador de empuje Ø${nf(P.d_pin)} x ${nf(P.h_disc)}${PE ? `, a ras del disco y de la cara inferior, soldado a ambos anillos${PEu ? ` (PJP en bisel 45° S${nf(PEu.S)}/E${nf(PEu.E)}, esmerilada a ras)` : ""}` : ""}`, `34CrNiMo6+QT (Fy ${nf(P.Fy_pin)} MPa)`, P.N_pin, m.pins, PE ? "No reemplazable (soldado); sin perno ni arandela" : "");
     if (m.wood > 0) add("MESA", 7, `Cubierta de madera dura t = ${nf(P.t_wood)} (tablones: disposición A DEFINIR)`, `Madera dura ${nf(P.rho_wood)} kg/m3`, 1, m.wood, "Opcional");
     if (m.ring > 0) add("MESA", 8, `Anillo de acero de contención de la madera: pletina ${nf(P.t_ring)} x ${nf(P.t_wood)} rolada a Ø${nf(P.D_top)}`, steel, 1, m.ring, "Opcional; soldada a la plancha superior; en la masa total");
     // Interfaz

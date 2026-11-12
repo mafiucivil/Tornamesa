@@ -15,9 +15,10 @@
      7. el control opt_wood funciona y muestra el rótulo «Cubierta de madera W: en stand by (no incluida en la entrega RevC)»;
      8. veredicto global del núcleo (verdict.estado_global) en la insignia, el veredicto del resumen y la tarjeta «Estructura»; pendientes críticos
         (ins_on = 0) con FU de 3 decimales y referencia; limitaciones de uso (verdict.limitaciones_uso) en el resumen y en la simulación;
-     9. inserto de esquina (designDrive().pivotado.fabricacion.soporte_E.inserto / levaGuiada.fabricacion.inserto) dibujado en la planta del Modelo
-        (polígono con muescas = núcleo, rótulo de espesor), en el corte o alzado (con su espesor) y en la planta de la simulación, en los modos 1 y 2;
-        lista de materiales con la plancha base de t_base mm y el inserto (espesor y masa) en la ménsula o el soporte E;
+     9. refuerzo cuadrado soldado sobre la base (designDrive().pivotado.fabricacion.soporte_E.refuerzo / levaGuiada.fabricacion.refuerzo) dibujado en la
+        planta del Modelo (cuadrado, tapones y atiesador = núcleo, rótulo de t_d), en el corte o alzado (z = t_base…t, soporte encima) y en la planta de la
+        simulación, en los modos 1 y 2; lista de materiales con la plancha base entera (sin ventanas), el refuerzo (lado, t_d, tapones, atiesador y masa),
+        el pasador de empuje soldado a ras y sin perno M20 ni arandela; limitación «pasador de empuje no reemplazable» (designDrive().pasadores_empuje);
     10. las filas de verificación del núcleo frente al DOM también en el modo 1 (guiado). */
 const path = require("path"), fs = require("fs"), assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -59,8 +60,9 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
     const fu3 = (v) => v.toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
     const veredicto = async (etq) => {
       const r = await page.evaluate(() => {
-        const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), v = TT.analyze(P).verdict, tx = (s) => (document.querySelector(s) || { textContent: null }).textContent;
-        return { v, badge: tx("#estadoGlobal"), res: tx("#estadoGlobalRes"), est: tx("#estadoGlobalEst"), lim: tx("#limUso"),
+        const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), A = TT.analyze(P), v = A.verdict, tx = (s) => (document.querySelector(s) || { textContent: null }).textContent;
+        const pe = (TT.designDrive(P, A.R).pasadores_empuje || {}).limitaciones || [];
+        return { v, pe, badge: tx("#estadoGlobal"), res: tx("#estadoGlobalRes"), est: tx("#estadoGlobalEst"), lim: tx("#limUso"),
           pend: [...document.querySelectorAll("#pendCrit li")].map((li) => li.textContent), pendEst: document.querySelectorAll("#pendCritEst li").length };
       });
       const eg = r.v.estado_global;
@@ -73,59 +75,94 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
       r.v.pendientes_criticos.forEach((q, i) => { assert.ok(r.pend[i].includes("FU " + fu3(q.fu)), `${etq}: FU con 3 decimales (${q.nombre})`); assert.ok(r.pend[i].includes(q.nombre) && r.pend[i].includes(q.ref), `${etq}: nombre y referencia (${q.nombre})`); });
       if (r.v.pendientes_criticos.length) assert.ok(r.badge.includes("FU pend. " + fu3(r.v.fuMaxPend)), etq + ": FU máximo de los pendientes en la insignia");
       r.v.limitaciones_uso.forEach((l) => assert.ok(r.lim && r.lim.includes("Limitación de uso: " + l.texto), `${etq}: limitación de uso visible (${l.id})`));
-      if (!r.v.limitaciones_uso.length) assert.equal(r.lim, null, etq + ": sin limitaciones, sin recuadro");
-      if (r.v.limitaciones_uso.length) {
+      r.pe.forEach((t) => assert.ok(r.lim && r.lim.includes("Limitación de uso: pasador de empuje no reemplazable. " + t), `${etq}: limitación del pasador de empuje visible`));
+      if (!r.v.limitaciones_uso.length && !r.pe.length) assert.equal(r.lim, null, etq + ": sin limitaciones, sin recuadro");
+      if (r.v.limitaciones_uso.length || r.pe.length) {
         await page.click("#bSim"); await page.waitForSelector("#simDet");
         const sl = await page.textContent("#simLim");
         r.v.limitaciones_uso.forEach((l) => assert.ok(sl.includes("Limitación de uso: " + l.texto), etq + ": limitación de uso en la simulación"));
+        r.pe.forEach((t) => assert.ok(sl.includes("Limitación de uso: pasador de empuje no reemplazable. " + t), etq + ": limitación del pasador en la simulación"));
         await page.click("#bSimClose");
       }
       return r;
     };
     let vr = await veredicto("pivotado");
     assert.equal(vr.v.estado_global, "CUMPLE"); assert.equal(vr.v.limitaciones_uso.length, 1);
-    console.log(`veredicto (pivotado): «${vr.v.estado_global}» en la insignia, el resumen y «Estructura»; limitación de uso «${vr.v.limitaciones_uso[0].texto}» en el resumen y la simulación`);
+    assert.ok(vr.pe.length >= 1 && /no reemplazable/.test(vr.lim), "limitación «pasador de empuje no reemplazable»");
+    console.log(`veredicto (pivotado): «${vr.v.estado_global}» en la insignia, el resumen y «Estructura»; limitaciones de uso «${vr.v.limitaciones_uso[0].texto}» y «pasador de empuje no reemplazable» en el resumen y la simulación`);
     await setP("ins_on", 0);
-    vr = await veredicto("pivotado sin inserto");
+    vr = await veredicto("pivotado sin refuerzo");
     assert.equal(vr.v.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN"); assert.ok(vr.v.pendientes_criticos.length >= 1);
-    assert.equal(await page.$$eval(".mdl-ins, #secIns", (e) => e.length), 0, "sin inserto: no se dibuja");
+    assert.equal(await page.$$eval(".mdl-ins, #secIns", (e) => e.length), 0, "sin refuerzo: no se dibuja");
     console.log(`veredicto (ins_on = 0): «${vr.v.estado_global}», ${vr.v.pendientes_criticos.length} pendiente(s) crítico(s): ${vr.v.pendientes_criticos.map((q) => "FU " + fu3(q.fu)).join(", ")}`);
     await setP("ins_on", 1);
 
-    // ---- 9. inserto de esquina: Modelo (planta y corte), simulación y lista de materiales, en los dos modos
+    // ---- 9. refuerzo cuadrado: Modelo (planta y corte), simulación y lista de materiales, en los dos modos
     const inserto = async (modo) => {
       await tab("modelo");
       const r = await page.evaluate(() => {
         const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R);
-        const I = D.modo === 2 ? D.pivotado.fabricacion.soporte_E.inserto : D.levaGuiada.fabricacion.inserto;
-        const g = [...document.querySelectorAll('section[data-t="modelo"] g.mdl-ins')];
-        const pts = g.map((e) => e.querySelector("polygon").getAttribute("points").trim().split(/\s+/).map((q) => q.split(",").map(Number)));
-        const dmax = Math.max(...pts.map((pp, k) => Math.max(...pp.map(([x, y], i) => Math.hypot(x - I.esquinas[k][i][0], -y - I.esquinas[k][i][1])))));
-        const bom = PLANOS.buildBOM(P, A).items.filter((it) => it.sub === "BASE").map((it) => it.desc);
-        return { modo: D.modo, n: I.n, t: I.t, tb: I.t_base, masa: I.masa, mt: I.masa_total, nv: I.esquinas.map((e) => e.length), ng: g.length, nvDom: pts.map((p) => p.length), dmax,
-          rot: g.map((e) => e.querySelector("text").textContent), sec: !!document.querySelector("#secIns"), secT: (document.querySelector("#secInsT") || {}).textContent, ley: (document.querySelector("#mdlInsRot") || {}).textContent, bom };
+        const I = D.modo === 2 ? D.pivotado.fabricacion.soporte_E.refuerzo : D.levaGuiada.fabricacion.refuerzo, V = I.cuadrado.vertices;
+        const sv = 'section[data-t="modelo"] ', g = [...document.querySelectorAll(sv + "g.mdl-ins")];
+        const pts = (e) => e.getAttribute("points").trim().split(/\s+/).map((q) => q.split(",").map(Number));
+        const dPol = (dom, ref) => Math.max(...dom.map((pp, k) => Math.max(...pp.map(([x, y], i) => Math.hypot(x - ref[k][i][0], -y - ref[k][i][1])))));
+        const sq = g.map((e) => pts(e.querySelector("polygon"))), dmax = dPol(sq, V);
+        const tp = g.map((e) => [...e.querySelectorAll("circle.mdl-tap")].map((c) => [+c.getAttribute("cx"), -c.getAttribute("cy"), +c.getAttribute("r")]));
+        const dtap = Math.max(0, ...tp.map((cs, k) => Math.max(0, ...cs.map(([x, y, rr], i) => Math.hypot(x - I.tapones.posiciones[k][i][0], y - I.tapones.posiciones[k][i][1]) + Math.abs(rr - I.tapones.d / 2)))));
+        const at = g.map((e) => e.querySelector("polygon.mdl-ati")).filter(Boolean), dat = I.atiesadores ? dPol(at.map(pts), I.atiesadores.por_esquina.map((q) => q.poligono)) : 0;
+        const sec = document.querySelector("#secIns"), zTop = (el) => el ? +el.getAttribute("y") : null;
+        const bom = PLANOS.buildBOM(P, A).items.filter((it) => it.sub === "BASE" || it.sub === "MESA");
+        return { modo: D.modo, n: I.n, t: I.t, td: I.t_d, tb: I.t_base, lado: I.lado, masa: I.masa, mt: I.masa_total, nTap: I.tapones.n_por_esquina, dTap: I.tapones.d, ati: I.atiesadores ? { t: I.atiesadores.t, h: I.atiesadores.h, largo: I.atiesadores.largo, n: I.atiesadores.por_esquina.length } : null,
+          nv: V.map((e) => e.length), ng: g.length, nvDom: sq.map((p) => p.length), dmax, nTapDom: tp.map((c) => c.length), dtap, nAtDom: at.length, dat,
+          rot: g.map((e) => e.querySelector("text").textContent), sec: !!sec, secH: sec ? +sec.getAttribute("height") : null, secAti: !!document.querySelector("#secAti"),
+          secT: (document.querySelector("#secInsT") || {}).textContent, ley: ["#mdlInsRot", "#mdlInsRot2"].map((q) => (document.querySelector(q) || {}).textContent).join(" "),
+          viejos: document.querySelectorAll(sv + 'polygon[stroke-dasharray="16 10"]').length,
+          bom: bom.map((it) => it.desc + (it.nota ? " · " + it.nota : "")) };
       });
       const nf = (v) => String(+(+v).toFixed(1)).replace(".", ",");
       const nf1 = (v) => (+v).toFixed(1).replace(".", ",");
       assert.equal(r.modo, modo);
-      assert.equal(r.ng, r.n, `modo ${modo}: ${r.n} insertos en la planta`);
-      assert.deepEqual(r.nvDom, r.nv, `modo ${modo}: polígono con las muescas del núcleo (vértices)`);
-      assert.ok(r.dmax < 1e-6, `modo ${modo}: vértices del inserto = núcleo (${r.dmax})`);
-      r.rot.forEach((t) => assert.equal(t, "inserto t " + r.t, `modo ${modo}: rótulo de espesor`));
-      assert.ok(r.sec && r.secT.startsWith(`inserto t ${r.t} sobre la base de ${r.tb}`), `modo ${modo}: inserto en el corte con su espesor (${r.secT})`);
-      assert.ok(r.ley.includes(`Base t = ${r.tb} mm`) && r.ley.includes(`insertos de esquina t = ${r.t} mm`), `modo ${modo}: leyenda de la planta`);
-      assert.ok(r.bom.some((d) => d.startsWith("Plancha base ") && d.includes(` x ${nf(r.tb)} mm `)), `modo ${modo}: plancha base de ${r.tb} mm en la lista de materiales`);
-      assert.ok(r.bom.some((d) => /^(Ménsula|Soporte)/.test(d) && d.includes(`t = ${nf(r.t)} mm`) && d.includes(`${r.n} x ${nf1(r.masa)} kg = ${nf1(r.mt)} kg`)), `modo ${modo}: inserto (espesor y masa) en la ménsula o el soporte E: ${r.bom.join(" | ")}`);
+      assert.equal(r.ng, r.n, `modo ${modo}: ${r.n} refuerzos en la planta`);
+      assert.deepEqual(r.nvDom, r.nv, `modo ${modo}: cuadrado de 4 vértices = núcleo`);
+      assert.ok(r.nv.every((k) => k === 4), `modo ${modo}: el refuerzo es un cuadrado`);
+      assert.ok(r.dmax < 1e-6, `modo ${modo}: vértices del refuerzo = núcleo (${r.dmax})`);
+      assert.deepEqual(r.nTapDom, Array(r.n).fill(r.nTap), `modo ${modo}: ${r.nTap} tapones por refuerzo`);
+      assert.ok(r.dtap < 1e-6, `modo ${modo}: tapones (posición y Ø) = núcleo (${r.dtap})`);
+      assert.equal(r.nAtDom, r.ati ? r.ati.n : 0, `modo ${modo}: atiesadores en la planta`);
+      assert.ok(r.dat < 1e-6, `modo ${modo}: polígonos del atiesador = núcleo (${r.dat})`);
+      assert.equal(r.viejos, 0, `modo ${modo}: sin el contorno de espesor pleno (transición) del inserto`);
+      r.rot.forEach((t) => assert.equal(t, "refuerzo t " + r.td, `modo ${modo}: rótulo de t_d`));
+      assert.ok(r.sec && Math.abs(r.secH - (r.t - r.tb)) < 1e-9, `modo ${modo}: refuerzo en el corte de z = ${r.tb} a z = ${r.t} (alto ${r.secH})`);
+      assert.ok(r.secT.startsWith(`refuerzo t ${r.td} sobre la base de ${r.tb} (z = ${r.t})`), `modo ${modo}: rótulo del corte (${r.secT})`);
+      assert.ok(r.ley.includes(`Base t = ${r.tb} mm entera`) && r.ley.includes(`${r.n} refuerzos cuadrados`) && r.ley.includes(`× ${r.td} mm`) && r.ley.includes(`${r.nTap} tapones Ø${r.dTap}`), `modo ${modo}: leyenda de la planta (${r.ley})`);
+      if (r.ati) assert.ok(r.ley.includes("atiesador") && r.secAti !== undefined, `modo ${modo}: atiesador en la leyenda`);
+      const pb = r.bom.find((d) => d.startsWith("Plancha base "));
+      assert.ok(pb && pb.includes(` x ${nf(r.tb)} mm entera`) && !/ventana/.test(pb), `modo ${modo}: plancha base entera de ${r.tb} mm sin ventanas (${pb})`);
+      const rf = r.bom.find((d) => d.startsWith("Refuerzo cuadrado"));
+      assert.ok(rf && rf.includes(`${nf(r.lado)} x ${nf(r.lado)} x t_d = ${nf(r.td)} mm`) && rf.includes(`${nf(r.nTap)} tapones Ø${nf(r.dTap)}`) && rf.includes(`${r.n} x ${nf1(r.masa)} kg = ${nf1(r.mt)} kg`)
+        && (r.ati ? rf.includes(`atiesador tangencial ${nf(r.ati.t)} x ${nf(r.ati.h)} x ${nf(r.ati.largo)} mm`) : rf.includes("sin atiesador")), `modo ${modo}: refuerzo en la lista de materiales (${rf})`);
+      const pz = r.bom.find((d) => d.startsWith("Pasador de empuje"));
+      assert.ok(pz && /a ras del disco/.test(pz) && /soldado/.test(pz) && /No reemplazable/.test(pz), `modo ${modo}: pasador soldado a ras (${pz})`);
+      assert.ok(!r.bom.some((d) => /M20|arandela|inserto/i.test(d.replace("sin perno ni arandela", ""))), `modo ${modo}: sin perno M20, arandela ni inserto en la lista`);
       await page.click("#bSim"); await page.waitForSelector("#simDet");
-      const ns = await page.$$eval("#simPlan polygon.sim-ins", (e) => e.length), nt = await page.$$eval("#simPlan text.sim-tins", (e) => e.map((t) => t.textContent));
-      assert.equal(ns, r.n, `modo ${modo}: insertos en la planta de la simulación`);
-      nt.forEach((t) => assert.equal(t, "inserto t " + r.t));
+      const sim = await page.evaluate(() => ({ ns: document.querySelectorAll("#simPlan polygon.sim-ins").length, nt: [...document.querySelectorAll("#simPlan text.sim-tins")].map((t) => t.textContent),
+        tap: document.querySelectorAll("#simPlan circle.sim-tap").length, ati: document.querySelectorAll("#simPlan polygon.sim-ati").length }));
+      assert.equal(sim.ns, r.n, `modo ${modo}: refuerzos en la planta de la simulación`);
+      assert.equal(sim.tap, r.n * r.nTap, `modo ${modo}: tapones en la simulación`);
+      assert.equal(sim.ati, r.ati ? r.ati.n : 0, `modo ${modo}: atiesadores en la simulación`);
+      sim.nt.forEach((t) => assert.equal(t, "refuerzo t " + r.td));
       assert.match(await page.textContent("#simIns"), new RegExp(`t ${r.tb} mm / t ${r.t} mm`));
       await page.click("#bSimClose");
       return r;
     };
     const ins2 = await inserto(2);
-    console.log(`inserto (pivotado): ${ins2.n} polígonos con ${ins2.nv.join("/")} vértices = núcleo, t ${ins2.t} sobre base ${ins2.tb}, en la planta, el alzado y la simulación; lista de materiales: «${ins2.bom.find((d) => /^Soporte/.test(d))}»`);
+    console.log(`refuerzo (pivotado): ${ins2.n} cuadrados ${ins2.lado} × t_d ${ins2.td} (z ${ins2.tb}…${ins2.t}) = núcleo, ${ins2.nTap} tapones Ø${ins2.dTap}, atiesador ${ins2.ati ? "sí" : "no"}, en la planta, el alzado y la simulación; lista de materiales: «${ins2.bom.find((d) => /^Refuerzo/.test(d))}» · «${ins2.bom.find((d) => /^Pasador de empuje/.test(d))}»`);
+    // alternativa B (pivotado): refuerzo con atiesador tangencial, mismas comprobaciones
+    await page.selectOption("#altSel", "B"); await settle();
+    const insB = await inserto(2);
+    assert.ok(insB.ati, "alternativa B: con atiesador tangencial");
+    console.log(`refuerzo (pivotado · B): ${insB.n} cuadrados ${insB.lado} × t_d ${insB.td}, atiesador ${insB.ati.t} × ${insB.ati.h} × ${insB.ati.largo} (${insB.nAtDom} en la planta = núcleo)`);
+    await page.selectOption("#altSel", "0"); await settle();
 
     // ---- 1. arcos de las 4 placas: trayecto SVG frente a la geometría analítica del núcleo
     const geo = await page.evaluate(() => {
@@ -233,26 +270,26 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
         const fu = c.fu != null && isFinite(c.fu) ? c.fu.toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 }) : "—";
         if (td[0] !== ST[c.st] || !td[1].startsWith(c.name) || td[5] !== fu || td[6] !== c.ref) mal.push({ i, n: c.name, td0: td[0], fu: td[5], esperado: fu });
       });
-      return { n: A.checks.length, dom: rows.length, falt, mal, grupos: [...new Set(A.checks.map((c) => c.grp))], ins: A.checks.filter((c) => /inserto/.test(c.name)).length };
+      return { n: A.checks.length, dom: rows.length, falt, mal, grupos: [...new Set(A.checks.map((c) => c.grp))], ins: A.checks.filter((c) => /refuerzo/.test(c.name)).length };
     }); };
     const ver = await verifDOM();
     assert.deepEqual(ver.falt, [], "filas del núcleo que la UI no muestra");
     assert.deepEqual(ver.mal, [], "filas con estado, FU (3 decimales) o norma distintos");
     assert.equal(ver.dom, ver.n, "la UI no muestra filas que no estén en el núcleo");
-    assert.ok(ver.ins >= 10, "filas de la plancha base con inserto en el grupo del soporte E");
+    assert.ok(ver.ins >= 10, "filas de la plancha base con refuerzo en el grupo del soporte E");
     const nuevas = await page.evaluate(() => [/Placa-guía: contacto de Hertz/, /capa templada/, /ligamento/, /Tornillos de la placa-guía: corte \(ISO 10642 M16/, /enganche de la rosca/, /Sincronía/, /Flanco de reenganche/, /autobloqueo/, /Bloque-uña: contacto dentro de la cara/, /Vástago: flexocompresión/, /Pasador Q: flexión/].map((re) => [re.source, [...document.querySelectorAll('section[data-t="verif"] tr.chk-row')].some((tr) => re.test(tr.textContent))]));
     assert.deepEqual(nuevas.filter((x) => !x[1]).map((x) => x[0]), [], "filas nuevas de la placa-guía, bloque-uña, vástago y pasador Q");
-    console.log(`verificaciones: ${ver.n} filas del núcleo = ${ver.dom} filas en el DOM (0 faltan, 0 sobran), ${ver.grupos.length} grupos, ${ver.ins} filas del inserto; FU con 3 decimales, norma y estado coinciden`);
-    // ---- 10. y 9. en el modo 1 (guiado): filas del núcleo frente al DOM, veredicto e inserto
+    console.log(`verificaciones: ${ver.n} filas del núcleo = ${ver.dom} filas en el DOM (0 faltan, 0 sobran), ${ver.grupos.length} grupos, ${ver.ins} filas del refuerzo; FU con 3 decimales, norma y estado coinciden`);
+    // ---- 10. y 9. en el modo 1 (guiado): filas del núcleo frente al DOM, veredicto y refuerzo
     await setP("drive_mode", 1);
     const ver1 = await verifDOM();
     assert.deepEqual(ver1.falt, [], "modo 1: filas del núcleo que la UI no muestra");
     assert.deepEqual(ver1.mal, [], "modo 1: filas con estado, FU (3 decimales) o norma distintos");
     assert.equal(ver1.dom, ver1.n, "modo 1: la UI no muestra filas que no estén en el núcleo");
-    assert.ok(ver1.ins >= 10, "modo 1: filas de la plancha base con inserto en el grupo de la ménsula");
+    assert.ok(ver1.ins >= 10, "modo 1: filas de la plancha base con refuerzo en el grupo de la ménsula");
     await tab("resumen"); vr = await veredicto("guiado");
     const ins1 = await inserto(1);
-    console.log(`modo 1 (guiado): ${ver1.n} filas del núcleo = ${ver1.dom} en el DOM (${ver1.ins} del inserto); veredicto «${vr.v.estado_global}»; ${ins1.n} insertos t ${ins1.t} con ${ins1.nv.join("/")} vértices; lista de materiales: «${ins1.bom.find((d) => /^Ménsula/.test(d))}»`);
+    console.log(`modo 1 (guiado): ${ver1.n} filas del núcleo = ${ver1.dom} en el DOM (${ver1.ins} del refuerzo); veredicto «${vr.v.estado_global}»; ${ins1.n} refuerzos ${ins1.lado} × t_d ${ins1.td}, atiesador ${ins1.ati ? "sí" : "no"}; lista de materiales: «${ins1.bom.find((d) => /^Refuerzo/.test(d))}»`);
     await page.click("#bReset"); await settle();
 
     // ---- 6. 0 NaN / undefined / Infinity en el DOM: modo 2 y modo 1 × alternativas

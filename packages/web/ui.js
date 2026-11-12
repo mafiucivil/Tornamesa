@@ -30,17 +30,23 @@
     if (!pc.length) return "";
     return `<div class="pcrit"${id ? ` id="${id}"` : ""}><b>Pendientes críticos (FU &gt; 1, a la espera de decisión): ${pc.length} · FU máx. ${fu3(v.fuMaxPend)}</b><ul>${pc.map((q) => `<li class="pcrit-i"><span class="st st-fail">FU ${fu3(q.fu)}</span> ${esc(q.grp)} · ${esc(q.nombre)}${q.fuera_alcance_termico ? ' <span class="ref">(fuera del alcance térmico)</span>' : ""}<div class="ref">${esc(q.ref || "")}</div></li>`).join("")}</ul></div>`;
   }
+  // limitaciones de uso del núcleo: verdict.limitaciones_uso y las de los pasadores de empuje soldados (designDrive().pasadores_empuje.limitaciones)
+  function limUsoLista(v) {
+    const L = ((v && v.limitaciones_uso) || []).slice();
+    try { const pe = TT.designDrive(P, A.R).pasadores_empuje; ((pe && pe.limitaciones) || []).forEach((t, k) => L.push({ id: "pasador_no_reemplazable" + (k ? "_" + k : ""), texto: "pasador de empuje no reemplazable. " + t, motivo: pe.union ? "Pasadores Ø" + fmt(pe.d) + " a ras del disco, soldados (" + pe.union.tipo + ")." : "", referencia: pe.referencia })); } catch (e) { /* sin designDrive */ }
+    return L;
+  }
   function limUsoHTML(v, id) {
-    const L = (v && v.limitaciones_uso) || [];
+    const L = limUsoLista(v);
     if (!L.length) return "";
     return `<div class="limuso"${id ? ` id="${id}"` : ""}>${L.map((l) => `<div class="limuso-i" data-id="${esc(l.id || "")}"><b>Limitación de uso:</b> ${esc(l.texto)}<div class="ref">${esc(l.motivo || "")}${l.alcance ? ` Alcance: ${esc(l.alcance)}.` : ""}${l.referencia ? ` Ref.: ${esc(l.referencia)}` : ""}</div></div>`).join("")}</div>`;
   }
-  // inserto de esquina bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.inserto o levaGuiada.fabricacion.inserto)
+  // refuerzo cuadrado soldado sobre la base bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.refuerzo o levaGuiada.fabricacion.refuerzo)
   const areaC = (pl) => { let A2 = 0, cx = 0, cy = 0; pl.forEach((p, i) => { const q = pl[(i + 1) % pl.length], w = p[0] * q[1] - q[0] * p[1]; A2 += w; cx += (p[0] + q[0]) * w; cy += (p[1] + q[1]) * w; }); return Math.abs(A2) > 1e-9 ? [cx / (3 * A2), cy / (3 * A2)] : pl[0]; };   // centroide de área de un polígono
   function insertoOf(R) {
     try {
       const D = TT.designDrive(P, R), f = D.modo === 2 ? ((D.pivotado || {}).fabricacion || {}).soporte_E : ((D.levaGuiada || {}).fabricacion || {});
-      const I = f && f.inserto; return I && Array.isArray(I.esquinas) && I.esquinas.length ? I : null;
+      const I = f && (f.refuerzo || f.inserto); return I && I.cuadrado && Array.isArray(I.cuadrado.vertices) && I.cuadrado.vertices.length ? I : null;
     } catch (e) { return null; }
   }
 
@@ -164,7 +170,7 @@
     const v = A.verdict, eg = v.estado_global, ok = egCls(eg);
     el.innerHTML = msgs() + `
     <div class="card vered vd-${ok}" id="veredicto" style="margin-top:10px"><h3>Veredicto global</h3><div class="big vd-${ok}" id="estadoGlobalRes">${esc(eg)}</div>
-      <div class="note">¿Gira? ${v.gira ? "sí" : "NO"} · estructura ${v.estructura ? "cumple" : "NO cumple"} · pendientes críticos ${(v.pendientes_criticos || []).length}${(v.pendientes_criticos || []).length ? ` (FU máx. ${fu2(v.fuMaxPend)})` : ""} · limitaciones de uso ${(v.limitaciones_uso || []).length}</div>
+      <div class="note">¿Gira? ${v.gira ? "sí" : "NO"} · estructura ${v.estructura ? "cumple" : "NO cumple"} · pendientes críticos ${(v.pendientes_criticos || []).length}${(v.pendientes_criticos || []).length ? ` (FU máx. ${fu2(v.fuMaxPend)})` : ""} · limitaciones de uso ${limUsoLista(v).length}</div>
       ${pendCritHTML(v, "pendCrit")}${limUsoHTML(v, "limUso")}</div>
     <div class="grid" style="margin-top:10px">
       <div class="card"><h3>¿Gira?</h3><div class="big" style="color:var(${A.verdict.gira ? "--ok" : "--fail"})">${A.verdict.gira ? "Sí, con margen" : "No asegurado"}</div>
@@ -262,11 +268,12 @@
     o.push(`<rect x="${-B / 2}" y="${-B / 2}" width="${B}" height="${B}" fill="var(--soft)" stroke="var(--steel)" stroke-width="4"/>`);
     if (P.rim_t > 0) o.push(`<rect x="${-B / 2 + P.rim_t / 2}" y="${-B / 2 + P.rim_t / 2}" width="${B - P.rim_t}" height="${B - P.rim_t}" fill="none" stroke="var(--steel)" stroke-width="${P.rim_t}" opacity=".6"/>`);
     const INS = insertoOf(R);
-    if (INS) {                                                        // insertos de esquina (núcleo): contorno con muescas, borde de espesor pleno (fin de la transición) y rótulo de espesor
-      INS.esquinas.forEach((pl, k) => {
-        const c = areaC(pl), pf = (INS.esquinas_espesor_pleno || [])[k];
-        o.push(`<g class="mdl-ins" data-k="${k}"><polygon points="${pl.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="var(--ins)" fill-opacity=".35" stroke="var(--insk)" stroke-width="5"/>${pf ? `<polygon points="${pf.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="none" stroke="var(--insk)" stroke-width="3" stroke-dasharray="16 10"/>` : ""}
-          <text x="${c[0]}" y="${y(c[1]) + 14}" font-size="40" text-anchor="middle" fill="var(--insk)" font-weight="700" class="mdl-ins-t">inserto t ${fmt(INS.t, 2)}</text></g>`);
+    if (INS) {                                                        // refuerzos cuadrados (núcleo): cuadrado, tapones y atiesador tangencial si lo hay
+      const tp = INS.tapones || {}, at = INS.atiesadores;
+      INS.cuadrado.vertices.forEach((pl, k) => {
+        const c = areaC(pl), ps = (tp.posiciones || [])[k] || [], ra = at && at.por_esquina && at.por_esquina[k];
+        o.push(`<g class="mdl-ins" data-k="${k}"><polygon points="${pl.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="var(--ins)" fill-opacity=".35" stroke="var(--insk)" stroke-width="5"/>${ps.map(([a, b]) => `<circle class="mdl-tap" cx="${a}" cy="${y(b)}" r="${(tp.d || 44) / 2}" fill="var(--panel)" stroke="var(--insk)" stroke-width="4"/>`).join("")}${ra ? `<polygon class="mdl-ati" points="${ra.poligono.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="var(--insk)" fill-opacity=".8" stroke="var(--insk)" stroke-width="3"/>` : ""}
+          <text x="${c[0]}" y="${y(c[1]) + 14}" font-size="40" text-anchor="middle" fill="var(--insk)" font-weight="700" paint-order="stroke" stroke="var(--panel)" stroke-width="8" stroke-linejoin="round" class="mdl-ins-t">refuerzo t ${fmt(INS.t_d, 2)}</text></g>`);
       });
     }
     const Rt = P.D_top / 2;
@@ -317,7 +324,8 @@
     }
     o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
     const ley = (isPiv() ? ["Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario)", "Ojales E en diagonal · 4 placas-guía curvas (canto guía en naranja)"] : ["Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")]).map((t) => [t, "var(--ink2)", ""]);
-    if (INS) ley.push([`Base t = ${fmt(INS.t_base, 2)} mm · ${INS.n} insertos de esquina t = ${fmt(INS.t, 2)} mm (${fmt(INS.masa, 3)} kg c/u) bajo ${isPiv() ? "los soportes del ojal E" : "las ménsulas del ojal trasero"} · trazos: fin de la transición 1:2,5`, "var(--insk)", ' id="mdlInsRot"']);
+    if (INS) ley.push([`Base t = ${fmt(INS.t_base, 2)} mm entera · ${INS.n} refuerzos cuadrados ${fmt(INS.lado, 3)} × ${fmt(INS.lado, 3)} × ${fmt(INS.t_d, 2)} mm soldados sobre la base (${fmt(INS.masa, 3)} kg c/u)`, "var(--insk)", ' id="mdlInsRot"']);
+    if (INS) ley.push([`bajo ${isPiv() ? "los soportes del ojal E" : "las ménsulas del ojal trasero"} · ${(INS.tapones || {}).n_por_esquina || 0} tapones Ø${fmt((INS.tapones || {}).d || 0)}${INS.atiesadores ? ` · atiesador ${fmt(INS.atiesadores.t)} × ${fmt(INS.atiesadores.h)} × ${fmt(INS.atiesadores.largo)}` : " · sin atiesador"}`, "var(--insk)", ' id="mdlInsRot2"']);
     ley.forEach(([t, c, id], k) => o.push(`<text x="0" y="${B / 2 + 80 + 50 * k}" text-anchor="middle" font-size="40" fill="${c}"${id}>${esc(t)}</text>`));
     return `<svg viewBox="${-S} ${-S} ${2 * S} ${S + B / 2 + 100 + 50 * (ley.length - 1)}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
   }
@@ -330,7 +338,7 @@
     o.push(`<rect x="${X(p0)}" y="${Z(tb + pl.t)}" width="${p1 - p0}" height="${pl.t}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Placa-leva t = ${fmt(pl.t)} mm</title></rect>`);
     o.push(`<rect x="${X(b0)}" y="${Z(bl.z_inf + bl.h)}" width="${b1 - b0}" height="${bl.h}" fill="var(--load)" opacity=".75"><title>Bloque-uña h = ${fmt(bl.h)} mm</title></rect>`);
     o.push(`<rect x="${X(rQ - bl.d_Q / 2)}" y="${Z(R.blk.zCam + bl.l_pasador_Q)}" width="${bl.d_Q}" height="${bl.l_pasador_Q}" fill="none" stroke="var(--ink)" stroke-width="2"><title>Pasador Q Ø${fmt(bl.d_Q)} × ${fmt(bl.l_pasador_Q)}</title></rect>`);
-    const zp = (((pv.fabricacion || {}).soporte_E || {}).z_paredes) || [tb, tb + se.alto], zs0 = zp[0], zs1 = zp[1];   // paredes del soporte (núcleo: fabricacion.soporte_E.z_paredes, sobre el inserto)
+    const zp = (((pv.fabricacion || {}).soporte_E || {}).z_paredes) || [tb, tb + se.alto], zs0 = zp[0], zs1 = zp[1];   // paredes del soporte (núcleo: fabricacion.soporte_E.z_paredes, sobre el refuerzo: z = t)
     o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(zs1)}" width="${se.lado_cajon}" height="${zs1 - zs0}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>Soporte del ojal E</title></rect>`);
     [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => o.push(`<line x1="${X(rE - se.lado_cajon / 2)}" y1="${Z(zt)}" x2="${X(rE + se.lado_cajon / 2)}" y2="${Z(zt)}" stroke="var(--ink)" stroke-width="3"/>`));
     const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
@@ -349,16 +357,20 @@
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
     const INS = insertoOf(R);
-    if (INS) {                                                        // inserto de esquina cortado por la línea del soporte: E (pivotado, radial) o y = y_ojal (guiado); transición 1:2,5 en la cara superior
+    if (INS) {                                                        // refuerzo cuadrado cortado por la línea del soporte: E (pivotado, radial) o y = y_ojal (guiado); pila: base 0…t_base, refuerzo t_base…t, soporte encima
       const g0 = gP ? [0, 0] : [0, R.K.y_eye], u = gP ? (() => { const E = gP.E[0], L = Math.hypot(E[0], E[1]); return [E[0] / L, E[1] / L]; })() : [1, 0];
       const pip = (q, pl) => { let c = false; for (let i = 0, j = pl.length - 1; i < pl.length; j = i++) { const [xi, yi] = pl[i], [xj, yj] = pl[j]; if ((yi > q[1]) !== (yj > q[1]) && q[0] < (xj - xi) * (q[1] - yi) / (yj - yi) + xi) c = !c; } return c; };
       const span = (pls) => { let a = null, b = null; for (let r = 0; r <= 2600; r += 2) { const q = [g0[0] + u[0] * r, g0[1] + u[1] * r]; if (pls.some((pl) => pip(q, pl))) { if (a == null) a = r; b = r; } } return [a, b]; };
-      const [s0, s1r] = span(INS.esquinas), sf = span(INS.esquinas_espesor_pleno || [])[0], s1 = s1r == null ? null : Math.min(s1r, gP ? r1 - 20 : P.B / 2);
+      const [s0, s1r] = span(INS.cuadrado.vertices), s1 = s1r == null ? null : Math.min(s1r, gP ? r1 - 20 : P.B / 2), zr = INS.z || [INS.t_base, INS.t];
       if (s0 != null && s1 > s0) {
-        const sF = sf != null ? Math.min(Math.max(sf, s0), s1) : s0;
-        o.push(`<polygon id="secIns" points="${[[s0, 0], [s0, tb], [sF, INS.t], [s1, INS.t], [s1, 0]].map(([r, z]) => `${X(r)},${Z(z)}`).join(" ")}" fill="var(--ins)" fill-opacity="${gP ? 0.55 : 0.3}" stroke="var(--insk)" stroke-width="1.5"${gP ? "" : ' stroke-dasharray="6 4"'}><title>Inserto de esquina t = ${fmt(INS.t)} mm sobre la base de ${fmt(INS.t_base)} mm</title></polygon>`);
+        o.push(`<rect id="secIns" x="${X(s0)}" y="${Z(zr[1])}" width="${s1 - s0}" height="${zr[1] - zr[0]}" fill="var(--ins)" fill-opacity="${gP ? 0.55 : 0.3}" stroke="var(--insk)" stroke-width="1.5"${gP ? "" : ' stroke-dasharray="6 4"'}><title>Refuerzo cuadrado ${fmt(INS.lado)} × ${fmt(INS.lado)} × ${fmt(INS.t_d)} mm soldado sobre la base de ${fmt(INS.t_base)} mm (z ${fmt(zr[0])}…${fmt(zr[1])})</title></rect>`);
         o.push(`<line x1="${X(s1 - 14)}" y1="${Z(0)}" x2="${X(s1 - 14)}" y2="${Z(INS.t)}" stroke="var(--insk)" stroke-width="1"/><text x="${X(s1 - 20)}" y="${Z(INS.t / 2) + 4}" font-size="13" text-anchor="end" fill="var(--insk)" font-weight="700">t ${fmt(INS.t, 2)}</text>`);
-        o.push(`<text x="${X(Math.max(s0, r0)) + 4}" y="${Z(0) + 14}" font-size="13" fill="var(--insk)" font-weight="700" id="secInsT">inserto t ${fmt(INS.t, 2)} sobre la base de ${fmt(INS.t_base, 2)} (transición 1:2,5)${gP ? "" : " · proyectado desde y_ojal"}</text>`);
+        o.push(`<text x="${X(Math.max(s0, r0)) + 4}" y="${Z(0) + 14}" font-size="13" fill="var(--insk)" font-weight="700" id="secInsT">refuerzo t ${fmt(INS.t_d, 2)} sobre la base de ${fmt(INS.t_base, 2)} (z = ${fmt(INS.t, 2)})${gP ? "" : " · proyectado desde y_ojal"}</text>`);
+      }
+      const at = INS.atiesadores;
+      if (at && at.por_esquina) {                                     // atiesador tangencial cortado por la misma línea
+        const [a0, a1] = span(at.por_esquina.map((q) => q.poligono)), za = at.z || [INS.t_base, INS.t_base + at.h];
+        if (a0 != null) o.push(`<rect id="secAti" x="${X(a0)}" y="${Z(za[1])}" width="${Math.max(2, a1 - a0)}" height="${za[1] - za[0]}" fill="var(--insk)" fill-opacity=".8"><title>Atiesador tangencial ${fmt(at.t)} × ${fmt(at.h)} × ${fmt(at.largo)} mm</title></rect>`);
       }
     }
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
