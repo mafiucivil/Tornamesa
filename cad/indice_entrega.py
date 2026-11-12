@@ -22,21 +22,25 @@ NOTA_E = ("Soporte del ojal E (modo pivotado): la flexión local de la plancha b
 
 
 def nota_inserto(C):
-    """Núcleo e9a0eb3: base de 20 mm con insertos de esquina (soporte_E.inserto / levaGuiada.fabricacion.inserto): resultado por caso, leído del JSON."""
+    """Núcleo d537dda: base de 20 mm ENTERA con un refuerzo cuadrado soldado encima en cada esquina (soporte_E.refuerzo / levaGuiada.fabricacion.refuerzo):
+    resultado por caso, leído del JSON."""
     res = []
     for c in C:
         I = c.get("inserto")
         if not I:
             continue
-        res.append(f"{c['caso']}: t = {I['t']:g} mm, FU {I.get('fu_max', 0):.3f}".replace(".", ",") + (" (advertencia > 0,90)" if (I.get("fu_max") or 0) > 0.9 else ""))
+        A = I.get("atiesadores") or {}
+        res.append(f"{c['caso']}: {I.get('lado', 0):g} × {I.get('lado', 0):g} × {I.get('t_d', 0):g} mm (cara a z {I['t']:g}), {(I.get('tapones') or {}).get('n_por_esquina', 0)} tapones Ø{(I.get('tapones') or {}).get('d', 0):g}"
+                   + (f", atiesador {A['t']:g} × {A['h']:g} × {A['largo']:g}" if A.get("por_esquina") else ", sin atiesador")
+                   + f", FU {I.get('fu_max', 0):.3f}".replace(".", ",") + (" (advertencia > 0,90)" if (I.get("fu_max") or 0) > 0.9 else ""))
     if not res:
         return None
     tb = next((c["inserto"]["t_base"] for c in C if c.get("inserto")), 20)
-    return (f"Plancha base de {tb:g} mm con inserto de esquina bajo cada soporte del cilindro (núcleo: «{next(c['inserto'].get('estado', '—') for c in C if c.get('inserto'))}»; "
-            "ASME BTH-1-2020 §3-2.3.4, F_b = 1,25·Fy/Nd): " + "; ".join(res) + ". La retención anterior «plancha base bajo el soporte E» ya no figura: "
-            "la verificación sin inserto queda como antecedente del núcleo. Lámina del inserto por espesor (BAS-018…023); juntas J-I1 (CJP a tope en doble V"
-            + (lambda J: f", {J['designacion']} de {J.get('norma_designacion', 'AWS D1.1:2020 Figura 5.1')} (núcleo: {J.get('designacion_estado', '')})" if J.get("designacion") else "")(
-                next(((c["inserto"].get("juntas") or [{}])[0] for c in C if c.get("inserto")), {})) + ", UT 100 %).")
+    return (f"Plancha base de {tb:g} mm ENTERA (sin ventanas, al ras sobre la losa) con un refuerzo cuadrado soldado ENCIMA en cada esquina bajo el soporte del cilindro "
+            f"(núcleo d537dda: «{next(c['inserto'].get('estado', '—') for c in C if c.get('inserto'))}»; ASME BTH-1-2020 §3-2.3.4): " + "; ".join(res) + ". "
+            "Juntas J-R1 tapones (AISC 360-22 §J2.3), J-R2 filete z8 en los bordes interiores, J-R3 PJP en bisel 45° esmerilada al ras en los cantos exteriores, J-R4 filete del atiesador. "
+            "Lámina del refuerzo por espesor (BAS-028…032; atiesadores BAS-033…036). ELIMINADOS: inserto de esquina BAS-018…023, ventanas de BAS-001 y J-I1. "
+            "Pasadores de empuje a ras soldados (PJP J-P1, WPS calificada por ensayo); ELIMINADOS MES-013 (perno M20×45) y MES-014 (arandela).")
 
 
 def nota_limitacion(C):
@@ -50,7 +54,7 @@ def nota_limitacion(C):
 
 def nota_plancha(C):
     """Nota de la plancha base bajo el soporte E (casos del modo pivotado): con la verificación del núcleo en el JSON (pivotado.fabricacion.soporte_E.plancha_base)
-    se informa su resultado por caso; sin ella, la verificación figura como en curso (NOTA_E). Con el inserto de esquina verificado (núcleo e9a0eb3) la nota es la del inserto."""
+    se informa su resultado por caso; sin ella, la verificación figura como en curso (NOTA_E). Con el refuerzo de esquina verificado (núcleo d537dda) la nota es la del refuerzo."""
     if nota_inserto(C):
         return nota_inserto(C)
     piv = [c for c in C if c.get("soporte_E") is not None]
@@ -101,7 +105,8 @@ def leer_caso(d, logs=None, caso=None):
                 conflictos=rep.get("conflictos_ids") or {t[:60]: dict(corto=t[:60]) for t in rep.get("conflictos_nucleo", [])}, interfaz=interfaz,
                 modo=D.get("modo_nombre") or ("guiado" if P.get("drive_mode") == 1 else "pivotado"), fecha=D.get("fecha", "—"), salida=salida,
                 soporte_E=(D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") if D.get("modo") == 2 else None,
-                inserto=(((D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") or {}).get("inserto") if D.get("modo") == 2 else ((D.get("levaGuiada") or {}).get("fabricacion") or {}).get("inserto")),
+                inserto=((lambda S_: S_.get("refuerzo") or S_.get("inserto"))(((D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") or {})) if D.get("modo") == 2 else
+                         (lambda F_: F_.get("refuerzo") or F_.get("inserto"))(((D.get("levaGuiada") or {}).get("fabricacion") or {}))),
                 limitaciones=(D.get("verdict") or {}).get("limitaciones_uso") or [],
                 variante=(re.search(r"VARIANTE (\S+)$", est[0]["titulo"]).group(1) if est and re.search(r"VARIANTE (\S+)$", est[0]["titulo"]) else caso))
 

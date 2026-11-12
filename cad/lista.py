@@ -81,12 +81,15 @@ def cut_rows(ctx):
     L_ml, L_mc = ctx.m.info.get("marco_long") or (B, B - 2 * P["rim_t"])
     add("marco_largo", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_ml, 1)}")
     add("marco_corto", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_mc, 1)}")
-    I = m.info.get("inserto")
+    I = m.info.get("refuerzo")
     if I:
-        xs_ = [q[0] for q in I["esquinas"][0]]
-        ys_ = [q[1] for q in I["esquinas"][0]]
-        add("inserto", "Plancha", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{f(I['t'])}",
-            f"Contorno CNC del núcleo con sobremetal 5 (se recorta al ras con la base); biseles de la transición 1:{fm(I['_k'], 1)} y de la CJP J-I1" + ("; rebaje tras soldar" if I.get("rebaje") else ""))
+        T_ = I.get("tapones") or {}
+        S_ = ((I.get("filetes") or {}).get("bordes_exteriores_PJP") or {}).get("S", 0)
+        add("refuerzo", "Plancha", f"{fm(I['lado'], 0)}×{fm(I['lado'], 0)}×{f(I['t_d'])}",
+            f"Corte CNC a medida (ISO 9013 clase 3, ±2; sin sobremetal: los cantos exteriores van al ras de la base); {T_.get('n_por_esquina', 0)} agujeros Ø{f(T_.get('d', 0))} taladrados; bisel 45° × {f(S_)} en 2 cantos (cara inferior)")
+        AT_ = I.get("atiesadores") or {}
+        if AT_.get("por_esquina"):
+            add("refuerzo_ati", "Plancha", f"{f(AT_['largo'])}×{f(AT_['h'])}×{f(AT_['t'])}", "Corte CNC a medida; cantos a escuadra")
     zi_ = float(I["t"]) if (I and g.modo == 1) else tb
     if g.modo == 1:
         add("mensula_mejilla", "Plancha", f"{f(P['L_ch'])}×{f(tb + BR['H'] - zi_ + 5)}×{f(P['t_ch'])}")
@@ -124,7 +127,7 @@ def cut_rows(ctx):
             R.append([p.code.replace(CODE + "-", ""), p.name, "Plancha e = %s (anidado GEN-010/013)" % f(P["t_rib"]), f"{fm(L_ + 4, 0)}×{f(g.hw + 4)}×{f(P['t_rib'])}", str(p.qty), p.material[:44],
                       f"largo de corte {fm(L_ + 4, 0)} = terminado {fm(L_, 0)} (entre caras del nervio; = entre caras de cubo/almas {fm(L_ + hol, 0)} − {fm(hol, 0)} de holgura) + 2 × 2 de sobremetal; destijeres 15 × 15"])
     add("mesa_cubo", "Anillo", f"Ø{f(P['D_hub'] + 10)}/Ø{f(g.d_bush - 10)}×{f(g.hw + 5)}")
-    add("pasadores", "Barra", f"Ø{f(g.d_pin + 5)}×{f(g.hd + 6)}")
+    add("pasadores", "Barra", f"Ø{f(g.d_pin + 5)}×{f(g.hd + 6)}", ("Largo terminado = alto del disco (a ras, se esmerila después de soldar); sin rosca (núcleo pasadores_empuje)" if m.info.get("pasadores_empuje") else ""))
     add("arandela_pasador", "Disco", f"Ø{f(g.washer_D + 5)}×{f(g.washer_t + 2)}", f"Plancha de {f(g.washer_t + 2)}: caras rectificadas a {f(g.washer_t)}; agujero Ø{f(g.washer_d)}")
     add("pivote", "Barra", f"Ø{f(P['D_piv'] + 5)}×{f(g.L_piv + 6)}")
     add("buje", "Tubo/buje", f"Ø{f(g.d_bush + 4)}/Ø{f(P['D_piv'] - 4)}×{f(P['L_bush'] + 4)}")

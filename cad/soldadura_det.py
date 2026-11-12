@@ -261,50 +261,87 @@ def prep_tc(s, ox, oy, k, w, jid=None, plano=None, angle=45.0):
 
 
 
-def x_size(w):
-    I = w["inserto"]
-    Lh = 40.0
-    return (Lh + 3.0 + I["ancho"] + 40.0, I["t"] + 34.0), Lh
+def ref_size(R):
+    """Recuadro natural del detalle combinado del refuerzo (modelo, mm): base + refuerzo con la PJP exterior, un tapón y el filete interior."""
+    d, S_, z = R["d"], R["S"], R["z"]
+    xh = S_ + 28.0 + d / 2
+    xi = xh + d / 2 + 34.0
+    return (xi + z + 34.0, R["tb"] + R["td"] + 16.0), (xh, xi)
 
 
-def prep_x(s, ox, oy, k, w, jid=None, plano=None, angle=60.0, root=3.0, face=3.0):
-    """J-I1 (núcleo: inserto.juntas): CJP a tope en doble V (X) entre la plancha base (t_base, izquierda) y el inserto de esquina (derecha), al ras por
-    debajo. La X se reparte en el espesor de la base (los dos al ras abajo; en el borde de la junta el inserto también tiene t_base: allí arranca la
-    transición 1:k de la cara superior, que llega al espesor pleno t a k·Δ del borde). Resanado de raíz por la cara inferior y amolado al ras."""
-    I = w["inserto"]
-    tb, T, kk, A = I["tb"], I["t"], I["k"], I["ancho"]
-    # preparación del núcleo (inserto.juntas[].preparacion, B-U3b): raíz, talón y ángulo; los argumentos quedan como respaldo
-    angle, root, face = I.get("alfa", angle), I.get("raiz", root), I.get("talon", face)
-    (Wn, Hn), Lh = x_size(w)
+def prep_refuerzo(s, ox, oy, k, R, plano=None, ids=()):
+    """Refuerzo cuadrado soldado sobre la base (núcleo d537dda): sección perpendicular a un canto exterior por la fila de tapones. A la izquierda el canto
+    exterior (al ras del canto de la base) con la PJP J-R3 en bisel 45° (S/E) esmerilada al ras; al centro un tapón J-R1 (agujero Ø d, relleno parcial);
+    a la derecha el borde interior con el filete J-R2 z. La base de t_base sigue entera (rotura a la derecha)."""
+    tb, td, d, rel, S_, E_, z = R["tb"], R["td"], R["d"], R["rel"], R["S"], R["E"], R["z"]
+    (Wn, Hn), (xh, xi) = ref_size(R)
     P = lambda x, y: (ox + x * k, oy + y * k)
-    y0 = 8.0
-    d = (tb - face) / 2.0                     # profundidad de cada V
-    hb = math.tan(math.radians(angle / 2)) * d
-    xr0, xr1 = Lh, Lh + root
-    left = [P(0, y0), P(xr0 - hb, y0), P(xr0, y0 + d), P(xr0, y0 + d + face), P(xr0 - hb, y0 + tb), P(0, y0 + tb)]
-    xe = xr1 + A + 40.0
-    # cara superior del inserto: del borde de la junta (z = tb) al espesor pleno (z = T) en A = k·Δ
-    tau = math.tan(math.radians(angle / 2))
-    u = d * tau / (1.0 - tau / kk)              # el bisel superior corta la pendiente de la transición
-    right = [P(xr1 + hb, y0), P(xe, y0), P(xe, y0 + T), P(xr1 + A, y0 + T), P(xr1 + u, y0 + tb + u / kk), P(xr1, y0 + d + face), P(xr1, y0 + d)]
-    _poly(s, left, 0.0)
-    _poly(s, right, 90.0)
-    s.line(P(0, y0), P(xe, y0), "FINA")
-    s.dim(P(0, y0), P(0, y0 + tb), -9, f"t = {fm(tb, 0)} (base)", "v")
-    s.dim(P(xe, y0), P(xe, y0 + T), 8, f"t = {fm(T, 0)} (inserto)", "v")
-    s.dim(P(xr1, y0 + T), P(xr1 + A, y0 + T), 8, f"{fm(A, 0)} = {fm(kk, 1)}·Δ (transición 1:{fm(kk, 1)})", "h")
-    s.dim(P(xr0, y0 + tb + 2), P(xr1, y0 + tb + 2), 10, f"R = 0–{fm(root, 0)}", "h", outside=True)
-    apex = P((xr0 + xr1) / 2, y0 + d + face)
-    s.dim_ang(apex, d * k * 0.6, 90 - angle / 2, 90 + angle / 2, f"α = {fm(angle, 0)}°")
-    apex2 = P((xr0 + xr1) / 2, y0 + d)
-    s.dim_ang(apex2, d * k * 0.6, 270 - angle / 2, 270 + angle / 2, f"β = {fm(I.get('beta', angle), 0)}°")
-    xl_ = ox - 4
-    s.leader(P(xr0, y0 + d + face / 2), (xl_ - 30, oy + (y0 + tb / 2) * k - 18), f"talón f = 0–{fm(face, 0)}", dot=True)
-    s.leader(P((xr0 + xr1) / 2, y0), (P(xr0, 0)[0] + 20, oy - 6), "resanado de raíz por la cara inferior; amolar al ras (apoyo en la losa)", dot=True)
-    s.leader(P(xr1 + A * 0.3, y0 + tb + A * 0.3 / kk), (P(xr1 + A * 0.3, 0)[0] + 25, oy + (y0 + T) * k + 22), f"cara superior del inserto: pendiente 1:{fm(kk, 1)} desde el borde de la junta", dot=True)
+    y0 = 4.0
+    yb, yt = y0 + tb, y0 + tb + td
+    _poly(s, [P(0, y0), P(Wn, y0), P(Wn, yb), P(0, yb)], 0.0)
+    _poly(s, [P(S_, yb), P(xh - d / 2, yb), P(xh - d / 2, yt), P(0, yt), P(0, yb + S_)], 90.0)
+    _poly(s, [P(xh + d / 2, yb), P(xi, yb), P(xi, yt), P(xh + d / 2, yt)], 90.0)
+    pjp = [P(0, yb), P(S_, yb), P(0, yb + S_)]
+    _poly(s, pjp, solid=True); s.pline(pjp, "VIS", closed=True)
+    tap = [P(xh - d / 2, yb), P(xh + d / 2, yb), P(xh + d / 2, yb + rel), P(xh - d / 2, yb + rel)]
+    _poly(s, tap, solid=True); s.pline(tap, "VIS", closed=True)
+    fil = [P(xi, yb), P(xi + z, yb), P(xi, yb + z)]
+    _poly(s, fil, solid=True); s.pline(fil, "VIS", closed=True)
+    s.line(P(xh, y0 - 3), P(xh, yt + 4), "EJE")
+    # rotura de la base a la derecha (ISO 128-30)
+    xa_, ya_, yb_ = P(Wn, 0)[0], P(0, y0 - 1)[1], P(0, yb + 1)[1]
+    ym_ = (ya_ + yb_) / 2
+    s.pline([(xa_, ya_), (xa_, ym_ - 2.5), (xa_ + 2.2, ym_ - 0.8), (xa_ - 2.2, ym_ + 0.8), (xa_, ym_ + 2.5), (xa_, yb_)], "FINA")
+    # cotas
+    s.dim(P(0, y0), P(0, yb), -9, f"{fm(tb, 0)}", "v")
+    s.dim(P(0, yb), P(0, yt), -9, f"{fm(td, 0)}", "v")
+    s.dim(P(xh - d / 2, yt), P(xh + d / 2, yt), 7, f"Ø{fm(d, 0)}", "h")
+    s.dim(P(S_, yb), P(S_, yb + S_), 6, f"S = {fm(S_, 0)}", "v", outside=True)
+    s.dim(P(xi + z, yb), P(xi + z, yb + z), 8, f"z = {fm(z, 0)}", "v", outside=True)
+    s.leader(P(S_ * 0.5, yb + S_ * 0.2), (P(S_, 0)[0] + 6, oy - 6), f"PJP bisel 45° × {fm(S_, 0)}, E = {fm(E_, 0)}: canto al ras del canto de la base, esmerilado", dot=True)
+    s.leader(P(xh, yb + rel * 0.5), (P(xh, 0)[0] + 10, oy - 16), f"tapón: relleno {fm(rel, 1)} de {fm(td, 0)}, por capas", dot=True)
+    if plano is not None:
+        idmap = dict(ids)
+        if idmap.get("J-R3"):
+            a = P(S_ * 0.25, yb + S_ * 0.25)
+            plano.h.weld("J-R3", a, (ox - 8, oy + (yt + 14) * k), sh=-1, prep="45°")
+        if idmap.get("J-R1"):
+            a = P(xh - d / 4, yb + rel)
+            plano.h.weld("J-R1", a, (P(xh, 0)[0] - d / 2 * k - 8, oy + (yt + 14) * k + 26), sh=-1)
+        if idmap.get("J-R2"):
+            a = P(xi + z * 0.35, yb + z * 0.35)
+            plano.h.weld("J-R2", a, (ox + Wn * k + 10, oy + (yt + 4) * k), sh=1)
+
+
+def pin_size(R):
+    return (R["d"] / 2 + R["S"] + 46.0, R["tpr"] + 24.0)
+
+
+def prep_pasador(s, ox, oy, k, R, jid=None, plano=None):
+    """J-P1 (núcleo pasadores_empuje.union): pasador Ø d a ras de la cara exterior del anillo, PJP con bisel 45° × S en el borde del agujero del anillo
+    (toda la circunferencia), esmerilada a ras. Se dibuja el anillo superior (cara superior del disco); el anillo inferior es el espejo (cara inferior)."""
+    r, S_, E_, tpr = R["d"] / 2, R["S"], R["E"], R["tpr"]
+    Wn, Hn = pin_size(R)
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    y0, y1 = 6.0, 6.0 + tpr
+    xp = r                                  # pared del agujero (eje del pasador en x = 0)
+    _poly(s, [P(0, y0 - 4), P(xp, y0 - 4), P(xp, y1), P(0, y1)], 0.0)
+    _poly(s, [P(xp, y0), P(Wn, y0), P(Wn, y1), P(xp + S_, y1), P(xp, y1 - S_)], 90.0)
+    tri = [P(xp, y1 - S_), P(xp + S_, y1), P(xp, y1)]
+    _poly(s, tri, solid=True); s.pline(tri, "VIS", closed=True)
+    s.line(P(0, y0 - 8), P(0, y1 + 6), "EJE")
+    xa_ = P(0, 0)[0]
+    s.pline([(xa_ - 1, P(0, y0 - 4)[1]), (P(xp + 1, 0)[0], P(0, y0 - 4)[1])], "FINA")
+    s.dim(P(Wn, y0), P(Wn, y1), 8, f"{fm(tpr, 0)} (anillo)", "v")
+    s.dim(P(xp, y1 - S_), P(xp, y1), -6, f"S = {fm(S_, 0)}", "v", outside=True)
+    s.dim(P(0, y1), P(xp, y1), 6, f"R{fm(r, 1)} (Ø{fm(2 * r, 0)} m6)", "h")
+    s.leader(P(xp + S_ * 0.3, y1 - S_ * 0.2), (ox + Wn * k + 6, oy + (y1 - S_ - 6) * k), f"E = {fm(E_, 0)}; esmerilada a ras", dot=True)
+    s.text("pasador a ras de la cara superior del disco; ídem en el anillo inferior", (P(0, 0)[0], oy - 1), T_N, "TOP_LEFT")
+    s.text("(cara inferior de la mesa, espejo), sin filete", (P(0, 0)[0], oy - 1 - T_N * 1.6), T_N, "TOP_LEFT")
     if jid and plano is not None:
-        a = P(xr0 + root / 2, y0 + tb - 0.5)
-        plano.h.weld(jid, a, (ox + 10, oy + (y0 + T + 12) * k), sh=-1, prep=f"{fm(angle, 0)}°")
+        a = P(xp + S_ * 0.25, y1 - S_ * 0.25)
+        plano.h.weld(jid, a, (ox + Wn * k + 12, a[1] + 22), sh=1, prep="45°", all_round=True)
+
 
 # ------------------------------------------------------------------------------------------------
 def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None, edge=False):
@@ -320,11 +357,12 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
                f"DETALLE {jid}: PREPARACIÓN DE JUNTA (CJP TC-U4b + z{fm(w['refuerzo'], 0)})")
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 1.0, maxs=maxs or 5.0, title=title or tit,
                     custom=lambda s, ox, oy, k, pl: prep_tc(s, ox, oy, k, w, jid, pl))
-    if w.get("inserto"):
-        (Wn, Hn), _ = x_size(w)
-        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 0.5, maxs=maxs or 2.0,
-                    title=title or f"DETALLE {jid}" + (f" ({w['inserto']['designacion']})" if w["inserto"].get("designacion") else "") + f": CJP A TOPE EN DOBLE V, BASE {fm(w['inserto']['tb'], 0)} / INSERTO {fm(w['inserto']['t'], 0)} (TRANSICIÓN 1:{fm(w['inserto']['k'], 1)})",
-                    custom=lambda s, ox, oy, k, pl: prep_x(s, ox, oy, k, w, jid, pl))
+    if w.get("pasador_j"):
+        R = dict(w["pasador_j"], d=w["pasador_j"].get("d", 85.0), tpr=w["pasador_j"].get("tpr", 40.0))
+        Wn, Hn = pin_size(R)
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 1.0, maxs=maxs or 3.0,
+                    title=title or f"DETALLE {jid}: PASADOR A RAS SOLDADO AL ANILLO (PJP BISEL 45° S{fm(R['S'], 0)}/E{fm(R['E'], 0)}, ESMERILADA A RAS)",
+                    custom=lambda s, ox, oy, k, pl: prep_pasador(s, ox, oy, k, R, jid, pl))
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]
         kind = "V" if w["sym"] == "V" else "bevel"

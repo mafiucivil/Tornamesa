@@ -91,7 +91,7 @@ def normas(ctx):
          ("VDI 2230", "Uniones atornilladas (torques propuestos)"), ("AWS D1.1:2020", "Soldadura de acero estructural (cláusula 5 WPS precalificados, Figura 5.1 juntas CJP precalificadas, Tabla 7.7 filete mínimo, Tabla 5.8 precalentamiento, cláusula 8 END)"),
          ("AWS A5.1 / A5.18" + (" / A5.9" if g.opt == 2 else ""), "Metales de aporte"), ("ISO 9606-1 / ISO 17637", "Calificación de soldadores / inspección visual"),
          ("AISC 360-22", "Especificación (J2.2b filete máximo, D5.2 orejas)"), ("ASME BTH-1 Cat. B / ASME B30.26", "Dispositivos de izaje / grilletes"),
-         ("EN 10204 3.1", "Certificados de inspección"), ("EN 10025-2 (S355J2)" if (g.modo == 2 or ctx.m.info.get("inserto")) else "", "Acero del soporte del ojal E y de los insertos de esquina"), ("ASTM A572 Gr.50, A36 (ref.), A578, EN 10164", "Aceros estructurales, UT de planchas, propiedades en espesor"),
+         ("EN 10204 3.1", "Certificados de inspección"), ("EN 10025-2 (S355J2)" if (g.modo == 2 or ctx.m.info.get("refuerzo")) else "", "Acero del soporte del ojal E y de los refuerzos de esquina"), ("ASTM A572 Gr.50, A36 (ref.), A578, EN 10164", "Aceros estructurales, UT de planchas, propiedades en espesor"),
          ("EN 10083-3 (34CrNiMo6+QT) / EN 10228-3", "Aceros bonificados (pasadores, uña) / UT de forjas"), ("ISO 15787", "Indicación de tratamientos térmicos en los planos (pasadores)"), ("DIN 71412" if g.n_greaser and g.opt in (1, 3) else "", "Graseras"),
          ("ISO 12944-5 / ISO 8501-1 / ISO 8503 / ISO 19840 / ISO 4624", "Protección anticorrosiva (C4 alta propuesto, GEN-006), preparación, EPS y adherencia")]
     if g.opt in (1, 2):
@@ -192,8 +192,8 @@ def sheet_notas(ctx):
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
-    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024. Inserto de esquina, un número por espesor: "
-                 "BAS-018 t60, 019 t70, 020 t90 (-1 A, -2 C1…C3, -3 B), 021 t50 «-G», 022 t60 «-G», 023 t65 «-G» (en «-G», -1/-2 simétricos); marco «-G» interrumpido BAS-024/025; marco de B (catetos del inserto de B) BAS-026/027",
+    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024. Refuerzo por espesor: "
+                 "BAS-028 t35, 029 t45, 030 t50, 031 t30 «-G», 032 t45 «-G»; atiesador BAS-033…036 (h45, 60, 85, 100); marcos BAS-037…040 (pivotado), 041/042 «-G»; BAS-018…027 anulados",
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]
@@ -267,10 +267,15 @@ def sheet_soldaduras_global(ctx):
              "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte con resistencia a tracción ≥ %s MPa (E70xx)." % f(ctx.P["FEXX"]),
              "Todas las juntas llevan símbolo ISO 2553 con su número J## en las láminas de pieza o de subconjunto; la tabla de cada lámina repite las juntas que contiene.",
              "END: VT 100 % de todas las juntas; MT/UT/PT según columna (AWS D1.1 y BTH-1 Cat. B). Soldadores y WPS calificados por el fabricante."]
-    I = ctx.m.info.get("inserto")
+    I = ctx.m.info.get("refuerzo")
     if I:
-        notas.append(f"SECUENCIA DE SOLDADURA DE LOS INSERTOS DE ESQUINA ({', '.join(w['id'] for w in ctx.welds if w.get('inserto'))}; núcleo inserto.secuencia), antes de soldar cualquier otra pieza a la base: "
+        notas.append(f"SECUENCIA DE SOLDADURA DE LOS REFUERZOS DE ESQUINA ({', '.join(w['id'] for w in ctx.welds if w.get('refuerzo_j'))}; núcleo refuerzo.secuencia), antes de soldar cualquier otra pieza a la esquina de la base: "
                      + " ".join(I.get("secuencia") or []))
+    PE_ = ctx.m.info.get("pasadores_empuje")
+    jP_ = ctx.weld_find("Pasadores de empuje")
+    if PE_ and jP_:
+        notas.append(f"PASADORES DE EMPUJE SOLDADOS A RAS ({jP_['id']}; núcleo pasadores_empuje): {PE_['union']['tipo']}, S{f(PE_['union']['S'])}/E{f(PE_['union']['E'])}. "
+                     f"Material {PE_['material'].split(';')[0]}: WPS CALIFICADA POR ENSAYO (no precalificada). {PE_.get('soldabilidad', '')} Limitación: {' '.join(PE_.get('limitaciones') or [])}")
     W_ = min(700.0, R[2] - R[0] - 12.0)
     need = (T_N + 0.5) * 1.6 + sum(len(wrapw(f"{i + 1}. {n}", W_, T_N)) * T_N * 1.4 + T_N * 0.25 for i, n in enumerate(notas))
     if y - 6 - need >= R[1] + 2:
@@ -399,7 +404,7 @@ AS_M = {6: 20.1, 8: 36.6, 10: 58.0, 12: 84.3, 16: 157.0, 20: 245.0}
 def torque_rows(ctx):
     g, P = ctx.g, ctx.P
     rows = []
-    items = [("Perno ISO 4762 M20×45 cl. 10.9 (retención de pasador)", 20, 10.9, g.N_pin), (f"Tornillo ISO 10642 M10×{g.cap_L:.0f} cl. 10.9 (tapa retenedora)", 10, 10.9, 4), (f"Tornillo ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} cl. 10.9 (tapa de inspección)", int(g.insp_d), 10.9, 6)]
+    items = ([("Perno ISO 4762 M20×45 cl. 10.9 (retención de pasador)", 20, 10.9, g.N_pin)] if ctx.m.get("pernos_pasador") else []) + [(f"Tornillo ISO 10642 M10×{g.cap_L:.0f} cl. 10.9 (tapa retenedora)", 10, 10.9, 4), (f"Tornillo ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} cl. 10.9 (tapa de inspección)", int(g.insp_d), 10.9, 6)]
     if g.opt and g.removable:
         items.append((f"Tornillo ISO 10642 M{fm(P['d_tor'], 0)} cl. 10.9 (posición de sectores; no transmiten carga)", int(P["d_tor"]), 10.9, None))
     if ctx.m.get("int_tornillo_af2"):

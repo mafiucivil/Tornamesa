@@ -135,14 +135,17 @@ def sheet_mesa_anillos(ctx):
          title="CORTE A-A: RADIAL POR UN PASADOR", hs=0.5, w=1.2, mins=1.0, maxs=1.0, auto=dict(fits={g.d_pin: "H7"}, tol={round(g.tpr, 1): ""}, text={round(g.d_pin, 1): f"Ø{f(g.d_pin)} H7 (+0,035/0)", round(g.Rt - g.prIn, 1): f"({fm(g.Rt - g.prIn, 0)})"}))
     add_prep(p, "det_e", wd(ctx, ej), t1=g.tpr)
     p.detail("det_p", "corte", (g.R_pin - g.d_pin / 2, 0, zt - 2), 22, "B", lv=(1, 1, 1, 1), title="DETALLE B: BORDE DEL AGUJERO", maxs=5.0) if False else None
-    p.tables([ej] + jj)
+    jP_ = ctx.weld_find("Pasadores de empuje")
+    p.tables([ej] + jj + ([jP_["id"]] if jP_ else []))
     p.notes([f"Anillo Ø{f(2 * g.Rt)} / Ø{f(2 * g.prIn)} × {f(g.tpr)} terminado, en 4 segmentos de 90° (plasma); mismo trazado para el superior (MES-002) y el inferior (MES-004), que se diferencian por la secuencia de planeado (tabla) "
              f"y, según la variante, por los agujeros propios de MES-004 (nota)." if notas_anillo_inf(ctx) else f"Anillo Ø{f(2 * g.Rt)} / Ø{f(2 * g.prIn)} × {f(g.tpr)} terminado, en 4 segmentos de 90° (plasma); mismo trazado para el superior (MES-002) y el inferior (MES-004), que se diferencian por la secuencia de planeado (tabla).",
              f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: taladrar Ø80 en taladro radial por segmentos y MANDRINAR a Ø{f(g.d_pin)} H7 en línea con el otro anillo ya armado (plantilla común).",
              f"Posición angular: primer agujero a {fm(a0, 3)}°, paso {fm(pitch, 3)}°; los empalmes quedan entre agujeros (a {fm((0.5) * pitch, 2)}° de ellos).",
              f"Empalmes CJP V 60°, raíz 3, respaldo, UT 100 % ({ej}); esmerilar al ras antes de armar. Soldar los empalmes ANTES de unir con las planchas.",
              "UT de recepción de la plancha ASTM A578 nivel B y Z35 (EN 10164) por el esfuerzo en espesor de los pasadores.",
-             "Rugosidad Ra 3,2 en los agujeros; aristas rotas 1×45°."] + notas_anillo_inf(ctx),
+             "Rugosidad Ra 3,2 en los agujeros; aristas rotas 1×45°" + (lambda U_, w_: (f", salvo el borde EXTERIOR de cada agujero (cara superior de MES-002, cara inferior de MES-004): bisel 45° × {f(U_['S'])} "
+                                                                      f"para la PJP {w_['id'] if w_ else 'J-P1'} del pasador soldado a ras (núcleo pasadores_empuje.union; detalle en la lámina del pasador). El bisel de MES-004 se mecaniza después del planeado final.")
+                                                                     if U_ else ".")((ctx.D.get("pasadores_empuje") or {}).get("union"), ctx.weld_find("Pasadores de empuje"))] + notas_anillo_inf(ctx),
             gd=[("pos", "Ø0,3", "A", "Agujeros: posición respecto del eje de la mesa (A); PCD y ángulos del patrón: cotas teóricamente exactas (en recuadro)"), ("flat", "0,3", None, "Planitud de las caras del anillo")])
     p.build()
     return p.h
@@ -360,11 +363,17 @@ def sheet_cubo(ctx):
 
 @pieza("pasadores")
 def sheet_pasador(ctx):
+    """Pasador de empuje a ras del disco, soldado a ambos anillos (núcleo d537dda, pasadores_empuje): barra Ø d m6 × h_disc, extremos planos, banda templada;
+    sin rosca, perno ni arandela (MES-013/014 eliminados). Detalle de la PJP J-P1 en la propia lámina."""
     g, P, D = ctx.g, ctx.P, ctx.D
+    PE = D.get("pasadores_empuje") or {}
+    U = PE.get("union") or {}
     xy = polar(g.R_pin, D["pasadores"][0])
     ctx.local("pasadores", "pin1", near=(xy[0], xy[1], g.z0 + g.hd / 2), r=60, shift=(-xy[0], -xy[1], 0))
-    z0, zt, r = g.z0, g.z0 + g.hd, g.d_pin / 2
-    p = Pieza(ctx, ["pasadores"], f"MESA: PASADOR DE EMPUJE Ø{f(g.d_pin)} ({g.N_pin} UNIDADES)", fmt="auto")
+    bb_ = ctx.shapes["pin1"].BoundingBox()
+    z0, zt, r = bb_.zmin, bb_.zmax, g.d_pin / 2
+    L = zt - z0
+    p = Pieza(ctx, ["pasadores"], f"MESA: PASADOR DE EMPUJE Ø{f(g.d_pin)} × {f(L)} A RAS, SOLDADO ({g.N_pin} U.)", fmt="auto")
     s = p.s
     p.iso_keys = ["pin1"]
     on = ["pin1"]
@@ -372,43 +381,29 @@ def sheet_pasador(ctx):
 
     def elev(V, p):
         s.line(V.P(0, 0, z0 - 8), V.P(0, 0, zt + 8), "EJE")
-        for z_ in (zc0, zc1):           # límites de la franja templada (línea gruesa de trazo y punto, ISO 128 tipo 04.2, junto a la superficie)
+        for z_ in (zc0, zc1):           # límites de la banda templada (línea gruesa de trazo y punto, ISO 128 tipo 04.2, junto a la superficie)
             s.line(V.P(-r - 6, 0, z_), V.P(-r + 6, 0, z_), "TRAT"); s.line(V.P(r - 6, 0, z_), V.P(r + 6, 0, z_), "TRAT")
-        V.dimv((-r + g.ch_pin, 0, z0), (-r, 0, zc0), "left", 0, on=on, text=f"{fm(zc0 - z0, 0)} (inicio de la franja templada, desde la cara sin rosca)")
-        V.dimv((-r + g.ch_pin, 0, z0), (-r, 0, zc1), "left", 1, on=on, text=f"{fm(zc1 - z0, 0)} (fin de la franja templada)")
-    p.ra_in("elev", "Ra 0,8", [(r, 0, z0 + g.hd * f_) for f_ in (0.75, 0.25, 0.85)], (1, 0, 0))
+        V.dimv((-r, 0, z0), (-r, 0, zc0), "left", 0, on=on, text=f"{fm(zc0 - z0, 0)} (inicio de la banda templada, desde la cara inferior)")
+        V.dimv((-r, 0, z0), (-r, 0, zc1), "left", 1, on=on, text=f"{fm(zc1 - z0, 0)} (fin de la banda templada)")
+    p.ra_in("elev", "Ra 0,8", [(r, 0, z0 + L * f_) for f_ in (0.75, 0.25, 0.85)], (1, 0, 0))
     p.datum_in("elev", "dim", "A", prefix=f"Ø{f(g.d_pin)} m6")
-    p.gd_in("elev", "surf", "cyl", "0,02", None, at=[(r, 0, z0 + g.hd * f_) for f_ in (0.15, 0.9, 0.6)], d=(1, 0, 0))
-    p.gd_in("elev", "surf", "perp", "0,05", "A", at=[(-r * 0.5, 0, z0), (r * 0.5, 0, z0)], d=(0, 0, -1))
-    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 115, 0), draw=elev, hatch=False, title="ELEVACIÓN", w=1.5,
-         auto=dict(rev=(0, 0), rev_only=[g.d_pin], fits={g.d_pin: "m6"}, rev_side="top", tol={round(g.hd, 1): " ±0,1"}, hole_notes=False))
-
-    def extremo(V, p):
-        p.cut_mark("extremo", "A", (-r - 14, 0, zt), (r + 14, 0, zt), 90)
-        # B-45/B-48: sin repetir el Ø del pasador (acotado en la elevación); la llamada sale del contorno sin cruzar textos
-        V.note_hole((0, 0, zt), g.pin_drill / 2, 40, "M20-6H", ext=(r - g.pin_drill / 2) * V.scale + 16, on=on,
-                    lines=["M20-6H, rosca útil " + fm(g.pin_thr, 0), f"taladro Ø{fm(g.pin_drill, 1)} prof. {fm(g.pin_drill_L, 0)}", "(perno ISO 4762 M20×45 cl. 10.9)"])
-    p.vs("extremo", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 50, 0), title="VISTA DE EXTREMO (extremo roscado)", hatch=False, w=0.8, draw=extremo, maxs=1.0, auto=False)
-
-    def corte(V, p):
-        zb_ = zt - g.pin_drill_L
-        for e_ in (-10.0, 10.0):          # diámetro nominal de la rosca en línea fina (ISO 6410-1)
-            s.line(V.P(e_, 0, zt), V.P(e_, 0, zt - g.pin_thr), "FINA")
-        s.line(V.P(-10.0, 0, zt - g.pin_thr), V.P(10.0, 0, zt - g.pin_thr), "VIS")
-        V.dimv((g.pin_drill / 2, 0, zb_), (g.pin_drill / 2, 0, zt), "right", 0, on=on, text=f"{fm(g.pin_drill_L, 0)} (taladro Ø{fm(g.pin_drill, 1)})")
-        V.dimv((-g.pin_drill / 2, 0, zt - g.pin_thr), (-g.pin_drill / 2, 0, zt), "left", 0, on=on, text=f"{fm(g.pin_thr, 0)} (rosca útil M20-6H)")
-        a_, b_ = V.P(-r - 3, 0, zt - 62), V.P(r + 3, 0, zt - 62)       # línea de rotura ISO 128-30 (fina con zigzag) en el borde de la vista parcial
-        xm_ = (a_[0] + b_[0]) / 2
-        s.pline([a_, (xm_ - 6, a_[1]), (xm_ - 2.2, a_[1] + 3.5), (xm_ + 2.2, a_[1] - 3.5), (xm_ + 6, a_[1]), b_], "FINA")
-    p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 1, 1, 1), title="CORTE A-A: ROSCA M20 (vista parcial con rotura)", hs=0.5, w=1.2, auto=False, draw=corte,
-         win=(-r - 4, zt - 62, r + 4, zt + 4), maxs=2.0)
-    p.detail("det_ch", "elev", (r - 1, 0, zt - 1), 9, "B", lv=(1, 1, 1, 1), title="DETALLE B: CHAFLÁN DE EXTREMO (5:1)", maxs=5.0, hatch=False)
-    p.tables()
-    p.notes([f"Barra Ø{f(g.d_pin + 5)} laminada/rectificada; torno horizontal o rectificado externo: Ø{f(g.d_pin)} m6 ({iso286.fmt_dev(g.d_pin, 'm6')} mm), Ra 0,8; largo {f(g.hd)} ±0,1.",
-             f"Tratamiento (ISO 15787): bonificado y temple por inducción de la franja de contacto ({f(P['dog_h'])} mm, ubicada desde la cara sin rosca según la elevación) ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad efectiva {g.z_hard_txt}; Fy ≥ {f(P['Fy_pin'])} MPa (34CrNiMo6+QT, EN 10083-3).",
-             f"Chaflán {fm(g.ch_pin, 0)}×45° en ambos extremos (ISO 13715). Rosca M20-6H en un extremo (ISO 262): rosca útil {fm(g.pin_thr, 0)}, taladro Ø{fm(g.pin_drill, 1)} prof. {fm(g.pin_drill_L, 0)}; perno ISO 4762 M20×45 cl. 10.9; torque propuesto en GEN-008 (PROPUESTA, A CONFIRMAR POR EL CALCULISTA).",
-             f"Ajuste en los anillos {f(g.d_pin)} H7/m6 (transición, desmontable). Montar con grasa; sin soldadura.",
-             f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en el extremo roscado; 10 % de dureza superficial por lote."],
+    p.gd_in("elev", "surf", "cyl", "0,02", None, at=[(r, 0, z0 + L * f_) for f_ in (0.15, 0.9, 0.6)], d=(1, 0, 0))
+    p.gd_in("elev", "surf", "perp", "0,05", "A", at=[(-r * 0.5, 0, z0), (r * 0.5, 0, z0), (-r * 0.6, 0, zt), (r * 0.6, 0, zt), (0, 0, z0)], d=[(0, 0, -1), (0, 0, -1), (0, 0, 1), (0, 0, 1), (0, 0, -1)])
+    p.vs("elev", on, "front", lv=(2, 2, 2, 3), extra=(0, 0, 115, 0), draw=elev, hatch=False, title="ELEVACIÓN (extremos planos, sin chaflán ni rosca)", w=1.5,
+         auto=dict(rev=(0, 0), rev_only=[g.d_pin], fits={g.d_pin: "m6"}, rev_side="top", tol={round(L, 1): " +0,5/0"}, hole_notes=False))
+    jP = ctx.weld_find("Pasadores de empuje")
+    if jP:
+        add_prep(p, "det_jp1", jP, mins=1.0, maxs=3.0)
+    p.tables([jP["id"]] if jP else [])
+    lim = [x for x in (PE.get("limitaciones") or [])]
+    p.notes([f"Barra Ø{f(g.d_pin + 5)} laminada/rectificada; torno horizontal o rectificado externo: Ø{f(g.d_pin)} m6 ({iso286.fmt_dev(g.d_pin, 'm6')} mm), Ra 0,8; largo {f(L)} +0,5/0 = alto del disco de la mesa (a ras arriba y abajo; el exceso se esmerila con la soldadura).",
+             f"Material y tratamiento (núcleo pasadores_empuje.material): {PE.get('material', '34CrNiMo6+QT')}. Fy ≥ {f(P['Fy_pin'])} MPa; límite elástico superficial supuesto en el cálculo {f(P['Fy_surf'])} MPa; profundidad efectiva {g.z_hard_txt}.",
+             (f"Montaje: {PE.get('ajuste', 'Ø m6 en agujero H7')}. Unión {jP['id'] if jP else 'J-P1'}: {U.get('tipo', 'PJP en bisel 45°')} (S{f(U.get('S', 0))}/E{f(U.get('E', 0))}; núcleo FU {fm(U.get('fu', 0), 3)}); "
+              "sin filete abajo (cara de deslizamiento) y nada sobre el disco.") if U else "Montaje en los anillos H7/m6.",
+             f"Soldabilidad (núcleo): {PE.get('soldabilidad', '')}",
+             f"Sin rosca, perno ni arandela: MES-013 (perno ISO 4762 M20×45) y MES-014 (arandela) ELIMINADOS por el núcleo ({'; '.join(PE.get('eliminado') or [])}).",
+             *[f"LIMITACIÓN (núcleo): {x}" for x in lim],
+             f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en la cara superior antes de soldar (zona fuera de la banda templada); 10 % de dureza superficial por lote y control después de soldar."],
             gd=[("cyl", "0,02", None, "Cilindricidad del Ø%s m6" % f(g.d_pin)), ("perp", "0,05", "A", "Caras extremas perpendiculares al eje del Ø%s m6 (A)" % f(g.d_pin))])
     p.build()
     return p.h

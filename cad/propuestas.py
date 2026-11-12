@@ -40,10 +40,14 @@ def wps_family(w):
     """Clave de la familia WPS para un registro de junta de build_welds."""
     if w["groove"] and w["sym"] == "slot":
         return "RANURA"
+    if w["groove"] and w["sym"] == "plug":
+        return "TAPON"
+    if w.get("pasador_soldado"):
+        return "PJP-PASADOR"
+    if w["groove"] and w.get("pjp_ras"):
+        return "PJP-RAS"
     if w["groove"] and w.get("pjp"):
         return "PJP-BISEL"
-    if w["groove"] and w.get("inserto"):
-        return "CJP-X"
     if w["groove"]:
         return "CJP-V" if w["sym"] == "V" else "CJP-BISEL"
     if "ER309L" in w["aporte"]:
@@ -59,6 +63,12 @@ FAM_TXT = {
     "CJP-BISEL": ("Ranura con bisel 45° y respaldo, penetración completa (CJP), tipo AWS D1.1:2020 Figura 5.1 TC-U4; confirmar designación", "1G, 2G"),
     "PJP-BISEL": ("Ranura con bisel 45° de penetración parcial (PJP), soldada de un lado, con filete de refuerzo, tipo AWS D1.1:2020 Figura 5.2 TC-P4; confirmar designación", "1G, 2F"),
     "RANURA": ("Soldadura de ranura (22 × 80) rellena por completo (AWS D1.1, soldaduras de tapón y ranura precalificadas), en posición plana", "1F"),
+    "TAPON": ("Soldadura de tapón en agujero (AISC 360-22 §J2.3; AWS D1.1:2020 cláusulas de tapones y ranuras: verificar número), relleno parcial por capas limpiando la escoria, "
+              "refuerzo prensado contra la base (contacto ≤ 1 mm), en posición plana", "1F"),
+    "PJP-RAS": ("Ranura con bisel simple 45° de penetración parcial (PJP, E = S − 3), soldada de un lado y esmerilada al ras del canto, sin filete, "
+                "AWS D1.1:2020 Figura 5.2 (bisel simple: verificar designación)", "1G, 2G"),
+    "PJP-PASADOR": ("Pasador 34CrNiMo6+QT a anillo S355/A572: ranura PJP con bisel 45° en el borde del agujero del anillo, toda la circunferencia, esmerilada a ras. "
+                    "Acero NO precalificado (AWS D1.1:2020 Tabla 5.3): WPS CALIFICADA POR ENSAYO (cláusula 6, PQR con dureza ZAC ≤ 350 HV10)", "1G (pieza girada), 2G"),
 }
 
 
@@ -78,12 +88,9 @@ def wps_rows(ctx):
             passes = str(max(x["pasadas"] for x in ws))
         assert len({wps_family(x) for x in ws}) == 1 and len({precalentamiento(x["t_pre"]) for x in ws}) == 1, f"WPS-P{n:02d} agrupa juntas de familia o rango de precalentamiento distintos"
         fam_txt = FAM_TXT[fam][0]
-        I_ = ws[0].get("inserto") or {}
-        if fam == "CJP-X" and I_.get("designacion"):
-            # J-I1: designación precalificada y preparación del núcleo (inserto.juntas[].preparacion)
-            fam_txt = (f"Ranura a tope en doble V precalificada {I_['designacion']} (AWS D1.1:2020 Figura 5.1; núcleo: verificar contra la figura), CJP sin respaldo, "
-                       f"raíz R 0–{fm(I_['raiz'], 0)}, talón f 0–{fm(I_['talon'], 0)}, α = {fm(I_['alfa'], 0)}°, β = {fm(I_['beta'], 0)}°" + (", resanado de raíz y soldadura por la cara opuesta (pieza volteada)" if I_.get("resanado") else ""))
-        rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), fam_txt, FAM_TXT[fam][1], CORR["GMAW"], CORR["SMAW"], CORR["FCAW"], pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)", INTERPASE, passes])
+        pre_ = ws[0].get("pre_txt") or (pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)")
+        int_ = ws[0].get("interpase_txt") or INTERPASE
+        rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), fam_txt, FAM_TXT[fam][1], ws[0].get("corr_gmaw") or CORR["GMAW"], ws[0].get("corr_smaw") or CORR["SMAW"], CORR["FCAW"], pre_, int_, passes])
     return rows
 
 
@@ -165,7 +172,8 @@ def catalogo_rows(ctx):
          + (f"Ø{f(P['d_pp'])}" if g.modo == 1 else f"Ø{f(g.FPV['pasador_E']['d'])} (trasero, pasador E) y Ø{f(g.FPV['pasador_Q']['d'])} (vástago, pasador Q; ACC-013)") + f", b = {f(P['b_eye'])} mm, masa ≈ {fm(P['m_cyl'], 0)} kg",
          f"Certificado de prueba hidráulica a 1,5 × {f(P['p_relief'])} bar; EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO (proveedor)"],
         *([["Grasera recta DIN 71412 M10×1", f"{g.n_greaser} unidades; acero zincado; rosca M10×1 (ISO 261), conducto Ø6", "Lote con certificado de conformidad", "marca/modelo A DEFINIR POR CATÁLOGO"]] if ctx.m.get("graseras") else []),
-        ["Tornillo ISO 4762 M20×45 cl. 10.9 con arandela", f"{g.N_pin} unidades; recubrimiento zincado/dacromet; arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)} de {WASHER_MAT} (MES-013)", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"],
+        *([["Tornillo ISO 4762 M20×45 cl. 10.9 con arandela", f"{g.N_pin} unidades; recubrimiento zincado/dacromet; arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)} de {WASHER_MAT} (MES-013)", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"]]
+          if ctx.m.get("pernos_pasador") else []),
         ["Grillete de izaje ASME B30.26 (×4)", f"Pasador ≤ {fm(P['d_ear'] - P['g_ear'], 0)} mm; WLL ≥ lo calculado en la fila «Orejas de izaje» del núcleo; con certificado de prueba", "Prueba de carga 1,25 × WLL", "marca/modelo A DEFINIR POR CATÁLOGO"],
         ["Buje autolubricado", f"Ø{f(g.d_bush)} / Ø{f(P['D_piv'])} × {f(P['L_bush'])}; presión ≤ {fm(P['p_bush'], 0)} MPa; μ ≤ {fm(P['mu_bush'], 2)}; sobre aleación de bronce con lubricante sólido", "Certificado del proveedor", "marca/modelo A DEFINIR POR CATÁLOGO"],
         *([["Resorte de retorno de la uña (compresión) (×2)", f"Carrera ≥ {f(g.KG['travel'] + 5)} mm; fuerza 150–300 N", "—", "marca/modelo A DEFINIR POR CATÁLOGO"]] if g.modo == 1 else []),

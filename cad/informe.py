@@ -34,7 +34,7 @@ def brechas(ctx, rep):
         add("Buje parcialmente sin guía en el cubo", f"El buje arranca en z = {fm(g.z_bush0, 0)} y el alesaje del cubo (Ø{fm(g.d_bush, 0)} H7) empieza en z = {fm(g.z_techo if g.rebaje else g.z0 + g.tbo, 0)}: engrane {fm(ev, 0)} de {fm(P['L_bush'], 0)} mm (con rebaje de {fm(g.h_rebaje, 0)} < t_bot, el agujero de la plancha inferior es pasante).", "Verificar la presión del buje con el engrane real o subir el buje.")
     add("Izaje de la mesa", "El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible).", "A DEFINIR: orejas o cáncamos verificados para la mesa.")
     add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (zona p6 calada H7/p6, sin soldadura).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
-    add("Torque de pernos y tornillos", "El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición).", "Torques PROPUESTOS en GEN-008 (ISO 898-1, VDI 2230 simplificado): A CONFIRMAR POR EL CALCULISTA.")
+    add("Torque de pernos y tornillos", "El núcleo no entrega torques (M10 de tapas, tornillos de posición y pernos del accionamiento; los pasadores de empuje van soldados, sin perno).", "Torques PROPUESTOS en GEN-008 (ISO 898-1, VDI 2230 simplificado): A CONFIRMAR POR EL CALCULISTA.")
     add("Tamaño de soldaduras sin parámetro", ("Marco, esquinas y orejas de ménsula" if g.modo == 1 else ("Marco y esquinas del marco" if (g.FPV or {}).get("soporte_E", {}).get("juntas") else "Marco, esquinas del marco y esquinas del cajón del ojal E")) + " no tienen tamaño en P; se adopta el mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f.", "CONFIRMAR o parametrizar tamaños y END de las soldaduras sin parámetro.")
     add("Filetes máximos AISC J2.2b de almas y nervios", f"Almas y nervios de la mesa: w_web = {fm(P['w_web'], 0)} sobre t = {fm(P['t_web'], 0)} superan el máximo de borde t − 2 = {fm(P['t_web'] - 2, 0)} mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión.",
         "PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma.")
@@ -75,23 +75,24 @@ def requiere_nucleo(ctx):
     g, P, M = ctx.g, ctx.P, ctx.M
     R = []
     RN = "REQUIERE NÚCLEO"
-    I = ctx.m.info.get("inserto")
+    I = ctx.m.info.get("refuerzo")
     if I:
-        pI = ctx.m.get("inserto")
-        from shapely.geometry import Polygon as _Pg
-        m_exc = pI.mass_unit - _Pg(I["esquinas"][0]).area * g.tb * pI.rho
-        dif_ = (m_exc / I["masa"] - 1) * 100 if I.get("masa") else float("inf")
+        pI = ctx.m.get("refuerzo")
+        m_ref = I.get("masa_plancha", I.get("masa"))
+        import refuerzo3d
+        m3_ = pI.mass_unit + refuerzo3d.vol_bisel(I) * pI.rho       # el cordón J-R3 llena el bisel: el núcleo cuenta la plancha llena
+        dif_ = (m3_ / m_ref - 1) * 100 if m_ref else float("inf")
         if abs(dif_) > 0.5:
-            # núcleo f2dc2b5: V = ∫ A(z) dz con biseles planos y rebaje; el 3D debe coincidir dentro de ±0,5 %
-            R.append((f"{RN}: masa del inserto de esquina", f"Masa del núcleo {fm(I['masa'], 1)} kg por inserto (excedente sobre la base); el sólido 3D con los biseles planos entre «esquinas» y «esquinas_espesor_pleno» "
-                      f"(y el rebaje) da {fm(m_exc, 1)} kg ({fm(dif_, 2)} %), fuera de ±0,5 %.", "Revisar la integración de la masa del inserto en el núcleo o la geometría exportada."))
-        J_ = ((I.get("juntas") or [{}])[0])
-        if not (J_.get("designacion") and J_.get("preparacion")):
-            R.append((f"{RN}: preparación de la junta J-I1", "El núcleo da la junta como CJP a tope en doble V (AWS D1.1:2020 Figura 5.1, B-U3: verificar designación) pero no la abertura de raíz, el talón ni el ángulo; "
-                      "el dibujo PROPONE X 60°, raíz 0–3, talón 0–3 con resanado (B-U3c).", "Confirmar la designación precalificada y los parámetros (o el WPS del fabricante)."))
+            R.append((f"{RN}: masa del refuerzo de esquina", f"Masa del núcleo {fm(m_ref, 1)} kg por refuerzo; el sólido 3D (plancha con los agujeros vacíos sobre el relleno de los tapones, más el bisel lleno por J-R3) da {fm(m3_, 1)} kg ({fm(dif_, 2)} %), fuera de ±0,5 %.",
+                      "Revisar la masa del refuerzo exportada por el núcleo."))
         if (I.get("fu_max") or 0) > 0.9:
-            R.append(("ADVERTENCIA DEL NÚCLEO: inserto de esquina", f"FU máx. {fm(I['fu_max'], 3)} > 0,90 (objetivo interno; límite 1,0): con esta interfaz la plancha de {fm(g.tb, 0)} mm bajo el borde de la mesa satura con cualquier espesor del inserto.",
-                      "PENDIENTE DE ACEPTACIÓN DEL MANDANTE (o base local mayor para esta variante). Las láminas se emiten para revisión con esta salvedad."))
+            R.append(("ADVERTENCIA DEL NÚCLEO: refuerzo de esquina", f"FU máx. {fm(I['fu_max'], 3)} > 0,90 (objetivo interno; límite 1,0) con el refuerzo de {fm(I['t_d'], 0)} mm sobre la base de {fm(g.tb, 0)} mm "
+                      f"(cara a z = {fm(I['t'], 0)}){' sin atiesador' if not (I.get('atiesadores') or {}).get('por_esquina') else ''}: el núcleo lo acepta con aviso (≤ 1).",
+                      "PENDIENTE DE ACEPTACIÓN DEL MANDANTE (excepción documentada en el registro del núcleo). Las láminas se emiten para revisión con esta salvedad."))
+    PE_ = ctx.m.info.get("pasadores_empuje")
+    if PE_ and PE_.get("union"):
+        R.append(("Pasadores de empuje soldados: WPS por ensayo", f"El núcleo exige WPS calificada por ensayo para {PE_['material'].split(';')[0]} (no precalificado, AWS D1.1:2020 Tabla 5.3) y precalentamiento del orden de 250–300 °C; "
+                  "el dibujo no puede fijar los parámetros de la WPS.", "El fabricante califica el PQR (dureza ZAC ≤ 350 HV10) antes de soldar los pasadores (GEN-007, GEN-012)."))
     if g.modo == 2:
         F = g.FPV
         S, PL = F["soporte_E"], F["placas_leva"]
@@ -184,15 +185,12 @@ def residual_txt(ctx, grupo):
         return "alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría)"
     if grupo == "mesa":
         return "rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo)"
-    I = ctx.m.info.get("inserto")
+    I = ctx.m.info.get("refuerzo")
     if grupo == "base":
-        return ("agujero del pivote, redondeos y chaflanes de las orejas (fórmula del núcleo)"
-                + (f"; además, el núcleo cuenta la plancha de {fm(g.tb, 0)} mm completa y el inserto como excedente sobre ella: el 3D descuenta de la plancha las "
-                   f"{len(I['esquinas'])} ventanas de los insertos, que figuran con el inserto (grupo del soporte)" if I else ""))
+        return "agujero del pivote, redondeos y chaflanes de las orejas (fórmula del núcleo)"
     if grupo == "brackets" and I:
-        return (f"el inserto de esquina figura completo en el 3D (el núcleo suma solo su excedente sobre la plancha de {fm(g.tb, 0)} mm, que cuenta completa en la base); "
-                "la transición del núcleo es una cuña (A_contorno − A_pleno)·Δ/2, el 3D tiene los biseles planos entre «esquinas» y «esquinas_espesor_pleno»"
-                + (" y el rebaje con borde 1:2,5" if I.get("rebaje") else "") + ". La suma base + soporte es la que se compara con el núcleo")
+        return ("el refuerzo de esquina figura como plancha con los agujeros vacíos sobre el relleno de los tapones (igual que el núcleo), cortada con el bisel de la PJP; "
+                "la comparación suma el metal de aporte que llena los biseles (J-R3), porque el núcleo cuenta la plancha llena; los filetes no se modelan")
     return "fórmula del núcleo frente a geometría"
 
 
@@ -356,7 +354,7 @@ VERIF = {
     "MES-001": ("Mesa: Ø, altura, almas, nervios, pasadores (PCD, paso), corte radial.", "P.D_top, h_disc, rings, N_rib, N_pin, R_pin; verificaciones «Mesa»"),
     "MES-002": ("Planchas y anillos: espesores t_top, t_bot, t_pr, agujero Ø200, rebaje Ø240, agujero pasante Ø D_rebaje_bot (collar + 2 c_boss_r), agujeros de pasadores.", "Verificaciones «Mesa (FEA)»; P.t_top, t_bot, t_pr"),
     "MES-003": ("Cubo con rebaje inferior Ø D_rebaje × h_rebaje_cubo (holguras c_boss_r, c_boss_a); almas y nervios (largos de tramo; anillos del JSON).", "interfazGeom (D_rebaje_bot, h_rebaje_cubo); verificación del collar «pared del rebaje ≥ 25 mm»; masas de almas y nervios"),
-    "MES-004": ("Pasador Ø85 m6 × h_disc, temple por inducción ≥ 55 HRC (Fy_sup), alivio de borde, perno M20.", "Verificaciones «Pasadores de empuje»; P.Fy_surf, P.k_edge"),
+    "MES-004": ("Pasador Ø85 m6 × h_disc a ras, soldado a los anillos (PJP 45° S/E del núcleo), temple por inducción ≥ 55 HRC solo en la banda de contacto (Fy_sup), alivio de borde; sin perno ni arandela.", "Verificaciones «Pasadores de empuje»; pasadores_empuje.union; P.Fy_surf, P.k_edge"),
     "PIV-001": ("Pivote, buje, tapas: asiento t_base + h_boss, buje desde t_base + h_boss + g_buje, holguras reales del collar (radial c_boss_r, axial al techo), brazo e = 42, ajustes H7/p6 (zona de calado) y F7/f7 (zona del buje).", "Verificaciones «Pivote» (asiento, brazo efectivo, buje, flexión, rebaje del collar)"),
     "INT-001": ("Capas de la interfaz y alturas (Δ); topes, tornillos y ranuras según la alternativa; NO desmontable si fix_mode = 2.", "D['apoyo'].interfaz; D['interfazChecks']; verificaciones «Interfaz inox/bronce»"),
     "INT-002": ("Sectores: ángulo, juntas, muescas, tornillos, ranuras de engrase, rugosidad y planitud.", "P.n_sec, d_tor, h_gr, w_gr, n_gr_rad, n_gr_circ; verificaciones de sector y tornillo"),
