@@ -16,7 +16,18 @@ ACC_NUM = {"bancada": 1, "cilindro": 2, "patin": 3, "una": 4, "pasador_vastago":
            # placa-guía curva (núcleo 7dfd06a) y bloque-uña con cara R120 (3dab1ce): geometría nueva → números nuevos (17 y 18 quedan anulados)
            "placa_guia": 20, "pernos_placa_guia": 21, "pasadores_placa_guia": 22, "bloque_una_r": 23, "placa_guia_h": 24,
            # modo guiado (núcleo c4e12af): retención axial del rodillo del seguidor
-           "leva_arandela": 25, "leva_tornillo_ret": 26}
+           "leva_arandela": 25, "leva_tornillo_ret": 26,
+           # bloque-uña con garra (núcleo 61fff06: asiento cóncavo, labio de retención, nariz y rampa): geometría nueva → número nuevo (23 queda anulado)
+           "bloque_una_g": 27}
+
+
+def garra_capa(BU):
+    """Capa templada del asiento de la garra (mm) leída de la nota del núcleo (bloque_una.garra.nota: «… capa ≥ 3 mm»); None si no la indica."""
+    import re as _re
+    m_ = _re.search(r"capa\s*≥\s*([\d,\.]+)\s*mm", str((BU.get("garra") or {}).get("nota", "")))
+    return float(m_.group(1).replace(",", ".")) if m_ else None
+
+
 ISO10642_DK_ = {4: 8.0, 5: 10.0, 6: 12.0, 8: 16.0, 10: 20.0, 12: 24.0}
 # BAS 8…11: cajón cerrado anterior (anulado). Soporte abierto (núcleo c4e12af): 12…15; marco perimetral interrumpido frente al soporte (modo 2): 16, 17
 BAS_NUM = {"cajon_pared_x": 12, "cajon_pared_y": 13, "cajon_munon": 14, "cajon_tapa": 15, "marco_largo_int": 16, "marco_corto_int": 17,
@@ -155,12 +166,17 @@ def _acc(m, g, D, Part, info):
     zs0 = z0b + hq["t_mejilla"]
     zs1 = zs0 + hq["ranura_ojal"]
     Rc = hq["R_cubo"]
-    cara_ = _poly(loc["cara"], z0b, z1b - z0b)
     R_f = float(BU["cara"].get("radio_planta") or 0.0)
-    if R_f > 0:                                        # cara cilíndrica convexa en planta (núcleo: pv_rface), vértice en el frente de la cara
-        x_f = max(q[0] for q in loc["cara"])
-        cara_ = cara_.intersect(_cyl(R_f, z1b - z0b + 2, z0b - 1, x_f - R_f, 0.0))
-    base_local = _poly(loc["cuerpo"], z0b, z1b - z0b).union(cara_).union(_cyl(Rc, z1b - z0b, z0b))
+    GARRA = bool(BU.get("contorno"))
+    if GARRA:                                          # garra (núcleo 61fff06): contorno cerrado exacto (LINE/ARC) de bloque_una.contorno, cubo incluido
+        import contorno as _ct
+        base_local = _ct.solido(_ct.leer({"segmentos_contorno": BU["contorno"]}), z0b, z1b - z0b)
+    else:
+        cara_ = _poly(loc["cara"], z0b, z1b - z0b)
+        if R_f > 0:                                    # cara cilíndrica convexa en planta (núcleo: pv_rface), vértice en el frente de la cara
+            x_f = max(q[0] for q in loc["cara"])
+            cara_ = cara_.intersect(_cyl(R_f, z1b - z0b + 2, z0b - 1, x_f - R_f, 0.0))
+        base_local = _poly(loc["cuerpo"], z0b, z1b - z0b).union(cara_).union(_cyl(Rc, z1b - z0b, z0b))
     base_local = base_local.cut(_cyl(BU["agujero_Q"] / 2, z1b - z0b + 2, z0b - 1))
     slot = _cyl(Rc + 1.0, zs1 - zs0, zs0).union(_box(-Rc - 10, 0, -Rc - 10, Rc + 10, zs0, zs1))
     blk_local = base_local.cut(slot)
@@ -213,11 +229,19 @@ def _acc(m, g, D, Part, info):
                _compound(cyls), len(cyls), "Comercial (acero; sellos)", "Comercial", mass_override=len(cyls) * P["m_cyl"], core="cyl", comercial=True,
                catalogo="A DEFINIR POR CATÁLOGO (largo ojal–ojal retraído, ojal del vástago para pasador Ø%s y geometría de extremos con el proveedor)" % f(PQ["d"]), color=(0.95, 0.78, 0.1),
                cert="Certificado de prueba hidráulica del fabricante", num_fijo=ACC_NUM["cilindro_pv"]))
-    m.add(Part("bloque_una", "ACC", "Bloque-uña acodado",
-               f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}, cara {f(BU['cara']['b'])}×{f(BU['cara']['l'])} templada" + (f" cilíndrica R{fm(R_f, 0)}" if R_f > 0 else "") + f", cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
-               _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
-               "Forja o bloque; fresado del contorno y de la horquilla en mandrinadora/fresadora; agujero Q mandrinado; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
-               tratamiento=f"Temple por inducción de la cara {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una_r"] if R_f > 0 else ACC_NUM["bloque_una"]))
+    if GARRA:
+        AS_, LB_ = BU["asiento"], BU["labio"]
+        m.add(Part("bloque_una", "ACC", "Bloque-uña acodado con garra",
+                   f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}; garra con asiento cóncavo R{fm(AS_['radio'], 1)} (abrazo {fm(AS_['abrazo_total_deg'], 0)}°), labio {fm(LB_['espesor'], 0)} sobrepasa {fm(LB_['saliente_sobre_centro'], 0)}, nariz R{fm(BU['nariz']['radio'], 0)}, rampa {fm(BU['rampa']['angulo_deg'], 0)}°; cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
+                   _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
+                   "Forja o bloque; contorno por oxicorte CNC con sobreespesor de 2 mm en el asiento y la cara del labio; asiento fresado a R%s; horquilla fresada; agujero Q mandrinado" % fm(AS_["radio"], 1), core="dogs", color=(0.85, 0.35, 0.1),
+                   tratamiento=f"Temple por inducción del asiento {AS_['templado'].replace('Fy_sup', 'límite elástico superficial')}, capa ≥ {fm(garra_capa(BU) or 0, 0)} mm (núcleo); revenido", num_fijo=ACC_NUM["bloque_una_g"]))
+    else:
+        m.add(Part("bloque_una", "ACC", "Bloque-uña acodado",
+                   f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}, cara {f(BU['cara']['b'])}×{f(BU['cara']['l'])} templada" + (f" cilíndrica R{fm(R_f, 0)}" if R_f > 0 else "") + f", cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
+                   _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
+                   "Forja o bloque; fresado del contorno y de la horquilla en mandrinadora/fresadora; agujero Q mandrinado; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
+                   tratamiento=f"Temple por inducción de la cara {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una_r"] if R_f > 0 else ACC_NUM["bloque_una"]))
     m.add(Part("pasador_Q", "ACC", "Pasador Q del vástago (seguidor de la placa-leva)", f"Pasador Ø{f(PQ['d'])} f8 × {f(PQ['largo'])} (z {f(PQ['z'][0])}–{f(PQ['z'][1])}); extremo inferior templado (seguidor)", _compound(pins_q), len(pins_q),
                gq, "Barra rectificada; corte y chaflanes en torno horizontal; temple por inducción del extremo inferior", core="dogs", color=(0.3, 0.3, 0.32),
                tratamiento="Bonificado (QT); extremo inferior templado por inducción ≥ 55 HRC (seguidor de la placa-leva)", num_fijo=ACC_NUM["pasador_Q"]))

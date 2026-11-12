@@ -165,7 +165,7 @@ def cut_rows(ctx):
         BU = g.FPV["bloque_una"]
         xs_ = [q[0] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]
         ys_ = [q[1] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]
-        add("bloque_una", "Forja/bloque", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{fm(BU['h'] + 10, 0)}", "Forja con certificado 3.1 (Re en la propia forja); cara templada y rectificada")
+        add("bloque_una", "Forja/bloque", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{fm(BU['h'] + 10, 0)}", "Forja con certificado 3.1 (Re en la propia forja); " + ("oxicorte CNC del contorno, asiento fresado y templado" if BU.get("contorno") else "cara templada y rectificada"))
     if g.opt:
         th = 360.0 / g.n_sec
         env = f"{f(g.Ro - g.Ri * math.cos(math.radians(th / 2)) + 10)}×{f(2 * g.Ro * math.sin(math.radians(th / 2)) + 10)}"

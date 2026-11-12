@@ -117,7 +117,8 @@ def dibujar_custom(s, ox, oy, k, segs, T, holes, bb, layer="VIS", cotas=True):
             if not cotas:
                 s.dot(a, 0.6)
                 continue
-            s.cross(pc, 2.0)
+            if bb[0] - 5 <= c[0] <= bb[2] + 5 and bb[1] - 5 <= c[1] <= bb[3] + 5:
+                s.cross(pc, 2.0)               # marca de centro solo si cae sobre la pieza (los centros lejanos van en la tabla del contorno)
             am = math.radians((a0 + (a1 if a1 > a0 else a1 + 360)) / 2)
             s.leader((pc[0] + sg["r"] * k * math.cos(am), pc[1] + sg["r"] * k * math.sin(am)), (pc[0] + (sg["r"] * k + 12) * math.cos(am), pc[1] + (sg["r"] * k + 12) * math.sin(am)),
                      f"R{sg['r']:.1f}".replace(".", ","))

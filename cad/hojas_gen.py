@@ -5,6 +5,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from hojas_util import *
 import lista
 import propuestas
+import acc3d
 
 PLAN_GEN = []
 
@@ -192,7 +193,7 @@ def sheet_notas(ctx):
             o += nt
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
-    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024. Refuerzo por espesor: "
+    rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024 y 027 (bloque-uña con garra; ACC-015 y ACC-023 anulados). Refuerzo por espesor: "
                  "BAS-028 t35, 029 t45, 030 t50, 031 t30 «-G», 032 t45 «-G»; atiesador BAS-033…036 (h45, 60, 85, 100); marcos BAS-037…040 (pivotado), 041/042 «-G»; BAS-018…027 anulados",
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
@@ -368,6 +369,11 @@ def sheet_materiales(ctx):
     return out
 
 
+def _cc(ctx, k):
+    """Código corto de la pieza k (sin prefijo ni revisión) o «—» si no está en el modelo."""
+    return ctx.code(k).replace(CODE + "-", "").replace("-" + REV, "") if ctx.m.get(k) else "—"
+
+
 @gen
 def sheet_tratamientos(ctx):
     g, P = ctx.g, ctx.P
@@ -377,9 +383,9 @@ def sheet_tratamientos(ctx):
     rows = [["Base soldada, mesa soldada", "Alivio de tensiones 590–620 °C (2 h/25 mm), enfriamiento lento; antes del mecanizado final", "Fabricante (registro de horno)"],
             ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad {g.z_hard_txt}", "Dureza 10 % por lote; macrografía"],
             *([["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. {g.z_hard_txt}; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"]] if g.modo == 1 else
-              [["Bloque-uña (ACC-015)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara de empuje ≥ 55 HRC, profundidad {g.z_hard_txt}; revenido", "Dureza 100 %; MT cara"],
-               ["Pasador Q (ACC-016)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa; extremo inferior (seguidor) templado por inducción ≥ 55 HRC, profundidad {g.z_hard_txt}", "Dureza 100 %"],
-               ["Placa-leva (ACC-017)", f"Canto de contacto templado ≥ 55 HRC (núcleo: «{g.FPV['placas_leva']['material']}»; inserto o placa templable A DEFINIR)", "Dureza 100 % del canto"]]),
+              [[f"Bloque-uña ({_cc(ctx, 'bloque_una')})", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); " + (f"temple por inducción del asiento de la garra ≥ 55 HRC, capa ≥ {fm(acc3d.garra_capa(g.FPV['bloque_una']) or 0, 0)} mm (núcleo); revenido" if g.FPV['bloque_una'].get('contorno') else f"temple por inducción de la cara de empuje ≥ 55 HRC, profundidad {g.z_hard_txt}; revenido"), "Dureza 100 %; MT " + ("asiento" if g.FPV['bloque_una'].get('contorno') else "cara")],
+               [f"Pasador Q ({_cc(ctx, 'pasador_Q')})", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa; extremo inferior (seguidor) templado por inducción ≥ 55 HRC, profundidad {g.z_hard_txt}", "Dureza 100 %"],
+               [f"Placa-guía ({_cc(ctx, 'placa_leva')}/{_cc(ctx, 'placa_leva_h')})", f"Canto de contacto templado ≥ 55 HRC (núcleo: «{g.FPV['placas_leva']['material']}»; inserto o placa templable A DEFINIR)", "Dureza 100 % del canto"]]),
             ["Pivote (PIV-001)", f"Bonificado (QT) según Fy ≥ {f(P['Fy_piv'])} MPa: {propuestas.grado_corto(P['Fy_piv'], P['D_piv'], 'barra')} ({propuestas.ROTULO_GRADO})", "Certificado 3.1"],
             ["Pasadores de articulación (ACC-005)" if g.modo == 1 else "Pasadores E y Q (ACC-014, ACC-016)", f"Bonificado según Fy ≥ {f(P['Fy_pp'])} MPa: {propuestas.grado_corto(P['Fy_pp'], P['d_pp'], 'barra')} ({propuestas.ROTULO_GRADO}); 28–34 HRC de referencia", "Certificado 3.1"],
             *([["Riel-leva y pórticos (ACC-007…010)", f"Riel 42CrMo4+QT Re ≥ {f(g.FLG['riel']['Fy'])} MPa con canto de leva templado por inducción ≥ 55 HRC; patas y tapas 42CrMo4+QT soldadas (WPS calificado con PQR: requiere núcleo, GEN-009); rodillo templado ≥ 55 HRC", "Dureza 100 % del canto y del rodillo"]] if g.FLG else []),

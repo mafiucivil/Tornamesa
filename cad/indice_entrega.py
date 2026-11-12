@@ -76,6 +76,26 @@ def nota_plancha(C):
             "En los juegos del modo pivotado BAS-001, BAS-012 y CON-007 quedan RETENIDAS con ese motivo; los juegos del modo guiado no se afectan.")
 
 
+def nota_garra(C):
+    """Núcleo 61fff06: bloque-uña con garra (asiento cóncavo, labio, nariz y rampa) en los juegos del modo pivotado; masa 3D frente al núcleo por caso."""
+    piv = [c for c in C if c.get("garra")]
+    if not piv:
+        return None
+    B = piv[0]["garra"]
+    A, L, N, R = B["asiento"], B["labio"], B["nariz"], B["rampa"]
+    fx = lambda v, n=1: f"{v:.{n}f}".replace(".", ",")
+    ms = "; ".join(f"{c['caso']} {fx(c['masas'].get('dif_pct', 0), 2)} %" for c in piv)
+    gd = [c["caso"] for c in C if not c.get("garra") and c.get("soporte_E") is None]
+    return (f"Bloque-uña con GARRA (núcleo 61fff06) en los juegos del modo pivotado: ACC-027 reemplaza a ACC-023 (cara convexa R120, ANULADO): asiento cóncavo R {fx(A['radio'])} "
+            f"(holgura {fx(A['holgura_radial'], 0)} mm al pasador, abrazo {fx(A['abrazo_total_deg'], 0)}° = {fx(A['abrazo_lado_labio_deg'], 0)}° + {fx(A['abrazo_lado_abierto_deg'], 0)}°), labio de retención "
+            f"{fx(L['espesor'], 0)} mm que sobrepasa {fx(L['saliente_sobre_centro'], 0)} mm el centro (chaflanes {fx(L['chaflan_exterior'], 0)} × 45°), nariz R {fx(N['radio'], 0)}, rampa del dorso a {fx(R['angulo_deg'], 0)}°; "
+            f"centro del asiento a x = {fx(A['centro'][0])} de Q. Contorno con ARC y LINE exactos del JSON (control «bloque_una»); asiento fresado y templado, resto oxicorte CNC. "
+            f"Placa-guía ACC-020/024 con el canto nuevo del núcleo; CON-010 con el detalle G del pasador asentado. "
+            f"Masa 3D frente al núcleo: {ms}. La diferencia sale de la fórmula de masa del bloque del núcleo (bloque_una.masa_bloque = {fx(B.get('masa_bloque', 0), 2)} kg): no descuenta el agujero Ø{fx(B.get('agujero_Q', 90), 0)} "
+            f"de las mejillas y toma la horquilla como un rectángulo; el modelo 3D descuenta la geometría real (ver informe de cada juego, control de masas). Se informa al núcleo; no se compensa."
+            + (f" {', '.join(gd)}: no se regeneraron (el modo guiado no usa el bloque-uña; su JSON solo cambia en los parámetros nuevos de la garra, sin uso)." if gd else ""))
+
+
 def _csv(p):
     if not p.exists():
         return []
@@ -108,6 +128,8 @@ def leer_caso(d, logs=None, caso=None):
                 inserto=((lambda S_: S_.get("refuerzo") or S_.get("inserto"))(((D.get("pivotado") or {}).get("fabricacion", {}).get("soporte_E") or {})) if D.get("modo") == 2 else
                          (lambda F_: F_.get("refuerzo") or F_.get("inserto"))(((D.get("levaGuiada") or {}).get("fabricacion") or {}))),
                 limitaciones=(D.get("verdict") or {}).get("limitaciones_uso") or [],
+                garra=((D.get("pivotado") or {}).get("fabricacion", {}).get("bloque_una") if D.get("modo") == 2 and ((D.get("pivotado") or {}).get("fabricacion", {}).get("bloque_una") or {}).get("contorno") else None),
+                masas=rep.get("masas") or {},
                 variante=(re.search(r"VARIANTE (\S+)$", est[0]["titulo"]).group(1) if est and re.search(r"VARIANTE (\S+)$", est[0]["titulo"]) else caso))
 
 
@@ -123,7 +145,7 @@ def escribir(dest, casos, logs=None, nota_w=NOTA_W, nucleo=None):
          f"**{ADVERTENCIA}**", "", "Estado de las láminas: todas EMITIDAS PARA REVISIÓN (sin aprobación; firmas DIBUJÓ/REVISÓ/APROBÓ A DEFINIR). "
          "Las RETENIDAS no deben fabricarse: dependen de un conflicto geométrico o de una verificación no cumplida declarados por el núcleo (GEN-009 de cada juego) o de datos del proveedor; "
          "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo.", "", f"**{nota_w}**", ""] + ([f"**{nota_plancha(C)}**", ""] if nota_plancha(C) else []) + (
-         [f"**{nota_limitacion(C)}**", ""] if nota_limitacion(C) else []) + [
+         [f"**{nota_limitacion(C)}**", ""] if nota_limitacion(C) else []) + ([f"**{nota_garra(C)}**", ""] if nota_garra(C) else []) + [
          "## Resumen por caso", "", "| Caso | Variante | Accionamiento | Interfaz | Láminas | Emitidas p/ revisión | Retenidas | Ítems | Cotas (fallas) | Fallas de controles | Interferencias no declaradas | Salida | Carpeta |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for c in C:
@@ -203,7 +225,7 @@ def _pdf(path, C, cods, tit, est_of, fecha, nota_w, nucleo):
     st = [Paragraph("TT300-C · Tornamesa hidráulica 300 tf · Índice general de la entrega de planos (Rev. C)", sH1),
           Paragraph(esc(f"Fecha de los juegos: {fecha}." + (f" Núcleo: {nucleo}." if nucleo else "") + " Estado: EMITIDO PARA REVISIÓN (sin aprobación)."), sN),
           Spacer(1, 3), Paragraph(esc(ADVERTENCIA), sW), Spacer(1, 3), Paragraph(esc(nota_w), sW), Spacer(1, 3)] + ([Paragraph(esc(nota_plancha(C)), sW), Spacer(1, 3)] if nota_plancha(C) else []) + (
-          [Paragraph(esc(nota_limitacion(C)), sW), Spacer(1, 3)] if nota_limitacion(C) else []) + [
+          [Paragraph(esc(nota_limitacion(C)), sW), Spacer(1, 3)] if nota_limitacion(C) else []) + ([Paragraph(esc(nota_garra(C)), sW), Spacer(1, 3)] if nota_garra(C) else []) + [
           Paragraph(esc("Las láminas RETENIDAS no deben fabricarse: dependen de un conflicto geométrico o de una verificación no cumplida declarados por el núcleo (GEN-009 de cada juego) o de datos del proveedor; "
                         "una lámina deja de estar retenida solo cuando el choque o la verificación ya no figuran en el JSON del núcleo. El cajetín de cada lámina RETENIDA lo indica en el campo de estado."), sN),
           Paragraph("Resumen por caso", sH2)]

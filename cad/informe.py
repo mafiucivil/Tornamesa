@@ -191,6 +191,18 @@ def residual_txt(ctx, grupo):
     if grupo == "brackets" and I:
         return ("el refuerzo de esquina figura como plancha con los agujeros vacíos sobre el relleno de los tapones (igual que el núcleo), cortada con el bisel de la PJP; "
                 "la comparación suma el metal de aporte que llena los biseles (J-R3), porque el núcleo cuenta la plancha llena; los filetes no se modelan")
+    if grupo == "dogs" and g.modo == 2 and (g.FPV.get("bloque_una") or {}).get("contorno") and ctx.m.get("bloque_una"):
+        BU, F = g.FPV["bloque_una"], g.FPV
+        hq = BU["horquilla"]
+        m3 = ctx.m.get("bloque_una").mass_unit
+        k_hole = math.pi / 4 * BU["agujero_Q"] ** 2 * (BU["h"] - hq["ranura_ojal"]) * RHO
+        k_slot_n = hq["ranura_ojal"] * 2 * hq["R_cubo"] ** 2 * RHO
+        k_slot_3 = RHO * BU["h"] * BU["garra"]["area_planta"] - k_hole - m3
+        return (f"bloque-uña con garra: el núcleo (bloque_una.masa_bloque = {fm(BU['masa_bloque'], 2)} kg) toma ρ·h·área de la planta ({fm(BU['garra']['area_planta'], 0)} mm², igual a la del modelo) "
+                f"menos la horquilla como rectángulo 2·R_cubo² × ranura ({fm(k_slot_n, 2)} kg) y NO descuenta el agujero Ø{fm(BU['agujero_Q'], 0)} H9 de las mejillas ({fm(k_hole, 2)} kg); "
+                f"el modelo abre la horquilla en R{fm(hq['R_cubo'] + 1, 0)} alrededor de Q y hacia atrás para el giro del ojal ({fm(k_slot_3, 2)} kg). "
+                f"Bloque del modelo {fm(m3, 2)} kg frente a {fm(BU['masa_bloque'], 2)} kg ({fm(m3 - BU['masa_bloque'], 2)} kg por bloque, × 2). "
+                "Pasador Q igual al núcleo. Se informa al núcleo (simplificación de la fórmula de masa); no se compensa")
     return "fórmula del núcleo frente a geometría"
 
 

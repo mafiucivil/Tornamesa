@@ -1,5 +1,5 @@
 """Láminas de fabricación del accionamiento según el modo del núcleo.
-Modo 2 (pivotado tipo KIET, por defecto): soporte abierto del ojal E (BAS-012…015), cilindro (ACC-013), pasadores E y Q (ACC-014), bloque-uña (ACC-023), placa-guía (ACC-020/024).
+Modo 2 (pivotado tipo KIET, por defecto): soporte abierto del ojal E (BAS-012…015), cilindro (ACC-013), pasadores E y Q (ACC-014), bloque-uña con garra (ACC-027; ACC-023 con cara R120 anulado), placa-guía (ACC-020/024).
 Modo 1 (guiado, alternativa): riel-leva (ACC-007), pórtico y prolongación de la bancada (ACC-008), seguidor (ACC-011).
 Toda la geometría viene del JSON del núcleo (D.pivotado.fabricacion, D.levaGuiada.fabricacion) a través del modelo 3D."""
 import math, sys, pathlib
@@ -180,6 +180,8 @@ def sheet_bloque(ctx):
     g, P = ctx.g, ctx.P
     F = g.FPV
     BU = F["bloque_una"]
+    if BU.get("contorno"):
+        return _sheet_bloque_garra(ctx)
     info = ctx.m.info["pivotado"]
     ctx.shapes["blk_L"] = cq.Compound.makeCompound(list(info["bloque_local"].vals()))
     ctx.mat["blk_L"] = "acero"
@@ -221,6 +223,185 @@ def sheet_bloque(ctx):
              "Para el sentido horario el mismo bloque se monta volteado (la pieza es simétrica en altura respecto de la ranura)."],
             gd=[("flat", "0,05", None, "Cara de empuje plana"), ("perp", "0,05", "A", "Cara de empuje perpendicular a la cara superior (A)"), ("perp", "0,05", "A", f"Agujero Ø{f(BU['agujero_Q'])} H9 perpendicular a A")])
     p.build()
+    return p.h
+
+
+def bu_polys(BU):
+    """Polilíneas del bloque-uña en el marco local para las vistas de posición: con la garra «cuerpo» ya es el contorno completo (la «cara» es solo la
+    garra, contenida en él); con la cara convexa heredada, cuerpo + cara."""
+    L = BU["contorno_local"]
+    return [L["cuerpo"]] if BU.get("contorno") else [L["cuerpo"], L["cara"]]
+
+
+def _sheet_bloque_garra(ctx):
+    """Bloque-uña con garra (núcleo 61fff06): planta con el contorno exacto (LINE/ARC de bloque_una.contorno), asiento cóncavo, labio, nariz y rampa
+    acotados; zona templada del asiento; elevación, corte por el eje de Q y vista desde la garra proyectadas del sólido 3D."""
+    import acc3d
+    g, P = ctx.g, ctx.P
+    F = g.FPV
+    BU = F["bloque_una"]
+    AS, LB, NZ, RP = BU["asiento"], BU["labio"], BU["nariz"], BU["rampa"]
+    info = ctx.m.info["pivotado"]
+    ctx.shapes["blk_L"] = cq.Compound.makeCompound(list(info["bloque_local"].vals()))
+    ctx.mat["blk_L"] = "acero"
+    segs = contorno.leer({"segmentos_contorno": BU["contorno"]})
+    T0 = (0.0, 0.0, 0.0)
+    capa = acc3d.garra_capa(BU)
+    p = Pieza(ctx, ["bloque_una"], "BLOQUE-UÑA ACODADO CON GARRA Y HORQUILLA (2 UNIDADES; SE MONTA VOLTEADO PARA EL SENTIDO HORARIO)", fmt="auto")
+    p.h.trat = "Asiento templado (ver nota 4)"
+    s = p.s
+    p.iso_keys = ["blk_L"]
+    on = ["blk_L"]
+    z0b, z1b = BU["z"]
+    hq = BU["horquilla"]
+    Rc = hq["R_cubo"]
+    Cs, Rs = AS["centro"], AS["radio"]
+    x0, x1 = contorno.caja(segs, T0)[0], contorno.caja(segs, T0)[2]
+    y0, y1 = contorno.caja(segs, T0)[1], max(contorno.caja(segs, T0)[3], Rc)
+    a_lab = -90.0                                                     # extremo del asiento del lado del labio (tangente a la cara del labio)
+    a_abi = math.degrees(math.atan2(AS["extremo_abierto"][1] - Cs[1], AS["extremo_abierto"][0] - Cs[0]))
+    drawn = []
+
+    # ventana del detalle D (garra): del pie de la rampa a la punta del labio, del borde del cuerpo a la nariz
+    wx0, wx1 = RP["hasta"][0] - 14, LB["punta_x"] + 10
+    wy0, wy1 = y0 - 10, NZ["y_max"] + 10
+
+    def contorno_win(s_, P_, win):
+        """Contorno exacto recortado a una ventana (x0, y0, x1, y1): rectas recortadas, arcos completos (los de la garra caen dentro)."""
+        from shapely.geometry import LineString as _LS, box as _bx
+        bx = _bx(*win)
+        for sg in segs:
+            if sg["tipo"] == "recta":
+                c_ = _LS([sg["p0"], sg["p1"]]).intersection(bx)
+                if not c_.is_empty and c_.geom_type == "LineString":
+                    s_.line(P_(c_.coords[0]), P_(c_.coords[-1]), "VIS")
+            elif win[0] <= sg["centro"][0] - sg["r"] and sg["centro"][0] + sg["r"] <= win[2] + sg["r"]:
+                a0 = contorno._ang(sg["centro"], sg["p0"]); a1 = contorno._ang(sg["centro"], sg["p1"])
+                if sg["sentido"] == "cw":
+                    a0, a1 = a1, a0
+                s_.arc(P_(sg["centro"]), sg["r"] * kk[0], a0 % 360, a1 % 360, "VIS")
+    kk = [1.0]
+
+    def planta(s_, ox, oy, k, pl):
+        P_ = lambda q: (ox + (q[0] - x0) * k, oy + (q[1] - y0) * k)
+        contorno.dibujar_custom(s_, ox, oy, k, segs, T0, [], (x0, y0, x1, y1), layer="VIS", cotas=False)
+        drawn.extend(contorno.muestras(segs, T0, n=40))
+        s_.circle(P_((0, 0)), BU["agujero_Q"] / 2 * k, "VIS")
+        s_.centerlines(P_((0, 0)), BU["agujero_Q"] / 2 * k)
+        s_.line(P_((x0 - 8, 0)), P_((x1 + 10, 0)), "EJE")
+        s_.line(P_((Cs[0], Cs[1] - Rs - 20)), P_((Cs[0], Cs[1] + Rs + 8)), "EJE")
+        s_.cross(P_(Cs), 2.0)
+        # centro del asiento respecto de Q (teóricamente exacta: la gobierna el perfil 0,1 del asiento) y medidas totales
+        s_.dim(P_((0, 0)), P_((Cs[0], Cs[1])), (y1 - 0) * k + 12, f"{fm(Cs[0], 1)}", "h", ted=True)
+        s_.text(f"centro del asiento desde Q (= L_qp {fm(g.PV['L_qp'], 0)} + R_s − r_pasador)", (P_((Cs[0] * 0.55, 0))[0], P_((0, y1))[1] + 22), T_N, "BOTTOM_CENTER")
+        s_.dim(P_((x0, y0)), P_((x1, LB["dorso_y"] + 8)), -14, f"{fm(x1 - x0, 1)}", "h")
+        s_.dim(P_((x0, 0)), P_((x0, y0)), -10, f"{fm(-y0, 0)}", "v")
+        s_.dim(P_((0, y1)), P_((x0, y0)), -22, f"{fm(y1 - y0, 0)}", "v")
+        s_.dim_rad(P_((0, 0)), Rc * k, 60.0, f"R{fm(Rc, 0)}", ext=10)
+        s_.dim_dia(P_((0, 0)), BU["agujero_Q"] / 2 * k, 300.0, tol_txt(BU["agujero_Q"], "H9"), ext=16)
+        s_.datum((P_((0, 0))[0] - BU["agujero_Q"] / 2 * k * 0.71, P_((0, 0))[1] - BU["agujero_Q"] / 2 * k * 0.71 - 1), "B", up=False)
+        # perfil del contorno de oxicorte (cuerpo)
+        pb = P_((200, 0))
+        s_.gdt((pb[0] - 20, pb[1] + 10), "prof", "1", ["A", "B"])
+        s_.line((pb[0], pb[1] + 10), pb, "COTA")
+        s_.arrow(pb, -math.pi / 2, size=3.0)
+        # detalle D: garra
+        cx_, cy_ = (wx0 + wx1) / 2, (wy0 + wy1) / 2
+        s_.detail_circle(P_((cx_, cy_)), math.hypot(wx1 - wx0, wy1 - wy0) / 2 * k * 0.92, "D")
+    nat = (x1 - x0, y1 - y0)
+    p.vs("planta", [], "top", nat=nat, lv=(2, 3, 2, 3), extra=(30, 30, 40, 40), w=1.8, maxs=1.0, mins=0.4, custom=planta,
+         title="PLANTA (origen en el eje de Q; x hacia el pasador tomado; contorno con ARC y LINE exactos del núcleo)")
+
+    def det_garra(s_, ox, oy, k, pl):
+        kk[0] = k
+        P_ = lambda q: (ox + (q[0] - wx0) * k, oy + (q[1] - wy0) * k)
+        contorno_win(s_, P_, (wx0, wy0, wx1, wy1))
+        s_.line(P_((wx0, 0)), P_((wx1, 0)), "EJE")
+        s_.line(P_((Cs[0], wy0 + 2)), P_((Cs[0], NZ["y_max"] + 4)), "EJE")
+        s_.cross(P_(Cs), 2.0)
+        s_.cross(P_(NZ["centro"]), 1.5)
+        for sg in segs:
+            if wx0 <= sg["p0"][0] <= wx1 and wy0 <= sg["p0"][1] <= wy1:
+                s_.dot(P_(sg["p0"]), 0.5)
+        # zona templada del asiento (trazo y punto grueso ISO 128 a la profundidad de capa, del lado del material)
+        if capa:
+            s_.arc(P_(Cs), (Rs + capa) * k, a_abi % 360, a_lab % 360, "TRAT")
+            am = math.radians(200.0)
+            q_ = (Cs[0] + (Rs + capa) * math.cos(am), Cs[1] + (Rs + capa) * math.sin(am))
+            s_.leader(P_(q_), P_((wx0 + 6, -52)), "zona templada (nota 4)")
+        # asiento: radio, abrazo (90° hacia el labio + 25° hacia el lado abierto), perfil 0,1 y Ra 1,6
+        s_.dim_rad(P_(Cs), Rs * k, 225.0, f"R{fm(Rs, 1)} asiento", ext=18)
+        rA = Rs * k * 0.62
+        s_.line(P_(Cs), (P_(Cs)[0] + Rs * k * math.cos(math.radians(a_abi)), P_(Cs)[1] + Rs * k * math.sin(math.radians(a_abi))), "COTA")
+        s_.dim_ang(P_(Cs), rA, 180.0, 270.0, f"{fm(AS['abrazo_lado_labio_deg'], 0)}°")
+        s_.dim_ang(P_(Cs), rA * 1.25, a_abi, 180.0, f"{fm(AS['abrazo_lado_abierto_deg'], 0)}°")
+        s_.text(f"abrazo {fm(AS['abrazo_total_deg'], 0)}° ({fm(AS['abrazo_lado_labio_deg'], 0)}° + {fm(AS['abrazo_lado_abierto_deg'], 0)}°)", P_((wx0 + 4, -68)), T_N, "BOTTOM_LEFT")
+        s_.text(f"holgura radial {fm(AS['holgura_radial'], 0)} al pasador Ø{fm(g.d_pin, 0)}", P_((wx0 + 4, -76)), T_N, "BOTTOM_LEFT")
+        pa = P_((Cs[0] - Rs * math.cos(math.radians(35)), -Rs * math.sin(math.radians(35))))
+        fq = P_((wx0 + 4, -38))
+        s_.gdt(fq, "prof", "0,1", ["A", "B"])
+        s_.line((fq[0] + 30, fq[1] + 7), pa, "COTA")
+        s_.arrow(pa, math.atan2(pa[1] - fq[1] - 7, pa[0] - fq[0] - 30), size=3.0)
+        pr_ = P_((Cs[0] - Rs * math.cos(math.radians(-10)), -Rs * math.sin(math.radians(-10))))
+        s_.roughness((pr_[0] + 3, pr_[1] - 2), "Ra 1,6")
+        # labio: sobrepaso, espesor, cara (tangente al asiento) y chaflanes
+        s_.dim(P_((Cs[0], LB["dorso_y"])), P_((LB["punta_x"], LB["dorso_y"] + LB["chaflan_exterior"])), -14, f"{fm(LB['saliente_sobre_centro'], 0)}", "h")
+        s_.text("sobrepaso del labio", (P_((LB["punta_x"], 0))[0] + 2, P_((0, LB["dorso_y"]))[1] - 14 - 6), T_N, "TOP_LEFT")
+        s_.dim(P_((LB["punta_x"] - LB["chaflan_exterior"], LB["dorso_y"])), P_((LB["punta_x"] - LB["chaflan_exterior"], LB["cara_y"])), LB["chaflan_exterior"] * k + 10, f"{fm(LB['espesor'], 0)}", "v")
+        s_.dim(P_((LB["punta_x"] - LB["chaflan_exterior"], LB["cara_y"])), P_((Cs[0], Cs[1])), LB["chaflan_exterior"] * k + 10, f"{fm(-LB['cara_y'], 1)}", "v")
+        q_ch = (LB["punta_x"] - LB["chaflan_interior"] / 2, LB["cara_y"] - LB["chaflan_interior"] / 2)
+        s_.leader(P_(q_ch), (P_(q_ch)[0] + 26, P_(q_ch)[1] + 34), f"2 × chaflán {fm(LB['chaflan_exterior'], 0)} × 45°")
+        tr = next(sg for sg in segs if sg.get("rol") == "transicion_labio")
+        q_tr = ((tr["p0"][0] + tr["p1"][0]) / 2, (tr["p0"][1] + tr["p1"][1]) / 2)
+        s_.leader(P_(q_tr), (P_(q_tr)[0] - 30, P_((0, y0))[1] - 16), f"{fm(tr['p1'][0] - tr['p0'][0], 1)} × 45°")
+        # nariz R8: radio y centro (teóricamente exactos desde la punta del labio y desde el borde del cuerpo)
+        s_.dim_rad(P_(NZ["centro"]), NZ["radio"] * k, 115.0, f"R{fm(NZ['radio'], 0)} nariz", ext=12)
+        s_.dim(P_(NZ["centro"]), P_((LB["punta_x"], LB["cara_y"] + 6)), (NZ["y_max"] - NZ["centro"][1]) * k + 22, f"{fm(LB['punta_x'] - NZ['centro'][0], 1)}", "h", ted=True)
+        s_.dim(P_(NZ["centro"]), P_((RP["hasta"][0] - 6, y0)), -(NZ["centro"][0] - RP["hasta"][0] + 6) * k - 10, f"{fm(NZ['centro'][1] - y0, 1)}", "v", ted=True)
+        # rampa del dorso a 30° respecto del eje
+        r0 = RP["hasta"]
+        s_.dim_ang(P_(r0), 34.0, 0.0, RP["angulo_deg"], f"{fm(RP['angulo_deg'], 0)}°")
+        qm = ((RP["desde"][0] + r0[0]) / 2, (RP["desde"][1] + r0[1]) / 2)
+        s_.leader(P_(qm), (P_(qm)[0] - 22, P_(qm)[1] + 16), "rampa del dorso")
+    p.vs("det_garra", [], "top", nat=(wx1 - wx0, wy1 - wy0), lv=(2, 2, 3, 2), extra=(30, 30, 50, 40), w=1.4, maxs=2.0, mins=1.0, custom=det_garra,
+         title="DETALLE D: GARRA (asiento, labio de retención, nariz y rampa)")
+    p.vs("elev", on, "front", lv=(1, 2, 2, 2), title="ELEVACIÓN (horquilla del ojal del vástago)", hatch=False, w=1.2, auto=dict(tol={round(BU["h"], 1): " ±0,2", round(hq["ranura_ojal"], 1): " +0,5/0"}))
+    p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 2), title="CORTE A-A (por el eje de Q)", hs=0.5, w=1.2, auto=dict(tol={round(hq["t_mejilla"], 1): " ±0,2"}, hole_notes=False, text={round(BU["agujero_Q"], 1): tol_txt(BU["agujero_Q"], "H9")}))
+    p.vs("extremo", on, "right", lv=(1, 2, 1, 1), title="VISTA DESDE LA GARRA", hatch=False, w=0.5, maxs=0.5)
+    p.datum_in("elev", "surf", "A", at=[(150, -70, z1b), (250, -70, z1b), (100, -70, z1b)], d=(0, 0, 1))
+    xb = AS["fondo_x"]
+    p.gd_in("corte", "surf", "perp", "0,05", "A", at=[(xb, 0, z0b + BU["h"] * 0.3), (xb, 0, z0b + BU["h"] * 0.6)], d=(1, 0, 0))
+    p.gd_in("corte", "dim", "perp", "0,05", "A", prefix=f"Ø{f(BU['agujero_Q'])} H9", alt=("elev", "dim", None, None, f"Ø{f(BU['agujero_Q'])} H9"))
+    rows_c = []
+    for i, sg in enumerate(segs, 1):
+        ex = "—"
+        if sg["tipo"] == "arco":
+            ex = f"{fm(sg['centro'][0], 1)}; {fm(sg['centro'][1], 1)} / R{fm(sg['r'], 1)} ({'antihorario' if sg['sentido'] == 'ccw' else 'horario'})"
+        rows_c.append([str(i), sg.get("rol", "").replace("_", " "), "Arco" if sg["tipo"] == "arco" else "Recta", f"{fm(sg['p0'][0], 1)}; {fm(sg['p0'][1], 1)}", f"{fm(sg['p1'][0], 1)}; {fm(sg['p1'][1], 1)}", ex])
+    p.table_block("CONTORNO (núcleo, bloque_una.contorno; marco local: origen en Q): inicio y fin = puntos de tangencia (G1); centro y radio de cada arco",
+                  [("N°", 7, "C"), ("Tramo", 30, "L"), ("Tipo", 15, "L"), ("Inicio x; y", 28, "L"), ("Fin x; y", 28, "L"), ("Centro x; y / R", 48, "L")], rows_c)
+    VR = BU.get("verificacion") or {}
+    p.table_block("GARRA: DATOS DEL NÚCLEO (verificación de toma, salida y retorno)", [("Dato", 70, "L"), ("Valor", 60, "L")], [
+        ["Asiento: centro / radio / holgura radial al pasador", f"x {fm(Cs[0], 1)}; y {fm(Cs[1], 1)} / R{fm(Rs, 1)} / {fm(AS['holgura_radial'], 1)} mm"],
+        ["Abrazo total (labio + lado abierto)", f"{fm(AS['abrazo_total_deg'], 0)}° ({fm(AS['abrazo_lado_labio_deg'], 0)}° + {fm(AS['abrazo_lado_abierto_deg'], 0)}°)"],
+        ["Labio: sobrepaso / espesor / chaflanes", f"{fm(LB['saliente_sobre_centro'], 0)} / {fm(LB['espesor'], 0)} / {fm(LB['chaflan_exterior'], 0)} × 45°"],
+        ["Nariz / rampa del dorso", f"R{fm(NZ['radio'], 0)} / {fm(RP['angulo_deg'], 0)}° (autobloqueo {fm(RP['autobloqueo_deg'], 1)}° < {fm(RP['limite_deg'], 0)}°)"],
+        ["Toma: primer contacto / holgura al labio", f"{(VR.get('toma') or {}).get('primer_contacto', '—')} / {fm((VR.get('toma') or {}).get('holgura_labio', 0), 1)} mm" + (" — cumple" if (VR.get("toma") or {}).get("cumple") else "")],
+        ["Salida al fin del empuje: holgura mínima", f"{fm((VR.get('salida') or {}).get('holgura', 0), 2)} mm en «{(VR.get('salida') or {}).get('minimo_en', '—')}»" + (" — cumple" if (VR.get("salida") or {}).get("cumple") else "")],
+        ["Masa bloque + pasador Q (núcleo)", f"{fm(BU.get('masa_bloque', 0), 2)} + {fm(BU.get('masa_pasador_Q', 0), 2)} = {fm(BU.get('masa', 0), 2)} kg por cilindro"]])
+    p.tables()
+    p.notes([f"Forja o bloque; {ctx.m.get('bloque_una').material}; UT EN 10228-3.",
+             f"Contorno del núcleo (marco local: origen en Q, x hacia el pasador tomado, y hacia O): cuerpo b = {f(BU['cuerpo']['b'])} desplazado {f(BU['cuerpo']['e_acodado'])} hacia −y; garra en el extremo; cubo R{f(Rc)}. El DXF lleva el contorno con ARC y LINE exactos (G1; control «bloque_una»).",
+             f"Mecanizado: ASIENTO MECANIZADO (fresado a R{fm(Rs, 1)}, perfil 0,1 respecto de A|B, Ra 1,6) y cara del labio con sobreespesor de 2 mm en el oxicorte; RESTO DEL CONTORNO POR OXICORTE CNC (perfil 1 respecto de A|B, ISO 9013 clase 2).",
+             f"Asiento: temple por inducción {AS['templado'].replace('Fy_sup', 'límite elástico superficial')}, capa ≥ {fm(capa or 0, 0)} mm (zona templada en la planta); el fresado final del asiento va antes del temple; MT 100 % del asiento después del temple.",
+             f"Horquilla: ranura {f(hq['ranura_ojal'])} +0,5/0 (ojal del vástago {f(P['b_eye'])} + 2 × {fm(P['g_ch'], 0)}), mejillas {f(hq['t_mejilla'])}; agujero Ø{f(BU['agujero_Q'])} H9 en ambas mejillas en un solo montaje.",
+             "Aristas del asiento y de la nariz con chaflán 1 × 45° (sin filo vivo en el contacto con el pasador).",
+             "Para el sentido horario el mismo bloque se monta volteado (la pieza es simétrica en altura respecto de la ranura)."],
+            gd=[("prof", "0,1", ["A", "B"], f"Perfil del asiento R{fm(Rs, 1)} y de la cara del labio respecto de A y del agujero de Q (B)"), ("prof", "1", ["A", "B"], "Perfil del resto del contorno (oxicorte CNC)"),
+                ("perp", "0,05", "A", "Fondo del asiento perpendicular a la cara superior (A)"), ("perp", "0,05", "A", f"Agujero Ø{f(BU['agujero_Q'])} H9 perpendicular a A")])
+    p.build()
+    p.h.blk_dxf_pts = drawn
+    p.h.indic_ok = list(getattr(p.h, "indic_ok", [])) + [("fcf", "prof", "0,1", ("A", "B")), ("fcf", "prof", "1", ("A", "B")), ("datum", "B")]
     return p.h
 
 
@@ -349,7 +530,7 @@ def sheet_placa_leva(ctx):
         vx, vy = -uy, ux
         if vx * (-Qg[0]) + vy * (-Qg[1]) < 0:
             vx, vy = -vx, -vy
-        return [[contorno.pt_local((Qg[0] + a * ux + b * vx, Qg[1] + a * uy + b * vy), T) for a, b in BU["contorno_local"][nm]] for nm in ("cuerpo", "cara")]
+        return [[contorno.pt_local((Qg[0] + a * ux + b * vx, Qg[1] + a * uy + b * vy), T) for a, b in poly_] for poly_ in bu_polys(BU)]
 
     def sincr(s_, ox, oy, k):
         P_ = lambda q: (ox + q[0] * k, oy + q[1] * k)
@@ -380,7 +561,7 @@ def sheet_placa_leva(ctx):
             vx, vy = -uy, ux
             if vx * (-Qg[0]) + vy * (-Qg[1]) < 0:
                 vx, vy = -vx, -vy
-            for poly in (BU["contorno_local"]["cuerpo"], BU["contorno_local"]["cara"]):
+            for poly in bu_polys(BU):
                 pts = [P_(contorno.pt_local((Qg[0] + a * ux + b * vx, Qg[1] + a * uy + b * vy), T)) for a, b in poly]
                 s_.pline(pts, "FANT", closed=True)
             s_.circle(P_(ql), BU["horquilla"]["R_cubo"] * k, "FANT")
@@ -395,7 +576,7 @@ def sheet_placa_leva(ctx):
         if vx * (-Qg[0]) + vy * (-Qg[1]) < 0:
             vx, vy = -vx, -vy
         R_ = BU["horquilla"]["R_cubo"]
-        for a, b in BU["contorno_local"]["cuerpo"] + BU["contorno_local"]["cara"] + [(R_, R_), (-R_, -R_), (R_, -R_), (-R_, R_)]:
+        for a, b in [q_ for poly_ in bu_polys(BU) for q_ in poly_] + [(R_, R_), (-R_, -R_), (R_, -R_), (-R_, R_)]:
             pts_.append(contorno.pt_local((Qg[0] + a * ux + b * vx, Qg[1] + a * uy + b * vy), T))
     if hs1:
         for poly in _bloque_ret():
@@ -430,7 +611,7 @@ def sheet_placa_leva(ctx):
             a, b = P_(pbl), P_(ppl)
             s_.dot(a, 0.6); s_.dot(b, 0.6)
             s_.dim(a, b, 9, f"{fm(HS['nominal'], 2)}", "a", outside=True)
-            s_.text("bloque-uña (cara R)", (P_((cx_ - Wd / 2 + 2, 0))[0], P_((0, cy_ + Wd / 2 - 4))[1]), T_N, "TOP_LEFT")
+            s_.text("bloque-uña (garra)" if BU.get("contorno") else "bloque-uña (cara R)", (P_((cx_ - Wd / 2 + 2, 0))[0], P_((0, cy_ + Wd / 2 - 4))[1]), T_N, "TOP_LEFT")
             s_.text(f"pasador B de la mesa (Ø{fm(g.d_pin, 0)})", (P_((cx_ - Wd / 2 + 2, 0))[0], P_((0, cy_ - Wd / 2 + 3))[1]), T_N, "BOTTOM_LEFT")
         p.vs("det_sinc", [], "top", nat=(Wd, Wd), lv=(1, 1, 2, 2), extra=(10, 10, 10, 10), w=0.9, maxs=2.0, mins=1.0, custom=det_sinc,
              title=f"DETALLE C: HOLGURA DE SINCRONÍA EN EL RETORNO ({fm(HS['nominal'], 2)} nominal; peor caso {fm(HS['peor_caso'], 2)} ≥ {fm(HS['margen_exigido'], 0)})")
@@ -473,7 +654,8 @@ def sheet_placa_leva(ctx):
         if sg["tipo"] == "arco":
             c = contorno.pt_local(sg["centro"], T)
             ex = f"{fm(c[0], 1)}; {fm(c[1], 1)} / R{fm(sg['r'], 1)} ({'antihorario' if sg['sentido'] == 'ccw' else 'horario'})"
-        rows_c.append([str(i), (sg.get("rol") or ""), "Arco" if sg["tipo"] == "arco" else "Recta", f"{fm(q0[0], 1)}; {fm(q0[1], 1)}", f"{fm(q1[0], 1)}; {fm(q1[1], 1)}", ex])
+        z_ = lambda v: 0.0 if abs(v) < 0.05 else v          # sin «-0» en la tabla
+        rows_c.append([str(i), (sg.get("rol") or ""), "Arco" if sg["tipo"] == "arco" else "Recta", f"{fm(z_(q0[0]), 1)}; {fm(z_(q0[1]), 1)}", f"{fm(z_(q1[0]), 1)}; {fm(z_(q1[1]), 1)}", ex])
     p.table_block("CONTORNO (núcleo, segmentos_contorno): inicio y fin = puntos de tangencia; centro y radio de cada arco", [("N°", 7, "C"), ("Tramo", 48, "L"), ("Tipo", 15, "L"), ("Inicio x; y", 28, "L"), ("Fin x; y", 28, "L"), ("Centro x; y / R", 48, "L")], rows_c)
     p.tables()
     tr = PL.get("tratamiento") or {}

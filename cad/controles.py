@@ -383,10 +383,61 @@ def placa_guia(ctx, hojas):
     if dev_pl > tol:
         out.append(f"placa-guía: la polilínea del núcleo se aparta {dev_pl:.4f} mm de sus segmentos (máx. {tol})")
     usados = {p_.code for p_ in ctx.m.parts}
-    for viejo in (f"{CODE}-ACC-017-{REV}", f"{CODE}-ACC-018-{REV}") + ((f"{CODE}-ACC-015-{REV}",) if g.FPV["bloque_una"]["cara"].get("radio_planta") else ()):
+    for viejo in (f"{CODE}-ACC-017-{REV}", f"{CODE}-ACC-018-{REV}") + ((f"{CODE}-ACC-015-{REV}",) if g.FPV["bloque_una"]["cara"].get("radio_planta") or g.FPV["bloque_una"].get("contorno") else ()) + ((f"{CODE}-ACC-023-{REV}",) if g.FPV["bloque_una"].get("contorno") else ()):
         if viejo in usados:
             out.append(f"{viejo}: código de la geometría anterior usado para la geometría nueva")
     ctx.m.info["placa_guia_ctl"] = dict(g1_deg=g1, g0_mm=g0, dev_dxf=dev_dxf, dev_3d=dev_3d, dev_polilinea=dev_pl, tol=tol)
+    return out
+
+
+def bloque_una(ctx, hojas):
+    """Bloque-uña con garra (núcleo 61fff06): contorno cerrado G1 (quiebre ≤ 0,01°, salto ≤ 0,001 mm, también en el cierre), desviación de las entidades
+    del DXF de la lámina, del sólido 3D (aristas de la cara superior, fuera de la horquilla) y de la polilínea «cuerpo» del núcleo respecto de los tramos
+    exactos ≤ 0,1 mm, y área de la planta igual a la del núcleo (± 0,1 %)."""
+    import contorno
+    g = ctx.g
+    out = []
+    if g.modo != 2 or not ctx.m.get("bloque_una"):
+        return out
+    BU = g.FPV["bloque_una"]
+    if not BU.get("contorno"):
+        return out
+    segs = contorno.leer({"segmentos_contorno": BU["contorno"]})
+    ss = segs + [segs[0]]
+    q = contorno.quiebres(ss)
+    g0 = max((d for _, _, d in q), default=0.0)                                          # contorno cerrado y continuo (G0) en todas las uniones
+    G_ = ("labio_cara", "asiento", "nariz", "rampa")                                     # garra G1: cara del labio – asiento – nariz – rampa
+    g1 = max((a for i, a, _ in q if ss[i - 1].get("rol") in G_ and ss[i].get("rol") in G_), default=0.0)
+    if g1 > 0.01 or g0 > 1e-3:
+        out.append(f"bloque-uña: garra no G1 (quiebre máx. {g1:.4f}°) o abierto (salto {g0:.4f} mm)")
+    tol = 0.1
+    h = next((h_ for h_ in hojas if getattr(h_, "blk_dxf_pts", None)), None)
+    dev_dxf = contorno.desviacion(segs, h.blk_dxf_pts) if h else None
+    if dev_dxf is None or dev_dxf > tol:
+        out.append(f"bloque-uña: desviación del DXF {dev_dxf} mm (máx. {tol})")
+    so = ctx.m.info["pivotado"]["bloque_local"].val()
+    zt = BU["z"][1]
+    rQ = BU["agujero_Q"] / 2 + 0.5
+    pts = []
+    for e in so.Edges():
+        a, b = e.startPoint(), e.endPoint()
+        if abs(a.z - zt) < 1e-3 and abs(b.z - zt) < 1e-3:
+            for i in range(11):
+                v = e.positionAt(i / 10)
+                if math.hypot(v.x, v.y) > rQ:
+                    pts.append((v.x, v.y))
+    dev_3d = contorno.desviacion(segs, pts)
+    if dev_3d > tol:
+        out.append(f"bloque-uña: desviación del sólido 3D {dev_3d:.4f} mm (máx. {tol})")
+    dev_pl = contorno.desviacion(segs, [tuple(q_) for q_ in BU["contorno_local"]["cuerpo"]])
+    if dev_pl > tol:
+        out.append(f"bloque-uña: la polilínea del núcleo se aparta {dev_pl:.4f} mm de sus tramos (máx. {tol})")
+    from shapely.geometry import Polygon as _Pg
+    A_dxf = _Pg(contorno.muestras(segs, (0.0, 0.0, 0.0), n=400)).area
+    A_n = float(BU["garra"].get("area_planta") or 0)
+    if A_n and abs(A_dxf / A_n - 1) > 1e-3:
+        out.append(f"bloque-uña: área de la planta {A_dxf:.0f} mm² ≠ núcleo {A_n:.0f} mm²")
+    ctx.m.info["bloque_una_ctl"] = dict(g1_deg=g1, g0_mm=g0, dev_dxf=dev_dxf, dev_3d=dev_3d, dev_polilinea=dev_pl, area=A_dxf, area_nucleo=A_n, tol=tol)
     return out
 
 
@@ -448,5 +499,5 @@ def retencion(ctx, hojas):
 def todos(ctx, hojas):
     import hojas_gen
     res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas),
-               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas), volteo=volteo(ctx, hojas), cajetin=cajetin(ctx, hojas), retencion=retencion(ctx, hojas))
+               cadenas_cerradas=cadenas_cerradas(ctx, hojas), placa_guia=placa_guia(ctx, hojas), bloque_una=bloque_una(ctx, hojas), volteo=volteo(ctx, hojas), cajetin=cajetin(ctx, hojas), retencion=retencion(ctx, hojas))
     return res

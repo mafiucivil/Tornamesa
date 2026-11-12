@@ -104,7 +104,7 @@ class Pieza(Plano):
             "int_uhmw": [("Ra 3,2", "caras de la lámina (sin mecanizado de precisión)")],
         }
         RA.update({"tapa_ret": [("Ra 3,2", "cara de apoyo y avellanados")], "tapa_insp": [("Ra 3,2", "cara de apoyo y avellanados")],
-                   "bloque_una": [("Ra 0,8", "cara de empuje templada (rectificada)"), ("Ra 1,6", "agujero del pasador Q H9 y caras de la horquilla")],
+                   "bloque_una": ([("Ra 1,6", f"asiento R{fm(g.FPV['bloque_una']['asiento']['radio'], 1)} de la garra, fresado y templado; cara del labio")] if (g.FPV or {}).get("bloque_una", {}).get("contorno") else [("Ra 0,8", "cara de empuje templada (rectificada)")]) + [("Ra 1,6", "agujero del pasador Q H9 y caras de la horquilla")],
                    "pasador_E": [("Ra 0,8", "Ø f8 de los pasadores E y Q")], "cajon_tapa": [("Ra 1,6", "agujero H9 de las tapas (mecanizado en línea)"), ("Ra 12,5", "cantos de corte térmico")],
                    "placa_leva": [("Ra 1,6", "canto guía fresado y templado (ver nota 3)")], "cilindro_pv": [("Ra 1,6", "ojales H9 (proveedor)")],
                    "leva_riel": [("Ra 1,6", "canto de leva fresado y templado")], "leva_rodillo": [("Ra 0,8", "diámetro exterior del rodillo y del perno")], "leva_pata": [("Ra 6,3", "caras de apoyo fresadas")],

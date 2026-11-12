@@ -1588,10 +1588,25 @@ def sheet_accionamiento_pv(ctx):
         s.line(pe, pp, "EJE")
         for q_, t_, r_ in ((pe, "E", F["pasador_E"]["d"] / 2), (pq, "Q", F["pasador_Q"]["d"] / 2), (pp, "P (pasador tomado)", g.d_pin / 2)):
             d_ = r_ * V.scale + 2.0                          # el rótulo queda fuera del círculo del pasador
-            s.text(t_, (q_[0] + d_, q_[1] + d_), T_N, "BOTTOM_LEFT")
+            if t_.startswith("P") and F["bloque_una"].get("contorno"):
+                s.text(t_, (q_[0] - d_ - 14, q_[1] + d_), T_N, "BOTTOM_RIGHT")      # el detalle G rotula a 45° (arriba a la derecha)
+            else:
+                s.text(t_, (q_[0] + d_, q_[1] + d_), T_N, "BOTTOM_LEFT")
         V.dim((E[0], E[1], g.zc), (Q[0], Q[1], g.zc), 34, orient="a", on=["cilindro_pv_V"], virt_a=F["pasador_E"]["d"] / 2, virt_b=F["pasador_Q"]["d"] / 2, text=f"({fm(fr['L'], 1)})")
         V.dim((Q[0], Q[1], g.zc), (P_[0], P_[1], g.zc), -34, orient="a", on=["bloque_una_V", "pasadores_V"], virt_a=F["bloque_una"]["agujero_Q"] / 2, virt_b=g.d_pin / 2, text=f"{fm(PV['L_qp'], 0)} (L_qp)")
     c.vs("planta", sh, "top", lv=(1, 1, 1, 1), extra=(30, 20, 30, 20), draw=planta, mat=mm, hatch=False, title=f"PLANTA (sentido antihorario dibujado; pasador tomado a {fm(a_p, 3)}° de +x)", auto=False, w=2.2)
+    BU_ = F["bloque_una"]
+    if BU_.get("contorno"):                 # garra (núcleo 61fff06): detalle del pasador tomado asentado en el asiento cóncavo
+        Xc_ = BU_["asiento"]["centro"][0]
+        Cg = (Q[0] + Xc_ * fr["u"][0], Q[1] + Xc_ * fr["u"][1], g.zc)
+
+        def det_g(V, c):
+            s.cross(V.P(Cg), 2.0)
+            pc_ = V.P(Cg)
+            s.text(f"asiento R{fm(BU_['asiento']['radio'], 1)} ({ctx.code('bloque_una').replace(CODE + '-', '')}); pasador Ø{fm(g.d_pin, 0)}: holgura radial {fm(BU_['asiento']['holgura_radial'], 0)}",
+                     (pc_[0] - 60, pc_[1] - 100 * V.scale), T_N, "TOP_LEFT")
+        c.detail("det_g", "planta", Cg, 100.0, "G", keys=sh, lv=(1, 1, 1, 2), maxs=1.0, mins=0.5, hatch=False, draw=det_g, auto=False, w=1.0,
+                 title="DETALLE G: GARRA DEL BLOQUE-UÑA CON EL PASADOR TOMADO ASENTADO")
     # corte vertical por el eje del cilindro E–Q: copias giradas con el eje E–Q sobre +x (origen en E)
     wk = []
     for k in allk:
@@ -1618,6 +1633,8 @@ def sheet_accionamiento_pv(ctx):
     c.tail(ks, [], [
         f"Cinemática (núcleo): Q = P + L_qp·(E − P)/|E − P|; toma con el cilindro en el largo retraído + recorrido libre; empuje entre θ = {fm(PV['theta_ini_deg'], 2)}° y {fm(PV['theta_fin_deg'], 2)}° (brazo efectivo mínimo {fm(PV['brazo_ef_min'], 1)} mm).",
         "Inversión del giro: el cilindro pivota en el mismo ojal E hacia el otro lado de la diagonal; el bloque-uña se monta volteado y el pasador Q trabaja en la placa-leva del otro sentido (las 4 placas quedan fijas en la base).",
+        *([f"Bloque-uña con garra ({ctx.code('bloque_una').replace(CODE + '-', '')}): el pasador tomado Ø{fm(g.d_pin, 0)} asienta en el asiento cóncavo R{fm(F['bloque_una']['asiento']['radio'], 1)} (holgura radial {fm(F['bloque_una']['asiento']['holgura_radial'], 0)} mm, abrazo {fm(F['bloque_una']['asiento']['abrazo_total_deg'], 0)}°); el labio de retención del lado de avance sobrepasa {fm(F['bloque_una']['labio']['saliente_sobre_centro'], 0)} mm su centro; en el retorno libre el pasador siguiente monta por la nariz R{fm(F['bloque_una']['nariz']['radio'], 0)} y la rampa del dorso a {fm(F['bloque_una']['rampa']['angulo_deg'], 0)}°."]
+          if F["bloque_una"].get("contorno") else []),
         f"El extremo inferior del pasador Q corre contra el canto templado de la placa-leva (holgura {fm(PV['placa_leva']['holgura'], 0)} mm en el empuje); el bloque-uña pasa sobre la placa ({fm(F['bloque_una']['z'][0] - F['placas_leva']['z'][1], 0)} mm) y sobre las cabezas de los pernos.",
         *([f"RETENIDA (requiere núcleo): las placas-guía ({ctx.code('placa_leva').replace(CODE + '-', '')} / {ctx.code('placa_leva_h').replace(CODE + '-', '')}) chocan con las orejas de izaje (conflicto declarado, GEN-009)."]
           if c.h.retener("placa_orejas") else []),
