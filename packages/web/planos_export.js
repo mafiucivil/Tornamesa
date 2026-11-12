@@ -166,7 +166,11 @@ const PLANOS = (() => {
       add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
     } else {
       add("BASE", 4, (md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1).replace(/, con su refuerzo de esquina soldado sobre la base/, "") : "Soporte del ojal E") + insTxt, steel, P.n_cyl, m.brackets - mIns);
-      add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
+      // bloque-uña con garra (núcleo: designDrive().pivotado.fabricacion.bloque_una: asiento, labio, nariz, rampa, masas); sin garra, la descripción heredada
+      const BU = ((DRV.pivotado || {}).fabricacion || {}).bloque_una || {}, ga = BU.asiento, gl = BU.labio;
+      if (ga && gl) add("BASE", 6, `Bloque-uña con garra: asiento cóncavo R${nf(ga.radio, 1)} (abrazo ${nf(ga.abrazo_total_deg)}°, templado ${ga.templado || "—"}), labio de retención ${nf(gl.saliente_sobre_centro)} x ${nf(gl.espesor)} mm, nariz R${nf((BU.nariz || {}).radio)}, rampa ${nf((BU.rampa || {}).angulo_deg)}° en el dorso, h ${nf(BU.h)} mm, con pasador Q (${nf(BU.masa_bloque, 1)} + ${nf(BU.masa_pasador_Q, 1)} = ${nf(BU.masa, 1)} kg por cilindro)`,
+        BU.material || `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs, "Contorno de la garra en tramos recta/arco del núcleo; asiento fresado y templado; masa del núcleo");
+      else add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
     }
     if (m.cam > 0) add("BASE", 7, (md.cam ? md.cam.charAt(0).toUpperCase() + md.cam.slice(1) : "Leva de reenganche") + " (masa del núcleo)", steel, piv ? 4 : P.n_cyl, m.cam);
     // Mesa
@@ -454,7 +458,14 @@ const PLANOS = (() => {
       const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
       const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
       v.poly(bar(0, lb, P.D_body), true); v.poly(bar(lb, L, P.d_rod), true);
-      v.poly(q.una.cuerpo.map(f), true); v.poly(q.una.cara.map(f), true); v.poly(q.una.cubo.map(f), true); v.circ(Q[0], Q[1], g.pasadorQ.d / 2);
+      // bloque-uña: garra real (rectas y arcos de pivotGeo().bloque.garra.contorno en la pose de pivotAt, giro antihorario: x hacia el asiento, y = t);
+      // sin garra, la polilínea del cuerpo (q.una.poligono duplicaría la garra)
+      const gr = g.bloque && g.bloque.garra, as = q.asiento;
+      if (gr && gr.contorno && as && as.centro) {
+        const Xc = gr.asiento.centro[0], ex = [(as.centro[0] - q.Q[0]) / Xc, (as.centro[1] - q.Q[1]) / Xc], T = (p) => f([q.Q[0] + p[0] * ex[0] - p[1] * ex[1], q.Q[1] + p[0] * ex[1] + p[1] * ex[0]]);
+        segsView(v, gr.contorno.map((s) => Object.assign({}, s, { p0: T(s.p0), p1: T(s.p1) }, s.centro ? { centro: T(s.centro) } : {})), "CONTORNO");
+      } else v.poly(q.una.cuerpo.map(f), true);
+      v.poly(q.una.cubo.map(f), true); v.circ(Q[0], Q[1], g.pasadorQ.d / 2);
       const A_ = f(q.pasadores.A); v.circ(A_[0], A_[1], P.d_pin / 2, "OCULTO");
     });
     const E = g.E[0], pc = g.placas["1_antihorario"].contorno[0];
@@ -469,7 +480,7 @@ const PLANOS = (() => {
     const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {}, bl = D.bloque_una || {}, se = D.soporte_E || {}, tb = c.tb;
     if (!q) return;
     const rr = (pts) => { const a = pts.map(([x, y]) => Math.hypot(x, y)); return [Math.min(...a), Math.max(...a)]; };
-    const [p0, p1] = rr(g.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cara, q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    const [p0, p1] = rr(g.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
     R_(p0, tb, p1, tb + pl.t);
     v.rect(b0, bl.z_inf, b1, bl.z_inf + bl.h, "CONTORNO");
     v.rect(rQ - bl.d_Q / 2, c.R.blk.zCam, rQ + bl.d_Q / 2, c.R.blk.zCam + bl.l_pasador_Q, "OCULTO");

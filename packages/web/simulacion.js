@@ -88,7 +88,7 @@ const SIM = (() => {
       return o;
     }
     const curve = (caseId) => { const out = []; for (let i = 0; i <= 60; i++) { const s = P.s_free + (sUse - P.s_free) * i / 60, q = TT.pivotAt(P, s, "empuje", "antihorario"); if (q.arm == null) continue; const F = TT.driveAt(P, q.th_cil1_antihorario, caseId).F; out.push({ s, F, p: pF(R, F) }); } return out; };
-    return { id: 2, nombre: "Pivotado tipo KIET: cilindro pivotado en el ojal de esquina, bloque-uña con cara R" + (g.bloque && g.bloque.R_cara ? g.bloque.R_cara : "—") + " sobre el pasador Q y placa-guía curva en media luna", P, R, g, pitch: g.paso, tExt, tRet, vExt, vRet, sUse, dTh, state, curve,
+    return { id: 2, nombre: "Pivotado tipo KIET: cilindro pivotado en el ojal de esquina, bloque-uña con " + garraTxt(g) + " sobre el pasador Q y placa-guía curva en media luna", P, R, g, pitch: g.paso, tExt, tRet, vExt, vRet, sUse, dTh, state, curve,
       pinBase: () => th0(), plan: planPivot, detail: detailPivot, soporteE, leva: `4 placas-guía curvas (2 por sentido; las del giro horario son la imagen especular, ACC-024): recta + arcos tangentes (G1) de los segmentos del núcleo; el cilindro usa la del sentido elegido` };
   }
 
@@ -176,6 +176,26 @@ const SIM = (() => {
     pts.push([x0, h]);
     return pts.map(T);
   }
+  /* garra del bloque-uña: tramos del contorno del núcleo (pivotGeo().bloque.garra.contorno, marco local: origen Q, x hacia el asiento, y = t)
+     llevados a la pose de pivotAt: eje x = (asiento.centro − Q)/X_c; eje y = ±t (−t si la pose viene reflejada, giro horario: el sentido de los
+     arcos se invierte). El signo se decide con el labio frente a la polilínea q.una.cuerpo del núcleo. f: simetría central del cilindro 2. */
+  function garraSegs(g, q, f) {
+    const gr = g && g.bloque && g.bloque.garra, cs = gr && gr.contorno, a = q && q.asiento;
+    if (!cs || !cs.length || !a || !a.centro || !gr.asiento) return null;
+    f = f || ((p) => p);
+    const Xc = gr.asiento.centro[0], ex = [(a.centro[0] - q.Q[0]) / Xc, (a.centro[1] - q.Q[1]) / Xc], tl = [-ex[1], ex[0]];
+    const pose = (sg) => (p) => [q.Q[0] + p[0] * ex[0] + sg * p[1] * tl[0], q.Q[1] + p[0] * ex[1] + sg * p[1] * tl[1]];
+    const ref = cs.filter((c) => c.tipo === "linea" && Math.abs(c.p0[1]) > 1).map((c) => c.p0), cu = q.una.cuerpo || [];
+    const err = (sg) => { const T = pose(sg); return ref.reduce((m, p) => { const P = T(p); return Math.max(m, Math.min(...cu.map((c) => Math.hypot(c[0] - P[0], c[1] - P[1])))); }, 0); };
+    const sg = err(1) <= err(-1) ? 1 : -1, T = pose(sg), F = (p) => f(T(p));
+    return cs.map((c) => Object.assign({}, c, { p0: F(c.p0), p1: F(c.p1) }, c.tipo === "arco" ? { centro: F(c.centro), sentido: sg > 0 ? c.sentido : (c.sentido === "horario" ? "antihorario" : "horario") } : {}));
+  }
+  // textos de la garra leídos del núcleo: «garra (asiento R44,5, labio)»
+  function garraTxt(g) {
+    const gr = g && g.bloque && g.bloque.garra;
+    if (!gr) return g && g.bloque && g.bloque.R_cara ? "cara R" + num(g.bloque.R_cara, 1) : "—";
+    return `garra (asiento R${num(gr.asiento.radio, 1)}, labio)`;
+  }
   // modo pivotado: placas-guía curvas, ojales, cilindros y bloques-uña en coordenadas globales (cilindro 2 = simetría central del 1)
   function pivotSvg(pv, st, X, Y, r, alerta, det) {
     const P = pv.P, g = pv.g, q = st.q, neg = (p) => [-p[0], -p[1]], o = [], sen = sentido(), rS = r;
@@ -205,7 +225,17 @@ const SIM = (() => {
       o.push(polySvg(bar(0, lb, P.D_body), X, Y, "sim-cyl"), polySvg(bar(lb, L, P.d_rod), X, Y, "sim-rod"));
       o.push(`<circle cx="${X(E[0])}" cy="${Y(E[1])}" r="${r(g.ojalE.d / 2)}" class="sim-pp sim-ojal"/>`);
       const on = st.contact || st.sub === "rodilla";
-      o.push(polySvg(q.una.cuerpo.map(f), X, Y, "sim-dog sim-blk" + (alerta ? " bad" : on ? " on" : "")), polySvg(caraBloque(g, q.una.cara).map(f), X, Y, "sim-dog sim-cara" + (on ? " on" : "")), polySvg(q.una.cubo.map(f), X, Y, "sim-pp sim-blk"));
+      const gs = garraSegs(g, q, f), cls = "sim-dog sim-blk" + (alerta ? " bad" : on ? " on" : "");
+      if (gs) {   // garra real: contorno completo (cuerpo, labio, asiento, nariz, rampa y cubo) con arcos SVG; asiento resaltado
+        o.push(`<path d="${segPath(gs, X, Y, rS, true)}" class="${cls} sim-garra" data-cil="${ci + 1}"/>`);
+        o.push(`<path d="${segPath(gs.filter((c) => c.rol === "asiento"), X, Y, rS)}" class="sim-asiento${on ? " on" : ""}"/>`);
+        o.push(polySvg(q.una.cubo.map(f), X, Y, "sim-pp sim-blk"));
+        const ac = q.asiento && q.asiento.contacto && f(q.asiento.contacto);
+        if (ac) {
+          o.push(`<circle cx="${X(ac[0])}" cy="${Y(ac[1])}" r="${det ? 3.2 : 2}" class="sim-ct sim-cas"/>`);
+          if (det && ci === 0) o.push(`<text x="${(+X(ac[0]) + 7).toFixed(1)}" y="${(+Y(ac[1]) - 6).toFixed(1)}" class="sim-t sim-tct">pasador asentado · asiento R${num(q.asiento.radio, 1)}</text>`);
+        }
+      } else o.push(polySvg(q.una.cuerpo.map(f), X, Y, cls), polySvg(caraBloque(g, q.una.cara).map(f), X, Y, "sim-dog sim-cara" + (on ? " on" : "")), polySvg(q.una.cubo.map(f), X, Y, "sim-pp sim-blk"));
       if (ci === 0) o.push(top.join(""));
       // pasador Q: su extremo inferior es el seguidor que recorre el canto de la placa-guía
       o.push(`<circle cx="${X(Q[0])}" cy="${Y(Q[1])}" r="${r(g.pasadorQ.d / 2)}" class="sim-fol sim-q"/>`);
@@ -460,7 +490,7 @@ const SIM = (() => {
       <div class="sim-gif" id="simGif"></div>
       <div class="sim-grid"><div id="simPlanBox"></div><div id="simDetBox"></div></div>
       <div class="sim-grid"><div id="simRead"></div><div id="simChartBox"></div></div>
-      <div class="note">Geometría, cinemática y fuerzas del núcleo: ${pv.id === 2 ? "pivotGeo (placas-guía curvas: segmentos_contorno, segmentos_canto y segmentos_centro dibujados como arcos SVG) y pivotAt (ojal E, pasador Q, bloque-uña con cara R" + (pv.g.bloque ? pv.g.bloque.R_cara : "") + ", contactoLeva)" : "guidedAt" + (pv.cam ? ", camGeo y camAt (leva de reenganche)" : "") + ", guideGeo y chamferGeo"}, driveAt (F_cil del caso de fricción elegido) y R.pump (tiempos). Ambos cilindros trabajan en paralelo; el detalle muestra ${pv.id === 2 ? "el cilindro 1" : "el del lado +x"}.</div>`;
+      <div class="note">Geometría, cinemática y fuerzas del núcleo: ${pv.id === 2 ? "pivotGeo (placas-guía curvas: segmentos_contorno, segmentos_canto y segmentos_centro dibujados como arcos SVG) y pivotAt (ojal E, pasador Q, bloque-uña con " + garraTxt(pv.g) + ", asiento y contactoLeva)" : "guidedAt" + (pv.cam ? ", camGeo y camAt (leva de reenganche)" : "") + ", guideGeo y chamferGeo"}, driveAt (F_cil del caso de fricción elegido) y R.pump (tiempos). Ambos cilindros trabajan en paralelo; el detalle muestra ${pv.id === 2 ? "el cilindro 1" : "el del lado +x"}.</div>`;
     el("bSimPlay").onclick = () => { if (S.t >= total() - 1e-9) reset(); S.run = !S.run; S.last = 0; render(); };
     el("bSimStep").onclick = stepNext;
     el("bSimReset").onclick = () => { S.run = false; reset(); };
@@ -661,6 +691,6 @@ const SIM = (() => {
       return detailPivot(pv, st, st.rot).replace('id="simDet"', `id="mdlDet_${id}"`).replace(/simClip/g, "simClip_" + id);
     } finally { S.dir = d0; }
   }
-  return { open, close, init, proveedor, seek, buscarFase, exportGif, GIF, segPath, caraBloque, vistaFase, _S: S };
+  return { open, close, init, proveedor, seek, buscarFase, exportGif, GIF, segPath, caraBloque, garraSegs, garraTxt, vistaFase, _S: S };
 })();
 if (typeof module !== "undefined") module.exports = SIM;

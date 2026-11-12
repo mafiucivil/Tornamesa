@@ -132,6 +132,7 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
 .sim-pp{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
 .sim-shoe{fill:var(--pendbg);stroke:var(--pend);stroke-width:.8}
 .sim-dog{fill:#7a8494;stroke:var(--ink);stroke-width:.8}.sim-dog.on{fill:var(--load)}
+.sim-asiento{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round}.sim-asiento.on{stroke:var(--fail)}
 .sim-shoe.bad,.sim-dog.bad{fill:var(--failbg);stroke:var(--fail);stroke-width:2}
 .sim-spr{fill:none;stroke:var(--ok);stroke-width:1.2}
 .sim-ax{stroke:var(--ink2);stroke-width:.7}.sim-lim{stroke:var(--fail);stroke-dasharray:3 3;stroke-width:.8}
@@ -5167,7 +5168,11 @@ const PLANOS = (() => {
       add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
     } else {
       add("BASE", 4, (md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1).replace(/, con su refuerzo de esquina soldado sobre la base/, "") : "Soporte del ojal E") + insTxt, steel, P.n_cyl, m.brackets - mIns);
-      add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
+      // bloque-uña con garra (núcleo: designDrive().pivotado.fabricacion.bloque_una: asiento, labio, nariz, rampa, masas); sin garra, la descripción heredada
+      const BU = ((DRV.pivotado || {}).fabricacion || {}).bloque_una || {}, ga = BU.asiento, gl = BU.labio;
+      if (ga && gl) add("BASE", 6, `Bloque-uña con garra: asiento cóncavo R${nf(ga.radio, 1)} (abrazo ${nf(ga.abrazo_total_deg)}°, templado ${ga.templado || "—"}), labio de retención ${nf(gl.saliente_sobre_centro)} x ${nf(gl.espesor)} mm, nariz R${nf((BU.nariz || {}).radio)}, rampa ${nf((BU.rampa || {}).angulo_deg)}° en el dorso, h ${nf(BU.h)} mm, con pasador Q (${nf(BU.masa_bloque, 1)} + ${nf(BU.masa_pasador_Q, 1)} = ${nf(BU.masa, 1)} kg por cilindro)`,
+        BU.material || `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs, "Contorno de la garra en tramos recta/arco del núcleo; asiento fresado y templado; masa del núcleo");
+      else add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
     }
     if (m.cam > 0) add("BASE", 7, (md.cam ? md.cam.charAt(0).toUpperCase() + md.cam.slice(1) : "Leva de reenganche") + " (masa del núcleo)", steel, piv ? 4 : P.n_cyl, m.cam);
     // Mesa
@@ -5455,7 +5460,14 @@ const PLANOS = (() => {
       const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
       const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
       v.poly(bar(0, lb, P.D_body), true); v.poly(bar(lb, L, P.d_rod), true);
-      v.poly(q.una.cuerpo.map(f), true); v.poly(q.una.cara.map(f), true); v.poly(q.una.cubo.map(f), true); v.circ(Q[0], Q[1], g.pasadorQ.d / 2);
+      // bloque-uña: garra real (rectas y arcos de pivotGeo().bloque.garra.contorno en la pose de pivotAt, giro antihorario: x hacia el asiento, y = t);
+      // sin garra, la polilínea del cuerpo (q.una.poligono duplicaría la garra)
+      const gr = g.bloque && g.bloque.garra, as = q.asiento;
+      if (gr && gr.contorno && as && as.centro) {
+        const Xc = gr.asiento.centro[0], ex = [(as.centro[0] - q.Q[0]) / Xc, (as.centro[1] - q.Q[1]) / Xc], T = (p) => f([q.Q[0] + p[0] * ex[0] - p[1] * ex[1], q.Q[1] + p[0] * ex[1] + p[1] * ex[0]]);
+        segsView(v, gr.contorno.map((s) => Object.assign({}, s, { p0: T(s.p0), p1: T(s.p1) }, s.centro ? { centro: T(s.centro) } : {})), "CONTORNO");
+      } else v.poly(q.una.cuerpo.map(f), true);
+      v.poly(q.una.cubo.map(f), true); v.circ(Q[0], Q[1], g.pasadorQ.d / 2);
       const A_ = f(q.pasadores.A); v.circ(A_[0], A_[1], P.d_pin / 2, "OCULTO");
     });
     const E = g.E[0], pc = g.placas["1_antihorario"].contorno[0];
@@ -5470,7 +5482,7 @@ const PLANOS = (() => {
     const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {}, bl = D.bloque_una || {}, se = D.soporte_E || {}, tb = c.tb;
     if (!q) return;
     const rr = (pts) => { const a = pts.map(([x, y]) => Math.hypot(x, y)); return [Math.min(...a), Math.max(...a)]; };
-    const [p0, p1] = rr(g.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cara, q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    const [p0, p1] = rr(g.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
     R_(p0, tb, p1, tb + pl.t);
     v.rect(b0, bl.z_inf, b1, bl.z_inf + bl.h, "CONTORNO");
     v.rect(rQ - bl.d_Q / 2, c.R.blk.zCam, rQ + bl.d_Q / 2, c.R.blk.zCam + bl.l_pasador_Q, "OCULTO");
@@ -5941,7 +5953,7 @@ const SIM = (() => {
       return o;
     }
     const curve = (caseId) => { const out = []; for (let i = 0; i <= 60; i++) { const s = P.s_free + (sUse - P.s_free) * i / 60, q = TT.pivotAt(P, s, "empuje", "antihorario"); if (q.arm == null) continue; const F = TT.driveAt(P, q.th_cil1_antihorario, caseId).F; out.push({ s, F, p: pF(R, F) }); } return out; };
-    return { id: 2, nombre: "Pivotado tipo KIET: cilindro pivotado en el ojal de esquina, bloque-uña con cara R" + (g.bloque && g.bloque.R_cara ? g.bloque.R_cara : "—") + " sobre el pasador Q y placa-guía curva en media luna", P, R, g, pitch: g.paso, tExt, tRet, vExt, vRet, sUse, dTh, state, curve,
+    return { id: 2, nombre: "Pivotado tipo KIET: cilindro pivotado en el ojal de esquina, bloque-uña con " + garraTxt(g) + " sobre el pasador Q y placa-guía curva en media luna", P, R, g, pitch: g.paso, tExt, tRet, vExt, vRet, sUse, dTh, state, curve,
       pinBase: () => th0(), plan: planPivot, detail: detailPivot, soporteE, leva: `4 placas-guía curvas (2 por sentido; las del giro horario son la imagen especular, ACC-024): recta + arcos tangentes (G1) de los segmentos del núcleo; el cilindro usa la del sentido elegido` };
   }
 
@@ -6029,6 +6041,26 @@ const SIM = (() => {
     pts.push([x0, h]);
     return pts.map(T);
   }
+  /* garra del bloque-uña: tramos del contorno del núcleo (pivotGeo().bloque.garra.contorno, marco local: origen Q, x hacia el asiento, y = t)
+     llevados a la pose de pivotAt: eje x = (asiento.centro − Q)/X_c; eje y = ±t (−t si la pose viene reflejada, giro horario: el sentido de los
+     arcos se invierte). El signo se decide con el labio frente a la polilínea q.una.cuerpo del núcleo. f: simetría central del cilindro 2. */
+  function garraSegs(g, q, f) {
+    const gr = g && g.bloque && g.bloque.garra, cs = gr && gr.contorno, a = q && q.asiento;
+    if (!cs || !cs.length || !a || !a.centro || !gr.asiento) return null;
+    f = f || ((p) => p);
+    const Xc = gr.asiento.centro[0], ex = [(a.centro[0] - q.Q[0]) / Xc, (a.centro[1] - q.Q[1]) / Xc], tl = [-ex[1], ex[0]];
+    const pose = (sg) => (p) => [q.Q[0] + p[0] * ex[0] + sg * p[1] * tl[0], q.Q[1] + p[0] * ex[1] + sg * p[1] * tl[1]];
+    const ref = cs.filter((c) => c.tipo === "linea" && Math.abs(c.p0[1]) > 1).map((c) => c.p0), cu = q.una.cuerpo || [];
+    const err = (sg) => { const T = pose(sg); return ref.reduce((m, p) => { const P = T(p); return Math.max(m, Math.min(...cu.map((c) => Math.hypot(c[0] - P[0], c[1] - P[1])))); }, 0); };
+    const sg = err(1) <= err(-1) ? 1 : -1, T = pose(sg), F = (p) => f(T(p));
+    return cs.map((c) => Object.assign({}, c, { p0: F(c.p0), p1: F(c.p1) }, c.tipo === "arco" ? { centro: F(c.centro), sentido: sg > 0 ? c.sentido : (c.sentido === "horario" ? "antihorario" : "horario") } : {}));
+  }
+  // textos de la garra leídos del núcleo: «garra (asiento R44,5, labio)»
+  function garraTxt(g) {
+    const gr = g && g.bloque && g.bloque.garra;
+    if (!gr) return g && g.bloque && g.bloque.R_cara ? "cara R" + num(g.bloque.R_cara, 1) : "—";
+    return `garra (asiento R${num(gr.asiento.radio, 1)}, labio)`;
+  }
   // modo pivotado: placas-guía curvas, ojales, cilindros y bloques-uña en coordenadas globales (cilindro 2 = simetría central del 1)
   function pivotSvg(pv, st, X, Y, r, alerta, det) {
     const P = pv.P, g = pv.g, q = st.q, neg = (p) => [-p[0], -p[1]], o = [], sen = sentido(), rS = r;
@@ -6058,7 +6090,17 @@ const SIM = (() => {
       o.push(polySvg(bar(0, lb, P.D_body), X, Y, "sim-cyl"), polySvg(bar(lb, L, P.d_rod), X, Y, "sim-rod"));
       o.push(`<circle cx="${X(E[0])}" cy="${Y(E[1])}" r="${r(g.ojalE.d / 2)}" class="sim-pp sim-ojal"/>`);
       const on = st.contact || st.sub === "rodilla";
-      o.push(polySvg(q.una.cuerpo.map(f), X, Y, "sim-dog sim-blk" + (alerta ? " bad" : on ? " on" : "")), polySvg(caraBloque(g, q.una.cara).map(f), X, Y, "sim-dog sim-cara" + (on ? " on" : "")), polySvg(q.una.cubo.map(f), X, Y, "sim-pp sim-blk"));
+      const gs = garraSegs(g, q, f), cls = "sim-dog sim-blk" + (alerta ? " bad" : on ? " on" : "");
+      if (gs) {   // garra real: contorno completo (cuerpo, labio, asiento, nariz, rampa y cubo) con arcos SVG; asiento resaltado
+        o.push(`<path d="${segPath(gs, X, Y, rS, true)}" class="${cls} sim-garra" data-cil="${ci + 1}"/>`);
+        o.push(`<path d="${segPath(gs.filter((c) => c.rol === "asiento"), X, Y, rS)}" class="sim-asiento${on ? " on" : ""}"/>`);
+        o.push(polySvg(q.una.cubo.map(f), X, Y, "sim-pp sim-blk"));
+        const ac = q.asiento && q.asiento.contacto && f(q.asiento.contacto);
+        if (ac) {
+          o.push(`<circle cx="${X(ac[0])}" cy="${Y(ac[1])}" r="${det ? 3.2 : 2}" class="sim-ct sim-cas"/>`);
+          if (det && ci === 0) o.push(`<text x="${(+X(ac[0]) + 7).toFixed(1)}" y="${(+Y(ac[1]) - 6).toFixed(1)}" class="sim-t sim-tct">pasador asentado · asiento R${num(q.asiento.radio, 1)}</text>`);
+        }
+      } else o.push(polySvg(q.una.cuerpo.map(f), X, Y, cls), polySvg(caraBloque(g, q.una.cara).map(f), X, Y, "sim-dog sim-cara" + (on ? " on" : "")), polySvg(q.una.cubo.map(f), X, Y, "sim-pp sim-blk"));
       if (ci === 0) o.push(top.join(""));
       // pasador Q: su extremo inferior es el seguidor que recorre el canto de la placa-guía
       o.push(`<circle cx="${X(Q[0])}" cy="${Y(Q[1])}" r="${r(g.pasadorQ.d / 2)}" class="sim-fol sim-q"/>`);
@@ -6313,7 +6355,7 @@ const SIM = (() => {
       <div class="sim-gif" id="simGif"></div>
       <div class="sim-grid"><div id="simPlanBox"></div><div id="simDetBox"></div></div>
       <div class="sim-grid"><div id="simRead"></div><div id="simChartBox"></div></div>
-      <div class="note">Geometría, cinemática y fuerzas del núcleo: ${pv.id === 2 ? "pivotGeo (placas-guía curvas: segmentos_contorno, segmentos_canto y segmentos_centro dibujados como arcos SVG) y pivotAt (ojal E, pasador Q, bloque-uña con cara R" + (pv.g.bloque ? pv.g.bloque.R_cara : "") + ", contactoLeva)" : "guidedAt" + (pv.cam ? ", camGeo y camAt (leva de reenganche)" : "") + ", guideGeo y chamferGeo"}, driveAt (F_cil del caso de fricción elegido) y R.pump (tiempos). Ambos cilindros trabajan en paralelo; el detalle muestra ${pv.id === 2 ? "el cilindro 1" : "el del lado +x"}.</div>`;
+      <div class="note">Geometría, cinemática y fuerzas del núcleo: ${pv.id === 2 ? "pivotGeo (placas-guía curvas: segmentos_contorno, segmentos_canto y segmentos_centro dibujados como arcos SVG) y pivotAt (ojal E, pasador Q, bloque-uña con " + garraTxt(pv.g) + ", asiento y contactoLeva)" : "guidedAt" + (pv.cam ? ", camGeo y camAt (leva de reenganche)" : "") + ", guideGeo y chamferGeo"}, driveAt (F_cil del caso de fricción elegido) y R.pump (tiempos). Ambos cilindros trabajan en paralelo; el detalle muestra ${pv.id === 2 ? "el cilindro 1" : "el del lado +x"}.</div>`;
     el("bSimPlay").onclick = () => { if (S.t >= total() - 1e-9) reset(); S.run = !S.run; S.last = 0; render(); };
     el("bSimStep").onclick = stepNext;
     el("bSimReset").onclick = () => { S.run = false; reset(); };
@@ -6514,7 +6556,7 @@ const SIM = (() => {
       return detailPivot(pv, st, st.rot).replace('id="simDet"', `id="mdlDet_${id}"`).replace(/simClip/g, "simClip_" + id);
     } finally { S.dir = d0; }
   }
-  return { open, close, init, proveedor, seek, buscarFase, exportGif, GIF, segPath, caraBloque, vistaFase, _S: S };
+  return { open, close, init, proveedor, seek, buscarFase, exportGif, GIF, segPath, caraBloque, garraSegs, garraTxt, vistaFase, _S: S };
 })();
 if (false) module.exports = SIM;
 
@@ -6767,14 +6809,23 @@ const TT_IMG = { comparacion: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACWA
       else { const h = g.ojalE.lado_cajon / 2; o.push(`<rect x="${ex - h}" y="${y(ey) - h}" width="${2 * h}" height="${2 * h}" fill="var(--soft)" stroke="var(--ink)" stroke-width="5"/>`); }
       o.push(`<circle cx="${ex}" cy="${y(ey)}" r="${g.ojalE.d / 2}" fill="var(--ink)"/>`);
     });
+    // bloque-uña: garra real con arcos SVG desde pivotGeo().bloque.garra.contorno (SIM.garraSegs) y el contacto del asiento; sin garra, la cara heredada
+    const blq = (q, f, sen, ci) => {
+      const gs = SIM.garraSegs ? SIM.garraSegs(g, q, f) : null;
+      if (!gs) return `<polygon points="${pts(q.una.cuerpo.map(f))}" fill="var(--load)" opacity=".85"/><polygon points="${pts(SIM.caraBloque(g, q.una.cara).map(f))}" fill="var(--load)"/>`;
+      const ac = q.asiento.contacto && f(q.asiento.contacto), cA = f(q.asiento.centro);
+      return `<path d="${sp(gs, true)}" class="mdl-garra" data-sen="${sen}" data-cil="${ci + 1}" fill="var(--load)" fill-opacity=".85" stroke="var(--ink)" stroke-width="2"/><path d="${sp(gs.filter((c) => c.rol === "asiento"))}" fill="none" stroke="var(--ink)" stroke-width="6"/>`
+        + (q.asiento.asentado ? `<circle cx="${cA[0]}" cy="${y(cA[1])}" r="${P.d_pin / 2}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>` : "")
+        + (ac ? `<circle cx="${ac[0]}" cy="${y(ac[1])}" r="9" fill="var(--fail)"/>` : "");
+    };
     ["horario", "antihorario"].forEach((sen) => {
       const q = TT.pivotAt(P, P.s_free, "empuje", sen); if (!q) return;
       const act = sen === "antihorario";
-      [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f]) => {
+      [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f], ci) => {
         const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
         const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
         o.push(`<g opacity="${act ? 1 : 0.3}"><polygon points="${pts(bar(0, lb, P.D_body))}" fill="var(--acc)" opacity=".55"/><polygon points="${pts(bar(lb, L, P.d_rod))}" fill="var(--acc)"/>
-          <polygon points="${pts(q.una.cuerpo.map(f))}" fill="var(--load)" opacity=".85"/><polygon points="${pts(SIM.caraBloque(g, q.una.cara).map(f))}" fill="var(--load)"/><polygon points="${pts(q.una.cubo.map(f))}" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/>
+          ${blq(q, f, sen, ci)}<polygon points="${pts(q.una.cubo.map(f))}" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/>
           <circle cx="${Q[0]}" cy="${y(Q[1])}" r="${g.pasadorQ.d / 2}" fill="none" stroke="var(--ink)" stroke-width="3"/></g>`);
         if (act) { const A_ = f(q.pasadores.A); o.push(`<circle cx="${A_[0]}" cy="${y(A_[1])}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`); }
       });
@@ -6855,18 +6906,21 @@ const TT_IMG = { comparacion: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACWA
     const q = TT.pivotAt(P, P.s_free, "empuje", "antihorario"); if (!q) return "";
     const rr = (pts) => { const v = pts.map(([a, b]) => Math.hypot(a, b)); return [Math.min(...v), Math.max(...v)]; };
     const pl = pv.placa_leva || {}, bl = pv.bloque_una || {}, se = pv.soporte_E || {}, o = [];
-    const [p0, p1] = rr(gP.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cara, q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    const [p0, p1] = rr(gP.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
     o.push(`<rect x="${X(p0)}" y="${Z(tb + pl.t)}" width="${p1 - p0}" height="${pl.t}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Placa-leva t = ${fmt(pl.t)} mm</title></rect>`);
     o.push(`<rect x="${X(b0)}" y="${Z(bl.z_inf + bl.h)}" width="${b1 - b0}" height="${bl.h}" fill="var(--load)" opacity=".75"><title>Bloque-uña h = ${fmt(bl.h)} mm</title></rect>`);
     o.push(`<rect x="${X(rQ - bl.d_Q / 2)}" y="${Z(R.blk.zCam + bl.l_pasador_Q)}" width="${bl.d_Q}" height="${bl.l_pasador_Q}" fill="none" stroke="var(--ink)" stroke-width="2"><title>Pasador Q Ø${fmt(bl.d_Q)} × ${fmt(bl.l_pasador_Q)}</title></rect>`);
     const zp = (((pv.fabricacion || {}).soporte_E || {}).z_paredes) || [tb, tb + se.alto], zs0 = zp[0], zs1 = zp[1];   // paredes del soporte (núcleo: fabricacion.soporte_E.z_paredes, sobre el refuerzo: z = t)
-    o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(zs1)}" width="${se.lado_cajon}" height="${zs1 - zs0}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>Soporte del ojal E</title></rect>`);
+    // rótulo del soporte del ojal E leído del núcleo (fabricacion.soporte_E: tipo, lado y tapas.lado): cajón abierto hacia la mesa, no un ojal en cajón cerrado
+    const fE = (pv.fabricacion || {}).soporte_E || {}, tipoE = String(fE.tipo || "").split(":")[0].trim();
+    const sopETxt = tipoE ? `soporte E: ${tipoE} (lado ${fmt(fE.lado != null ? fE.lado : se.lado_cajon)}${fE.tapas && fE.tapas.lado ? ", tapas " + fmt(fE.tapas.lado) : ""})` : `ojal E (cajón ${fmt(se.lado_cajon)})`;
+    o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(zs1)}" width="${se.lado_cajon}" height="${zs1 - zs0}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>${esc(sopETxt)}</title></rect>`);
     [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => o.push(`<line x1="${X(rE - se.lado_cajon / 2)}" y1="${Z(zt)}" x2="${X(rE + se.lado_cajon / 2)}" y2="${Z(zt)}" stroke="var(--ink)" stroke-width="3"/>`));
     const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
     o.push(`<rect x="${X(Math.min(rm, rE))}" y="${Z(zc + P.D_body / 2)}" width="${Math.abs(rE - rm)}" height="${P.D_body}" fill="var(--acc)" opacity=".55"/>`);
     o.push(`<rect x="${X(Math.min(rQ, rm))}" y="${Z(zc + P.d_rod / 2)}" width="${Math.abs(rm - rQ)}" height="${P.d_rod}" fill="var(--acc)"/>`);
     o.push(`<line x1="${X(rE)}" y1="${Z(tb)}" x2="${X(rE)}" y2="${Z(zs1 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
-    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-guía ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(zs1) - 6}" font-size="13" text-anchor="middle">ojal E (cajón ${fmt(se.lado_cajon)})</text>`);
+    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-guía ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(zs1) - 6}" font-size="13" text-anchor="middle" id="secSopE">${esc(sopETxt)}</text>`);
     o.push(`<text x="${X(rQ)}" y="${Z(0) + 36}" font-size="12" text-anchor="middle" fill="var(--ink2)">alzado desarrollado a lo largo del cilindro 1 (distancias radiales)</text>`);
     return o.join("");
   }
@@ -6972,10 +7026,10 @@ const TT_IMG = { comparacion: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACWA
   function placaGuiaCard() {
     const g = TT.pivotGeo(P); if (!g || typeof SIM === "undefined") return "";
     const D = TT.designDrive(P, A.R).pivotado || {}, pl = D.placa_leva || {}, seg = g.placas["1_antihorario"].segmentos_canto || [];
-    const fases = [["toma", "Toma: Q en la toma y la cara R" + fmt(g.bloque.R_cara) + " llega al pasador"], ["empuje", "Empuje: Q apoyado en el canto (contacto Q–canto)"], ["retorno", "Retorno: el bloque-uña sale sobre el pasador siguiente y la placa lo conduce a la toma"]];
+    const fases = [["toma", "Toma: Q en la toma y la " + SIM.garraTxt(g) + " llega al pasador"], ["empuje", "Empuje: Q apoyado en el canto (contacto Q–canto)"], ["retorno", "Retorno: el bloque-uña sale sobre el pasador siguiente y la placa lo conduce a la toma"]];
     return `<div class="card" style="margin-top:12px" id="mdlPlaca"><h3>Placa-guía curva (cilindro 1, giro antihorario) · toma → empuje → retorno</h3>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${fases.map(([id, t]) => `<div><div class="note"><b>${esc(t)}</b></div>${SIM.vistaFase(P, A, id)}</div>`).join("")}</div>
-      <div class="note">Canto (naranja) y trayectoria del centro de Q (trazos) dibujados con arcos SVG desde <code>pivotGeo().placas[k].segmentos_*</code>; las placas del giro horario son la imagen especular (ACC-024). Bloque-uña con cara cilíndrica R${fmt(g.bloque.R_cara)} (polilínea con flecha ≤ 0,1 mm), pasador Q Ø${fmt(g.pasadorQ.d)}, ojal E Ø${fmt(g.ojalE.d)} en su cajón y pasador tomado en naranja.</div>
+      <div class="note">Canto (naranja) y trayectoria del centro de Q (trazos) dibujados con arcos SVG desde <code>pivotGeo().placas[k].segmentos_*</code>; las placas del giro horario son la imagen especular (ACC-024). ${g.bloque.garra ? `Bloque-uña con ${esc(SIM.garraTxt(g))} dibujado con arcos SVG desde <code>pivotGeo().bloque.garra.contorno</code> (labio ${fmt(g.bloque.garra.labio.saliente_sobre_centro)} × ${fmt(g.bloque.garra.labio.espesor)}, nariz R${fmt(g.bloque.garra.nariz.radio)}, rampa ${fmt(g.bloque.garra.rampa.angulo_deg)}°, abrazo ${fmt(g.bloque.garra.asiento.abrazo_total_deg)}°); en el empuje el pasador tomado queda asentado y el punto rojo es el contacto del asiento (<code>pivotAt().asiento</code>)` : `Bloque-uña con cara cilíndrica R${fmt(g.bloque.R_cara)}`}, pasador Q Ø${fmt(g.pasadorQ.d)}, ojal E Ø${fmt(g.ojalE.d)} en su soporte abierto y pasador tomado en naranja.</div>
       <div class="scroll"><table id="mdlSeg"><tr><th>#</th><th>Rol</th><th>Tipo</th><th>Sentido</th><th>Curvatura</th><th class="n">R canto (mm)</th><th class="n">Centro (mm)</th><th class="n">Inicio (mm)</th><th class="n">Fin (mm)</th></tr>
         ${seg.map((q, i) => `<tr><td class="n">${i + 1}</td><td>${esc(q.rol)}</td><td>${q.tipo === "arco" ? "arco" : "recta"}</td><td>${esc(q.sentido || "—")}</td><td>${esc(q.curvatura || "—")}</td><td class="n">${q.radio ? fmt(q.radio, 3) : "—"}</td><td class="n">${q.centro ? fmt(q.centro[0], 5) + "; " + fmt(q.centro[1], 5) : "—"}</td><td class="n">${fmt(q.p0[0], 5)}; ${fmt(q.p0[1], 5)}</td><td class="n">${fmt(q.p1[0], 5)}; ${fmt(q.p1[1], 5)}</td></tr>`).join("")}</table></div>
       <div class="kv" style="margin-top:8px"><span>Radio mínimo del canto convexo / cóncavo</span><span>${fmt((pl.radio_min_canto || {}).convexo, 3)} / ${fmt((pl.radio_min_canto || {}).concavo, 3)} mm</span>

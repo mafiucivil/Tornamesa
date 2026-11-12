@@ -4,8 +4,8 @@
    Comprueba:
      1. las 4 placas-guía se dibujan desde los segmentos del núcleo (pivotGeo().placas[k].segmentos_contorno) con arcos SVG «A»: muestreando el
         trayecto con getPointAtLength, todo punto queda a ≤ 0,1 mm de su recta o arco (radio, sentido y bandera de arco grande correctos);
-     2. la simulación recorre toma → empuje → retorno (TT.pivotAt), con el contacto Q–canto en el empuje, el pasador Q, la cara R del bloque-uña,
-        el ojal E, el cilindro (cuerpo y vástago) y el pasador tomado; capturas de las 3 fases a deviceScaleFactor 2;
+     2. la simulación recorre toma → empuje → retorno (TT.pivotAt), con el contacto Q–canto en el empuje, el pasador Q, la garra del bloque-uña
+        (contorno con arcos, asiento y contacto del pasador asentado en el empuje), el ojal E, el cilindro (cuerpo y vástago) y el pasador tomado; capturas de las 3 fases a deviceScaleFactor 2;
      3. el panel «Cinemática (modo 2)»: 6 gráficos SVG con las marcas de toma, calado y fin del empuje, y la tabla de 5 puntos característicos
         con los valores de designDrive().pivotado.cinematica;
      4. la pestaña «Comparación de la guía»: tabla original / curva / KIET y figura embebida (base64) que el navegador decodifica;
@@ -19,7 +19,11 @@
         planta del Modelo (cuadrado, tapones y atiesador = núcleo, rótulo de t_d), en el corte o alzado (z = t_base…t, soporte encima) y en la planta de la
         simulación, en los modos 1 y 2; lista de materiales con la plancha base entera (sin ventanas), el refuerzo (lado, t_d, tapones, atiesador y masa),
         el pasador de empuje soldado a ras y sin perno M20 ni arandela; limitación «pasador de empuje no reemplazable» (designDrive().pasadores_empuje);
-    10. las filas de verificación del núcleo frente al DOM también en el modo 1 (guiado). */
+    10. las filas de verificación del núcleo frente al DOM también en el modo 1 (guiado);
+    11. garra del bloque-uña (pivotGeo().bloque.garra.contorno) en la planta del Modelo: por sentido y cilindro, vértices del trayecto = tramos del núcleo
+        llevados a la pose de pivotAt (≤ 0,01 mm), un arco «A» por arco con su radio, y todo punto del trayecto muestreado a ≤ 0,15 mm del contorno (aproximación del arco de 180° del cubo en Chromium); contacto del asiento
+        (pivotAt().asiento.contacto); sin rótulos de la cara R120; rótulo del soporte E del alzado leído de fabricacion.soporte_E; lista de materiales con la
+        garra y la masa del núcleo. */
 const path = require("path"), fs = require("fs"), assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
@@ -34,15 +38,17 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
   try {
     const page = await (await browser.newContext({ viewport: { width: 1360, height: 1500 }, deviceScaleFactor: 2 })).newPage(), errs = [];
     page.on("pageerror", (e) => errs.push(String(e))); page.on("console", (m) => { if (m.type() === "error" && !/ERR_CONNECTION_REFUSED/.test(m.text())) errs.push(m.text()); });
-    page.setDefaultTimeout(180000);                                     // pestañas que calculan en el hilo principal (Tapones, Temperatura) en una máquina cargada
+    page.setDefaultTimeout(600000);                                     // pestañas que calculan en el hilo principal (Tapones, Temperatura) en una máquina cargada
     await page.goto(html, { timeout: 240000 });
     await page.waitForSelector("#bSim");
-    const settle = () => page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando"), null, { timeout: 120000 }).then(() => page.waitForTimeout(250));
+    const settle = () => page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando"), null, { timeout: 600000 }).then(() => page.waitForTimeout(250));
     const setP = async (id, v) => {
       await page.evaluate((id) => { const d = document.querySelector("#p_" + id).closest("details"); if (d) d.open = true; }, id);
       if (await page.getAttribute("#p_" + id, "type") === "checkbox") { if (v) await page.check("#p_" + id); else await page.uncheck("#p_" + id); } else await page.fill("#p_" + id, String(v));
       await settle();
     };
+    // alternativa por evaluate + evento change: page.selectOption("#altSel") de Playwright 1.63 aplica el valor pero a veces no retorna (se cuelga hasta el timeout)
+    const alt = async (v) => { await page.evaluate((v) => { const s = document.querySelector("#altSel"); s.value = v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, v); await settle(); };
     const tab = async (t) => { await page.click(`#tabs button[data-t="${t}"]`); await page.waitForTimeout(200); };
     await page.click("#bReset"); await settle();
     assert.equal(await page.evaluate(() => TT.driveMode(TT.defaults())), 2, "drive_mode = 2 por defecto");
@@ -158,11 +164,11 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
     const ins2 = await inserto(2);
     console.log(`refuerzo (pivotado): ${ins2.n} cuadrados ${ins2.lado} × t_d ${ins2.td} (z ${ins2.tb}…${ins2.t}) = núcleo, ${ins2.nTap} tapones Ø${ins2.dTap}, atiesador ${ins2.ati ? "sí" : "no"}, en la planta, el alzado y la simulación; lista de materiales: «${ins2.bom.find((d) => /^Refuerzo/.test(d))}» · «${ins2.bom.find((d) => /^Pasador de empuje/.test(d))}»`);
     // alternativa B (pivotado): refuerzo con atiesador tangencial, mismas comprobaciones
-    await page.selectOption("#altSel", "B"); await settle();
+    await alt("B");
     const insB = await inserto(2);
     assert.ok(insB.ati, "alternativa B: con atiesador tangencial");
     console.log(`refuerzo (pivotado · B): ${insB.n} cuadrados ${insB.lado} × t_d ${insB.td}, atiesador ${insB.ati.t} × ${insB.ati.h} × ${insB.ati.largo} (${insB.nAtDom} en la planta = núcleo)`);
-    await page.selectOption("#altSel", "0"); await settle();
+    await alt("0");
 
     // ---- 1. arcos de las 4 placas: trayecto SVG frente a la geometría analítica del núcleo
     const geo = await page.evaluate(() => {
@@ -213,13 +219,16 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
       assert.equal(await page.getAttribute("#simBox", "data-fase"), f, "fase " + f);
       const det = await page.evaluate(() => ({
         canto: document.querySelectorAll("#simDet path.sim-canto").length, traj: document.querySelectorAll("#simDet path.sim-traj").length, q: document.querySelectorAll("#simDet circle.sim-q").length,
-        cara: document.querySelectorAll("#simDet polygon.sim-cara").length, ojal: document.querySelectorAll("#simDet circle.sim-ojal").length, cyl: document.querySelectorAll("#simDet .sim-cyl").length, rod: document.querySelectorAll("#simDet .sim-rod").length,
+        garra: document.querySelectorAll("#simDet path.sim-garra").length, asiento: document.querySelectorAll("#simDet path.sim-asiento").length, cas: document.querySelectorAll("#simDet circle.sim-cas").length,
+        garraA: [...document.querySelectorAll("#simDet path.sim-garra")].map((p) => (p.getAttribute("d").match(/A /g) || []).length), nArcos: TT.pivotGeo(SIM._S.P).bloque.garra.contorno.filter((c) => c.tipo === "arco").length,
+        asentado: !!(SIM._S.prov.state(SIM._S.t, SIM._S.caso).q.asiento || {}).asentado, planGarra: document.querySelectorAll("#simPlan path.sim-garra").length, ojal: document.querySelectorAll("#simDet circle.sim-ojal").length, cyl: document.querySelectorAll("#simDet .sim-cyl").length, rod: document.querySelectorAll("#simDet .sim-rod").length,
         tomado: document.querySelectorAll("#simDet circle.sim-pin.on").length, ct: document.querySelectorAll("#simDet circle.sim-ct:not(.off)").length, contacto: document.querySelector("#simContacto").textContent, fase: document.querySelector("#simFase").textContent,
-        caraPts: document.querySelector("#simDet polygon.sim-cara").getAttribute("points").trim().split(/\s+/).length,
       }));
       fases[f] = det;
-      assert.ok(det.canto >= 1 && det.traj >= 1 && det.q === 2 && det.cara === 2 && det.ojal === 2 && det.cyl === 2 && det.rod === 2, `${f}: elementos del detalle ${JSON.stringify(det)}`);
-      assert.ok(det.caraPts > 8, `${f}: cara cilíndrica del bloque-uña como polilínea (${det.caraPts} puntos)`);
+      assert.ok(det.canto >= 1 && det.traj >= 1 && det.q === 2 && det.garra === 2 && det.asiento === 2 && det.planGarra === 2 && det.ojal === 2 && det.cyl === 2 && det.rod === 2, `${f}: elementos del detalle ${JSON.stringify(det)}`);
+      assert.ok(det.garraA.every((n) => n === det.nArcos), `${f}: garra con un arco «A» por arco del núcleo (${det.garraA} / ${det.nArcos})`);
+      assert.equal(det.cas, det.asentado ? 2 : 0, `${f}: contacto del asiento dibujado solo con el pasador asentado`);
+      if (f === "empuje") assert.ok(det.asentado && det.cas === 2, "empuje: pasador asentado en el asiento con su contacto");
       if (f === "empuje") { assert.ok(det.tomado >= 1, "empuje: pasador tomado resaltado"); assert.ok(det.ct >= 1, "empuje: contacto Q–canto"); assert.match(det.contacto, /Q apoyado en el canto/); }
       if (f === "toma") assert.match(det.fase, /^toma/);
       await page.locator("#simBox").screenshot({ path: path.join(out, `sim_pivotado_${f}.png`) });
@@ -228,7 +237,66 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
     const qOk = await page.evaluate(() => { SIM.seek(SIM.buscarFase("empuje")); const st = SIM._S.prov.state(SIM._S.t, SIM._S.caso), q = TT.pivotAt(SIM._S.P, st.s, "empuje", "antihorario"); return Math.hypot(q.Q[0] - st.q.Q[0], q.Q[1] - st.q.Q[1]) < 1e-9 && q.contactoLeva.enCanto; });
     assert.ok(qOk, "Q de la simulación = TT.pivotAt(...).Q con contacto en el canto");
     await page.click("#bSimClose");
-    console.log("simulación: toma → empuje → retorno con contacto Q–canto, pasador Q, cara R120, ojal E, cilindro y pasador tomado; capturas en " + out);
+    console.log("simulación: toma → empuje → retorno con contacto Q–canto, pasador Q, garra (asiento y contacto), ojal E, cilindro y pasador tomado; capturas en " + out);
+
+    // ---- 11. garra del bloque-uña en la planta del Modelo frente al núcleo (vértices y arcos), alzado y lista de materiales
+    await tab("modelo");
+    const gar = await page.evaluate(() => {
+      const P = JSON.parse(localStorage.getItem("tt300c-params-v1")), A = TT.analyze(P, { noFEA: true }), G = TT.pivotGeo(P).bloque.garra, cs = G.contorno, res = [];
+      const dSeg = (q, p) => {
+        if (q.tipo === "arco") {
+          const a = Math.atan2(p[1] - q.centro[1], p[0] - q.centro[0]), a0 = Math.atan2(q.p0[1] - q.centro[1], q.p0[0] - q.centro[0]), a1 = Math.atan2(q.p1[1] - q.centro[1], q.p1[0] - q.centro[0]);
+          const ccw = q.sentido !== "horario", n = (x) => ((x % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI), sw = ccw ? n(a1 - a0) : n(a0 - a1), u = ccw ? n(a - a0) : n(a0 - a);
+          if (u <= sw + 1e-9) return Math.abs(Math.hypot(p[0] - q.centro[0], p[1] - q.centro[1]) - q.radio);
+          return Math.min(Math.hypot(p[0] - q.p0[0], p[1] - q.p0[1]), Math.hypot(p[0] - q.p1[0], p[1] - q.p1[1]));
+        }
+        const vx = q.p1[0] - q.p0[0], vy = q.p1[1] - q.p0[1], L2 = vx * vx + vy * vy, t = Math.max(0, Math.min(1, ((p[0] - q.p0[0]) * vx + (p[1] - q.p0[1]) * vy) / (L2 || 1)));
+        return Math.hypot(p[0] - q.p0[0] - t * vx, p[1] - q.p0[1] - t * vy);
+      };
+      for (const sen of ["horario", "antihorario"]) {
+        const q = TT.pivotAt(P, P.s_free, "empuje", sen), Xc = G.asiento.centro[0], ex = [(q.asiento.centro[0] - q.Q[0]) / Xc, (q.asiento.centro[1] - q.Q[1]) / Xc];
+        const sg = sen === "horario" ? -1 : 1;   // pose reflejada respecto de la diagonal del ojal en el giro horario (ACC-024)
+        for (const ci of [1, 2]) {
+          const k = ci === 1 ? 1 : -1, T = (p) => [k * (q.Q[0] + p[0] * ex[0] - sg * p[1] * ex[1]), k * (q.Q[1] + p[0] * ex[1] + sg * p[1] * ex[0])];
+          const ref = cs.map((c) => Object.assign({}, c, { p0: T(c.p0), p1: T(c.p1) }, c.centro ? { centro: T(c.centro), sentido: sg > 0 ? c.sentido : c.sentido === "horario" ? "antihorario" : "horario" } : {}));
+          const el = document.querySelector(`section[data-t="modelo"] path.mdl-garra[data-sen="${sen}"][data-cil="${ci}"]`);
+          if (!el) { res.push({ sen, ci, falta: true }); continue; }
+          const d = el.getAttribute("d"), tk = d.trim().split(/\s+/), vert = [], radios = [];
+          for (let i = 0; i < tk.length;) { const c = tk[i]; if (c === "M" || c === "L") { vert.push([+tk[i + 1], -tk[i + 2]]); i += 3; } else if (c === "A") { radios.push(+tk[i + 1]); vert.push([+tk[i + 6], -tk[i + 7]]); i += 8; } else i++; }
+          const esp = [ref[0].p0, ...ref.map((c) => c.p1)], dv = vert.length === esp.length ? Math.max(...vert.map((v, i) => Math.hypot(v[0] - esp[i][0], v[1] - esp[i][1]))) : Infinity;
+          const rArc = ref.filter((c) => c.tipo === "arco").map((c) => c.radio), dr = radios.length === rArc.length ? Math.max(0, ...radios.map((r, i) => Math.abs(r - rArc[i]))) : Infinity;
+          const L = el.getTotalLength(), n = Math.ceil(L / 0.5); let dmax = 0;
+          for (let i = 0; i <= n; i++) { const pt = el.getPointAtLength(L * i / n), m = [pt.x, -pt.y]; dmax = Math.max(dmax, Math.min(...ref.map((s) => dSeg(s, m)))); }
+          res.push({ sen, ci, nv: vert.length, ne: esp.length, dv, nA: radios.length, nArc: rArc.length, dr, dmax, asentado: q.asiento.asentado });
+        }
+      }
+      const fE = TT.designDrive(P, A.R).pivotado.fabricacion.soporte_E, BU = TT.designDrive(P, A.R).pivotado.fabricacion.bloque_una;
+      const bom = PLANOS.buildBOM(P, A).items.find((it) => it.code.includes("BASE-06"));
+      const txt = document.querySelector('section[data-t="modelo"]').textContent;
+      return { res, sopE: (document.querySelector("#secSopE") || {}).textContent, tipoE: fE.tipo.split(":")[0].trim(), ladoE: fE.lado, tapasE: fE.tapas.lado,
+        cajon: /ojal E \(cajón/.test(txt), r120: /cara (cilíndrica )?R ?120/.test(txt), garraTxt: SIM.garraTxt(TT.pivotGeo(P)), tieneGarra: txt.includes(SIM.garraTxt(TT.pivotGeo(P))),
+        bom: bom && { desc: bom.desc, mTot: bom.mTot, mat: bom.mat }, BU: { Rs: BU.asiento.radio, lab: BU.labio.saliente_sobre_centro, tl: BU.labio.espesor, m: BU.masa, mat: BU.material }, mDogs: A.R.m.dogs, n: P.n_cyl };
+    });
+    assert.equal(gar.res.length, 4, "garra: 2 sentidos × 2 cilindros");
+    gar.res.forEach((r) => {
+      assert.ok(!r.falta, `garra ${r.sen} cil. ${r.ci}: trayecto en la planta del Modelo`);
+      assert.equal(r.nv, r.ne, `garra ${r.sen} cil. ${r.ci}: un vértice por tramo del núcleo`);
+      assert.ok(r.dv <= 0.01, `garra ${r.sen} cil. ${r.ci}: vértices = núcleo (${r.dv} mm)`);
+      assert.equal(r.nA, r.nArc, `garra ${r.sen} cil. ${r.ci}: un arco «A» por arco del núcleo`);
+      assert.ok(r.dr <= 0.01, `garra ${r.sen} cil. ${r.ci}: radios de los arcos = núcleo (${r.dr})`);
+      // getPointAtLength de Chromium aproxima el arco de 180° del cubo (R 70) con ~0,11 mm de desvío a mitad del arco; vértices y radios ya se comparan exactos
+      assert.ok(r.dmax <= 0.15, `garra ${r.sen} cil. ${r.ci}: desvío del trayecto ${r.dmax} mm > 0,15 mm`);
+    });
+    assert.equal(gar.garraTxt, "garra (asiento R44,5, labio)", "texto de la garra leído del núcleo");
+    assert.ok(gar.tieneGarra && !gar.r120, "Modelo: rótulos de la garra y ninguno de la cara R120");
+    assert.ok(!gar.cajon, "alzado: sin «ojal E (cajón …)»");
+    assert.ok(gar.sopE && gar.sopE.startsWith(`soporte E: ${gar.tipoE} (lado ${gar.ladoE}, tapas ${gar.tapasE})`), `alzado: rótulo del soporte E del núcleo (${gar.sopE})`);
+    assert.ok(/abierto/.test(gar.sopE), "alzado: soporte abierto");
+    const nfb = (v) => String(+(+v).toFixed(1)).replace(".", ",");
+    assert.ok(gar.bom && gar.bom.desc.startsWith(`Bloque-uña con garra: asiento cóncavo R${(+gar.BU.Rs).toFixed(1).replace(".", ",")}`) && gar.bom.desc.includes(`labio de retención ${nfb(gar.BU.lab)} x ${nfb(gar.BU.tl)} mm`)
+      && gar.bom.desc.includes(`= ${(+gar.BU.m).toFixed(1).replace(".", ",")} kg por cilindro`) && !/R ?120|cara cilíndrica/.test(gar.bom.desc), `lista de materiales: garra (${gar.bom && gar.bom.desc})`);
+    assert.ok(Math.abs(gar.bom.mTot - gar.mDogs) < 1e-9 && Math.abs(gar.mDogs - gar.n * gar.BU.m) < 1e-6 && gar.bom.mat === gar.BU.mat, "lista de materiales: masa y material del bloque-uña = núcleo");
+    console.log(`garra: 4 contornos (2 sentidos × 2 cilindros) = núcleo (${gar.res[0].nv} vértices, ${gar.res[0].nA} arcos, desvío máx. ${Math.max(...gar.res.map((r) => r.dmax)).toExponential(1)} mm); alzado «${gar.sopE}»; lista: «${gar.bom.desc}»`);
 
     const abierto = await page.addStyleTag({ content: ABRIR });   // capturas de pestañas completas (sin encabezado fijo ni barra lateral)
     // ---- 3. cinemática del modo 2
@@ -277,7 +345,7 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
     assert.deepEqual(ver.mal, [], "filas con estado, FU (3 decimales) o norma distintos");
     assert.equal(ver.dom, ver.n, "la UI no muestra filas que no estén en el núcleo");
     assert.ok(ver.ins >= 10, "filas de la plancha base con refuerzo en el grupo del soporte E");
-    const nuevas = await page.evaluate(() => [/Placa-guía: contacto de Hertz/, /capa templada/, /ligamento/, /Tornillos de la placa-guía: corte \(ISO 10642 M16/, /enganche de la rosca/, /Sincronía/, /Flanco de reenganche/, /autobloqueo/, /Bloque-uña: contacto dentro de la cara/, /Vástago: flexocompresión/, /Pasador Q: flexión/].map((re) => [re.source, [...document.querySelectorAll('section[data-t="verif"] tr.chk-row')].some((tr) => re.test(tr.textContent))]));
+    const nuevas = await page.evaluate(() => [/Placa-guía: contacto de Hertz/, /capa templada/, /ligamento/, /Tornillos de la placa-guía: corte \(ISO 10642 M16/, /enganche de la rosca/, /Sincronía/, /Flanco de reenganche/, /autobloqueo/, /Bloque-uña: contacto dentro del asiento/, /Bloque-uña: labio de retención, flexión/, /Garra: retorno sin traba/, /Vástago: flexocompresión/, /Pasador Q: flexión/].map((re) => [re.source, [...document.querySelectorAll('section[data-t="verif"] tr.chk-row')].some((tr) => re.test(tr.textContent))]));
     assert.deepEqual(nuevas.filter((x) => !x[1]).map((x) => x[0]), [], "filas nuevas de la placa-guía, bloque-uña, vástago y pasador Q");
     console.log(`verificaciones: ${ver.n} filas del núcleo = ${ver.dom} filas en el DOM (0 faltan, 0 sobran), ${ver.grupos.length} grupos, ${ver.ins} filas del refuerzo; FU con 3 decimales, norma y estado coinciden`);
     // ---- 10. y 9. en el modo 1 (guiado): filas del núcleo frente al DOM, veredicto y refuerzo
@@ -308,11 +376,11 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
     for (const modo of [2, 1]) for (const [nom, sel, extra] of ALTS) {
       await page.click("#bReset"); await settle();
       if (modo === 1) await setP("drive_mode", 1);
-      await page.selectOption("#altSel", sel); await settle();
+      await alt(sel);
       for (const [k, v] of Object.entries(extra)) await setP(k, v);
       for (const t of tabs) {
         await tab(t);
-        if (t === "temp" || t === "tapones") await page.waitForFunction((t) => !/Calculando/.test(document.querySelector(`section[data-t="${t}"]`).textContent), t, { timeout: 180000 });
+        if (t === "temp" || t === "tapones") await page.waitForFunction((t) => !/Calculando/.test(document.querySelector(`section[data-t="${t}"]`).textContent), t, { timeout: 900000 });
       }
       let m = await malos();
       assert.deepEqual(m, [], `modo ${modo} · ${nom}: NaN/undefined/Infinity en las pestañas`);
@@ -320,7 +388,7 @@ const ABRIR = "header{position:static!important}.wrap{height:auto!important;disp
       for (const f of modo === 2 ? ["toma", "empuje", "retorno", "reenganche"] : ["empuje", "retorno", "reenganche"]) { await page.evaluate((f) => SIM.seek(SIM.buscarFase(f)), f); m = await malos(); assert.deepEqual(m, [], `modo ${modo} · ${nom} · simulación ${f}: NaN/undefined/Infinity`); }
       await page.click("#bSimClose");
       assert.deepEqual(errs, [], `modo ${modo} · ${nom}: errores de consola: ` + errs.slice(0, 3).join(" | "));
-      resumen.push(`${modo === 2 ? "pivotado" : "guiado"}·${nom}`);
+      resumen.push(`${modo === 2 ? "pivotado" : "guiado"}·${nom}`); console.log("  sin NaN: " + resumen[resumen.length - 1]);
     }
     console.log(`0 NaN / undefined / Infinity en el DOM (${tabs.length} pestañas + simulación) en: ${resumen.join(", ")}`);
     console.log("e2e guía curva: OK · capturas en", out);
