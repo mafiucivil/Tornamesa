@@ -101,24 +101,65 @@ Fcol = max(Tdis * 1e3 / P["n_cyl"] / q["aef"] for q in pts) * kf / eta
 chk("Caso dis: F colineal de referencia (kN)", Fcol, max(t["F_cil_colineal"] for t in PV["cinematica"]))
 
 print("== 3. Holguras (geometría propia) ==")
-def poly_dist(poly, x, y):
-    best = float("inf"); inside = True; sg = 0
-    for i in range(len(poly)):
-        ax, ay = poly[i]; bx, by = poly[(i + 1) % len(poly)]; ex, ey = bx - ax, by - ay
-        t = max(0, min(1, ((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey)))
+def poly_dist(poly, x, y):   # distancia con signo (ray casting: vale para polígonos no convexos)
+    best = float("inf"); inside = False; n = len(poly)
+    for i in range(n):
+        ax, ay = poly[i]; bx, by = poly[(i + 1) % n]; ex, ey = bx - ax, by - ay
+        l2 = ex * ex + ey * ey; t = max(0, min(1, ((x - ax) * ex + (y - ay) * ey) / l2)) if l2 > 0 else 0
         best = min(best, math.hypot(x - ax - t * ex, y - ay - t * ey))
-        cr = ex * (y - ay) - ey * (x - ax)
-        if cr: sg = sg or (1 if cr > 0 else -1); inside = inside and ((cr > 0) == (sg > 0))
+        if (ay > y) != (by > y) and x < ax + (bx - ax) * (y - ay) / (by - ay): inside = not inside
     return -best if inside else best
+# Garra del bloque-uña (12-11-2026), construcción propia en el marco local (x hacia el pasador tomado, y = t hacia O): asiento R_s con centro en (L_qp + R_s − r; 0),
+# 90° hacia el labio (−t) y pv_wrap − 90° hacia el lado abierto (+t); labio con cara recta y = −R_s hasta X_c + pv_lip, espesor pv_tlip, chaflanes 45° de pv_rfil;
+# nariz R_n tangente al asiento; rampa a pv_ramp del eje tangente a la nariz hasta el borde interior del cuerpo; transición a 45° del dorso del labio al borde exterior.
+def claw_geo(Lqp_):
+    Rs = P["pv_rseat"]; Xc = Lqp_ + Rs - r; eb = P["pv_dq"] / 2 + 25
+    yb = P["pv_bu"] / 2 - P["pv_ecr"]; yo = P["pv_ecr"] + P["pv_bu"] / 2
+    phi = math.radians(P["pv_wrap"] - 90); be = math.radians(P["pv_ramp"]); rn = P["pv_rfil"]; e = P["pv_lip"]; tL = P["pv_tlip"]; yL = Rs + tL; xt = Xc + e
+    chI = min(rn, e); chO = min(rn, tL / 2); D = yo - yL
+    Cn = (Xc - (Rs + rn) * math.cos(phi), (Rs + rn) * math.sin(phi))
+    # la rampa (dirección 180° + β) es tangente a la nariz por arriba: punto de tangencia en la normal (−sen β, cos β)
+    T = (Cn[0] - rn * math.sin(be), Cn[1] + rn * math.cos(be)); R0 = (T[0] - (T[1] - yb) / math.tan(be), yb)
+    lines = [((-eb, -yo), (Xc - abs(D), -yo)), ((Xc - abs(D), -yo), (Xc, -yL)), ((Xc, -yL), (xt - chO, -yL)), ((xt - chO, -yL), (xt, -yL + chO)), ((xt, -yL + chO), (xt, -Rs - chI)),
+             ((xt, -Rs - chI), (xt - chI, -Rs)), ((xt - chI, -Rs), (Xc, -Rs)), (T, R0), (R0, (-eb, yb)), ((-eb, yb), (-eb, -yo))]
+    # arcos (centro, radio, ángulo inicial, barrido con signo): asiento de 270° a 180° − φ (horario), nariz de −φ a 90° + β (antihorario)
+    arcs = [((Xc, 0.0), Rs, 1.5 * math.pi, -(math.pi / 2 + phi)), (Cn, rn, -phi, math.pi / 2 + be + phi)]
+    def dense(n):
+        pl = [lines[k][0] for k in range(7)]
+        for (c_, R_, a0, d_) in arcs: pl += [(c_[0] + R_ * math.cos(a0 + d_ * j / n), c_[1] + R_ * math.sin(a0 + d_ * j / n)) for j in range(n + 1)]
+        return pl + [R0, (-eb, yb)]
+    return dict(lines=lines, arcs=arcs, Rs=Rs, Xc=Xc, eb=eb, yb=yb, yo=yo, phi=phi, R0=R0, T=T, Cn=Cn, xt=xt, yL=yL, poly=dense(24), fine=dense(2000), bb=(R0[0], max(xt, Cn[0] + rn), -yo, Cn[1] + rn))
+def claw_dist(cg, x, y):   # distancia propia (exacta en líneas y arcos) al contorno sin el cubo; signo por ray casting cerca del bloque
+    best = float("inf")
+    for (a, b) in cg["lines"]:
+        ex, ey = b[0] - a[0], b[1] - a[1]; l2 = ex * ex + ey * ey; t = max(0, min(1, ((x - a[0]) * ex + (y - a[1]) * ey) / l2)) if l2 > 0 else 0
+        best = min(best, math.hypot(x - a[0] - t * ex, y - a[1] - t * ey))
+    for (c_, R_, a0, d_) in cg["arcs"]:
+        ang = math.atan2(y - c_[1], x - c_[0])
+        k_ = ((ang - a0) * (1 if d_ > 0 else -1)) % (2 * math.pi)
+        if k_ <= abs(d_) + 1e-12: best = min(best, abs(math.hypot(x - c_[0], y - c_[1]) - R_))
+        else: best = min(best, *(math.hypot(x - c_[0] - R_ * math.cos(a), y - c_[1] - R_ * math.sin(a)) for a in (a0, a0 + d_)))
+    x0, y0 = -cg["eb"], -cg["yo"]
+    if x0 - 1 <= x <= cg["bb"][1] + 1 and y0 - 1 <= y <= cg["bb"][3] + 1:
+        inside = False; pl = cg["poly"]; n = len(pl)
+        for i in range(n):
+            ax, ay = pl[i]; bx, by = pl[(i + 1) % n]
+            if (ay > y) != (by > y) and x < ax + (bx - ax) * (y - ay) / (by - ay): inside = not inside
+        if inside: return -best
+    return best
+_cg = {}
+def claw(Lqp_):
+    if Lqp_ not in _cg: _cg[Lqp_] = claw_geo(Lqp_)
+    return _cg[Lqp_]
 def block_polys(Q, u):
-    t = (-u[1], u[0]); eb = P["pv_dq"] / 2 + 25; s2 = Lqp - r; s1 = s2 - P["pv_lf"]
-    def rect(o, s0, s1_, w):
-        return [(o[0] + s * u[0] + k * w / 2 * t[0], o[1] + s * u[1] + k * w / 2 * t[1]) for s, k in ((s0, -1), (s1_, -1), (s1_, 1), (s0, 1))]
-    Qs = (Q[0] - P["pv_ecr"] * t[0], Q[1] - P["pv_ecr"] * t[1])
-    return [rect(Qs, -eb, s1, P["pv_bu"]), rect(Q, s1, s2, P["pv_bf"])], eb
+    t = (-u[1], u[0]); cg = claw(Lqp)
+    return [[(Q[0] + px * u[0] + py * t[0], Q[1] + px * u[1] + py * t[1]) for px, py in cg["poly"]]], cg["eb"]
 def clr_block(Q, u, pins):
-    polys, eb = block_polys(Q, u)
-    return min(min(min(poly_dist(pg, x, y) for pg in polys), math.hypot(x - Q[0], y - Q[1]) - eb) for x, y in pins) - r
+    cg = claw(Lqp); out = float("inf")
+    for x, y in pins:
+        dx, dy = x - Q[0], y - Q[1]; xl, yl = dx * u[0] + dy * u[1], -dx * u[1] + dy * u[0]
+        out = min(out, claw_dist(cg, xl, yl), math.hypot(dx, dy) - cg["eb"])
+    return out - r
 clrB = min(clr_block(q["Q"], q["u"], [pin(q["th"] - pitch), pin(q["th"] + pitch)]) for q in pts)
 chk("Holgura bloque-uña–pasador siguiente en el empuje (mm)", clrB, PV["holgura_pasador_siguiente"])
 def seg_dist(a, b):
@@ -313,16 +354,69 @@ Ncam = max(NR, Tst)
 print("== 5. Verificaciones del bloque, pasadores, ojal E y placa-leva (BTH-1 Cat. B, AISC J3) ==")
 Nd, Fs, Fy = P["Nd"], Fst * 1e3, P["Fy"]
 bu, hu = P["pv_bu"], P["pv_hu"]
-# cara convexa del bloque: la resultante del contacto (inclinada atan μ_s) pasa a μ_Q·d_Q/2 de Q; la normal pasa por el centro de curvatura y por P
-s2b = Lqp - r; Rfc = P["pv_rface"]; rho_ = math.atan(mu_s); dR_ = P["pv_muE"] * P["pv_dq"] / 2
-if Rfc > 0: sg_ = (s2b * math.sin(rho_) + dR_) / (s2b - Rfc); ecb = Rfc * sg_
-else: ecb = s2b * math.tan(rho_) + dR_
-Es_ = P["E"] / (2 * (1 - P["nu"] ** 2)); qb = P["k_edge"] * Fs / hu; Refb = 1 / (1 / r + (1 / Rfc if Rfc > 0 else 0))
-chk("Bloque: contacto dentro de la cara e_c + b_Hertz (mm)", ecb + math.sqrt(4 * qb * Refb / (math.pi * Es_)), row("Bloque-uña: contacto dentro de la cara")["dem"]); chk("  b_f/2 − 3 (mm)", P["pv_bf"] / 2 - 3, row("Bloque-uña: contacto dentro de la cara")["cap"])
-chk("Bloque: Hertz cara convexa–pasador (MPa)", math.sqrt(qb * Es_ / (math.pi * Refb)), row("Bloque-uña: contacto de Hertz cara–pasador")["dem"])
-s1b = s2b - P["pv_lf"]
-chk("Bloque: F/(bh) + 6F(e_cr + e + e_c·s₁/s₂)/(hb²) (MPa)", Fs / (bu * hu) + 6 * Fs * (P["pv_ecr"] + P["e_dog"] + ecb * s1b / s2b) / (hu * bu * bu), row("Bloque-uña: compresión + flexión en el cuerpo acodado")["dem"])
-if ecb + math.sqrt(4 * qb * Refb / (math.pi * Es_)) > P["pv_bf"] / 2 - 3: fails.append("contacto fuera de la cara del bloque"); print("XX  contacto fuera de la cara")
+# garra (12-11-2026): bloque libre en Q con roce en el asiento; momento en Q de la fuerza del pasador resuelto por bisección (sin la fórmula cerrada del núcleo)
+cg = claw(Lqp); Rs = cg["Rs"]; Xc = cg["Xc"]; rho_ = math.atan(mu_s); dR_ = P["pv_muE"] * P["pv_dq"] / 2; Es_ = P["E"] / (2 * (1 - P["nu"] ** 2)); qb = P["k_edge"] * Fs / hu
+def gam_of(sm, sq):   # contacto C = C_s − R_s·n, n = (cos γ, sen γ); fuerza sobre el pasador N·n + sm·μ·N·τ; su recta pasa a sq·d_R de Q
+    def M(g):
+        n_ = (math.cos(g), math.sin(g)); tau = (-n_[1], n_[0]); C = (Xc - Rs * n_[0], -Rs * n_[1]); f = (n_[0] + sm * mu_s * tau[0], n_[1] + sm * mu_s * tau[1])
+        return (C[0] * f[1] - C[1] * f[0]) - sq * dR_ * math.hypot(*f)
+    lo, hi = -0.6, 0.6
+    for _ in range(80):
+        mid = (lo + hi) / 2
+        if (M(lo) > 0) == (M(mid) > 0): lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+gam = max(abs(gam_of(a_, b_)) for a_ in (1, -1) for b_ in (1, -1)); ecb = Rs * math.sin(gam)
+GB = PV["fabricacion"]["bloque_una"]; GV_ = GB["verificacion"]
+chk("Garra: ángulo del contacto en el asiento |γ| con roce, ambos sentidos (°)", math.degrees(gam), GB["asiento"]["contacto"]["gamma_deg"], tol=1e-6)
+Refb = 1 / (1 / r - 1 / Rs); bHb = math.sqrt(4 * qb * Refb / (math.pi * Es_)); p0b = math.sqrt(qb * Es_ / (math.pi * Refb))
+chk("Garra: Hertz conforme pasador–asiento p₀ (MPa)", p0b, row("Bloque-uña: contacto de Hertz conforme")["dem"])
+if p0b > 0.9 * 1.67 * P["Fy_surf"]: fails.append("Hertz del asiento")
+chk("Garra: contacto dentro del asiento R_s·|γ| + b (mm)", Rs * gam + bHb, row("Bloque-uña: contacto dentro del asiento")["dem"]); chk("  arco del lado abierto R_s·φ (mm)", Rs * cg["phi"], row("Bloque-uña: contacto dentro del asiento")["cap"])
+if Rs * gam + bHb > 0.9 * Rs * cg["phi"]: fails.append("contacto fuera del asiento"); print("XX  contacto fuera del asiento")
+Hl = Fs / math.pi; tL = P["pv_tlip"]
+chk("Garra: labio, flexión 6·(F/π)·e/(h·t²) (MPa)", 6 * Hl * P["pv_lip"] / (hu * tL * tL), row("Bloque-uña: labio de retención, flexión")["dem"]); chk("Garra: labio, corte 1,5·(F/π)/(h·t) (MPa)", 1.5 * Hl / (hu * tL), row("Bloque-uña: labio de retención, corte")["dem"])
+if 6 * Hl * P["pv_lip"] / (hu * tL * tL) > 0.9 * P["Fy_dog"] / Nd: fails.append("labio en flexión")
+# cuello: corte propio del contorno denso en el fondo del asiento x = L_qp − r; cuerpo al pie de la rampa
+xN = Lqp - r - 1e-6; ys_ = []
+pl_ = cg["fine"]
+for i in range(len(pl_)):
+    (ax, ay), (bx, by) = pl_[i], pl_[(i + 1) % len(pl_)]
+    if (ax - xN) * (bx - xN) < 0: ys_.append(ay + (by - ay) * (xN - ax) / (bx - ax))
+bN = max(ys_) - min(ys_); ycN = (max(ys_) + min(ys_)) / 2; xC = Xc - Rs * math.cos(gam)
+chk("Garra: ancho del cuello en el fondo del asiento (mm)", bN, PV["bloque_una"]["b_cuello"], tol=2e-4)
+chk("Garra: cuello F/(b·h) + 6F·(e + |y_c| + e_c·s₂/x_C)/(h·b²) (MPa)", Fs / (bN * hu) + 6 * Fs * (P["e_dog"] + abs(ycN) + ecb * (Lqp - r) / xC) / (hu * bN * bN), row("Bloque-uña: compresión + flexión en el cuello")["dem"], tol=2e-3)
+chk("Bloque: F/(bh) + 6F(e_cr + e + e_c·s₁/x_C)/(hb²) (MPa)", Fs / (bu * hu) + 6 * Fs * (P["pv_ecr"] + P["e_dog"] + ecb * cg["R0"][0] / xC) / (hu * bu * bu), row("Bloque-uña: compresión + flexión en el cuerpo acodado")["dem"])
+# masa propia: área de la polilínea densa + segmento circular del cubo sobre el borde interior (y_b = 0 por defecto: semicírculo)
+pl2 = cg["fine"]; Aw = sum(pl2[i][0] * pl2[(i + 1) % len(pl2)][1] - pl2[(i + 1) % len(pl2)][0] * pl2[i][1] for i in range(len(pl2))) / 2
+eb_ = cg["eb"]; yb_ = cg["yb"]; Aw += eb_ * eb_ * math.acos(yb_ / eb_) - yb_ * math.sqrt(eb_ * eb_ - yb_ * yb_)
+mB = 7.85e-6 * (hu * Aw - (P["b_eye"] + 2 * P["g_ch"]) * 2 * eb_ * eb_); lP = P["h_disc"] / 2 + P["t_base"] + hu / 2 - (P["t_base"] + 2); mPQ = 7.85e-6 * math.pi / 4 * P["pv_dq"] ** 2 * lP
+chk("Garra: masa del bloque-uña con el pasador Q (kg)", mB + mPQ, GB["masa"], tol=1e-4)
+# contorno exportado (caja negra) frente a la construcción propia: extremos de la garra y tangencias
+ex_ = {q["rol"]: q for q in GB["contorno"]}
+chk("Garra: centro del asiento exportado X_c (mm)", ex_["asiento"]["centro"][0], Xc, tol=1e-9); chk("  punta del labio (mm)", GB["labio"]["punta_x"], cg["xt"], tol=1e-9)
+chk("  pie de la rampa (mm)", ex_["rampa"]["p1"][0], cg["R0"][0], tol=1e-9); chk("  tangencia nariz–rampa (mm)", ex_["rampa"]["p0"][0], cg["T"][0], tol=1e-9)
+# toma: aproximación con Q en el nivel c (bloque alineado con el vástago); primer contacto propio con la garra y su normal; labio libre
+pT = pin(th0); Lc_ = None
+def loc_(Q, u, p): dx, dy = p[0] - Q[0], p[1] - Q[1]; return dx * u[0] + dy * u[1], -dx * u[1] + dy * u[0]
+Lx = L0
+while Lx <= Ls_ + 10:
+    Qa, ua = Qof(Lx, c); xl, yl = loc_(Qa, ua, pT)
+    if claw_dist(cg, xl, yl) - r <= 0: Lc_ = Lx; break
+    Lx += 0.01
+Qa, ua = Qof(Lc_, c); xl, yl = loc_(Qa, ua, pT)
+cn_ = math.hypot(xl - cg["Cn"][0], yl - cg["Cn"][1]) - P["pv_rfil"] - r; cs_ = Rs - math.hypot(xl - Xc, yl) - r
+cen = cg["Cn"] if abs(cn_) < abs(cs_) else (Xc, 0.0)
+ang_n = math.atan2(abs(yl - cen[1]), abs(xl - cen[0]))
+chk("Toma: recorrido hasta el primer contacto con la garra (mm)", Lc_ - L0, GV_["toma"]["s"], tol=0, absol=0.02)
+chk("Toma: ángulo de la normal del primer contacto con el eje (°)", math.degrees(ang_n), GV_["toma"]["angulo_normal_deg"], tol=0, absol=0.05)
+if ang_n <= rho_: fails.append("toma: el contacto no centra el pasador")
+lipmin = float("inf"); Lx = L0
+while Lx <= Lc_:
+    Qa, ua = Qof(Lx, c); xl, yl = loc_(Qa, ua, pT)
+    lipmin = min(lipmin, yl + Rs - r if xl <= cg["xt"] + r else float("inf")); Lx += 0.5
+if lipmin < 1: fails.append("el labio toca el pasador en la toma"); print("XX  labio en la toma")
+print(f"    garra: |γ| = {math.degrees(gam):.2f}°, p₀ = {p0b:.0f} MPa, contacto {Rs * gam + bHb:.1f}/{Rs * cg['phi']:.1f} mm, toma en s = {Lc_ - L0:.2f} mm (normal {math.degrees(ang_n):.1f}°), labio a ≥ {lipmin:.1f} mm")
 zc0 = P["h_disc"] / 2 + P["t_base"]                              # interfaz acero–acero: δ = 0
 tq = (hu - P["b_eye"] - 2 * P["g_ch"]) / 2
 lq = (zc0 - P["b_eye"] / 2 - P["g_ch"] - tq / 2) - (P["t_base"] + P["pv_tcam"] / 2)

@@ -1483,18 +1483,96 @@ test("Placa-guía curva · API: segmentos en designDrive y contacto de la simula
   assert.ok(pl.tolerancia_polilinea <= 0.1 && pl.material && /42CrMo4/.test(pl.material) && pl.pernos.norma);
   for (const s of [40, 120, 200]) { const q = TT.pivotAt(P, s, "empuje", "antihorario"); assert.ok(chainDist(TT.pivotGeo(P).placas["1_antihorario"].segmentos_canto, q.contactoLeva.punto) <= 0.5, "contacto sobre el canto en s = " + s); assert.ok(q.contactoLeva.F > 0); }
 });
-test("Bloque-uña · contacto dentro de la cara con el roce (cara cilíndrica convexa): la cara plana lo deja en la arista", () => {
-  const P = P2(), A = TT.analyze(P, { noFEA: true }), R = A.R, bk = R.blk, rr = P.d_pin / 2, s2 = R.K.Lqp - rr, rho = Math.atan(P.mu_s), dR = P.pv_muE * P.pv_dq / 2;
+test("Bloque-uña · contacto dentro de la cara con el roce (cara cilíndrica convexa heredada, pv_rseat = 0): la cara plana lo deja en la arista", () => {
+  const P = P2({ pv_rseat: 0 }), A = TT.analyze(P, { noFEA: true }), R = A.R, bk = R.blk, rr = P.d_pin / 2, s2 = R.K.Lqp - rr, rho = Math.atan(P.mu_s), dR = P.pv_muE * P.pv_dq / 2;
   const row = (X) => X.checks.find((c) => /contacto dentro de la cara/.test(c.name)), r0 = row(A);
   const sg = (s2 * Math.sin(rho) + dR) / (s2 - P.pv_rface), ec = P.pv_rface * sg, Fs = R.Fstall * 1e3, q = P.k_edge * Fs / P.pv_hu, Es = P.E / (2 * (1 - P.nu ** 2)), Ref = 1 / (1 / rr + 1 / P.pv_rface);
   near(r0.dem, ec + Math.sqrt(4 * q * Ref / (Math.PI * Es)), 1e-9, "e_c + b_Hertz"); near(r0.cap, P.pv_bf / 2 - 3, 1e-12); assert.ok(r0.fu <= 0.9, "contacto dentro de la cara con FU ≤ 0,90: " + r0.fu.toFixed(3));
-  const flat = TT.analyze(P2({ pv_rface: 0 }), { noFEA: true }), rf0 = row(flat);
+  const flat = TT.analyze(P2({ pv_rseat: 0, pv_rface: 0 }), { noFEA: true }), rf0 = row(flat);
   near(rf0.dem - Math.sqrt(4 * P.k_edge * Fs / P.pv_hu * rr / (Math.PI * Es)), s2 * Math.tan(rho) + dR, 1e-9, "cara plana: e_c = s₂·tan ρ + d_R"); assert.equal(rf0.st, "fail", "con cara plana el pasador apoya en la arista");
   // la excentricidad del contacto entra al cuerpo acodado y a la cara; el bloque girado hacia afuera sigue libre de los pasadores
   const body = A.checks.find((c) => /compresión \+ flexión en el cuerpo acodado/.test(c.name));
   near(body.dem, Fs / (P.pv_bu * P.pv_hu) + 6 * Fs * (P.pv_ecr + P.e_dog + ec * bk.s1 / bk.s2) / (P.pv_hu * P.pv_bu ** 2), 1e-9); assert.ok(body.fu <= 0.9);
   assert.ok(R.camP.push.every((g) => g.clrB >= P.pv_cB), "bloque girado el ángulo de equilibrio libre de los pasadores");
-  const G = TT.pivotGeo(P); near(G.bloque.R_cara, P.pv_rface, 1e-12); assert.ok(bk.mBlk < TT.pivBlkGeo(P2({ pv_rface: 0 }), R.K).mBlk, "la cara convexa descuenta el material de las aristas");
+  const G = TT.pivotGeo(P); near(G.bloque.R_cara, P.pv_rface, 1e-12); assert.ok(bk.mBlk < TT.pivBlkGeo(P2({ pv_rseat: 0, pv_rface: 0 }), R.K).mBlk, "la cara convexa descuenta el material de las aristas");
+});
+/* ======================= Garra del bloque-uña: asiento cóncavo, labio de retención y rampa (12-11-2026, observación del mandante sobre CON-010) ======================= */
+const segAng = (a, b) => { const t0 = segTan(a, a.p1), t1 = segTan(b, b.p0); return Math.abs(Math.atan2(t0[0] * t1[1] - t0[1] * t1[0], t0[0] * t1[0] + t0[1] * t1[1])); };
+test("Garra · geometría: asiento cóncavo R_s concéntrico con el pasador, abrazo, labio que sobrepasa el centro, nariz y rampa; contorno cerrado de líneas y arcos con radios ≥ 5", () => {
+  const P = P2(), R = TT.compute(P), G = TT.pivotGeo(P), g = G.bloque.garra, r = P.d_pin / 2, Lqp = R.K.Lqp, Rs = P.pv_rseat, Xc = Lqp + Rs - r;
+  assert.ok(Rs > r && Rs - r <= 3, "R_s = Ø/2 + holgura (≤ 3 mm): " + Rs);
+  assert.ok(g && g.contorno_valido && g.contorno.length >= 10, "contorno exportado");
+  // cerrado, encadenado, segmentos completos y con rol
+  g.contorno.forEach((s, i) => { const n = g.contorno[(i + 1) % g.contorno.length]; assert.ok(Math.hypot(s.p1[0] - n.p0[0], s.p1[1] - n.p0[1]) < 1e-9, "encadenado " + i); assert.ok(s.rol && (s.tipo === "linea" || (s.radio > 0 && s.centro && s.sentido)), "segmento completo"); });
+  const by = (rol) => g.contorno.filter((s) => s.rol === rol), A = by("asiento")[0], N = by("nariz")[0], Ra = by("rampa")[0], Lc = by("labio_cara")[0];
+  // asiento: centro (L_qp + R_s − r; 0), radio R_s, fondo a L_qp − r de Q (el pasador asentado queda a L_qp: cinemática sin cambio)
+  near(A.radio, Rs, 1e-12, "R_asiento"); near(A.centro[0], Xc, 1e-12, "X_c"); assert.ok(Math.abs(A.centro[1]) < 1e-12);
+  near(g.asiento.fondo_x, Lqp - r, 1e-12, "fondo del asiento"); near(g.asiento.abrazo_total_deg, P.pv_wrap, 1e-12, "abrazo total"); near(g.asiento.abrazo_lado_labio_deg, 90, 1e-12);
+  // tangencias: cara del labio → asiento → nariz → rampa (G1)
+  assert.ok(segAng(Lc, A) < 1e-9 && segAng(A, N) < 1e-9 && segAng(N, Ra) < 1e-9, "garra G1 en la cara del labio, el asiento, la nariz y la rampa");
+  // labio del lado de avance (−t): cara en y = −R_s, sobrepasa el centro del asiento en pv_lip, espesor pv_tlip, chaflanes ≥ 5
+  near(-Lc.p0[1], Rs, 1e-12); near(g.labio.punta_x, Xc + P.pv_lip, 1e-12, "saliente del labio"); assert.ok(g.labio.punta_x > Lqp + 0.25 * r, "el labio sobrepasa el pasador");
+  near(-g.labio.dorso_y, Rs + P.pv_tlip, 1e-12); by("chaflan_labio").forEach((s) => assert.ok(Math.hypot(s.p1[0] - s.p0[0], s.p1[1] - s.p0[1]) >= 5 * Math.SQRT2 - 1e-9, "chaflán ≥ 5"));
+  // nariz R ≥ 5 y rampa a pv_ramp del eje bajando al borde interior del cuerpo
+  assert.ok(N.radio >= 5); near(Math.atan2(Ra.p0[1] - Ra.p1[1], Ra.p0[0] - Ra.p1[0]) * 180 / Math.PI, P.pv_ramp, 1e-9, "ángulo de la rampa"); assert.ok(Math.abs(Ra.p1[1] - (P.pv_bu / 2 - P.pv_ecr)) < 1e-9, "la rampa baja al borde interior del cuerpo");
+  // el contorno es antihorario y su área (polilínea fina) es la del núcleo; masa del bloque = ρ·(h·área − ranura del ojal) + pasador Q
+  const pl = []; g.contorno.forEach((s) => { if (s.tipo === "linea") { pl.push(s.p0); return; } const k = s.sentido === "antihorario" ? 1 : -1, a0 = Math.atan2(s.p0[1] - s.centro[1], s.p0[0] - s.centro[0]); let d = k * (Math.atan2(s.p1[1] - s.centro[1], s.p1[0] - s.centro[0]) - a0); while (d <= 0) d += 2 * Math.PI; for (let i = 0; i < 2000; i++) { const a = a0 + k * d * i / 2000; pl.push([s.centro[0] + s.radio * Math.cos(a), s.centro[1] + s.radio * Math.sin(a)]); } });
+  let Ar = 0; pl.forEach((p, i) => { const q = pl[(i + 1) % pl.length]; Ar += (p[0] * q[1] - q[0] * p[1]) / 2; });
+  near(Ar, g.area_planta, 1e-5, "área en planta"); const eb = P.pv_dq / 2 + 25;
+  near(R.blk.mBlk, 7.85e-6 * (P.pv_hu * g.area_planta - (P.b_eye + 2 * P.g_ch) * 2 * eb * eb), 1e-9, "masa del bloque"); near(R.m.dogs, P.n_cyl * R.blk.m, 1e-12, "m.dogs");
+  // pv_rface queda obsoleto con la garra
+  near(TT.compute(P2({ pv_rface: 60 })).blk.m, R.blk.m, 1e-12, "pv_rface no actúa con pv_rseat > 0");
+  // exportación: pivotGeo y la fabricación llevan la misma garra
+  const F = TT.designDrive(P, R).pivotado.fabricacion.bloque_una;
+  assert.deepEqual(F.contorno, g.contorno); assert.ok(F.asiento && F.labio && F.rampa && F.nariz && F.verificacion && F.cara.obsoleta);
+  near(F.masa, R.blk.m, 1e-12, "masa exportada");
+});
+test("Garra · toma con el pasador entrando al asiento, salida al final del empuje y retorno sin traba (la rampa del dorso monta el pasador siguiente)", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), R = A.R, SK = R.seatK, rho = Math.atan(P.mu_s);
+  assert.ok(SK && SK.toma.ok, "toma: " + JSON.stringify(SK && SK.toma));
+  assert.ok(["asiento", "nariz"].includes(SK.toma.rol) && SK.toma.angulo_normal > rho, "primer contacto en el asiento o en la nariz de entrada, normal > atan μ_s");
+  assert.ok(SK.toma.holgura_labio >= 1, "el labio no choca con el pasador al llegar: " + SK.toma.holgura_labio);
+  assert.ok(SK.toma.s > 0 && SK.toma.s <= P.s_free + 1, "contacto dentro del recorrido libre");
+  assert.ok(SK.salida.holgura >= 0.1, "salida sin interferencia: " + SK.salida.holgura);
+  assert.ok(SK.retorno.contactos > 0 && Object.keys(SK.retorno.roles).every((k) => k === "rampa" || k === "nariz") && SK.retorno.roles.rampa > 0, "el pasador siguiente monta por la rampa: " + JSON.stringify(SK.retorno.roles));
+  // en el empuje el pasador queda asentado: centro del pasador a R_s − r del centro del asiento en todas las posiciones
+  for (const s of [30, 80, 140, 200]) { const q = TT.pivotAt(P, s, "empuje", "antihorario"); assert.ok(q.asiento && q.asiento.asentado); near(Math.hypot(q.asiento.centro[0] - q.pasadores.A[0], q.asiento.centro[1] - q.pasadores.A[1]), P.pv_rseat - P.d_pin / 2, 1e-3, "pasador asentado en s = " + s); }
+  const row = (re, X) => (X || A).checks.find((c) => re.test(c.name));
+  for (const re of [/^Garra: en la toma el pasador entra al asiento/, /^Garra: labio libre del pasador tomado/, /^Garra: salida del pasador/, /^Garra: retorno sin traba/, /^Garra: radios y chaflanes/]) { const r = row(re); assert.ok(r && r.st === "ok", re + " " + (r && r.st)); }
+  // una rampa empinada con roce alto se autobloquea y un abrazo largo del lado abierto rompe el flanco del reenganche
+  assert.equal(row(/^Garra: retorno sin traba/, TT.analyze(P2({ pv_ramp: 60, mu_s: 1.2 }), { noFEA: true })).st, "fail", "β + atan μ ≥ 90°: autobloqueo");
+  assert.equal(row(/^Sincronía del retorno/, TT.analyze(P2({ pv_wrap: 130 }), { noFEA: true })).st, "fail", "abrazo de 40° del lado abierto: el flanco queda limitado a α_máx y la sincronía no cumple");
+});
+test("Garra · holguras con los pasadores anterior y siguiente, sincronía, placa-guía, orejas y mesa (mínimos del proyecto)", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), R = A.R, C = R.camP;
+  assert.ok(C.push.filter((g) => g.ok).every((g) => g.clrB >= P.pv_cB), "bloque libre de los pasadores en el empuje guiado ≥ pv_cB");
+  assert.ok(R.K.clrB >= P.pv_cB, "cinemática colineal");
+  assert.ok(C.sync >= P.pv_msync + C.guia.dTol && C.guia.syncWorst >= P.pv_msync, "sincronía nominal y en el peor caso: " + C.sync);
+  assert.ok(C.guia.phiRetMax <= P.pv_alpha, "flanco ≤ α_máx");
+  for (const re of [/^Bloque-uña libre de los pasadores en el empuje guiado/, /^Sincronía del retorno/, /^Sincronía en el peor caso/, /^Orejas de izaje libres de las partes móviles/, /^Bloque-uña dentro de la luz libre/, /^Bloque-uña sobre la placa-leva/, /^Pasador Q fuera de la mesa/]) { const r = A.checks.find((c) => re.test(c.name)); assert.ok(r && r.st === "ok", re + " " + (r && r.st)); }
+  // el bloque gira casi nada respecto de Q–P (asiento conforme): δ < 0,1° (la cara convexa daba 5,3°)
+  assert.ok(R.blk.dBlk * 180 / Math.PI < 0.1 && TT.compute(P2({ pv_rseat: 0 })).blk.dBlk * 180 / Math.PI > 5);
+  // retorno: el bloque nunca penetra los pasadores
+  C.guia.ret.forEach((q) => assert.ok(q.hol >= -1e-6, "retorno sin penetración en L = " + q.L.toFixed(1)));
+});
+test("Garra · resistencia a calado: Hertz conforme, contacto dentro del asiento, cuello, labio (BTH-1 §3-2.3 y §3-2.3.6) y equilibrio con roce en ambos sentidos", () => {
+  const P = P2(), A = TT.analyze(P, { noFEA: true }), R = A.R, bk = R.blk, r = P.d_pin / 2, Rs = P.pv_rseat, Xc = R.K.Lqp + Rs - r, rho = Math.atan(P.mu_s), dR = P.pv_muE * P.pv_dq / 2, Fs = R.Fstall * 1e3, Nd = P.Nd;
+  assert.ok(Math.abs(Fs / 1e3 - 445) < 1, "carga gobernante: calado ≈ 445 kN");
+  // equilibrio del bloque libre en Q: sen(γ ± ρ) = (±R_s·sen ρ ± d_R)/X_c, el peor de las 4 combinaciones
+  let g = 0; for (const a of [1, -1]) for (const b of [1, -1]) { const x = -a * rho + Math.asin((a * Rs * Math.sin(rho) + b * dR) / Xc); if (Math.abs(x) > Math.abs(g)) g = x; }
+  near(bk.gam, Math.abs(g), 1e-12, "γ"); near(bk.ec, Rs * Math.sin(Math.abs(g)), 1e-12, "e_c");
+  const row = (re) => A.checks.find((c) => re.test(c.name));
+  const Es = P.E / (2 * (1 - P.nu ** 2)), q = P.k_edge * Fs / P.pv_hu, Ref = 1 / (1 / r - 1 / Rs), p0 = Math.sqrt(q * Es / (Math.PI * Ref)), bH = Math.sqrt(4 * q * Ref / (Math.PI * Es));
+  const H = row(/^Bloque-uña: contacto de Hertz conforme/); near(H.dem, p0, 1e-9, "p₀ conforme"); near(H.cap, 1.67 * P.Fy_surf, 1e-12, "cap Hertz");
+  const Ct = row(/^Bloque-uña: contacto dentro del asiento/); near(Ct.dem, Rs * Math.abs(g) + bH, 1e-9, "contacto"); near(Ct.cap, Rs * (P.pv_wrap - 90) * Math.PI / 180, 1e-9, "arco abierto");
+  const Hl = Fs / Math.PI, t = P.pv_tlip, LF = row(/^Bloque-uña: labio de retención, flexión/), LV = row(/^Bloque-uña: labio de retención, corte/);
+  near(LF.dem, 6 * Hl * P.pv_lip / (P.pv_hu * t * t), 1e-12, "flexión del labio"); near(LF.cap, P.Fy_dog / Nd, 1e-12, "Fy/Nd"); near(LV.dem, 1.5 * Hl / (P.pv_hu * t), 1e-12, "corte del labio"); near(LV.cap, P.Fy_dog / (Nd * Math.sqrt(3)), 1e-12, "Fy/(Nd√3)");
+  assert.ok(/§3-2\.3/.test(LF.ref) && /§3-2\.3\.6/.test(LV.ref));
+  const CU = row(/^Bloque-uña: compresión \+ flexión en el cuello/), cu = bk.cuello; near(CU.dem, Fs / (cu.b * P.pv_hu) + 6 * Fs * (P.e_dog + Math.abs(cu.yc) + bk.ec * bk.s2 / bk.xC) / (P.pv_hu * cu.b ** 2), 1e-12, "cuello");
+  for (const re of [/^Bloque-uña: compresión \+ flexión en el cuerpo acodado/, /^Bloque-uña: compresión \+ flexión en el cuello/, /^Bloque-uña: corte por la fuerza transversal del roce en el asiento/, /^Bloque-uña: contacto de Hertz conforme/, /^Bloque-uña: contacto dentro del asiento/, /^Bloque-uña: labio de retención/, /^Pasador Q: flexión/, /^Pasador Q: corte doble/])
+    A.checks.filter((c) => re.test(c.name)).forEach((c) => assert.ok(c.st === "ok" && c.fu <= 0.9, c.name + " FU " + c.fu));
+  // el asiento conforme baja Hertz frente a la cara convexa
+  assert.ok(p0 < 0.25 * TT.analyze(P2({ pv_rseat: 0 }), { noFEA: true }).checks.find((c) => /^Bloque-uña: contacto de Hertz cara–pasador/.test(c.name)).dem);
 });
 test("Golden file · modo pivotado (drive_mode = 2): resultados por defecto sin cambios no justificados", () => {
   const A = TT.analyze(P2()), R = A.R, K = R.K;
@@ -1602,7 +1680,7 @@ test("Planos · designDrive exporta la geometría de fabricación de ambos modos
   const P2 = TT.defaults(), F2 = TT.designDrive(P2, TT.compute(P2)).pivotado.fabricacion;
   for (const k of ["soporte_E", "pasador_E", "bloque_una", "pasador_Q", "placas_leva"]) assert.ok(F2[k], "falta " + k);
   assert.equal(Object.keys(F2.placas_leva.instancias).length, 4); assert.ok(F2.soporte_E.tapas.t === P2.pv_tl && F2.soporte_E.ventana.sector_deg.length === 4 && F2.soporte_E.juntas.length >= 6);
-  assert.ok(F2.bloque_una.contorno_local.cuerpo.length === 4 && F2.bloque_una.agujero_Q === P2.pv_dq); fin(F2);
+  assert.ok((F2.bloque_una.garra ? F2.bloque_una.contorno.length >= 10 && F2.bloque_una.contorno_local.cuerpo.length > 4 : F2.bloque_una.contorno_local.cuerpo.length === 4) && F2.bloque_una.agujero_Q === P2.pv_dq); fin(F2);   // con la garra (12-11-2026) el contorno exacto va en tramos linea/arco
   const ex = JSON.parse(require("child_process").execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "export_design.js")], { maxBuffer: 1 << 28 }).toString());
   assert.ok(ex.pivotado && ex.pivotado.fabricacion && ex.modo === 2, "export_design lleva la geometría del modo por defecto");
 });
