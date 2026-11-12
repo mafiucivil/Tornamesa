@@ -436,7 +436,7 @@ chk("Soporte E: filete de refuerzo mínimo AWS D1.1 Tabla 5.8 (mm)", wmin_(max(P
 chk("Soporte E: distancia de la cara exterior al borde de la base (mm)", P["B"] / 2 - (max(abs(E[0]), abs(E[1])) + bE), row("Soporte del ojal E: acceso exterior")["cap"])
 # pasador E (22-11-2026): 10 mm sobre la tapa superior; por debajo, al ras de la tapa inferior o hasta 10 mm, dejando 10 mm de diseño (≥ 5) sobre la cara del
 # inserto de esquina (con el saliente fijo de 10 mm el extremo quedaba bajo la cara del inserto)
-PE_ = PV["fabricacion"]["pasador_E"]; tIns_ = SE["inserto"]["t"] if SE.get("inserto") else P["t_base"]
+PE_ = PV["fabricacion"]["pasador_E"]; INS_ = SE.get("refuerzo") or SE.get("inserto"); tIns_ = INS_["t"] if INS_ else P["t_base"]   # cara superior del refuerzo (z = t_base + t_d)
 zTi_ = SE["tapas"]["z_inf"][0]; zTs_ = SE["tapas"]["z_sup"][1]
 z0_ = min(zTi_, max(zTi_ - 10, tIns_ + 10)); z1_ = zTs_ + 10
 chk("Pasador E: extremo inferior (z, mm)", z0_, PE_["z"][0]); chk("Pasador E: extremo superior (z, mm)", z1_, PE_["z"][1]); chk("Pasador E: largo (mm)", z1_ - z0_, PE_["largo"])
@@ -478,9 +478,14 @@ Mr = math.hypot(P["pv_muE"] * Pr * P["pv_dq"] / 2, P["m_cyl"] * 9.80665 * Lc_ / 
 chk("Vástago: P_r/P_c + 8/9·M_r/M_c", Pr / Pc + 8 / 9 * Mr / Mc, row("Vástago: flexocompresión")["dem"])
 est = [v for v in D["verificaciones"] if v["grp"] in ("Uña", "Articulaciones", "Soporte del ojal E", "Placas-leva") and v["fu"] is not None and v["estado"] not in ("info", "pend")]
 print(f"    FU máximo en las filas nuevas del modo 2: {max(v['fu'] for v in est):.3f} ({len(est)} filas)")
-GEO = ("holgura vertical", "holgura en planta", "holgura a la mesa", "queda sobre el inserto", "Filete", "Pasadores de posición", "filete de refuerzo", "acceso exterior", "rincón para el filete", "garganta efectiva", "largo de la zapata", "distancia al borde", "enganche de la rosca", "capa templada", "deformación del ligamento", "separación mínima")              # criterios geométricos (FU ≤ 1), no de resistencia
+GEO = ("holgura vertical", "holgura en planta", "holgura a la mesa", "queda sobre el inserto", "queda sobre el refuerzo", "refuerzo: filete mínimo", "refuerzo: tapones", "atiesador tangencial: holguras", "Filete", "Pasadores de posición", "filete de refuerzo", "acceso exterior", "rincón para el filete", "garganta efectiva", "largo de la zapata", "distancia al borde", "enganche de la rosca", "capa templada", "deformación del ligamento", "separación mínima")              # criterios geométricos (FU ≤ 1), no de resistencia
 res = [v for v in est if not any(g in v["nombre"] for g in GEO)]
 print(f"    FU máximo de resistencia: {max(v['fu'] for v in res):.3f} ({len(res)} filas)")
+# excepción (12-11-2026): la flexión de la base junto al refuerzo cuadrado de 35 mm (el máximo bajo el cuerpo del cilindro) queda en FU 0,91–0,94 (advertencia, ≤ 1)
+exc_ = [v for v in res if "con refuerzo de" in v["nombre"] and "flexión de la base y del refuerzo" in v["nombre"]]
+if exc_: print(f"    refuerzo cuadrado (advertencia admitida, ≤ 1): FU máx. {max(v['fu'] for v in exc_):.3f}")
+if any(v["fu"] > 1 for v in exc_): fails.append("refuerzo: FU > 1"); print("XX  refuerzo FU > 1")
+res = [v for v in res if v not in exc_]
 if max(v["fu"] for v in res) > 0.90: fails.append("FU > 0,90 en el modo 2"); print("XX  FU > 0,90")
 
 print("== 5b. Elementos sobre la base: orejas de izaje, placas-guía (reflexiones y rotaciones), soportes E y partes móviles (geometría propia) ==")

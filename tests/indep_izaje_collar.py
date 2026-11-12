@@ -308,8 +308,8 @@ def evaluar(label, D, detalle=False):
     mb, md, mp_, mr, mc = m_base(PP), m_disc(PP), m_pivot(PP), m_rim(PP), PP["n_cyl"] * PP["m_cyl"]
     # inserto de esquina bajo las ménsulas (decisión del mandante 10-11-2026; geometría exportada): el marco se interrumpe a lo largo de los dos catetos de
     # cada inserto (+50 mm); la masa del inserto y el acortamiento de mejillas y suplemento van dentro de «brackets» (del núcleo)
-    INS = (D.get("levaGuiada") or {}).get("fabricacion", {}).get("inserto") if D.get("levaGuiada") else None
-    if INS and INS.get("estado") == "cumple":
+    INS = ((D.get("levaGuiada") or {}).get("fabricacion", {}).get("refuerzo") or (D.get("levaGuiada") or {}).get("fabricacion", {}).get("inserto")) if D.get("levaGuiada") else None
+    if INS and INS.get("esquinas"):   # geometría exportada (el núcleo descuenta el marco y suma la masa aunque el refuerzo no cumpla la flexión)
         mr -= INS["n"] * RHO * PP["rim_h"] * PP["rim_t"] * sum(min(PP["B"], L_ + 50) for L_ in INS["catetos"])
     c("m.base (plancha − taladro + collar + 4 orejas)", mb, M["base"])
     c("m.disc (mesa, con rebaje del cubo)", md, M["disc"])
@@ -351,7 +351,7 @@ def evaluar(label, D, detalle=False):
             a_, b_ = pl[i_], pl[i_ - 1]
             if (a_[1] > q[1]) != (b_[1] > q[1]) and q[0] < (b_[0] - a_[0]) * (q[1] - a_[1]) / (b_[1] - a_[1]) + a_[0]: c_ = not c_
         return c_
-    t_seat = INS["t"] if INS and INS.get("estado") == "cumple" and any(inside_(pl, q) for pl in INS["esquinas"] for q in cen_) else PP["t_base"]
+    t_seat = max(PP["t_base"], INS.get("t_d", INS["t"])) if INS and INS.get("esquinas") and any(inside_(pl, q) for pl in INS["esquinas"] for q in cen_) else PP["t_base"]   # parte más gruesa: el refuerzo (t_d) o la base
     t_thick, t_thin = max(t, t_seat), min(t, t_seat)
     ear.append(("Oreja: filete mínimo", min(wmin_aws(t_thick), t_thin), we, False))   # AWS D1.1 Tabla 5.8 (parte más gruesa), sin exceder la más delgada
     ear.append(("Oreja: filete máximo", we, wmax_aisc(t), False))                    # AISC 360-22 J2.2b

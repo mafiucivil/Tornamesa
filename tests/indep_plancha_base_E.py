@@ -122,144 +122,102 @@ except ImportError:
 RHO = 7.85e-6
 
 
-def vol_inserto(I, Px, C1, h=2.0):
-    """Volumen sobre t_base del inserto de la esquina C1 (marco canónico desde los signos del contorno): cara = t_base + mín(Δ; d/2,5) con d el mínimo de la
-    distancia a la hipotenusa y la de cada muesca (semiespacios con chaflán); rebaje: cara ≤ z_cara + d_fuera/2,5 (borde 1:2,5). Integración por puntos medios."""
-    import numpy as np
-    from matplotlib.path import Path
-    Bh = Px["B"] / 2; tb = Px["t_base"]; D_ = I["delta"]; k = 2.5; c = I["hipotenusa_dist_centro"] * math.sqrt(2)
-    sx = 1 if sum(x for x, _ in C1) > 0 else -1; sy = 1 if sum(y for _, y in C1) > 0 else -1
-    toC = lambda p: (sx * p[0], -sy * p[1])
-    g = np.arange(-Bh + h / 2, Bh, h); X, Y = np.meshgrid(g, g, indexing="ij"); X = X.ravel(); Y = Y.ravel()
-    m = (X - Y >= c - 1) & Path(np.array([toC(p) for p in C1])).contains_points(np.column_stack([X, Y]))
-    X, Y = X[m], Y[m]; d = (X - Y - c) / math.sqrt(2)
-    mx, my = I["muescas"].get("lado_x"), I["muescas"].get("lado_y")
-    if mx:
-        dn = np.maximum(mx["a"] - X, mx["b"] - Y)
-        if mx.get("chaflan", 0) > 0: dn = np.maximum(dn, (mx["a"] + mx["b"] + mx["chaflan"] - X - Y) / math.sqrt(2))
-        d = np.minimum(d, dn)
-    if my:
-        dn = np.maximum(X - my["a"], Y - my["b"])
-        if my.get("chaflan", 0) > 0: dn = np.maximum(dn, (my["chaflan"] - (my["a"] - X) - (my["b"] - Y)) / math.sqrt(2))
-        d = np.minimum(d, dn)
-    z = tb + np.clip(d / k, 0, D_)
-    rb = I.get("rebaje")
-    if rb:
-        pts = np.column_stack([X, Y])
-        for pl in rb["poligonos"]:
-            if not Path(np.array(C1)).contains_points(np.array(pl)).any(): continue
-            q = np.array([toC(p) for p in pl]); ins = Path(q).contains_points(pts); dd = np.full(X.size, 1e18)
-            for a, b in zip(q, np.roll(q, -1, 0)):
-                ab = b - a; L2 = ab @ ab
-                if L2 < 1e-12: continue
-                tt = np.clip(((pts - a) @ ab) / L2, 0, 1); dd = np.minimum(dd, np.hypot(*(pts - (a + tt[:, None] * ab)).T))
-            dd[ins] = 0.0; z = np.minimum(z, np.maximum(rb["z_cara"] + dd / k, tb))
-    return float(((z - tb) * h * h).sum())
-
-
 def ins_check(Dx, I, label, mode, nexp):
-    Px = Dx["P"]; Bh = Px["B"] / 2; tb = Px["t_base"]; Fyx, Ndx = Px["Fy"], Px["Nd"]; DVx = Dx["derivados"]
-    need(I is not None and I["estado"] == "cumple", f"{label}: inserto exportado y cumple")
+    """Refuerzo cuadrado soldado sobre la base (doubler, 12-11-2026): geometría propia desde los vértices, holguras, tapones (AISC 360-22 §J2.3), corte rasante
+    propio (V = F_cal + M·6·t_d·t_b/t³ frente a tapones + filetes + PJP), masa propia, pie de las orejas, mejillas y pasador E sobre el refuerzo, casos y estado."""
+    Px = Dx["P"]; Bh = Px["B"] / 2; tb = Px["t_base"]; Fyx, Ndx = Px["Fy"], Px["Nd"]; DVx = Dx["derivados"]; Fw = 0.60 * Px["FEXX"] / (1.20 * Ndx)
+    need(I is not None and I["estado"] == "cumple", f"{label}: refuerzo exportado y cumple")
     if I is None: return None
-    need(I["t"] > tb and I["z"] == [0, I["t"]] and abs(I["delta"] - (I["t"] - tb)) < 1e-9, f"{label}: t = {I['t']} mm > t_base, al ras por debajo (z = [0; t])")
-    need(len(I["esquinas"]) == nexp, f"{label}: {nexp} insertos")
+    td = I["t_d"]; a = I["lado"]
+    need(I["t"] == tb + td and I["z"] == [tb, I["t"]], f"{label}: refuerzo de {td} mm SOBRE la base (z = [{tb}; {I['t']}]); la base queda al ras sobre la losa")
+    need(len(I["esquinas"]) == nexp, f"{label}: {nexp} refuerzos")
+    for k, pl in enumerate(I["esquinas"]):
+        xs = [p[0] for p in pl]; ys = [p[1] for p in pl]
+        need(len(pl) == 4 and abs(max(xs) - min(xs) - a) < 1e-6 and abs(max(ys) - min(ys) - a) < 1e-6 and abs(max(abs(x) for x in xs) - Bh) < 1e-6 and abs(max(abs(y) for y in ys) - Bh) < 1e-6,
+             f"{label}: esquina {k + 1}: cuadrado de {a:.0f} mm con un lado sobre cada borde de la base")
     C1 = I["esquinas"][0]
-    need(all(abs(x) <= Bh + 1e-9 and abs(y) <= Bh + 1e-9 for x, y in C1), f"{label}: vértices dentro de la base")
-    need(all(abs(p[0] + q[0]) < 1e-9 and abs(p[1] + q[1]) < 1e-9 for p, q in zip(C1, I["esquinas"][1])), f"{label}: el segundo inserto es la rotación de 180°")
-    # hipotenusa: aristas con x − y constante (esquina (+x; −y)); distancia al centro = (x − y)/√2
-    sgx = 1 if sum(x for x, _ in C1) > 0 else -1; sgy = 1 if sum(y for _, y in C1) > 0 else -1
-    hyp = [(p, q) for p, q in zip(C1, C1[1:] + C1[:1]) if abs((q[0] - p[0]) * sgx + (q[1] - p[1]) * sgy) < 1e-6 and math.hypot(q[0] - p[0], q[1] - p[1]) > 1]
-    dh = min(abs(sgx * p[0] + sgy * p[1]) / math.sqrt(2) for p, _ in hyp) if hyp else float("nan")
-    chk(f"{label}: distancia de la hipotenusa al centro (mm)", dh, I["hipotenusa_dist_centro"])
-    need(dh - Px["D_top"] / 2 >= 5, f"{label}: hipotenusa fuera de la mesa con ≥ 5 mm ({dh - Px['D_top'] / 2:.0f} mm)")
-    # CJP: bordes que no están sobre el borde de la base
-    onB = lambda p, q: (abs(p[0] - q[0]) < 1e-6 and abs(abs(p[0]) - Bh) < 1e-6) or (abs(p[1] - q[1]) < 1e-6 and abs(abs(p[1]) - Bh) < 1e-6)
-    Lcjp = sum(math.hypot(q[0] - p[0], q[1] - p[1]) for p, q in zip(C1, C1[1:] + C1[:1]) if not onB(p, q))
-    J = [j for j in I["juntas"] if j["id"] == "J-I1"][0]
-    chk(f"{label}: largo de la CJP inserto–base por inserto (mm)", Lcjp, J["largo"])
-    need("1:2,5" in J["tipo"] and "CJP" in J["tipo"] and J["verificacion"]["fu"] <= 1, f"{label}: J-I1 CJP con transición 1:2,5 y FU ≤ 1")
-    # transición: el espesor pleno empieza a 2,5·Δ de los bordes interiores
+    need(all(abs(p[0] + q[0]) < 1e-9 and abs(p[1] + q[1]) < 1e-9 for p, q in zip(C1, I["esquinas"][1])), f"{label}: el segundo refuerzo es la rotación de 180°")
+    need(not any(k in I for k in ("transicion", "rebaje", "muescas")) and not any(j["id"] == "J-I1" for j in I["juntas"]), f"{label}: sin transición, rebaje, muescas ni CJP J-I1")
+    # holgura a la mesa: esquina interior del cuadrado
+    sx = 1 if sum(x for x, _ in C1) > 0 else -1; sy = 1 if sum(y for _, y in C1) > 0 else -1
+    dm = math.hypot(Bh - a, Bh - a) - Px["D_top"] / 2
+    chk(f"{label}: holgura de la esquina interior a la mesa (mm)", dm, I["holgura_mesa"]); need(dm >= 5, f"{label}: esquina fuera de la mesa con ≥ 5 mm ({dm:.1f})")
+    # tapones (AISC §J2.3)
+    T = I["tapones"]; fill = td if td <= 16 else max(td / 2, 16)
+    need(T["d"] >= td + 8 and T["d"] <= max(td + 11, 2.25 * fill) and abs(T["profundidad_relleno"] - fill) < 1e-9, f"{label}: tapón Ø{T['d']} (≥ t + 8 = {td + 8}), relleno {fill:.1f} (§J2.3a/b)")
+    ok_sp = all(math.hypot(p[0] - q[0], p[1] - q[1]) >= 4 * T["d"] - 1e-6 for ps in T["posiciones"] for i, p in enumerate(ps) for q in ps[i + 1:])
+    need(ok_sp, f"{label}: separación entre tapones ≥ 4·Ø = {4 * T['d']} mm")
+    # corte rasante propio
+    cs = {c["id"]: c for c in I["casos"]}; Fc = A_p * Px["p_relief"] / 10 / 1e3; h_ = cs["cal"]["h"]; M_ = Fc * h_ / 1e3
+    V_ = Fc + M_ * 1e6 * 6 * td * tb / I["t"] ** 3 / 1e3
+    cap_ = (T["n_por_esquina"] * math.pi / 4 * T["d"] ** 2 + 2 * a * 0.707 * I["filetes"]["bordes_interiores"]["tamano"] + 2 * a * (I["filetes"]["bordes_exteriores_PJP"]["S"] - 3)) * Fw / 1e3
+    chk(f"{label}: corte rasante V = F + M·6·t_d·t_b/t³ (kN)", V_, I["corte_rasante"]["V_kN"]); chk(f"{label}: capacidad tapones + filetes + PJP (kN)", cap_, I["corte_rasante"]["capacidad_kN"])
+    need(V_ / cap_ <= 1, f"{label}: unión base–refuerzo FU {V_ / cap_:.3f} ≤ 1")
+    # masa propia
+    m_ = RHO * (a * a * td - T["n_por_esquina"] * math.pi / 4 * T["d"] ** 2 * (td - fill))
+    At = I.get("atiesadores")
+    if At: m_ += RHO * At["t"] * At["h"] * At["largo"]
+    chk(f"{label}: masa por esquina (kg)", m_, I["masa"]); chk(f"{label}: masa de los refuerzos en la masa total (kg)", I["n"] * I["masa"], DVx["masas"]["insertos"])
+    if At:
+        dmin = min(math.hypot(x, y) for r in At["por_esquina"] for x, y in r["poligono"]) - Px["D_top"] / 2
+        need(dmin >= 5 - 1e-6 and At["fu"] <= 1 and At["fu_soldadura"] <= 1, f"{label}: atiesador tangencial {At['t']}×{At['h']}×{At['largo']} fuera de la mesa ({dmin:.1f} mm), FU {At['fu']:.2f}")
     if Polygon:
-        out, full = Polygon(C1), Polygon(I["esquinas_espesor_pleno"][0])
-        inner = unary_union([LineString([p, q]) for p, q in zip(C1, C1[1:] + C1[:1]) if not onB(p, q)])
-        dmin = min(inner.distance(Point(p)) for p in full.exterior.coords if not (abs(abs(p[0]) - Bh) < 1e-6 or abs(abs(p[1]) - Bh) < 1e-6))
-        print(f"    {label}: el espesor pleno empieza a {dmin:.1f} mm de los bordes interiores (≥ 2,5·Δ = {2.5 * I['delta']:.1f})")
-        need(dmin >= 2.5 * I["delta"] - 1e-6, f"{label}: transición 1:2,5 (el espesor pleno no se acerca a los bordes interiores a menos de 2,5·Δ)")
-        A_out, A_full = out.area, full.area
-        rb = I.get("rebaje")
-        # masa propia (22-11-2026): sólido con biseles planos 1:2,5 entre el contorno y el espesor pleno (cara = t_base + mín(Δ; d/2,5), d = distancia a la
-        # hipotenusa y a cada muesca con su chaflán a 45°), menos el rebaje con su borde 1:2,5; integración en una grilla de 2 mm (numpy), no la cuña (A_c − A_p)·Δ/2
-        m_own = RHO * vol_inserto(I, Px, C1)
-        m_cuna = RHO * (A_full * I["delta"] + (A_out - A_full) * I["delta"] / 2)
-        print(f"    {label}: masa con biseles planos {m_own:.2f} kg (cuña anterior {m_cuna:.2f} kg); núcleo {I['masa']:.2f} kg")
-        chk(f"{label}: masa añadida por inserto, biseles planos (kg)", m_own, I["masa"], tol=5e-3)
-        chk(f"{label}: masa de los insertos en la masa total (kg)", I["n"] * I["masa"], DVx["masas"]["insertos"])
-        # pie de las orejas de la diagonal y mejillas de la ménsula (modo guiado) sobre el espesor pleno con ≥ 5 mm; pasador E sobre la cara del inserto
+        sqs = [Polygon(pl) for pl in I["esquinas"]]
         yl = Bh - Px["c_lug"]; hwe = Px["t_ear"] / 2 + Px["w_ear"]; nOn = 0
         for cx_, cy_ in ((Px["x_lug"], yl), (-Px["x_lug"], yl), (Px["x_lug"], -yl), (-Px["x_lug"], -yl)):
             r_ = math.hypot(cx_, cy_); ux, uy = cx_ / r_, cy_ / r_
-            foot = Polygon([(cx_ + a * Px["R_ear"] * ux - k * hwe * uy, cy_ + a * Px["R_ear"] * uy + k * hwe * ux) for a, k in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
-            for i_, pl in enumerate(I["esquinas"]):
-                if not Polygon(pl).contains(Point(cx_, cy_)): continue
-                nOn += 1; Fp = Polygon(I["esquinas_espesor_pleno"][i_]); mg = Fp.exterior.distance(foot) if Fp.contains(foot) else -foot.difference(Fp).area
-                if rb:
-                    for q in rb["poligonos"]: mg = min(mg, Polygon(q).distance(foot) - 2.5 * rb["profundidad"])
-                need(mg >= 5 - 1e-6, f"{label}: pie de la oreja de izaje en ({cx_:.0f}; {cy_:.0f}) sobre el espesor pleno con {mg:.1f} mm (≥ 5)")
-        need(nOn >= 2, f"{label}: orejas de la diagonal sobre el inserto ({nOn})")
+            foot = Polygon([(cx_ + a_ * Px["R_ear"] * ux - k * hwe * uy, cy_ + a_ * Px["R_ear"] * uy + k * hwe * ux) for a_, k in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+            for sq in sqs:
+                if not sq.contains(Point(cx_, cy_)): continue
+                nOn += 1; mg = sq.exterior.distance(foot) if sq.contains(foot) else -1
+                need(mg >= 5 - 1e-6, f"{label}: pie de la oreja en ({cx_:.0f}; {cy_:.0f}) sobre el refuerzo con {mg:.1f} mm (≥ 5)")
+        need(nOn >= 2, f"{label}: orejas de la diagonal sobre el refuerzo ({nOn})")
         if mode == 1:
-            Mx = Dx["levaGuiada"]["fabricacion"]["mensula"]; bgx = DVx["bracket"]
-            need(abs(Mx["y_mejillas"][1] - Mx["y_mejillas"][0] - Px["L_ch"]) < 1e-9 and Mx["y_mejillas"][0] <= -bgx["rear"] + 1e-9 and Mx["y_mejillas"][1] >= bgx["lugF"] - 1e-9, f"{label}: mejillas de L_ch que cubren las orejas (retroceso {Mx['retroceso']:.0f} mm)")
-            for h_ in Mx["huellas"]:
-                hp = Polygon(h_["poly"]); i_ = next(i for i, pl in enumerate(I["esquinas"]) if Polygon(pl).intersects(hp)); Fp = Polygon(I["esquinas_espesor_pleno"][i_])
-                mg = Fp.exterior.distance(hp) if Fp.contains(hp) else -hp.difference(Fp).area
-                need(mg >= 5 - 1e-6, f"{label}: {h_['id']} de la ménsula {h_['mensula']} sobre el espesor pleno con {mg:.1f} mm (≥ 5)")
+            Mx = Dx["levaGuiada"]["fabricacion"]["mensula"]
+            for h2 in Mx["huellas"]:
+                hp = Polygon(h2["poly"]); sq = next(s for s in sqs if s.intersects(hp)); mg = sq.exterior.distance(hp) if sq.contains(hp) else -1
+                need(mg >= 5 - 1e-6, f"{label}: {h2['id']} de la ménsula {h2['mensula']} sobre el refuerzo con {mg:.1f} mm (≥ 5)")
         else:
-            pe = Dx["pivotado"]["fabricacion"]["pasador_E"]; tpi = [p for p in Dx["pivotado"]["fabricacion"]["soporte_E"]["piezas"] if p["id"] == "tapa_inf"][0]["z"]
-            need(pe["z"][0] - I["t"] >= 5 - 1e-9 and pe["z"][0] <= tpi[0] + 1e-9, f"{label}: pasador E de z {pe['z'][0]:.0f} (tapa inferior desde z {tpi[0]:.0f}) sobre el inserto de {I['t']} con {pe['z'][0] - I['t']:.0f} mm")
-        Jx = [j for j in I["juntas"] if j["id"] == "J-I1"][0]; pr = Jx["preparacion"]
-        need(Jx["designacion"].startswith("B-U3") and pr["T1"] == tb and pr["espesor_en_la_junta"]["inserto"] == tb and pr["angulo_alfa"] == 60 and pr["raiz_R"] == [0, 3] and pr["talon_f"] == [0, 3],
-             f"{label}: J-I1 {Jx['designacion']} ({Jx['designacion_estado']}), T1 = t_base = {tb} en la junta (transición 1:2,5), R 0–3, f 0–3, 60°")
-        # holguras en planta: placas-guía y cubo de Q (modo 2); banda del accionamiento (modo 1, con la holgura de la fila del núcleo)
-        if mode == 2:
+            pe = Dx["pivotado"]["fabricacion"]["pasador_E"]
+            need(pe["z"][0] - I["t"] >= 5 - 1e-9, f"{label}: pasador E de z {pe['z'][0]:.0f} sobre la cara del refuerzo ({I['t']}) con {pe['z'][0] - I['t']:.0f} mm")
             FB = Dx["pivotado"]["fabricacion"]; Rc = FB["bloque_una"]["horquilla"]["R_cubo"]
             obs = [Polygon(FB["placas_leva"]["instancias"][k]["contorno"]) for k in ("1_antihorario", "1_horario")]
             obs += [Point(q).buffer(Rc, 32) for k in ("1_antihorario", "1_horario") for q in Dx["pivotado"]["posiciones"][k]["Q"]]
-            dpl = min(o.distance(out) for o in obs)
-            print(f"    {label}: holgura en planta a placas-guía y cubo de Q (propia) {dpl:.1f} mm; núcleo {I['holguras']['planta']:.1f} mm")
+            dpl = min(o.distance(sqs[0]) for o in obs) - I["filetes"]["bordes_interiores"]["tamano"]
+            print(f"    {label}: holgura en planta (con el filete) a placas-guía y cubo de Q (propia) {dpl:.1f} mm; núcleo {I['holguras']['planta']:.1f} mm")
             need(dpl >= 5 - 0.5, f"{label}: holgura en planta ≥ 5 mm")
-        # altura: cuerpo del cilindro (fondo a z_eje − D/2) sobre el inserto o sobre el rebaje
-        zc = DVx["hax"] + tb; zb = zc - Px["D_body"] / 2; top = rb["z_cara"] if rb and any("cuerpo" in g for g in rb["bajo"]) else I["t"]
-        print(f"    {label}: cuerpo del cilindro a z = {zb:.1f} sobre la cara del inserto a {top:.1f} (rebaje: {'sí, ' + str(rb['profundidad']) + ' mm' if rb else 'no'}): {zb - top:.1f} mm; núcleo {I['holguras']['vertical']:.1f} mm")
-        need(zb - top >= 5 - 1e-9 and I["holguras"]["vertical"] >= 5 - 1e-9, f"{label}: holgura vertical al cuerpo del cilindro ≥ 5 mm")
+        zc = DVx["hax"] + tb; zb = zc - Px["D_body"] / 2
+        print(f"    {label}: cuerpo del cilindro a z = {zb:.1f} sobre la cara del refuerzo a {I['t']} (sin rebaje): {zb - I['t']:.1f} mm; núcleo {I['holguras']['vertical']:.1f} mm")
+        need(I["holguras"]["vertical"] >= 5 - 1e-9 and zb - I["t"] >= 5 - 1e-9, f"{label}: holgura vertical ≥ 5 mm")
     # casos: F, M = F·h, 1,25·Fy/Nd, linealidad
-    cs = {c["id"]: c for c in I["casos"]}; cx = {c["id"]: c for c in DVx["casos"]}
-    Fc = A_p * Px["p_relief"] / 10 / 1e3; Fr = A_a * Px["p_ret"] / 10 / 1e3
+    cx = {c["id"]: c for c in DVx["casos"]}
+    Fr = A_a * Px["p_ret"] / 10 / 1e3
     chk(f"{label}: F a calado (kN)", Fc, cs["cal"]["F_kN"]); chk(f"{label}: F del atasco del retorno (kN)", Fr, cs["ret"]["F_kN"])
     chk(f"{label}: F nominal = caso nominal (kN)", cx["nom"]["F"], cs["nom"]["F_kN"]); chk(f"{label}: F de diseño (kN)", cx["dis"]["F"], cs["dis"]["F_kN"])
     Wd = (DVx["masas"]["disc"] + DVx["masas"]["ssTop"] + 0.5 * DVx["masas"]["pivot"]) * 9.80665 / 1e3
     Fv = Px["ins_fsv"] * max(cx["dis"]["F"], cx["borde"]["F"], cx["cont"]["F"]) * Wd / DVx["N"]
-    chk(f"{label}: F de servicio con la mesa vacía, ins_fsv·máx(F_dis; F_borde; F_cont)·W_d/N (kN)", Fv, cs["vac"]["F_kN"], tol=5e-3)
+    chk(f"{label}: F de servicio con la mesa vacía (kN)", Fv, cs["vac"]["F_kN"], tol=5e-3)
     for k in cs: chk(f"{label}: M = F·h, caso {k} (kN·m)", cs[k]["F_kN"] * DVx["hax"] / 1e3, cs[k]["M_kNm"])
     chk(f"{label}: F_b = 1,25·Fy/Nd (MPa)", 1.25 * Fyx / Ndx, I["Fb"])
     need(abs(cs["nom"]["fu"] / cs["cal"]["fu"] - cs["nom"]["F_kN"] / cs["cal"]["F_kN"]) < 1e-9, f"{label}: σ proporcional a F con la mesa cargada")
-    R_ = [v for v in Dx["verificaciones"] if " inserto de " in v["nombre"] and "flexión" in v["nombre"]]
+    R_ = [v for v in Dx["verificaciones"] if "con refuerzo de" in v["nombre"] and "flexión" in v["nombre"]]
     need(len(R_) == 5 and all(v["fu"] <= 1 and v["estado"] in ("ok", "warn") and "§3-2.3.4" in v["ref"] for v in R_), f"{label}: 5 filas de flexión con FU ≤ 1 y BTH-1-2020 §3-2.3.4")
     VD = Dx["verdict"]
     need(VD["estado_global"] == "CUMPLE" and not VD["pendientes_criticos"], f"{label}: estado global CUMPLE sin pendientes críticos")
     need(any("presión de alivio con la mesa sin carga" in l["texto"] and "detener y liberar" in l["texto"] for l in VD["limitaciones_uso"]), f"{label}: limitación de uso en el veredicto")
-    print(f"    {label}: t = {I['t']} mm (Δ {I['delta']:.0f}), catetos {I['catetos'][0]:.0f} / {I['catetos'][1]:.0f} mm, hipotenusa a {I['hipotenusa_dist_centro']:.0f} mm, "
-          f"masa {I['masa']:.1f} kg × {I['n']}; FU núcleo: " + ", ".join(f"{k} {cs[k]['fu']:.3f}" for k in cs))
+    print(f"    {label}: cuadrado {a:.0f} × {a:.0f} × {td} mm (cara a z {I['t']}), {T['n_por_esquina']} tapones Ø{T['d']}, atiesador {'h ' + str(At['h']) if At else 'no'}, "
+          f"masa {I['masa']:.1f} kg × {I['n']}; FU núcleo: " + ", ".join(f"{k} {cs[k]['fu']:.3f}" for k in cs) + f"; corte rasante {V_ / cap_:.3f}")
     return I
 
 
-IN = {"por defecto": (D, SE["inserto"], 2, 2), "interfaz B": (DB, DB["pivotado"]["fabricacion"]["soporte_E"]["inserto"], 2, 2),
-      "guiado": (DG, DG["levaGuiada"]["fabricacion"]["inserto"], 1, round(DG["P"]["n_br"])), "guiado B": (DGB, DGB["levaGuiada"]["fabricacion"]["inserto"], 1, round(DGB["P"]["n_br"]))}
+IN = {"por defecto": (D, SE["refuerzo"], 2, 2), "interfaz B": (DB, DB["pivotado"]["fabricacion"]["soporte_E"]["refuerzo"], 2, 2),
+      "guiado": (DG, DG["levaGuiada"]["fabricacion"]["refuerzo"], 1, round(DG["P"]["n_br"])), "guiado B": (DGB, DGB["levaGuiada"]["fabricacion"]["refuerzo"], 1, round(DGB["P"]["n_br"]))}
 for lb, (Dx, I, md, nx) in IN.items(): ins_check(Dx, I, lb, md, nx)
 # interfaces A (inserto de 90 con rebaje y chaflán en las muescas) y A en el modo guiado: solo §3b (geometría, masa, asientos), no entran a la FEA
 DA = export({"drive_mode": 2, "opt_ss": 1}); DGA = export({"drive_mode": 1, "opt_ss": 1})
-ins_check(DA, DA["pivotado"]["fabricacion"]["soporte_E"]["inserto"], "interfaz A", 2, 2)
-ins_check(DGA, DGA["levaGuiada"]["fabricacion"]["inserto"], "guiado A", 1, round(DGA["P"]["n_br"]))
-need(IN["interfaz B"][1]["t"] > IN["por defecto"][1]["t"], "la interfaz B (eje más alto) pide un inserto más grueso")
+ins_check(DA, DA["pivotado"]["fabricacion"]["soporte_E"]["refuerzo"], "interfaz A", 2, 2)
+ins_check(DGA, DGA["levaGuiada"]["fabricacion"]["refuerzo"], "guiado A", 1, round(DGA["P"]["n_br"]))
+need(IN["interfaz B"][1]["t"] > IN["por defecto"][1]["t"], "la interfaz B (eje más alto) pide un refuerzo más grueso")
 p0 = D0["P"]; need(p0["t_base"] == 20, "base de 20 mm por defecto")
 
 if "--rapido" in sys.argv:
@@ -349,25 +307,21 @@ def fea(Bs, hm, tvec, supports, W_tab, R_tab, table="body", Ri=140.0, kslab=100.
 
 
 def tvec_of(I, tb, Bh):
-    """Espesor desde los polígonos exportados: t_base fuera; dentro del contorno t_base + Δ·mín(1, d/(2,5·Δ)) (d = distancia a los bordes
-    interiores, los que no están sobre el borde de la base); en el rebaje local, mín(·, z_cara)."""
+    """Espesor desde el refuerzo exportado (12-11-2026): t_base fuera; t_base + t_d dentro del cuadrado (sección compuesta); atiesador tangencial como franja
+    de 60 mm con el espesor equivalente de la T (base 60 × t_base + atiesador t × h)."""
     if I is None: return lambda x, y: np.full(np.shape(x), float(tb))
-    Dl = I["delta"]; sl = I["transicion"]["ancho"] / Dl
-    polys = [np.array(p, float) for p in I["esquinas"]]; paths = [Path(p) for p in polys]
-    segs = [(a, b) for p in polys for a, b in zip(p, np.roll(p, -1, 0))
-            if not ((abs(a[0] - b[0]) < 1e-6 and abs(abs(a[0]) - Bh) < 1e-6) or (abs(a[1] - b[1]) < 1e-6 and abs(abs(a[1]) - Bh) < 1e-6))]
-    pk = [Path(np.array(p, float)) for p in I["rebaje"]["poligonos"]] if I.get("rebaje") else []
+    paths = [Path(np.array(p, float)) for p in I["esquinas"]]; At = I.get("atiesadores")
+    if At:
+        w = 60.0; A1 = w * tb; A2 = At["t"] * At["h"]; y1 = tb / 2; y2 = tb + At["h"] / 2; yb = (A1 * y1 + A2 * y2) / (A1 + A2)
+        Iq = w * tb ** 3 / 12 + A1 * (y1 - yb) ** 2 + At["t"] * At["h"] ** 3 / 12 + A2 * (y2 - yb) ** 2; teq = (12 * Iq / w) ** (1 / 3)
+        axes = [np.array(r["eje"], float) for r in At["por_esquina"]]
     def f(x, y):
-        pts = np.column_stack([np.ravel(x), np.ravel(y)]); t_ = np.full(pts.shape[0], float(tb)); ins = np.zeros(pts.shape[0], bool)
-        for pa in paths: ins |= pa.contains_points(pts, radius=1e-6)
-        d = np.full(pts.shape[0], 1e18)
-        for a, b in segs:
-            ab = b - a; tt = np.clip(((pts - a) @ ab) / (ab @ ab), 0, 1); d = np.minimum(d, np.hypot(*(pts - (a + tt[:, None] * ab)).T))
-        t_[ins] = tb + Dl * np.minimum(1.0, d[ins] / (sl * Dl))
-        if pk:
-            m = np.zeros(pts.shape[0], bool)
-            for pa in pk: m |= pa.contains_points(pts)
-            t_[m & ins] = np.minimum(t_[m & ins], I["rebaje"]["z_cara"])
+        pts = np.column_stack([np.ravel(x), np.ravel(y)]); t_ = np.full(pts.shape[0], float(tb))
+        for pa in paths: t_[pa.contains_points(pts, radius=1e-6)] = float(I["t"])
+        if At:
+            for a_, b_ in axes:
+                ab = b_ - a_; tt = ((pts - a_) @ ab) / (ab @ ab); d = np.hypot(*(pts - (a_ + np.clip(tt, 0, 1)[:, None] * ab)).T)
+                m = (d <= w / 2) & (tt >= 0) & (tt <= 1) & (t_ < teq); t_[m] = teq
         return t_.reshape(np.shape(x))
     return f
 

@@ -721,6 +721,32 @@ if VR9 is not None:
     table("Prueba 9 – Plancha base bajo la ménsula (sin anclaje; ASME BTH-1 §3-2, Nd = 3)", ["Caso", "M (kN·m)", "σ o τ (MPa)", "FU"], rows9)
 
 # ======================================================================================
+# Prueba 10 – Pasadores de empuje a ras del disco y soldados (12-11-2026): sin perno M20 (MES-013) ni arandela (MES-014)
+# ======================================================================================
+print("\n### Prueba 10 – Pasadores de empuje a ras del disco, soldados (PJP en bisel 45° en cada anillo, a ras)")
+PE = D0.get("pasadores_empuje")
+rows10 = []
+if PE is None:
+    FIND.append(("P10", "importante", "La exportación no trae «pasadores_empuje» (unión soldada del pasador)", "—", "no"))
+else:
+    tpr_ = max(P["t_pr"], P["t_top"], P["t_bot"]); L_ = P["h_disc"] - tpr_
+    V_ = F_st / 1e3 * math.hypot(1, mu_s) * (0.5 + P["e_dog"] / L_)                 # kN, reacción en cada anillo (biapoyado, carga repartida en la uña, excentricidad e)
+    U_ = PE["union"]; E_ = U_["S"] - 3                                              # AISC 360-22 Tabla J2.1: bisel 45°, E = S − 3 mm
+    f_ = V_ * 1e3 / (math.pi * P["d_pin"] * E_); Fw_ = 0.60 * P["FEXX"] / (1.20 * Nd)   # la soldadura sola (sin descontar el aplastamiento)
+    comp("P10", "V del pasador en el anillo (kN)", V_, U_["V_kN"]); comp("P10", "E de la PJP (mm)", E_, U_["E"]); comp("P10", "f = V/(π·d·E) (MPa)", f_, ver("Soldadura pasador–anillo (PJP")["dem"])
+    comp("P10", "F_w = 0,60FEXX/(1,20Nd) (MPa)", Fw_, ver("Soldadura pasador–anillo (PJP")["cap"])
+    rows10.append(["soldadura pasador–anillo (cada extremo)", s3(V_), s3(f_), s3(f_ / Fw_)])
+    if f_ > Fw_: FIND.append(("P10", "importante", "Soldadura pasador–anillo con FU > 1", s3(f_ / Fw_), "no"))
+    if U_["S"] > tpr_ - 5: FIND.append(("P10", "importante", "El bisel de la PJP no cabe en el anillo", str(U_["S"]), "no"))
+    if PE["largo"] != P["h_disc"]: FIND.append(("P10", "importante", "El pasador no queda a ras (largo ≠ h_disc)", str(PE["largo"]), "no"))
+    if not any("MES-013" in e for e in PE["eliminado"]) or not any("MES-014" in e for e in PE["eliminado"]): FIND.append(("P10", "importante", "Perno M20 o arandela no eliminados", "—", "no"))
+    Nc_ = 2 * P["turns_yr"] * P["life"]
+    rows10.append(["fatiga (N = 2·vueltas·vida)", "—", str(int(Nc_)), "clase 0" if Nc_ <= 20000 else "verificar"])
+    if Nc_ > 20000: FIND.append(("P10", "importante", "Fatiga de la soldadura del pasador: N > 20 000 (BTH-1 §3-4)", str(Nc_), "no"))
+    if "Tabla 5.8" not in PE["soldabilidad"] or "Anexo B" not in PE["soldabilidad"]: FIND.append(("P10", "menor", "Soldabilidad del 34CrNiMo6 sin WPS calificada ni precalentamiento", "—", "no"))
+table("Prueba 10 – Pasadores a ras soldados (ASME BTH-1 §3-3.4; AISC 360-22 J2.1a, J2.4)", ["Elemento", "V (kN)", "f (MPa) / N", "FU"], rows10)
+
+# ======================================================================================
 # Resumen
 # ======================================================================================
 table("Comparación con el núcleo (tolerancia 0,1 % salvo indicación)", ["Prueba", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], COMP)

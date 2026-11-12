@@ -26,6 +26,7 @@ const ccw = [cylPos(1, 1), cylPos(-1, -1)], cw = [cylPos(1, -1), cylPos(-1, 1)];
 const DRV = TT.designDrive(P, R);
 const out = {
   proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P, modo: DRV.modo, modo_nombre: DRV.modo_nombre, levaGuiada: DRV.levaGuiada, pivotado: DRV.pivotado,
+  pasadores_empuje: DRV.pasadores_empuje,   // pasadores a ras del disco, soldados (12-11-2026): unión, material, WPS y piezas eliminadas (MES-013, MES-014)
   verdict: A.verdict, validacion: val,
   derivados: {
     W: R.W, N: R.N, ND: R.ND, q_max: R.q_max, q_avg: R.q_avg, Fstall: R.Fstall, Falarm: R.Falarm, Fret: R.Fret, A: R.A, Aann: R.Aann,

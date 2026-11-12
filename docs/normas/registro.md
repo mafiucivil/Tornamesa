@@ -4,7 +4,7 @@
 |---|---|---|---|
 | Cadena de empuje (pasadores, uña, articulaciones, mejillas) | Tensiones admisibles Fy/Nd; corte Fy/(Nd·√3); aplastamiento 1,25Fy/Nd; soldaduras 0,60FEXX/(1,20Nd) | ASME BTH-1, Categoría de diseño B (Nd = 3,0, §3-1.3), §3-2 y §3-3; corte §3-2.3.6 | Decisión del usuario 30-10-2026. Se aplica por analogía (no es dispositivo bajo el gancho). Verificación a la fuerza de calado (área × presión de alivio). La flexión con Fy/Nd es más conservadora que BTH-1 §3-2.3.4 (1,25Fy/Nd para barras macizas redondas/cuadradas y secciones rectangulares macizas respecto del eje menor); ver «Verificación de citas (10-11-2026)» |
 | Planchas de la mesa y de la base | σvm ≤ 0,6Fy (criterio del proyecto, más conservador que F11) | AISC 360-22 ASD; F11 da Mn = Mp = Fy·Z para barras rectangulares respecto de cualquier eje (≈ 1,5Fy·S), Ωb = 1,67, es decir ≈ 0,90Fy·S: no da 0,6Fy | Flexión local por FEA × k_malla 1,15 más membrana global axisimétrica |
-| Plancha base bajo los soportes del cilindro (base de 20 mm con inserto de esquina) | σ_vM ≤ 1,25·Fy/Nd (Nd 3,0) a más de 100 mm de la huella rígida del soporte; mesa cargada hasta el calado y mesa vacía en servicio; atasco con la mesa vacía excluido (limitación de uso) | ASME BTH-1-2020 §3-2.3.4 (eje menor; ecuación: verificar); §3-2.3.6 corte | Decisión del mandante 10-11-2026; modelo calibrado con la FEA del verificador («Plancha base: base de 20 mm con inserto de esquina») |
+| Plancha base bajo los soportes del cilindro (base de 20 mm con refuerzo cuadrado soldado encima; antes inserto de esquina) | σ_vM ≤ 1,25·Fy/Nd (Nd 3,0) a más de 100 mm de la huella rígida del soporte; mesa cargada hasta el calado y mesa vacía en servicio; atasco con la mesa vacía excluido (limitación de uso) | ASME BTH-1-2020 §3-2.3.4 (eje menor; ecuación: verificar); §3-2.3.6 corte | Decisión del mandante 10-11-2026; modelo calibrado con la FEA del verificador («Plancha base: base de 20 mm con inserto de esquina») |
 | Corte en nervios | 0,6Fy·Aw·Cv1/Ω, Ω = 1,50 si h/t ≤ 2,24√(E/Fy) | AISC 360-22 G2.1(a), Ec. G2-1 | |
 | Soldaduras de la mesa | 0,60FEXX/Ω, Ω = 2,00, sin aumento direccional | AISC 360-22 J2.4 | |
 | Fluencia local de almas | q/t ≤ Fy/1,50 | AISC 360-22 J10.2 | Simplificación conservadora |
@@ -391,7 +391,47 @@ Golden del modo guiado: agrega solo las cuatro filas con FU; no cambia ningún v
 
 **Observación fuera del alcance.** Por defecto, el cuerpo del cilindro (Ø 130, eje a 105 mm) pasa sobre la prolongación de la bancada (cara superior a 40 mm) con 0 mm de holgura, y ninguna fila lo verifica. No se cambió.
 
+## Plancha base: refuerzo cuadrado soldado sobre la base (doubler) (12-11-2026)
+
+Instrucción del mandante del 12-11-2026: el inserto triangular a tope (CJP J-I1 en doble V, transición 1:2,5, muescas, chaflanes y rebaje bajo el cilindro; pieza BAS-018) es prácticamente infabricable. Se reemplaza por una **plancha CUADRADA de sobreespesor soldada SOBRE la base** de 20 mm, sin puntas, muescas ni rebaje; la base queda entera (sin ventanas) y al ras sobre la losa. Núcleo: `cornerInsert` / `insertRows` / `insertExport` (`packages/core/tt300c.js`); exportación en `pivotado.fabricacion.soporte_E.refuerzo` y `levaGuiada.fabricacion.refuerzo` (`inserto` queda como alias).
+
+**Geometría (sale del cálculo por modo e interfaz).** Cuadrado en la esquina con un lado sobre cada borde de la base; lado a = el mayor múltiplo de 5 mm con la esquina interior a ≥ 10 mm de la mesa (√2·(B/2 − a) − D/2) y los bordes interiores, con su filete de 8 mm, a ≥ 5 mm de las placas-guía y de la trayectoria del cubo de Q (modo 2) o de la banda del accionamiento guiado (modo 1). Espesor t_d: el menor comercial con FU ≤ 0,90 (o el mínimo FU ≤ 1) y holgura vertical ≥ 5 mm a las piezas que pasan por encima, sin rebaje (por defecto: fondo del cuerpo del cilindro a z 60 ⇒ t_d ≤ 60 − 20 − 5 = 35 mm). Paredes del soporte E, mejillas/suplemento de la ménsula y orejas de la diagonal se sueldan sobre el refuerzo (z = t_base + t_d); el pasador E queda ≥ 5 mm sobre su cara.
+
+**Atiesador tangencial (cartela).** Si el cuadrado solo no llega a FU ≤ 1 (la base de 20 mm junto al refuerzo gobierna: con el cuadrado, S = σ/M de la FEA deja de bajar con t > 60 mm), se agrega por esquina una plancha vertical de 30 × h_r × 500 mm soldada a la base con filetes z8 a ambos lados, tangente a la esquina interior del cuadrado y paralela al borde de la mesa (cara delantera a ≥ 5 mm de la mesa; el lado baja a 545 mm para dejarle lugar). h_r = la holgura bajo las piezas que pasan sobre él (−5 mm, tope 100), con el mínimo calibrado (45 mm en el modo 2, 65 mm en el modo 1); bajo 45 mm no se usa (en la FEA un atiesador de 35 mm no mejora). Flexión del atiesador: F_b = Fy/Nd (eje mayor, arriostrado por la base; sin el aumento de §3-2.3.4; cláusula: verificar).
+
+**Tensión (modelo calibrado).** σ = κ·M·S(t), t = t_base + t_d, κ = 1,03; S de la FEA de Mindlin de la base completa (misma formulación de `tests/indep_plancha_base_E.py`: mesa cargada como cuerpo rígido con contacto unilateral, losa unilateral, dos soportes rígidos con M₂ = −M₁, malla 40 mm, σ_vM a más de 100 mm de la huella rígida del soporte), envolvente de las interfaces por defecto y B; el atiesador como franja de 60 mm con el espesor equivalente de la T. Mesa vacía en servicio: factor 3,0 sobre S (conservador; FU ≈ 0,015). F_b = 1,25·Fy/Nd (ASME BTH-1-2020 §3-2.3.4). La sección trabaja como compuesta solo si la unión transmite el corte rasante:
+
+| Unión | Criterio | Referencia |
+|---|---|---|
+| J-R1 tapones | Ø = t_d + 8 mm al par superior (≤ máx(Ø_mín + 3; 2,25·relleno)); relleno = t_d si t_d ≤ 16, ≥ máx(t_d/2; 16) si no; separación ≥ 4·Ø; centro a ≥ 1,5·Ø de los bordes (criterio del proyecto); fuera de las huellas de las piezas soldadas encima; resistencia = área nominal del agujero × 0,60FEXX/(1,20Nd) | AISC 360-22 §J2.3a, §J2.3b, Tabla J2.5; ASME BTH-1-2020 §3-3.4; AWS D1.1:2020 cláusulas de tapones y ranuras (número: verificar) |
+| J-R2 filete en los bordes interiores | z8 (AWS D1.1 Tabla 7.7, T > 20) | AISC 360-22 §J2.4; AWS D1.1 Tabla 7.7 |
+| J-R3 PJP en bisel 45° en los bordes exteriores (al ras de los cantos de la base: no admiten filete) | E = S − 3 mm, S = 15 | AISC 360-22 Tabla J2.1; AWS D1.1 Figura 5.2 (designación: verificar) |
+| Corte rasante | V = F_cal + M·6·t_d·t_b/t³ (empuje que cruza la unión más la fuerza del refuerzo en la sección compuesta con el M completo: cota superior) ≤ n·A·F_w + 2a·0,707·w·F_w + 2a·E·F_w | idem |
+| Levantamiento del talón | T = M_cal/b_soporte ≤ ½·(filetes + PJP) (los tapones no se cuentan en tracción) | idem |
+
+Material del refuerzo: S355J2+N con calidad Z25 (EN 10164) por la tracción en el espesor bajo las CJP de las paredes del soporte E.
+
+**Resultados (FU máx. de la flexión; corte rasante).** Por defecto (h 105): 550 × 550 × 35, sin atiesador, FU 0,94 en el atasco del retorno y 0,91 a calado (**advertencia**: sobre el objetivo interno 0,90 y ≤ 1,0; el refuerzo está en su máximo bajo el cuerpo del cilindro y un atiesador bajo 45 mm no es eficaz; se admite como excepción del criterio FU ≤ 0,90 en estructura); corte rasante 0,74. Interfaz B (h 160): 545 × 50 + atiesador h 85, FU 0,90. A y C (h 135): 545 × 45 + atiesador h 60, FU 0,88. AF2: 545 × 45 + atiesador h 45, FU 0,83. Modo guiado: 545 × 30 + atiesador h 100, FU 0,90; B 545 × 55 + h 100, 0,85; A 545 × 45 + h 100, 0,87.
+
+**Eliminado.** CJP J-I1 (B-U3b), transición 1:2,5, muescas y sus chaflanes, rebaje local, ventanas de la base y las filas «inserto: corte bajo el soporte», «CJP inserto–base», «transición», «espesor pleno».
+
+## Pasadores de empuje soldados a ras (12-11-2026)
+
+Instrucción del mandante del 12-11-2026: nada por sobre el disco. Se eliminan el perno ISO 4762 M20×45 (MES-013) y la arandela Ø115/Ø22×10 (MES-014) y la rosca M20 del pasador. El pasador (largo = h_disc) queda a ras de la cara superior del disco y de la cara inferior de la mesa (cara de deslizamiento de la interfaz: tampoco admite un filete saliente).
+
+| Aspecto | Criterio | Referencia |
+|---|---|---|
+| Unión | PJP en bisel 45° × S mecanizado en el borde del agujero de cada anillo, toda la circunferencia, esmerilada a ras; E = S − 3 | AISC 360-22 §J2.1a, Tabla J2.1 |
+| Resistencia | la soldadura sola toma la reacción del pasador en el anillo, V = F_cal·√(1 + μ_s²)·(1/2 + e/L) (sin descontar el aplastamiento en el agujero): f = V/(π·d·E) ≤ 0,60FEXX/(1,20Nd); S = 16, E = 13: FU 0,88 | ASME BTH-1-2020 §3-3.4; AISC 360-22 §J2.4 |
+| Fatiga | N = 2·vueltas/año·vida = 2 500 ≤ 20 000: clase de servicio 0, sin verificación | ASME BTH-1-2020 §3-4; AISC 360-22 Apéndice 3 |
+| Material | 34CrNiMo6+QT (lo exige el contacto de Hertz con el bloque-uña: p₀ ≈ 2 160 MPa ⇒ superficie ≥ 55 HRC; un acero soldable sin temple no cumple); temple por inducción SOLO en la banda de contacto, extremos sin templar | EN 10083-3 |
+| Soldabilidad | CE_IIW ≈ 0,9: no es un acero precalificado de AWS D1.1:2020 (Tabla 5.3), la Tabla 5.8 de precalentamiento no aplica; WPS calificada por ensayo (cláusula 6), precalentamiento por el Anexo B (≈ 250–300 °C) con bajo hidrógeno H4, o aporte austenítico E309L con ≥ 150 °C; dureza de la ZAC ≤ 350 HV10 en el PQR; la banda templada no debe superar 200 °C (control con termocrayones y dureza ≥ 55 HRC después de soldar) | AWS D1.1/D1.1M:2020 cláusula 6, Anexo B (verificar) |
+
+**Hipótesis / limitación.** El pasador deja de ser reemplazable: solo se cambia cortando las soldaduras y remecanizando el bisel (vida del pasador = vida de la mesa). Consecuencias: la masa del núcleo no cambia (el perno y la arandela nunca estuvieron en `m.pins`); la lista de piezas del generador debe quitar MES-013 y MES-014 y la tornillería de los pasadores; la cubierta W (en stand by) ya no necesita bolsillos de perno y arandela sobre los pasadores (anotado, no desarrollado). Exportación: `pasadores_empuje` (designDrive y `tools/export_design.js`).
+
 ## Plancha base: base de 20 mm con inserto de esquina (10-11-2026)
+
+> **Superada el 12-11-2026** por «Plancha base: refuerzo cuadrado soldado sobre la base (doubler) (12-11-2026)». Se conserva como antecedente.
 
 Decisión del mandante del 10-11-2026, tomada tras la verificación independiente (`tests/indep_plancha_base_E.py`). Estudio completo en `docs/qa/plancha_base_inserto.md`; scripts y salidas en `docs/qa/plancha_base_inserto/`.
 

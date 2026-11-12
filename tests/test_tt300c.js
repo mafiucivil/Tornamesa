@@ -298,7 +298,9 @@ test("Valores por defecto: sin errores, gira y la estructura cumple", () => {
   const PEND_PLANCHA = /^Plancha base bajo el soporte del ojal E: flexión sin anclaje/;
   const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && !PEND_PLANCHA.test(c.name));
   assert.ok(A.checks.filter((c) => PEND_PLANCHA.test(c.name)).every((c) => c.st === "pend" && c.fu > 1), "plancha base sin anclaje: pendiente con FU > 1");
-  assert.ok(est.filter((c) => !ACEPTADAS.some((r) => r.test(c.name))).every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura");
+  // excepción (12-11-2026): flexión de la base junto al refuerzo cuadrado de 35 mm, en su máximo bajo el cuerpo del cilindro: FU ≤ 1,0 (aviso, advisory; registro «refuerzo cuadrado»)
+  const REFUERZO = (c) => /con refuerzo de \d+ mm \(t = \d+\), flexión de la base y del refuerzo/.test(c.name) && c.advisory && c.fu <= 1;
+  assert.ok(est.filter((c) => !ACEPTADAS.some((r) => r.test(c.name)) && !REFUERZO(c)).every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura");
   assert.ok(est.filter((c) => ACEPTADAS.some((r) => r.test(c.name))).every((c) => c.fu <= 0.92), "excepción aceptada: FU ≤ 0,92 (holgura sobre 0,907)");
 });
 
@@ -585,7 +587,8 @@ test("W · FEA escalonada de la mesa (modelo desarrollado: plancha rebajada + pa
   const b50 = TT.analyze(PW({ t_wood: 50 })); assert.equal(b50.checks.find((x) => /^Plancha inferior: global \+ local$/.test(x.name)).st, "warn", "con t_madera = 50 la plancha inferior pasa de FU 0,90 (motivo del ajuste a 45)");
   assert.equal(b50.checks.find((x) => /Buje sobre el collar/.test(x.name)).st, "fail", "con t_madera = 50 el buje no cabe bajo la plancha rebajada");
   assert.ok(/plancha rebajada/.test(row(/Buje sobre el collar/).name));
-  assert.ok(A.verdict.estructura && A.verdict.gira && A.verdict.warnEst === 0, "W cumple sin avisos");
+  // sin avisos salvo el del refuerzo de esquina (advisory, FU ≤ 1; registro «refuerzo cuadrado», 12-11-2026), que no depende de la cubierta
+  assert.ok(A.verdict.estructura && A.verdict.gira && A.checks.filter((c) => c.sys === "est" && c.st === "warn" && !c.advisory).length === 0, "W cumple sin avisos");
 });
 test("W · FEA escalonada: caso de referencia axisimétrico frente a la solución cerrada de Kirchhoff (plancha + pared desarrollada + anillo con apoyo lineal)", () => {
   // referencia: placa anular r0…b, D uniforme, empotrada en r0, apoyos lineales (w = 0) en a (alma), a + L (unión pared–anillo) y Rp (pasadores como línea), borde libre en b; q uniforme en r0…a.
@@ -1298,7 +1301,9 @@ test("Pivotado · modo 2 por defecto: gira, la estructura cumple con FU ≤ 0,90
   // desde el 10-11-2026 (decisión del mandante) la base de 20 mm con inserto de esquina reemplaza las filas pendientes de la franja sin anclaje
   const est = A.checks.filter((c) => c.sys === "est" && c.kind === "fu");
   assert.ok(!A.checks.some((c) => c.st === "pend" && c.fu > 1) && A.verdict.estado_global === "CUMPLE", "sin pendientes críticos");
-  assert.ok(est.every((c) => c.fu <= 0.90), "FU ≤ 0,90 en estructura: " + est.filter((c) => c.fu > 0.9).map((c) => c.name + " " + c.fu.toFixed(3)).join("; "));
+  // excepción (12-11-2026): la flexión de la base junto al refuerzo cuadrado de 35 mm (el máximo bajo el cuerpo del cilindro) queda en FU 0,91–0,94 (advertencia, ≤ 1,0)
+  const exc = (c) => /^Plancha base bajo el soporte del ojal E: base de 20 mm con refuerzo/.test(c.name) && c.fu <= 1;
+  assert.ok(est.every((c) => c.fu <= 0.90 || exc(c)), "FU ≤ 0,90 en estructura: " + est.filter((c) => c.fu > 0.9 && !exc(c)).map((c) => c.name + " " + c.fu.toFixed(3)).join("; "));
   assert.ok(!A.checks.some((c) => c.grp === "Patín y guía" || /patín/.test(c.name) && c.grp === "Giro"), "sin filas del patín");
   assert.equal(R.m.shoes, 0); assert.equal(R.m.beds, 0);
   near(R.m.brackets, P2().n_cyl * R.sup.m - R.m.insBrackets + R.m.insertos, 1e-9, "soportes del ojal E (paredes sobre el inserto de esquina) con sus insertos"); near(R.m.dogs, P2().n_cyl * R.blk.m, 1e-12, "bloques-uña con pasador Q");
@@ -1924,176 +1929,199 @@ test("Ménsula del ojal trasero (modo guiado) · sin inserto (ins_on = 0): planc
   assert.ok(!TT.analyze(TT.defaults(), { noFEA: true }).checks.some((c) => /ménsula del ojal trasero/.test(c.name)), "sin filas del modo guiado en el pivotado");
 });
 
-/* ======================= Decisión del mandante 10-11-2026: base de 20 mm con inserto de esquina bajo los soportes ======================= */
-// docs/normas/registro.md «Plancha base: base de 20 mm con inserto de esquina (10-11-2026)»; docs/qa/plancha_base_inserto.md. La plancha se verifica con
-// la mesa cargada (nominal, diseño, calado y atasco del retorno) y con la mesa vacía en servicio, con F_b = 1,25·Fy/Nd (ASME BTH-1-2020 §3-2.3.4); el atasco
-// a presión de alivio con la mesa vacía queda EXCLUIDO como caso de diseño (limitación de uso exportada en verdict.limitaciones_uso).
-const INS_COM = [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100, 110, 120];
-function insCheck(P, I, A, rows, label, okWarn) {   // okWarn: se admite FU entre 0,90 (objetivo interno) y 1,0 (advertencia) cuando ningún espesor llega al objetivo
-  const Fb = 1.25 * P.Fy / P.Nd;
-  assert.ok(I && I.t > P.t_base && INS_COM.includes(I.t), label + ": espesor comercial mayor que la base");
-  assert.equal(I.t_base, P.t_base); near(I.delta, I.t - P.t_base, 1e-12, label + ": Δ");
-  // casos con la mesa cargada y mesa vacía en servicio: FU = σ/(1,25·Fy/Nd) ≤ 1, BTH-1 §3-2.3.4
-  ["nominal", "diseño", "calado", "retorno", "vacía"].forEach((k) => { const r = rows.find((c) => new RegExp(k).test(c.name)); assert.ok(r, label + ": fila " + k); near(r.cap, Fb, 1e-12, label + ": F_b = 1,25·Fy/Nd (" + k + ")");
+/* ======================= Refuerzo de esquina (mandante 12-11-2026): plancha CUADRADA de sobreespesor soldada sobre la base de 20 mm ======================= */
+// docs/normas/registro.md «Plancha base: refuerzo cuadrado soldado sobre la base (doubler) (12-11-2026)». Reemplaza al inserto triangular a tope (CJP doble V, transición
+// 1:2,5, muescas y rebaje). La plancha se verifica con la mesa cargada (nominal, diseño, calado y atasco del retorno) y con la mesa vacía en servicio, con
+// F_b = 1,25·Fy/Nd (ASME BTH-1-2020 §3-2.3.4); el atasco a presión de alivio con la mesa vacía queda EXCLUIDO (limitación de uso). La sección compuesta exige el corte
+// rasante en tapones (AISC 360-22 §J2.3) y soldaduras perimetrales (§J2.4).
+const DBL_COM = [10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 80, 90];
+const Fw0 = (P) => 0.6 * P.FEXX / (1.2 * P.Nd);
+function insCheck(P, I, A, rows, label, okWarn) {   // okWarn: se admite FU entre 0,90 (objetivo interno) y 1,0 (advertencia)
+  const Fb = 1.25 * P.Fy / P.Nd, tb = P.t_base, B2 = P.B / 2;
+  assert.ok(I && DBL_COM.includes(I.t_d) && I.t === tb + I.t_d && I.delta === I.t_d, label + ": espesor comercial del refuerzo y t = t_base + t_d");
+  assert.deepEqual(I.z, [tb, I.t], label + ": el refuerzo va SOBRE la base (z = [t_base; t]); la base queda al ras sobre la losa");
+  assert.ok(I.lado % 5 === 0 && I.lado > 300, label + ": lado múltiplo de 5 mm");
+  // cuadrado: 4 vértices, lados paralelos a los bordes, dos lados sobre los bordes de la base, sin puntas ni muescas; el segundo es la rotación de 180°
+  I.esquinas.forEach((pl, k) => {
+    assert.equal(pl.length, 4, label + ": cuadrado de 4 vértices");
+    const xs = pl.map((p) => p[0]), ys = pl.map((p) => p[1]);
+    near(Math.max(...xs) - Math.min(...xs), I.lado, 1e-9, label + ": lado x"); near(Math.max(...ys) - Math.min(...ys), I.lado, 1e-9, label + ": lado y");
+    assert.ok(Math.abs(Math.max(...xs.map(Math.abs)) - B2) < 1e-9 && Math.abs(Math.max(...ys.map(Math.abs)) - B2) < 1e-9, label + ": un lado sobre cada borde de la base");
+    pl.forEach(([x, y]) => assert.ok(Math.abs(x) <= B2 + 1e-9 && Math.abs(y) <= B2 + 1e-9, label + ": dentro de la base"));
+  });
+  I.esquinas[1].forEach((p, i) => assert.ok(Math.abs(p[0] + I.esquinas[0][i][0]) < 1e-9 && Math.abs(p[1] + I.esquinas[0][i][1]) < 1e-9, label + ": rotación de 180°"));
+  ["transicion", "rebaje", "muescas", "hipotenusa_dist_centro"].forEach((k) => assert.ok(!(k in I), label + ": sin " + k));
+  assert.ok(!I.juntas.some((j) => j.id === "J-I1"), label + ": sin la CJP J-I1");
+  // flexión: FU = σ/(1,25·Fy/Nd) ≤ 1, BTH-1 §3-2.3.4
+  ["nominal", "diseño", "calado", "retorno", "vacía"].forEach((k) => { const r = rows.find((c) => /flexión de la base y del refuerzo/.test(c.name) && new RegExp(k).test(c.name)); assert.ok(r, label + ": fila " + k); near(r.cap, Fb, 1e-12, label + ": F_b (" + k + ")");
     assert.ok(/BTH-1-2020 §3-2\.3\.4/.test(r.ref), label + ": cita §3-2.3.4"); assert.ok(r.st === "ok" || (okWarn && r.st === "warn"), label + ": " + r.name + " FU " + r.fu); assert.ok(r.fu <= 1); });
-  // corte bajo el soporte con t_inserto (BTH-1-2020 §3-2.3.6): τ = 1,5·(M/a)/(b·t) con a y b de la fórmula exportada en la fila
-  const rc = A.checks.find((c) => / inserto: corte bajo/.test(c.name)), ab = rc && rc.formula.match(/a = ([\d.]+) mm, b = ([\d.]+) mm/);
-  assert.ok(rc && ab && /§3-2\.3\.6/.test(rc.ref), label + ": fila de corte");
-  near(rc.dem, 1.5 * (A.R.Fstall * 1e3 * I.casos[0].h / +ab[1]) / (+ab[2] * I.t), 0.01, label + ": τ = 1,5·(M/a)/(b·t_inserto) (a y b redondeados en el texto)");
   const cN = I.casos.find((q) => q.id === "nom"), cC = I.casos.find((q) => q.id === "cal");
-  near(cN.fu / cC.fu, cN.F_kN / cC.F_kN, 1e-9, label + ": σ lineal en F (M = F·h)");
-  near(cC.F_kN, A.R.Fstall, 1e-12, label + ": calado = A·p_alivio");
-  // espesor mínimo: los comerciales más delgados no llegan al FU objetivo (0,90; 1,0 si ninguno llega) o no dejan las holguras
+  near(cN.fu / cC.fu, cN.F_kN / cC.F_kN, 1e-9, label + ": σ lineal en F (M = F·h)"); near(cC.F_kN, A.R.Fstall, 1e-12, label + ": calado = A·p_alivio");
+  // espesor mínimo: los comerciales más delgados (con la misma opción) no llegan al FU objetivo (o 1,0) o no dejan la holgura vertical
   const lim = I.fu_max <= 0.9 ? 0.9 : 1;
-  I.candidatos.filter((c) => c.t < I.t).forEach((c) => assert.ok(c.fu > lim || c.holgura_vertical < 5 || !c.asiento, label + ": " + c.t + " mm debería fallar"));
-  // geometría: hipotenusa fuera de la mesa, rotación de 180°, vértices dentro de la base, holguras ≥ 5 mm (con el rebaje local, si lo hay)
-  near(I.hipotenusa_dist_centro - P.D_top / 2, I.holgura_mesa, 1e-9, label + ": hipotenusa"); assert.ok(I.holgura_mesa >= 5, label + ": holgura a la mesa");
-  if (I.rebaje) assert.ok(I.rebaje.z_cara < I.t && I.rebaje.profundidad === I.t - I.rebaje.z_cara && I.rebaje.poligonos.length >= 2, label + ": rebaje local");
-  I.esquinas.forEach((pl) => pl.forEach(([x, y]) => assert.ok(Math.abs(x) <= P.B / 2 + 1e-9 && Math.abs(y) <= P.B / 2 + 1e-9, label + ": vértice dentro de la base")));
-  I.esquinas[1].forEach((p, i) => { assert.ok(Math.abs(p[0] + I.esquinas[0][i][0]) < 1e-9 && Math.abs(p[1] + I.esquinas[0][i][1]) < 1e-9, label + ": rotación de 180°"); });
+  I.candidatos.filter((c) => c.t_d < I.t_d).forEach((c) => assert.ok(c.fu > lim || c.holgura_vertical < 5 || !c.asiento, label + ": " + c.t_d + " mm debería fallar"));
+  // holguras: mesa = √2·(B/2 − a) − D/2, planta (con el filete) y vertical ≥ 5, sin rebaje
+  near(I.holgura_mesa, Math.SQRT2 * (B2 - I.lado) - P.D_top / 2, 1e-9, label + ": holgura a la mesa"); assert.ok(I.holgura_mesa >= 5, label + ": holgura a la mesa ≥ 5");
   assert.ok(I.holguras.planta >= 5 && I.holguras.vertical >= 5, label + ": holguras " + JSON.stringify(I.holguras));
-  assert.ok(I.z[0] === 0 && I.z[1] === I.t, label + ": al ras por debajo con la base");
-  // juntas, secuencia, masa
-  const J = I.juntas.find((j) => j.id === "J-I1"); assert.ok(J && /CJP/.test(J.tipo) && /1:2,5/.test(J.tipo) && J.largo > 0 && J.verificacion && J.verificacion.fu <= 1 && /AWS D1\.1/.test(J.verificacion.norma), label + ": CJP inserto–base");
-  assert.ok(I.secuencia.length >= 5 && I.masa > 0, label + ": secuencia y masa");
-  near(A.R.m.insertos, I.n * I.masa, 1e-9, label + ": masa en el total");
+  // tapones (AISC 360-22 §J2.3): Ø ≥ t + 8 y ≤ máx(Ø_mín + 3; 2,25·relleno); relleno; separación ≥ 4·Ø; dentro del cuadrado
+  const T = I.tapones, td = I.t_d;
+  assert.ok(T.d >= td + 8 && T.d <= Math.max(td + 8 + 3, 2.25 * T.profundidad_relleno), label + ": Ø del tapón " + T.d);
+  near(T.profundidad_relleno, td <= 16 ? td : Math.max(td / 2, 16), 1e-12, label + ": relleno §J2.3b");
+  assert.ok(T.n_por_esquina >= 1 && T.posiciones.length === I.n && T.posiciones.every((ps) => ps.length === T.n_por_esquina), label + ": tapones por esquina");
+  T.posiciones.forEach((ps, k) => { const pl = I.esquinas[k], xs = pl.map((p) => p[0]), ys = pl.map((p) => p[1]);
+    ps.forEach((p, i) => { assert.ok(p[0] - T.d * 1.5 >= Math.min(...xs) - 1e-6 && p[0] + T.d * 1.5 <= Math.max(...xs) + 1e-6 && p[1] - T.d * 1.5 >= Math.min(...ys) - 1e-6 && p[1] + T.d * 1.5 <= Math.max(...ys) + 1e-6, label + ": tapón a ≥ 1,5·Ø del borde");
+      ps.slice(i + 1).forEach((q) => assert.ok(Math.hypot(p[0] - q[0], p[1] - q[1]) >= 4 * T.d - 1e-6, label + ": separación ≥ 4·Ø")); }); });
+  // corte rasante (cálculo propio): V = F_cal + M·6·t_d·t_b/t³ ≤ n·A·F_w + 2a·0,707·w·F_w + 2a·E·F_w
+  const F = A.R.Fstall, h = cC.h, M = F * h / 1e3, V = F + M * 1e6 * 6 * td * tb / I.t ** 3 / 1e3, Fw = Fw0(P);
+  const cap = T.n_por_esquina * Math.PI / 4 * T.d ** 2 * Fw / 1e3 + 2 * I.lado * 0.707 * I.filetes.bordes_interiores.tamano * Fw / 1e3 + 2 * I.lado * I.filetes.bordes_exteriores_PJP.E * Fw / 1e3;
+  near(I.corte_rasante.V_kN, V, 1e-9, label + ": corte rasante"); near(I.corte_rasante.capacidad_kN, cap, 1e-9, label + ": capacidad de la unión");
+  assert.ok(V / cap <= 1 && I.corte_rasante.fu_levantamiento <= 1, label + ": unión base–refuerzo FU " + (V / cap).toFixed(3));
+  near(I.filetes.bordes_exteriores_PJP.E, I.filetes.bordes_exteriores_PJP.S - 3, 1e-12, label + ": PJP 45°: E = S − 3 (AISC Tabla J2.1)");
+  assert.ok(I.filetes.bordes_interiores.tamano >= (Math.max(td, tb) > 20 ? 8 : 6), label + ": filete mínimo AWS D1.1 Tabla 7.7");
+  const rr = A.checks.find((c) => / refuerzo: corte rasante/.test(c.name)); assert.ok(rr && rr.st === "ok" && /§J2\.3/.test(rr.ref), label + ": fila del corte rasante");
+  // juntas y secuencia
+  ["J-R1", "J-R2", "J-R3"].forEach((id) => assert.ok(I.juntas.some((j) => j.id === id && j.verificacion && j.verificacion.fu <= 1), label + ": junta " + id));
+  assert.ok(I.secuencia.length >= 5 && I.secuencia.some((s) => /sin ventanas/.test(s)), label + ": secuencia (base entera)");
+  // atiesador tangencial (si lo hay): cara delantera a ≥ 5 mm de la mesa, FU ≤ 1, filetes
+  if (I.atiesadores) { const R_ = I.atiesadores; assert.ok(R_.holgura_mesa >= 5 && R_.fu <= 1 && R_.fu_soldadura <= 1 && R_.por_esquina.length === I.n && R_.h >= 45, label + ": atiesador " + JSON.stringify({ h: R_.h, fu: R_.fu }));
+    assert.ok(I.juntas.some((j) => j.id === "J-R4"), label + ": filetes del atiesador");
+    R_.por_esquina.forEach((r) => r.poligono.forEach(([x, y]) => assert.ok(Math.hypot(x, y) >= P.D_top / 2 + 5 - 1e-6, label + ": atiesador fuera de la mesa"))); }
+  // masa propia: ρ·(a²·t_d − n·A·(t_d − relleno)) + atiesador; en el total
+  const mOwn = 7.85e-6 * (I.lado ** 2 * td - T.n_por_esquina * Math.PI / 4 * T.d ** 2 * (td - T.profundidad_relleno)) + (I.atiesadores ? 7.85e-6 * I.atiesadores.t * I.atiesadores.h * I.atiesadores.largo : 0);
+  near(I.masa, mOwn, 1e-9, label + ": masa por esquina"); near(A.R.m.insertos, I.n * I.masa, 1e-9, label + ": masa en el total");
 }
 test("Plancha base de 20 mm (decisión del mandante 10-11-2026): t_base por defecto 20 mm y alturas que dependen de él", () => {
   const P = TT.defaults(); assert.equal(P.t_base, 20);
   const A = TT.analyze(P, { noFEA: true }), H = A.checks.find((c) => /Altura total sobre el piso/.test(c.name)).dem;
   near(H, 20 + A.R.ifc.delta + P.h_disc, 1e-12, "altura total = t_base + Δ + h_mesa");
-  assert.ok(P.ins_on === 1 && P.ins_fsv >= 1, "parámetros del inserto");
+  assert.ok(P.ins_on === 1 && P.ins_fsv >= 1, "parámetros del refuerzo");
 });
-test("Soporte E · base de 20 mm con inserto de esquina: mesa cargada (nominal, diseño, calado, retorno) y mesa vacía en servicio con 1,25·Fy/Nd; holguras; CJP; exportación; estado global", () => {
-  const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R), I = D.pivotado.fabricacion.soporte_E.inserto;
-  const rows = A.checks.filter((c) => /^Plancha base bajo el soporte del ojal E: inserto/.test(c.name));
-  insCheck(P, I, A, rows, "por defecto");
-  assert.equal(I.esquinas.length, 2, "un inserto por soporte E (dos esquinas diagonales)");
-  assert.ok(I.poligono.cilindro1 && I.poligono.cilindro2, "polígono por cilindro");
-  // sin filas «pend» con FU > 1: el estado global cumple
+test("Soporte E · refuerzo cuadrado soldado sobre la base (12-11-2026): mesa cargada y vacía con 1,25·Fy/Nd; corte rasante; holguras; exportación (refuerzo e inserto alias); estado global", () => {
+  const P = TT.defaults(), A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R), F = D.pivotado.fabricacion.soporte_E, I = F.refuerzo;
+  assert.equal(F.inserto, I, "«inserto» queda como alias de «refuerzo»");
+  const rows = A.checks.filter((c) => /^Plancha base bajo el soporte del ojal E: /.test(c.name));
+  // por defecto el refuerzo de 35 mm es el máximo bajo el cuerpo del cilindro (fondo a z 60): FU 0,94 en el retorno (advertencia, ≤ 1); sin atiesador (hr ≤ 35 no es eficaz)
+  insCheck(P, I, A, rows, "por defecto", true);
+  assert.equal(I.t_d, 35, "t_d = 60 − 20 − 5 = 35 mm"); assert.equal(I.lado, 550); assert.equal(I.atiesadores, null, "por defecto sin atiesador");
+  assert.equal(I.esquinas.length, 2, "un refuerzo por soporte E (dos esquinas diagonales)");
   assert.equal(A.verdict.pendientes_criticos.length, 0, JSON.stringify(A.verdict.pendientes_criticos.map((p) => p.nombre)));
   assert.equal(A.verdict.estado_global, "CUMPLE");
-  // las paredes del soporte se sueldan sobre el inserto
-  const pX = D.pivotado.fabricacion.soporte_E.piezas.find((q) => q.id === "pared_X"); assert.equal(pX.z[0], I.t, "pared sobre el inserto");
-  // mesa vacía en servicio: F = ins_fsv·máx(F_dis; F_borde; F_cont)·W_d/N
+  const pX = F.piezas.find((q) => q.id === "pared_X"); assert.equal(pX.z[0], I.t, "pared sobre el refuerzo");
   const cs = (id) => A.R.cases.find((q) => q.id === id).F, Fv = P.ins_fsv * Math.max(cs("dis"), cs("borde"), cs("cont")) * A.R.Wd / A.R.N;
   near(I.casos.find((q) => q.id === "vac").F_kN, Fv, 1e-9, "F de servicio con la mesa vacía");
-  // limitación de uso: atasco a presión de alivio con la mesa vacía excluido
-  assert.ok(Array.isArray(A.verdict.limitaciones_uso) && A.verdict.limitaciones_uso.some((l) => /no operar el accionamiento a presión de alivio con la mesa sin carga/i.test(l.texto) && /detener y liberar/.test(l.texto)), "verdict.limitaciones_uso");
-  assert.ok(A.checks.some((c) => c.kind === "info" && /limitación de uso/i.test(c.name) && /presión de alivio/.test(c.formula)), "fila informativa");
+  assert.ok(Array.isArray(A.verdict.limitaciones_uso) && A.verdict.limitaciones_uso.some((l) => /no operar el accionamiento a presión de alivio con la mesa sin carga/i.test(l.texto)), "verdict.limitaciones_uso");
   assert.ok(!A.checks.some((c) => /flexión sin anclaje/.test(c.name)), "sin las filas de la franja sin anclaje");
-  // interfaz B: inserto mayor, también cumple
-  const PB = Object.assign(TT.defaults(), { opt_uhmw: 1 }), AB = TT.analyze(PB, { noFEA: true }), IB = TT.designDrive(PB, AB.R).pivotado.fabricacion.soporte_E.inserto;
-  // con la interfaz B la plancha de 20 mm bajo el borde de la mesa gobierna y satura (FU ≈ 0,98 con cualquier espesor): advertencia, no falla
-  insCheck(PB, IB, AB, AB.checks.filter((c) => /^Plancha base bajo el soporte del ojal E: inserto/.test(c.name)), "interfaz B", true);
-  assert.ok(IB.t > I.t, "B (eje más alto) pide más espesor");
-  // sin inserto (ins_on = 0) vuelve el modelo de la franja sin anclaje, con su estado pendiente
+  // interfaces B, A y C: el cuadrado solo no llega (la base de 20 mm junto al refuerzo gobierna): atiesador tangencial; también cumplen
+  [["B", { opt_uhmw: 1 }], ["A", { opt_ss: 1 }], ["C", { opt_bz: 1 }], ["AF2", { opt_ss: 1, fix_mode: 2 }]].forEach(([lb, o]) => {
+    const Px = Object.assign(TT.defaults(), o), Ax = TT.analyze(Px, { noFEA: true }), Ix = TT.designDrive(Px, Ax.R).pivotado.fabricacion.soporte_E.refuerzo;
+    insCheck(Px, Ix, Ax, Ax.checks.filter((c) => /^Plancha base bajo el soporte del ojal E: /.test(c.name)), "interfaz " + lb, true);
+    assert.ok(Ix.atiesadores && Ix.opciones.some((q) => !q.atiesador && q.fu > 1), lb + ": el cuadrado solo no cumple y lleva atiesador");
+    assert.equal(Ax.verdict.estado_global, "CUMPLE", lb);
+  });
   const A0 = TT.analyze(Object.assign(TT.defaults(), { ins_on: 0 }), { noFEA: true });
   assert.equal(A0.verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");
 });
-test("Ménsula del ojal trasero (modo guiado) · base de 20 mm con inserto bajo las n_br ménsulas: mesa cargada y vacía en servicio, holguras, exportación en levaGuiada.fabricacion", () => {
-  const P = TG(), A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R), I = D.levaGuiada.fabricacion.inserto;
-  insCheck(P, I, A, A.checks.filter((c) => /^Plancha base bajo la ménsula del ojal trasero: inserto/.test(c.name)), "guiado");
-  assert.equal(I.esquinas.length, Math.round(P.n_br), "un inserto por ménsula");
-  assert.equal(A.verdict.estado_global, "CUMPLE"); assert.equal(A.verdict.pendientes_criticos.length, 0);
-  assert.ok(A.verdict.limitaciones_uso.length >= 1);
-  const PB = Object.assign(TG(), { opt_uhmw: 1 }), AB = TT.analyze(PB, { noFEA: true });
-  insCheck(PB, TT.designDrive(PB, AB.R).levaGuiada.fabricacion.inserto, AB, AB.checks.filter((c) => /^Plancha base bajo la ménsula del ojal trasero: inserto/.test(c.name)), "guiado B");
+test("Ménsula del ojal trasero (modo guiado) · refuerzo cuadrado bajo las n_br ménsulas: mesa cargada y vacía, holguras, exportación en levaGuiada.fabricacion", () => {
+  [["guiado", {}], ["guiado B", { opt_uhmw: 1 }], ["guiado A", { opt_ss: 1 }]].forEach(([lb, o]) => {
+    const P = Object.assign(TG(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).levaGuiada.fabricacion, I = F.refuerzo;
+    assert.equal(F.inserto, I, lb + ": alias");
+    insCheck(P, I, A, A.checks.filter((c) => /^Plancha base bajo la ménsula del ojal trasero: /.test(c.name)), lb, true);
+    assert.equal(I.esquinas.length, Math.round(P.n_br), lb + ": un refuerzo por ménsula");
+    assert.equal(A.verdict.estado_global, "CUMPLE", lb); assert.equal(A.verdict.pendientes_criticos.length, 0, lb);
+  });
 });
 
-/* ======================= Conflictos del generador de planos con el inserto de esquina (378675e; docs/qa/plancha_base_inserto.md §7) ======================= */
-// Geometría propia del test (sin las funciones del núcleo): punto en polígono, distancia a la frontera, huellas en planta.
+/* ======================= Piezas sobre el refuerzo: pasador E, orejas de izaje y mejillas ======================= */
 const gPin = (pl, p) => { let c = false; for (let i = 0, j = pl.length - 1; i < pl.length; j = i++) { const a = pl[i], b = pl[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
 const gSeg = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
 const gBd = (pl, p) => { let d = Infinity; for (let i = 0; i < pl.length; i++) d = Math.min(d, gSeg(p, pl[i], pl[(i + 1) % pl.length])); return d; };
 const gSd = (pl, p) => (gPin(pl, p) ? 1 : -1) * gBd(pl, p);   // > 0 dentro
 const gDense = (q, n) => { const o = []; for (let j = 0; j < q.length; j++) for (let s = 0; s < n; s++) { const a = q[j], b = q[(j + 1) % q.length]; o.push([a[0] + (b[0] - a[0]) * s / n, a[1] + (b[1] - a[1]) * s / n]); } return o; };
-const gIn = (pl, q) => Math.min(...gDense(q, 40).map((p) => gSd(pl, p)));   // margen de la huella q dentro de pl (frontera de la huella densificada)
+const gIn = (pl, q) => Math.min(...gDense(q, 40).map((p) => gSd(pl, p)));   // margen de la huella q dentro de pl
 const VARS_INS = { "por defecto": {}, "AF2": { opt_ss: 1, fix_mode: 2 }, "A": { opt_ss: 1 }, "B": { opt_uhmw: 1 }, "C": { opt_bz: 1 } };
 const VARS_G = { "base_G": {}, "A_G": { opt_ss: 1 }, "B_G": { opt_uhmw: 1 } };
-const insOf = (D) => (D.levaGuiada ? D.levaGuiada.fabricacion.inserto : D.pivotado.fabricacion.soporte_E.inserto);
-test("Inserto · pasador E: el extremo inferior queda sobre la cara del inserto con ≥ 5 mm (antes z 59 con t 60; z 89 con t 90 en A/C)", () => {
+const insOf = (D) => (D.levaGuiada ? D.levaGuiada.fabricacion.refuerzo : D.pivotado.fabricacion.soporte_E.refuerzo);
+test("Refuerzo · pasador E: el extremo inferior queda sobre la cara del refuerzo con ≥ 5 mm", () => {
   Object.entries(VARS_INS).forEach(([lb, o]) => {
-    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).pivotado.fabricacion, I = F.soporte_E.inserto, pe = F.pasador_E;
+    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).pivotado.fabricacion, I = F.soporte_E.refuerzo, pe = F.pasador_E;
     const tapaInf = F.soporte_E.piezas.find((q) => q.id === "tapa_inf"), tapaSup = F.soporte_E.piezas.find((q) => q.id === "tapa_sup");
-    assert.ok(pe.z[0] - I.t >= 5 - 1e-9, lb + ": pasador E a z " + pe.z[0] + " sobre el inserto de " + I.t);
+    assert.ok(pe.z[0] - I.t >= 5 - 1e-9, lb + ": pasador E a z " + pe.z[0] + " sobre el refuerzo (cara a z " + I.t + ")");
     assert.ok(pe.z[0] <= tapaInf.z[0] + 1e-9 && pe.z[1] >= tapaSup.z[1] - 1e-9, lb + ": el pasador atraviesa las dos tapas");
     near(pe.largo, pe.z[1] - pe.z[0], 1e-12, lb + ": largo = z₁ − z₀");
     near(pe.masa, 7.85e-6 * Math.PI / 4 * pe.d ** 2 * pe.largo, 1e-9, lb + ": masa del pasador");
     near(F.soporte_E.masa, F.soporte_E.piezas.reduce((a, q) => a + q.masa, 0) + pe.masa, 1e-9, lb + ": masa del soporte = Σ piezas + pasador");
-    const r = A.checks.find((c) => /Pasador vertical E: extremo inferior sobre la cara del inserto/.test(c.name));
+    const r = A.checks.find((c) => /Pasador vertical E: extremo inferior sobre la cara del refuerzo/.test(c.name));
     assert.ok(r && r.kind === "geo" && r.dem === 5 && r.st === "ok", lb + ": fila de la holgura del pasador E");
     near(r.cap, pe.z[0] - I.t, 1e-9, lb + ": holgura exportada");
+    F.soporte_E.piezas.filter((q) => /^(pared|munon)/.test(q.id)).forEach((q) => assert.equal(q.z[0], I.t, lb + ": " + q.id + " sobre el refuerzo"));
   });
 });
-test("Inserto · orejas de izaje de la diagonal (modo pivotado y guiado): pie completo sobre el espesor pleno (≥ 5 mm), fuera del rebaje; holguras e izaje", () => {
+test("Refuerzo · orejas de izaje de la diagonal (modo pivotado y guiado): pie completo sobre el refuerzo (≥ 5 mm) o fuera de él; holguras e izaje", () => {
   Object.entries(Object.assign({}, VARS_INS, Object.fromEntries(Object.entries(VARS_G).map(([k, v]) => [k, Object.assign({ drive_mode: 1 }, v)])))).forEach(([lb, o]) => {
     const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R));
     let nOn = 0;
-    TT.earPolys(P).forEach((e) => I.esquinas.forEach((pl, i) => {
-      if (!gPin(pl, e.centro)) { assert.ok(gIn(pl, e.poly) <= -5 + 1e-6, lb + ": oreja fuera del inserto con ≥ 5 mm"); return; }
-      nOn++;
-      const m = gIn(I.esquinas_espesor_pleno[i], e.poly);   // huella 2R × (t + 2w), con los filetes
-      assert.ok(m >= 5 - 1e-6, lb + ": pie de la oreja dentro del espesor pleno con " + m.toFixed(1) + " mm");
-      if (I.rebaje) I.rebaje.poligonos.forEach((rp) => { const d = -gIn(rp, e.poly); assert.ok(d >= I.rebaje.profundidad * 2.5 + 5 - 1e-6, lb + ": oreja fuera del rebaje y de su borde 1:2,5 (" + d.toFixed(1) + " mm)"); });
+    TT.earPolys(P).forEach((e) => I.esquinas.forEach((pl) => {
+      if (!gPin(pl, e.centro)) { assert.ok(gIn(pl, e.poly) <= -5 + 1e-6, lb + ": oreja fuera del refuerzo con ≥ 5 mm"); return; }
+      nOn++; const m = gIn(pl, e.poly); assert.ok(m >= 5 - 1e-6, lb + ": pie de la oreja dentro del refuerzo con " + m.toFixed(1) + " mm");
+      I.tapones.posiciones.flat().forEach((q) => assert.ok(!gPin(e.poly, q), lb + ": ningún tapón bajo la oreja"));
     }));
-    assert.ok(nOn >= 2, lb + ": orejas de la diagonal sobre el inserto");
-    const r = A.checks.find((c) => /Oreja: pie sobre el espesor pleno del inserto/.test(c.name));
-    assert.ok(r && r.kind === "geo" && r.dem === 5 && r.cap >= 5 - 1e-6 && r.st === "ok", lb + ": fila «pie de la oreja sobre espesor pleno» " + (r && r.cap));
-    // holguras ya existentes (placas, cilindro, soporte E, accionamiento guiado, mesa) y verificación del izaje
+    assert.ok(nOn >= 2, lb + ": orejas de la diagonal sobre el refuerzo");
+    const r = A.checks.find((c) => /Oreja: pie sobre el refuerzo de esquina/.test(c.name));
+    assert.ok(r && r.kind === "geo" && r.dem === 5 && r.cap >= 5 - 1e-6 && r.st === "ok", lb + ": fila «pie de la oreja sobre el refuerzo» " + (r && r.cap));
     const izaje = A.checks.filter((c) => c.grp === "Orejas de izaje" || /izaje/i.test(c.name));
     assert.ok(izaje.length >= 10, lb + ": filas del izaje");
     izaje.forEach((c) => assert.ok(c.st === "ok" || c.st === "info", lb + ": " + c.name + " " + c.st + " " + c.fu));
     assert.equal(A.verdict.estado_global, "CUMPLE", lb);
   });
 });
-test("Inserto · mejillas de la ménsula (modo guiado): apoyan enteras sobre el espesor pleno (antes 30,5 mm fuera en base_G y 55,5 en A_G)", () => {
+test("Refuerzo · mejillas de la ménsula (modo guiado): apoyan enteras sobre el refuerzo (≥ 5 mm), sin tapones debajo", () => {
   Object.entries(VARS_G).forEach(([lb, o]) => {
-    const P = Object.assign(TG(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).levaGuiada.fabricacion, I = F.inserto, M = F.mensula, bg = TT.bracketGeo(P);
+    const P = Object.assign(TG(), o), A = TT.analyze(P, { noFEA: true }), F = TT.designDrive(P, A.R).levaGuiada.fabricacion, I = F.refuerzo, M = F.mensula, bg = TT.bracketGeo(P);
     assert.ok(M && Array.isArray(M.y_mejillas) && M.retroceso >= 0, lb + ": ménsula exportada");
     near(M.y_mejillas[1] - M.y_mejillas[0], P.L_ch, 1e-12, lb + ": largo de la mejilla L_ch");
     assert.ok(M.y_mejillas[0] <= -bg.rear + 1e-9 && M.y_mejillas[1] >= bg.lugF - 1e-9, lb + ": las mejillas cubren las orejas");
     let n = 0;
-    M.huellas.forEach((h) => { const i = I.esquinas.findIndex((pl) => gPin(pl, h.poly[0]) || gPin(pl, h.poly[2])); assert.ok(i >= 0, lb + ": huella sobre un inserto");
-      const m = gIn(I.esquinas_espesor_pleno[i], h.poly); assert.ok(m >= 5 - 1e-6, lb + ": " + h.id + " dentro del espesor pleno con " + m.toFixed(1) + " mm"); n++; });
+    M.huellas.forEach((h) => { const i = I.esquinas.findIndex((pl) => gPin(pl, h.poly[0]) || gPin(pl, h.poly[2])); assert.ok(i >= 0, lb + ": huella sobre un refuerzo");
+      const m = gIn(I.esquinas[i], h.poly); assert.ok(m >= 5 - 1e-6, lb + ": " + h.id + " dentro del refuerzo con " + m.toFixed(1) + " mm");
+      I.tapones.posiciones[i].forEach((q) => assert.ok(!gPin(h.poly, q), lb + ": ningún tapón bajo " + h.id)); n++; });
     assert.equal(n, 3 * Math.round(P.n_br), lb + ": dos mejillas y el suplemento por ménsula");
-    const r = A.checks.find((c) => /mejillas y suplemento sobre el espesor pleno del inserto/.test(c.name));
+    const r = A.checks.find((c) => /mejillas y suplemento sobre el refuerzo/.test(c.name));
     assert.ok(r && r.kind === "geo" && r.dem === 5 && r.st === "ok", lb + ": fila de las mejillas");
     assert.equal(A.verdict.estado_global, "CUMPLE", lb);
   });
 });
-test("Inserto · masa exacta de la transición (biseles planos entre el contorno y el espesor pleno, con el rebaje): integración numérica propia < 0,5 %", () => {
-  Object.entries(Object.assign({}, VARS_INS, { "base_G": { drive_mode: 1 }, "B_G": { drive_mode: 1, opt_uhmw: 1 } })).forEach(([lb, o]) => {
-    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R)), Bh = P.B / 2, tb = P.t_base, k = 2.5, D = I.delta;
-    const c = I.hipotenusa_dist_centro * Math.SQRT2, mx = I.muescas.lado_x, my = I.muescas.lado_y, C0 = I.esquinas[0];
-    const sx = Math.sign(C0.reduce((a, p) => a + p[0], 0)) || 1, sy = Math.sign(C0.reduce((a, p) => a + p[1], 0)) || -1, toC = (p) => [sx * p[0], -sy * p[1]];
-    // cara superior del sólido (semiespacios con pendiente 1:k desde la hipotenusa y desde cada muesca, con su chaflán), como el 3D del generador de planos
-    const face = (X, Y) => { let d = (X - Y - c) / Math.SQRT2;
-      if (mx) d = Math.min(d, Math.max(mx.a - X, mx.b - Y, mx.chaflan ? (mx.a + mx.b + mx.chaflan - X - Y) / Math.SQRT2 : -Infinity));
-      if (my) d = Math.min(d, Math.max(X - my.a, Y - my.b, my.chaflan ? (my.chaflan - (my.a - X) - (my.b - Y)) / Math.SQRT2 : -Infinity));
-      return Math.max(0, Math.min(D, d / k)); };
-    const Cc = C0.map(toC), pk = I.rebaje ? I.rebaje.poligonos.filter((pl) => pl.some((p) => gPin(C0, p))).map((pl) => pl.map(toC)) : [];
-    const h = 2; let V = 0;
-    for (let X = -Bh + h / 2; X < Bh; X += h) for (let Y = -Bh + h / 2; Y < Bh; Y += h) {
-      if (X - Y < c - 1 || !gPin(Cc, [X, Y])) continue;
-      let z = tb + face(X, Y);
-      pk.forEach((pl) => { const dout = gPin(pl, [X, Y]) ? 0 : gBd(pl, [X, Y]); z = Math.min(z, Math.max(I.rebaje.z_cara + dout / k, tb)); });
-      V += (z - tb) * h * h;
-    }
-    const m = 7.85e-6 * V;
-    assert.ok(Math.abs(I.masa / m - 1) < 0.005, lb + ": masa del núcleo " + I.masa.toFixed(2) + " frente a la integración " + m.toFixed(2) + " kg");
-    near(A.R.m.insertos, I.n * I.masa, 1e-9, lb + ": masa en el total");
+test("Refuerzo · tabla de FU por modo e interfaz: geometría del refuerzo según el cálculo (t_d y atiesador por la holgura bajo las piezas móviles)", () => {
+  const tab = Object.entries(Object.assign({}, VARS_INS, Object.fromEntries(Object.entries(VARS_G).map(([k, v]) => [k, Object.assign({ drive_mode: 1 }, v)])))).map(([lb, o]) => {
+    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R));
+    // la cara del refuerzo deja 5 mm al cuerpo del cilindro (fondo a z = h + t_base − D_cuerpo/2) cuando pasa por encima
+    const zb = A.R.hax + P.t_base - P.D_body / 2; assert.ok(I.t <= zb - 5 + 1e-9, lb + ": refuerzo bajo el cuerpo del cilindro con ≥ 5 mm");
+    assert.ok(I.fu_max <= 1 && I.estado === "cumple", lb + ": FU " + I.fu_max);
+    return [lb, I.lado, I.t_d, I.atiesadores ? I.atiesadores.h : 0, I.fu_max];
   });
+  assert.ok(tab.find((r) => r[0] === "por defecto")[3] === 0, "por defecto sin atiesador");
+  assert.ok(tab.filter((r) => r[0] !== "por defecto").every((r) => r[3] >= 45), "las demás con atiesador: " + JSON.stringify(tab));
 });
-test("Inserto · J-I1: designación precalificada de la CJP en doble V (AWS D1.1:2020 Figura 5.1) con raíz, talón y ángulo, coherente con t_base frente a t_inserto", () => {
-  Object.entries(Object.assign({}, VARS_INS, { "base_G": { drive_mode: 1 } })).forEach(([lb, o]) => {
-    const P = Object.assign(TT.defaults(), o), A = TT.analyze(P, { noFEA: true }), I = insOf(TT.designDrive(P, A.R)), J = I.juntas.find((j) => j.id === "J-I1");
-    assert.ok(/^B-U3b/.test(J.designacion) && /verificar/.test(J.designacion_estado), lb + ": designación " + J.designacion);
-    const pr = J.preparacion;
-    assert.ok(pr && pr.T1 === P.t_base && pr.raiz_R[0] === 0 && pr.raiz_R[1] === 3 && pr.talon_f[0] === 0 && pr.talon_f[1] === 3 && pr.angulo_alfa === 60 && pr.angulo_beta === 60 && pr.resanado === true, lb + ": preparación " + JSON.stringify(pr));
-    assert.equal(pr.espesor_en_la_junta.inserto, P.t_base, lb + ": la transición lleva el inserto a t_base en la línea de la junta");
-    assert.equal(pr.espesor_en_la_junta.base, P.t_base); assert.equal(pr.espesor_pleno_inserto, I.t);
-    assert.ok(/Figura 5\.1/.test(J.norma_designacion), lb);
-    assert.ok(A.checks.some((c) => c.kind === "info" && /J-I1: designación/.test(c.name) && /B-U3b/.test(c.formula)), lb + ": fila informativa");
+
+/* ======================= Pasadores de empuje a ras del disco, soldados (mandante 12-11-2026): sin perno M20 (MES-013) ni arandela (MES-014) ======================= */
+test("Pasadores de empuje · a ras y soldados: PJP en bisel a la carga real (V del modelo biapoyado), fatiga, material y exportación", () => {
+  [["pivotado", TT.defaults()], ["guiado", TG()]].forEach(([lb, P]) => {
+    const A = TT.analyze(P, { noFEA: true }), D = TT.designDrive(P, A.R), X = D.pasadores_empuje;
+    assert.ok(X, lb + ": exportación pasadores_empuje");
+    assert.equal(X.largo, P.h_disc, lb + ": largo = h_disc (a ras arriba y abajo)"); assert.deepEqual(X.z_mesa, [0, P.h_disc]);
+    assert.ok(/a ras/.test(X.cara_superior) && /nada por sobre el disco/.test(X.cara_superior), lb + ": cara superior a ras");
+    assert.ok(X.eliminado.some((e) => /MES-013/.test(e) && /M20/.test(e)) && X.eliminado.some((e) => /MES-014/.test(e)), lb + ": perno y arandela eliminados");
+    assert.ok(X.limitaciones.some((l) => /no es reemplazable|deja de ser reemplazable/.test(l)), lb + ": limitación: el pasador no es reemplazable");
+    // cálculo propio: V = F_cal·√(1 + μ_s²)·(1/2 + e/L), L = h_disc − t_anillo; f = V/(π·d·E), E = S − 3
+    const tpr = Math.max(P.t_pr, P.t_top, P.t_bot), L = P.h_disc - tpr, V = A.R.Fstall * Math.hypot(1, P.mu_s) * (0.5 + P.e_dog / L), U = X.union;
+    near(U.V_kN, V, 1e-12, lb + ": reacción del pasador en el anillo"); near(U.E, U.S - 3, 1e-12, lb + ": E = S − 3 (bisel 45°)");
+    const f = V * 1e3 / (Math.PI * P.d_pin * U.E); near(U.f_MPa, f, 1e-9, lb + ": f = V/(π·d·E)");
+    assert.ok(f <= Fw0(P) && U.S <= tpr - 5, lb + ": soldadura FU " + (f / Fw0(P)).toFixed(3) + ", bisel dentro del anillo");
+    const r = A.checks.find((c) => c.grp === "Pasadores de empuje" && /Soldadura pasador–anillo \(PJP/.test(c.name)); assert.ok(r && r.st === "ok" && /J2\.4/.test(r.ref) && /§3-3\.4/.test(r.ref), lb + ": fila de la soldadura");
+    assert.ok(X.fatiga.N <= 20000 && /no requiere/.test(X.fatiga.nota), lb + ": fatiga, clase de servicio 0 (N = " + X.fatiga.N + ")");
+    assert.ok(/Tabla 5\.8/.test(X.soldabilidad) && /cláusula 6/.test(X.soldabilidad) && /Anexo B/.test(X.soldabilidad), lb + ": WPS y precalentamiento");
+    assert.ok(/34CrNiMo6/.test(X.material) && /banda/.test(X.material), lb + ": material con temple solo en la banda de contacto");
+    assert.ok(A.checks.some((c) => c.kind === "info" && /sin perno M20 ni arandela/.test(c.name) && /reemplazable/.test(c.name)), lb + ": fila informativa");
+    // el resto de las filas del pasador no cambia (flexión biapoyada, corte, aplastamiento)
+    ["Flexión (biapoyado", "Corte en el apoyo", "Aplastamiento en el agujero del anillo"].forEach((k) => assert.ok(A.checks.some((c) => c.grp === "Pasadores de empuje" && c.name.startsWith(k) && c.st === "ok"), lb + ": " + k));
   });
 });
