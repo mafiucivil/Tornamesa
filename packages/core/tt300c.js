@@ -3992,8 +3992,8 @@ const TT = (() => {
   // Capacidad con n cilindros: la menor entre el giro (μ de diseño, FS_mín) y el pivote (reacción del empuje no equilibrado con n impar)
   function capacityByCyl(P, ns) {
     return ns.map((n) => {
-      const Q = Object.assign({}, P, { n_cyl: n }), mu = muSet(Q), R0 = compute(Q);
-      const wGiro = capacityW(Q, mu.d, P.r_ef, P.FS_min), wNom = capacityW(Q, mu.nom, R0.r_u, 1);
+      const Q = Object.assign({}, P, { n_cyl: n }), mu = muSet(Q), R0 = computeM(Q);
+      const wGiro = capacityWM(Q, mu.d, P.r_ef, P.FS_min), wNom = capacityWM(Q, mu.nom, R0.r_u, 1);
       const ok = (W) => { const A2 = analyze(Object.assign({}, Q, { W_tf: W }), { noFEA: true }); return !A2.checks.some((c) => c.grp === "Pivote" && c.st === "fail"); };   // solo las verificaciones del pivote
       let wPiv = 0, lo = 20, hi = 1500;
       if (ok(lo)) { if (ok(hi)) wPiv = hi; else { for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } wPiv = lo; } }
@@ -4010,13 +4010,13 @@ const TT = (() => {
     { id: "hydra", name: "Hydra-Slide 8′×8′×6″ (250/500 t)", mass: null, capKN: null, h: 152, D: null, nCyl: null, Fcyl: null, p: null, rot: null, arm: null, ru: null, src: "Texto en el video del fabricante; sin ficha de masa ni de cilindros" },
   ];
   function market(P) {
-    const R = compute(P), mu = R.mu, kN = R.W, Htop = P.t_base + R.ifc.delta + P.h_disc;   // cubierta W enrasada: no suma altura
+    const R = computeM(P), mu = R.mu, kN = R.W, Htop = P.t_base + R.ifc.delta + P.h_disc;   // cubierta W enrasada: no suma altura
     const ours = { name: "TT300-C (este diseño)", mass: R.m.total, capKN: kN, h: Htop, D: P.D_top, nCyl: P.n_cyl, Fcyl: R.Fstall, p: P.p_relief, rot: 360 / P.N_pin, arm: R.K.armMin / 1000, ru: R.r_u / 1000 };
     const impl = (r) => r.Fcyl && r.arm ? r.nCyl * r.Fcyl * r.arm / (r.capKN * r.ru) : null;
     const withK = (r) => Object.assign({}, r, { massPerKN: r.mass && r.capKN ? r.mass / r.capKN : null, muImpl: impl(r), FcylPerTon: r.Fcyl && r.capKN ? r.nCyl * r.Fcyl / (r.capKN / G) : null });
     return {
       ours: withK(ours), refs: MARKET.map(withK),
-      capacity: { design: capacityW(P, mu.d, P.r_ef, P.FS_min), designFS1: capacityW(P, mu.d, P.r_ef, 1), nominal: capacityW(P, mu.nom, R.r_u, 1), nominalFS: capacityW(P, mu.nom, R.r_u, P.FS_min) },
+      capacity: { design: capacityWM(P, mu.d, P.r_ef, P.FS_min), designFS1: capacityWM(P, mu.d, P.r_ef, 1), nominal: capacityWM(P, mu.nom, R.r_u, 1), nominalFS: capacityWM(P, mu.nom, R.r_u, P.FS_min) },
     };
   }
 
@@ -4211,6 +4211,82 @@ const TT = (() => {
     };
   }
 
-  return { woodGeo, designWood, plankLayout, stepPlate, discModelW, runDiscW, topUnder, cubiertaGeo, driveAt: driveAtSim, pivotGeo, pivotAt, camGeo, camAt, guidedAt, designDrive, driveMode, camFam, camGuided, camPiv, kinPiv, pivKin, suggestE, pivSupGeo, pivSup, pivSweep, baseClear, earPolys, pivBlkGeo, pivAsym, boltJ3, tapones, tapInfo, thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW, capacityByCyl, market, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute, discModel, runDisc, globalBending, runLift, verifs, analyze, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo };
+  /* ---------------- Memoización pura (LRU, solo rendimiento: no cambia ningún valor) ----------------
+     compute, capacityW, market y capacityByCyl son funciones puras de sus argumentos; analyze también, salvo los tiempos de pared
+     (ms) de la FEA (performance.now): por eso analyze solo se memoriza con { noFEA } (sin FEA no se lee el reloj) y nunca con cache/fea.
+     Clave: serialización propia que distingue NaN, ±Infinity, −0 y undefined, con las claves de los objetos en orden de inserción.
+     Argumentos no serializables (funciones, Map, objetos con prototipo propio, accesores, ciclos): se calcula directo, sin caché.
+     La función real recibe una copia superficial congelada de P (el resultado guardado no apunta al P mutable del llamador). */
+  const memoCaches = [];
+  function memoKey(v, seen) {
+    if (v === undefined) return "u";
+    if (v === null) return "n";
+    const t = typeof v;
+    if (t === "boolean") return v ? "b1" : "b0";
+    if (t === "number") return Object.is(v, -0) ? "-0" : Number.isNaN(v) ? "NaN" : "d" + String(v);   // String(±Infinity) = "Infinity" / "-Infinity"
+    if (t === "string") return JSON.stringify(v);
+    if (t !== "object") return null;                                  // function, symbol, bigint
+    if (seen.includes(v)) return null;                                // ciclo
+    const proto = Object.getPrototypeOf(v), isArr = Array.isArray(v);
+    if (isArr ? proto !== Array.prototype : (proto !== Object.prototype && proto !== null)) return null;   // Map, Date, clases, etc.
+    if (Object.getOwnPropertySymbols(v).length) return null;
+    const names = Object.getOwnPropertyNames(v), keys = Object.keys(v);
+    if (names.length !== keys.length + (isArr ? 1 : 0)) return null;   // propiedades no enumerables (en un array, solo «length»)
+    seen.push(v);
+    const parts = [];
+    if (isArr) {
+      if (keys.length !== v.length) { seen.pop(); return null; }      // huecos o propiedades extra
+      for (let i = 0; i < v.length; i++) {
+        const d = Object.getOwnPropertyDescriptor(v, i);
+        if (!d || !("value" in d)) { seen.pop(); return null; }
+        const s = memoKey(d.value, seen); if (s === null) { seen.pop(); return null; } parts.push(s);
+      }
+      seen.pop(); return "[" + parts.join(",") + "]";
+    }
+    for (const k of keys) {
+      const d = Object.getOwnPropertyDescriptor(v, k);
+      if (!("value" in d)) { seen.pop(); return null; }               // accesor (getter): no es un dato puro
+      const s = memoKey(d.value, seen); if (s === null) { seen.pop(); return null; } parts.push(JSON.stringify(k) + ":" + s);
+    }
+    seen.pop(); return "{" + parts.join(",") + "}";
+  }
+  // fn(P, ...rest): P se congela (copia superficial); rest son datos (números, arrays de números, opciones). okArgs(rest) decide si la llamada es memorizable.
+  function memoLRU(fn, okArgs, max) {
+    const cache = new Map(); memoCaches.push(cache);
+    const w = function (P, ...rest) {
+      if (okArgs && !okArgs(rest)) return fn(P, ...rest);
+      const kp = memoKey(P, []);
+      if (kp === null || P === null || typeof P !== "object" || Array.isArray(P)) return fn(P, ...rest);
+      const kr = memoKey(rest, []);
+      if (kr === null) return fn(P, ...rest);
+      const key = kp + "|" + kr;
+      if (cache.has(key)) { const r = cache.get(key); cache.delete(key); cache.set(key, r); return r; }   // LRU: al final = más reciente
+      const Pf = Object.freeze(Object.assign(Object.create(Object.getPrototypeOf(P)), P));
+      const r = fn(Pf, ...rest);
+      cache.set(key, r);
+      if (cache.size > max) cache.delete(cache.keys().next().value);
+      return r;
+    };
+    Object.defineProperty(w, "length", { value: fn.length }); Object.defineProperty(w, "name", { value: fn.name });   // misma firma visible que la función real
+    return w;
+  }
+  const isPrimOpt = (v) => v === null || v === undefined || ["boolean", "number", "string"].includes(typeof v);
+  // compute y analyze guardan ≈ 5 MB por resultado (levas, barridos, filas): caché corta (≈ 100 MB como máximo cada una); el resto devuelve datos chicos
+  const computeM = memoLRU(compute, (rest) => rest.length === 0, 20);
+  const analyzeM = memoLRU(analyze, (rest) => {
+    if (rest.length > 1) return false;
+    const o = rest[0];
+    if (o === undefined || o === null) return false;                  // con FEA: el resultado lleva tiempos de pared (ms); se calcula directo
+    if (typeof o !== "object" || Object.getPrototypeOf(o) !== Object.prototype) return false;
+    const ks = Object.keys(o);
+    if (Object.getOwnPropertyNames(o).length !== ks.length || !ks.every((k) => (k === "noFEA" || k === "coarse") && isPrimOpt(o[k]))) return false;   // cache, fea u otra clave: directo
+    return !!o.noFEA;                                                 // solo sin FEA (no se lee el reloj)
+  }, 20);
+  const capacityWM = memoLRU(capacityW, (rest) => rest.length === 3, 200);
+  const marketM = memoLRU(market, (rest) => rest.length === 0, 200);
+  const capacityByCylM = memoLRU(capacityByCyl, (rest) => rest.length === 1 && Array.isArray(rest[0]), 200);
+  function _memoClear() { memoCaches.forEach((c) => c.clear()); }
+
+  return { woodGeo, designWood, plankLayout, stepPlate, discModelW, runDiscW, topUnder, cubiertaGeo, driveAt: driveAtSim, pivotGeo, pivotAt, camGeo, camAt, guidedAt, designDrive, driveMode, camFam, camGuided, camPiv, kinPiv, pivKin, suggestE, pivSupGeo, pivSup, pivSweep, baseClear, earPolys, pivBlkGeo, pivAsym, boltJ3, tapones, tapInfo, thermal, thermalP, thermalFactors, oilTrapped, oilViscosity, alphaSteelMean, TH_ALTS, riOf, hubGeo, capacityW: capacityWM, capacityByCyl: capacityByCylM, market: marketM, MARKET, prIn, pinClear, bracketGeo, guideGeo, forkH, PARAM_GROUPS, defaults, parseRings, masses, kinematics, compute: computeM, discModel, runDisc, globalBending, runLift, verifs, analyze: analyzeM, FSR, FAT_CAT, hAxis, G, PSI_CAT, chamferGeo, _memoClear };
 })();
 if (typeof module !== "undefined") module.exports = TT;
