@@ -4,9 +4,13 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from pie_common import *
 import pie_a
 from pie_a import *
+import pie_e
+from pie_e import *
 import pie_b
 from pie_b import *
 import pie_c
 from pie_c import *
 import pie_i
 from pie_i import *
+import pie_d
+from pie_d import *

@@ -33,15 +33,15 @@ def brechas(ctx, rep):
     if g.boss and ev < P["L_bush"] - 1e-6:
         add("Buje parcialmente sin guía en el cubo", f"El buje arranca en z = {fm(g.z_bush0, 0)} y el alesaje del cubo (Ø{fm(g.d_bush, 0)} H7) empieza en z = {fm(g.z_techo if g.rebaje else g.z0 + g.tbo, 0)}: engrane {fm(ev, 0)} de {fm(P['L_bush'], 0)} mm (con rebaje de {fm(g.h_rebaje, 0)} < t_bot, el agujero de la plancha inferior es pasante).", "Verificar la presión del buje con el engrane real o subir el buje.")
     add("Izaje de la mesa", "El cálculo solo define las 4 orejas de la base; no hay puntos de izaje de la mesa (los cáncamos M30 de la Rev. B anterior sobre plancha de 20 mm no engranan la profundidad exigible).", "A DEFINIR: orejas o cáncamos verificados para la mesa.")
-    add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (ajuste p6/H7 sin soldadura).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
-    add("Torque de pernos y tornillos", "El núcleo no entrega torques (pernos M20×45 de pasadores, M10 de tapas, tornillos de posición).", "Torques PROPUESTOS en GEN-008 (ISO 898-1, VDI 2230 simplificado): A CONFIRMAR POR EL CALCULISTA.")
-    add("Tamaño de soldaduras sin parámetro", "Marco, esquinas y orejas de ménsula no tienen tamaño en P; se adopta el mínimo AWS D1.1 T5.8 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f.", "CONFIRMAR o parametrizar tamaños y END de las soldaduras sin parámetro.")
+    add("Retención axial del pivote", "El núcleo verifica asiento y flexión, no la extracción axial del pivote (zona p6 calada H7/p6, sin soldadura).", "A DEFINIR: tope inferior, anillo o interferencia verificada.")
+    add("Torque de pernos y tornillos", "El núcleo no entrega torques (M10 de tapas, tornillos de posición y pernos del accionamiento; los pasadores de empuje van soldados, sin perno).", "Torques PROPUESTOS en GEN-008 (ISO 898-1, VDI 2230 simplificado): A CONFIRMAR POR EL CALCULISTA.")
+    add("Tamaño de soldaduras sin parámetro", ("Marco, esquinas y orejas de ménsula" if g.modo == 1 else ("Marco y esquinas del marco" if (g.FPV or {}).get("soporte_E", {}).get("juntas") else "Marco, esquinas del marco y esquinas del cajón del ojal E")) + " no tienen tamaño en P; se adopta el mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa. Sí son parámetro (y el núcleo verifica mínimo y máximo): w_collar, w_ear, w_tope, w_br, w_web, w_bed_f.", "CONFIRMAR o parametrizar tamaños y END de las soldaduras sin parámetro.")
     add("Filetes máximos AISC J2.2b de almas y nervios", f"Almas y nervios de la mesa: w_web = {fm(P['w_web'], 0)} sobre t = {fm(P['t_web'], 0)} superan el máximo de borde t − 2 = {fm(P['t_web'] - 2, 0)} mm que aplica el núcleo (AISC J2.2b) salvo que el cateto se justifique como built-up (el cordón no queda en el borde del alma). Nota para el calculista: la cláusula J2.2b literal permite w = t para bordes de t < 6,35 mm (aquí 6 mm); el criterio t − 2 es el conservador del núcleo. El núcleo exige el mínimo (fila «Filete mínimo almas/nervios–planchas», 6 mm) pero no tiene fila de máximo para esta unión.",
         "PENDIENTE DEL CALCULISTA: concluir si el cateto z6 se acepta como built-up o se reduce a z4 (con verificación de la soldadura alma/nervio–plancha del núcleo) / se espesa el alma.")
     for v in D["verificaciones"]:
         if v["estado"] == "warn":
             if v["nombre"].startswith("Soldadura mejillas–base"):
-                add("Advertencia del núcleo aceptada: soldadura mejillas–base", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} MPa) en banda «warn» con w_br = {fm(P['w_br'], 0)} (mínimo AWS D1.1 T5.8 = {fm(g.fila('Filete mínimo mejillas–base')['dem'], 0) if g.fila('Filete mínimo mejillas–base') else '—'} mm; máximo AISC J2.2b = t_ch − 2 = {fm(P['t_ch'] - 2, 0)} mm, ya en el tope).",
+                add("Advertencia del núcleo aceptada: soldadura mejillas–base", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} MPa) en banda «warn» con w_br = {fm(P['w_br'], 0)} (mínimo AWS D1.1:2020 Tabla 7.7 = {fm(g.fila('Filete mínimo mejillas–base')['dem'], 0) if g.fila('Filete mínimo mejillas–base') else '—'} mm; máximo AISC J2.2b = t_ch − 2 = {fm(P['t_ch'] - 2, 0)} mm, ya en el tope).",
                     "ACEPTADA POR EL MANDANTE como advertencia (no se aumenta el filete: w_br ya está cerca del máximo AISC J2.2b). Dejar registro en la aprobación.")
             elif v["nombre"].startswith("Flexión en la boca del patín"):
                 add("Advertencia del núcleo aceptada: flexión de la uña en la boca del patín", f"«{v['nombre']}»: FU {fm(v['fu'], 3)} (demanda {fm(v['dem'], 1)} / capacidad {fm(v['cap'], 1)} {v['unidad']}) con Fy_dog = {fm(P['Fy_dog'], 0)} MPa (34CrNiMo6+QT, EN 10083-3, 40 < t ≤ 100 mm) y Nd = 3,0 (ASME BTH-1 §3-2.3).",
@@ -54,9 +54,101 @@ def brechas(ctx, rep):
     if g.opt == 3 and ctx.m.info.get("n_plugs"):
         add("Tapones de grafito: patrón realizable frente a f_g del núcleo", plug_txt(ctx),
             "A DECIDIR POR EL MANDANTE: densificar el patrón (paso o zonas de exclusión) o que el núcleo use la cantidad real de tapones; el efecto sobre la presión del bronce es conservador, sobre la lubricación no.")
-    add("Diferencias de fórmula del patín", "La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza.", "Informativo (dentro de tolerancia).")
+    if g.modo == 1:
+        add("Diferencias de fórmula del patín", "La masa del patín del núcleo difiere del modelo (alojamiento abierto por la cara superior y cuello de la lengüeta): −0,3 % en la pieza.", "Informativo (dentro de tolerancia).")
+    for txt in (rep or {}).get("conflictos_nucleo", []):
+        add("CONFLICTO GEOMÉTRICO DEL NÚCLEO (requiere núcleo)", txt, "A DECIDIR POR EL CALCULISTA: corregir la geometría en el núcleo; las láminas afectadas quedan RETENIDAS (no fabricar) hasta su corrección.")
+    pv = (ctx.m.info.get("conflictos_ids") or {}).get("plancha_E")
+    if pv:
+        add("REQUIERE NÚCLEO: plancha base bajo el soporte del ojal E (verificación no cumplida)", pv["texto"],
+            "A DECIDIR POR EL MANDANTE Y EL CALCULISTA: anclaje a la losa o rediseño de la base (en estudio). BAS-001, BAS-012 y CON-007 quedan RETENIDAS hasta la solución.")
+    for x in ((ctx.D.get("verdict") or {}).get("limitaciones_uso") or []):
+        add("Limitación de uso del núcleo", x.get("texto", "") + " Motivo: " + x.get("motivo", "") + " Referencia: " + x.get("referencia", ""), "Figura en GEN-001 (notas generales) y en el instructivo (paso 9, operación); trasladar al manual de operación y a una placa junto al mando.")
+    for tema, desc, dec in requiere_nucleo(ctx):
+        add(tema, desc, dec)
     add("Cilindro comercial", f"Largo ojal–ojal L0 = {fm(P['L0'], 0)} mm y masa {fm(P['m_cyl'], 0)} kg son supuestos del núcleo; el modelo 3D usa la geometría de extremos del núcleo.", "Confirmar con el proveedor del cilindro.")
     return G_
+
+
+def requiere_nucleo(ctx):
+    """Datos que el dibujo necesita para fabricar y que el JSON del núcleo no entrega (o entrega de forma inconsistente): (tema, descripción, decisión)."""
+    g, P, M = ctx.g, ctx.P, ctx.M
+    R = []
+    RN = "REQUIERE NÚCLEO"
+    I = ctx.m.info.get("refuerzo")
+    if I:
+        pI = ctx.m.get("refuerzo")
+        m_ref = I.get("masa_plancha", I.get("masa"))
+        import refuerzo3d
+        m3_ = pI.mass_unit + refuerzo3d.vol_bisel(I) * pI.rho       # el cordón J-R3 llena el bisel: el núcleo cuenta la plancha llena
+        dif_ = (m3_ / m_ref - 1) * 100 if m_ref else float("inf")
+        if abs(dif_) > 0.5:
+            R.append((f"{RN}: masa del refuerzo de esquina", f"Masa del núcleo {fm(m_ref, 1)} kg por refuerzo; el sólido 3D (plancha con los agujeros vacíos sobre el relleno de los tapones, más el bisel lleno por J-R3) da {fm(m3_, 1)} kg ({fm(dif_, 2)} %), fuera de ±0,5 %.",
+                      "Revisar la masa del refuerzo exportada por el núcleo."))
+        if (I.get("fu_max") or 0) > 0.9:
+            R.append(("ADVERTENCIA DEL NÚCLEO: refuerzo de esquina", f"FU máx. {fm(I['fu_max'], 3)} > 0,90 (objetivo interno; límite 1,0) con el refuerzo de {fm(I['t_d'], 0)} mm sobre la base de {fm(g.tb, 0)} mm "
+                      f"(cara a z = {fm(I['t'], 0)}){' sin atiesador' if not (I.get('atiesadores') or {}).get('por_esquina') else ''}: el núcleo lo acepta con aviso (≤ 1).",
+                      "PENDIENTE DE ACEPTACIÓN DEL MANDANTE (excepción documentada en el registro del núcleo). Las láminas se emiten para revisión con esta salvedad."))
+    PE_ = ctx.m.info.get("pasadores_empuje")
+    if PE_ and PE_.get("union"):
+        R.append(("Pasadores de empuje soldados: WPS por ensayo", f"El núcleo exige WPS calificada por ensayo para {PE_['material'].split(';')[0]} (no precalificado, AWS D1.1:2020 Tabla 5.3) y precalentamiento del orden de 250–300 °C; "
+                  "el dibujo no puede fijar los parámetros de la WPS.", "El fabricante califica el PQR (dureza ZAC ≤ 350 HV10) antes de soldar los pasadores (GEN-007, GEN-012)."))
+    if g.modo == 2:
+        F = g.FPV
+        S, PL = F["soporte_E"], F["placas_leva"]
+        t, L = S["t_pared"], S["lado"]
+        if PL.get("revestimiento"):
+            # familias 3/4 del núcleo: placa de respaldo con revestimiento en el canto (inox–inox o bronce) y zapata; el JSON no trae su geometría
+            Rv, Z = PL["revestimiento"], PL.get("zapata") or {}
+            R.append((f"{RN}: revestimiento del canto de la placa-guía", f"El núcleo declara la placa-guía con revestimiento «{Rv.get('material', '—')}» de {fm(Rv.get('t', 0), 0)} mm en el canto"
+                      + (f" y zapata {fm(Z.get('largo', 0), 0)} × {fm(Z.get('alto', 0), 0)} mm" if Z else "") + " (familia " + str(PL.get("familia")) + "), pero no exporta su contorno, su fijación ni su "
+                      "ubicación a lo largo del canto: el modelo 3D y las láminas dibujan la placa de respaldo sin el revestimiento (masa de las placas-leva por debajo del núcleo).",
+                      "Exportar la geometría del revestimiento y de la zapata (contorno, tramo del canto, fijación) para dibujarlos."))
+        if not S.get("piezas"):
+            R.append((f"{RN}: piezas del soporte del ojal E", "El JSON no trae soporte_E.piezas (polígonos de paredes, muñones y tapas).", "Exportar la geometría del soporte abierto."))
+        if not S.get("juntas"):
+            R.append((f"{RN}: uniones del soporte del ojal E", "El JSON no trae soporte_E.juntas (tipo, tamaño y verificación).", "Exportar las juntas del soporte."))
+        import contorno as _ct
+        ins1 = PL["instancias"]["1_antihorario"]
+        geo_ = _ct.geometrico(_ct.leer(ins1))
+        if g.tb < 1.0 * PL["pernos"]["d"]:
+            R.append((f"{RN}: tornillos de las placas-guía", f"M{fm(PL['pernos']['d'], 0)} roscados en la base de {fm(g.tb, 0)} mm: engrane menor que 1,0·d.", "Verificar el arranque de la rosca."))
+        if not (PL.get("pasadores_posicion") or {}).get("largo"):
+            R.append((f"{RN}: largo de los pasadores de posición", f"El núcleo da ISO 8734 Ø{fm((PL.get('pasadores_posicion') or {}).get('d', 0), 0)} m6 sin largo: se dibuja {fm(ctx.m.info.get('placa_pas_L', 0), 0)} (placa + base − 3 mm, supuesto S25).", "Confirmar el largo."))
+        if not geo_:
+            R.append((f"{RN}: perfil de la placa-leva", "El JSON no trae segmentos geométricos: contorno poligonal provisional, lámina ACC-017 RETENIDA.", "Exportar segmentos_contorno."))
+        if "S355" in PL["material"]:
+            R.append((f"{RN}: canto templado de la placa-leva", f"Material del núcleo: «{PL['material']}». El S355J2 no alcanza 55 HRC.", "Definir el inserto o el material templable de la placa."))
+        R.append((f"{RN}: profundidad de temple (modo pivotado)", "El núcleo no entrega la fila «Profundidad mínima de temple» en el modo pivotado: cara del bloque-uña, extremo inferior del pasador Q, canto de la placa-leva y franja de los pasadores de empuje quedan con profundidad A DEFINIR.", "Agregar la fila al núcleo."))
+        R.append((f"{RN}: ajuste y retención de los pasadores E y Q", f"El núcleo da H9/f8 para E; para Q solo el agujero Ø{fm(F['bloque_una']['agujero_Q'], 0)}. Se adopta H9/f8 también para Q (PROPUESTA) y retención axial por placa y tornillo de catálogo (PROPUESTA, como en el modo guiado).", "Confirmar el ajuste de Q y la retención axial de E y Q."))
+        R.append((f"{RN}: ojal del vástago para el pasador Q", f"Ø exterior y cuello del ojal del vástago para Q Ø{fm(F['pasador_Q']['d'], 0)}: el modelo usa pared {fm(17.5, 1)} mm (Ø{fm(F['pasador_Q']['d'] + 35, 0)}) dentro de la horquilla R{fm(F['bloque_una']['horquilla']['R_cubo'], 0)}; el núcleo solo pide «Ø ojal ≥ d_Q».", "Confirmar con el proveedor del cilindro (supuesto S21)."))
+    if g.modo == 1 and g.FLG:
+        F = g.FLG
+        SG, RN_ = F["seguidor"], F["ranura_tapa_patin"]
+        if not SG["perno"].get("z") or not SG.get("retencion"):
+            R.append((f"{RN}: largo del perno y retención del rodillo", f"seguidor.perno sin cotas z o sin retención axial del rodillo.", "Exportar perno.z y seguidor.retencion."))
+        RT_ = SG.get("retencion") or {}
+        if RT_.get("tornillo") and "10642" in RT_["tornillo"]:
+            import re as _re
+            md_ = _re.search(r"M(\d+)", RT_["tornillo"])
+            if md_ and 0.62 * float(md_.group(1)) > float(RT_.get("t_arandela", 0)):
+                R.append((f"{RN}: tornillo de la arandela de tope del seguidor", f"{RT_['tornillo']}: la cabeza avellanada (k ≈ {fm(0.62 * float(md_.group(1)), 1)} mm, Ø{fm(2 * float(md_.group(1)), 0)}) no cabe en la arandela de {fm(RT_['t_arandela'], 0)} mm; "
+                          f"se dibuja la cabeza sobre la arandela (envolvente) y su largo M{md_.group(1)} × {fm(2 * float(md_.group(1)) + RT_['t_arandela'], 0)} (PROPUESTA). Verificar la holgura bajo el riel y la mesa.", "Definir el tornillo (o el espesor de la arandela) y su largo."))
+        if not RN_.get("ajuste"):
+            R.append((f"{RN}: ranura de la tapa del patín", f"Ancho {fm(RN_['ancho'], 0)} mm sin ajuste definido para el perno Ø{fm(SG['perno']['d'], 0)}.", "Definir el ajuste."))
+        if not (F["porticos"].get("pernos") or {}).get("rosca"):
+            R.append((f"{RN}: pernos riel–pórtico", f"M{fm(F['porticos']['d_perno'], 0)} sin rosca definida en la tapa del pórtico.", "Exportar porticos.pernos.rosca."))
+        if F["porticos"].get("filete_pata_tapa") is None or not F.get("prolongacion_soldadura"):
+            R.append((f"{RN}: soldaduras del pórtico sin tamaño", "Pata–tapa del pórtico o prolongación de la bancada–base sin tamaño de filete en el núcleo.", "Exportar los filetes."))
+        if "42CrMo4" in F["porticos"].get("material", "").split("(")[0] and "S355" not in F["porticos"].get("material", ""):
+            R.append((f"{RN}: soldadura del 42CrMo4+QT", "Patas y tapas del pórtico en 42CrMo4+QT soldadas: no es metal base precalificado AWS D1.1:2020 (Tabla 5.3).", "Confirmar el material soldable de patas y tapas."))
+        if not (SG.get("rodillo") or {}).get("material"):
+            R.append((f"{RN}: material del rodillo del seguidor", "El núcleo indica «rodillo de leva templado» sin grado de acero.", "Definir el grado del rodillo."))
+    if g.opt == 1 and not g.removable and isinstance(g.I.get("tornillos"), dict):
+        TA = g.I["tornillos"]
+        if (TA.get("rosca") or {}).get("pasante", True) and not (TA.get("rosca") or {}).get("ciega"):
+            R.append((f"{RN}: roscas de los tornillos AF2", f"Rosca de los tornillos AF2 sin pieza ni profundidad definidas (R{fm(TA['r'], 0)}).", "Exportar rosca.pieza, ciega y profundidades."))
+    return R
 
 
 def cortes_control(ctx):
@@ -93,8 +185,24 @@ def residual_txt(ctx, grupo):
         return "alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría)"
     if grupo == "mesa":
         return "rebaje del cubo, agujeros de pasadores y empalmes (fórmula del núcleo)"
+    I = ctx.m.info.get("refuerzo")
     if grupo == "base":
         return "agujero del pivote, redondeos y chaflanes de las orejas (fórmula del núcleo)"
+    if grupo == "brackets" and I:
+        return ("el refuerzo de esquina figura como plancha con los agujeros vacíos sobre el relleno de los tapones (igual que el núcleo), cortada con el bisel de la PJP; "
+                "la comparación suma el metal de aporte que llena los biseles (J-R3), porque el núcleo cuenta la plancha llena; los filetes no se modelan")
+    if grupo == "dogs" and g.modo == 2 and (g.FPV.get("bloque_una") or {}).get("contorno") and ctx.m.get("bloque_una"):
+        BU, F = g.FPV["bloque_una"], g.FPV
+        hq = BU["horquilla"]
+        m3 = ctx.m.get("bloque_una").mass_unit
+        k_hole = math.pi / 4 * BU["agujero_Q"] ** 2 * (BU["h"] - hq["ranura_ojal"]) * RHO
+        k_slot_n = hq["ranura_ojal"] * 2 * hq["R_cubo"] ** 2 * RHO
+        k_slot_3 = RHO * BU["h"] * BU["garra"]["area_planta"] - k_hole - m3
+        return (f"bloque-uña con garra: el núcleo (bloque_una.masa_bloque = {fm(BU['masa_bloque'], 2)} kg) toma ρ·h·área de la planta ({fm(BU['garra']['area_planta'], 0)} mm², igual a la del modelo) "
+                f"menos la horquilla como rectángulo 2·R_cubo² × ranura ({fm(k_slot_n, 2)} kg) y NO descuenta el agujero Ø{fm(BU['agujero_Q'], 0)} H9 de las mejillas ({fm(k_hole, 2)} kg); "
+                f"el modelo abre la horquilla en R{fm(hq['R_cubo'] + 1, 0)} alrededor de Q y hacia atrás para el giro del ojal ({fm(k_slot_3, 2)} kg). "
+                f"Bloque del modelo {fm(m3, 2)} kg frente a {fm(BU['masa_bloque'], 2)} kg ({fm(m3 - BU['masa_bloque'], 2)} kg por bloque, × 2). "
+                "Pasador Q igual al núcleo. Se informa al núcleo (simplificación de la fórmula de masa); no se compensa")
     return "fórmula del núcleo frente a geometría"
 
 
@@ -258,8 +366,8 @@ VERIF = {
     "MES-001": ("Mesa: Ø, altura, almas, nervios, pasadores (PCD, paso), corte radial.", "P.D_top, h_disc, rings, N_rib, N_pin, R_pin; verificaciones «Mesa»"),
     "MES-002": ("Planchas y anillos: espesores t_top, t_bot, t_pr, agujero Ø200, rebaje Ø240, agujero pasante Ø D_rebaje_bot (collar + 2 c_boss_r), agujeros de pasadores.", "Verificaciones «Mesa (FEA)»; P.t_top, t_bot, t_pr"),
     "MES-003": ("Cubo con rebaje inferior Ø D_rebaje × h_rebaje_cubo (holguras c_boss_r, c_boss_a); almas y nervios (largos de tramo; anillos del JSON).", "interfazGeom (D_rebaje_bot, h_rebaje_cubo); verificación del collar «pared del rebaje ≥ 25 mm»; masas de almas y nervios"),
-    "MES-004": ("Pasador Ø85 m6 × h_disc, temple por inducción ≥ 55 HRC (Fy_sup), alivio de borde, perno M20.", "Verificaciones «Pasadores de empuje»; P.Fy_surf, P.k_edge"),
-    "PIV-001": ("Pivote, buje, tapas: asiento t_base + h_boss, buje desde t_base + h_boss + g_buje, holguras reales del collar (radial c_boss_r, axial al techo), brazo e = 42, ajustes p6/H7.", "Verificaciones «Pivote» (asiento, brazo efectivo, buje, flexión, rebaje del collar)"),
+    "MES-004": ("Pasador Ø85 m6 × h_disc a ras, soldado a los anillos (PJP 45° S/E del núcleo), temple por inducción ≥ 55 HRC solo en la banda de contacto (Fy_sup), alivio de borde; sin perno ni arandela.", "Verificaciones «Pasadores de empuje»; pasadores_empuje.union; P.Fy_surf, P.k_edge"),
+    "PIV-001": ("Pivote, buje, tapas: asiento t_base + h_boss, buje desde t_base + h_boss + g_buje, holguras reales del collar (radial c_boss_r, axial al techo), brazo e = 42, ajustes H7/p6 (zona de calado) y F7/f7 (zona del buje).", "Verificaciones «Pivote» (asiento, brazo efectivo, buje, flexión, rebaje del collar)"),
     "INT-001": ("Capas de la interfaz y alturas (Δ); topes, tornillos y ranuras según la alternativa; NO desmontable si fix_mode = 2.", "D['apoyo'].interfaz; D['interfazChecks']; verificaciones «Interfaz inox/bronce»"),
     "INT-002": ("Sectores: ángulo, juntas, muescas, tornillos, ranuras de engrase, rugosidad y planitud.", "P.n_sec, d_tor, h_gr, w_gr, n_gr_rad, n_gr_circ; verificaciones de sector y tornillo"),
     "INT-003": ("Barras de tope: L, b_tope, h = t − a_sup, a_inf, h_c, w_tope ≥ w_mín; secciones A-A/B-B(/C-C en B); tornillos ISO 10642, graseras, UHMW/bronce con tapones.", "interfazGeom.topes (geometría resuelta) y verificaciones de tope «alivio inferior», «filete dentro de la altura de barra», «filete mínimo»"),
@@ -333,17 +441,19 @@ def escribir_informe(ctx, rep, hojas, gaps, fuera, cr, out, dt):
     ex = explicar_masas(ctx, rep)
     if ex:
         L += ["### Diferencias explicadas por pieza"] + [f"- {x}" for x in ex] + [""]
-    L += ["## Interferencias", "", f"{sum(1 for r in rep['interferencias'] if not r['ok'])} pares con volumen común > 1 mm³ de {rep['pares_evaluados']} pares evaluados con cajas envolventes solapadas (total de pares {rep['pares_totales']}).", ""]
+    n_dec = sum(1 for r in rep["interferencias"] if not r["ok"] and r.get("declarado"))
+    L += ["## Interferencias", "", f"{sum(1 for r in rep['interferencias'] if not r['ok'] and not r.get('declarado'))} pares con volumen común > 1 mm³ (no declarados) de {rep['pares_evaluados']} pares evaluados con cajas envolventes solapadas (total de pares {rep['pares_totales']}); "
+          f"{n_dec} pares son conflictos geométricos del propio núcleo, declarados (requiere núcleo; brechas de GEN-009; láminas afectadas RETENIDAS).", ""]
     for r in rep["interferencias"]:
         if not r["ok"]:
-            L.append(f"- XX {r['a']} × {r['b']}: {r['vol_mm3']} mm³")
+            L.append(f"- {'CONFLICTO DEL NÚCLEO' if r.get('declarado') else 'XX'} {r['a']} × {r['b']}: {r['vol_mm3']} mm³" + (f" — {r['declarado']}" if r.get("declarado") else ""))
     nf = sum(1 for r in cr if not r["ok"])
     L += ["", "## Chequeo automático de cotas (dibujo frente a modelo 3D)", "",
           f"{len(cr)} cotas registradas; {len(cr) - nf} verificadas (extremos sobre la superficie del sólido o ejes de superficies cilíndricas reales, tolerancia 0,05 mm); **{nf} fallas**. Detalle en `chequeo_cotas.csv`."]
     for r in cr:
         if not r["ok"]:
             L.append(f"- FALLA [{r['sheet']}] {r['texto']} ({r['extremo_a']} / {r['extremo_b']})")
-    L += ["", "## Control de marco", "", ("Todas las láminas dentro del formato A1." if not fuera else "Láminas con entidades fuera del formato: " + "; ".join(f"{a} {b}" for a, b in fuera))]
+    L += ["", "## Control de marco", "", (("Todas las láminas dentro de su formato (" + ", ".join(f"{k}: {v}" for k, v in sorted({fm_: sum(1 for h in hojas if h.fmt == fm_) for fm_ in {h.fmt for h in hojas}}.items())) + ").") if not fuera else "Láminas con entidades fuera del formato: " + "; ".join(f"{a} {b}" for a, b in fuera))]
     L += ["", "## Supuestos del dibujante (PROVISORIO) y decisiones adoptadas por el mandante (ADOPTADO)", "", "| Id | Tema | Valor | Motivo |", "|---|---|---|---|"]
     for x in ctx.sup:
         L.append(f"| {x['id']} | {x['tema']} | {x['valor']} | {x['motivo']} |")
@@ -362,7 +472,7 @@ def copiar_entrega(out, dest, pdfs, con_dxf=True, extra=()):
     for old in list(dest.glob("TT300-C_Planos_Rev*.pdf")) + list(dest.glob("TT300-C_DXF_Rev*.zip")):
         old.unlink()
     for nm in (f"TT300-C_Planos_Rev{REV}.pdf", f"TT300-C_DXF_Rev{REV}.zip", "TT300-C.step", "TT300-C.glb", "TT300-C_despiece.csv", "TT300-C_despiece.xlsx", "lista_verificacion_revisor.md",
-               "lista_verificacion_revisor.pdf", "informe_paquete.md", "chequeo_cotas.csv", "TT300-C_masas3d.json", "TT300-C_design.json", "metricas_laminas.csv", "soldaduras.csv", "lista_de_cortes.csv", "checklist_piezas.csv", "control_cadenas.csv", *extra):
+               "lista_verificacion_revisor.pdf", "informe_paquete.md", "chequeo_cotas.csv", "TT300-C_masas3d.json", "TT300-C_design.json", "metricas_laminas.csv", "soldaduras.csv", "lista_de_cortes.csv", "checklist_piezas.csv", "control_cadenas.csv", "control_cadenas_cerradas.csv", "completitud_piezas.csv", "TT300-C_firmas.json", "estado_laminas.csv", *extra):
         if (out / nm).exists():
             shutil.copy(out / nm, dest / nm)
     pd = dest / "planos"

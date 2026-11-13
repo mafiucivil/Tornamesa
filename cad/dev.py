@@ -16,6 +16,7 @@ def main():
     D = load(jp)
     m = M3.build(D, verbose=False)
     M3.apply_backing_holes(m)
+    M3.asignar_codigos(m)
     ctx = Ctx(m)
     import modelo3d_tt300c as M3b
     ctx.rep = M3b.masas(m) and dict(masa_total_ensamble=M3b.cog(m)[0], cg=M3b.cog(m)[1])
@@ -26,6 +27,7 @@ def main():
     hojas_pie.register(ctx)
     out = SC / "dev"
     import pymupdf
+    HS = []
     for nm in names:
         t0 = time.time()
         fn = None
@@ -36,15 +38,20 @@ def main():
         for h in (h if isinstance(h, list) else [h]):
             s = h.finish(1, 1)
             qc = h.control_calidad()
+            if qc.get("lineas_texto") or qc.get("cruces_globos"):
+                print("   LINEAS SOBRE TEXTO", h.plano, len(qc["lineas_texto"]), qc["lineas_texto"][:8], "cruces de globos", qc.get("cruces_globos"))
+            if getattr(h, "indic_fallo", None):
+                print("   INDICACIONES SIN LUGAR", h.plano, h.indic_fallo)
             if qc["choques"] or qc["fuera"] or qc["invasiones"]:
                 print("   QC", nm, "choques", qc["choques"], "fuera", qc["fuera"][:3], "inv", qc["invasiones"][:3], "movidos", qc["movidos"])
-            s.save(str(out / (nm + ".dxf")), str(out / (nm + ".pdf")))
-            d = pymupdf.open(str(out / (nm + ".pdf")))
-            d[0].get_pixmap(dpi=60).save(str(out / (nm + ".png")))
+            fn_ = h.plano
+            s.save(str(out / (fn_ + ".dxf")), str(out / (fn_ + ".pdf")))
+            d = pymupdf.open(str(out / (fn_ + ".pdf")))
+            d[0].get_pixmap(dpi=60).save(str(out / (fn_ + ".png")))
             o = h.ocupacion()
             import ezdxf
             from ezdxf import bbox as _bb
-            b_ = _bb.extents(ezdxf.readfile(str(out / (nm + ".dxf"))).modelspace())
+            b_ = _bb.extents(ezdxf.readfile(str(out / (fn_ + ".dxf"))).modelspace())
             if b_.extmin.x < -0.5 or b_.extmin.y < -0.5 or b_.extmax.x > h.s.W + 0.5 or b_.extmax.y > h.s.H + 0.5:
                 print("   FUERA DE MARCO", nm, [round(v) for v in (b_.extmin.x, b_.extmin.y, b_.extmax.x, b_.extmax.y)], "hoja", h.s.W, h.s.H)
             import os
@@ -56,13 +63,25 @@ def main():
                 for r in vistas_rows():
                     if r["sheet"] == h.plano:
                         print("    ", r["vista"], "|", r["texto"], "|", r["valor_dibujo"], r["ok"])
+            if getattr(h, "serie", "") == "FAB":
+                import completitud
+                HS.append(h)
+                n_, miss_, _j = completitud.control_lamina(ctx, h)
+                print("   COMPLETITUD", h.plano, f"{n_ - len(miss_)}/{n_}", miss_[:40])
             print(nm, h.plano, f"{time.time() - t0:.0f}s", "ocup", [round(x, 2) for x in o], "huella", round(getattr(h, "huella", 0), 2), "cotas", sum(1 for r in vistas_rows() if r['sheet'] == h.plano), "fallas", [r['texto'] for r in vistas_rows() if r['sheet'] == h.plano and not r['ok']][:5])
 
+    if len(HS) > 1:
+        import completitud
+        un, he = {}, set()
+        for h in HS:
+            for c_ in h.items:
+                un.setdefault(c_, []).extend(h.s.texts)
+        for h in HS:
+            n_, miss_, _j = completitud.control_lamina(ctx, h, un, he)
+            print("   COMPLETITUD (unión)", h.plano, f"{n_ - len(miss_)}/{n_}", miss_[:30])
 
 def vistas_rows():
     import vistas
     return vistas.COTAS.rows
-
-
 if __name__ == "__main__":
     main()

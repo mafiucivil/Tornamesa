@@ -21,7 +21,7 @@ Cambios del núcleo modelados aquí (cada uno con su fórmula en el código):
     el chaflán a_inf²·L (2 cantos × a_inf²/2); en la lámina UHMW la franja libre (b_tope + j)·(R_o − R_i)·t en lugar de la junta; con pegado (fix_mode = 2)
     ni muescas ni chaflanes (UHMW conserva la junta); en C3 la junta ya está en la cobertura. La masa rotatoria m.ssTop queda bruta.
   - Filete mejillas–base: mínimo AWS D1.1 T5.8 por la parte más gruesa sin exceder la más delgada; máximo AISC 360-22 J2.2b en el borde de la mejilla (t − 2 mm).
-  - Cubierta de madera: anillo de acero t_ring × t_madera en el borde; los tablones van dentro del anillo (indep_nuevas.py).
+  - Cubierta de madera W (rebaje, 08-11-2026): anillo superior + pared + plancha rebajada, tablones enrasados, sin anillo de contención (5k; detalle en indep_madera.py).
 
 Ejecutar:  python3 -I tests/indep_interfaz.py   (≈ 5-6 min: barridos, umbrales y FEA de referencia)
 Imprime tablas y termina con «RESULTADO: ...». Sale con 0 si no hay discrepancias numéricas ni hallazgos críticos ni importantes; con 1 si los hay;
@@ -47,6 +47,7 @@ TOL = 1e-3
 
 
 def export(over=None):
+    over = dict({"drive_mode": 1}, **(over or {}))   # este verificador modela el accionamiento guiado: desde el 08-11-2026 el valor por defecto es el pivotado (drive_mode = 2)
     with tempfile.TemporaryDirectory() as td:
         args = ["node", str(ROOT / "tools" / "export_design.js")]
         if over:
@@ -122,7 +123,7 @@ if D0 is None:
     print("No se pudo ejecutar node tools/export_design.js"); sys.exit(2)
 P = D0["P"]
 DA, DB = export({"opt_ss": 1}), export({"opt_uhmw": 1})
-Pg = json.loads((ROOT / "tests" / "golden" / "params_defaults.json").read_text())
+Pg = json.loads((ROOT / "tests" / "golden" / "params_defaults.json").read_text()); Pg["drive_mode"] = 1   # modelo guiado
 nuevos = sorted(k for k in P if k not in Pg)
 
 
@@ -257,7 +258,9 @@ def iface(P, k):
         treq = max(tfl + P["ss_allow"], P["ss_tmin"])
         treq2 = max(tfl + P["ss_allow"] + gr, P["ss_tmin"])
         t_d_new = (P["t_ss"] if P["t_ss"] > 0 else com(max(treq, tmin_sec), COM_SS)) if k else 0.0
-        t_d2_new = (P["t_ss"] if P["t_ss"] > 0 else com(max(treq2, tmin_sec), COM_SS)) if k else 0.0
+        # AF2 (A pegada, fix_mode = 2; decisión del mandante 08-11-2026): el disco de la mesa aloja la cabeza avellanada ISO 10642 (k máx.) con 0,5 mm bajo la cara tras el relapeado
+        t_av = ({6: 3.72, 8: 4.96, 10: 6.2, 12: 7.44, 14: 8.4, 16: 8.8, 20: 10.16}.get(round(P.get("tor2_d", 12)), 0.62 * P.get("tor2_d", 12)) + 0.5 + P["ss_allow"]) if (k == 1 and not sec) else 0.0
+        t_d2_new = (P["t_ss"] if P["t_ss"] > 0 else com(max(treq2, tmin_sec, t_av), COM_SS)) if k else 0.0
         tconf = t_conf_S(q, P["ss_void"], P["E_uhmw"], P["d_flat"], p=P["p_uhmw"]) if k == 2 else None
         tuhreq = max(tconf, P["uh_tmin"]) if k == 2 else 0.0
         t_ap = 0.0
@@ -562,6 +565,64 @@ def rowsAB(PP, k):
         ds = E_SS * (AL_SS - AL_S) * PP["dT"]
         R["Dilatación diferencial inox–acero: tensión si el disco quedara restringido"] = (ds, sad, ds / sad)
         R["Fijación permanente (pegado)"] = (0.0, None, None)
+        if k == 1:
+            # AF2 (decisión del mandante 08-11-2026; círculo rediseñado el 10-11-2026): tornillos avellanados ISO 10642 10.9 del disco de la mesa a la mesa, con el par de diseño.
+            # Círculo en la corona de pasadores (R_pin por defecto) en las bisectrices entre pasadores (pasadores en (k + ½)·360/N, tornillos en k·360/N), sin las que caen
+            # sobre una ranura radial (cabeza a ≥ 3 mm); rosca ciega en el anillo inferior (t_pr, remanente 3 mm, rosca útil = taladro − 2 pasos) si r − d/2 > R_anillo,int.
+            muA = PP["muA_d"]; Hecc = muA * Nn * PP["e"] * (4 / 3) * (Ro_ ** 3 - Ri_ ** 3) / (Ro_ ** 4 - Ri_ ** 4)
+            Td = muA * Nn * PP["r_ef"] / 1e3 + PP["mu_bush"] * Hecc * PP["D_piv"] / 2 / 1e3          # kN·m (caso de diseño)
+            d = PP["tor2_d"]; kk = {6: 3.72, 8: 4.96, 10: 6.2, 12: 7.44, 14: 8.4, 16: 8.8, 20: 10.16}.get(round(d), 0.62 * d)
+            dk = {4: 8, 5: 10, 6: 12, 8: 16, 10: 20, 12: 24, 14: 27, 16: 30, 20: 36}.get(round(d), 2 * d)
+            pst = {6: 1, 8: 1.25, 10: 1.5, 12: 1.75, 14: 2, 16: 2, 20: 2.5, 24: 3}.get(round(d), 0.15 * d)
+            Ab = math.pi / 4 * d * d; dh = d + 1; nrg = round(PP["n_gr_rad"]) if PP["h_gr"] > 0 else 0
+            rOut = Ro_ - 30 if PP["h_gr"] > 0 and PP["n_gr_circ"] >= 1 else Ro_
+            emin = 22 if d <= 16 else (26 if d <= 20 else 1.25 * d)
+            rb = PP["tor2_r"] if PP["tor2_r"] > 0 else PP["R_pin"]; Np = round(PP["N_pin"])
+            rIn = max(PP["D_hub"] / 2, PP["R_pin"] - (PP["D_top"] / 2 - PP["R_pin"]))   # radio interior del anillo de pasadores
+            def lat(a):   # distancia lateral del eje del tornillo a la ranura radial más cercana (semirrecta)
+                best = math.inf
+                for q_ in range(nrg):
+                    e_ = ((a - 360 * q_ / nrg + 540) % 360) - 180
+                    if abs(e_) < 90: best = min(best, rb * abs(math.sin(math.radians(e_))))
+                return best
+            limg = PP["w_gr"] / 2 + dk / 2 + 3
+            cand = [360 * i / Np for i in range(Np) if lat(360 * i / Np) >= limg]
+            nS = min(round(PP["tor2_n"]), len(cand)) if PP["tor2_n"] > 0 else len(cand)
+            angs = cand if nS == len(cand) else [cand[int(i * len(cand) / nS)] for i in range(nS)]
+            n_ = len(angs); gaps = [((angs[(i + 1) % n_] - angs[i]) % 360) or 360 for i in range(n_)]
+            sp = 2 * rb * math.sin(math.radians(min(180, min(gaps)) / 2))
+            pins = [(PP["R_pin"] * math.cos(math.radians((i + 0.5) * 360 / Np)), PP["R_pin"] * math.sin(math.radians((i + 0.5) * 360 / Np))) for i in range(Np)]
+            cbp = min(math.hypot(rb * math.cos(math.radians(a)) - x, rb * math.sin(math.radians(a)) - y) for a in angs for x, y in pins)
+            ring = rb - d / 2 > rIn; tr = PP["t_pr"] if ring else PP["t_bot"]; rec = 0.5 + PP["ss_allow"]
+            hd = tr - 3 if ring else tr; hu = hd - 2 * pst if ring else tr
+            Ls = [16, 20, 25, 30, 35, 40, 45, 50, 55, 60]
+            if ring:
+                Lb = ([x for x in Ls if x - (t2 - rec) + 2 <= hu] or [Ls[0]])[-1]; le = Lb - (t2 - rec)
+            else:
+                le = tr
+            capV = 0.45 * PP["Fu_bolt"] / 2; V = Td * 1e6 / (n_ * rb); te = t2 - kk / 2
+            lcD = sp - dh; lcM = min(sp - dh, cbp - PP["d_pin"] / 2 - dh / 2)
+            RnD = min(1.2 * lcD * te * PP["Fu_ss"], 2.4 * d * te * PP["Fu_ss"]); RnM = min(1.2 * lcM * le * PP["Fu"], 2.4 * d * le * PP["Fu"])
+            R["AF2 · Tornillos avellanados disco–mesa: corte"] = (V / Ab, capV, V / Ab / capV)
+            R["AF2 · Tornillos: aplastamiento en el disco inoxidable"] = (V / 1e3, RnD / 2 / 1e3, V / (RnD / 2))
+            R["AF2 · Tornillos: aplastamiento en la pieza roscada"] = (V / 1e3, RnM / 2 / 1e3, V / (RnM / 2))
+            R["AF2 · Tornillos: separación entre centros"] = (3 * d, sp, 3 * d / sp)
+            R["AF2 · Tornillos: sin interferencia con los agujeros de los pasadores"] = (PP["d_pin"] / 2 + dh / 2, cbp, (PP["d_pin"] / 2 + dh / 2) / cbp)
+            lig = cbp - PP["d_pin"] / 2 - dh / 2
+            R["AF2 · Tornillos: ligamento libre al agujero del pasador"] = (3 * d - dh, lig, (3 * d - dh) / lig if lig > 0 else math.inf)
+            R["AF2 · Tornillos: distancia al borde del agujero del pasador"] = (emin, cbp - PP["d_pin"] / 2, emin / (cbp - PP["d_pin"] / 2))
+            R["AF2 · Tornillos: distancia al borde exterior"] = (emin, Ro_ - rb, emin / (Ro_ - rb))
+            if ring: R["AF2 · Tornillos: distancia al borde interior"] = (emin, rb - rIn, emin / (rb - rIn))
+            R["AF2 · Tornillos: cabeza avellanada dentro del espesor"] = (kk + 0.5 + PP["ss_allow"], t2, (kk + 0.5 + PP["ss_allow"]) / t2)
+            R["AF2 · Tornillos: engrane de la rosca en la pieza real"] = (1.25 * d, le, 1.25 * d / le)
+            if ring: R["AF2 · Tornillos: punta del tornillo dentro de la rosca útil"] = (le + 2, hu, (le + 2) / hu)
+            if PP["h_gr"] > 0:
+                gap = rOut - PP["w_gr"] / 2 - rb - dk / 2
+                R["AF2 · Tornillos: cabeza libre de la ranura circunferencial"] = (3.0, gap, 3.0 / gap)
+                if nrg > 0:
+                    lm = min(lat(a) for a in angs)
+                    R["AF2 · Tornillos: cabeza libre de las ranuras radiales"] = (limg, lm, limg / lm)
+            R["AF2 · Tornillos: designación y geometría"] = (float(n_), rb, None)
     if k == 2:
         sl = PP["life"] * PP["turns_yr"] * 2 * math.pi * PP["r_ef"] / 1000
         h = PP["k_wear"] * 1e-7 * q * sl; ve = vedge_of(PP); tu = r["tuh"]
@@ -1441,7 +1502,7 @@ for c in (1, 2, 3):
     mt0 = D0["derivados"]["masas"]["total"]; mtc = DC[c]["derivados"]["masas"]["total"]
     cmp_val("4b", f"C{c} · dTot (masa total − op. 0)", mtc - mt0, ic["dTot"])
     comp("4b", f"C{c} · dTot ≥ mAdd", 1.0 if ic["dTot"] >= r["mAdd"] else 0.0, 1.0)
-    comp("4b", f"C{c} · masa total = suma de componentes (con m.stopBars)", sum(DC[c]["derivados"]["masas"][k] for k in ("disc", "ss", "uhmw", "bz", "base", "rim", "brackets", "dogs", "shoes", "beds", "pivot", "cyl", "stopBars")), mtc)
+    comp("4b", f"C{c} · masa total = suma de componentes (con m.stopBars)", sum(DC[c]["derivados"]["masas"][k] for k in ("disc", "ss", "uhmw", "bz", "base", "rim", "brackets", "dogs", "shoes", "beds", "cam", "pivot", "cyl", "stopBars")), mtc)
     comp("4b", f"C{c} · m.stopBars (Σ capas·n·ρ·L·b·h_barra de mis topes)", rowsC(PC[c], c)[1].get("mStop", 0.0), DC[c]["derivados"]["masas"]["stopBars"])
 table("4b. escenarios.ifaces[3] y apoyo.interfaz (opción C): espesores, q, masas, F/p/FS de diseño", ["conf", "Magnitud", "Propio", "Núcleo", "Δ %", "Veredicto"], tab)
 
@@ -1597,7 +1658,7 @@ def check_cuts(case, DDx, PPx):
         comp("4h", f"{case} · junta_sector (mm)", js[0], ig["junta_sector"])
     if any(c_["tgt"] == "uhmw" for c_ in mine):
         comp("4h", f"{case} · junta_uhmw (mm)", next(c_["j"] for c_ in mine if c_["tgt"] == "uhmw"), ig["junta_uhmw"])
-    comp("4h", f"{case} · j_sec / tol_hc / t_ring del interfazGeom", PPx["j_sec"] + 1000 * PPx["tol_hc"] + 1e6 * PPx["t_ring"], ig["j_sec"] + 1000 * ig["tol_hc"] + 1e6 * ig["t_ring"])
+    comp("4h", f"{case} · j_sec / tol_hc del interfazGeom", PPx["j_sec"] + 1000 * PPx["tol_hc"], ig["j_sec"] + 1000 * ig["tol_hc"])
     # masa por sector (ISO 11228-1, neta)
     if PPx["fix_mode"] == 1:
         for sm in ig["sector_masa"]:
@@ -2006,9 +2067,9 @@ except Exception:
 
 def plate_lift(PP, m, nel):
     """Placa cuadrada B×B de espesor t_base, libre en el borde, apoyada en 4 puntos de izaje (x = ±x_lug, y = ±(B/2 − c_lug), apoyo rígido en w de ±75 mm); carga = φ_izaje·g·masa:
-    base + marco + ménsulas + patines + bancadas uniformes en B²; mesa + pivote + uñas + cilindros + piezas de interfaz sobre el círculo Ø D_top."""
+    base + marco + ménsulas + patines + bancadas + levas uniformes en B²; mesa + pivote + uñas + cilindros + piezas de interfaz sobre el círculo Ø D_top."""
     B_ = PP["B"]; a_ = B_ / 2; Rd = PP["D_top"] / 2; h = B_ / nel; nn = nel + 1
-    own = m["base"] + m["rim"] + m["brackets"] + m["shoes"] + m["beds"]
+    own = m["base"] + m["rim"] + m["brackets"] + m["shoes"] + m["beds"] + m.get("cam", 0.0)     # + levas (Tarea 1: riel-leva guiado; Tarea 2: placas-leva), fijas a la base o a la bancada
     oth = m["disc"] + m["pivot"] + m["dogs"] + m["cyl"] + m["ss"] + m["uhmw"] + m["bz"] + m.get("stopBars", 0.0)     # las barras de los topes van con la interfaz (bajo la mesa)
     qo = PP["phi_lift"] * own * g0 / B_ ** 2; qd = PP["phi_lift"] * oth * g0 / (math.pi * Rd ** 2)
     Ke = mitc4_K(h, PP["E"], PP["nu"], PP["t_base"])
@@ -2361,47 +2422,73 @@ print(f"5j: geometría del accionamiento reflejada en {sg_ok} de {sg_n} puntos; 
       f"filete de las barras w_tope = {P['w_tope']:g} mm frente al máximo J2.2b del borde de la barra (b_tope − 2 = {s3(jmax_aisc(P['b_tope']))} mm): no limita")
 
 # ======================================================================================
-# 5k. Cubierta de madera con anillo de acero (4.ª pasada): anillo t_ring × t_madera en el borde, tablones dentro del anillo
+# 5k. Cubierta de madera W (rebaje, decisión del mandante 08-11-2026): anillo superior R_reb…R (t = máx(t_pr, t_top)), pared R_reb…R_reb + t_pared,
+#     plancha rebajada continua t_madera abajo, almas/nervios/cubo/pivote más bajos y tablones enrasados; sin anillo de contención (m.ring = 0)
 # ======================================================================================
-def madera_masas(PP):
-    """tablones: ρ_w·π/4·((D − 2·t_ring)² − Ø_abertura²)·t_w, Ø_abertura = D_piv + 80; anillo de acero: 7,85e-6·π/4·(D² − (D − 2·t_ring)²)·t_w (alto = espesor de los tablones)"""
-    D_, tr_, tw_ = PP["D_top"], PP["t_ring"], PP["t_wood"]; Dh = PP["D_piv"] + 80
-    return PP["rho_wood"] * 1e-9 * math.pi / 4 * ((D_ - 2 * tr_) ** 2 - Dh ** 2) * tw_, RHO * math.pi / 4 * (D_ ** 2 - (D_ - 2 * tr_) ** 2) * tw_
+def madera_W(PP):
+    """(masa de los tablones, Δ masa de acero de la mesa respecto de la mesa sin rebaje, Δ largo del pivote). Tablones: franjas de ancho b_tab y junta j_tab
+    dentro de R_w = R_reb − c_mad, menos la abertura R_ab = (D_piv + 120)/2 + c_mad, integradas numéricamente (Simpson) — sin las fórmulas del núcleo."""
+    tW, tT, tB = PP["t_wood"], PP["t_top"], PP["t_bot"]
+    tR = PP["t_reb"] or tT; tP = PP["t_pared"] or tT; tA = max(PP["t_pr"], tT)
+    Rt = PP["D_top"] / 2; Rr = PP["R_reb"]; Rp = Rr + tP; Rq = Rp + PP["w_pared"] + 5; hole = PP["D_piv"] + 80
+    hw = PP["h_disc"] - tT - tB; hwr = PP["h_disc"] - tB - tW - tR
+    rings = sorted(float(x) for x in PP["rings"].replace(";", ",").split(",") if x.strip())
+    rpr = max(PP["D_hub"] / 2, PP["R_pin"] - (Rt - PP["R_pin"])); ap = PP["N_pin"] * math.pi / 4 * PP["d_pin"] ** 2
+    top0 = (math.pi * rpr ** 2 - math.pi / 4 * hole ** 2) * tT + (math.pi * (Rt ** 2 - rpr ** 2) - ap) * max(PP["t_pr"], tT)
+    topW = (math.pi * (Rt ** 2 - Rr ** 2) - ap) * tA + math.pi * (Rp ** 2 - Rr ** 2) * (tW - tA) + math.pi * (Rq ** 2 - (hole / 2) ** 2) * tR
+    assert all(r <= Rp for r in rings) and PP["R_rib"] <= Rp, "5k cubre almas y nervios dentro del rebaje"
+    dh = hwr - hw
+    nin = sum(1 for r in rings if PP["D_hub"] / 2 < r < PP["R_rib"])
+    dsteel = topW - top0 + sum(2 * math.pi * r * dh * PP["t_web"] for r in rings) + PP["N_rib"] * (PP["R_rib"] - PP["D_hub"] / 2 - nin * PP["t_web"]) * dh * PP["t_rib"]
+    D_rec, dep = collar_rebaje(PP, 0.0); db = PP["D_piv"] + 30
+    hub = lambda h: math.pi / 4 * (PP["D_hub"] ** 2 - db ** 2) * h - (math.pi / 4 * (D_rec ** 2 - db ** 2) * min(max(dep - tB, 0.0), h) if D_rec > db else 0.0)
+    dsteel += hub(hwr) - hub(hw)
+    Rw, Rab, b, j = Rr - PP["c_mad"], (PP["D_piv"] + 120) / 2 + PP["c_mad"], PP["b_tab"], PP["j_tab"]
+    def strips(odd):
+        y00 = -b / 2 if odd else j / 2; out = []
+        for k in range(-40, 41):
+            y0 = y00 + k * (b + j); a0, a1 = max(y0, -Rw), min(y0 + b, Rw)
+            if a1 - a0 > 1e-9: out.append((a0, a1))
+        return out
+    L1, L0 = strips(True), strips(False); wof = lambda L: min(L[0][1] - L[0][0], L[-1][1] - L[-1][0])
+    L = L1 if wof(L1) >= wof(L0) else L0
+    ch = lambda R, y: 2 * math.sqrt(max(0.0, R * R - y * y))
+    def simpson(f, a_, b_, n=400):
+        h = (b_ - a_) / n; return h / 3 * (f(a_) + f(b_) + sum((4 if i % 2 else 2) * f(a_ + i * h) for i in range(1, n)))
+    area = sum(simpson(lambda y: ch(Rw, y) - ch(Rab, y), y0, y1) for y0, y1 in L)
+    return PP["rho_wood"] * 1e-9 * area * tW, RHO * dsteel, -(tW + tR - tT), len(L)
 
 
-def q_madera(PP, mw, mr):
-    """q_máx de la opción 0 con la cubierta: Wd = (mesa + ½ pivote + tablones + anillo)·g"""
+def q_madera(PP, mw, dst, dpiv):
+    """q_máx de la opción 0 con la cubierta W: Wd = (mesa + Δacero + tablones + ½ pivote más corto)·g"""
     Ro_, Ri_, A_, I_, ru_ = geom(PP); m_mesa_, rho_piv_ = mesa(PP, 0.0)
-    Wd_ = (m_mesa_ + 0.5 * rho_piv_ * (PP["t_base"] + PP["h_disc"] - PP["t_top"] + 3) + mw + mr) * g0 / 1e3
+    Wd_ = (m_mesa_ + dst + 0.5 * rho_piv_ * (PP["t_base"] + PP["h_disc"] - PP["t_top"] + dpiv + 3) + mw) * g0 / 1e3
     ND_ = PP["phi_d"] * PP["W_tf"] * g0 + Wd_
     return Wd_, ND_ * 1e3 / A_ + ND_ * 1e3 * PP["e"] * Ro_ / I_
 
 
-WOOD_OV = [{"opt_wood": 1}, {"opt_wood": 1, "t_ring": 6}, {"opt_wood": 1, "t_ring": 15}, {"opt_wood": 1, "t_wood": 30}, {"opt_wood": 1, "t_wood": 80, "t_ring": 8},
-           {"opt_wood": 1, "rho_wood": 750}, {"opt_wood": 1, "opt_ss": 1}, {"opt_wood": 1, "D_top": 1800}]
+WOOD_OV = [{"opt_wood": 1}, {"opt_wood": 1, "t_wood": 50}, {"opt_wood": 1, "t_wood": 60}, {"opt_wood": 1, "t_reb": 25}, {"opt_wood": 1, "c_mad": 20, "b_tab": 150},
+           {"opt_wood": 1, "rho_wood": 750}, {"opt_wood": 1, "opt_ss": 1}, {"opt_wood": 1, "t_pared": 16, "w_pared": 10}]
 prefetch(WOOD_OV)
 rows = []
 for ov in WOOD_OV:
     DDw = export_c(ov)
     if DDw is None:
         continue
-    Pw_ = DDw["P"]; mw, mr = madera_masas(Pw_); mmw = DDw["derivados"]["masas"]; cub = DDw["cubierta"]
-    ring_row = next(c_ for c_ in cub["checks"] if c_["nombre"].startswith("Anillo de acero"))
+    Pw_ = DDw["P"]; mw, dst, dpiv, nt = madera_W(Pw_); mmw = DDw["derivados"]["masas"]; cub = DDw["cubierta"]
     tag = ",".join(f"{k_}={v_}" for k_, v_ in ov.items() if k_ != "opt_wood") or "defecto"
     comp("5k", f"madera {tag}: m.wood tablones (kg)", mw, mmw["wood"]); comp("5k", f"madera {tag}: cubierta.mWood (kg)", mw, cub["mWood"])
-    comp("5k", f"madera {tag}: m.ring anillo (kg)", mr, mmw["ring"]); comp("5k", f"madera {tag}: fila del anillo (kg)", mr, ring_row["dem"])
-    comp("5k", f"madera {tag}: cubierta.dMasa = tablones + anillo (kg)", mw + mr, cub["dMasa"])
-    DD0 = export_c({k_: v_ for k_, v_ in ov.items() if k_ not in ("opt_wood", "t_ring", "t_wood", "rho_wood")})
-    comp("5k", f"madera {tag}: Δ m.total respecto de la misma mesa sin madera (kg)", mw + mr, mmw["total"] - DD0["derivados"]["masas"]["total"])
-    comp("5k", f"madera {tag}: m.disc incluye tablones y anillo (kg)", mw + mr, mmw["disc"] - DD0["derivados"]["masas"]["disc"])
+    comp("5k", f"madera {tag}: N° de tablones", nt, DDw["madera"]["tablones"]["n"])
+    comp("5k", f"madera {tag}: m.ring = 0 (sin anillo de contención)", 0.0, mmw["ring"])
+    DD0 = export_c({k_: v_ for k_, v_ in ov.items() if k_ not in ("opt_wood", "t_wood", "rho_wood", "t_reb", "c_mad", "b_tab", "t_pared", "w_pared")})
+    comp("5k", f"madera {tag}: Δ m.disc = Δacero + tablones (kg)", dst + mw, mmw["disc"] - DD0["derivados"]["masas"]["disc"])
+    comp("5k", f"madera {tag}: Δ pivote (kg)", RHO * math.pi / 4 * Pw_["D_piv"] ** 2 * dpiv, mmw["pivot"] - DD0["derivados"]["masas"]["pivot"])
     if "opt_ss" not in ov:
-        Wd_w, qw = q_madera(Pw_, mw, mr)
+        Wd_w, qw = q_madera(Pw_, mw, dst, dpiv)
         comp("5k", f"madera {tag}: Wd sobre la interfaz (kN)", Wd_w, DDw["apoyo"]["Wd"]); comp("5k", f"madera {tag}: q_máx de la interfaz (MPa)", qw, DDw["derivados"]["q_max"])
-    rows.append([tag, s3(mw), s3(mmw["wood"]), s3(mr), s3(mmw["ring"]), s3(mw + mr), s3(cub["dMasa"])])
-table("5k. Cubierta de madera con anillo de acero: tablones dentro del anillo (D − 2·t_ring) y anillo ρ_acero·π/4·(D² − (D − 2·t_ring)²)·t_madera; propio frente a núcleo",
-      ["Caso", "tablones propio kg", "tablones núcleo kg", "anillo propio kg", "anillo núcleo kg", "Σ propio kg", "dMasa núcleo kg"], rows)
-_mw0, _mr0 = madera_masas(dict(P, opt_wood=1))
-print(f"Madera por defecto: tablones {s3(_mw0)} kg (sin anillo serían {s3(P['rho_wood']*1e-9*math.pi/4*(P['D_top']**2-(P['D_piv']+80)**2)*P['t_wood'])} kg), anillo {s3(_mr0)} kg, Σ {s3(_mw0 + _mr0)} kg")
+    rows.append([tag, s3(mw), s3(mmw["wood"]), s3(dst), s3(mw + dst), s3(cub["dMasa"])])
+table("5k. Cubierta de madera W (rebaje): tablones por franjas (Simpson) y Δ de acero de la mesa (anillo + pared + plancha rebajada − plancha superior, almas, nervios y cubo más bajos); propio frente a núcleo",
+      ["Caso", "tablones propio kg", "tablones núcleo kg", "Δ acero propio kg", "Δ mesa propio kg", "dMasa núcleo kg"], rows)
 
 # invariancia de la opción 0 frente a los parámetros nuevos
 ok0 = True

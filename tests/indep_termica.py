@@ -13,8 +13,8 @@ import json, math, os, pathlib, subprocess, sys, tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GD = ROOT / "tests" / "golden"
-P0 = json.loads((GD / "params_defaults.json").read_text())
-G = json.loads((GD / "tt300c_defaults.json").read_text())
+P0 = json.loads((GD / "params_defaults.json").read_text()); P0["drive_mode"] = 1
+G = json.loads((GD / "tt300c_guiado.json").read_text())   # golden del modo guiado (drive_mode = 1)
 TOL = 1e-3
 ALC = None                                   # alcance térmico (term_alcance): 1 = placas y disco; 2 = además accionamiento e hidráulica (comportamiento de 1bbe3ed)
 SUPPORTS_ALC = False                         # el núcleo reconoce term_alcance (detección conductual en el modo principal)
@@ -29,7 +29,7 @@ for _a in sys.argv[1:]:
 # filas del escenario que pertenecen al accionamiento y a la hidráulica (fuera del alcance 1)
 DRIVE_KEYS = ("Uña–pasador", "Patín fuera", "Bancada de guía", "Aceite", "Válvula de alivio", "Sellos NBR")
 # grupos de verificaciones estándar que pasan a «Accionamiento (fuera de alcance)» con term_alcance = 1 (pasadores de empuje, uña, patín y guía, articulaciones, fatiga)
-DRIVE_GRPS = ("Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga")
+DRIVE_GRPS = ("Pasadores de empuje", "Uña", "Patín y guía", "Articulaciones", "Fatiga", "Leva de reenganche", "Soporte del ojal E", "Placas-leva")   # + leva guiada (Tarea 1) y modo pivotado (Tarea 2)
 FG_ROW = "Bronce con grafito: cobertura mínima de lubricante sólido"          # criterio f_g ≥ bz_fg_min (aviso por defecto; falla con bz_fg_estricto = 1)
 fails = []
 nchk = [0]
@@ -66,7 +66,7 @@ _cache = {}
 
 
 def export(over=None):
-    over = dict(over or {})
+    over = dict({"drive_mode": 1}, **(over or {}))   # modelo térmico del accionamiento guiado (el valor por defecto pasó al pivotado, drive_mode = 2)
     if SUPPORTS_ALC and ALC is not None:
         over.setdefault("term_alcance", ALC)
     if IDEAL:
@@ -149,6 +149,21 @@ def kfac(P, T):
     Tr = P["T_ref"]
     s = (T - Tr) / (80.0 - Tr) if T > Tr else 0.0
     return {k: max(K_FLOOR, 1 + (P[p] - 1) * s) for k, p in KEYS.items()}
+
+
+def is_bolt(c):
+    return c["nombre"].startswith("Pernos de") and c["unidad"] == "MPa"
+
+
+def bolt_fu(c, chks, P, k):
+    """Pernos de las levas (AISC 360-22 J3) con Fu × k_perno; la fila de tracción usa F'nt = mín(Fnt; 1,3·Fnt − Ω·Fnt/Fnv·f_rv), Ω = 2,00."""
+    Fu = P["Fu_bolt"] * k["bolt"]
+    if "tracción" in c["nombre"]:
+        pre = c["nombre"].split(":")[0]
+        frv = next(x["dem"] for x in chks if x["nombre"].startswith(pre + ": corte"))
+        Fnt, Fnv = 0.75 * Fu, 0.45 * Fu
+        return c["dem"] / (max(0.0, min(Fnt, 1.3 * Fnt - 2 * Fnt / Fnv * frv)) / 2)
+    return c["dem"] / (0.45 * Fu / 2)
 
 
 def scenario(P):
@@ -358,7 +373,9 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Bancada de guía fuera de la mesa con la mesa caliente", "giro", ban / (P["x_g"] - P["w_bed"] / 2), ban, P["x_g"] - P["w_bed"] / 2, kind="geo")
     add("Dilatación global: crecimiento del diámetro", "est", None, al * dT * P["D_top"], al * dT * P["B"], kind="info")
     # --- (4) gradiente
-    kappa = al * gT / P["D_top"] * 0 + al * gT / P["h_disc"] * 1000     # 1/m con h = h_mesa (mm → m)
+    # cubierta W (rebaje, 08-11-2026): dentro de R_reb el cajón mide h_mesa − d_rebaje, d_rebaje = t_madera + t_reb − t_top (κ mayor, conservador)
+    h_g = P["h_disc"] - (P["t_wood"] + (P.get("t_reb") or P["t_top"]) - P["t_top"]) if wood else P["h_disc"]
+    kappa = al * gT / h_g * 1000     # 1/m (mm → m)
     sth = P["E"] * k["E"] * al * gT / (2 * (1 - P["nu"]))
     add("Gradiente: curvatura térmica", "est", None, kappa, None, kind="info")
     add("Gradiente: flecha en el diámetro", "est", None, kappa * (P["D_top"] / 2 / 1000) ** 2 / 2 * 1000, None, kind="info")
@@ -373,6 +390,16 @@ def thermal_rows(aid, wood, T, P, Tscn, gs, k_over=None):
     add("Gradiente: pared del cubo junto al rebaje", "est", (cub["fu"] * (P["Fy"] / P["Nd"]) + sth) / (P["Fy"] / P["Nd"] * k["Fy"]), None, None)
     add("Gradiente: desnivel de la cara de contacto", "est", None, kappa / 1000 * (Ro ** 2 - Ri ** 2) / 2, P["d_flat"], kind="info")
     add("Gradiente: variación del hueco de contacto", "est", (kappa / 1000 * (P["ss_void"] / 2) ** 2 / 2) / P["d_flat"], kappa / 1000 * (P["ss_void"] / 2) ** 2 / 2, P["d_flat"])
+    # --- (4b) cubierta W: holgura perimetral de los tablones frente a la dilatación transversal (madera y acero a T); n de tablones por franjas simétricas
+    if wood:
+        Rw = P["R_reb"] - P["c_mad"]; b_, j_ = P["b_tab"], P["j_tab"]
+        def nstr(odd):
+            y00 = -b_ / 2 if odd else j_ / 2; L = [(max(y00 + q_ * (b_ + j_), -Rw), min(y00 + q_ * (b_ + j_) + b_, Rw)) for q_ in range(-50, 51)]
+            L = [x for x in L if x[1] - x[0] > 1e-9]; return len(L), min(L[0][1] - L[0][0], L[-1][1] - L[-1][0])
+        (n1, w1), (n0, w0) = nstr(True), nstr(False)
+        nt = n1 if w1 >= w0 else n0
+        dmw, cmw = max(0.0, 30e-6 - al) * dT * 2 * Rw, 2 * P["c_mad"] + (nt - 1) * j_
+        add("Madera: holgura perimetral frente a la dilatación transversal a T", "est", dmw / cmw, dmw, cmw, kind="geo")
     # --- (5) aceite atrapado
     ph = [c for c in D["derivados"]["casos"] if c["id"] == "dis"][0]
     p_hold = ph["F"] * 1e3 / Ab * 10                       # bar
@@ -463,7 +490,8 @@ for wood in (False, True):
             # sección informativa «Accionamiento (fuera de alcance)»: 51 filas calculadas, sin entrar a estado, FU ni veredicto (term_alcance = 1)
             if ALC == 1:
                 fa = rT["fuera_alcance"]
-                stdd = [c for c in alt_export(aid, wood)["verificaciones"] if c["grp"] in DRIVE_GRPS]
+                # las filas de decisión pendiente sin FU (kind «pend», p. ej. el levantamiento sin anclaje) van al estado global, no al bloque informativo
+                stdd = [c for c in alt_export(aid, wood)["verificaciones"] if c["grp"] in DRIVE_GRPS and not (c["fu"] is None and c["estado"] == "pend")]
                 # la fila informativa «Bomba con viscosidad baja» (kW / mm²/s; sin FU ni estado) no se replica: es la única fila del bloque sin réplica
                 BOMBA = "Bomba con viscosidad baja"
                 sin_rep = [f["nombre"].split(":")[0] for f in fa if f["grp"] not in DRIVE_GRPS and not any(f["nombre"].startswith(r["key"]) for r in aux["drive"])]
@@ -483,8 +511,10 @@ for wood in (False, True):
                     chk(f"{cid} T={T} fuera de alcance {r['key'][:40]} fu", r["fu"], f[0]["fu"], absn=1e-12) if r["fu"] is not None else chk_eq(f"{cid} T={T} fuera {r['key'][:30]} fu None", f[0]["fu"], None)
                     if r["dem"] is not None: chk(f"{cid} T={T} fuera de alcance {r['key'][:40]} dem", r["dem"], f[0]["dem"], absn=1e-12)
                     if r["fu"] is not None: chk_eq(f"{cid} T={T} fuera de alcance {r['key'][:40]} estado", state_row(r), f[0]["estado_informativo"])
-                nf = sum(1 for c in stdd if c["estado"] == "fail") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "fail")
-                nw = sum(1 for c in stdd if c["estado"] == "warn") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "warn")
+                kT_ = kfac(P, T); allc = alt_export(aid, wood)["verificaciones"]
+                stT = lambda c: state_res(bolt_fu(c, allc, P, kT_)) if is_bolt(c) else c["estado"]     # pernos de las levas: Fu × k_perno a T; el resto del accionamiento no cambia (k_Fy = 1)
+                nf = sum(1 for c in stdd if stT(c) == "fail") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "fail")
+                nw = sum(1 for c in stdd if stT(c) == "warn") + sum(1 for r in aux["drive"] if r["fu"] is not None and state_row(r) == "warn")
                 chk_eq(f"{cid} T={T} fuera_resumen (n, fail, warn)", (len(stdd) + len(aux["drive"]) + 1, nf, nw), (rT["fuera_resumen"]["n"], rT["fuera_resumen"]["fail"], rT["fuera_resumen"]["warn"]))
             # masa congelada
             chk(f"{cid} T={T} masa (geometría congelada de 20 °C)", rT["masa"], alt_export(aid, wood)["derivados"]["masas"]["total"], tol=1e-9)
@@ -565,7 +595,7 @@ def std_classify(c, aid):
             if "aplastamiento del tope sobre el canto" in n: return "bz_tope"
             if "aplastamiento del tope con la altura de contacto reducida" in n: return "bz_red"
         if n.startswith("Presión de contacto sobre el bronce neto") or n.startswith("Bronce con grafito: valor PV"): return "bz_p"
-    if g == "Cubierta" and n.startswith("Madera: aplastamiento"): return "wood"
+    if g == "Cubierta" and n.startswith(("Madera: aplastamiento", "Madera: apoyo lateral")): return "wood"   # W: el apoyo lateral contra la pared también usa p_madera·C_t
     return None
 
 
@@ -606,6 +636,8 @@ def std_at(aid, wood, k, P, q_uh=None, kfy_extra=1.0):
             fu = c["fu"] / k["bz"]
         elif fam == "wood":
             fu = c["fu"] / k["wood"]
+        elif is_bolt(c):
+            fu = bolt_fu(c, chks, P, k)
         elif c["unidad"] == "MPa" and kfy_extra != 1.0 and not any(s in c["nombre"] for s in ("Soldadura", "soldadura", "Hertz")) and c["grp"] not in ("Soldaduras", "Fatiga"):
             fu = c["fu"] / kfy_extra
         out.append(dict(grp=c["grp"], nombre=c["nombre"], fu20=c["fu"], fuT=fu, sys=sys_, unidad=c["unidad"], fam=fam, st20=c["estado"], strict=P.get("bz_fg_estricto", 0)))
@@ -644,7 +676,9 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
     stds = std_at(aid, wood, k, P, kfy_extra=kfy_extra)
     fs20 = [c for c in D["derivados"]["casos"] if c["id"] == "dis"][0]["FS"]
     FS = fs20 / k["mu"] / FSfac
-    est_items = [s for s in stds if s["sys"] == "est" and s["unidad"] == "MPa" and s["fuT"] is not None and not s["nombre"].startswith("Lámina UHMW: espesor")]
+    # filas «pend» (decisión pendiente del mandante, p. ej. la plancha base sin anclaje bajo la ménsula o el soporte E): no entran al FU gobernante ni al
+    # conteo de fallas; el estado global las lista aparte (docs/qa/plancha_base_soporte_E.md §4, criterio del registro, no del código del núcleo)
+    est_items = [s for s in stds if s["sys"] == "est" and s["unidad"] == "MPa" and s["fuT"] is not None and s["st20"] != "pend" and not s["nombre"].startswith("Lámina UHMW: espesor")]
     # fuEst: máx. FU de las verificaciones estándar de resistencia (MPa), sin las de «giro»
     fuEst = max(est_items, key=lambda s: s["fuT"]) if est_items else None
     th_est = [r for r in rows if r["sys"] == "est" and r["fu"] is not None]
@@ -653,6 +687,7 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
     fail = warn = 0
     giro_fail = est_fail = term_bad = False
     for s in stds:
+        if s["st20"] == "pend": continue
         stt = state_std(s, s["fuT"])
         if stt == "fail": fail += 1
         if stt == "warn": warn += 1
@@ -667,7 +702,7 @@ def alt_state(aid, wood, T, P, Tscn, gs, k_over=None, kfy_extra=1.0, FSfac=1.0):
         if stt == "fail":
             if r["sys"] == "giro": giro_fail = True
             elif r["sys"] == "est": est_fail = True
-        if stt == "fail" and ((r["sys"] == "term") if ALC != 1 else (r["sys"] in ("term", "est"))): term_bad = True    # alcance 1: sin filas de aceite, «térmico» = ninguna fila térmica de placas y disco incumple (fuTerm ≤ 1)
+        if stt == "fail" and (r["sys"] in ("term", "est", "giro") if ALC != 1 else (r["sys"] in ("term", "est"))): term_bad = True   # alcance 2: cualquier fila térmica que incumple (como el núcleo; con la cubierta W, C3 a 40 °C con gradiente lleva la plancha inferior a FU 1,01)    # alcance 1: sin filas de aceite, «térmico» = ninguna fila térmica de placas y disco incumple (fuTerm ≤ 1)
     return dict(FS=FS, fuEst=fuEst, fuTerm=fuTerm, gira=(FS >= P["FS_min"] and not giro_fail), estructura=not est_fail, termico=not term_bad,
                 nFail=fail, nWarn=warn, stds=stds, rows=rows, k=k, aux=aux, fs20=fs20)
 
@@ -747,7 +782,7 @@ for wood in (False, True):
 if IDEAL:
     # term_alcance = 2 con f_g ideal y sin criterio de lubricación debe reproducir el escenario anterior: la réplica propia se compara con tests/golden/tt300c_termica_alcance2.json (FS, flags, FU y conteos)
     print("== 7b. Réplica propia frente al golden del escenario anterior (term_alcance = 2, f_g ideal) ==")
-    GOLD = json.loads((GD / "tt300c_termica_alcance2.json").read_text())
+    GOLD = json.loads((GD / "tt300c_termica_alcance2_guiado.json").read_text())   # escenario anterior en el modo guiado (el de tt300c_termica_alcance2.json es el modo por defecto, pivotado)
     for aid, _ in ALTS:
         for Tk, gT in GOLD[aid].items():
             T = int(Tk); S = alt_state(aid, False, T, P0, Tscn0, gs0)

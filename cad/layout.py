@@ -28,13 +28,15 @@ class VS:
     """Especificación de una vista (la lámina la dibuja el compositor cuando conoce su zona)."""
 
     def __init__(self, name, keys, view, cut=None, win=None, center=(0, 0, 0), lv=(1, 2, 2, 1), extra=(0, 0, 0, 0), mat=None, hatch=True, title=None, w=1.0, maxs=None, mins=None,
-                 draw=None, auto=None, iso=False, hidden=False, breaks=None, hs=0.5, label=None, only=None, tag=None, min_cell=(40, 30), detail=None, at=None, nat=None, custom=None):
+                 draw=None, auto=None, iso=False, hidden=False, breaks=None, hs=0.5, label=None, only=None, tag=None, min_cell=(40, 30), detail=None, at=None, nat=None, custom=None, layer="VIS", nocut=()):
         self.name, self.keys, self.view, self.cut, self.win, self.center = name, keys, view, cut, win, center
+        self.nocut = tuple(nocut)      # piezas que no se cortan en sentido longitudinal (pernos, pasadores, ejes: ISO 128-50)
         self.lv, self.extra, self.mat, self.hatch, self.title, self.w = lv, extra, mat, hatch, title, w
         self.maxs, self.mins, self.draw, self.auto, self.iso = maxs, mins, draw, auto, iso
         self.hidden, self.breaks, self.hs, self.label, self.only = hidden, breaks, hs, label or name, only
         self.detail = detail    # (nombre_vista_padre, centro3d, radio_modelo, letra)
-        self.nat, self.custom = nat, custom   # vista dibujada por una función (esquema de junta): nat = tamaño natural en mm del modelo
+        self.nat, self.custom = nat, custom
+        self.layer = layer   # vista dibujada por una función (esquema de junta): nat = tamaño natural en mm del modelo
         self.V = None
 
     # extensión natural de la vista en el modelo
@@ -97,6 +99,9 @@ def _solve(groups, mode, zone, nat, mar, caps, wts, iso_flags, mins):
             a, b = nat[i]
             mw, mh = mar[i][0] + mar[i][2], mar[i][1] + mar[i][3]
             sc[i] = _max_scale_fit(a, b, mw, mh, W, H, caps[i])
+            if iso_flags[i]:
+                # isométrica: se dibuja a escala libre, el reparto usa la escala continua (no la normalizada inmediata inferior)
+                sc[i] = max(sc[i], min((W - mw) / a, (H - mh) / b, caps[i] or 1e9))
 
     def need(i):
         a, b = nat[i]
@@ -319,6 +324,77 @@ class Plano:
         self.iso_keys = None
         self.iso_fill = True
         self.post = []      # callbacks tras construir (marcas de corte, globos)
+        self.indic = []     # indicaciones en las vistas (B-20): marcos ISO 1101, datums ISO 5459, rugosidad ISO 1302 con referencia
+        self.gd_items = []
+
+    # ---------------- indicaciones en las vistas (gdt_vistas) ----------------
+    def gd_in(self, view, mode, sym, tol, datum=None, at=None, d=None, prefix=None, alt=None):
+        """alt: (vista, modo, at, d, prefix) alternativo si el primero no encuentra lugar."""
+        self.indic.append(("fcf", view, mode, dict(sym=sym, tol=tol, datum=datum, at=at, d=d, prefix=prefix, alt=alt)))
+
+    def datum_in(self, view, mode, letter, at=None, d=None, prefix=None):
+        self.indic.append(("datum", view, mode, dict(letter=letter, at=at, d=d, prefix=prefix)))
+
+    def ra_in(self, view, ra, at=None, d=None, prefix=None):
+        """prefix: junto a la cota del elemento; si además se da at/d, se usa la superficie como alternativa."""
+        self.indic.append(("ra", view, "dim" if prefix else "surf", dict(ra=ra, at=at, d=d, prefix=prefix)))
+
+    def _draw_indic(self):
+        import gdt_vistas as GV
+        h, s = self.h, self.s
+        h.indic_ok, h.indic_fallo = [], []
+        if not self.indic:
+            return
+        Lb = GV.Libre(s, getattr(h, "zone", None) or h.R["main"])
+        orden = {"datum": 0, "fcf": 2, "ra": 3}
+        for kind, view, mode, a in sorted(self.indic, key=lambda t: 1 if (t[0] == "ra" and t[2] == "dim") else orden[t[0]]):
+            V = self.named.get(view)
+            if V is None:
+                h.indic_fallo.append((kind, view, "vista inexistente"))
+                continue
+            at_ = a.get("at")
+            pt = None if at_ is None else ([V.P(q) for q in at_] if isinstance(at_, list) else V.P(at_))
+            if isinstance(at_, list) and not isinstance(a.get("d"), list):
+                a = dict(a, d=[a["d"]] * len(at_))
+            # dirección dada en 3D (modelo): se proyecta en la vista
+            def _d2(q3, d3):
+                if d3 is None or len(d3) != 3:
+                    return d3
+                p0, p1 = V.P(q3), V.P((q3[0] + d3[0], q3[1] + d3[1], q3[2] + d3[2]))
+                return (p1[0] - p0[0], p1[1] - p0[1])
+            if isinstance(at_, list):
+                a = dict(a, d=[_d2(q, dd) for q, dd in zip(at_, a["d"])])
+            elif at_ is not None:
+                a = dict(a, d=_d2(at_, a.get("d")))
+            if kind == "fcf":
+                ok = GV.fcf(s, Lb, mode, a["sym"], a["tol"], a["datum"], a=pt, d=a["d"], prefix=a["prefix"])
+                if not ok and a.get("alt"):
+                    v2, m2, at2, d2, pf2 = a["alt"]
+                    V2 = self.named.get(v2)
+                    if V2 is not None:
+                        pt2 = None if at2 is None else ([V2.P(q) for q in at2] if isinstance(at2, list) else V2.P(at2))
+                        if isinstance(at2, list) and d2 is not None and not isinstance(d2, list):
+                            d2 = [d2] * len(at2)
+                        def _p2(q3, d3):
+                            if d3 is None or len(d3) != 3:
+                                return d3
+                            p0_, p1_ = V2.P(q3), V2.P((q3[0] + d3[0], q3[1] + d3[1], q3[2] + d3[2]))
+                            return (p1_[0] - p0_[0], p1_[1] - p0_[1])
+                        d2 = [_p2(q, dd) for q, dd in zip(at2, d2)] if isinstance(at2, list) else _p2(at2, d2)
+                        ok = GV.fcf(s, Lb, m2, a["sym"], a["tol"], a["datum"], a=pt2, d=d2, prefix=pf2)
+                tag = ("fcf", a["sym"], a["tol"], a["datum"] if not isinstance(a["datum"], list) else tuple(a["datum"]))
+            elif kind == "datum":
+                ok = GV.datum(s, Lb, mode, a["letter"], a=pt, d=a["d"], prefix=a["prefix"])
+                tag = ("datum", a["letter"])
+            elif mode == "dim":
+                ok = GV.rugosidad_cota(s, Lb, a["ra"], a["prefix"])
+                if not ok and pt is not None:
+                    ok = GV.rugosidad(s, Lb, a["ra"], pt, a["d"])
+                tag = ("ra", a["ra"])
+            else:
+                ok = GV.rugosidad(s, Lb, a["ra"], pt, a["d"])
+                tag = ("ra", a["ra"])
+            (h.indic_ok if ok else h.indic_fallo).append(tag if ok else tag + (view,))
 
     # ---------------- declaración ----------------
     def vs(self, name, keys, view, **kw):
@@ -335,7 +411,7 @@ class Plano:
         par = next(sp for sp in self.specs if sp.name == parent)
         u, v = vistas.proj_pt(center3, par.view)
         cu, cv = vistas.proj_pt(par.center, par.view)
-        sp = VS(name, keys or par.keys, par.view, cut=par.cut, center=center3, win=(-r, -r, r, r), lv=lv, mat=par.mat, title=kw.pop("title", f"DETALLE {letter}"), hatch=kw.pop("hatch", True),
+        sp = VS(name, keys or par.keys, par.view, cut=par.cut, center=center3, win=(-r, -r, r, r), lv=lv, mat=kw.pop("mat", par.mat), title=kw.pop("title", f"DETALLE {letter}"), hatch=kw.pop("hatch", True),
                 maxs=kw.pop("maxs", 5.0), **kw)
         sp.detail = (parent, center3, r, letter)
         self.specs.append(sp)
@@ -349,6 +425,9 @@ class Plano:
     def note_block(self, title, lines, numbered=False):
         """Las notas se parten en bloques de 1–2 líneas (átomos) para llenar la banda lateral sin huecos."""
         lines = list(lines)
+        if not hasattr(self.h, "notas_reg"):
+            self.h.notas_reg = []
+        self.h.notas_reg.extend(lines)
         i0 = 0
         first = True
         while i0 < len(lines):
@@ -379,7 +458,7 @@ class Plano:
                             yy -= T_N * 1.4
                         yy -= T_N * 0.25
                     return yy
-                return s.notes_block(x, y, ttl, chunk, h=T_N, width=w - 2, numbered=False)
+                return s.notes_block(x, y, ttl, chunk, h=T_N, width=w - 2, numbered=False, reg=False)
             blk_ref.append(self.block("notas", d, name=ttl))
             i0 += 2
             first = False
@@ -392,9 +471,15 @@ class Plano:
         self.block("tabla", d, wide=wide, name=title)
 
     def gd(self, items, title="TOLERANCIAS GEOMÉTRICAS (ISO 1101)"):
-        """items = [(sym, tol, datum, texto)]"""
+        """items = [(sym, tol, datum, texto)]. Si la lámina indica las tolerancias en las vistas (gd_in), la tabla es solo el resumen."""
+        self.gd_items = list(items)
+        self.h.gd_items = self.gd_items
         def d(s, x, y, w):
-            s.text(title, (x, y), T_N + 0.5, "TOP_LEFT", bold=True)
+            ttl = "TOLERANCIAS GEOMÉTRICAS (ISO 1101): RESUMEN (MARCOS EN LAS VISTAS)" if self.indic else title
+            for l_ in wrapw(ttl, w - 2, T_N + 0.5, True):
+                s.text(l_, (x, y), T_N + 0.5, "TOP_LEFT", bold=True)
+                y -= (T_N + 0.5) * 1.5
+            y += (T_N + 0.5) * 1.5
             y -= (T_N + 0.5) * 1.7
             for sym, tol, datum, txt in items:
                 wd = s.gdt((x, y - 6), sym, tol, datum)
@@ -466,6 +551,8 @@ class Plano:
                 hh += 6
             else:
                 col_h = hi
+        if over:
+            col_h += (T_N + 0.5) * 1.6       # el primer bloque de cada columna repite su título «(cont.)», que no entra en la altura medida
         strip_wide = sum(b.h + gap for b in wide)
         strip_h = strip_wide + (col_h + gap if over else 0)
         return dict(placed=placed, over=over, ncol=ncol, col_h=col_h, wide=wide, strip_h=strip_h, band_end=band_end, bw=bw, gap=gap, Wl=Wl, R=R)
@@ -501,7 +588,7 @@ class Plano:
                     y1 = b.draw(s, xx, yc, pk["bw"])
                     s.reserved.append((xx, y1, xx + pk["bw"], yc))
                     s.block_rects.append((xx, y1, xx + pk["bw"], yc))
-                    yc -= b.h + gap
+                    yc = min(yc - b.h, y1) - gap      # altura real dibujada (con el título «(cont.)» si lo repitió)
             yy = ytop - pk["col_h"] - gap
         for b in pk["wide"]:
             y1 = b.draw(s, x0, yy, pk["Wl"])
@@ -533,7 +620,27 @@ class Plano:
     def build(self, iso_fill=None):
         """Compone la lámina; si alguna vista usó más líneas de cota (o un título más bajo) que las reservadas, corrige la reserva y recompone (máx. 3 veces)."""
         for it in range(4):
-            self._build_once(iso_fill)
+            for relax in range(4):
+                try:
+                    self._build_once(iso_fill)
+                    break
+                except RuntimeError:
+                    # la reserva de líneas de cota/globos creció y ya no cabe a la escala mínima pedida: se baja un escalón normalizado la escala mínima
+                    # de las vistas que la fijan (ISO 5455) y se recompone; sin vistas con mínimo, el error sube
+                    rel = [sp for sp in self.specs if sp.mins]
+                    if not rel or relax == 3:
+                        raise
+                    for sp in rel:
+                        lo = [x for x in STD_SCALES if x < sp.mins * 0.9999]
+                        sp.mins = lo[-1] if lo else None
+                    self.s.reset()
+                    COTAS.rows[:] = [r for r in COTAS.rows if r["sheet"] != self.h.plano]
+                    autodim.CADENAS[:] = [c for c in autodim.CADENAS if c["sheet"] != self.h.plano]
+                    self.ctx.balloons[self.h.plano] = set()
+                    self.h.welds_here = []
+                    self.named, self.scales, self.vlist = {}, [], []
+                    for sp in self.specs:
+                        sp.V = None
             grow = False
             for sp in self.specs:
                 V = sp.V
@@ -561,6 +668,30 @@ class Plano:
         cands = [c for c in (self._try_format(f_) for f_ in tries) if c]
         if not cands:
             raise RuntimeError("ningún formato admite la disposición de " + h.plano)
+        # vista principal a la escala normalizada siguiente (ISO 5455) si cabe y la lámina gana área de vistas
+        sp0 = self.specs[0] if self.specs else None
+        if getattr(self, "boost_main", False) and sp0 is not None and not sp0.iso and not sp0.custom and not getattr(self, "_boosted", False):
+            self._boosted = True
+            for _ in range(3):
+                c0 = max(cands, key=lambda c: c["fill"])
+                s0 = c0["plan"][1][0]
+                up = [x for x in STD_SCALES if x > s0 * 1.0001]
+                if not up or (sp0.maxs and up[0] > sp0.maxs * 1.0001):
+                    break
+                m0 = sp0.mins
+                sp0.mins = up[0]
+                c2 = [c for c in (self._try_format(f_) for f_ in tries) if c]
+                import os as _os
+                if _os.environ.get("PLANDBG"):
+                    print("BOOST", h.plano, s0, "->", up[0], [(c["fmt"], c["plan"][1], round(c["fill"], 3)) for c in c2], "antes", c0["plan"][1], round(c0["fill"], 3))
+                ok = [c for c in c2 if c["plan"][1][0] >= up[0] * 0.9999 and c["fill"] >= c0["fill"] * 0.9
+                      and all(c["plan"][1][i] >= c0["plan"][1][i] * 0.49 for i in range(1, len(self.specs)))]
+                if not ok:
+                    sp0.mins = m0
+                    break
+                cands = ok
+        elif getattr(self, "_boosted", False):
+            pass
         bestf = max(c["fill"] for c in cands)
         # el formato más pequeño cuyo llenado alcanza el 85 % del mejor
         ch = next(c for c in sorted(cands, key=lambda c: ("A3", "A2", "A1").index(c["fmt"])) if c["fill"] >= 0.999 * bestf)
@@ -579,6 +710,10 @@ class Plano:
         else:
             cells, sc, scheme = {}, {}, None
         h.scheme = scheme
+        import os as _os
+        if _os.environ.get("PLANDBG"):
+            print("PLAN", h.plano, h.fmt, zone, scheme, {i: (round(c[0]), round(c[1]), round(c[2]), round(c[3])) for i, c in cells.items()}, sc,
+                  [sp.natural(sp_shapes(sp, shapes)) for sp in specs], [sp.margins() for sp in specs])
         COTAS.sheet = h.plano
         self.draw_blocks(pk)
         s.n_views0 = len(s.m)
@@ -618,10 +753,12 @@ class Plano:
                 kw["breaks"] = sp.breaks
             if sp.iso:
                 kw["free"] = True
+            if sp.nocut:
+                kw["nocut"] = sp.nocut
             V = View.auto(s, shp, sp.view, cell, margin=sp.margins(), cut=sp.cut, win=sp.win, center=sp.center, std=not sp.iso, label=sp.label, hidden=sp.hidden, hatch_scale=sp.hs,
                           max_scale=sp.maxs if not sp.iso else None, only=sp.only, **kw)
             V.mat = sp.mat or {k: ctx.mat.get(k, "acero") for k in shp}
-            V.draw(hatch=sp.hatch)
+            V.draw(hatch=sp.hatch, layer_vis=sp.layer)
             sp.V = V
             self.named[sp.name] = V
             if not sp.iso:
@@ -646,6 +783,7 @@ class Plano:
             self._footprint(s, V.ext, sp, r0_, V=V)
         for cb in self.post:
             cb(self)
+        self._draw_indic()
         if (iso_fill if iso_fill is not None else self.iso_fill):
             self.fill_free(zone)
         s.n_views1 = len(s.m)

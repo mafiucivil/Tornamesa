@@ -18,10 +18,37 @@
     let d = a >= 1000 ? 0 : a === 0 ? 0 : Math.max(0, Math.min(3, sig - 1 - Math.floor(Math.log10(a))));
     return v.toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
-  const fu2 = (v) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fu3 = (v) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("es-CL", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const fu2 = fu3;                                                     // FU con 3 decimales en toda la UI
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const ST = { ok: "Cumple", warn: "Monitoreo", fail: "No cumple", info: "Info", pend: "Pendiente" };
+  /* ---------- veredicto global del núcleo (verdict.estado_global, pendientes_criticos, limitaciones_uso) ---------- */
+  const egCls = (eg) => (eg === "CUMPLE" ? "ok" : "fail");
+  function pendCritHTML(v, id) {
+    const pc = (v && v.pendientes_criticos) || [];
+    if (!pc.length) return "";
+    return `<div class="pcrit"${id ? ` id="${id}"` : ""}><b>Pendientes críticos (FU &gt; 1, a la espera de decisión): ${pc.length} · FU máx. ${fu3(v.fuMaxPend)}</b><ul>${pc.map((q) => `<li class="pcrit-i"><span class="st st-fail">FU ${fu3(q.fu)}</span> ${esc(q.grp)} · ${esc(q.nombre)}${q.fuera_alcance_termico ? ' <span class="ref">(fuera del alcance térmico)</span>' : ""}<div class="ref">${esc(q.ref || "")}</div></li>`).join("")}</ul></div>`;
+  }
+  // limitaciones de uso del núcleo: verdict.limitaciones_uso y las de los pasadores de empuje soldados (designDrive().pasadores_empuje.limitaciones)
+  function limUsoLista(v) {
+    const L = ((v && v.limitaciones_uso) || []).slice();
+    try { const pe = TT.designDrive(P, A.R).pasadores_empuje; ((pe && pe.limitaciones) || []).forEach((t, k) => L.push({ id: "pasador_no_reemplazable" + (k ? "_" + k : ""), texto: "pasador de empuje no reemplazable. " + t, motivo: pe.union ? "Pasadores Ø" + fmt(pe.d) + " a ras del disco, soldados (" + pe.union.tipo + ")." : "", referencia: pe.referencia })); } catch (e) { /* sin designDrive */ }
+    return L;
+  }
+  function limUsoHTML(v, id) {
+    const L = limUsoLista(v);
+    if (!L.length) return "";
+    return `<div class="limuso"${id ? ` id="${id}"` : ""}>${L.map((l) => `<div class="limuso-i" data-id="${esc(l.id || "")}"><b>Limitación de uso:</b> ${esc(l.texto)}<div class="ref">${esc(l.motivo || "")}${l.alcance ? ` Alcance: ${esc(l.alcance)}.` : ""}${l.referencia ? ` Ref.: ${esc(l.referencia)}` : ""}</div></div>`).join("")}</div>`;
+  }
+  // refuerzo cuadrado soldado sobre la base bajo los soportes del cilindro (núcleo: designDrive().pivotado.fabricacion.soporte_E.refuerzo o levaGuiada.fabricacion.refuerzo)
+  const areaC = (pl) => { let A2 = 0, cx = 0, cy = 0; pl.forEach((p, i) => { const q = pl[(i + 1) % pl.length], w = p[0] * q[1] - q[0] * p[1]; A2 += w; cx += (p[0] + q[0]) * w; cy += (p[1] + q[1]) * w; }); return Math.abs(A2) > 1e-9 ? [cx / (3 * A2), cy / (3 * A2)] : pl[0]; };   // centroide de área de un polígono
+  function insertoOf(R) {
+    try {
+      const D = TT.designDrive(P, R), f = D.modo === 2 ? ((D.pivotado || {}).fabricacion || {}).soporte_E : ((D.levaGuiada || {}).fabricacion || {});
+      const I = f && (f.refuerzo || f.inserto); return I && I.cuadrado && Array.isArray(I.cuadrado.vertices) && I.cuadrado.vertices.length ? I : null;
+    } catch (e) { return null; }
+  }
 
   /* ---------- pestañas ---------- */
   const tabs = [...document.querySelectorAll(".tab")];
@@ -32,6 +59,7 @@
     cur = t;
     if (t === "temp" && typeof renderTemp === "function") setTimeout(renderTemp, 0);
     if (t === "tapones" && typeof renderTapones === "function") setTimeout(renderTapones, 0);
+    if (t === "planos") setTimeout(() => { if (!GEN.srv && !GEN.pinging) genPing(); }, 0);   // el generador local se busca solo al abrir la pestaña «Planos»
     tabs.forEach((s) => s.classList.toggle("on", s.dataset.t === t));
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
     try { history.replaceState(null, "", "#" + t); } catch (e) { }
@@ -52,7 +80,7 @@
   function buildForm() {
     $("#form").innerHTML = TT.PARAM_GROUPS.map((g, gi) => `<details ${gi < 5 ? "open" : ""}><summary>${esc(g.t)}</summary>${g.p.map(([id, lab, u, def, mn, mx, st]) => {
       const txt = typeof def === "string";
-      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
+      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${id === "opt_wood" ? `<span class="standby" id="woodStandby">Cubierta de madera W: en stand by (no incluida en la entrega RevC)</span>` : ""}${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
@@ -80,7 +108,7 @@
   $("#altSel").onchange = (e) => {
     const v = e.target.value;
     P.opt_ss = v === "A" ? 1 : 0; P.opt_uhmw = v === "B" ? 1 : 0; P.opt_bz = v[0] === "C" ? 1 : 0;
-    if (v[0] === "C") P.bz_conf = parseInt(v[1], 10);
+    P.bz_conf = v[0] === "C" ? parseInt(v[1], 10) : DEF.bz_conf;   // fuera de C vuelve al valor por defecto (así los planos de A, B y Base no difieren por un parámetro que solo usa C)
     buildForm(); recalc();
   };
   $("#bReset").onclick = () => { P = Object.assign({}, DEF); buildForm(); recalc(); };
@@ -95,6 +123,7 @@
     f.text().then((t) => { const s = JSON.parse(t); Object.keys(DEF).forEach((k) => { if (k in s) P[k] = s[k]; }); buildForm(); recalc(); }).catch(() => alert("Archivo JSON no válido"));
   };
   $("#bOpt").onclick = () => { showTab("opt"); runOpt(); };
+  if (typeof SIM !== "undefined") { SIM.init(); $("#bSim").onclick = () => SIM.open(P, A); }   // simulación del movimiento con la geometría del núcleo
 
   /* ---------- cálculo ---------- */
   function recalc() {
@@ -117,8 +146,9 @@
     const fuEst = Math.max(0, ...A.checks.filter((c) => c.sys === "est" && c.kind === "fu" && isFinite(c.fu)).map((c) => c.fu));
     const nF = A.checks.filter((c) => c.st === "fail").length;
     $("#badges").innerHTML = [
+      `<span class="badge b-eg b-${egCls(v.estado_global)}" id="estadoGlobal" title="Estado global del núcleo (verdict.estado_global)">${v.estado_global === "CUMPLE" ? "✓" : "✗"} ESTADO GLOBAL: ${esc(v.estado_global)}${(v.pendientes_criticos || []).length ? ` · FU pend. ${fu2(v.fuMaxPend)}` : ""}</span>`,
       `<span class="badge ${v.gira ? "b-ok" : "b-fail"}">${v.gira ? "✓ GIRA" : "✗ NO GIRA"} · FS ${fmt(A.R.cd ? A.R.cd.FS : NaN, 3)}</span>`,
-      `<span class="badge ${v.estructura ? (v.warnEst ? "b-warn" : "b-ok") : "b-fail"}">${v.estructura ? "✓ ESTRUCTURA CUMPLE" : `✗ ${nF} NO CUMPLE`} · FU ${fu2(fuEst)}</span>`,
+      `<span class="badge ${v.estructura && !(v.pendientes_criticos || []).length ? (v.warnEst ? "b-warn" : "b-ok") : "b-fail"}">${v.estructura ? ((v.pendientes_criticos || []).length ? "✗ ESTRUCTURA PENDIENTE DE DECISIÓN" : "✓ ESTRUCTURA CUMPLE") : `✗ ${nF} NO CUMPLE`} · FU ${fu2(fuEst)}</span>`,
       `<span class="badge b-info">Masa ${fmt(A.R.m.total, 4)} kg</span>`,
       v.pend ? `<span class="badge b-pend">${v.pend} pendiente</span>` : "",
       X && X.every((c) => c.ok) && AU && AU.ok ? `<span class="badge b-ok">Revisión cruzada OK</span>` : `<span class="badge b-warn">Revisar agentes</span>`,
@@ -137,7 +167,11 @@
     const notOk = A.checks.filter((x) => x.st === "fail" || x.st === "warn");
     const bar = (v, ref, col) => `<div class="fu" style="height:10px"><i style="width:${Math.min(100, v / ref * 100)}%;background:${col}"></i></div>`;
     const mx = Math.max(R.m.total, REF.TT300B);
+    const v = A.verdict, eg = v.estado_global, ok = egCls(eg);
     el.innerHTML = msgs() + `
+    <div class="card vered vd-${ok}" id="veredicto" style="margin-top:10px"><h3>Veredicto global</h3><div class="big vd-${ok}" id="estadoGlobalRes">${esc(eg)}</div>
+      <div class="note">¿Gira? ${v.gira ? "sí" : "NO"} · estructura ${v.estructura ? "cumple" : "NO cumple"} · pendientes críticos ${(v.pendientes_criticos || []).length}${(v.pendientes_criticos || []).length ? ` (FU máx. ${fu2(v.fuMaxPend)})` : ""} · limitaciones de uso ${limUsoLista(v).length}</div>
+      ${pendCritHTML(v, "pendCrit")}${limUsoHTML(v, "limUso")}</div>
     <div class="grid" style="margin-top:10px">
       <div class="card"><h3>¿Gira?</h3><div class="big" style="color:var(${A.verdict.gira ? "--ok" : "--fail"})">${A.verdict.gira ? "Sí, con margen" : "No asegurado"}</div>
         <div class="kv" style="margin-top:6px">
@@ -149,13 +183,15 @@
           <span>μ máx vencible (r_ef, alivio)</span><span>${fmt(R.muMax(P.r_ef))}</span>
           <span>Tiempo por vuelta</span><span>${fmt(R.tRev)} min</span>
         </div></div>
-      <div class="card"><h3>Estructura</h3><div class="big" style="color:var(${A.verdict.estructura ? "--ok" : "--fail"})">${A.verdict.estructura ? "Cumple" : "No cumple"}</div>
-        <div class="kv" style="margin-top:6px">
+      <div class="card" id="cardEst"><h3>Estructura</h3><div class="big" style="color:var(${A.verdict.estructura && !(v.pendientes_criticos || []).length ? "--ok" : "--fail"})">${A.verdict.estructura ? ((v.pendientes_criticos || []).length ? "Pendiente de decisión" : "Cumple") : "No cumple"}</div>
+        <div class="note" style="margin:4px 0 0">Estado global: <b id="estadoGlobalEst" style="color:var(--${ok})">${esc(eg)}</b></div>
+        <div class="kv" style="margin-top:6px;grid-template-columns:minmax(120px,auto) 1fr">
           <span>FU máximo</span><span>${est.length ? fu2(est[0].fu) : "—"}</span>
           <span>Gobierna</span><span style="font-family:var(--sans);text-align:right">${est.length ? esc(est[0].grp + ": " + est[0].name) : ""}</span>
           <span>No cumple / monitoreo</span><span>${A.checks.filter((x) => x.st === "fail").length} / ${A.checks.filter((x) => x.st === "warn").length}</span>
-          <span>Pendientes</span><span>${A.verdict.pend}</span>
+          <span>Pendientes / críticos (FU &gt; 1)</span><span>${A.verdict.pend} / ${(v.pendientes_criticos || []).length}</span>
         </div>
+        ${pendCritHTML(v, "pendCritEst")}
         ${notOk.length ? `<div class="note">${notOk.map((x) => `<span class="st st-${x.st}">${ST[x.st]}</span> ${esc(x.grp)} · ${esc(x.name)} (FU ${fu2(x.fu)})`).join("<br>")}</div>` : ""}</div>
       <div class="card"><h3>Masa del equipo</h3><div class="big">${fmt(R.m.total, 4)} kg</div>
         <div class="kv" style="margin-top:6px"><span>Este diseño</span><span>${fmt(R.m.total, 4)} kg</span></div>${bar(R.m.total, mx, "var(--acc)")}
@@ -191,12 +227,64 @@
   }
 
   /* ---------- Modelo: planta y corte ---------- */
+  const isPiv = () => (TT.driveMode ? TT.driveMode(P) : P.drive_mode) === 2;
+  // modo pivotado tipo KIET en planta: lo fijo de TT.pivotGeo (ojales E, placas-leva con pernos) y lo móvil de TT.pivotAt al tomar el pasador
+  function pivotPlan(R) {
+    const g = TT.pivotGeo(P); if (!g) return "";
+    const D = TT.designDrive(P, R).pivotado || {}, pl = D.placa_leva || {}, y = (v) => -v, o = [];
+    const pts = (arr) => arr.map(([a, b]) => `${a},${y(b)}`).join(" ");
+    // placas-guía curvas: trayecto con arcos SVG desde los segmentos del núcleo (las del giro horario son la imagen especular, ACC-024)
+    const sp = (segs, z) => SIM.segPath(segs, (v) => v, y, (v) => v, z);
+    Object.entries(g.placas).forEach(([k, pc]) => {
+      const act = k.endsWith("_antihorario");
+      o.push(`<g opacity="${act ? 1 : 0.35}" class="mdl-placa" data-placa="${k}"><path d="${sp(pc.segmentos_contorno, true)}" fill="#c9b37e" fill-opacity=".5" stroke="#8a6d2f" stroke-width="4"/>${act ? `<path d="${sp(pc.segmentos_canto)}" fill="none" stroke="#b4570b" stroke-width="7"/>` : ""}${pc.pernos.map(([a, b]) => `<circle cx="${a}" cy="${y(b)}" r="${(pl.d_perno || 20) / 2}" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>`).join("")}${(pc.pasadores_posicion || []).map(([a, b]) => `<circle cx="${a}" cy="${y(b)}" r="${(P.pv_dd || 16) / 2}" fill="var(--pendbg)" stroke="var(--pend)" stroke-width="2"/>`).join("")}</g>`);
+    });
+    const sE = (D.fabricacion || {}).soporte_E || {};               // soporte del ojal E abierto hacia la mesa: piezas en planta del núcleo
+    g.E.forEach(([ex, ey], i) => {
+      const pz = ((sE["cilindro" + (i + 1)] || {}).piezas || []).filter((q) => q.poligono && !/tapa_inf/.test(q.id));
+      if (pz.length) pz.forEach((q) => o.push(`<polygon points="${pts(q.poligono)}" fill="var(--soft)" fill-opacity="${/tapa/.test(q.id) ? 0.6 : 1}" stroke="var(--ink)" stroke-width="4"/>`));
+      else { const h = g.ojalE.lado_cajon / 2; o.push(`<rect x="${ex - h}" y="${y(ey) - h}" width="${2 * h}" height="${2 * h}" fill="var(--soft)" stroke="var(--ink)" stroke-width="5"/>`); }
+      o.push(`<circle cx="${ex}" cy="${y(ey)}" r="${g.ojalE.d / 2}" fill="var(--ink)"/>`);
+    });
+    // bloque-uña: garra real con arcos SVG desde pivotGeo().bloque.garra.contorno (SIM.garraSegs) y el contacto del asiento; sin garra, la cara heredada
+    const blq = (q, f, sen, ci) => {
+      const gs = SIM.garraSegs ? SIM.garraSegs(g, q, f) : null;
+      if (!gs) return `<polygon points="${pts(q.una.cuerpo.map(f))}" fill="var(--load)" opacity=".85"/><polygon points="${pts(SIM.caraBloque(g, q.una.cara).map(f))}" fill="var(--load)"/>`;
+      const ac = q.asiento.contacto && f(q.asiento.contacto), cA = f(q.asiento.centro);
+      return `<path d="${sp(gs, true)}" class="mdl-garra" data-sen="${sen}" data-cil="${ci + 1}" fill="var(--load)" fill-opacity=".85" stroke="var(--ink)" stroke-width="2"/><path d="${sp(gs.filter((c) => c.rol === "asiento"))}" fill="none" stroke="var(--ink)" stroke-width="6"/>`
+        + (q.asiento.asentado ? `<circle cx="${cA[0]}" cy="${y(cA[1])}" r="${P.d_pin / 2}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>` : "")
+        + (ac ? `<circle cx="${ac[0]}" cy="${y(ac[1])}" r="9" fill="var(--fail)"/>` : "");
+    };
+    ["horario", "antihorario"].forEach((sen) => {
+      const q = TT.pivotAt(P, P.s_free, "empuje", sen); if (!q) return;
+      const act = sen === "antihorario";
+      [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f], ci) => {
+        const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
+        const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
+        o.push(`<g opacity="${act ? 1 : 0.3}"><polygon points="${pts(bar(0, lb, P.D_body))}" fill="var(--acc)" opacity=".55"/><polygon points="${pts(bar(lb, L, P.d_rod))}" fill="var(--acc)"/>
+          ${blq(q, f, sen, ci)}<polygon points="${pts(q.una.cubo.map(f))}" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/>
+          <circle cx="${Q[0]}" cy="${y(Q[1])}" r="${g.pasadorQ.d / 2}" fill="none" stroke="var(--ink)" stroke-width="3"/></g>`);
+        if (act) { const A_ = f(q.pasadores.A); o.push(`<circle cx="${A_[0]}" cy="${y(A_[1])}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`); }
+      });
+      if (act && D.brazo_ef_min != null) { const A_ = q.pasadores.A; o.push(`<text x="${A_[0] / 2}" y="${y(A_[1] / 2) - 14}" font-size="44" text-anchor="middle" fill="var(--load)">brazo ef. mín. ${fmt(D.brazo_ef_min, 3)} mm</text><line x1="0" y1="0" x2="${A_[0]}" y2="${y(A_[1])}" stroke="var(--load)" stroke-width="3"/>`); }
+    });
+    return o.join("");
+  }
   function planSVG() {
     const R = A.R, K = R.K, B = P.B, S = B / 2 + 160;
     const y = (v) => -v;
     const o = [];
     o.push(`<rect x="${-B / 2}" y="${-B / 2}" width="${B}" height="${B}" fill="var(--soft)" stroke="var(--steel)" stroke-width="4"/>`);
     if (P.rim_t > 0) o.push(`<rect x="${-B / 2 + P.rim_t / 2}" y="${-B / 2 + P.rim_t / 2}" width="${B - P.rim_t}" height="${B - P.rim_t}" fill="none" stroke="var(--steel)" stroke-width="${P.rim_t}" opacity=".6"/>`);
+    const INS = insertoOf(R);
+    if (INS) {                                                        // refuerzos cuadrados (núcleo): cuadrado, tapones y atiesador tangencial si lo hay
+      const tp = INS.tapones || {}, at = INS.atiesadores;
+      INS.cuadrado.vertices.forEach((pl, k) => {
+        const c = areaC(pl), ps = (tp.posiciones || [])[k] || [], ra = at && at.por_esquina && at.por_esquina[k];
+        o.push(`<g class="mdl-ins" data-k="${k}"><polygon points="${pl.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="var(--ins)" fill-opacity=".35" stroke="var(--insk)" stroke-width="5"/>${ps.map(([a, b]) => `<circle class="mdl-tap" cx="${a}" cy="${y(b)}" r="${(tp.d || 44) / 2}" fill="var(--panel)" stroke="var(--insk)" stroke-width="4"/>`).join("")}${ra ? `<polygon class="mdl-ati" points="${ra.poligono.map(([a, b]) => `${a},${y(b)}`).join(" ")}" fill="var(--insk)" fill-opacity=".8" stroke="var(--insk)" stroke-width="3"/>` : ""}
+          <text x="${c[0]}" y="${y(c[1]) + 14}" font-size="40" text-anchor="middle" fill="var(--insk)" font-weight="700" paint-order="stroke" stroke="var(--panel)" stroke-width="8" stroke-linejoin="round" class="mdl-ins-t">refuerzo t ${fmt(INS.t_d, 2)}</text></g>`);
+      });
+    }
     const Rt = P.D_top / 2;
     o.push(`<circle r="${Rt}" fill="var(--panel)" stroke="var(--ink)" stroke-width="5"/>`);
     o.push(`<circle r="${TT.prIn(P)}" fill="none" stroke="var(--steel)" stroke-width="2" stroke-dasharray="14 10"/>`);
@@ -206,9 +294,10 @@
     for (let k = 0; k < P.N_pin; k++) { const a = Math.PI / P.N_pin + 2 * Math.PI * k / P.N_pin; o.push(`<circle cx="${P.R_pin * Math.cos(a)}" cy="${y(P.R_pin * Math.sin(a))}" r="${P.d_pin / 2}" fill="var(--ink2)"/>`); }
     // cáncamos
     [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sy]) => o.push(`<rect x="${sx * P.x_lug - 40}" y="${sy * (B / 2 - P.c_lug) - 40}" width="80" height="80" rx="14" fill="none" stroke="var(--ink2)" stroke-width="4"/>`));
+    if (isPiv()) o.push(pivotPlan(R));
     // accionamiento guiado: bancadas, ménsulas (ambos sentidos), patines, uñas y cilindros (sentido antihorario)
-    const g = K, bg = TT.bracketGeo(P);
-    for (const sx of [1, -1]) {
+    const g = K, bg = isPiv() ? null : TT.bracketGeo(P), cam = !isPiv() && TT.camGeo ? TT.camGeo(P) : null;
+    if (!isPiv()) for (const sx of [1, -1]) {
       const X = sx * P.x_g;
       o.push(`<rect x="${X - P.w_bed / 2}" y="${-g.Y_bed}" width="${P.w_bed}" height="${2 * g.Y_bed}" fill="var(--soft)" stroke="var(--steel)" stroke-width="3"/>`);
       o.push(`<line x1="${X}" y1="${-g.Y_bed}" x2="${X}" y2="${g.Y_bed}" stroke="var(--steel)" stroke-width="${P.w_slot}" opacity=".35"/>`);
@@ -229,6 +318,13 @@
         const pts = [[xt, yf], [xm, yf], [xm, ybk], [xt + sx * ch.dx, ybk], [xt, ybk + dy * Math.min(ch.dy, P.dog_b)]].map(([a, b]) => `${a},${y(b)}`).join(" ");
         o.push(`<polygon points="${pts}" fill="var(--load)" opacity=".85"/>`);
         o.push(`<circle cx="${xa}" cy="${y(yp)}" r="${P.d_pin / 2 + 6}" fill="none" stroke="var(--load)" stroke-width="8"/>`);
+        if (cam) {                                                    // leva de reenganche (opt_cam): riel fijo con bolsillo y rampa, y seguidor de rodillo al tomar el pasador (núcleo: camGeo, camAt)
+          const L = TT.designDrive(P, R).levaGuiada, xo = L && L.x ? L.x.borde_exterior : Math.max(...cam.perfil_y.map((q) => q.x_canto)) + 40, pr = cam.perfil_y;
+          const rail = pr.map((q) => [q.x_canto, q.y]).concat([[xo, pr[pr.length - 1].y], [xo, pr[0].y]]);
+          o.push(`<polygon points="${rail.map(([a, b]) => `${sx * a},${y(dy * b)}`).join(" ")}" fill="#c9b37e" fill-opacity=".55" stroke="#8a6d2f" stroke-width="4"/>`);
+          const ca = TT.camAt(P, P.s_free, "empuje"), rF = Math.max(5, cam.x_canto_toma - cam.x_perno_toma - cam.holgura_toma);
+          o.push(`<circle cx="${sx * ca.x_seguidor}" cy="${y(dy * ca.y_seguidor)}" r="${rF}" fill="#e2c46f" stroke="var(--ink)" stroke-width="3"/>`);
+        }
         if (sx > 0) {
           o.push(`<line x1="0" y1="0" x2="${xa}" y2="0" stroke="var(--load)" stroke-width="3"/><text x="${xa / 2}" y="-14" font-size="44" text-anchor="middle" fill="var(--load)">brazo ${fmt(g.a_min, 3)} mm</text>`);
           o.push(`<line x1="${xa}" y1="${y(yp)}" x2="${X}" y2="${y(yp)}" stroke="var(--load)" stroke-width="3" stroke-dasharray="14 10"/><text x="${(xa + X) / 2}" y="${y(yp) + (dy > 0 ? 60 : -30)}" font-size="40" text-anchor="middle" fill="var(--load)">Δ ${fmt(g.DeltaMax, 3)}</text>`);
@@ -236,15 +332,59 @@
       }
     }
     o.push(`<text x="0" y="${-B / 2 - 50}" text-anchor="middle" font-size="52">Base ${fmt(B, 4)} × ${fmt(B, 4)} · mesa Ø${fmt(P.D_top, 4)} · ${P.N_pin} pasadores Ø${fmt(P.d_pin)} en R${fmt(P.R_pin, 4)}</text>`);
-    o.push(`<text x="0" y="${B / 2 + 90}" text-anchor="middle" font-size="44" fill="var(--ink2)">Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)</text>`);
-    return `<svg viewBox="${-S} ${-S} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
+    const ley = (isPiv() ? ["Cilindros pivotados y bloques-uña al tomar el pasador · giro antihorario (tenue: giro horario)", "Ojales E en diagonal · 4 placas-guía curvas (canto guía en naranja)"] : ["Cilindros y patines al tomar el pasador · giro antihorario (ménsulas tenues: giro horario)" + (cam ? " · leva de reenganche" : "")]).map((t) => [t, "var(--ink2)", ""]);
+    if (INS) ley.push([`Base t = ${fmt(INS.t_base, 2)} mm entera · ${INS.n} refuerzos cuadrados ${fmt(INS.lado, 3)} × ${fmt(INS.lado, 3)} × ${fmt(INS.t_d, 2)} mm soldados sobre la base (${fmt(INS.masa, 3)} kg c/u)`, "var(--insk)", ' id="mdlInsRot"']);
+    if (INS) ley.push([`bajo ${isPiv() ? "los soportes del ojal E" : "las ménsulas del ojal trasero"} · ${(INS.tapones || {}).n_por_esquina || 0} tapones Ø${fmt((INS.tapones || {}).d || 0)}${INS.atiesadores ? ` · atiesador ${fmt(INS.atiesadores.t)} × ${fmt(INS.atiesadores.h)} × ${fmt(INS.atiesadores.largo)}` : " · sin atiesador"}`, "var(--insk)", ' id="mdlInsRot2"']);
+    ley.forEach(([t, c, id], k) => o.push(`<text x="0" y="${B / 2 + 80 + 50 * k}" text-anchor="middle" font-size="40" fill="${c}"${id}>${esc(t)}</text>`));
+    return `<svg viewBox="${-S} ${-S} ${2 * S} ${S + B / 2 + 100 + 50 * (ley.length - 1)}" role="img" aria-label="Planta de la tornamesa">${o.join("")}</svg>`;
+  }
+  // modo pivotado en alzado desarrollado (distancias radiales al eje de giro): placa-leva, bloque-uña con su pasador Q, cilindro y soporte del ojal E
+  function pivotSection(R, pv, gP, X, Z, zc, tb) {
+    const q = TT.pivotAt(P, P.s_free, "empuje", "antihorario"); if (!q) return "";
+    const rr = (pts) => { const v = pts.map(([a, b]) => Math.hypot(a, b)); return [Math.min(...v), Math.max(...v)]; };
+    const pl = pv.placa_leva || {}, bl = pv.bloque_una || {}, se = pv.soporte_E || {}, o = [];
+    const [p0, p1] = rr(gP.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    o.push(`<rect x="${X(p0)}" y="${Z(tb + pl.t)}" width="${p1 - p0}" height="${pl.t}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Placa-leva t = ${fmt(pl.t)} mm</title></rect>`);
+    o.push(`<rect x="${X(b0)}" y="${Z(bl.z_inf + bl.h)}" width="${b1 - b0}" height="${bl.h}" fill="var(--load)" opacity=".75"><title>Bloque-uña h = ${fmt(bl.h)} mm</title></rect>`);
+    o.push(`<rect x="${X(rQ - bl.d_Q / 2)}" y="${Z(R.blk.zCam + bl.l_pasador_Q)}" width="${bl.d_Q}" height="${bl.l_pasador_Q}" fill="none" stroke="var(--ink)" stroke-width="2"><title>Pasador Q Ø${fmt(bl.d_Q)} × ${fmt(bl.l_pasador_Q)}</title></rect>`);
+    const zp = (((pv.fabricacion || {}).soporte_E || {}).z_paredes) || [tb, tb + se.alto], zs0 = zp[0], zs1 = zp[1];   // paredes del soporte (núcleo: fabricacion.soporte_E.z_paredes, sobre el refuerzo: z = t)
+    // rótulo del soporte del ojal E leído del núcleo (fabricacion.soporte_E: tipo, lado y tapas.lado): cajón abierto hacia la mesa, no un ojal en cajón cerrado
+    const fE = (pv.fabricacion || {}).soporte_E || {}, tipoE = String(fE.tipo || "").split(":")[0].trim();
+    const sopETxt = tipoE ? `soporte E: ${tipoE} (lado ${fmt(fE.lado != null ? fE.lado : se.lado_cajon)}${fE.tapas && fE.tapas.lado ? ", tapas " + fmt(fE.tapas.lado) : ""})` : `ojal E (cajón ${fmt(se.lado_cajon)})`;
+    o.push(`<rect x="${X(rE - se.lado_cajon / 2)}" y="${Z(zs1)}" width="${se.lado_cajon}" height="${zs1 - zs0}" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"><title>${esc(sopETxt)}</title></rect>`);
+    [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => o.push(`<line x1="${X(rE - se.lado_cajon / 2)}" y1="${Z(zt)}" x2="${X(rE + se.lado_cajon / 2)}" y2="${Z(zt)}" stroke="var(--ink)" stroke-width="3"/>`));
+    const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
+    o.push(`<rect x="${X(Math.min(rm, rE))}" y="${Z(zc + P.D_body / 2)}" width="${Math.abs(rE - rm)}" height="${P.D_body}" fill="var(--acc)" opacity=".55"/>`);
+    o.push(`<rect x="${X(Math.min(rQ, rm))}" y="${Z(zc + P.d_rod / 2)}" width="${Math.abs(rm - rQ)}" height="${P.d_rod}" fill="var(--acc)"/>`);
+    o.push(`<line x1="${X(rE)}" y1="${Z(tb)}" x2="${X(rE)}" y2="${Z(zs1 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
+    o.push(`<text x="${X(p0)}" y="${Z(tb) + 14}" font-size="13">placa-guía ${fmt(pl.t)}</text><text x="${X(b0)}" y="${Z(bl.z_inf + bl.h) - 6}" font-size="13" fill="var(--load)">bloque-uña h ${fmt(bl.h)}</text><text x="${X(rE)}" y="${Z(zs1) - 6}" font-size="13" text-anchor="middle" id="secSopE">${esc(sopETxt)}</text>`);
+    o.push(`<text x="${X(rQ)}" y="${Z(0) + 36}" font-size="12" text-anchor="middle" fill="var(--ink2)">alzado desarrollado a lo largo del cilindro 1 (distancias radiales)</text>`);
+    return o.join("");
   }
   function sectionSVG() {
     const R = A.R, tb = P.t_base, hd = P.h_disc, tpr = Math.max(P.t_pr, P.t_top, P.t_bot), ifc = R.ifc, dl = ifc.delta, tm = tb + dl;   // tm: cara inferior de la mesa (sobre los discos de la interfaz)
-    const r0 = TT.prIn(P) - 220, r1 = P.B / 2 + 40, W = r1 - r0, Hs = tm + hd + (P.opt_wood > 0.5 ? P.t_wood : 0) + 160;
+    const pv = isPiv() ? TT.designDrive(P, R).pivotado : null, gP = pv ? TT.pivotGeo(P) : null;
+    const r0 = TT.prIn(P) - 220, r1 = Math.max(P.B / 2 + 40, gP ? Math.hypot(...gP.E[0]) + gP.ojalE.lado_cajon / 2 + 60 : 0), W = r1 - r0, Hs = tm + hd + (P.opt_wood > 0.5 ? P.t_wood : 0) + 160;
     const sc = 1, X = (r) => (r - r0) * sc, Z = (z) => (Hs - 40 - z) * sc;
     const o = [];
     o.push(`<rect x="${X(r0)}" y="${Z(tb)}" width="${X(P.B / 2) - X(r0)}" height="${tb}" fill="var(--steel)" opacity=".55"/>`);
+    const INS = insertoOf(R);
+    if (INS) {                                                        // refuerzo cuadrado cortado por la línea del soporte: E (pivotado, radial) o y = y_ojal (guiado); pila: base 0…t_base, refuerzo t_base…t, soporte encima
+      const g0 = gP ? [0, 0] : [0, R.K.y_eye], u = gP ? (() => { const E = gP.E[0], L = Math.hypot(E[0], E[1]); return [E[0] / L, E[1] / L]; })() : [1, 0];
+      const pip = (q, pl) => { let c = false; for (let i = 0, j = pl.length - 1; i < pl.length; j = i++) { const [xi, yi] = pl[i], [xj, yj] = pl[j]; if ((yi > q[1]) !== (yj > q[1]) && q[0] < (xj - xi) * (q[1] - yi) / (yj - yi) + xi) c = !c; } return c; };
+      const span = (pls) => { let a = null, b = null; for (let r = 0; r <= 2600; r += 2) { const q = [g0[0] + u[0] * r, g0[1] + u[1] * r]; if (pls.some((pl) => pip(q, pl))) { if (a == null) a = r; b = r; } } return [a, b]; };
+      const [s0, s1r] = span(INS.cuadrado.vertices), s1 = s1r == null ? null : Math.min(s1r, gP ? r1 - 20 : P.B / 2), zr = INS.z || [INS.t_base, INS.t];
+      if (s0 != null && s1 > s0) {
+        o.push(`<rect id="secIns" x="${X(s0)}" y="${Z(zr[1])}" width="${s1 - s0}" height="${zr[1] - zr[0]}" fill="var(--ins)" fill-opacity="${gP ? 0.55 : 0.3}" stroke="var(--insk)" stroke-width="1.5"${gP ? "" : ' stroke-dasharray="6 4"'}><title>Refuerzo cuadrado ${fmt(INS.lado)} × ${fmt(INS.lado)} × ${fmt(INS.t_d)} mm soldado sobre la base de ${fmt(INS.t_base)} mm (z ${fmt(zr[0])}…${fmt(zr[1])})</title></rect>`);
+        o.push(`<line x1="${X(s1 - 14)}" y1="${Z(0)}" x2="${X(s1 - 14)}" y2="${Z(INS.t)}" stroke="var(--insk)" stroke-width="1"/><text x="${X(s1 - 20)}" y="${Z(INS.t / 2) + 4}" font-size="13" text-anchor="end" fill="var(--insk)" font-weight="700">t ${fmt(INS.t, 2)}</text>`);
+        o.push(`<text x="${X(Math.max(s0, r0)) + 4}" y="${Z(0) + 14}" font-size="13" fill="var(--insk)" font-weight="700" id="secInsT">refuerzo t ${fmt(INS.t_d, 2)} sobre la base de ${fmt(INS.t_base, 2)} (z = ${fmt(INS.t, 2)})${gP ? "" : " · proyectado desde y_ojal"}</text>`);
+      }
+      const at = INS.atiesadores;
+      if (at && at.por_esquina) {                                     // atiesador tangencial cortado por la misma línea
+        const [a0, a1] = span(at.por_esquina.map((q) => q.poligono)), za = at.z || [INS.t_base, INS.t_base + at.h];
+        if (a0 != null) o.push(`<rect id="secAti" x="${X(a0)}" y="${Z(za[1])}" width="${Math.max(2, a1 - a0)}" height="${za[1] - za[0]}" fill="var(--insk)" fill-opacity=".8"><title>Atiesador tangencial ${fmt(at.t)} × ${fmt(at.h)} × ${fmt(at.largo)} mm</title></rect>`);
+      }
+    }
     if (P.rim_h > 0) o.push(`<rect x="${X(P.B / 2 - P.rim_t)}" y="${Z(tb + P.rim_h)}" width="${P.rim_t}" height="${P.rim_h}" fill="var(--steel)"/>`);
     const Rt = P.D_top / 2, rpr = TT.prIn(P);
     if (P.opt_wood > 0.5) o.push(`<rect x="${X(r0)}" y="${Z(tm + hd + P.t_wood)}" width="${X(Rt) - X(r0)}" height="${P.t_wood}" fill="#8b5a2b" opacity=".85" stroke="var(--ink)" stroke-width=".6"><title>Madera dura ${fmt(P.t_wood, 3)} mm</title></rect>`);
@@ -265,6 +405,8 @@
     const zc = tb + R.hax;
     o.push(`<line x1="${X(r0)}" y1="${Z(zc)}" x2="${X(r1)}" y2="${Z(zc)}" stroke="var(--load)" stroke-width="1.5" stroke-dasharray="10 6"/>`);
     const K = A.R.K, zb = tb + P.t_bed, fh = TT.forkH(P);
+    if (pv && gP) o.push(pivotSection(R, pv, gP, X, Z, zc, tb));
+    else {
     o.push(`<rect x="${X(P.x_g - P.w_bed / 2)}" y="${Z(zb)}" width="${P.w_bed}" height="${P.t_bed}" fill="var(--steel)" opacity=".8"/>`);
     o.push(`<rect x="${X(P.x_g - P.w_slot / 2)}" y="${Z(zb)}" width="${P.w_slot}" height="${P.h_slot}" fill="var(--panel)"/>`);
     if (P.h_tee > 0) o.push(`<rect x="${X(P.x_g - P.w_tee / 2)}" y="${Z(zb - P.h_slot)}" width="${P.w_tee}" height="${P.h_tee}" fill="var(--panel)"/>`);
@@ -274,6 +416,15 @@
     o.push(`<rect x="${X(K.mouthX)}" y="${Z(zc + P.dog_h / 2 + 10)}" width="${P.x_g - P.w_s / 2 - K.mouthX}" height="${P.dog_h + 20}" fill="none" stroke="var(--ink)" stroke-width="2"/>`);
     o.push(`<rect x="${X(K.tipX)}" y="${Z(zc + P.dog_h / 2)}" width="${K.mouthX + P.L_in - K.tipX}" height="${P.dog_h}" fill="var(--load)" opacity=".75"/>`);
     o.push(`<line x1="${X(P.x_g)}" y1="${Z(tb)}" x2="${X(P.x_g)}" y2="${Z(zc + fh / 2 + 20)}" stroke="var(--ink2)" stroke-dasharray="8 5"/>`);
+    const LG = TT.camGeo && TT.camGeo(P) ? TT.designDrive(P, R).levaGuiada : null;
+    if (LG && LG.z && LG.x) {                                         // leva de reenganche en alzado: riel sobre el patín y seguidor de rodillo en su perno (núcleo: designDrive.levaGuiada)
+      const z = LG.z, x = LG.x, rF = Math.max(5, x.canto_toma - x.perno_seguidor_toma - (LG.holgura_toma || 0));
+      o.push(`<rect x="${X(x.canto_toma)}" y="${Z(z.sup_riel)}" width="${x.borde_exterior - x.canto_toma}" height="${z.sup_riel - z.inf_riel}" fill="#c9b37e" stroke="#8a6d2f" stroke-width="1.5"><title>Riel-leva t = ${fmt(z.sup_riel - z.inf_riel)} mm</title></rect>`);
+      o.push(`<line x1="${X(x.perno_seguidor_toma)}" y1="${Z(z.sup_una)}" x2="${X(x.perno_seguidor_toma)}" y2="${Z(z.sup_riel - 4)}" stroke="var(--ink)" stroke-width="3"/>`);
+      o.push(`<rect x="${X(x.perno_seguidor_toma - rF)}" y="${Z(z.sup_riel - 4)}" width="${2 * rF}" height="${z.sup_riel - z.inf_riel - 8}" rx="4" fill="#e2c46f" stroke="var(--ink)" stroke-width="1"><title>Seguidor de rodillo</title></rect>`);
+      o.push(`<text x="${X(x.borde_exterior)}" y="${Z(z.sup_riel) - 4}" font-size="13" text-anchor="end">leva de reenganche</text>`);
+    }
+    }
     const dim = (r, z0, z1, txt, side) => `<line x1="${X(r)}" y1="${Z(z0)}" x2="${X(r)}" y2="${Z(z1)}" stroke="var(--ink)" stroke-width="1"/><text x="${X(r) + (side || 6)}" y="${(Z(z0) + Z(z1)) / 2 + 4}" font-size="13" ${side < 0 ? 'text-anchor="end"' : ""}>${txt}</text>`;
     o.push(dim(r0 + 8, tm, tm + hd, `h ${fmt(hd, 3)}`, 6));
     o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
@@ -289,8 +440,16 @@
     if (!A) { el.innerHTML = msgs(); return; }
     el.innerHTML = `<div class="grid" style="grid-template-columns:minmax(300px,1.3fr) minmax(280px,1fr)">
       <div class="card"><h3>Planta</h3>${planSVG()}</div>
-      <div class="card"><h3>Corte radial por el patín (escala 1:1 relativa)</h3>${sectionSVG()}
-        <div class="kv" style="margin-top:10px">
+      <div class="card"><h3>${isPiv() ? "Alzado desarrollado del cilindro pivotado (escala 1:1 relativa)" : "Corte radial por el patín (escala 1:1 relativa)"}</h3>${sectionSVG()}
+        ${isPiv() ? (() => { const D = TT.designDrive(P, A.R).pivotado || {}; return `<div class="kv" style="margin-top:10px">
+          <span>Ojal E (x, y) / radio R_E / φ_E</span><span>${fmt(D.E ? D.E[0] : NaN, 4)}, ${fmt(D.E ? D.E[1] : NaN, 4)} / ${fmt(D.R_E, 4)} mm / ${fmt(D.phi_E, 3)}°</span>
+          <span>Brazo mín / máx / efectivo mín</span><span>${fmt(D.brazo_min, 4)} / ${fmt(D.brazo_max, 4)} / ${fmt(D.brazo_ef_min, 4)} mm</span>
+          <span>Carrera requerida</span><span>${fmt(D.carrera_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
+          <span>Largo Q–pasador (bloque-uña)</span><span>${fmt(D.L_qp, 4)} mm</span>
+          <span>θ del pasador tomado: inicio / fin</span><span>${fmt(D.theta_ini_deg, 4)}° / ${fmt(D.theta_fin_deg, 4)}°</span>
+          <span>Holgura al pasador siguiente / cuerpo–mesa</span><span>${fmt(D.holgura_pasador_siguiente, 3)} / ${fmt(D.holgura_cuerpo_mesa, 3)} mm</span>
+          <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
+        </div>`; })() : `<div class="kv" style="margin-top:10px">
           <span>Brazo mín (R·cos π/N) / máx</span><span>${fmt(A.R.K.armMin, 4)} / ${fmt(A.R.K.armMax, 4)} mm</span>
           <span>Carrera requerida (libre + cuerda)</span><span>${fmt(A.R.K.s_req, 4)} de ${fmt(P.stroke, 4)} mm</span>
           <span>Δ guía–pasador / Lg / factor K</span><span>${fmt(A.R.K.DeltaMax, 3)} / ${fmt(A.R.K.Lg, 3)} mm / ${fmt(A.R.Kguide)}</span>
@@ -298,7 +457,22 @@
           <span>Voladizo de la uña / holgura radial</span><span>${fmt(A.R.K.lever, 3)} / ${fmt(A.R.K.radial)} mm</span>
           <span>Cuerda / hueco entre pasadores</span><span>${fmt(A.R.K.chord, 4)} / ${fmt(A.R.K.gap, 4)} mm</span>
           <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
-        </div></div></div>`;
+        </div>`}</div></div>${isPiv() ? placaGuiaCard() : ""}`;
+  }
+  // placa-guía curva del modo pivotado: detalle en toma, empuje y retorno (simulación, TT.pivotAt) y tabla de los segmentos del canto (núcleo)
+  function placaGuiaCard() {
+    const g = TT.pivotGeo(P); if (!g || typeof SIM === "undefined") return "";
+    const D = TT.designDrive(P, A.R).pivotado || {}, pl = D.placa_leva || {}, seg = g.placas["1_antihorario"].segmentos_canto || [];
+    const fases = [["toma", "Toma: Q en la toma y la " + SIM.garraTxt(g) + " llega al pasador"], ["empuje", "Empuje: Q apoyado en el canto (contacto Q–canto)"], ["retorno", "Retorno: el bloque-uña sale sobre el pasador siguiente y la placa lo conduce a la toma"]];
+    return `<div class="card" style="margin-top:12px" id="mdlPlaca"><h3>Placa-guía curva (cilindro 1, giro antihorario) · toma → empuje → retorno</h3>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${fases.map(([id, t]) => `<div><div class="note"><b>${esc(t)}</b></div>${SIM.vistaFase(P, A, id)}</div>`).join("")}</div>
+      <div class="note">Canto (naranja) y trayectoria del centro de Q (trazos) dibujados con arcos SVG desde <code>pivotGeo().placas[k].segmentos_*</code>; las placas del giro horario son la imagen especular (ACC-024). ${g.bloque.garra ? `Bloque-uña con ${esc(SIM.garraTxt(g))} dibujado con arcos SVG desde <code>pivotGeo().bloque.garra.contorno</code> (labio ${fmt(g.bloque.garra.labio.saliente_sobre_centro)} × ${fmt(g.bloque.garra.labio.espesor)}, nariz R${fmt(g.bloque.garra.nariz.radio)}, rampa ${fmt(g.bloque.garra.rampa.angulo_deg)}°, abrazo ${fmt(g.bloque.garra.asiento.abrazo_total_deg)}°); en el empuje el pasador tomado queda asentado y el punto rojo es el contacto del asiento (<code>pivotAt().asiento</code>)` : `Bloque-uña con cara cilíndrica R${fmt(g.bloque.R_cara)}`}, pasador Q Ø${fmt(g.pasadorQ.d)}, ojal E Ø${fmt(g.ojalE.d)} en su soporte abierto y pasador tomado en naranja.</div>
+      <div class="scroll"><table id="mdlSeg"><tr><th>#</th><th>Rol</th><th>Tipo</th><th>Sentido</th><th>Curvatura</th><th class="n">R canto (mm)</th><th class="n">Centro (mm)</th><th class="n">Inicio (mm)</th><th class="n">Fin (mm)</th></tr>
+        ${seg.map((q, i) => `<tr><td class="n">${i + 1}</td><td>${esc(q.rol)}</td><td>${q.tipo === "arco" ? "arco" : "recta"}</td><td>${esc(q.sentido || "—")}</td><td>${esc(q.curvatura || "—")}</td><td class="n">${q.radio ? fmt(q.radio, 3) : "—"}</td><td class="n">${q.centro ? fmt(q.centro[0], 5) + "; " + fmt(q.centro[1], 5) : "—"}</td><td class="n">${fmt(q.p0[0], 5)}; ${fmt(q.p0[1], 5)}</td><td class="n">${fmt(q.p1[0], 5)}; ${fmt(q.p1[1], 5)}</td></tr>`).join("")}</table></div>
+      <div class="kv" style="margin-top:8px"><span>Radio mínimo del canto convexo / cóncavo</span><span>${fmt((pl.radio_min_canto || {}).convexo, 3)} / ${fmt((pl.radio_min_canto || {}).concavo, 3)} mm</span>
+        <span>Continuidad G1 (quiebre máximo de tangente)</span><span>${fmt((pl.g1_max_rad || 0) / D2R, 3)}°</span>
+        <span>Largo del canto / área de la placa</span><span>${fmt(pl.largo_canto, 4)} mm / ${fmt(pl.area / 100, 4)} cm²</span>
+        <span>Ángulo del flanco de reenganche</span><span>${fmt(pl.alpha_deg, 3)}° (máx. admisible ${fmt(P.pv_alpha, 3)}°)</span></div></div>`;
   }
 
   /* ---------- Accionamiento ---------- */
@@ -341,6 +515,11 @@
     const R = A.R, K = R.K;
     const ser = [["nom", "Nominal", "var(--ok)"], ["dis", "Diseño", "var(--acc)"], ["cont", "Contaminado (μ·r = " + fmt(R.mu.cont * P.r_ef / 1000) + " m)", "var(--warn)"], ["borde", "Borde (μ·r = " + fmt(R.mu.d * P.D_top / 2000) + " m)", "var(--fail)"]].map(([id, n, c]) => {
       const cs = R.cases.find((x) => x.id === id);
+      if (isPiv()) {                                                  // modo pivotado: F_cil del núcleo (driveAt) en el θ que entrega pivotAt para cada extensión
+        const pts = [];
+        for (let i = 0; i <= 60; i++) { const s = P.s_free + (K.s_req - P.s_free) * i / 60, q = TT.pivotAt(P, s, "empuje", "antihorario"); if (q && q.arm != null) pts.push([s, TT.driveAt(P, q.th_cil1_antihorario, id).F]); }
+        return { n, c, pts };
+      }
       return { n, c, pts: K.pts.map((q) => [q.s, R.Fcyl(cs.T, q.arm)]) };
     });
     const chart = lineChart(ser, { xl: "Extensión del cilindro desde retraído (mm)", yl: "Fuerza por cilindro (kN)", ys: [R.Fstall], xs: [0, P.stroke],
@@ -372,6 +551,106 @@
         <div class="note">Ensayo de aceptación: con la presión de despegue medida p, μ_real = (n·p·A·η_c·brazo_mín − T_piv)/(N·${fmt(P.r_ef, 4)} mm). Aceptar si μ_real ≤ ${fmt(P.mu_d)}.</div></div></div>`;
   }
 
+  /* ---------- Cinemática del modo pivotado (drive_mode = 2): datos de TT.designDrive().pivotado y del núcleo (sin recalcular) ---------- */
+  // gráfico compacto: series [{pts:[[x,y]], c, n, dash}], marcas verticales [{v, t, c}], líneas horizontales [{v, t, c}], eje derecho opcional (k·y)
+  function kinChart(o) {
+    const Wd = 440, Hd = 230, m = { l: 52, r: o.y2 ? 46 : 14, t: 14, b: 34 };
+    const xs = o.series.flatMap((s) => s.pts.map((q) => q[0])), ys = o.series.flatMap((s) => s.pts.map((q) => q[1])).concat((o.hl || []).map((h) => h.v));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(0, ...ys), y1 = Math.max(...ys) * 1.1 || 1;
+    const X = (v) => (m.l + (v - x0) / (x1 - x0 || 1) * (Wd - m.l - m.r)).toFixed(1), Y = (v) => (Hd - m.b - (v - y0) / (y1 - y0 || 1) * (Hd - m.t - m.b)).toFixed(1);
+    const g = [];
+    for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; g.push(`<line x1="${m.l}" x2="${Wd - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${m.l - 5}" y="${+Y(v) + 4}" font-size="10.5" text-anchor="end">${fmt(v, 3)}</text>${o.y2 ? `<text x="${Wd - m.r + 5}" y="${+Y(v) + 4}" font-size="10.5" fill="var(--load)">${fmt(v * o.y2.k, 3)}</text>` : ""}`); }
+    for (let i = 0; i <= 4; i++) { const v = x0 + (x1 - x0) * i / 4; g.push(`<text x="${X(v)}" y="${Hd - m.b + 14}" font-size="10.5" text-anchor="middle">${fmt(v, 4)}</text>`); }
+    (o.hl || []).forEach((h) => g.push(`<line x1="${m.l}" x2="${Wd - m.r}" y1="${Y(h.v)}" y2="${Y(h.v)}" stroke="${h.c}" stroke-dasharray="5 4" stroke-width="1.2"/><text x="${Wd - m.r - 18}" y="${+Y(h.v) - 4}" font-size="10" text-anchor="end" fill="${h.c}">${esc(h.t)}</text>`));
+    (o.marks || []).forEach((h) => { const xm = +X(h.v), xt = xm > Wd - m.r - 12 ? xm - 4 : xm + 11; g.push(`<line x1="${xm}" x2="${xm}" y1="${m.t}" y2="${Hd - m.b}" stroke="${h.c}" stroke-dasharray="3 3" stroke-width="1.1" class="kin-mark"/><text x="${xt}" y="${m.t + 3}" font-size="10" fill="${h.c}" text-anchor="end" transform="rotate(-90 ${xt} ${m.t + 3})">${esc(h.t)}</text>`); });
+    o.series.forEach((s) => g.push(`<polyline fill="none" stroke="${s.c}" stroke-width="${s.w || 1.8}"${s.dash ? ` stroke-dasharray="${s.dash}"` : ""} points="${s.pts.map((q) => X(q[0]) + "," + Y(q[1])).join(" ")}"/>`));
+    g.push(`<line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${Hd - m.b}" stroke="var(--ink2)"/><line x1="${m.l}" x2="${Wd - m.r}" y1="${Hd - m.b}" y2="${Hd - m.b}" stroke="var(--ink2)"/>`);
+    g.push(`<text x="${(m.l + Wd - m.r) / 2}" y="${Hd - 4}" font-size="11" text-anchor="middle">${esc(o.xl)}</text><text x="11" y="${(m.t + Hd - m.b) / 2}" font-size="11" text-anchor="middle" transform="rotate(-90 11 ${(m.t + Hd - m.b) / 2})">${esc(o.yl)}</text>`);
+    if (o.y2) g.push(`<text x="${Wd - 8}" y="${(m.t + Hd - m.b) / 2}" font-size="11" text-anchor="middle" fill="var(--load)" transform="rotate(90 ${Wd - 8} ${(m.t + Hd - m.b) / 2})">${esc(o.y2.lab)}</text>`);
+    const leg = o.series.filter((s) => s.n).map((s) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:16px;height:0;border-top:2px ${s.dash ? "dashed" : "solid"} ${s.c};display:inline-block"></i>${esc(s.n)}</span>`).join("");
+    return `<div class="card kin-card" data-k="${o.id}"><h3>${esc(o.title)}</h3><svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${esc(o.title)}">${g.join("")}</svg>${leg ? `<div class="note">${leg}</div>` : ""}</div>`;
+  }
+  function renderCinem() {
+    const el = document.querySelector('section[data-t="cinem"]'); if (!el) return;
+    if (!A) { el.innerHTML = msgs(); return; }
+    if (!isPiv()) { el.innerHTML = `<div class="msg warn" id="kinNo">La cinemática de esta pestaña es la del accionamiento pivotado tipo KIET (drive_mode = 2). Con el modo guiado (drive_mode = 1) la fuerza a lo largo de la carrera está en «Accionamiento».</div>`; return; }
+    const D = TT.designDrive(P, A.R).pivotado || {}, cin = D.cinematica || [], pl = D.placa_leva || {}, R = A.R;
+    if (!cin.length) { el.innerHTML = `<div class="msg warn">El núcleo no entrega la cinemática del empuje guiado (designDrive().pivotado.cinematica).</div>`; return; }
+    const push = (R.camP && R.camP.push || []).filter((q) => q.ok), hb = push.length === cin.length ? push.map((q) => q.clrB) : null;
+    const iCal = cin.reduce((b, c, i) => c.F_cil > cin[b].F_cil ? i : b, 0), thHz = pl.hertz && pl.hertz.push ? pl.hertz.push.th / D2R : null;
+    const near = (th) => cin.reduce((b, c, i) => Math.abs(((c.th - th) % 360 + 540) % 360 - 180) < Math.abs(((cin[b].th - th) % 360 + 540) % 360 - 180) ? i : b, 0);
+    const iHz = thHz != null ? near(thHz) : null, iHb = hb ? hb.reduce((b, v, i) => v < hb[b] ? i : b, 0) : null, iFin = cin.length - 1;
+    const tc = cin.map((c) => c.th), mk = [{ v: cin[0].th, t: "toma", c: "var(--ok)" }, { v: cin[iCal].th, t: "calado (F_cil máx.)", c: "var(--fail)" }, { v: cin[iFin].th, t: "fin del empuje", c: "var(--acc)" }];
+    const xl = "θ del pasador tomado (°)", ser = (k, c, n, dash) => ({ pts: cin.map((q) => [q.th, q[k]]), c, n, dash });
+    const kp = cin[0].F_cil ? cin[0].p / cin[0].F_cil : 0;
+    const chP = A.checks.find((c) => /ángulo de presión máximo bajo el de autobloqueo/.test(c.name)), chB = A.checks.find((c) => /Bloque-uña libre de los pasadores en el empuje guiado/.test(c.name));
+    const ret = pl.retorno || [], rg = [];                            // tramos contiguos con Q conducido por la placa-guía
+    ret.forEach((q, i) => { if (!q.guia) return; if (!i || !ret[i - 1].guia) rg.push([]); rg[rg.length - 1].push([q.L, q.holgura]); });
+    const charts = [
+      kinChart({ id: "L", title: "Largo del cilindro L = |Q − E|", xl, yl: "L (mm)", series: [ser("L", "var(--acc)", "L del cilindro (Q apoyado en el canto)")], marks: mk, hl: [{ v: P.L0 + P.stroke, t: `L máx. ${fmt(P.L0 + P.stroke, 4)} mm`, c: "var(--ink2)" }] }),
+      kinChart({ id: "F", title: "Fuerza del cilindro y presión (caso de diseño)", xl, yl: "F_cil (kN)", y2: { k: kp, lab: "p (bar)" }, series: [ser("F_cil", "var(--acc)", "F_cil, empuje guiado"), ser("F_cil_colineal", "var(--ink2)", "F_cil colineal (referencia)", "5 4")], marks: mk, hl: [{ v: R.Fstall, t: `alivio ${fmt(R.Fstall)} kN (${fmt(P.p_relief)} bar)`, c: "var(--fail)" }] }),
+      kinChart({ id: "H", title: "Carga H sobre la placa-guía (caso de diseño)", xl, yl: "H (kN)", series: [ser("F_leva", "var(--load)", "H en el contacto Q–canto")], marks: mk }),
+      kinChart({ id: "phi", title: "Ángulo de presión φ en el contacto Q–canto (empuje)", xl, yl: "φ (°)", series: [ser("phi_presion_deg", "#7b3fa0", "φ empuje")], marks: mk, hl: chP ? [{ v: chP.cap, t: `autobloqueo 90° − atan μ = ${fmt(chP.cap, 3)}°`, c: "var(--fail)" }] : [] }),
+      hb ? kinChart({ id: "hb", title: "Holgura bloque-uña–pasadores en el empuje guiado", xl, yl: "holgura (mm)", series: [{ pts: cin.map((q, i) => [q.th, hb[i]]), c: "var(--ok)", n: "holgura mínima a los pasadores anterior y siguiente" }], marks: mk, hl: [{ v: P.pv_cB, t: `mínimo ${fmt(P.pv_cB)} mm`, c: "var(--fail)" }] }) : `<div class="card"><div class="msg warn">El núcleo no entrega la holgura bloque–pasadores por posición.</div></div>`,
+      ret.length ? kinChart({ id: "sync", title: "Holgura de sincronía en el retorno (mesa detenida en θ_fin)", xl: "L del cilindro en el retorno (mm)", yl: "holgura (mm)", series: [{ pts: ret.map((q) => [q.L, q.holgura]), c: "var(--ink2)", n: "retorno: el pasador siguiente levanta el bloque (0 = deslizamiento previsto)", w: 1.2 }, ...rg.map((pts, k) => ({ pts, c: "var(--ok)", n: k ? "" : "conducción por la placa-guía (sincronía)", w: 2.4 }))], hl: [{ v: pl.margen_diseno, t: `margen con tolerancias ${fmt(pl.margen_diseno, 3)} mm`, c: "var(--fail)" }], marks: [{ v: pl.primer_contacto ? pl.primer_contacto.L : P.L0, t: "primer contacto del retorno", c: "var(--acc)" }] }) : "",
+    ];
+    // puntos característicos: toma, calado (F_cil máx.), cambios de tramo del canto (push[].tramo ↔ segmentos_canto) y fin del empuje
+    const segC = (TT.pivotGeo(P) || { placas: {} }).placas["1_antihorario"], rolT = (i) => push[i] && segC && segC.segmentos_canto[push[i].tramo] ? segC.segmentos_canto[push[i].tramo].rol : null;
+    const trans = push.length === cin.length ? push.map((q, i) => i).filter((i) => i > 0 && push[i].tramo !== push[i - 1].tramo && i !== iCal && i !== iFin) : [];
+    const sel = [0, iCal, iFin]; trans.forEach((i) => { if (sel.length < 5 && !sel.includes(i)) sel.push(i); });
+    const pts5 = [...new Set(sel)].sort((a, b) => a - b).map((i) => { const tg = []; if (i === 0) tg.push("Toma"); if (i === iCal) tg.push("Calado (F_cil máx.)"); if (i === iFin) tg.push("Fin del empuje"); if (i === iHz) tg.push("Hertz crítico del canto"); if (i === iHb) tg.push("holgura bloque–pasadores mín."); if (!tg.length) tg.push("Cambio de tramo del canto"); return [tg.join(" · ") + (rolT(i) ? ` — Q en «${rolT(i)}»` : ""), i]; });
+    const tabla = `<table id="kinPts"><tr><th>Punto</th><th class="n">θ (°)</th><th class="n">L (mm)</th><th class="n">s (mm)</th><th class="n">F_cil (kN)</th><th class="n">p (bar)</th><th class="n">H guía (kN)</th><th class="n">φ (°)</th><th class="n">Holgura bloque–pasadores (mm)</th><th class="n">Brazo ef. (mm)</th></tr>
+      ${pts5.map(([n, i]) => { const c = i != null ? cin[i] : null; return `<tr data-i="${i == null ? "" : i}"><td>${esc(n)}</td>${c ? `<td class="n">${fmt(c.th, 5)}</td><td class="n">${fmt(c.L, 4)}</td><td class="n">${fmt(c.s, 4)}</td><td class="n">${fmt(c.F_cil, 4)}</td><td class="n">${fmt(c.p, 3)}</td><td class="n">${fmt(c.F_leva, 3)}</td><td class="n">${fmt(c.phi_presion_deg, 3)}</td><td class="n">${hb ? fmt(hb[i], 3) : "—"}</td><td class="n">${fmt(c.a_ef, 4)}</td>` : `<td colspan="9" class="ref">sin dato del núcleo</td>`}</tr>`; }).join("")}</table>`;
+    el.innerHTML = `<div class="note">Accionamiento pivotado tipo KIET (drive_mode = 2), cilindro 1, giro antihorario, caso de diseño (μ ${fmt(R.mu.d)}). Datos: <code>TT.designDrive().pivotado.cinematica</code> (${cin.length} posiciones del empuje guiado con Q apoyado en el canto), <code>placa_leva.retorno</code> y la holgura bloque–pasadores de <code>analyze().R.camP.push[].clrB</code>; la UI no recalcula.</div>
+      <div class="grid kin-grid" id="kinGrid" style="grid-template-columns:repeat(auto-fit,minmax(360px,1fr))">${charts.join("")}</div>
+      <div class="card" style="margin-top:12px"><h3>Puntos característicos del empuje (${pts5.length})</h3><div class="scroll">${tabla}</div>
+        <div class="kv" style="margin-top:8px"><span>θ toma / fin del empuje</span><span>${fmt(D.theta_ini_deg, 5)}° / ${fmt(D.theta_fin_deg, 5)}°</span>
+          <span>Carrera requerida / del cilindro</span><span>${fmt(D.carrera_req, 4)} / ${fmt(P.stroke, 4)} mm</span>
+          <span>Sincronía nominal / peor caso (retorno)</span><span>${fmt(pl.sincronia, 3)} / ${fmt(pl.sincronia_peor, 3)} mm (margen ${fmt(pl.margen_diseno, 3)} mm)</span>
+          <span>Primer contacto del retorno: L / φ</span><span>${pl.primer_contacto ? fmt(pl.primer_contacto.L, 4) + " mm / " + fmt(pl.primer_contacto.phi, 3) + "°" : "—"}</span>
+          <span>Bolsillo (máx W) / ángulo del flanco</span><span>${fmt(pl.bolsillo_w, 3)} mm / ${fmt(pl.alpha_deg, 3)}°</span>
+          ${chB ? `<span>Holgura bloque–pasadores mínima (verificación)</span><span>${fmt(chB.cap, 3)} mm ≥ ${fmt(chB.dem, 3)} mm · FU ${fu3(chB.fu)}</span>` : ""}</div>
+        <div class="note">Calado: posición de fuerza máxima del cilindro en el empuje (la primera en calar si la fricción sube). Hertz crítico: peor punto de contacto Q–canto a la fuerza de calado (placa_leva.hertz.push). La holgura de sincronía se grafica frente a L porque en el retorno la mesa queda detenida en θ_fin.</div></div>`;
+  }
+
+  /* ---------- Comparación de la guía: original poligonal (b928552, histórico fijo) / curva (núcleo) / concepto KIET (medido en el plano) ---------- */
+  const ORIG = { ref: "commit b928552 · docs/qa/guia_curva_KIET/cambios.md §1, §2 y §4 (valores históricos fijos)" };
+  function renderComp() {
+    const el = document.querySelector('section[data-t="comp"]'); if (!el) return;
+    if (!A) { el.innerHTML = msgs(); return; }
+    const img = typeof TT_IMG !== "undefined" && TT_IMG.comparacion ? `<img id="compImg" src="${TT_IMG.comparacion}" alt="Comparación de la placa-guía: original poligonal, curva y concepto KIET" style="display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff">` : `<div class="msg warn">Figura no embebida en esta compilación.</div>`;
+    const piv = isPiv(), Pp = piv ? P : Object.assign({}, P, { drive_mode: 2 }), Ap = piv ? A : TT.analyze(Pp, { noFEA: true });
+    const D = TT.designDrive(Pp, Ap.R).pivotado || {}, pl = D.placa_leva || {}, g = TT.pivotGeo(Pp) || {}, dis = Ap.R.cases.find((c) => c.id === "dis") || {};
+    const seg = g.placas ? g.placas["1_antihorario"].segmentos_canto : [], nA = seg.filter((q) => q.tipo === "arco").length, nL = seg.filter((q) => q.tipo !== "arco").length;
+    const chk = (re) => Ap.checks.find((c) => re.test(c.name)), fab = (D.fabricacion || {}).placas_leva || {}, marco = fab.marco || {};
+    const qF = chk(/^Pasador Q: flexión/);
+    const rows = [
+      ["Perfil del canto", "poligonal: 4 vértices, quiebre de tangente máx. 70,2°", `${nL} rectas + ${nA} arcos tangentes (${seg.filter((q) => q.tipo === "arco" && !/sin contacto/.test(q.rol)).length} de contacto y el cierre del bolsillo), G1: quiebre máx. ${fmt((pl.g1_max_rad || 0) / D2R, 3)}°`, "media luna con arco continuo y gancho en un extremo"],
+      ["Radio mínimo del canto convexo / cóncavo", "0 (vértices)", `${fmt((pl.radio_min_canto || {}).convexo, 3)} / ${fmt((pl.radio_min_canto || {}).concavo, 3)} mm`, "no acotado"],
+      ["Ángulo de presión del flanco de reenganche", "65° (vértices sin definir)", `${fmt(pl.alpha_deg, 3)}° (máximo, en el pie del flanco)`, "no acotado"],
+      ["Canto exportado", "desplazamiento en w (invade el seguidor 27,1 mm)", `envolvente exacta del seguidor (polilínea con flecha ≤ ${fmt(pl.tolerancia_polilinea, 1)} mm)`, "—"],
+      ["Sincronía nominal (declarada)", "7,07 mm", `${fmt(pl.sincronia, 3)} mm (margen ${fmt(pl.margen_diseno, 3)} con tolerancias)`, "—"],
+      ["Sincronía con el contorno fabricado", "−21,0 mm (choque con B)", `${fmt(pl.sincronia, 3)} mm (peor caso ${fmt(pl.sincronia_peor, 3)})`, "—"],
+      ["Bolsillo (máx. W)", "57,9 mm", `${fmt(pl.bolsillo_w, 3)} mm`, "—"],
+      ["Carga de diseño de la placa", "71,6 kN (atasco)", `${fmt((pl.fuerzas_N || {}).diseno / 1e3, 4)} kN (empuje a calado)`, "—"],
+      ["F del cilindro, caso de diseño", "308,1 kN", `${fmt(dis.F, 4)} kN`, "—"],
+      ["Presión de diseño", "484 bar", `${fmt(dis.p, 3)} bar`, "—"],
+      ["FS del accionamiento (diseño)", "1,446", fmt(dis.FS, 4), "—"],
+      ["Carrera requerida", "220,41 mm", `${fmt(D.carrera_req, 5)} mm`, "—"],
+      ["Placa", "labio de 80 mm, 6 pernos M20", `rectángulo ${fmt(marco.largo, 3)} × ${fmt(marco.ancho, 3)} × ${fmt(pl.t)} mm, ${pl.n_pernos} ISO 10642 M${Math.round(pl.d_perno)} 8.8 + 2 pasadores de posición`, "rectangular, ~6 pernos en el perímetro"],
+      ["Material", "S355J2 «con canto templado ≥ 55 HRC»", esc(String(fab.material || "—").split(",")[0]) + ", canto templado por inducción", "no indicado"],
+      ["Masa de las 4 placas", "34,4 kg", `${fmt(Ap.R.m.cam, 3)} kg`, "—"],
+      ["Pasador Q: FU de flexión", "0,551", qF ? fu3(qF.fu) : "—", "—"],
+      ["Disposición", "2 cilindros en esquinas opuestas, 2 placas por cilindro", `ojales a ${fmt(D.phi_E, 3)}° y ${fmt(((D.phi_E || 0) + 180) % 360, 3)}°; 2 placas por cilindro (una por sentido; la del horario es la imagen especular, ACC-024)`, "ojales a 134,9° y 315,1°; 2 placas por cilindro"],
+      ["Posición angular de las placas respecto de la diagonal del ojal", "—", "± 20,9°", "−26,0° y +25,1° (cil. 1); +26,3° y −26,1° (cil. 2)"],
+      ["Radio del centro de la placa / radio del anillo", "—", "1,18 (sobre R = D/2)", "1,02–1,08"],
+    ];
+    el.innerHTML = `<div class="note">Valores por defecto, cilindro 1, giro antihorario${piv ? "" : " (calculado con drive_mode = 2: la guía curva es del accionamiento pivotado)"}. Original: ${esc(ORIG.ref)}. Curva: núcleo actual (<code>designDrive().pivotado</code>, <code>pivotGeo()</code>, <code>analyze()</code>). KIET: plano KIET-1024-REF-TT-400T, <b>concepto medido en el plano, no acotado</b> (solo proporciones; sus dimensiones no se trasladan).</div>
+      <div class="card scroll"><table id="compTab"><tr><th>Aspecto</th><th>Original poligonal (b928552)</th><th>Curva (este diseño, núcleo)</th><th>Concepto KIET (medido en el plano, no acotado)</th></tr>
+        ${rows.map(([a, o, c, k]) => `<tr><td>${esc(a)}</td><td class="ref">${esc(o)}</td><td><b>${c}</b></td><td class="ref">${esc(k)}</td></tr>`).join("")}</table></div>
+      <div class="card" style="margin-top:12px"><h3>Figura: original poligonal, curva y concepto KIET</h3>${img}<div class="note">docs/qa/guia_curva_KIET/comparacion.png (tools/fig_guia_curva.py), embebida en la herramienta.</div></div>`;
+  }
+
   /* ---------- Verificaciones ---------- */
   function fuBar(c) {
     if (c.fu == null || !isFinite(c.fu)) return "";
@@ -382,14 +661,14 @@
     const el = document.querySelector('section[data-t="verif"]');
     if (!A) { el.innerHTML = msgs(); return; }
     let g = "", rows = "";
-    A.checks.forEach((c) => {
+    A.checks.forEach((c, i) => {
       if (c.grp !== g) { g = c.grp; rows += `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`; }
-      rows += `<tr><td><span class="st st-${c.st}">${ST[c.st]}</span></td><td>${esc(c.name)}<div class="form">${esc(c.formula)}</div></td>
+      rows += `<tr class="chk-row" data-i="${i}" data-st="${c.st}"><td><span class="st st-${c.st}">${ST[c.st]}</span></td><td>${esc(c.name)}<div class="form">${esc(c.formula)}</div></td>
         <td class="n">${fmt(c.dem)}</td><td class="n">${c.cap != null ? fmt(c.cap) : ""}</td><td>${esc(c.unit || "")}</td>
-        <td class="n">${c.fu != null && isFinite(c.fu) ? fu2(c.fu) : ""}${fuBar(c)}</td><td class="ref">${esc(c.ref)}</td></tr>`;
+        <td class="n">${fu3(c.fu)}${fuBar(c)}</td><td class="ref">${esc(c.ref)}</td></tr>`;
     });
     el.innerHTML = `<div class="note">Clasificación: FU ≤ 0,90 cumple; 0,90–1,00 monitoreo; &gt; 1,00 no cumple. Los chequeos de giro y geométricos son límites con margen propio: cumplen con FU ≤ 1,00. Cadena de empuje verificada a la fuerza de calado ${fmt(A.R.Fstall)} kN con ASME BTH-1 Nd = ${fmt(P.Nd)}.</div>
-      <div class="card scroll"><table><tr><th>Estado</th><th>Verificación</th><th class="n">Demanda</th><th class="n">Capacidad</th><th>Unidad</th><th class="n">FU</th><th>Referencia</th></tr>${rows}</table></div>`;
+      <div class="card scroll"><table><tr><th>Estado</th><th>Verificación</th><th class="n">Demanda</th><th class="n">Capacidad</th><th>Unidad</th><th class="n">FU</th><th>Norma / referencia</th></tr>${rows}</table></div>`;
   }
 
   /* ---------- FEA ---------- */
@@ -560,7 +839,8 @@
     const at = (a, T) => a.byT.find((b) => Math.abs(b.T - T) < 1e-9), id0 = altId(), act = r.alternativas.find((a) => a.id === id0) || r.alternativas[0], Tn = r.T_scn;
     const bitem = (a) => at(a, Tn), b20 = (a) => at(a, r.T_ref) || a.byT[0];
     const ver = (b) => (b.gira && b.estructura && b.termico ? "ok" : !b.gira || !b.estructura ? "fail" : "warn");
-    const tags = (b) => `${b.gira ? "" : '<span class="st st-fail">No gira con FS_mín</span> '}${b.estructura ? "" : '<span class="st st-fail">Estructura/juntas</span> '}${b.termico ? "" : `<span class="st st-fail">Térmica: ${r.alcance === 2 ? "aceite/" : ""}gradiente/juntas</span>`}${b.gira && b.estructura && b.termico ? '<span class="st st-ok">Cumple</span>' : ""}`;
+    const npc = (b) => (b.pendientes_criticos || []).length;
+    const tags = (b) => `${b.gira ? "" : '<span class="st st-fail">No gira con FS_mín</span> '}${b.estructura ? "" : '<span class="st st-fail">Estructura/juntas</span> '}${b.termico ? "" : `<span class="st st-fail">Térmica: ${r.alcance === 2 ? "aceite/" : ""}gradiente/juntas</span> `}${npc(b) ? `<span class="st st-fail" title="${esc(b.estado_global || "")}">Pendiente de decisión (${npc(b)}, FU ${fu2(b.fuMaxPend)})</span>` : ""}${b.gira && b.estructura && b.termico && !npc(b) ? '<span class="st st-ok">Cumple</span>' : ""}`;
     const gov = (g) => (g ? esc(g.grp + ": " + g.nombre) + ` <span class="ref">(FU ${fu2(g.fu)})</span>` : "—");
     const warns = `<div class="msg warn"><b>Datos supuestos (confianza C):</b> los de UHMW-PE, acero inoxidable y bronce son de ficha de fabricante o supuestos (el UHMW-PE no tiene curva publicada a 80 °C y 80 °C es su límite de servicio continuo): confirmar con el proveedor antes de decidir.</div>
       <div class="msg warn"><b>ASME BTH-1:</b> el rango estándar es −4 a 66 °C; a 80 °C (176 °F) la sección de BTH-1 sobre temperatura no está confirmada y exige decisión de persona calificada (Nd = 3,0 no incluye margen térmico).</div>
@@ -745,8 +1025,149 @@
   $("#pkgChk").checked = store.get(LSK) === "1";
   $("#pkgChk").addEventListener("change", () => { store.set(LSK, $("#pkgChk").checked ? "1" : "0"); renderPkg(); });
 
+  /* ---------- Planos: generación a pedido con el generador local (tools/servidor_planos.py en 127.0.0.1:8765) ---------- */
+  const PL_GRUPOS = [["generales", "Generales"], ["fabricacion", "Fabricación"], ["armado", "Armado"]];
+  const GEN_URL = (location.protocol.startsWith("http") && (location.hostname === "127.0.0.1" || location.hostname === "localhost") && location.port === "8765") ? "" : "http://127.0.0.1:8765";
+  const PLAB = {}; TT.PARAM_GROUPS.forEach((g) => g.p.forEach((q) => { PLAB[q[0]] = [q[1], q[2]]; }));
+  // srv: null = comprobando, false = no responde, objeto = respuesta de /api/ping; job = trabajo en curso o último; ver = juego mostrado (indice); hist = /api/listar
+  const GEN = { srv: null, job: null, poll: null, err: "", pinging: false, ver: null, verId: "", hist: null };
+  const href = (base, f) => GEN_URL + "/" + (base + "/" + f).split("/").map(encodeURIComponent).join("/");
+  const vEq = (a, b) => (typeof a === "number" && typeof b === "number") ? Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b)) : a === b;
+  const vTxt = (v) => v === undefined ? "(no existe)" : typeof v === "number" ? v.toLocaleString("es-CL", { maximumFractionDigits: 9 }) : String(v);
+  const plDiff = (Pa, Pb) => [...new Set([...Object.keys(Pa), ...Object.keys(Pb)])].filter((k) => !vEq(Pa[k], Pb[k]));
+  const altLabel = () => { const o = $("#altSel"); return o && o.selectedOptions[0] ? o.selectedOptions[0].textContent : ""; };
+  function plCards(ix) {
+    const b = ix.carpeta, short = (c) => c.replace(/^TT300C-/, ""), a = ix.archivos || {};
+    const cards = PL_GRUPOS.map(([gid, gt]) => {
+      const ls = ix.laminas.filter((l) => l.grupo === gid), g = ix.grupos[gid] || {};
+      const rows = ls.map((l) => `<tr><td>${esc(short(l.codigo))}</td><td>${esc(l.titulo)}</td><td>${l.pdf ? `<a href="${esc(href(b, l.pdf))}" target="_blank" rel="noopener">PDF</a>` : "—"}${l.dxf ? ` · <a href="${esc(href(b, l.dxf))}" download>DXF</a>` : ""}</td></tr>`).join("");
+      return `<div class="card pl-grp" data-g="${gid}"><h3>${esc(gt)}</h3><div class="big">${ls.length} <span class="ref">láminas</span></div>
+        <div class="btns">${g.pdf ? `<a class="btn pri" data-pdf="${gid}" href="${esc(href(b, g.pdf))}" target="_blank" rel="noopener">PDF ${esc(gt)}</a>` : `<span class="note">Sin PDF del grupo</span>`}</div>
+        <details><summary>Lista de láminas (${ls.length})</summary><div class="scroll"><table><tr><th>Plano</th><th>Título</th><th>Archivo</th></tr>${rows}</table></div></details></div>`;
+    }).join("");
+    const lk = (k, t, dl) => a[k] ? `<a data-f="${k}" href="${esc(href(b, a[k]))}"${dl ? " download" : ' target="_blank" rel="noopener"'}>${t}</a>` : "";
+    return `<div class="grid">${cards}</div>
+      <div class="pl-files"><b>Otros archivos:</b>${lk("combinado", "PDF combinado (todas las láminas)")}${lk("despiece_xlsx", "Despiece XLSX", 1)}${lk("step", "Modelo 3D STEP", 1)}${lk("dxf_zip", "DXF de todas las láminas (.zip)", 1)}${lk("informe", "Informe del paquete")}</div>
+      <div class="note">Carpeta: <span class="form">${esc(b)}/</span></div>`;
+  }
+  function renderPlanos() { renderSrv(); renderResumenPl(); renderGen(); renderHist(); }
+  /* estado del generador e instrucciones de instalación */
+  function renderSrv() {
+    const el = $("#plSrv"); if (!el) return;
+    const s = GEN.srv;
+    el.innerHTML = `<h3>Generador local de planos</h3>` + (s === null ? `<div class="note" id="genEstado" data-srv="comprobando">Comprobando si el generador local está activo en 127.0.0.1:8765…</div>`
+      : s === false ? `<div class="msg warn" id="genEstado" data-srv="inactivo"><b>El generador local no responde.</b> Los planos se generan a pedido en este equipo:</div>
+        <ol class="pl-pasos" id="genInstr"><li><b>Una sola vez:</b> ejecute <span class="form">Instalar_generador_planos.bat</span> (carpeta del repositorio). Busca Python 3.12 o 3.11 (si falta, indica cómo instalarlo desde python.org), crea <span class="form">.venv-planos</span> e instala los paquetes; tarda varios minutos.</li>
+        <li><b>Cada vez:</b> ejecute <span class="form">Generar_planos_Tornamesa.bat</span> y deje abierta su ventana. Abre esta herramienta desde http://127.0.0.1:8765.</li>
+        <li>Vuelva a esta pestaña y pulse «Volver a comprobar».</li></ol>
+        <div class="btns"><button id="bGenPing">Volver a comprobar</button></div>`
+      : `<div class="msg ok" id="genEstado" data-srv="activo">Generador local activo (${esc(s.servidor || "127.0.0.1:8765")}${s.python ? " · Python " + esc(s.python) : ""}).</div>
+        <div class="note">Los juegos generados quedan en la carpeta <span class="form">salidas/</span> del repositorio y se sirven desde el generador local.</div>`);
+    const bp = $("#bGenPing"); if (bp) bp.onclick = () => { GEN.srv = null; renderSrv(); renderGen(); genPing(); };
+  }
+  /* alternativa y parámetros que se enviarán */
+  function renderResumenPl() {
+    const el = $("#plResumen"); if (!el) return;
+    const ch = Object.keys(DEF).filter((k) => !vEq(P[k], DEF[k]));
+    let h = `<h3>Lo que se enviará al generador</h3>`;
+    if (!A) { el.innerHTML = h + `<div class="msg error" id="plResEstado">Corrija los datos marcados: con datos inválidos no se pueden generar planos.</div>`; return; }
+    const R = A.R, v = A.verdict;
+    h += `<div class="kv" id="plResKv"><span>Alternativa</span><span>${esc(altLabel())}</span>
+      <span>Interfaz de giro</span><span>${esc(PLANOS.ifaceName(P, R.ifc))}</span><span>Fijación</span><span>${esc(PLANOS.fixText(P, R.ifc))}</span><span>Cubierta</span><span>${esc(PLANOS.woodText(P))}</span>
+      <span>Capacidad / masa total</span><span>${fmt(P.W_tf, 3)} tf / ${fmt(R.m.total, 4)} kg</span>
+      <span>¿Gira? / ¿Estructura?</span><span>${v.gira ? "sí" : "NO"} / ${v.estructura ? "cumple" : "NO cumple"}</span>
+      <span>Estado global</span><span>${esc(v.estado_global)}</span></div>`;
+    if (!(v.gira && v.estructura)) h += `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador se negará a emitir planos.</div>`;
+    h += `<details${ch.length && ch.length <= 8 ? " open" : ""}><summary>Parámetros distintos de los valores por defecto (${ch.length} de ${Object.keys(DEF).length})</summary>${ch.length ? `<div class="scroll"><table id="plParams"><tr><th>Parámetro</th><th>Nombre</th><th class="n">Valor</th><th class="n">Por defecto</th></tr>
+      ${ch.map((k) => `<tr><td class="form">${esc(k)}</td><td>${esc(PLAB[k] ? PLAB[k][0] : "")}${PLAB[k] && PLAB[k][1] && PLAB[k][1] !== "–" ? ` <span class="ref">[${esc(PLAB[k][1])}]</span>` : ""}</td><td class="n">${esc(vTxt(P[k]))}</td><td class="n">${esc(vTxt(DEF[k]))}</td></tr>`).join("")}</table></div>` : `<div class="note">Todos los parámetros están en su valor por defecto.</div>`}</details>
+      <div class="note">Se envía el JSON de diseño completo (el mismo de <span class="form">node tools/export_design.js</span>): ${Object.keys(DEF).length} parámetros más los resultados del cálculo.</div>`;
+    el.innerHTML = h;
+  }
+  /* ---- llamadas al servidor ---- */
+  function genFetch(path, opt, ms) {
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 2500);
+    return fetch(GEN_URL + path, Object.assign({ cache: "no-store", signal: ac.signal }, opt || {})).then((r) => r.json().then((j) => { clearTimeout(t); if (!r.ok) { const e = new Error(j.error || ("HTTP " + r.status)); e.data = j; throw e; } return j; }));
+  }
+  function genPing() {
+    GEN.pinging = true;
+    return genFetch("/api/ping").finally(() => { GEN.pinging = false; }).then((j) => {
+      GEN.srv = j;
+      if (j.trabajo && !GEN.job) { GEN.job = j.trabajo; if (j.trabajo.estado === "en_curso") genPoll(); }
+      genHist();
+    }).catch(() => { GEN.srv = false; GEN.hist = null; }).then(() => { renderSrv(); renderGen(); renderHist(); });
+  }
+  function genHist() {
+    return genFetch("/api/listar", null, 5000).then((j) => { GEN.hist = j.salidas || []; }).catch(() => { GEN.hist = null; }).then(renderHist);
+  }
+  function genPoll() {
+    clearInterval(GEN.poll);
+    GEN.poll = setInterval(() => {
+      if (!GEN.job) { clearInterval(GEN.poll); return; }
+      genFetch("/api/estado?id=" + encodeURIComponent(GEN.job.id)).then((j) => {
+        GEN.job = j;
+        if (j.estado !== "en_curso") { clearInterval(GEN.poll); if (j.indice) { GEN.ver = j.indice; GEN.verId = j.id; } genHist(); }
+        renderGen();
+      }).catch(() => { GEN.srv = false; clearInterval(GEN.poll); renderSrv(); renderGen(); });
+    }, 1500);
+  }
+  function genStart() {
+    GEN.err = "";
+    let body;
+    try { body = PLANOS.designJSON(PLANOS.buildDesign(P, A)); } catch (err) { GEN.err = "No se pudo armar el JSON de diseño: " + err.message; renderGen(); return; }
+    genFetch("/api/generar", { method: "POST", headers: { "Content-Type": "application/json" }, body }, 15000)
+      .then((j) => { GEN.job = j; GEN.ver = null; GEN.verId = ""; genPoll(); renderGen(); })
+      .catch((err) => { GEN.err = err.message; if (err.data && err.data.trabajo) { GEN.job = err.data.trabajo; genPoll(); } renderGen(); });
+  }
+  function genAbrir(id) {
+    GEN.err = "";
+    genFetch("/api/salida?id=" + encodeURIComponent(id), null, 60000).then((ix) => { GEN.ver = ix; GEN.verId = id; renderGen(); const r = $("#plVer"); if (r && r.scrollIntoView) r.scrollIntoView({ block: "nearest" }); })
+      .catch((err) => { GEN.err = "No se pudo abrir la generación " + id + ": " + err.message; renderGen(); });
+  }
+  /* botón, avance y resultado */
+  function renderGen() {
+    const el = $("#plGen"); if (!el) return;
+    const s = GEN.srv, jb = GEN.job, busy = !!(jb && jb.estado === "en_curso");
+    let h = `<h3>Generar planos con los parámetros actuales</h3>
+      <div class="btns"><button class="pri" id="bGen"${busy || !A || !s ? " disabled" : ""}>Generar planos</button></div>`;
+    if (!s) h += `<div class="note">${s === null ? "Comprobando el generador local…" : "Requiere el generador local activo (vea las instrucciones arriba)."}</div>`;
+    else h += `<div class="note">Tarda unos 4 a 6 minutos: modelo 3D, láminas PDF y DXF, despiece y controles de calidad.</div>`;
+    if (GEN.err) h += `<div class="msg error">${esc(GEN.err)}</div>`;
+    if (jb) {
+      const pc = Math.round(100 * (jb.progreso || 0));
+      h += `<div class="kv" style="margin-top:8px"><span>Trabajo</span><span>${esc(jb.id)}</span><span>Estado</span><span id="genJob" data-estado="${esc(jb.estado)}">${esc({ en_curso: "en curso", listo: "terminado", error: "error" }[jb.estado] || jb.estado)}${jb.duracion_s != null ? ` · ${fmt(jb.duracion_s, 3)} s` : ""}</span></div>`;
+      if (busy) h += `<div class="prog"><i style="width:${pc}%"></i></div><div class="busy" id="genFase">${esc(jb.fase || "")} · ${pc} % (estimado)</div>`;
+      if (jb.estado === "error") h += `<div class="msg error"><b>El generador terminó con error${jb.codigo != null ? ` (código ${esc(jb.codigo)})` : ""}:</b><pre>${esc(jb.mensaje || "")}</pre></div>`;
+      if (jb.log && jb.log.length) h += `<details${busy ? " open" : ""}><summary>Registro del generador (${jb.log.length} líneas)</summary><pre class="log" id="genLog">${esc(jb.log.join("\n"))}</pre></details>`;
+    }
+    if (GEN.ver) {
+      const ix = GEN.ver, dif = ix.P ? plDiff(P, ix.P) : null, err = jb && jb.id === GEN.verId && jb.estado === "error";
+      h += `<div id="plVer" data-id="${esc(GEN.verId)}">` + (err ? `<div class="msg warn">Se emitieron archivos, pero no pasaron todos los controles: revíselos antes de usarlos.</div>` : `<div class="msg ok">Juego <b>${esc(GEN.verId)}</b>: ${ix.laminas.length} láminas${ix.interfaz ? " · " + esc(ix.interfaz) : ""}${ix.madera ? " · cubierta de madera" : ""}.</div>`)
+        + (dif && dif.length ? `<div class="msg warn" id="plVerDif">Este juego no corresponde a los parámetros actuales (difiere en ${dif.length}: ${esc(dif.slice(0, 8).join(", "))}${dif.length > 8 ? "…" : ""}).</div>` : "")
+        + plCards(ix) + `</div>`;
+    }
+    const lg = $("#genLog"), atEnd = !lg || lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 4;
+    el.innerHTML = h;
+    const lg2 = $("#genLog"); if (lg2 && atEnd) lg2.scrollTop = lg2.scrollHeight;
+    const bg = $("#bGen"); if (bg) bg.onclick = genStart;
+  }
+  /* historial de salidas/ */
+  function renderHist() {
+    const el = $("#plHist"); if (!el) return;
+    let h = `<h3>Generaciones anteriores (salidas/)</h3>`;
+    if (!GEN.srv) h += `<div class="note">Disponible con el generador local activo.</div>`;
+    else if (GEN.hist === null) h += `<div class="note">Leyendo salidas/…</div>`;
+    else if (!GEN.hist.length) h += `<div class="note" id="plHistVacio">Todavía no hay planos generados.</div>`;
+    else h += `<div class="scroll"><table id="plHistTab"><tr><th>Generación</th><th>Alternativa</th><th class="n">Láminas</th><th>Parámetros</th><th></th></tr>
+      ${GEN.hist.map((x) => { const d = x.P ? plDiff(P, x.P).length : -1; return `<tr data-id="${esc(x.id)}"><td class="form">${esc(x.id)}</td><td>${esc(x.interfaz || x.alternativa || "")}${x.madera ? " · madera" : ""}</td><td class="n">${x.laminas != null ? x.laminas : "—"}</td>
+        <td>${d === 0 ? `<span class="st st-ok">= actuales</span>` : d > 0 ? `<span class="st st-info">difiere en ${d}</span>` : "—"}</td><td><button data-abrir="${esc(x.id)}"${GEN.verId === x.id ? " class=\"pri\"" : ""}>Abrir</button></td></tr>`; }).join("")}</table></div>
+      <div class="btns"><button id="bHist">Actualizar lista</button></div>`;
+    el.innerHTML = h;
+    el.querySelectorAll("button[data-abrir]").forEach((b) => { b.onclick = () => genAbrir(b.dataset.abrir); });
+    const bh = $("#bHist"); if (bh) bh.onclick = genHist;
+  }
+
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderTemp(); renderTapones();
+    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderCinem(); renderComp(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderPlanos(); renderTemp(); renderTapones();
   }
   buildForm(); recalc();
 })();
