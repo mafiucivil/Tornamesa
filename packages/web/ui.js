@@ -5,10 +5,32 @@
   const DEF = TT.defaults();
   let P = Object.assign({}, DEF);
   try { const s = JSON.parse(store.get(LS) || "null"); if (s) Object.keys(DEF).forEach((k) => { if (k in s) P[k] = s[k]; }); } catch (e) { }
-  let A = null, X = null, AU = null, SC = null, MK = null, CN = null, VAL = [], optRes = null, optRunning = false;
+  let A = null, X = null, AU = null, VAL = [], optRes = null, optRunning = false;
   const $ = (s) => document.querySelector(s);
   const D2R = Math.PI / 180;
   const REF = { KIET: 2158, TT300B: 5354 };
+  /* ---------- cálculo diferido: escenarios, mercado y capacidad por n° de cilindros se calculan la primera vez que algo visible los pide
+     y se guardan hasta el siguiente recalc(). RGEN es la generación de cálculo: sube con cada edición y con cada recalc(), y descarta
+     los llenados diferidos de una generación anterior (no pintan resultados viejos). ---------- */
+  let RGEN = 0;
+  const dirty = new Set();                                            // pestañas por redibujar (render perezoso, ver renderAll)
+  const LZ = {}, LZF = { SC: () => AG.scenarios(A), MK: () => TT.market(P), CN: () => TT.capacityByCyl(P, [1, 2]) };
+  function lz(k) {
+    if (!A) return null;
+    if (!(k in LZ)) { try { LZ[k] = LZF[k](); } catch (err) { LZ[k] = null; LZ[k + "_err"] = err.message; } }
+    return LZ[k];
+  }
+  const lzErr = (k) => LZ[k + "_err"] ? `<div class="msg error">Error de cálculo: ${esc(LZ[k + "_err"])}</div>` : "";
+  // marcador de un bloque diferido: cuando se vuelve visible (pestaña abierta y bloque en pantalla) se reemplaza, en una tarea aparte y sin
+  // envoltorio (outerHTML), por su contenido; si entretanto llegó otra edición (RGEN cambió), se descarta y no pinta resultados viejos
+  let lzSeq = 0;
+  const lzIO = typeof IntersectionObserver === "function" ? new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { lzIO.unobserve(e.target); setTimeout(e.target._lzFill, 0); } }), { rootMargin: "200px" }) : null;
+  function lzSlot(html) {
+    const id = "lzs" + (++lzSeq), g = RGEN;
+    const fill = () => { if (g !== RGEN) return; const el = document.getElementById(id); if (el) el.outerHTML = html(); };
+    setTimeout(() => { const el = document.getElementById(id); if (!el || g !== RGEN) return; if (lzIO) { el._lzFill = fill; lzIO.observe(el); } else fill(); }, 0);
+    return `<div class="note" id="${id}" data-lazy="1">Calculando…</div>`;
+  }
 
   /* ---------- formato: 2–3 cifras significativas, coma decimal ---------- */
   function fmt(v, sig) {
@@ -62,6 +84,7 @@
     if (t === "planos") setTimeout(() => { if (!GEN.srv && !GEN.pinging) genPing(); }, 0);   // el generador local se busca solo al abrir la pestaña «Planos»
     tabs.forEach((s) => s.classList.toggle("on", s.dataset.t === t));
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+    renderTab(t);                // render perezoso: la pestaña se dibuja al abrirla si quedó «sucia»
     try { history.replaceState(null, "", "#" + t); } catch (e) { }
   }
   $("#tabs").addEventListener("click", (e) => { if (e.target.dataset.t) showTab(e.target.dataset.t); });
@@ -97,8 +120,8 @@
     } else P[id] = txt ? e.target.value : parseFloat(e.target.value);
     row.classList.toggle("chg", P[id] !== DEF[id]);
     syncAlt();
-    clearTimeout(tmr); $("#busy").textContent = "Calculando…";
-    tmr = setTimeout(recalc, 380);
+    RGEN++; clearTimeout(tmr); $("#busy").textContent = "Calculando…";
+    tmr = setTimeout(recalc, 600);
   });
   /* ---------- selector de la alternativa de interfaz (sincronizado con las casillas A, B, C y la configuración de C) ---------- */
   function syncAlt() {
@@ -129,10 +152,11 @@
   function recalc() {
     store.set(LS, JSON.stringify(P));
     VAL = AG.validate(P);
+    RGEN++; Object.keys(LZ).forEach((k) => delete LZ[k]);
     const t0 = performance.now();
     if (VAL.some((v) => v.lvl === "error")) { A = null; }
     else {
-      try { A = TT.analyze(P); X = AG.crossCheck(A); AU = AG.audit(A.checks); SC = AG.scenarios(A); MK = TT.market(P); CN = TT.capacityByCyl(P, [1, 2]); }
+      try { A = TT.analyze(P); X = AG.crossCheck(A); AU = AG.audit(A.checks); }   // crossCheck y audit (baratos) siguen aquí: los usa el badge «Revisión cruzada OK»
       catch (err) { A = null; VAL.push({ lvl: "error", msg: "Error de cálculo: " + err.message }); }
     }
     $("#busy").textContent = A ? `Recalculado en ${fmt(performance.now() - t0, 3)} ms` : "Corrija los datos marcados";
@@ -208,11 +232,11 @@
         </div></div>
     </div>
     <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>
-    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A, B o C en «Interfaz alternativa» del panel izquierdo)</h3>${ifaceTable()}</div>
-    <div class="card" style="margin-top:12px"><h3>Comparación con equipos comerciales</h3>${marketTable()}</div>`;
+    <div class="card" style="margin-top:12px"><h3>Interfaz de giro: alternativas (marque A, B o C en «Interfaz alternativa» del panel izquierdo)</h3>${lzSlot(ifaceTable)}</div>
+    <div class="card" style="margin-top:12px"><h3>Comparación con equipos comerciales</h3>${lzSlot(marketTable)}</div>`;
   }
   function ifaceTable() {
-    const rows = (SC && SC.ifaces) || [], act = A.R.ifc.o;
+    const SC = lz("SC"), rows = (SC && SC.ifaces) || [], act = A.R.ifc.o;
     const g = (v, d) => (v ? fmt(v, d || 3) : "—");
     return `<div class="scroll"><table><tr><th>Alternativa</th><th class="n">Disco inox o duro req. → adoptado (mm) (base / mesa con ranuras)</th><th class="n">UHMW req. → adoptado (mm)</th><th class="n">Bronce req. → adoptado (mm)</th><th class="n">Altura agregada (mm)</th><th class="n">Δ masa total (kg)</th><th class="n">Masa total (kg)</th><th class="n">μ diseño</th><th class="n">F/cil diseño (kN)</th><th class="n">p diseño (bar)</th><th class="n">FS diseño</th></tr>
       ${rows.map((r) => `<tr${r.k === act ? ' class="grp"' : ""}><td>${r.k === act ? "● " : ""}${esc(r.name)}</td><td class="n">${r.k ? g(r.tssReq, 3) + " → " + fmt(r.tss, 3) + (r.tss2 !== r.tss || r.tss2Req !== r.tssReq ? " / " + g(r.tss2Req, 3) + " → " + fmt(r.tss2, 3) : "") : "—"}</td><td class="n">${r.k === 2 ? g(r.tuhReq, 3) + " → " + fmt(r.tuh, 3) : "—"}</td><td class="n">${r.k === 3 ? g(r.tbzReq, 3) + " → " + fmt(r.tbz, 3) : "—"}</td><td class="n">${g(r.delta)}</td><td class="n">${r.k ? "+" + fmt(r.dTot, 3) : "—"}</td><td class="n">${fmt(r.mass, 4)}</td><td class="n">${fmt(r.mu_d)}</td><td class="n">${fmt(r.F)}</td><td class="n">${fmt(r.p)}</td><td class="n">${fmt(r.FS)}</td></tr>`).join("")}</table></div>
@@ -493,13 +517,13 @@
     return `<svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${opt.yl} vs ${opt.xl}">${o.join("")}</svg><div class="note">${leg}</div>`;
   }
   function cylCapTable() {
-    if (!CN) return "";
+    const CN = lz("CN"); if (!CN) return lzErr("CN");
     return `<table><tr><th class="n">Cilindros</th><th class="n">W máx. giro (FS ≥ ${fmt(P.FS_min)}, μ diseño)</th><th class="n">W máx. por pivote</th><th class="n">Capacidad adoptada</th><th class="n">W que gira (FS = 1, μ nominal)</th></tr>
       ${CN.map((c) => `<tr${c.n === P.n_cyl ? ' class="grp"' : ""}><td class="n">${c.n}</td><td class="n">${fmt(c.wGiro, 3)} tf</td><td class="n">${fmt(c.wPiv, 3)} tf</td><td class="n"><b>${fmt(c.wCap, 3)} tf</b></td><td class="n">${fmt(c.wNom, 3)} tf</td></tr>`).join("")}</table>
       <div class="note">Con un solo cilindro el empuje no es un par puro: el pivote reacciona con la fuerza tangencial del pasador y limita la capacidad (como en el modo de un cilindro de los equipos comerciales). La capacidad estructural de la cadena de empuje se verifica con la carga indicada en «Carga».</div>`;
   }
   function marketTable() {
-    if (!MK) return "";
+    const MK = lz("MK"); if (!MK) return lzErr("MK");
     const r = (x) => x == null ? "—" : fmt(x, 3), rows = [MK.ours, ...MK.refs];
     return `<div class="scroll"><table><tr><th>Equipo</th><th class="n">Capacidad (kN)</th><th class="n">Masa (kg)</th><th class="n">kg por kN</th><th class="n">Altura (mm)</th><th class="n">Ø plataforma (mm)</th><th class="n">Cilindros</th><th class="n">F por cilindro (kN)</th><th class="n">kN de cilindro por tf</th><th class="n">μ implícito*</th><th class="n">Giro por carrera (°)</th></tr>
       ${rows.map((x, i) => `<tr${i === 0 ? ' class="grp"' : ""}><td>${esc(x.name)}</td><td class="n">${r(x.capKN)}</td><td class="n">${r(x.mass)}</td><td class="n">${x.massPerKN == null ? "—" : fmt(x.massPerKN, 3)}</td><td class="n">${r(x.h)}</td><td class="n">${r(x.D)}</td><td class="n">${x.nCyl == null ? "—" : x.nCyl}</td><td class="n">${r(x.Fcyl)}</td><td class="n">${x.FcylPerTon == null ? "—" : fmt(x.FcylPerTon, 3)}</td><td class="n">${x.muImpl == null ? "—" : fmt(x.muImpl, 3)}</td><td class="n">${r(x.rot)}</td></tr>`).join("")}</table></div>
@@ -532,7 +556,7 @@
       <div class="card"><h3>Fricción máxima vencible</h3><table><tr><th>Radio</th><th class="n">mm</th><th class="n">μ máx a alivio</th><th class="n">μ máx a alarma</th></tr>
         ${mm.map(([n, r]) => `<tr><td>${n}</td><td class="n">${fmt(r, 4)}</td><td class="n">${fmt(R.muMax(r))}</td><td class="n">${fmt(R.muMax(r) * P.p_alarm / P.p_relief)}</td></tr>`).join("")}</table>
         <div class="note">μ_máx = (n·F_calado·η_c·brazo_mín − T_pivote)/(N·r). Aproximación a alarma: proporcional a la presión.</div>
-        <h3 style="margin-top:14px">Capacidad según el número de cilindros</h3>${cylCapTable()}
+        <h3 style="margin-top:14px">Capacidad según el número de cilindros</h3>${lzSlot(cylCapTable)}
         <h3 style="margin-top:14px">Hidráulica</h3><div class="kv">
           <span>Área émbolo / anular</span><span>${fmt(R.A, 4)} / ${fmt(R.Aann, 4)} mm²</span>
           <span>F calado / alarma / retorno</span><span>${fmt(R.Fstall)} / ${fmt(R.Falarm)} / ${fmt(R.Fret)} kN</span>
@@ -734,6 +758,7 @@
   function renderAgentes() {
     const el = document.querySelector('section[data-t="agentes"]');
     if (!A) { el.innerHTML = `<div class="card"><h3>1 · Validador de entradas</h3>${msgs()}</div>`; return; }
+    const SC = lz("SC"); if (!SC) { el.innerHTML = lzErr("SC"); return; }
     const xc = X.map((c) => `<tr><td><span class="st st-${c.ok ? "ok" : "fail"}">${c.ok ? "OK" : "Revisar"}</span></td><td>${esc(c.name)}</td><td class="n">${fmt(c.tool, 4)}</td><td class="n">${fmt(c.indep, 4)}</td><td class="n">${fmt(c.d, 2)} %</td><td class="ref">${esc(c.note || "")}${c.tol != null ? " · tol. " + fmt(c.tol) + " %" : ""}</td></tr>`).join("");
     const sg = SC.grid.map((row) => `<tr><td class="n">${fmt(row[0].mu)}</td>${row.map((c) => `<td class="n"><span class="st st-${c.FS >= P.FS_min ? "ok" : c.FS >= 1 ? "warn" : "fail"}">FS ${fmt(c.FS)}</span><div class="form">${fmt(c.p)} bar</div></td>`).join("")}</tr>`).join("");
     el.innerHTML = `<div class="grid">
@@ -1166,8 +1191,14 @@
     const bh = $("#bHist"); if (bh) bh.onclick = genHist;
   }
 
+  /* render perezoso: recalc() dibuja los badges y la pestaña activa; las demás quedan «sucias» y se dibujan al abrirlas (showTab).
+     Temperatura y Tapones ya se dibujan solo si están activas y al abrirlas (showTab), con su propio caché. */
+  const RENDER = { resumen: renderResumen, modelo: renderModelo, giro: renderGiro, cinem: renderCinem, comp: renderComp, verif: renderVerif, fea: renderFEA, masa: renderMasa, agentes: renderAgentes, opt: renderOpt, planos: () => { renderPkg(); renderPlanos(); } };
+  function renderTab(t) { if (!dirty.has(t)) return; dirty.delete(t); RENDER[t](); }
   function renderAll() {
-    renderBadges(); renderResumen(); renderModelo(); renderGiro(); renderCinem(); renderComp(); renderVerif(); renderFEA(); renderMasa(); renderAgentes(); renderOpt(); renderPkg(); renderPlanos(); renderTemp(); renderTapones();
+    renderBadges();
+    Object.keys(RENDER).forEach((t) => dirty.add(t));
+    renderTab(cur); renderTemp(); renderTapones();
   }
   buildForm(); recalc();
 })();
