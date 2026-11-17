@@ -97,3 +97,25 @@ fallan además la pared (μ·p·a/(t − 1)) y el tornillo M10 (μ·p·a²).
 
 El disco (304, 8 mm), los 140 tornillos M10 y el portador (torsión, filetes, esquinas en fatiga) cumplen en todos los casos. La forma redonda de la
 revisión 2 sigue siendo la mejor a 20 °C (`bx_forma = 0`). El caudal por defecto no se cambió (10 L/min).
+
+## 8. Revisión 4 (16-11-2026): vuelta a pastillas REDONDAS (`bx_forma = 0` por defecto; la cuadrada queda en `bx_forma = 1`)
+
+Búsqueda final: Ø 60–300, portador 10–30, plancha UHMW comercial (20/25/30/40/50), ligamento ≥ espesor del portador (criterio de taller sin
+relajar), patrón radial por anillos y triangular (hexagonal) con anillo de borde y relleno de la franja de unión (`bx_pat = 0`: se prueban los dos).
+Sin cambios en d_flat, p_uhmw, kT ni el caudal. Selección: todos los candidatos que cumplen a 20 °C y, entre ellos, el de menor FU máximo a 50 °C.
+
+Camino del arrastre por la cara inferior: la pastilla apoya en la base con N_i; su cara inferior seca toma μ_b·N_i y la pared y el tornillo
+reciben el residual (μ_top,máx − μ_b)·N_i. μ_b = 0,10 (`bx_mu_base`): límite inferior del rango de UHMW sobre acero seco de las fichas de
+fabricante (p. ej. TIVAR 1000, Mitsubishi Chemical: 0,10–0,20, ASTM D1894), confianza C; requiere asiento seco y desengrasado.
+`bx_mu_base_on = 0` vuelve a «la pared toma todo». El portador (torsión y filetes) sigue con el arrastre completo con μ_ef (conservador).
+
+| Caso | Patrón | Ø | n | Portador | Plancha / saliente | Cobertura | FU máx. 20 °C | FU a 50 °C (gobierna) | Pared 20/50 °C y tornillo con μ_b (sin μ_b) |
+|---|---|---|---|---|---|---|---|---|---|
+| **Adoptado (μ_b = 0,10)** | radial | **180** | 67 | 25 mm, paso 205 | 40 / 15 | 0,55 | 0,85 (PV) | **PV 1,21**; p + Δp 1,15; p 0,88 | 0,55 / 0,78; 0,84 (0,91 / 1,30; 1,39) |
+| Sin μ_b (pared toma todo) | radial | 140 | 105 | 25, paso 165 | 40 / 15 | 0,52 | 1,00 (p + Δp) | p + Δp 1,33; PV 1,32 | 0,76 / 1,08; 0,90 |
+| Triangular forzado | triangular | 160 | 74 | 25, paso 185 | 40 / 15 | 0,48 | 0,98 | PV 1,40; p + Δp 1,34 | 0,56 / 0,79; 0,75 |
+
+Cumple todo a 20 °C (FU ≤ 0,90; la mayor es PV 0,85). A 50 °C, con k = 0,70, gobierna **PV = 1,21**; luego presión + planitud 1,15.
+Para cumplir a 50 °C con FU ≤ 0,90 haría falta: **caudal de la bomba ≤ 7,4 L/min** (PV; con 10 hoy), o un factor del proveedor a 50 °C
+**k_p ≥ 0,94** para PV (≥ 0,85 para FU 1,0) y **k_p, k_E ≥ ≈ 0,89** para presión + planitud (con 0,70 supuesto). El disco (304, 8 mm),
+los 140 tornillos M10 y el portador no cambian. δ = 48 mm; masa total 3 710 kg (interfaz 526 kg).

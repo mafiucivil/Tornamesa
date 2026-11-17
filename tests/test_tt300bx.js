@@ -67,12 +67,16 @@ test("BX: dimensiones adoptadas por defecto (disco 304 de 6 u 8 mm, 100–200 to
   assert.ok(D.t >= D.t_req - 1e-9);
   assert.ok([10, 12].includes(T.d) && T.n >= 100 && T.n <= 200 && T.paso_malla >= 150, "tornillos " + T.n + " M" + T.d + " a " + T.paso_malla);
   assert.ok(U.n > 30 && U.n < 2000, "n pastillas " + U.n);
-  assert.equal(U.forma, "cuadrada"); assert.equal(U.d, null); assert.ok(U.lado >= 100 && U.lado <= 300 && U.r_esquina > 0);
-  assert.equal(C.agujeros.forma, "cuadrada"); assert.equal(C.agujeros.lado, U.lado);
+  assert.equal(U.forma, "redonda"); assert.equal(U.lado, null); assert.ok(U.d >= 60 && U.d <= 300);
+  assert.equal(C.agujeros.forma, "redonda"); assert.equal(C.agujeros.d, U.d);
+  // a 20 °C cumple todo (FU ≤ 0,90; geométricas ≤ 1)
+  A0.checks.filter((c) => c.bx && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok", "20 °C: " + c.name + " FU " + c.fu));
+  // camino del arrastre por la cara inferior (μ_b): la pared y el tornillo usan el residual; la fila informa el FU sin μ_b
+  const w = A0.checks.find((c) => /pared del agujero del portador \(arrastre residual/.test(c.name)), sinMu = +/sin μ_b: FU ([\d,]+)/.exec(w.formula)[1].replace(",", ".");
+  near(w.fu * (0.25 / (0.25 - P0.bx_mu_base)), sinMu, 0.01, "FU sin μ_b = FU·μ_máx/(μ_máx − μ_b)");
   assert.ok([20, 25, 30, 40, 50].includes(U.H), "pastilla cortada de plancha comercial: H = " + U.H);
   near(U.H, C.t + U.h_p, 1e-12, "H = t_portador + saliente");
-  assert.ok(C.paso - U.lado >= C.ligamento - 1e-9, "ligamento");
-  assert.ok(A0.checks.some((c) => c.bx && /esquinas de los agujeros cuadrados/.test(c.name)));
+  assert.ok(C.paso - U.d >= C.ligamento - 1e-9, "ligamento");
   assert.equal(A0.verdict.gira, true);
   const bxRows = A0.checks.filter((c) => c.bx);
   assert.ok(bxRows.length >= 40, "filas BX " + bxRows.length);
@@ -133,7 +137,9 @@ test("BX: equilibrio de presiones de las pastillas, presión ≥ q y PV con la v
 });
 
 test("BX: patrón radial con transferencia perimetral; la variante con agujeros de soldadura cumple la regla de un salto", () => {
-  const Gr = BX.design(Object.assign({}, P0, { bx_forma: 0 })), C = Gr.portador;   // modo redondo conservado (bx_forma = 0)
+  const Gr = G0, C = Gr.portador;   // por defecto: redondas, patrón elegido entre radial y triangular
+  const Gq = BX.design(Object.assign({}, P0, { bx_forma: 1 }));   // la forma cuadrada queda disponible
+  assert.equal(Gq.pastillas.forma, "cuadrada"); assert.equal(Gq.pastillas.d, null); assert.ok(Gq.pastillas.lado > 0 && Gq.pastillas.r_esquina > 0);
   assert.equal(Gr.pastillas.forma, "redonda"); assert.ok(Gr.pastillas.d > 0); assert.equal(Gr.pastillas.lado, null);
   assert.equal(C.patron.tipo, "radial");
   assert.equal(C.tapones.n, 0, "sin agujeros de soldadura por defecto");
@@ -153,7 +159,7 @@ test("BX: interferencia en frío, montaje y caliente; tornillo de la pastilla fu
   assert.ok(f.delta_min_20 >= -1e-9, "interferencia mínima a 20 °C ≥ 0");
   assert.ok(f.holgura_frio <= P0.bx_c_sp - 0.2 + 1e-9, "holgura en frío ≤ holgura del agujero del tornillo − 0,2");
   assert.ok(f.eps_caliente <= P0.bx_eps_max / 100 + 1e-12);
-  near(f.d_dil_caliente, (P0.bx_al_uh * 1e-6 - P0.bx_al_st * 1e-6) * (P0.T_ifc_max - P0.T_ref) * U.lado, 1e-9, "Δd caliente con α_UHMW = 190×10⁻⁶");
+  near(f.d_dil_caliente, (P0.bx_al_uh * 1e-6 - P0.bx_al_st * 1e-6) * (P0.T_ifc_max - P0.T_ref) * (U.lado || U.d), 1e-9, "Δd caliente con α_UHMW = 190×10⁻⁶");
 });
 
 test("BX: tornillos del disco: corte primario por el par (J3.7); térmica secundaria repartida por rigidez; membrana y pandeo del disco", () => {

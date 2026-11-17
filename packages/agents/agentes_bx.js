@@ -18,7 +18,7 @@ const AGBX = (() => {
       else if (v < mn || v > mx) E(`${lab} = ${v} ${u} fuera de rango [${mn}; ${mx}]`);
     });
     const g = (k) => (P[k] === undefined ? BX_.BX_GROUP.p.find((q) => q[0] === k)[3] : P[k]);
-    if (![1, 2].includes(Math.round(g("bx_pat")))) E("TT300-BX: el patrón de pastillas debe ser 1 (triangular) o 2 (radial)");
+    if (![0, 1, 2].includes(Math.round(g("bx_pat")))) E("TT300-BX: el patrón de pastillas debe ser 0 (automático), 1 (triangular) o 2 (radial)");
     if (![1, 2].includes(Math.round(g("bx_ss_mat")))) E("TT300-BX: el material del disco debe ser 1 (austenítico) o 2 (dúplex 2205)");
     if (!(g("bx_Tmin") < P.T_ref && P.T_ref < g("bx_Tmax"))) E("TT300-BX: debe cumplirse T_mín < T_ref < T_máx");
     if (g("bx_dp") > 0 && g("bx_lig") > 0 && g("bx_lig") < 5) W("TT300-BX: ligamento menor que 5 mm entre agujeros cortados con plasma");

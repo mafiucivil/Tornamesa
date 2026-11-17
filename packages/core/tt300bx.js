@@ -40,11 +40,13 @@ const BX = (() => {
     ["bx_s_tss", "Disco: paso de la malla de tornillos (0 = automático: el mayor que cumple FU ≤ 0,90 con par y dilatación)", "mm", 0, 0, 400, 5],
     ["bx_c_cjp", "Disco: franja libre de tornillos a cada lado del eje de la CJP entre semidiscos (cordón, ZAC y esmerilado)", "mm", 30, 10, 100, 5],
     ["bx_c_alma", "Disco: holgura entre el agujero roscado de la mesa y el pie del filete de almas, nervios y cubo", "mm", 3, 0, 20, 1],
-    ["bx_forma", "Pastillas: forma. 1 = cuadradas con esquinas redondeadas en malla cartesiana (por defecto, decisión del mandante 16-11-2026: cobertura ≈ 0,75–0,80); 0 = redondas (patrón bx_pat)", "–", 1, 0, 1, 1],
+    ["bx_forma", "Pastillas: forma. 0 = redondas (por defecto: decisión del mandante, revisión 4 del 16-11-2026; patrón bx_pat); 1 = cuadradas con esquinas redondeadas en malla cartesiana (revisión 3: no cumplía)", "–", 0, 0, 1, 1],
     ["bx_borde", "Pastillas cuadradas en el borde de la corona: 1 = recortadas por el círculo (pastilla y agujero con el contorno R_o − lig y R_i + lig, cortados igual por plasma y router); 0 = solo pastillas enteras (la franja queda con el portador)", "–", 1, 0, 1, 1],
     ["bx_fmin", "Pastillas recortadas: fracción mínima del cuadrado (las menores no se ponen)", "–", 0.35, 0.1, 0.9, 0.05],
     ["bx_rc", "Pastillas cuadradas: radio de esquina del agujero del portador (0 = automático: máx(5; 0,5·t_portador), radio mínimo del plasma HD, criterio de taller); la pastilla lleva r + 1 (apoya en las caras, no en las esquinas)", "mm", 0, 0, 40, 0.5],
-    ["bx_pat", "Pastillas: patrón. 1 = triangular anclado al centro con un anillo en cada borde; 2 = radial: anillos concéntricos desde el borde exterior a paso radial s·√3/2 (recomendado: cobertura más pareja en el borde)", "–", 2, 1, 2, 1],
+        ["bx_pat", "Pastillas redondas: patrón. 0 = automático (el de menor FU entre los dos); 1 = triangular (hexagonal) anclado al centro con un anillo en cada borde y relleno de la franja de unión; 2 = radial: anillos concéntricos repartidos entre el borde exterior y el interior a paso ≥ s", "–", 0, 0, 2, 1],
+    ["bx_mu_base", "Pastillas: μ de límite inferior de la cara inferior del UHMW contra la plancha base de acero seca y desengrasada (toma parte del arrastre: el residual (μ_top,máx − μ_b)·N va a la pared y al tornillo). Supuesto 0,10: límite inferior del rango de μ de UHMW sobre acero seco de las fichas de fabricante (p. ej. TIVAR 1000, Mitsubishi Chemical: 0,10–0,20, ASTM D1894), confianza C", "–", 0.10, 0, 0.3, 0.01],
+    ["bx_mu_base_on", "Pastillas: camino del arrastre por la cara inferior (1 = sí, con μ_b; 0 = la pared toma todo)", "–", 1, 0, 1, 1],
     ["bx_dp", "Pastillas: Ø (0 = automático)", "mm", 0, 0, 250, 5],
     ["bx_tc", "Portador: espesor de la plancha (0 = automático)", "mm", 0, 0, 40, 1],
     ["bx_lig", "Portador: ligamento mínimo entre agujeros (0 = automático: máx(10; t_portador), criterio de taller para corte por plasma)", "mm", 0, 0, 60, 1],
@@ -129,7 +131,7 @@ const BX = (() => {
     const kq = 4 * P.e * Ro / (Ro * Ro + Ri * Ri), Tcal = R.TmaxTopes || R.Tmax;
     const muMax = Math.max(R.mu.d, R.mu.cont, R.mu.dry), muEff = Math.max(muMax, Tcal * 1e6 / (R.N * 1e3 * R.r_u));
     const vcyl = P.Q_pump * 1e6 / 60 / (P.n_cyl * R.A), omega = vcyl / R.K.armMin;   // mm/s y rad/s (como la fila PV del núcleo: v = R·v_cil/a_mín)
-    return { Ro, Ri, Rci, Rco, kq, muU: muMax, qa: R.q_avg, qmax: R.q_max, ND: R.ND, N: R.N, Tcal, muMax, muEff, vcyl, omega, prIn: TT_.prIn(P), dist: P.life * P.turns_yr * 2 * Math.PI / 1000 };
+    return { Ro, Ri, Rci, Rco, kq, muU: muMax, muRes: P.bx_mu_base_on >= 0.5 ? Math.max(0, muMax - P.bx_mu_base) : muMax, muB: P.bx_mu_base_on >= 0.5 ? P.bx_mu_base : 0, qa: R.q_avg, qmax: R.q_max, ND: R.ND, N: R.N, Tcal, muMax, muEff, vcyl, omega, prIn: TT_.prIn(P), dist: P.life * P.turns_yr * 2 * Math.PI / 1000 };
   }
 
   /* ---------------- Malla de pastillas y tapones ---------------- */
@@ -366,7 +368,7 @@ const BX = (() => {
   }
 
   /* ---------------- Dimensionamiento ---------------- */
-  const LIST_D = [60, 80, 100, 110, 120, 130, 140, 150, 160, 180, 200];
+  const LIST_D = [60, 80, 100, 120, 140, 160, 180, 200, 240, 300];
   const LIST_A = [100, 125, 150, 175, 200, 225, 250, 275, 300];   // el mandante pidió 150–300; se agregan 100 y 125 porque la pared y el tornillo limitan el lado                      // lado de la pastilla cuadrada
   // Geometría de la pastilla según la forma: d = Ø (redonda) o lado (cuadrada); r_c = radio de esquina del agujero, la pastilla r_c + 1
   function shp(P, d, tc) {
@@ -388,8 +390,8 @@ const BX = (() => {
       if (q.p + dp > worst.pd) worst = { pd: q.p + dp, dp, i, kpl, tm };
       const pv = q.p * q.r * C.omega / 1000; if (pv > PVm) { PVm = pv; iPV = i; }
     });
-    const pM = L.pMax, Fi = C.muEff * (L.FA || pM * Ap), FiU = C.muU * (L.FA || pM * Ap), creep = pM * cp, wear = P.k_wear * 1e-7 * pM * C.dist * Math.max(...L.pucks.map((q) => q.r));
-    return { S, Ec, Mc, cp, worst, PVm, iPV, Fi, FiU, creep, wear };
+    const pM = L.pMax, Fi = C.muEff * (L.FA || pM * Ap), FiU = C.muRes * (L.FA || pM * Ap), FiU0 = C.muU * (L.FA || pM * Ap), creep = pM * cp, wear = P.k_wear * 1e-7 * pM * C.dist * Math.max(...L.pucks.map((q) => q.r));
+    return { S, Ec, Mc, cp, worst, PVm, iPV, Fi, FiU, FiU0, creep, wear };
   }
   function cellOf(P, C, M, L, d, tss, s) {
     const sq = L.SH && L.SH.sq, Acell = sq ? s * s : s * s * Math.sqrt(3) / 2 * 7 / 6;   // celda (cuadrada: s²; triangular con el reparto del sitio soldado vecino); los huecos irregulares van en el vacío local
@@ -412,7 +414,7 @@ const BX = (() => {
   function size(P, R, fz) {
     P = full(P);
     const C = ctxOf(P, R), M = matOf(P), Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), FvC = P.Fy / (Nd * Math.sqrt(3));
-    const pat = Math.round(P.bx_pat) === 2 ? 2 : 1, nws = fz ? [fz.nw] : P.bx_nw > 0 ? [Math.round(P.bx_nw)] : [0], kSp = isoK(P.bx_d_sp);
+    const pats = fz ? [fz.pat || (Math.round(P.bx_pat) === 1 ? 1 : 2)] : Math.round(P.bx_forma) === 1 ? [1] : Math.round(P.bx_pat) > 0 ? [Math.round(P.bx_pat)] : [2, 1], nws = fz ? [fz.nw] : P.bx_nw > 0 ? [Math.round(P.bx_nw)] : [0], kSp = isoK(P.bx_d_sp);
     const capWh = (d) => Fw * 0.707 * P.bx_w_h * Math.PI * (d - P.bx_w_h);   // filete interior del agujero de soldadura (largo en el centro de la garganta ≈ π(d − w), conservador)
     const tcMin = Math.ceil(0.5 + kSp + P.bx_u_min);
     const tcs = fz ? [fz.t_c] : P.bx_tc > 0 ? [P.bx_tc] : CS_COMM.filter((t) => t >= tcMin && wMaxJ(t) >= Math.max(P.bx_w_h, P.bx_w_c));
@@ -424,8 +426,8 @@ const BX = (() => {
     const kI = P.__th ? { p_uh: 1, E_uh: 1 } : TT_.thermalFactors(P, P.T_ifc_max).k;   // UHMW a T_ifc_max (interpolado entre 1,0 a T_ref y kT_* a 80 °C; confianza C); en el escenario térmico P ya viene reducido
     const dFl = P.d_flat + P.bx_tol_H;
     const cand = [], lays = new Map();
-    for (const nw of nws) for (const tc of tcs) for (const d of ds) {
-      const lig = ligOf(tc), s = fz ? fz.s : d + lig, dPlug = d, key = [d, s, lig, nw, SQ ? tc : 0].join("|");
+    for (const pat of pats) for (const nw of nws) for (const tc of tcs) for (const d of ds) {
+      const lig = ligOf(tc), s = fz ? fz.s : d + lig, dPlug = d, key = [d, s, lig, nw, SQ ? tc : 0, pat].join("|");
       if (!lays.has(key)) lays.set(key, layout(P, C, d, s, lig, nw, pat, dPlug, fz ? 4 : 8, tc));
       const L = lays.get(key); if (!L) continue;
       const fl = nw >= 1 ? flow(L, s, () => C.muEff * L.pMax * L.Ap, C, d, lig) : { Flig: C.muEff * L.pMax * L.Ap, plugMax: 0, edgeMax: 0, unreached: 0, hMax: 1, nEdge: 0 };
@@ -452,7 +454,7 @@ const BX = (() => {
       const mPuck = RHO_UH * L.Asum * H, mCar = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - L.Asum * L.SH.ApH / L.SH.Ap);
       const tss0 = discT(P, C, M0, L, d, s, tHead0, null).t;
       const mSS0 = M0.rho * Math.PI * (C.Ro ** 2 - C.Ri ** 2) * tss0;      // el disco entra al costo: el hueco mayor de la malla fija su espesor
-      cand.push({ dTot: tc + pick.hp + tss0, fu20: pick.fu20, fu50: pick.fu50, mSS0, fus: pick.fus, nw, tc, d, s, lig, dPlug, L, fl, hp: pick.hp, fuMax: pick.fuMax, H, mPuck, mCar, cost: mPuck + mCar + mSS0, ok: pick.fuMax <= 1 + 1e-9 });
+      cand.push({ pat, dTot: tc + pick.hp + tss0, fu20: pick.fu20, fu50: pick.fu50, mSS0, fus: pick.fus, nw, tc, d, s, lig, dPlug, L, fl, hp: pick.hp, fuMax: pick.fuMax, H, mPuck, mCar, cost: mPuck + mCar + mSS0, ok: pick.fuMax <= 1 + 1e-9 });
     }
     const okC = cand.filter((c) => c.ok), best = okC.length ? okC.reduce((b, c) => (!b || (SQ ? (c.dTot < b.dTot - 1e-9 || (Math.abs(c.dTot - b.dTot) <= 1e-9 && c.cost < b.cost)) : (c.cost < b.cost - 1e-6 || (Math.abs(c.cost - b.cost) <= 1e-6 && c.tc + c.hp < b.tc + b.hp))) ? c : b), null)   // cuadradas: menor espesor total δ (mandante); redondas: menor masa
       : (() => {   // sin candidato que cumpla todo: primero los que cumplen a 20 °C (FU ≤ 0,90; si no hay, ≤ 1,00) y entre ellos el de menor FU a T_ifc,máx; si no, el de menor FU a 20 °C
@@ -460,7 +462,7 @@ const BX = (() => {
         const by50 = isFinite(lim) && pool.length;
         return (by50 ? pool : cand).reduce((b, c) => (!b || (by50 ? c.fu50 < b.fu50 - 1e-9 : c.fu20 < b.fu20 - 1e-9) ? c : b), null); })();
     // malla definitiva con muestreo fino y h_p recalculado con ella
-    let { tc, d, s, lig, dPlug, hp, nw } = best;
+    let { tc, d, s, lig, dPlug, hp, nw, pat } = best;
     const L = fz ? best.L : layout(P, C, d, s, lig, nw, pat, dPlug, 4, tc);
     const fl = nw >= 1 ? flow(L, s, (i) => C.muEff * L.pucks[i].p * L.Ap, C, d, lig) : { Flig: C.muEff * L.pMax * L.Ap, plugMax: 0, edgeMax: 0, unreached: 0, hMax: 1, nEdge: 0, plugF: [] };
     const tq = nw >= 1 ? null : torsion(L, C, d, tc, (i) => C.muEff * L.pucks[i].p * L.pucks[i].Ai);
@@ -490,7 +492,7 @@ const BX = (() => {
     const A_ss = Math.PI * (C.Ro ** 2 - C.Ri ** 2), mSS = M.rho * A_ss * tss;
     const bx = { t_ss: tss, t_ss_req: tReq, t_flex: tVoid, delta: tc + hp + tss, mTop: mSS, mSS, mUH: fSum * mPuck1, mCar: mCarPl + mFil, t_c: tc, h_p: hp };
     const geo = { DT, kI, dFl, tq, candList: cand.map((c) => ({ d: c.d, tc: c.tc, s: c.s, hp: c.hp, nw: c.nw, fuMax: c.fuMax, fus: c.fus, cost: c.cost })), capWh: capWh(d), C, M, pat, nw, tc, d, s, lig, dPlug, hp, H, delta, iLo, iHi, dCold, dHot, tolS, dal, L, fl, tss, tReq, tHead, tVoid, aV, sad, dT, kT, sb, BL, BF, dTd, nP, nW, Ap, holeSp, dkSp, mPuck1, mCarPl, mFil, mSS, A_ss, tcMin, cand: cand.length, candOk: okC.length };
-    return { bx, geo, frozen: { t_c: tc, d, s, lig, h_p: hp, t_ss: tss, sb, i: delta, nw } };
+    return { bx, geo, frozen: { t_c: tc, d, s, lig, h_p: hp, t_ss: tss, sb, i: delta, nw, pat } };
   }
   const sameBx = (a, b) => ["t_ss", "t_c", "h_p"].every((k) => a[k] === b[k]) && Math.abs(a.mTop - b.mTop) < 1e-9 && Math.abs(a.mCar - b.mCar) < 1e-9 && Math.abs(a.mUH - b.mUH) < 1e-9;
   const designCache = new Map();
@@ -532,7 +534,7 @@ const BX = (() => {
     const Lof = (b) => { const tb = b.anillo ? P.t_pr : P.t_bot; if (b.anillo) { const hdT = tb - 3, huT = hdT - 2 * pT; const Ls = ISO10642_L.filter((x) => x - (g.tss - rec) >= 1.25 * dT - 1e-9 && x - (g.tss - rec) + 2 <= huT + 1e-9); return { L: Ls.length ? Ls[Ls.length - 1] : null, ciego: true, prof: hdT, util: huT, tb }; }
       const L0 = ISO10642_L.find((x) => x - (g.tss - rec) >= tb - 1e-9) || null; return { L: L0, ciego: false, prof: tb, util: tb, tb }; };
     const bolts = BL.lista.map((b) => { const l = Lof(b); return { x: b.x, y: b.y, r: b.r, ang: b.a, anillo: b.anillo, L: l.L, ciego: l.ciego, prof: l.prof, rosca_util: l.util, t_pieza: l.tb, le: l.L != null ? Math.min(l.L - (g.tss - rec), l.tb) : NaN, VT: b.VT, Vth: b.Vth, V: b.V }; });
-    const fz = { t_c: g.tc, d: g.d, s: g.s, lig: g.lig, h_p: g.hp, t_ss: g.tss, sb: g.sb, i: g.delta, nw: g.nw };
+    const fz = { t_c: g.tc, d: g.d, s: g.s, lig: g.lig, h_p: g.hp, t_ss: g.tss, sb: g.sb, i: g.delta, nw: g.nw, pat: g.pat };
     const iPV = e.iPV;
     return {
       version: 1, material: M.nombre, frozen: fz, bx: S.bx,
@@ -626,7 +628,7 @@ const BX = (() => {
     const out = [], add = (o) => out.push(Object.assign({ kind: "fu", grp: GRP, bx: true }, o, { fu: o.kind === "info" || o.kind === "pend" ? (o.fu != null && o.kind === "pend" ? o.fu : null) : (o.fu != null ? o.fu : ((o.cap > 0 && o.dem >= 0) ? o.dem / o.cap : Infinity)) }));
     const S = size(P, R, D.frozen), g = S.geo, C = g.C, M = g.M, L = g.L, BF = g.BF, BL = g.BL, Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), FvC = P.Fy / (Nd * Math.sqrt(3));
     const e = puckEval(P, C, M, L, g.d, g.s, g.tc, g.lig, g.nw, g.hp, g.tss, g.dPlug), ce = cellOf(P, C, M, L, g.d, g.tss, g.s), fl = g.fl;
-    const th = P.__th, T = th ? th.T : P.T_ref, dTu = T - P.T_ref, Fi = C.muU * L.pMax * L.Ap, sad = 0.6 * M.Fy, te = g.tss - P.ss_allow;
+    const th = P.__th, T = th ? th.T : P.T_ref, dTu = T - P.T_ref, FA = L.FA || L.pMax * L.Ap, Fi = C.muRes * FA, Fi0 = C.muU * FA, sad = 0.6 * M.Fy, te = g.tss - P.ss_allow;
     const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (criterio del proyecto, como el núcleo)";
     const REFC = "Timoshenko y Woinowsky-Krieger §17 (placa anular, flexión simétrica): celda equivalente de área tributaria, borde interior empotrado sobre la pastilla y exterior guiado; solución cerrada verificada por diferencias finitas (tests/test_tt300bx.js)";
     const pfx = "BX · ";
@@ -638,17 +640,17 @@ const BX = (() => {
       add({ sys: "est", name: pfx + "Pastillas a " + Ti + " °C: presión máxima frente a k_p·p_adm (k_p = " + nf(kI.p_uh, 2) + ")", formula: "p ≤ k_p(T_ifc,máx)·p_adm; k_p = 1 − (1 − kT_p_uh)·(T − T_ref)/(80 − T_ref)", dem: L.pMax, cap: kI.p_uh * P.p_uhmw, unit: "MPa", ref: R5 });
       add({ sys: "est", name: pfx + "Pastillas a " + Ti + " °C: presión más sobrepresión por planitud (módulo k_E·E)", formula: "p + Δp ≤ k_p·p_adm; Δp con E_UHMW·k_E (k_E = " + nf(kI.E_uh, 2) + ")", dem: e5.worst.pd, cap: kI.p_uh * P.p_uhmw, unit: "MPa", ref: R5 });
       add({ sys: "est", name: pfx + "Pastillas a " + Ti + " °C: valor PV frente a k_p·PV_adm", formula: "PV = p_i·v_i ≤ k_p·PV_adm", dem: e.PVm, cap: kI.p_uh * P.PV_uh, unit: "MPa·m/s", ref: R5 });
-      add({ sys: "est", name: pfx + "Pastillas a " + Ti + " °C: aplastamiento contra la pared del agujero", formula: "σ = μ_máx·p·A_p/(d·(t − 1)) ≤ k_p·p_adm", dem: Fi / (g.d * (g.tc - 1)), cap: kI.p_uh * P.p_uhmw, unit: "MPa", ref: R5 });
+      add({ sys: "est", name: pfx + "Pastillas a " + Ti + " °C: aplastamiento contra la pared del agujero (arrastre residual)", formula: "σ = (μ_máx − μ_b)·p·A_p/(d·(t − 1)) ≤ k_p·p_adm; sin μ_b: FU " + nf(Fi0 / (g.d * (g.tc - 1)) / (kI.p_uh * P.p_uhmw), 2), dem: Fi / (g.d * (g.tc - 1)), cap: kI.p_uh * P.p_uhmw, unit: "MPa", ref: R5 });
       const kp8 = TT_.thermalFactors(P, P.bx_Tmax).k.p_uh;
       add({ sys: "est", kind: "info", name: pfx + "LIMITACIÓN DE USO: la interfaz no se verifica a " + P.bx_Tmax + " °C (temperatura del sello hidráulico, no de la interfaz); con k_p = " + nf(kp8, 2) + " la presión de las pastillas daría FU " + nf(L.pMax / (kp8 * P.p_uhmw), 2), formula: "Servicio de la interfaz limitado a T ≤ " + Ti + " °C ambiente (decisión del mandante 16-11-2026); a " + P.bx_Tmax + " °C solo informativo", dem: L.pMax, cap: kp8 * P.p_uhmw, unit: "MPa", ref: R5, limitacion: true });
     }
     add({ sys: "est", name: pfx + "Pastillas: valor PV en la pastilla más exigida (durante la carrera)", formula: "PV = p_i·v_i ≤ PV_adm; v_i = r_i·v_cil/a_mín, v_cil = Q/(n·A) (como el núcleo)", dem: e.PVm, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
     add({ sys: "est", kind: "geo", name: pfx + "Pastillas: saliente frente a desgaste, fluencia, planitud y flecha entre pastillas al final de la vida", formula: "h_p ≥ g_mín + planitud del portador + h_desgaste + δ_fluencia + d_flat + w_celda = " + nf(P.bx_g_min, 2) + " + " + nf(P.bx_bow, 2) + " + " + nf(e.wear, 4) + " + " + nf(e.creep, 3) + " + " + nf(P.d_flat, 2) + " + " + nf(ce.w, 4) + "; h_desgaste = k·p·s (s = vida·vueltas·2π·r); δ = p·c_p", dem: P.bx_g_min + P.bx_bow + e.wear + e.creep + P.d_flat + ce.w, cap: g.hp, unit: "mm", ref: REFU + "; criterio del proyecto (el disco no toca el portador ni las cabezas)" });
     add({ sys: "est", kind: "info", name: pfx + "Pastillas: factor de forma de la parte libre, módulo aparente y confinado, fluencia", formula: "S = d/(4·h_p); E_c = E[1 + (M/E − 1)S²/(1 + S²)]; M = E(1 − ν)/((1 + ν)(1 − 2ν)); δ = p·[h_p/E_c + (t_portador − 1)/M]", dem: e.S, cap: e.Ec, unit: "– / MPa", ref: REFU + "; Gent y Lindley (bloques confinados), como TT uhConf" });
-    add({ sys: "est", name: pfx + "Pastillas: aplastamiento contra la pared del agujero del portador (arrastre con μ_máx)", formula: "σ = F/(" + (L.SH.sq ? "lado" : "d") + "·(t_portador − 1)) ≤ p_adm (cara embebida); F = μ_máx·p·A_p, μ_máx = " + nf(C.muU, 2) + " (el roce sobre el UHMW no supera μ·N: criterio del núcleo para la lámina B); chaflán inferior 1 mm", dem: Fi / (g.d * (g.tc - 1)), cap: P.p_uhmw, unit: "MPa", ref: REFU + "; equilibrio" });
+    add({ sys: "est", name: pfx + "Pastillas: aplastamiento contra la pared del agujero del portador (arrastre residual (μ_máx − μ_b)·N)", formula: "σ = F/(" + (L.SH.sq ? "lado" : "d") + "·(t_portador − 1)) ≤ p_adm (cara embebida); F = (μ_máx − μ_b)·p·A_p = (" + nf(C.muU, 2) + " − " + nf(C.muB, 2) + ")·N (la cara inferior apoyada en la base con N toma μ_b·N); sin μ_b: FU " + nf(Fi0 / (g.d * (g.tc - 1)) / P.p_uhmw, 2) + "; chaflán inferior 1 mm", dem: Fi / (g.d * (g.tc - 1)), cap: P.p_uhmw, unit: "MPa", ref: REFU + "; equilibrio" + (C.muB > 0 ? "; μ_b = " + nf(C.muB, 2) + ": límite inferior de UHMW sobre acero seco (fichas de fabricante, p. ej. TIVAR 1000, ASTM D1894; confianza C); el asiento de la pastilla queda seco y desengrasado" : "") });
     add({ sys: "est", kind: "geo", name: pfx + "Pastillas: resultante en el núcleo central del pie (sin despegue por el par del arrastre)", formula: "e = F·(h_p + t_portador/2)/N = μ_máx·(h_p + t/2) ≤ " + (L.SH.sq ? "a/6 (núcleo central de la sección cuadrada)" : "d/8 (núcleo central de la sección circular)") + "; la pared reacciona a media altura del portador", dem: C.muU * (g.hp + g.tc / 2), cap: L.SH.kern, unit: "mm", ref: "Resistencia de materiales (núcleo central r/4 = d/8); equilibrio" });
     const capSp = 0.45 * P.bx_Fu_sp / 2 * Math.PI / 4 * P.bx_d_sp ** 2;
-    add({ sys: "est", name: pfx + "Pastillas: tornillo M" + P.bx_d_sp + " 8.8 al corte si tomara todo el arrastre μ_máx·N (camino alternativo, redundancia)", formula: "V = F ≤ Fnv·A_b/Ω; Fnv = 0,45·Fu (rosca en el plano), Ω = 2,00", dem: Fi / 1e3, cap: capSp / 1e3, unit: "kN", ref: "AISC 360-22 §J3.7, Tabla J3.2" });
+    add({ sys: "est", name: pfx + "Pastillas: tornillo M" + P.bx_d_sp + " 8.8 al corte si tomara todo el arrastre residual (μ_máx − μ_b)·N (camino alternativo, redundancia)", formula: "V = F ≤ Fnv·A_b/Ω; Fnv = 0,45·Fu (rosca en el plano), Ω = 2,00; sin μ_b: FU " + nf(Fi0 / capSp, 2), dem: Fi / 1e3, cap: capSp / 1e3, unit: "kN", ref: "AISC 360-22 §J3.7, Tabla J3.2" });
     const fit = D.pastillas.ajuste;
     const holgF = Math.max(0, -(g.delta - g.tolS - g.dal * (P.T_ref - P.bx_Tmin) * g.d)) / 2;
     add({ sys: "est", kind: "geo", name: pfx + "Pastillas: el tornillo queda fuera del camino del arrastre (holgura del agujero del tornillo frente a la holgura en frío a " + P.bx_Tmin + " °C)", formula: "c_tornillo − 0,2 ≥ holgura radial en frío = máx(0; −(δ − tol − Δd_frío))/2; Δd_frío = (α_UHMW − α_acero)·(T_ref − T_mín)·d", dem: holgF + 0.2, cap: P.bx_c_sp, unit: "mm", ref: "Criterio del proyecto; α_UHMW = " + P.bx_al_uh + "×10⁻⁶/K (mandante)" });
