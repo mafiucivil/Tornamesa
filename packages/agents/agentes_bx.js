@@ -60,9 +60,11 @@ const AGBX = (() => {
     holes.forEach((p) => { const k = Math.floor(p[0] / cs) + "," + Math.floor(p[1] / cs); if (!H.has(k)) H.set(k, []); H.get(k).push(p); });
     let Ast = 0; const hs = 2;
     for (let x = -C.R_ext; x <= C.R_ext; x += hs) for (let y = -C.R_ext; y <= C.R_ext; y += hs) {
-      const xc = x + hs / 2, yc = y + hs / 2, r = Math.hypot(xc, yc); if (r < C.R_int || r > C.R_ext) continue;
+      const xc = x + hs / 2 + 0.137, yc = y + hs / 2 + 0.291, r = Math.hypot(xc, yc); if (r < C.R_int || r > C.R_ext) continue;   // desfase irracional: ningún punto cae justo en un borde
       const cx = Math.floor(xc / cs), cy = Math.floor(yc / cs); let inHole = false;
-      for (let i = -1; i <= 1 && !inHole; i++) for (let j = -1; j <= 1 && !inHole; j++) { const L = H.get((cx + i) + "," + (cy + j)); if (L) for (const p of L) if (Math.hypot(p[0] - xc, p[1] - yc) < (C.agujeros.d) / 2) { inHole = true; break; } }
+      const sq = C.agujeros.forma === "cuadrada", a2 = sq ? C.agujeros.lado / 2 : C.agujeros.d / 2, rc = C.agujeros.r_esquina || 0, band = r <= C.R_ext - C.ligamento && r >= C.R_int + C.ligamento;
+      const inQ = (p) => { if (!sq) return Math.hypot(p[0] - xc, p[1] - yc) < a2; const u = Math.abs(xc - p[0]), v = Math.abs(yc - p[1]); if (u > a2 || v > a2 || !band) return false; if (u <= a2 - rc || v <= a2 - rc) return true; return Math.hypot(u - (a2 - rc), v - (a2 - rc)) <= rc; };
+      for (let i = -1; i <= 1 && !inHole; i++) for (let j = -1; j <= 1 && !inHole; j++) { const L = H.get((cx + i) + "," + (cy + j)); if (L) for (const p of L) if (inQ(p)) { inHole = true; break; } }
       if (!inHole) Ast += hs * hs;
     }
     add("BX · Portador: masa de la plancha (muestreo de 2 mm)", C.masa_plancha, 7.85e-6 * C.t * Ast, 1.0, "kg");

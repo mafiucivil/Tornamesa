@@ -74,3 +74,26 @@ avellanado del tornillo con el router en la misma sujeción; sin torneado. Limit
 1. UHMW a 50 °C: dato del proveedor (p_adm, PV, módulo) o caudal ≤ 6,8–7,6 L/min; sin eso el concepto de pastillas no cumple a 50 °C.
 2. Tolerancia de espesor de la plancha calibrada y ligamento mínimo de plasma: criterios de taller por confirmar.
 3. El optimizador de masa del núcleo no conoce las filas BX; generador de planos y HTML BX los hacen otros agentes (no se tocaron).
+
+## 7. Revisión 3 (16-11-2026): pastillas CUADRADAS (`bx_forma = 1`, por defecto; `bx_forma = 0` conserva las redondas)
+
+Geometría: agujeros cuadrados con esquinas R = máx(5; 0,5·t_portador) cortados con plasma HD; pastillas cuadradas de plancha comercial de UHMW
+(router o chorro de agua) con esquinas R + 1 (apoyan en las caras, no en las esquinas), tornillo ISO 10642 al centro. Malla cartesiana de paso
+s = lado + ligamento (ligamento ≥ máx(10; t)), con tres desfases probados; en el borde, pastillas **recortadas** por la corona R_i + lig … R_o − lig
+(`bx_borde = 1`) o solo enteras (`bx_borde = 0`). Verificaciones recalculadas para la cuadrada: área A = a² − (4 − π)r², factor de forma
+S = a/(4h_p), pared = lado × (t − 1), núcleo central a/6, celda equivalente s², hueco de pastilla faltante = círculo circunscrito al cuadrado
+2s − a, torsión del portador con la fracción de acero por muestreo angular, ajuste y dilatación con el lado, y **esquinas** con
+K_t = 1 + 2√((a/2)/r) frente a la categoría B de AISC 360-22 Apéndice 3 (borde cortado térmicamente).
+
+Resultado del barrido (lado 100–300, portador 10–30, plancha 20–50, ligamento ≥ t; k = 0,70 a 50 °C): **ningún candidato cumple FU ≤ 0,90
+a 50 °C, ni todos a 20 °C**. La cobertura alcanzable con ligamento ≥ t y el borde circular es 0,62–0,68 (no 0,75–0,80); con pastillas grandes
+fallan además la pared (μ·p·a/(t − 1)) y el tornillo M10 (μ·p·a²).
+
+| Caso | Pastilla | Portador | Cobertura / p_máx | 20 °C (FU) | 50 °C (FU) | PV 50 °C: caudal para FU 0,9 |
+|---|---|---|---|---|---|---|
+| Por defecto (menor FU) | 100 × 100, R11, plancha 40 (h_p 20), 204 | 20 mm, paso 120 | 0,64 / 3,70 MPa | p 0,74; p + Δp **1,16**; PV **1,08**; pared 0,96 | p **1,06**; p + Δp **1,50**; PV **1,54**; pared **1,38** | 5,9 L/min |
+| Lado 200, borde recortado | 200 × 200, R17, plancha 50 (h_p 20), 60 | 30 mm, paso 230 | 0,68 / 4,06 | p + Δp 1,03; PV 1,16; pared 1,39; tornillo 2,86 | p 1,16; p + Δp 1,42; PV 1,66; pared 1,99 | 5,4 L/min |
+| Lado 200, solo enteras | 200 × 200, R11, plancha 40, 48 | 20 mm, paso 220 | 0,62 / 3,64 | PV 0,88; pared 1,91; tornillo 2,57; ligamento 1,87 | p 1,04; p + Δp 1,10; PV 1,26; pared 2,73 | 7,2 L/min |
+
+El disco (304, 8 mm), los 140 tornillos M10 y el portador (torsión, filetes, esquinas en fatiga) cumplen en todos los casos. La forma redonda de la
+revisión 2 sigue siendo la mejor a 20 °C (`bx_forma = 0`). El caudal por defecto no se cambió (10 L/min).

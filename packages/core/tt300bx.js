@@ -40,6 +40,10 @@ const BX = (() => {
     ["bx_s_tss", "Disco: paso de la malla de tornillos (0 = automático: el mayor que cumple FU ≤ 0,90 con par y dilatación)", "mm", 0, 0, 400, 5],
     ["bx_c_cjp", "Disco: franja libre de tornillos a cada lado del eje de la CJP entre semidiscos (cordón, ZAC y esmerilado)", "mm", 30, 10, 100, 5],
     ["bx_c_alma", "Disco: holgura entre el agujero roscado de la mesa y el pie del filete de almas, nervios y cubo", "mm", 3, 0, 20, 1],
+    ["bx_forma", "Pastillas: forma. 1 = cuadradas con esquinas redondeadas en malla cartesiana (por defecto, decisión del mandante 16-11-2026: cobertura ≈ 0,75–0,80); 0 = redondas (patrón bx_pat)", "–", 1, 0, 1, 1],
+    ["bx_borde", "Pastillas cuadradas en el borde de la corona: 1 = recortadas por el círculo (pastilla y agujero con el contorno R_o − lig y R_i + lig, cortados igual por plasma y router); 0 = solo pastillas enteras (la franja queda con el portador)", "–", 1, 0, 1, 1],
+    ["bx_fmin", "Pastillas recortadas: fracción mínima del cuadrado (las menores no se ponen)", "–", 0.35, 0.1, 0.9, 0.05],
+    ["bx_rc", "Pastillas cuadradas: radio de esquina del agujero del portador (0 = automático: máx(5; 0,5·t_portador), radio mínimo del plasma HD, criterio de taller); la pastilla lleva r + 1 (apoya en las caras, no en las esquinas)", "mm", 0, 0, 40, 0.5],
     ["bx_pat", "Pastillas: patrón. 1 = triangular anclado al centro con un anillo en cada borde; 2 = radial: anillos concéntricos desde el borde exterior a paso radial s·√3/2 (recomendado: cobertura más pareja en el borde)", "–", 2, 1, 2, 1],
     ["bx_dp", "Pastillas: Ø (0 = automático)", "mm", 0, 0, 250, 5],
     ["bx_tc", "Portador: espesor de la plancha (0 = automático)", "mm", 0, 0, 40, 1],
@@ -138,7 +142,26 @@ const BX = (() => {
     if (nw === 13) return mod(q + 4 * r, 13) === 0;
     return mod(q + 3 * r, nw) === 0;                                       // 7: código perfecto (cada sitio vecino de exactamente un tapón)
   }
-  function sites(P, C, d, s, lig, nw, pat, dPlug) {
+  function sites(P, C, d, s, lig, nw, pat, dPlug, tc) {
+    if (Math.round(P.bx_forma) === 1) {   // cuadradas: malla cartesiana de paso s alineada con x (la CJP del disco); solo pastillas enteras (la franja de borde queda con el portador: conservador)
+      const S0 = shp(P, d, tc || lig), best = [];
+      for (const [ox, oy] of [[0, 0], [0.5, 0], [0.5, 0.5]]) {
+        const o = [], n = Math.ceil(C.Rco / s) + 1;
+        const r1 = C.Rco - lig, r0 = C.Rci + lig, ns = 16;
+        for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
+          const x = (i + ox) * s, y = (j + oy) * s;
+          if (S0.rMax(x, y) <= r1 + 1e-9 && S0.rMin(x, y) >= r0 - 1e-9) { o.push({ x, y, r: Math.hypot(x, y), w: false, off: [ox, oy], hx: x, hy: y, f: 1 }); continue; }
+          if (!(P.bx_borde >= 0.5) || S0.rMin(x, y) > r1 || S0.rMax(x, y) < r0) continue;
+          let k = 0, sx = 0, sy = 0;   // pastilla recortada por el círculo: fracción y centroide por muestreo 16 × 16
+          for (let u = 0; u < ns; u++) for (let v = 0; v < ns; v++) { const px = x - d / 2 + (u + 0.5) * d / ns, py = y - d / 2 + (v + 0.5) * d / ns, rr = Math.hypot(px, py); if (rr <= r1 && rr >= r0) { k++; sx += px; sy += py; } }
+          const f = k / (ns * ns); if (f < P.bx_fmin) continue;
+          const gx = sx / k, gy = sy / k; o.push({ x: gx, y: gy, r: Math.hypot(gx, gy), w: false, off: [ox, oy], hx: x, hy: y, f, trim: true });
+        }
+        const area = o.reduce((a, q) => a + q.f, 0);
+      if (!best.length || area > best.area + 1e-9) { best.length = 0; o.forEach((q) => best.push(q)); best.area = area; }
+      }
+      return best;
+    }
     const out = [], fitP = (r) => r - d / 2 >= C.Rci + lig - 1e-9 && r + d / 2 <= C.Rco - lig + 1e-9, fitW = fitP;   // el agujero de soldadura tiene el Ø de las pastillas
     const rO = C.Rco - lig - d / 2, rI = C.Rci + lig + d / 2;               // anillos de borde (exterior e interior): sin franjas de borde sin apoyo
     if (pat === 2) {
@@ -205,10 +228,10 @@ const BX = (() => {
     }
     return all;
   }
-  function layout(P, C, d, s, lig, nw, pat, dPlug, hs) {
-    const s0 = sites(P, C, d, s, lig, nw, pat, dPlug), all = nw >= 1 ? oneHop(s0, s, C, d, lig) : s0, pucks = all.filter((q) => !q.w), welds = all.filter((q) => q.w);
+  function layout(P, C, d, s, lig, nw, pat, dPlug, hs, tc) {
+    const s0 = sites(P, C, d, s, lig, nw, pat, dPlug, tc), all = nw >= 1 ? oneHop(s0, s, C, d, lig) : s0, pucks = all.filter((q) => !q.w), welds = all.filter((q) => q.w);
     if (!pucks.length) return null;
-    const H = hashOf(pucks, s), Ap = Math.PI * d * d / 4, n = Math.ceil(C.Ro / hs), dA = hs * hs;
+    const SH = shp(P, d, tc || lig), H = hashOf(pucks, s), Ap = SH.Ap, n = Math.ceil(C.Ro / hs), dA = hs * hs;
     const acc = pucks.map(() => ({ A: 0, M: 0, Mx: 0, My: 0 }));
     for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
       const x = (i + 0.5) * hs, y = (j + 0.5) * hs, r = Math.hypot(x, y);
@@ -220,12 +243,13 @@ const BX = (() => {
     const lista = pucks.map((q, i) => {
       const a = acc[i], ur = q.r > 1e-9 ? [q.x / q.r, q.y / q.r] : [1, 0];
       const N = C.qa * (a.A + C.kq * (a.Mx * ur[0] + a.My * ur[1]) / C.Ro);   // N_i = ∫q dA con la excentricidad hacia la pastilla
-      const p = N / Ap; Nsum += C.qa * a.A;
+      const Ai = Ap * (q.f || 1), p = N / Ai; Nsum += C.qa * a.A;
       if (p > pMax) { pMax = p; iMax = i; }
       if (q.r > C.Rci + 2 * s && q.r < C.Rco - 2 * s) Aint = Math.max(Aint, a.A);
-      return { x: q.x, y: q.y, r: q.r, A: a.A, N, p };
+      return { x: q.x, y: q.y, r: q.r, A: a.A, N, p, off: q.off, Ai, f: q.f || 1, trim: !!q.trim, hx: q.hx != null ? q.hx : q.x, hy: q.hy != null ? q.hy : q.y };
     });
-    return { all, pucks: lista, welds, pMax, iMax, Nsum, Ap, Aint: Aint || Math.max(...lista.map((q) => q.A)), cov: pucks.length * Ap / (Math.PI * (C.Ro * C.Ro - C.Ri * C.Ri)) };
+    const FA = Math.max(...lista.map((q) => q.p * q.Ai)), Asum = lista.reduce((a, q) => a + q.Ai, 0);
+    return { lig, all, pucks: lista, welds, pMax, iMax, Nsum, Ap, Aint: Aint || Math.max(...lista.map((q) => q.A)), cov: Asum / (Math.PI * (C.Ro * C.Ro - C.Ri * C.Ri)), SH, FA, Asum };
   }
   // Camino del arrastre en el portador: cada pastilla empuja la pared de su agujero; el portador lo lleva por los ligamentos hasta el tapón más cercano
   // (árbol de saltos: búsqueda en anchura desde los tapones; cada pastilla entrega a un vecino un salto más cerca). F_lig = mayor flujo por un ligamento;
@@ -254,12 +278,18 @@ const BX = (() => {
   // (filetes continuos). Cada pastilla entrega F_i = μ_ef·p_i·A_p (tangencial) al portador; el par se reparte entre los bordes según la flexibilidad a
   // torsión de la corona perforada, C(ρ₁, ρ₂) = ∫ dr/(r³·η(r)) (η = fracción de acero del círculo de radio r, exacta con las cuerdas de los agujeros);
   // la pastilla en ρ manda al borde exterior la fracción C_int(ρ)/(C_int + C_ext). Corte en el círculo r: τ(r) = T_cruza(r)/(2π·r²·t·η(r)).
-  function torsion(L, C, d, t, Ffn) {
-    const a = C.Rci, b = C.Rco, nG = 600, hG = (b - a) / nG, R = d / 2, P_ = L.pucks.concat(L.welds.map((q) => ({ x: q.x, y: q.y, r: q.r, hole: true })));
-    const eta = new Float64Array(nG + 1), rr = new Float64Array(nG + 1);
+  function torsion(L, C, d, t, Ffn, coarse) {
+    const a = C.Rci, b = C.Rco, nG = coarse ? 120 : L.SH && L.SH.sq ? 300 : 600, hG = (b - a) / nG, R = d / 2, P_ = L.pucks.concat(L.welds.map((q) => ({ x: q.x, y: q.y, r: q.r, hole: true })));
+    const eta = new Float64Array(nG + 1), rr = new Float64Array(nG + 1), SQ = L.SH && L.SH.sq, cs = d, HH = SQ ? hashOf(P_.map((q) => Object.assign({}, q, { x: q.hx != null ? q.hx : q.x, y: q.hy != null ? q.hy : q.y, cxq: q.x })), d) : null, lig0 = L.lig || 0;
     for (let k = 0; k <= nG; k++) {
       const r = a + k * hG; rr[k] = r; let arc = 0;
-      for (const q of P_) { if (Math.abs(q.r - r) >= R) continue; const c = (r * r + q.r * q.r - R * R) / (2 * r * q.r); arc += 2 * Math.acos(Math.max(-1, Math.min(1, c))) * r; }
+      if (SQ) {   // agujeros cuadrados: fracción del círculo dentro de los agujeros por muestreo angular (paso ≤ 2 mm)
+        const nA = coarse ? Math.max(180, Math.ceil(2 * Math.PI * r / 8)) : Math.max(360, Math.ceil(2 * Math.PI * r / 3)); let inn = 0;
+        for (let j = 0; j < nA; j++) { const t = (j + 0.5) * 2 * Math.PI / nA, x = r * Math.cos(t), y = r * Math.sin(t), cx = Math.floor(x / cs), cy = Math.floor(y / cs); let hit = false;
+          for (let i2 = -1; i2 <= 1 && !hit; i2++) for (let j2 = -1; j2 <= 1 && !hit; j2++) { const Lh = HH.get((cx + i2) + "," + (cy + j2)); if (Lh) for (const q of Lh) if (L.SH.inHole(x, y, q.hx != null ? q.hx : q.x, q.hy != null ? q.hy : q.y) && (!q.trim || (r <= C.Rco - lig0 && r >= C.Rci + lig0))) { hit = true; break; } }
+          if (hit) inn++; }
+        arc = inn / nA * 2 * Math.PI * r;
+      } else for (const q of P_) { if (Math.abs(q.r - r) >= R) continue; const c = (r * r + q.r * q.r - R * R) / (2 * r * q.r); arc += 2 * Math.acos(Math.max(-1, Math.min(1, c))) * r; }
       eta[k] = Math.max(1e-3, 1 - arc / (2 * Math.PI * r));
     }
     const cum = new Float64Array(nG + 1);                                  // ∫_a^r dr/(r³η)
@@ -337,6 +367,15 @@ const BX = (() => {
 
   /* ---------------- Dimensionamiento ---------------- */
   const LIST_D = [60, 80, 100, 110, 120, 130, 140, 150, 160, 180, 200];
+  const LIST_A = [100, 125, 150, 175, 200, 225, 250, 275, 300];   // el mandante pidió 150–300; se agregan 100 y 125 porque la pared y el tornillo limitan el lado                      // lado de la pastilla cuadrada
+  // Geometría de la pastilla según la forma: d = Ø (redonda) o lado (cuadrada); r_c = radio de esquina del agujero, la pastilla r_c + 1
+  function shp(P, d, tc) {
+    const sq = Math.round(P.bx_forma) === 1, rc = sq ? (P.bx_rc > 0 ? P.bx_rc : Math.max(5, 0.5 * tc)) : 0, rcp = sq ? rc + 1 : 0;
+    const Ap = sq ? d * d - (4 - Math.PI) * rcp * rcp : Math.PI * d * d / 4, ApH = sq ? d * d - (4 - Math.PI) * rc * rc : Math.PI * d * d / 4;
+    const inHole = (x, y, cx, cy) => { if (!sq) return Math.hypot(x - cx, y - cy) < d / 2; const u = Math.abs(x - cx), v = Math.abs(y - cy), h = d / 2; if (u > h || v > h) return false; if (u <= h - rc || v <= h - rc) return true; return Math.hypot(u - (h - rc), v - (h - rc)) <= rc; };
+    return { sq, rc, rcp, Ap, ApH, kern: sq ? d / 6 : d / 8, aEq: Math.sqrt(Ap / Math.PI), inHole, rMax: (x, y) => sq ? Math.hypot(Math.abs(x) + d / 2, Math.abs(y) + d / 2) : Math.hypot(x, y) + d / 2,
+      rMin: (x, y) => sq ? Math.hypot(Math.max(0, Math.abs(x) - d / 2), Math.max(0, Math.abs(y) - d / 2)) : Math.max(0, Math.hypot(x, y) - d / 2) };
+  }
   const LIST_SB = [250, 225, 200, 175, 150, 125, 100, 75, 50];
   const UH_PL = [20, 25, 30, 40, 50];                                     // espesores comerciales de plancha UHMW para cortar las pastillas
   function puckEval(P, C, M, L, d, s, tc, lig, nw, hp, tss, dPlug, kE) {
@@ -345,16 +384,16 @@ const BX = (() => {
     const Dm = (tm) => P.E * tm ** 3 / (12 * (1 - P.nu ** 2)), Dss = M.E * tss ** 3 / (12 * (1 - M.nu ** 2));
     let worst = { pd: -1 }, PVm = 0, iPV = 0;
     L.pucks.forEach((q, i) => {
-      const tm = q.r > C.prIn ? Math.max(P.t_pr, P.t_bot) : P.t_bot, kpl = 16 * Math.PI * (Dss + Dm(tm)) / (s * s), dp = dF / (cp + Ap / kpl);
+      const tm = q.r > C.prIn ? Math.max(P.t_pr, P.t_bot) : P.t_bot, kpl = 16 * Math.PI * (Dss + Dm(tm)) / (s * s), dp = dF / (cp + (q.Ai || Ap) / kpl);
       if (q.p + dp > worst.pd) worst = { pd: q.p + dp, dp, i, kpl, tm };
       const pv = q.p * q.r * C.omega / 1000; if (pv > PVm) { PVm = pv; iPV = i; }
     });
-    const pM = L.pMax, Fi = C.muEff * pM * Ap, FiU = C.muU * pM * Ap, creep = pM * cp, wear = P.k_wear * 1e-7 * pM * C.dist * Math.max(...L.pucks.map((q) => q.r));
+    const pM = L.pMax, Fi = C.muEff * (L.FA || pM * Ap), FiU = C.muU * (L.FA || pM * Ap), creep = pM * cp, wear = P.k_wear * 1e-7 * pM * C.dist * Math.max(...L.pucks.map((q) => q.r));
     return { S, Ec, Mc, cp, worst, PVm, iPV, Fi, FiU, creep, wear };
   }
   function cellOf(P, C, M, L, d, tss, s) {
-    const Acell = s * s * Math.sqrt(3) / 2 * 7 / 6;                       // celda de la red con el reparto del sitio soldado vecino (1/6); los huecos irregulares van en el vacío local
-    const b = Math.sqrt(Acell / Math.PI), a = d / 2, te = tss - P.ss_allow, D = M.E * te ** 3 / (12 * (1 - M.nu ** 2));
+    const sq = L.SH && L.SH.sq, Acell = sq ? s * s : s * s * Math.sqrt(3) / 2 * 7 / 6;   // celda (cuadrada: s²; triangular con el reparto del sitio soldado vecino); los huecos irregulares van en el vacío local
+    const b = Math.sqrt(Acell / Math.PI), a = sq ? L.SH.aEq : d / 2, te = tss - P.ss_allow, D = M.E * te ** 3 / (12 * (1 - M.nu ** 2));
     const c = b > a + 1e-6 ? cellPlate(C.qmax, a, b, D, M.nu) : { Mmax: 0, w: 0, Ma: 0, Mb: 0 };
     return { a, b, te, D, c, sig: 6 * c.Mmax / (te * te), w: Math.abs(c.w) };
   }
@@ -362,7 +401,7 @@ const BX = (() => {
   // (3) hueco de la malla (pastilla faltante o mayor hueco, radio a_g): el disco y la plancha de la mesa se curvan juntos (están atornillados y en
   // contacto) y el disco toma la fracción D_disco/(D_disco + D_mesa) del momento de la placa empotrada q·a²/8; (4) celda entre pastillas; (5) t_mín.
   function discT(P, C, M, L, d, s, tHead, tFix) {
-    const sad = 0.6 * M.Fy, aV = P.ss_void / 2, tVoid = aV * Math.sqrt(0.75 * C.qmax / sad), aG = Math.max(s - d / 2, Math.sqrt(Math.max(...L.pucks.map((q) => q.A)) / Math.PI));
+    const sad = 0.6 * M.Fy, aV = P.ss_void / 2, tVoid = aV * Math.sqrt(0.75 * C.qmax / sad), aG = Math.max(L.SH && L.SH.sq ? (2 * s - d) / Math.SQRT2 : s - d / 2, Math.sqrt(Math.max(...L.pucks.map((q) => q.A)) / Math.PI));   // cuadrada: pastilla faltante = hueco cuadrado de lado 2s − a, se toma el círculo circunscrito
     const Dm = P.E * P.t_bot ** 3 / (12 * (1 - P.nu ** 2));
     const gap = (t) => { const te = t - P.ss_allow, Ds = M.E * te ** 3 / (12 * (1 - M.nu ** 2)), sh = Ds / (Ds + Dm); return { sh, sig: 6 * C.qmax * aG * aG / 8 * sh / (te * te) }; };
     const tReq = Math.max(tHead, tVoid + P.ss_allow, P.ss_tmin);
@@ -378,7 +417,7 @@ const BX = (() => {
     const tcMin = Math.ceil(0.5 + kSp + P.bx_u_min);
     const tcs = fz ? [fz.t_c] : P.bx_tc > 0 ? [P.bx_tc] : CS_COMM.filter((t) => t >= tcMin && wMaxJ(t) >= Math.max(P.bx_w_h, P.bx_w_c));
     const capSp = 0.45 * P.bx_Fu_sp / 2 * Math.PI / 4 * P.bx_d_sp ** 2, M0 = matOf(P), dT0 = P.bx_d_tss, tHead0 = isoK(dT0) + 0.5 + P.ss_allow;
-    const ds = fz ? [fz.d] : P.bx_dp > 0 ? [P.bx_dp] : LIST_D;
+    const SQ = Math.round(P.bx_forma) === 1, ds = fz ? [fz.d] : P.bx_dp > 0 ? [P.bx_dp] : (SQ ? LIST_A : LIST_D);
     const ligOf = (tc) => fz ? fz.lig : P.bx_lig > 0 ? P.bx_lig : Math.max(10, tc);
     const plugOf = (tc) => Math.floor(Math.max(tc + 8 + 3, 2.25 * Math.min(tc, 16)));   // AISC J2.3a: Ø ≥ t + 8 y ≤ máx(Ø_mín + 3; 2,25·t_soldadura); se toma el máximo (más área)
     const tssGuess = fz ? fz.t_ss : P.bx_t_ss > 0 ? P.bx_t_ss : 8;
@@ -386,11 +425,11 @@ const BX = (() => {
     const dFl = P.d_flat + P.bx_tol_H;
     const cand = [], lays = new Map();
     for (const nw of nws) for (const tc of tcs) for (const d of ds) {
-      const lig = ligOf(tc), s = fz ? fz.s : d + lig, dPlug = d, key = [d, s, lig, nw].join("|");
-      if (!lays.has(key)) lays.set(key, layout(P, C, d, s, lig, nw, pat, dPlug, fz ? 4 : 8));
+      const lig = ligOf(tc), s = fz ? fz.s : d + lig, dPlug = d, key = [d, s, lig, nw, SQ ? tc : 0].join("|");
+      if (!lays.has(key)) lays.set(key, layout(P, C, d, s, lig, nw, pat, dPlug, fz ? 4 : 8, tc));
       const L = lays.get(key); if (!L) continue;
       const fl = nw >= 1 ? flow(L, s, () => C.muEff * L.pMax * L.Ap, C, d, lig) : { Flig: C.muEff * L.pMax * L.Ap, plugMax: 0, edgeMax: 0, unreached: 0, hMax: 1, nEdge: 0 };
-      const tq = nw >= 1 ? null : torsion(L, C, d, tc, (i) => C.muEff * L.pucks[i].p * L.Ap);
+      const tq = nw >= 1 ? null : torsion(L, C, d, tc, (i) => C.muEff * L.pucks[i].p * L.pucks[i].Ai, !fz);
       const fuT = tq ? [tq.tauMax / FvC / 0.9, tq.Tout / (2 * Math.PI * C.Rco ** 2) / (0.707 * P.bx_w_c) / Fw / 0.9, tq.Tin / (2 * Math.PI * C.Rci ** 2) / (0.707 * P.bx_w_c) / Fw / 0.9] : [];
       // espesor de la pastilla = plancha comercial (corte con router o chorro de agua): h_p = H − t_portador; el menor H que cumple
       const hps = fz ? [fz.h_p] : P.bx_hp > 0 ? [P.bx_hp] : (P.bx_H_uh > 0 ? [P.bx_H_uh] : UH_PL).map((H) => H - tc).filter((h) => h >= 2 - 1e-9 && h <= P.bx_hp_max + 1e-9);
@@ -399,7 +438,7 @@ const BX = (() => {
       for (const hp of hps) {
         const e = puckEval(P, C, M, L, d, s, tc, lig, nw, hp, tssGuess, dPlug), cell = cellOf(P, C, M, L, d, tssGuess, s), e50 = puckEval(P, C, M, L, d, s, tc, lig, nw, hp, tssGuess, dPlug, kI.E_uh);
         const fus = [L.pMax / P.p_uhmw / 0.9, e.worst.pd / P.p_uhmw / 0.9, e.PVm / P.PV_uh / 0.9, e.FiU / (d * (tc - 1)) / P.p_uhmw / 0.9, fl.Flig / ((s - d) * tc) / FvC / 0.9, fl.plugMax / capWh(d) / 0.9,
-          fl.edgeMax / (0.707 * P.bx_w_c * s * Fw) / 0.9, (P.bx_g_min + P.bx_bow + e50.wear + e50.creep + dFl + cell.w) / hp, C.muU * (hp + tc / 2) / (d / 8), cell.w / Math.min(P.d_flat, 0.1 * hp), fl.unreached ? 99 : 0,
+          fl.edgeMax / (0.707 * P.bx_w_c * s * Fw) / 0.9, (P.bx_g_min + P.bx_bow + e50.wear + e50.creep + dFl + cell.w) / hp, C.muU * (hp + tc / 2) / L.SH.kern, cell.w / Math.min(P.d_flat, 0.1 * hp), fl.unreached ? 99 : 0,
           L.pMax / (kI.p_uh * P.p_uhmw) / 0.9, e50.worst.pd / (kI.p_uh * P.p_uhmw) / 0.9, e.PVm / (kI.p_uh * P.PV_uh) / 0.9, e.FiU / (d * (tc - 1)) / (kI.p_uh * P.p_uhmw) / 0.9];
         if (fl.unreached) fus.push(99);
         fuT.forEach((f) => fus.push(f));
@@ -410,21 +449,21 @@ const BX = (() => {
         if (fuMax <= 1 + 1e-9) break;
       }
       const H = tc + pick.hp, nP = L.pucks.length, nW = L.welds.length;
-      const mPuck = nP * RHO_UH * Math.PI / 4 * d * d * H, mCar = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - nP * Math.PI * d * d / 4);
+      const mPuck = RHO_UH * L.Asum * H, mCar = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - L.Asum * L.SH.ApH / L.SH.Ap);
       const tss0 = discT(P, C, M0, L, d, s, tHead0, null).t;
       const mSS0 = M0.rho * Math.PI * (C.Ro ** 2 - C.Ri ** 2) * tss0;      // el disco entra al costo: el hueco mayor de la malla fija su espesor
-      cand.push({ fu20: pick.fu20, fu50: pick.fu50, mSS0, fus: pick.fus, nw, tc, d, s, lig, dPlug, L, fl, hp: pick.hp, fuMax: pick.fuMax, H, mPuck, mCar, cost: mPuck + mCar + mSS0, ok: pick.fuMax <= 1 + 1e-9 });
+      cand.push({ dTot: tc + pick.hp + tss0, fu20: pick.fu20, fu50: pick.fu50, mSS0, fus: pick.fus, nw, tc, d, s, lig, dPlug, L, fl, hp: pick.hp, fuMax: pick.fuMax, H, mPuck, mCar, cost: mPuck + mCar + mSS0, ok: pick.fuMax <= 1 + 1e-9 });
     }
-    const okC = cand.filter((c) => c.ok), best = okC.length ? okC.reduce((b, c) => (!b || c.cost < b.cost - 1e-6 || (Math.abs(c.cost - b.cost) <= 1e-6 && c.tc + c.hp < b.tc + b.hp) ? c : b), null)
+    const okC = cand.filter((c) => c.ok), best = okC.length ? okC.reduce((b, c) => (!b || (SQ ? (c.dTot < b.dTot - 1e-9 || (Math.abs(c.dTot - b.dTot) <= 1e-9 && c.cost < b.cost)) : (c.cost < b.cost - 1e-6 || (Math.abs(c.cost - b.cost) <= 1e-6 && c.tc + c.hp < b.tc + b.hp))) ? c : b), null)   // cuadradas: menor espesor total δ (mandante); redondas: menor masa
       : (() => {   // sin candidato que cumpla todo: primero los que cumplen a 20 °C (FU ≤ 0,90; si no hay, ≤ 1,00) y entre ellos el de menor FU a T_ifc,máx; si no, el de menor FU a 20 °C
         const lim = cand.some((c) => c.fu20 <= 1 + 1e-9) ? 1 : cand.some((c) => c.fu20 <= 1 / 0.9 + 1e-9) ? 1 / 0.9 : Infinity, pool = cand.filter((c) => c.fu20 <= lim + 1e-9);
         const by50 = isFinite(lim) && pool.length;
         return (by50 ? pool : cand).reduce((b, c) => (!b || (by50 ? c.fu50 < b.fu50 - 1e-9 : c.fu20 < b.fu20 - 1e-9) ? c : b), null); })();
     // malla definitiva con muestreo fino y h_p recalculado con ella
     let { tc, d, s, lig, dPlug, hp, nw } = best;
-    const L = fz ? best.L : layout(P, C, d, s, lig, nw, pat, dPlug, 4);
+    const L = fz ? best.L : layout(P, C, d, s, lig, nw, pat, dPlug, 4, tc);
     const fl = nw >= 1 ? flow(L, s, (i) => C.muEff * L.pucks[i].p * L.Ap, C, d, lig) : { Flig: C.muEff * L.pMax * L.Ap, plugMax: 0, edgeMax: 0, unreached: 0, hMax: 1, nEdge: 0, plugF: [] };
-    const tq = nw >= 1 ? null : torsion(L, C, d, tc, (i) => C.muEff * L.pucks[i].p * L.Ap);
+    const tq = nw >= 1 ? null : torsion(L, C, d, tc, (i) => C.muEff * L.pucks[i].p * L.pucks[i].Ai);
     // disco: espesor y tornillos
     const dT = P.bx_d_tss, kT = isoK(dT), tHead = kT + 0.5 + P.ss_allow, sad = 0.6 * M.Fy;
     const DT = discT(P, C, M, L, d, s, tHead, fz ? fz.t_ss : P.bx_t_ss > 0 ? P.bx_t_ss : null), aV = DT.aV, tVoid = DT.tVoid, aG = DT.aG, tReq = DT.tReq;
@@ -432,7 +471,7 @@ const BX = (() => {
     if (!fz && !(P.bx_hp > 0)) {   // h_p definitivo con la malla fina y el espesor del disco
       const hl = (P.bx_H_uh > 0 ? [P.bx_H_uh] : UH_PL).map((H) => H - tc).filter((h) => h >= 2 - 1e-9 && h <= P.bx_hp_max + 1e-9);
       for (const h of hl) { const e = puckEval(P, C, M, L, d, s, tc, lig, nw, h, tss, dPlug), e5 = puckEval(P, C, M, L, d, s, tc, lig, nw, h, tss, dPlug, kI.E_uh), ce = cellOf(P, C, M, L, d, tss, s);
-        if (e.worst.pd <= 0.9 * P.p_uhmw && e5.worst.pd <= 0.9 * kI.p_uh * P.p_uhmw && (P.bx_g_min + P.bx_bow + e5.wear + e5.creep + dFl + ce.w) <= h && C.muU * (h + tc / 2) <= d / 8 && ce.w <= Math.min(P.d_flat, 0.1 * h)) { hp = h; break; } hp = h; }
+        if (e.worst.pd <= 0.9 * P.p_uhmw && e5.worst.pd <= 0.9 * kI.p_uh * P.p_uhmw && (P.bx_g_min + P.bx_bow + e5.wear + e5.creep + dFl + ce.w) <= h && C.muU * (h + tc / 2) <= L.SH.kern && ce.w <= Math.min(P.d_flat, 0.1 * h)) { hp = h; break; } hp = h; }
     }
     const dTd = Math.max(P.T_ifc_max - P.T_ref, P.T_ref - P.T_ifc_min);   // ΔT de servicio disco–mesa (revisión del mandante: montaje a 20 °C, servicio 0–50 °C: 30 K)
     let sb = fz ? fz.sb : P.bx_s_tss > 0 ? P.bx_s_tss : null, BL, BF;
@@ -445,10 +484,11 @@ const BX = (() => {
     const delta = fz ? fz.i : P.bx_i > 0 ? P.bx_i : Math.ceil(iLo / 0.05 - 1e-9) * 0.05;
     const H = tc + hp, nP = L.pucks.length, nW = L.welds.length, Ap = L.Ap;
     const holeSp = P.bx_d_sp + 2 * P.bx_c_sp, dkSp = isoDk(P.bx_d_sp);
-    const mPuck1 = RHO_UH * (Math.PI / 4 * (d + delta) ** 2 * H - Math.PI / 4 * holeSp ** 2 * H - Math.PI / 4 * (dkSp ** 2 - holeSp ** 2) * (hp + 0.5));   // descontado el agujero y el alojamiento de la cabeza (cilindro, conservador)
-    const mCarPl = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - nP * Math.PI * d * d / 4), mFil = RHO * P.bx_w_c ** 2 / 2 * 2 * Math.PI * (C.Rco + C.Rci);
+    const SHf = L.SH, Acut = SHf.sq ? (d + delta) ** 2 - (4 - Math.PI) * SHf.rcp ** 2 : Math.PI / 4 * (d + delta) ** 2;
+    const mPuck1 = RHO_UH * (Acut * H - Math.PI / 4 * holeSp ** 2 * H - Math.PI / 4 * (dkSp ** 2 - holeSp ** 2) * (hp + 0.5));   // descontado el agujero y el alojamiento de la cabeza (cilindro, conservador)
+    const fSum = L.Asum / L.Ap, mCarPl = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - fSum * SHf.ApH), mFil = RHO * P.bx_w_c ** 2 / 2 * 2 * Math.PI * (C.Rco + C.Rci);
     const A_ss = Math.PI * (C.Ro ** 2 - C.Ri ** 2), mSS = M.rho * A_ss * tss;
-    const bx = { t_ss: tss, t_ss_req: tReq, t_flex: tVoid, delta: tc + hp + tss, mTop: mSS, mSS, mUH: nP * mPuck1, mCar: mCarPl + mFil, t_c: tc, h_p: hp };
+    const bx = { t_ss: tss, t_ss_req: tReq, t_flex: tVoid, delta: tc + hp + tss, mTop: mSS, mSS, mUH: fSum * mPuck1, mCar: mCarPl + mFil, t_c: tc, h_p: hp };
     const geo = { DT, kI, dFl, tq, candList: cand.map((c) => ({ d: c.d, tc: c.tc, s: c.s, hp: c.hp, nw: c.nw, fuMax: c.fuMax, fus: c.fus, cost: c.cost })), capWh: capWh(d), C, M, pat, nw, tc, d, s, lig, dPlug, hp, H, delta, iLo, iHi, dCold, dHot, tolS, dal, L, fl, tss, tReq, tHead, tVoid, aV, sad, dT, kT, sb, BL, BF, dTd, nP, nW, Ap, holeSp, dkSp, mPuck1, mCarPl, mFil, mSS, A_ss, tcMin, cand: cand.length, candOk: okC.length };
     return { bx, geo, frozen: { t_c: tc, d, s, lig, h_p: hp, t_ss: tss, sb, i: delta, nw } };
   }
@@ -508,18 +548,20 @@ const BX = (() => {
         termico: { dT: g.BF.dTd, alfa_acero: P.bx_al_st * 1e-6, sigma_uniaxial: M.E * Math.abs(M.al - P.bx_al_st * 1e-6) * g.BF.dTd, sigma_biaxial: M.E * Math.abs(M.al - P.bx_al_st * 1e-6) * g.BF.dTd / (1 - M.nu), criterio: "secundaria: rango ≤ 2Fy (ASME VIII-2 5.5.6.1) y ≤ Fy; pandeo del panel s×s (k = 2)" } },
       portador: { t: g.tc, R_int: C.Rci, R_ext: C.Rco, material: "S355J2 (EN 10025-2) / ASTM A572 Gr. 50, Fy " + P.Fy + " MPa", corte: "plasma de alta definición (contorno y agujeros de pastillas y tapones), tolerancia del Ø ± " + nf(P.bx_tol_h, 2) + " mm",
         paso: g.s, ligamento: g.lig, patron: { tipo: g.pat === 2 ? "radial" : "triangular", paso: g.s, nw: g.nw, saltos_max: g.fl.hMax, sin_camino: g.fl.unreached, pastillas_al_borde: g.fl.nEdge, nota: g.pat === 2 ? "anillos concéntricos a paso radial s·√3/2; cada " + g.nw + ".ª posición del anillo es un agujero de soldadura" : "red triangular anclada al centro (fila alterna desplazada s/2); agujeros de soldadura en la subred de índice " + g.nw + " (coordenadas axiales q, r: " + (g.nw === 13 ? "(q + 4r) mod 13 = 0" : g.nw === 7 ? "(q + 3r) mod 7 = 0" : "ver weldSite") + "); las pastillas del borde entregan al filete perimetral" },
-        agujeros: { d: g.d, n: g.nP, posiciones: L.pucks.map((q) => [q.x, q.y]) },
+        agujeros: { d: L.SH.sq ? null : g.d, forma: L.SH.sq ? "cuadrada" : "redonda", lado: L.SH.sq ? g.d : null, r_esquina: L.SH.sq ? L.SH.rc : null, area: L.SH.ApH, n: g.nP, posiciones: L.pucks.map((q) => [q.hx, q.hy]), recortadas: L.pucks.map((q, i) => (q.trim ? { i, centro: [q.hx, q.hy], fraccion: q.f, contorno: "cuadrado ∩ corona R" + nf(C.Rci + g.lig, 0) + "…R" + nf(C.Rco - g.lig, 0) } : null)).filter(Boolean),
+          orientacion: L.SH.sq ? "lados paralelos a x e y (malla cartesiana de paso " + g.s + "; desplazamiento " + JSON.stringify(L.pucks[0] && L.pucks[0].off || [0, 0]) + "·s)" : null },
         tapones: { tipo: "agujero de soldadura del mismo Ø que el de las pastillas, sin pastilla, con filete interior en todo el contorno a la base", d: g.dPlug, w: P.bx_w_h, n: g.nW, posiciones: L.welds.map((q) => [q.x, q.y]), demanda_max: g.fl.plugMax, capacidad: g.capWh,
           norma: "AISC 360-22 §J2.2 (filete en agujeros; largo efectivo en el centro de la garganta ≈ π(Ø − w)), §J2.4; AWS D1.1/D1.1M:2020 Tabla 7.7; ASME BTH-1-2020 §3-3.4", acabado: "el filete queda bajo la cara superior del portador (w ≤ t − 2): no toca el disco" },
         filetes: { w: P.bx_w_c, exterior: { R: C.Rco, largo: 2 * Math.PI * C.Rco }, interior: { R: C.Rci, largo: 2 * Math.PI * C.Rci } },
         F_lig_max: g.fl.Flig, masa: S.bx.mCar, masa_plancha: g.mCarPl, masa_filetes: g.mFil,
         secuencia: "1) planear la cara de la base bajo el portador (planitud d_flat); 2) presentar el portador centrado con el agujero del pivote; 3) filetes de los agujeros de soldadura en secuencia simétrica desde el centro, alternando cuadrantes; 4) filetes perimetrales en tramos alternados; 5) control de planitud de los fondos de los agujeros (la base) y taladrado y roscado de los alojamientos de los tornillos de las pastillas por los agujeros del portador" },
-      pastillas: { d: g.d, d_torneado: g.d + g.delta, interferencia: g.delta, H: g.H, h_p: g.hp, n: g.nP, material: "UHMW-PE (ISO 15527 / ASTM D4020), virgen", chaflan_inferior: "1 × 45°", chaflan_superior: "1 × 45°",
+      pastillas: { forma: L.SH.sq ? "cuadrada" : "redonda", lado: L.SH.sq ? g.d : null, lado_corte: L.SH.sq ? g.d + g.delta : null, r_esquina: L.SH.sq ? L.SH.rcp : null, r_esquina_agujero: L.SH.sq ? L.SH.rc : null, area: L.Ap,
+        d: L.SH.sq ? null : g.d, d_torneado: L.SH.sq ? null : g.d + g.delta, interferencia: g.delta, H: g.H, h_p: g.hp, n: g.nP, material: "UHMW-PE (ISO 15527 / ASTM D4020), virgen", chaflan_inferior: "1 × 45°", chaflan_superior: "1 × 45°",
         agujero_tornillo: g.holeSp, cabeza: { d_k: g.dkSp, k: kSp, cara_superior_cabeza_bajo_cara: g.hp + 0.5 }, tolerancias: { d: "± " + nf(P.bx_tol_p, 2), H: "± 0,05 (torneado)" },
         proceso: "router CNC o chorro de agua desde plancha calibrada de UHMW de " + g.H + " mm (sin torneado)", H_plancha: g.H,
         temperatura: { T_ifc_max: P.T_ifc_max, k_p: g.kI.p_uh, k_E: g.kI.E_uh, nota: "k interpolado linealmente entre 1,0 a T_ref y kT_* a 80 °C (supuesto sin curva del proveedor, confianza C); 80 °C: limitación de uso informativa" },
         masa_unit: g.mPuck1, masa_total: S.bx.mUH, cobertura: L.cov, p_max: L.pMax, PV_max: e.PVm, i_PV: iPV, F_max: Fmax, suma_N_kN: L.Nsum / 1e3, i_max: L.iMax,
-        lista: L.pucks.map((q) => ({ x: q.x, y: q.y, r: q.r, A: q.A, p: q.p })), sobrepresion: { dp: e.worst.dp, p_total: e.worst.pd, i: e.worst.i, k_placa: e.worst.kpl, t_mesa: e.worst.tm, flexibilidad: e.cp, S: e.S, E_c: e.Ec, M: e.Mc },
+        lista: L.pucks.map((q) => ({ x: q.x, y: q.y, r: q.r, A: q.A, p: q.p, area: q.Ai, fraccion: q.f, recortada: q.trim, centro_agujero: [q.hx, q.hy] })), sobrepresion: { dp: e.worst.dp, p_total: e.worst.pd, i: e.worst.i, k_placa: e.worst.kpl, t_mesa: e.worst.tm, flexibilidad: e.cp, S: e.S, E_c: e.Ec, M: e.Mc },
         fluencia: e.creep, desgaste: e.wear,
         ajuste: { delta: g.delta, delta_min_20: g.delta - g.tolS, d_dil_frio: g.dCold, d_dil_caliente: g.dHot, holgura_frio: Math.max(0, -(g.delta - g.tolS - g.dCold)) / 2, eps_caliente: (g.delta + g.tolS + g.dHot) / g.d, rango: [g.iLo, g.iHi],
           p_ajuste_20: P.bx_E_ct * (g.delta + g.tolS) / g.d / (1 - NU_UH), montaje: "a prensa con guía (o enfriando la pastilla); la interferencia relaja por fluencia: la retención la da el tornillo" },
@@ -545,9 +587,9 @@ const BX = (() => {
         "Un disco Ø" + P.D_top + " × " + g.tss + " mm (" + g.M.nombre + ") en 2 semidiscos cortados con plasma, CJP a tope esmerilada a ras; cara 2B o 1D pulida (sin rectificado); " + g.BL.lista.length + " agujeros taladrados y avellanados", "simplificada",
         "Elimina 47 piezas, el rectificado y las muescas; no hay disco en la base", "Disco: flexión entre pastillas y sobre el vacío local, espesor ≥ cabeza avellanada + desgaste, CJP, dilatación restringida (filas «BX · Disco …»)"],
       ["Lámina UHMW sectorizada (24 sectores con rebaje)", "Corte CNC/ruteador o chorro de agua de 24 sectores con rebaje para la barra",
-        g.nP + " pastillas Ø" + nf(g.d + g.delta, 2) + " cortadas con router CNC (o chorro de agua) de plancha comercial calibrada de UHMW de " + nf(g.H, 0) + " mm (sin tornear: interferencia lograda en el corte, ± " + nf(P.bx_tol_p, 2) + " mm; agujero y avellanado del tornillo con el router en la misma sujeción; caras de la plancha sin mecanizar)", "simplificada",
+        g.nP + " pastillas " + (g.L.SH.sq ? "cuadradas de " + nf(g.d + g.delta, 2) + " (esquinas R" + nf(g.L.SH.rcp, 1) + ")" : "Ø" + nf(g.d + g.delta, 2)) + " cortadas con router CNC (o chorro de agua) de plancha comercial calibrada de UHMW de " + nf(g.H, 0) + " mm (sin tornear: interferencia lograda en el corte, ± " + nf(P.bx_tol_p, 2) + " mm; agujero y avellanado del tornillo con el router en la misma sujeción; caras de la plancha sin mecanizar)", "simplificada",
         "Pieza única repetitiva, reemplazable de a una con la mesa izada; sin juntas de dilatación entre sectores", "Pastillas: presión, sobrepresión por planitud, PV, desgaste y holgura, aplastamiento contra la pared, núcleo central, ajuste en frío y caliente (filas «BX · Pastillas …»)"],
-      ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm cortada con plasma de alta definición (" + g.nP + " agujeros Ø" + g.d + (g.nW ? " y " + g.nW + " agujeros de soldadura Ø" + g.dPlug + " con filete interior" : "") + "), soldada a la base " + (g.nW ? "con esos filetes y " : "solo ") + "con filetes perimetrales exterior e interior z" + P.bx_w_c, "nueva",
+      ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm cortada con plasma de alta definición (" + g.nP + " agujeros " + (g.L.SH.sq ? "cuadrados de " + g.d + " con esquinas R" + nf(g.L.SH.rc, 1) : "Ø" + g.d) + (g.nW ? " y " + g.nW + " agujeros de soldadura Ø" + g.dPlug + " con filete interior" : "") + "), soldada a la base " + (g.nW ? "con esos filetes y " : "solo ") + "con filetes perimetrales exterior e interior z" + P.bx_w_c, "nueva",
         "Reemplaza los sectores, sus topes y la lámina: la pared del agujero toma el arrastre y el portador lo lleva a torsión hasta sus bordes soldados", "Portador: ligamento, corte por torsión en la sección neta, filetes perimetrales (filas «BX · Portador …»)"],
       ["Barras de tope soldadas de los sectores (inoxidable y acero) y sus muescas", "Barras cortadas, soldadas al disco de la base y a la mesa antes del rectificado; muescas y chaflanes en cada sector", "—", "eliminada",
         "El par pasa por los tornillos del disco (mesa) y por los agujeros del portador (base)", "BX · Tornillos del disco (par + dilatación); BX · Portador (ligamento y tapones)"],
@@ -603,8 +645,8 @@ const BX = (() => {
     add({ sys: "est", name: pfx + "Pastillas: valor PV en la pastilla más exigida (durante la carrera)", formula: "PV = p_i·v_i ≤ PV_adm; v_i = r_i·v_cil/a_mín, v_cil = Q/(n·A) (como el núcleo)", dem: e.PVm, cap: P.PV_uh, unit: "MPa·m/s", ref: REFU });
     add({ sys: "est", kind: "geo", name: pfx + "Pastillas: saliente frente a desgaste, fluencia, planitud y flecha entre pastillas al final de la vida", formula: "h_p ≥ g_mín + planitud del portador + h_desgaste + δ_fluencia + d_flat + w_celda = " + nf(P.bx_g_min, 2) + " + " + nf(P.bx_bow, 2) + " + " + nf(e.wear, 4) + " + " + nf(e.creep, 3) + " + " + nf(P.d_flat, 2) + " + " + nf(ce.w, 4) + "; h_desgaste = k·p·s (s = vida·vueltas·2π·r); δ = p·c_p", dem: P.bx_g_min + P.bx_bow + e.wear + e.creep + P.d_flat + ce.w, cap: g.hp, unit: "mm", ref: REFU + "; criterio del proyecto (el disco no toca el portador ni las cabezas)" });
     add({ sys: "est", kind: "info", name: pfx + "Pastillas: factor de forma de la parte libre, módulo aparente y confinado, fluencia", formula: "S = d/(4·h_p); E_c = E[1 + (M/E − 1)S²/(1 + S²)]; M = E(1 − ν)/((1 + ν)(1 − 2ν)); δ = p·[h_p/E_c + (t_portador − 1)/M]", dem: e.S, cap: e.Ec, unit: "– / MPa", ref: REFU + "; Gent y Lindley (bloques confinados), como TT uhConf" });
-    add({ sys: "est", name: pfx + "Pastillas: aplastamiento contra la pared del agujero del portador (arrastre con μ_máx)", formula: "σ = F/(d·(t_portador − 1)) ≤ p_adm; F = μ_máx·p·A_p, μ_máx = " + nf(C.muU, 2) + " (el roce sobre el UHMW no supera μ·N: criterio del núcleo para la lámina B); chaflán inferior 1 mm", dem: Fi / (g.d * (g.tc - 1)), cap: P.p_uhmw, unit: "MPa", ref: REFU + "; equilibrio" });
-    add({ sys: "est", kind: "geo", name: pfx + "Pastillas: resultante en el núcleo central del pie (sin despegue por el par del arrastre)", formula: "e = F·(h_p + t_portador/2)/N = μ_máx·(h_p + t/2) ≤ d/8 (núcleo central de la sección circular); la pared reacciona a media altura del portador", dem: C.muU * (g.hp + g.tc / 2), cap: g.d / 8, unit: "mm", ref: "Resistencia de materiales (núcleo central r/4 = d/8); equilibrio" });
+    add({ sys: "est", name: pfx + "Pastillas: aplastamiento contra la pared del agujero del portador (arrastre con μ_máx)", formula: "σ = F/(" + (L.SH.sq ? "lado" : "d") + "·(t_portador − 1)) ≤ p_adm (cara embebida); F = μ_máx·p·A_p, μ_máx = " + nf(C.muU, 2) + " (el roce sobre el UHMW no supera μ·N: criterio del núcleo para la lámina B); chaflán inferior 1 mm", dem: Fi / (g.d * (g.tc - 1)), cap: P.p_uhmw, unit: "MPa", ref: REFU + "; equilibrio" });
+    add({ sys: "est", kind: "geo", name: pfx + "Pastillas: resultante en el núcleo central del pie (sin despegue por el par del arrastre)", formula: "e = F·(h_p + t_portador/2)/N = μ_máx·(h_p + t/2) ≤ " + (L.SH.sq ? "a/6 (núcleo central de la sección cuadrada)" : "d/8 (núcleo central de la sección circular)") + "; la pared reacciona a media altura del portador", dem: C.muU * (g.hp + g.tc / 2), cap: L.SH.kern, unit: "mm", ref: "Resistencia de materiales (núcleo central r/4 = d/8); equilibrio" });
     const capSp = 0.45 * P.bx_Fu_sp / 2 * Math.PI / 4 * P.bx_d_sp ** 2;
     add({ sys: "est", name: pfx + "Pastillas: tornillo M" + P.bx_d_sp + " 8.8 al corte si tomara todo el arrastre μ_máx·N (camino alternativo, redundancia)", formula: "V = F ≤ Fnv·A_b/Ω; Fnv = 0,45·Fu (rosca en el plano), Ω = 2,00", dem: Fi / 1e3, cap: capSp / 1e3, unit: "kN", ref: "AISC 360-22 §J3.7, Tabla J3.2" });
     const fit = D.pastillas.ajuste;
@@ -633,6 +675,10 @@ const BX = (() => {
       add({ sys: "est", name: pfx + "Portador: corte por torsión en la sección neta crítica (círculo r = " + nf(tq.rCrit, 0) + " mm, acero η = " + nf(tq.etaCrit, 3) + ")", formula: "τ = T_cruza(r)/(2π·r²·t·η(r)) ≤ Fy/(Nd·√3); η(r) = 1 − Σ cuerdas de los agujeros/(2πr); reparto del par entre los bordes según C = ∫dr/(r³η) (la pastilla en ρ manda al borde exterior C_int(ρ)/C_total)", dem: tq.tauMax, cap: FvC, unit: "MPa", ref: "ASME BTH-1-2020 §3-2.3.6; torsión de una corona (Timoshenko, Strength of Materials); equilibrio" });
       add({ sys: "est", name: pfx + "Portador: filete perimetral exterior z" + P.bx_w_c + " con el par que llega al borde exterior", formula: "f = T_ext/(2π·R_ext²)/(0,707·w) ≤ 0,60FEXX/(1,20Nd); T_ext = " + nf(tq.Tout / 1e6, 1) + " kN·m de " + nf(tq.Ttot / 1e6, 1), dem: tq.Tout / (2 * Math.PI * C.Rco ** 2) / (0.707 * P.bx_w_c), cap: Fw, unit: "MPa", ref: "AISC 360-22 §J2.4; ASME BTH-1-2020 §3-3.4" });
       add({ sys: "est", name: pfx + "Portador: filete perimetral interior z" + P.bx_w_c + " con el par que llega al borde interior", formula: "f = T_int/(2π·R_int²)/(0,707·w) ≤ 0,60FEXX/(1,20Nd); T_int = " + nf(tq.Tin / 1e6, 1) + " kN·m", dem: tq.Tin / (2 * Math.PI * C.Rci ** 2) / (0.707 * P.bx_w_c), cap: Fw, unit: "MPa", ref: "AISC 360-22 §J2.4; ASME BTH-1-2020 §3-3.4" });
+      if (L.SH.sq) {   // esquinas de los agujeros cuadrados: concentración solo en fatiga (resistencia estática dúctil sin Kt)
+        const Nc = P.turns_yr * P.life * P.N_pin, Kt = 1 + 2 * Math.sqrt((g.d / 2) / L.SH.rc), FSRb = TT_.FSR("B", Nc);
+        add({ sys: "est", name: pfx + "Portador: esquinas de los agujeros cuadrados (r = " + nf(L.SH.rc, 1) + " mm): rango de tensión con concentración frente a la categoría B", formula: "Δσ = K_t·τ_neta ≤ F_SR(B, N); K_t = 1 + 2√((a/2)/r) (agujero alargado de Inglis, cota alta) = " + nf(Kt, 2) + "; N = vueltas/año·vida·N_pas = " + Math.round(Nc) + " empujes (estático: material dúctil, sin K_t)", dem: Kt * tq.tauMax, cap: FSRb, unit: "MPa", ref: "AISC 360-22 Apéndice 3, Tabla A-3.1 (sección 1.2: borde cortado térmicamente, categoría B); Inglis (1913)" });
+      }
       add({ sys: "est", kind: "info", name: pfx + "Portador: pandeo por corte de la plancha entre bordes soldados (referencia)", formula: "τ_cr = 5,35·π²E/(12(1 − ν²))·(t/b)², b = R_ext − R_int (sin agujeros: solo orden de magnitud)", dem: tq.tauMax, cap: 5.35 * Math.PI ** 2 * P.E / (12 * (1 - P.nu ** 2)) * (g.tc / (C.Rco - C.Rci)) ** 2, unit: "MPa", ref: "Timoshenko y Gere, Theory of Elastic Stability §9 (placa larga en corte)" });
     }
     add({ sys: "est", kind: "geo", name: pfx + "Portador: ligamento mínimo para el corte por plasma", formula: "máx(10; t) ≤ s − d", dem: Math.max(10, g.tc), cap: g.s - g.d, unit: "mm", ref: "Criterio de taller (corte térmico de agujeros contiguos; por confirmar con el taller)" });
