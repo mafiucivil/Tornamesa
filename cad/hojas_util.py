@@ -91,7 +91,7 @@ class Pieza(Plano):
         k = self.keys[0]
         RA = {
             "base_plancha": [("Ra 3,2", f"cara de apoyo de la interfaz (zona Ø{f(P['D_top'] + 20)}), planeada"), ("Ra 1,6", f"agujero Ø{f(P['D_piv'])} H7")],
-            "collar": [("Ra 6,3", "cara superior torneada (frente al cubo, sin contacto)"), ("Ra 1,6", f"agujero Ø{f(P['D_piv'])} H7")],
+            "collar": ([("Ra 6,3", "cara superior torneada (frente al cubo, sin contacto)")] if g.opt != 4 else []) + [("Ra 1,6", f"agujero Ø{f(P['D_piv'])} H7")],
             "bancada": [("Ra 1,6", "flancos y fondo de la ranura T")], "patin": [("Ra 1,6", "cuello y cabeza de la lengüeta, alojamientos, ojal H9")],
             "una": [("Ra 0,8", "cara de empuje templada (rectificada)"), ("Ra 1,6", "caras de guía en el alojamiento")], "pasadores": [("Ra 0,8", f"Ø{f(g.d_pin)} m6 (franja templada y resto)")],
             "pivote": [("Ra 0,8", f"Ø{f(P['D_piv'])} p6 (zona de calado) y Ø{f(P['D_piv'])} f7 (zona del buje)"), ("Ra 3,2", "caras extremas")], "buje": [("Ra 1,6", "Ø interior F7 y Ø exterior s6")],

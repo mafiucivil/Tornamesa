@@ -246,6 +246,14 @@ def control_lamina(ctx, h, union=None, hechos=None):
             fl = [x for x in fl if "inclinada" not in x]
             if cnc:
                 just.append((p.code, "contorno poligonal provisional del núcleo (programa CNC desde el JSON; lámina RETENIDA)"))
+        re_ = getattr(p, "radio_esquinas", None)
+        if re_:
+            # agujeros o pastillas cuadradas con esquinas redondeadas (TT300-BX): el eje de cada esquina queda definido por el centro, el lado,
+            # la orientación (tabla de la lámina) y el radio rotulado; no se acota esquina por esquina
+            esq = [x for x in fl if x.startswith(f"posición del eje de Ø{2 * re_:.1f}")]
+            fl = [x for x in fl if x not in esq]
+            if esq:
+                just.append((p.code, f"esquinas R{re_:g}: posición por centro, lado y orientación ({len(esq)} requisitos)"))
         tot += n
         miss += [(p.code, x) for x in fl]
     return tot, miss, just

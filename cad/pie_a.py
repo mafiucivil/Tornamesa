@@ -44,6 +44,12 @@ def sheet_base_plancha(ctx):
             # llamada desde la rosca más alta de la planta (eje +y, lejos de las placas-guía y de sus pasadores, que están en las diagonales)
             u, v, r = max(cs, key=lambda c_: c_[1] - abs(c_[0]))
             V.note_hole((u, v, tb), r, 75, f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo; ver tabla de agujeros)", ext=30, on=on, lines=[f"{n} × M{fm(r * 2, 0)} (rosca en el respaldo;", "ver tabla de agujeros)"])
+        if g.opt == 4:                   # TT300-BX: roscas ciegas de los tornillos de las pastillas (bloque «bx» del JSON)
+            TPb_ = g.bx["pastillas"]["tornillo"]
+            cb_ = V.circles(["base_plancha"], float(TPb_["d"]) / 2 - 0.05, float(TPb_["d"]) / 2 + 0.05)
+            if cb_:
+                u, v, r = max(cb_, key=lambda c_: c_[0] - abs(c_[1]))
+                V.note_hole((u, v, tb), r, 15, f"{len(cb_)} × M{fm(TPb_['d'], 0)} ciegas (pastillas BX; notas)", ext=30, on=on, lines=[f"{len(cb_)} × M{fm(TPb_['d'], 0)}-6H ciegas", "(pastillas BX; ver notas)"])
         c0 = V.P(0, 0, tb)
         s.circle(c0, (P["D_top"] + 20) / 2 * V.scale, "FANT")
         if V.scale >= 0.0999:          # a 1:20 el rótulo choca con las llamadas de las placas-guía: la zona se define en las notas y en la rugosidad
@@ -150,7 +156,9 @@ def sheet_base_plancha(ctx):
                      f"({fm(INS['lado'], 0)} × {fm(INS['lado'], 0)} × {f(INS['t_d'])}, cara a z = {f(INS['t'])}) con {', '.join(jR_)} (corte B-B; detalles en {ci_}): "
                      "los refuerzos se sueldan ANTES que cualquier otra pieza de la esquina (secuencia en GEN-007 y en el instructivo, paso 1). El inserto de esquina anterior "
                      "(BAS-018…023, CJP J-I1 y ventanas) queda ELIMINADO.")
-    if g.opt:
+    if g.opt == 4:                       # TT300-BX: taladros ciegos de las pastillas y portador soldado (bloque «bx» del JSON)
+        nz += __import__("bx_notas").notas_base(ctx)
+    if g.opt and g.opt != 4:
         hb = centros_xy(ctx.m.info.get("holes_base"))
         pat = patron_txt(hb, f"M{fm(P['d_tor'], 0)}")
         rr_ = (ctx.m.info.get("screw_resp") or {}).get("base")
@@ -190,18 +198,20 @@ def sheet_collar(ctx):
         w_sym(p, jc, V, (g.D_boss / 2, 0, tb + 1), (45, -40), all_round=True)
     # B-45/B-46: el corte lleva todas las cotas (una sola vez); la planta solo ubica el corte
     p.ra_in("corte", "Ra 1,6", [(-P["D_piv"] / 2, 0, tb + g.h_boss * 0.35), (P["D_piv"] / 2, 0, tb + g.h_boss * 0.35)], [(1, 0), (-1, 0)])
-    p.ra_in("corte", "Ra 6,3", [(-g.D_boss / 2 + 12, 0, zt), (g.D_boss / 2 - 12, 0, zt)], (0, 1))
+    if g.opt != 4:                       # TT300-BX: caras del collar sin planear (tabla de fabricación del JSON)
+        p.ra_in("corte", "Ra 6,3", [(-g.D_boss / 2 + 12, 0, zt), (g.D_boss / 2 - 12, 0, zt)], (0, 1))
     p.datum_in("corte", "surf", "A", at=[(-g.D_boss / 2 + 14, 0, tb), (g.D_boss / 2 - 30, 0, tb), (-P["D_piv"] / 2 - 12, 0, tb)], d=(0, -1))
     p.gd_in("corte", "dim", "perp", "0,05", "A", prefix=f"Ø{f(P['D_piv'])} H7")
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 10, 0), draw=corte, title="CORTE A-A", w=1.6,
-         auto=dict(rev=(0, 0), fits={P["D_piv"]: "H7"}, rev_side="top", tol={round(g.h_boss, 1): " ±0,5"}, hole_notes=False))
+         auto=dict(rev=(0, 0), fits={P["D_piv"]: "H7"}, rev_side="top", tol={round(g.h_boss, 1): (" ±0,5" if g.opt != 4 else " (espesor de plancha)")}, hole_notes=False))
     def planta(V, p):
         s.centerlines(V.P(0, 0, zt), g.D_boss / 2 * V.scale, 6)
         p.cut_mark("planta", "A", (-g.D_boss / 2 - 14, 0, zt), (g.D_boss / 2 + 14, 0, zt), 90)
     p.vs("planta", on, "top", lv=(0, 0, 0, 0), extra=(0, 0, 0, 0), draw=planta, title="PLANTA (ubicación del corte A-A)", auto=False, w=0.5, maxs=0.2)
     add_prep(p, "det_j", wd(ctx, jc), t1=(g.D_boss - P["D_piv"]) / 2, t2=g.tb, both=False, lab1=f"{fm((g.D_boss - P['D_piv']) / 2, 0)} (ancho radial; alto {fm(g.h_boss, 0)})")
     p.tables([jc])
-    p.notes([f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: partida Ø{f(g.D_boss + 10)} oxicortada de plancha de {f(g.h_boss + 5)}; caras planeadas a {f(g.h_boss)} ±0,5 y Ø{f(g.D_boss)} torneado en torno horizontal.",
+    p.notes([(f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: partida Ø{f(g.D_boss + 10)} oxicortada de plancha de {f(g.h_boss + 5)}; caras planeadas a {f(g.h_boss)} ±0,5 y Ø{f(g.D_boss)} torneado en torno horizontal." if g.opt != 4 else
+              f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}: " + __import__("bx_notas").notas_collar(ctx)[0] if __import__("bx_notas").notas_collar(ctx) else f"Disco Ø{f(g.D_boss)} × {f(g.h_boss)}."),
              f"Agujero Ø{f(P['D_piv'])} H7: NO se mecaniza antes de soldar; se mandrina en línea con la plancha base (BAS-001) en un solo montaje, Ra 1,6.",
              f"Soldar a la plancha base con filete perimetral continuo z{fm(g.w_collar, 0)} ({jc}): secuencia simétrica por tramos opuestos para limitar la distorsión; alivio de tensiones antes de mandrinar.",
              "Arista exterior superior e interior de la boca del agujero: 1×45° (ISO 13715).",

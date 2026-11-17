@@ -144,6 +144,12 @@ INT_CODIGOS = {
     "int_cara/3": (13, "Disco duro de la mesa (sector)", "C1, C3"),
     "int_cara/2": (14, "2.ª placa de bronce de la mesa (sector)", "C2"),
     "int_tornillo_af2": (15, "Tornillo avellanado disco de la mesa–mesa (par de la interfaz)", "AF2"),
+    # TT300-BX (bloque «bx» del JSON): disco inoxidable atornillado + pastillas de UHMW en un portador soldado a la base
+    "int_bx_disco_mesa": (16, "Disco de la mesa: semidiscos inoxidables unidos con CJP (BX)", "BX"),
+    "int_bx_tor_mesa": (17, "Tornillo avellanado del disco de la mesa (BX)", "BX"),
+    "int_bx_portador": (18, "Portador de pastillas soldado a la base (BX)", "BX"),
+    "int_bx_pastilla": (19, "Pastilla de UHMW-PE (BX)", "BX"),
+    "int_bx_tor_pastilla": (20, "Tornillo avellanado de la pastilla (BX)", "BX"),
 }
 # láminas de características de la interfaz (sin pieza propia): número fijo
 INT_LAMINAS = {101: "Ranuras de engrase (cara deslizante de la mesa o de la placa de bronce)", 102: "Patrón de tapones de grafito",
@@ -165,14 +171,15 @@ VAR_CODIGOS = {
                      # B y AF2 (núcleos e9a0eb3 / f2dc2b5): ventanas del inserto de esquina. ANULADAS (núcleo d537dda: base entera, sin ventanas;
                      # B vuelve a la clase de A y AF2 a la de BASE); se conservan para no reutilizar sus sufijos
                      (("B-anulado",), "ANULADO: placas-leva e interfaz, ventanas del inserto de B", 1),
-                     (("AF2-anulado",), "ANULADO: ventanas del inserto de AF2", 1)],
+                     (("AF2-anulado",), "ANULADO: ventanas del inserto de AF2", 1),
+                     (("BX",), "placas-leva e interfaz BX (taladros ciegos de los tornillos de las pastillas)", 1)],
     # placa-guía: el canto sale de la cinemática del núcleo, que cambia con la altura de la interfaz (δ): C1…C3 tienen su propia geometría
-    "placa_leva": [(("BASE", "A", "AF2", "B"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1)],
-    "placa_leva_h": [(("BASE", "A", "AF2", "B"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1)],
-    "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
-    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1)],
-    "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
-    "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
+    "placa_leva": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1)],
+    "placa_leva_h": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1)],
+    "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1), (("BX",), "roscas pasantes del disco BX", 1)],
+    "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1), (("BX",), "roscas ciegas del disco BX", 1)],
+    "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("BX",), "alto BX", 1)],
+    "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1), (("BX",), "largo BX", 1)],
     # la muesca y el largo de los topes dependen del par de calado, que cambia con el modo del accionamiento: los juegos «-G» tienen su clase
     "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2", "AF2-G"), "liso, pegado", 1), (("A-G", "B-G"), "con muesca y avellanados (guiado)", 1)],
     # AF2: los tornillos pasan a R_pin en las bisectrices entre pasadores (núcleo c4e12af): 6 tipos nuevos al final; los sufijos -4…-6 (tornillos en R949) quedan anulados
@@ -185,15 +192,15 @@ VAR_CODIGOS = {
                    (("C1-G",), "4 tipos (guiado)", 4), (("C2-G",), "4 tipos (guiado)", 4), (("C3-G",), "4 tipos (guiado)", 4)],
     "int_cara": [(("C1", "C3"), "con / sin conducto de grasera", 2), (("C2",), "con / sin conducto de grasera", 2), (("C1-G", "C3-G"), "con / sin conducto (guiado)", 2), (("C2-G",), "con / sin conducto (guiado)", 2)],
     # accionamiento: la altura del eje de los cilindros sube con el espesor de la interfaz (δ): cajón, pasador Q y patas del pórtico tienen una clase por δ
-    "cajon_pared_x": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
-    "cajon_pared_y": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
-    "cajon_munon": [(("BASE", "W"), "alto base", 1), (("A",), "alto A", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("C1", "C2", "C3"), "alto y ancho C", 1)],
-    "cajon_tapa": [(("BASE", "W", "A", "AF2", "B"), "nariz base/A/B", 1), (("C1", "C2", "C3"), "nariz C (cilindro de C)", 1)],
+    "cajon_pared_x": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("BX",), "alto BX", 1)],
+    "cajon_pared_y": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("BX",), "alto BX", 1)],
+    "cajon_munon": [(("BASE", "W"), "alto base", 1), (("A",), "alto A", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("C1", "C2", "C3"), "alto y ancho C", 1), (("BX",), "alto BX", 1)],
+    "cajon_tapa": [(("BASE", "W", "A", "AF2", "B", "BX"), "nariz base/A/B", 1), (("C1", "C2", "C3"), "nariz C (cilindro de C)", 1)],
     # pasador E: el extremo inferior queda sobre la cara del refuerzo de esquina (núcleo d537dda: largo 126 en BASE, 132 en A, AF2, B y C);
     # las clases L 122 y L 127 (inserto de esquina, núcleo f2dc2b5) quedan ANULADAS; L 132 es la geometría de la clase -3 anterior
-    "pasador_E": [(("BASE-anulado",), "ANULADO: L 122 (inserto)", 1), (("AF2-anulado",), "ANULADO: L 127 (inserto)", 1), (("A", "AF2", "B", "C1", "C2", "C3"), "L 132", 1),
+    "pasador_E": [(("BASE-anulado",), "ANULADO: L 122 (inserto)", 1), (("AF2-anulado",), "ANULADO: L 127 (inserto)", 1), (("A", "AF2", "B", "C1", "C2", "C3", "BX"), "L 132", 1),
                   (("BASE", "W"), "L 126", 1)],
-    "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
+    "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1), (("BX",), "largo BX", 1)],
     "leva_pata": [(("BASE-G", "W-G"), "alto base", 1), (("A-G", "C1-G", "C2-G", "C3-G"), "alto A/C", 1), (("AF2-G",), "alto AF2", 1), (("B-G",), "alto B", 1)],
 }
 # refuerzo cuadrado soldado sobre la base (núcleo d537dda; reemplaza al inserto de esquina BAS-018…023, ANULADOS): número de pieza por espesor t_d
@@ -203,13 +210,14 @@ VAR_CODIGOS = {
 VAR_REFUERZO = {
     28: [(("BASE",), "550 × 550 × 35, 5 tapones Ø44", 1)],
     29: [(("A", "AF2", "C1", "C2", "C3"), "545 × 545 × 45, 3 tapones Ø54", 1)],
-    30: [(("B",), "545 × 545 × 50, 3 tapones Ø58", 1)],
+    30: [(("B", "BX"), "545 × 545 × 50, 3 tapones Ø58", 1)],
     31: [(("BASE-G",), "545 × 545 × 30, 5 tapones Ø38; 2 tipos simétricos", 2)],
     32: [(("A-G",), "545 × 545 × 45, 3 tapones Ø54 (patrón del guiado); 2 tipos simétricos", 2)],
     33: [(("AF2",), "atiesador 30 × 45 × 500", 1)],
     34: [(("A", "C1", "C2", "C3"), "atiesador 30 × 60 × 500", 1)],
     35: [(("B",), "atiesador 30 × 85 × 500", 1)],
     36: [(("BASE-G", "A-G"), "atiesador 30 × 100 × 500", 1)],
+    43: [(("BX",), "atiesador 30 × 65 × 500", 1)],
 }
 
 
@@ -851,6 +859,9 @@ def build_interfaz(m, g, D, log):
     P, I = g.P, g.I
     if g.opt == 0:
         return
+    if g.opt == 4:                       # TT300-BX: geometría del bloque «bx» del JSON (cad/bx3d.py)
+        import bx3d
+        return bx3d.build(m, g, D, log)
     A572 = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa) — PROPUESTO"
     lay = Layout(g)
     m.layout = lay
@@ -1162,6 +1173,10 @@ def apply_backing_holes(m):
             p_ = m.get(k_)
             p_.solid = p_.solid.cut(hc)
             p_._vol = None
+    if g.opt == 4:                       # TT300-BX: roscas del disco en la mesa y taladros ciegos de las pastillas en la base (cad/bx3d.py)
+        import bx3d
+        bx3d.holes(m)
+        return
     if not g.opt or not g.removable and not m.info.get("grease_pts"):
         return
     base = m.get("base_plancha")
@@ -1210,6 +1225,10 @@ def masas(m, tol_pct=0.5):
                "dogs": "Bloques-uña con pasador Q" if piv else "Uñas", "shoes": "Patines", "cam": "Placas-leva" if piv else "Leva de reenganche (riel, pórticos, prolongación, seguidor)",
                "pivot": "Pivote", "cyl": "Cilindros (masa de catálogo)", "mesa": "Mesa (planchas, almas, nervios, cubo, pasadores)", "ss": "Discos de interfaz (inox / duro)", "uhmw": "Lámina UHMW",
                "bz": "Bronce con grafito (o 2.ª placa)", "wood": "Cubierta de madera (tablones)", "ring": "Anillo de acero de la madera", "stopBars": "Barras de los topes (m.stopBars)"}
+    if "bxPortador" in M:                # TT300-BX: portador de las pastillas (masa del núcleo con sus filetes)
+        core_keys["bxPortador"], groups["bxPortador"], nombres["bxPortador"] = ["bxPortador"], "bxPortador", "Portador de pastillas BX (con filetes)"
+    if g.opt == 4:
+        nombres["ss"], nombres["uhmw"] = "Disco inoxidable de la mesa BX (semidiscos)", "Pastillas de UHMW-PE BX"
     mod = {}
     for p in m.parts:
         if p.core:

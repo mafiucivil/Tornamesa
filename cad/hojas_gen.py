@@ -72,7 +72,7 @@ def notas_generales(ctx):
             "Fuente única: todos los valores salen del JSON de diseño del núcleo de cálculo (exportado por la herramienta TT300-C); si el JSON cambia, regenerar el juego completo.",
             "Unidades: mm, kg, MPa, grados. Cotas en mm salvo indicación. No medir sobre el plano. Método de proyección E (ISO 5456-2).",
             "Tolerancias generales ISO 2768-mK (lineales y angulares, tabla en GEN-004); piezas soldadas ISO 13920-BF; rugosidad no indicada Ra 12,5 (ISO 1302 / ISO 21920-1).",
-            "Soldadura: ISO 2553 (símbolos), ISO 5817 (calidad, nivel en cada símbolo), ISO 4063 (procesos 111/135/136" + (", 141 solo en J21" if g.opt == 2 else "") + "), AWS D1.1 (calificación, precalentamiento, END). WPS pre-calificados PROPUESTOS en GEN-012 (a calificar/confirmar por el fabricante).",
+            "Soldadura: ISO 2553 (símbolos), ISO 5817 (calidad, nivel en cada símbolo), ISO 4063 (procesos 111/135/136" + (", 141 solo en J21" if g.opt == 2 else ", 141 en la CJP inoxidable J30 (AWS D1.6)" if g.opt == 4 else "") + "), AWS D1.1 (calificación, precalentamiento, END). WPS pre-calificados PROPUESTOS en GEN-012 (a calificar/confirmar por el fabricante).",
             "Materiales y elementos de unión con certificado EN 10204 3.1 (incluidos pernos 10.9 y arandelas); trazabilidad por colada; punzonar el código de la pieza y la colada en zona no crítica.",
             "Aristas vivas rotas 1×45° (ISO 13715) salvo indicación. Rosca métrica ISO 261 / ISO 262 / ISO 724; tornillería ISO 4762 / ISO 10642, clase 10.9 (ISO 898-1); agujeros pasantes ISO 273.",
             "Taller sin torno vertical: gran diámetro por oxicorte/plasma (ISO 9013), soldadura y mandrinadora; ajustes largos H7 en mandrinadora.",
@@ -103,6 +103,8 @@ def normas(ctx):
         N.append(("ASTM D4020", "UHMW-PE (lámina de la interfaz)"))
     if g.opt == 3:
         N.append(("ASTM B148 / B584 / A564 (17-4PH)", "Bronce de la placa / acero del disco duro"))
+    if g.opt == 4:                       # TT300-BX
+        N += __import__("bx_notas").normas(ctx)
     if g.wood:
         N.append(("NCh1198", "Madera (cubierta)"))
     return [list(n) for n in N if n[0]]
@@ -129,10 +131,15 @@ def sheet_notas(ctx):
              12: "Tapón de grafito", 13: "Disco duro de la mesa (sector)", 14: "2.ª placa de bronce (sector)", 15: "Tornillo avellanado disco de la mesa–mesa (AF2)"}
     rows = []
     por_num = {}
-    for k, (n, nm, vv) in M3.INT_CODIGOS.items():
+    INT_C, VAR_C = M3.INT_CODIGOS, M3.VAR_CODIGOS
+    if g.opt != 4:
+        # el registro incluye la variante TT300-BX (bloque «bx» del JSON): fuera de ese juego el mapa no la muestra (mismo mapa que antes de BX)
+        INT_C = {k: v for k, v in INT_C.items() if v[2] != "BX"}
+        VAR_C = {k: [(tuple(x for x in vs if x != "BX"), d_, n_) for vs, d_, n_ in cl if [x for x in vs if x != "BX"]] for k, cl in VAR_C.items()}
+    for k, (n, nm, vv) in INT_C.items():
         key = k.split("/")[0]
         e = por_num.setdefault(n, dict(nm=nm, vv=vv, cl=[]))
-        cl = M3.VAR_CODIGOS.get(key)
+        cl = VAR_C.get(key)
         if cl:
             o = 0
             for (vs, desc, nt) in cl:
@@ -169,7 +176,7 @@ def sheet_notas(ctx):
             _gr.setdefault(p_.sub, []).append(f"{p_.num:03d}")
         rows.append([" ".join(f"{sb}-{'/'.join(ns)}" for sb, ns in _gr.items()), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
                      ", ".join(p_.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:] for p_ in dk_)])
-    for key, cl in M3.VAR_CODIGOS.items():
+    for key, cl in VAR_C.items():
         if key.startswith("int_") or key in DELTA_KEYS or key == "placa_leva_h":
             continue
         if key == "placa_leva" and ctx.m.get("placa_leva_h"):
@@ -393,6 +400,7 @@ def sheet_tratamientos(ctx):
             *([["Disco duro 17-4PH", f"Condición H1025 (endurecido por precipitación); ≥ {f(P['HB_cara'])} HB, Fy ≥ {f(P['Fy_cara'])} MPa", "Dureza 100 %"]] if g.opt == 3 and g.conf != 2 else []),
             *([["Bronce con tapones de grafito", f"≥ {f(P['HB_bz'])} HB, Fy ≥ {f(P['Fy_bz'])} MPa; tapones encastrados al {fm((g.IG.get('tapon_prof_frac') or 0.7) * 100, 0)} % del espesor", "Certificado del proveedor"]] if g.opt == 3 else []),
             *([["UHMW-PE", "Sin tratamiento ni pintura; UHMW-PE PE1000 (ASTM D4020), natural; certificado del proveedor", "Certificado del proveedor"]] if g.opt == 2 else []),
+            *(__import__("bx_notas").tratamientos(ctx) if g.opt == 4 else []),
             ["Estructura de acero (base, mesa, soldaduras)", pintura(ctx), "EPS (ISO 19840) y adherencia (ISO 4624): 1 medición por 10 m²"],
             ["Zonas sin pintura (lista única del juego)", propuestas.zonas_sin_pintura(ctx), "VT"],
             ["Tornillería", "Pernos 10.9 con recubrimiento zincado/dacromet (tipo exigido; marca/modelo en GEN-008)", "Certificado del lote"]]
@@ -413,6 +421,8 @@ def torque_rows(ctx):
     items = ([("Perno ISO 4762 M20×45 cl. 10.9 (retención de pasador)", 20, 10.9, g.N_pin)] if ctx.m.get("pernos_pasador") else []) + [(f"Tornillo ISO 10642 M10×{g.cap_L:.0f} cl. 10.9 (tapa retenedora)", 10, 10.9, 4), (f"Tornillo ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} cl. 10.9 (tapa de inspección)", int(g.insp_d), 10.9, 6)]
     if g.opt and g.removable:
         items.append((f"Tornillo ISO 10642 M{fm(P['d_tor'], 0)} cl. 10.9 (posición de sectores; no transmiten carga)", int(P["d_tor"]), 10.9, None))
+    if g.opt == 4:                       # TT300-BX: tornillos del disco (toman el par) y de las pastillas (retención, par bajo: JSON)
+        items += __import__("bx_notas").torque_items(ctx)
     if ctx.m.get("int_tornillo_af2"):
         TA = g.I["tornillos"]
         items.append((f"Tornillo {TA['designacion']} (disco de la mesa, AF2; transmite el par de la interfaz)", int(TA["d"]), 10.9, int(TA["n"])))
@@ -424,7 +434,7 @@ def torque_rows(ctx):
         items.append((f"Perno ISO 4762 M{fm(g.FLG['porticos']['d_perno'], 0)}×{ctx.m.info.get('perno_riel_L')} cl. 10.9 (riel–pórtico)", int(g.FLG["porticos"]["d_perno"]), 10.9, ctx.m.get("leva_pernos").qty))
     for nm, d, cl, n in items:
         As = AS_M.get(d, math.pi / 4 * (0.9 * d) ** 2)
-        rp = 940.0 if cl == 10.9 else 640.0
+        rp = 940.0 if cl == 10.9 else 640.0       # ISO 898-1: Rp0,2 mín. 10.9 = 940; 8.8 = 640 (d ≤ 16)
         F = 0.7 * rp * As / 1000.0          # kN, precarga 70 % de Rp0,2·A_s
         K = 0.20
         T = K * F * 1000 * d / 1000.0       # N·m
@@ -519,7 +529,9 @@ def nest_items(ctx):
         add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
-    if g.opt:
+    if g.opt == 4:                       # TT300-BX: portador y semidiscos (bloque «bx» del JSON)
+        __import__("bx_notas").nest(ctx, add)
+    if g.opt and g.opt != 4:
         env = (g.Ro - g.Ri * math.cos(math.radians(180.0 / g.n_sec)) + 10, 2 * g.Ro * math.sin(math.radians(180.0 / g.n_sec)) + 10)
         for k in ("int_disco_base", "int_disco_mesa", "int_cara", "int_bronce", "int_uhmw"):
             p = m.get(k)
