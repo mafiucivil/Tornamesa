@@ -454,7 +454,7 @@ const BX = (() => {
     const Lof = (b) => { const tb = b.anillo ? P.t_pr : P.t_bot; if (b.anillo) { const hdT = tb - 3, huT = hdT - 2 * pT; const Ls = ISO10642_L.filter((x) => x - (g.tss - rec) >= 1.25 * dT - 1e-9 && x - (g.tss - rec) + 2 <= huT + 1e-9); return { L: Ls.length ? Ls[Ls.length - 1] : null, ciego: true, prof: hdT, util: huT, tb }; }
       const L0 = ISO10642_L.find((x) => x - (g.tss - rec) >= tb - 1e-9) || null; return { L: L0, ciego: false, prof: tb, util: tb, tb }; };
     const bolts = BL.lista.map((b) => { const l = Lof(b); return { x: b.x, y: b.y, r: b.r, ang: b.a, anillo: b.anillo, L: l.L, ciego: l.ciego, prof: l.prof, rosca_util: l.util, t_pieza: l.tb, le: l.L != null ? Math.min(l.L - (g.tss - rec), l.tb) : NaN, VT: b.VT, Vth: b.Vth, V: b.V }; });
-    const fz = { t_c: g.tc, d: g.d, s: g.s, lig: g.lig, h_p: g.hp, t_ss: g.tss, sb: g.sb, i: g.delta };
+    const fz = { t_c: g.tc, d: g.d, s: g.s, lig: g.lig, h_p: g.hp, t_ss: g.tss, sb: g.sb, i: g.delta, nw: g.nw };
     const iPV = e.iPV;
     return {
       version: 1, material: M.nombre, frozen: fz, bx: S.bx,
@@ -505,8 +505,8 @@ const BX = (() => {
       ["Lámina UHMW sectorizada (24 sectores con rebaje)", "Corte CNC/ruteador o chorro de agua de 24 sectores con rebaje para la barra",
         g.nP + " pastillas Ø" + nf(g.d + g.delta, 2) + " × " + nf(g.H, 1) + " torneadas de barra de UHMW (corte, refrentado, chaflanes y avellanado en torno horizontal)", "simplificada",
         "Pieza única repetitiva, reemplazable de a una con la mesa izada; sin juntas de dilatación entre sectores", "Pastillas: presión, sobrepresión por planitud, PV, desgaste y holgura, aplastamiento contra la pared, núcleo central, ajuste en frío y caliente (filas «BX · Pastillas …»)"],
-      ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm cortada con plasma de alta definición (" + g.nP + " agujeros Ø" + g.d + " y " + g.nW + " de tapón Ø" + g.dPlug + "), soldada a la base con tapones y filetes perimetrales", "nueva",
-        "Reemplaza los sectores, sus topes y la lámina: la pared del agujero toma el arrastre", "Portador: ligamento al corte, tapones, filetes, transferencia del par a la base (filas «BX · Portador …»)"],
+      ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm cortada con plasma de alta definición (" + g.nP + " agujeros Ø" + g.d + (g.nW ? " y " + g.nW + " agujeros de soldadura Ø" + g.dPlug + " con filete interior" : "") + "), soldada a la base " + (g.nW ? "con esos filetes y " : "solo ") + "con filetes perimetrales exterior e interior z" + P.bx_w_c, "nueva",
+        "Reemplaza los sectores, sus topes y la lámina: la pared del agujero toma el arrastre y el portador lo lleva a torsión hasta sus bordes soldados", "Portador: ligamento, corte por torsión en la sección neta, filetes perimetrales (filas «BX · Portador …»)"],
       ["Barras de tope soldadas de los sectores (inoxidable y acero) y sus muescas", "Barras cortadas, soldadas al disco de la base y a la mesa antes del rectificado; muescas y chaflanes en cada sector", "—", "eliminada",
         "El par pasa por los tornillos del disco (mesa) y por los agujeros del portador (base)", "BX · Tornillos del disco (par + dilatación); BX · Portador (ligamento y tapones)"],
       ["Tornillos de posición ISO 10642 de los sectores", "2 por sector (48 + 24)", "Tornillos ISO 10642 M" + g.dT + " 10.9 de la malla del disco (" + g.BL.lista.length + ") y M" + P.bx_d_sp + " 8.8 de las pastillas (" + g.nP + "); roscas taladradas por plantilla", "simplificada",
