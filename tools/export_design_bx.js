@@ -8,13 +8,8 @@
 const fs = require("fs"), path = require("path"), Module = require("module"), vm = require("vm");
 const TT = require("../packages/core/tt300c.js"), BX = require("../packages/core/tt300bx.js"), AGBX = require("../packages/agents/agentes_bx.js");
 
-const isP = (x) => x && typeof x === "object" && !Array.isArray(x) && "W_tf" in x && "D_top" in x && !x.__bx;
-const FAC = {};
-for (const k of Object.keys(TT)) {
-  const v = TT[k];
-  FAC[k] = typeof v === "function" ? function (...a) { if (isP(a[0])) a[0] = BX.coreP(a[0]); return v.apply(TT, a); } : v;
-}
-Object.assign(FAC, { defaults: BX.defaults, analyze: BX.analyze, thermal: BX.thermal, PARAM_GROUPS: BX.PARAM_GROUPS, compute: (P) => BX.compute(P) });
+const PBX = require("../packages/web/planos_export_bx.js");   // fachada y bloque «bx»: fuente única con el worker de Tornamesa_BX
+const FAC = PBX.facade(TT, BX);
 
 const src = path.join(__dirname, "export_design.js");
 const code = fs.readFileSync(src, "utf8");
@@ -29,9 +24,5 @@ try {
 } finally { process.stdout.write = write0; }
 
 const out = JSON.parse(buf);
-const P = out.P;
-out.proyecto = "TT300-BX";
-out.modulo = { nombre: "TT300-BX", nucleo: "packages/core/tt300c.js (gancho P.__bx)", archivo: "packages/core/tt300bx.js", esquema: "tools/export_design.js + bloque «bx»" };
-const A = BX.analyze(P, { noFEA: true });
-out.bx = BX.exportBX(P, A);
+PBX.finish(out, out.P, BX);
 process.stdout.write(JSON.stringify(out, null, 1));
