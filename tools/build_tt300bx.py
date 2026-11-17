@@ -27,6 +27,9 @@ s = s.replace("/*@@BX_USED@@*/", "const BX_USED = %s;" % json.dumps(used))
 # figura de la comparación de la guía (igual que la herramienta principal)
 img = root / "docs" / "qa" / "guia_curva_KIET" / "comparacion.png"
 s = s.replace("/*@@IMG@@*/", "const TT_IMG = { comparacion: %s };" % ('"data:image/png;base64,' + base64.b64encode(img.read_bytes()).decode("ascii") + '"' if img.exists() else "null"))
+# GIF del movimiento cinemático (valores por defecto), incrustado como texto base64 sin decodificar; la UI lo decodifica al abrir «Cinemática».
+# Se regenera con la simulación de la propia herramienta (botón «Exportar GIF», ×2, 2 carreras, antihorario) y se guarda en packages/web_bx/sim_bx.gif.
+gif = pk / "web_bx" / "sim_bx.gif"
 # resultados precalculados de los valores por defecto (mismo código del worker), en procesos de Node en paralelo:
 # análisis, bloques diferidos (escenarios, mercado, capacidad por cilindros, térmica) y la memoria del JSON de diseño (PLANOS_BX.exportCalls)
 import html
@@ -62,5 +65,8 @@ except Exception:
 s = s.replace("@@CORE_REV@@", rev or "")
 s = s.replace("@@VERSION@@", BX_VERSION)
 out = root / ("Tornamesa_BX_v%s.html" % BX_VERSION)
+if gif.exists():   # al final: el </body> del documento es el último (el código incrustado también contiene la cadena)
+    i = s.rfind("</body>"); assert i > 0
+    s = s[:i] + '<script type="application/octet-stream" id="TT_SIMGIF">' + base64.b64encode(gif.read_bytes()).decode("ascii") + "</script>\n" + s[i:]
 out.write_text(s, encoding="utf-8")
 print(out, len(s.encode("utf-8")), "bytes")

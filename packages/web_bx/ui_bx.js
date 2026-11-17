@@ -1251,7 +1251,20 @@
 
   /* render perezoso: recalc() dibuja los badges y la pestaña activa; las demás quedan «sucias» y se dibujan al abrirlas (showTab).
      Temperatura y Tapones ya se dibujan solo si están activas y al abrirlas (showTab), con su propio caché. */
-  const RENDER = { resumen: renderResumen, modelo: renderModelo, giro: renderGiro, cinem: renderCinem, comp: renderComp, verif: renderVerif, fea: renderFEA, bx: renderBX, masa: renderMasa, agentes: renderAgentes, planos: () => { renderPkg(); renderPlanos(); } };
+  /* GIF del movimiento (valores por defecto) incrustado al construir: se decodifica solo al abrir «Cinemática» */
+  let simGifUrl = null;
+  function addSimGif() {
+    const el = document.querySelector('section[data-t="cinem"]'), src = document.getElementById("TT_SIMGIF");
+    if (!el || !src) return;
+    if (!simGifUrl) { try { const b = atob(src.textContent.trim()), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); simGifUrl = URL.createObjectURL(new Blob([u], { type: "image/gif" })); } catch (e) { return; } }
+    const esDef = Object.keys(DEF).every((k) => P[k] === DEF[k] || (P[k] !== P[k] && DEF[k] !== DEF[k]));
+    const card = document.createElement("div"); card.className = "card sim-gif"; card.id = "kinGif"; card.style.marginBottom = "12px";
+    card.innerHTML = `<h3>Movimiento cinemático: empuje, retorno y reenganche (2 carreras, giro antihorario, ×2)</h3>
+      <div class="note">Cada carrera gira la mesa un paso de pasadores (360°/N_pin); en el retorno el bloque-uña monta el pasador siguiente por la rampa del dorso y cae detrás de él, y la carrera siguiente parte con el cilindro en la misma posición angular que la primera. GIF generado con la simulación de esta herramienta${esDef ? "" : " — <b>con los parámetros por defecto, no con los actuales</b>; para los actuales use «Simulación» → «Exportar GIF»"}.</div>
+      <img src="${simGifUrl}" alt="Simulación del movimiento de la tornamesa: empuje, retorno y reenganche" loading="lazy" decoding="async">`;
+    el.prepend(card);
+  }
+  const RENDER = { resumen: renderResumen, modelo: renderModelo, giro: renderGiro, cinem: () => { renderCinem(); addSimGif(); }, comp: renderComp, verif: renderVerif, fea: renderFEA, bx: renderBX, masa: renderMasa, agentes: renderAgentes, planos: () => { renderPkg(); renderPlanos(); } };
   function renderTab(t) { if (!dirty.has(t)) return; dirty.delete(t); RENDER[t](); }
   function renderAll() {
     renderBadges();

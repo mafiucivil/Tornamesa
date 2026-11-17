@@ -217,7 +217,7 @@ VAR_REFUERZO = {
     34: [(("A", "C1", "C2", "C3"), "atiesador 30 × 60 × 500", 1)],
     35: [(("B",), "atiesador 30 × 85 × 500", 1)],
     36: [(("BASE-G", "A-G"), "atiesador 30 × 100 × 500", 1)],
-    43: [(("BX-anulado",), "atiesador 30 × 65 × 500 (BX rev. 1 del núcleo)", 1)],
+    43: [(("BX",), "atiesador 30 × 65 × 500 (BX con 20 °C de uso, núcleo e7eae2e; también BX rev. 1)", 1)],
     44: [(("BX",), "atiesador 30 × 75 × 500", 1)],
 }
 

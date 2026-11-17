@@ -31,7 +31,7 @@ const BX = (() => {
   const BX_GROUP = { id: "bx", t: "TT300-BX · disco inoxidable atornillado (2 semidiscos con CJP) y pastillas de UHMW en portador soldado a la base", p: [
     ["bx_ss_mat", "Disco: material. 1 = inoxidable austenítico 304/316L (Fy_ss y Fu_ss del núcleo; α = 17,3×10⁻⁶/K); 2 = dúplex 2205 (UNS S32205, ASTM A240; α ≈ 13,0×10⁻⁶/K). Revisión del mandante 16-11-2026: 304", "–", 1, 1, 2, 1],
     ["bx_al_st", "Acero al carbono de la mesa: α para la dilatación diferencial con el disco (revisión del mandante: 12; Δα = 17,3 − 12 = 5,3×10⁻⁶/K con 304)", "×10⁻⁶/K", 12, 10, 14, 0.1],
-    ["T_ifc_max", "Interfaz de giro: temperatura máxima de servicio (ambiente; revisión del mandante 16-11-2026: 50 °C; los 80 °C son del sello hidráulico)", "°C", 50, 20, 80, 1],
+    ["T_ifc_max", "Interfaz de giro: temperatura máxima de servicio (ambiente; revisión del mandante 17-11-2026: 20 °C de uso; antes 50 °C; los 80 °C son del sello hidráulico)", "°C", 20, 20, 80, 1],
     ["T_ifc_min", "Interfaz de giro: temperatura mínima de servicio (ambiente)", "°C", 0, -40, 20, 1],
     ["bx_Fy_dx", "Disco dúplex 2205: Fy (ASTM A240 S32205: 450)", "MPa", 450, 300, 700, 5],
     ["bx_Fu_dx", "Disco dúplex 2205: Fu (ASTM A240 S32205: 655)", "MPa", 655, 500, 900, 5],

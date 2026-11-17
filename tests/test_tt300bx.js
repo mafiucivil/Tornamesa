@@ -88,7 +88,7 @@ test("BX: dimensiones adoptadas por defecto (disco 304 de 6 u 8 mm, 100–200 to
   // 80 °C: limitación de uso informativa (no pendiente crítico)
   assert.ok(A0.verdict.limitaciones_uso.some((l) => l.id === "BX-T-SELLO"));
   assert.ok(!A0.verdict.pendientes_criticos.some((c) => /80 °C/.test(c.nombre)));
-  assert.ok(A0.checks.some((c) => c.bx && /Pastillas a 50 °C: valor PV/.test(c.name)));
+  assert.ok(A0.checks.some((c) => c.bx && c.name.includes("Pastillas a " + P0.T_ifc_max + " °C: valor PV")));   // fila a la temperatura de uso (17-11-2026: 20 °C)
 });
 
 /* ---------- 3. Fórmulas ---------- */
@@ -166,12 +166,12 @@ test("BX: tornillos del disco: corte primario por el par (J3.7); térmica secund
   const T = G0.disco.tornillos;
   near(T.lista.reduce((s, b) => s + b.VT * b.r, 0) / 1e6, A0.R.TmaxTopes, 1e-9, "Σ V_T·r = T_calado");
   assert.ok(T.V_primario <= 0.9 * T.capV);
-  assert.equal(T.dT_diseno, 30, "ΔT de servicio 0–50 °C con montaje a 20 °C");
+  assert.equal(T.dT_diseno, Math.max(P0.T_ifc_max - P0.T_ref, P0.T_ref - P0.T_ifc_min), "ΔT de servicio = máx(T_ifc,máx − T_ref; T_ref − T_ifc,mín) (20 °C de uso y 0 °C mínimo: 20 K)");
   assert.equal(T.Vth_anillos.length, T.anillos.length);
   assert.ok(T.Vth_anillos[T.Vth_anillos.length - 1] >= T.Vth_anillos[0], "el anillo exterior toma más");
   const prim = A0.checks.find((c) => /corte de diseño por el par/.test(c.name)), sec = A0.checks.find((c) => /componente térmica secundaria/.test(c.name));
   assert.equal(prim.kind, "fu"); assert.equal(sec.kind, "info");
-  const th = G0.disco.termico; near(th.sigma_uniaxial, 193000 * 5.3e-6 * 30, 1e-9, "σ = E·Δα·ΔT ≈ 31 MPa");
+  const th = G0.disco.termico; near(th.sigma_uniaxial, 193000 * 5.3e-6 * T.dT_diseno, 1e-9, "σ = E·Δα·ΔT (≈ 20 MPa con ΔT = 20 K)");
   ["rango frente a 2·Fy", "frente a Fy", "pandeo por la compresión térmica"].forEach((k) => { const c = A0.checks.find((x) => x.bx && x.name.includes(k)); assert.ok(c && c.st === "ok", k); });
   T.lista.forEach((b) => { assert.ok(Math.abs(b.y) >= P0.bx_c_cjp - 1e-9); });
 });
