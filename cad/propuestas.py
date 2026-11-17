@@ -44,6 +44,8 @@ def wps_family(w):
         return "TAPON"
     if w.get("pasador_soldado"):
         return "PJP-PASADOR"
+    if w.get("inox_cjp"):
+        return "CJP-INOX"
     if w["groove"] and w.get("pjp_ras"):
         return "PJP-RAS"
     if w["groove"] and w.get("pjp"):
@@ -67,6 +69,7 @@ FAM_TXT = {
               "refuerzo prensado contra la base (contacto ≤ 1 mm), en posición plana", "1F"),
     "PJP-RAS": ("Ranura con bisel simple 45° de penetración parcial (PJP, E = S − 3), soldada de un lado y esmerilada al ras del canto, sin filete, "
                 "AWS D1.1:2020 Figura 5.2 (bisel simple: verificar designación)", "1G, 2G"),
+    "CJP-INOX": ("Ranura a tope CJP en acero inoxidable (texto de la junta en el registro: tipo, norma y aporte del JSON de diseño)", "1G"),
     "PJP-PASADOR": ("Pasador 34CrNiMo6+QT a anillo S355/A572: ranura PJP con bisel 45° en el borde del agujero del anillo, toda la circunferencia, esmerilada a ras. "
                     "Acero NO precalificado (AWS D1.1:2020 Tabla 5.3): WPS CALIFICADA POR ENSAYO (cláusula 6, PQR con dureza ZAC ≤ 350 HV10)", "1G (pieza girada), 2G"),
 }
@@ -87,7 +90,7 @@ def wps_rows(ctx):
         else:
             passes = str(max(x["pasadas"] for x in ws))
         assert len({wps_family(x) for x in ws}) == 1 and len({precalentamiento(x["t_pre"]) for x in ws}) == 1, f"WPS-P{n:02d} agrupa juntas de familia o rango de precalentamiento distintos"
-        fam_txt = FAM_TXT[fam][0]
+        fam_txt = ws[0].get("fam_txt") or FAM_TXT[fam][0]
         pre_ = ws[0].get("pre_txt") or (pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)")
         int_ = ws[0].get("interpase_txt") or INTERPASE
         rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), fam_txt, FAM_TXT[fam][1], ws[0].get("corr_gmaw") or CORR["GMAW"], ws[0].get("corr_smaw") or CORR["SMAW"], CORR["FCAW"], pre_, int_, passes])

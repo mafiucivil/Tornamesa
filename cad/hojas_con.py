@@ -822,7 +822,9 @@ def pasos(ctx):
          f"{a_piv['juego'].capitalize()} (agujero {a_piv['h_lim']}; eje {a_piv['s_lim']})", "Prensa hidráulica o hielo seco; guía de centrado", insp("Pivote:")],
         ["—", "Verificar la perpendicularidad del pivote respecto de la cara de apoyo", "≤ 0,05", "Escuadra, comparador", insp("Pivote:")]]))
     prev4 = G["base"] + G["piv"][:1]
-    if G["intb"]:
+    if g.opt == 4:                       # TT300-BX: portador soldado, pastillas a presión y sus tornillos (bloque «bx» del JSON)
+        S.append(("4. INTERFAZ BX, LADO BASE (portador soldado y pastillas de UHMW)", prev4, G["intb"], (0, 0, 350), None, __import__("bx_notas").paso4(ctx, pq, insp, T)))
+    elif G["intb"]:
         rows = [[pq(*G["intb"]), (f"Colocar los {g.n_sec} sectores de la base (muesca en la bisectriz) contra las barras de tope soldadas" if g.removable else
                                   (f"PEGAR los {g.n_sec} sectores de la base sobre la cara planeada (fijación NO desmontable; en AF2 no hay topes): adhesivo estructural con la preparación de superficie, espesor de capa y curado de la hoja técnica del proveedor"
                                    if ctx.m.get("int_tornillo_af2") else
@@ -847,7 +849,9 @@ def pasos(ctx):
     lf7 = iso286.limits(P["D_piv"], "F7")
     rows5 = [[pq("buje"), f"Prensar el buje en el cubo de la mesa (Ø{f(g.d_bush)} H7/s6); luego escariar o mandrinar el Ø interior a {f(P['D_piv'])} F7 con el buje ya calado (PIV-002)", a_bu["juego"].capitalize(), "Prensa; escariador o mandrinadora", insp("Buje (PIV-002)")],
              ["—", f"Verificar el Ø interior del buje DESPUÉS del calado: {fm(lf7[0], 3)} / {fm(lf7[1], 3)} (F7) en 3 secciones × 2 direcciones; registrar", f"Juego F7/f7 con la zona f7 del pivote {iso286.fit(P['D_piv'], 'F7', 'f7')['cmin']:+d}/{iso286.fit(P['D_piv'], 'F7', 'f7')['cmax']:+d} µm", "Micrómetro de interiores", insp("Buje (PIV-002)")]]
-    if G["intm"]:
+    if G["intm"] and g.opt == 4:         # TT300-BX: disco en semidiscos atornillado a la mesa
+        rows5 += __import__("bx_notas").paso5(ctx, pq, insp, T)
+    elif G["intm"]:
         gr_ = " y montar las graseras" if any("graser" in k for k in G["intm"]) else ""
         rows5.append([pq(*G["intm"]), ("Con la mesa invertida: fijar los sectores bajo la plancha inferior (tornillos de posición)" + gr_ if g.removable else
                                        ((f"Con la mesa invertida: PEGAR los sectores bajo la mesa y fijarlos con los {int(g.I['tornillos']['n'])} tornillos {g.I['tornillos']['designacion']} (toman el par de la interfaz; NO desmontable)" + gr_)

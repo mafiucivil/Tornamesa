@@ -29,7 +29,7 @@ def extras(ctx):
         ("Placa y tornillo de retención de pasador de articulación" if g.modo == 1 else "Placa y tornillo de retención de los pasadores E y Q (PROPUESTA)", 2 * n, "S355J2 / 8.8", "A DEFINIR POR CATÁLOGO"),
         ("Grillete de izaje (pasador de Ø ≤ %s mm)" % fm(P["d_ear"] - P["g_ear"], 0), 4, "ASME B30.26, WLL ≥ requerido por el núcleo (verificación «Orejas de izaje»)", "A DEFINIR POR CATÁLOGO"),
         ("Faldón de sello perimetral (opcional) y fleje", 1, "NBR 70 / S235 galvanizado; dimensiones por el proveedor (opcional)", "A DEFINIR POR CATÁLOGO"),
-        ("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, ("Cantidad: llenado de ranuras + película de 0,3–0,5 mm por cara" if g.opt in (1, 3) and g.h_gr > 0 else "Cantidad: película de 0,3–0,5 mm sobre la cara de apoyo de la base y la cara inferior de la mesa"), "A DEFINIR POR CATÁLOGO"),
+        *([] if g.opt == 4 else [("Grasa grafitada NLGI 2 (≥ 10 % grafito, EP)", 1, ("Cantidad: llenado de ranuras + película de 0,3–0,5 mm por cara" if g.opt in (1, 3) and g.h_gr > 0 else "Cantidad: película de 0,3–0,5 mm sobre la cara de apoyo de la base y la cara inferior de la mesa"), "A DEFINIR POR CATÁLOGO")]),
         ("Bomba, válvulas, mangueras y manómetro (circuito hidráulico)", 1, f"Fuera de los planos mecánicos: ver especificación en {CODE}-ACC-002-{REV}", "A DEFINIR POR CATÁLOGO"),
     ]
     if g.opt == 1:
@@ -77,7 +77,8 @@ def cut_rows(ctx):
             R.append([p.code.replace(CODE + "-", ""), p.name[:34], forma, dim, str(qty if qty is not None else p.qty), (mat or p.material)[:44], nota])
     B, tb = g.B, g.tb
     add("base_plancha", "Plancha", f"{f(B + 10)}×{f(B + 10)}×{f(tb)}", "Sobremetal 5 por borde; planitud/planeado tras soldar")
-    add("collar", "Disco", f"Ø{f(g.D_boss + 10)}×{f(g.h_boss + 5)}", f"De plancha de {f(g.h_boss + 5)}: caras planeadas a {f(g.h_boss)} y Ø{f(g.D_boss)} torneado; agujero tras soldar")
+    add("collar", "Disco", f"Ø{f(g.D_boss + 10)}×{f(g.h_boss + 5)}", f"De plancha de {f(g.h_boss + 5)}: caras planeadas a {f(g.h_boss)} y Ø{f(g.D_boss)} torneado; agujero tras soldar"
+        if g.opt != 4 else __import__("bx_notas").collar_corte(ctx))
     L_ml, L_mc = ctx.m.info.get("marco_long") or (B, B - 2 * P["rim_t"])
     add("marco_largo", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_ml, 1)}")
     add("marco_corto", "Pletina", f"{f(P['rim_t'])}×{f(P['rim_h'])}×{fm(L_mc, 1)}")
@@ -166,7 +167,9 @@ def cut_rows(ctx):
         xs_ = [q[0] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]
         ys_ = [q[1] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]
         add("bloque_una", "Forja/bloque", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{fm(BU['h'] + 10, 0)}", "Forja con certificado 3.1 (Re en la propia forja); " + ("oxicorte CNC del contorno, asiento fresado y templado" if BU.get("contorno") else "cara templada y rectificada"))
-    if g.opt:
+    if g.opt == 4:                       # TT300-BX: disco en semidiscos, portador y pastillas (bloque «bx» del JSON)
+        __import__("bx_notas").cut_rows(ctx, add)
+    if g.opt and g.opt != 4:
         th = 360.0 / g.n_sec
         env = f"{f(g.Ro - g.Ri * math.cos(math.radians(th / 2)) + 10)}×{f(2 * g.Ro * math.sin(math.radians(th / 2)) + 10)}"
         for k, nm in (("int_disco_base", "Sector (bruto rectangular envolvente)"), ("int_disco_mesa", "Sector (bruto rectangular envolvente)"), ("int_cara", "Sector (bruto rectangular envolvente)"), ("int_bronce", "Sector/pastilla (bruto envolvente)")):

@@ -620,3 +620,20 @@ Citas «de memoria» de ASME II-D Tabla Y-1, EN 10088-2/EN 10028-7, ISO 898-1 (t
 **Efecto en el cálculo.** (1) La flexión de la cadena de empuje se verifica con Fy/Nd. BTH-1 §3-2.3.4 admite 1,25Fy/Nd para pasadores (barras redondas macizas) y secciones rectangulares macizas respecto del eje menor: el criterio actual es un 20 % más conservador en esos casos. No se cambia sin decisión del mandante y sin confirmar en el texto qué secciones del proyecto califican (la flexión respecto del eje mayor de barras rectangulares tiene límite de pandeo lateral). (2) 0,6Fy en las planchas es más conservador que F11 (≈ 0,90Fy·S). (3) Las demás correcciones son de numeración y no cambian ningún FU.
 
 **Referencias en el código que siguen la numeración anterior** (no se modificaron en este cambio: solo se tocó este registro): `packages/core/tt300c.js` cita «AWS D1.1 Tabla 5.8» (filete mínimo), «Figura 5.4 (TC-U4b)», «Figura 5.2» para el filete en T, «AISC 360-22 F11 (0,6Fy)» y «ASME BTH-1 §3-2.5» para aplastamiento (§3-2.5 trata tensiones normales y de corte combinadas según fuentes secundarias: verificar texto); `cad/hojas_gen.py` cita «T5.8 filete mínimo, T5.11 precalentamiento» y «AWS D1.1 CL. 3» para WPS precalificados (en 2020 es la Cláusula 5).
+
+## TT300-BX: disco inoxidable atornillado y pastillas de UHMW (16-11-2026)
+
+Módulo aparte `packages/core/tt300bx.js` (resumen y resultados en `docs/bx/README_BX.md`). Criterios nuevos; los marcados «criterio del proyecto» o «de taller» son supuestos por confirmar.
+
+| Verificación | Criterio | Referencia | Nota |
+|---|---|---|---|
+| Presión de la pastilla | p = ∫q·dA_trib/A_p ≤ p_adm (q de Navier con la excentricidad hacia la pastilla) | Catálogo UHMW (ASTM D4020) | A 80 °C: fila «pend» con k_p del registro (0,40, C) |
+| Sobrepresión por planitud | p + d_flat/(c_p + A_p/k_placa) ≤ p_adm; c_p = h_p/E_c(S) + (t−1)/M; k_placa = 16π(D_disco + D_mesa)/s² | Módulo confinado (Gent–Lindley, como uhConf); Timoshenko §19 | d_flat del núcleo (0,05 en Ø100) |
+| Arrastre sobre el UHMW | μ_máx·N_i contra la pared: σ = F/(d·(t − 1)) ≤ p_adm; núcleo central μ_máx(h_p + t/2) ≤ d/8 | Equilibrio; criterio del núcleo para la lámina B | El tornillo de la pastilla queda fuera del camino (holgura del agujero > holgura en frío) |
+| Arrastre en el acero | μ_ef = máx(μ_máx; T_calado/(N·r_u)) | Criterio de los topes de acero del núcleo | Portador, filetes y tornillos del disco |
+| Portador soldado solo en los bordes | τ = T_cruza(r)/(2πr²·t·η(r)) ≤ Fy/(Nd·√3); η por cuerdas; reparto por C = ∫dr/(r³η) | ASME BTH-1 §3-2.3.6 | Filetes perimetrales: AISC J2.4, BTH-1 §3-3.4 |
+| Ligamento entre agujeros a plasma | ≥ máx(10 mm; t) | Criterio de taller (por confirmar) | Gobierna la cobertura y con ella PV |
+| Celda del disco entre pastillas | placa anular a = d/2 empotrada, b = √(A_celda/π) guiada: σ ≤ 0,6Fy; w ≤ mín(d_flat; 0,1h_p) | Timoshenko y Woinowsky-Krieger §17 | Solución cerrada verificada por diferencias finitas |
+| Tornillos del disco | √(V_T² + V_th²) ≤ Fnv·A_b/Ω; V_th por cadena de resortes con rigidez de Huth y mesa rígida; ΔT = máx(dT; T_máx − T_ref; T_ref − T_mín) | AISC 360-22 §J3.7; Huth (1986), ASTM STP 927 | Con austenítico (α 17,3) ≈ 1 200 tornillos M10; con dúplex 2205 (α ≈ 13,0, ficha, confianza B) 140 |
+| CJP de semidiscos inoxidables | CJP con aporte compatible = metal base: σ ≤ 0,6Fy | AWS D1.6/D1.6M:2017; AISC Tabla J2.5 | END propuesto: VT y PT 100 % de la cara de deslizamiento |
+| Ajuste a presión de la pastilla | δ − tol ≥ 0 a 20 °C; holgura en frío (−10 °C) ≤ holgura del tornillo − 0,2; ε a 80 °C ≤ 2,5 % | Criterio del proyecto | α_UHMW = 190×10⁻⁶/K (mandante); E corto plazo 700 (C) |

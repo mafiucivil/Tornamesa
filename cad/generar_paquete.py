@@ -46,6 +46,12 @@ def main():
             sys.exit("No se pudo exportar el diseño: " + r.stderr)
         jpath.write_text(r.stdout, encoding="utf-8")
     D = load(jpath)
+    if D.get("bx"):
+        # TT300-BX (tools/export_design_bx.js): mismas láminas del juego, con la interfaz BX (disco atornillado + pastillas en portador) en lugar de
+        # sectores, lámina UHMW y topes; las láminas BX y el conjunto de la interfaz salen del bloque «bx» del JSON (cad/hojas_bx.py)
+        import hojas_bx
+        hojas_bx.activar()
+        print("  JSON con bloque «bx»: juego TT300-BX (cad/hojas_bx.py)", flush=True)
     if jpath.resolve() != (out / "TT300-C_design.json").resolve():
         shutil.copy(jpath, out / "TT300-C_design.json")
     if not (D["verdict"]["gira"] and D["verdict"]["estructura"]):

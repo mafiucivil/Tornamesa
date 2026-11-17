@@ -169,6 +169,8 @@ def cortes_control(ctx):
 def residual_txt(ctx, grupo):
     """Qué no descuenta el núcleo en cada grupo (explica el residual 3D − núcleo; no se compensa con fórmulas)."""
     g, P = ctx.g, ctx.P
+    if grupo == "ss" and g.opt == 4:
+        return f"avellanados de los {g.bx['disco']['tornillos']['n']} tornillos del disco (el núcleo calcula el disco lleno)"
     if grupo == "ss" and g.opt and not g.removable:
         jk = g.n_sec * g.junta("disc") * (g.Ro - g.Ri) * (g.I["tss"] + g.I["tss2"]) * RHO_SS
         return (f"fijación pegada: el núcleo calcula discos completos (sin juntas ni muescas), el modelo 3D conserva {g.n_sec} sectores con junta de {fm(g.junta('disc'), 1)} mm ({fm(jk, 1)} kg) "

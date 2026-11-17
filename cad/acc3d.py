@@ -37,7 +37,9 @@ BAS_NUM = {"cajon_pared_x": 12, "cajon_pared_y": 13, "cajon_munon": 14, "cajon_t
            "refuerzo_ati_h45": 33, "refuerzo_ati_h60": 34, "refuerzo_ati_h85": 35, "refuerzo_ati_h100": 36,
            # marco perimetral interrumpido a lo largo del refuerzo: pivotado lado 550 (37/38), lado 545 (39/40); guiado lado 545 (41/42)
            "marco_largo_int_r550": 37, "marco_corto_int_r550": 38, "marco_largo_int_r545": 39, "marco_corto_int_r545": 40,
-           "marco_largo_ins_g": 41, "marco_corto_ins_g": 42}
+           "marco_largo_ins_g": 41, "marco_corto_ins_g": 42,
+           # TT300-BX: atiesador del refuerzo con el alto de la interfaz BX
+           "refuerzo_ati_h65": 43, "refuerzo_ati_h75": 44}
 # registro de la interrupción del marco del modo pivotado por lado del refuerzo (mm, redondeado a 0,1) → sufijo de BAS_NUM
 MARCO_PIV_CATETO = {550.0: "_r550", 545.0: "_r545"}
 

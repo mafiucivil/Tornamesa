@@ -170,6 +170,8 @@ def notas_anillo_inf(ctx):
         out.append(f"Solo el anillo INFERIOR (MES-004), AF2: roscas de los {int(TA['n'])} tornillos {TA['designacion']} del disco de la mesa: " + "; ".join(pa) +
                    (f"; desde la cara inferior del anillo: rosca útil {fm(RS['prof'], 1)}, taladro Ø{fm(RS['d_broca'], 2)} prof. {fm(RS['prof_taladro'], 1)}, remanente {fm(RS['remanente'], 0)} mm (núcleo: «{RS.get('pieza', TA.get('pieza', ''))}»); "
                     f"en las bisectrices entre pasadores (ligamento al agujero del pasador {fm(TA['ligPin'], 1)} mm, núcleo)." if ciega else f"; broca Ø{fm(RS['d_broca'], 2)} (núcleo).") + (" Algunas cortan los agujeros de los pasadores de empuje: conflicto declarado del núcleo, RETENIDA (GEN-009)." if ctx.conflicto("af2_pasadores") else ""))
+    if g.opt == 4:                       # TT300-BX: roscas ciegas de los tornillos del disco (bloque «bx» del JSON)
+        out += __import__("bx_notas").notas_anillo_inf(ctx)
     gp = m.info.get("grease_pts") or []
     if gp:
         pg = patron_txt(gp, "taladro axial Ø6", rmin=0)
@@ -216,7 +218,8 @@ def sheet_mesa_inf(ctx):
                  ("pasantes (taladro Ø{0} pasante, rosca en todo el espesor)".format(fm(ctx.m.info["screw_resp"]["mesa"]["broca"], 1)) if ctx.m.info["screw_resp"]["mesa"]["pasante"] else
                   "rosca útil {0}, taladro Ø{1} prof. {2}".format(fm(ctx.m.info["screw_resp"]["mesa"]["thr"], 0), fm(ctx.m.info["screw_resp"]["mesa"]["broca"], 1), fm(ctx.m.info["screw_resp"]["mesa"]["drill"], 0))) +
                  "; posiciones en la lámina de tornillos (INT-005). Roscar después de planear la cara.")] if (ctx.m.info.get("screw_resp") or {}).get("mesa") else []),
-             f"Unión con el anillo inferior: soldadura a tope circunferencial con caras inferiores a ras y transición 1:4 en la cara superior del anillo (chaflán hasta 3 mm del agujero de pasador + pendiente del cordón) ({jj[0] if jj else 'J??'}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."],
+             f"Unión con el anillo inferior: soldadura a tope circunferencial con caras inferiores a ras y transición 1:4 en la cara superior del anillo (chaflán hasta 3 mm del agujero de pasador + pendiente del cordón) ({jj[0] if jj else 'J??'}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."]
+            + (__import__("bx_notas").notas_mesa_inf(ctx) if g.opt == 4 else []),
             gd=[("flat", "0,20", None, "Planitud de la cara inferior (antes de montar la interfaz); paralelismo entre caras de la mesa: CON-009")])
     p.build()
     return p.h

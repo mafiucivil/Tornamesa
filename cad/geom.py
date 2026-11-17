@@ -75,6 +75,12 @@ class G:
         self.opt = int(I["o"])                      # 0 acero-acero, 1 A, 2 B, 3 C
         self.conf = int(I.get("conf", 1)) if self.opt == 3 else 0
         self.removable = P["fix_mode"] < 1.5
+        # TT300-BX (módulo aparte, tools/export_design_bx.js): bloque «bx» del JSON = disco inoxidable atornillado a la mesa + pastillas de UHMW
+        # en un portador soldado a la base. Interfaz propia (opt 4): sin sectores, sin topes ni tornillos de posición (la geometría sale del bloque «bx»)
+        self.bx = D.get("bx") or None
+        if self.bx:
+            self.opt = 4
+            self.removable = False
         self.delta = float(I["delta"])
         self.wood = P["opt_wood"] > 0.5
         self.t_ring = float(self.IG.get("t_ring", P.get("t_ring", 10.0)))   # pletina del anillo de la madera (núcleo: P.t_ring, 4.ª pasada)
@@ -192,6 +198,12 @@ class G:
         L = []
         if self.opt == 0:
             return L
+        if self.opt == 4:
+            X = self.bx
+            L.append(dict(id="portador", z0=tb, t=float(X["portador"]["t"]), lado="base"))
+            L.append(dict(id="pastilla", z0=tb + float(X["portador"]["t"]), t=float(X["pastillas"]["h_p"]), lado="base"))
+            L.append(dict(id="disco_bx", z0=tb + float(X["portador"]["t"]) + float(X["pastillas"]["h_p"]), t=float(X["disco"]["t"]), lado="mesa"))
+            return L
         if self.opt in (1, 2):
             t1, t2 = I["tss"], I["tss2"]
             L.append(dict(id="disc_base", z0=tb, t=t1, lado="base"))
@@ -212,6 +224,10 @@ class G:
     # ------------------------------------------------------------------
     @property
     def interfaz_nombre(self):
+        if self.opt == 4:
+            X = self.bx
+            return (f"Interfaz BX: disco de {X['disco']['material']} e = {fm(X['disco']['t'], 0)} atornillado a la mesa ({X['disco']['semidiscos']} semidiscos con CJP) "
+                    f"sobre {X['pastillas']['n']} pastillas de UHMW-PE " + (f"Ø{fm(X['pastillas']['d'], 0)}" if X['pastillas'].get('d') and not str(X['pastillas'].get('forma', '')).lower().startswith('cuad') else f"cuadradas de {fm(X['pastillas'].get('lado') or 0, 0)}") + f" en un portador de acero e = {fm(X['portador']['t'], 0)} soldado a la base")
         return {0: "Acero-acero con grasa grafitada (sin interfaz alternativa)",
                 1: "Opción A: dos discos de acero inoxidable con grasa (base liso, mesa ranurado)",
                 2: "Opción B: dos discos de acero inoxidable con lámina de UHMW por sectores",
@@ -222,8 +238,8 @@ class G:
     @property
     def variante(self):
         """Código corto de la variante del juego (rótulo y título de cada lámina): BASE, A, AF2, B, C1…C3, W (+ F2 = fijación pegada, W = cubierta de madera)."""
-        c = "BASE" if self.opt == 0 else {1: "A", 2: "B", 3: f"C{self.conf}"}[self.opt]
-        if self.opt and not self.removable:
+        c = "BASE" if self.opt == 0 else {1: "A", 2: "B", 3: f"C{self.conf}", 4: "BX"}[self.opt]
+        if self.opt and self.opt != 4 and not self.removable:
             c += "F2"
         if self.wood:
             c = "W" if self.opt == 0 else c + "-W"
@@ -242,7 +258,7 @@ class G:
                 f", sin topes; disco de la mesa con {int(tor['n'])} tornillos avellanados {tor['designacion'].replace(' – ', ' ')} a la mesa (no desmontable)"
         elif self.opt in (1, 2) and not self.removable:
             t = t.split(":")[0] + f", fijación modo 2: discos inoxidables e{fm(I['tss'], 0)}/e{fm(I['tss2'], 0)} pegados" + (" (base liso, mesa ranurado)" if self.opt == 1 else "") + ", sin topes ni tornillos (no desmontable)"
-        elif self.opt and not self.removable:
+        elif self.opt and self.opt != 4 and not self.removable:
             t += "; fijación modo 2: sectores pegados, sin topes ni tornillos (no desmontable)"
         if self.wood:
             t += f"; con cubierta de madera e = {fm(self.P['t_wood'], 0)} y anillo de contención {fm(self.t_ring, 0)}×{fm(self.P['t_wood'], 0)}"
@@ -301,7 +317,7 @@ def supuestos(g):
     if g.opt and g.removable:
         add("S03", "Alojamiento del tope", f"Muesca pasante en la bisectriz del sector, ancho b_tope + 2 = {fm(P['b_tope'] + 2, 0)} mm (1 mm de holgura por lado, coherente con a_inf = w_tope + 1), centrada radialmente en r_u",
             "El cálculo fija L_tope, b_tope, w_tope, a_sup y a_inf (interfazGeom.topes) pero no dónde se aloja la barra respecto del sector.")
-    if g.opt:
+    if g.opt and g.opt != 4:
         add("S04", "Junta entre sectores", "Junta de ancho constante j = máx(1 mm; dilatación calculada) entre bordes paralelos a la bisectriz",
             "El núcleo exige junta en frío ≥ 1 mm y entrega la dilatación.")
     if g.opt == 1 or g.opt == 3:

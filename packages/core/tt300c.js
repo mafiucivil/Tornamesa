@@ -576,7 +576,7 @@ const TT = (() => {
   // Geometría resuelta y dimensionamiento de cada tope soldado (fijación desmontable) con el par de calado de R; la usan la masa (m.stopBars) y las verificaciones
   function stopsOf(P, R) {
     const I = R.ifc, out = [];
-    if (!(I.o > 0) || !(P.fix_mode < 1.5)) return out;
+    if (!(I.o > 0) || !(P.fix_mode < 1.5) || I.bx) return out;          // TT300-BX: sin sectores ni topes
     const Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), aInf = stopAInf(P);
     const Ftot = (R.TmaxTopes || R.Tmax) / (R.r_u / 1000), kpk = R.q_max / R.q_avg, Lav = R.Ro - R.Ri - 100;   // kN en el radio de fricción (T_calado; en el pivotado, la cota colineal de tmaxOf, mayor que la del empuje guiado, como en ifaceDesign); sector más cargado; canto radial disponible (mm)
     const push = (o) => {
@@ -610,7 +610,7 @@ const TT = (() => {
   // No se descuentan los tornillos de posición, las ranuras y graseras ni la distribución de tapones de grafito (conservador, < 0,2 % de la masa total).
   function cortesOf(P, R) {
     const I = R.ifc, out = [];
-    if (!(I.o > 0)) return out;
+    if (!(I.o > 0) || I.bx) return out;                                // TT300-BX: sin sectores (cortes propios en tt300bx.js)
     const Ro = R.Ro, Ri = R.Ri, rem = P.fix_mode < 1.5, aInf = stopAInf(P), top = (id) => (I.topes || []).find((x) => x.id === id);
     const jOf = (al, n) => jointOf(P, al, n);
     const add = (o) => {
@@ -758,9 +758,20 @@ const TT = (() => {
     plugCache.set(key, out);
     return out;
   }
+  // Gancho del módulo TT300-BX (packages/core/tt300bx.js; 16-11-2026). Solo actúa con la opción B (opt_uhmw) y P.__bx presente (objeto de datos que arma
+  // tt300bx.js con la geometría ya dimensionada): un disco inoxidable de espesor t_ss atornillado a la mesa (dos semidiscos con CJP), pastillas de UHMW
+  // en un portador de acero soldado a la base. Sin P.__bx no cambia nada (el resultado del núcleo es bit-idéntico).
+  //   δ = t_portador + saliente + t_ss; masa rotatoria = disco inoxidable; m.uhmw = pastillas; el portador de acero suma a m.total (m.bxPortador).
+  function ifaceDesignBX(P) {
+    const B = P.__bx, L = ifaceLoad(P, B.mTop, B.delta), A_ss = Math.PI * ((P.D_top / 2) ** 2 - riOf(P) ** 2);
+    return { o: 2, bx: true, tss: 0, tss2: B.t_ss, tssReq: B.t_ss_req || 0, tss2Req: B.t_ss_req || 0, tTope: 0, tuhTope: 0, gr: 0, tFlex: B.t_flex || 0, q: L.q_max, qAvg: L.q_avg,
+      a: P.ss_void / 2, sad: 0.6 * P.Fy_ss, A_ss, tuh: 0, tuhReq: 0, tuhConf: 0, EcU: 0, SU: 0, delta: B.delta, mTop: B.mTop, mUH: B.mUH, mSS: B.mSS, mBz: 0, tbz: 0,
+      mCar: B.mCar, t_c: B.t_c, h_p: B.h_p };
+  }
   function ifaceDesign(P) {
     const o = ifOpt(P);
     if (o === 0) return { o, tss: 0, tuh: 0, delta: 0, mTop: 0, mUH: 0, mSS: 0, mBz: 0, tbz: 0 };
+    if (o === 2 && P.__bx) return ifaceDesignBX(P);                     // módulo TT300-BX (packages/core/tt300bx.js): gancho aditivo, inactivo sin P.__bx
     if (o === 3) return ifaceDesignBz(P);
     const sad = 0.6 * P.Fy_ss, a = P.ss_void / 2, gr = o === 1 ? P.h_gr : 0;     // ranuras de engrase solo en el disco de la mesa de la opción A
     // Disco inoxidable: placa circular empotrada de radio a sobre un vacío local, carga uniforme q:
@@ -1065,6 +1076,7 @@ const TT = (() => {
     m.cyl = P.n_cyl * P.m_cyl;
     m.stopBars = 0;                                                      // barras de los topes soldados: las completa compute()
     m.total = m.disc + m.ss + m.uhmw + m.bz + m.base + m.rim + m.brackets + m.dogs + m.shoes + m.beds + m.cam + m.pivot + m.cyl;
+    if (ifc.bx) { m.bxPortador = ifc.mCar; m.total += ifc.mCar; }   // TT300-BX: portador de acero de las pastillas (soldado a la base); solo con P.__bx
     return m;
   }
   const masses = (P) => compute(P).m;                                   // con las barras de los topes dentro de m.total
@@ -2088,7 +2100,8 @@ const TT = (() => {
     for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) nodes.push([i * h, j * h]);
     const id = (i, j) => i * (n + 1) + j;
     const Rd = P.D_top / 2;
-    const mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl + R.m.ss + R.m.uhmw + R.m.bz;   // apoyado sobre la huella de la mesa (con las piezas de la interfaz)
+    let mOther = R.m.disc + R.m.pivot + R.m.dogs + R.m.cyl + R.m.ss + R.m.uhmw + R.m.bz;   // apoyado sobre la huella de la mesa (con las piezas de la interfaz)
+    if (R.m.bxPortador) mOther += R.m.bxPortador;                     // TT300-BX: portador de las pastillas (solo con P.__bx)
     const qDisc = mOther * G / (Math.PI * Rd * Rd);
     const qOwn = (R.m.base + R.m.rim + R.m.brackets + R.m.shoes + R.m.beds + (R.m.cam || 0)) * G / (P.B * P.B);   // peso propio repartido sobre la base (con las levas, fijas a la base o a la bancada)
     const q = [];
@@ -2278,7 +2291,7 @@ const TT = (() => {
     }
 
     /* (h) UHMW-PE: capacidades ya reducidas en P (p_adm, PV, E) */
-    if (I.o === 2) {
+    if (I.o === 2 && !I.bx) {                                        // TT300-BX: filas térmicas propias en tt300bx.js
       const UREF = REG + ", «Interfaz UHMW-PE (opción B)» y filas UHMW-PE (fichas Quadrant/Mitsubishi, Ensinger, Röchling; sin curva a 80 °C)";
       tadd({ sub: "h", kind: "info", conf: "C", name: "Lámina UHMW: factores aplicados a la capacidad (k_p sobre p_adm y PV) y al módulo (k_E)", formula: "k_p = " + nf(k.p_uh, 3) + ", k_E = " + nf(k.E_uh, 3) + " (supuestos: sin curva del proveedor); la geometría de la lámina (espesor, tope) está congelada a 20 °C", dem: k.p_uh, cap: k.E_uh, unit: "– / –", ref: UREF });
       tadd({ sub: "h", kind: "info", conf: "C", name: "Lámina UHMW: acortamiento elástico bajo q_máx con el módulo reducido (flecha local en la ventana)", formula: "δ = q_máx·t/E_c(S); E_c = E_ap·k_E·[1 + (M/E − 1)S²/(1 + S²)]; E reducida aumenta la deformación bajo carga (y la fluencia, nota)", dem: I.q * I.tuh / I.EcU, cap: P.d_flat, unit: "mm (δ / planitud d_flat)", ref: UREF });
@@ -3463,7 +3476,7 @@ const TT = (() => {
     };
 
     /* --- Interfaz con discos de acero inoxidable (A) o discos + lámina UHMW (B) --- */
-    if (I.o === 1 || I.o === 2) {
+    if ((I.o === 1 || I.o === 2) && !I.bx) {                          // TT300-BX: filas propias en tt300bx.js
       const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (criterio del proyecto, más conservador que AISC 360-22 F11-1)";
       // disco de la base (liso) y disco de la mesa (con ranuras de engrase en la opción A)
       const discs = discList(P, I);                                      // plancha a la que se sueldan los topes: base (disco de la base) o fondo de la mesa
@@ -3517,7 +3530,7 @@ const TT = (() => {
       if (I.o === 1) add({ grp: "Interfaz inox", sys: "est", kind: "pend", name: "Opción A: par inox–inox con riesgo de gripado si la película de grasa se expulsa: exigir aleaciones o durezas distintas (≥ 50 HB de diferencia) o recubrimiento", formula: "Sin verificación numérica (ASTM G98)", dem: 0, unit: "–", ref: "ASTM G98; decisión del proyectista" });
       add({ grp: "Interfaz inox", sys: "est", kind: "info", name: "Masa agregada por la interfaz (discos inoxidables + lámina UHMW)", formula: "m = ρ·A·t", dem: R.m.ss + R.m.uhmw, unit: "kg", ref: "Geometría" });
     }
-    if (I.o === 2) {
+    if (I.o === 2 && !I.bx) {
       const REFU = "Proveedor de UHMW-PE (datos de catálogo, ASTM D4020); confirmar con ensayo";
       add({ grp: "Interfaz inox", sys: "est", name: "Lámina UHMW: presión de contacto máxima frente a la admisible sostenida", formula: "q_máx ≤ p_adm,UHMW", dem: I.q, cap: P.p_uhmw, unit: "MPa", ref: REFU });
       add({ grp: "Interfaz inox", sys: "est", kind: "geo", name: "Lámina UHMW: espesor adoptado frente al requerido", formula: "t ≥ máx(E_ap·δ_planitud/(p_adm − q_máx); t_mín constructivo)", dem: I.tuhReq, cap: I.tuh, unit: "mm", ref: REFU });
@@ -4094,7 +4107,7 @@ const TT = (() => {
       if (I.o === 3) sens.bz090 = Object.assign(sumSens(thermalRun(Pa, sc, { kT_bz: 0.90 }, frozen, g0, A20, cache)), { k: 0.90 });
       const FS0 = base.A.R.cd ? base.A.R.cd.FS : NaN;
       sens.mu = [0.8, 1, 1.2, 1.5].map((f) => ({ f, FS: FS0 / f, gira: FS0 / f >= P.FS_min - 1e-12 })); sens.mu_crit = FS0 / P.FS_min;   // μ máximo (múltiplo del de diseño) con FS ≥ FS_mín
-      if (I.o === 2) {
+      if (I.o === 2 && !I.bx) {
         const uh = (ov) => { const run = thermalRun(Pa, sc, ov, frozen, g0, A20, cache); const rr = run.A.checks.filter((c) => c.grp === "Interfaz inox" && /UHMW/.test(c.name) && c.fu != null && c.kind !== "info"); const m = rr.reduce((b, c) => (!b || (isFinite(c.fu) ? c.fu : 99) > b.fu ? { fu: isFinite(c.fu) ? c.fu : 99, nombre: c.name } : b), null); return { fuUHMW: m ? m.fu : 0, gobernante: m ? m.nombre : null, cumple: !rr.some((c) => c.st === "fail") }; };
         const ks = [0.3, 0.4, 0.5, 0.6, 0.8, 1.0];
         sens.uhmw = { kp: ks.map((k) => Object.assign({ k_p: k, k_E: P.kT_E_uh }, uh({ kT_p_uh: k }))), kE: ks.map((k) => Object.assign({ k_p: P.kT_p_uh, k_E: k }, uh({ kT_E_uh: k }))) };
