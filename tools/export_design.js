@@ -21,8 +21,12 @@ function cylPos(sx, dy) {
   };
 }
 const ccw = [cylPos(1, 1), cylPos(-1, -1)], cw = [cylPos(1, -1), cylPos(-1, 1)];
+// Tarea 1 (leva de reenganche guiada) y Tarea 2 (modo pivotado tipo KIET): datos de dibujo del accionamiento; los arma el núcleo (TT.designDrive) para que
+// packages/web/planos_export.js produzca el mismo JSON con una sola llamada
+const DRV = TT.designDrive(P, R);
 const out = {
-  proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P,
+  proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P, modo: DRV.modo, modo_nombre: DRV.modo_nombre, levaGuiada: DRV.levaGuiada, pivotado: DRV.pivotado,
+  pasadores_empuje: DRV.pasadores_empuje,   // pasadores a ras del disco, soldados (12-11-2026): unión, material, WPS y piezas eliminadas (MES-013, MES-014)
   verdict: A.verdict, validacion: val,
   derivados: {
     W: R.W, N: R.N, ND: R.ND, q_max: R.q_max, q_avg: R.q_avg, Fstall: R.Fstall, Falarm: R.Falarm, Fret: R.Fret, A: R.A, Aann: R.Aann,
@@ -31,7 +35,7 @@ const out = {
     K: { armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, gap: K.gap, radial: K.radial, DeltaMax: K.DeltaMax,
          L_s: K.L_s, Lg: K.Lg, front: K.front, rear: K.rear, y_eye: K.y_eye, y_rp0: K.y_rp0, y_rp1: K.y_rp1, L_bed: K.L_bed, Y_bed: K.Y_bed, zc0: K.zc0, lever: K.lever, mouthX: K.mouthX, inset: K.inset, tipX: K.tipX, travel: K.travel, pocketEnd: K.pocketEnd, shoeTop: K.shoeTop },
     casos: R.cases.map((c) => ({ id: c.id, nombre: c.name, mu: c.mu, r: c.r, T: c.T, F: c.F, p: c.p, FS: c.FS, gira: c.turns })),
-    masas: R.m,
+    masas: R.m, masas_desc: DRV.masas_desc,
   },
   pasadores: Array.from({ length: P.N_pin }, (_, k) => (180 / P.N_pin + 360 * k / P.N_pin)),
   nervios: Array.from({ length: P.N_rib }, (_, k) => 360 * k / P.N_rib),
@@ -70,17 +74,19 @@ const out = {
     const ifc = R.ifc;
     // 4.ª pasada: material descontado de las coronas (R.ifc.cortes: junta, muesca y chaflán por sector, masa bruta/descontada/neta), juntas efectivas y anillo de acero de la madera
     const cortes = (R.ifc.cortes || []).map((c) => Object.assign({}, c)), jS = cortes.filter((c) => !c.strip).map((c) => c.j), jU = cortes.filter((c) => c.strip).map((c) => c.j);
-    const anillo = R.m.ring > 0 ? { t_ring: P.t_ring, h_ring: P.t_wood, D_ext: P.D_top, D_int: P.D_top - 2 * P.t_ring, m: R.m.ring, m_madera: R.m.wood } : null;
+    const anillo = null;   // cubierta W (08-11-2026): sin anillo de contención 10×50; la geometría del rebaje va en la clave «madera»
     // Tapones de grafito (opción C): cantidad real colocable y fracciones real/ideal (R.ifc.tap; conciliado con el patrón S09 del dibujante), null sin la opción C
     const tapones = ifc.tap ? { conf: ifc.conf, N_real: ifc.Nreal, N_ideal: ifc.Nideal, fg_real: ifc.fgReal, fg_ideal: ifc.fgIdeal, fg_usado: ifc.fgUsed, modo: P.bz_fg_modo, cobertura: ifc.cobGrafito, cobertura_ideal: ifc.cobGrafitoIdeal, cov: ifc.cov,
       d: ifc.tap.d, p: ifc.tap.p, eta: ifc.eta, bz_edge: ifc.tap.edge, n_sectores: ifc.tap.n, junta: ifc.tap.junta, L_muesca: ifc.tap.L, radios_tornillos: ifc.tap.radios, n_tornillos_sector: ifc.tap.radios.length ? (ifc.tap.nTor >= 4 ? 4 : 2) : 0, d_cabeza: ifc.tap.dk,
       N_malla: ifc.tap.N_malla, perdidas: ifc.tap.perdidas, por_sector: ifc.tap.porSector, fg_min: P.bz_fg_min, cumple_lubricacion: ifc.fgUsed >= P.bz_fg_min - 1e-12 } : null;
     return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
-      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, t_ring: P.t_ring, anillo_madera: anillo, tapones,
+      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, anillo_madera: anillo, tapones,
       hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
       Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
-      nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total" };
+      nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = null (la cubierta W no tiene anillo de contención; ver la clave «madera»)" };
   })(),
+  // Cubierta de madera W (rebaje): geometría de fabricación (anillo, pared, plancha rebajada, almas recortadas, tablones, abertura, fijación, soldaduras) y FEA escalonado; null sin cubierta
+  madera: TT.designWood(P, A),
   verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
   // Escenario térmico (exposición solar, registro.md «Temperatura (exposición solar, 80 °C)»): por alternativa y temperatura; geometría de 20 °C congelada; solo informativo (no entra en el veredicto)
   termica: TT.thermal(P),

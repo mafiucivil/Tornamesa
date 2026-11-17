@@ -1,0 +1,1541 @@
+diff --git a/cad/controles.py b/cad/controles.py
+index 06dc158..d5160d8 100644
+--- a/cad/controles.py
++++ b/cad/controles.py
+@@ -13,7 +13,7 @@ import re
+ import sys
+ import pathlib
+ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+-from geom import CODE, REV, BORDE_MIN
++from geom import CODE, REV, BORDE_MIN, fm
+ 
+ # ISO 2768-1:1989, Tabla 1 — desviaciones admisibles para cotas lineales [mm]; None = no especificado
+ ISO2768_REF = [((0.5, 3), (0.05, 0.1, 0.2, None)), ((3, 6), (0.05, 0.1, 0.3, 0.5)), ((6, 30), (0.1, 0.2, 0.5, 1.0)), ((30, 120), (0.15, 0.3, 0.8, 1.5)),
+@@ -262,17 +262,39 @@ def tornillos_juego(ctx):
+         out.append((f"Tapa de inspección: ISO 10642 M{g.insp_d:.0f}×{g.insp_L} en el fondo del rebaje (rosca pasante {g.insp_rem:.0f})", g.insp_d, float(g.insp_L), g.cb_t, g.insp_rem, False))
+     if ctx.m.get("pernos_pasador"):
+         out.append((f"Perno ISO 4762 M20×45 en el pasador (arandela {g.washer_t:.0f}, rosca útil {g.pin_thr:.0f}, taladro {g.pin_drill_L:.0f})", 20.0, 45.0, g.washer_t, g.pin_thr, True))
++    if ctx.m.get("madera_tornillo"):
++        FX = g.MW["fijacion"]
++        clamp = FX["t_bajo_arandela"] + FX["h_arandela"]           # madera bajo la arandela + arandela (bajo la cabeza)
++        dec = tornillo_madera_conflicto(g)
++        out.append((f"Tablones W: ISO 4762 M{FX['d']:.0f}×{FX['L']:.0f} con arandela ISO 7093 en la plancha rebajada (rosca útil {FX['rosca_util']:.0f}, taladro {FX['prof_taladro']:.0f})",
++                    float(FX["d"]), float(FX["L"]), clamp, float(FX["rosca_util"]), True, dec))
+     for lado, r in sorted((ctx.m.info.get("screw_resp") or {}).items()):
+         out.append((f"Tornillo de posición ISO 10642 M{r['d']:.0f}×{r['L']:.0f}, lado {lado} (rosca útil {r['thr']:.0f}" + (", pasante)" if r["pasante"] else f", taladro {r['drill']:.0f})"),
+                     r["d"], r["L"], r["clamp"], r["thr"], not r["pasante"]))
+     return out
+ 
+ 
++def tornillo_madera_conflicto(g):
++    """Cubierta W: el núcleo elige el largo del tornillo de los tablones con engrane = L − t_bajo_arandela (sin la arandela). Devuelve el texto del conflicto
++    declarado si el engrane real (con la arandela) no cumple N-01, o None."""
++    if not g.MW:
++        return None
++    FX = g.MW["fijacion"]
++    eng = FX["L"] - FX["t_bajo_arandela"] - FX["h_arandela"]
++    if eng >= FX["d"] - 1e-6 and eng <= FX["rosca_util"] - 2.0 + 1e-6:
++        return None
++    return (f"Cubierta W, fijación de los tablones: ISO 4762 M{fm(FX['d'], 0)}×{fm(FX['L'], 0)} con la arandela ISO 7093 ({fm(FX['h_arandela'], 1)} mm) en el fondo del cajeado engrana {fm(eng, 1)} mm "
++            f"en la plancha rebajada (< 1,0·d = {fm(FX['d'], 0)}); el núcleo calcula engrane = L − t_bajo_arandela = {fm(FX['engrane'], 1)} y omite la arandela. Con prof. de taladro {fm(FX['prof_taladro'], 0)} "
++            f"(rosca útil {fm(FX['rosca_util'], 0)}) ningún largo ISO 4762 cumple engrane ≥ d y punta ≥ 2 mm antes del fin de la rosca: corregir en el núcleo (h_cajeado, d_tmad o t_reb). MAD-002 RETENIDA.")
++
++
+ def tornillos(ctx):
+     """N-01: cada tornillo roscado en una pieza: engrane ≥ 1,0·d; en agujero ciego, la punta queda ≥ 2 mm antes del fin de la rosca útil
+     (largo dentro de la rosca ≤ rosca útil − 2); en rosca pasante, el engrane no supera el espesor roscado."""
+     out = []
+-    for txt, d, L, clamp, thr, ciego in tornillos_juego(ctx):
++    for txt, d, L, clamp, thr, ciego, *dec in tornillos_juego(ctx):
++        if dec and dec[0]:
++            continue                      # conflicto del núcleo declarado (requiere núcleo, GEN-009; lámina RETENIDA): no se oculta, se lista en las brechas
+         eng = L - clamp
+         if eng < d - 1e-6:
+             out.append(f"{txt}: engrane {eng:.1f} mm < 1,0·d = {d:.0f}")
+diff --git a/cad/generar_paquete.py b/cad/generar_paquete.py
+index d0170c9..fdd7cc0 100644
+--- a/cad/generar_paquete.py
++++ b/cad/generar_paquete.py
+@@ -104,7 +104,7 @@ def main():
+         if sel(nm):
+             run(nm, getattr(hojas_con, nm))
+     for nm, keys, fn in hojas_pie.PLAN:
+-        if sel(nm) and any(ctx.m.get(k) for k in keys):
++        if sel(nm) and any(ctx.m.get(k) for k in keys) and hojas_pie.activa(nm, ctx):
+             run(nm, fn)
+     for nm in hojas_gen.PLAN_GEN:
+         if nm != "sheet_notas" and sel(nm):
+diff --git a/cad/geom.py b/cad/geom.py
+index ccce990..648aad9 100644
+--- a/cad/geom.py
++++ b/cad/geom.py
+@@ -16,6 +16,7 @@ RHO_GR = 1.8e-6        # grafito (núcleo)
+ CL1 = 1.0              # holgura de modelo entre piezas móviles (ya usada en el modelo 3D de la Rev B)
+ 
+ WASHER_MAT = "C45 (EN 10083-2) templado y revenido a 300–370 HV"     # material ÚNICO de la arandela del perno del pasador (A-14)
++ISO273_MEDIO = {5: 5.5, 6: 6.6, 8: 9.0, 10: 11.0, 12: 13.5, 14: 15.5, 16: 17.5, 20: 22.0}   # agujero pasante, serie media (ISO 273)
+ BORDE_MIN = 3.0     # borde mínimo [mm] entre un avellanado/agujero y el canto de la pieza o de otro agujero (control de avellanados)
+ ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO."
+ NOTA_VIENTO = "En caso de vientos fuertes no se recomienda realizar la operación."
+@@ -46,6 +47,11 @@ def f(v, n=0):
+     return f"{v:,.{n}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+ 
+ 
++def fkg(v):
++    """Masa en kg: 1 decimal; 3 decimales bajo 0,1 kg (tornillos y arandelas pequeños no quedan en «0,0»)."""
++    return f(v, 1) if abs(v) >= 0.1 or v == 0 else f(v, 3)
++
++
+ def f1(v):
+     return f(v, 1)
+ 
+@@ -77,7 +83,10 @@ class G:
+         self.removable = P["fix_mode"] < 1.5
+         self.delta = float(I["delta"])
+         self.wood = P["opt_wood"] > 0.5
+-        self.t_ring = float(self.IG.get("t_ring", P.get("t_ring", 10.0)))   # pletina del anillo de la madera (núcleo: P.t_ring, 4.ª pasada)
++        # cubierta de madera W (núcleo 08-11-2026): anillo superior + pared cilíndrica + plancha rebajada + tablones enrasados; geometría en la clave «madera»
++        self.MW = D.get("madera") if self.wood else None
++        if self.wood and not self.MW:
++            raise SystemExit("opt_wood = 1 sin la clave «madera» en el JSON de diseño: exportar con la versión del núcleo que la entrega (requiere núcleo)")
+         # --- base ---
+         self.B, self.tb = P["B"], P["t_base"]
+         self.boss = P["h_boss"] > 0
+@@ -88,7 +97,12 @@ class G:
+         self.tpr = max(P["t_pr"], self.tt, self.tbo)
+         self.Rt = P["D_top"] / 2
+         self.prIn = DV["prIn"]
+-        self.hw = self.hd - self.tt - self.tbo
++        self.hw_full = self.hd - self.tt - self.tbo   # alto de almas y nervios con la plancha superior plana
++        MW = self.MW
++        # plancha que cierra la mesa sobre almas, nervios y cubo: la superior (t_top, cara superior a ras de la mesa) o, en W, la rebajada (t_reb, cara superior en z.reb_sup)
++        self.t_ps = float(MW["t_reb"]) if MW else self.tt
++        self.zr_ps = float(MW["z"]["reb_sup"]) if MW else self.hd           # cara superior de esa plancha desde la cara inferior de la mesa
++        self.hw = float(MW["hw_reb"]) if MW else self.hw_full                 # W: almas, nervios y cubo bajo la plancha rebajada (núcleo: madera.hw_reb)
+         self.hax = DV["hax"]
+         self.z0 = self.tb + self.delta               # cara inferior de la mesa
+         self.zc = self.tb + self.hax                 # eje de los cilindros
+@@ -98,8 +112,8 @@ class G:
+         self.cap_D = P["D_piv"] + 60
+         self.cb_t = 8.0
+         self.cb_D = self.cap_D + 60
+-        self.cap_t = self.tt - 3 - self.cb_t - 1
+-        self.L_piv = self.tb + self.delta + self.hd - self.tt + 3
++        self.cap_t = self.t_ps - 3 - self.cb_t - 1
++        self.L_piv = self.tb + self.delta + self.zr_ps - self.t_ps + 3      # hasta 3 mm sobre la cara inferior de la plancha que cierra la mesa (núcleo: topUnder + 3)
+         self.z_bush0 = self.tb + self.h_boss + P["g_bush"]     # el buje arranca g_bush (2 mm) sobre el collar
+         # pivote con dos zonas rectificadas (decisión de ingeniería, A-02/B-01): p6 en la zona calada en plancha base + collar (H7/p6) y f7 en la zona del buje (F7/f7);
+         # transición de 1 mm entre ambas, por debajo del arranque del buje
+@@ -125,7 +139,7 @@ class G:
+         self.cap_L = max(L for L in (8, 10, 12, 16, 20, 25, 30, 35, 40) if L - self.cap_t <= self.cap_thr - 2.0 + 1e-9)
+         assert self.cap_L - self.cap_t >= 10.0 - 1e-9, "tapa retenedora: ningún largo ISO 10642 M10 da engrane ≥ 1,0·d sin tocar fondo"
+         # tapa de inspección: taladro Ø6,8 PASANTE en el remanente bajo el rebaje (N-20) y rosca útil insp_tap
+-        self.insp_rem = self.tt - self.cb_t                # espesor remanente bajo el rebaje
++        self.insp_rem = self.t_ps - self.cb_t              # espesor remanente bajo el rebaje
+         self.ch_pin, self.ch_piv, self.ch_pp = 2.0, 3.0, 2.0      # chaflanes de dibujo (1×45° mínimo ISO 13715): pasador de empuje, pivote, pasadores de articulación
+         # --- accionamiento ---
+         # modo del accionamiento (núcleo, D.modo): 1 = guiado (patín, uña y leva de reenganche); 2 = pivotado tipo KIET (cajón del ojal E, bloque-uña, placas-leva)
+@@ -179,6 +193,9 @@ class G:
+         self.h_gr, self.w_gr = P["h_gr"], P["w_gr"]
+         self.n_gr_rad, self.n_gr_circ, self.n_greaser = int(P["n_gr_rad"]), int(P["n_gr_circ"]), int(P["n_greaser"])
+         self.stack = self._stack()
++        if self.MW:
++            dF = self.MW["fijacion"]["d"]
++            self.tmad_clear = ISO273_MEDIO.get(int(round(dF)), dF * 1.1)   # agujero pasante del tornillo en el tablón (ISO 273 medio; supuesto S06)
+ 
+     # ------------------------------------------------------------------
+     def _stack(self):
+@@ -240,7 +257,7 @@ class G:
+         elif self.opt and not self.removable:
+             t += "; fijación modo 2: sectores pegados, sin topes ni tornillos (no desmontable)"
+         if self.wood:
+-            t += f"; con cubierta de madera e = {fm(self.P['t_wood'], 0)} y anillo de contención {fm(self.t_ring, 0)}×{fm(self.P['t_wood'], 0)}"
++            t += f"; con cubierta de madera e = {fm(self.MW['t_madera'], 0)} enrasada en el rebaje de la mesa (anillo superior, pared cilíndrica y plancha rebajada)"
+         t += "; accionamiento pivotado tipo KIET (por defecto)" if self.modo == 2 else "; accionamiento guiado con leva de reenganche (alternativa)"
+         return t
+ 
+@@ -315,8 +332,13 @@ def supuestos(g):
+         add("S11", "Largo del tornillo de posición", "ISO 10642 con largo normalizado ≥ t − 0,55·d + 1,5·d (1,5 d de rosca en el respaldo)",
+             "Criterio de engrane mínimo en acero; el núcleo verifica solo la cabeza.")
+     if g.wood:
+-        add("S06", "Anillo de acero y tablones de la cubierta de madera", f"ADOPTADO por el mandante: pletina de {fm(g.t_ring, 0)} × {fm(P['t_wood'], 0)} mm (ancho × alto) en el borde, soldada a la plancha superior (t_ring del núcleo; en m.total); tablones de 200 mm de ancho; abertura central Ø{f(g.cb_D)} para la tapa de inspección (PROVISORIA)",
+-            "El núcleo incluye el anillo (m.ring) y calcula los tablones dentro de él; el espesor del anillo es P.t_ring y el ancho de tablón (200) lo fija el mandante. Bolsillos Ø(arandela + 4) × 31 sobre cada perno de pasador (PROVISORIO).")
++        MW = g.MW
++        add("S06", "Cubierta de madera W: fabricación de la pared, del anillo superior y de los tablones",
++            f"Pared R{fm(MW['R_rebaje'], 0)}…R{fm(MW['R_pared_ext'], 0)} × {fm(MW['h_pared'], 0)}: franja de plancha e = {fm(MW['t_pared'], 0)} rolada, 1 empalme CJP; anillo superior R{fm(MW['R_anillo_int'], 0)}…R{fm(MW['R_ext'], 0)} × {fm(MW['t_anillo'], 0)} "
++            f"en 4 segmentos de 90° con empalmes CJP (como el anillo inferior); tablones con agujero pasante Ø{fm(g.tmad_clear, 1)} bajo el cajeado (ISO 273 medio); "
++            f"cierre de la plancha inferior sobre almas, nervios y cubo con ranuras rellenas (secuencia W: la plancha inferior cierra la caja) (PROVISORIO)",
++            "El núcleo (clave «madera») fija radios, espesores, cotas z, tablones, cajeado, taladro ciego, tornillo y la secuencia J2 → J1 → almas → plancha inferior, "
++            "pero no cómo se obtienen la pared y el anillo ni la unión de la plancha inferior que cierra la caja.")
+     add("S15", "Atornillado de las tapas del pivote", f"Tapa retenedora: 4 × M10 (ISO 10642) en PCD Ø{fm(g.cap_pcd, 0)} a 45°+90°·k, roscados prof. {fm(g.cap_tap, 0)} en el pivote; tapa de inspección: 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (ISO 10642) en PCD Ø{fm(g.insp_pcd, 0)} a 30°+60°·k, roscados prof. {fm(g.insp_tap, 0)} en el fondo del rebaje; avellanado y roscado con borde ≥ {fm(BORDE_MIN, 0)} mm (PROPUESTA)",
+         "El cálculo no define el patrón de tornillos de las tapas; se propone uno geométricamente compatible (confirmar).")
+     if g.modo == 2:
+diff --git a/cad/hojas_base.py b/cad/hojas_base.py
+index a44a61a..4ee0880 100644
+--- a/cad/hojas_base.py
++++ b/cad/hojas_base.py
+@@ -352,17 +352,20 @@ def build_welds(ctx):
+     tp = g.tpr
+     # N-03: secuencia de espesores de los anillos: partida tp + 3; empalmes (J11) en la partida; MES-002 se planea a tp antes de J12;
+     # MES-004 se suelda a tp + 3 (J13) y su cara inferior se planea a tp después de soldar, junto con la plancha inferior (tbo + 3 → tbo)
++    MW = g.MW
++    r_as = MW["R_anillo_int"] if MW else g.prIn                 # radio interior del anillo superior (W: R_reb, núcleo)
+     add_n(11, "Empalmes de los anillos de pasadores (4 × 90°, superior e inferior)", "MES-002 / MES-004", f"A tope en V 60°, raíz 3, con respaldo (en la partida de {fm(tp + 3, 0)}, antes de planear)", "V", t=tp + 3, prep="V 60°, abertura de raíz 3 mm, cara de raíz 2 mm, respaldo de acero",
+-        prep_txt="60°", groove=True, len_total=2 * 4 * (g.Rt - g.prIn), wps=6, end="VT 100 % · UT 100 %")
++        prep_txt="60°", groove=True, len_total=4 * (g.Rt - g.prIn) + 4 * (g.Rt - r_as), wps=6, end="VT 100 % · UT 100 %")
+     land_ = (g.R_pin - g.d_pin / 2 - BORDE_MIN) - g.prIn          # chaflán 1:4 del anillo: hasta 3 mm del agujero de pasador (B-04)
++    # cubierta W: el anillo superior no se une a tope con una plancha (J12 no existe): lo reemplazan J29 (anillo–pared) y J30 (pared–plancha rebajada), abajo
+     j12 = add_n(12, "Plancha superior – anillo superior", "MES-001 / MES-002", f"A tope circunferencial, transición de espesores 1:4 (anillo ya planeado a {fm(tp, 0)})", "V", t=g.tt, t_pre=max(g.tt, tp), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
+-        prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
++        prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %") if not MW else {}
+     j13 = add_n(13, "Plancha inferior – anillo inferior", "MES-003 / MES-004", f"A tope circunferencial, transición de espesores 1:4 (al soldar: plancha {fm(g.tbo + 3, 0)} = {fm(g.tbo, 0)} + 3 y anillo {fm(tp + 3, 0)} = {fm(tp, 0)} + 3, sobremetal en la cara inferior de ambos, planeada después)", "V", t=g.tbo + 3, t_pre=max(g.tbo + 3, tp + 3), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
+         prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
+     j12.update(t_thick=tp, land=land_)
+     j13.update(t_thick=tp + 3, land=land_)
+     rin = [r for r in D["almas"]]
+-    add_n(14, "Almas anulares – planchas inferior y superior", "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios) ({'supera el máx. AISC 360-22 J2.2b = t − 2 = ' + fm(P['t_web'] - 2, 0) + ' mm: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'cumple mín. AWS D1.1 Tabla 5.8'})"),
++    add_n(14, "Almas anulares – planchas inferior y superior" + (" (rebajada)" if MW else ""), "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios) ({'supera el máx. AISC 360-22 J2.2b = t − 2 = ' + fm(P['t_web'] - 2, 0) + ' mm: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'cumple mín. AWS D1.1 Tabla 5.8'})"),
+         t=P["t_web"], len_total=sum(2 * 2 * 2 * math.pi * r for r in rin), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
+     n_tr = len(rin)                                               # tramos de nervio por línea radial (cubo–A1, A1–A2, …)
+     L_rib = sum(rib_lengths(ctx))
+@@ -370,15 +373,21 @@ def build_welds(ctx):
+         len_total=int(P["N_rib"]) * (2 * 2 * L_rib + 2 * 2 * n_tr * g.hw), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
+     add_n(16, "Empalme de cada alma anular", "MES-005…007", "A tope en V 60° (1 por alma)", "V", t=P["t_web"], prep="V 60°, raíz 2 mm, con respaldo", prep_txt="60°", groove=True, len_total=len(rin) * g.hw, wps=6, end="VT 100 % · UT 100 %")
+     # B-07: una junta por plancha (espesores y longitudes propios); unión en T: el cubo apoya sobre la plancha, bisel 45° en el canto exterior del cubo
+-    for jid_, desc_, pz_, tt_ in (("J17a", "Cubo – plancha inferior (unión en T)", "MES-011 / MES-003", g.tbo + 3), ("J17b", "Cubo – plancha superior (unión en T)", "MES-011 / MES-001", g.tt)):
++    for jid_, desc_, pz_, tt_ in (("J17a", "Cubo – plancha inferior (unión en T)", "MES-011 / MES-003", g.tbo + 3), ("J17b", "Cubo – plancha superior" + (" rebajada" if MW else "") + " (unión en T)", "MES-011 / MES-001", g.t_ps)):
+         jw_ = add(desc_, pz_, f"En T, bisel 45° en el canto exterior del cubo, raíz 2 mm, respaldo interior; penetración del espesor de la plancha (t = {fm(tt_, 0)})", "bevel", t=tt_, t_pre=(P["D_hub"] - g.d_bush) / 2,
+                   prep="Bisel 45° en el cubo, raíz 2 mm, respaldo interior (unión en T)", prep_txt="45°", groove=True, len_total=math.pi * P["D_hub"], wps=6, end="VT 100 % · UT 100 %", jid=jid_)
+         jw_["en_T"] = True
+         jw_["t_alma"] = (P["D_hub"] - g.d_bush) / 2
+     rc_ = ranuras_cierre(ctx)
+     n_sl = sum(r[3] for r in rc_)
+-    j18 = add_n(18, "Cierre de la plancha superior (soldadura de ranura sobre almas y nervios)", "MES-001 / MES-005…010", f"Ranura 22×80 c/250, relleno completo ({n_sl} ranuras, tabla de MES-001)", "slot", t=g.tt, groove=True, prep="Ranura rectangular 22×80 pasante, relleno completo",
+-        prep_txt="", len_txt="80", nivel="ISO 5817-C", end="VT 100 % · MT 100 %", len_total=n_sl * 80.0, wps=12, modelada=False, nota="Ranuras no modeladas en 3D; posiciones en la tabla de MES-001 (PROPUESTA, confirmar)")
++    if MW:
++        # W: la plancha inferior cierra la caja (núcleo, madera.soldaduras.secuencia, paso 4): las ranuras de cierre pasan a la plancha inferior (PROPUESTA, S06; GEN-009)
++        j18 = add_n(18, "Cierre de la plancha inferior (soldadura de ranura sobre almas y nervios)", "MES-003 / MES-005…010", f"Ranura 22×80 c/250, relleno completo ({n_sl} ranuras, tabla de MES-003); se planea con la cara inferior", "slot", t=g.tbo + 3, groove=True,
++                    prep="Ranura rectangular 22×80 pasante, relleno completo", prep_txt="", len_txt="80", nivel="ISO 5817-B", end="VT 100 % · MT 100 %", len_total=n_sl * 80.0, wps=12, modelada=False,
++                    nota="Ranuras no modeladas en 3D; posiciones en la tabla de MES-003 (PROPUESTA, confirmar: GEN-009)")
++    else:
++        j18 = add_n(18, "Cierre de la plancha superior (soldadura de ranura sobre almas y nervios)", "MES-001 / MES-005…010", f"Ranura 22×80 c/250, relleno completo ({n_sl} ranuras, tabla de MES-001)", "slot", t=g.tt, groove=True, prep="Ranura rectangular 22×80 pasante, relleno completo",
++                    prep_txt="", len_txt="80", nivel="ISO 5817-C", end="VT 100 % · MT 100 %", len_total=n_sl * 80.0, wps=12, modelada=False, nota="Ranuras no modeladas en 3D; posiciones en la tabla de MES-001 (PROPUESTA, confirmar)")
+     j18.update(size_txt="c22", len_txt=f"{n_sl} × 80 (250)")
+     if g.opt and g.removable:
+         tpb = g.tope("base")
+@@ -396,17 +405,31 @@ def build_welds(ctx):
+             add_n(21, "Barras del rebaje UHMW – disco inoxidable de la base", "INT tope UHMW / INT disco base",
+                   f"2 filetes, aporte inoxidable 309L: lado opuesto a la junta continuo en todo el largo; lado de la junta del disco desde r = {fm(r0j, 0)} (≥ 10 mm de la junta entre sectores, N-05)", "fillet", core=(P["w_tope"], "calculado (memoria, topes de la interfaz)"), t=max(g.I["tss"], P["b_tope"]),
+                 len_total=g.n_seg * (2 * Lb_ - (r0j - r0_)), wps=9, end="VT 100 % · PT 100 %", aporte="ER309L (AWS A5.9)", proc="135 / 141", other=dict(kind="fillet", size=f"z{fm(P['w_tope'], 0)}"))
+-    if g.wood:
+-        add_n(22, "Anillo de contención de la madera – plancha superior", "MAD anillo / MES-001", "Filete en T, ambos lados, continuo", "fillet", t=max(g.t_ring, g.tt), len_total=2 * math.pi * P["D_top"] / 2 * 2, wps=10, end="VT 100 % · MT 10 %",
+-            nivel="ISO 5817-C", other=dict(kind="fillet", size=f"z{fillet_min(max(g.t_ring, g.tt))}"))
++    if MW:
++        # cubierta W (núcleo, madera.soldaduras): J1 → J29 y J2 → J30 (J01/J02 ya son del marco de la base); empalme de la pared J31
++        SJ = MW["soldaduras"]
++        J1, J2 = SJ["J1"], SJ["J2"]
++        L1f = 2 * math.pi * MW["R_pared_ext"]                     # filete exterior de J1, al pie de la cara exterior de la pared
++        j29 = add_n(29, "Anillo superior – pared cilíndrica (J1 del núcleo)", "MES-002 / MES-015",
++                    f"PJP en bisel simple 45° desde el lado del rebaje (S = {fm(J1['S'], 0)}, E = {fm(J1['E'], 0)}, {f(J1['largo'], 0)} mm en R{f(MW['R_rebaje'])}) + filete exterior z{fm(J1['w'], 0)} bajo el anillo ({f(L1f, 0)} mm en R{f(MW['R_pared_ext'])}), continuos; cara interior a ras con el canto del anillo", "bevel",
++                    t=MW["t_pared"], t_pre=max(MW["t_anillo"], MW["t_pared"]), groove=True, wps=10, end="VT 100 % · MT 100 %",
++                    prep=f"Bisel simple 45° en el canto superior interior de la pared, profundidad S = {fm(J1['S'], 0)} mm, raíz 0 (PJP, sin placa de apoyo)", prep_txt="45°",
++                    len_total=J1["largo"] + L1f, other=dict(kind="fillet", size=f"z{fm(J1['w'], 0)}"))
++        j29.update(pjp=dict(S=J1["S"], E=J1["E"], w=J1["w"], t_an=MW["t_anillo"], t_par=MW["t_pared"], h_par=MW["h_pared"]), size_txt=f"s{fm(J1['E'], 0)}",
++                   garganta=f"PJP: S = {fm(J1['S'], 0)}, E = {fm(J1['E'], 0)}; filete exterior a = {fm(J1['w'] * 0.7071, 1)}", cateto=f"z = {fm(J1['w'], 0)} (filete exterior)",
++                   pasadas=passes(t=J1["S"], groove=True) + passes(z=J1["w"]), origen="núcleo (madera.soldaduras.J1: S = mitad del espesor de la pared, E = S − 3 mm, AISC 360-22 Tabla J2.1; filete del núcleo)")
++        add_n(30, "Pared cilíndrica – plancha rebajada (J2 del núcleo)", "MES-015 / MES-001", "Filete en T a ambos lados, continuo (interior bajo la holgura de los tablones; exterior antes de cerrar la caja)", "fillet",
++              core=(J2["w"], "núcleo (madera.soldaduras.J2)"), t=max(MW["t_pared"], MW["t_reb"]), len_total=J2["largo"], wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(J2['w'], 0)}"))
++        add_n(31, "Empalme de la pared cilíndrica", "MES-015", "A tope en V 60° (1 empalme), esmerilado al ras en ambas caras", "V", t=MW["t_pared"], prep="V 60°, raíz 2 mm, con respaldo", prep_txt="60°", groove=True,
++              len_total=MW["h_pared"], wps=6, end="VT 100 % · UT 100 %")
+     if g.FLG:
+         _welds_leva(ctx, add_n)
+     for w in W_:
+         w["len_txt"] = w.get("len_txt", "")
+     # respaldo de las CJP (B-32): removible (MR) donde la cara queda funcional; permanente (M) en el interior de la mesa
+     for w in W_:
+-        if w["groove"] and "respaldo" in w["prep"]:
+-            mr = any(x in w["desc"] for x in ("Empalmes de los anillos", "Plancha superior – anillo", "Plancha inferior – anillo"))
++        if w["groove"] and "respaldo" in w["prep"] and not w.get("pjp"):
++            mr = any(x in w["desc"] for x in ("Empalmes de los anillos", "Plancha superior – anillo", "Plancha inferior – anillo", "Empalme de la pared"))
+             w["backing"] = "MR" if mr else "M"
+             w["backing_txt"] = "MR: respaldo removible cerámico (PROPUESTA)" if mr else "M: respaldo permanente de acero 6×40 (PROPUESTA)"
+             w["prep"] = w["prep"].replace("con respaldo", "respaldo").replace("respaldo de acero", "respaldo").replace("respaldo", "respaldo " + ("removible MR (cerámico)" if mr else "permanente M (acero 6×40)"), 1)
+@@ -553,7 +576,7 @@ def inspecciones(ctx):
+          "100 % uñas; 10 % pasadores" if g.modo == 1 else "100 % bloques, pasadores Q y placas; 10 % pasadores de empuje", "HRC / macro"),
+         ("Soldadura", "WPS/PQR calificados según AWS D1.1 y soldadores calificados; registro de precalentamiento e interpase (≤ 250 °C).", "Todas", "Doc."),
+         ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1 cl. 6) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
+-        ("Soldadura", "Partículas magnéticas MT en filetes críticos (" + ("mejillas, collar, orejas de izaje, bancadas" if g.modo == 1 else "cajón del ojal E (paredes, tapas y esquinas), collar, orejas de izaje") + (", pórticos y prolongaciones de la leva" if g.FLG else "") + (", topes de la interfaz" if g.opt and g.removable else "") + ", almas y nervios) y en ranuras; 10 % en marco" + (" y anillo de la madera" if g.wood else "") + ".", "Según programa (100 % / 10 %)", "MT"),
++        ("Soldadura", "Partículas magnéticas MT en filetes críticos (" + ("mejillas, collar, orejas de izaje, bancadas" if g.modo == 1 else "cajón del ojal E (paredes, tapas y esquinas), collar, orejas de izaje") + (", pórticos y prolongaciones de la leva" if g.FLG else "") + (", topes de la interfaz" if g.opt and g.removable else "") + ", almas y nervios) y en ranuras; 10 % en marco" + ("; cubierta W: anillo–pared (PJP + filete) y pared–plancha rebajada, 100 %" if g.wood else "") + ".", "Según programa (100 % / 10 %)", "MT"),
+         ("Soldadura", "Ultrasonido UT de uniones CJP (anillos, planchas de la mesa, cubo, empalmes de almas), según AWS D1.1 cl. 8 (cargas estáticas). Los filetes (collar, orejas de izaje) se controlan con MT 100 % y medición del tamaño; UT de laminación de la plancha base bajo esos filetes (ASTM A578 nivel B).", "100 %", "UT"),
+         *([("Soldadura", "Líquidos penetrantes PT en soldaduras de acero inoxidable (barras del rebaje UHMW).", "100 %", "PT")] if any("ER309L" in w["aporte"] for w in getattr(ctx, "welds", [])) else []),
+         ("Dimensional", f"Planitud de la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) ≤ 0,20 mm y de la cara inferior de la mesa ≤ 0,20 mm antes de montar la interfaz.", "100 %", "Regla/nivel láser"),
+@@ -571,6 +594,7 @@ def inspecciones(ctx):
+         ("Montaje", ("Interfaz y engrase: película de grasa 0,3–0,5 mm por cara, sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt and g.opt != 2 else
+                      "Interfaz: sectores de UHMW en el rebaje sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt == 2 else
+                      f"Interfaz acero–acero: película de grasa 0,3–0,5 mm sobre la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) y la cara inferior de la mesa, sin partículas (instructivo de montaje, paso 4)."), "100 %", "VT / galgas" if g.opt else "VT"),
++        *([("Dimensional", f"Cubierta W: rebaje {f(g.MW['d_rebaje'])} ±0,5 (cara superior de la plancha rebajada a la del anillo) antes de montar los tablones; tablones enrasados con el anillo ±0,5 (regla); holgura perimetral {fm(g.MW['c_mad'], 0)} ±2 contra la pared; roscas ciegas de la fijación en posición ±0,5 (MES-001).", "100 %", "Regla, galgas, cinta")] if g.wood else []),
+         ("Montaje", f"Holguras cubo–collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (CON-011) con galgas; giro libre a mano antes de cargar.", "100 %", "Galgas"),
+         ("Dimensional", f"Posiciones de las piezas soldadas de la base según la tabla de BAS-001, ±1. Orejas de izaje: posición (±{f(P['x_lug'])}, ±{f(g.cl_lug)}) ±1 (tabla de posiciones de BAS-001); plano vertical radial; agujero Ø{f(P['d_ear'])} a {f(P['h_ear'])} sobre la base ±1.", "100 %", "Cinta / plantilla"),
+         ("Torque", f"Pernos M20×45 de los {g.N_pin} pasadores y tornillos de las tapas: torques propuestos en GEN-008; registro por perno y marca de pintura de control.", "100 %", "Torquímetro"),
+@@ -665,7 +689,7 @@ def bom_rows_part(ctx, p, dpart):
+     obs = "; ".join(x for x in (p.obs, (f"Tratamiento: {p.tratamiento}" if p.tratamiento and p.tratamiento != "—" else ""), nota) if x)
+     plano = ctx.plano_of(p.key).replace(CODE + "-", "")
+     if not p.tipos:
+-        return [[str(p.pos), code, p.desc, str(p.qty), f"{p.material}. Cert.: {p.cert}", f"{forma} {dim}", f(p.mass_unit, 1), f(p.mass_total, 1), obs, plano]]
++        return [[str(p.pos), code, p.desc, str(p.qty), f"{p.material}. Cert.: {p.cert}", f"{forma} {dim}", fkg(p.mass_unit), f(p.mass_total, 1), obs, plano]]
+     out = []
+     for i, t in enumerate(p.tipos, 1):
+         import modelo3d_tt300c as M3
+diff --git a/cad/hojas_con.py b/cad/hojas_con.py
+index d1b6377..ffadcc5 100644
+--- a/cad/hojas_con.py
++++ b/cad/hojas_con.py
+@@ -392,7 +392,7 @@ def expl_dz(ctx, p):
+     if k == "tapa_ret": return EXPL["tapa_ret"]
+     if k == "tapa_insp": return EXPL["tapa_insp"]
+     if k in ("pernos_pasador", "arandela_pasador"): return EXPL["pernos"]
+-    if k in ("madera", "madera_anillo"): return EXPL["madera"]
++    if sub == "MAD": return EXPL["madera"]
+     if sub == "INT": return EXPL["interfaz_m"] if ("mesa" in k or k in ("int_cara", "graseras") or "uhmw" in k) else EXPL["interfaz_b"]
+     if sub == "MES": return EXPL["mesa"]
+     if k in ("cilindro", "patin", "una", "pasador_vastago", "pasador_ojal"): return EXPL["acc"]
+@@ -494,6 +494,8 @@ def sheet_conjunto(ctx):
+         V.dimv((B / 2, 0, g.tb), (B / 2, 0, g.tb + P["rim_h"]), "right", 1, on=["marco_corto"], text=f"{f(P['rim_h'])}")
+         V.dimv((B / 2, 0, 0), (g.Rt, 0, top), "right", 2, on=["base_plancha", "mesa_anillo_sup"], text=(f"({f(top)})" if abs(g.delta) < 0.01 else f"{f(top)}"))   # sin interfaz: t_base + h_mesa = total (auxiliar)
+         V.dimv((-g.Rt, 0, g.z0), (-g.Rt, 0, top), "left", 0, on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)}")
++        if g.wood:
++            V.dimv((-g.MW["R_tablones"] + 40, 0, g.z0 + g.MW["z"]["reb_sup"]), (-g.MW["R_tablones"] + 40, 0, top), "left", 1, on=["mesa_plancha_sup", "madera"], text=f"{f(g.MW['d_rebaje'])} (rebaje: tablones enrasados)")
+         if not piv_:
+             V.dimv((-B / 2, 0, tb), (-cyl0["x"], ycb, g.zc), "left", 1, on=["base_plancha", "cilindro"], virt_b=P["D_body"] / 2, text=f"{f(g.hax)}")
+         pc = V.P((cgx[0], 0, cgx[2]))
+@@ -513,7 +515,7 @@ def sheet_conjunto(ctx):
+             (["Accionamiento pivotado (ojales E)", f"E en ({fm(Epv[0], 1)}; {fm(Epv[1], 1)}) y ({fm(-Epv[0], 1)}; {fm(-Epv[1], 1)}): R_E = {f(g.PV['R_E'])}, φ_E = {fm(g.PV['phi_E'], 0)}° y +180°; L_qp = {f(g.PV['L_qp'])}; eje de cilindros a z = {f(g.zc)} ({f(g.hax)} sobre la base); placas-leva: CON-010"] if piv_ else
+              ["Ejes de guías y cilindros", f"x = ±{f(X)}; eje de cilindros a z = {f(g.zc)} ({f(g.hax)} sobre la base); ojales de ménsula en y = ±{fm(ye, 0)}"]),
+             ["Círculo de pasadores", f"{g.N_pin} × Ø{f(g.d_pin)} en R{fm(g.R_pin, 0)}"],
+-            ["Alturas", f"base {f(tb)}; mesa {f(g.hd)} (cara inferior a z = {f(g.z0)}); total {'sin cubierta ' if g.wood else ''}{f(top)}"],
++            ["Alturas", f"base {f(tb)}; mesa {f(g.hd)} (cara inferior a z = {f(g.z0)}); total {f(top)}" + (f"; cubierta W enrasada: tablones de {f(g.MW['t_madera'])} sobre la plancha rebajada (cara superior a z = {f(g.z0 + g.MW['z']['reb_sup'])}), sin aumento de altura (MAD-001)" if g.wood else "")],
+             ["Holguras cubo–collar", f"radial {fm(g.c_boss_r, 0)} mm; axial {fm(g.c_boss_a, 0)} mm"]]
+     rows += [["Holguras mesa–base (mínimas, 3D)", "; ".join(f"{nm} {fm(d, 1)} mm" for nm, d in hol)]]
+     rows += [["Carga de diseño / variante", f"W = {f(P['W_tf'])} tf, excentricidad e = {f(P['e'])} mm / variante {g.variante}: {g.variante_nombre}"]]
+@@ -787,7 +789,22 @@ def pasos(ctx):
+                  ["—", f"Alivio de tensiones; mandrinar Ø{f(P['D_piv'])} H7 (plancha + collar) y ojales Ø{f(P['d_pp'])} H9 en línea; planear la zona de apoyo",
+                   f"Planitud 0,20 en Ø{f(P['D_top'] + 20)}; perpendicularidad 0,05", "Mandrinadora, regla", insp("Planitud de la cara de apoyo")]]
+     S.append(("1. BASE SOLDADA", ["base_plancha"], [k for k in G["base"] if k != "base_plancha"], (0, 0, 250), None, rows1, dict(mark=["base_plancha"])))
+-    S.append(("2. MESA SOLDADA", ["mesa_plancha_inf"], [k for k in G["mesa"] if k != "mesa_plancha_inf"], (0, 0, 350), None, [
++    if g.wood:
++        MW = g.MW
++        J_ = lambda frag: next((w["id"] for w in ctx.welds if frag in w["desc"]), "J??")
++        S.append(("2. MESA SOLDADA (CUBIERTA W: SECUENCIA DEL NÚCLEO J30 → J29 → ALMAS → PLANCHA INFERIOR)", ["mesa_plancha_sup", "mesa_pared", "mesa_anillo_sup"], [k for k in G["mesa"] if k not in ("mesa_plancha_sup", "mesa_pared", "mesa_anillo_sup")], (0, 0, -350), None, [
++            [pq("mesa_plancha_sup", "mesa_pared"), f"1) Pared (MES-015) sobre la plancha rebajada (MES-001) en R{f(MW['R_rebaje'])}; filete a ambos lados {J_('Pared cilíndrica – plancha')} (J2 del núcleo)",
++             f"Pared centrada ±1; alto {f(MW['h_pared'])} ±0,2", "Plantilla radial, galgas", insp("Inspección visual VT 100")],
++            [pq("mesa_anillo_sup"), f"2) Anillo superior (MES-002, planeado a {fm(MW['t_anillo'], 0)}) sobre la pared, subpieza invertida y zona R{f(MW['R_pared_ext'])}…R{f(g.Rt)} abierta: PJP desde el rebaje y filete exterior {J_('Anillo superior – pared')} (J1 del núcleo)",
++             f"Canto interior del anillo a ras de la pared ±0,5; rebaje {f(MW['d_rebaje'])} ±0,5", "Regla, galgas", insp("Cubierta W: rebaje")],
++            [pq(*[k for k in G["mesa"] if k.startswith(("mesa_alma", "mesa_nervio", "mesa_cubo"))]), f"3) Con la subpieza invertida: cubo, almas y nervios (alto {f(g.hw)}) sobre la cara inferior de la plancha rebajada; soldar (GEN-007)",
++             f"Posición angular de nervios ±0,1°; almas a ±1 del radio", "Plantilla angular", insp("Inspección visual VT 100")],
++            [pq("mesa_plancha_inf", "mesa_anillo_inf"), f"4) Cerrar con la plancha inferior ({fm(g.tbo + 3, 0)}) y el anillo inferior ({fm(g.tpr + 3, 0)}): {J_('Plancha inferior – anillo')} y ranuras de cierre {J_('Cierre de la plancha inferior')} (PROPUESTA, GEN-009)",
++             f"Altura {f(g.hd)} ±0,5", "Plantilla", insp("cara inferior de la mesa")],
++            ["—", f"Alivio; planear la cara inferior 3 mm; mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 y el cubo Ø{f(g.d_bush)} H7; taladrar y roscar las {MW['fijacion']['n_total']} M{fm(MW['fijacion']['d'], 0)} ciegas de la plancha rebajada (tabla de MES-001)",
++             f"Agujeros en posición Ø0,3 (MES-002); planitud 0,20; roscas ±0,5", "Mandrinadora, CMM", insp("Pasadores de empuje")]], dict(mark=["mesa_plancha_sup"])))
++    else:
++     S.append(("2. MESA SOLDADA", ["mesa_plancha_inf"], [k for k in G["mesa"] if k != "mesa_plancha_inf"], (0, 0, 350), None, [
+         [pq(*G["mesa"]), f"Armar sobre la plancha inferior ({fm(g.tbo + 3, 0)}): cubo, almas, nervios, anillo inferior en {fm(g.tpr + 3, 0)} y anillo superior ya planeado a {fm(g.tpr, 0)}; cerrar con la plancha superior; soldar (GEN-007)",
+          f"Altura {f(g.hd)} ±0,5; posición angular de nervios ±0,1°", "Plantilla angular", insp("cara inferior de la mesa")],
+         ["—", f"Alivio; planear la cara inferior 3 mm (plancha a {fm(g.tbo, 0)}, anillo inferior a {fm(g.tpr, 0)}); mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7",
+@@ -870,9 +887,13 @@ def pasos(ctx):
+         S.append(("7. ACCIONAMIENTO (dos lados)", G["base"] + G["mesa"], G["acc"], (0, 0, 300), None, rows7))
+     tap = [k for k in G["piv"] if k == "tapa_ret"] + G["insp"] + G["mad"]
+     rows8 = [[pq("tapa_ret"), f"Tapa retenedora sobre el extremo del pivote: 4 tornillos M10×{g.cap_L:.0f} ISO 10642", f"Par {T(10)} N·m (propuesta GEN-008)", "Torquímetro", insp("torques propuestos")],
+-             [pq("tapa_insp"), f"Tapa de inspección en el rebaje de la plancha superior: 6 tornillos ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9", f"Par {T(int(g.insp_d))} N·m", "Torquímetro", insp("torques propuestos")]]
++             [pq("tapa_insp"), f"Tapa de inspección en el rebaje de la plancha {'rebajada' if g.wood else 'superior'}: 6 tornillos ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9", f"Par {T(int(g.insp_d))} N·m", "Torquímetro", insp("torques propuestos")]]
+     if G["mad"]:
+-        rows8.append([pq(*G["mad"]), "Tablones de madera dentro del anillo (bolsillos sobre los pernos); fijación según MAD-001", "Holgura de montaje contra el anillo según MAD-001", "Manual", "MAD-001"])
++        MW, FX = g.MW, g.MW["fijacion"]
++        rows8.append([pq("madera"), f"Tablones en el rebaje por filas F1…F{MW['tablones']['n']} (MAD-001): junta {fm(MW['tablones']['j'], 0)} entre filas, holgura {fm(MW['c_mad'], 0)} contra la pared y la abertura de la tapa; marcar y taladrar los pasantes desde las roscas de la plancha",
++                      f"Cara superior enrasada con el anillo ±0,5 (regla); holgura perimetral {fm(MW['c_mad'], 0)} ±2", "Regla, galgas", insp("Cubierta W: rebaje")])
++        rows8.append([pq("madera_arandela", "madera_tornillo"), f"Arandela ISO 7093 en el fondo del cajeado y tornillo ISO 4762 M{fm(FX['d'], 0)}×{fm(FX['L'], 0)} en cada posición 1…{FX['n_total']} (MAD-002; RETENIDO por el engrane: GEN-009)",
++                      f"Par ≈ {fm(FX['par_Nm'], 1)} N·m (núcleo: no aplastar la madera)", "Torquímetro", "MAD-002"])
+     S.append(("8. TAPAS" + (" Y CUBIERTA DE MADERA" if G["mad"] else ""), G["base"] + G["mesa"] + G["pins"] + G["pernos"], tap, (0, 0, 250), None, rows8))
+     S.append(("9. PRUEBA EN VACÍO Y RECEPCIÓN", G["base"] + G["mesa"] + G["pins"] + G["pernos"] + G["acc"] + tap, [], (0, 0, 0), None, [
+         ["—", "Giro 360° en vacío y luego con carga; registrar la presión de despegue", "Sin agarrotamiento ni ruido; presión ≤ la esperada", "Manómetro", insp("Giro 360°")],
+@@ -1118,7 +1139,9 @@ def sheet_mesa_conj1(ctx):
+     rs = ctx.sh(*[k + "_R" for k in ks])
+     c.vs("corte", rs, "front", cut=CUT_Y, lv=(1, 2, 2, 1), mat={k + "_R": ctx.mat[k] for k in ks}, hs=0.7, title="CORTE POR UN PASADOR (plano a %s° del eje x)" % fm(a0, 3), w=1.2,
+          auto=dict(on=[k + "_R" for k in ks if k in ("mesa_anillo_inf", "mesa_anillo_sup", "mesa_plancha_sup", "mesa_plancha_inf", "mesa_cubo")], tol={}, maxn=9))
+-    c.tail(ks, [], compact=False, notes=["Despiece y tabla de soldaduras del subconjunto: CON-009 (no se repiten aquí); programa completo en GEN-007.", "Masa del rótulo: mesa soldada / con pasadores y pernos (para izar la mesa, la segunda).",f"Armado sobre la plancha inferior: cubo, almas (R {', '.join(f(x) for x in D['almas'])}), {int(P['N_rib'])} nervios por tramo, anillos y plancha superior; cerrar con la superior en último lugar.",
++    arm_ = (f"Cubierta W, secuencia del núcleo: 1) pared a la plancha rebajada (J30); 2) anillo superior sobre la pared (J29) con la subpieza invertida; 3) cubo, almas (R {', '.join(f(x) for x in D['almas'])}, alto {f(g.hw)}) y {int(P['N_rib'])} nervios por tramo sobre la plancha rebajada; 4) plancha y anillo inferiores (cierre, J13 y ranuras J18)."
++            if g.wood else f"Armado sobre la plancha inferior: cubo, almas (R {', '.join(f(x) for x in D['almas'])}), {int(P['N_rib'])} nervios por tramo, anillos y plancha superior; cerrar con la superior en último lugar.")
++    c.tail(ks, [], compact=False, notes=["Despiece y tabla de soldaduras del subconjunto: CON-009 (no se repiten aquí); programa completo en GEN-007.", "Masa del rótulo: mesa soldada / con pasadores y pernos (para izar la mesa, la segunda).", arm_,
+                      f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: mandrinar en línea con la mesa armada y aliviada (ver MES-002/004 y tabla de pasadores en CON-009).",
+                      f"Cubo H7 Ø{f(g.d_bush)} y rebaje del collar Ø{f(g.Drb)}: mandrinar después de aliviar; cara inferior planeada (planitud 0,20)."])
+     c.build()
+@@ -1152,8 +1175,24 @@ def sheet_mesa_conj2(ctx):
+             V.dimv((g.D_boss / 2 - 6, 0, g.tb + g.h_boss), (g.D_boss / 2 - 6, 0, g.z_techo), "left", 0, on=["collar", "mesa_cubo"], text=f"{fm(g.c_boss_a, 0)} (holgura axial)")
+     c.vs("cc", kc, "front", cut=CUT_Y, center=(g.D_boss / 2, 0, g.tb + 20), win=(-70, -45, 60, g.h_boss + 70), lv=(1, 1, 1, 1), draw=cc, mat=mats(ctx, kc), hs=0.3, maxs=2.0, title="REBAJE DEL COLLAR: HOLGURAS (detalle)", auto=False, w=1.0)
+     jn = [w["id"] for w in ctx.welds if "MES" in w["piezas"] or "INT tope mesa" in w["piezas"]]
+-    for i, wid in enumerate([w["id"] for w in ctx.welds if "MES" in w["piezas"]][:3]):
+-        add_prep(c, f"dj{i}", ctx.weld_by_id(wid), t1=g.tpr)
++    if g.wood:
++        MW = g.MW
++        zr_ = g.z0 + MW["z"]["reb_sup"]
++
++        def rb(V, c):
++            V.dimv((MW["R_rebaje"], 0, zr_), (MW["R_rebaje"], 0, g.z0 + g.hd), "left", 0, on=["mesa_pared_W", "mesa_anillo_sup_W"], text=f"({f(MW['d_rebaje'])}) rebaje")
++            V.dimv((MW["R_reb_ext"], 0, zr_ - MW["t_reb"]), (MW["R_reb_ext"], 0, zr_), "right", 0, on=["mesa_plancha_sup_W"], text=f"{f(MW['t_reb'])}")
++            V.dimv((MW["R_pared_ext"], 0, zr_), (MW["R_pared_ext"], 0, zr_ + MW["h_pared"]), "right", 1, on=["mesa_pared_W"], text=f"{f(MW['h_pared'])}")
++            V.dimv((g.Rt, 0, g.z0 + g.hd - MW["t_anillo"]), (g.Rt, 0, g.z0 + g.hd), "right", 2, on=["mesa_anillo_sup_W"], text=f"{f(MW['t_anillo'])}")
++            V.dimh((MW["R_rebaje"], 0, zr_ + MW["h_pared"]), (MW["R_pared_ext"], 0, zr_ + MW["h_pared"]), "top", 0, on=["mesa_pared_W"], text=f"{f(MW['t_pared'])}")
++            V.dimh((MW["R_pared_ext"], 0, zr_), (MW["R_reb_ext"], 0, zr_), "bottom", 0, on=["mesa_pared_W", "mesa_plancha_sup_W"], text=f"{fm(MW['R_reb_ext'] - MW['R_pared_ext'], 0)}")
++        c.vs("rb", ws, "front", cut=CUT_Y, center=(MW["R_rebaje"] + 60, 0, zr_ + 10), win=(-110, -MW["t_reb"] - 30, (g.Rt - MW["R_rebaje"]) - 40, MW["d_rebaje"] + 14), lv=(1, 2, 1, 3), draw=rb, mat=mm, hs=0.3, maxs=2.0,
++             title="DETALLE: BORDE DEL REBAJE (plancha rebajada, pared, anillo superior; juntas J29 y J30 en sus detalles)", auto=False, w=1.2)
++        wds = [w["id"] for w in ctx.welds if any(x in w["desc"] for x in ("Anillo superior – pared", "Pared cilíndrica – plancha"))]
++    else:
++        wds = [w["id"] for w in ctx.welds if "MES" in w["piezas"]][:3]
++    for i, wid in enumerate(wds):
++        add_prep(c, f"dj{i}", ctx.weld_by_id(wid), t1=g.tpr if not g.wood else None)
+     rows = []
+     for i, a in enumerate(D["pasadores"]):
+         x, y = polar(g.R_pin, a)
+@@ -1165,8 +1204,9 @@ def sheet_mesa_conj2(ctx):
+     c.tail(ks, jn, ["Los nervios se cortan entre almas; las almas son continuas; 1 empalme por alma entre nervios.", "Masa del rótulo: mesa soldada / con pasadores y pernos.", f"Holguras del collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo); el cubo gira sin tocar el collar.",
+                     f"Tabla de pasadores: ángulos desde +x, sentido antihorario; PCD Ø{f(2 * g.R_pin)} y ángulos teóricamente exactos; agujeros en posición Ø0,3 respecto del eje de la mesa (MES-002).",
+                     f"Mesa armada (datum A = cara inferior planeada): cara superior paralela a A dentro de 0,5; agujeros Ø{f(g.d_pin)} H7 de los anillos superior e inferior coaxiales Ø0,05 (eje común, mandrinado en línea).",
+-                    f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); "
+-                    f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."])
++                    (f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); " if not g.wood else
++                     f"Cubierta W (núcleo, madera.soldaduras.secuencia): J30 (pared–plancha rebajada) → J29 (anillo–pared, subpieza invertida) → almas, nervios y cubo → plancha inferior (cierre con J13 y ranuras J18); MES-002 planeado a {fm(g.MW['t_anillo'], 0)} antes de J29; ")
++                    + f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."])
+     c.build()
+     return c.h
+ 
+diff --git a/cad/hojas_gen.py b/cad/hojas_gen.py
+index 6d5b90c..c04a9e3 100644
+--- a/cad/hojas_gen.py
++++ b/cad/hojas_gen.py
+@@ -162,14 +162,19 @@ def sheet_notas(ctx):
+         if key.startswith("int_") or key in DELTA_KEYS:
+             continue
+         p0 = ctx.m.get(key)
+-        if p0 is None:
+-            continue
++        if p0 is None or key in ("mesa_alma1", "mesa_alma2", "mesa_nervio1", "mesa_nervio2"):
++            continue                       # almas y nervios: una fila por familia (mismas clases en los 3 números)
+         base = f"{p0.sub}-{p0.num:03d}"
++        nm0 = p0.name
++        if key in ("mesa_alma0", "mesa_nervio0"):
++            ks_ = [k_ for k_ in (key[:-1] + str(i_) for i_ in range(3)) if ctx.m.get(k_)]
++            base = f"{p0.sub}-{p0.num:03d}…{ctx.m.get(ks_[-1]).num:03d}"
++            nm0 = "Almas anulares" if key == "mesa_alma0" else "Nervios radiales (tramos)"
+         o, cl2 = 0, []
+         for (vs, desc, nt) in cl:
+             cl2.append((vs, desc, o + 1, o + nt))
+             o += nt
+-        rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
++        rows.append([base, f"{nm0}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
+     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
+     rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-008…011, ACC-013…018",
+                  "todas", "pivotado" if g.modo == 2 else "guiado"])
+@@ -369,6 +374,12 @@ def torque_rows(ctx):
+         K = 0.20
+         T = K * F * 1000 * d / 1000.0       # N·m
+         rows.append([nm, str(n if n is not None else "según cantidad"), f"M{d}", f(As, 1), f(rp, 0), f(F, 1), fm(K, 2), f(T, 0), "PROPUESTA, A CONFIRMAR POR EL CALCULISTA"])
++    if ctx.m.get("madera_tornillo"):
++        # cubierta W: el apriete lo limita el aplastamiento de la madera bajo la arandela; lo entrega el núcleo (madera.fijacion)
++        FX = g.MW["fijacion"]
++        d = int(round(FX["d"]))
++        rows.append([f"Tornillo ISO 4762 M{d}×{fm(FX['L'], 0)} cl. 8.8 tZn con arandela ISO 7093 (tablones, MAD-002)", str(FX["n_total"]), f"M{d}", f(AS_M.get(d, math.pi / 4 * (0.9 * d) ** 2), 1), "—",
++                     fm(FX["apriete_kN"], 2), "0,20", fm(FX["par_Nm"], 1), "NÚCLEO (madera.fijacion: 0,8·p_adm de la madera bajo la arandela); tornillo RETENIDO por el engrane (GEN-009)"])
+     return rows
+ 
+ 
+@@ -447,9 +458,14 @@ def nest_items(ctx):
+         if k_ in ("cajon_pared", "cajon_ventana_a", "cajon_ventana_b", "cajon_tapa", "placa_leva", "placa_leva_h", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
+             d_ = [float(x.replace(".", "").replace(",", ".")) for x in r_[3].split("×")]
+             add(k_, m.get(k_).name, d_[0], d_[1], d_[2])
+-    add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)
++    if g.MW:
++        MW = g.MW
++        add("mesa_plancha_sup", "Mesa: plancha rebajada", 2 * MW["R_reb_ext"] + 10, 2 * MW["R_reb_ext"] + 10, g.t_ps)
++        add("mesa_pared", "Pared (franja rolada)", math.pi * (MW["R_rebaje"] + MW["R_pared_ext"]) + 20, MW["h_pared"] + 4, MW["t_pared"])
++    else:
++        add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)
+     add("mesa_plancha_inf", "Mesa: plancha inferior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tbo + 3)
+-    add("mesa_anillo_sup", "Anillo sup. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
++    add("mesa_anillo_sup", "Anillo sup. (segm. 90°)", g.Rt + 10, g.Rt + 10, (g.MW["t_anillo"] if g.MW else g.tpr) + 3, 4)
+     add("mesa_anillo_inf", "Anillo inf. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
+     for p in m.parts:
+         if p.key.startswith("mesa_nervio"):
+diff --git a/cad/hojas_util.py b/cad/hojas_util.py
+index ea08721..880e684 100644
+--- a/cad/hojas_util.py
++++ b/cad/hojas_util.py
+@@ -33,8 +33,8 @@ class Pieza(Plano):
+         self.keys = [k for k in keys if ctx.m.get(k)]
+         self.p0 = ctx.m.get(self.keys[0])
+         self.lead = self.p0.code_lamina
+-        masa = " + ".join(f"{f(ctx.m.get(k).mass_unit, 1)}" for k in self.keys[:3]) + " kg c/u"
+-        h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 30 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{f(self.p0.mass_unit, 1)} kg c/u",
++        masa = " + ".join(f"{fkg(ctx.m.get(k).mass_unit)}" for k in self.keys[:3]) + " kg c/u"
++        h = Hoja(ctx, code or self.lead, titulo, "", fmt=("A1" if fmt in ("auto", "auto3") else fmt), material=mat_override or self.p0.material, masa=(masa if len(masa) <= 30 else "ver ficha (kg c/u)") if len(self.keys) > 1 else f"{fkg(self.p0.mass_unit)} kg c/u",
+                  trat=self.p0.tratamiento if self.p0.tratamiento != "—" else "Ninguno (ver notas)", serie="FAB", items=[ctx.m.get(k).code for k in self.keys], grupo=grupo)
+         # el cajetín admite 3 renglones de material y de tratamiento: si no caben, remite a la ficha/notas (el texto completo va en la ficha de la pieza)
+         if len(wrapw(str(h.material), 94, 3.0)) > 3:
+diff --git a/cad/informe.py b/cad/informe.py
+index 3135162..9b8d47c 100644
+--- a/cad/informe.py
++++ b/cad/informe.py
+@@ -26,9 +26,10 @@ def brechas(ctx, rep):
+     if g.opt == 2:
+         add("Opción B sin engrase", "El núcleo no define ranuras ni graseras para la opción B (UHMW sobre inox «con grasa limpia»); no se dibujan.", "Definir si B lleva engrase y su geometría.")
+     if g.wood:
+-        ab, bol = wood_residual(ctx)
+-        add("Cubierta de madera: residual de masa fuera del núcleo", f"El anillo de acero (pletina {fm(P['t_ring'], 0)}×{fm(P['t_wood'], 0)}, {fm(ctx.M['ring'], 1)} kg) ya está en el núcleo y en m.total (madera {fm(ctx.M['wood'], 1)} kg dentro del anillo). El modelo 3D descuenta además la abertura central Ø{fm(g.cb_D, 0)} de la tapa de inspección ({fm(ab, 1)} kg) y {g.N_pin} bolsillos de perno/arandela ({fm(bol, 1)} kg) que el núcleo no resta: residual {fm(ab + bol, 1)} kg, conservador en el núcleo.",
+-            "Informativo: aceptar la diferencia o descontarla en el núcleo. Disposición de tablones (ancho 200 mm) en MAD-001; fijación PROPUESTA (confirmar).")
++        caj = wood_residual(ctx)
++        add("Cubierta de madera W: residual de masa de los tablones", f"El núcleo calcula los tablones por área neta (madera.tablones.area_neta × t_madera, {fm(ctx.M['wood'], 1)} kg); el modelo 3D descuenta además los "
++            f"{g.MW['fijacion']['n_total']} cajeados y pasantes de la fijación ({fm(caj, 2)} kg). La plancha rebajada del núcleo no descuenta el rebaje y las roscas de la tapa de inspección ni las roscas ciegas de la fijación.",
++            "Informativo (diferencias < 1 %, conservadoras en el núcleo).")
+     ev = vol_hub(g)
+     if g.boss and ev < P["L_bush"] - 1e-6:
+         add("Buje parcialmente sin guía en el cubo", f"El buje arranca en z = {fm(g.z_bush0, 0)} y el alesaje del cubo (Ø{fm(g.d_bush, 0)} H7) empieza en z = {fm(g.z_techo if g.rebaje else g.z0 + g.tbo, 0)}: engrane {fm(ev, 0)} de {fm(P['L_bush'], 0)} mm (con rebaje de {fm(g.h_rebaje, 0)} < t_bot, el agujero de la plancha inferior es pasante).", "Verificar la presión del buje con el engrane real o subir el buje.")
+@@ -113,6 +114,17 @@ def requiere_nucleo(ctx):
+         TA = g.I["tornillos"]
+         R.append((f"{RN}: roscas de los tornillos AF2", f"El núcleo verifica el roscado en la plancha inferior (t_inf = {fm(TA['tb'], 0)} mm, rosca pasante prof. {fm(TA['rosca']['prof'], 0)}), pero R{fm(TA['r'], 0)} > R{fm(g.prIn, 0)}: la rosca cae en el anillo inferior de la mesa (MES-004, e = {fm(g.tpr, 0)}); "
+                   "se dibuja pasante en el anillo. 8 de los 24 tornillos cortan los agujeros de los pasadores de empuje (conflicto declarado).", "Reubicar el círculo de tornillos (fuera de la corona de pasadores) y rehacer la verificación de roscado."))
++    if g.wood:
++        MW = g.MW
++        SJ = MW["soldaduras"]
++        R.append((f"{RN}: drenaje del rebaje (cubierta W)", f"madera.drenaje = «{MW['drenaje']}». No se dibujan tubos ni taladros de drenaje.", "Definir en el núcleo el drenaje del fondo del rebaje (posición, Ø y salida) antes de fabricar la plancha rebajada y la pared."))
++        R.append((f"{RN}: cierre de la caja de la mesa en la secuencia W", f"madera.soldaduras.secuencia: «{SJ['secuencia']}». La plancha inferior cierra la caja (paso 4), pero el núcleo no define su unión con almas, nervios y cubo: "
++                  "se proponen ranuras de cierre J18 en la plancha inferior (22 × 80 a paso 250, rellenas y planeadas con la cara de apoyo, MES-003) y el bisel exterior de J17a (cubo–plancha inferior) queda dentro de la caja cerrada.",
++                  "A DECIDIR POR EL CALCULISTA: aceptar las ranuras en la cara de apoyo o redefinir el cierre (orden de armado, unión del cubo con la plancha inferior)."))
++        R.append((f"{RN}: fabricación del anillo superior y de la pared (cubierta W)", f"El núcleo da el anillo R{fm(MW['R_anillo_int'], 0)}…R{fm(MW['R_ext'], 0)} × {fm(MW['t_anillo'], 0)} «en una pieza» de espesor y la pared R{fm(MW['R_rebaje'], 0)}…R{fm(MW['R_pared_ext'], 0)} × {fm(MW['h_pared'], 0)}, "
++                  "sin segmentación ni empalmes: se adopta el anillo en 4 segmentos de 90° con empalmes CJP (J11, como el anillo inferior) y la pared en franja rolada con 1 empalme CJP (J31) (S06).", "Confirmar o verificar los empalmes en el núcleo."))
++        R.append((f"{RN}: END y tolerancia de enrase de la cubierta W", f"El núcleo fija tipo y tamaño de J1 (PJP S = {fm(SJ['J1']['S'], 0)}, E = {fm(SJ['J1']['E'], 0)}, filete z{fm(SJ['J1']['w'], 0)}) y J2 (filete z{fm(SJ['J2']['w'], 0)}) pero no su END ni la tolerancia del enrase tablón–anillo: "
++                  "se adoptan VT 100 % + MT 100 % (J29, J30), ISO 5817-B, alto de la pared ±0,2 y espesor del tablón ±0,5.", "Confirmar END y tolerancias."))
+     return R
+ 
+ 
+@@ -145,7 +157,7 @@ def residual_txt(ctx, grupo):
+     if grupo == "uhmw":
+         return "redondeos y tolerancias de corte de los sectores de lámina"
+     if grupo == "wood":
+-        return "abertura central Ø%s de la tapa de inspección (el núcleo usa Ø%s) y %d bolsillos de perno y arandela Ø%s×31 (el núcleo calcula el anulo completo)" % (fm(g.cb_D, 0), fm(g.hole_top, 0), g.N_pin, fm(g.washer_D + 4, 0))
++        return "cajeados Ø%s × %s y pasantes Ø%s de los %d tornillos de la fijación (el núcleo usa el área neta de los tablones)" % (fm(g.MW["fijacion"]["D_cajeado"], 0), fm(g.MW["fijacion"]["h_cajeado"], 1), fm(g.tmad_clear, 1), g.MW["fijacion"]["n_total"])
+     if grupo == "shoes":
+         return "alojamiento abierto por la cara superior y cuello de la lengüeta del patín (fórmula del núcleo frente a la geometría)"
+     if grupo == "mesa":
+@@ -177,12 +189,11 @@ def plug_txt(ctx):
+ 
+ 
+ def wood_residual(ctx):
+-    """Residual de la madera por geometría (kg): abertura Ø cb_D frente a Ø hole_top y bolsillos. Solo informativo (explica el residual del 3D)."""
++    """Residual de la madera W por geometría (kg): cajeados y pasantes de la fijación (el núcleo usa el área neta de los tablones). Solo informativo."""
+     g, P = ctx.g, ctx.P
++    FX = g.MW["fijacion"]
+     rho = P["rho_wood"] * 1e-9
+-    ab = math.pi / 4 * (g.cb_D ** 2 - g.hole_top ** 2) * P["t_wood"] * rho if g.cb_D > g.hole_top else 0.0
+-    bol = g.N_pin * math.pi / 4 * (g.washer_D + 4) ** 2 * 31 * rho
+-    return ab, bol
++    return FX["n_total"] * math.pi / 4 * (FX["D_cajeado"] ** 2 * FX["h_cajeado"] + g.tmad_clear ** 2 * (g.MW["t_madera"] - FX["h_cajeado"])) * rho
+ 
+ 
+ def explicar_masas(ctx, rep):
+@@ -195,8 +206,7 @@ def explicar_masas(ctx, rep):
+             continue
+         t = f"{r['pieza']}: 3D {fm(r['modelo3d'], 1)} kg frente a {fm(r['nucleo'], 1)} kg del núcleo ({fm(r['dif_pct'], 2)} %; residual {fm(r['dif'], 2)} kg). Residual no descontado en el núcleo: {residual_txt(ctx, gr)}."
+         if gr == "wood":
+-            ab, bol = wood_residual(ctx)
+-            t += f" Por geometría: abertura {fm(ab, 1)} kg + bolsillos {fm(bol, 1)} kg = {fm(ab + bol, 1)} kg."
++            t += f" Por geometría: cajeados y pasantes {fm(wood_residual(ctx), 2)} kg."
+         L.append(t)
+     if abs(ms["dif_pct"]) > ms["tol_pct"]:
+         L.append(f"TOTAL comparable {fm(ms['dif_pct'], 2)} %: FUERA de ±{fm(ms['tol_pct'], 1)} %. Revisar por pieza (tabla de control de la interfaz) y corregir el modelo 3D o el núcleo.")
+@@ -320,7 +330,9 @@ VERIF = {
+     "INT-001": ("Capas de la interfaz y alturas (Δ); topes, tornillos y ranuras según la alternativa; NO desmontable si fix_mode = 2.", "D['apoyo'].interfaz; D['interfazChecks']; verificaciones «Interfaz inox/bronce»"),
+     "INT-002": ("Sectores: ángulo, juntas, muescas, tornillos, ranuras de engrase, rugosidad y planitud.", "P.n_sec, d_tor, h_gr, w_gr, n_gr_rad, n_gr_circ; verificaciones de sector y tornillo"),
+     "INT-003": ("Barras de tope: L, b_tope, h = t − a_sup, a_inf, h_c, w_tope ≥ w_mín; secciones A-A/B-B(/C-C en B); tornillos ISO 10642, graseras, UHMW/bronce con tapones.", "interfazGeom.topes (geometría resuelta) y verificaciones de tope «alivio inferior», «filete dentro de la altura de barra», «filete mínimo»"),
+-    "MAD-001": ("Madera: espesor, abertura, bolsillos, anillo de acero (pletina t_ring×t_wood, en el núcleo), tablones de 200, f_apoyo.", "Verificaciones «Cubierta» (aplastamiento, espesor mínimo)"),
++    "MAD-001": ("Madera W: tablones enrasados con el anillo (t_madera), filas, cortes en arco, abertura de la tapa, cajeados y posiciones de los tornillos.", "D['madera'] (tablones, fijación); verificaciones «Cubierta»"),
++    "MAD-002": ("Fijación de los tablones: ISO 4762 + ISO 7093 en cajeado, rosca ciega en la plancha rebajada, engrane real con la arandela (conflicto declarado), par de apriete.", "D['madera'].fijacion; verificación «Cubierta» de la fijación"),
++    "MES-015": ("Pared cilíndrica W: R_reb…R_reb + t_pared, alto t_madera − t_anillo, bisel de J1, soldaduras J1/J2 y secuencia.", "D['madera'] (soldaduras J1/J2, secuencia); verificaciones «Cubierta» de la pared y sus soldaduras"),
+ }
+ 
+ 
+diff --git a/cad/lista.py b/cad/lista.py
+index f0e7114..5dfe916 100644
+--- a/cad/lista.py
++++ b/cad/lista.py
+@@ -95,12 +95,19 @@ def cut_rows(ctx):
+     add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte del perfil; agujero mecanizado H12")
+     if g.modo == 1:
+         add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")
+-    add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
+-    add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; caras planeadas a {f(g.tpr)} ANTES de soldar a la plancha superior", qty=4)
++    MW = g.MW
++    if MW:
++        add("mesa_plancha_sup", "Disco", f"Ø{f(2 * MW['R_reb_ext'] + 10)}×{f(g.t_ps)}", f"Plasma (sobremetal 5 por borde); rebaje de la tapa y {MW['fijacion']['n_total']} roscas ciegas tras soldar y aliviar")
++        add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * MW['R_anillo_int'] - 10)}×{f(MW['t_anillo'] + 3)}", f"4 segmentos, empalmes CJP en la partida; caras planeadas a {f(MW['t_anillo'])} ANTES de soldar a la pared", qty=4)
++        add("mesa_pared", "Pletina rolada", f"{f(MW['h_pared'] + 4)}×{f(MW['t_pared'])}×{f(math.pi * (MW['R_rebaje'] + MW['R_pared_ext']) + 20)}", f"Franja de plancha e = {f(MW['t_pared'])} rolada a R{f(MW['R_rebaje'])} interior; alto terminado {f(MW['h_pared'])}; 1 empalme CJP; bisel 45° de J29")
++    else:
++        add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
++        add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; caras planeadas a {f(g.tpr)} ANTES de soldar a la plancha superior", qty=4)
+     add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
+     add("mesa_anillo_inf", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; se suelda en {f(g.tpr + 3)} y la cara inferior se planea a {f(g.tpr)} DESPUÉS de soldar (con la plancha inferior)", qty=4)
+     for i, r in enumerate(D["almas"]):
+-        add(f"mesa_alma{i}", "Pletina rolada", f"{f(g.hw)}×{f(P['t_web'])}×{f(2 * math.pi * r + 20)}", f"R{f(r)}; 1 empalme CJP")
++        h_ = next((a["h"] for a in MW["almas"] if abs(a["r"] - r) < 1e-6), g.hw) if MW else g.hw
++        add(f"mesa_alma{i}", "Pletina rolada", f"{f(h_)}×{f(P['t_web'])}×{f(2 * math.pi * r + 20)}", f"R{f(r)}; 1 empalme CJP")
+     for p in m.parts:
+         if p.key.startswith("mesa_nervio"):
+             L_ = rib_len(ctx, p)
+@@ -160,6 +167,9 @@ def cut_rows(ctx):
+         if m.has("int_tope_uhmw"):
+             add("int_tope_uhmw", "Barra", f"{fm(P['b_tope'], 0)}×{f(m.info['uhmw_bar_L'])}×{fm(m.info['uhmw_bar_h'], 0)}", "largo = ancho radial − 100; altura = espesor de la lámina − retiro; inoxidable; 2 filetes")
+         add("int_uhmw", "Sector", f"{env}×{fm(g.I['tuh'] + 1, 0)}", "CNC/plasma de agua")
+-    if g.wood:
+-        add("madera_anillo", "Pletina rolada", f"{fm(g.t_ring, 0)}×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - g.t_ring) + 20)}", "Adoptado por el mandante (S06); 1 empalme CJP")
++    if MW:
++        TB = MW["tablones"]
++        if m.get("madera"):
++            lmax = max(pz["x1"] - pz["x0"] for fl in TB["lista"] for pz in fl["piezas"])
++            add("madera", "Tablón cepillado", f"{f(TB['b'])}×{f(MW['t_madera'])}×{f(lmax + 20)}", f"{TB['n_piezas']} piezas en {TB['n']} filas; largos por fila en MAD-001 (+10 por extremo); extremos en arco R{f(MW['R_tablones'])}")
+     return R
+diff --git a/cad/modelo3d_tt300c.py b/cad/modelo3d_tt300c.py
+index 7a25972..40b3549 100644
+--- a/cad/modelo3d_tt300c.py
++++ b/cad/modelo3d_tt300c.py
+@@ -4,7 +4,7 @@ Uso: python3 cad/modelo3d_tt300c.py [design.json] [--out DIR]
+ Ejes: z vertical desde la cara inferior de la base; x, y en planta como en los planos.
+ Se dibujan las alternativas de interfaz del cálculo (P.opt_ss, P.opt_uhmw, P.opt_bz con bz_conf 1/2/3), la fijación
+ desmontable por sectores (fix_mode = 1) o pegada (fix_mode = 2, sin topes ni tornillos), el collar del pivote, las orejas de
+-izaje y la cubierta de madera con su anillo (opt_wood)."""
++izaje y la cubierta de madera W enrasada en el rebaje de la mesa (opt_wood: anillo superior, pared, plancha rebajada, tablones y fijación)."""
+ import json, math, sys, pathlib, time
+ import cadquery as cq
+ 
+@@ -72,6 +72,8 @@ def polar(r, deg):
+ ISO273 = {4: 4.5, 5: 5.5, 6: 6.6, 8: 9.0, 10: 11.0, 12: 13.5}       # agujero pasante medio
+ ISO10642_DK = {4: 8.0, 5: 10.0, 6: 12.0, 8: 16.0, 10: 20.0, 12: 24.0}  # Ø de la cabeza avellanada
+ ISO10642_L = [8, 10, 12, 16, 20, 25, 30, 35, 40, 45, 50]
++ISO4762_CAB = {6: (10.0, 6.0), 8: (13.0, 8.0), 10: (16.0, 10.0), 12: (18.0, 12.0), 14: (21.0, 14.0), 16: (24.0, 16.0)}   # cabeza ISO 4762: dk, k (máx. de la norma)
++ISO7093_D1 = {6: 6.4, 8: 8.4, 10: 10.5, 12: 13.0, 14: 15.0, 16: 17.0}                                                  # agujero de la arandela ancha ISO 7093-1
+ DEST = 15.0                     # destijeres de los nervios (N-04): 15 × 15 a 45°
+ GAP_NERVIO = 1.0                # holgura de armado de cada extremo del nervio contra el cubo o el alma
+ 
+@@ -156,13 +158,20 @@ LAMINA_TIPOS = {"int_disco_mesa": 103, "int_bronce": 104, "int_cara": 105, "int_
+ # de pieza: clase 1 → -1 … -n1, clase 2 → -(n1 + 1) …; los tipos dentro de un juego (sectores de geometría distinta) son sufijos sucesivos.
+ # Las clases y los tipos se midieron sobre la geometría real (cad/firmas.py, registro cad/firmas_codigos.json); el control de cada juego y
+ # el control entre variantes (python3 cad/firmas.py <entregas>) exigen que un código tenga una sola firma geométrica.
++SIN_W = ("BASE", "A", "AF2", "B", "C1", "C2", "C3")
+ VAR_CODIGOS = {
+     "base_plancha": [(("BASE-G", "AF2-G", "W-G"), "lisa (guiado)", 1), (("A-G", "B-G", "C1-G", "C2-G", "C3-G"), "roscas de interfaz (guiado)", 1),
+                      (("BASE", "AF2", "W"), "roscas de placas-leva", 1), (("A", "B", "C1", "C2", "C3"), "placas-leva e interfaz", 1)],
+     "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1)],
+     "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1)],
+-    "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1)],
+-    "pivote": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1)],
++    # cubierta W (núcleo 08-11-2026): la mesa lleva plancha rebajada, anillo superior desde R_reb y almas, nervios y cubo de alto hw_reb; el pivote llega a la plancha rebajada.
++    # La clase W va al final de cada lista para no correr los sufijos ya registrados de las demás variantes.
++    "mesa_plancha_sup": [(SIN_W, "plancha superior plana", 1), (("W",), "plancha rebajada con roscas ciegas de los tablones", 1)],
++    "mesa_anillo_sup": [(SIN_W, "anillo desde el borde de la plancha superior", 1), (("W",), "anillo desde el radio del rebaje (una pieza de espesor)", 1)],
++    **{f"mesa_alma{i_}": [(SIN_W, "alto entre planchas", 1), (("W",), "alto bajo la plancha rebajada", 1)] for i_ in range(3)},
++    **{f"mesa_nervio{i_}": [(SIN_W, "alto entre planchas", 1), (("W",), "alto bajo la plancha rebajada", 1)] for i_ in range(3)},
++    "mesa_cubo": [(("BASE",), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("W",), "alto W (bajo la plancha rebajada)", 1)],
++    "pivote": [(("BASE",), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1), (("W",), "largo W (hasta la plancha rebajada)", 1)],
+     # la muesca y el largo de los topes dependen del par de calado, que cambia con el modo del accionamiento: los juegos «-G» tienen su clase
+     "int_disco_base": [(("A", "B"), "con muesca y avellanados", 1), (("AF2", "AF2-G"), "liso, pegado", 1), (("A-G", "B-G"), "con muesca y avellanados (guiado)", 1)],
+     "int_disco_mesa": [(("A",), "ranurado, muesca; 3 tipos de ranuras", 3), (("AF2", "AF2-G"), "ranurado, pegado y atornillado (avellanados M12); 3 tipos", 3), (("B",), "liso, muesca", 1),
+@@ -181,12 +190,14 @@ VAR_CODIGOS = {
+ }
+ 
+ 
++W_DEP = ("mesa_plancha_sup", "mesa_anillo_sup", "mesa_alma0", "mesa_alma1", "mesa_alma2", "mesa_nervio0", "mesa_nervio1", "mesa_nervio2", "mesa_cubo", "pivote")   # geometría que cambia con la cubierta W
+ MODO_DEP = ("base_plancha", "int_disco_base", "int_disco_mesa", "int_tope_base", "int_tope_mesa", "int_bronce", "int_cara", "leva_pata")   # geometría que depende del modo del accionamiento
+ 
+ 
+ def variante_de(g, key=None):
+     v = g.variante.replace("-G", "")
+-    v = "BASE" if v == "BASE" else v.replace("-W", "")
++    if key not in W_DEP:
++        v = v.replace("-W", "")             # A-W, C1-W…: la cubierta no cambia esta pieza; en las piezas de W_DEP la combinación no está registrada (falla explícita)
+     if key in MODO_DEP and g.modo == 1:
+         v += "-G"
+     return v
+@@ -547,22 +558,43 @@ def build(D, verbose=True):
+     disc_bot = ring(ri_bot, prIn, tbo, z0)
+     ring_bot = pins_cut(ring(prIn, Rt, tpr, z0), z0, tpr)
+     disc_top = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt).cut(cyl(g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t)) if False else None
+-    top_plate = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt)
+-    top_plate = top_plate.cut(ring(0, g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t))             # rebaje de la tapa de inspección
++    MW = g.MW
++    zps = z0 + g.zr_ps                                                   # cara superior de la plancha que cierra la mesa (W: plancha rebajada)
++    if MW:
++        # W (núcleo, clave «madera»): plancha rebajada t_reb de Ø hole_top a R_reb_ext con su cara superior a t_madera bajo la cara superior de la mesa
++        top_plate = ring(g.hole_top / 2, MW["R_reb_ext"], g.t_ps, zps - g.t_ps)
++    else:
++        top_plate = ring(g.hole_top / 2, prIn, tt, z0 + hd - tt)
++    top_plate = top_plate.cut(ring(0, g.cb_D / 2, g.cb_t + 1, zps - g.cb_t))             # rebaje de la tapa de inspección
+     insp_xy = [(g.insp_pcd / 2 * math.cos(math.radians(30 + 60 * i)), g.insp_pcd / 2 * math.sin(math.radians(30 + 60 * i))) for i in range(6)]
+-    top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=z0 + hd - tt - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_rem + 1.0))   # 6 × M8 (broca Ø6,8) PASANTE en el remanente bajo el rebaje (N-20)
+-    ring_top = pins_cut(ring(prIn, Rt, tpr, z0 + hd - tpr), z0 + hd - tpr, tpr)
+-    m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tt)} con agujero Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección",
+-               top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; soldadura", core="top", color=(0.22, 0.4, 0.7)))
+-    m.add(Part("mesa_anillo_sup", "MES", "Anillo superior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°, empalmes CJP)", ring_top, 1, A572Z,
+-               "Plasma por segmentos de 90°; soldadura CJP de empalmes (UT 100 %); agujeros Ø80 en taladro radial y mandrinado a Ø85 H7 en línea con el anillo inferior", core="top", color=(0.22, 0.4, 0.7)))
++    top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=zps - g.t_ps - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_rem + 1.0))   # 6 × M8 (broca Ø6,8) PASANTE en el remanente bajo el rebaje (N-20)
++    if MW:
++        FX = MW["fijacion"]
++        tmad_xy = [tuple(q) for q in FX["posiciones"]]
++        # roscas ciegas de los tornillos de los tablones: broca Ø(núcleo) prof. prof_taladro desde la cara superior (remanente t_reb − prof_taladro)
++        top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=zps - FX["prof_taladro"]).pushPoints(tmad_xy).circle(FX["broca"] / 2).extrude(FX["prof_taladro"] + 1.0))
++        ring_top = pins_cut(ring(MW["R_anillo_int"], Rt, MW["t_anillo"], z0 + hd - MW["t_anillo"]), z0 + hd - MW["t_anillo"], MW["t_anillo"])
++        m.add(Part("mesa_plancha_sup", "MES", "Plancha rebajada de la mesa", f"Disco Ø{f(2 * MW['R_reb_ext'])}×{f(g.t_ps)} con agujero Ø{f(g.hole_top)}, rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} de la tapa de inspección y {FX['n_total']} roscas ciegas M{fm(FX['d'], 0)} (cubierta W)",
++                   top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; roscas ciegas en taladro radial con tope de profundidad; soldadura", core="top", color=(0.22, 0.4, 0.7)))
++        m.add(Part("mesa_anillo_sup", "MES", "Anillo superior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * MW['R_anillo_int'])}×{f(MW['t_anillo'])}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (una pieza de espesor desde el radio del rebaje; 4 segmentos de 90°, empalmes CJP)", ring_top, 1, A572Z,
++                   "Plasma por segmentos de 90°; soldadura CJP de empalmes (UT 100 %); agujeros Ø80 en taladro radial y mandrinado a Ø85 H7 en línea con el anillo inferior", core="top", color=(0.22, 0.4, 0.7)))
++    else:
++        ring_top = pins_cut(ring(prIn, Rt, tpr, z0 + hd - tpr), z0 + hd - tpr, tpr)
++        m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tt)} con agujero Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección",
++                   top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; soldadura", core="top", color=(0.22, 0.4, 0.7)))
++        m.add(Part("mesa_anillo_sup", "MES", "Anillo superior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°, empalmes CJP)", ring_top, 1, A572Z,
++                   "Plasma por segmentos de 90°; soldadura CJP de empalmes (UT 100 %); agujeros Ø80 en taladro radial y mandrinado a Ø85 H7 en línea con el anillo inferior", core="top", color=(0.22, 0.4, 0.7)))
+     m.add(Part("mesa_plancha_inf", "MES", "Plancha inferior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tbo)}, agujero central Ø{f(2 * ri_bot)}" + (f" PASANTE (rebaje del collar: Ø{f(g.D_boss)} + 2×{fm(g.c_boss_r, 0)} de holgura radial)" if g.rebaje else ""), disc_bot, 1, A572Z,
+                "Oxicorte/plasma; cara inferior de apoyo de la interfaz planeada en mandrinadora (fresa de planear) o esmerilada; planitud 0,20", core="bot", color=(0.22, 0.4, 0.7)))
+     m.add(Part("mesa_anillo_inf", "MES", "Anillo inferior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°)", ring_bot, 1, A572Z,
+                "Plasma por segmentos; soldadura CJP de empalmes (UT); agujeros como el anillo superior (en línea)", core="bot", color=(0.22, 0.4, 0.7)))
++    h_alma = {round(a["r"], 3): float(a["h"]) for a in MW["almas"]} if MW else {}   # W: alto de cada alma (núcleo: madera.almas)
++    if MW and not MW["nervios"]["sin_cambio_altura"]:
++        raise SystemExit("cubierta W: nervios que pasan de R_pared (dos alturas): el modelo no lo dibuja (requiere núcleo)")
+     for k, r in enumerate(D["almas"]):
+-        w = ring(r - P["t_web"] / 2, r + P["t_web"] / 2, hw, z0 + tbo)
+-        m.add(Part(f"mesa_alma{k}", "MES", f"Alma anular R{f(r)}", f"Pletina rolada e={f(P['t_web'])}, h={f(hw)}, eje en R{f(r)}", w, 1, A572, "Corte de pletina a plasma; rolado a radio; 1 empalme CJP (UT)", core="webs", color=(0.3, 0.45, 0.7),
++        ha = h_alma.get(round(r, 3), hw)
++        w = ring(r - P["t_web"] / 2, r + P["t_web"] / 2, ha, z0 + tbo)
++        m.add(Part(f"mesa_alma{k}", "MES", f"Alma anular R{f(r)}", f"Pletina rolada e={f(P['t_web'])}, h={f(ha)}, eje en R{f(r)}", w, 1, A572, "Corte de pletina a plasma; rolado a radio; 1 empalme CJP (UT)", core="webs", color=(0.3, 0.45, 0.7),
+                    obs=f"Desarrollo ≈ {f(2 * math.pi * r)} mm"))
+     # nervios: tramos entre almas
+     rr = [P["D_hub"] / 2] + [r for r in D["almas"] if P["D_hub"] / 2 < r < P["R_rib"]] + [P["R_rib"]]
+@@ -614,6 +646,12 @@ def build(D, verbose=True):
+                bolt, g.N_pin, "Perno ISO 898-1 cl. 10.9", "Comercial", in_core=False, comercial=True, catalogo="ISO 4762 M20×45 cl. 10.9 (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32)))
+     m.add(Part("arandela_pasador", "MES", "Arandela del perno del pasador", f"Arandela Ø{f(g.washer_D)}/Ø{f(g.washer_d)}×{f(g.washer_t)}, caras rectificadas", wsh, g.N_pin, WASHER_MAT,
+                "Plasma o láser desde plancha; templada y revenida; caras rectificadas", in_core=False, color=(0.4, 0.4, 0.42), tratamiento="Temple y revenido a 300–370 HV"))
++    if MW:
++        # W: pared cilíndrica R_reb…R_pared_ext entre la cara superior de la plancha rebajada y la cara inferior del anillo superior (núcleo: madera.h_pared)
++        pared = ring(MW["R_rebaje"], MW["R_pared_ext"], MW["h_pared"], z0 + MW["z"]["reb_sup"])
++        m.add(Part("mesa_pared", "MES", "Pared cilíndrica del rebaje", f"Anillo Ø{f(2 * MW['R_pared_ext'])}/Ø{f(2 * MW['R_rebaje'])}×{f(MW['h_pared'])} de alto (pared e = {f(MW['t_pared'])}), bisel 45° de J1 en el canto superior interior",
++                   pared, 1, A572, "Franja de plancha cortada a plasma, rolada a radio, 1 empalme CJP (UT); bisel 45° del canto superior interior a máquina o amolado con plantilla", core="top", color=(0.22, 0.4, 0.7),
++                   obs=f"Desarrollo ≈ {f(math.pi * (MW['R_rebaje'] + MW['R_pared_ext']))} mm (eje)"))
+ 
+     # ===================== PIV: pivote, buje, tapas =====================
+     cap_xy = [(g.cap_pcd / 2 * math.cos(math.radians(45 + 90 * i)), g.cap_pcd / 2 * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
+@@ -624,7 +662,7 @@ def build(D, verbose=True):
+     m.add(Part("buje", "PIV", "Buje autolubricado", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])}×{f(P['L_bush'])}", bush, 1, f"Buje autolubricado: bronce con lubricante sólido (presión ≤ {fm(P['p_bush'], 0)} MPa, μ ≤ {fm(P['mu_bush'], 2)} según el cálculo); marca/modelo por catálogo (GEN-008)", "Buje comercial o cortado de tubo fundido; Ø exterior s6 y Ø interior en mandrinadora", rho=7.6e-6, in_core=False,
+                comercial=True, catalogo="A DEFINIR POR CATÁLOGO (buje autolubricado a medida)", color=(0.8, 0.55, 0.2), cert="EN 10204 3.1"))
+     m.add(Part("tapa_ret", "PIV", "Tapa retenedora", f"Disco Ø{f(g.cap_D)}×{f(g.cap_t)} + 4 × M10×{g.cap_L:.0f} ISO 10642 10.9", csk(cyl(g.cap_D / 2, g.cap_t, g.L_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - 1).pushPoints(cap_xy).circle(g.clear_m10 / 2).extrude(g.cap_t + 2)), cap_xy, g.L_piv + g.cap_t, g.clear_m10, g.cap_csk), 1, A572, "Oxicorte/plasma y mecanizado de agujeros en taladro radial", in_core=False, color=(0.35, 0.35, 0.38)))
+-    m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9", csk(cyl(g.cb_D / 2 - 1, g.cb_t, z0 + hd - g.cb_t).cut(cq.Workplane("XY").workplane(offset=z0 + hd - g.cb_t - 1).pushPoints(insp_xy).circle(g.insp_clear / 2).extrude(g.cb_t + 2)), insp_xy, z0 + hd, g.insp_clear, g.insp_csk), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
++    m.add(Part("tapa_insp", "PIV", "Tapa de inspección", f"Disco Ø{f(g.cb_D - 2)}×{f(g.cb_t)} + 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9", csk(cyl(g.cb_D / 2 - 1, g.cb_t, zps - g.cb_t).cut(cq.Workplane("XY").workplane(offset=zps - g.cb_t - 1).pushPoints(insp_xy).circle(g.insp_clear / 2).extrude(g.cb_t + 2)), insp_xy, zps, g.insp_clear, g.insp_csk), 1, A572, "Oxicorte/plasma; agujeros en taladro radial", in_core=False, color=(0.22, 0.4, 0.7)))
+ 
+     # ===================== ACC: cilindros, patines, uñas, pasadores =====================
+     if g.modo == 2:
+@@ -697,20 +735,47 @@ def build(D, verbose=True):
+ 
+     # ===================== INT: interfaz =====================
+     build_interfaz(m, g, D, log)
+-    # ===================== MAD: cubierta de madera =====================
++    # ===================== MAD: cubierta de madera W =====================
+     if g.wood:
+-        zw0 = z0 + hd
+-        tW = P["t_wood"]
+-        w_ring = float(g.IG.get("t_ring", P.get("t_ring", 10.0)))          # espesor de la pletina: P.t_ring (núcleo, 4.ª pasada)
+-        ring_st = ring(Rt - w_ring, Rt, tW, zw0)
+-        wood = ring(g.cb_D / 2, Rt - w_ring, tW, zw0)
+-        for (x, y) in pin_xy:                                                  # bolsillos sobre perno y arandela de cada pasador (S06)
+-            wood = wood.cut(cyl(g.washer_D / 2 + 2, 31, zw0 - 0.5, x, y))
+-        m.add(Part("madera", "MAD", "Tablones de madera dura", f"Tablones contiguos e={f(tW)}, ancho 200 (adoptado por el mandante), dentro del anillo; conjunto Ø{f(2 * (Rt - w_ring))} con abertura central Ø{f(g.cb_D)}; {g.N_pin} bolsillos Ø{f(g.washer_D + 4)}×31",
+-                   wood, 1, f"Madera dura seca al aire, ρ ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor)", "Aserrado y cepillado de tablones; corte a medida; bolsillos con fresa; fijación con tornillos avellanados (a definir)",
+-                   rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Ancho de tablón 200 adoptado por el mandante (S06); fijación PROPUESTA en MAD-001 (confirmar)"))
+-        m.add(Part("madera_anillo", "MAD", "Anillo de acero de contención", f"Pletina {fm(w_ring, 0)}×{f(tW)} rolada a Ø{f(P['D_top'])}, soldada a la plancha superior (filete {f(P['w_web'])} a ambos lados)", ring_st, 1, A572,
+-                   "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", core="ring", color=(0.4, 0.4, 0.45), obs=f"Pletina {fm(w_ring, 0)} × {fm(tW, 0)} adoptada por el mandante (S06); incluida en la masa del cálculo"))
++        # núcleo (clave «madera»): tablones enrasados con el anillo superior, sobre la plancha rebajada, dentro de R_tablones, con la abertura de la tapa de inspección;
++        # fijación ISO 4762 con arandela ancha ISO 7093 en cajeado y rosca ciega en la plancha rebajada (posiciones de madera.fijacion)
++        TB, FX = MW["tablones"], MW["fijacion"]
++        zr, tW = z0 + MW["z"]["reb_sup"], MW["t_madera"]
++        disc_w = cyl(MW["R_tablones"], tW, zr)
++        abert = cyl(MW["R_abertura"], tW + 2, zr - 1)
++        tmad_xy = [tuple(q) for q in FX["posiciones"]]
++        z_aw = zr + tW - FX["h_cajeado"]                 # fondo del cajeado = apoyo de la arandela
++        tabl = []
++        for fila in TB["lista"]:
++            for pz in fila["piezas"]:
++                b_ = box(pz["x0"], pz["x1"], fila["y0"], fila["y1"], zr, zr + tW).intersect(disc_w)
++                if fila["corte"]:
++                    b_ = b_.cut(abert)
++                pp = [q for q in tmad_xy if pz["x0"] - 1 <= q[0] <= pz["x1"] + 1 and fila["y0"] - 1 <= q[1] <= fila["y1"] + 1]
++                if pp:
++                    b_ = b_.cut(cq.Workplane("XY").workplane(offset=z_aw).pushPoints(pp).circle(FX["D_cajeado"] / 2).extrude(FX["h_cajeado"] + 1))
++                    b_ = b_.cut(cq.Workplane("XY").workplane(offset=zr - 1).pushPoints(pp).circle(g.tmad_clear / 2).extrude(tW + 2))
++                tabl.append(b_)
++        m.add(Part("madera", "MAD", "Tablón de madera dura", f"Tablón e = {f(tW)}, ancho {f(TB['b'])} (bordes {fm(TB['lista'][0]['ancho'], 0)}), {TB['n']} filas paralelas a x y {TB['n_piezas']} piezas dentro de R{f(MW['R_tablones'])}, extremos en arco, "
++                   f"abertura Ø{f(2 * MW['R_abertura'])}; cajeados Ø{f(FX['D_cajeado'])}×{fm(FX['h_cajeado'], 1)} y pasantes Ø{fm(g.tmad_clear, 1)} de la fijación",
++                   compound(tabl), TB["n_piezas"], f"Madera dura seca al aire, ρ ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor)",
++                   "Aserrado y cepillado a e = %s; corte de extremos en arco con plantilla; cajeados con fresa de fondo plano y tope de profundidad; taladro pasante" % f(tW),
++                   rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor",
++                   obs=f"Holgura perimetral {fm(MW['c_mad'], 0)} mm contra la pared y la abertura; junta {fm(TB['j'], 0)} mm entre filas (núcleo)"))
++        # tornillo ISO 4762 (cabeza dk × k de la norma) sobre la arandela; vástago Ø d en arandela y madera y Ø broca dentro de la rosca (engrane, sin interferencia)
++        dF, LF = FX["d"], FX["L"]
++        dk, kk = ISO4762_CAB[int(round(dF))]
++        z_h = z_aw + FX["h_arandela"]                    # cara de apoyo de la cabeza
++        scr = cq.Workplane("XY").workplane(offset=z_h).pushPoints(tmad_xy).circle(dk / 2).extrude(kk)
++        scr = scr.union(cq.Workplane("XY").workplane(offset=zr).pushPoints(tmad_xy).circle(dF / 2).extrude(z_h - zr))
++        scr = scr.union(cq.Workplane("XY").workplane(offset=z_h - LF).pushPoints(tmad_xy).circle(FX["broca"] / 2).extrude(LF - (z_h - zr)))
++        m.add(Part("madera_tornillo", "MAD", f"Tornillo ISO 4762 M{fm(dF, 0)}×{fm(LF, 0)}", f"Tornillo ISO 4762 M{fm(dF, 0)}×{fm(LF, 0)} cl. 8.8 galvanizado en caliente (o A4-70), fijación de los tablones a la plancha rebajada",
++                   scr, FX["n_total"], "ISO 898-1 clase 8.8 galvanizado en caliente (ISO 10684) o A4-70 (ISO 3506-1)", "Comercial", in_core=False, comercial=True,
++                   catalogo=f"ISO 4762 M{fm(dF, 0)}×{fm(LF, 0)} 8.8 tZn (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32)))
++        aw_ = cq.Workplane("XY").workplane(offset=z_aw).pushPoints(tmad_xy).circle(FX["d_arandela"] / 2).circle(ISO7093_D1[int(round(dF))] / 2).extrude(FX["h_arandela"])
++        m.add(Part("madera_arandela", "MAD", f"Arandela ancha ISO 7093 M{fm(dF, 0)}", f"Arandela ancha ISO 7093-1 Ø{f(FX['d_arandela'])}/Ø{fm(ISO7093_D1[int(round(dF))], 1)}×{fm(FX['h_arandela'], 1)}, en el fondo del cajeado",
++                   aw_, FX["n_total"], "ISO 7093-1 clase 200 HV, galvanizada en caliente (o A4)", "Comercial", in_core=False, comercial=True,
++                   catalogo=f"ISO 7093-1 {fm(dF, 0)} 200 HV tZn (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.45, 0.45, 0.47)))
+     log(f"  modelo construido en {time.time() - t0:.0f} s, {len(m.parts)} ítems")
+     return m
+ 
+@@ -1167,6 +1232,10 @@ def conflictos_nucleo(m, inter):
+                 r["declarado"] = txt.format(**vals)
+                 if r["declarado"] not in act:
+                     act.append(r["declarado"])
++    import controles
++    tm_ = controles.tornillo_madera_conflicto(g)          # conflicto geométrico del núcleo que no es una interferencia (engrane del tornillo de los tablones)
++    if tm_ and m.get("madera_tornillo") and tm_ not in act:
++        act.append(tm_)
+     m.info["conflictos_nucleo"] = act
+     return act
+ 
+diff --git a/cad/pie_b.py b/cad/pie_b.py
+index d75f44b..6a277fc 100644
+--- a/cad/pie_b.py
++++ b/cad/pie_b.py
+@@ -7,9 +7,95 @@ from pie_a import ra, wd
+ from soldadura_det import add_prep
+ 
+ 
++def tabla_fijacion(p, MW, titulo):
++    """Tabla de coordenadas de los tornillos de los tablones (núcleo: madera.fijacion.posiciones), en 5 grupos de columnas."""
++    pos = MW["fijacion"]["posiciones"]
++    ng = 5
++    nr = (len(pos) + ng - 1) // ng
++    rows = []
++    for i in range(nr):
++        r_ = []
++        for k in range(ng):
++            j = i + k * nr
++            r_ += [str(j + 1), f(pos[j][0], 1), f(pos[j][1], 1)] if j < len(pos) else ["", "", ""]
++        rows.append(r_)
++    p.table_block(titulo, [("N°", 7, "C"), ("x", 15, "R"), ("y", 15, "R")] * ng, rows, wide=True)
++
++
++def _sheet_mesa_reb(ctx):
++    """Cubierta W: plancha rebajada (MES-001), núcleo clave «madera»: disco Ø 2·R_reb_ext × t_reb con su cara superior t_madera bajo la cara superior de la mesa,
++    agujero central, rebaje y roscas de la tapa de inspección y roscas ciegas de los tornillos de los tablones."""
++    g, P = ctx.g, ctx.P
++    MW = g.MW
++    FX = MW["fijacion"]
++    zt, tt = g.z0 + g.zr_ps, g.t_ps
++    Re = MW["R_reb_ext"]
++    # copia girada para que el corte A-A pase por una rosca de la fijación (la del extremo de la fila 1, sobre el eje y)
++    xh, yh = min(FX["posiciones"], key=lambda q: (abs(q[0]), q[1]))
++    ah = math.degrees(math.atan2(yh, xh))
++    rh_ = math.hypot(xh, yh)
++    loc = rot_key(ctx, "mesa_plancha_sup", "mps_A", -ah)
++    p = Pieza(ctx, ["mesa_plancha_sup"], "MESA: PLANCHA REBAJADA (CUBIERTA DE MADERA W)", fmt="auto")
++    s = p.s
++    on = ["mesa_plancha_sup"]
++    jj = jids(ctx, "Pared cilíndrica – plancha rebajada")
++    hx = (g.insp_pcd / 2 * math.cos(math.radians(210)), g.insp_pcd / 2 * math.sin(math.radians(210)), zt - g.cb_t)
++    txt_f = f"{FX['n_total']} × M{fm(FX['d'], 0)}-6H ciega (detalle C; tabla)"
++    hf = max(FX["posiciones"], key=lambda q: (q[1], -abs(q[0])))           # rosca más alejada sobre +y: la llamada sale hacia afuera
++
++    def planta(V, p):
++        s.centerlines(V.P(0, 0, zt), Re * V.scale, 8)
++        p.cut_mark("planta", "A", (-22 * math.cos(math.radians(ah)), -22 * math.sin(math.radians(ah)), zt), ((Re + 22) * math.cos(math.radians(ah)), (Re + 22) * math.sin(math.radians(ah)), zt), ah + 90)
++        V.note_hole(hx, g.insp_drill / 2, 222, "6 × M8-6H", ext=(Re - g.insp_pcd / 2) * V.scale + 12, on=on,
++                    lines=[f"6 × M{fm(g.insp_d, 0)}-6H pasante (taladro Ø{fm(g.insp_drill, 1)})", f"en el fondo del rebaje, PCD Ø{fm(g.insp_pcd, 0)}, 30° + 60°·k"])
++        V.note_hole((hf[0], hf[1], zt), FX["broca"] / 2, 70, txt_f, ext=(Re - hf[1]) * V.scale + 14, on=on,
++                    lines=[txt_f, f"taladro Ø{fm(FX['broca'], 1)} prof. {fm(FX['prof_taladro'], 0)}, rosca útil {fm(FX['rosca_util'], 0)}"])
++        for i, (x, y) in enumerate(FX["posiciones"]):          # número junto a cada rosca, hacia afuera (lejos de las llamadas del centro)
++            q = V.P(x, y, zt)
++            rr = math.hypot(x, y) or 1.0
++            ux, uy = x / rr, y / rr
++            s.text(str(i + 1), (q[0] + 2.4 * ux, q[1] + 2.4 * uy), T_MIN, ("MIDDLE_LEFT" if ux > 0.3 else "MIDDLE_RIGHT" if ux < -0.3 else ("BOTTOM_CENTER" if uy > 0 else "TOP_CENTER")))
++    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), draw=planta, title="PLANTA (numeración de las roscas de la fijación de los tablones)", w=4.0, mins=0.1,
++         auto=dict(text={round(2 * Re, 1): f"Ø{f(2 * Re)} ±1"}, hole_rmin=FX["broca"] / 2 + 0.5, verts=False, hole_pos=False, only_extents=True,
++                   fits={round(g.hole_top, 1): "H12", round(g.cb_D, 1): "H12"},
++                   hole_txt={g.insp_drill: f"6 × M{fm(g.insp_d, 0)}-6H pasante (Ø{fm(g.insp_drill, 1)}), PCD Ø{fm(g.insp_pcd, 0)}, 30° + 60°·k",
++                             round(FX["broca"], 1): txt_f, round(2 * Re, 1): f"Ø{f(2 * Re)} ±1"}, tol={}))
++
++    def corte(V, p):
++        if jj:
++            w_out(p, jj[0], V, (MW["R_rebaje"], 0, zt + 0.5), "right", dy=12)
++        V.dimv((Re, 0, zt - tt), (Re, 0, zt), "right", 0, on=[loc], text=f"{f(tt)} (plancha rebajada)")
++    p.ra_in("corte", "Ra 6,3", [(Re - 120, 0, zt), (g.hole_top / 2 + 150, 0, zt)], (0, 0, 1))
++    p.gd_in("corte", "surf", "flat", "1,0", None, at=[(Re - 60, 0, zt), (g.hole_top / 2 + 100, 0, zt)], d=(0, 0, 1))
++    p.vs("corte", [loc], "front", cut=CUT_Y, win=(g.hole_top / 2 - 25, zt - tt - 6, Re + 25, zt + 14), center=(0, 0, 0), breaks=[(g.hole_top / 2 + 160, rh_ - 45)], lv=(1, 2, 1, 2), extra=(0, 0, 115, 0),
++         draw=corte, title="CORTE A-A (radial por una rosca de la fijación, con roturas)", hs=0.5, w=1.2, mins=0.5, maxs=0.5, auto=False)
++    p.detail("det_c", "corte", (g.hole_top / 2 + 10, 0, zt - tt / 2), 38, "B", lv=(1, 2, 1, 1), title="DETALLE B: AGUJERO CENTRAL Y REBAJE DE LA TAPA", maxs=2.0, mins=1.0,
++             auto=dict(text={round(tt - g.cb_t, 1): f"({f(tt - g.cb_t)})"}))
++    p.detail("det_r", "corte", (rh_, 0, zt - tt / 2), 22, "C", lv=(1, 2, 1, 1), title="DETALLE C: ROSCA CIEGA DE LA FIJACIÓN", maxs=5.0, mins=2.0,
++             auto=dict(text={round(FX["prof_taladro"], 1): f"{fm(FX['prof_taladro'], 0)} (taladro; rosca útil {fm(FX['rosca_util'], 0)})", round(tt - FX["prof_taladro"], 1): f"({fm(tt - FX['prof_taladro'], 0)} remanente)",
++                            round(FX["broca"], 1): f"Ø{fm(FX['broca'], 1)} (M{fm(FX['d'], 0)}-6H)"}))
++    p.ra_in("det_c", "Ra 6,3", [(g.hole_top / 2 + 22, 0, zt - g.cb_t)], (0, 0, 1))
++    for i, j_ in enumerate(jj):
++        add_prep(p, f"det_j{i}", wd(ctx, j_), t1=MW["t_pared"], t2=tt)
++    tabla_fijacion(p, MW, f"ROSCAS CIEGAS M{fm(FX['d'], 0)} DE LA FIJACIÓN DE LOS TABLONES: COORDENADAS [mm] (eje de la mesa; = MAD-001)")
++    p.tables(jj)
++    p.notes([f"Disco Ø{f(2 * Re)} × {f(tt)} (núcleo: radio del rebaje + espesor de la pared + filete + 5); oxicorte/plasma ISO 9013 clase 3 desde la partida Ø{f(2 * Re + 10)}. Cara superior a {f(MW['d_rebaje'])} bajo la cara superior de la mesa (z = {f(MW['z']['reb_sup'])} desde la cara inferior de la mesa).",
++             f"Agujero central Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)} × {f(g.cb_t)} (apoyo de la tapa de inspección PIV-004; los tablones dejan la abertura Ø{f(MW['tapas']['abertura_tablones'])}): mecanizar en mandrinadora/fresadora; Ra 6,3.",
++             f"{FX['n_total']} roscas ciegas M{fm(FX['d'], 0)}-6H (fijación de los tablones, MAD-002): taladro Ø{fm(FX['broca'], 1)} prof. {fm(FX['prof_taladro'], 0)} con tope (remanente {fm(tt - FX['prof_taladro'], 0)}: la caja queda cerrada), rosca útil {fm(FX['rosca_util'], 0)}; "
++             "posición ±0,5 desde el eje de la mesa (tabla); taladrar y roscar después del alivio de tensiones. Con tornillos galvanizados en caliente, macho con sobremedida ISO 965-5 (6AZ/6AX).",
++             f"Si el disco se obtiene de dos mitades: empalme CJP V 60° con respaldo, UT 100 %, esmerilar al ras (familia de J31).",
++             f"Pared cilíndrica (MES-015) sobre la cara superior a R{f(MW['R_rebaje'])}…R{f(MW['R_pared_ext'])} con filete a ambos lados ({jj[0] if jj else 'J30'}, J2 del núcleo); es el paso 1 de la secuencia del núcleo (J30 → J29 → almas, nervios y cubo → plancha inferior).",
++             f"Almas ({', '.join('R' + f(a['r']) for a in MW['almas'])}), nervios y cubo de alto {f(MW['hw_reb'])} se sueldan a la cara inferior con la subpieza invertida (paso 3). El drenaje del rebaje está PENDIENTE en el núcleo (GEN-009): no taladrar sin su definición."],
++            gd=[("flat", "1,0", None, "Planitud de la cara superior (apoyo de los tablones)")])
++    p.build()
++    return p.h
++
++
+ @pieza("mesa_plancha_sup")
+ def sheet_mesa_sup(ctx):
+     g, P = ctx.g, ctx.P
++    if g.wood:
++        return _sheet_mesa_reb(ctx)
+     zt, tt = g.z0 + g.hd, g.tt
+     p = Pieza(ctx, ["mesa_plancha_sup"], "MESA: PLANCHA SUPERIOR", fmt="auto")
+     s = p.s
+@@ -64,6 +150,8 @@ def sheet_mesa_sup(ctx):
+ @pieza("mesa_anillo_sup", "mesa_anillo_inf")
+ def sheet_mesa_anillos(ctx):
+     g, P, D = ctx.g, ctx.P, ctx.D
++    if g.wood:
++        return _sheet_anillo_w(ctx, "sup")          # cubierta W: el anillo superior arranca en R_reb (geometría distinta): cada anillo con su lámina
+     a0 = D["pasadores"][0]
+     zt = g.z0 + g.hd
+     rot_key(ctx, "mesa_anillo_sup", "ras", -a0)
+@@ -148,6 +236,112 @@ def sheet_mesa_anillos(ctx):
+     return p.h
+ 
+ 
++@pieza("mesa_anillo_inf", cond=lambda g: g.wood)
++def sheet_mesa_anillo_inf_w(ctx):
++    return _sheet_anillo_w(ctx, "inf")
++
++
++def _sheet_anillo_w(ctx, which):
++    """Cubierta W: lámina de un anillo de pasadores. Superior (MES-002): R_reb…R × t_anillo (núcleo, clave «madera»), unido a la pared por J29 (J1 del núcleo);
++    inferior (MES-004): prIn…R × tpr, unido a la plancha inferior por J13. Mismo trazado de agujeros y segmentos que el juego base."""
++    g, P, D = ctx.g, ctx.P, ctx.D
++    MW = g.MW
++    sup = which == "sup"
++    key = "mesa_anillo_sup" if sup else "mesa_anillo_inf"
++    a0 = D["pasadores"][0]
++    t_ = MW["t_anillo"] if sup else g.tpr
++    rin = MW["R_anillo_int"] if sup else g.prIn
++    zt = g.z0 + g.hd if sup else g.z0 + g.tpr
++    loc = rot_key(ctx, key, key + "_ra", -a0)
++    pitch = 360.0 / g.N_pin
++    tit = (f"MESA: ANILLO SUPERIOR DE PASADORES, UNA PIEZA DE {fm(t_, 0)} DESDE R{fm(rin, 0)} ({g.N_pin} AGUJEROS)" if sup else f"MESA: ANILLO INFERIOR DE PASADORES ({g.N_pin} AGUJEROS)")
++    p = Pieza(ctx, [key], tit, fmt="auto")
++    s = p.s
++    on = [loc]
++    ej = jids(ctx, "Empalmes de los anillos")[0]
++    jj = jids(ctx, "Anillo superior – pared") if sup else jids(ctx, "Plancha inferior – anillo")
++
++    def planta(V, p):
++        c3 = (0, 0, zt)
++        s.circle(V.P(c3), g.R_pin * V.scale, "EJE")
++        emp = [(sa + 0.5) * pitch for sa in (0, 7, 14, 21)]
++        for ang in emp:
++            pa = polar(rin - 14, ang); pb = polar(g.Rt + 14, ang)
++            s.line(V.P(pa + (zt,)), V.P(pb + (zt,)), "FANT")
++        s.line(V.P(c3), V.P(polar(g.Rt + 40, -a0) + (zt,)), "EJE")
++        qx_ = V.P(polar(g.Rt + 40, -a0) + (zt,))
++        s.text("+x (mesa)", (qx_[0] + 1, qx_[1] - 2), T_N, "TOP_LEFT")
++        rh = g.d_pin / 2
++
++        def ext_line(ang, r_to):
++            s.line(V.P(polar(g.R_pin + rh + 3, ang) + (zt,)), V.P(polar(r_to + 4, ang) + (zt,)), "COTA")
++        Ra1, Ra2 = g.Rt + 30, g.Rt + 70
++        ext_line(0, Ra1)
++        V.dim_ang_axes(c3, Ra1 * V.scale, -a0, 0, f"{fm(a0, 3)}° (1.er agujero desde +x)", axes=[((g.R_pin, 0.0, zt), rh)], on=on)
++        kp = int(round(g.N_pin * 0.85))
++        ext_line(kp * pitch, Ra1); ext_line((kp + 1) * pitch, Ra1)
++        V.dim_ang_axes(c3, Ra1 * V.scale, kp * pitch, (kp + 1) * pitch, f"{fm(pitch, 3)}° (paso, {g.N_pin}×)",
++                       axes=[(polar(g.R_pin, kp * pitch) + (zt,), rh), (polar(g.R_pin, (kp + 1) * pitch) + (zt,), rh)], on=on)
++        k14 = g.N_pin // 2
++        ext_line(k14 * pitch, Ra1)
++        s.line(V.P(polar(g.Rt + 14, emp[2]) + (zt,)), V.P(polar(Ra1 + 4, emp[2]) + (zt,)), "COTA")
++        V.dim_ang_axes(c3, Ra1 * V.scale, k14 * pitch, emp[2], f"{fm(emp[2] - k14 * pitch, 3)}° (empalme)", axes=[(polar(g.R_pin, k14 * pitch) + (zt,), rh)], on=on)
++        s.line(V.P(polar(g.Rt + 14, emp[2]) + (zt,)), V.P(polar(Ra2 + 4, emp[2]) + (zt,)), "COTA")
++        s.line(V.P(polar(g.Rt + 14, emp[1]) + (zt,)), V.P(polar(Ra2 + 4, emp[1]) + (zt,)), "COTA")
++        s.dim_ang(V.P(c3), Ra2 * V.scale, emp[1], emp[2], "90° (entre empalmes)")
++        p.cut_mark("planta", "A", (rin - 30, 0, zt), (g.Rt + 25, 0, zt), 90)
++        V.dimh((-g.R_pin, 0.0, zt), (g.R_pin, 0.0, zt), "bottom", 1, on=on, text=f"PCD Ø{f(2 * g.R_pin)}", virt_a=g.d_pin / 2, virt_b=g.d_pin / 2, ted=True)
++    p.vs("planta", on, "top", lv=(1, 2, 1, 1), extra=(25, 0, 45, 10), draw=planta, title="PLANTA DEL ANILLO" + ("" if sup else " (agujeros propios de la variante: nota)"), hatch=False, w=4.0, mins=0.1,
++         auto=dict(fits={g.d_pin: "H7"}, hole_rmin=20, hole_pos=False, verts=False, only_extents=True, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±1,5", round(2 * rin, 1): f"Ø{f(2 * rin)} ±1,5"}))
++    Rs, rs = g.Rt + 5, rin - 5
++    seg = [["Segmentos", f"4 de 90° (empalmes entre agujeros, a {fm(0.5 * pitch, 3)}° + 90°·k desde el 1.er agujero)"],
++           ["Radio exterior / interior de corte", f"R{fm(Rs, 0)} / R{fm(rs, 0)} (sobremetal 5 mm por lado)"],
++           ["Cuerda exterior de corte", f"{fm(2 * Rs * math.sin(math.radians(45)), 1)} mm"],
++           ["Altura del segmento (flecha + ancho)", f"{fm(Rs - rs * math.cos(math.radians(45)), 1)} mm"],
++           ["Ancho radial", f"{fm(Rs - rs, 0)} mm (terminado {fm(g.Rt - rin, 0)})"], ["Espesor de partida", f"{fm(t_ + 3, 0)} mm; empalmes {ej} en la partida"]]
++    if sup:
++        seg.append(["Planeado", f"caras planeadas a {fm(t_, 0)} ANTES de soldar a la pared ({jj[0] if jj else 'J29'}); la cara superior es la cara superior de la mesa (enrasada con los tablones)"])
++    else:
++        seg.append(["Planeado", f"se suelda a la plancha inferior en {fm(t_ + 3, 0)} ({jj[0] if jj else 'J13'}, t = {fm(g.tbo + 3, 0)} / {fm(t_ + 3, 0)}); la cara inferior se planea a {fm(t_, 0)} DESPUÉS de soldar, junto con la de la plancha (CON-009)"])
++    p.table_block("SEGMENTO DE PARTIDA PARA CORTE (plasma)", [("Dato", 60, "L"), ("Valor", 110, "L")], seg)
++    zb_ = zt - t_
++    p.ra_in("corte", "Ra 3,2", [(g.R_pin - g.d_pin / 2, 0, zt - t_ * 0.3), (g.R_pin + g.d_pin / 2, 0, zt - t_ * 0.3)], [(1, 0, 0), (-1, 0, 0)])
++    p.gd_in("corte", "surf", "flat", "0,3", None, at=[(g.Rt - 12, 0, zt), (rin + 14, 0, zt), (g.Rt - 12, 0, zb_)], d=[(0, 0, 1), (0, 0, 1), (0, 0, -1)])
++    am_ = [a0 + pitch * (k_ + 0.5) for k_ in (20, 21, 19, 22, 18)]
++    p.datum_in("planta", "surf", "A", at=[(rin * math.cos(math.radians(a_ - a0)), rin * math.sin(math.radians(a_ - a0)), zt) for a_ in am_],
++               d=[(-math.cos(math.radians(a_ - a0)), -math.sin(math.radians(a_ - a0)), 0) for a_ in am_])
++    p.gd_in("planta", "callout", "pos", "Ø0,3", "A", prefix=f"{g.N_pin} × Ø{f(g.d_pin)}")
++
++    def corte(V, p):
++        if jj:
++            if sup:
++                w_out(p, jj[0], V, (rin, 0, zb_ + 0.5), "left", prep="45°", dy=-14)
++            else:
++                w_out(p, jj[0], V, (rin, 0, zb_ + 3), "left", prep="60°", dy=-14)
++        V.dimh((rin, 0, zb_), (g.R_pin, 0, zb_), "bottom", 2, on=on, text=f"{fm(g.R_pin - rin, 1)} (al eje; PCD Ø{f(2 * g.R_pin)})", virt_b=g.d_pin / 2)
++    p.vs("corte", on, "front", cut=CUT_Y, win=(rin - 30 - g.R_pin, -t_ - 10, g.Rt + 30 - g.R_pin, 14), center=(g.R_pin, 0, zt), lv=(1, 2, 1, 3), extra=(105, 0, 0, 0), draw=corte,
++         title="CORTE A-A: RADIAL POR UN PASADOR", hs=0.5, w=1.2, mins=1.0, maxs=1.0, auto=dict(fits={g.d_pin: "H7"}, tol={round(t_, 1): ""}, text={round(g.d_pin, 1): f"Ø{f(g.d_pin)} H7 (+0,035/0)", round(g.Rt - rin, 1): f"({fm(g.Rt - rin, 0)})"}))
++    add_prep(p, "det_e", wd(ctx, ej), t1=t_)
++    for i_, j_ in enumerate(jj):
++        add_prep(p, f"det_j{i_}", wd(ctx, j_), t1=t_)
++    p.tables([ej] + jj)
++    nt = [f"Anillo Ø{f(2 * g.Rt)} / Ø{f(2 * rin)} × {f(t_)} terminado, en 4 segmentos de 90° (plasma)" + (f"; una sola pieza de espesor desde R{f(rin)} (núcleo: el mayor espesor entre el anillo de pasadores y la plancha superior; sin franja de {fm(g.tt, 0)} mm)." if sup else
++          f"; mismo trazado de agujeros que el anillo superior (MES-002), que en la cubierta W arranca en R{f(MW['R_anillo_int'])}."),
++          f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: taladrar Ø80 en taladro radial por segmentos y MANDRINAR a Ø{f(g.d_pin)} H7 en línea con el otro anillo ya armado (plantilla común).",
++          f"Posición angular: primer agujero a {fm(a0, 3)}°, paso {fm(pitch, 3)}°; los empalmes quedan entre agujeros (a {fm(0.5 * pitch, 2)}° de ellos).",
++          f"Empalmes CJP V 60°, raíz 3, respaldo, UT 100 % ({ej}); esmerilar al ras antes de armar. Soldar los empalmes ANTES de unir el anillo a la " + ("pared (MES-015)." if sup else "plancha inferior."),
++          "UT de recepción de la plancha ASTM A578 nivel B y Z35 (EN 10164) por el esfuerzo en espesor de los pasadores.",
++          "Rugosidad Ra 3,2 en los agujeros; aristas rotas 1×45°."]
++    if sup:
++        nt.append(f"Unión con la pared cilíndrica ({jj[0] if jj else 'J29'}, J1 del núcleo): canto interior Ø{f(2 * rin)} a ras de la cara interior de la pared; PJP desde el rebaje y filete exterior bajo el anillo (detalle). "
++                  f"Secuencia (núcleo): 1) pared a la plancha rebajada (J30); 2) anillo sobre la pared ({jj[0] if jj else 'J29'}) con la subpieza invertida y la zona R{f(MW['R_pared_ext'])}…R{f(g.Rt)} abierta; 3) almas, nervios y cubo; 4) plancha inferior.")
++    else:
++        nt += notas_anillo_inf(ctx)
++    p.notes(nt, gd=[("pos", "Ø0,3", "A", "Agujeros: posición respecto del eje de la mesa (A); PCD y ángulos del patrón: cotas teóricamente exactas (en recuadro)"), ("flat", "0,3", None, "Planitud de las caras del anillo")])
++    p.build()
++    return p.h
++
++
+ def notas_anillo_inf(ctx):
+     """Agujeros propios del anillo inferior según la interfaz: roscas de los tornillos de posición y conductos de engrase (leídos del modelo)."""
+     g, P, m = ctx.g, ctx.P, ctx.m
+@@ -201,7 +395,13 @@ def sheet_mesa_inf(ctx):
+     # sin elevación: plancha de espesor constante; el espesor se acota en el corte A-A
+     for i, j_ in enumerate(jj):
+         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tbo)
+-    p.tables(jids(ctx, "Plancha inferior – anillo", "Barras de tope – plancha inferior"))
++    jc = jids(ctx, "Cierre de la plancha inferior")          # cubierta W: la plancha inferior cierra la caja (ranuras J18)
++    if jc:
++        add_prep(p, "det_r", wd(ctx, jc[0]), t1=tbo + 3)
++        rc_ = ranuras_cierre(ctx)
++        p.table_block(f"RANURAS DE CIERRE {jc[0]} (22 × 80 a paso 250, eje de la ranura sobre el eje del alma o nervio; PROPUESTA)", [("Elemento", 34, "L"), ("Ubicación", 70, "L"), ("Ángulos", 46, "L"), ("Cant", 14, "R")],
++                      [[a, b_, c_, str(n_)] for a, b_, c_, n_ in rc_] + [["TOTAL", "", "", str(sum(r_[3] for r_ in rc_))]], bold_rows=(len(rc_),))
++    p.tables(jids(ctx, "Plancha inferior – anillo", "Barras de tope – plancha inferior", "Cierre de la plancha inferior"))
+     p.notes([f"Disco Ø{f(2 * g.prIn)} × {f(tbo)} con +3 mm de sobremetal en la cara inferior (partida e = {f(tbo + 3)}), que se planea después de soldar; la junta {jj[0] if jj else 'J??'} se prepara para el espesor al soldar ({f(tbo + 3)}). "
+              f"Oxicorte/plasma ISO 9013 clase 3; la plancha absorbe la abertura de raíz: Ø de corte de preparación {f(2 * g.prIn - 6)}.",
+              f"Agujero central Ø{f(2 * ri)}: " + (f"PASANTE por el rebaje del collar (Ø{f(g.D_boss)} del collar + 2 × {fm(g.c_boss_r, 0)} mm); holgura radial {fm(g.c_boss_r, 0)} mm, axial {fm(g.c_boss_a, 0)} mm." if g.rebaje else "mandrinado para el buje."),
+@@ -210,7 +410,9 @@ def sheet_mesa_inf(ctx):
+                  ("pasantes (taladro Ø{0} pasante, rosca en todo el espesor)".format(fm(ctx.m.info["screw_resp"]["mesa"]["broca"], 1)) if ctx.m.info["screw_resp"]["mesa"]["pasante"] else
+                   "rosca útil {0}, taladro Ø{1} prof. {2}".format(fm(ctx.m.info["screw_resp"]["mesa"]["thr"], 0), fm(ctx.m.info["screw_resp"]["mesa"]["broca"], 1), fm(ctx.m.info["screw_resp"]["mesa"]["drill"], 0))) +
+                  "; posiciones en la lámina de tornillos (INT-005). Roscar después de planear la cara.")] if (ctx.m.info.get("screw_resp") or {}).get("mesa") else []),
+-             f"Unión con el anillo inferior: soldadura a tope circunferencial con caras inferiores a ras y transición 1:4 en la cara superior del anillo (chaflán hasta 3 mm del agujero de pasador + pendiente del cordón) ({jj[0] if jj else 'J??'}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."],
++             f"Unión con el anillo inferior: soldadura a tope circunferencial con caras inferiores a ras y transición 1:4 en la cara superior del anillo (chaflán hasta 3 mm del agujero de pasador + pendiente del cordón) ({jj[0] if jj else 'J??'}). Pasadores Ø{f(g.d_pin)} del anillo: ver MES-002/004."]
++            + ([f"Cubierta W: la plancha inferior cierra la caja (paso 4 de la secuencia del núcleo). Unión con almas y nervios por ranuras {jc[0]} 22 × 80 a paso 250 rellenas (tabla; no modeladas en 3D; PROPUESTA, GEN-009), "
++                f"soldadas en la partida de {f(tbo + 3)} y planeadas a ras con la cara inferior; MT 100 % antes y después de planear."] if jc else []),
+             gd=[("flat", "0,20", None, "Planitud de la cara inferior (antes de montar la interfaz); paralelismo entre caras de la mesa: CON-009")])
+     p.build()
+     return p.h
+@@ -247,12 +449,17 @@ def sheet_almas(ctx):
+             for i, (k, r_) in enumerate(zip(ks, D["almas"]))]
+     p.table_block("DESARROLLO DE LAS ALMAS (pletina rolada)", [("Alma", 14, "C"), ("Código", 24, "L"), ("Ø eje [mm]", 20, "R"), ("Ø ext. / Ø int.", 34, "R"), ("Desarrollo [mm]", 24, "R"), ("Suministro", 26, "L"), ("h × t", 16, "C")], rows)
+     add_prep(p, "det_e", wd(ctx, ids[1]), t1=P["t_web"])
+-    add_prep(p, "det_f", wd(ctx, ids[0]), t1=P["t_web"], t2=g.tt)
++    add_prep(p, "det_f", wd(ctx, ids[0]), t1=P["t_web"], t2=g.t_ps)
+     p.tables(ids)
++    MW = g.MW
++    alt_ = (f"Altura h = {f(g.hd)} − {f(MW['t_madera'])} − {f(MW['t_reb'])} − {f(g.tbo)} = {f(g.hw)} ±0,5 (cubierta W, núcleo madera.hw_reb: bajo la plancha rebajada; el alma R{f(MW['R_rebaje'])} queda bajo la pared cilíndrica): cortar a medida y verificar con plantilla antes de armar la mesa." if MW else
++            f"Altura h = {f(g.hd)} − {f(g.tt)} − {f(g.tbo)} = {f(g.hw)} ±0,5 (altura de la mesa menos espesores de las planchas): cortar a medida y verificar con plantilla antes de armar la mesa.")
++    fil_ = (f"Filete z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}) a la plancha rebajada, con la subpieza anillo–pared–plancha invertida (paso 3 de la secuencia del núcleo); a la plancha inferior, que cierra la caja, por las ranuras J18 (MES-003). " if MW else
++            f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}). ")
+     p.notes([f"Pletina {fm(P['t_web'], 0)} × {f(g.hw)} rolada a los radios de eje R = {', '.join(f(x) for x in D['almas'])} mm; desarrollo = 2πR.",
+              f"Cada alma tiene 1 empalme a tope V 60° ({ids[1]}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios.",
+-             f"Altura h = {f(g.hd)} − {f(g.tt)} − {f(g.tbo)} = {f(g.hw)} ±0,5 (altura de la mesa menos espesores de las planchas): cortar a medida y verificar con plantilla antes de armar la mesa.",
+-             f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else "Cumple mínimo AWS y máximo AISC J2.2b."),
++             alt_,
++             fil_ + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else "Cumple mínimo AWS y máximo AISC J2.2b."),
+              "Las almas son continuas; los nervios se cortan entre almas (ver MES-008…010)."],
+             gd=[("perp", "0,5", "A", "Caras del alma perpendiculares a su canto inferior (A, apoyo en la plancha inferior); altura h ±0,5"), ("circ", "2,0", None, "Redondez del anillo rolado (desviación radial máx.)")])
+     p.build()
+@@ -307,8 +514,8 @@ def sheet_nervios(ctx):
+     p.notes([f"Pletina {fm(P['t_rib'], 0)} × {f(g.hw)}; {int(P['N_rib'])} nervios por tramo, 3 tramos (entre cubo, almas A1…A3 y borde exterior de los nervios a R{f(P['R_rib'])}).",
+              "Corte por plasma anidado en plancha (GEN-010/013) con el largo de corte de la tabla (terminado + 2 × 2 de sobremetal); recortar al largo terminado acotado entre las caras del nervio, que deja 1 mm de holgura de armado contra cada cara de cubo o alma. "
+              "Destijeres a 45° de 15 × 15 en las 4 esquinas de cada tramo (dibujados), para el paso de los filetes de las almas (J14) y de las uniones del cubo (J17a/J17b).",
+-             f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha inferior con plantilla angular ±0,1°.",
+-             "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior. Posición angular de cada nervio ±0,1° respecto de +x (tabla de ángulos)."],
++             f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha " + ("rebajada (subpieza invertida)" if g.wood else "inferior") + " con plantilla angular ±0,1°.",
++             ("Cubierta W: nervios y almas (alto " + f(g.hw) + ", núcleo madera.hw_reb) se sueldan a la plancha rebajada ANTES de cerrar con la plancha inferior (ranuras J18). " if g.wood else "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior. ") + "Posición angular de cada nervio ±0,1° respecto de +x (tabla de ángulos)."],
+             gd=[("straight", "1,0", None, "Rectitud del canto de apoyo de cada nervio")])
+     p.build()
+     return p.h
+@@ -348,7 +555,8 @@ def sheet_cubo(ctx):
+     p.tables(jc)
+     p.notes([f"Anillo Ø{f(P['D_hub'])} / Ø{f(g.d_bush)} × {f(g.hw)} de plancha gruesa o tubo, corte a llama; agujero Ø{f(g.d_bush)} H7 y rebaje Ø{f(g.Drb)} en mandrinadora (sin torno vertical).",
+              f"Ajuste del buje (PIV-002): {f(g.d_bush)} H7 / s6, prensado. Holgura radial del collar {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo).",
+-             f"Soldar a las planchas inferior ({jc[0] if jc else 'J??'}) y superior ({jc[1] if len(jc) > 1 else 'J??'}), uniones en T con bisel 45° en el canto exterior del cubo; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.",
++             f"Soldar a las planchas inferior ({jc[0] if jc else 'J??'}) y " + ("rebajada" if g.wood else "superior") + f" ({jc[1] if len(jc) > 1 else 'J??'}), uniones en T con bisel 45° en el canto exterior del cubo; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6."
++             + (f" Cubierta W: alto {f(g.hw)} (núcleo madera.hw_reb); el cubo se suelda primero a la plancha rebajada (subpieza invertida)." if g.wood else ""),
+              "Perpendicularidad de las caras 0,10 y coaxialidad del agujero 0,05 respecto del eje del Ø exterior (A); el agujero se mandrina con la mesa armada, en línea con el eje de la mesa (CON-009)."],
+             gd=[("coax", "Ø0,05", "A", "Ø%s H7 coaxial con el eje del Ø exterior (A); se mandrina con la mesa armada, en línea con el eje de la mesa" % f(g.d_bush)), ("perp", "0,10", "A", "Caras inferior y superior perpendiculares al eje A")])
+     p.build()
+@@ -452,7 +660,53 @@ def sheet_pernos(ctx):
+     p.tables()
+     p.notes(["Perno: elemento comercial de catálogo (marca/modelo: ver GEN-008). Arandela: pieza fabricada (este plano; partida en el despiece).",
+              "Torque de apriete: ver GEN-008 (propuesta, a confirmar por el calculista según VDI 2230); marca de pintura de control tras el apriete.",
+-             "Rosca limpia y con pasta antigripante; arandela asentada sobre la cara del pasador y del anillo superior" + (" (bolsillo de la cubierta de madera, MAD-001)" if g.wood else "") + "; sin soldadura."],
++             "Rosca limpia y con pasta antigripante; arandela asentada sobre la cara del pasador y del anillo superior" + (" (con la cubierta W la cabeza queda sobre el anillo, fuera del rebaje de los tablones)" if g.wood else "") + "; sin soldadura."],
+             gd=[("perp", "0,10", "A", "Cara superior de la arandela perpendicular al eje del agujero; A = cara inferior de apoyo")])
+     p.build()
+     return p.h
++
++
++@pieza("mesa_pared")
++def sheet_pared(ctx):
++    """Cubierta W: pared cilíndrica del rebaje (MES-015), núcleo clave «madera»: R_reb…R_pared_ext, alto h_pared entre la plancha rebajada y el anillo superior."""
++    g, P = ctx.g, ctx.P
++    MW = g.MW
++    if not MW or not ctx.m.get("mesa_pared"):
++        return None
++    Ri_, Re_, h_, t_ = MW["R_rebaje"], MW["R_pared_ext"], MW["h_pared"], MW["t_pared"]
++    z0 = g.z0 + MW["z"]["reb_sup"]
++    p = Pieza(ctx, ["mesa_pared"], f"MESA: PARED CILÍNDRICA DEL REBAJE (CUBIERTA DE MADERA W), Ø{f(2 * Re_)}/Ø{f(2 * Ri_)} × {f(h_)}", fmt="auto")
++    s = p.s
++    on = ["mesa_pared"]
++    jj = jids(ctx, "Anillo superior – pared", "Pared cilíndrica – plancha rebajada", "Empalme de la pared")
++
++    def planta(V, p):
++        s.centerlines(V.P(0, 0, z0 + h_), Re_ * V.scale, 8)
++        p.cut_mark("planta", "A", (Ri_ - 160, 0, z0 + h_), (Re_ + 100, 0, z0 + h_), 90)
++    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 0), draw=planta, hatch=False, title="PLANTA", w=1.5, mins=0.05,
++         auto=dict(hole_rmin=20, verts=False, hole_pos=False, only_extents=True, text={round(2 * Re_, 1): f"Ø{f(2 * Re_)} ±1", round(2 * Ri_, 1): f"Ø{f(2 * Ri_)} ±1 (holgura {fm(MW['c_mad'], 0)} a los tablones)"},
++                   hole_txt={round(2 * Ri_, 1): f"Ø{f(2 * Ri_)} ±1 (holgura {fm(MW['c_mad'], 0)} a los tablones)"}))
++
++    def corte(V, p):
++        if jj:
++            w_out(p, jj[0], V, (Ri_ + 2, 0, z0 + h_ - 2), "left", prep="45°", dy=14)
++        if len(jj) > 1:
++            w_out(p, jj[1], V, (Re_, 0, z0 + 1), "right", dy=-12)
++    p.vs("corte", on, "front", cut=CUT_Y, center=(Ri_ + t_ / 2, 0, z0 + h_ / 2), win=(-t_ / 2 - 14, -h_ / 2 - 8, t_ / 2 + 14, h_ / 2 + 8), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=corte,
++         title="CORTE A-A (sección de la pared)", hs=0.3, maxs=5.0, mins=2.0, w=1.0, auto=dict(tol={round(h_, 1): " ±0,2", round(t_, 1): ""}))
++    for i_, j_ in enumerate(jj):
++        if "Pared cilíndrica – plancha" in ctx.weld_by_id(j_)["desc"]:
++            add_prep(p, f"det_j{i_}", wd(ctx, j_), t1=t_, t2=MW["t_reb"])
++        else:
++            add_prep(p, f"det_j{i_}", wd(ctx, j_), t1=t_)
++    Lr = math.pi * (Ri_ + Re_)
++    rows = [["Pared", ctx.code("mesa_pared").replace(CODE + "-", ""), f"{f(2 * (Ri_ + Re_) / 2)}", f"Ø{f(2 * Re_)} / Ø{f(2 * Ri_)}", f(Lr, 0), f"{fm(h_, 0)} × {fm(t_, 0)}", f"franja {f(h_ + 4)} × {f(Lr + 20)} de plancha e = {f(t_)}"]]
++    p.table_block("DESARROLLO DE LA PARED (franja rolada)", [("Pieza", 16, "C"), ("Código", 26, "L"), ("Ø eje [mm]", 20, "R"), ("Ø ext. / Ø int.", 34, "R"), ("Desarrollo [mm]", 24, "R"), ("h × t", 16, "C"), ("Partida", 44, "L")], rows)
++    p.tables(jj)
++    p.notes([f"Pared Ø{f(2 * Re_)} / Ø{f(2 * Ri_)} × {f(h_)} de alto (núcleo, clave «madera»: radio del rebaje {f(Ri_)}, espesor {f(t_)}, alto = madera {f(MW['t_madera'])} − anillo {f(MW['t_anillo'])}); franja de plancha A572 Gr.50 cortada a plasma con 2 mm de sobremetal en el alto por lado, rolada a radio, 1 empalme CJP ({jj[2] if len(jj) > 2 else 'J31'}) esmerilado al ras en ambas caras (S06, PROVISORIO).",
++             f"Alto terminado {f(h_)} ±0,2 (caras superior e inferior planas y paralelas dentro de la tolerancia del alto): con la plancha rebajada y el anillo superior fija el enrase de los tablones de {f(MW['t_madera'])} con la cara superior de la mesa.",
++             f"Bisel simple 45° en el canto superior INTERIOR (lado del rebaje), profundidad S = {fm(MW['soldaduras']['J1']['S'], 0)} mm, para la PJP del anillo ({jj[0] if jj else 'J29'}, J1 del núcleo); a máquina o amolado con plantilla después de rolar.",
++             f"Secuencia (núcleo): 1) pared sobre la plancha rebajada (MES-001), centrada a ±1 mm, con filete a ambos lados ({jj[1] if len(jj) > 1 else 'J30'}); 2) anillo superior (MES-002) sobre la pared ({jj[0] if jj else 'J29'}: PJP desde el rebaje y filete exterior), con la subpieza invertida y la zona R{f(Re_)}…R{f(g.Rt)} abierta; 3) almas, nervios y cubo; 4) plancha inferior.",
++             f"Redondez después de soldar: desviación radial ≤ 2 mm (holgura de los tablones {fm(MW['c_mad'], 0)} mm)."])
++    p.build()
++    return p.h
+diff --git a/cad/pie_c.py b/cad/pie_c.py
+index 7b0538c..8382720 100644
+--- a/cad/pie_c.py
++++ b/cad/pie_c.py
+@@ -114,7 +114,7 @@ def sheet_tapas(ctx):
+     ks = [k for k in ("tapa_ret", "tapa_insp") if ctx.m.get(k)]
+     p = Pieza(ctx, ks, "PIVOTE: TAPAS RETENEDORA (PIV-003) E INSPECCIÓN (PIV-004)", fmt="auto")
+     s = p.s
+-    spec = {"tapa_ret": (g.L_piv, g.cap_t, g.cap_D, g.cap_pcd, 4, 45.0, "TAPA RETENEDORA", g.clear_m10, g.cap_csk), "tapa_insp": (g.z0 + g.hd - g.cb_t, g.cb_t, g.cb_D - 2, g.insp_pcd, 6, 30.0, "TAPA DE INSPECCIÓN", g.insp_clear, g.insp_csk)}
++    spec = {"tapa_ret": (g.L_piv, g.cap_t, g.cap_D, g.cap_pcd, 4, 45.0, "TAPA RETENEDORA", g.clear_m10, g.cap_csk), "tapa_insp": (g.z0 + g.zr_ps - g.cb_t, g.cb_t, g.cb_D - 2, g.insp_pcd, 6, 30.0, "TAPA DE INSPECCIÓN", g.insp_clear, g.insp_csk)}
+     rows = []
+     letras = {"tapa_ret": "A", "tapa_insp": "B"}
+     for k in ks:
+@@ -165,7 +165,7 @@ def sheet_tapas(ctx):
+            f"engrane {fm(g.cap_L - g.cap_t, 0)} mm (≥ 1,0·d) y la punta queda {fm(g.cap_thr - (g.cap_L - g.cap_t), 0)} mm antes del fin de la rosca útil (no toca fondo). Ra 3,2; oxicorte/plasma y agujeros en taladro radial."]
+     if "tapa_insp" in ks:
+         bi = (g.cb_D / 2 - 1) - g.insp_pcd / 2 - g.insp_csk / 2
+-        ins.append(f"Tapa de inspección Ø{f(g.cb_D - 2)} × {f(g.cb_t)} (en el rebaje Ø{f(g.cb_D)} de la plancha superior MES-001): 6 × ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9 a los agujeros M{fm(g.insp_d, 0)}-6H pasantes del fondo del rebaje (taladro Ø{fm(g.insp_drill, 1)} pasante, rosca en los {fm(g.insp_rem, 0)} mm del remanente; engrane {fm(g.insp_L - g.cb_t, 0)} ≥ 1,0·d); "
++        ins.append(f"Tapa de inspección Ø{f(g.cb_D - 2)} × {f(g.cb_t)} (en el rebaje Ø{f(g.cb_D)} de la plancha {'rebajada' if g.wood else 'superior'} MES-001): 6 × ISO 10642 M{fm(g.insp_d, 0)}×{g.insp_L} 10.9 a los agujeros M{fm(g.insp_d, 0)}-6H pasantes del fondo del rebaje (taladro Ø{fm(g.insp_drill, 1)} pasante, rosca en los {fm(g.insp_rem, 0)} mm del remanente; engrane {fm(g.insp_L - g.cb_t, 0)} ≥ 1,0·d); "
+                    f"avellanado Ø{fm(g.insp_csk, 0)}×90° con borde {fm(bi, 1)} mm hasta el canto de la tapa (≥ {fm(BORDE_MIN, 0)}); sin función estructural.")
+     p.notes(ins + ["Material de las tapas: ASTM A572 Gr.50 (Fy del cálculo) — PROPUESTO.", "Tornillos: torque propuesto en GEN-008; marca/modelo por catálogo (GEN-008)."],
+             gd=[("pos", "Ø0,2", ["C", "D"], "Tapa retenedora: patrón de agujeros respecto de la cara de apoyo (C) y del eje del Ø exterior (D)"),
+diff --git a/cad/pie_common.py b/cad/pie_common.py
+index 8532778..d847347 100644
+--- a/cad/pie_common.py
++++ b/cad/pie_common.py
+@@ -7,22 +7,31 @@ PLAN = []          # (nombre_función, [claves de pieza]) — se llena con @piez
+ 
+ 
+ NOGROUP = set()     # láminas de características (ranuras, patrón de tapones, tablones): no «poseen» ninguna pieza del despiece
++COND = {}           # láminas que solo existen en algunas variantes: nombre -> predicado sobre g (p. ej. el anillo inferior con lámina propia en la cubierta W)
+ 
+ 
+-def pieza(*keys, nogroup=False):
++def pieza(*keys, nogroup=False, cond=None):
+     def deco(fn):
+         PLAN.append((fn.__name__, list(keys), fn))
+         if nogroup:
+             NOGROUP.add(fn.__name__)
++        if cond is not None:
++            COND[fn.__name__] = cond
+         return fn
+     return deco
+ 
+ 
++def activa(name, ctx):
++    """La lámina de pieza 'name' se emite en este juego (predicado de variante)."""
++    return COND.get(name, lambda g: True)(ctx.g)
++
++
+ def register(ctx):
+-    """Asigna a cada pieza la lámina que la dibuja (para la columna «Plano» del despiece) antes de dibujar cualquier lámina."""
++    """Asigna a cada pieza la lámina que la dibuja (para la columna «Plano» del despiece) antes de dibujar cualquier lámina.
++    Las láminas condicionadas (COND) van después en PLAN y, si están activas, reasignan sus piezas."""
+     ctx.group_of = {}
+     for name, keys, fn in PLAN:
+-        if name in NOGROUP:
++        if name in NOGROUP or not activa(name, ctx):
+             continue
+         ks = [k for k in keys if ctx.m.get(k)]
+         for k in ks:
+diff --git a/cad/pie_i.py b/cad/pie_i.py
+index f9bf096..ee6fa0f 100644
+--- a/cad/pie_i.py
++++ b/cad/pie_i.py
+@@ -638,91 +638,155 @@ def sheet_int_tapones(ctx):
+ 
+ 
+ # ======================================================================================================= madera
++def _crop_xy(ctx, key, newkey, x, y, half, ang=0.0):
++    """Copia local de la pieza 'key' recortada a una caja de semilado 'half' centrada en (x, y), llevada al origen y girada -ang (para cortes por un tornillo)."""
++    import cadquery as cq
++    bx = cq.Solid.makeBox(2 * half, 2 * half, 2000, cq.Vector(x - half, y - half, -500))
++    c = ctx.shapes[key].intersect(bx).translate(cq.Vector(-x, -y, 0))
++    if ang:
++        c = c.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), -ang)
++    ctx.shapes[newkey] = c
++    ctx.mat[newkey] = ctx.mat.get(key, "acero")
++    return newkey
++
++
++def _tipo_pieza(ctx):
++    """Sufijo de código de cada pieza de tablón en el orden del núcleo (filas y piezas de madera.tablones.lista)."""
++    p = ctx.m.get("madera")
++    suf = {}
++    for t in p.tipos or []:
++        for i in t["idx"]:
++            suf[i] = t["suf"]
++    out, i = [], 0
++    for fl in ctx.g.MW["tablones"]["lista"]:
++        for pz in fl["piezas"]:
++            out.append((fl, pz, p.code_suf(suf.get(i, p.suf)).replace(CODE + "-", "")))
++            i += 1
++    return out
++
++
+ @pieza("madera")
+ def sheet_madera(ctx):
++    """MAD-001: tablones de la cubierta W (núcleo, madera.tablones y madera.fijacion): disposición por filas, extremos en arco, abertura de la tapa de inspección,
++    cajeados y pasantes de la fijación con la tabla de posiciones de los tornillos."""
+     g, P = ctx.g, ctx.P
+-    zw0, tW = g.z0 + g.hd, P["t_wood"]
+-    if not ctx.m.get("madera"):
++    MW = g.MW
++    if not MW or not ctx.m.get("madera"):
+         return None
+-    Rin = g.Rt - g.t_ring
+-    p = Pieza(ctx, ["madera"], "CUBIERTA DE MADERA: TABLONES CONTIGUOS DE 200 mm, BOLSILLOS DE PERNOS Y ABERTURA DE LA TAPA", fmt="A1")
++    TB, FX = MW["tablones"], MW["fijacion"]
++    zr, tW = g.z0 + MW["z"]["reb_sup"], MW["t_madera"]
++    zt = zr + tW
++    p = Pieza(ctx, ["madera"], f"CUBIERTA DE MADERA W: TABLONES DE {fm(tW, 0)} ENRASADOS ({TB['n']} FILAS, {TB['n_piezas']} PIEZAS), CAJEADOS Y POSICIONES DE LA FIJACIÓN", fmt="A1")
+     s = p.s
+     on = ["madera"]
+-    w = 200.0
+-    nb = int(math.ceil(Rin / w))
+-    edges = [i * w for i in range(0, nb + 1)]
+-    edges[-1] = Rin
+-    pins = [polar(g.R_pin, a) for a in ctx.D["pasadores"]]
++    tip = _tipo_pieza(ctx)
+ 
+     def planta(V, p):
+-        c3 = (0, 0, zw0 + tW)
+-        for x in [-e for e in edges[1:-1]] + edges[0:-1]:
+-            ch = math.sqrt(max(Rin ** 2 - x ** 2, 0)) * 0.999
+-            s.line(V.P(x, -ch, zw0 + tW), V.P(x, ch, zw0 + tW), "FANT")
+-        for i, (a0, a1) in enumerate(zip(edges, edges[1:])):
+-            xm = (a0 + a1) / 2
+-            s.text(str(i + 1), V.P(xm, 0 if i > 0 else 0, zw0 + tW), T_MIN + 0.5, "MIDDLE_CENTER") if False else None
+-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 90, 20), draw=planta, hatch=False, title="PLANTA: DISPOSICIÓN DE TABLONES (200 mm), ABERTURA Ø%s Y BOLSILLOS" % f(g.cb_D), w=2.0,
+-         auto=dict(fits={round(g.cb_D, 1): "H12"}, hole_rmin=20, hole_pos=False, text={round(2 * Rin, 1): f"Ø{f(2 * Rin)} −2/−4 (tablones, hasta el anillo)"}, hole_txt={round(g.washer_D + 4, 1): f"{g.N_pin} × Ø{f(g.washer_D + 4)} +2/0 × 31 +2/0 (bolsillo sobre perno y arandela), PCD Ø{f(2 * g.R_pin)}"}))
++        for fl, pz, cod in tip:
++            # rótulo de la pieza en el hueco más ancho entre tornillos de la fila (sin pisar números ni cajeados)
++            xs_ = sorted(x for (x, y) in FX["posiciones"] if fl["y0"] - 1 <= y <= fl["y1"] + 1)
++            xe_ = math.sqrt(max(MW["R_tablones"] ** 2 - (abs((fl["y0"] + fl["y1"]) / 2) + 12) ** 2, 0)) - 70     # extremo útil a media altura de la fila
++            a_, b_ = max(pz["x0"] + 20, -xe_), min(pz["x1"] - 20, xe_)
++            cands = [a_ + (b_ - a_) * k_ / 60 for k_ in range(61)]
++            if fl["corte"]:
++                cands = [x for x in cands if abs(x) > MW["R_abertura"] + 70] or cands
++            xm = max(cands, key=lambda x: (min([abs(x - u) for u in xs_] + [1e9]) // 40, -abs(x - (pz["x0"] + pz["x1"]) / 2)))
++            q = V.P(xm, (fl["y0"] + fl["y1"]) / 2, zt)
++            s.text(f"F{fl['i']}", q, T_N, "MIDDLE_CENTER")
++        for i_, (x, y) in enumerate(FX["posiciones"]):
++            q = V.P(x, y, zt)
++            s.text(str(i_ + 1), (q[0] + FX["D_cajeado"] / 2 * V.scale + 0.6, q[1] + 0.6), T_MIN, "BOTTOM_LEFT")
++        p.cut_mark("planta", "A", (MW["R_tablones"] - 40, 0, zt), (MW["R_tablones"] + 170, 0, zt), 90)
++    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 60, 10), draw=planta, hatch=False, w=3.0, mins=0.1,
++         title=f"PLANTA: FILAS F1…F{TB['n']} (código de cada pieza en la tabla), ABERTURA Ø{f(2 * MW['R_abertura'])} Y TORNILLOS 1…{FX['n_total']}",
++         auto=dict(hole_rmin=g.tmad_clear / 2 + 0.5, verts=False, hole_pos=False, only_extents=True, text={round(2 * MW["R_tablones"], 1): f"Ø{f(2 * MW['R_tablones'])} −2/−6 (extremos en arco R{f(MW['R_tablones'])})"},
++                   hole_txt={round(FX["D_cajeado"], 1): f"{FX['n_total']} × Ø{f(FX['D_cajeado'])} +1/0 × {fm(FX['h_cajeado'], 1)} +0,5/0 cajeado, con pasante Ø{fm(g.tmad_clear, 1)} +0,5/0 (posiciones: tabla)",
++                             round(2 * MW["R_abertura"], 1): f"Ø{f(2 * MW['R_abertura'])} +2/0 (abertura de la tapa de inspección)",
++                             round(2 * MW["R_tablones"], 1): f"Ø{f(2 * MW['R_tablones'])} −2/−6 (extremos en arco R{f(MW['R_tablones'])})"}, tol={}))
+ 
+     def corte(V, p):
+-        pass
+-    p.gd_in("corte", "surf", "flat", "1,0", None, at=[(g.Rt - 100 + dx_, 0, zw0 + tW) for dx_ in (-40, 0, -70, 30)], d=(0, 0, 1))
+-    p.vs("corte", ["madera", "madera_anillo"], "front", cut=CUT_Y, center=(g.Rt - 100, 0, zw0 + tW / 2), win=(-90, -tW / 2 - 8, 105, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0, title="CORTE RADIAL (tablón y anillo)",
+-         mat={"madera": "madera", "madera_anillo": "acero"}, w=1.0, auto=dict(on=["madera_anillo"], tol={round(tW, 1): "", round(g.t_ring, 1): ""}))
+-    a0p = ctx.D["pasadores"][0]
+-    rot_key(ctx, "madera", "madera_P", -a0p)
+-    p.vs("bolsillo", ["madera_P"], "front", cut=CUT_Y, center=(g.R_pin, 0, zw0 + tW / 2), win=(-(g.washer_D / 2 + 20), -tW / 2 - 8, g.washer_D / 2 + 20, tW / 2 + 8), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0,
+-         title="CORTE POR UN BOLSILLO (perno y arandela del pasador)", mat={"madera_P": "madera"}, w=0.9, auto=dict(on=["madera_P"], tol={}, only_extents=True))
++        V.dimh((MW["R_tablones"], 0, zr + 8), (MW["R_rebaje"], 0, zr + 8), "top", 0, on=["madera", "mesa_pared"], text=f"{fm(MW['c_mad'], 0)} (holgura)")
++    kc = [k for k in ("madera", "mesa_pared", "mesa_anillo_sup", "mesa_plancha_sup") if k in ctx.shapes]
++    p.vs("corte", kc, "front", cut=CUT_Y, center=(MW["R_tablones"], 0, zr + tW / 2), win=(-90, -tW / 2 - MW["t_reb"] - 8, (g.Rt - MW["R_tablones"]) + 10, tW / 2 + 10), lv=(1, 2, 1, 2), hs=0.3, maxs=2.0, draw=corte,
++         title="CORTE A-A: BORDE DEL REBAJE (tablón enrasado, pared, anillo y plancha rebajada)", mat={"madera": "madera", "mesa_pared": "acero", "mesa_anillo_sup": "acero", "mesa_plancha_sup": "acero"}, w=1.4,
++         auto=dict(on=["madera"], tol={round(tW, 1): " ±0,5"}, only_extents=True))
++    xh, yh = FX["posiciones"][0]
++    _crop_xy(ctx, "madera", "mad_T", xh, yh, 40)
++    p.vs("cajeado", ["mad_T"], "front", cut=CUT_Y, center=(0, 0, zr + tW / 2), win=(-FX["D_cajeado"] / 2 - 14, -tW / 2 - 6, FX["D_cajeado"] / 2 + 14, tW / 2 + 6), lv=(1, 2, 1, 2), hs=0.3, maxs=5.0, w=0.9,
++         title="CORTE B-B POR UN TORNILLO (cajeado y pasante; ver MAD-002)", mat={"mad_T": "madera"},
++         auto=dict(on=["mad_T"], fits={}, text={round(FX["D_cajeado"], 1): f"Ø{f(FX['D_cajeado'])} +1/0", round(g.tmad_clear, 1): f"Ø{fm(g.tmad_clear, 1)} +0,5/0",
++                                               round(FX["h_cajeado"], 1): f"{fm(FX['h_cajeado'], 1)} +0,5/0", round(FX["t_bajo_arandela"], 1): f"({fm(FX['t_bajo_arandela'], 1)})"}, tol={round(tW, 1): " ±0,5"}))
++    p.gd_in("corte", "surf", "flat", "1,0", None, at=[(MW["R_tablones"] - 30 + dx_, 0, zt) for dx_ in (0, -20, -40)], d=(0, 0, 1))
+     rows = []
+-    for i, (a0, a1) in enumerate(zip(edges, edges[1:])):
+-        xm0, xm1 = a0, a1
+-        L0 = 2 * math.sqrt(max(Rin ** 2 - xm0 ** 2, 0))
+-        L1 = 2 * math.sqrt(max(Rin ** 2 - xm1 ** 2, 0))
+-        npk = sum(1 for (x, y) in pins if (a0 <= abs(x) < a1) or (i == nb - 1 and abs(x) >= a0))
+-        cut_ap = "sí (Ø%s)" % f(g.cb_D) if a0 < g.cb_D / 2 else "no"
+-        rows.append([f"T{i + 1} (±)", f"{fm(a0, 0)}–{fm(a1, 0)}", fm(a1 - a0, 0), fm(max(L0, L1), 0), fm(min(L0, L1), 0), cut_ap, str(npk), "2"])
+-    rows.append(["TOTAL", "", "", "", "", "", str(sum(int(r[6]) for r in rows)), str(2 * nb)])
+-    p.table_block("TABLONES (centro del tablón, simétricos respecto del eje x; chaflán de aristas 1×45°; cortar los extremos a R = %s)" % f(Rin), [("Tablón", 20, "L"), ("x [mm]", 26, "C"), ("Ancho", 16, "R"), ("Largo máx.", 20, "R"), ("Largo mín.", 20, "R"), ("Corte abertura", 24, "C"), ("Bolsillos", 16, "R"), ("Cant", 10, "R")], rows)
++    for fl in TB["lista"]:
++        cods = sorted({c for f_, pz, c in tip if f_ is fl})
++        for pz in fl["piezas"]:
++            Lp = pz["x1"] - pz["x0"]
++            rows.append([f"F{fl['i']}", ", ".join(cods), f"{f(fl['y0'], 0)} … {f(fl['y1'], 0)}", f(fl["ancho"], 0), f"{f(pz['x0'], 1)} … {f(pz['x1'], 1)}", f(Lp, 0),
++                         {"abertura": f"arco R{f(MW['R_abertura'])} (abertura)", "muesca": f"muesca R{f(MW['R_abertura'])}", None: "—"}[fl["corte"]],
++                         str(sum(1 for (x, y) in FX["posiciones"] if pz["x0"] - 1 <= x <= pz["x1"] + 1 and fl["y0"] - 1 <= y <= fl["y1"] + 1)), f"{f(fl['ancho'])}×{f(tW)}×{f(Lp + 20)}"])
++    p.table_block(f"TABLONES POR FILA (filas paralelas a x; junta {fm(TB['j'], 0)} entre filas; extremos en arco R{f(MW['R_tablones'])}; F1/F9, F2/F8, F3/F7, F4/F6 y las dos piezas de F5 son la misma pieza girada 180°)",
++                  [("Fila", 10, "C"), ("Código", 24, "L"), ("y [mm]", 24, "C"), ("Ancho", 12, "R"), ("x [mm] (envolvente)", 34, "C"), ("Largo máx.", 14, "R"), ("Corte interior", 30, "L"), ("Torn.", 10, "R"), ("Partida", 30, "L")], rows, wide=True)
++    from pie_b import tabla_fijacion
++    tabla_fijacion(p, MW, f"TORNILLOS DE LA FIJACIÓN 1…{FX['n_total']}: COORDENADAS DEL EJE [mm] (origen en el eje de la mesa; = roscas de MES-001)")
+     p.tables()
+-    p.notes([f"Tablones de madera dura de e = {f(tW)} mm y 200 mm de ancho (adoptado por el mandante), densidad ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor).",
+-             f"Disposición: tablones contiguos paralelos al eje y, junta central en el eje; se cortan en arco a R = {f(Rin)} (cara interior del anillo MAD-002) con holgura de montaje 2 mm; abertura central Ø{f(g.cb_D)} (tapa de inspección Ø{f(g.cb_D - 2)}).",
+-             f"{g.N_pin} bolsillos Ø{f(g.washer_D + 4)} × 31 sobre las cabezas de los pernos de los pasadores (S06, PROVISORIO).",
+-             "Fijación de los tablones a la plancha superior: PROPUESTA tornillos para madera avellanados Ø8 × 80 en 4 filas, paso 400 mm, con taladro previo (decisión del mandante: confirmar).",
+-             "Certificado de clasificación estructural de la madera del proveedor; humedad ≤ 15 %; tratamiento preservante a definir por el proveedor."],
+-            gd=[("flat", "1,0", None, "Planitud de la cara superior de la cubierta")])
++    p.notes([f"Tablones de madera dura e = {f(tW)} (cepillado; núcleo t_madera), ancho {f(TB['b'])} y filas de borde de {f(TB['lista'][0]['ancho'])}, densidad ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198; confirmar con el proveedor); humedad ≤ 15 %, tratamiento preservante por el proveedor.",
++             f"Disposición del núcleo (madera.tablones): {TB['n']} filas paralelas al eje x, junta {fm(TB['j'], 0)} mm entre filas, dentro de R{f(MW['R_tablones'])} (holgura {fm(MW['c_mad'], 0)} contra la pared R{f(MW['R_rebaje'])}); "
++             f"extremos cortados en arco R{f(MW['R_tablones'])} con plantilla; abertura Ø{f(2 * MW['R_abertura'])} sobre la tapa de inspección (Ø{f(MW['D_tapa_insp'])} + 2 × {fm(MW['c_mad'], 0)}).",
++             f"Cara superior enrasada con el anillo superior (MES-002): los tablones apoyan en la plancha rebajada (MES-001), {f(MW['d_rebaje'])} bajo la cara superior de la mesa; altura total sin cambio.",
++             f"Fijación (MAD-002): {FX['n_total']} tornillos en cajeado Ø{f(FX['D_cajeado'])} × {fm(FX['h_cajeado'], 1)} con pasante Ø{fm(g.tmad_clear, 1)}; posiciones del núcleo (a ≥ {f(FX['e_extremo'])} de los extremos y ≥ {f(FX['e_borde'])} de los bordes, paso ≤ {f(FX['s_max'])}). "
++             "Montar cada tablón, marcar los pasantes desde las roscas de la plancha (o por coordenadas) y taladrar en el sitio.",
++             f"Drenaje del rebaje: {MW['drenaje']} (GEN-009)."],
++            gd=[("flat", "1,0", None, "Planitud de la cara superior de la cubierta (enrase con el anillo)")])
+     p.build()
+     return p.h
+ 
+ 
+-@pieza("madera_anillo")
+-def sheet_madera_anillo(ctx):
++@pieza("madera_tornillo", "madera_arandela")
++def sheet_madera_fijacion(ctx):
++    """MAD-002: fijación de los tablones (núcleo, madera.fijacion): tornillo ISO 4762 con arandela ancha ISO 7093 en cajeado, roscado en la plancha rebajada."""
+     g, P = ctx.g, ctx.P
+-    zw0, tW = g.z0 + g.hd, P["t_wood"]
+-    if not ctx.m.get("madera_anillo"):
++    MW = g.MW
++    if not MW or not ctx.m.get("madera_tornillo"):
+         return None
+-    p = Pieza(ctx, ["madera_anillo"], "CUBIERTA DE MADERA: ANILLO DE ACERO DE CONTENCIÓN", fmt="A1")
++    FX = MW["fijacion"]
++    zr, tW = g.z0 + MW["z"]["reb_sup"], MW["t_madera"]
++    xh, yh = FX["posiciones"][0]
++    for k_, n_ in (("madera_tornillo", "tor1"), ("madera_arandela", "ar1"), ("madera", "tab1"), ("mesa_plancha_sup", "pl1")):
++        _crop_xy(ctx, k_, n_, xh, yh, 34)
++    ks = ["madera_tornillo", "madera_arandela"]
++    eng = FX["L"] - (FX["t_bajo_arandela"] + FX["h_arandela"])
++    p = Pieza(ctx, ks, f"CUBIERTA DE MADERA W: FIJACIÓN DE LOS TABLONES, TORNILLO ISO 4762 M{fm(FX['d'], 0)}×{fm(FX['L'], 0)} Y ARANDELA ISO 7093 ({FX['n_total']} UNIDADES)", fmt="auto")
+     s = p.s
+-    on = ["madera_anillo"]
+-    ids = jids(ctx, "Anillo de contención")
+-    p.vs("planta", on, "top", lv=(1, 1, 1, 1), extra=(0, 0, 40, 0), hatch=False, title="PLANTA DEL ANILLO", w=1.5, auto=dict(hole_rmin=20, fits={round(2 * (g.Rt - g.t_ring), 1): "H12"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2 (D_top)"}))
+-    p.vs("elev", on, "front", lv=(1, 2, 2, 1), hatch=False, title="ELEVACIÓN DEL ANILLO", w=1.0, auto=dict(holes=False, tol={round(tW, 1): " ±1"}, text={round(2 * g.Rt, 1): f"Ø{f(2 * g.Rt)} ±2"}))
+-    p.vs("det_emp", on, "top", center=(g.Rt - g.t_ring / 2, 0, zw0 + tW), win=(-25, -25, 25, 25), lv=(1, 2, 1, 1), hatch=False, maxs=2.0, title="DETALLE B: SECCIÓN DE LA PLETINA EN PLANTA", w=0.8,
+-         auto=dict(holes=False, tol={round(g.t_ring, 1): " ±0,5"}))
+-
+-    def corte(V, p):
+-        if ids:
+-            w_out(p, ids[0], V, (g.Rt, 0, zw0 + 1), "right", dy=-12)
+-    p.datum_in("corte", "surf", "A", at=[(g.Rt - 50, 0, zw0), (g.Rt - 70, 0, zw0)], d=(0, 0, 1))
+-    p.gd_in("corte", "surf", "perp", "0,5", "A", at=[(g.Rt, 0, zw0 + tW * f_) for f_ in (0.6, 0.4, 0.8)], d=(1, 0, 0))
+-    p.vs("corte", ["madera_anillo", "mesa_plancha_sup"], "front", cut=CUT_Y, center=(g.Rt - 20, 0, zw0), win=(-60, -g.tt - 8, 40, tW + 12), lv=(1, 2, 1, 2), extra=(0, 0, 115, 0), draw=corte, hs=0.3, maxs=2.0,
+-         title="CORTE RADIAL: ANILLO SOBRE LA PLANCHA SUPERIOR", mat={"madera_anillo": "acero", "mesa_plancha_sup": "acero"}, w=1.2, auto=dict(on=["madera_anillo", "mesa_plancha_sup"], tol={round(tW, 1): "", round(g.t_ring, 1): ""}))
+-    if ids:
+-        add_prep(p, "det_j", wd(ctx, ids[0]), t1=g.t_ring, t2=g.tt)
+-    p.tables(ids)
+-    p.notes([f"Pletina {fm(g.t_ring, 0)} × {f(tW)} rolada a Ø{f(P['D_top'])}, empalme CJP, soldada a la plancha superior con filete ambos lados ({ids[0] if ids else 'J??'}); material A572 Gr.50.",
+-             "Rolado en frío sobre el canto delgado; empalme con preparación en V y respaldo, esmerilado al ras (WPS-P06, PROPUESTA).", "Soldar con la mesa apoyada plana, secuencia simétrica; alivio no requerido por el espesor.",
+-             "El anillo contiene los tablones (MAD-001); no tiene función estructural adicional en el cálculo."],
+-            gd=[("perp", "0,5", "A", "Anillo perpendicular a la cara superior de la plancha (A)")])
++    p.iso_keys = ["tor1", "ar1"]
++
++    z_aw = zr + tW - FX["h_cajeado"]
++
++    def corte_(V, p):
++        s.line(V.P(0, 0, zr - MW["t_reb"] - 6), V.P(0, 0, zr + tW + 8), "EJE")
++        V.dimv((-34, 0, zr), (-34, 0, zr + tW), "left", 0, on=["tab1"], text=f"{f(tW)} (tablón)")
++        V.dimv((-34, 0, zr - MW["t_reb"]), (-34, 0, zr), "left", 0, on=["pl1"], text=f"{f(MW['t_reb'])}")
++        V.dimv((FX["D_cajeado"] / 2, 0, z_aw), (FX["D_cajeado"] / 2, 0, zr + tW), "right", 0, on=["tab1"], text=f"{fm(FX['h_cajeado'], 1)} (cajeado)")
++        V.dimv((FX["broca"] / 2, 0, zr - FX["prof_taladro"]), (FX["broca"] / 2, 0, zr), "right", 1, on=["pl1"], text=f"{fm(FX['prof_taladro'], 0)} (taladro Ø{fm(FX['broca'], 1)}; rosca útil {fm(FX['rosca_util'], 0)})")
++        V.dimh((-FX["D_cajeado"] / 2, 0, zr + tW), (FX["D_cajeado"] / 2, 0, zr + tW), "top", 0, on=["tab1"], text=f"Ø{f(FX['D_cajeado'])} (cajeado)")
++        V.dimh((-g.tmad_clear / 2, 0, zr + 3), (g.tmad_clear / 2, 0, zr + 3), "bottom", 0, on=["tab1"], text=f"Ø{fm(g.tmad_clear, 1)} (pasante)")
++        V.note_pt((FX["broca"] / 2, 0, zr - eng / 2), (FX["d"] * V.scale + 14, -6), f"engrane real {fm(eng, 1)} = L − (madera bajo la arandela + arandela)", on=["tor1"], dot=True,
++                  lines=[f"engrane real {fm(eng, 1)} mm =", f"{fm(FX['L'], 0)} − ({fm(FX['t_bajo_arandela'], 1)} + {fm(FX['h_arandela'], 1)}) < 1,0·d (RETENIDA)"])
++    p.vs("corte", ["tor1", "ar1", "tab1", "pl1"], "front", cut=CUT_Y, win=(-28, zr - MW["t_reb"] - 6, 28, zr + tW + 8), lv=(2, 2, 2, 3), extra=(0, 0, 90, 0), draw=corte_, hs=0.4, w=1.6, maxs=5.0,
++         title="CORTE A-A: TORNILLO (sin cortar), ARANDELA, TABLÓN Y PLANCHA REBAJADA (montado)", nocut=("tor1",), mat={"tor1": "acero", "ar1": "acero", "tab1": "madera", "pl1": "acero"},
++         auto=False)
++    p.vs("planta", ["tor1", "ar1"], "top", lv=(1, 1, 1, 1), extra=(0, 0, 50, 0), title="PLANTA (cabeza con hexágono interior y arandela ancha)", hatch=False, w=0.8, auto=False, maxs=2.0)
++    rows = [["Tornillo (comercial)", f"ISO 4762 M{fm(FX['d'], 0)}×{fm(FX['L'], 0)} clase 8.8 galvanizado en caliente (ISO 10684) o A4-70; rosca ISO 262 6g/6az", str(FX["n_total"]), "ISO 898-1 / ISO 3506-1; certificado del lote EN 10204 3.1"],
++            ["Arandela (comercial)", f"Arandela ancha ISO 7093-1 Ø{f(FX['d_arandela'])} × {fm(FX['h_arandela'], 1)}, 200 HV, galvanizada (o A4)", str(FX["n_total"]), "Certificado del lote"],
++            ["Cajeado del tablón", f"Ø{f(FX['D_cajeado'])} × {fm(FX['h_cajeado'], 1)} (cabeza {fm(FX['h_cajeado'] - FX['d'] - FX['h_arandela'], 0)} mm bajo la superficie); pasante Ø{fm(g.tmad_clear, 1)}; madera bajo la arandela {fm(FX['t_bajo_arandela'], 1)}", str(FX["n_total"]), "MAD-001"],
++            ["Rosca receptora", f"M{fm(FX['d'], 0)}-6H ciega en la plancha rebajada: taladro Ø{fm(FX['broca'], 1)} prof. {fm(FX['prof_taladro'], 0)}, rosca útil {fm(FX['rosca_util'], 0)}", str(FX["n_total"]), "MES-001"],
++            ["Apriete (núcleo)", f"F = {fm(FX['apriete_kN'], 2)} kN (0,8 · p_adm de la madera bajo la arandela); par ≈ {fm(FX['par_Nm'], 1)} N·m (K = 0,20); llave dinamométrica, sin reapriete hasta el control de la humedad", "—", "GEN-008"]]
++    p.table_block("ESPECIFICACIÓN DE LA FIJACIÓN (núcleo: madera.fijacion)", [("Elemento", 26, "L"), ("Característica", 92, "L"), ("Cant", 10, "C"), ("Material / referencia", 50, "L")], rows)
++    p.tables()
++    p.notes(["RETENIDA (requiere núcleo): con la arandela en el fondo del cajeado el tornillo de " + f"{fm(FX['L'], 0)} mm engrana {fm(eng, 1)} mm en la plancha (< 1,0·d = {fm(FX['d'], 0)}): el núcleo calcula el engrane como L − t_bajo_arandela = {fm(FX['engrane'], 1)} y omite la arandela "
++             f"({fm(FX['h_arandela'], 1)} mm). Ningún largo ISO 4762 cumple a la vez engrane ≥ d y punta ≥ 2 mm antes del fin de la rosca útil ({fm(FX['rosca_util'], 0)}); conflicto declarado en GEN-009. No comprar los tornillos hasta su corrección.",
++             "Tornillo y arandela: elementos comerciales (marca/modelo: GEN-008). Con tornillo galvanizado en caliente la rosca de la plancha se hace con macho de sobremedida (ISO 965-5); alternativa A4-70 sin sobremedida.",
++             f"Montaje (CON-005…): tablón apoyado en la plancha rebajada; arandela en el fondo del cajeado; apriete con par ≈ {fm(FX['par_Nm'], 1)} N·m (núcleo; no aplastar la madera); repasar el apriete después del primer ciclo de humedad.",
++             "Rosca limpia; sin adhesivo ni sellante (desmontable para reemplazar tablones)."])
+     p.build()
+     return p.h
+diff --git a/cad/propuestas.py b/cad/propuestas.py
+index ea34dc7..8244726 100644
+--- a/cad/propuestas.py
++++ b/cad/propuestas.py
+@@ -40,6 +40,8 @@ def wps_family(w):
+     """Clave de la familia WPS para un registro de junta de build_welds."""
+     if w["groove"] and w["sym"] == "slot":
+         return "RANURA"
++    if w.get("pjp"):
++        return "PJP-BISEL"
+     if w["groove"]:
+         return "CJP-V" if w["sym"] == "V" else "CJP-BISEL"
+     if "ER309L" in w["aporte"]:
+@@ -52,6 +54,7 @@ FAM_TXT = {
+     "FILETE-INOX": ("Filete en T con aporte inoxidable 309L sobre acero inoxidable (barras de topes UHMW), PT 100 %", "1F, 2F"),
+     "CJP-V": ("Ranura en V 60° a tope con respaldo, penetración completa (CJP), serie AWS D1.1 Fig. 3.4 B-U4; confirmar designación", "1G, 2G"),
+     "CJP-BISEL": ("Ranura con bisel 45° y respaldo, penetración completa (CJP), tipo AWS D1.1 Fig. 3.4 TC-U4; confirmar designación", "1G, 2G"),
++    "PJP-BISEL": ("Ranura con bisel simple 45° de penetración parcial (PJP, S y E de la junta), sin respaldo, con filete de refuerzo del otro lado; tipo AWS D1.1 Fig. 5.2 BTC-P4 (E = S − 3 mm a 45°, AISC 360-22 Tabla J2.1); confirmar designación", "1G, 2G (2F el filete)"),
+     "RANURA": ("Soldadura de ranura (22 × 80) rellena por completo (AWS D1.1, soldaduras de tapón y ranura precalificadas), en posición plana", "1F"),
+ }
+ 
+@@ -163,4 +166,9 @@ def catalogo_rows(ctx):
+         ["Grasa grafitada NLGI 2", "≥ 10 % grafito, aditivos EP; película 0,3–0,5 mm por cara", "Hoja de datos del fabricante", "marca/modelo A DEFINIR POR CATÁLOGO"],
+         ["Tornillos ISO 10642 cl. 10.9 (tapas del pivote)", f"4 × M10×{g.cap_L:.0f} (tapa retenedora) y 6 × M{fm(g.insp_d, 0)}×{g.insp_L} (tapa de inspección); zincados", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
+     ]
++    if g.wood and ctx.m.get("madera_tornillo"):
++        FX = g.MW["fijacion"]
++        rows += [[f"Tornillo ISO 4762 M{fm(FX['d'], 0)}×{fm(FX['L'], 0)} (tablones, MAD-002)", f"{FX['n_total']} unidades; clase 8.8 galvanizado en caliente (ISO 10684) o A4-70 (núcleo: «{FX['tipo'].split(';')[0]}»); RETENIDO: engrane con la arandela < 1,0·d (GEN-009)", "Certificado del lote EN 10204 3.1", "marca/modelo A DEFINIR POR CATÁLOGO"],
++                 [f"Arandela ancha ISO 7093-1 M{fm(FX['d'], 0)} (tablones)", f"{FX['n_total']} unidades; Ø{f(FX['d_arandela'])} × {fm(FX['h_arandela'], 1)}, 200 HV, galvanizada (o A4)", "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
++                 ["Tablones de madera dura (cubierta W)", f"{g.MW['tablones']['n_piezas']} piezas de e = {f(g.MW['t_madera'])} × {f(g.MW['tablones']['b'])} (MAD-001); ρ ≥ {f(P['rho_wood'])} kg/m³, p adm. {fm(P['p_wood'], 1)} MPa (NCh1198), humedad ≤ 15 %", "Certificado de clasificación estructural del proveedor", "proveedor A DEFINIR"]]
+     return rows
+diff --git a/cad/soldadura_det.py b/cad/soldadura_det.py
+index 9dcce76..7d3a51d 100644
+--- a/cad/soldadura_det.py
++++ b/cad/soldadura_det.py
+@@ -207,6 +207,48 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
+         plano.h.weld(jid, a, (ox + (L + 40) * k + 12, a[1] + 20), sh=1)
+ 
+ 
++def pjp_size(t_an, t_par, h_par, w):
++    L = max(30.0, 1.6 * t_par)
++    return (PJP_X0 + t_par + w + 22.0, t_an + h_par + 26.0), L
++
++
++PJP_X0 = 30.0      # margen izquierdo del esquema (lado del rebaje: rótulos y símbolo)
++
++
++def prep_pjp(s, ox, oy, k, S, E, w, t_an, t_par, h_par, jid=None, plano=None, angle=45.0):
++    """Junta anillo–pared de la cubierta W (J1 del núcleo): anillo horizontal t_an arriba, pared vertical t_par debajo con su cara interior a ras del canto
++    interior del anillo; bisel simple 45° en el canto superior interior de la pared (profundidad S, sin placa de apoyo), garganta efectiva E (PJP) y filete exterior z = w
++    entre la cara exterior de la pared y la cara inferior del anillo. Porción radial: izquierda = rebaje, derecha = exterior."""
++    (Wn, Hn), L = pjp_size(t_an, t_par, h_par, w)
++    P = lambda x, y: (ox + x * k, oy + y * k)
++    xi, xe = PJP_X0, PJP_X0 + t_par
++    yb, yt = 10.0, 10.0 + h_par
++    ya = yt + t_an
++    hb = S * math.tan(math.radians(angle))
++    _poly(s, [P(xi, yt), P(Wn, yt), P(Wn, ya), P(xi, ya)], 0.0)
++    _poly(s, [P(xi, yb), P(xe, yb), P(xe, yt), P(xi + S, yt), P(xi, yt - hb)], 90.0)
++    tri = [P(xi, yt - hb), P(xi + S, yt), P(xi, yt)]
++    _poly(s, tri, solid=True)
++    s.pline(tri, "VIS", closed=True)
++    fil = [P(xe, yt), P(xe + w, yt), P(xe, yt - w)]
++    _poly(s, fil, solid=True)
++    s.pline(fil, "VIS", closed=True)
++    ym_ = P(0, yb)[1]
++    xa_, xb_ = P(xi - 2, 0)[0], P(xe + 2, 0)[0]
++    xm_ = (xa_ + xb_) / 2
++    s.pline([(xa_, ym_), (xm_ - 2.5, ym_), (xm_ - 0.8, ym_ + 2.2), (xm_ + 0.8, ym_ - 2.2), (xm_ + 2.5, ym_), (xb_, ym_)], "FINA")
++    s.dim(P(Wn, yt), P(Wn, ya), 6, f"t = {fm(t_an, 0)}", "v")
++    s.dim(P(xi, yb), P(xe, yb), -12, f"t = {fm(t_par, 0)} (pared)", "h")
++    s.dim(P(xi, yt - hb), P(xi, yt), -6, f"S = {fm(S, 0)}", "v", outside=True)
++    s.leader(P(xi + S * 0.3, yt - hb * 0.5), (P(2, 0)[0], P(0, yb + 2)[1]), f"PJP E = {fm(E, 0)}", dot=True)
++    s.leader(P(xe + w * 0.3, yt - w * 0.4), (P(xe + w + 3, 0)[0], P(0, yb + h_par * 0.45)[1]), f"filete z{fm(w, 0)} (a = {fm(w * 0.7071, 1)})", dot=True)
++    s.text("rebaje", (P(2, 0)[0], P(0, yt + t_an * 0.5)[1]), T_N, "MIDDLE_LEFT")
++    s.text("exterior", (P(Wn, 0)[0], P(0, ya + 4)[1]), T_N, "BOTTOM_RIGHT")
++    if jid and plano is not None:
++        a = P(xi + S * 0.25, yt - hb * 0.25)
++        plano.h.weld(jid, a, (P(2, 0)[0], P(0, ya)[1] + 14), sh=1, prep=f"{fm(angle, 0)}°")
++
++
+ # ------------------------------------------------------------------------------------------------
+ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=True, mins=None, maxs=None, lab1=None, edge=False):
+     """Agrega a la lámina p un esquema de junta correspondiente al registro de soldaduras w (dict de ctx.welds). Devuelve la especificación."""
+@@ -215,6 +257,12 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
+         (Wn, Hn), _ = tee_size(w["t"], w["t_alma"])
+         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: UNIÓN EN T CUBO–PLANCHA (bisel 45°, t = {fm(w['t'], 0)})",
+                     custom=lambda s, ox, oy, k, pl: prep_tee(s, ox, oy, k, w["t"], w["t_alma"], jid, pl))
++    if w.get("pjp"):
++        J = w["pjp"]
++        (Wn, Hn), _ = pjp_size(J["t_an"], J["t_par"], J["h_par"], J["w"])
++        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=2.0, maxs=5.0, w=2.0,
++                    title=title or f"DETALLE {jid}: ANILLO–PARED, PJP BISEL 45° (S = {fm(J['S'], 0)}, E = {fm(J['E'], 0)}) + FILETE z{fm(J['w'], 0)}",
++                    custom=lambda s, ox, oy, k, pl: prep_pjp(s, ox, oy, k, J["S"], J["E"], J["w"], J["t_an"], J["t_par"], J["h_par"], jid, pl))
+     if w["groove"] and w["sym"] in ("V", "bevel"):
+         t = w["t"]
+         kind = "V" if w["sym"] == "V" else "bevel"

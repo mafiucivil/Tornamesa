@@ -34,8 +34,9 @@ const PLANOS = (() => {
       };
     }
     const ccw = [cylPos(1, 1), cylPos(-1, -1)], cw = [cylPos(1, -1), cylPos(-1, 1)];
+    const DRV = TT_.designDrive(P, R);                                  // datos de dibujo del accionamiento (leva guiada, modo pivotado), como tools/export_design.js
     const out = {
-      proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P,
+      proyecto: "TT300-C", fecha: new Date().toISOString().slice(0, 10), P, modo: DRV.modo, modo_nombre: DRV.modo_nombre, levaGuiada: DRV.levaGuiada, pivotado: DRV.pivotado,
       verdict: A.verdict, validacion: val,
       derivados: {
         W: R.W, N: R.N, ND: R.ND, q_max: R.q_max, q_avg: R.q_avg, Fstall: R.Fstall, Falarm: R.Falarm, Fret: R.Fret, A: R.A, Aann: R.Aann,
@@ -44,7 +45,7 @@ const PLANOS = (() => {
         K: { armMin: K.armMin, armMax: K.armMax, s_req: K.s_req, margin: K.margin, chord: K.chord, gap: K.gap, radial: K.radial, DeltaMax: K.DeltaMax,
              L_s: K.L_s, Lg: K.Lg, front: K.front, rear: K.rear, y_eye: K.y_eye, y_rp0: K.y_rp0, y_rp1: K.y_rp1, L_bed: K.L_bed, Y_bed: K.Y_bed, zc0: K.zc0, lever: K.lever, mouthX: K.mouthX, inset: K.inset, tipX: K.tipX, travel: K.travel, pocketEnd: K.pocketEnd, shoeTop: K.shoeTop },
         casos: R.cases.map((c) => ({ id: c.id, nombre: c.name, mu: c.mu, r: c.r, T: c.T, F: c.F, p: c.p, FS: c.FS, gira: c.turns })),
-        masas: R.m,
+        masas: R.m, masas_desc: DRV.masas_desc,
       },
       pasadores: Array.from({ length: P.N_pin }, (_, k) => (180 / P.N_pin + 360 * k / P.N_pin)),
       nervios: Array.from({ length: P.N_rib }, (_, k) => 360 * k / P.N_rib),
@@ -80,17 +81,19 @@ const PLANOS = (() => {
         const ifc = R.ifc;
         // 4.ª pasada: material descontado de las coronas (R.ifc.cortes: junta, muesca y chaflán por sector, masa bruta/descontada/neta), juntas efectivas y anillo de acero de la madera
     const cortes = (R.ifc.cortes || []).map((c) => Object.assign({}, c)), jS = cortes.filter((c) => !c.strip).map((c) => c.j), jU = cortes.filter((c) => c.strip).map((c) => c.j);
-    const anillo = R.m.ring > 0 ? { t_ring: P.t_ring, h_ring: P.t_wood, D_ext: P.D_top, D_int: P.D_top - 2 * P.t_ring, m: R.m.ring, m_madera: R.m.wood } : null;
+    const anillo = null;   // cubierta W (08-11-2026): sin anillo de contención 10×50; la geometría del rebaje va en la clave «madera»
     // Tapones de grafito (opción C): cantidad real colocable y fracciones real/ideal (R.ifc.tap; conciliado con el patrón S09 del dibujante), null sin la opción C
     const tapones = ifc.tap ? { conf: ifc.conf, N_real: ifc.Nreal, N_ideal: ifc.Nideal, fg_real: ifc.fgReal, fg_ideal: ifc.fgIdeal, fg_usado: ifc.fgUsed, modo: P.bz_fg_modo, cobertura: ifc.cobGrafito, cobertura_ideal: ifc.cobGrafitoIdeal, cov: ifc.cov,
       d: ifc.tap.d, p: ifc.tap.p, eta: ifc.eta, bz_edge: ifc.tap.edge, n_sectores: ifc.tap.n, junta: ifc.tap.junta, L_muesca: ifc.tap.L, radios_tornillos: ifc.tap.radios, n_tornillos_sector: ifc.tap.radios.length ? (ifc.tap.nTor >= 4 ? 4 : 2) : 0, d_cabeza: ifc.tap.dk,
       N_malla: ifc.tap.N_malla, perdidas: ifc.tap.perdidas, por_sector: ifc.tap.porSector, fg_min: P.bz_fg_min, cumple_lubricacion: ifc.fgUsed >= P.bz_fg_min - 1e-12 } : null;
     return { topes, juntas, tapon_prof_max: tap ? tap.cap : null, tapon_prof_frac: tap && ifc.tbz ? tap.cap / ifc.tbz : null, sector_masa: sector,
-      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, t_ring: P.t_ring, anillo_madera: anillo, tapones,
+      cortes, junta_sector: jS.length ? Math.max(...jS) : null, junta_uhmw: jU.length ? Math.max(...jU) : null, j_sec: P.j_sec, tol_hc: P.tol_hc, anillo_madera: anillo, tapones,
           hole_top: P.D_piv + 80, d_bush: P.D_piv + 30,
           Ri: R.Ri, m_ri: P.m_ri, D_rebaje_bot: R.hubG.Drb, h_rebaje: R.hubG.hRaw, h_rebaje_plancha: R.hubG.hPl, h_rebaje_cubo: R.hubG.hHub,
-          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = pletina de acero del borde de la cubierta de madera (alto = espesor de los tablones; null sin madera), incluida en la masa total" };
+          nota: "hole_top y d_bush reproducen las constantes de massesMesa() del núcleo (D_piv + 80 y D_piv + 30); Ri = radio interior efectivo del anillo de contacto (D_collar/2 + c_boss_r + m_ri con collar); D_rebaje_bot = Ø del agujero/rebaje del collar en la plancha inferior (D_collar + 2·c_boss_r); h_rebaje = h_collar − δ + c_boss_a desde la cara inferior de la mesa (negativo: sin rebaje), repartida en h_rebaje_plancha (t_bot) y h_rebaje_cubo; cortes = por pieza de la interfaz, volumen por sector de junta (o franja libre en la lámina UHMW), muesca (b_tope + 2)·L·t y chaflán a_inf²·L, y masa bruta/descontada/neta (m_neta es la que suma a la masa total); junta_sector y junta_uhmw = junta en frío efectiva en mm (mayor entre j_sec y la dilatación, a 0,1 mm); anillo_madera = null (la cubierta W no tiene anillo de contención; ver la clave «madera»)" };
       })(),
+      // Cubierta de madera W (rebaje): geometría de fabricación (anillo, pared, plancha rebajada, almas recortadas, tablones, abertura, fijación, soldaduras) y FEA escalonado; null sin cubierta
+      madera: TT_.designWood(P, A),
       verificaciones: A.checks.map((c) => ({ grp: c.grp, nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref })),
       // Escenario térmico (exposición solar, registro.md «Temperatura (exposición solar, 80 °C)»): por alternativa y temperatura; geometría de 20 °C congelada; solo informativo (no entra en el veredicto)
       termica: TT_.thermal(P),
@@ -120,6 +123,9 @@ const PLANOS = (() => {
     const R = A.R, ifc = R.ifc, tb = P.t_base, delta = ifc.delta;
     return {
       P, A, R, K: R.K, ifc, g: TT_.guideGeo(P), bg: TT_.bracketGeo(P), ch: TT_.chamferGeo(P), prIn: TT_.prIn(P), rings: TT_.parseRings(P.rings),
+      // accionamiento: modo pivotado (pivotGeo/pivotAt al tomar el pasador, giro antihorario) o leva de reenganche del modo guiado (camGeo/camAt)
+      piv: (TT_.driveMode ? TT_.driveMode(P) : P.drive_mode) === 2 && TT_.pivotGeo ? { g: TT_.pivotGeo(P), q: TT_.pivotAt(P, P.s_free, "empuje", "antihorario"), D: TT_.designDrive(P, R).pivotado } : null,
+      cam: TT_.camGeo && TT_.camGeo(P) ? { g: TT_.camGeo(P), a: TT_.camAt(P, P.s_free, "empuje"), L: TT_.designDrive(P, R).levaGuiada } : null,
       tb, delta, tm: tb + delta, hw: P.h_disc - P.t_top - P.t_bot, tpr: Math.max(P.t_pr, P.t_top, P.t_bot), d_bush: P.D_piv + 30, hole_top: P.D_piv + 80,
       fecha: fecha || new Date().toISOString().slice(0, 10),
       stops: (A.checks || []).filter((c) => /largo del tope frente al canto/.test(c.name)).map((c) => ({ nombre: c.name.replace(/: largo del tope.*$/, ""), L: c.dem })),
@@ -138,12 +144,35 @@ const PLANOS = (() => {
     const plate = RHO * (P.B * P.B - Math.PI / 4 * P.D_piv ** 2) * P.t_base;
     const collar = P.h_boss > 0 ? RHO * Math.PI / 4 * (P.D_boss ** 2 - P.D_piv ** 2) * P.h_boss : 0;
     const ears = 4 * RHO * (2 * P.R_ear * P.h_ear + Math.PI * P.R_ear ** 2 / 2 - Math.PI / 4 * P.d_ear ** 2) * P.t_ear;
-    add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(P.t_base)} con agujero Ø${nf(P.D_piv)}`, steel, 1, plate);
+    // accionamiento: guiado (bancada, ménsula, patín, uña y leva de reenganche) o pivotado tipo KIET (soporte del ojal E, bloque-uña, placas-leva); descripciones del núcleo (designDrive)
+    const DRV = TT_.designDrive ? TT_.designDrive(P, R) : null, md = (DRV && DRV.masas_desc) || {}, piv = !!(DRV && DRV.modo === 2);
+    // refuerzo cuadrado soldado sobre la base bajo cada soporte del cilindro (núcleo: pivotado.fabricacion.soporte_E.refuerzo / levaGuiada.fabricacion.refuerzo);
+    // el núcleo lo suma a m.brackets: aquí va en su propia partida (BASE-08) y se descuenta del soporte, así la suma por subconjunto no cambia
+    const INSf = DRV ? (piv ? ((DRV.pivotado || {}).fabricacion || {}).soporte_E : ((DRV.levaGuiada || {}).fabricacion || {})) : null, INSq = INSf && (INSf.refuerzo || INSf.inserto);
+    const INS = INSq && INSq.cuadrado && Array.isArray(INSq.cuadrado.vertices) ? INSq : null, tB = INS ? INS.t_base : P.t_base, mIns = INS ? INS.masa_total : 0;
+    const insTxt = INS ? " (el refuerzo cuadrado de la base va aparte: BASE-08)" : "";
+    add("BASE", 1, `Plancha base ${nf(P.B)} x ${nf(P.B)} x ${nf(tB)} mm entera con agujero Ø${nf(P.D_piv)}`, steel, 1, plate);
     add("BASE", 2, `Marco perimetral ${nf(P.rim_t)} x ${nf(P.rim_h)} mm`, steel, 1, m.rim);
-    add("BASE", 3, `Bancada ${nf(P.w_bed)} x ${nf(P.t_bed)} x ${nf(R.K.L_bed)} con ranura T de guía`, steel, P.n_cyl, m.beds);
-    add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)", steel, P.n_br, m.brackets);
-    add("BASE", 5, "Patín guiado con alojamiento de la uña", `Acero Fy ${nf(P.Fy_shoe)} MPa`, P.n_cyl, m.shoes);
-    add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
+    if (INS) {
+      const tp = INS.tapones || {}, at = INS.atiesadores;
+      add("BASE", 8, `Refuerzo cuadrado soldado sobre la base ${nf(INS.lado)} x ${nf(INS.lado)} x t_d = ${nf(INS.t_d)} mm (cara superior a z = ${nf(INS.t)} mm), ${nf(tp.n_por_esquina || 0)} tapones Ø${nf(tp.d || 0)} por refuerzo`
+        + (at ? `, atiesador tangencial ${nf(at.t)} x ${nf(at.h)} x ${nf(at.largo)} mm (${nf(at.masa, 1)} kg c/u)` : ", sin atiesador") + ` (${INS.n} x ${nf(INS.masa, 1)} kg = ${nf(INS.masa_total, 1)} kg)`,
+        INS.material || steel, INS.n, mIns, "Tapones, filete en los bordes interiores y PJP en bisel en los exteriores (núcleo); masa del núcleo");
+    }
+    if (!piv) {
+      add("BASE", 3, `Bancada ${nf(P.w_bed)} x ${nf(P.t_bed)} x ${nf(R.K.L_bed)} con ranura T de guía`, steel, P.n_cyl, m.beds);
+      add("BASE", 4, "Ménsula de cilindro (2 mejillas + suplemento)" + insTxt, steel, P.n_br, m.brackets - mIns);
+      add("BASE", 5, "Patín guiado con alojamiento de la uña", `Acero Fy ${nf(P.Fy_shoe)} MPa`, P.n_cyl, m.shoes);
+      add("BASE", 6, `Uña de empuje ${nf(P.dog_b)} x ${nf(P.dog_h)} (cara plana con chaflán de retorno)`, `34CrNiMo6+QT (Fy ${nf(P.Fy_dog)} MPa)`, P.n_cyl, m.dogs);
+    } else {
+      add("BASE", 4, (md.brackets ? md.brackets.charAt(0).toUpperCase() + md.brackets.slice(1).replace(/, con su refuerzo de esquina soldado sobre la base/, "") : "Soporte del ojal E") + insTxt, steel, P.n_cyl, m.brackets - mIns);
+      // bloque-uña con garra (núcleo: designDrive().pivotado.fabricacion.bloque_una: asiento, labio, nariz, rampa, masas); sin garra, la descripción heredada
+      const BU = ((DRV.pivotado || {}).fabricacion || {}).bloque_una || {}, ga = BU.asiento, gl = BU.labio;
+      if (ga && gl) add("BASE", 6, `Bloque-uña con garra: asiento cóncavo R${nf(ga.radio, 1)} (abrazo ${nf(ga.abrazo_total_deg)}°, templado ${ga.templado || "—"}), labio de retención ${nf(gl.saliente_sobre_centro)} x ${nf(gl.espesor)} mm, nariz R${nf((BU.nariz || {}).radio)}, rampa ${nf((BU.rampa || {}).angulo_deg)}° en el dorso, h ${nf(BU.h)} mm, con pasador Q (${nf(BU.masa_bloque, 1)} + ${nf(BU.masa_pasador_Q, 1)} = ${nf(BU.masa, 1)} kg por cilindro)`,
+        BU.material || `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs, "Contorno de la garra en tramos recta/arco del núcleo; asiento fresado y templado; masa del núcleo");
+      else add("BASE", 6, md.dogs ? md.dogs.charAt(0).toUpperCase() + md.dogs.slice(1) : "Bloque-uña con pasador Q", `Acero Fy ${nf(P.Fy_dog)} MPa`, P.n_cyl, m.dogs);
+    }
+    if (m.cam > 0) add("BASE", 7, (md.cam ? md.cam.charAt(0).toUpperCase() + md.cam.slice(1) : "Leva de reenganche") + " (masa del núcleo)", steel, piv ? 4 : P.n_cyl, m.cam);
     // Mesa
     const rings = TT_.parseRings(P.rings);
     add("MESA", 1, `Plancha superior t = ${nf(P.t_top)} (anillo de pasadores t = ${nf(Math.max(P.t_pr, P.t_top))})`, steel, 1, m.top);
@@ -151,7 +180,8 @@ const PLANOS = (() => {
     add("MESA", 3, `Almas anulares t = ${nf(P.t_web)} (radios ${rings.map((r) => nf(r)).join(", ")} mm)`, steel, 1, m.webs);
     add("MESA", 4, `Nervios radiales t = ${nf(P.t_rib)}`, steel, P.N_rib, m.ribs);
     add("MESA", 5, `Cubo Ø${nf(P.D_hub)}`, steel, 1, m.hub);
-    add("MESA", 6, `Pasador de empuje Ø${nf(P.d_pin)} x ${nf(P.h_disc)}`, `34CrNiMo6+QT (Fy ${nf(P.Fy_pin)} MPa)`, P.N_pin, m.pins);
+    const PE = DRV && DRV.pasadores_empuje, PEu = (PE && PE.union) || null;   // pasadores a ras del disco y soldados (núcleo: designDrive().pasadores_empuje); sin perno ni arandela
+    add("MESA", 6, `Pasador de empuje Ø${nf(P.d_pin)} x ${nf(P.h_disc)}${PE ? `, a ras del disco y de la cara inferior, soldado a ambos anillos${PEu ? ` (PJP en bisel 45° S${nf(PEu.S)}/E${nf(PEu.E)}, esmerilada a ras)` : ""}` : ""}`, `34CrNiMo6+QT (Fy ${nf(P.Fy_pin)} MPa)`, P.N_pin, m.pins, PE ? "No reemplazable (soldado); sin perno ni arandela" : "");
     if (m.wood > 0) add("MESA", 7, `Cubierta de madera dura t = ${nf(P.t_wood)} (tablones: disposición A DEFINIR)`, `Madera dura ${nf(P.rho_wood)} kg/m3`, 1, m.wood, "Opcional");
     if (m.ring > 0) add("MESA", 8, `Anillo de acero de contención de la madera: pletina ${nf(P.t_ring)} x ${nf(P.t_wood)} rolada a Ø${nf(P.D_top)}`, steel, 1, m.ring, "Opcional; soldada a la plancha superior; en la masa total");
     // Interfaz
@@ -314,8 +344,9 @@ const PLANOS = (() => {
         for (let k = 1; k <= P.n_gr_circ; k++) v.circ(0, 0, ri + (ro - ri) * k / (P.n_gr_circ + 1), "OCULTO");
       }
     }
+    if (c.piv && c.piv.g) pivotPlanta(v, c);
     // bancadas, ménsulas, cilindros activos (giro antihorario) y patines
-    for (const sx of [1, -1]) {
+    if (!c.piv) for (const sx of [1, -1]) {
       const X = sx * P.x_g;
       v.rect(X - P.w_bed / 2, -g.Y_bed, X + P.w_bed / 2, g.Y_bed);
       v.line(X - P.w_slot / 2, -g.Y_bed, X - P.w_slot / 2, g.Y_bed, "OCULTO"); v.line(X + P.w_slot / 2, -g.Y_bed, X + P.w_slot / 2, g.Y_bed, "OCULTO");
@@ -334,6 +365,11 @@ const PLANOS = (() => {
         const yp = dy * (-P.R_pin * Math.sin(g.pitch / 2)), xm = sx * g.mouthX, xa = sx * g.a_min, xt = sx * g.tipX, yf = yp - dy * P.d_pin / 2, ybk = yf - dy * P.dog_b;
         v.poly([[xt, yf], [xm, yf], [xm, ybk], [xt + sx * ch.dx, ybk], [xt, ybk + dy * Math.min(ch.dy, P.dog_b)]], true);
         v.circ(xa, yp, P.d_pin / 2, "OCULTO");
+        if (c.cam) {                                                  // leva de reenganche: riel fijo (canto con bolsillo y rampa) y seguidor de rodillo al tomar el pasador
+          const pr = c.cam.g.perfil_y, xo = c.cam.L && c.cam.L.x ? c.cam.L.x.borde_exterior : Math.max(...pr.map((q) => q.x_canto)) + 40;
+          v.poly(pr.map((q) => [sx * q.x_canto, dy * q.y]).concat([[sx * xo, dy * pr[pr.length - 1].y], [sx * xo, dy * pr[0].y]]), true);
+          v.circ(sx * c.cam.a.x_seguidor, dy * c.cam.a.y_seguidor, Math.max(5, c.cam.g.x_canto_toma - c.cam.g.x_perno_toma - c.cam.g.holgura_toma));
+        }
       }
     }
     // orejas de izaje (huella de la placa t_ear × 2R, orientación A DEFINIR)
@@ -344,15 +380,20 @@ const PLANOS = (() => {
     v.dimH(0, P.x_g, B / 2, 12, `x_g ${nf(P.x_g)}`);
     v.dimH(0, P.x_lug, yl, 8, `x_izaje ${nf(P.x_lug)}`);
     v.dimV(yl, B / 2, P.x_lug, -14, `c ${nf(P.c_lug)}`);
+    if (!c.piv) {
     v.dimV(-g.Y_bed, g.Y_bed, P.x_g + P.w_bed / 2, -14, `bancada ${nf(2 * g.Y_bed)}`);
     v.dimH(P.x_g - P.w_bed / 2, P.x_g + P.w_bed / 2, -g.Y_bed, -8, `${nf(P.w_bed)}`);
+    }
     v.leader(P.D_piv / 2 * Math.cos(Math.PI / 4), P.D_piv / 2 * Math.sin(Math.PI / 4), -22, 18, `PIVOTE Ø${nf(P.D_piv)} (PIVOTE-01)`);
     if (P.h_boss > 0) v.leader(P.D_boss / 2 * Math.cos(-Math.PI / 4), P.D_boss / 2 * Math.sin(-Math.PI / 4), 22, -18, `COLLAR Ø${nf(P.D_boss)} x ${nf(P.h_boss)} (PIVOTE-02)`);
     v.leader(0, -P.D_top / 2, -26, -16, `MESA Ø${nf(P.D_top)} (oculta)`);
     v.leader(-xl, -yl - P.t_ear / 2, -18, -9, `OREJA DE IZAJE x4 (IZAJE-01)`);
+    if (!c.piv) {
     v.leader(-P.x_g, -g.Y_bed + 120, -20, -14, "BANCADA (BASE-03)"); v.leader(P.x_g + bg.Wout / 2, -g.y_eye + 60, 20, 12, "MÉNSULA (BASE-04)");
     v.leader(P.x_g + P.w_s / 2, g.y_rp0 + P.s_free + g.front, 20, 12, "PATÍN (BASE-05)");
     v.leader(P.x_g + P.D_body / 2, g.y_eye + P.e_body + 120, 20, -10, `CILINDRO Ø${nf(P.D_bore)} (CIL-01)`);
+    if (c.cam) v.leader(P.x_g + P.w_s / 2, g.y_rp0 + P.s_free + 40, 22, -14, "LEVA DE REENGANCHE (BASE-07)");
+    }
     // textos
     const lines = [`BASE ${nf(B)} x ${nf(B)} x ${nf(P.t_base)} · marco ${nf(P.rim_t)} x ${nf(P.rim_h)} · N.º de cilindros ${P.n_cyl} (se muestra el giro antihorario; ménsulas a trazos: giro horario)`,
       `Interfaz elegida: ${ifaceName(P, ifc)}${ifc.o ? ` · Ri ${nf(R.Ri)} · Ro ${nf(R.Ro)} mm` : ""}`, ...fixNotes(c)];
@@ -398,6 +439,60 @@ const PLANOS = (() => {
     d.notes = lines;
   }
 
+  function segsView(v, segs, l) {
+    segs.forEach((q) => {
+      if (q.tipo === "arco" && q.radio > 0 && q.centro) {
+        const ang = (p) => Math.atan2(p[1] - q.centro[1], p[0] - q.centro[0]) / D2R, a0 = ang(q.p0), a1 = ang(q.p1);
+        if (q.sentido === "horario") v.arc(q.centro[0], q.centro[1], q.radio, a1, a0, l); else v.arc(q.centro[0], q.centro[1], q.radio, a0, a1, l);
+      } else v.line(q.p0[0], q.p0[1], q.p1[0], q.p1[1], l);
+    });
+  }
+  // modo pivotado en planta: ojales E en diagonal (cajón), 4 placas-leva con pernos (activas las del giro antihorario), cilindros y bloques-uña al tomar el pasador
+  function pivotPlanta(v, c) {
+    const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {};
+    // placas-guía curvas: rectas y arcos de los segmentos del núcleo (ARC de DXF, antihorario de a0 a a1); el giro horario es la imagen especular (ACC-024)
+    Object.entries(g.placas).forEach(([k, pc]) => { const act = k.endsWith("_antihorario"); segsView(v, pc.segmentos_contorno || [], act ? "CONTORNO" : "OCULTO"); if (act) { pc.pernos.forEach(([a, b]) => v.circ(a, b, (pl.d_perno || 20) / 2)); (pc.pasadores_posicion || []).forEach(([a, b]) => v.circ(a, b, (P.pv_dd || 16) / 2, "OCULTO")); } });
+    g.E.forEach(([ex, ey]) => { const h = g.ojalE.lado_cajon / 2; v.rect(ex - h, ey - h, ex + h, ey + h); v.circ(ex, ey, g.ojalE.d / 2); v.cross(ex, ey, h + 10); });
+    if (!q) return;
+    [[q.E, q.Q, (p) => p], [[-q.E[0], -q.E[1]], [-q.Q[0], -q.Q[1]], (p) => [-p[0], -p[1]]]].forEach(([E, Q, f]) => {
+      const L = Math.hypot(Q[0] - E[0], Q[1] - E[1]), u = [(Q[0] - E[0]) / L, (Q[1] - E[1]) / L], t = [-u[1], u[0]], lb = Math.min(L - 30, P.L0 - 30);
+      const bar = (a, b, w) => [[a, -1], [b, -1], [b, 1], [a, 1]].map(([s_, k]) => [E[0] + s_ * u[0] + k * w / 2 * t[0], E[1] + s_ * u[1] + k * w / 2 * t[1]]);
+      v.poly(bar(0, lb, P.D_body), true); v.poly(bar(lb, L, P.d_rod), true);
+      // bloque-uña: garra real (rectas y arcos de pivotGeo().bloque.garra.contorno en la pose de pivotAt, giro antihorario: x hacia el asiento, y = t);
+      // sin garra, la polilínea del cuerpo (q.una.poligono duplicaría la garra)
+      const gr = g.bloque && g.bloque.garra, as = q.asiento;
+      if (gr && gr.contorno && as && as.centro) {
+        const Xc = gr.asiento.centro[0], ex = [(as.centro[0] - q.Q[0]) / Xc, (as.centro[1] - q.Q[1]) / Xc], T = (p) => f([q.Q[0] + p[0] * ex[0] - p[1] * ex[1], q.Q[1] + p[0] * ex[1] + p[1] * ex[0]]);
+        segsView(v, gr.contorno.map((s) => Object.assign({}, s, { p0: T(s.p0), p1: T(s.p1) }, s.centro ? { centro: T(s.centro) } : {})), "CONTORNO");
+      } else v.poly(q.una.cuerpo.map(f), true);
+      v.poly(q.una.cubo.map(f), true); v.circ(Q[0], Q[1], g.pasadorQ.d / 2);
+      const A_ = f(q.pasadores.A); v.circ(A_[0], A_[1], P.d_pin / 2, "OCULTO");
+    });
+    const E = g.E[0], pc = g.placas["1_antihorario"].contorno[0];
+    v.dimH(0, E[0], E[1], -10, `E x ${nf(E[0])}`); v.dimV(0, E[1], E[0], 12, `E y ${nf(E[1])}`);
+    v.leader(E[0], E[1], 18, -10, `OJAL E (BASE-04) · cajón ${nf(g.ojalE.lado_cajon)}`);
+    v.leader(pc[0], pc[1], 20, 12, `PLACA-LEVA t = ${nf(pl.t || P.pv_tcam)} (BASE-07)`);
+    v.leader(q.Q[0], q.Q[1], 22, 14, `BLOQUE-UÑA + PASADOR Q Ø${nf(g.pasadorQ.d)} (BASE-06)`);
+    v.leader((q.E[0] + q.Q[0]) / 2, (q.E[1] + q.Q[1]) / 2, 22, -16, `CILINDRO PIVOTADO Ø${nf(P.D_bore)} (CIL-01)`);
+  }
+  // modo pivotado en alzado desarrollado (distancias radiales): placa-leva, bloque-uña con pasador Q, cilindro y soporte del ojal E
+  function pivotAlzado(v, c, zc, R_) {
+    const P = c.P, g = c.piv.g, q = c.piv.q, D = c.piv.D || {}, pl = D.placa_leva || {}, bl = D.bloque_una || {}, se = D.soporte_E || {}, tb = c.tb;
+    if (!q) return;
+    const rr = (pts) => { const a = pts.map(([x, y]) => Math.hypot(x, y)); return [Math.min(...a), Math.max(...a)]; };
+    const [p0, p1] = rr(g.placas["1_antihorario"].contorno), [b0, b1] = rr(q.una.cuerpo.concat(q.una.cubo)), rQ = Math.hypot(...q.Q), rE = Math.hypot(...q.E);
+    R_(p0, tb, p1, tb + pl.t);
+    v.rect(b0, bl.z_inf, b1, bl.z_inf + bl.h, "CONTORNO");
+    v.rect(rQ - bl.d_Q / 2, c.R.blk.zCam, rQ + bl.d_Q / 2, c.R.blk.zCam + bl.l_pasador_Q, "OCULTO");
+    v.rect(rE - se.lado_cajon / 2, tb, rE + se.lado_cajon / 2, tb + se.alto, "CONTORNO");
+    [se.z_tapa_inf, se.z_tapa_sup].forEach((zt) => v.line(rE - se.lado_cajon / 2, zt, rE + se.lado_cajon / 2, zt));
+    const rm = rE - (P.L0 - 30) * (rE - rQ) / Math.max(1, Math.hypot(q.Q[0] - q.E[0], q.Q[1] - q.E[1]));
+    v.rect(Math.min(rm, rE), zc - P.D_body / 2, Math.max(rm, rE), zc + P.D_body / 2); v.rect(Math.min(rQ, rm), zc - P.d_rod / 2, Math.max(rQ, rm), zc + P.d_rod / 2);
+    v.line(rE, tb, rE, tb + se.alto + 20, "EJES"); v.line(rQ, c.R.blk.zCam - 10, rQ, c.R.blk.zCam + bl.l_pasador_Q + 10, "EJES");
+    v.dimV(tb, tb + pl.t, p1, -10, `${nf(pl.t)}`); v.dimV(bl.z_inf, bl.z_inf + bl.h, b0, 10, `h ${nf(bl.h)}`);
+    v.leader((p0 + p1) / 2, tb + pl.t, -10, -18, "PLACA-LEVA (BASE-07)"); v.leader(b1, bl.z_inf + bl.h, 12, 20, "BLOQUE-UÑA + PASADOR Q (BASE-06)"); v.leader(rE, tb + se.alto, 14, 22, "SOPORTE DEL OJAL E (BASE-04)");
+  }
+
   // ----- CONJ: sección radial del conjunto con la interfaz elegida -----
   function sheetConj(d, s, c) {
     const P = c.P, R = c.R, K = c.K, ifc = c.ifc, tb = c.tb, tm = c.tm, hd = P.h_disc, tpr = c.tpr, Rt = P.D_top / 2, rpr = c.prIn;
@@ -420,11 +515,21 @@ const PLANOS = (() => {
     if (woodT) { R_(r0, tm + hd, Rt - 0, tm + hd + woodT, true); }
     // bancada, patín y uña (sección por el eje del cilindro)
     const zc = tb + R.hax, zb = tb + P.t_bed, fh = TT_.forkH(P);
+    if (c.piv && c.piv.g) { pivotAlzado(v, c, zc, R_); v.line(r0 - 20, zc, Math.max(rB, Math.hypot(...c.piv.g.E[0])) + 40, zc, "EJES"); }
+    else {
     R_(P.x_g - P.w_bed / 2, tb, P.x_g + P.w_bed / 2, zb);
     v.rect(P.x_g - P.w_slot / 2, zb - P.h_slot, P.x_g + P.w_slot / 2, zb, "OCULTO");
     R_(P.x_g - P.w_s / 2, zb, P.x_g + P.w_s / 2, zc + fh / 2, false);
     v.rect(K.tipX, zc - P.dog_h / 2, K.mouthX + P.L_in, zc + P.dog_h / 2, "CONTORNO");
     v.line(P.x_g, tb, P.x_g, zc + fh / 2 + 20, "EJES"); v.line(r0 - 20, zc, rB + 40, zc, "EJES");
+    if (c.cam && c.cam.L && c.cam.L.z && c.cam.L.x) {               // leva de reenganche: riel sobre el patín y seguidor de rodillo en su perno
+      const z = c.cam.L.z, x = c.cam.L.x, rF = Math.max(5, x.canto_toma - x.perno_seguidor_toma - (c.cam.L.holgura_toma || 0));
+      R_(x.canto_toma, z.inf_riel, x.borde_exterior, z.sup_riel);
+      v.rect(x.perno_seguidor_toma - rF, z.inf_riel + 4, x.perno_seguidor_toma + rF, z.sup_riel - 4, "CONTORNO");
+      v.line(x.perno_seguidor_toma, z.sup_una, x.perno_seguidor_toma, z.sup_riel - 4, "EJES");
+      v.leader(x.borde_exterior, z.sup_riel, 16, 14, "LEVA DE REENGANCHE (BASE-07)");
+    }
+    }
     // cotas: pila de espesores a la izquierda (desfasadas alternadamente para que no se pisen)
     const st = [[0, tb, tb]].concat(layers.map(([z0, t]) => [z0, z0 + t, t]), [[tm, tm + P.t_bot, P.t_bot]]);
     st.forEach(([z0, z1, t], i) => v.dimV(z0, z1, r0, 12 + 10 * (i % 2), nf(t)));
@@ -436,8 +541,7 @@ const PLANOS = (() => {
     v.dimV(0, zc, rB + 40, -14, `eje cil. ${nf(zc)}`);
     v.dimV(0, tm + hd + woodT, rB + 40, -28, `alto ${nf(tm + hd + woodT)}`);
     if (woodT) v.dimV(tm + hd, tm + hd + woodT, Rt, -12, `madera ${nf(woodT)}`);
-    v.leader(P.x_g, zb + 20, 24, 22, "BANCADA + PATÍN (BASE-03 / BASE-05)");
-    v.leader(K.tipX + 30, zc, -30, 24, "UÑA (BASE-06)");
+    if (!c.piv) { v.leader(P.x_g, zb + 20, 24, 22, "BANCADA + PATÍN (BASE-03 / BASE-05)"); v.leader(K.tipX + 30, zc, -30, 24, "UÑA (BASE-06)"); }
     v.leader(P.R_pin, tm + hd, 14, 22 + (woodT ? 6 : 0), `PASADOR Ø${nf(P.d_pin)} en R${nf(P.R_pin)} (MESA-06)`);
     if (layers.length) v.leader((R.Ri > r0 ? R.Ri : r0) + 80, tb + layers[0][1] / 2, -2, -26, "INTERFAZ DE GIRO (INTER)");
     if (woodT) v.leader(r0 + 120, tm + hd + woodT, 0, 20, "CUBIERTA DE MADERA (MESA-07)");

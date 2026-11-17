@@ -3,8 +3,8 @@ Recalcula desde el enunciado (params_defaults.json) sin leer el código JS y com
 Ejecutar: python3 -I tests/indep_tt300c.py"""
 import json, math, pathlib, sys
 d = pathlib.Path(__file__).resolve().parent / "golden"
-P = json.loads((d / "params_defaults.json").read_text())
-G = json.loads((d / "tt300c_defaults.json").read_text())
+P = json.loads((d / "params_defaults.json").read_text()); P["drive_mode"] = 1   # este verificador modela el accionamiento guiado
+G = json.loads((d / "tt300c_guiado.json").read_text())   # golden del modo guiado (drive_mode = 1)
 g, rho = 9.80665, 7.85e-6
 fails = []
 def chk(name, mine, tool, tol=1e-3):

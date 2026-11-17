@@ -111,7 +111,7 @@ class Sheet:
         self.texts = []
         self.movable = []
         self.n_gdt = self.n_ra = self.n_weld = 0
-        for k in ("views", "reserved", "footprints", "block_rects"):
+        for k in ("views", "reserved", "footprints", "block_rects", "notas_reg"):
             if hasattr(self, k):
                 setattr(self, k, [])
         self.hatch_classes = set()
@@ -136,6 +136,10 @@ class Sheet:
 
     def arc(self, c, r, a0, a1, layer="VIS"):
         self.m.add_arc(c, r, a0, a1, dxfattribs={"layer": layer})
+
+    def spline(self, pts, layer="VIS"):
+        """Curva de transición por puntos de paso (DXF SPLINE por puntos de ajuste; no polilínea densa)."""
+        self.m.add_spline(fit_points=[(x, y, 0.0) for x, y in pts], dxfattribs={"layer": layer})
 
     def dot(self, p, r=0.8):
         self.m.add_circle(p, r, dxfattribs={"layer": "COTA"})
@@ -182,8 +186,9 @@ class Sheet:
         bx, by = tip[0] - size * ca, tip[1] - size * sa
         self.m.add_solid([tip, (bx - w * sa, by + w * ca), (bx + w * sa, by - w * ca)], dxfattribs={"layer": "COTA"})
 
-    def dim(self, p1, p2, off, txt, orient="h", h=T_N, txt_shift=0.0, outside=False):
-        """Cota lineal. orient 'h' (mide dx), 'v' (mide dy), 'a' alineada. off: distancia firmada de la línea de cota (papel)."""
+    def dim(self, p1, p2, off, txt, orient="h", h=T_N, txt_shift=0.0, outside=False, ted=False, txt_out=None):
+        """Cota lineal. orient 'h' (mide dx), 'v' (mide dy), 'a' alineada. off: distancia firmada de la línea de cota (papel).
+        ted: cota teóricamente exacta (ISO 1101/ISO 5458): valor en recuadro, sin tolerancia; el texto queda fijo (no lo mueve el ordenador)."""
         x1, y1 = p1
         x2, y2 = p2
         if orient == "h":
@@ -214,24 +219,50 @@ class Sheet:
             deg += 180
         r = math.radians(deg)
         mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+        side_ = 1.0                      # texto del lado normal de la línea de cota (+1) o del opuesto (−1, txt_out = «flip»)
         if L < 8.5 or outside:           # flechas por fuera
             self.arrow(a, ang); self.arrow(b, ang + math.pi)
             self.line(a, (a[0] - 5 * math.cos(ang), a[1] - 5 * math.sin(ang)), "COTA")
             self.line(b, (b[0] + 5 * math.cos(ang), b[1] + 5 * math.sin(ang)), "COTA")
-            if wtxt + 2 > L:             # texto fuera, a continuación del extremo b
+            if wtxt + 2 > L and txt_out == "flip":
+                side_ = -1.0             # tramo interior de una cadena: texto centrado del otro lado de la línea de cota
+            elif wtxt + 2 > L and txt_out == "a":
+                d = 6 + wtxt / 2
+                ex, ey = (b[0] - a[0]) / max(L, 1e-9), (b[1] - a[1]) / max(L, 1e-9)
+                mx, my = a[0] - ex * d, a[1] - ey * d
+            elif wtxt + 2 > L:           # texto fuera, a continuación del extremo b
                 d = 6 + wtxt / 2
                 ux, uy = math.cos(math.radians(deg)), math.sin(math.radians(deg))
                 sgn = 1 if (b[0] - a[0]) * ux + (b[1] - a[1]) * uy >= 0 else -1
                 mx, my = b[0] + sgn * ux * d, b[1] + sgn * uy * d
         else:
             self.arrow(a, ang + math.pi); self.arrow(b, ang)
-            if wtxt + 7 > L:             # no cabe entre flechas: texto fuera
-                d = 4 + wtxt / 2
-                ux, uy = math.cos(math.radians(deg)), math.sin(math.radians(deg))
-                mx, my = b[0] + ux * d, b[1] + uy * d
-        tx = mx - math.sin(r) * 1.0 + math.cos(r) * txt_shift
-        ty = my + math.cos(r) * 1.0 + math.sin(r) * txt_shift
+            # el texto va sobre la línea de cota (no sobre las flechas): basta que quepa entre las líneas de referencia
+            if wtxt + 1.0 > L:           # no cabe entre las líneas de referencia: texto fuera
+                # txt_out (cadenas de autodim): «a»/«b» = a continuación de ese extremo, hacia afuera de la cadena; «flip» = tramo interior de una
+                # cadena: centrado sobre su tramo, del otro lado de la línea de cota (fuera del tramo vecino, que si no lo leería como su valor)
+                h2 = max(T_MIN, h * (L - 1.3) / max(wtxt, 1e-9))
+                if txt_out == "flip" and tw(txt, h2) + 1.0 <= L:
+                    h = h2               # tramo interior: el valor se reduce hasta la altura mínima (ISO 3098, 2,5 mm) y queda centrado en su tramo
+                elif txt_out == "flip":
+                    side_ = -1.0
+                else:
+                    d = 4 + wtxt / 2
+                    ex, ey = (b[0] - a[0]) / max(L, 1e-9), (b[1] - a[1]) / max(L, 1e-9)
+                    if txt_out == "a":
+                        mx, my = a[0] - ex * d, a[1] - ey * d
+                    else:
+                        mx, my = b[0] + ex * d, b[1] + ey * d
+        nofs = 1.0 if side_ > 0 else -(2.9 + h)      # del otro lado: más allá del sobrepaso de 2,5 de las líneas de referencia
+        tx = mx - math.sin(r) * nofs + math.cos(r) * txt_shift
+        ty = my + math.cos(r) * nofs + math.sin(r) * txt_shift
         t_ = self.text(txt, (tx, ty), h, "BOTTOM_CENTER", rot=deg)
+        if ted:
+            wt_, rr_ = tw(txt, h) / 2 + 1.0, math.radians(deg)
+            ux, uy, nx_, ny_ = math.cos(rr_), math.sin(rr_), -math.sin(rr_), math.cos(rr_)
+            cs_ = [(-wt_, -0.8), (wt_, -0.8), (wt_, h + 0.8), (-wt_, h + 0.8)]
+            self.pline([(tx + ux * a_ + nx_ * b_, ty + uy * a_ + ny_ * b_) for a_, b_ in cs_], "COTA", closed=True)
+            return
         self.movable.append(dict(e=t_, base=(tx, ty), deg=deg, a=a, b=b, align="BOTTOM_CENTER"))
 
     def dim_dia(self, c, r, ang_deg, txt, h=T_N, ext=10.0):
@@ -293,14 +324,15 @@ class Sheet:
         xa, xb = (q[0], q[0] + sh * wmax_) if sh > 0 else (q[0] + sh * wmax_, q[0])
         self.reserved.append((min(xa, p[0]), min(q[1] - h * 1.4 * len(txts), p[1]), max(xb, p[0]), max(q[1] + h * 1.5, p[1])))
 
-    def balloon(self, p, q, n, r=5.0):
+    def balloon(self, p, q, n, r=5.0, dot=True):
         """Globo de posición: círculo r en q, línea guía a p (punto en la pieza)."""
         d = math.hypot(q[0] - p[0], q[1] - p[1])
         if d < 1e-6:
             return
         ux, uy = (q[0] - p[0]) / d, (q[1] - p[1]) / d
         self.line(p, (q[0] - ux * r, q[1] - uy * r), "COTA")
-        self.dot(p, 0.8)
+        if dot:
+            self.dot(p, 0.8)
         self.circle(q, r, "FINA")
         s = str(n)
         self.text(s, q, T_N if len(s) < 3 else 3.0, "MIDDLE_CENTER", bold=True)
@@ -352,7 +384,7 @@ class Sheet:
     finish = roughness
 
     # ---------- soldadura ISO 2553 ----------
-    def weld(self, p, q, kind="fillet", size="", length="", other=None, all_round=False, field=False, tail=(), L=None, sh=None, h=T_N, prep="", flip=False):
+    def weld(self, p, q, kind="fillet", size="", length="", other=None, all_round=False, field=False, tail=(), L=None, sh=None, h=T_N, prep="", flip=False, backing=None):
         """Símbolo ISO 2553 completo. p: punta de flecha sobre la junta; q: inicio de la línea de referencia (horizontal).
         kind del lado flecha: fillet|V|bevel|J|U|slot|plug|square|none; other: dict(kind,size,length) del otro lado (o None).
         size: texto antes del símbolo (a5, z7, s12); length: texto después (×200, 3×100(150)); prep: ángulo/abertura (60°, r3).
@@ -365,20 +397,28 @@ class Sheet:
         wl = max(34.0, 8 + sum(texts_w) + 12) if L is None else L
         r_ = (q[0] + sh * wl, q[1])
         self.line(q, r_, "COTA")
-        self.line((q[0], q[1] + 1.6), (r_[0], r_[1] + 1.6), "OCU")          # línea de identificación (trazos): lado opuesto
-        x_sym = q[0] + sh * (8 + tw(size, h) + 3.5)
+        simetrica = bool(other) and other.get("kind", "fillet") == kind and other.get("size", "") == size
+        if not simetrica:                    # línea de identificación (trazos) del lado opuesto; se omite en soldaduras simétricas (ISO 2553, B-50)
+            self.line((q[0], q[1] + 1.6), (r_[0], r_[1] + 1.6), "OCU")
+        xa_ = min(q[0], r_[0])
+        x_sym = xa_ + (8 + tw(size, h) + 3.5)   # el símbolo se lee siempre de izquierda a derecha: cota de sección a la izquierda, cateto vertical a la izquierda (B-49)
 
         def sym(kd, y0, sd, sz, ln, pr, x_s):
             """sd = -1 abajo (lado flecha), +1 arriba (otro lado)."""
             if kd == "fillet":
-                pts = [(x_s, y0), (x_s, y0 + sd * 5.0), (x_s + sh * 5.0, y0)]
+                pts = [(x_s, y0), (x_s, y0 + sd * 5.0), (x_s + 5.0, y0)]
                 self.pline(pts, "COTA", closed=True)
             elif kd == "V":
                 self.pline([(x_s - 2.8, y0 + sd * 5.0), (x_s, y0), (x_s + 2.8, y0 + sd * 5.0)], "COTA")
             elif kd == "bevel":
-                self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + sh * 4.5, y0 + sd * 5.0), "COTA")
+                self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + 4.5, y0 + sd * 5.0), "COTA")
+            elif kd == "bevel_fillet":            # bisel con filete de refuerzo superpuesto (ISO 2553, símbolos combinados)
+                self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + 4.5, y0 + sd * 5.0), "COTA")
+                self.line((x_s, y0 + sd * 5.0), (x_s + 5.0, y0), "COTA")
+            elif kd == "backrun":                 # pasada de cierre / soldadura por el reverso (ISO 2553, semicírculo)
+                self.arc((x_s, y0), 2.5, 0.0 if sd > 0 else 180.0, 180.0 if sd > 0 else 360.0, "COTA")
             elif kd == "J":
-                self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.arc((x_s + sh * 2.5, y0 + sd * 2.5), 2.5, 180 if sh > 0 else 270, 270 if sh > 0 else 360, "COTA") if False else self.line((x_s, y0), (x_s + sh * 4.5, y0 + sd * 5.0), "COTA")
+                self.pline([(x_s, y0), (x_s, y0 + sd * 5.0)], "COTA"); self.line((x_s, y0), (x_s + 4.5, y0 + sd * 5.0), "COTA")
             elif kd == "U":
                 self.pline([(x_s - 2.8, y0 + sd * 5.0), (x_s - 2.8, y0 + sd * 2.0), (x_s, y0), (x_s + 2.8, y0 + sd * 2.0), (x_s + 2.8, y0 + sd * 5.0)], "COTA")
             elif kd == "square":
@@ -386,17 +426,21 @@ class Sheet:
             elif kd in ("slot", "plug"):
                 self.rect(x_s - 3.0, min(y0, y0 + sd * 4.5), x_s + 3.0, max(y0, y0 + sd * 4.5), "COTA")
             if sz:
-                self.text(sz, (x_s - sh * 2.5 if kd != "V" else x_s - sh * 4.5, y0 + sd * 2.6), h, "MIDDLE_RIGHT" if sh > 0 else "MIDDLE_LEFT")
+                self.text(sz, (x_s - 2.5 if kd != "V" else x_s - 4.5, y0 + sd * 2.6), h, "MIDDLE_RIGHT")
             if ln:
-                self.text(ln, (x_s + sh * 7.0, y0 + sd * 2.6), h, "MIDDLE_LEFT" if sh > 0 else "MIDDLE_RIGHT")
+                self.text(ln, (x_s + 7.0, y0 + sd * 2.6), h, "MIDDLE_LEFT")
             if pr:
-                self.text(pr, (x_s + sh * 0.0, y0 + sd * 8.8), h, "MIDDLE_CENTER")
+                self.text(pr, (x_s, y0 + sd * 8.8), h, "MIDDLE_CENTER")
 
         if kind != "none":
             sym(kind, q[1], -1, size, length, prep, x_sym)
         if other:
-            sym(other.get("kind", "fillet"), q[1] + 1.6, 1, other.get("size", ""), other.get("length", ""), other.get("prep", ""),
-                q[0] + sh * (8 + tw(other.get("size", ""), h) + 3.5))
+            sym(other.get("kind", "fillet"), q[1] + (0.0 if simetrica else 1.6), 1, other.get("size", ""), other.get("length", ""), other.get("prep", ""),
+                xa_ + (8 + tw(other.get("size", ""), h) + 3.5))
+        if backing and not other:           # respaldo (ISO 2553): rectángulo con M (permanente) o MR (removible) del otro lado de la línea de referencia (B-32)
+            wb = 4.0 + 2.2 * len(backing)
+            self.rect(x_sym - wb / 2, q[1] + 2.2, x_sym + wb / 2, q[1] + 6.4, "COTA")
+            self.text(backing, (x_sym, q[1] + 4.3), T_MIN, "MIDDLE_CENTER")
         if all_round:
             self.circle(q, 2.6, "COTA")
         if field:
@@ -431,7 +475,7 @@ class Sheet:
         hh, ww = 7.0, 7.0
         parts = [tol] + ([d_ for d_ in (datum if isinstance(datum, (list, tuple)) else [datum])] if datum else [])
         wt = max(14.0, tw(tol, h) + 5)
-        wds = [7.0 for _ in parts[1:]]
+        wds = [max(7.0, tw(d_, h) + 3.0) for d_ in parts[1:]]
         tot = ww + wt + sum(wds)
         self.rect(x, y, x + tot, y + hh, "COTA")
         self.line((x + ww, y), (x + ww, y + hh), "COTA")
@@ -445,11 +489,21 @@ class Sheet:
             self.line((cx - 2.6, cy - 2.2), (cx + 2.6, cy - 2.2), "COTA"); self.line((cx, cy - 2.2), (cx, cy + 2.6), "COTA")
         elif sym == "par":
             self.line((cx - 2.6, cy - 2.4), (cx + 0.8, cy + 2.4), "COTA"); self.line((cx - 0.8, cy - 2.4), (cx + 2.6, cy + 2.4), "COTA")
-        elif sym in ("coax", "cyl"):
+        elif sym == "coax":                          # coaxialidad / concentricidad: dos circunferencias concéntricas
             self.circle((cx, cy), 1.5, "COTA"); self.circle((cx, cy), 2.7, "COTA")
+        elif sym == "cyl":                           # cilindricidad (ISO 1101): circunferencia entre dos rectas paralelas tangentes inclinadas 60°
+            r_, a_ = 1.9, math.radians(60.0)
+            ux, uy = math.cos(a_), math.sin(a_)
+            nx, ny = -uy, ux
+            self.circle((cx, cy), r_, "COTA")
+            for sg in (1, -1):
+                ox, oy = cx + sg * r_ * nx, cy + sg * r_ * ny
+                self.line((ox - 3.0 * ux, oy - 3.0 * uy), (ox + 3.0 * ux, oy + 3.0 * uy), "COTA")
+        elif sym == "circ":                          # circularidad: una circunferencia
+            self.circle((cx, cy), 2.4, "COTA")
         elif sym == "pos":
             self.circle((cx, cy), 2.6, "COTA"); self.line((cx - 3.6, cy), (cx + 3.6, cy), "COTA"); self.line((cx, cy - 3.6), (cx, cy + 3.6), "COTA")
-        elif sym in ("run", "circ"):
+        elif sym == "run":
             self.line((cx - 2.4, cy - 2.4), (cx + 2.4, cy + 2.4), "COTA"); self.arrow((cx + 2.4, cy + 2.4), math.pi / 4, 2.2, 0.8)
         elif sym == "straight":
             self.line((cx - 2.6, cy), (cx + 2.6, cy), "COTA")
@@ -467,8 +521,13 @@ class Sheet:
         return tot
 
     # ---------- bloques de texto y tablas ----------
-    def notes_block(self, x, y, title, lines, h=T_N, width=200.0, ls=1.4, numbered=False):
-        """Bloque de notas con título en negrita; cada nota se ajusta al ancho real. Devuelve la y final."""
+    def notes_block(self, x, y, title, lines, h=T_N, width=200.0, ls=1.4, numbered=False, reg=True):
+        """Bloque de notas con título en negrita; cada nota se ajusta al ancho real. Devuelve la y final.
+        reg: registra las notas en self.notas_reg (control de notas duplicadas)."""
+        if reg:
+            if not hasattr(self, "notas_reg"):
+                self.notas_reg = []
+            self.notas_reg.extend(lines)
         self.text(title, (x, y), T_N + 0.5, "TOP_LEFT", bold=True)
         y -= (T_N + 0.5) * 1.6
         for i, ln in enumerate(lines):
@@ -612,7 +671,15 @@ class Sheet:
         a, b = ys["esc"]
         for xx in (50, 90, 125):
             self.line((x0 + xx, a), (x0 + xx, b), "FINA")
-        lab("esc", 0, "ESCALA"); self.text(info["escala"], (x0 + 25, a + 5.5), T_N if tw(info["escala"], T_N) < 46 else 3.0, "MIDDLE_CENTER")
+        lab("esc", 0, "ESCALA")
+        es_ = info["escala"]
+        if tw(es_, 3.0) < 47:
+            self.text(es_, (x0 + 25, a + 5.5), T_N if tw(es_, T_N) < 46 else 3.0, "MIDDLE_CENTER")
+        else:                                   # lista explícita de escalas en dos renglones (mismo formato que el índice de GEN-001)
+            pr_ = es_.split(" / ")
+            k_ = (len(pr_) + 1) // 2
+            for i_, ln_ in enumerate((" / ".join(pr_[:k_]) + " /", " / ".join(pr_[k_:]))):
+                self.text(ln_, (x0 + 25, a + 7.4 - i_ * 3.6), 2.5, "MIDDLE_CENTER")
         lab("esc", 50, "FECHA"); self.text(info["fecha"], (x0 + 70, a + 5.5), T_N, "MIDDLE_CENTER")
         lab("esc", 90, "FORMATO"); self.text(info["formato"], (x0 + 107.5, a + 5.5), T_N, "MIDDLE_CENTER")
         lab("esc", 125, "MÉTODO DE PROYECCIÓN E"); self.projection_symbol((x0 + 143, a + 5.0), 0.62)
@@ -645,10 +712,23 @@ class Sheet:
         a, b = ys["proj"]
         lab("proj", 0, "PROYECTO")
         self.text(info["proj"], (x0 + 3, b - 5.0), T_N, "TOP_LEFT", bold=True)
-        for i, ln in enumerate(wrapw(info["subproj"], 174, 3.0)[:2]):
-            self.text(ln, (x0 + 3, b - 10.5 - i * 4.0), 3.0, "TOP_LEFT")
+        sub_ = info["subproj"]
+        if len(wrapw(sub_, 174, T_MIN)) > 2:
+            # no entra en dos renglones ni a 2,5 mm: se quitan las aclaraciones entre paréntesis (la descripción completa de la variante está en GEN-001);
+            # si aún no entra, se corta en palabra con «…» (nunca un renglón cortado por el borde)
+            import re as _re
+            sub_ = _re.sub(r"\s*\([^()]*\)", "", sub_)
+            while len(wrapw(sub_, 174, T_MIN)) > 2 and " " in sub_:
+                sub_ = sub_.rsplit(" ", 1)[0].rstrip(" ,;·") + "…"
+                sub_ = sub_.replace("……", "…")
+        sl_ = wrapw(sub_, 174, 3.0)
+        hs_ = 3.0 if len(sl_) == 1 else T_MIN               # subtítulo de la variante: en dos renglones baja a 2,5 mm para no invadir la fila siguiente
+        for i, ln in enumerate(wrapw(sub_, 174, hs_)[:2]):
+            self.text(ln, (x0 + 3, b - 9.8 - i * 3.2), hs_, "TOP_LEFT")
         a, b = ys["estado"]
-        self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), 3.4 if tw(info["estado"], 3.4, True) < 176 else T_MIN + 0.4, "MIDDLE_CENTER", bold=True)
+        # estado (EMITIDO / RETENIDA): altura que cabe en el ancho del cajetín con margen (el de RETENIDA es más largo)
+        h_est = max(T_MIN, min(3.4, 3.4 * (x1 - x0 - 6.0) / max(tw(info["estado"], 3.4, True), 1e-9)))
+        self.text(info["estado"], ((x0 + x1) / 2, (a + b) / 2), h_est, "MIDDLE_CENTER", bold=True)
         # --- tabla de revisiones sobre el cajetín ---
         rv = info["revs"]
         cols = [("REV", 10), ("FECHA", 24), ("DESCRIPCIÓN", 76), ("DIB.", 24), ("REV.", 23), ("APR.", 23)]
@@ -677,7 +757,7 @@ class Sheet:
                     self.text(str(r[j]), (xx + w_ / 2, ycur + rh / 2), 3.0, "MIDDLE_CENTER", bold=(j == 0))
                 xx += w_
         yg = ytab + 2.5
-        for ln in reversed(wrapw(info["generales"] + " Cotas en mm salvo indicación. No medir sobre el plano. Proyección: método E (primer diedro).", 178, 3.0)):
+        for ln in reversed(wrapw(info["generales"] + " Cotas en mm. Proyección: método E (ISO 5456-2).", 178, 3.0)):
             self.text(ln, (x0, yg), 3.0, "BOTTOM_LEFT")
             yg += 4.3
         self.cajetin_top = yg
@@ -699,6 +779,30 @@ class Sheet:
         moved = 0
 
         G = 0.9                                     # holgura mínima entre textos [mm]
+        # líneas de cota, extensión y referencia: un texto movible no puede quedar atravesado por ninguna (control «líneas sobre texto»)
+        from shapely.geometry import LineString, box as _box
+        from shapely.strtree import STRtree
+        segs = []
+        for e in self.m:
+            if e.dxf.layer != "COTA":
+                continue
+            if e.dxftype() == "LINE":
+                pp = [(e.dxf.start.x, e.dxf.start.y), (e.dxf.end.x, e.dxf.end.y)]
+            elif e.dxftype() == "LWPOLYLINE":
+                pp = [(q[0], q[1]) for q in e.get_points()]
+            else:
+                continue
+            for a_, b_ in zip(pp, pp[1:]):
+                if abs(a_[0] - b_[0]) + abs(a_[1] - b_[1]) > 1e-6:
+                    segs.append(LineString([a_, b_]))
+        stree = STRtree(segs) if segs else None
+        SH = 0.35
+
+        def crosses_line(bx):
+            if stree is None or bx[2] - bx[0] < 2 * SH + 0.01 or bx[3] - bx[1] < 2 * SH + 0.01:
+                return False
+            r_ = _box(bx[0] + SH, bx[1] + SH, bx[2] - SH, bx[3] - SH)
+            return any(segs[int(i)].intersects(r_) for i in stree.query(r_))
 
         def clash(bx, skip):
             bi = [bx[0] - G, bx[1] - G, bx[2] + G, bx[3] + G]
@@ -714,6 +818,8 @@ class Sheet:
             if bx[0] < L_ + 0.5 or bx[1] < B_ + 0.5 or bx[2] > R_ - 0.5 or bx[3] > T_ - 0.5:
                 return True
             if skip in movable_idx:
+                if crosses_line(bx):
+                    return True
                 for (x0, y0, x1, y1) in forbid:
                     if bx[0] < x1 and bx[2] > x0 and bx[1] < y1 and bx[3] > y0:
                         return True
@@ -773,6 +879,59 @@ class Sheet:
                 break
         self.n_moved = moved
         return moved
+
+    def interrumpir_lineas(self, gap=0.6, shrink=0.35):
+        """ISO 128-20 / ISO 129-1: una línea de cota, de extensión o de referencia que debe pasar por un texto se interrumpe bajo el texto
+        (con 'gap' mm de margen). Se aplica después del ordenador de textos, solo a las líneas que aún atraviesan un texto. Devuelve cuántas."""
+        import colisiones as C
+        from shapely.geometry import LineString
+        from shapely.strtree import STRtree
+        from shapely.ops import unary_union
+        ents = list(self.m)
+        tp = C.text_polys(ents, shrink)
+        if not tp:
+            return 0
+        tree = STRtree([t[0] for t in tp])
+        n = 0
+        for e in ents:
+            if e.dxf.layer != "COTA" or e.dxftype() not in ("LINE", "LWPOLYLINE"):
+                continue
+            segs = C.cota_segments(e)
+            hit = False
+            out = []
+            for a, b in segs:
+                if abs(a[0] - b[0]) + abs(a[1] - b[1]) < 1e-6:
+                    continue
+                ls = LineString([a, b])
+                polys = [tp[int(i)][0] for i in tree.query(ls) if tp[int(i)][0].intersects(ls)]
+                if not polys:
+                    out.append([(a, b)])
+                    continue
+                hit = True
+                rest = ls.difference(unary_union([p.buffer(shrink + gap, join_style=2) for p in polys]))
+                geoms = getattr(rest, "geoms", [rest])
+                out.append([(g.coords[0], g.coords[-1]) for g in geoms if not g.is_empty and g.length > 0.2])
+            if not hit:
+                continue
+            n += 1
+            pieces = [p for grp in out for p in grp]
+            attrs = {"layer": "COTA"}
+            if e.dxftype() == "LINE" and pieces:
+                e.dxf.start, e.dxf.end = pieces[0][0], pieces[0][1]
+                rest_p = pieces[1:]
+            else:
+                if e.dxftype() == "LINE":
+                    e.dxf.end = e.dxf.start
+                else:
+                    e.set_points([pieces[0][0], pieces[0][1]] if pieces else [(0, 0), (0, 0)])
+                    e.closed = False
+                    if not pieces:
+                        e.dxf.layer = "FINA"
+                rest_p = pieces[1:]
+            for a, b in rest_p:
+                self.m.add_line(a, b, dxfattribs=attrs)
+        self.n_interrumpidas = n
+        return n
 
     def save(self, dxf_path, pdf_path=None):
         self.doc.saveas(dxf_path)

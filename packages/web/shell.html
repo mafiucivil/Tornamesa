@@ -8,17 +8,17 @@
 :root{
   --bg:#f6f7f9;--panel:#ffffff;--ink:#14171c;--ink2:#4a5260;--line:#d9dde3;--soft:#eef1f4;
   --acc:#1f5fbf;--ok:#1e7d3c;--okbg:#e5f3e9;--warn:#9a6400;--warnbg:#fbf0d9;--fail:#b3261e;--failbg:#fbe4e2;
-  --info:#5b6472;--infobg:#eceff3;--pend:#3657a8;--pendbg:#e6ecf8;--steel:#8a94a3;--load:#c2410c;
+  --info:#5b6472;--infobg:#eceff3;--pend:#3657a8;--pendbg:#e6ecf8;--steel:#8a94a3;--load:#c2410c;--ins:#2a9d8f;--insk:#1d6f65;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#111418;--panel:#181c22;--ink:#e7eaee;--ink2:#a7b0bd;--line:#2c333d;--soft:#20262e;
   --acc:#6ea8ff;--ok:#5fd08a;--okbg:#173322;--warn:#f0b54a;--warnbg:#3a2d12;--fail:#ff7b72;--failbg:#3d1a18;
-  --info:#a7b0bd;--infobg:#242a33;--pend:#8fb0ff;--pendbg:#1d2740;--steel:#7d8796;--load:#fb923c;}}
+  --info:#a7b0bd;--infobg:#242a33;--pend:#8fb0ff;--pendbg:#1d2740;--steel:#7d8796;--load:#fb923c;--ins:#2a9d8f;--insk:#6fd3c4;}}
 :root[data-theme="dark"]{
   --bg:#111418;--panel:#181c22;--ink:#e7eaee;--ink2:#a7b0bd;--line:#2c333d;--soft:#20262e;
   --acc:#6ea8ff;--ok:#5fd08a;--okbg:#173322;--warn:#f0b54a;--warnbg:#3a2d12;--fail:#ff7b72;--failbg:#3d1a18;
-  --info:#a7b0bd;--infobg:#242a33;--pend:#8fb0ff;--pendbg:#1d2740;--steel:#7d8796;--load:#fb923c;}
+  --info:#a7b0bd;--infobg:#242a33;--pend:#8fb0ff;--pendbg:#1d2740;--steel:#7d8796;--load:#fb923c;--ins:#2a9d8f;--insk:#6fd3c4;}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
 header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
@@ -92,6 +92,73 @@ svg text{font-family:var(--sans);fill:var(--ink)}
 .conf{display:inline-block;min-width:22px;text-align:center;padding:0 5px;border-radius:4px;font-size:11px;font-weight:700;background:var(--infobg);color:var(--info)}
 .conf-C{background:var(--warnbg);color:var(--warn)}.conf-B{background:var(--pendbg);color:var(--pend)}.conf-A{background:var(--okbg);color:var(--ok)}
 td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{background:var(--failbg)}
+a.btn{display:inline-block;font:600 12.5px var(--sans);padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--soft);color:var(--ink);text-decoration:none;cursor:pointer}
+a.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+a.btn.off{opacity:.5;pointer-events:none}
+.pl-adv{font-size:12.5px;letter-spacing:.2px;border-left:4px solid var(--fail)}
+.pl-sec{margin-top:12px}
+.pl-grp .big{font-size:22px}
+.pl-grp details{margin:8px 0 0}
+.pl-grp td a,.pl-files a{color:var(--acc)}
+.pl-pasos{margin:6px 0;padding-left:20px;font-size:12.5px}.pl-pasos li{margin:3px 0}
+#plResumen details{margin:8px 0 4px}
+.pl-files{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin:10px 0 2px}
+pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:11.5px/1.4 var(--mono);color:var(--ink2);white-space:pre-wrap;margin:6px 0}
+.msg pre{margin:4px 0 0;white-space:pre-wrap;font:12px/1.4 var(--mono)}
+.sim-modal{position:fixed;inset:0;z-index:20;background:rgba(10,14,20,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+.sim-modal[hidden]{display:none}
+.sim-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;width:min(1120px,100%);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.sim-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sim-head h2{font-size:15px;margin:0}
+.sim-kv{grid-template-columns:auto 1fr;font-size:12.5px}
+.sim-kv span:nth-child(even){font-family:var(--sans);text-align:left}
+.sim-ctl{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:10px 0}
+.sim-ctl label{font-size:12.5px;color:var(--ink2)}
+.sim-ctl select,.sim-ctl input{font:12.5px var(--sans);padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.sim-ctl input{width:56px}
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin:8px 0}
+.sim-grid>div{border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--bg);min-width:0}
+.sim-svg{width:100%;height:auto}
+.sim-svg .sim-t{font-size:11px;fill:var(--ink2)}
+.sim-base{fill:var(--soft);stroke:var(--steel);stroke-width:1}
+.sim-table{fill:var(--panel);fill-opacity:.75;stroke:var(--ink);stroke-width:1.2}
+.sim-hub{fill:none;stroke:var(--steel);stroke-width:.8}
+.sim-mark{stroke:var(--acc);stroke-width:1.5}
+.sim-pin{fill:var(--steel);stroke:var(--ink);stroke-width:.5}.sim-pin.on{fill:var(--load)}
+.sim-bed{fill:var(--infobg);stroke:var(--steel);stroke-width:.7}
+.sim-brk{fill:var(--soft);stroke:var(--ink2);stroke-width:.7}
+.sim-cyl{fill:#5b6472;stroke:var(--ink);stroke-width:.6}
+.sim-rod{fill:#c9d1db;stroke:var(--ink);stroke-width:.6}
+.sim-pp{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
+.sim-shoe{fill:var(--pendbg);stroke:var(--pend);stroke-width:.8}
+.sim-dog{fill:#7a8494;stroke:var(--ink);stroke-width:.8}.sim-dog.on{fill:var(--load)}
+.sim-asiento{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round}.sim-asiento.on{stroke:var(--fail)}
+.sim-shoe.bad,.sim-dog.bad{fill:var(--failbg);stroke:var(--fail);stroke-width:2}
+.sim-spr{fill:none;stroke:var(--ok);stroke-width:1.2}
+.sim-ax{stroke:var(--ink2);stroke-width:.7}.sim-lim{stroke:var(--fail);stroke-dasharray:3 3;stroke-width:.8}
+.sim-cF{fill:none;stroke:var(--acc);stroke-width:1.6}.sim-cp{fill:none;stroke:var(--load);stroke-width:1.6}
+.sim-cF.ghost,.sim-cp.ghost{opacity:.25}
+.sim-svg .sim-tF{fill:var(--acc)}.sim-svg .sim-tp{fill:var(--load)}
+.sim-bad{color:var(--fail);font-weight:700}
+.sim-cam{fill:#c9b37e;fill-opacity:.55;stroke:#8a6d2f;stroke-width:.8}.sim-cam.off{fill-opacity:.12;stroke-opacity:.45;stroke-dasharray:3 2}.sim-cam.bad{fill:var(--failbg);stroke:var(--fail);stroke-width:2}
+.sim-fol{fill:#e2c46f;stroke:var(--ink);stroke-width:.7}.sim-ct{fill:var(--fail);stroke:none}
+.sim-canto{fill:none;stroke:#b4570b;stroke-width:2.2;stroke-linejoin:round}.sim-traj{fill:none;stroke:#7b3fa0;stroke-width:1;stroke-dasharray:4 3}
+.sim-bolt{fill:var(--panel);stroke:var(--ink2);stroke-width:.6}.sim-dowel{fill:var(--pendbg);stroke:var(--pend);stroke-width:.6}
+.sim-q{fill:#e2c46f;fill-opacity:.85}.sim-ojal{stroke-width:1}.sim-ct.off{fill:var(--ink2)}.sim-ctl-l{stroke:var(--ink2);stroke-width:.6;stroke-dasharray:2 2}.sim-ctl-l.on{stroke:var(--fail);stroke-dasharray:none;stroke-width:1}
+.sim-svg .sim-tct{fill:var(--fail);font-weight:600}.sim-blk{fill-opacity:.72}.sim-tapa{fill-opacity:.55}
+.sim-fase{font-size:13px;margin:0 0 6px;min-height:2.6em}.sim-read{grid-template-columns:minmax(170px,1fr) auto}
+.sim-tbg{fill:var(--panel);fill-opacity:.9}.sim-sw{stroke:var(--ink);stroke-width:.5}.sim-grid-l{stroke:var(--line);stroke-width:.6}
+.sim-gif{margin:8px 0}.sim-gif img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
+.standby{display:block;margin:0 0 4px;padding:3px 6px;border-radius:5px;background:var(--warnbg);color:var(--warn);font-size:11.5px;font-weight:700}
+.limuso{margin:8px 0;padding:8px 12px;border-radius:8px;border-left:5px solid var(--warn);background:var(--warnbg);color:var(--ink);font-size:13px}
+.limuso b{color:var(--warn)}.limuso .ref{margin-top:2px}
+.pcrit{margin:8px 0;padding:8px 12px;border-radius:8px;border-left:5px solid var(--fail);background:var(--failbg);color:var(--ink);font-size:12.5px}
+.pcrit>b{color:var(--fail)}.pcrit ul{margin:4px 0 0;padding-left:18px}.pcrit li{margin:3px 0}
+.vered{border-width:2px}.vered.vd-ok{border-color:var(--ok)}.vered.vd-fail{border-color:var(--fail)}
+.vered .big.vd-ok{color:var(--ok)}.vered .big.vd-fail{color:var(--fail)}
+.badge.b-eg{font-size:13px;letter-spacing:.2px}
+.sim-ins{fill:var(--ins);fill-opacity:.38;stroke:var(--insk);stroke-width:.9}.sim-tap{fill:var(--panel);stroke:var(--insk);stroke-width:.6}.sim-ati{fill:var(--insk);fill-opacity:.85;stroke:var(--insk);stroke-width:.5}
+.sim-svg .sim-tins{fill:var(--insk);font-weight:600;font-size:10px;paint-order:stroke;stroke:var(--panel);stroke-width:2.5px;stroke-linejoin:round}
 .pkg .adv{font-weight:650;font-size:11.5px;color:var(--ink);border-left:3px solid var(--fail);padding:2px 0 2px 8px;margin:6px 0}
 </style>
 </head>
@@ -107,6 +174,7 @@ td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{back
       <button id="bReset">Valores por defecto</button>
       <button id="bExp">Exportar JSON</button>
       <button id="bImp">Importar JSON</button>
+      <button id="bSim" title="Animación del ciclo empuje, retorno y reenganche con la geometría del núcleo">Simulación</button>
       <button id="bTheme" title="Tema claro / oscuro">◐</button>
     </div>
     <input type="file" id="fImp" accept=".json,application/json" hidden>
@@ -119,8 +187,6 @@ td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{back
         <option value="C2">C2 · Dos placas de bronce de aleaciones distintas</option>
         <option value="C3">C3 · Bronce en pastillas + disco duro</option>
       </select></div>
-    <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera láminas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Exportar paquete de dibujo (DXF · CSV · JSON · láminas)</label><input id="pkgChk" type="checkbox"></div>
-    <div class="pkg" id="pkgPanel" hidden></div>
     <div class="busy" id="busy"></div>
     <div id="form"></div>
   </aside>
@@ -129,20 +195,40 @@ td.c-ok{background:var(--okbg)}td.c-warn{background:var(--warnbg)}td.c-fail{back
     <section class="tab" data-t="resumen" data-l="Resumen"></section>
     <section class="tab" data-t="modelo" data-l="Modelo"></section>
     <section class="tab" data-t="giro" data-l="Accionamiento"></section>
+    <section class="tab" data-t="cinem" data-l="Cinemática (modo 2)"></section>
+    <section class="tab" data-t="comp" data-l="Comparación de la guía"></section>
     <section class="tab" data-t="verif" data-l="Verificaciones"></section>
     <section class="tab" data-t="fea" data-l="FEA"></section>
     <section class="tab" data-t="masa" data-l="Masas"></section>
+    <section class="tab" data-t="planos" data-l="Planos">
+      <div class="msg error pl-adv" id="plAdv"><b>ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO.</b></div>
+      <div class="grid"><div class="card" id="plSrv"></div><div class="card" id="plResumen"></div></div>
+      <div class="card pl-sec" id="plGen"></div>
+      <div class="card pl-sec" id="plHist"></div>
+      <div class="card pl-sec"><h3>Esquemas rápidos (no son planos de fabricación)</h3>
+        <div class="prm chk" id="pkgRow"><label for="pkgChk" title="Genera en el navegador 5 láminas esquemáticas DXF, SVG/PDF, lista de materiales (CSV) y el JSON de diseño según la alternativa de interfaz elegida">Esquemas rápidos en el navegador (DXF · CSV · JSON · 5 láminas)</label><input id="pkgChk" type="checkbox"></div>
+        <div class="pkg" id="pkgPanel" hidden></div>
+      </div>
+    </section>
     <section class="tab" data-t="temp" data-l="Temperatura"></section>
     <section class="tab" data-t="tapones" data-l="Tapones (C)"></section>
     <section class="tab" data-t="agentes" data-l="Agentes"></section>
     <section class="tab" data-t="opt" data-l="Optimizador"></section>
   </main>
 </div>
+<div class="sim-modal" id="simModal" hidden>
+  <div class="sim-box" id="simBox" role="dialog" aria-modal="true" aria-labelledby="simTit">
+    <div class="sim-head"><h2 id="simTit">Simulación del movimiento</h2><button id="bSimClose" title="Cerrar (Esc)">Cerrar</button></div>
+    <div id="simBody"></div>
+  </div>
+</div>
 <script>
 /*@@FEA@@*/
 /*@@CORE@@*/
 /*@@AGENTS@@*/
 /*@@PLANOS@@*/
+/*@@SIM@@*/
+/*@@IMG@@*/
 /*@@UI@@*/
 </script>
 </body>

@@ -29,6 +29,7 @@ g0, RHO = 9.80665, 7.85e-6
 
 
 def export(over=None):
+    over = dict({"drive_mode": 1}, **(over or {}))   # este verificador modela el accionamiento guiado: desde el 08-11-2026 el valor por defecto es el pivotado (drive_mode = 2)
     with tempfile.TemporaryDirectory() as td:
         args = ["node", str(ROOT / "tools" / "export_design.js")]
         if over:
@@ -73,7 +74,7 @@ D0 = export()
 if D0 is None:
     print("No se pudo ejecutar node tools/export_design.js"); sys.exit(2)
 P = D0["P"]
-Pg = json.loads((GOLD / "params_defaults.json").read_text())
+Pg = json.loads((GOLD / "params_defaults.json").read_text()); Pg["drive_mode"] = 1   # modelo guiado
 dif = sorted(k for k in set(P) | set(Pg) if P.get(k) != Pg.get(k))
 DV, KC = D0["derivados"], D0["derivados"]["K"]
 VER = {v["nombre"]: v for v in D0["verificaciones"]}
@@ -579,6 +580,171 @@ table("Prueba 8 – Guía, bancada y pivote", ["Frente", "Propio", "Núcleo", "A
        ["Soldadura bancada (2 filetes)", s3(f_w), s3(ver("Soldadura bancada")["dem"]), s3(0.6 * P["FEXX"] / (1.2 * Nd)), s3(f_w / (0.6 * P["FEXX"] / (1.2 * Nd))), s3(ver("Soldadura bancada")["fu"])],
        ["H_asim (kN) máx en carrera", s3(Has_mx/1e3), s3(Has_core), "—", "—", "—"],
        ["Pandeo del vástago Pcr (kN)", s3(Pcr / 1e3), s3(ver("Pandeo del vástago")["cap"] * 3), "Pcr/3", s3(F_st / (Pcr / 3)), s3(ver("Pandeo del vástago")["fu"])]])
+
+# ======================================================================================
+# PRUEBA 9 – Plancha base bajo la ménsula del ojal trasero (docs/qa/plancha_base_modo_guiado.md, 10-11-2026)
+# ======================================================================================
+# Ménsula = dos mejillas (t_ch × L_ch) soldadas a la plancha, a ±(Win/2 … Win/2 + t_ch) del eje del cilindro, desde la saliente trasera (−rear) hasta
+# L_ch − rear respecto del ojal. Ojal en (x_g; y_ojal), y_ojal = y_rp0 − L0, y_rp0 = −R·sen(π/N) − l_p − s_libre (pasador del vástago a la toma).
+# Empuje: la ménsula recibe −F·ŷ a la altura del eje h; la reacción es de la mesa (roce de la interfaz, el otro cilindro): M = F·h alrededor de x no se
+# cierra en la bancada. Con los dos cilindros M₂ = −M₁ en (−x_g; −y_ojal): torsión de la base. Método 1 (réplica): franja del modelo de un soporte
+# (retención en el borde más lejano de la mesa: s_H = talón − O·f + D/2), corte V = M/a y cota inferior de la torsión (placa libre, m_xy = M/(2B)).
+# Método 2 (contraste): FEA propia de Mindlin de la base entera (malla 80) con las dos ménsulas rígidas, las bancadas como elementos de espesor
+# equivalente (misma rigidez a flexión de la sección compuesta con la ranura T; isótropo: sobrestima su torsión, de modo que la conclusión es conservadora
+# en el sentido de «no cumple»), contacto unilateral, peso propio y la mesa vacía en el anillo, o la huella de la mesa bilateral si está cargada.
+print("\n### Prueba 9 – Plancha base bajo la ménsula del ojal trasero (modo guiado, SIN inserto: ins_on = 0)")
+# Desde el 10-11-2026 la base lleva el inserto de esquina (tests/indep_plancha_base_E.py); el modelo de la franja sin anclaje se replica con ins_on = 0.
+D9 = export({"ins_on": 0}); VER9 = {v["nombre"]: v for v in D9["verificaciones"]}
+def ver9(sub):
+    for k, v in VER9.items():
+        if sub in k:
+            return v
+    raise KeyError(sub)
+
+# Solo con la salida de tools/export_design.js (filas de verificación y veredicto; designDrive().guiado no va en ese JSON, que tiene que coincidir con
+# el de packages/web/planos_export.js): la geometría se rearma aquí y se compara con dem, fu y estado de las filas.
+try:
+    VR9 = {k_: ver9("Plancha base bajo la ménsula del ojal trasero: " + k_) for k_ in ("modelo", "flexión sin anclaje, empuje", "flexión sin anclaje, retorno", "corte de la franja", "torsión de la base", "levantamiento")}
+except KeyError:
+    VR9 = None
+    FIND.append(("N10", "importante", "Plancha base bajo la ménsula: el núcleo no tiene las filas del modo guiado", "—", "filas «Plancha base bajo la ménsula del ojal trasero»"))
+if VR9 is not None:
+    BR9 = DV["bracket"]; h9 = DV["hax"]; t9 = P["t_base"]; B9 = P["B"]
+    yp0_9 = -R * math.sin(math.pi / Np) - P["l_p"] - P["s_free"]; yE9 = yp0_9 - P["L0"]
+    x0_9 = BR9["Win"] / 2; x1_9 = x0_9 + P["t_ch"]; y0_9 = -BR9["rear"]; y1_9 = P["L_ch"] - BR9["rear"]
+    V9 = [(sx_ * xx_, yy_) for sx_ in (1, -1) for xx_ in (x0_9, x1_9) for yy_ in (y0_9, y1_9)]
+    O9 = (-x_g, -yE9)
+    Fret9 = A_ann * P["p_ret"] / 10
+    def franja9(F_, s_):
+        f_ = (0.0, s_); g_ = (-f_[1], f_[0]); pf_ = [vx * f_[0] + vy * f_[1] for vx, vy in V9]; pg_ = [vx * g_[0] + vy * g_[1] for vx, vy in V9]
+        toe_ = max(pf_); a_ = toe_ - min(pf_); w_ = max(pg_) - min(pg_); sH_ = toe_ - (O9[0] * f_[0] + O9[1] * f_[1]) + P["D_top"] / 2; M_ = F_ * h9
+        Mc_ = M_ * (1 - a_ / sH_) if sH_ > a_ else M_; b_ = w_ + a_
+        return dict(M=M_, a=a_, w=w_, b=b_, sH=sH_, Mc=Mc_, sig=6 * Mc_ / (b_ * t9 * t9), tau=1.5 * (M_ / a_) / (b_ * t9), T=M_ / sH_ if sH_ > a_ else float("inf"))
+    fe9, fr9 = franja9(F_st, -1.0), franja9(Fret9, 1.0)
+    comp("9", "Franja, empuje: σ (MPa)", fe9["sig"], ver9("Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, empuje")["dem"])
+    comp("9", "Franja, retorno: σ (MPa)", fr9["sig"], ver9("Plancha base bajo la ménsula del ojal trasero: flexión sin anclaje, retorno")["dem"])
+    comp("9", "Franja, corte τ (MPa)", fe9["tau"], ver9("Plancha base bajo la ménsula del ojal trasero: corte de la franja")["dem"])
+    tq9 = 6 * (fe9["M"] / (2 * B9)) / t9 ** 2
+    comp("9", "Torsión de la base (cota inferior) τ (MPa)", tq9, ver9("Plancha base bajo la ménsula del ojal trasero: torsión de la base")["dem"])
+    comp("9", "Momento por ménsula en el empuje M = F·h (kN·m)", fe9["M"] / 1e6, VR9["modelo"]["dem"])
+    comp("9", "Momento por ménsula en el retorno M = F_ret·h (kN·m)", fr9["M"] / 1e6, VR9["modelo"]["cap"])
+    Wm9 = (DV["masas"]["disc"] + DV["masas"]["ssTop"] + 0.5 * DV["masas"]["pivot"]) * g0      # mesa + disco rotatorio + medio pivote (las uñas van en los patines)
+    Tq9 = n * fe9["T"]
+    print(f"    ojal de la ménsula en ({x_g:.0f}; {yE9:.1f}); fuerza de esquina M/B = {fe9['M'] / B9 / 1e3:.1f} kN; mesa vacía: piden {Tq9 / 1e3:.1f} kN frente a {Wm9 / 1e3:.1f} kN de peso propio")
+    if not (Tq9 > Wm9): FIND.append(("N10", "importante", "Mesa vacía: la retención debería faltar", s3(Tq9 / 1e3), s3(Wm9 / 1e3)))
+    if ("(" + f"{x_g:.0f}".replace(".", ",") + "; " + f"{yE9:.0f}") not in VR9["modelo"]["formula"]:
+        FIND.append(("N10", "menor", "La fila del modelo no declara el ojal propio", "—", f"({x_g:.0f}; {yE9:.0f})"))
+    if not (fr9["sH"] <= fr9["a"]):
+        FIND.append(("N10", "importante", "Retorno: la mesa debería quedar delante del pie de la ménsula (sin retención detrás del talón)", s3(fr9["sH"]), s3(fr9["a"])))
+    for nm9 in ("flexión sin anclaje, empuje", "flexión sin anclaje, retorno", "torsión de la base"):
+        v9 = ver9("Plancha base bajo la ménsula del ojal trasero: " + nm9)
+        if v9["estado"] != "pend" or not (v9["fu"] > 1):
+            FIND.append(("N10", "importante", "Plancha base bajo la ménsula (" + nm9 + "): debería quedar «pend» con FU > 1 (sin anclaje)", f"{v9['estado']} FU {s3(v9['fu'])}", "pend, FU > 1"))
+    VD9 = D9["verdict"]; pc9 = sorted([v for v in D9["verificaciones"] if v["estado"] == "pend" and v["fu"] is not None and not (math.isfinite(v["fu"]) and v["fu"] <= 1)], key=lambda v: -v["fu"])
+    comp("9", "Pendientes críticos: FU máximo", pc9[0]["fu"] if pc9 else 0.0, VD9["fuMaxPend"], tol=1e-9)
+    if VD9["estado_global"] != ("NO CUMPLE / PENDIENTE DE DECISIÓN" if pc9 and VD9["gira"] and VD9["estructura"] else VD9["estado_global"]) or len(VD9["pendientes_criticos"]) != len(pc9):
+        FIND.append(("N10", "importante", "Estado global del modo guiado con pendientes críticos", VD9["estado_global"], "NO CUMPLE / PENDIENTE DE DECISIÓN"))
+    rows9 = [["Franja, empuje a calado", s3(fe9["M"] / 1e6), s3(fe9["sig"]), s3(fe9["sig"] / (Fy / Nd))], ["Franja, retorno (atasco)", s3(fr9["M"] / 1e6), s3(fr9["sig"]), s3(fr9["sig"] / (Fy / Nd))],
+             ["Torsión de la base (cota inferior)", s3(fe9["M"] / 1e6), s3(tq9), s3(tq9 / (Fy / (Nd * math.sqrt(3))))]]
+    try:
+        import numpy as np, scipy.sparse as sp9, scipy.sparse.linalg as spl9
+        hb9 = 80.0; nb9 = int(round(B9 / hb9)); xs9 = np.linspace(-B9 / 2, B9 / 2, nb9 + 1); Es9, nu9 = P["E"], P["nu"]
+        Xb9 = np.repeat(xs9, nb9 + 1); Yb9 = np.tile(xs9, nb9 + 1); nn9 = Xb9.size
+        el9 = np.array([[i * (nb9 + 1) + j, (i + 1) * (nb9 + 1) + j, (i + 1) * (nb9 + 1) + j + 1, i * (nb9 + 1) + j + 1] for i in range(nb9) for j in range(nb9)])
+        ec9 = np.stack([Xb9[el9].mean(axis=1), Yb9[el9].mean(axis=1)], axis=1)
+        # bancada (y ∈ ±(Y_bed + l_soporte), con su prolongación) como espesor equivalente: I de la sección compuesta plancha + bancada − ranura − cabeza T
+        tB9, wb9 = P["t_bed"], P["w_bed"]; Hc9 = t9 + tB9
+        pr9 = [(wb9 * t9, t9 / 2, wb9 * t9 ** 3 / 12), (wb9 * tB9, t9 + tB9 / 2, wb9 * tB9 ** 3 / 12), (-P["w_slot"] * P["h_slot"], Hc9 - P["h_slot"] / 2, -P["w_slot"] * P["h_slot"] ** 3 / 12),
+               (-P["w_tee"] * P["h_tee"], Hc9 - P["h_slot"] - P["h_tee"] / 2, -P["w_tee"] * P["h_tee"] ** 3 / 12)]
+        A9 = sum(p_[0] for p_ in pr9); yc9 = sum(p_[0] * p_[1] for p_ in pr9) / A9; I9 = sum(p_[2] + p_[0] * (p_[1] - yc9) ** 2 for p_ in pr9); teq9 = (12 * I9 / wb9) ** (1 / 3)
+        Yb_ext9 = KC["Y_bed"] + P["cam_ls"]
+        inBed9 = (np.abs(np.abs(ec9[:, 0]) - x_g) < wb9 / 2) & (np.abs(ec9[:, 1]) < Yb_ext9)
+        te9 = np.where(inBed9, teq9, t9)
+        def Bm9(xi, et, a_):
+            sgx, sgy = (-1, 1, 1, -1), (-1, -1, 1, 1); Bb_ = np.zeros((3, 12)); Bs_ = np.zeros((2, 12))
+            for k in range(4):
+                N_ = 0.25 * (1 + xi * sgx[k]) * (1 + et * sgy[k]); dx_ = 0.25 * sgx[k] * (1 + et * sgy[k]) / a_; dy_ = 0.25 * sgy[k] * (1 + xi * sgx[k]) / a_
+                Bb_[0, 3 * k + 1] = dx_; Bb_[1, 3 * k + 2] = dy_; Bb_[2, 3 * k + 1] = dy_; Bb_[2, 3 * k + 2] = dx_; Bs_[0, 3 * k] = dx_; Bs_[0, 3 * k + 1] = -N_; Bs_[1, 3 * k] = dy_; Bs_[1, 3 * k + 2] = -N_
+            return Bb_, Bs_
+        a9 = hb9 / 2; gq9 = (-1 / math.sqrt(3), 1 / math.sqrt(3)); C9 = np.array([[1, nu9, 0], [nu9, 1, 0], [0, 0, (1 - nu9) / 2]])
+        Kb9 = sum(Bm9(x_, y_, a9)[0].T @ C9 @ Bm9(x_, y_, a9)[0] * a9 * a9 for x_ in gq9 for y_ in gq9); B0b9, B0s9 = Bm9(0, 0, a9); Ks9 = B0s9.T @ B0s9 * 4 * a9 * a9
+        D9 = Es9 * te9 ** 3 / (12 * (1 - nu9 ** 2)); G9 = 5 / 6 * Es9 / (2 * (1 + nu9)) * te9
+        df9 = np.stack([3 * el9, 3 * el9 + 1, 3 * el9 + 2], axis=2).reshape(len(el9), 12)
+        K9 = sp9.csr_matrix(((D9[:, None, None] * Kb9[None] + G9[:, None, None] * Ks9[None]).ravel(), (np.repeat(df9, 12, axis=1).ravel(), np.tile(df9, (1, 12)).ravel())), shape=(3 * nn9, 3 * nn9))
+        E9 = (x_g, yE9); sups9 = []
+        for sg_ in (1, -1):
+            Xl_, Yl_ = sg_ * Xb9 - E9[0], sg_ * Yb9 - E9[1]; m_ = np.zeros(nn9, bool)
+            for sx_ in (1, -1):
+                m_ |= (sx_ * Xl_ >= x0_9 - hb9 / 2) & (sx_ * Xl_ <= x1_9 + hb9 / 2) & (Yl_ >= y0_9 - hb9 / 2) & (Yl_ <= y1_9 + hb9 / 2)
+            sups9.append(m_)
+        inS9 = sups9[0] | sups9[1]; fn9 = np.where(~inS9)[0]; fr9_ = np.stack([3 * fn9, 3 * fn9 + 1, 3 * fn9 + 2], axis=1).ravel(); nf9 = fr9_.size
+        Tr_, Tc_, Tv_ = [fr9_], [np.arange(nf9)], [np.ones(nf9)]
+        for si_, (m_, c_) in enumerate(zip(sups9, (E9, (-E9[0], -E9[1])))):
+            k_ = np.where(m_)[0]; o_ = np.ones(k_.size)
+            Tr_ += [3 * k_, 3 * k_, 3 * k_, 3 * k_ + 1, 3 * k_ + 2]; Tc_ += [o_ * (nf9 + 3 * si_), o_ * (nf9 + 3 * si_ + 1), o_ * (nf9 + 3 * si_ + 2), o_ * (nf9 + 3 * si_ + 1), o_ * (nf9 + 3 * si_ + 2)]
+            Tv_ += [o_, Xb9[k_] - c_[0], Yb9[k_] - c_[1], o_, o_]
+        T9 = sp9.csr_matrix((np.concatenate(Tv_), (np.concatenate(Tr_), np.concatenate(Tc_).astype(int))), shape=(3 * nn9, nf9 + 6)); Kr9 = (T9.T @ K9 @ T9).tocsr()
+        Tw9 = (sp9.csr_matrix((np.ones(nn9), (np.arange(nn9), 3 * np.arange(nn9))), shape=(nn9, 3 * nn9)) @ T9).tocsr()
+        fz9 = np.zeros(nn9)
+        for e_, tt_ in zip(el9, te9): fz9[e_] -= RHO * g0 * tt_ * hb9 * hb9 / 4
+        rb9 = np.hypot(Xb9, Yb9); Ri9 = R_i_if(P); ring9 = (rb9 >= Ri9) & (rb9 <= P["D_top"] / 2)
+        fz9[ring9] -= Wm9 / ring9.sum()
+        rhs9 = T9.T @ np.stack([fz9, np.zeros(nn9), np.zeros(nn9)], axis=1).ravel()
+        Wsup9 = (DV["masas"]["brackets"] / P["n_br"] + DV["masas"]["cyl"] / n / 2) * g0
+        def fea9(holdT):
+            r_ = rhs9.copy(); M_ = F_st * h9
+            for si_, s_ in enumerate((1, -1)): r_[nf9 + 3 * si_] -= Wsup9; r_[nf9 + 3 * si_ + 2] += s_ * M_     # Mx = +F·h en la ménsula 1, −F·h en la 2
+            hold = (rb9 <= P["D_top"] / 2) if holdT else np.zeros(nn9, bool); act_ = np.ones(nn9, bool); seen_ = set(); part_ = False
+            for it_ in range(400):
+                u_ = T9 @ spl9.spsolve((Kr9 + Tw9.T @ sp9.diags(np.where(act_ | hold, 1e7, 1e-3)) @ Tw9).tocsc(), r_); w_ = u_[0::3]
+                rel_ = act_ & ~hold & (w_ > 1e-9); add_ = ~act_ & (w_ < -1e-9)
+                if not rel_.any() and not add_.any(): break
+                new_ = act_.copy()
+                if part_:
+                    if add_.any(): ix_ = np.where(add_)[0]; new_[ix_[np.argsort(w_[ix_])[:max(1, ix_.size // 10)]]] = True
+                    if rel_.any(): ix_ = np.where(rel_)[0]; new_[ix_[np.argsort(-w_[ix_])[:max(1, ix_.size // 10)]]] = False
+                else: new_[rel_] = False; new_[add_] = True
+                k_ = hash(new_.tobytes()); part_ = part_ or k_ in seen_; seen_.add(k_); act_ = new_
+            kap_ = u_[df9] @ B0b9.T; Em_ = Es9 / (1 - nu9 ** 2)
+            sp_ = np.stack([Em_ * t9 / 2 * (kap_[:, 0] + nu9 * kap_[:, 1]), Em_ * t9 / 2 * (kap_[:, 1] + nu9 * kap_[:, 0]), Em_ * t9 / 2 * (1 - nu9) / 2 * kap_[:, 2]], axis=1)
+            vm_ = np.sqrt(sp_[:, 0] ** 2 - sp_[:, 0] * sp_[:, 1] + sp_[:, 1] ** 2 + 3 * sp_[:, 2] ** 2); okE = ~inBed9 & ~inS9[el9].all(axis=1)
+            return float(w_.max()), int(act_.sum()), it_, float(vm_[okE].max())
+        wV9, nV9, iV9, sV9 = fea9(False); wC9, nC9, iC9, sC9 = fea9(True)
+        rows9 += [["FEA propia, mesa vacía (dos cilindros)", s3(F_st * h9 / 1e6), s3(sV9), s3(sV9 / (Fy / Nd)) + f"; lev. {s3(wV9)} mm, {nV9} nudos"],
+                  ["FEA propia, mesa cargada", s3(F_st * h9 / 1e6), s3(sC9), s3(sC9 / (Fy / Nd)) + f"; lev. {s3(wC9)} mm"]]
+        if not (wV9 > 20 and sV9 > Fy / Nd):
+            FIND.append(("N10", "importante", "FEA propia del modo guiado con la mesa vacía: la base debería flotar (levantamiento ≫ 1 mm) y la plancha exceder Fy/Nd", f"{s3(wV9)} mm, σ {s3(sV9)}", "—"))
+        if not (sC9 > Fy / Nd):
+            FIND.append(("N10", "importante", "FEA propia del modo guiado con la mesa cargada: la plancha junto a la ménsula debería exceder Fy/Nd", f"σ {s3(sC9)}", "—"))
+    except ImportError:
+        print("    numpy/scipy no disponibles: se omite la FEA de contraste")
+    table("Prueba 9 – Plancha base bajo la ménsula (sin anclaje; ASME BTH-1 §3-2, Nd = 3)", ["Caso", "M (kN·m)", "σ o τ (MPa)", "FU"], rows9)
+
+# ======================================================================================
+# Prueba 10 – Pasadores de empuje a ras del disco y soldados (12-11-2026): sin perno M20 (MES-013) ni arandela (MES-014)
+# ======================================================================================
+print("\n### Prueba 10 – Pasadores de empuje a ras del disco, soldados (PJP en bisel 45° en cada anillo, a ras)")
+PE = D0.get("pasadores_empuje")
+rows10 = []
+if PE is None:
+    FIND.append(("P10", "importante", "La exportación no trae «pasadores_empuje» (unión soldada del pasador)", "—", "no"))
+else:
+    tpr_ = max(P["t_pr"], P["t_top"], P["t_bot"]); L_ = P["h_disc"] - tpr_
+    V_ = F_st / 1e3 * math.hypot(1, mu_s) * (0.5 + P["e_dog"] / L_)                 # kN, reacción en cada anillo (biapoyado, carga repartida en la uña, excentricidad e)
+    U_ = PE["union"]; E_ = U_["S"] - 3                                              # AISC 360-22 Tabla J2.1: bisel 45°, E = S − 3 mm
+    f_ = V_ * 1e3 / (math.pi * P["d_pin"] * E_); Fw_ = 0.60 * P["FEXX"] / (1.20 * Nd)   # la soldadura sola (sin descontar el aplastamiento)
+    comp("P10", "V del pasador en el anillo (kN)", V_, U_["V_kN"]); comp("P10", "E de la PJP (mm)", E_, U_["E"]); comp("P10", "f = V/(π·d·E) (MPa)", f_, ver("Soldadura pasador–anillo (PJP")["dem"])
+    comp("P10", "F_w = 0,60FEXX/(1,20Nd) (MPa)", Fw_, ver("Soldadura pasador–anillo (PJP")["cap"])
+    rows10.append(["soldadura pasador–anillo (cada extremo)", s3(V_), s3(f_), s3(f_ / Fw_)])
+    if f_ > Fw_: FIND.append(("P10", "importante", "Soldadura pasador–anillo con FU > 1", s3(f_ / Fw_), "no"))
+    if U_["S"] > tpr_ - 5: FIND.append(("P10", "importante", "El bisel de la PJP no cabe en el anillo", str(U_["S"]), "no"))
+    if PE["largo"] != P["h_disc"]: FIND.append(("P10", "importante", "El pasador no queda a ras (largo ≠ h_disc)", str(PE["largo"]), "no"))
+    if not any("MES-013" in e for e in PE["eliminado"]) or not any("MES-014" in e for e in PE["eliminado"]): FIND.append(("P10", "importante", "Perno M20 o arandela no eliminados", "—", "no"))
+    Nc_ = 2 * P["turns_yr"] * P["life"]
+    rows10.append(["fatiga (N = 2·vueltas·vida)", "—", str(int(Nc_)), "clase 0" if Nc_ <= 20000 else "verificar"])
+    if Nc_ > 20000: FIND.append(("P10", "importante", "Fatiga de la soldadura del pasador: N > 20 000 (BTH-1 §3-4)", str(Nc_), "no"))
+    if "Tabla 5.8" not in PE["soldabilidad"] or "Anexo B" not in PE["soldabilidad"]: FIND.append(("P10", "menor", "Soldabilidad del 34CrNiMo6 sin WPS calificada ni precalentamiento", "—", "no"))
+table("Prueba 10 – Pasadores a ras soldados (ASME BTH-1 §3-3.4; AISC 360-22 J2.1a, J2.4)", ["Elemento", "V (kN)", "f (MPa) / N", "FU"], rows10)
 
 # ======================================================================================
 # Resumen

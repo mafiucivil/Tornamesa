@@ -43,6 +43,7 @@ S60, C60 = math.sin(math.radians(60)), math.cos(math.radians(60))
 # Utilidades
 # ======================================================================================
 def export(over=None):
+    over = dict({"drive_mode": 1}, **(over or {}))   # este verificador modela el accionamiento guiado: desde el 08-11-2026 el valor por defecto es el pivotado (drive_mode = 2)
     with tempfile.TemporaryDirectory() as td:
         args = ["node", str(ROOT / "tools" / "export_design.js")]
         if over:
@@ -305,13 +306,18 @@ def evaluar(label, D, detalle=False):
     out = {}
     # ---- (c) masas ----
     mb, md, mp_, mr, mc = m_base(PP), m_disc(PP), m_pivot(PP), m_rim(PP), PP["n_cyl"] * PP["m_cyl"]
+    # inserto de esquina bajo las ménsulas (decisión del mandante 10-11-2026; geometría exportada): el marco se interrumpe a lo largo de los dos catetos de
+    # cada inserto (+50 mm); la masa del inserto y el acortamiento de mejillas y suplemento van dentro de «brackets» (del núcleo)
+    INS = ((D.get("levaGuiada") or {}).get("fabricacion", {}).get("refuerzo") or (D.get("levaGuiada") or {}).get("fabricacion", {}).get("inserto")) if D.get("levaGuiada") else None
+    if INS and INS.get("esquinas"):   # geometría exportada (el núcleo descuenta el marco y suma la masa aunque el refuerzo no cumpla la flexión)
+        mr -= INS["n"] * RHO * PP["rim_h"] * PP["rim_t"] * sum(min(PP["B"], L_ + 50) for L_ in INS["catetos"])
     c("m.base (plancha − taladro + collar + 4 orejas)", mb, M["base"])
     c("m.disc (mesa, con rebaje del cubo)", md, M["disc"])
     c("m.pivote", mp_, M["pivot"]); c("m.rim", mr, M["rim"]); c("m.cilindros", mc, M["cyl"])
-    resto = M["brackets"] + M["dogs"] + M["shoes"] + M["beds"]                     # componentes fuera del alcance (se toman del núcleo)
+    resto = M["brackets"] + M["dogs"] + M["shoes"] + M["beds"] + M.get("cam", 0.0)  # componentes fuera del alcance (se toman del núcleo; cam = leva de reenganche; brackets incluye los insertos de esquina)
     mtot = md + mb + mp_ + mr + mc + resto
     c("m.total (propias + ménsulas/uñas/patines/bancadas del núcleo)", mtot, M["total"])
-    suma = sum(M[k] for k in ("disc", "base", "rim", "brackets", "dogs", "shoes", "beds", "pivot", "cyl"))
+    suma = sum(M.get(k, 0.0) for k in ("disc", "base", "rim", "brackets", "dogs", "shoes", "beds", "cam", "pivot", "cyl"))
     c("m.total = Σ componentes del núcleo (identidad interna)", suma, M["total"], 1e-9)
     c("N = W + W_mesa (kN)", N_kN(PP), D["derivados"]["N"])
     # ---- (a) orejas ----
@@ -337,7 +343,16 @@ def evaluar(label, D, detalle=False):
     ear.append(("Oreja: placa en la base: corte", tau_pl, cap_v, True))
     ear.append(("Oreja: extensión a", 1.33 * be, R - d / 2, False))                  # AISC D5.2: a ≥ 1,33·b_e (extremo semicircular centrado: a = R − d/2)
     ear.append(("Oreja: ancho de la placa", 2 * be + d, 2 * R, False))               # AISC D5.2: ancho en el agujero ≥ 2·b_e + d
-    t_thick, t_thin = max(t, PP["t_base"]), min(t, PP["t_base"])
+    # orejas de las diagonales: si su centro cae dentro de un inserto de esquina exportado, se sueldan sobre el inserto (parte más gruesa = t_inserto)
+    yl_ = PP["B"] / 2 - PP["c_lug"]; cen_ = [(sx_ * PP["x_lug"], sy_ * yl_) for sx_ in (1, -1) for sy_ in (1, -1)]
+    def inside_(pl, q):
+        c_ = False
+        for i_ in range(len(pl)):
+            a_, b_ = pl[i_], pl[i_ - 1]
+            if (a_[1] > q[1]) != (b_[1] > q[1]) and q[0] < (b_[0] - a_[0]) * (q[1] - a_[1]) / (b_[1] - a_[1]) + a_[0]: c_ = not c_
+        return c_
+    t_seat = max(PP["t_base"], INS.get("t_d", INS["t"])) if INS and INS.get("esquinas") and any(inside_(pl, q) for pl in INS["esquinas"] for q in cen_) else PP["t_base"]   # parte más gruesa: el refuerzo (t_d) o la base
+    t_thick, t_thin = max(t, t_seat), min(t, t_seat)
     ear.append(("Oreja: filete mínimo", min(wmin_aws(t_thick), t_thin), we, False))   # AWS D1.1 Tabla 5.8 (parte más gruesa), sin exceder la más delgada
     ear.append(("Oreja: filete máximo", we, wmax_aisc(t), False))                    # AISC 360-22 J2.2b
     for nm, dem, cap, banda in ear:
@@ -456,7 +471,7 @@ D0 = export()
 if D0 is None:
     print("No se pudo ejecutar node tools/export_design.js"); sys.exit(2)
 P0 = D0["P"]
-Pg = json.loads((GOLD / "params_defaults.json").read_text())
+Pg = json.loads((GOLD / "params_defaults.json").read_text()); Pg["drive_mode"] = 1   # modelo guiado
 Gd = json.loads((GOLD / "tt300c_defaults.json").read_text())
 drift = sorted(k for k in Pg if P0.get(k) != Pg.get(k))
 print("Parámetros del núcleo = params_defaults.json:", "sí" if not drift else "NO, difieren: " + ", ".join(f"{k} ({Pg[k]} → {P0.get(k)})" for k in drift))

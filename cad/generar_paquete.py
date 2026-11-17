@@ -54,8 +54,11 @@ def main():
     m, rep = M3.run(D, out)
     ms = rep["masas"]
     print(f"  3D vs núcleo: {ms['total_3d']:.1f} / {ms['total_nucleo']:.1f} kg ({ms['dif_pct']:+.2f} %); fuera del núcleo {ms['masa_fuera']:.1f} kg; CG {tuple(round(x, 1) for x in rep['cg'])}", flush=True)
-    inter_bad = [r for r in rep["interferencias"] if not r["ok"]]
-    print(f"  interferencias: {len(inter_bad)}", flush=True)
+    inter_bad = [r for r in rep["interferencias"] if not r["ok"] and not r.get("declarado")]
+    print(f"  interferencias: {len(inter_bad)}; conflictos declarados del núcleo (requiere núcleo, GEN-009): {len(rep.get('conflictos_nucleo', []))}", flush=True)
+    for r in rep["interferencias"]:
+        if not r["ok"]:
+            print(f"    {'NÚCLEO' if r.get('declarado') else 'INTERFERENCIA'} {r['a']} × {r['b']}: {r['vol_mm3']} mm³", flush=True)
     ctx = Ctx(m)
     ctx.rep = rep
     ctx.gaps = informe.brechas(ctx, rep)
@@ -111,18 +114,31 @@ def main():
     # orden final: GEN-001, CON, piezas (orden del plan), resto GEN por número
     orden = {id(h): i for i, h in enumerate(hojas)}
 
+    pref_rank = {}
+    for h in hojas:
+        pf = h.plano.replace(CODE + "-", "").split("-")[0]
+        pref_rank.setdefault(pf, len(pref_rank))
+
     def okey(h):
+        # láminas de pieza ordenadas por código dentro de cada serie (H-04); series en el orden del plan
         t = h.plano.replace(CODE + "-", "")
-        if t.startswith("GEN-001"): return (0, 0)
-        if t.startswith("CON"): return (1, int(t.split("-")[1]))
-        if t.startswith("GEN"): return (3, int(t.split("-")[1]))
-        return (2, orden[id(h)])
+        if t.startswith("GEN-001"): return (0, 0, 0)
+        if t.startswith("CON"): return (1, int(t.split("-")[1]), 0)
+        if t.startswith("GEN"): return (3, int(t.split("-")[1]), 0)
+        return (2, pref_rank[t.split("-")[0]], int(t.split("-")[1]))
     hojas.sort(key=okey)
     total = len(hojas)
+    # ---- estado de cada lámina: RETENIDA solo si el choque del núcleo existe en la geometría (Hoja.retener; piezas de RET_PIEZAS y láminas que lo declaran) ----
+    with open(out / "estado_laminas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["n", "lámina", "título", "estado", "motivo (conflicto del núcleo, GEN-009)"])
+        for n, h in enumerate(hojas, 1):
+            wr.writerow([n, h.plano, h.titulo, "RETENIDA" if h.retenida else "EMITIDA PARA REVISIÓN", "; ".join(h.retenida.values())])
     h1 = next(h for h in hojas if h.plano.startswith(f"{CODE}-GEN-001"))
     if hasattr(h1, "indice_pos"):
         if hojas_gen.tabla_indice(ctx, h1, hojas):
             print("  AVISO: el índice de planos no cabe en GEN-001", flush=True)
+            errores.append(("indice", "el índice de planos no cabe en GEN-001"))
     pd = out / "planos"
     if pd.exists():
         shutil.rmtree(pd)
@@ -288,6 +304,49 @@ def main():
         for pl, v in sorted(tok.items()):
             fh.write(f"- {pl}: {', '.join(sorted(set(v)))}\n")
     print(f"  tokens de parámetros: {n_tok} {dict((k.replace(CODE + '-', ''), sorted(set(v))) for k, v in tok.items())}", flush=True)
+    # ---- completitud dimensional por pieza leída del sólido 3D ----
+    import completitud
+    comp_rows, n_req, n_miss = [], 0, 0
+    union_, hechos_ = {}, set()
+    for h in hojas:
+        if h.serie == "FAB":
+            for c_ in h.items:
+                union_.setdefault(c_, []).extend(h.s.texts)
+    for h in hojas:
+        if h.serie != "FAB":
+            continue
+        tot_, miss_, just_ = completitud.control_lamina(ctx, h, union_, hechos_)
+        n_req += tot_
+        n_miss += len(miss_)
+        comp_rows.append([h.plano.replace(CODE + "-", ""), tot_, tot_ - len(miss_), len(miss_), " | ".join(f"{c.replace(CODE + '-', '')}: {x}" for c, x in miss_),
+                          " | ".join(f"{c.replace(CODE + '-', '')}: {x}" for c, x in just_)])
+    with open(out / "completitud_piezas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["lámina", "requisitos leídos del sólido 3D", "cubiertos en la lámina", "faltantes", "detalle de faltantes", "justificadas"])
+        wr.writerows(comp_rows)
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Completitud dimensional por pieza (desde el sólido 3D)\n\n- Requisitos (extensión total, escalones planos, diámetros/radios, posición de ejes, chaflanes/caras inclinadas) leídos del B-rep de cada pieza fabricable: {n_req}; "
+                 f"cubiertos por una cota, llamada o fila de tabla de su lámina: {n_req - n_miss}; faltantes: {n_miss}. Piezas comerciales: justificadas («definido por elemento comercial»). Detalle en `completitud_piezas.csv`.\n")
+        for r in comp_rows:
+            if r[3]:
+                fh.write(f"- {r[0]}: {r[4]}\n")
+    print(f"  completitud: {n_req} requisitos, faltantes {n_miss}", flush=True)
+    for r in comp_rows:
+        if r[3]:
+            print(f"  COMPLETITUD {r[0]}: {r[4][:400]}", flush=True)
+    n_lt = sum(len(q.get("lineas_texto", [])) for q in QC.values())
+    n_cg = sum(q.get("cruces_globos", 0) for q in QC.values())
+    n_int = sum(q.get("interrumpidas", 0) for q in QC.values())
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write(f"\n## Líneas de cota y de referencia sobre textos\n\n- Líneas de cota, extensión o referencia (capa COTA) que atraviesan el recuadro de un texto: {n_lt}. Cruces entre líneas de referencia de globos: {n_cg}. "
+                 f"Líneas interrumpidas bajo un texto (ISO 128-20) después del ordenador de textos: {n_int}.\n")
+        for pl, q in sorted(QC.items()):
+            if q.get("lineas_texto") or q.get("cruces_globos"):
+                fh.write(f"- {pl}: {len(q.get('lineas_texto', []))} línea(s) sobre texto {q.get('lineas_texto', [])[:4]}; cruces de globos {q.get('cruces_globos', 0)}\n")
+    for pl, q in sorted(QC.items()):
+        if q.get("lineas_texto") or q.get("cruces_globos"):
+            print(f"  LINEAS SOBRE TEXTO {pl}: {len(q.get('lineas_texto', []))} {q.get('lineas_texto', [])[:4]} cruces de globos {q.get('cruces_globos', 0)}", flush=True)
+    print(f"  líneas sobre texto: {n_lt}; cruces de globos: {n_cg}; interrumpidas bajo texto: {n_int}", flush=True)
     n_ch = sum(len(q["choques"]) for q in QC.values())
     n_fu = sum(len(q["fuera"]) for q in QC.values())
     n_iv = sum(len(q["invasiones"]) for q in QC.values())
@@ -301,10 +360,31 @@ def main():
         if q["choques"] or q["fuera"] or q["invasiones"]:
             print(f"  QC {pl}: choques {q['choques'][:6]} fuera {q['fuera'][:3]} invasiones {q['invasiones'][:3]}", flush=True)
     print(f"  QC gráfico: choques {n_ch}, fuera de marco {n_fu}, invasiones {n_iv}", flush=True)
+    # ---- controles de coherencia de la revisión exhaustiva (ISO 2768, partidas, avellanados, notas, códigos, variante, WPS) ----
+    import controles, firmas
+    json.dump(dict(base=firmas.base_hash(D), variante=M3.variante_de(ctx.g), firmas=firmas.firmas_juego(ctx)), open(out / "TT300-C_firmas.json", "w", encoding="utf-8"), indent=1, ensure_ascii=False, sort_keys=True)
+    CTL = controles.todos(ctx, hojas)
+    with open(out / "control_cadenas_cerradas.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        wr = csv.writer(fh, delimiter=";")
+        wr.writerow(["control", "detalle"])
+        for k_, v_ in CTL.items():
+            for x_ in v_:
+                wr.writerow([k_, x_])
+    n_ctl = sum(len(v) for v in CTL.values())
+    with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+        fh.write("\n## Controles de coherencia del juego\n\n")
+        for k, v in CTL.items():
+            fh.write(f"- {k}: {len(v)} falla(s)" + ("" if not v else ": " + "; ".join(v[:12])) + "\n")
+    for k, v in CTL.items():
+        print(f"  control {k}: {len(v)}" + (f" {v[:6]}" if v else ""), flush=True)
+    if ctx.m.info.get("placa_guia_ctl"):
+        print(f"  placa-guía: {ctx.m.info['placa_guia_ctl']}", flush=True)
+        with open(out / "informe_paquete.md", "a", encoding="utf-8") as fh:
+            fh.write(f"\n## Placa-guía curva: G1 y desviación\n\n- {ctx.m.info['placa_guia_ctl']}\n")
     print(f"Paquete listo en {out}: {total} láminas, {len(m.parts)} ítems, cotas {len(cr)} ({sum(1 for r in cr if not r['ok'])} fallas), interferencias {len(inter_bad)}, fuera de marco {len(fuera)}, errores {len(errores)}; {time.time() - t0:.0f} s", flush=True)
     if entrega:
         informe.copiar_entrega(out, entrega, pdfs, con_dxf=con_dxf)
-    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok:
+    if inter_bad or any(not r["ok"] for r in cr) or errores or n_ch or n_fu or n_iv or cad_bad or n_tok or n_miss or n_lt or n_cg or n_ctl:
         sys.exit(2)
 
 

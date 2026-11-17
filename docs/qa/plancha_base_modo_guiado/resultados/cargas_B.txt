@@ -1,0 +1,37 @@
+h = 160 mm, z_T = 31 mm (lengüeta en la ranura), z_F = 243 mm (seguidor), F = 445.3 kN, F_pas = η·F = 423.1 kN, F_ret = 64.9 kN, N_toma = 47.1 kN, N_rampa,x = 34.5 kN
+
+Empuje a calado, θ =  -6.4°: R_f =   197.8 kN, R_r =  -261.2 kN, H =   63.5 kN
+   ménsula (−F·ŷ a h)                                             Mx =   71.25  My =   0.00
+   bancada: reacción delantera de la guía (−R_f·x̂ a z_T)         Mx =    0.00  My =  -6.13
+   bancada: reacción trasera (−R_r·x̂ a z_T)                      Mx =    0.00  My =   8.10
+   bancada: roce de la guía (F − F_pas)·ŷ a z_T y cabeceo hasta h Mx =   -3.56  My =   0.00
+   bancada: resto del vuelco del patín (lengüeta T)               Mx =    0.00  My =   8.19
+   suma sobre la base (la mesa toma lo opuesto en el pasador)     Mx =   67.69  My =  10.15  |M| =  68.45 kN·m → cruza la base
+
+Empuje a calado, θ =   0.0°: R_f =   191.3 kN, R_r =  -254.7 kN, H =   63.5 kN
+   ménsula (−F·ŷ a h)                                             Mx =   71.25  My =   0.00
+   bancada: reacción delantera de la guía (−R_f·x̂ a z_T)         Mx =    0.00  My =  -5.93
+   bancada: reacción trasera (−R_r·x̂ a z_T)                      Mx =    0.00  My =   7.90
+   bancada: roce de la guía (F − F_pas)·ŷ a z_T y cabeceo hasta h Mx =   -3.56  My =   0.00
+   bancada: resto del vuelco del patín (lengüeta T)               Mx =    0.00  My =   8.19
+   suma sobre la base (la mesa toma lo opuesto en el pasador)     Mx =   67.69  My =  10.15  |M| =  68.45 kN·m → cruza la base
+
+Empuje a calado, θ =   6.4°: R_f =   280.8 kN, R_r =  -217.3 kN, H =  -63.5 kN
+   ménsula (−F·ŷ a h)                                             Mx =   71.25  My =   0.00
+   bancada: reacción delantera de la guía (−R_f·x̂ a z_T)         Mx =    0.00  My =  -8.70
+   bancada: reacción trasera (−R_r·x̂ a z_T)                      Mx =    0.00  My =   6.74
+   bancada: roce de la guía (F − F_pas)·ŷ a z_T y cabeceo hasta h Mx =   -3.56  My =   0.00
+   bancada: resto del vuelco del patín (lengüeta T)               Mx =    0.00  My =  -8.19
+   suma sobre la base (la mesa toma lo opuesto en el pasador)     Mx =   67.69  My = -10.15  |M| =  68.45 kN·m → cruza la base
+
+Retorno, uña trabada en la rampa del riel-leva:
+   ménsula (+F_ret·ŷ a h)                                         Mx =  -10.38  My =   0.00
+   riel → pórticos (−F_ret·ŷ y +N_x·x̂ a z_F)                     Mx =   15.77  My =   8.38
+   patín → bancada (resto: −(z_F − h)·F_ret; −z_F·N_x)            Mx =   -5.39  My =  -8.38
+   suma sobre la base                                             Mx =    0.00  My =   0.00 → se cierra en la franja de la bancada
+
+Retorno, chaflán sobre el pasador siguiente a nivel de toma:
+   ménsula (+F_ret·ŷ a h)                                         Mx =  -10.38  My =   0.00
+   riel → pórticos (+N_toma·x̂ a z_F)                             Mx =    0.00  My =  11.46
+   patín → bancada (par de la uña −(z_F − h)·N_toma)              Mx =    0.00  My =  -3.91
+   suma sobre la base (la mesa toma lo opuesto en el pasador B)   Mx =  -10.38  My =   7.54  |M| =  12.83 kN·m = h·√(F_ret² + N_toma²) → cruza la base

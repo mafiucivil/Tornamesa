@@ -1,0 +1,52 @@
+placa                  S-vacía   ψ=  97.6 σvm= 2410.2 (FU 20.96) en (-1160,  840); lejos 1416.0 (FU 12.31) en (-1240,  680); lev   444.91 en ( 1280,  320) bajo mesa  413.56; c 2 ok
+placa                  S-vacía   ψ= 103.3 σvm= 2423.7 (FU 21.08) en (-1160,  840); lejos 1436.7 (FU 12.49) en (-1240,  680); lev   467.61 en ( 1280,  480) bajo mesa  438.89; c 2 ok
+placa                  S-vacía   ψ= 166.7 σvm= 2423.7 (FU 21.08) en ( -840, 1160); lejos 1436.7 (FU 12.49) en ( -680, 1240); lev   467.61 en (  480, 1280) bajo mesa  438.89; c 2 ok
+placa                  S-vacía   ψ= 172.4 σvm= 2410.2 (FU 20.96) en ( -840, 1160); lejos 1416.0 (FU 12.31) en ( -680, 1240); lev   444.91 en (  320, 1280) bajo mesa  413.56; c 2 ok
+placa                  S-cargada ψ=  97.6 σvm= 1343.3 (FU 11.68) en (-1160,  840); lejos  613.5 (FU  5.33) en ( -840,  520); lev    25.20 en (-1280,  800) bajo mesa    0.02; c 621 ok
+placa                  S-cargada ψ= 103.3 σvm= 1319.0 (FU 11.47) en (-1160,  840); lejos  602.4 (FU  5.24) en ( -840,  520); lev    24.75 en (-1280,  800) bajo mesa    0.02; c 621 ok
+placa                  S-cargada ψ= 166.7 σvm= 1319.0 (FU 11.47) en (  840,-1160); lejos  602.4 (FU  5.24) en (  520, -840); lev    24.75 en (  800,-1280) bajo mesa    0.02; c 621 ok
+placa                  S-cargada ψ= 172.4 σvm= 1343.3 (FU 11.68) en (  840,-1160); lejos  613.5 (FU  5.33) en (  520, -840); lev    25.20 en (  800,-1280) bajo mesa    0.02; c 621 ok
+placa                  U-cargada ψ=  97.6 σvm= 1343.3 (FU 11.68) en ( 1160, -840); lejos  613.5 (FU  5.33) en (  840, -520); lev    25.20 en ( 1280, -800) bajo mesa    0.02; c 834 ok
+placa                  U-cargada ψ= 103.3 σvm= 1319.0 (FU 11.47) en ( 1160, -840); lejos  602.4 (FU  5.24) en (  840, -520); lev    24.75 en ( 1280, -800) bajo mesa    0.02; c 836 ok
+placa                  U-cargada ψ= 166.7 σvm= 1319.0 (FU 11.47) en (  840,-1160); lejos  602.4 (FU  5.24) en (  520, -840); lev    24.75 en (  800,-1280) bajo mesa    0.02; c 836 ok
+placa                  U-cargada ψ= 172.4 σvm= 1343.3 (FU 11.68) en (  840,-1160); lejos  613.5 (FU  5.33) en (  520, -840); lev    25.20 en (  800,-1280) bajo mesa    0.02; c 834 ok
+    placa {'masa_extra': 0.0}
+B52                    S-vacía   ψ=  97.6 σvm=  290.5 (FU  2.53) en (-1160,  840); lejos  154.7 (FU  1.35) en (-1240,  680); lev    16.13 en (-1280, -160) bajo mesa   14.85; c 2 ok
+B52                    S-vacía   ψ= 103.3 σvm=  294.2 (FU  2.56) en (-1160,  840); lejos  154.3 (FU  1.34) en ( 1240, -680); lev    17.01 en (-1280, -320) bajo mesa   15.91; c 2 ok
+B52                    S-vacía   ψ= 166.7 σvm=  294.2 (FU  2.56) en (  840,-1160); lejos  154.3 (FU  1.34) en (  680,-1240); lev    17.01 en ( -320,-1280) bajo mesa   15.91; c 2 ok
+B52                    S-vacía   ψ= 172.4 σvm=  290.5 (FU  2.53) en (  840,-1160); lejos  154.7 (FU  1.35) en (  680,-1240); lev    16.13 en ( -160,-1280) bajo mesa   14.85; c 2 ok
+B52                    S-cargada ψ=  97.6 σvm=  172.0 (FU  1.50) en ( 1240, -840); lejos   68.8 (FU  0.60) en ( -840,  520); lev     1.25 en ( 1280, -800) bajo mesa    0.01; c 741 ok
+B52                    S-cargada ψ= 103.3 σvm=  168.8 (FU  1.47) en (-1240,  840); lejos   67.5 (FU  0.59) en (  840, -520); lev     1.23 en ( 1280, -800) bajo mesa    0.01; c 741 ok
+B52                    S-cargada ψ= 166.7 σvm=  168.8 (FU  1.47) en ( -840, 1240); lejos   67.5 (FU  0.59) en ( -520,  840); lev     1.23 en ( -800, 1280) bajo mesa    0.01; c 741 ok
+B52                    S-cargada ψ= 172.4 σvm=  172.0 (FU  1.50) en ( -840, 1240); lejos   68.8 (FU  0.60) en ( -520,  840); lev     1.25 en ( -800, 1280) bajo mesa    0.01; c 741 ok
+B52                    U-cargada ψ=  97.6 σvm=  172.0 (FU  1.50) en ( 1240, -840); lejos   68.8 (FU  0.60) en (  840, -520); lev     1.25 en ( 1280, -800) bajo mesa    0.01; c 915 ok
+B52                    U-cargada ψ= 103.3 σvm=  168.8 (FU  1.47) en ( 1240, -840); lejos   67.5 (FU  0.59) en (  840, -520); lev     1.23 en ( 1280, -800) bajo mesa    0.01; c 915 ok
+B52                    U-cargada ψ= 166.7 σvm=  168.8 (FU  1.47) en (  840,-1240); lejos   67.5 (FU  0.59) en (  520, -840); lev     1.23 en (  800,-1280) bajo mesa    0.01; c 915 ok
+B52                    U-cargada ψ= 172.4 σvm=  172.0 (FU  1.50) en (  840,-1240); lejos   68.8 (FU  0.60) en (  520, -840); lev     1.25 en (  800,-1280) bajo mesa    0.01; c 915 ok
+    B52 {'masa_extra': 1749.2}
+B58                    S-vacía   ψ=  97.6 σvm=  232.9 (FU  2.03) en ( 1160, -840); lejos  122.5 (FU  1.07) en ( 1240, -680); lev    11.33 en ( 1280,  160) bajo mesa   10.39; c 2 ok
+B58                    S-vacía   ψ= 103.3 σvm=  236.0 (FU  2.05) en ( 1160, -840); lejos  121.8 (FU  1.06) en ( 1240, -680); lev    11.94 en ( 1280,  320) bajo mesa   11.15; c 2 ok
+B58                    S-vacía   ψ= 166.7 σvm=  236.0 (FU  2.05) en (  840,-1160); lejos  121.8 (FU  1.06) en (  680,-1240); lev    11.94 en (  320, 1280) bajo mesa   11.15; c 2 ok
+B58                    S-vacía   ψ= 172.4 σvm=  232.9 (FU  2.03) en (  840,-1160); lejos  122.5 (FU  1.07) en (  680,-1240); lev    11.33 en (  160, 1280) bajo mesa   10.39; c 2 ok
+B58                    S-cargada ψ=  97.6 σvm=  141.0 (FU  1.23) en (-1240,  840); lejos   54.3 (FU  0.47) en (  840, -520); lev     0.92 en (-1280,  800) bajo mesa    0.01; c 747 ok
+B58                    S-cargada ψ= 103.3 σvm=  138.4 (FU  1.20) en (-1240,  840); lejos   53.2 (FU  0.46) en ( -840,  520); lev     0.91 en (-1280,  800) bajo mesa    0.01; c 749 ok
+B58                    S-cargada ψ= 166.7 σvm=  138.4 (FU  1.20) en ( -840, 1240); lejos   53.2 (FU  0.46) en ( -520,  840); lev     0.91 en ( -800, 1280) bajo mesa    0.01; c 749 ok
+B58                    S-cargada ψ= 172.4 σvm=  141.0 (FU  1.23) en ( -840, 1240); lejos   54.3 (FU  0.47) en ( -520,  840); lev     0.92 en ( -800, 1280) bajo mesa    0.01; c 747 ok
+B58                    U-cargada ψ=  97.6 σvm=  141.0 (FU  1.23) en ( 1240, -840); lejos   54.3 (FU  0.47) en (  840, -520); lev     0.92 en ( 1280, -800) bajo mesa    0.01; c 918 ok
+B58                    U-cargada ψ= 103.3 σvm=  138.4 (FU  1.20) en ( 1240, -840); lejos   53.2 (FU  0.46) en (  840, -520); lev     0.91 en ( 1280, -800) bajo mesa    0.01; c 919 ok
+B58                    U-cargada ψ= 166.7 σvm=  138.4 (FU  1.20) en (  840,-1240); lejos   53.2 (FU  0.46) en (  520, -840); lev     0.91 en (  800,-1280) bajo mesa    0.01; c 919 ok
+B58                    U-cargada ψ= 172.4 σvm=  141.0 (FU  1.23) en (  840,-1240); lejos   54.3 (FU  0.47) en (  520, -840); lev     0.92 en (  800,-1280) bajo mesa    0.01; c 918 ok
+    B58 {'masa_extra': 2057.8}
+B64                    S-vacía   ψ=  97.6 σvm=  190.6 (FU  1.66) en (-1160,  840); lejos   99.2 (FU  0.86) en (-1240,  680); lev     8.21 en ( 1280,  160) bajo mesa    7.50; c 2 ok
+B64                    S-vacía   ψ= 103.3 σvm=  193.3 (FU  1.68) en (-1160,  840); lejos   98.4 (FU  0.86) en (-1240,  680); lev     8.65 en ( 1280,  320) bajo mesa    8.07; c 2 ok
+B64                    S-vacía   ψ= 166.7 σvm=  193.3 (FU  1.68) en (  840,-1160); lejos   98.4 (FU  0.86) en (  680,-1240); lev     8.65 en (  320, 1280) bajo mesa    8.07; c 2 ok
+B64                    S-vacía   ψ= 172.4 σvm=  190.6 (FU  1.66) en (  840,-1160); lejos   99.2 (FU  0.86) en (  680,-1240); lev     8.21 en (  160, 1280) bajo mesa    7.50; c 2 ok
+B64                    S-cargada ψ=  97.6 σvm=  118.0 (FU  1.03) en ( 1240, -840); lejos   43.7 (FU  0.38) en (  840, -520); lev     0.70 en ( 1280, -800) bajo mesa    0.01; c 751 ok
+B64                    S-cargada ψ= 103.3 σvm=  115.7 (FU  1.01) en ( 1240, -840); lejos   42.9 (FU  0.37) en (  840, -520); lev     0.69 en ( 1280, -800) bajo mesa    0.01; c 751 ok
+B64                    S-cargada ψ= 166.7 σvm=  115.7 (FU  1.01) en (  840,-1240); lejos   42.9 (FU  0.37) en ( -520,  840); lev     0.69 en ( -800, 1280) bajo mesa    0.01; c 751 ok
+B64                    S-cargada ψ= 172.4 σvm=  118.0 (FU  1.03) en (  840,-1240); lejos   43.7 (FU  0.38) en ( -520,  840); lev     0.70 en ( -800, 1280) bajo mesa    0.01; c 751 ok
+B64                    U-cargada ψ=  97.6 σvm=  118.0 (FU  1.03) en ( 1240, -840); lejos   43.7 (FU  0.38) en (  840, -520); lev     0.70 en ( 1280, -800) bajo mesa    0.01; c 920 ok
+B64                    U-cargada ψ= 103.3 σvm=  115.7 (FU  1.01) en ( 1240, -840); lejos   42.9 (FU  0.37) en (  840, -520); lev     0.69 en ( 1280, -800) bajo mesa    0.01; c 920 ok
+B64                    U-cargada ψ= 166.7 σvm=  115.7 (FU  1.01) en (  840,-1240); lejos   42.9 (FU  0.37) en (  520, -840); lev     0.69 en (  800,-1280) bajo mesa    0.01; c 920 ok
+B64                    U-cargada ψ= 172.4 σvm=  118.0 (FU  1.03) en (  840,-1240); lejos   43.7 (FU  0.38) en (  520, -840); lev     0.70 en (  800,-1280) bajo mesa    0.01; c 920 ok
+    B64 {'masa_extra': 2366.5}

@@ -344,7 +344,7 @@ def _thin(items, scale, text_of, minw=6.0, protect=()):
 
 
 def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=None, text=None, skip_u=(), skip_v=(), maxn=9, overall=True, hole_rmin=1.5,
-              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, axes="hv", minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None):
+              fits=None, hside=None, vside=None, hole_notes=True, max_levels=2, ang0=35, hole_ext=14.0, only_extents=False, lvl0=None, pitch_txt=None, hole_txt=None, h_extents=False, v_extents=False, axes="hv", minw=6.0, hole_pos=True, rev=None, rev_side="top", rev_max=6, vtol=None, rev_only=None):
     """Cotas automáticas de la vista V. tol: {valor_redondeado: sufijo} (p. ej. {20.0: ' ±0,5'}); text: {valor: texto completo}; fits: {Ø: 'H7'} para diámetros.
     Devuelve el nº de cotas dibujadas."""
     on = on or V.keys
@@ -412,15 +412,34 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
                 chain.pop(k)
         lv = lvl
         dimf = V.dimh if axis == 0 else V.dimv
+        # ISO 129-1: cadena completa + total = sobreacotado. Si se dibujan ambos, un elemento queda auxiliar (entre paréntesis, sin tolerancia):
+        # el total, salvo que el total sea la cota funcional (lleva tolerancia o texto propio): entonces el eslabón mayor sin tolerancia.
+        full = (len(chain) > 2) and overall
+        tot_lab = label(abs(hi[0] - lo[0]))
+        tot_func = full and (tot_lab != numtxt(abs(hi[0] - lo[0])))
+        aux_k = None
+        if tot_func:
+            vals = [(abs(b[0] - a[0]), i) for i, (a, b) in enumerate(zip(chain, chain[1:])) if abs(b[0] - a[0]) >= 0.2 and label(abs(b[0] - a[0])) == numtxt(abs(b[0] - a[0]))]
+            aux_k = max(vals)[1] if vals else None
+            if aux_k is None:
+                tot_func = False
         if len(chain) > 2 or (len(chain) == 2 and not overall):
             txts = []
-            for a, b in zip(chain, chain[1:]):
+            segs_ = [i_ for i_, (a, b) in enumerate(zip(chain, chain[1:])) if abs(b[0] - a[0]) >= 0.2]
+            for i_, (a, b) in enumerate(zip(chain, chain[1:])):
                 val = abs(b[0] - a[0])
                 if val < 0.2:
                     continue
-                t_ = label(val)
-                txts.append(t_)
-                dimf(a[1], b[1], side, lv, on=on, text=t_, virt_a=a[2], virt_b=b[2])
+                t_ = label(val) if i_ != aux_k else f"({numtxt(val)})"
+                txts.append(t_.strip("()") if i_ == aux_k else t_)
+                # texto que no cabe en su tramo: hacia afuera de la cadena en los tramos extremos; del otro lado de la línea en los interiores
+                pa_, pb_ = V.P(a[1]), V.P(b[1])
+                ka_ = 0 if axis == 0 else 1
+                a_low = pa_[ka_] <= pb_[ka_]
+                t_out = "flip" if 0 < segs_.index(i_) < len(segs_) - 1 else (("a" if a_low else "b") if segs_.index(i_) == 0 else ("b" if a_low else "a"))
+                if len(segs_) == 1:
+                    t_out = None
+                dimf(a[1], b[1], side, lv, on=on, text=t_, virt_a=a[2], virt_b=b[2], txt_out=t_out)
             lv += 1
             tot_txt = label(abs(hi[0] - lo[0]))
             nums = [_num(t) for t in txts]
@@ -433,7 +452,8 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         if overall or len(chain) <= 2:
             if len(chain) > 2 or len(chain) == 2:
                 val = abs(hi[0] - lo[0])
-                dimf(lo[1], hi[1], side, lv, on=on, text=label(val), virt_a=lo[2], virt_b=hi[2])
+                t_tot = f"({numtxt(val)})" if (full and not tot_func) else label(val)
+                dimf(lo[1], hi[1], side, lv, on=on, text=t_tot, virt_a=lo[2], virt_b=hi[2])
         return lv + 1
 
     if rev is not None:
@@ -454,6 +474,8 @@ def auto_dims(V, on=None, h="bottom", v="right", holes=True, verts=True, tol=Non
         radii = sorted(rs)
         # descarta los diámetros demasiado próximos en papel para apilarlos (siempre apila: un nivel por diámetro)
         radii = radii[-rev_max:] if len(radii) > rev_max else radii
+        if rev_only is not None:                # solo los diámetros funcionales (los de chaflanes quedan definidos por la nota del chaflán, B-46)
+            radii = [r for r in radii if any(abs(2 * r - d_) < 0.11 for d_ in rev_only)]
         ya = text or {}
         for r in radii:
             lst = rs[r]

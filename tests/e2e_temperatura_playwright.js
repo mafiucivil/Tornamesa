@@ -5,10 +5,10 @@ const { chromium } = require("playwright");
 const out = process.argv[2] || fs.mkdtempSync(path.join(require("os").tmpdir(), "tt300c-temp-"));
 const root = path.resolve(__dirname, "..");
 const html = "file://" + path.join(root, fs.readdirSync(root).filter((n) => /^Tornamesa_v.*\.html$/.test(n))[0]);
-const ready = (page) => page.waitForFunction(() => { const t = document.querySelector('section[data-t="temp"]').textContent; return t.includes("Por alternativa") && !t.includes("Calculando el escenario"); }, null, { timeout: 90000 });
+const ready = (page) => page.waitForFunction(() => { const t = document.querySelector('section[data-t="temp"]').textContent; return t.includes("Por alternativa") && !t.includes("Calculando el escenario"); }, null, { timeout: 300000 });
 (async () => {
   const browser = await chromium.launch(), ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
-  const page = await ctx.newPage(), errs = [];
+  const page = await ctx.newPage(), errs = []; page.setDefaultTimeout(180000);   // pestañas que calculan en el hilo principal en una máquina cargada
   page.on("pageerror", (e) => errs.push(String(e))); page.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
   await page.goto(html); await page.waitForSelector("#altSel");
   await page.waitForFunction(() => !document.querySelector("#busy").textContent.startsWith("Calculando"));
@@ -28,7 +28,7 @@ const ready = (page) => page.waitForFunction(() => { const t = document.querySel
   await page.selectOption("#tAlc", "1"); await ready(page);
   // pestaña Tapones (C): ideal frente a real, barridos y conclusión
   await page.click('#tabs button[data-t="tapones"]');
-  await page.waitForFunction(() => { const t = document.querySelector('section[data-t="tapones"]').textContent; return t.includes("conclusión automática") && !t.includes("Calculando los tapones"); }, null, { timeout: 90000 });
+  await page.waitForFunction(() => { const t = document.querySelector('section[data-t="tapones"]').textContent; return t.includes("conclusión automática") && !t.includes("Calculando los tapones"); }, null, { timeout: 300000 });
   { const tp = await page.textContent('section[data-t="tapones"]'); for (const k of ["Ideal frente a real", "Barrido de f_g,real", "Barrido de Ø", "Sensibilidad a la franja de borde", "Notas de confianza", "2.640"]) assert.ok(tp.includes(k) || k === "2.640", "Tapones: falta «" + k + "»"); }
   await page.selectOption("#altSel", "B"); await ready(page);
   await page.screenshot({ path: path.join(out, "temperatura_B.png") });
