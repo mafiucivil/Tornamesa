@@ -6,7 +6,8 @@ Uso:  python tools/servidor_planos.py [--puerto 8765] [--no-abrir]
 Sirve la raíz del repositorio en http://127.0.0.1:8765/ (solo esta máquina), abre la herramienta Tornamesa_v<versión>.html y expone:
   GET  /api/ping              → {"ok": true, "version", "python", "trabajo": último trabajo o null}
   POST /api/generar           → recibe el JSON de diseño (el mismo esquema que `node tools/export_design.js`, botón «JSON de diseño»
-                                 o «Generar planos» de la herramienta), verifica su estructura y lanza en segundo plano
+                                 o «Generar planos» de la herramienta; o el de `node tools/export_design_bx.js` con el bloque «bx»: juego
+                                 TT300-BX, mismo endpoint), verifica su estructura y lanza en segundo plano
                                    python cad/generar_paquete.py <design.json> --out <tmp> --entrega salidas/<fecha-hora>_<alternativa>/
                                  (vía tools/lanzar_generador.py) y luego tools/indice_planos.py sobre esa carpeta.
   GET  /api/estado?id=ID      → estado del trabajo: en_curso | listo | error, fase, progreso (estimado), registro, mensaje de error
@@ -85,7 +86,11 @@ def verificar_estructura(D):
     if not isinstance(D, dict):
         return ["el contenido no es un objeto JSON"]
     ref, err = referencia(), []
-    falt, sobr = sorted(ref["top"] - set(D)), sorted(set(D) - ref["top"])
+    # TT300-BX (tools/export_design_bx.js, herramienta Tornamesa_BX): mismo esquema + bloque «bx» (y «modulo»), parámetros bx_* en P;
+    # cad/generar_paquete.py detecta el bloque y genera el juego BX
+    bx = isinstance(D.get("bx"), dict)
+    extra_top = {"bx", "modulo"} if bx else set()
+    falt, sobr = sorted(ref["top"] - set(D)), sorted(set(D) - ref["top"] - extra_top)
     if falt:
         err.append("faltan claves de primer nivel: " + ", ".join(falt))
     if sobr:
@@ -93,7 +98,7 @@ def verificar_estructura(D):
     if not isinstance(D.get("P"), dict):
         err.append("falta el objeto P (parámetros)")
     else:
-        fp, sp = sorted(ref["P"] - set(D["P"])), sorted(set(D["P"]) - ref["P"])
+        fp, sp = sorted(ref["P"] - set(D["P"])), sorted(k for k in set(D["P"]) - ref["P"] if not (bx and k.startswith("bx_")))
         if fp:
             err.append("faltan parámetros en P: " + ", ".join(fp))
         if sp:
@@ -101,12 +106,18 @@ def verificar_estructura(D):
     for k, ks in ref["sub"].items():
         if k in D and isinstance(D[k], dict) and ks - set(D[k]):
             err.append(f"faltan claves en {k}: " + ", ".join(sorted(ks - set(D[k]))))
+    if bx:
+        fb = sorted({"disco", "portador", "pastillas", "soldaduras", "fabricacion"} - set(D["bx"]))
+        if fb:
+            err.append("bloque «bx» incompleto: faltan " + ", ".join(fb))
     if isinstance(D.get("verdict"), dict) and not {"gira", "estructura"} <= set(D["verdict"]):
         err.append("verdict sin gira/estructura")
     return err
 
 
 def alternativa(P):
+    if any(str(k).startswith("bx_") for k in P):          # juego TT300-BX (parámetros bx_* del módulo BX)
+        return "BX" + ("_madera" if (P.get("opt_wood") or 0) > 0.5 else "")
     a = "A" if P.get("opt_ss") else "B" if P.get("opt_uhmw") else ("C%d" % min(3, max(1, round(P.get("bz_conf") or 1)))) if P.get("opt_bz") else "base"
     if P.get("opt_ss") and P.get("fix_mode") == 2:
         a += "F2"
@@ -260,7 +271,7 @@ def ruta_estatica(path):
     partes = [x for x in rel.split("/") if x]
     if any(x in (".", "..") for x in partes):
         return None
-    if len(partes) == 1 and partes[0].startswith("Tornamesa_v") and partes[0].endswith(".html"):
+    if len(partes) == 1 and partes[0].startswith(("Tornamesa_v", "Tornamesa_BX_v")) and partes[0].endswith(".html"):
         f = ROOT / partes[0]
     elif len(partes) >= 3 and partes[0] == "salidas" and _id_valido(partes[1]):
         f = ROOT.joinpath(*partes)
