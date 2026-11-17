@@ -212,6 +212,8 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
   </div>
 </div>
 <script type="application/json" id="bxpre" @@PRE_ATTR@@>/*@@PRE@@*/</script>
+<script type="application/json" id="bxprelz">/*@@PRE_LZ@@*/</script>
+<script type="application/json" id="bxpremem">/*@@PRE_MEMO@@*/</script>
 <script id="libs">
 /* Librerías de cálculo (las mismas en la página y en el Web Worker, que se crea con el texto de este elemento) */
 /*@@FEA@@*/
@@ -220,15 +222,20 @@ pre.log{max-height:260px;overflow:auto;background:var(--bg);border:1px solid var
 /*@@AGENTS@@*/
 /*@@AGBX@@*/
 /*@@PLANOS_BX@@*/
+const BXW_MEMO = new Map();                                            // resultados precalculados en paralelo para el JSON de diseño
 const PLANOS_W = ((TT, AG) => {
 /*@@PLANOS@@*/
-return PLANOS; })(PLANOS_BX.facade(TT, BX), AGBX);
+return PLANOS; })(PLANOS_BX.facade(TT, BX, { memo: BXW_MEMO }), AGBX);
 /*@@WORKER@@*/
 </script>
 <script>
 /* Fachada del hilo principal: cada P recibe la geometría BX ya dimensionada por el worker (BXWEB.bx); no se vuelve a dimensionar aquí */
-const TTcore = TT, BXWEB = { bx: null };
-const TTF = PLANOS_BX.facade(TT, BX, { keep: true, coreP: (P) => Object.assign({}, P, { opt_uhmw: 1, opt_ss: 0, opt_bz: 0 }, BXWEB.bx ? { __bx: BXWEB.bx } : {}) });
+const TTcore = TT, BXWEB = { bx: null, ver: 0 };
+// el mismo objeto P (y la misma versión del resultado) da el mismo P del núcleo: las memorias del núcleo que dependen del objeto se aprovechan
+const BXWEB_C = new WeakMap();
+const TTF = PLANOS_BX.facade(TT, BX, { keep: true, coreP: (P) => {
+  const c = BXWEB_C.get(P); if (c && c.ver === BXWEB.ver) return c.Q;
+  const Q = Object.assign({}, P, { opt_uhmw: 1, opt_ss: 0, opt_bz: 0 }, BXWEB.bx ? { __bx: BXWEB.bx } : {}); BXWEB_C.set(P, { ver: BXWEB.ver, Q }); return Q; } });
 // designDrive del resultado vigente: lo entrega el worker (BXWEB.dd, para el R vigente BXWEB.R); con otro R se calcula aquí
 const TTdd = TTF.designDrive; TTF.designDrive = (P, R) => (BXWEB.dd && R && R === BXWEB.R ? BXWEB.dd : TTdd(P, R));
 /*@@BX_USED@@*/

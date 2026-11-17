@@ -34,6 +34,7 @@
       if (!W.w) { setTimeout(() => { try { res(BXW.run(JSON.parse(JSON.stringify(msg)))); } catch (err) { rej(err); } }, 0); return; }   // respaldo sin Worker
       const id = ++W.seq; W.q.set(id, { res, rej, gen }); W.w.postMessage(Object.assign({ id }, msg));
     });
+    W.kill = () => { if (W.w) { W.w.terminate(); W.w = null; } failAll("cancelado"); };
     W.cancelStale = (gen) => { if (W.w && [...W.q.values()].some((c) => c.gen !== gen)) { W.w.terminate(); W.w = null; failAll("cancelado"); } };
     return W;
   }
@@ -179,7 +180,7 @@
     for (const k of Object.keys(Rc)) { const v = Rc[k]; if (typeof v === "function") R[k] = v; else if (v && typeof v === "object" && R[k] && typeof R[k] === "object") rehydrate(R[k], v, seen); }
   }
   function apply(res) {
-    VAL = res.VAL || []; A = res.A; X = res.X || []; AU = res.AU || null; BXWEB.dd = null; BXWEB.R = null;
+    VAL = res.VAL || []; A = res.A; X = res.X || []; AU = res.AU || null; BXWEB.dd = null; BXWEB.R = null; BXWEB.ver++;
     if (A) {
       try { rehydrate(A.R, TTcore.compute(A.Pc)); } catch (err) { VAL.push({ lvl: "warn", msg: "No se pudieron rearmar las funciones del resultado: " + err.message }); }
       BXWEB.bx = A.Pc.__bx; BXWEB.dd = res.DD || null; BXWEB.R = A.R;
@@ -187,12 +188,12 @@
   }
   let preUsed = false;
   // resultado precalculado (tools/build_tt300bx.py → <script type="application/json" id="bxpre">): clave y fecha en atributos, JSON aparte
-  function preOf() { const el = document.getElementById("bxpre"); return el ? { key: el.dataset.key ? JSON.parse(el.dataset.key) : "", fecha: el.dataset.fecha || "", txt: el.textContent } : null; }
+  function preOf() { const el = document.getElementById("bxpre"); return el ? { key: el.dataset.key ? JSON.parse(el.dataset.key) : "", fecha: el.dataset.fecha || "", txt: el.textContent, memoTxt: (document.getElementById("bxpremem") || {}).textContent || "", lazyTxt: (document.getElementById("bxprelz") || {}).textContent || "" } : null; }
   function recalc() {
     store.set(LS, JSON.stringify(P));
-    RGEN++; const g = RGEN;
+    RGEN++; const g = RGEN; BXWEB.ver++;
     Object.keys(LZ).forEach((k) => delete LZ[k]); Object.keys(LZP).forEach((k) => delete LZP[k]);
-    WK.main.cancelStale(g); WK.lazy.cancelStale(g);
+    WK.main.cancelStale(g); WK.lazy.cancelStale(g); HELP.forEach((w) => w.terminate()); HELP = [];
     const v0 = AG.validate(P);
     if (v0.some((v) => v.lvl === "error")) { VAL = v0; A = null; calc = false; $("#busy").textContent = "Corrija los datos marcados"; renderAll(); return; }
     const t0 = performance.now(), Ps = Object.assign({}, P), key = JSON.stringify(Ps);
@@ -205,6 +206,7 @@
         setTimeout(() => {
           if (g !== RGEN) return;
           apply(r); calc = false; preUsed = true;
+          if (pre.lazyTxt) { try { const lzr = JSON.parse(pre.lazyTxt, (k, v) => (v === "__NaN" ? NaN : v === "__Inf" ? Infinity : v === "__-Inf" ? -Infinity : v)); ["SC", "MK", "CN"].forEach((k) => { if (lzr[k]) LZ[k] = lzr[k]; }); if (lzr.TH) { TH = lzr.TH; THkey = key; } } catch (e) { } }
           setTimeout(() => {
             if (g !== RGEN) return;
             $("#busy").textContent = `Valores por defecto: resultado precalculado al compilar (${pre.fecha}) · ${fmt(performance.now() - t0, 3)} ms`;
@@ -566,7 +568,7 @@
           <span>Voladizo de la uña / holgura radial</span><span>${fmt(A.R.K.lever, 3)} / ${fmt(A.R.K.radial)} mm</span>
           <span>Cuerda / hueco entre pasadores</span><span>${fmt(A.R.K.chord, 4)} / ${fmt(A.R.K.gap, 4)} mm</span>
           <span>Ciclos por vuelta</span><span>${P.N_pin}</span>
-        </div>`}</div></div>${isPiv() ? placaGuiaCard() : ""}`;
+        </div>`}</div></div>${isPiv() ? lzSlot(placaGuiaCard) : ""}`;   // la placa-guía (3 vistas con la simulación) se dibuja en una tarea aparte
   }
   // placa-guía curva del modo pivotado: detalle en toma, empuje y retorno (simulación, TT.pivotAt) y tabla de los segmentos del canto (núcleo)
   function placaGuiaCard() {
@@ -1065,8 +1067,27 @@
     if (DJ.key === key && DJ.json) return Promise.resolve(DJ.json);
     if (DJ.key === key && DJ.p) return DJ.p;
     DJ = { key, json: null, p: null };
-    DJ.p = WK.main.call({ op: "design", P: Object.assign({}, P) }, RGEN).then((j) => { if (DJ.key === key) { DJ.json = j; DJ.p = null; } return j; }, (err) => { if (DJ.key === key) DJ.p = null; throw err; });
+    const Ps = Object.assign({}, P), g = RGEN;
+    DJ.p = memoFor(Ps, g).then((memo) => WK.main.call({ op: "design", P: Ps, memo }, g)).then((j) => { if (DJ.key === key) { DJ.json = j; DJ.p = null; } return j; }, (err) => { if (DJ.key === key) DJ.p = null; throw err; });
     return DJ.p;
+  }
+  // resultados que pide el exportador además del análisis (PLANOS_BX.exportCalls): se reparten entre varios workers en paralelo; los que ya
+  // están (precalculados al compilar para los valores por defecto, o los bloques diferidos de mercado y capacidad) no se repiten
+  let HELP = [];
+  function memoFor(Ps, g) {
+    const Pf = Object.assign(TT.defaults(), Ps), calls = PLANOS_BX.exportCalls(Pf), memo = {}, pre = preOf();
+    if (pre && pre.key === JSON.stringify(Ps) && pre.memoTxt) { try { Object.assign(memo, JSON.parse(pre.memoTxt, (k, v) => (v === "__NaN" ? NaN : v === "__Inf" ? Infinity : v === "__-Inf" ? -Infinity : v))); } catch (e) { } }
+    if (g === RGEN && LZ.MK) memo[PLANOS_BX.memoKey("market", [Pf])] = LZ.MK;
+    if (g === RGEN && LZ.CN) memo[PLANOS_BX.memoKey("capacityByCyl", [Pf, [1, 2]])] = LZ.CN;
+    const todo = calls.filter((c) => !(c.key in memo));
+    if (!todo.length || !WURL) return Promise.resolve(memo);
+    const n = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1, todo.length));
+    HELP.forEach((w) => w.terminate()); HELP = [];
+    let i = 0;
+    const runOne = (w) => (i >= todo.length ? Promise.resolve() : (() => { const c = todo[i++]; return w.call({ op: "call", fn: c.fn, args: c.args }, g).then((r) => { memo[c.key] = r; }, () => { }).then(() => runOne(w)); })());
+    const ws = Array.from({ length: n }, () => mkW("ayuda"));
+    HELP = ws.map((w) => ({ terminate: w.kill }));
+    return Promise.all(ws.map(runOne)).then(() => { ws.forEach((w) => w.kill()); HELP = []; return memo; });
   }
   function renderPkg() {
     const on = $("#pkgChk").checked, el = $("#pkgPanel");

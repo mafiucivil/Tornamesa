@@ -45,19 +45,34 @@ const BXW = (() => {
     CMP: (P) => BX_.analyze(Object.assign({}, P, { drive_mode: 2 }), { noFEA: true }),
   };
   function lazy(k, P) { return strip(LAZY[k](P)); }
-  function design(P) {
+  // JSON de diseño: memo = resultados precalculados en paralelo (clave PLANOS_BX.memoKey → valor), los lee la fachada de PLANOS_W
+  function design(P, memo) {
     if (typeof PLANOS_W === "undefined") throw new Error("Módulo de planos no disponible en el worker");
-    const A = analyzeFull(P), out = PLANOS_W.buildDesign(P, A);
-    PLANOS_BX.finish(out, out.P, BX_);
-    return PLANOS_W.designJSON(out);
+    const M = typeof BXW_MEMO !== "undefined" ? BXW_MEMO : null;
+    if (M) { M.clear(); Object.keys(memo || {}).forEach((k) => M.set(k, memo[k])); }
+    try {
+      const A = analyzeFull(P), out = PLANOS_W.buildDesign(P, A);
+      if (out.pasadores_empuje === undefined) { try { out.pasadores_empuje = TT_.designDrive(A.Pc, A.R).pasadores_empuje; } catch (e) { } }   // como tools/export_design.js (planos_export.js no lo trae)
+      PLANOS_BX.finish(out, out.P, BX_);
+      return PLANOS_W.designJSON(out);
+    } finally { if (M) M.clear(); }
+  }
+  // una llamada suelta de la fachada BX (la usa el navegador para repartir los cálculos del JSON de diseño entre varios workers)
+  let FACX = null;
+  function call(fn, args) {
+    const PB = (typeof PLANOS_BX !== "undefined") ? PLANOS_BX : require("../web/planos_export_bx.js");
+    if (!FACX) FACX = PB.facade(TT_, BX_);
+    if (!PB.MEMO_FN.includes(fn)) throw new Error("llamada no permitida: " + fn);
+    return strip(PB.memoTrim(fn, FACX[fn].apply(FACX, args)));
   }
   function run(m) {
+    if (m.op === "call") return call(m.fn, m.args);
     if (m.op === "analyze") return analyze(m.P);
     if (m.op === "lazy") return lazy(m.k, m.P);
-    if (m.op === "design") return design(m.P);
+    if (m.op === "design") return design(m.P, m.memo);
     throw new Error("operación desconocida: " + m.op);
   }
-  return { run, strip, analyze, lazy, design };
+  return { run, strip, analyze, lazy, design, call };
 })();
 if (typeof module !== "undefined") module.exports = BXW;
 else if (typeof self !== "undefined" && typeof document === "undefined") {

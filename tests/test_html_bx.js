@@ -71,7 +71,8 @@ function diffKeys(a, b, p, out) {
   let mism = 0;
   bxN.forEach((c) => { const r = rowsUI.find((x) => x[0] === c.name); if (!r || r[1] !== fu3(c.fu)) mism++; });
   ok(bxN.length > 0 && mism === 0, `FU de las ${bxN.length} filas BX iguales a Node (${mism} distintas)`);
-  ok(rowsUI.length === A0.checks.length, `n° de verificaciones ${rowsUI.length} = ${A0.checks.length}`);
+  const nFull = BX.analyze(P0).checks.length;                            // con FEA, como la página
+  ok(rowsUI.length === nFull, `n° de verificaciones ${rowsUI.length} = ${nFull} (BX.analyze con FEA)`);
 
   // el JSON de diseño se pide ya (el worker lo arma mientras se recorren las pestañas)
   await page.click('#tabs button[data-t="planos"]');
