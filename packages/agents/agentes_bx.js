@@ -7,6 +7,7 @@
 const AGBX = (() => {
   const BX_ = (typeof BX !== "undefined") ? BX : require("../core/tt300bx.js");
   const AG_ = (typeof AG !== "undefined") ? AG : require("./agentes.js");
+  const TT_prIn = (P) => BX_.TT.prIn(P);
 
   function validate(P) {
     const out = AG_.validate(P), E = (msg) => out.push({ lvl: "error", msg }), W = (msg) => out.push({ lvl: "warn", msg });
@@ -45,14 +46,15 @@ const AGBX = (() => {
     // (c) Par de los tornillos: Σ V_T·r = T_calado
     const T = D.disco.tornillos.lista.reduce((s, x) => s + x.VT * x.r, 0) / 1e6;
     add("BX · Tornillos del disco: Σ V_T·r = T_calado", T, R.TmaxTopes || R.Tmax, 0.01, "kN·m");
-    // (d) Fuerza térmica de borde: cadena discreta de 400 resortes resuelta numéricamente
-    const tw = D.disco.tornillos, eps = (M.al - 11.7e-6) * tw.dT_diseno, rr = tw.anillos, st = 2 * Math.PI * rr[rr.length - 1] / Math.max(1, tw.lista.filter((x) => Math.abs(x.r - rr[rr.length - 1]) < 1e-6).length), sr = rr[rr.length - 1] - rr[rr.length - 2];
-    const kb = tw.k_b, EA = M.E * D.disco.t * st / (1 - M.nu ** 2), kbar = EA / sr, e0 = (1 + M.nu) * Math.abs(eps), N = 400, aa = [], bb = [], cc = [], rh = [];
-    for (let i = 1; i <= N; i++) { const last = i === N; aa.push(-kbar); bb.push((last ? kbar : 2 * kbar) + kb); cc.push(last ? 0 : -kbar); rh.push(last ? kbar * e0 * sr : 0); }
-    const c2 = [], d2 = [], u = new Array(N);
-    for (let i = 0; i < N; i++) { const den = bb[i] - (i ? aa[i] * c2[i - 1] : 0); c2[i] = cc[i] / den; d2[i] = (rh[i] - (i ? aa[i] * d2[i - 1] : 0)) / den; }
-    for (let i = N - 1; i >= 0; i--) u[i] = d2[i] - (i < N - 1 ? c2[i] * u[i + 1] : 0);
-    add("BX · Tornillos del disco: fuerza térmica del anillo de borde (cadena discreta)", tw.Fth_ext, Math.min(kb * u[N - 1], M.E * Math.abs(eps) / (1 - M.nu) * D.disco.t * st), 1.0, "N");
+    // (d) Componente térmica de los tornillos: misma franja radial con resortes en los anillos, resuelta por Gauss–Seidel (otro método que el núcleo BX)
+    const tw = D.disco.tornillos, Pc = A.Pc, eps = Math.abs(M.al - Pc.bx_al_st * 1e-6) * tw.dT_diseno, rr = tw.anillos, nOf = (r) => tw.lista.filter((x) => Math.abs(x.r - r) < 1e-6).length;
+    const st = rr.map((r) => 2 * Math.PI * r / Math.max(1, nOf(r))), w = st[st.length - 1], EA = M.E * D.disco.t * w / (1 - M.nu ** 2), e0 = (1 + M.nu) * eps;
+    const kb = rr.map((r) => BX_.huth(D.disco.t, M.E, r - tw.d / 2 > TT_prIn(Pc) ? Pc.t_pr : Pc.t_bot, Pc.E, tw.d)), K = rr.map((r, i) => kb[i] * w / st[i]), u = rr.map(() => 0);
+    for (let it = 0; it < 20000; it++) { let dmax = 0;
+      for (let i = 0; i < rr.length; i++) { const Lm = rr[i] - (i ? rr[i - 1] : 0), kL = EA / Lm, Lp = i < rr.length - 1 ? rr[i + 1] - rr[i] : 0, kR = Lp ? EA / Lp : 0;
+        const un = (kL * ((i ? u[i - 1] : 0) + e0 * Lm) + (kR ? kR * (u[i + 1] - e0 * Lp) : 0)) / (kL + kR + K[i]); dmax = Math.max(dmax, Math.abs(un - u[i])); u[i] = un; }
+      if (dmax < 1e-13) break; }
+    add("BX · Tornillos del disco: componente térmica del anillo exterior (franja con resortes, Gauss–Seidel)", tw.Fth_ext, Math.abs(kb[rr.length - 1] * u[rr.length - 1]), 0.5, "N");
     // (e) Masa de la plancha del portador por muestreo en malla de 2 mm
     const C = D.portador, holes = C.agujeros.posiciones.concat(C.tapones.posiciones), H = new Map(), cs = C.paso;
     holes.forEach((p) => { const k = Math.floor(p[0] / cs) + "," + Math.floor(p[1] / cs); if (!H.has(k)) H.set(k, []); H.get(k).push(p); });

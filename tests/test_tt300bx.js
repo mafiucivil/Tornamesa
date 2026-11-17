@@ -60,25 +60,28 @@ test("BX: valores por defecto activan la opción B con el gancho; A y C pasan al
   assert.equal(Aa.R.m.total, Ta.R.m.total);
 });
 
-test("BX: dimensiones adoptadas por defecto (disco 6 u 8 mm, pastillas, portador, tornillos) y veredicto", () => {
+test("BX: dimensiones adoptadas por defecto (disco 304 de 6 u 8 mm, 100–200 tornillos M10/M12) y estado de cada parte", () => {
   const D = G0.disco, U = G0.pastillas, C = G0.portador, T = D.tornillos;
+  assert.match(D.material, /304/);
   assert.ok([6, 8].includes(D.t), "disco " + D.t + " mm");
   assert.ok(D.t >= D.t_req - 1e-9);
+  assert.ok([10, 12].includes(T.d) && T.n >= 100 && T.n <= 200 && T.paso_malla >= 150, "tornillos " + T.n + " M" + T.d + " a " + T.paso_malla);
   assert.ok(U.n > 50 && U.n < 2000, "n pastillas " + U.n);
-  assert.ok(U.d >= 40 && U.d <= 200);
+  assert.ok([20, 25, 30, 40, 50].includes(U.H), "pastilla cortada de plancha comercial: H = " + U.H);
+  near(U.H, C.t + U.h_p, 1e-12, "H = t_portador + saliente");
   assert.ok(C.paso - U.d >= C.ligamento - 1e-9, "ligamento");
-  assert.ok(T.n >= 20, "tornillos del disco " + T.n);
-  assert.equal(A0.verdict.estructura, true, A0.checks.filter((c) => c.st === "fail").map((c) => c.name + " " + c.fu).join("; "));
   assert.equal(A0.verdict.gira, true);
   const bxRows = A0.checks.filter((c) => c.bx);
-  assert.ok(bxRows.length >= 35, "filas BX " + bxRows.length);
+  assert.ok(bxRows.length >= 40, "filas BX " + bxRows.length);
   bxRows.forEach((c) => { assert.ok(c.ref && c.formula && c.grp && c.sys, "fila completa: " + c.name); });
-  bxRows.filter((c) => c.kind === "fu" || c.kind === "geo").forEach((c) => assert.ok(c.fu <= 1 + 1e-9, c.name + " FU " + c.fu));
-  // filas en aviso (0,90 < FU ≤ 1,00): solo PV de las pastillas y el tornillo de la pastilla como camino alternativo (documentado en docs/bx/README_BX.md)
-  const warn = bxRows.filter((c) => c.st === "warn").map((c) => c.name);
-  warn.forEach((n) => assert.match(n, /valor PV|tornillo M\d+ 8\.8 al corte/, "aviso no previsto: " + n));
-  // pendiente con FU: presión de las pastillas a 80 °C con k_p supuesto (confianza C)
-  assert.ok(A0.verdict.pendientes_criticos.some((c) => /a 80 °C/.test(c.nombre)));
+  // disco, tornillos y portador cumplen con margen (FU ≤ 0,90 o geométricas ≤ 1)
+  bxRows.filter((c) => /Disco|Tornillos del disco|Portador/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok", c.name + " FU " + c.fu));
+  // lo que no cumple es solo el UHMW (pastillas): documentado en docs/bx/README_BX.md
+  A0.checks.filter((c) => c.st === "fail").forEach((c) => assert.match(c.name, /^BX · Pastillas/, "falla no prevista: " + c.name));
+  // 80 °C: limitación de uso informativa (no pendiente crítico)
+  assert.ok(A0.verdict.limitaciones_uso.some((l) => l.id === "BX-T-SELLO"));
+  assert.ok(!A0.verdict.pendientes_criticos.some((c) => /80 °C/.test(c.nombre)));
+  assert.ok(A0.checks.some((c) => c.bx && /Pastillas a 50 °C: valor PV/.test(c.name)));
 });
 
 /* ---------- 3. Fórmulas ---------- */
@@ -148,16 +151,20 @@ test("BX: interferencia en frío, montaje y caliente; tornillo de la pastilla fu
   assert.ok(f.delta_min_20 >= -1e-9, "interferencia mínima a 20 °C ≥ 0");
   assert.ok(f.holgura_frio <= P0.bx_c_sp - 0.2 + 1e-9, "holgura en frío ≤ holgura del agujero del tornillo − 0,2");
   assert.ok(f.eps_caliente <= P0.bx_eps_max / 100 + 1e-12);
-  near(f.d_dil_caliente, (P0.bx_al_uh * 1e-6 - 11.7e-6) * (P0.bx_Tmax - P0.T_ref) * U.d, 1e-9, "Δd caliente con α_UHMW = 190×10⁻⁶");
+  near(f.d_dil_caliente, (P0.bx_al_uh * 1e-6 - P0.bx_al_st * 1e-6) * (P0.T_ifc_max - P0.T_ref) * U.d, 1e-9, "Δd caliente con α_UHMW = 190×10⁻⁶");
 });
 
-test("BX: tornillos del disco: par (J3.7) y térmico combinados; austenítico pide muchos más tornillos que el dúplex", () => {
+test("BX: tornillos del disco: corte primario por el par (J3.7); térmica secundaria repartida por rigidez; membrana y pandeo del disco", () => {
   const T = G0.disco.tornillos;
   near(T.lista.reduce((s, b) => s + b.VT * b.r, 0) / 1e6, A0.R.TmaxTopes, 1e-9, "Σ V_T·r = T_calado");
-  assert.ok(T.V_comb <= T.capV * 0.9 + 1e-9);
-  const Gaus = BX.design(Object.assign({}, P0, { bx_ss_mat: 1 }));
-  assert.ok(Gaus.disco.tornillos.n > 1.5 * T.n, "austenítico " + Gaus.disco.tornillos.n + " vs dúplex " + T.n);
-  // ninguna posición sobre la CJP, almas, nervios ni pasadores
+  assert.ok(T.V_primario <= 0.9 * T.capV);
+  assert.equal(T.dT_diseno, 30, "ΔT de servicio 0–50 °C con montaje a 20 °C");
+  assert.equal(T.Vth_anillos.length, T.anillos.length);
+  assert.ok(T.Vth_anillos[T.Vth_anillos.length - 1] >= T.Vth_anillos[0], "el anillo exterior toma más");
+  const prim = A0.checks.find((c) => /corte de diseño por el par/.test(c.name)), sec = A0.checks.find((c) => /componente térmica secundaria/.test(c.name));
+  assert.equal(prim.kind, "fu"); assert.equal(sec.kind, "info");
+  const th = G0.disco.termico; near(th.sigma_uniaxial, 193000 * 5.3e-6 * 30, 1e-9, "σ = E·Δα·ΔT ≈ 31 MPa");
+  ["rango frente a 2·Fy", "frente a Fy", "pandeo por la compresión térmica"].forEach((k) => { const c = A0.checks.find((x) => x.bx && x.name.includes(k)); assert.ok(c && c.st === "ok", k); });
   T.lista.forEach((b) => { assert.ok(Math.abs(b.y) >= P0.bx_c_cjp - 1e-9); });
 });
 
@@ -180,7 +187,8 @@ test("BX: agentes (validador, auditor, revisor cruzado y escenarios) sobre el m�
 test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y escenario térmico a 80 °C", () => {
   const A = BX.analyze(P0);
   assert.ok(A.fea && A.fea.lift.vmMax > 0);
-  assert.equal(A.verdict.estructura, true);
+  assert.equal(A.verdict.gira, true);
+  A.checks.filter((c) => c.st === "fail").forEach((c) => assert.match(c.name, /^BX · Pastillas/, "con FEA, falla no prevista: " + c.name));   // mesa, base e izaje cumplen
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
   assert.ok(b80.bx && b80.bx.filas.length > 10);
