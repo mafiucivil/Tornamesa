@@ -66,8 +66,7 @@ class Ctx:
             ("B", "—", "Emisión anterior (planos básicos), reemplazada por la rev. C.", "—", "—", "—"),
         ]
         if g.opt == 4:                   # TT300-BX: primera emisión del juego con la interfaz BX (bloque «bx» del JSON)
-            self.revs[0] = ("C", g.FECHA, "EMITIDO PARA REVISIÓN. Juego TT300-BX: interfaz con disco inoxidable atornillado a la mesa (semidiscos con CJP) y pastillas de UHMW-PE en un portador "
-                            "soldado a la base; fabricación simplificada según la tabla del núcleo BX (GEN-026). Valores leídos del JSON de diseño (bloque «bx»).", "A DEFINIR", "A DEFINIR", "A DEFINIR")
+            self.revs[0] = ("C", g.FECHA, "EMITIDO PARA REVISIÓN. Juego TT300-BX: disco atornillado y pastillas de UHMW en portador; fabricación según GEN-026. Valores del JSON de diseño (bloque «bx»).", "A DEFINIR", "A DEFINIR", "A DEFINIR")
 
     # --------------- copias locales de piezas ---------------
     def local(self, key, newkey, near=None, r=1e9, shift=(0, 0, 0), rot=0.0):

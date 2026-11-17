@@ -257,4 +257,5 @@ def limpia(ctx, txt):
     if key not in _RX:
         pn = sorted([k for k in ctx.D["P"] if "_" in k or len(k) >= 4] + ["L0", "Fy_sup", "q_losa", "k_borde", "h_rebaje", "D_rebaje_bot", "h_rebaje_cubo", "h_collar"], key=len, reverse=True)
         _RX[key] = _re.compile(r"(?<![A-Za-z0-9_\-])(" + "|".join(_re.escape(k) for k in pn) + r")(?![A-Za-z0-9_])")
+    txt = txt.replace("planitud d_flat", "planitud local")
     return _RX[key].sub(lambda m_: NOMBRES.get(m_.group(1), m_.group(1).replace("_", " ")), txt)

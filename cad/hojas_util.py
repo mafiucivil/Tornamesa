@@ -71,6 +71,12 @@ class Pieza(Plano):
                 + ("NO cumple. " if not T.get("cumple_lubricacion", True) else "") + "No fabricar ni comprar hasta su definición y aprobación."])
             self.blocks.insert(0, self.blocks.pop(n0))
         rn = [cid for cid in self.h.retenida if ctx.conflicto(cid)]
+        if rn and ctx.g.opt == 4:
+            # TT300-BX: la retención va como primera nota de fabricación (la banda lateral queda para las tablas de posiciones); el estado RETENIDA
+            # sigue en el cajetín y en estado_laminas.csv
+            specific = [f"RETENIDA — REQUIERE NÚCLEO (GEN-009): {self.h.retenida[cid]} (" + ("verificación del núcleo no cumplida" if ctx.conflicto(cid).get("tipo") == "verificacion" else "conflicto geométrico declarado del núcleo")
+                        + "). No fabricar hasta su corrección y aprobación." for cid in rn] + list(specific)
+            rn = []
         if rn:
             n0 = len(self.blocks)
             self.note_block("RETENIDA — REQUIERE NÚCLEO (GEN-009)", [f"Lámina RETENIDA: {self.h.retenida[cid]} (" + ("verificación del núcleo no cumplida" if ctx.conflicto(cid).get("tipo") == "verificacion" else "conflicto geométrico declarado del núcleo")

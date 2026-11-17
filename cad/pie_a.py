@@ -48,8 +48,8 @@ def sheet_base_plancha(ctx):
             TPb_ = g.bx["pastillas"]["tornillo"]
             cb_ = V.circles(["base_plancha"], float(TPb_["d"]) / 2 - 0.05, float(TPb_["d"]) / 2 + 0.05)
             if cb_:
-                u, v, r = max(cb_, key=lambda c_: c_[0] - abs(c_[1]))
-                V.note_hole((u, v, tb), r, 15, f"{len(cb_)} × M{fm(TPb_['d'], 0)} ciegas (pastillas BX; notas)", ext=30, on=on, lines=[f"{len(cb_)} × M{fm(TPb_['d'], 0)}-6H ciegas", "(pastillas BX; ver notas)"])
+                u, v, r = max(cb_, key=lambda c_: c_[1] - abs(c_[0]))
+                V.note_hole((u, v, tb), r, 120, f"{len(cb_)} × M{fm(TPb_['d'], 0)} ciegas (pastillas BX; notas)", ext=30, on=on, lines=[f"{len(cb_)} × M{fm(TPb_['d'], 0)}-6H ciegas", "(pastillas BX; ver notas)"])
         c0 = V.P(0, 0, tb)
         s.circle(c0, (P["D_top"] + 20) / 2 * V.scale, "FANT")
         if V.scale >= 0.0999:          # a 1:20 el rótulo choca con las llamadas de las placas-guía: la zona se define en las notas y en la rugosidad
