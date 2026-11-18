@@ -2203,3 +2203,41 @@ test("Pasadores de empuje · a ras y soldados: PJP en bisel a la carga real (V d
     ["Flexión (biapoyado", "Corte en el apoyo", "Aplastamiento en el agujero del anillo"].forEach((k) => assert.ok(A.checks.some((c) => c.grp === "Pasadores de empuje" && c.name.startsWith(k) && c.st === "ok"), lb + ": " + k));
   });
 });
+
+// Calidad de acero por pieza (TT300-BX rev. 6, 18-11-2026): Fy_pr/Fu_pr (anillos de pasadores), Fy_base/Fu_base (plancha base), Fy_boxE/Fu_boxE (soporte
+// del ojal E: paredes, muñones y tapas). El núcleo NO las define (sin la clave o ≤ 0 = el global Fy/Fu): con TT.defaults() todo queda idéntico. Las filas
+// que combinan piezas usan la menor resistencia de las piezas involucradas (base + refuerzo, base + collar, paredes E sobre el refuerzo).
+test("Calidad por pieza · Fy_pr, Fy_base y Fy_boxE cambian solo las filas de su pieza; ausentes o 0 = global (bit-idéntico)", () => {
+  const P0 = TT.defaults(), Nd = P0.Nd;
+  ["Fy_pr", "Fu_pr", "Fy_base", "Fu_base", "Fy_boxE", "Fu_boxE", "Fy_dbl", "Fu_dbl"].forEach((k) => assert.ok(!(k in P0), k + " no es parámetro del núcleo"));
+  const ser = (A) => JSON.stringify(A.checks.map((c) => [c.grp, c.name, c.dem, c.cap, c.fu, c.st]));
+  const A0 = TT.analyze(P0, { noFEA: true }), by = (A) => new Map(A.checks.map((c) => [c.grp + "|" + c.name, c]));
+  assert.equal(ser(TT.analyze(Object.assign({}, P0, { Fy_pr: 0, Fu_pr: 0, Fy_base: 0, Fu_base: 0, Fy_boxE: 0, Fu_boxE: 0, Fy_dbl: 0, Fu_dbl: 0 }), { noFEA: true })), ser(A0), "0 = global");
+  const diff = (o) => { const A = TT.analyze(Object.assign({}, P0, o), { noFEA: true }), m0 = by(A0), out = []; assert.equal(A.checks.length, A0.checks.length, "mismas filas");
+    A.checks.forEach((c) => { const b = m0.get(c.grp + "|" + c.name); if (!b) { out.push(c); return; } if (b.cap !== c.cap || b.dem !== c.dem) out.push(c); }); return out; };
+  // anillos: solo el aplastamiento del agujero (y la fila informativa del empotramiento, que usa la misma admisible)
+  const dPr = diff({ Fy_pr: 500, Fu_pr: 600 });
+  assert.deepEqual(dPr.filter((c) => c.kind !== "info").map((c) => c.name), ["Aplastamiento en el agujero del anillo"]);
+  near(dPr.find((c) => c.kind !== "info").cap, 1.25 * 500 / Nd, 1e-12, "1,25·Fy_pr/Nd");
+  // soporte E: tapas (aplastamiento y desgarros), paredes (flexión, corte) y CJP pared–pared; la CJP paredes–asiento usa la menor con el asiento (refuerzo, global)
+  const dE = diff({ Fy_boxE: 500, Fu_boxE: 600 }).map((c) => c.name);
+  ["Tapas del cajón E (orejas del pasador): aplastamiento", "Tapas del cajón E: desgarro por corte hacia las paredes traseras", "Tapas del cajón E: desgarro hacia la nariz",
+    "Soporte del ojal E: flexión de las paredes", "Soporte del ojal E: corte en las paredes", "Soporte del ojal E: CJP pared–pared"].forEach((k) => assert.ok(dE.some((n) => n.startsWith(k)), "boxE: " + k));
+  assert.ok(!dE.some((n) => /CJP paredes–base|Plancha base|refuerzo|anillo|Pivote/.test(n)), "boxE solo su pieza: " + dE.join(" / "));
+  const AE = TT.analyze(Object.assign({}, P0, { Fy_boxE: 200 }), { noFEA: true }), cjp = AE.checks.find((c) => /CJP paredes–base/.test(c.name)), wl = AE.checks.find((c) => /flexión de las paredes en la base/.test(c.name));
+  const tw = AE.checks.find((c) => /Soporte del ojal E: corte en las paredes/.test(c.name));
+  near(cjp.dem, Math.max(wl.dem / (200 / Nd), tw.dem / (200 / (Nd * Math.sqrt(3)))), 1e-9, "CJP con la menor (pared 200 < asiento)");
+  // plancha base: con el refuerzo (global) las filas de flexión usan la menor → sin cambio con Fy_base mayor; con menor, sí. Aplastamiento de los tornillos de la placa-guía con Fu_base
+  const dB = diff({ Fy_base: 500, Fu_base: 600 }).map((c) => c.name);
+  assert.deepEqual(dB, ["Tornillos de la placa-guía: aplastamiento en la plancha base (agujero roscado)"]);
+  const dB2 = diff({ Fy_base: 200 }).filter((c) => c.kind === "fu" || c.kind == null).map((c) => c.name);
+  assert.ok(dB2.some((n) => /^Plancha base bajo el soporte del ojal E: base de .* flexión/.test(n)) && dB2.some((n) => /Aplastamiento del pivote en el asiento/.test(n)), "menor resistencia con la base: " + dB2.join(" / "));
+  // refuerzo de esquina (y atiesador): Fy_dbl; mayor que la base y que las paredes E no cambia nada (la menor), menor sí: flexión base + refuerzo y CJP de las paredes E sobre él
+  assert.deepEqual(diff({ Fy_dbl: 500, Fu_dbl: 600 }).map((c) => c.name), []);
+  const dD = diff({ Fy_dbl: 200 }).map((c) => c.name);
+  assert.ok(dD.some((n) => /^Plancha base bajo el soporte del ojal E: base de .* flexión/.test(n)) && dD.some((n) => /CJP paredes–base/.test(n)), "Fy_dbl menor: " + dD.join(" / "));
+  assert.ok(!dD.some((n) => /Tapas|flexión de las paredes|Pivote|anillo/.test(n)), "Fy_dbl solo refuerzo y uniones: " + dD.join(" / "));
+  // escenario térmico: la clave se reduce solo si existe
+  const Q0 = TT.thermalP(P0, 80), Q1 = TT.thermalP(Object.assign({}, P0, { Fy_pr: 345 }), 80);
+  assert.ok(!("Fy_pr" in Q0)); near(Q1.Fy_pr, 345 * Q1.Fy / P0.Fy, 1e-12, "k_Fy sobre Fy_pr");
+});
