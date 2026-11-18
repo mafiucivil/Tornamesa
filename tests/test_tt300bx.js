@@ -11,6 +11,10 @@ const near = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol * Math.abs(b) 
 const P0 = BX.defaults();
 const A0 = BX.analyze(P0, { noFEA: true });   // análisis por defecto sin FEA (rápido); la FEA se prueba aparte una vez
 const G0 = A0.bx;
+// Rev. 6 (calidad de acero por pieza, 18-11-2026): la única fila que no cumple con los valores por defecto es la CJP de las paredes del soporte E (A572 de
+// 25 mm) sobre el refuerzo de esquina de A36: en la línea de fusión gobierna la menor Fy (250) y da FU 1,02 (docs/bx/README_BX.md §10: PENDIENTE de decisión;
+// con el refuerzo de A572 Gr. 50 + A770, Fy_dbl = 345, cumple con FU 0,739).
+const FAIL_REV6 = /^Soporte del ojal E: CJP paredes–base \(J-E1, J-E2, J-E6/;
 let A8_ = null; const A8 = () => (A8_ = A8_ || BX.analyze(Object.assign({}, P0, { bx_disc_modo: 0 }), { noFEA: true }));   // modo 0: disco macizo atornillado (revisiones 1–4)
 
 /* ---------- 1. El núcleo original no cambia ---------- */
@@ -74,9 +78,9 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   assert.equal(U.forma, "redonda"); assert.equal(U.lado, null); assert.ok(U.d >= 60 && U.d <= 300);
   assert.equal(C.agujeros.forma, "redonda"); assert.equal(C.agujeros.d, U.d);
   // a 20 °C cumple todo (FU ≤ 0,90; geométricas ≤ 1)
-  // rev. 5 (UHMW de 30 mm y portador A36 de 25 mm fijos, Ø ≤ 185): todo FU ≤ 1; sobre 0,90 (advertencia) solo la planitud de las pastillas y la torsión y el
-  // ligamento del portador, y ninguno sobre 0,95 con dos decimales (docs/bx/README_BX.md §9)
-  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla)/;
+  // rev. 5/6 (UHMW de 30 mm, portador fijo: rev. 6 A572 de 22 mm, Ø ≤ 185): todo FU ≤ 1; sobre 0,90 (advertencia) solo la planitud de las pastillas, la torsión y el
+  // ligamento del portador y las filas BX del anillo inferior de 22 (rev. 6), ninguno sobre 0,95 con dos decimales (docs/bx/README_BX.md §9 y §10)
+  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla|Aplastamiento en el agujero del anillo inferior|Pasador de empuje: flexión con la luz entre los planos medios)/;
   A0.checks.filter((c) => c.bx && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.955), "20 °C: " + c.name + " FU " + c.fu));
   // camino del arrastre por la cara inferior (μ_b): la pared y el tornillo usan el residual; la fila informa el FU sin μ_b
   const w = A0.checks.find((c) => /pared del agujero del portador \(arrastre residual/.test(c.name)), sinMu = +/sin μ_b: FU ([\d,]+)/.exec(w.formula)[1].replace(",", ".");
@@ -91,7 +95,7 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   // disco, tornillos y portador cumplen con margen (FU ≤ 0,90 o geométricas ≤ 1)
   bxRows.filter((c) => /Disco|Tornillos del disco|Portador|Lámina|Tapones|Costura|Plancha inferior/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok" || (WARN_OK.test(c.name) && c.fu < 0.955), c.name + " FU " + c.fu));
   // lo que no cumple es solo el UHMW (pastillas): documentado en docs/bx/README_BX.md
-  A0.checks.filter((c) => c.st === "fail").forEach((c) => assert.match(c.name, /^BX · Pastillas/, "falla no prevista: " + c.name));
+  A0.checks.filter((c) => c.st === "fail" && !FAIL_REV6.test(c.name)).forEach((c) => assert.match(c.name, /^BX · Pastillas/, "falla no prevista: " + c.name));
   // 80 °C: limitación de uso informativa (no pendiente crítico)
   assert.ok(A0.verdict.limitaciones_uso.some((l) => l.id === "BX-T-SELLO"));
   assert.ok(!A0.verdict.pendientes_criticos.some((c) => /80 °C/.test(c.nombre)));
@@ -129,10 +133,11 @@ test("BX: lámina inox 304 espejo de 3 mm soldada a la mesa con tapones y costur
   assert.equal(G8.disco.modo, 0); assert.ok([6, 8, 10].includes(G8.disco.t)); assert.ok(G8.disco.tornillos.n >= 100);
 });
 
-test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 190) en portador A36 de 25 mm fijo", () => {
+test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 190) en portador A572 Gr. 50 de 22 mm fijo (rev. 6)", () => {
   const U = G0.pastillas, C = G0.portador;
-  assert.equal(P0.bx_H_uh, 30); assert.equal(P0.bx_tc, 25); assert.equal(P0.bx_dp_max, 185); assert.equal(P0.bx_rho_uh, 0.97);
-  assert.equal(U.H, 30); assert.equal(C.t, 25); near(U.h_p, 5, 1e-12, "saliente = 30 − 25");
+  assert.equal(P0.bx_H_uh, 30); assert.equal(P0.bx_tc, 22); assert.equal(P0.bx_dp_max, 185); assert.equal(P0.bx_rho_uh, 0.97);
+  assert.equal(P0.Fy_bxc, 345); assert.equal(P0.Fu_bxc, 450);
+  assert.equal(U.H, 30); assert.equal(C.t, 22); near(U.h_p, 8, 1e-12, "saliente = 30 − 22");
   assert.ok(U.d <= 185 + 1e-9 && U.d_torneado <= 185 + 1e-9, "Ø " + U.d + " (corte " + U.d_torneado + ") ≤ 185");
   assert.ok(U.d_torneado <= P0.bx_cuad_uh - 2 * 2.5 + 1e-9, "cabe en el cuadrado de " + P0.bx_cuad_uh);
   assert.match(U.material, /ULTRA VST/); assert.match(U.material, /pendiente/i);
@@ -140,31 +145,76 @@ test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 
   assert.equal(U.densidad, 0.97);
   const Hc = U.H, dC = U.d_torneado, hs = P0.bx_d_sp + 2 * P0.bx_c_sp;
   assert.ok(U.masa_unit < 0.97e-6 * Math.PI / 4 * dC * dC * Hc && U.masa_unit > 0.97e-6 * Math.PI / 4 * (dC * dC - 4 * hs * hs) * Hc, "masa unitaria con ρ = 0,97");
-  assert.match(C.material, /A36/);
-  // portador: torsión y filetes con Fy = 250 (A36) cumplen (FU < 1) sin cambiar el espesor (patrón radial con pastillas quitadas del anillo crítico)
-  const Aa = BX.analyze(Object.assign({}, P0, { Fy: 250, Fu: 400 }), { noFEA: true });
-  Aa.checks.filter((c) => c.bx && /Portador|Pastillas/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.fu <= 1 + 1e-9, "A36: " + c.name + " FU " + c.fu));
-  const tor = Aa.checks.find((c) => /Portador: corte por torsión/.test(c.name)); assert.ok(tor.fu < 1, "torsión " + tor.fu);
-  assert.equal(Aa.bx.portador.t, 25); assert.equal(Aa.bx.pastillas.H, 30);
+  assert.match(C.material, /A572 Gr\. 50/);
+  // portador de 22 mm: torsión y ligamento con Fy_bxc = 345 cumplen (FU < 1; valores de la rev. 6: 0,927 y 0,834); con A36 (250) el ligamento no cumple
+  const tor = A0.checks.find((c) => /Portador: corte por torsión/.test(c.name)), lig = A0.checks.find((c) => /Portador: ligamento junto a la pastilla/.test(c.name));
+  assert.ok(tor.fu < 0.95 && lig.fu < 0.90, "torsión " + tor.fu + ", ligamento " + lig.fu);
+  near(tor.cap, 345 / (P0.Nd * Math.sqrt(3)), 1e-12, "torsión con Fy_bxc");
+  A0.checks.filter((c) => c.bx && /Portador|Pastillas/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.fu <= 1 + 1e-9, "A572: " + c.name + " FU " + c.fu));
+  const Aa = BX.analyze(Object.assign({}, P0, { Fy_bxc: 250, Fu_bxc: 400 }), { noFEA: true });
+  assert.ok(Aa.checks.some((c) => c.bx && /Portador: ligamento junto a la pastilla/.test(c.name) && c.fu > 1), "con A36 de 22 mm el ligamento no cumple");
+  assert.match(Aa.bx.portador.material, /A36/);
+  assert.equal(Aa.bx.portador.t, 22); assert.equal(Aa.bx.pastillas.H, 30);
 });
 
-test("BX: acero A36 en todas las planchas (Fy 250, Fu 400) con los espesores de la rev. 5; aceros especiales sin cambio", () => {
+test("BX: calidad de acero por pieza (rev. 6): A572 Gr. 50 en anillos, base, soporte E y portador; A36 en el resto; aceros especiales sin cambio", () => {
   const TD = TT.defaults(), A = BX.A36;
-  assert.equal(P0.Fy, 250); assert.equal(P0.Fu, 400);
+  assert.equal(P0.Fy, 250); assert.equal(P0.Fu, 400);   // global = A36 (mesa, almas, nervios, collar, orejas, refuerzo y atiesador…)
   for (const k of ["Fy_pin", "Fy_dog", "Fy_pp", "Fy_piv", "Fy_shoe", "Fy_cara", "Fy_cam", "Fy_camP", "Fy_surf", "Fu_bolt"]) assert.equal(P0[k], TD[k], "acero especial sin cambio: " + k);
+  for (const k of ["pr", "base", "boxE", "bxc"]) { assert.equal(P0["Fy_" + k], 345, "A572 Gr. 50: Fy_" + k); assert.equal(P0["Fu_" + k], 450, "Fu_" + k); }
+  assert.equal(P0.Fy_dbl, 0); assert.equal(P0.Fu_dbl, 0);   // refuerzo de esquina y atiesador: el global (A36, calidad Z A770)
   for (const [k, v] of Object.entries(A.despues)) { assert.equal(P0[k], v, k); assert.equal(A.antes[k], TD[k], "antes = núcleo: " + k); }
-  assert.ok(A.despues.t_top > TD.t_top && A.despues.t_bot > TD.t_bot && A.despues.t_base > TD.t_base && A.despues.pv_tl > TD.pv_tl && A.despues.t_pr > TD.t_pr && A.despues.h_boss > TD.h_boss);
+  assert.deepEqual([P0.t_pr, P0.t_base, P0.pv_tbox, P0.pv_tl, P0.bx_tc], [22, 22, 25, 25, 22], "espesores A572 de la rev. 6");
+  assert.deepEqual([P0.t_top, P0.t_bot, P0.t_web, P0.t_rib, P0.h_boss], [25, 20, 8, 8, 70], "espesores A36 de la rev. 5");
   const Pold = BX.defaults({ a36: false }); for (const k of Object.keys(A.despues)) assert.equal(Pold[k], TD[k], "opción anterior: " + k);
-  // ninguna fila de estructura falla (sin FEA aquí; la FEA de la mesa se prueba aparte); la base bajo el soporte E con t_base > 20 usa el crédito de la FEA de Mindlin
-  A0.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("falla con A36: " + c.grp + " | " + c.name + " FU " + c.fu));
+  // cada pieza con su calidad: admisibles de las filas del núcleo
+  const by = (re) => A0.checks.find((c) => re.test(c.name)), Nd = P0.Nd;
+  near(by(/^Aplastamiento en el agujero del anillo$/).cap, 1.25 * 345 / Nd, 1e-12, "anillo: Fy_pr");
+  near(by(/^Tapas del cajón E \(orejas del pasador\): aplastamiento/).cap, 1.25 * 345 / Nd, 1e-12, "tapas E: Fy_boxE");
+  near(by(/^Tapas del cajón E: desgarro por corte hacia las paredes/).cap, 345 / (Nd * Math.sqrt(3)), 1e-12, "tapas E: desgarro");
+  near(by(/^Soporte del ojal E: flexión de las paredes/).cap, 345 / Nd, 1e-12, "paredes E");
+  near(by(/^Tornillos de la placa-guía: aplastamiento en la plancha base/).cap, 2.4 * P0.pv_db * P0.t_base * 450 / 2 / 1e3, 1e-12, "base: Fu_base");
+  // filas con dos piezas: la menor (base A572 + refuerzo A36; base + collar A36; paredes E A572 sobre el refuerzo A36)
+  A0.checks.filter((c) => /^Plancha base bajo el soporte del ojal E: base de .* flexión/.test(c.name)).forEach((c) => near(c.cap, 1.25 * 250 / Nd, 1e-12, "base + refuerzo: la menor"));
+  near(by(/^Aplastamiento del pivote en el asiento/).cap, 1.25 * 250 / Nd, 1e-12, "base + collar: la menor");
+  const cjp = by(FAIL_REV6), wl = by(/^Soporte del ojal E: flexión de las paredes/), tw = by(/^Soporte del ojal E: corte en las paredes/);
+  near(cjp.dem, Math.max(wl.dem / (250 / Nd), tw.dem / (250 / (Nd * Math.sqrt(3)))), 1e-12, "CJP paredes–refuerzo con Fy 250");
+  assert.match(cjp.formula, /mín\(Fy de las paredes; Fy del refuerzo de esquina\) = 250/);
+  // valores de la rev. 6 (sin FEA): docs/bx/README_BX.md §10
+  [[/^Tapas del cajón E: desgarro por corte hacia las paredes/, 0.943], [/^Tapas del cajón E \(orejas del pasador\): aplastamiento/, 0.885], [/^Pasador vertical E: flexión/, 0.824],
+   [/^Soporte del ojal E: flexión de las paredes/, 0.739], [/^Aplastamiento en el agujero del anillo$/, 0.817], [/^Flexión \(biapoyado entre anillos/, 0.910],
+   [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.767], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.843],
+   [/^Plancha base bajo el soporte del ojal E: atiesador tangencial \d+ × \d+ mm: flexión/, 0.887], [/^Plancha base bajo el soporte del ojal E: refuerzo: tapones/, 0.916]].forEach(([re, v]) => {
+    const c = by(re); assert.ok(c, String(re)); near(c.fu, v, 0.006, c.name.slice(0, 60)); });
+  // la única falla: la CJP paredes E–refuerzo (FU 1,02, pendiente de decisión); con el refuerzo de A572 Gr. 50 + A770 (Fy_dbl = 345) todo cumple
+  assert.deepEqual(A0.checks.filter((c) => c.st === "fail").map((c) => c.name).filter((n) => !FAIL_REV6.test(n)), []);
+  assert.ok(cjp.st === "fail" && cjp.fu > 1 && cjp.fu < 1.03, "CJP " + cjp.fu);
+  assert.equal(A0.verdict.estructura, false);
+  const Ad = BX.analyze(Object.assign({}, P0, { Fy_dbl: 345, Fu_dbl: 450 }), { noFEA: true });
+  Ad.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("con refuerzo A572: " + c.name + " FU " + c.fu));
+  near(Ad.checks.find((c) => FAIL_REV6.test(c.name)).fu, by(/^Soporte del ojal E: flexión de las paredes/).fu, 1e-9, "con refuerzo A572 la CJP = flexión de las paredes");
+  // anillos de distinto espesor: el inferior (máx(t_pr, t_bot) = 22) se verifica aparte; el superior queda de máx(t_pr, t_top) = 25 (como la masa del núcleo)
+  const rI = by(/^BX · Aplastamiento en el agujero del anillo inferior de 22 mm/), rF = by(/^BX · Pasador de empuje: flexión con la luz entre los planos medios/), rW = by(/^BX · Soldadura pasador–anillo: bisel dentro del anillo inferior/);
+  assert.ok(rI && rF && rW, "filas BX de los anillos");
+  assert.ok(rI.fu > by(/^Aplastamiento en el agujero del anillo$/).fu && rI.fu < 1, "anillo inferior " + rI.fu);
+  assert.ok(rF.fu >= by(/^Flexión \(biapoyado entre anillos/).fu && rF.fu < 1, "pasador " + rF.fu);
+  assert.ok(rW.fu <= 1, "bisel " + rW.fu);
+  assert.equal(BX._int.ringRows(Object.assign({}, P0, { t_pr: 30 }), A0.R, A0.checks).length, 0, "anillos ≥ planchas: sin filas extra");
+  // base bajo el soporte E (t_base = 22): crédito de la FEA de Mindlin recalibrado con la geometría rev. 6 (empuje 0,965; retorno 0,846)
   const cr = A0.checks.filter((c) => c.bx && /crédito del espesor de la base/.test(c.name));
   assert.ok(cr.length >= 4, "filas con crédito " + cr.length);
-  cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); assert.ok(c.k_tb > 0 && c.k_tb <= 1); });
+  cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); assert.ok(c.k_tb > 0 && c.k_tb <= 1); near(c.cap, 1.25 * 250 / Nd, 1e-12, "crédito con la menor Fy"); });
   const sub = A0.checks.filter((c) => c.sustituida); assert.equal(sub.length, cr.length); sub.forEach((c) => assert.equal(c.st, "info"));
-  near(cr.find((c) => /atasco del retorno/.test(c.name)).k_tb, 0.676, 0.01, "factor de la FEA para el atasco del retorno con t_base = 25");
+  near(cr.find((c) => /atasco del retorno/.test(c.name)).k_tb, 0.846, 0.001, "factor de la FEA para el atasco del retorno con t_base = 22");
+  const crC = cr.find((c) => /empuje a calado/.test(c.name)); near(crC.k_tb, 0.965, 0.001, "factor de la FEA para el empuje con t_base = 22");
+  assert.ok(crC.fu >= 0.771 - 0.002, "no menor que la FEA independiente rev. 6 (0,771): " + crC.fu);
+  assert.ok(cr.find((c) => /atasco del retorno/.test(c.name)).fu >= 0.848 - 0.002, "retorno no menor que la FEA independiente (0,848)");
+  near(BX.analyze(Object.assign({}, P0, { t_base: 25 }), { noFEA: true }).checks.find((c) => c.bx && /crédito.*atasco del retorno|atasco del retorno.*crédito/.test(c.name)).k_tb, 0.676, 0.01, "con t_base = 25: 0,676");
   // sin crédito con t_base = 20 (calibración del núcleo)
   const A20 = BX.analyze(Object.assign({}, P0, { t_base: 20 }), { noFEA: true });
   assert.ok(!A20.checks.some((c) => c.sustituida || /crédito del espesor/.test(c.name)));
+  // masa (rev. 5: 4100 kg → rev. 6: ≈ 3843 kg)
+  assert.ok(A0.R.m.total > 3800 && A0.R.m.total < 3900, "masa " + A0.R.m.total);
 });
 
 test("BX: cinemática y reenganche con la nueva δ (lámina de 3 mm) y las alturas de la rev. 5", () => {
@@ -282,8 +332,9 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   const A = BX.analyze(P0);
   assert.ok(A.fea && A.fea.lift.vmMax > 0);
   assert.equal(A.verdict.gira, true);
-  A.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("con FEA, falla: " + c.grp + " | " + c.name + " FU " + c.fu));   // rev. 5 (A36): mesa (FEA), base e izaje cumplen
-  assert.equal(A.verdict.estructura, true);
+  A.checks.filter((c) => c.st === "fail" && !FAIL_REV6.test(c.name)).forEach((c) => assert.fail("con FEA, falla: " + c.grp + " | " + c.name + " FU " + c.fu));   // rev. 6: mesa (FEA), base e izaje cumplen; solo la CJP paredes E–refuerzo (pendiente)
+  assert.equal(A.verdict.estructura, false);
+  [[/^Plancha superior: global \+ local/, 0.782], [/^Plancha inferior: global \+ local/, 0.785]].forEach(([re, v]) => near(A.checks.find((c) => re.test(c.name)).fu, v, 0.006, String(re)));
   A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= 0.9 + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);

@@ -63,7 +63,17 @@ const BX = (() => {
     ["bx_dp_max", "Pastillas: Ø de corte máximo (se cortan de cuadrados de bx_cuad_uh del proveedor; decisión del mandante 18-11-2026: Ø ≤ 185)", "mm", 185, 60, 300, 1],
     ["bx_cuad_uh", "Pastillas: lado de los cuadrados de UHMW del proveedor de los que se cortan (ULTRA VST 190 × 190)", "mm", 190, 60, 400, 1],
     ["bx_rho_uh", "UHMW: densidad (ULTRA VST, ficha Plastigen: 0,97; antes 0,94)", "g/cm³", 0.97, 0.9, 1, 0.01],
-    ["bx_tc", "Portador: espesor de la plancha A36 (decisión del mandante 18-11-2026: 25 mm fijo; 0 = automático)", "mm", 25, 0, 40, 1],
+    ["bx_tc", "Portador: espesor de la plancha (rev. 6, decisión del mandante 18-11-2026: 22 mm de A572 Gr. 50 fijo; rev. 5: 25 mm de A36; 0 = automático)", "mm", 22, 0, 40, 1],
+    ["Fy_bxc", "Portador: Fy del acero (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy)", "MPa", 345, 0, 690, 5],
+    ["Fu_bxc", "Portador: Fu del acero (rev. 6: ASTM A572 Gr. 50, 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
+    ["Fy_pr", "Calidad por pieza: Fy de los anillos de pasadores superior e inferior (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy)", "MPa", 345, 0, 690, 5],
+    ["Fu_pr", "Calidad por pieza: Fu de los anillos de pasadores (rev. 6: 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
+    ["Fy_base", "Calidad por pieza: Fy de la plancha base (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy). Con el refuerzo de esquina o el collar (globales) se usa la menor", "MPa", 345, 0, 690, 5],
+    ["Fu_base", "Calidad por pieza: Fu de la plancha base (rev. 6: 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
+    ["Fy_boxE", "Calidad por pieza: Fy del soporte del ojal E: paredes traseras, muñones y tapas superior e inferior (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy). CJP de las paredes sobre el refuerzo: la menor", "MPa", 345, 0, 690, 5],
+    ["Fu_boxE", "Calidad por pieza: Fu del soporte del ojal E (rev. 6: 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
+    ["Fy_dbl", "Calidad por pieza: Fy del refuerzo de esquina BAS-030 y del atiesador tangencial (rev. 6: 0 = el global, ASTM A36 con calidad Z ASTM A770; 345 = A572 Gr. 50 + A770)", "MPa", 0, 0, 690, 5],
+    ["Fu_dbl", "Calidad por pieza: Fu del refuerzo de esquina y del atiesador (rev. 6: 0 = el global)", "MPa", 0, 0, 800, 5],
     ["bx_lig", "Portador: ligamento mínimo entre agujeros (0 = automático: máx(10; t_portador), criterio de taller para corte por plasma)", "mm", 0, 0, 60, 1],
     ["bx_nw", "Portador: unión a la base. 0 = solo filetes perimetrales exterior e interior (por defecto: el portador lleva el par a torsión hasta sus bordes); ≥ 1 = además agujeros de soldadura con filete interior en lugar de algunas pastillas (1: los elige la regla de un salto; 7: subred √7 o cada 7.ª posición del anillo, completada con la regla de un salto)", "–", 0, 0, 13, 1],
     ["bx_w_h", "Portador: filete interior de los agujeros de soldadura (agujero del mismo Ø que el de las pastillas, filete en todo el contorno a la base, sin pastilla)", "mm", 6, 3, 16, 1],
@@ -92,10 +102,15 @@ const BX = (() => {
   // soporte del ojal E, collar del pivote, portador, orejas…; parámetros «Fy»/«Fu» del núcleo, que solo usan planchas: comprobado fila por fila) y los
   // espesores comerciales que hacen falta con A36. Los aceros especiales (pasadores, bloque-uña, placa-guía, leva, pivote, vástago, tornillos) tienen su propio
   // parámetro y no cambian. «antes» = valores del núcleo (A572 Gr. 50): BX.defaults({ a36: false }) los conserva como opción.
-  const A36_DESPUES = { Fy: 250, Fu: 400, t_top: 25, t_bot: 20, t_web: 8, t_rib: 8, w_web: 8, t_pr: 30, t_base: 25, h_boss: 70, pv_tl: 36 };
+  // Rev. 6 (decisión del mandante 18-11-2026): calidad de acero POR PIEZA. ASTM A572 Gr. 50 (Fy 345, Fu 450; parámetros Fy_pr/Fu_pr, Fy_base/Fu_base,
+  // Fy_boxE/Fu_boxE del grupo BX, que el núcleo lee con fyOf/fuOf, y Fy_bxc/Fu_bxc del portador): anillos de pasadores t_pr = 22, plancha base t_base = 22,
+  // soporte del ojal E (paredes traseras y muñones pv_tbox = 25, tapas pv_tl = 25) y portador bx_tc = 22. ASTM A36 (Fy 250, Fu 400; el global Fy/Fu): todo
+  // el resto con los espesores de la rev. 5 (mesa 25/20, almas y nervios 8, refuerzo de esquina con su espesor automático, atiesador 30, collar 70, orejas…).
+  // Filas con piezas de distinta calidad: la menor (base + refuerzo, base + collar, CJP de las paredes E sobre el refuerzo; ver tt300c.js, fyOf).
+  const A36_DESPUES = { Fy: 250, Fu: 400, t_top: 25, t_bot: 20, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 25, pv_tbox: 25 };
   const A36 = { despues: A36_DESPUES, antes: (() => { const D = TT_.defaults(), o = {}; for (const k in A36_DESPUES) o[k] = D[k]; return o; })(),
     nota: { Fy: "A36 (antes A572 Gr. 50)", Fu: "A36", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
-      t_pr: "anillos de pasadores: aplastamiento del agujero del pasador de empuje", t_base: "plancha base (bajo el soporte del ojal E; asiento del pivote)", h_boss: "collar de asiento del pivote (profundidad del asiento con H·e)", pv_tl: "tapas del cajón del ojal E: desgarro y aplastamiento" } };
+      t_pr: "anillos de pasadores (rev. 6: A572 Gr. 50, 22 mm; el anillo superior queda de máx(t_pr, t_top) = 25): aplastamiento del agujero del pasador de empuje", t_base: "plancha base (rev. 6: A572 Gr. 50, 22 mm; bajo el soporte del ojal E; asiento del pivote)", h_boss: "collar de asiento del pivote (profundidad del asiento con H·e)", pv_tl: "tapas del cajón del ojal E (rev. 6: A572 Gr. 50, 25 mm; rev. 5: A36, 36 mm): desgarro y aplastamiento", pv_tbox: "paredes traseras y muñones del soporte del ojal E (rev. 6: A572 Gr. 50, 25 mm)" } };
   function defaults(o) {
     const P = TT_.defaults();
     BX_GROUP.p.forEach((q) => { P[q[0]] = q[3]; });
@@ -106,6 +121,8 @@ const BX = (() => {
   const ifOpt = (P) => P.opt_bz > 0.5 ? 3 : (P.opt_uhmw > 0.5 ? 2 : (P.opt_ss > 0.5 ? 1 : 0));
   const active = (P) => ifOpt(P) === 2;
   const lamOn = (P) => Math.round(P.bx_disc_modo == null ? 1 : P.bx_disc_modo) === 1;   // modo 1: lámina de 3 mm soldada (por defecto)
+  const fyC = (P) => (P.Fy_bxc > 0 ? P.Fy_bxc : P.Fy), fuC = (P) => (P.Fu_bxc > 0 ? P.Fu_bxc : P.Fu);   // acero del portador (0 = el global)
+  const astm = (Fy, Fu) => (Fy === 345 && Fu === 450 ? "ASTM A572 Gr. 50" : Fy === 250 && Fu === 400 ? "ASTM A36" : "acero estructural") + " (Fy " + Fy + ", Fu " + Fu + " MPa)";
   const full = (P) => { const d = bxDefaults(), Q = Object.assign({}, P); for (const k in d) if (!(k in Q)) Q[k] = d[k]; return Q; };   // P del núcleo sin claves bx_: valores por defecto
 
   /* ---------------- Material del disco ---------------- */
@@ -530,7 +547,7 @@ const BX = (() => {
   }
   function size(P, R, fz) {
     P = full(P);
-    const C = ctxOf(P, R), M = matOf(P), Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), FvC = P.Fy / (Nd * Math.sqrt(3));
+    const C = ctxOf(P, R), M = matOf(P), Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), FvC = fyC(P) / (Nd * Math.sqrt(3));
     const pats = fz ? [fz.pat || (Math.round(P.bx_pat) === 1 ? 1 : 2)] : Math.round(P.bx_forma) === 1 ? [1] : Math.round(P.bx_pat) > 0 ? [Math.round(P.bx_pat)] : [2, 1], nws = fz ? [fz.nw] : P.bx_nw > 0 ? [Math.round(P.bx_nw)] : [0], kSp = isoK(P.bx_d_sp);
     const capWh = (d) => Fw * 0.707 * P.bx_w_h * Math.PI * (d - P.bx_w_h);   // filete interior del agujero de soldadura (largo en el centro de la garganta ≈ π(d − w), conservador)
     const tcMin = Math.ceil(0.5 + kSp + P.bx_u_min);
@@ -713,7 +730,7 @@ const BX = (() => {
         celda: { a: ce.a, b: ce.b, sigma: ce.sig, flecha: ce.w, M_a: ce.c.Ma, M_b: ce.c.Mb }, vacio: { a: g.aV, sigma: 0.75 * C.qmax * (g.aV / (g.tss - P.ss_allow)) ** 2 },
         hueco: { a: g.DT.aG, fraccion_disco: g.DT.gap.sh, sigma: g.DT.gap.sig },
         termico: { dT: g.BF.dTd, alfa_acero: P.bx_al_st * 1e-6, sigma_uniaxial: M.E * Math.abs(M.al - P.bx_al_st * 1e-6) * g.BF.dTd, sigma_biaxial: M.E * Math.abs(M.al - P.bx_al_st * 1e-6) * g.BF.dTd / (1 - M.nu), criterio: "secundaria: rango ≤ 2Fy (ASME VIII-2 5.5.6.1) y ≤ Fy; pandeo del panel s×s (k = 2)" } },
-      portador: { t: g.tc, R_int: C.Rci, R_ext: C.Rco, material: "ASTM A36, Fy " + P.Fy + " MPa (decisión del mandante 18-11-2026: todas las planchas en A36; parámetro Fy del núcleo)", corte: "plasma de alta definición (contorno y agujeros de pastillas y tapones), tolerancia del Ø ± " + nf(P.bx_tol_h, 2) + " mm",
+      portador: { t: g.tc, R_int: C.Rci, R_ext: C.Rco, material: astm(fyC(P), fuC(P)) + " (rev. 6, decisión del mandante 18-11-2026: calidad por pieza; parámetros Fy_bxc/Fu_bxc)", corte: "plasma de alta definición (contorno y agujeros de pastillas y tapones), tolerancia del Ø ± " + nf(P.bx_tol_h, 2) + " mm",
         paso: g.s, ligamento: g.lig, patron: { tipo: g.pat === 2 ? "radial" : "triangular", paso: g.s, nw: g.nw, saltos_max: g.fl.hMax, sin_camino: g.fl.unreached, pastillas_al_borde: g.fl.nEdge, pastillas_quitadas_por_anillo: g.drops || [], nota: g.pat === 2 ? "anillos concéntricos repartidos entre el borde exterior y el interior a paso ≥ s; n por anillo = ⌊2πr/s⌋ menos las quitadas (alivio de la torsión del portador A36 en el anillo crítico: " + JSON.stringify(g.drops || []) + ")" + (g.nw >= 1 ? "; cada " + g.nw + ".ª posición del anillo es un agujero de soldadura" : "") : "red triangular anclada al centro (fila alterna desplazada s/2); agujeros de soldadura en la subred de índice " + g.nw + " (coordenadas axiales q, r: " + (g.nw === 13 ? "(q + 4r) mod 13 = 0" : g.nw === 7 ? "(q + 3r) mod 7 = 0" : "ver weldSite") + "); las pastillas del borde entregan al filete perimetral" },
         agujeros: { d: L.SH.sq ? null : g.d, forma: L.SH.sq ? "cuadrada" : "redonda", lado: L.SH.sq ? g.d : null, r_esquina: L.SH.sq ? L.SH.rc : null, area: L.SH.ApH, n: g.nP, posiciones: L.pucks.map((q) => [q.hx, q.hy]), recortadas: L.pucks.map((q, i) => (q.trim ? { i, centro: [q.hx, q.hy], fraccion: q.f, contorno: "cuadrado ∩ corona R" + nf(C.Rci + g.lig, 0) + "…R" + nf(C.Rco - g.lig, 0) } : null)).filter(Boolean),
           orientacion: L.SH.sq ? "lados paralelos a x e y (malla cartesiana de paso " + g.s + "; desplazamiento " + JSON.stringify(L.pucks[0] && L.pucks[0].off || [0, 0]) + "·s)" : null },
@@ -763,7 +780,7 @@ const BX = (() => {
       ["Lámina UHMW sectorizada (24 sectores con rebaje)", "Corte CNC/ruteador o chorro de agua de 24 sectores con rebaje para la barra",
         g.nP + " pastillas " + (g.L.SH.sq ? "cuadradas de " + nf(g.d + g.delta, 2) + " (esquinas R" + nf(g.L.SH.rcp, 1) + ")" : "Ø" + nf(g.d + g.delta, 2)) + " cortadas con router CNC (o chorro de agua) de plancha comercial calibrada de UHMW de " + nf(g.H, 0) + " mm (sin tornear: interferencia lograda en el corte, ± " + nf(P.bx_tol_p, 2) + " mm; agujero y avellanado del tornillo con el router en la misma sujeción; caras de la plancha sin mecanizar)", "simplificada",
         "Pieza única repetitiva, reemplazable de a una con la mesa izada; sin juntas de dilatación entre sectores", "Pastillas: presión, sobrepresión por planitud, PV, desgaste y holgura, aplastamiento contra la pared, núcleo central, ajuste en frío y caliente (filas «BX · Pastillas …»)"],
-      ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm cortada con plasma de alta definición (" + g.nP + " agujeros " + (g.L.SH.sq ? "cuadrados de " + g.d + " con esquinas R" + nf(g.L.SH.rc, 1) : "Ø" + g.d) + (g.nW ? " y " + g.nW + " agujeros de soldadura Ø" + g.dPlug + " con filete interior" : "") + "), soldada a la base " + (g.nW ? "con esos filetes y " : "solo ") + "con filetes perimetrales exterior e interior z" + P.bx_w_c, "nueva",
+      ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm de " + astm(fyC(P), fuC(P)) + " cortada con plasma de alta definición (" + g.nP + " agujeros " + (g.L.SH.sq ? "cuadrados de " + g.d + " con esquinas R" + nf(g.L.SH.rc, 1) : "Ø" + g.d) + (g.nW ? " y " + g.nW + " agujeros de soldadura Ø" + g.dPlug + " con filete interior" : "") + "), soldada a la base " + (g.nW ? "con esos filetes y " : "solo ") + "con filetes perimetrales exterior e interior z" + P.bx_w_c, "nueva",
         "Reemplaza los sectores, sus topes y la lámina: la pared del agujero toma el arrastre y el portador lo lleva a torsión hasta sus bordes soldados", "Portador: ligamento, corte por torsión en la sección neta, filetes perimetrales (filas «BX · Portador …»)"],
       ["Barras de tope soldadas de los sectores (inoxidable y acero) y sus muescas", "Barras cortadas, soldadas al disco de la base y a la mesa antes del rectificado; muescas y chaflanes en cada sector", "—", "eliminada",
         g.LAM ? "El par pasa por los tapones y la costura de la lámina (mesa) y por los agujeros del portador (base)" : "El par pasa por los tornillos del disco (mesa) y por los agujeros del portador (base)", g.LAM ? "BX · Tapones y costura de la lámina; BX · Portador (ligamento y torsión)" : "BX · Tornillos del disco (par + dilatación); BX · Portador (ligamento y tapones)"],
@@ -790,6 +807,9 @@ const BX = (() => {
         "La holgura radial c_boss_r admite el corte térmico; el rebaje del cubo depende de δ", "Núcleo: Pivote (rebaje: h_collar − δ + c_boss_a)"],
       ["Orejas de izaje", "Perfil a plasma; agujero H12 taladrado y mandrinado", "Sin cambio", "se mantiene", "Pasador de grillete: ASME BTH-1 pide agujero liso; no hay verificación del agujero a plasma en el núcleo", "Núcleo: Orejas de izaje (AISC D5)"],
       ["Refuerzos de esquina, soporte del ojal E (paredes y muñones), marco perimetral, mesa (planchas, almas, nervios, anillos)", "Plancha cortada y soldada (con alivio de tensiones de los conjuntos)", "Sin cambio: ya son plasma + soldadura", "se mantiene", "—", "Núcleo: Base, Mesa (FEA), Soldaduras"],
+      ["Calidad del acero de las planchas (rev. 6, decisión del mandante 18-11-2026)", "Rev. 5: ASTM A36 (Fy 250, Fu 400) en todas las planchas",
+        "Por pieza: anillos de pasadores t_pr = " + P.t_pr + " (" + astm(P.Fy_pr > 0 ? P.Fy_pr : P.Fy, P.Fu_pr > 0 ? P.Fu_pr : P.Fu) + "; el superior queda de máx(t_pr, t_top) = " + Math.max(P.t_pr, P.t_top) + "), plancha base " + P.t_base + " (" + astm(P.Fy_base > 0 ? P.Fy_base : P.Fy, P.Fu_base > 0 ? P.Fu_base : P.Fu) + "), soporte del ojal E: paredes y muñones " + P.pv_tbox + ", tapas " + P.pv_tl + " (" + astm(P.Fy_boxE > 0 ? P.Fy_boxE : P.Fy, P.Fu_boxE > 0 ? P.Fu_boxE : P.Fu) + "), portador " + g.tc + " (" + astm(fyC(P), fuC(P)) + "); el resto, " + astm(P.Fy, P.Fu) + ": mesa (planchas " + P.t_top + "/" + P.t_bot + ", almas y nervios " + P.t_web + "/" + P.t_rib + "), collar " + P.h_boss + ", marco, orejas; refuerzo de esquina y atiesador " + astm(P.Fy_dbl > 0 ? P.Fy_dbl : P.Fy, P.Fu_dbl > 0 ? P.Fu_dbl : P.Fu) + " con calidad Z (ASTM A770)",
+        "se mantiene", "Cada pieza con su calidad; las filas con dos piezas usan la menor (base + refuerzo, base + collar, CJP de las paredes E sobre el refuerzo); identificar y trazar las planchas A572 (marcado de colada) para que no se mezclen con las A36", "Núcleo con Fy_pr, Fy_base, Fy_boxE, Fy_dbl; BX · Portador (Fy_bxc); docs/bx/README_BX.md §10"],
       ["Ranuras de engrase y graseras de la interfaz", "Fresadas en el disco de la mesa (opción A); graseras en el borde", "—: UHMW sobre inoxidable sin ranuras (μ de la opción B); engrase opcional de montaje", "eliminada", "La opción B ya no las usa", "Interfaz: μ de la opción B (muB_*)"],
     ];
     if (!pv) rows.push(["Accionamiento guiado (patín, bancada con ranura T, uña, riel-leva)", "Patín y uña mecanizados, ranura T fresada", "Sin cambio (BX no modifica el accionamiento)", "se mantiene", "Ajustes H9/f8 y contactos templados", "Núcleo: Patín y guía, Uña, Leva de reenganche"]);
@@ -844,7 +864,7 @@ const BX = (() => {
   function bxRows(P, R, D) {
     P = full(P);
     const out = [], add = (o) => out.push(Object.assign({ kind: "fu", grp: GRP, bx: true }, o, { fu: o.kind === "info" || o.kind === "pend" ? (o.fu != null && o.kind === "pend" ? o.fu : null) : (o.fu != null ? o.fu : ((o.cap > 0 && o.dem >= 0) ? o.dem / o.cap : Infinity)) }));
-    const S = size(P, R, D.frozen), g = S.geo, C = g.C, M = g.M, L = g.L, BF = g.BF, BL = g.BL, Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), FvC = P.Fy / (Nd * Math.sqrt(3));
+    const S = size(P, R, D.frozen), g = S.geo, C = g.C, M = g.M, L = g.L, BF = g.BF, BL = g.BL, Nd = P.Nd, Fw = P.FEXX * 0.60 / (1.20 * Nd), FvC = fyC(P) / (Nd * Math.sqrt(3));
     const e = puckEval(P, C, M, L, g.d, g.s, g.tc, g.lig, g.nw, g.hp, g.tss, g.dPlug), ce = cellOf(P, C, M, L, g.d, g.tss, g.s), fl = g.fl;
     const th = P.__th, T = th ? th.T : P.T_ref, dTu = T - P.T_ref, FA = L.FA || L.pMax * L.Ap, Fi = C.muRes * FA, Fi0 = C.muU * FA, sad = 0.6 * M.Fy, te = g.tss - P.ss_allow;
     const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme); 0,6Fy (criterio del proyecto, como el núcleo)";
@@ -928,7 +948,7 @@ const BX = (() => {
     add({ sys: "est", kind: "info", name: pfx + "Tornillos del disco: componente térmica secundaria (" + nf(BF.dTd, 0) + " K) por anillo según su rigidez y combinación informativa con el par", formula: "franja de ancho = paso del anillo exterior, nudos en los anillos (centro fijo, borde libre), resortes de Huth; V_th,anillos (kN) = " + BF.th_out.porAnillo.map((x) => nf(x / 1e3, 2)).join(" / ") + "; √(V_T² + V_th²) = " + nf(BF.V_comb / 1e3, 2) + " kN frente a " + nf(BF.capV / 1e3, 2) + " (no se suma como carga de resistencia: el disco acomoda con la holgura y el aplastamiento local del agujero)", dem: BF.Fth_out / 1e3, cap: BF.V_comb / 1e3, unit: "kN / kN", ref: "AISC 360-22 §J3.10 (deformación del agujero admitida); Huth (1986, ASTM STP 927)" });
     add({ sys: "est", name: pfx + "Tornillos del disco: aplastamiento y desgarro hacia el borde exterior en el disco (avellanado)", formula: "V_T ≤ R_n/Ω, R_n = mín(1,2·l_c·t_e·Fu; 2,4·d·t_e·Fu), t_e = t − k/2 = " + nf(BF.te, 2) + " mm, l_c = (R_o − r) − d_h/2 = " + nf(BF.lcEdge, 1) + " mm", dem: BF.V_prim / 1e3, cap: BF.RnSS_edge / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.11 (Ec. J3-6a, J3-6c); EN 1993-1-8 Tabla 3.4 (avellanado)" });
     const tbW = w.anillo ? P.t_pr : P.t_bot, leW = Math.min(D.disco.tornillos.lista.reduce((m, b) => Math.min(m, isFinite(b.le) ? b.le : 0), Infinity), tbW);
-    add({ sys: "est", name: pfx + "Tornillos del disco: aplastamiento en la pieza roscada de la mesa", formula: "V_T ≤ R_n/Ω, R_n = 2,4·d·l_e·Fu; l_e = mín. engrane = " + nf(leW, 1) + " mm", dem: BF.V_prim / 1e3, cap: 2.4 * g.dT * leW * P.Fu / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.11" });
+    add({ sys: "est", name: pfx + "Tornillos del disco: aplastamiento en la pieza roscada de la mesa", formula: "V_T ≤ R_n/Ω, R_n = 2,4·d·l_e·Fu; l_e = mín. engrane = " + nf(leW, 1) + " mm", dem: BF.V_prim / 1e3, cap: 2.4 * g.dT * leW * Math.min(P.Fu, P.Fu_pr > 0 ? P.Fu_pr : P.Fu) / 2 / 1e3, unit: "kN", ref: "AISC 360-22 §J3.11 (Fu: la menor entre el anillo inferior y la plancha inferior)" });
     add({ sys: "est", kind: "geo", name: pfx + "Tornillos del disco: engrane en la plancha inferior (pasante) o en el anillo inferior (ciego, remanente 3 mm)", formula: "1,25·d ≤ l_e (mínimo de todas las posiciones)", dem: 1.25 * g.dT, cap: leW, unit: "mm", ref: "VDI 2230-1:2015 (orientativo, 10.9 en S355; criterio del registro AF2)" });
     add({ sys: "est", kind: "geo", name: pfx + "Tornillos del disco: separación entre centros", formula: "3·d ≤ s_mín", dem: 3 * g.dT, cap: BL.sMin, unit: "mm", ref: "AISC 360-22 §J3.4" });
     add({ sys: "est", kind: "geo", name: pfx + "Tornillos del disco: distancia al borde exterior e interior del disco", formula: "e_mín (Tabla J3.4M) ≤ mín(R_o − r_ext; r_int − R_i)", dem: J34M(g.dT), cap: Math.min(C.Ro - BL.radii[BL.radii.length - 1], BL.radii[0] - C.Ri), unit: "mm", ref: "AISC 360-22 §J3.5, Tabla J3.4M (M16 para menores, como el núcleo)" });
@@ -971,7 +991,11 @@ const BX = (() => {
   //   empuje (nom/dis/cal): FU_FEA 0,193/0,611/0,860 → 22 mm: 0,174/0,548/0,771 → 25 mm: 0,172/0,520/0,728 (el núcleo daba 0,823 a calado con 20: la FEA es
   //   4,5 % mayor, se aplica ese factor); atasco del retorno: 1,002 → 0,848 → 0,677 (núcleo 1,055). Factor sobre la fila del núcleo, interpolado en t_base
   //   (≥ 25: el de 25); mesa vacía sin crédito. Solo modo pivotado (la calibración no cubre el guiado).
-  const BASE_FEA = { tb: [20, 22, 25], emp: [1.045, 1.045 * 0.897, 1.045 * 0.847], ret: [1.0, 0.846, 0.676] };
+  // Rev. 6 (base de 22 mm de A572 Gr. 50, refuerzo automático de 65 mm de A36, paredes E de 25): la misma FEA sobre el JSON de diseño rev. 6 da, con
+  // Fy = 250 (la menor de las piezas): nom/dis/cal 0,174/0,548/0,771 frente al núcleo 0,195/0,575/0,799 (cociente máx. 0,965 > 0,937 de la rev. 5: se
+  // adopta 0,965 para no quedar del lado inseguro) y atasco del retorno 0,848 frente a 1,052 (0,806 < 0,846: se conserva 0,846, conservador). El pico del
+  // retorno cae en la base sola (t = 22, A572: con Fy 345 FU 0,614) y el del calado en la franja del atiesador (t_eq = 72, A36): las filas usan la menor Fy.
+  const BASE_FEA = { tb: [20, 22, 25], emp: [1.045, 0.965, 1.045 * 0.847], ret: [1.0, 0.846, 0.676] };
   function baseCredit(P, checks) {
     const out = [], tb = P.t_base;
     if (!(tb > 20 + 1e-9) || TT_.driveMode(P) !== 2) return out;
@@ -982,10 +1006,34 @@ const BX = (() => {
       const id = /atasco del retorno/.test(m[1]) ? "ret" : /vac[ií]a/.test(m[1]) ? null : "emp"; if (!id) return;
       const f = k(BASE_FEA[id]); if (!(f < 1)) return;
       out.push({ after: c, row: { kind: "fu", grp: c.grp, sys: c.sys, bx: true, k_tb: f, name: "BX · " + c.name + " — crédito del espesor de la base t_base = " + tb + " mm (FEA de Mindlin)",
-        formula: c.formula + "; × k = " + nf(f, 3) + " (FEA de Mindlin de la base completa con t_base = " + tb + " frente a 20 mm, " + (id === "ret" ? "atasco del retorno" : "empuje, con el 4,5 % en que la FEA supera al núcleo con 20 mm") + ")",
-        dem: c.dem * f, cap: c.cap, unit: c.unit, ref: (c.ref || "") + "; tests/indep_plancha_base_E.py §4 (FEA de Mindlin, misma formulación de la calibración del núcleo) sobre el diseño TT300-BX rev. 5; docs/bx/README_BX.md §9" } });
+        formula: c.formula + "; × k = " + nf(f, 3) + " (FEA de Mindlin de la base completa con t_base = " + tb + " frente a 20 mm, " + (id === "ret" ? "atasco del retorno" : "empuje: cociente FEA/núcleo del caso que gobierna, con 22 mm el de la rev. 6") + "); Fy = la menor entre la base y el refuerzo o el atiesador (" + nf(c.cap * P.Nd / 1.25, 0) + " MPa)",
+        dem: c.dem * f, cap: c.cap, unit: c.unit, ref: (c.ref || "") + "; tests/indep_plancha_base_E.py §4 (FEA de Mindlin, misma formulación de la calibración del núcleo) sobre los diseños TT300-BX rev. 5 y rev. 6; docs/bx/README_BX.md §9 y §10" } });
       c.kind = "info"; c.st = "info"; c.sustituida = true; c.name = c.name + " [sustituida en TT300-BX por la fila con el crédito del espesor de la base]";
     });
+    return out;
+  }
+
+  /* ---------------- Anillos de pasadores de distinto espesor (rev. 6) ---------------- */
+  // El núcleo verifica el pasador de empuje con un solo espesor de anillo t = máx(t_pr, t_top, t_bot) (anillos iguales). Con t_pr menor que la plancha
+  // superior (rev. 6: t_pr = 22 < t_top = 25) el anillo superior queda de máx(t_pr, t_top) = 25 (una pieza con la plancha en la zona del anillo, como la
+  // masa del núcleo) y el inferior de máx(t_pr, t_bot) = 22: la reacción V = F_r·(1/2 + e/L) puede caer en cualquiera de los dos (e accidental en ambos
+  // sentidos), de modo que el aplastamiento y el bisel de la soldadura se verifican también con el anillo más delgado, y la flexión del pasador con la luz
+  // entre los planos medios de los anillos L = h − (t_sup + t_inf)/2. Filas BX agregadas después de las del núcleo (que quedan).
+  function ringRows(P, R, checks) {
+    const out = [], tS = Math.max(P.t_pr, P.t_top), tI = Math.max(P.t_pr, P.t_bot), tN = Math.max(P.t_pr, P.t_top, P.t_bot), tMin = Math.min(tS, tI);
+    if (!(tMin < tN - 1e-9) || !R.Fstall) return out;
+    const Nd = P.Nd, Fpr = R.Fstall * Math.hypot(1, P.mu_s), FyR = P.Fy_pr > 0 ? P.Fy_pr : P.Fy;
+    const L1 = P.h_disc - (tS + tI) / 2, Vp = Fpr * (0.5 + P.e_dog / L1), c = Math.min(P.dog_h, L1), M = Fpr / 4 * (L1 - c / 2) / 1e3, Sp = Math.PI * P.d_pin ** 3 / 32;
+    const at = (re) => checks.find((q) => q.grp === "Pasadores de empuje" && re.test(q.name));
+    const cB = at(/^Aplastamiento en el agujero del anillo$/), cF = at(/^Flexión \(biapoyado/), cW = at(/bisel dentro del anillo/), cS = at(/^Soldadura pasador–anillo \(PJP/);
+    const lb = "anillo " + (tI < tS ? "inferior" : "superior") + " de " + tMin + " mm (sup. máx(t_pr, t_top) = " + tS + ", inf. máx(t_pr, t_bot) = " + tI + ")";
+    const REGR = "Modelo del pasador biapoyado del núcleo con los dos espesores de anillo; docs/bx/README_BX.md §10";
+    if (cB) out.push({ after: cB, row: { kind: "fu", grp: cB.grp, sys: "est", bx: true, name: "BX · Aplastamiento en el agujero del " + lb, formula: "σ = V/(d·t) ≤ 1,25·Fy_pr/Nd; V = F_r·(1/2 + e/L) = " + nf(Vp, 1) + " kN con L = h − (t_sup + t_inf)/2 = " + nf(L1, 1) + " mm, t = " + tMin + " mm, Fy_pr = " + FyR + " MPa",
+      dem: Vp * 1e3 / (P.d_pin * tMin), cap: 1.25 * FyR / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento en pasadores); " + REGR } });
+    if (cF) out.push({ after: cF, row: { kind: "fu", grp: cF.grp, sys: "est", bx: true, name: "BX · Pasador de empuje: flexión con la luz entre los planos medios de los anillos (" + tS + " / " + tI + " mm)", formula: "M = F_r·(L − c/2)/4, L = h − (t_sup + t_inf)/2 = " + nf(L1, 1) + " mm, c = h_uña; σ = M/S ≤ Fy_pin/Nd",
+      dem: M * 1e6 / Sp, cap: P.Fy_pin / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3; " + REGR } });
+    if (cW && cS) { const S = +(/S (\d+)/.exec(cS.name) || [0, 0])[1];
+      out.push({ after: cW, row: { kind: "geo", grp: cW.grp, sys: "est", bx: true, name: "BX · Soldadura pasador–anillo: bisel dentro del " + lb + " (S ≤ t − 5)", formula: "S = " + S + " mm ≤ " + (tMin - 5) + " mm", dem: S, cap: tMin - 5, unit: "mm", ref: "Geometría; " + REGR } }); }
     return out;
   }
 
@@ -995,7 +1043,7 @@ const BX = (() => {
     const Dg = design(P.__th ? Object.assign({}, P.__th.P0, { __th: undefined }) : P), Pc = Object.assign({}, full(P), { __bx: Dg.bx });
     const A = TT_.analyze(Pc, opts);
     const rows = bxRows(Pc, A.R, Dg).map((c) => stOf(Pc, c));
-    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core);   // copias: el análisis del núcleo puede estar en memoria
+    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core).concat(ringRows(Pc, A.R, core));   // copias: el análisis del núcleo puede estar en memoria
     cred.forEach((o) => { const r = stOf(Pc, Object.assign({}, o.row, { fu: o.row.dem / o.row.cap })); core.splice(core.indexOf(o.after) + 1, 0, r); });
     const idx = core.reduce((k, c, i) => (c.grp === "Interfaz" ? i : k), -1);
     const checks = core.slice(0, idx + 1).concat(rows, core.slice(idx + 1));
@@ -1037,6 +1085,6 @@ const BX = (() => {
     return o;
   }
 
-  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, BASE_FEA }, PARAM_GROUPS, BX_GROUP, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
+  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, BASE_FEA }, PARAM_GROUPS, BX_GROUP, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
 })();
 if (typeof module !== "undefined") module.exports = BX;

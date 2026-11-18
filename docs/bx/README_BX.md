@@ -239,3 +239,75 @@ alzado mejoran porque el eje baja 5 mm.
 4. Textos de material del núcleo (exportación de planos) siguen diciendo «S355J2» con el Fy del parámetro (250); el refuerzo pide calidad Z en
    el espesor (con A36: ASTM A770). El generador de planos (`cad/bx3d.py`, `cad/bx_notas.py`) y `Tornamesa_BX_v1.0.html` no se tocaron: el
    modo 1 exporta `disco.tornillos` vacío y los bloques nuevos `disco.lamina`, `disco.tapones` y `disco.costura`.
+
+## 10. Revisión 6 (18-11-2026): calidad de acero POR PIEZA
+
+Decisión del mandante: ASTM A572 Gr. 50 (Fy 345, Fu 450) en las piezas que gobernaban con A36 y espesores menores; ASTM A36 (Fy 250, Fu 400)
+en el resto con los espesores de la rev. 5. Aceros especiales sin cambio.
+
+### 10.1 Implementación
+
+- Núcleo (`tt300c.js`), aditivo: claves OPCIONALES `Fy_pr/Fu_pr` (anillos de pasadores), `Fy_base/Fu_base` (plancha base), `Fy_boxE/Fu_boxE`
+  (paredes traseras, muñones y tapas del soporte del ojal E) y `Fy_dbl/Fu_dbl` (refuerzo de esquina y atiesador), leídas con `fyOf/fuOf`: sin la
+  clave o con valor ≤ 0 se usa el global `Fy/Fu`. El núcleo no las define en `PARAM_GROUPS` (golden y `params_defaults.json` sin cambio); sin ellas
+  los resultados son bit-idénticos (prueba contra a67d98e y subconjunto golden). `thermalP` las reduce con k_Fy solo si existen.
+- Módulo BX: las define en su grupo (`Fy_pr = Fy_base = Fy_boxE = 345`, `Fu_* = 450`; `Fy_bxc/Fu_bxc` del portador = 345/450; `Fy_dbl = 0`: A36).
+- Filas que usan cada calidad: anillos (aplastamiento del agujero y la fila del empotramiento); tapas E (aplastamiento y los dos desgarros);
+  paredes E (flexión, corte, CJP pared–pared); base (filas sin refuerzo, modo guiado, torsión, aplastamiento de los tornillos de la placa-guía
+  con `Fu_base`); portador (ligamento, torsión: `Fy_bxc`); textos de material de `designDrive` y de la tabla de fabricación.
+- Criterio con piezas de distinta calidad (explícito, conservador): la MENOR Fy de las partes involucradas.
+  - Flexión base + refuerzo (sección compuesta) y crédito BX de la FEA: mín(Fy_base, Fy_dbl) = 250.
+  - Asiento del pivote (base + collar A36): 250.
+  - CJP paredes E–asiento (J-E1, J-E2, J-E6): en la línea de fusión la tracción y el corte de la pared pasan tal cual al asiento (tracción en el
+    espesor del refuerzo), así que gobierna mín(Fy_boxE, Fy_dbl) = 250 (sin refuerzo: la base).
+  - Atiesador tangencial: el del refuerzo (A36, RIB_T = 30 sin cambio).
+  - Izaje (σvm de la base) y tornillos del disco del modo 0 (anillo o plancha inferior): el global (A36), del lado seguro.
+- Anillos de distinto espesor: el núcleo verifica el pasador de empuje con un solo anillo t = máx(t_pr, t_top, t_bot) = 25. Con t_pr = 22 < t_top = 25
+  el anillo superior queda de máx(t_pr, t_top) = 25 (como la masa del núcleo) y el inferior de máx(t_pr, t_bot) = 22. BX agrega (`ringRows`):
+  aplastamiento en el anillo inferior de 22 (FU 0,927), flexión del pasador con la luz entre planos medios h − (25 + 22)/2 (0,921) y bisel de la
+  soldadura en el anillo de 22 (S 16 ≤ 17: 0,941). Las filas del núcleo quedan (0,817 / 0,910 / 0,800).
+- Base bajo el soporte E (t_base = 22): FEA de Mindlin del verificador (copia de `tests/indep_plancha_base_E.py` §4) sobre el JSON de diseño rev. 6
+  (refuerzo automático de 65 mm, paredes de 25): nom/dis/cal 0,174/0,548/0,771 y retorno 0,848 con Fy 250, frente al núcleo 0,195/0,575/0,799/1,052.
+  El factor del empuje de la rev. 5 (0,937) quedaba 3 % del lado inseguro: se adopta 0,965 (cociente máx. de la FEA rev. 6); el del retorno se deja en
+  0,846 (la FEA da 0,806). Pico del retorno en la base sola (t = 22, A572: con Fy 345 FU 0,614) y del calado en la franja del atiesador (A36).
+  Filas BX: calado 0,771, retorno 0,890.
+
+### 10.2 Piezas, espesor y calidad
+
+| Pieza | Espesor (mm) | Calidad |
+|---|---|---|
+| Anillos de pasadores (inferior / superior = máx(t_pr, t_top)) | 22 / 25 | A572 Gr. 50 |
+| Plancha base | 22 | A572 Gr. 50 |
+| Soporte E: paredes traseras y muñones / tapas | 25 / 25 | A572 Gr. 50 |
+| Portador de pastillas (UHMW 30 → saliente 8) | 22 | A572 Gr. 50 |
+| Mesa: plancha superior / inferior / almas y nervios | 25 / 20 / 8 | A36 |
+| Refuerzo de esquina (automático) / atiesador tangencial | 65 / 30 | A36 + calidad Z (A770) |
+| Collar del pivote, marco, orejas | 70, … | A36 |
+
+### 10.3 FU gobernantes (con FEA de la mesa)
+
+| Verificación | FU |
+|---|---|
+| **CJP paredes E–refuerzo (metal base, mín(345; 250))** | **1,020 — NO CUMPLE** |
+| Tapas E: desgarro hacia las paredes / aplastamiento | 0,943 / 0,885 |
+| Asiento del pivote con H·e (base 22 + collar 70, Fy 250) | 0,930 |
+| Portador: torsión / ligamento | 0,927 / 0,834 |
+| BX · anillo inferior de 22: aplastamiento / pasador con luz entre planos medios | 0,927 / 0,921 |
+| Pasador entre anillos (núcleo) / anillo (núcleo, t = 25) | 0,910 / 0,817 |
+| Refuerzo: tapones / atiesador 30 × 60 | 0,916 / 0,887 |
+| Base bajo E (BX, FEA): retorno / calado | 0,890 / 0,771 |
+| Pasador vertical E / paredes E flexión | 0,824 / 0,739 |
+| Pastillas p + Δp / PV | 0,767 / 0,843 |
+| Mesa: plancha superior / inferior (global + local) | 0,782 / 0,785 |
+
+Cinemática sin cambio: carrera 0,959, sincronía 0,971 (peor caso 0,965), reenganche 0,904, luz entre anillos 0,938 (h − 2·25). Masa 3 843 kg
+(rev. 5: 4 100). Con `Fy_dbl = 345` (refuerzo y atiesador de A572 Gr. 50 + A770) todo cumple (CJP 0,739; refuerzo automático más delgado; 3 760 kg);
+con paredes E de 28 mm también (CJP 0,935), con 30 no (desgarro de las tapas 1,016).
+
+### 10.4 Pendientes
+
+1. Decisión del mandante sobre la CJP paredes E–refuerzo (FU 1,02 con el criterio de la menor): refuerzo y atiesador en A572 Gr. 50 + A770
+   (`Fy_dbl = 345`), o paredes de 28 mm, u otro criterio justificado.
+2. `packages/web/planos_export.js` (lista de materiales) sigue con un solo texto «A572 Gr.50 (Fy global)» para todo el acero; no se tocó (fuera del alcance).
+3. Recalibrar `DBL_CAL` del núcleo con t_base = 22 (hoy crédito BX por cociente de la FEA independiente).
+4. Herramientas HTML sin reconstruir (`Tornamesa_v*.html`, `Tornamesa_BX_v1.0.html`).
