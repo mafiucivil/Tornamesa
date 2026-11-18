@@ -126,6 +126,25 @@ test("BX: lámina inox 304 espejo de 3 mm soldada a la mesa con tapones y costur
   assert.equal(G8.disco.modo, 0); assert.ok([6, 8, 10].includes(G8.disco.t)); assert.ok(G8.disco.tornillos.n >= 100);
 });
 
+test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 190) en portador A36 de 25 mm fijo", () => {
+  const U = G0.pastillas, C = G0.portador;
+  assert.equal(P0.bx_H_uh, 30); assert.equal(P0.bx_tc, 25); assert.equal(P0.bx_dp_max, 185); assert.equal(P0.bx_rho_uh, 0.97);
+  assert.equal(U.H, 30); assert.equal(C.t, 25); near(U.h_p, 5, 1e-12, "saliente = 30 − 25");
+  assert.ok(U.d <= 185 + 1e-9 && U.d_torneado <= 185 + 1e-9, "Ø " + U.d + " (corte " + U.d_torneado + ") ≤ 185");
+  assert.ok(U.d_torneado <= P0.bx_cuad_uh - 2 * 2.5 + 1e-9, "cabe en el cuadrado de " + P0.bx_cuad_uh);
+  assert.match(U.material, /ULTRA VST/); assert.match(U.material, /pendiente/i);
+  // masa de las pastillas con la densidad de la ficha (0,97)
+  assert.equal(U.densidad, 0.97);
+  const Hc = U.H, dC = U.d_torneado, hs = P0.bx_d_sp + 2 * P0.bx_c_sp;
+  assert.ok(U.masa_unit < 0.97e-6 * Math.PI / 4 * dC * dC * Hc && U.masa_unit > 0.97e-6 * Math.PI / 4 * (dC * dC - 4 * hs * hs) * Hc, "masa unitaria con ρ = 0,97");
+  assert.match(C.material, /A36/);
+  // portador: torsión y filetes con Fy = 250 (A36) cumplen (FU < 1) sin cambiar el espesor (patrón radial con pastillas quitadas del anillo crítico)
+  const Aa = BX.analyze(Object.assign({}, P0, { Fy: 250, Fu: 400 }), { noFEA: true });
+  Aa.checks.filter((c) => c.bx && /Portador|Pastillas/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.fu <= 1 + 1e-9, "A36: " + c.name + " FU " + c.fu));
+  const tor = Aa.checks.find((c) => /Portador: corte por torsión/.test(c.name)); assert.ok(tor.fu < 1, "torsión " + tor.fu);
+  assert.equal(Aa.bx.portador.t, 25); assert.equal(Aa.bx.pastillas.H, 30);
+});
+
 /* ---------- 3. Fórmulas ---------- */
 test("BX: celda anular (borde interior empotrado, exterior guiado) frente a diferencias finitas", () => {
   const q = 1.7, a = 50, b = 80, D = 200000 * 8 ** 3 / (12 * (1 - 0.09)), nu = 0.3;
