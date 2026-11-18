@@ -45,7 +45,48 @@ def colorear(src: pathlib.Path, dst: pathlib.Path):
                 e.dxf.text = t
             else:
                 e.text = t
+    estilos = {s.dxf.name: s for s in d.styles}
+    for blk in [d.modelspace()] + [b for b in d.blocks if not b.name.startswith("*")]:
+        for e in blk.query("TEXT"):
+            a_izquierda(e, estilos)
     d.saveas(dst)
+
+
+# Posición explícita de los textos: el generador guarda los textos centrados, a la derecha, al medio o arriba con el punto de
+# inserción igual al de alineación y deja que el programa CAD lo recalcule al abrir. ODA File Converter no lo recalcula al escribir
+# el DWG (no tiene la fuente) y AutoCAD muestra el DWG con el punto guardado: todos esos textos quedaban corridos.
+# Aquí cada texto pasa a alineación izquierda-línea base, con el punto que deja su caja exactamente donde la ubica el cálculo de
+# alineación de ezdxf (que reproduce el de AutoCAD), usando Arial con las métricas de Liberation Sans (mismos anchos).
+import os, tempfile, shutil, math
+_LIB = "/usr/share/fonts/truetype/liberation/"
+_FD = tempfile.mkdtemp(prefix="fuentes_arial_")
+shutil.copy(_LIB + "LiberationSans-Regular.ttf", os.path.join(_FD, "arial.ttf"))
+shutil.copy(_LIB + "LiberationSans-Bold.ttf", os.path.join(_FD, "arialbd.ttf"))
+ezdxf.options.support_dirs = [_FD]
+from ezdxf.fonts import fonts as _fonts
+_fonts.font_manager.clear(); _fonts.font_manager.build([_FD])
+from ezdxf import bbox as _bbox
+
+
+def a_izquierda(e, estilos):
+    ha, va = e.dxf.get("halign", 0), e.dxf.get("valign", 0)
+    if (ha == 0 and va == 0) or ha in (3, 5):    # ya a la izquierda-base, o ALIGNED/FIT (el generador no los usa)
+        return
+    ref = _bbox.extents([e], fast=False)          # caja del texto alineado (ezdxf calcula la posición como AutoCAD)
+    if not ref.has_data:
+        return
+    p = e.dxf.align_point if e.dxf.hasattr("align_point") else e.dxf.insert
+    e.dxf.halign = 0; e.dxf.valign = 0
+    if e.dxf.hasattr("align_point"):
+        e.dxf.discard("align_point")
+    e.dxf.insert = (p.x, p.y, 0.0)
+    cur = _bbox.extents([e], fast=False)
+    r = math.radians(e.dxf.get("rotation", 0.0))
+    if abs(math.sin(r)) < 1e-9 or abs(math.cos(r)) < 1e-9:   # horizontal o vertical: la caja ejes-alineados basta
+        dx, dy = ref.extmin.x - cur.extmin.x, ref.extmin.y - cur.extmin.y
+    else:                                                     # inclinado: centro de la caja
+        dx, dy = ref.center.x - cur.center.x, ref.center.y - cur.center.y
+    e.dxf.insert = (p.x + dx, p.y + dy, 0.0)
 
 
 if __name__ == "__main__":
