@@ -2241,3 +2241,16 @@ test("Calidad por pieza · Fy_pr, Fy_base y Fy_boxE cambian solo las filas de su
   const Q0 = TT.thermalP(P0, 80), Q1 = TT.thermalP(Object.assign({}, P0, { Fy_pr: 345 }), 80);
   assert.ok(!("Fy_pr" in Q0)); near(Q1.Fy_pr, 345 * Q1.Fy / P0.Fy, 1e-12, "k_Fy sobre Fy_pr");
 });
+
+// Espesor del atiesador tangencial del refuerzo de esquina como clave OPCIONAL rib_t (TT300-BX rev. 7, 18-11-2026): ausente o ≤ 0 = RIB_T = 30 (bit-idéntico)
+test("Atiesador tangencial · clave opcional rib_t (ausente o 0 = 30): espesor, geometría, sección y masa", () => {
+  const P0 = Object.assign(TT.defaults(), { opt_uhmw: 1, Fy: 250, Fu: 400 });   // configuración con atiesador
+  assert.ok(!("rib_t" in TT.defaults()), "rib_t no es parámetro del núcleo");
+  const ser = (A) => JSON.stringify(A.checks.map((c) => [c.grp, c.name, c.dem, c.cap, c.fu, c.st]));
+  const A0 = TT.analyze(P0, { noFEA: true });
+  assert.equal(ser(TT.analyze(Object.assign({}, P0, { rib_t: 0 }), { noFEA: true })), ser(A0), "0 = 30");
+  const R0 = A0.checks.find((c) => /atiesador tangencial 30 × \d+ mm: flexión/.test(c.name)); assert.ok(R0, "con 30 por defecto");
+  const P2 = Object.assign({}, P0, { rib_t: 22 }), A2 = TT.analyze(P2, { noFEA: true }), I = TT.designDrive(P2, A2.R);
+  const R2 = A2.checks.find((c) => /atiesador tangencial 22 × \d+ mm: flexión/.test(c.name)); assert.ok(R2, "fila con 22");
+  const at = JSON.stringify(I).match(/"atiesadores":\{"tipo":[^}]*?"t":(\d+)/); assert.ok(at && +at[1] === 22, "exportación t = 22");
+});
