@@ -116,13 +116,13 @@ function diffKeys(a, b, p, out) {
 
   console.log("5 · Cambiar un parámetro recalcula");
   await page.click('#tabs button[data-t="resumen"]');
-  const Pc = Object.assign({}, P0, { bx_tc: 30 });
+  const Pc = Object.assign({}, P0, { bx_tc: 20 });
   const pN = new Promise((res) => setImmediate(() => res(BX.analyze(Pc, { noFEA: true }))));
-  await page.fill("#p_bx_tc", "30");
-  await page.waitForFunction(() => { const b = document.querySelector("#bxBadge"); return b && /portador 30,0 mm/.test(b.textContent) && !document.querySelector("#calcBadge"); }, null, { timeout: 60000 });
+  await page.fill("#p_bx_tc", "20");
+  await page.waitForFunction(() => { const b = document.querySelector("#bxBadge"); return b && /portador 20,0 mm/.test(b.textContent) && !document.querySelector("#calcBadge"); }, null, { timeout: 60000 });
   const A1 = await pN;
   const badge1 = await page.$eval("#bxBadge", (e) => e.textContent);
-  ok(badge1.includes(A1.bx.pastillas.n + " pastillas") && badge1.includes("disco " + fmt(A1.bx.disco.t) + " mm"), `recalculado con bx_tc = 30: «${badge1}» (Node: ${A1.bx.pastillas.n} pastillas, disco ${fmt(A1.bx.disco.t)})`);
+  ok(badge1.includes(A1.bx.pastillas.n + " pastillas") && badge1.includes("disco " + fmt(A1.bx.disco.t) + " mm"), `recalculado con bx_tc = 20: «${badge1}» (Node: ${A1.bx.pastillas.n} pastillas, disco ${fmt(A1.bx.disco.t)})`);
   const lt2 = await page.evaluate(() => window.__lt.slice());
   ok(Math.max(0, ...lt2) < 2000, `tarea larga máxima en toda la sesión: ${Math.round(Math.max(0, ...lt2))} ms`);
   ok(errs.length === 0, `sin errores de consola${errs.length ? ": " + errs.slice(0, 3).join(" | ") : ""}`);

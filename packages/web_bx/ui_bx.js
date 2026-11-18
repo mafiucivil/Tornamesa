@@ -298,7 +298,7 @@
         </div></div>
     </div>
     <div class="card" style="margin-top:12px"><h3>Casos de accionamiento</h3>${casesTable()}</div>
-    <div class="card" style="margin-top:12px" id="bxResumen"><h3>Interfaz TT300-BX: disco inoxidable atornillado + pastillas de UHMW (detalle en la pestaña «Disco y pastillas»)</h3>${bxSummary()}</div>
+    <div class="card" style="margin-top:12px" id="bxResumen"><h3>Interfaz TT300-BX: disco inoxidable (lámina soldada o disco atornillado según bx_disc_modo) + pastillas de UHMW (detalle en la pestaña «Disco y pastillas»)</h3>${bxSummary()}</div>
     <div class="card" style="margin-top:12px"><h3>Comparación con equipos comerciales</h3>${lzSlot(marketTable, ["MK"])}</div>`;
   }
   // resumen de la interfaz BX: todo sale de A.bx (BX.design del módulo) y de las filas «BX ·» de A.checks
@@ -843,10 +843,22 @@
       o.push(sq ? `<rect class="bxPuck" x="${-hw}" y="${-hw}" width="${2 * hw}" height="${2 * hw}" rx="${rc}" transform="translate(${q.x} ${y(q.y)}) rotate(${-rot})" fill="var(--warnbg)"${st}/>` : `<circle class="bxPuck" cx="${q.x}" cy="${y(q.y)}" r="${hw}" fill="var(--warnbg)"${st}/>`); });
     (po.tapones.posiciones || []).forEach(([a, b]) => o.push(`<circle class="bxPlug" cx="${a}" cy="${y(b)}" r="${po.tapones.d / 2}" fill="var(--steel)" opacity=".6"/>`));
     tw.lista.forEach((b) => o.push(`<circle class="bxBolt" cx="${b.x}" cy="${y(b.y)}" r="${Math.max(6, tw.d_cabeza / 2)}" fill="var(--acc)"/>`));
+    ((d.tapones || {}).lista || []).forEach((q) => { const qx = Array.isArray(q) ? q[0] : q.x, qy = Array.isArray(q) ? q[1] : q.y; o.push(`<circle class="bxLamPlug" cx="${qx}" cy="${y(qy)}" r="${Math.max(8, (d.tapones.d || 14) / 2)}" fill="var(--acc)"/>`); });
     o.push(`<line x1="${-Ro}" y1="0" x2="${-d.R_int}" y2="0" stroke="var(--load)" stroke-width="5"/><line x1="${d.R_int}" y1="0" x2="${Ro}" y2="0" stroke="var(--load)" stroke-width="5"/>`);
-    o.push(`<text x="0" y="${-Ro - 18}" text-anchor="middle" font-size="44">Disco Ø${fmt(2 * Ro, 4)} × ${fmt(d.t)} · ${pa.n} pastillas ${pkTxt(pa)} · ${tw.n} tornillos M${fmt(tw.d)}</text>`);
+    o.push(`<text x="0" y="${-Ro - 18}" text-anchor="middle" font-size="44">Disco Ø${fmt(2 * Ro, 4)} × ${fmt(d.t)} · ${pa.n} pastillas ${pkTxt(pa)} · ${d.modo === 1 ? (d.tapones ? d.tapones.n + " tapones Ø" + fmt(d.tapones.d) + " (lámina soldada)" : "lámina soldada") : tw.n + " tornillos M" + fmt(tw.d)}</text>`);
     return `<svg viewBox="${-S} ${-S - 20} ${2 * S} ${2 * S + 40}" role="img" aria-label="Planta del disco BX" id="bxPlan">${o.join("")}</svg>
-      <div class="note"><span style="color:var(--warn)">●</span> pastillas (borde rojo: la más cargada) · <span style="color:var(--acc)">●</span> tornillos avellanados disco–mesa · <span style="color:var(--load)">━</span> CJP entre semidiscos (eje x) · trazos: bordes del portador${po.tapones.n ? " · gris: agujeros de soldadura" : ""}.</div>`;
+      <div class="note"><span style="color:var(--warn)">●</span> pastillas (borde rojo: la más cargada) · <span style="color:var(--acc)">●</span> ${d.modo === 1 ? "tapones de soldadura lámina–mesa" : "tornillos avellanados disco–mesa"} · <span style="color:var(--load)">━</span> ${d.modo === 1 ? "junta a tope CJP entre paneles" : "CJP entre semidiscos"} (eje x) · trazos: bordes del portador${po.tapones.n ? " · gris: agujeros de soldadura" : ""}.</div>`;
+  }
+  function bxLaminaCard(d, kv) {
+    const L = d.lamina || {}, T = d.tapones || {}, C = d.costura || {}, J = L.junta || {};
+    return `<div class="card" id="bxDisco"><h3>Lámina inoxidable ${fmt(d.t)} mm soldada a la mesa</h3>${kv([["Material", esc(d.material)], ["Espesor adoptado / requerido", `<b>${fmt(d.t)}</b> / ${fmt(d.t_req, 3)} mm`],
+      ["Paneles / formato de plancha", `${L.n_paneles} paneles de ${(L.paneles || [])[0] ? fmt(L.paneles[0].ancho, 4) + " × " + fmt(L.paneles[0].largo, 4) : "—"} mm / ${(L.formato || []).join(" × ")} mm`],
+      ["R exterior / interior", `${fmt(d.R_ext, 4)} / ${fmt(d.R_int, 4)} mm`], ["Fy / Fu / α", `${fmt(d.Fy, 3)} / ${fmt(d.Fu, 3)} MPa / ${fmt(d.alfa * 1e6, 3)}×10⁻⁶/K`], ["Masa", `${fmt(d.masa, 4)} kg`],
+      ["Junta entre paneles", esc(String(J.tipo || "").split(";")[0]) + (J.aporte ? " · " + esc(J.aporte) : "")]])}</div>
+      <div class="card" id="bxTorn" style="margin-top:12px"><h3>Tapones y costuras (sin tornillos)</h3>${kv([["Tapones", `<b>${T.n}</b> × Ø${fmt(T.d)} mm, relleno ${fmt(T.relleno)} mm, paso ≈ ${fmt(T.paso, 3)} mm`],
+      ["Anillos (R)", (T.anillos || []).map((a) => fmt(a.r, 4) + " (" + a.n + ")").join(" · ") + " mm"], ["Norma", esc(T.norma || "")],
+      ["Costura perimetral", esc(C.tipo || "") + (C.exterior ? ` · ext. R${fmt(C.exterior.R, 4)}, int. R${fmt((C.interior || {}).R, 4)}` : "")]])}
+      <div class="note">${esc(typeof d.fabricacion === "string" ? d.fabricacion : "")}</div></div></div>`;
   }
   function renderBX() {
     const el = document.querySelector('section[data-t="bx"]');
@@ -861,10 +873,9 @@
     const fab = (D.fabricacion || []).map((f) => `<tr data-estado="${esc(f.estado)}"><td>${esc(f.pieza)}</td><td class="ref">${esc(f.antes)}</td><td>${esc(f.despues)}</td><td><span class="st st-${f.estado === "eliminada" ? "ok" : f.estado === "simplificada" ? "ok" : f.estado === "nueva" ? "pend" : "info"}">${esc(f.estado)}</span></td><td class="ref">${esc(f.motivo || "")}</td><td class="ref">${esc(f.verificacion || "")}</td></tr>`).join("");
     const cnt = (D.fabricacion || []).reduce((m, f) => { m[f.estado] = (m[f.estado] || 0) + 1; return m; }, {});
     el.innerHTML = `<div class="grid" style="grid-template-columns:minmax(300px,1.2fr) minmax(280px,1fr)">
-      <div class="card"><h3>Planta: disco, tornillos, pastillas y portador</h3>${bxPlanSVG(D)}</div>
-      <div><div class="card" id="bxDisco"><h3>Disco inoxidable (2 semidiscos con CJP)</h3>${kv([["Material", esc(d.material)], ["Espesor adoptado / requerido", `<b>${fmt(d.t)}</b> / ${fmt(d.t_req, 3)} mm`], ["Requerido por la cabeza avellanada / por el vacío local", `${fmt(d.t_cabeza, 3)} / ${fmt(d.t_vacio, 3)} mm`], ["R exterior / interior", `${fmt(d.R_ext, 4)} / ${fmt(d.R_int, 4)} mm`], ["Fy / Fu / α", `${fmt(d.Fy, 3)} / ${fmt(d.Fu, 3)} MPa / ${fmt(d.alfa * 1e6, 3)}×10⁻⁶/K`], ["Masa (semidisco)", `${fmt(d.masa, 4)} kg (${fmt(d.masa_semidisco, 3)} kg)`], ["Celda entre pastillas: σ / flecha", `${fmt(d.celda.sigma)} MPa / ${fmt(d.celda.flecha, 3)} mm`], ["CJP", esc(d.cjp.norma) + ", " + fmt(d.cjp.largo, 4) + " mm"]])}<div class="note">${esc(d.acabado)}</div></div>
-      <div class="card" id="bxTorn" style="margin-top:12px"><h3>Tornillos del disco</h3>${kv([["Designación", esc(tw.designacion_base)], ["Cantidad / malla / s mín.", `<b>${tw.n}</b> / ${fmt(tw.paso_malla, 3)} / ${fmt(tw.s_min, 3)} mm`], ["Anillos (R)", tw.anillos.map((r) => fmt(r, 4)).join(" · ")], ["Corte combinado / capacidad", `${fmt(tw.V_comb / 1e3)} / ${fmt(tw.capV / 1e3)} kN`], ["Fuerza térmica de borde ext. / int.", `${fmt(tw.Fth_ext / 1e3)} / ${fmt(tw.Fth_int / 1e3)} kN (ΔT ${fmt(tw.dT_diseno, 3)} K)`]])}<div class="note">${esc(tw.nota)}</div></div></div></div>
-    <div class="grid" style="margin-top:12px">
+      <div class="card"><h3>Planta: ${d.modo === 1 ? "lámina, tapones" : "disco, tornillos"}, pastillas y portador</h3>${bxPlanSVG(D)}</div>
+      <div>${d.modo === 1 ? bxLaminaCard(d, kv) : `<div class="card" id="bxDisco"><h3>Disco inoxidable (2 semidiscos con CJP)</h3>${kv([["Material", esc(d.material)], ["Espesor adoptado / requerido", `<b>${fmt(d.t)}</b> / ${fmt(d.t_req, 3)} mm`], ["Requerido por la cabeza avellanada / por el vacío local", `${fmt(d.t_cabeza, 3)} / ${fmt(d.t_vacio, 3)} mm`], ["R exterior / interior", `${fmt(d.R_ext, 4)} / ${fmt(d.R_int, 4)} mm`], ["Fy / Fu / α", `${fmt(d.Fy, 3)} / ${fmt(d.Fu, 3)} MPa / ${fmt(d.alfa * 1e6, 3)}×10⁻⁶/K`], ["Masa (semidisco)", `${fmt(d.masa, 4)} kg (${fmt(d.masa_semidisco, 3)} kg)`], ["Celda entre pastillas: σ / flecha", `${fmt(d.celda.sigma)} MPa / ${fmt(d.celda.flecha, 3)} mm`], ["CJP", esc(d.cjp.norma) + ", " + fmt(d.cjp.largo, 4) + " mm"]])}<div class="note">${esc(d.acabado)}</div></div>
+      <div class="card" id="bxTorn" style="margin-top:12px"><h3>Tornillos del disco</h3>${kv([["Designación", esc(tw.designacion_base)], ["Cantidad / malla / s mín.", `<b>${tw.n}</b> / ${fmt(tw.paso_malla, 3)} / ${fmt(tw.s_min, 3)} mm`], ["Anillos (R)", tw.anillos.map((r) => fmt(r, 4)).join(" · ")], ["Corte combinado / capacidad", `${fmt(tw.V_comb / 1e3)} / ${fmt(tw.capV / 1e3)} kN`], ["Fuerza térmica de borde ext. / int.", `${fmt(tw.Fth_ext / 1e3)} / ${fmt(tw.Fth_int / 1e3)} kN (ΔT ${fmt(tw.dT_diseno, 3)} K)`]])}<div class="note">${esc(tw.nota)}</div></div></div></div>`}<div class="grid" style="margin-top:12px">
       <div class="card" id="bxPast"><h3>Pastillas de UHMW</h3>${kv([["Cantidad / forma y medida" + (pa.d_torneado != null ? " / Ø de fabricación" : ""), `<b>${pa.n}</b> / ${pkTxt(pa, 4)}${pa.d_torneado != null && !pkSq(pa) ? " / " + fmt(pa.d_torneado, 5) : ""} mm`], ["Alto H / saliente h_p", `${fmt(pa.H, 3)} / <b>${fmt(pa.h_p, 3)}</b> mm`], ["Interferencia (rango)", `${fmt(aj.delta, 3)} mm${aj.rango ? ` (${fmt(aj.rango[0], 3)} … ${fmt(aj.rango[1], 3)})` : ""}`], ["p máx. / PV máx.", `${fmt(pa.p_max)} MPa / ${fmt(pa.PV_max)} MPa·m/s`], ["Sobrepresión por planitud (p total)", `${fmt(so.dp)} (${fmt(so.p_total)}) MPa`], ["Σ N sobre las pastillas", `${fmt(pa.suma_N_kN, 4)} kN`], ["Cobertura / masa", `${fmt(pa.cobertura, 2)} / ${fmt(pa.masa_total, 3)} kg (${fmt(pa.masa_unit, 3)} c/u)`], ["Tornillo", esc(tor.designacion)], ["Taladro ciego / engrane", `${fmt(tor.taladro_ciego, 3)} / ${fmt(tor.engrane, 3)} mm`]])}<div class="note">${esc(aj.montaje || "")}${pa.proceso ? " " + esc(pa.proceso) : ""}</div></div>
       <div class="card" id="bxPort"><h3>Portador soldado a la base</h3>${kv([["Material", esc(po.material)], ["Espesor / R int. / R ext.", `<b>${fmt(po.t)}</b> / ${fmt(po.R_int, 4)} / ${fmt(po.R_ext, 4)} mm`], ["Paso / ligamento", `${fmt(po.paso, 4)} / ${fmt(po.ligamento, 3)} mm`], ["Patrón", esc(po.patron.tipo) + ` (saltos máx. ${po.patron.saltos_max}, al borde ${po.patron.pastillas_al_borde})`], ["Agujeros de pastillas / de soldadura", `${po.agujeros.n} × Ø${fmt(po.agujeros.d, 4)} / ${po.tapones.n}`], ["Filetes perimetrales", `z${fmt(po.filetes.w)} en R${fmt(po.filetes.exterior.R, 4)} y R${fmt(po.filetes.interior.R, 4)}`], ["Masa (plancha + filetes)", `${fmt(po.masa, 4)} kg (${fmt(po.masa_plancha, 4)} + ${fmt(po.masa_filetes, 3)})`]])}<div class="note">${esc(po.corte)}. ${esc(po.secuencia)}</div></div>
       <div class="card" id="bxDis"><h3>Búsqueda del diseño</h3>${kv([["Candidatos evaluados / que cumplen", `${D.diseno.candidatos} / ${D.diseno.candidatos_ok}`], ["μ máx. / μ efectivo (acero)", `${fmt(D.diseno.mu_max, 3)} / ${fmt(D.diseno.mu_eff, 3)}`], ["T de calado", `${fmt(D.diseno.T_calado)} kN·m`], ["q medio / q máx.", `${fmt(D.diseno.q_med)} / ${fmt(D.diseno.q_max)} MPa`]])}<div class="note">${esc(D.diseno.nota)}</div></div></div>
@@ -894,11 +905,13 @@
   function bxDespiece() {
     const D = A.bx; if (!D) return "";
     const d = D.disco, tw = d.tornillos, pa = D.pastillas, po = D.portador;
-    const rows = [["Semidisco inoxidable (" + d.material + ") Ø" + fmt(2 * d.R_ext, 4) + " × " + fmt(d.t) + " mm, agujero Ø" + fmt(2 * d.R_int, 4), d.semidiscos, d.masa_semidisco, d.masa],
-      ["Tornillo " + tw.designacion_base, tw.n, null, null],
+    const rows = (d.modo === 1 ? [["Panel de lámina inoxidable (" + d.material + ") " + fmt(d.t) + " mm", (d.lamina || {}).n_paneles, ((d.lamina || {}).paneles || [{}])[0].masa, d.masa],
+      ["Tapón de soldadura Ø" + fmt((d.tapones || {}).d) + " en la lámina", (d.tapones || {}).n, null, null]] : [["Semidisco inoxidable (" + d.material + ") Ø" + fmt(2 * d.R_ext, 4) + " × " + fmt(d.t) + " mm, agujero Ø" + fmt(2 * d.R_int, 4), d.semidiscos, d.masa_semidisco, d.masa],
+      ["Tornillo " + tw.designacion_base, tw.n, null, null]]).concat([
+
       ["Portador " + po.material.split(" (")[0] + " t = " + fmt(po.t) + " mm, R" + fmt(po.R_int, 4) + "…R" + fmt(po.R_ext, 4) + ", " + po.agujeros.n + " agujeros Ø" + fmt(po.agujeros.d, 4), 1, po.masa, po.masa],
       ["Pastilla UHMW " + (pkSq(pa) ? pkTxt(pa, 4) : "Ø" + fmt(pa.d_torneado != null ? pa.d_torneado : pa.d, 5)) + " × " + fmt(pa.H, 3) + " mm" + (pa.proceso ? " (" + String(pa.proceso).split(/[;.]/)[0] + ")" : ""), pa.n, pa.masa_unit, pa.masa_total],
-      ["Tornillo de pastilla " + ((pa.tornillo || {}).designacion || "—"), (pa.tornillo || {}).n, null, null]].concat(po.tapones.n ? [["Agujero de soldadura (tapón) Ø" + fmt(po.tapones.d, 4) + ", filete z" + fmt(po.tapones.w), po.tapones.n, null, null]] : []);
+      ["Tornillo de pastilla " + ((pa.tornillo || {}).designacion || "—"), (pa.tornillo || {}).n, null, null]]).concat(po.tapones.n ? [["Agujero de soldadura (tapón) Ø" + fmt(po.tapones.d, 4) + ", filete z" + fmt(po.tapones.w), po.tapones.n, null, null]] : []);
     return `<div class="card scroll" style="margin-top:12px" id="bxDesp"><h3>Despiece de la interfaz TT300-BX</h3><table><tr><th>Pieza</th><th class="n">Cantidad</th><th class="n">kg c/u</th><th class="n">kg total</th></tr>
       ${rows.map(([n, q, mu, mt]) => `<tr><td>${esc(n)}</td><td class="n">${q}</td><td class="n">${mu == null ? "—" : fmt(mu, 3)}</td><td class="n">${mt == null ? "—" : fmt(mt, 4)}</td></tr>`).join("")}
       <tr class="grp"><td>Masa de la interfaz BX (disco + pastillas + portador)</td><td></td><td></td><td class="n">${fmt((A.R.m.ss || 0) + (A.R.m.uhmw || 0) + (A.R.m.bxPortador || 0), 4)}</td></tr></table>
@@ -931,7 +944,7 @@
 
   /* ---------- Paquete de dibujo (checkbox «Exportar paquete de dibujo») ---------- */
   const LSK = "tt300bx-pkg";
-  const BX_IFACE = "TT300-BX · disco inoxidable atornillado (2 semidiscos con CJP) + pastillas de UHMW en portador soldado a la base";
+  const BX_IFACE = "TT300-BX · lámina inoxidable soldada a la mesa (modo 1) o disco atornillado (modo 0) + pastillas de UHMW en portador soldado a la base";
   /* ---------- Temperatura (exposición solar): escenario aparte, geometría de 20 °C congelada ---------- */
   let TH = null, THkey = "", THreq = "";
   const confB = (c) => { const k = c === "A" ? "A" : /C/.test(c || "C") ? "C" : "B"; return `<span class="conf conf-${k}" title="Nivel de confianza del dato (registro): A tabla contrastada · B ficha o dos fuentes · C supuesto o fuente única">${esc(c || "C")}</span>`; };

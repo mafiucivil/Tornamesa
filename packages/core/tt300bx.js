@@ -28,7 +28,7 @@ const BX = (() => {
   const REG = "docs/normas/registro.md, «TT300-BX: disco inoxidable atornillado y pastillas de UHMW (16-11-2026)»";
 
   /* ---------------- Parámetros propios (se suman a los del núcleo) ---------------- */
-  const BX_GROUP = { id: "bx", t: "TT300-BX · disco inoxidable atornillado (2 semidiscos con CJP) y pastillas de UHMW en portador soldado a la base", p: [
+  const BX_GROUP = { id: "bx", t: "TT300-BX · disco inoxidable (modo 1: lámina 3 mm soldada; modo 0: disco atornillado) y pastillas de UHMW en portador soldado a la base", p: [
     ["bx_disc_modo", "Disco: modo. 1 = lámina inoxidable 304 acabado espejo de 3 mm (única plancha espejo del proveedor) en paneles del formato comercial con juntas a tope, SOLDADA a la plancha inferior de la mesa con tapones (plug) distribuidos y costura perimetral, sin tornillos (por defecto: decisión del mandante 18-11-2026); 0 = disco macizo atornillado con ISO 10642 (2 semidiscos con CJP; revisiones 1–4)", "–", 1, 0, 1, 1],
     ["bx_t_lam", "Lámina (modo 1): espesor de la plancha espejo del proveedor", "mm", 3, 1.5, 4.8, 0.5],
     ["bx_fmt_a", "Lámina (modo 1): formato comercial de la plancha espejo, ancho (por defecto el mayor, 1500 × 3000; alternativa típica 1219 × 2438)", "mm", 1500, 900, 2000, 1],
@@ -612,6 +612,7 @@ const BX = (() => {
         const by50 = isFinite(lim) && pool.length;
         return (by50 ? pool : cand).reduce((b, c) => (!b || (by50 ? c.fuMax < b.fuMax - 1e-9 : c.fu20 < b.fu20 - 1e-9) ? c : b), null); })();   // rev. 5: en el grupo, el menor FU de todas las filas
     // malla definitiva con muestreo fino y h_p recalculado con ella
+    if (!best) throw new Error("TT300-BX: ninguna combinación de portador y pastillas es geométricamente posible (¿espesor del portador ≥ espesor de la plancha de UHMW? el saliente debe ser > 0)");
     let { tc, d, s, lig, dPlug, hp, nw, pat, drops } = best;
     const L = fz ? best.L : layout(P, C, d, s, lig, nw, pat, dPlug, 4, tc, drops);
     const fl = nw >= 1 ? flow(L, s, (i) => C.muEff * L.pucks[i].p * L.Ap, C, d, lig) : { Flig: C.muEff * L.pMax * L.Ap, plugMax: 0, edgeMax: 0, unreached: 0, hMax: 1, nEdge: 0, plugF: [] };
@@ -1073,7 +1074,7 @@ const BX = (() => {
     r.alternativas.forEach((alt) => {
       const Pa = Object.assign({}, Pc, { opt_ss: 0, opt_uhmw: 1, opt_bz: 0, bz_conf: 1, opt_wood: alt.madera ? 1 : 0 }); delete Pa.__th;
       const Da = alt.madera ? design(Object.assign({}, Pf, { opt_wood: 1 })) : Dg; Pa.__bx = Da.bx;
-      alt.nombre = "BX · Disco inoxidable atornillado + pastillas de UHMW en portador soldado" + (alt.madera ? " + cubierta de madera" : "");
+      alt.nombre = "BX · " + (P.bx_disc_modo === 0 ? "Disco inoxidable atornillado" : "Lámina inoxidable soldada") + " + pastillas de UHMW en portador soldado" + (alt.madera ? " + cubierta de madera" : "");
       alt.byT.forEach((b) => {
         const Pt = TT_.thermalP(Pa, b.T, null, null, gradAt(b.T)), Rt = TT_.compute(Pt), rows = bxRows(Pt, Rt, Da).map((c) => stOf(Pt, c));
         const est = rows.filter((c) => c.kind === "fu" && c.sys === "est" && isFinite(c.fu)), gov = est.reduce((m, c) => (!m || c.fu > m.fu ? c : m), null);
