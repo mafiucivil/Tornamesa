@@ -63,17 +63,17 @@ const BX = (() => {
     ["bx_dp_max", "Pastillas: Ø de corte máximo (se cortan de cuadrados de bx_cuad_uh del proveedor; decisión del mandante 18-11-2026: Ø ≤ 185)", "mm", 185, 60, 300, 1],
     ["bx_cuad_uh", "Pastillas: lado de los cuadrados de UHMW del proveedor de los que se cortan (ULTRA VST 190 × 190)", "mm", 190, 60, 400, 1],
     ["bx_rho_uh", "UHMW: densidad (ULTRA VST, ficha Plastigen: 0,97; antes 0,94)", "g/cm³", 0.97, 0.9, 1, 0.01],
-    ["bx_tc", "Portador: espesor de la plancha (rev. 6, decisión del mandante 18-11-2026: 22 mm de A572 Gr. 50 fijo; rev. 5: 25 mm de A36; 0 = automático)", "mm", 22, 0, 40, 1],
-    ["Fy_bxc", "Portador: Fy del acero (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy)", "MPa", 345, 0, 690, 5],
-    ["Fu_bxc", "Portador: Fu del acero (rev. 6: ASTM A572 Gr. 50, 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
-    ["Fy_pr", "Calidad por pieza: Fy de los anillos de pasadores superior e inferior (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy)", "MPa", 345, 0, 690, 5],
-    ["Fu_pr", "Calidad por pieza: Fu de los anillos de pasadores (rev. 6: 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
-    ["Fy_base", "Calidad por pieza: Fy de la plancha base (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy). Con el refuerzo de esquina o el collar (globales) se usa la menor", "MPa", 345, 0, 690, 5],
-    ["Fu_base", "Calidad por pieza: Fu de la plancha base (rev. 6: 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
-    ["Fy_boxE", "Calidad por pieza: Fy del soporte del ojal E: paredes traseras, muñones y tapas superior e inferior (rev. 6: ASTM A572 Gr. 50, 345; 0 = el global Fy). CJP de las paredes sobre el refuerzo: la menor", "MPa", 345, 0, 690, 5],
-    ["Fu_boxE", "Calidad por pieza: Fu del soporte del ojal E (rev. 6: 450; 0 = el global Fu)", "MPa", 450, 0, 800, 5],
-    ["Fy_dbl", "Calidad por pieza: Fy del refuerzo de esquina BAS-030 y del atiesador tangencial (rev. 6: 0 = el global, ASTM A36 con calidad Z ASTM A770; 345 = A572 Gr. 50 + A770)", "MPa", 0, 0, 690, 5],
-    ["Fu_dbl", "Calidad por pieza: Fu del refuerzo de esquina y del atiesador (rev. 6: 0 = el global)", "MPa", 0, 0, 800, 5],
+    ["bx_tc", "Portador: espesor de la plancha (rev. 6/7, decisión del mandante 18-11-2026: 22 mm de A572 Gr. 50 fijo; rev. 5: 25 mm de A36; 0 = automático)", "mm", 22, 0, 40, 1],
+    ["Fy_bxc", "Portador: Fy del acero (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345)", "MPa", 0, 0, 690, 5],
+    ["Fu_bxc", "Portador: Fu del acero (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
+    ["Fy_pr", "Calidad por pieza: Fy de los anillos de pasadores superior e inferior (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345)", "MPa", 0, 0, 690, 5],
+    ["Fu_pr", "Calidad por pieza: Fu de los anillos de pasadores (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
+    ["Fy_base", "Calidad por pieza: Fy de la plancha base (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345). Con el refuerzo de esquina o el collar (globales) se usa la menor", "MPa", 0, 0, 690, 5],
+    ["Fu_base", "Calidad por pieza: Fu de la plancha base (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
+    ["Fy_boxE", "Calidad por pieza: Fy del soporte del ojal E: paredes traseras, muñones y tapas superior e inferior (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345). CJP de las paredes sobre el refuerzo: la menor", "MPa", 0, 0, 690, 5],
+    ["Fu_boxE", "Calidad por pieza: Fu del soporte del ojal E (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
+    ["Fy_dbl", "Calidad por pieza: Fy del refuerzo de esquina BAS-030 y del atiesador tangencial (0 = el global: rev. 7 A572 Gr. 50 con calidad Z ASTM A770)", "MPa", 0, 0, 690, 5],
+    ["Fu_dbl", "Calidad por pieza: Fu del refuerzo de esquina y del atiesador (0 = el global)", "MPa", 0, 0, 800, 5],
     ["bx_lig", "Portador: ligamento mínimo entre agujeros (0 = automático: máx(10; t_portador), criterio de taller para corte por plasma)", "mm", 0, 0, 60, 1],
     ["bx_nw", "Portador: unión a la base. 0 = solo filetes perimetrales exterior e interior (por defecto: el portador lleva el par a torsión hasta sus bordes); ≥ 1 = además agujeros de soldadura con filete interior en lugar de algunas pastillas (1: los elige la regla de un salto; 7: subred √7 o cada 7.ª posición del anillo, completada con la regla de un salto)", "–", 0, 0, 13, 1],
     ["bx_w_h", "Portador: filete interior de los agujeros de soldadura (agujero del mismo Ø que el de las pastillas, filete en todo el contorno a la base, sin pastilla)", "mm", 6, 3, 16, 1],
@@ -107,9 +107,13 @@ const BX = (() => {
   // soporte del ojal E (paredes traseras y muñones pv_tbox = 25, tapas pv_tl = 25) y portador bx_tc = 22. ASTM A36 (Fy 250, Fu 400; el global Fy/Fu): todo
   // el resto con los espesores de la rev. 5 (mesa 25/20, almas y nervios 8, refuerzo de esquina con su espesor automático, atiesador 30, collar 70, orejas…).
   // Filas con piezas de distinta calidad: la menor (base + refuerzo, base + collar, CJP de las paredes E sobre el refuerzo; ver tt300c.js, fyOf).
-  const A36_DESPUES = { Fy: 250, Fu: 400, t_top: 25, t_bot: 20, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 25, pv_tbox: 25 };
+  // Rev. 7 (decisión del mandante 18-11-2026, reemplaza a la rev. 6 como valores por defecto): capacidad 290 t, alivio 680 bar (alarma 600); TODAS las
+  // planchas estructurales en ASTM A572 Gr. 50 (global Fy/Fu = 345/450; claves por pieza en 0 = global, siguen disponibles); planchas de la mesa, anillos,
+  // base, portador, paredes y tapas del cajón E y atiesador tangencial (clave rib_t del núcleo) de 22 mm; almas y nervios 8, collar 70, refuerzo de
+  // esquina automático. El nombre A36_DESPUES / BX.A36 se conserva por compatibilidad (bloque «después» de los valores del núcleo).
+  const A36_DESPUES = { W_tf: 290, p_relief: 680, p_alarm: 600, Fy: 345, Fu: 450, t_top: 22, t_bot: 22, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 22, pv_tbox: 22, rib_t: 22 };
   const A36 = { despues: A36_DESPUES, antes: (() => { const D = TT_.defaults(), o = {}; for (const k in A36_DESPUES) o[k] = D[k]; return o; })(),
-    nota: { Fy: "A36 (antes A572 Gr. 50)", Fu: "A36", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
+    nota: { W_tf: "capacidad nominal 290 t (rev. 7)", p_relief: "alivio 680 bar (rev. 7)", p_alarm: "alarma 600 bar", rib_t: "atiesador tangencial del refuerzo de esquina de 22 mm (rev. 7; núcleo: 30)", Fy: "A572 Gr. 50 en todas las planchas (rev. 7; rev. 5/6: A36 global)", Fu: "A572 Gr. 50", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
       t_pr: "anillos de pasadores (rev. 6: A572 Gr. 50, 22 mm; el anillo superior queda de máx(t_pr, t_top) = 25): aplastamiento del agujero del pasador de empuje", t_base: "plancha base (rev. 6: A572 Gr. 50, 22 mm; bajo el soporte del ojal E; asiento del pivote)", h_boss: "collar de asiento del pivote (profundidad del asiento con H·e)", pv_tl: "tapas del cajón del ojal E (rev. 6: A572 Gr. 50, 25 mm; rev. 5: A36, 36 mm): desgarro y aplastamiento", pv_tbox: "paredes traseras y muñones del soporte del ojal E (rev. 6: A572 Gr. 50, 25 mm)" } };
   function defaults(o) {
     const P = TT_.defaults();
@@ -807,7 +811,7 @@ const BX = (() => {
         "La holgura radial c_boss_r admite el corte térmico; el rebaje del cubo depende de δ", "Núcleo: Pivote (rebaje: h_collar − δ + c_boss_a)"],
       ["Orejas de izaje", "Perfil a plasma; agujero H12 taladrado y mandrinado", "Sin cambio", "se mantiene", "Pasador de grillete: ASME BTH-1 pide agujero liso; no hay verificación del agujero a plasma en el núcleo", "Núcleo: Orejas de izaje (AISC D5)"],
       ["Refuerzos de esquina, soporte del ojal E (paredes y muñones), marco perimetral, mesa (planchas, almas, nervios, anillos)", "Plancha cortada y soldada (con alivio de tensiones de los conjuntos)", "Sin cambio: ya son plasma + soldadura", "se mantiene", "—", "Núcleo: Base, Mesa (FEA), Soldaduras"],
-      ["Calidad del acero de las planchas (rev. 6, decisión del mandante 18-11-2026)", "Rev. 5: ASTM A36 (Fy 250, Fu 400) en todas las planchas",
+      ["Calidad del acero de las planchas (rev. 7, decisión del mandante 18-11-2026)", "Rev. 5: ASTM A36 en todas las planchas; rev. 6: A572 Gr. 50 en anillos, base, soporte E y portador y A36 en el resto",
         "Por pieza: anillos de pasadores t_pr = " + P.t_pr + " (" + astm(P.Fy_pr > 0 ? P.Fy_pr : P.Fy, P.Fu_pr > 0 ? P.Fu_pr : P.Fu) + "; el superior queda de máx(t_pr, t_top) = " + Math.max(P.t_pr, P.t_top) + "), plancha base " + P.t_base + " (" + astm(P.Fy_base > 0 ? P.Fy_base : P.Fy, P.Fu_base > 0 ? P.Fu_base : P.Fu) + "), soporte del ojal E: paredes y muñones " + P.pv_tbox + ", tapas " + P.pv_tl + " (" + astm(P.Fy_boxE > 0 ? P.Fy_boxE : P.Fy, P.Fu_boxE > 0 ? P.Fu_boxE : P.Fu) + "), portador " + g.tc + " (" + astm(fyC(P), fuC(P)) + "); el resto, " + astm(P.Fy, P.Fu) + ": mesa (planchas " + P.t_top + "/" + P.t_bot + ", almas y nervios " + P.t_web + "/" + P.t_rib + "), collar " + P.h_boss + ", marco, orejas; refuerzo de esquina y atiesador " + astm(P.Fy_dbl > 0 ? P.Fy_dbl : P.Fy, P.Fu_dbl > 0 ? P.Fu_dbl : P.Fu) + " con calidad Z (ASTM A770)",
         "se mantiene", "Cada pieza con su calidad; las filas con dos piezas usan la menor (base + refuerzo, base + collar, CJP de las paredes E sobre el refuerzo); identificar y trazar las planchas A572 (marcado de colada) para que no se mezclen con las A36", "Núcleo con Fy_pr, Fy_base, Fy_boxE, Fy_dbl; BX · Portador (Fy_bxc); docs/bx/README_BX.md §10"],
       ["Ranuras de engrase y graseras de la interfaz", "Fresadas en el disco de la mesa (opción A); graseras en el borde", "—: UHMW sobre inoxidable sin ranuras (μ de la opción B); engrase opcional de montaje", "eliminada", "La opción B ya no las usa", "Interfaz: μ de la opción B (muB_*)"],
@@ -995,7 +999,13 @@ const BX = (() => {
   // Fy = 250 (la menor de las piezas): nom/dis/cal 0,174/0,548/0,771 frente al núcleo 0,195/0,575/0,799 (cociente máx. 0,965 > 0,937 de la rev. 5: se
   // adopta 0,965 para no quedar del lado inseguro) y atasco del retorno 0,848 frente a 1,052 (0,806 < 0,846: se conserva 0,846, conservador). El pico del
   // retorno cae en la base sola (t = 22, A572: con Fy 345 FU 0,614) y el del calado en la franja del atiesador (t_eq = 72, A36): las filas usan la menor Fy.
-  const BASE_FEA = { tb: [20, 22, 25], emp: [1.045, 0.965, 1.045 * 0.847], ret: [1.0, 0.846, 0.676] };
+  // Rev. 7 (todo A572 Gr. 50, base 22, refuerzo automático de 45 mm, paredes E de 22 y atiesador 22 × 60): con la malla de 40 mm de la calibración el
+  // sistema es singular (las paredes de 22 mm no toman una fila completa de nodos de la máscara rígida del soporte), y con 20/25/30/35 mm la FEA no converge
+  // en malla: calado 0,865/0,900/0,962/0,816 y retorno 0,824/0,654/0,666/0,471 frente al núcleo 0,831 y 0,785 (Fy 345). La rev. 6 tampoco: con 20/30/35 mm
+  // el calado daba 1,326/1,094/0,811 (con 40: 0,771). Criterio conservador: con t_base ≥ 22 se toma la ENVOLVENTE de las mallas de la rev. 7 como factor
+  // sobre la fila del núcleo (empuje 0,962/0,831 = 1,158; retorno 0,824/0,785 = 1,050: penalización, no crédito); entre 20 y 22 se interpola; sin
+  // crédito por encima de 22 (la calibración de 25 mm de la rev. 5 era solo con malla de 40). El factor vale para la geometría por defecto de la rev. 7.
+  const BASE_FEA = { tb: [20, 22], emp: [1.045, 0.962 / 0.831], ret: [1.0, 0.824 / 0.785] };
   function baseCredit(P, checks) {
     const out = [], tb = P.t_base;
     if (!(tb > 20 + 1e-9) || TT_.driveMode(P) !== 2) return out;
@@ -1004,11 +1014,11 @@ const BX = (() => {
     checks.forEach((c) => {
       const m = re.exec(c.name); if (!m || c.kind !== "fu" || c.bx) return;
       const id = /atasco del retorno/.test(m[1]) ? "ret" : /vac[ií]a/.test(m[1]) ? null : "emp"; if (!id) return;
-      const f = k(BASE_FEA[id]); if (!(f < 1)) return;
-      out.push({ after: c, row: { kind: "fu", grp: c.grp, sys: c.sys, bx: true, k_tb: f, name: "BX · " + c.name + " — crédito del espesor de la base t_base = " + tb + " mm (FEA de Mindlin)",
-        formula: c.formula + "; × k = " + nf(f, 3) + " (FEA de Mindlin de la base completa con t_base = " + tb + " frente a 20 mm, " + (id === "ret" ? "atasco del retorno" : "empuje: cociente FEA/núcleo del caso que gobierna, con 22 mm el de la rev. 6") + "); Fy = la menor entre la base y el refuerzo o el atiesador (" + nf(c.cap * P.Nd / 1.25, 0) + " MPa)",
-        dem: c.dem * f, cap: c.cap, unit: c.unit, ref: (c.ref || "") + "; tests/indep_plancha_base_E.py §4 (FEA de Mindlin, misma formulación de la calibración del núcleo) sobre los diseños TT300-BX rev. 5 y rev. 6; docs/bx/README_BX.md §9 y §10" } });
-      c.kind = "info"; c.st = "info"; c.sustituida = true; c.name = c.name + " [sustituida en TT300-BX por la fila con el crédito del espesor de la base]";
+      const f = k(BASE_FEA[id]); if (!(Math.abs(f - 1) > 1e-9)) return;
+      out.push({ after: c, row: { kind: "fu", grp: c.grp, sys: c.sys, bx: true, k_tb: f, name: "BX · " + c.name + " — " + (f < 1 ? "crédito" : "ajuste") + " por la FEA de Mindlin de la base (t_base = " + tb + " mm)",
+        formula: c.formula + "; × k = " + nf(f, 3) + " (FEA de Mindlin de la base completa con t_base = " + tb + ": " + (id === "ret" ? "atasco del retorno" : "empuje") + ", envolvente de las mallas de 20 a 35 mm sobre el diseño rev. 7 frente al núcleo); Fy = la menor entre la base y el refuerzo o el atiesador (" + nf(c.cap * P.Nd / 1.25, 0) + " MPa)",
+        dem: c.dem * f, cap: c.cap, unit: c.unit, ref: (c.ref || "") + "; tests/indep_plancha_base_E.py §4 (FEA de Mindlin, misma formulación de la calibración del núcleo) sobre los diseños TT300-BX rev. 5 a 7; docs/bx/README_BX.md §9 a §11" } });
+      c.kind = "info"; c.st = "info"; c.sustituida = true; c.name = c.name + " [sustituida en TT300-BX por la fila con el factor de la FEA de la base]";
     });
     return out;
   }
@@ -1080,6 +1090,8 @@ const BX = (() => {
     const Dg = design(P); if (!Dg) return null;
     const o = exportable(Dg);
     o.verificaciones = (A ? A.checks.filter((c) => c.bx) : []).map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref }));
+    o.capacidad_nominal_tf = P.W_tf; o.alivio_bar = P.p_relief; o.alarma_bar = P.p_alarm;   // rev. 7: 290 t, 680 / 600 bar (el nombre TT300-BX queda como designación del modelo)
+    o.revision = "TT300-BX rev. 7 (18-11-2026): capacidad nominal " + P.W_tf + " t; todas las planchas en " + astm(P.Fy, P.Fu) + "; planchas de 22 mm (mesa, anillos, base, portador, cajón E, atiesador)";
     o.sistema = "planta x, y (mm) con O en el centro de la mesa; z desde la cara superior de la plancha base; CJP del disco sobre el eje x";
     o.z = { base_sup: 0, portador_sup: Dg.portador.t, pastilla_sup: Dg.portador.t + Dg.pastillas.h_p, disco_sup: Dg.portador.t + Dg.pastillas.h_p + Dg.disco.t, nota: "disco_sup = cara inferior de la mesa (δ sobre la base)" };
     return o;

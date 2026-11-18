@@ -311,3 +311,21 @@ con paredes E de 28 mm también (CJP 0,935), con 30 no (desgarro de las tapas 1,
 2. `packages/web/planos_export.js` (lista de materiales) sigue con un solo texto «A572 Gr.50 (Fy global)» para todo el acero; no se tocó (fuera del alcance).
 3. Recalibrar `DBL_CAL` del núcleo con t_base = 22 (hoy crédito BX por cociente de la FEA independiente).
 4. Herramientas HTML sin reconstruir (`Tornamesa_v*.html`, `Tornamesa_BX_v1.0.html`).
+
+## 11. Revisión 7 (18-11-2026): 290 t, 680/600 bar, todas las planchas en A572 Gr. 50 y de 22 mm (reemplaza a la rev. 6)
+
+Configuración por defecto: W_tf = 290, p_relief = 680, p_alarm = 600; global Fy/Fu = 345/450 (ASTM A572 Gr. 50) y claves por pieza en 0 (= global,
+siguen disponibles); t_top = t_bot = t_pr = t_base = bx_tc = pv_tbox = pv_tl = 22; atiesador tangencial 22 (clave nueva opcional del núcleo `rib_t`:
+ausente o ≤ 0 = RIB_T = 30, bit-idéntico); almas y nervios 8, collar 70, orejas 18, marco 10, refuerzo de esquina automático (45 mm). Lámina 3 mm,
+ULTRA VST 30 (saliente 8), 20 °C sin cambio. Capacidad en el bloque bx exportado (`capacidad_nominal_tf`, `revision`).
+
+FU (con FEA de la mesa; sin fallas, gira): tapas E desgarro 0,999 / aplastamiento 0,977; base bajo E (BX, FEA) calado 0,962 / retorno 0,824; anillo
+0,900, bisel 0,941; pasador entre anillos 0,905; portador torsión 0,900 / ligamento 0,810; alarma 0,980; paredes E flexión y CJP 0,794; pasador E 0,756;
+asiento del pivote 0,653; atiesador 22 × 60: 0,482; pastillas p + Δp 0,747 / PV 0,815; mesa superior 0,692 / inferior 0,465. F_calado 432,6 kN;
+FS nom/dis/borde/cont/seco 4,124/1,396/1,118/1,117/1,320. Cinemática: carrera 0,959, sincronía 0,971, reenganche 0,904, luz entre anillos 0,904.
+Masa 3 721 kg. Las tapas E son lineales en p_relief (F_calado ∝ p): 1,006 × 680/700 = 0,977.
+
+FEA de la base bajo el soporte E: con la malla de 40 mm de la calibración el sistema es singular (paredes de 22 mm); con 20/25/30/35 mm no converge en
+malla (calado 0,865/0,900/0,962/0,816; retorno 0,824/0,654/0,666/0,471; núcleo 0,831/0,785). Se reemplaza el crédito por la envolvente (factor 1,158 en el
+empuje y 1,050 en el retorno sobre la fila del núcleo, con t_base ≥ 22; sin crédito por espesor). Pendiente: estudio de convergencia de malla de la FEA
+de la base (máscara rígida de soportes delgados) y recalibración de `DBL_CAL` con la geometría rev. 7.
