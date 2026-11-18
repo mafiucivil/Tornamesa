@@ -29,6 +29,18 @@ const BX = (() => {
 
   /* ---------------- Parámetros propios (se suman a los del núcleo) ---------------- */
   const BX_GROUP = { id: "bx", t: "TT300-BX · disco inoxidable atornillado (2 semidiscos con CJP) y pastillas de UHMW en portador soldado a la base", p: [
+    ["bx_disc_modo", "Disco: modo. 1 = lámina inoxidable 304 acabado espejo de 3 mm (única plancha espejo del proveedor) en paneles del formato comercial con juntas a tope, SOLDADA a la plancha inferior de la mesa con tapones (plug) distribuidos y costura perimetral, sin tornillos (por defecto: decisión del mandante 18-11-2026); 0 = disco macizo atornillado con ISO 10642 (2 semidiscos con CJP; revisiones 1–4)", "–", 1, 0, 1, 1],
+    ["bx_t_lam", "Lámina (modo 1): espesor de la plancha espejo del proveedor", "mm", 3, 1.5, 4.8, 0.5],
+    ["bx_fmt_a", "Lámina (modo 1): formato comercial de la plancha espejo, ancho (por defecto el mayor, 1500 × 3000; alternativa típica 1219 × 2438)", "mm", 1500, 900, 2000, 1],
+    ["bx_fmt_b", "Lámina (modo 1): formato comercial de la plancha espejo, largo", "mm", 3000, 1800, 6000, 1],
+    ["bx_c_lam", "Lámina (modo 1): retiro del borde de la lámina respecto de R_o y R_i (asiento del filete perimetral sobre la plancha de la mesa)", "mm", 8, 4, 30, 1],
+    ["bx_d_tap", "Lámina (modo 1): Ø del agujero de los tapones (AISC 360-22 §J2.3a: t + 8 ≤ Ø ≤ máx(Ø_mín + 3; 2,25·t); AWS D1.3 y AISI S100 §J2.2: Ø visible ≥ 9,5)", "mm", 14, 9.5, 20, 0.5],
+    ["bx_s_tap", "Lámina (modo 1): paso circunferencial de los tapones (0 = automático: el mayor que cumple FU ≤ 0,90)", "mm", 0, 0, 400, 5],
+    ["bx_w_lam", "Lámina (modo 1): filete de la costura perimetral exterior e interior a la plancha de la mesa (AISC §J2.2b: w ≤ t con t < 6 mm)", "mm", 3, 2, 4.8, 0.5],
+    ["bx_FEXX_ss", "Lámina (modo 1): FEXX del aporte disímil inox–carbono E309L-16 / ER309L (AWS A5.4: E309L ≥ 520 MPa; ER309L de AWS A5.9 sin mínimo: se toma el del electrodo)", "MPa", 520, 400, 700, 5],
+    ["bx_g0", "Lámina (modo 1): separación máxima lámina–plancha después de soldar (galga en ventana Ø vacío local y entre tapones; requisito de fabricación e inspección)", "mm", 0.2, 0.05, 1, 0.05],
+    ["bx_pul", "Lámina (modo 1): material retirado al esmerilar a ras y pulir tapones y juntas (se descuenta del sobreespesor ss_allow)", "mm", 0.2, 0, 1, 0.05],
+    ["bx_c_pista", "Lámina (modo 1): holgura radial del borde de los tapones a la pista que barren las pastillas", "mm", 2, 0, 10, 0.5],
     ["bx_ss_mat", "Disco: material. 1 = inoxidable austenítico 304/316L (Fy_ss y Fu_ss del núcleo; α = 17,3×10⁻⁶/K); 2 = dúplex 2205 (UNS S32205, ASTM A240; α ≈ 13,0×10⁻⁶/K). Revisión del mandante 16-11-2026: 304", "–", 1, 1, 2, 1],
     ["bx_al_st", "Acero al carbono de la mesa: α para la dilatación diferencial con el disco (revisión del mandante: 12; Δα = 17,3 − 12 = 5,3×10⁻⁶/K con 304)", "×10⁻⁶/K", 12, 10, 14, 0.1],
     ["T_ifc_max", "Interfaz de giro: temperatura máxima de servicio (ambiente; revisión del mandante 17-11-2026: 20 °C de uso; antes 50 °C; los 80 °C son del sello hidráulico)", "°C", 20, 20, 80, 1],
@@ -81,6 +93,7 @@ const BX = (() => {
   const bxDefaults = () => Object.fromEntries(BX_GROUP.p.map((q) => [q[0], q[3]]));
   const ifOpt = (P) => P.opt_bz > 0.5 ? 3 : (P.opt_uhmw > 0.5 ? 2 : (P.opt_ss > 0.5 ? 1 : 0));
   const active = (P) => ifOpt(P) === 2;
+  const lamOn = (P) => Math.round(P.bx_disc_modo == null ? 1 : P.bx_disc_modo) === 1;   // modo 1: lámina de 3 mm soldada (por defecto)
   const full = (P) => { const d = bxDefaults(), Q = Object.assign({}, P); for (const k in d) if (!(k in Q)) Q[k] = d[k]; return Q; };   // P del núcleo sin claves bx_: valores por defecto
 
   /* ---------------- Material del disco ---------------- */
@@ -395,9 +408,16 @@ const BX = (() => {
   }
   function cellOf(P, C, M, L, d, tss, s) {
     const sq = L.SH && L.SH.sq, Acell = sq ? s * s : s * s * Math.sqrt(3) / 2 * 7 / 6;   // celda (cuadrada: s²; triangular con el reparto del sitio soldado vecino); los huecos irregulares van en el vacío local
-    const b = Math.sqrt(Acell / Math.PI), a = sq ? L.SH.aEq : d / 2, te = tss - P.ss_allow, D = M.E * te ** 3 / (12 * (1 - M.nu ** 2));
-    const c = b > a + 1e-6 ? cellPlate(C.qmax, a, b, D, M.nu) : { Mmax: 0, w: 0, Ma: 0, Mb: 0 };
-    return { a, b, te, D, c, sig: 6 * c.Mmax / (te * te), w: Math.abs(c.w) };
+    const b = Math.sqrt(Acell / Math.PI), a = sq ? L.SH.aEq : d / 2, te = tss - P.ss_allow, Ds = M.E * te ** 3 / (12 * (1 - M.nu ** 2));
+    if (lamOn(P)) {   // modo 1: la lámina soldada no flexiona sola: plancha inferior de la mesa + lámina con la misma curvatura (la plancha toma D_m/(D_m + D_s)
+      // del momento; la lámina, solidaria por los tapones, sigue la deformación de la cara de la plancha: σ_s = E_s·κ·(t_inf/2 + t_e), cota de sección compuesta)
+      const tb = P.t_bot, Dm = P.E * tb ** 3 / (12 * (1 - P.nu ** 2)), D = Dm + Ds;
+      const c = b > a + 1e-6 ? cellPlate(C.qmax, a, b, D, P.nu) : { Mmax: 0, w: 0, Ma: 0, Mb: 0 };
+      const sigPl = 6 * c.Mmax * Dm / D / (tb * tb), sigSs = M.E * c.Mmax / D * (tb / 2 + te);
+      return { a, b, te, D, Dm, Ds, c, sig: sigSs, sigPl, sigSs, w: Math.abs(c.w), fu: Math.max(sigSs / (0.6 * M.Fy), sigPl / (0.6 * P.Fy)), lam: true };
+    }
+    const D = Ds, c = b > a + 1e-6 ? cellPlate(C.qmax, a, b, D, M.nu) : { Mmax: 0, w: 0, Ma: 0, Mb: 0 }, sig = 6 * c.Mmax / (te * te);
+    return { a, b, te, D, c, sig, w: Math.abs(c.w), fu: sig / (0.6 * M.Fy) };
   }
   // Espesor del disco: (1) cabeza avellanada + 0,5 + sobreespesor; (2) vacío local Ø ss_void sin contacto con el respaldo (disco solo, como el núcleo);
   // (3) hueco de la malla (pastilla faltante o mayor hueco, radio a_g): el disco y la plancha de la mesa se curvan juntos (están atornillados y en
@@ -406,10 +426,95 @@ const BX = (() => {
     const sad = 0.6 * M.Fy, aV = P.ss_void / 2, tVoid = aV * Math.sqrt(0.75 * C.qmax / sad), aG = Math.max(L.SH && L.SH.sq ? (2 * s - d) / Math.SQRT2 : s - d / 2, Math.sqrt(Math.max(...L.pucks.map((q) => q.A)) / Math.PI));   // cuadrada: pastilla faltante = hueco cuadrado de lado 2s − a, se toma el círculo circunscrito
     const Dm = P.E * P.t_bot ** 3 / (12 * (1 - P.nu ** 2));
     const gap = (t) => { const te = t - P.ss_allow, Ds = M.E * te ** 3 / (12 * (1 - M.nu ** 2)), sh = Ds / (Ds + Dm); return { sh, sig: 6 * C.qmax * aG * aG / 8 * sh / (te * te) }; };
+    if (lamOn(P)) {   // modo 1: espesor fijo de la plancha espejo; pastilla faltante: plancha de la mesa + lámina (misma curvatura, lámina en la cara de la plancha)
+      const t = tFix != null ? tFix : P.bx_t_lam, te = t - P.ss_allow, tb = P.t_bot, Ds = M.E * te ** 3 / (12 * (1 - M.nu ** 2)), Mg = C.qmax * aG * aG / 8;
+      const sigPl = 6 * Mg * Dm / (Dm + Ds) / (tb * tb), sigSs = M.E * Mg / (Dm + Ds) * (tb / 2 + te), sh = Ds / (Ds + Dm);
+      return { t, tReq: t, aV, tVoid: 0, aG, gap: { sh, sig: sigSs, sigPl, M: Mg, fu: Math.max(sigSs / sad, sigPl / (0.6 * P.Fy)) }, sad, lam: true };
+    }
     const tReq = Math.max(tHead, tVoid + P.ss_allow, P.ss_tmin);
     const ok = (t) => t >= tReq - 1e-9 && gap(t).sig <= sad && cellOf(P, C, M, L, d, t, s).sig <= sad;
     const t = tFix != null ? tFix : (SS_COMM.find(ok) || SS_COMM[SS_COMM.length - 1]);
     return { t, tReq, aV, tVoid, aG, gap: gap(t), sad };
+  }
+  /* ---------------- Modo 1: lámina de 3 mm soldada con tapones y costura perimetral ---------------- */
+  const LIST_SP = [300, 275, 250, 225, 200, 175, 150, 140, 130, 120, 110, 100, 95, 90, 85, 80, 75, 70, 65, 60];
+  // Paneles: franjas paralelas a x de ancho ≤ formato − 2·margen (juntas a tope sobre y = cte; con 2 franjas la junta es el eje x, como la CJP del modo 0)
+  function lamPanels(P, Rlo, rho) {
+    const m = 10, a = P.bx_fmt_a - 2 * m, b = P.bx_fmt_b - 2 * m, n = Math.max(1, Math.ceil(2 * Rlo / a - 1e-9)), w = 2 * Rlo / n, out = [], juntas = [];
+    for (let k = 0; k < n; k++) {
+      const y0 = -Rlo + k * w, y1 = y0 + w, yc = y0 <= 0 && y1 >= 0 ? 0 : Math.min(Math.abs(y0), Math.abs(y1)), largo = 2 * Math.sqrt(Math.max(0, Rlo * Rlo - yc * yc));
+      const seg = (y) => { const c = Math.max(-1, Math.min(1, y / Rlo)); return Rlo * Rlo * (Math.asin(c) + c * Math.sqrt(1 - c * c)); };   // área del círculo bajo y (×2/2)
+      const area = seg(y1) - seg(y0);
+      out.push({ id: "L" + (k + 1), y0, y1, ancho: w, largo, area_bruta: area, cabe: w <= a + 1e-9 && largo <= b + 1e-9 });
+      if (k) juntas.push(y0);
+    }
+    return { m, n, w, paneles: out, juntas, cabe: out.every((q) => q.cabe), largo_juntas: juntas.reduce((s, y) => s + 2 * Math.sqrt(Math.max(0, Rlo * Rlo - y * y)), 0) };
+  }
+  // Tapones: anillos en las bandas libres entre las pistas que barren las pastillas (el disco gira sobre pastillas fijas: un tapón fuera de las pistas
+  // no pasa nunca bajo una pastilla) y anillos adicionales donde el hueco radial entre apoyos (costuras y anillos) supera el paso de pandeo s_r,máx.
+  function lamDesign(P, C, M, L, d, tss, dTd, spFix) {
+    const t = tss, te = t - P.ss_allow, D = P.bx_d_tap, e = 1.5 * D, Rlo = C.Ro - P.bx_c_lam, Rli = C.Ri + P.bx_c_lam, cl = P.bx_c_pista, Nd = P.Nd, SH = L.SH;
+    const dAl = Math.abs(M.al - P.bx_al_st * 1e-6), sTh1 = M.E * dAl * dTd, sTh = sTh1 / (1 - M.nu), Kp = Math.PI ** 2 * M.E / (12 * (1 - M.nu ** 2));
+    const srMax = sTh > 0 ? Math.min(400, te * Math.sqrt(2 * Kp * 0.8 / sTh)) : 400;   // panel cuadrado k = 2 con σ/σ_cr = 0,8
+    const PN = lamPanels(P, Rlo);
+    const tr = L.pucks.map((q) => [SH.rMin(q.hx, q.hy) - cl, SH.rMax(q.hx, q.hy) + cl]).sort((a, b) => a[0] - b[0]), trk = [];
+    tr.forEach(([a, b]) => { const l = trk[trk.length - 1]; if (l && a <= l[1]) l[1] = Math.max(l[1], b); else trk.push([a, b]); });
+    const inTrack = (r) => trk.some(([a, b]) => r + D / 2 > a && r - D / 2 < b);
+    const lo = Rli + e, hi = Rlo - e, free = []; let cur = lo;
+    for (const [a, b] of trk) { const f1 = Math.min(a - D / 2, hi); if (f1 >= cur - 1e-9) free.push([cur, f1]); cur = Math.max(cur, b + D / 2); if (cur > hi) break; }
+    if (cur <= hi + 1e-9) free.push([cur, hi]);
+    const base = free.map(([a, b]) => (a + b) / 2), sup = [Rli].concat(base, [Rlo]), radii = [];
+    for (let i = 0; i < sup.length - 1; i++) {
+      if (i > 0) radii.push({ r: sup[i], pista: false });
+      const g = sup[i + 1] - sup[i], k = Math.max(0, Math.ceil(g / srMax - 1e-9) - 1);
+      for (let j = 1; j <= k; j++) { const r = Math.max(lo, Math.min(hi, sup[i] + g * j / (k + 1))); radii.push({ r, pista: inTrack(r), extra: true }); }
+    }
+    radii.sort((a, b) => a.r - b.r);
+    const pins = Array.from({ length: P.N_pin }, (_, k) => (k + 0.5) * 2 * Math.PI / P.N_pin).map((a) => [P.R_pin * Math.cos(a), P.R_pin * Math.sin(a)]);
+    const yJ = PN.juntas, cJ = Math.max(P.bx_c_cjp, e);
+    const okPt = (x, y) => yJ.every((yj) => Math.abs(y - yj) >= cJ - 1e-9) && pins.every((p) => Math.hypot(x - p[0], y - p[1]) >= P.d_pin / 2 + D / 2 + 3 + D);
+    const T = C.Tcal * 1e6, Fw = P.bx_FEXX_ss * (P.__th && P.__th.k ? P.__th.k.weld : 1) * 0.60 / (1.20 * Nd), Aw = Math.PI / 4 * D * D, capW = Fw * Aw;
+    // lámina alrededor del tapón: AISI S100-16 §J2.2.2.2 (= ASCE 8-02 §5.2.2 para inoxidable), d_a = Ø − t; Ω de la especificación
+    const da = D - te, lam_ = da / te, rEF = Math.sqrt(M.E / M.Fu), PnS = lam_ <= 0.815 * rEF ? 2.20 * te * da * M.Fu : lam_ < 1.397 * rEF ? 0.280 * (1 + 5.59 * rEF / lam_) * te * da * M.Fu : 1.40 * te * da * M.Fu, OmS = lam_ <= 0.815 * rEF ? 2.20 : 2.80, capS = PnS / OmS;
+    const cap = Math.min(capW, capS), Fpk = L.pucks.map((q) => C.muEff * q.p * q.Ai);
+    const evalSp = (sc) => {
+      const pts = [], rings = [];
+      radii.forEach((R0, k) => {
+        const r = R0.r, nMax = Math.floor(Math.PI / Math.asin(Math.min(1, 2 * D / r)) + 1e-9), n = Math.max(3, Math.min(Math.ceil(2 * Math.PI * r / sc - 1e-9), nMax));
+        let best = null;
+        for (const off of [0.5, 0.25, 0.75, 0]) { const q = []; for (let j = 0; j < n; j++) { const a = (j + off) * 2 * Math.PI / n, x = r * Math.cos(a), y = r * Math.sin(a); if (okPt(x, y)) q.push({ x, y, r, ring: k, pista: R0.pista }); } if (!best || q.length > best.length) best = q; }
+        best.forEach((q) => pts.push(q)); rings.push({ r, n: best.length, n_div: n, pista: R0.pista, extra: !!R0.extra, paso: 2 * Math.PI * r / n });
+      });
+      if (!pts.length) return null;
+      const J = pts.reduce((s, q) => s + q.r * q.r, 0); pts.forEach((q) => { q.V = T * q.r / J; });
+      const Vmax = Math.max(...pts.map((q) => q.V));
+      // apoyos radiales y paso máximo: panel de pandeo y de despegue
+      const supR = [Rli].concat(rings.map((q) => q.r), [Rlo]); let gapR = 0; for (let i = 1; i < supR.length; i++) gapR = Math.max(gapR, supR[i] - supR[i - 1]);
+      const arc = Math.max(...rings.map((q) => q.paso)), ap = Math.max(gapR, arc);
+      // separación mínima entre tapones
+      let sMin = Infinity; const cs = Math.max(4 * D, 20), H = hashOf(pts, cs);
+      pts.forEach((q) => { const cx = Math.floor(q.x / cs), cy = Math.floor(q.y / cs); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const Lc = H.get((cx + i) + "," + (cy + j)); if (Lc) Lc.forEach((m) => { if (pts[m] !== q) sMin = Math.min(sMin, Math.hypot(pts[m].x - q.x, pts[m].y - q.y)); }); } });
+      if (!isFinite(sMin)) sMin = Infinity;
+      // arrastre local: tapones a ≤ d/2 + a_p/2 del centro de la pastilla, mínimo sobre 24 posiciones relativas del disco (gira) dentro de un paso
+      const rho = d / 2 + ap / 2, phMax = 2 * Math.PI / Math.max(...rings.map((q) => q.n_div)); let loc = { F: 0, n: Infinity, V: 0, i: -1 };
+      L.pucks.forEach((q, i) => { let nmin = Infinity;
+        for (let k = 0; k < 24; k++) { const ph = k * phMax / 24, c = Math.cos(ph), s_ = Math.sin(ph); let n = 0; pts.forEach((p) => { const x = p.x * c - p.y * s_, y = p.x * s_ + p.y * c; if (Math.hypot(x - q.x, y - q.y) <= rho) n++; }); nmin = Math.min(nmin, n); }
+        const V = Fpk[i] / Math.max(nmin, 1e-9); if (V > loc.V) loc = { F: Fpk[i], n: nmin, V, i }; });
+      const sCr = 2 * Kp * (te / ap) ** 2, tCr = 9.34 * Kp * (te / ap) ** 2, Fmax = Math.max(...Fpk), tau = 2 * Fmax / (Math.PI * d * te);
+      const inter = sTh / sCr + (tau / tCr) ** 2;
+      const eReq = Math.max(1.5 * D, 2.0 * Vmax / (M.Fu * te)), eAv = Math.min(...pts.map((q) => Math.min(Rlo - q.r, q.r - Rli)));
+      const Dp = M.E * te ** 3 / (12 * (1 - M.nu ** 2)), blist = (a) => ({ a, pc: 64 * Dp * P.bx_g0 / a ** 4, sig: 4 * M.E * te * P.bx_g0 / ((1 - M.nu ** 2) * a * a) });
+      const bP = blist(ap / 2), pMin = Math.min(...L.pucks.map((q) => q.p));
+      const fus = [Vmax / capW, Vmax / capS, loc.V / cap, sTh / sCr, inter, bP.sig / (2 * M.Fy)].map((f) => f / 0.9).concat([bP.pc / pMin, 4 * D / sMin, eReq / eAv]);
+      return { sc, pts, rings, J, Vmax, gapR, arc, ap, sMin, rho, loc, sCr, tCr, tau, inter, eReq, eAv, bP, pMin, fus, fu: Math.max(...fus), Fmax };
+    };
+    let best = null;
+    if (spFix) best = evalSp(spFix);
+    else for (const sc of (P.bx_s_tap > 0 ? [P.bx_s_tap] : LIST_SP.filter((x) => x >= 4 * D))) { const r = evalSp(sc); if (!r) continue; best = r; if (r.fu <= 1 + 1e-9) break; }
+    const Dp = M.E * te ** 3 / (12 * (1 - M.nu ** 2)), aV = P.ss_void / 2, bV = { a: aV, pc: 64 * Dp * P.bx_g0 / aV ** 4, sig: 4 * M.E * te * P.bx_g0 / ((1 - M.nu ** 2) * aV * aV) };
+    const qT = T / (2 * Math.PI * Rlo * Rlo), qTh = sTh * te, w = P.bx_w_lam, capSeamW = Fw * 0.707 * w, capSeamS = 0.75 * te * M.Fu / 3.05;   // AISI S100 §J2.5 (L/t ≥ 25)
+    const area = Math.PI * (Rlo * Rlo - Rli * Rli) - (best ? best.pts.length : 0) * 0, mass = M.rho * area * t;
+    return Object.assign({ t, te, D, e, Rlo, Rli, PN, trk, free, radii, srMax, sTh, sTh1, dAl, Kp, Fw, Aw, capW, capS, cap, da, OmS, PnS, Fpk, qT, qTh, w, capSeamW, capSeamS, bV, area, mass }, best || {});
   }
   function size(P, R, fz) {
     P = full(P);
@@ -422,7 +527,7 @@ const BX = (() => {
     const SQ = Math.round(P.bx_forma) === 1, ds = fz ? [fz.d] : P.bx_dp > 0 ? [P.bx_dp] : (SQ ? LIST_A : LIST_D);
     const ligOf = (tc) => fz ? fz.lig : P.bx_lig > 0 ? P.bx_lig : Math.max(10, tc);
     const plugOf = (tc) => Math.floor(Math.max(tc + 8 + 3, 2.25 * Math.min(tc, 16)));   // AISC J2.3a: Ø ≥ t + 8 y ≤ máx(Ø_mín + 3; 2,25·t_soldadura); se toma el máximo (más área)
-    const tssGuess = fz ? fz.t_ss : P.bx_t_ss > 0 ? P.bx_t_ss : 8;
+    const tssGuess = fz ? fz.t_ss : lamOn(P) ? P.bx_t_lam : P.bx_t_ss > 0 ? P.bx_t_ss : 8;
     const kI = P.__th ? { p_uh: 1, E_uh: 1 } : TT_.thermalFactors(P, P.T_ifc_max).k;   // UHMW a T_ifc_max (interpolado entre 1,0 a T_ref y kT_* a 80 °C; confianza C); en el escenario térmico P ya viene reducido
     const dFl = P.d_flat + P.bx_tol_H;
     const cand = [], lays = new Map();
@@ -468,7 +573,7 @@ const BX = (() => {
     const tq = nw >= 1 ? null : torsion(L, C, d, tc, (i) => C.muEff * L.pucks[i].p * L.pucks[i].Ai);
     // disco: espesor y tornillos
     const dT = P.bx_d_tss, kT = isoK(dT), tHead = kT + 0.5 + P.ss_allow, sad = 0.6 * M.Fy;
-    const DT = discT(P, C, M, L, d, s, tHead, fz ? fz.t_ss : P.bx_t_ss > 0 ? P.bx_t_ss : null), aV = DT.aV, tVoid = DT.tVoid, aG = DT.aG, tReq = DT.tReq;
+    const DT = discT(P, C, M, L, d, s, tHead, fz ? fz.t_ss : !lamOn(P) && P.bx_t_ss > 0 ? P.bx_t_ss : null), aV = DT.aV, tVoid = DT.tVoid, aG = DT.aG, tReq = DT.tReq;
     let tss = DT.t;
     if (!fz && !(P.bx_hp > 0)) {   // h_p definitivo con la malla fina y el espesor del disco
       const hl = (P.bx_H_uh > 0 ? [P.bx_H_uh] : UH_PL).map((H) => H - tc).filter((h) => h >= 2 - 1e-9 && h <= P.bx_hp_max + 1e-9);
@@ -476,10 +581,16 @@ const BX = (() => {
         if (e.worst.pd <= 0.9 * P.p_uhmw && e5.worst.pd <= 0.9 * kI.p_uh * P.p_uhmw && (P.bx_g_min + P.bx_bow + e5.wear + e5.creep + dFl + ce.w) <= h && C.muU * (h + tc / 2) <= L.SH.kern && ce.w <= Math.min(P.d_flat, 0.1 * h)) { hp = h; break; } hp = h; }
     }
     const dTd = Math.max(P.T_ifc_max - P.T_ref, P.T_ref - P.T_ifc_min);   // ΔT de servicio disco–mesa (revisión del mandante: montaje a 20 °C, servicio 0–50 °C: 30 K)
-    let sb = fz ? fz.sb : P.bx_s_tss > 0 ? P.bx_s_tss : null, BL, BF;
+    let sb = fz ? fz.sb : P.bx_s_tss > 0 ? P.bx_s_tss : null, BL, BF, PL = null;
+    const LAM = lamOn(P);
+    if (LAM) {   // modo 1: lámina soldada (tapones + costura perimetral); sin tornillos
+      PL = lamDesign(P, C, M, L, d, tss, dTd, fz ? fz.sp : null); sb = 0;
+      BL = { lista: [], radii: [], sMin: Infinity, eIn: 0, eOut: 0, dk: 0 }; BF = null;
+    } else {
     const tryS = (x) => { const bl = boltLayout(P, C, dT, x, tss), bf = boltForces(P, C, R, M, dT, x, tss, bl, dTd); return { bl, bf, ok: bf.V_prim <= 0.9 * bf.capV && bf.V_prim <= 0.9 * bf.RnSS_edge / 2 && bl.sMin >= 3 * dT }; };   // el corte de diseño es el del par (primario); la componente térmica es secundaria (fila informativa)
     if (sb == null) { let last = null; for (const x of LIST_SB) { const r = tryS(x); last = r; sb = x; if (r.ok) break; } BL = last.bl; BF = last.bf; }
     else { const r = tryS(sb); BL = r.bl; BF = r.bf; }
+    }
     // ajuste a presión
     const dal = P.bx_al_uh * 1e-6 - P.bx_al_st * 1e-6, tolS = P.bx_tol_h + P.bx_tol_p, dCold = dal * (P.T_ref - P.bx_Tmin) * d, dHot = dal * (P.T_ifc_max - P.T_ref) * d;   // caliente: temperatura máxima de la interfaz (50 °C)
     const iLo = Math.max(tolS, tolS + dCold - 2 * (P.bx_c_sp - 0.2)), iHi = P.bx_eps_max / 100 * d - tolS - dHot;
@@ -489,10 +600,10 @@ const BX = (() => {
     const SHf = L.SH, Acut = SHf.sq ? (d + delta) ** 2 - (4 - Math.PI) * SHf.rcp ** 2 : Math.PI / 4 * (d + delta) ** 2;
     const mPuck1 = RHO_UH * (Acut * H - Math.PI / 4 * holeSp ** 2 * H - Math.PI / 4 * (dkSp ** 2 - holeSp ** 2) * (hp + 0.5));   // descontado el agujero y el alojamiento de la cabeza (cilindro, conservador)
     const fSum = L.Asum / L.Ap, mCarPl = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - fSum * SHf.ApH), mFil = RHO * P.bx_w_c ** 2 / 2 * 2 * Math.PI * (C.Rco + C.Rci);
-    const A_ss = Math.PI * (C.Ro ** 2 - C.Ri ** 2), mSS = M.rho * A_ss * tss;
+    const A_ss = LAM ? PL.area : Math.PI * (C.Ro ** 2 - C.Ri ** 2), mSS = M.rho * A_ss * tss;
     const bx = { t_ss: tss, t_ss_req: tReq, t_flex: tVoid, delta: tc + hp + tss, mTop: mSS, mSS, mUH: fSum * mPuck1, mCar: mCarPl + mFil, t_c: tc, h_p: hp };
-    const geo = { DT, kI, dFl, tq, candList: cand.map((c) => ({ d: c.d, tc: c.tc, s: c.s, hp: c.hp, nw: c.nw, fuMax: c.fuMax, fus: c.fus, cost: c.cost })), capWh: capWh(d), C, M, pat, nw, tc, d, s, lig, dPlug, hp, H, delta, iLo, iHi, dCold, dHot, tolS, dal, L, fl, tss, tReq, tHead, tVoid, aV, sad, dT, kT, sb, BL, BF, dTd, nP, nW, Ap, holeSp, dkSp, mPuck1, mCarPl, mFil, mSS, A_ss, tcMin, cand: cand.length, candOk: okC.length };
-    return { bx, geo, frozen: { t_c: tc, d, s, lig, h_p: hp, t_ss: tss, sb, i: delta, nw, pat } };
+    const geo = { DT, kI, dFl, tq, candList: cand.map((c) => ({ d: c.d, tc: c.tc, s: c.s, hp: c.hp, nw: c.nw, fuMax: c.fuMax, fus: c.fus, cost: c.cost })), capWh: capWh(d), C, M, pat, nw, tc, d, s, lig, dPlug, hp, H, delta, iLo, iHi, dCold, dHot, tolS, dal, L, fl, tss, tReq, tHead, tVoid, aV, sad, dT, kT, sb, BL, BF, PL, LAM, dTd, nP, nW, Ap, holeSp, dkSp, mPuck1, mCarPl, mFil, mSS, A_ss, tcMin, cand: cand.length, candOk: okC.length };
+    return { bx, geo, frozen: { t_c: tc, d, s, lig, h_p: hp, t_ss: tss, sb, sp: PL ? PL.sc : null, i: delta, nw, pat } };
   }
   const sameBx = (a, b) => ["t_ss", "t_c", "h_p"].every((k) => a[k] === b[k]) && Math.abs(a.mTop - b.mTop) < 1e-9 && Math.abs(a.mCar - b.mCar) < 1e-9 && Math.abs(a.mUH - b.mUH) < 1e-9;
   const designCache = new Map();
@@ -523,6 +634,36 @@ const BX = (() => {
   }
   function coreP(P) { if (!active(P)) return P; const G0 = design(P); return Object.assign({}, full(P), { __bx: G0.bx }); }
 
+  // Bloque «disco» del modo 1 (lámina soldada): paneles, junta a tope, tapones, costura, celda, hueco, despegue y fabricación
+  function discoLam(P, C, M, g, ce) {
+    const PL = g.PL, PN = PL.PN, nT = PL.pts.length, nPi = PL.pts.filter((q) => q.pista).length;
+    return { modo: 1, t: g.tss, t_req: g.tss, t_e: PL.te, R_ext: PL.Rlo, R_int: PL.Rli, R_mesa: C.Ro, R_i_interfaz: C.Ri, material: M.nombre + ", acabado espejo (plancha del proveedor)", Fy: M.Fy, Fu: M.Fu, alfa: M.al, E: M.E,
+      aporte: "E309L-16 (AWS A5.4) / ER309L (AWS A5.9): unión disímil inox–acero al carbono", fuente_material: M.fuente, masa: g.mSS, semidiscos: 0,
+      lamina: { espesor: g.tss, formato: [P.bx_fmt_a, P.bx_fmt_b], margen_corte: PN.m, R_ext: PL.Rlo, R_int: PL.Rli, retiro_borde: P.bx_c_lam, n_paneles: PN.n,
+        paneles: PN.paneles.map((q) => Object.assign({}, q, { masa: M.rho * q.area_bruta * g.tss })),
+        junta: { tipo: "a tope (borde recto cortado a láser o cizalla, separación de raíz 0–1 mm) con soldadura de ranura de penetración completa sobre respaldo permanente (la plancha inferior de la mesa), esmerilada a ras y pulida; NO traslapada (el traslapo deja un escalón de " + nf(g.tss, 0) + " mm y un canto libre en la cara de deslizamiento)",
+          aporte: "ER309L (AWS A5.9) / E309L-16 (AWS A5.4)", lineas_y: PN.juntas, largo: PN.largo_juntas, norma: "AWS D1.6/D1.6M:2017 (inoxidable y unión disímil; WPS calificada); AISC 360-22 Tabla J2.5 (CJP)",
+          END: "VT 100 % y PT 100 % después de esmerilar", acabado: "esmerilado a ras (± 0,05 mm) y pulido al grano del espejo (Ra ≤ 0,4 µm) en la franja de la junta" },
+        acabado: "espejo del proveedor (film protector hasta el montaje; se retira solo en los tapones, la junta y la costura)" },
+      tapones: { tipo: "tapón (plug) en agujero Ø" + nf(PL.D, 1) + " taladrado o punzonado en la lámina, relleno en todo el espesor (" + nf(g.tss, 0) + " mm) y fundido a la plancha de la mesa; esmerilado a ras y pulido", d: PL.D, relleno: g.tss, n: nT, paso: PL.sc,
+        anillos: PL.rings, en_pistas: nPi, s_min: PL.sMin, e_min: PL.eAv, e_req: PL.eReq, V_max: PL.Vmax, cap_soldadura: PL.capW, cap_lamina: PL.capS, cap: PL.cap, F_pastilla_max: PL.loc.F, n_local_min: PL.loc.n, V_local: PL.loc.V,
+        lista: PL.pts.map((q) => ({ x: q.x, y: q.y, r: q.r, anillo: q.ring, pista: q.pista, V: q.V })),
+        norma: "AISC 360-22 §J2.3 (Ø, separación ≥ 4·Ø, relleno = t), §J2.4 (corte en el área del agujero); AISI S100-16 §J2.2 / ASCE 8-02 §5.2.2 (lámina alrededor del tapón; distancia al borde); AWS D1.6/D1.6M:2017 (WPS disímil); AWS D1.3/D1.3M:2018 (detalle de tapones en lámina ≤ 4,8 mm, referencia)" },
+      costura: { w: PL.w, exterior: { R: PL.Rlo, largo: 2 * Math.PI * PL.Rlo }, interior: { R: PL.Rli, largo: 2 * Math.PI * PL.Rli }, q_par: PL.qT, q_termica: PL.qTh, cap_soldadura: PL.capSeamW, cap_lamina: PL.capSeamS, tipo: "filete continuo z" + nf(PL.w, 1) + " en el canto de la lámina a la plancha de la mesa (sella el intersticio lámina–plancha)" },
+      tornillos: { n: 0, d: null, lista: [], anillos: [], nota: "modo 1: sin tornillos avellanados (lámina soldada)" },
+      celda: { a: ce.a, b: ce.b, sigma: ce.sig, sigma_lamina: ce.sigSs, sigma_plancha: ce.sigPl, flecha: ce.w, M_a: ce.c.Ma, M_b: ce.c.Mb, D: ce.D, compuesta: true },
+      vacio: { a: PL.bV.a, g0: P.bx_g0, sigma: PL.bV.sig, p_cierre: PL.bV.pc }, despegue_panel: { a: PL.bP.a, g0: P.bx_g0, sigma: PL.bP.sig, p_cierre: PL.bP.pc, p_min_pastilla: PL.pMin },
+      hueco: { a: g.DT.aG, fraccion_disco: g.DT.gap.sh, sigma: g.DT.gap.sig, sigma_plancha: g.DT.gap.sigPl },
+      termico: { dT: g.dTd, alfa_acero: P.bx_al_st * 1e-6, sigma_uniaxial: PL.sTh1, sigma_biaxial: PL.sTh, panel: PL.ap, sigma_cr: PL.sCr, tau_arrastre: PL.tau, tau_cr: PL.tCr, interaccion: PL.inter, s_r_max: PL.srMax,
+        criterio: "secundaria: rango ≤ 2Fy (ASME VIII-2 5.5.6.1) y ≤ Fy; pandeo del panel entre apoyos (k = 2) con el arrastre (k_s = 9,34): σ/σ_cr + (τ/τ_cr)² ≤ 1" },
+      fabricacion: lamFab(P, PL) };
+  }
+  function lamFab(P, PL) {
+    return "1) planear la cara inferior de la mesa (planitud d_flat) y desengrasar; 2) cortar los " + PL.PN.n + " paneles del formato " + P.bx_fmt_a + " × " + P.bx_fmt_b + " con film protector y taladrar los " + PL.pts.length + " agujeros Ø" + nf(PL.D, 1) + " con plantilla; "
+      + "3) presentar los paneles con la mesa invertida, apretados contra la plancha con prensas o peso distribuido (o vacío) en todo el panel; 4) tapones por zonas desde el centro hacia afuera, alternando cuadrantes y saltando posiciones (1 de cada 3 por pasada), "
+      + "temperatura entre pasadas ≤ 150 °C, sin precalentar el inox; 5) junta a tope sobre la plancha en tramos alternados; 6) costura perimetral exterior e interior por retroceso (backstep) en tramos ≤ 150 mm; 7) esmerilar a ras y pulir tapones, junta y costura; "
+      + "8) control: separación lámina–plancha ≤ " + nf(P.bx_g0, 2) + " mm con galga en todo el contorno de los paneles y entre tapones (golpeteo y galga), planitud de la cara con regla, PT de tapones y juntas; 9) decapado y pasivado local (ASTM A380 / A967)";
+  }
   /* ---------------- Geometría exportable (fuente única para el generador de planos) ---------------- */
   function build(P, R, S) {
     const g = S.geo, C = g.C, M = g.M, L = g.L, BF = g.BF, BL = g.BL;
@@ -534,11 +675,11 @@ const BX = (() => {
     const Lof = (b) => { const tb = b.anillo ? P.t_pr : P.t_bot; if (b.anillo) { const hdT = tb - 3, huT = hdT - 2 * pT; const Ls = ISO10642_L.filter((x) => x - (g.tss - rec) >= 1.25 * dT - 1e-9 && x - (g.tss - rec) + 2 <= huT + 1e-9); return { L: Ls.length ? Ls[Ls.length - 1] : null, ciego: true, prof: hdT, util: huT, tb }; }
       const L0 = ISO10642_L.find((x) => x - (g.tss - rec) >= tb - 1e-9) || null; return { L: L0, ciego: false, prof: tb, util: tb, tb }; };
     const bolts = BL.lista.map((b) => { const l = Lof(b); return { x: b.x, y: b.y, r: b.r, ang: b.a, anillo: b.anillo, L: l.L, ciego: l.ciego, prof: l.prof, rosca_util: l.util, t_pieza: l.tb, le: l.L != null ? Math.min(l.L - (g.tss - rec), l.tb) : NaN, VT: b.VT, Vth: b.Vth, V: b.V }; });
-    const fz = { t_c: g.tc, d: g.d, s: g.s, lig: g.lig, h_p: g.hp, t_ss: g.tss, sb: g.sb, i: g.delta, nw: g.nw, pat: g.pat };
+    const fz = { t_c: g.tc, d: g.d, s: g.s, lig: g.lig, h_p: g.hp, t_ss: g.tss, sb: g.sb, sp: g.PL ? g.PL.sc : null, i: g.delta, nw: g.nw, pat: g.pat };
     const iPV = e.iPV;
     return {
       version: 1, material: M.nombre, frozen: fz, bx: S.bx,
-      disco: { t: g.tss, t_req: g.tReq, t_cabeza: g.tHead, t_vacio: g.tVoid + P.ss_allow, R_ext: C.Ro, R_int: C.Ri, material: M.nombre, Fy: M.Fy, Fu: M.Fu, alfa: M.al, E: M.E, aporte: M.aporte, fuente_material: M.fuente,
+      disco: g.LAM ? discoLam(P, C, M, g, ce) : { modo: 0, t: g.tss, t_req: g.tReq, t_cabeza: g.tHead, t_vacio: g.tVoid + P.ss_allow, R_ext: C.Ro, R_int: C.Ri, material: M.nombre, Fy: M.Fy, Fu: M.Fu, alfa: M.al, E: M.E, aporte: M.aporte, fuente_material: M.fuente,
         masa: g.mSS, masa_semidisco: g.mSS / 2, semidiscos: 2, linea_cjp: "eje x (y = 0), sobre el nervio de 0°/180°",
         cjp: { tipo: "CJP a tope en V doble (o V simple con respaldo cerámico retirado) en todo el espesor, esmerilada a ras en ambas caras", norma: "AWS D1.6/D1.6M:2017 (acero inoxidable); WPS calificada", aporte: M.aporte, largo: 2 * (C.Ro - C.Ri), END: "VT 100 % y PT 100 % de la cara de deslizamiento después de esmerilar; RT o UT según AWS D1.6 (propuesta, a confirmar por el inspector)", acabado: "cara de deslizamiento: esmerilado a ras y pulido Ra ≤ 0,8 µm en la franja de la CJP" },
         acabado: "cara de deslizamiento en estado de laminación 2B (EN 10088-2) si existe en el espesor; si no, 1D con pulido a Ra ≤ 0,8 µm (sin rectificado); planitud: el disco copia la cara inferior planeada de la mesa al apretar los tornillos",
@@ -569,11 +710,15 @@ const BX = (() => {
           p_ajuste_20: P.bx_E_ct * (g.delta + g.tolS) / g.d / (1 - NU_UH), montaje: "a prensa con guía (o enfriando la pastilla); la interferencia relaja por fluencia: la retención la da el tornillo" },
         tornillo: { designacion: "ISO 10642 M" + P.bx_d_sp + " × " + Lsp + " clase 8.8 (zinc laminar ISO 10683)", d: P.bx_d_sp, L: Lsp, z_cara_cabeza: zHead, engrane: Lsp - zHead, taladro_ciego: hd, rosca_util: hu, remanente: P.t_base - hd, n: g.nP, apriete: "par bajo (retención, no precarga: el UHMW fluye); fijador de rosca de resistencia media" } },
       soldaduras: [
-        { id: "BX-W1", union: "semidisco–semidisco (inoxidable)", tipo: "CJP a tope, esmerilada a ras", norma: "AWS D1.6/D1.6M:2017", largo: 2 * (C.Ro - C.Ri) },
+        g.LAM ? { id: "BX-W1", union: "panel–panel de la lámina inoxidable (sobre la plancha inferior de la mesa)", tipo: "ranura a tope de penetración completa sobre respaldo permanente (plancha de la mesa), ER309L/E309L, esmerilada a ras", norma: "AWS D1.6/D1.6M:2017 (unión disímil, WPS calificada)", largo: g.PL.PN.largo_juntas }
+          : { id: "BX-W1", union: "semidisco–semidisco (inoxidable)", tipo: "CJP a tope, esmerilada a ras", norma: "AWS D1.6/D1.6M:2017", largo: 2 * (C.Ro - C.Ri) },
         { id: "BX-W2", union: "portador–base (agujeros de soldadura)", tipo: "filete z" + P.bx_w_h + " interior en todo el contorno del agujero Ø" + g.dPlug, norma: "AISC 360-22 §J2.2, §J2.4; AWS D1.1/D1.1M:2020 Tabla 7.7", n: g.nW, largo_cada: Math.PI * g.dPlug },
         { id: "BX-W3", union: "portador–base (borde exterior)", tipo: "filete z" + P.bx_w_c + " continuo", norma: "AWS D1.1/D1.1M:2020 Tabla 7.7; AISC 360-22 §J2.2b", largo: 2 * Math.PI * C.Rco },
         { id: "BX-W4", union: "portador–base (borde interior)", tipo: "filete z" + P.bx_w_c + " continuo", norma: "AWS D1.1/D1.1M:2020 Tabla 7.7; AISC 360-22 §J2.2b", largo: 2 * Math.PI * C.Rci },
-      ],
+      ].concat(g.LAM ? [
+        { id: "BX-W5", union: "lámina inoxidable–plancha inferior de la mesa (tapones)", tipo: "tapón Ø" + nf(g.PL.D, 1) + " relleno " + nf(g.tss, 0) + " mm, ER309L/E309L, esmerilado a ras", norma: "AISC 360-22 §J2.3, §J2.4; AISI S100-16 §J2.2; AWS D1.6/D1.6M:2017", n: g.PL.pts.length },
+        { id: "BX-W6", union: "lámina inoxidable–plancha inferior de la mesa (costura exterior)", tipo: "filete z" + nf(g.PL.w, 1) + " continuo, ER309L/E309L", norma: "AISC 360-22 §J2.2b, §J2.4; AISI S100-16 §J2.5; AWS D1.6/D1.6M:2017", largo: 2 * Math.PI * g.PL.Rlo },
+        { id: "BX-W7", union: "lámina inoxidable–plancha inferior de la mesa (costura interior)", tipo: "filete z" + nf(g.PL.w, 1) + " continuo, ER309L/E309L", norma: "AISC 360-22 §J2.2b, §J2.4; AISI S100-16 §J2.5; AWS D1.6/D1.6M:2017", largo: 2 * Math.PI * g.PL.Rli }] : []),
       fabricacion: fabricacion(P, R, g),
       diseno: { candidatos: g.cand, candidatos_ok: g.candOk, mu_eff: C.muEff, mu_max: C.muMax, T_calado: C.Tcal, q_med: C.qa, q_max: C.qmax, kq: C.kq, omega: C.omega, dist_vida_m_por_mm: C.dist,
         nota: "búsqueda sobre Ø de pastilla, espesor del portador (paso = Ø + ligamento) y saliente; se elige la menor masa portador + pastillas con todas las verificaciones con FU ≤ 0,90 (geométricas ≤ 1)" },
@@ -585,6 +730,9 @@ const BX = (() => {
   function fabricacion(P, R, g) {
     const pv = TT_.driveMode(P) === 2, hr = R.hubG;
     const rows = [
+      g.LAM ? ["Discos inoxidables de la interfaz (opción B: disco de la base y de la mesa, 24 sectores cada uno)", "Corte por plasma/láser de 48 sectores con muescas y chaflanes; rectificado/lapeado de la cara deslizante (Ra 0,4) en rectificadora plana (subcontrato); avellanados en taladro radial",
+        "Lámina 304 espejo de " + g.tss + " mm (plancha del proveedor) en " + g.PL.PN.n + " paneles del formato " + P.bx_fmt_a + " × " + P.bx_fmt_b + " con junta a tope sobre la plancha, soldada a la plancha inferior de la mesa con " + g.PL.pts.length + " tapones Ø" + nf(g.PL.D, 1) + " (ER309L) y costura perimetral z" + nf(g.PL.w, 1) + "; sin tornillos ni rectificado",
+        "simplificada", "Elimina 47 piezas, el rectificado, las muescas y los tornillos; el proveedor solo tiene plancha espejo de 3 mm (decisión del mandante 18-11-2026)", "Lámina: tapones, costura, pandeo, despegue, celda y hueco con la plancha de la mesa (filas «BX · Lámina …» y «BX · Tapones …»)"] :
       ["Discos inoxidables de la interfaz (opción B: disco de la base y de la mesa, 24 sectores cada uno)", "Corte por plasma/láser de 48 sectores con muescas y chaflanes; rectificado/lapeado de la cara deslizante (Ra 0,4) en rectificadora plana (subcontrato); avellanados en taladro radial",
         "Un disco Ø" + P.D_top + " × " + g.tss + " mm (" + g.M.nombre + ") en 2 semidiscos cortados con plasma, CJP a tope esmerilada a ras; cara 2B o 1D pulida (sin rectificado); " + g.BL.lista.length + " agujeros taladrados y avellanados", "simplificada",
         "Elimina 47 piezas, el rectificado y las muescas; no hay disco en la base", "Disco: flexión entre pastillas y sobre el vacío local, espesor ≥ cabeza avellanada + desgaste, CJP, dilatación restringida (filas «BX · Disco …»)"],
@@ -594,12 +742,14 @@ const BX = (() => {
       ["Portador de las pastillas (nuevo)", "—", "Plancha " + g.tc + " mm cortada con plasma de alta definición (" + g.nP + " agujeros " + (g.L.SH.sq ? "cuadrados de " + g.d + " con esquinas R" + nf(g.L.SH.rc, 1) : "Ø" + g.d) + (g.nW ? " y " + g.nW + " agujeros de soldadura Ø" + g.dPlug + " con filete interior" : "") + "), soldada a la base " + (g.nW ? "con esos filetes y " : "solo ") + "con filetes perimetrales exterior e interior z" + P.bx_w_c, "nueva",
         "Reemplaza los sectores, sus topes y la lámina: la pared del agujero toma el arrastre y el portador lo lleva a torsión hasta sus bordes soldados", "Portador: ligamento, corte por torsión en la sección neta, filetes perimetrales (filas «BX · Portador …»)"],
       ["Barras de tope soldadas de los sectores (inoxidable y acero) y sus muescas", "Barras cortadas, soldadas al disco de la base y a la mesa antes del rectificado; muescas y chaflanes en cada sector", "—", "eliminada",
-        "El par pasa por los tornillos del disco (mesa) y por los agujeros del portador (base)", "BX · Tornillos del disco (par + dilatación); BX · Portador (ligamento y tapones)"],
+        g.LAM ? "El par pasa por los tapones y la costura de la lámina (mesa) y por los agujeros del portador (base)" : "El par pasa por los tornillos del disco (mesa) y por los agujeros del portador (base)", g.LAM ? "BX · Tapones y costura de la lámina; BX · Portador (ligamento y torsión)" : "BX · Tornillos del disco (par + dilatación); BX · Portador (ligamento y tapones)"],
+      g.LAM ? ["Tornillos de posición ISO 10642 de los sectores", "2 por sector (48 + 24)", "Sin tornillos en la lámina (tapones soldados); tornillos ISO 10642 M" + P.bx_d_sp + " 8.8 de las pastillas (" + g.nP + ")", "simplificada",
+        "La lámina se suelda: el par pasa por los tapones y la costura", "BX · Tapones y costura; BX · Pastillas: tornillo"] :
       ["Tornillos de posición ISO 10642 de los sectores", "2 por sector (48 + 24)", "Tornillos ISO 10642 M" + g.dT + " 10.9 de la malla del disco (" + g.BL.lista.length + ") y M" + P.bx_d_sp + " 8.8 de las pastillas (" + g.nP + "); roscas taladradas por plantilla", "simplificada",
         "Los tornillos del disco toman el par y la dilatación: dejan de ser solo de posición", "BX · Tornillos del disco: corte J3.7, aplastamiento J3.11, despegue, engrane; BX · Pastillas: tornillo"],
       ["Cara de apoyo de la base (Ø" + (P.D_top + 20) + ") planeada", "Planeado en mandrinadora (planitud 0,20; Ra 3,2)", "Se mantiene el planeado bajo el portador: las pastillas apoyan en la base y la sobrepresión por planitud depende de d_flat", "se mantiene",
         "La sobrepresión p + Δp con d_flat = " + nf(P.d_flat, 2) + " mm gobierna la saliente de la pastilla; sin planear no hay dato de planitud local", "BX · Pastillas: presión más sobrepresión por planitud (y la sensibilidad d_flat crítico en el README)"],
-      ["Cara inferior de la mesa planeada", "Planeado 3 mm (planitud 0,20)", "Se mantiene: el disco de " + g.tss + " mm copia la cara al apretar los tornillos", "se mantiene", "Misma razón: d_flat del contacto disco–pastillas", "BX · Pastillas: sobrepresión por planitud"],
+      ["Cara inferior de la mesa planeada", "Planeado 3 mm (planitud 0,20)", g.LAM ? "Se mantiene: la lámina de " + g.tss + " mm se suelda apretada contra la cara (separación ≤ " + nf(P.bx_g0, 2) + " mm) y la presión de las pastillas la mantiene en contacto" : "Se mantiene: el disco de " + g.tss + " mm copia la cara al apretar los tornillos", "se mantiene", "Misma razón: d_flat del contacto disco–pastillas", "BX · Pastillas: sobrepresión por planitud"],
       ["Placas-guía curvas (placa-leva, 42CrMo4+QT)", "Corte láser/agua con sobremetal, fresado CNC del canto, temple por inducción y rectificado; pasadores de posición H7", "Sin cambio", "se mantiene",
         "El canto es un contacto de Hertz templado y su tolerancia de perfil (± 0,2) entra en el margen de sincronía; con plasma ± 0,5 y sin temple no cumple", "Núcleo: Placas-leva (Hertz, capa templada, sincronía con pv_tolg)"],
       ["Pasadores de posición ISO 8734 de las placas-guía", "Agujeros H7 escariados ciegos en placa y base", "Sin cambio", "se mantiene", "Fijan la posición del canto (± 0,2): ajuste H7/m6 indispensable", "Núcleo: Placas-leva (pasadores de posición)"],
@@ -622,6 +772,50 @@ const BX = (() => {
     return rows.map(([pieza, antes, despues, estado, motivo, verificacion]) => ({ pieza, antes, despues, estado, motivo, verificacion }));
   }
 
+  // Filas del modo 1 (lámina de 3 mm soldada con tapones y costura perimetral)
+  function lamRows(P, C, M, L, g, ce, add, D, th) {
+    const PL = g.PL, pfx = "BX · ", te = PL.te, nT = PL.pts.length, sad = 0.6 * M.Fy, nPi = PL.pts.filter((q) => q.pista).length;
+    const RW = "AISC 360-22 §J2.3 (tapones: Ø, separación, relleno), §J2.4 (F_nw = 0,60·F_EXX sobre el área del agujero) con F_w = 0,60·F_EXX/(1,20·N_d) del proyecto (ASME BTH-1-2020 §3-3.4); aporte E309L (AWS A5.4) / ER309L (AWS A5.9); WPS disímil según AWS D1.6/D1.6M:2017";
+    const RS = "AISI S100-16 §J2.2.2.2 (= ASCE 8-02 §5.2.2, inoxidable conformado en frío): lámina alrededor de un tapón, d_a = Ø − t";
+    const REFD = "Timoshenko y Woinowsky-Krieger, Theory of Plates and Shells §16 (placa circular empotrada, carga uniforme)";
+    const REFC = "Timoshenko y Woinowsky-Krieger §17 (placa anular, flexión simétrica): celda equivalente de área tributaria, con la rigidez de la plancha inferior más la lámina";
+    const pista = nPi === 0 ? "ningún tapón queda en una pista: los anillos de tapones van en las bandas libres entre pistas (el disco gira sobre pastillas fijas: esos tapones nunca pasan bajo una pastilla)" : nPi + " de " + nT + " tapones en pistas (anillos agregados por pandeo): pasan bajo las pastillas esmerilados a ras y pulidos; no hay coincidencia sistemática con un radio de pastilla (cada pista barre su ancho completo)";
+    add({ sys: "est", name: pfx + "Tapones: corte del metal de aporte (" + nT + " × Ø" + nf(PL.D, 1) + ") con el par de calado (reparto polar elástico, sin la costura)", formula: "V = T_calado·r/Σr² ≤ F_w·π·Ø²/4; F_w = 0,60·" + P.bx_FEXX_ss + "/(1,20·" + P.Nd + ") = " + nf(PL.Fw, 1) + " MPa; T_calado = " + nf(C.Tcal, 1) + " kN·m (μ máx.); paso circunferencial " + PL.sc + " mm, anillos R" + PL.rings.map((q) => nf(q.r, 0)).join("/R"), dem: PL.Vmax / 1e3, cap: PL.capW / 1e3, unit: "kN", ref: RW });
+    add({ sys: "est", name: pfx + "Tapones: aplastamiento y desgarro de la lámina alrededor del tapón", formula: "V ≤ P_n/Ω; d_a/t = " + nf(PL.da / te, 2) + " ≤ 0,815√(E/F_u) → P_n = 2,20·t_e·d_a·F_u = " + nf(PL.PnS / 1e3, 1) + " kN, Ω = " + nf(PL.OmS, 2) + "; t_e = t − sobreespesor = " + nf(te, 2) + " mm", dem: PL.Vmax / 1e3, cap: PL.capS / 1e3, unit: "kN", ref: RS });
+    add({ sys: "est", name: pfx + "Tapones: arrastre local de la pastilla más cargada repartido en los tapones cercanos (" + PL.loc.n + " a ≤ " + nf(PL.rho, 0) + " mm del centro, mínimo en 24 posiciones del giro)", formula: "V = μ_ef·p_i·A_p/n_local ≤ mín(soldadura; lámina); μ_ef = " + nf(C.muEff, 3) + "; F = " + nf(PL.loc.F / 1e3, 1) + " kN (sin el roce lámina–plancha bajo la pastilla, conservador)", dem: PL.loc.V / 1e3, cap: PL.cap / 1e3, unit: "kN", ref: RW + "; " + RS });
+    add({ sys: "est", kind: "geo", name: pfx + "Tapones: Ø del agujero para la lámina de " + nf(g.tss, 1) + " mm (mínimo y máximo) y relleno", formula: "t + 8 ≤ Ø ≤ máx(Ø_mín + 3; 2,25·t) = " + nf(g.tss + 8, 1) + " … " + nf(Math.max(g.tss + 11, 2.25 * g.tss), 1) + "; Ø ≥ 9,5 (AISI S100 §J2.2.1); relleno = t (t ≤ 16, §J2.3b)", dem: Math.max((g.tss + 8) / PL.D, 9.5 / PL.D, PL.D / Math.max(g.tss + 11, 2.25 * g.tss)), cap: 1, fu: Math.max((g.tss + 8) / PL.D, 9.5 / PL.D, PL.D / Math.max(g.tss + 11, 2.25 * g.tss)), unit: "–", ref: "AISC 360-22 §J2.3a, §J2.3b; AISI S100-16 §J2.2.1; AWS D1.3/D1.3M:2018 (referencia de detalle)" });
+    add({ sys: "est", kind: "geo", name: pfx + "Tapones: separación entre centros", formula: "4·Ø ≤ s_mín", dem: 4 * PL.D, cap: PL.sMin, unit: "mm", ref: "AISC 360-22 §J2.3a" });
+    add({ sys: "est", kind: "geo", name: pfx + "Tapones: distancia al borde de la lámina (costuras exterior e interior; la junta a tope queda a ≥ " + nf(Math.max(P.bx_c_cjp, PL.e), 0) + " mm)", formula: "e ≥ máx(1,5·Ø; Ω·V/(F_u·t_e)), Ω = 2,0 (F_u/F_y ≥ 1,08)", dem: PL.eReq, cap: PL.eAv, unit: "mm", ref: "AISI S100-16 §J2.2.2.1 y §J2.2.1 (= ASCE 8-02 §5.2.2)" });
+    add({ sys: "est", kind: "info", name: pfx + "Tapones: posición respecto de las pistas de las pastillas", formula: pista + "; bandas libres R " + PL.free.map(([a, b]) => nf(a - PL.D / 2, 0) + "–" + nf(b + PL.D / 2, 0)).join(", ") + " mm (holgura " + nf(P.bx_c_pista, 1) + " mm a la pista)", dem: nPi, cap: nT, unit: "en pistas / total", ref: "Geometría; criterio del proyecto (esmerilado a ras y pulido de todos los tapones)" });
+    const qE = Math.hypot(PL.qT, PL.qTh), capE = Math.min(PL.capSeamW, PL.capSeamS);
+    add({ sys: "est", name: pfx + "Costura perimetral exterior de la lámina z" + nf(PL.w, 1) + " (R" + nf(PL.Rlo, 0) + "): todo el par de calado sola (redundancia de los tapones) más la membrana térmica", formula: "q = √((T/(2πR²))² + (σ_t·t_e)²) = √(" + nf(PL.qT, 1) + "² + " + nf(PL.qTh, 1) + "²) ≤ mín(F_w·0,707·w; 0,75·t_e·F_u/3,05)", dem: qE, cap: capE, unit: "N/mm", ref: "AISC 360-22 §J2.4; AISI S100-16 §J2.5 (lámina, filete longitudinal L/t ≥ 25); ASME BTH-1-2020 §3-3.4" });
+    add({ sys: "est", name: pfx + "Costura perimetral interior de la lámina z" + nf(PL.w, 1) + " (R" + nf(PL.Rli, 0) + "): membrana térmica", formula: "q = σ_t·t_e = " + nf(PL.qTh, 1) + " ≤ mín(F_w·0,707·w; 0,75·t_e·F_u/3,05) (el par va a los tapones y a la costura exterior)", dem: PL.qTh, cap: capE, unit: "N/mm", ref: "AISC 360-22 §J2.4; AISI S100-16 §J2.5" });
+    const wMin = Math.min(wMinAWS(P.t_bot), g.tss), fW = Math.max(wMin / PL.w, PL.w / g.tss);
+    add({ sys: "est", kind: "geo", name: pfx + "Costura perimetral: tamaño del filete en el canto de la lámina", formula: "mín(w_mín(T = " + P.t_bot + "); t) ≤ w ≤ t (canto de " + nf(g.tss, 1) + " mm < 6 mm)", dem: fW, cap: 1, fu: fW, unit: "–", ref: "AWS D1.1/D1.1M:2020 Tabla 7.7 (el tamaño mínimo no necesita superar el espesor de la parte más delgada); AISC 360-22 §J2.2b" });
+    const cjpS = Math.max(PL.sTh, ce.sigSs);
+    add({ sys: "est", name: pfx + "Lámina: junta a tope entre paneles (ranura de penetración completa sobre la plancha) con la mayor tensión de membrana o de flexión", formula: "máx(σ_térmica restringida; σ_lámina en la celda) ≤ 0,6·F_y; " + PL.PN.n + " paneles, junta(s) en y = " + PL.PN.juntas.map((y) => nf(y, 0)).join(", "), dem: cjpS, cap: sad, unit: "MPa", ref: "AWS D1.6/D1.6M:2017; AISC 360-22 Tabla J2.5 (CJP: resistencia del metal base)" });
+    add({ sys: "est", kind: "geo", name: pfx + "Lámina: paneles dentro del formato comercial " + P.bx_fmt_a + " × " + P.bx_fmt_b + " (margen de corte " + PL.PN.m + " mm)", formula: PL.PN.n + " franjas de " + nf(PL.PN.w, 0) + " × " + nf(Math.max(...PL.PN.paneles.map((q) => q.largo)), 0) + " mm", dem: Math.max(...PL.PN.paneles.map((q) => Math.max(q.ancho / (P.bx_fmt_a - 2 * PL.PN.m), q.largo / (P.bx_fmt_b - 2 * PL.PN.m)))), cap: 1, fu: Math.max(...PL.PN.paneles.map((q) => Math.max(q.ancho / (P.bx_fmt_a - 2 * PL.PN.m), q.largo / (P.bx_fmt_b - 2 * PL.PN.m)))), unit: "–", ref: "Formato del proveedor" });
+    add({ sys: "est", name: pfx + "Lámina: tensión térmica de membrana (secundaria, autolimitante) como rango frente a 2·Fy (adaptación)", formula: "Δσ = E·Δα·ΔT/(1 − ν) ≤ 2·F_y; Δα = " + nf(PL.dAl * 1e6, 1) + "×10⁻⁶/K, ΔT = " + nf(g.dTd, 0) + " K", dem: PL.sTh, cap: 2 * M.Fy, unit: "MPa", ref: "ASME BPVC VIII-2 (2023) 5.5.6.1; " + M.fuente });
+    add({ sys: "est", name: pfx + "Lámina: tensión térmica de membrana frente a Fy (conservador: sin plastificación)", formula: "σ = E·Δα·ΔT/(1 − ν) ≤ F_y", dem: PL.sTh, cap: M.Fy, unit: "MPa", ref: "Termoelasticidad; criterio del revisor" });
+    add({ sys: "est", name: pfx + "Lámina: pandeo por la compresión térmica entre apoyos (panel " + nf(PL.ap, 0) + " mm: mayor hueco radial entre anillos de tapones y costuras o paso circunferencial)", formula: "σ ≤ σ_cr = 2·π²E/(12(1 − ν²))·(t_e/a)² (compresión biaxial igual, bordes simplemente apoyados; sin el apoyo unilateral de la plancha, conservador)", dem: PL.sTh, cap: PL.sCr, unit: "MPa", ref: "Timoshenko y Gere, Theory of Elastic Stability §9.5" });
+    add({ sys: "est", name: pfx + "Lámina: pandeo combinado (compresión térmica + corte del arrastre de la pastilla más cargada)", formula: "σ/σ_cr + (τ/τ_cr)² ≤ 1; τ = 2F/(π·d·t_e) = " + nf(PL.tau, 1) + " MPa, τ_cr = 9,34·π²E/(12(1 − ν²))·(t_e/a)² = " + nf(PL.tCr, 0) + " MPa", dem: PL.inter, cap: 1, unit: "–", ref: "Timoshenko y Gere §9.7 (placa en corte, k_s = 9,34) y §9.9 (interacción)" });
+    add({ sys: "est", kind: "geo", name: pfx + "Lámina: despegue entre tapones (separación g₀ = " + nf(P.bx_g0, 2) + " mm sobre el panel de radio " + nf(PL.bP.a, 0) + "): la presión de la pastilla la cierra", formula: "p_cierre = 64·D·g₀/a⁴ ≤ p_mín de las pastillas = " + nf(PL.pMin, 2) + " MPa (la presión pasa a la mesa por contacto, sin flexión libre de la lámina)", dem: PL.bP.pc, cap: PL.pMin, unit: "MPa", ref: REFD });
+    add({ sys: "est", name: pfx + "Lámina: despegue entre tapones: flexión al cerrar la separación (secundaria) frente a 2·Fy", formula: "σ = 4·E·t_e·g₀/((1 − ν²)·a²) ≤ 2·F_y (deformación impuesta, autolimitante)", dem: PL.bP.sig, cap: 2 * M.Fy, unit: "MPa", ref: REFD + "; ASME BPVC VIII-2 5.5.6.1" });
+    add({ sys: "est", kind: "geo", name: pfx + "Lámina: vacío local Ø" + P.ss_void + " sin contacto (separación g₀ = " + nf(P.bx_g0, 2) + " mm): la presión de la pastilla lo cierra", formula: "p_cierre = 64·D·g₀/a⁴ ≤ p_mín = " + nf(PL.pMin, 2) + " MPa; a = " + nf(PL.bV.a, 0) + " mm (reemplaza la flexión libre del disco sobre el vacío del modo 0)", dem: PL.bV.pc, cap: PL.pMin, unit: "MPa", ref: REFD });
+    add({ sys: "est", name: pfx + "Lámina: vacío local Ø" + P.ss_void + ": flexión al cerrar (secundaria) frente a 2·Fy", formula: "σ = 4·E·t_e·g₀/((1 − ν²)·a²) ≤ 2·F_y", dem: PL.bV.sig, cap: 2 * M.Fy, unit: "MPa", ref: REFD + "; ASME BPVC VIII-2 5.5.6.1" });
+    const Nf = P.turns_yr * P.life * Math.max(...(() => { const m = new Map(); L.pucks.forEach((q) => { const k = Math.round(q.r); m.set(k, (m.get(k) || 0) + 1); }); return [...m.values()]; })());
+    add({ sys: "est", name: pfx + "Lámina: fatiga en el borde de los tapones por el cierre cíclico de la separación entre tapones (cat. E, N = " + Math.round(Nf) + ")", formula: "Δσ = σ_cierre ≤ F_SR(E, N); N = vueltas/año·vida·pastillas por anillo", dem: PL.bP.sig, cap: TT_.FSR("E", Nf), unit: "MPa", ref: "AISC 360-22 Apéndice 3, Tabla A-3.1 (metal base junto a tapones: cat. E)" });
+    add({ sys: "est", name: pfx + "Lámina: flexión de la celda entre pastillas (" + M.nombre + ", solidaria con la plancha inferior de " + P.t_bot + " mm)", formula: "σ_s = E_s·κ·(t_inf/2 + t_e) ≤ 0,6·F_y,s; κ = M_máx/(D_m + D_s); M de la placa anular a = d/2 … b = " + nf(ce.b, 1) + " mm con q_máx", dem: ce.sigSs, cap: sad, unit: "MPa", ref: REFC });
+    add({ sys: "est", name: pfx + "Plancha inferior de la mesa: flexión de la celda entre pastillas (con la lámina)", formula: "σ_m = 6·M_máx·D_m/(D_m + D_s)/t_inf² ≤ 0,6·F_y (t_inf = " + P.t_bot + " mm)", dem: ce.sigPl, cap: 0.6 * P.Fy, unit: "MPa", ref: REFC });
+    add({ sys: "est", kind: "geo", name: pfx + "Lámina: flecha de la celda entre pastillas", formula: "w ≤ mín(d_flat; 0,1·h_p)", dem: ce.w, cap: Math.min(P.d_flat, 0.1 * g.hp), unit: "mm", ref: REFC + "; criterio del proyecto" });
+    add({ sys: "est", name: pfx + "Lámina sobre la pastilla faltante o el mayor hueco de la malla (la toma la plancha de la mesa con la lámina)", formula: "σ_s = E_s·(q·a_g²/8)/(D_m + D_s)·(t_inf/2 + t_e) ≤ 0,6·F_y,s; a_g = " + nf(g.DT.aG, 1) + " mm", dem: g.DT.gap.sig, cap: sad, unit: "MPa", ref: REFD + "; placas apiladas solidarias (cota de sección compuesta)" });
+    add({ sys: "est", name: pfx + "Plancha inferior de la mesa sobre la pastilla faltante (con la lámina)", formula: "σ_m = 6·(q·a_g²/8)·D_m/(D_m + D_s)/t_inf² ≤ 0,6·F_y", dem: g.DT.gap.sigPl, cap: 0.6 * P.Fy, unit: "MPa", ref: REFD });
+    add({ sys: "est", kind: "geo", name: pfx + "Lámina: sobreespesor disponible frente al pulido de tapones y juntas y al desgaste", formula: "pulido " + nf(P.bx_pul, 2) + " + desgaste del inox (despreciable frente al UHMW; dato pendiente) ≤ sobreespesor " + nf(P.ss_allow, 2) + " mm (la resistencia se verifica con t_e = t − sobreespesor = " + nf(te, 2) + " mm)", dem: P.bx_pul, cap: P.ss_allow, unit: "mm", ref: "Criterio del proyecto" });
+    const Tup = P.phi_lift * g.mSS * G / nT, capTw = Math.PI / 4 * PL.D ** 2 * P.bx_FEXX_ss / 2.5, capTs = 0.8 * (M.Fu / M.Fy) ** 2 * te * PL.da * M.Fu / 2.5;
+    add({ sys: "est", name: pfx + "Lámina: tracción de los tapones al izar la mesa con la lámina colgada", formula: "T = φ_izaje·m_lámina·g/n ≤ mín(π·Ø²/4·F_EXX; 0,8(F_u/F_y)²·t·d_a·F_u)/Ω, Ω = 2,50", dem: Tup / 1e3, cap: Math.min(capTw, capTs) / 1e3, unit: "kN", ref: "AISI S100-16 §J2.2.3" });
+    add({ sys: "est", kind: "info", name: pfx + "Lámina: planitud después de soldar (nota de fabricación: secuencia y tapones por zonas)", formula: lamFab(P, PL), dem: P.bx_g0, cap: P.d_flat, unit: "mm (g₀ / d_flat)", ref: "AWS D1.6/D1.6M:2017; criterio del proyecto" });
+    add({ sys: "est", kind: "info", name: pfx + "Lámina: masa (" + PL.PN.n + " paneles de " + nf(g.mSS / PL.PN.n, 0) + " kg)", formula: "m = ρ·π(R_ext² − R_int²)·t", dem: g.mSS, cap: g.mSS / PL.PN.n, unit: "kg / kg por panel", ref: "Geometría" });
+  }
   /* ---------------- Verificaciones propias (formato de tt300c: grupo «Interfaz inox») ---------------- */
   function bxRows(P, R, D) {
     P = full(P);
@@ -688,6 +882,8 @@ const BX = (() => {
     add({ sys: "est", kind: "geo", name: pfx + "Portador: filete perimetral máximo en el borde del portador", formula: "w ≤ t − 2 (t ≥ 6)", dem: P.bx_w_c, cap: wMaxJ(g.tc), unit: "mm", ref: "AISC 360-22 §J2.2b" });
     add({ sys: "est", kind: "geo", name: pfx + "Portador: libra el filete del collar del pivote", formula: "D_collar/2 + w_collar + 2 ≤ R_int,portador", dem: P.h_boss > 0 ? P.D_boss / 2 + P.w_collar + 2 : 0, cap: C.Rci, unit: "mm", ref: "Geometría" });
     /* --- Disco inoxidable --- */
+    if (g.LAM) lamRows(P, C, M, L, g, ce, add, D, th);
+    else {
     add({ sys: "est", kind: "geo", name: pfx + "Disco: espesor frente a la cabeza avellanada M" + g.dT + " más el sobreespesor de desgaste", formula: "k + 0,5 + sobreespesor ≤ t; k = " + nf(g.kT, 2) + " mm (ISO 10642)", dem: g.tHead, cap: g.tss, unit: "mm", ref: "ISO 10642; criterio del mandante (cabeza ≤ espesor − 0,5 mm también tras el relapeado)" });
     add({ sys: "est", name: pfx + "Disco: flexión de la celda entre pastillas (" + M.nombre + ")", formula: "σ = 6·M_máx/t_e² ≤ 0,6·Fy; M de la placa anular a = d/2 (empotrada) … b = √(A_celda/π) = " + nf(ce.b, 1) + " mm (guiada), A_celda = s²·√3/2·7/6, con q_máx; t_e = t − sobreespesor", dem: ce.sig, cap: sad, unit: "MPa", ref: REFC });
     add({ sys: "est", kind: "geo", name: pfx + "Disco: flecha de la celda entre pastillas", formula: "w ≤ mín(d_flat; 0,1·h_p) (no suma sobrepresión ni consume la holgura)", dem: ce.w, cap: Math.min(P.d_flat, 0.1 * g.hp), unit: "mm", ref: REFC + "; criterio del proyecto" });
@@ -713,10 +909,12 @@ const BX = (() => {
     add({ sys: "est", kind: "geo", name: pfx + "Tornillos del disco: distancia al borde exterior e interior del disco", formula: "e_mín (Tabla J3.4M) ≤ mín(R_o − r_ext; r_int − R_i)", dem: J34M(g.dT), cap: Math.min(C.Ro - BL.radii[BL.radii.length - 1], BL.radii[0] - C.Ri), unit: "mm", ref: "AISC 360-22 §J3.5, Tabla J3.4M (M16 para menores, como el núcleo)" });
     add({ sys: "est", kind: "info", name: pfx + "Tornillos del disco: posiciones libres de la CJP, de almas, nervios y cubo (pie del filete) y de los agujeros de los pasadores", formula: "|y| ≥ c_CJP = " + P.bx_c_cjp + " mm; distancia al alma/nervio ≥ t/2 + w + d/2 + " + P.bx_c_alma + "; distancia al pasador ≥ d_pas/2 + d/2 + 3 + d", dem: BL.lista.length, cap: BL.radii.length, unit: "tornillos / anillos", ref: "Geometría; AISC 360-22 §J3.4" });
     add({ sys: "est", name: pfx + "Tornillos del disco: tracción al izar la mesa con el disco colgado (despegue)", formula: "T = φ_izaje·m_disco·g/n ≤ Fnt·A_b/Ω; Fnt = 0,75·Fu, Ω = 2,00", dem: BF.Tup / 1e3, cap: BF.capT / 1e3, unit: "kN", ref: "AISC 360-22 §J3.6, Tabla J3.2" });
+    }
     /* --- Generales --- */
     add({ sys: "est", kind: "info", name: pfx + "Altura que agrega la interfaz sobre la plancha base", formula: "Δ = t_portador + h_p + t_disco = " + g.tc + " + " + nf(g.hp, 1) + " + " + g.tss, dem: g.tc + g.hp + g.tss, unit: "mm", ref: "Geometría (el eje de los cilindros sube Δ)" });
     add({ sys: "est", kind: "info", name: pfx + "Masa agregada por la interfaz (disco + pastillas + portador)", formula: "m = m_disco + m_pastillas + m_portador", dem: g.mSS + S.bx.mUH + S.bx.mCar, cap: g.mSS, unit: "kg / kg disco", ref: "Geometría" });
-    add({ sys: "est", kind: "pend", name: pfx + "Corrosión galvánica: disco inoxidable contra la mesa de acero al carbono y tornillos en roscas de acero al carbono", formula: "Sin verificación numérica. Propuesta: tornillos de acero 10.9/8.8 con zinc laminar (no A4) en roscas de la mesa y de la base; imprimación epóxica en la cara de la mesa bajo el disco y sellante perimetral (el inox actúa de cátodo de gran área: el ataque va al acero de la mesa, que queda protegido por la imprimación)", dem: 0, unit: "–", ref: "ISO 9223; ISO 10683; decisión del proyectista" });
+    if (g.LAM) add({ sys: "est", kind: "pend", name: pfx + "Corrosión galvánica: lámina inoxidable soldada a la mesa de acero al carbono", formula: "Sin verificación numérica. La costura perimetral continua exterior e interior sella el intersticio lámina–plancha (sin electrolito entre ambas); la zona de dilución del E309L queda bajo la costura. Propuesta: imprimación epóxica en el canto de la plancha de la mesa junto a la costura y pasivado local del inox (ASTM A380/A967) después de esmerilar", dem: 0, unit: "–", ref: "ISO 9223; AWS D1.6/D1.6M:2017 (unión disímil); decisión del proyectista" });
+    else add({ sys: "est", kind: "pend", name: pfx + "Corrosión galvánica: disco inoxidable contra la mesa de acero al carbono y tornillos en roscas de acero al carbono", formula: "Sin verificación numérica. Propuesta: tornillos de acero 10.9/8.8 con zinc laminar (no A4) en roscas de la mesa y de la base; imprimación epóxica en la cara de la mesa bajo el disco y sellante perimetral (el inox actúa de cátodo de gran área: el ataque va al acero de la mesa, que queda protegido por la imprimación)", dem: 0, unit: "–", ref: "ISO 9223; ISO 10683; decisión del proyectista" });
     add({ sys: "est", kind: "pend", name: pfx + "Arranque adherencia–deslizamiento de UHMW sobre inoxidable tras reposo bajo carga (μ estático de diseño de la opción B)", formula: "Sin verificación numérica; ensayo de arranque de una pastilla con p = " + nf(L.pMax, 2) + " MPa", dem: 0, unit: "–", ref: "Ensayo del proveedor (como la opción B del núcleo)" });
     return out;
   }

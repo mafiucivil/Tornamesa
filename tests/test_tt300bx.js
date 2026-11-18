@@ -11,6 +11,7 @@ const near = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol * Math.abs(b) 
 const P0 = BX.defaults();
 const A0 = BX.analyze(P0, { noFEA: true });   // análisis por defecto sin FEA (rápido); la FEA se prueba aparte una vez
 const G0 = A0.bx;
+let A8_ = null; const A8 = () => (A8_ = A8_ || BX.analyze(Object.assign({}, P0, { bx_disc_modo: 0 }), { noFEA: true }));   // modo 0: disco macizo atornillado (revisiones 1–4)
 
 /* ---------- 1. El núcleo original no cambia ---------- */
 test("Núcleo: el gancho P.__bx es aditivo; sin él los resultados son bit-idénticos a la base a67d98e (JSON, sin FEA)", () => {
@@ -60,12 +61,15 @@ test("BX: valores por defecto activan la opción B con el gancho; A y C pasan al
   assert.equal(Aa.R.m.total, Ta.R.m.total);
 });
 
-test("BX: dimensiones adoptadas por defecto (disco 304 de 6 u 8 mm, 100–200 tornillos M10/M12) y estado de cada parte", () => {
-  const D = G0.disco, U = G0.pastillas, C = G0.portador, T = D.tornillos;
+test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en modo 0 disco de 6 u 8 mm con 100–200 tornillos M10/M12) y estado de cada parte", () => {
+  const D = G0.disco, U = G0.pastillas, C = G0.portador;
   assert.match(D.material, /304/);
-  assert.ok([6, 8].includes(D.t), "disco " + D.t + " mm");
+  assert.equal(D.t, 3, "lámina " + D.t + " mm");
   assert.ok(D.t >= D.t_req - 1e-9);
+  const D8 = A8().bx.disco, T = D8.tornillos;
+  assert.ok([6, 8].includes(D8.t), "disco modo 0 " + D8.t + " mm"); assert.ok(D8.t >= D8.t_req - 1e-9);
   assert.ok([10, 12].includes(T.d) && T.n >= 100 && T.n <= 200 && T.paso_malla >= 150, "tornillos " + T.n + " M" + T.d + " a " + T.paso_malla);
+  A8().checks.filter((c) => c.bx && /Disco|Tornillos del disco/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok", "modo 0: " + c.name + " FU " + c.fu));
   assert.ok(U.n > 30 && U.n < 2000, "n pastillas " + U.n);
   assert.equal(U.forma, "redonda"); assert.equal(U.lado, null); assert.ok(U.d >= 60 && U.d <= 300);
   assert.equal(C.agujeros.forma, "redonda"); assert.equal(C.agujeros.d, U.d);
@@ -82,13 +86,44 @@ test("BX: dimensiones adoptadas por defecto (disco 304 de 6 u 8 mm, 100–200 to
   assert.ok(bxRows.length >= 40, "filas BX " + bxRows.length);
   bxRows.forEach((c) => { assert.ok(c.ref && c.formula && c.grp && c.sys, "fila completa: " + c.name); });
   // disco, tornillos y portador cumplen con margen (FU ≤ 0,90 o geométricas ≤ 1)
-  bxRows.filter((c) => /Disco|Tornillos del disco|Portador/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok", c.name + " FU " + c.fu));
+  bxRows.filter((c) => /Disco|Tornillos del disco|Portador|Lámina|Tapones|Costura|Plancha inferior/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok", c.name + " FU " + c.fu));
   // lo que no cumple es solo el UHMW (pastillas): documentado en docs/bx/README_BX.md
   A0.checks.filter((c) => c.st === "fail").forEach((c) => assert.match(c.name, /^BX · Pastillas/, "falla no prevista: " + c.name));
   // 80 °C: limitación de uso informativa (no pendiente crítico)
   assert.ok(A0.verdict.limitaciones_uso.some((l) => l.id === "BX-T-SELLO"));
   assert.ok(!A0.verdict.pendientes_criticos.some((c) => /80 °C/.test(c.nombre)));
   assert.ok(A0.checks.some((c) => c.bx && c.name.includes("Pastillas a " + P0.T_ifc_max + " °C: valor PV")));   // fila a la temperatura de uso (17-11-2026: 20 °C)
+});
+
+test("BX: lámina inox 304 espejo de 3 mm soldada a la mesa con tapones y costura perimetral (bx_disc_modo = 1, por defecto)", () => {
+  const D = G0.disco, Lm = D.lamina, T = D.tapones;
+  assert.equal(P0.bx_disc_modo, 1); assert.equal(D.modo, 1);
+  assert.equal(D.t, 3); assert.match(D.material, /304/);
+  assert.equal(D.tornillos.n, 0, "sin tornillos avellanados");
+  near(A0.R.ifc.delta, G0.portador.t + G0.pastillas.h_p + 3, 1e-12, "δ con la lámina de 3 mm");
+  // paneles: caben en el formato comercial (el mayor por defecto, 1500 × 3000), juntas a tope
+  assert.ok(Lm.paneles.length >= 2);
+  Lm.paneles.forEach((p) => assert.ok(p.ancho <= P0.bx_fmt_a - 2 * Lm.margen_corte + 1e-9 && p.largo <= P0.bx_fmt_b - 2 * Lm.margen_corte + 1e-9, JSON.stringify(p)));
+  assert.match(Lm.junta.tipo, /tope/); assert.match(Lm.junta.aporte, /309L/);
+  // tapones: Ø entre t + 8 y máx(Ø_mín + 3; 2,25·t) (AISC J2.3a), separación ≥ 4·Ø, borde ≥ 1,5·Ø, relleno = t
+  assert.ok(T.d >= D.t + 8 - 1e-9 && T.d <= Math.max(D.t + 8 + 3, 2.25 * D.t) + 1e-9, "Ø tapón " + T.d);
+  assert.ok(T.n >= 20, "n tapones " + T.n);
+  let m = Infinity; for (let i = 0; i < T.lista.length; i++) for (let j = i + 1; j < T.lista.length; j++) m = Math.min(m, Math.hypot(T.lista[i].x - T.lista[j].x, T.lista[i].y - T.lista[j].y));
+  assert.ok(m >= 4 * T.d - 1e-6, "separación " + m);
+  T.lista.forEach((q) => { assert.ok(q.r <= Lm.R_ext - 1.5 * T.d + 1e-6 && q.r >= Lm.R_int + 1.5 * T.d - 1e-6, "borde " + q.r); assert.ok(Math.abs(q.y) >= P0.bx_c_cjp - 1e-9, "fuera de la junta"); });
+  // Σ V·r de los tapones = par de calado (reparto polar elástico)
+  near(T.lista.reduce((s, q) => s + q.V * q.r, 0) / 1e6, A0.R.TmaxTopes || A0.R.Tmax, 1e-9, "Σ V·r = T_calado");
+  // filas propias de la lámina, todas cumplen con margen
+  const L = (k) => A0.checks.find((c) => c.bx && c.name.includes(k));
+  ["Tapones: corte del metal de aporte", "Tapones: aplastamiento y desgarro de la lámina", "Tapones: arrastre local de la pastilla más cargada", "Costura perimetral exterior",
+   "pandeo por la compresión térmica", "pandeo combinado", "despegue entre tapones", "vacío local", "pastilla faltante", "celda entre pastillas", "sobreespesor", "Tapones: separación", "Tapones: distancia al borde", "Tapones: Ø"].forEach((k) => {
+    const c = L(k); assert.ok(c, "fila " + k); assert.ok(c.st === "ok", k + " FU " + c.fu); });
+  assert.ok(L("pistas de las pastillas"), "fila de coincidencia tapones–pistas");
+  assert.ok(A0.checks.some((c) => c.bx && /Lámina: planitud después de soldar/.test(c.name)), "nota de fabricación de planitud");
+  assert.ok(!A0.checks.some((c) => c.bx && /Tornillos del disco/.test(c.name)), "sin filas de tornillos del disco");
+  // modo 0 (disco macizo atornillado) sigue disponible
+  const G8 = BX.design(Object.assign({}, P0, { bx_disc_modo: 0 }));
+  assert.equal(G8.disco.modo, 0); assert.ok([6, 8, 10].includes(G8.disco.t)); assert.ok(G8.disco.tornillos.n >= 100);
 });
 
 /* ---------- 3. Fórmulas ---------- */
@@ -162,8 +197,8 @@ test("BX: interferencia en frío, montaje y caliente; tornillo de la pastilla fu
   near(f.d_dil_caliente, (P0.bx_al_uh * 1e-6 - P0.bx_al_st * 1e-6) * (P0.T_ifc_max - P0.T_ref) * (U.lado || U.d), 1e-9, "Δd caliente con α_UHMW = 190×10⁻⁶");
 });
 
-test("BX: tornillos del disco: corte primario por el par (J3.7); térmica secundaria repartida por rigidez; membrana y pandeo del disco", () => {
-  const T = G0.disco.tornillos;
+test("BX: tornillos del disco (modo 0): corte primario por el par (J3.7); térmica secundaria repartida por rigidez; membrana y pandeo del disco", () => {
+  const A0 = A8(), G0 = A0.bx, T = G0.disco.tornillos;
   near(T.lista.reduce((s, b) => s + b.VT * b.r, 0) / 1e6, A0.R.TmaxTopes, 1e-9, "Σ V_T·r = T_calado");
   assert.ok(T.V_primario <= 0.9 * T.capV);
   assert.equal(T.dT_diseno, Math.max(P0.T_ifc_max - P0.T_ref, P0.T_ref - P0.T_ifc_min), "ΔT de servicio = máx(T_ifc,máx − T_ref; T_ref − T_ifc,mín) (20 °C de uso y 0 °C mínimo: 20 K)");

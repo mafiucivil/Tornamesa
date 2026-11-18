@@ -19,6 +19,8 @@ const AGBX = (() => {
     });
     const g = (k) => (P[k] === undefined ? BX_.BX_GROUP.p.find((q) => q[0] === k)[3] : P[k]);
     if (![0, 1, 2].includes(Math.round(g("bx_pat")))) E("TT300-BX: el patrón de pastillas debe ser 0 (automático), 1 (triangular) o 2 (radial)");
+    if (![0, 1].includes(Math.round(g("bx_disc_modo")))) E("TT300-BX: el modo del disco debe ser 0 (disco atornillado) o 1 (lámina de 3 mm soldada)");
+    if (Math.round(g("bx_disc_modo")) === 1 && g("bx_w_lam") > g("bx_t_lam") + 1e-9) W("TT300-BX: filete de la costura mayor que el espesor de la lámina (AISC J2.2b)");
     if (![1, 2].includes(Math.round(g("bx_ss_mat")))) E("TT300-BX: el material del disco debe ser 1 (austenítico) o 2 (dúplex 2205)");
     if (!(g("bx_Tmin") < P.T_ref && P.T_ref < g("bx_Tmax"))) E("TT300-BX: debe cumplirse T_mín < T_ref < T_máx");
     if (g("bx_dp") > 0 && g("bx_lig") > 0 && g("bx_lig") < 5) W("TT300-BX: ligamento menor que 5 mm entre agujeros cortados con plasma");
@@ -35,7 +37,7 @@ const AGBX = (() => {
     // (a) Equilibrio: la suma de q·dA asignada a las pastillas = N_D (sin excentricidad: la integral del término lineal es nula)
     add("BX · Σ carga sobre las pastillas (muestreo) = N_D", D.pastillas.suma_N_kN, R.ND, 0.5, "kN");
     // (b) Celda anular: diferencias finitas sobre la ecuación de la pendiente (independiente de la solución cerrada)
-    const c = D.disco.celda, M = BX_.matOf(P), te = D.disco.t - P.ss_allow, Dp = M.E * te ** 3 / (12 * (1 - M.nu ** 2)), q = D.diseno.q_max;
+    const c = D.disco.celda, M = BX_.matOf(P), te = D.disco.t - P.ss_allow, Dp = c.D || M.E * te ** 3 / (12 * (1 - M.nu ** 2)), q = D.diseno.q_max;   // modo 1: rigidez de la plancha inferior + lámina
     const a = c.a, b = c.b, n = 2000, h = (b - a) / n, A_ = [], B_ = [], C_ = [], Rh = [];
     for (let i = 1; i < n; i++) { const r = a + i * h; A_.push(1 / (h * h) - 1 / (2 * r * h)); B_.push(-2 / (h * h) - 1 / (r * r)); C_.push(1 / (h * h) + 1 / (2 * r * h)); Rh.push(q * (r * r - b * b) / (2 * r) / Dp); }
     const m = n - 1, cp = new Array(m), dp = new Array(m), th = new Array(m);
@@ -43,6 +45,13 @@ const AGBX = (() => {
     for (let i = m - 1; i >= 0; i--) th[i] = dp[i] - (i < m - 1 ? cp[i] * th[i + 1] : 0);
     const Ma = -Dp * ((-3 * 0 + 4 * th[0] - th[1]) / (2 * h));
     add("BX · Disco: momento de la celda en el borde de la pastilla (diferencias finitas)", Math.abs(c.M_a), Math.abs(Ma), 1.0, "N·mm/mm");
+    if (D.disco.modo === 1) {   // lámina soldada: (c) Σ V·r de los tapones = T_calado; (d) tapones en pistas por recuento directo (barrido de la vuelta completa)
+      const tp = D.disco.tapones, Tl = tp.lista.reduce((s, x) => s + x.V * x.r, 0) / 1e6;
+      add("BX · Tapones de la lámina: Σ V·r = T_calado", Tl, R.TmaxTopes || R.Tmax, 0.01, "kN·m");
+      const pk = D.pastillas.lista, dpk = D.pastillas.d || D.pastillas.lado, cl = A.Pc.bx_c_pista;
+      const nIn = tp.lista.filter((x) => pk.some((q) => Math.abs(Math.hypot(x.x, x.y) - q.r) < dpk / 2 + tp.d / 2 + cl)).length;
+      add("BX · Tapones de la lámina en las pistas de las pastillas (recuento directo)", tp.en_pistas, nIn, 0, "tapones");
+    } else {
     // (c) Par de los tornillos: Σ V_T·r = T_calado
     const T = D.disco.tornillos.lista.reduce((s, x) => s + x.VT * x.r, 0) / 1e6;
     add("BX · Tornillos del disco: Σ V_T·r = T_calado", T, R.TmaxTopes || R.Tmax, 0.01, "kN·m");
@@ -55,6 +64,7 @@ const AGBX = (() => {
         const un = (kL * ((i ? u[i - 1] : 0) + e0 * Lm) + (kR ? kR * (u[i + 1] - e0 * Lp) : 0)) / (kL + kR + K[i]); dmax = Math.max(dmax, Math.abs(un - u[i])); u[i] = un; }
       if (dmax < 1e-13) break; }
     add("BX · Tornillos del disco: componente térmica del anillo exterior (franja con resortes, Gauss–Seidel)", tw.Fth_ext, Math.abs(kb[rr.length - 1] * u[rr.length - 1]), 0.5, "N");
+    }
     // (e) Masa de la plancha del portador por muestreo en malla de 2 mm
     const C = D.portador, holes = C.agujeros.posiciones.concat(C.tapones.posiciones), H = new Map(), cs = C.paso;
     holes.forEach((p) => { const k = Math.floor(p[0] / cs) + "," + Math.floor(p[1] / cs); if (!H.has(k)) H.set(k, []); H.get(k).push(p); });
