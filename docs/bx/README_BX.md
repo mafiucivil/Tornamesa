@@ -1,4 +1,8 @@
-# TT300-BX · Tornamesa con disco inoxidable atornillado y pastillas de UHMW (módulo aparte)
+# TT300-BX · Tornamesa con interfaz inoxidable–UHMW simplificada (módulo aparte)
+
+> **Revisión 5 (18-11-2026, por defecto): lámina 304 espejo de 3 mm SOLDADA a la mesa (tapones + costura), acero A36 en todas las
+> planchas, pastillas de ULTRA VST de 30 mm en portador A36 de 25 mm.** Ver §9. Las revisiones 1–4 (disco macizo atornillado) quedan
+> como opción: `bx_disc_modo = 0` y `BX.defaults({ a36: false })`.
 
 Revisión 2 (16-11-2026, observaciones del revisor): disco de **304**, ΔT de servicio de la interfaz **30 K** (montaje a 20 °C, ambiente 0–50 °C),
 tensión térmica tratada como **secundaria**, pastillas verificadas a **50 °C** (T_ifc_max) y 80 °C solo como **limitación de uso informativa**,
@@ -119,3 +123,119 @@ Cumple todo a 20 °C (FU ≤ 0,90; la mayor es PV 0,85). A 50 °C, con k = 0,70,
 Para cumplir a 50 °C con FU ≤ 0,90 haría falta: **caudal de la bomba ≤ 7,4 L/min** (PV; con 10 hoy), o un factor del proveedor a 50 °C
 **k_p ≥ 0,94** para PV (≥ 0,85 para FU 1,0) y **k_p, k_E ≥ ≈ 0,89** para presión + planitud (con 0,70 supuesto). El disco (304, 8 mm),
 los 140 tornillos M10 y el portador no cambian. δ = 48 mm; masa total 3 710 kg (interfaz 526 kg).
+
+## 9. Revisión 5 (18-11-2026): lámina de 3 mm soldada, A36 en todas las planchas, ULTRA VST de 30 mm
+
+Decisiones del mandante (ingeniero revisor), aplicadas como valores por defecto del módulo; lo anterior queda por parámetro.
+
+### 9.1 Hipótesis
+
+| Tema | Hipótesis / criterio | Referencia |
+|---|---|---|
+| Lámina | 304 espejo de **3 mm** (única del proveedor), `bx_disc_modo = 1`; formato `bx_fmt_a × bx_fmt_b` = **1500 × 3000** (el mayor; 1219 × 2438 también da 2 paneles); paneles = franjas paralelas a x de ancho ≤ formato − 2·10 → **2 paneles de 992 × 1984**; lámina R139…R992 (retiro de 8 mm para la costura) | Proveedor |
+| Junta entre paneles | **A tope** sobre y = 0, ranura de penetración completa sobre respaldo permanente (la plancha inferior de la mesa), ER309L/E309L, esmerilada a ras y pulida. **No traslapada**: el traslapo deja un escalón de 3 mm y un canto libre en la cara de deslizamiento | AWS D1.6/D1.6M:2017 (unión disímil, WPS calificada) |
+| Tapones | Agujero Ø14 (AISC J2.3a con t = 3: 11 ≤ Ø ≤ máx(14; 6,75)); relleno = t; separación ≥ 4Ø; borde ≥ máx(1,5Ø; Ω·V/(F_u·t)); Ø visible ≥ 9,5 | AISC 360-22 §J2.3; AISI S100-16 §J2.2 (= ASCE 8-02 §5.2.2); AWS D1.3 (detalle en lámina ≤ 4,8 mm, referencia) |
+| Resistencia del tapón | Aporte: F_w = 0,60·F_EXX/(1,20·N_d) con F_EXX = 520 (E309L, AWS A5.4) sobre el área del agujero; lámina: AISI §J2.2.2.2, d_a = Ø − t_e, Ω = 2,20; t_e = t − sobreespesor = 2,5 mm | AISC J2.4; BTH-1 §3-3.4 |
+| Carga | **Par de calado** T = 685,8 kN·m (μ máx.), reparto polar elástico **solo en los tapones** (sin costura); la costura exterior **sola** con todo el par más la membrana térmica (redundancia); arrastre local de la pastilla más cargada (μ_ef·p·A) en los tapones a ≤ d/2 + a/2 (mínimo en 24 posiciones del giro), sin el roce lámina–plancha (conservador) | Equilibrio |
+| Pandeo | Compresión térmica restringida σ = E·Δα·ΔT/(1 − ν), **Δα = 5,3×10⁻⁶/K, ΔT = 20 K** (servicio vigente), panel = mayor hueco radial entre anillos de tapones y costuras o paso circunferencial, k = 2; combinado con el corte del arrastre τ = 2F/(π·d·t_e), k_s = 9,34: σ/σ_cr + (τ/τ_cr)² ≤ 1 | Timoshenko y Gere §9.5, §9.7, §9.9 |
+| Contacto / despegue | La lámina queda apoyada en la plancha: la presión pasa por contacto. Requisito de fabricación **g₀ ≤ 0,2 mm** (galga) entre tapones y en ventana Ø100; la pastilla menos cargada (2,2 MPa) debe cerrarla: p_cierre = 64·D·g₀/a⁴; flexión de cierre secundaria ≤ 2Fy; fatiga cat. E (N = 32 500). El vacío local Ø100 del modo 0 se reemplaza por este cierre | Timoshenko §16; AISC Apéndice 3 |
+| Pastilla faltante / celda | Las toma la **plancha inferior de la mesa con la lámina** (misma curvatura; la lámina en la cara de la plancha: cota de sección compuesta σ_s = E_s·κ·(t_inf/2 + t_e)) | Timoshenko §16–17 |
+| Desgaste | Sobreespesor 0,5 mm ≥ pulido de tapones y juntas 0,2 mm + desgaste del inox (despreciable; dato pendiente) | Criterio del proyecto |
+| Posición de los tapones | Anillos en las **bandas libres entre las pistas** de las pastillas (holgura 2 mm): el disco gira sobre pastillas fijas, así **ningún tapón pasa nunca bajo una pastilla** (no hay coincidencia sistemática); si el pandeo pidiera más anillos, irían en las pistas, esmerilados a ras | Geometría |
+| Acero | **ASTM A36 (Fy 250, Fu 400) en todas las planchas** (parámetros Fy/Fu del núcleo). Se comprobó fila por fila (Fy 345 → 250) que esos parámetros solo los usan planchas; los aceros especiales tienen parámetro propio y no cambian | Decisión del mandante |
+| UHMW | **ULTRA VST de 30 mm** (Plastigen: UHMW 9×10⁶ g/mol, ρ 0,97, Shore D 63, uso ≤ 90 °C). La ficha no trae p_adm, E, μ, PV ni α: **se mantienen los supuestos (pendiente dato del proveedor)**. Pastillas de cuadrados de 190 → **Ø de corte ≤ 185** (`bx_dp_max`); plancha 30 y portador A36 de 25 fijos (`bx_H_uh`, `bx_tc`) | Proveedor |
+| Base bajo el soporte E | El núcleo calibra S = σ/M con t_base = 20 y no acredita una base más gruesa. Se usó la FEA de Mindlin de la base completa de `tests/indep_plancha_base_E.py` §4 sobre el diseño BX (h = 138 mm): crédito por espesor en filas BX (las del núcleo quedan informativas, «sustituidas») | ver 9.3 |
+
+### 9.2 Lámina, tapones y costura (por defecto)
+
+114 tapones Ø14 en 3 anillos R357 (24), R566 (38) y R775 (52), paso 95 mm, ninguno en una pista; masa de la lámina 72 kg (2 × 36).
+
+| Verificación | FU | | Verificación | FU |
+|---|---|---|---|---|
+| Tapones: corte del aporte (V = 11,4 kN) | **0,86** | | Pandeo térmico (panel 218 mm) | 0,64 |
+| Tapones: lámina alrededor (AISI J2.2) | 0,77 | | Pandeo combinado con el arrastre | 0,67 |
+| Tapones: arrastre local (3 tapones) | 0,70 | | Despegue entre tapones: cierre / flexión | 0,01 / 0,09 |
+| Ø, separación, borde (geo) | 1,00 / 0,60 / 0,10 | | Vacío Ø100: cierre / flexión | 0,26 / 0,41 |
+| Costura exterior z3 (par solo + térmica) | 0,72 | | Fatiga cat. E | 0,16 |
+| Costura interior z3 (térmica) | 0,40 | | Pastilla faltante: lámina / plancha | 0,45 / 0,34 |
+| Junta a tope | 0,24 | | Celda: lámina / plancha | 0,06 / 0,04 |
+| Paneles en formato (geo) | 0,67 | | Sobreespesor (geo) | 0,40 |
+
+δ = 25 + 5 + 3 = **33 mm** (antes 38); eje del cilindro h = 138 mm (antes 143).
+
+### 9.3 Espesores A36 (antes → después)
+
+| Pieza | Parámetro | Antes (A572) | Después (A36) | FU gobernante con A36 antes → después |
+|---|---|---|---|---|
+| Plancha superior de la mesa | `t_top` | 20 | **25** | global + local 1,174 → **0,782** (FEA) |
+| Plancha inferior de la mesa | `t_bot` | 16 | **20** | global + local 1,164 → **0,785** (FEA) |
+| Almas y nervios / filete | `t_web`, `t_rib`, `w_web` | 6 / 6 / 6 | **8 / 8 / 8** | filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8 > alma de 6) → 1,00 (geo) |
+| Anillos de pasadores | `t_pr` | 27 | **30** | aplastamiento del agujero 1,045 → **0,942** (advertencia; con 32 baja a 0,88 pero la sobrepresión de las pastillas del anillo exterior sube a 0,97) |
+| Plancha base | `t_base` | 20 | **25** | base bajo el soporte E (atasco del retorno) 1,055 → **0,713** (crédito FEA, núcleo 1,055 sustituido); calado 0,823 → 0,729 |
+| Refuerzo de esquina + atiesador | automáticos | 65 / h 60 | 60 / h 60 | (dentro de la fila anterior) |
+| Collar del pivote | `h_boss` | 60 | **70** | asiento con H·e 1,135 → **0,890** |
+| Tapas del cajón E | `pv_tl` | 29 | **36** | desgarro 1,208 → **0,973**; aplastamiento 1,053 → 0,848 |
+| Paredes del soporte E | `pv_tbox` | 30 | 30 | 0,888 (con δ = 33 la altura baja; con 32 el desgarro de la tapa pasa a 1,004) |
+| Portador | `bx_tc` | 25 | 25 (fijo) | ver 9.4 |
+
+FU de la FEA de Mindlin (σ a > 100 mm de la huella) de la base bajo el soporte E, diseño BX:
+
+| t_base | nom | dis | cal | ret |
+|---|---|---|---|---|
+| 20 (núcleo) | 0,193 (0,201) | 0,611 (0,593) | 0,860 (0,823) | 1,002 (1,055) |
+| 22 | 0,174 | 0,548 | 0,771 | 0,848 |
+| 25 | 0,172 | 0,520 | 0,728 | 0,677 |
+
+Factor aplicado a la fila del núcleo: empuje 1,045·FEA(t)/FEA(20) (la FEA supera al núcleo en 4,5 % a calado con 20 mm), retorno FEA(t)/FEA(20).
+Advertencias que quedan (0,90 < FU < 1): **pasador vertical E en flexión 0,992** (acero especial, el brazo crece con la tapa) y **desgarro de la
+tapa 0,973**: con el cajón limitado por la base (fila «Soporte del ojal E dentro de la base» 0,999) no hay espesor de tapa que deje ambos ≤ 0,95
+(35 mm: desgarro 1,001; 38 mm: pasador 1,02). Se adopta 36 mm (plancha de 38 planeada, como las tapas de 29). Masa total **3 684 → 4 100 kg**
+(mesa +229, base +260, soportes E con sus refuerzos +47, lámina −124, portador +5, pastillas +1).
+
+### 9.4 UHMW y portador
+
+Con A36 la torsión de la sección neta del anillo exterior de agujeros del portador pasaba a 1,15 (Ø180, 67 pastillas). Sin cambiar el espesor:
+- **Tapones en los ligamentos: no caben** (Ø ≥ t + 8 = 33 mm con ligamento ≥ t = 25 a cada agujero; el mayor círculo libre en el tresbolillo es Ø76).
+- Soldadura perimetral mayor o cordones intermedios: no alivian la sección neta (partir el portador en anillos soldados por ambos cantos pide ≥ d + 2·25 + 20 ≈ 250 mm entre anillos de pastillas: con Ø170 cabe pero el área de pastillas baja ≈ 8 % y la presión sube ≈ 9 % (estimación), con lo que presión + planitud pasa de 0,93).
+- Agujeros de soldadura en lugar de pastillas (`bx_nw`): ligamento 1,10–1,12 y PV 1,01–1,02.
+- **Adoptado: patrón radial con pastillas quitadas del anillo crítico** (más acero en su sección neta; cada paso es un candidato): Ø180, **66 pastillas** (1 menos en el anillo exterior), Ø de corte 180,5 ≤ 185.
+
+| Verificación | FU | Verificación | FU |
+|---|---|---|---|
+| Presión | 0,64 | Portador: torsión de la sección neta | **0,950** (adv.) |
+| Presión + planitud | **0,933** (adv.) | Portador: ligamento de entrada | **0,929** (adv.) |
+| PV | 0,876 | Filetes perimetrales ext. / int. | 0,36 / 0,68 |
+| Pared (residual) / tornillo | 0,57 / 0,87 | Ø de corte ≤ 185 (geo) | 0,98 |
+
+Barrido (Ø 172–184, ligamento 25–27, con quita de pastillas): el menor FU máximo posible es ≈ 0,91 (Ø178, ligamento 26) y siempre gobiernan
+presión + planitud de las pastillas o la torsión del portador; no hay combinación con todo ≤ 0,90 con plancha de 30 y portador A36 de 25.
+
+### 9.5 Cinemática con δ = 33 mm (antes 38)
+
+| Verificación | Antes | Después |
+|---|---|---|
+| Carrera requerida con margen | 0,959 | 0,959 |
+| Sincronía del retorno / peor caso | 0,971 / 0,965 | 0,971 / 0,965 |
+| Flanco de reenganche (α ≤ α_máx) | 0,904 | 0,904 |
+| Garra: toma / labio en la aproximación / salida / retorno sin traba | 0,440 / 0,135 / 0,150 / 0,428 | sin cambio |
+| Bloque-uña libre del pasador siguiente (empuje) / en el empuje guiado | 0,821 / 0,737 | sin cambio |
+| Placa-guía libre del seguidor / sin autobloqueo | 0,500 / 0,037 | sin cambio |
+| Pasador Q fuera de la mesa | 0,974 | 0,974 |
+| Bloque-uña dentro de la luz libre entre anillos (h_disc − 2·t_anillo) | 0,962 | **1,000** (150 = 140 + 10; geo ≤ 1) |
+| Bloque-uña sobre la placa-leva / cuerpo sobre la placa-guía (alzado) | 0,559 / 0,561 | 0,613 / 0,612 |
+| Cuerpo del cilindro libre sobre la base / oreja inferior E sobre la base | 0,490 / 0,187 | 0,507 / 0,250 |
+| Pasador E sobre el refuerzo | 0,185 | 0,500 |
+| Soporte E / placas-guía dentro de la base; placas fuera de la mesa | 0,999 / 0,936 / 0,961 | sin cambio |
+
+Gira en todos los casos (FS 0,900 de diseño; contaminada 0,900; borde 0,899: sin cambio). Las verificaciones en planta no dependen de δ; las de
+alzado mejoran porque el eje baja 5 mm.
+
+### 9.6 Pendientes
+
+1. ULTRA VST: p_adm, E, μ, PV y α del proveedor (hoy supuestos); desgaste del inox espejo frente al UHMW.
+2. WPS disímil 304–A36 con ER309L (AWS D1.6) y probeta de tapón en lámina de 3 mm; verificar g₀ ≤ 0,2 mm en la primera mesa.
+3. Base > 20 mm: el núcleo no tiene calibración propia (el crédito BX sale de la FEA de Mindlin del verificador independiente sobre este diseño);
+   recalibrar `DBL_CAL` con t_base = 25 si se cambia la geometría.
+4. Textos de material del núcleo (exportación de planos) siguen diciendo «S355J2» con el Fy del parámetro (250); el refuerzo pide calidad Z en
+   el espesor (con A36: ASTM A770). El generador de planos (`cad/bx3d.py`, `cad/bx_notas.py`) y `Tornamesa_BX_v1.0.html` no se tocaron: el
+   modo 1 exporta `disco.tornillos` vacío y los bloques nuevos `disco.lamina`, `disco.tapones` y `disco.costura`.

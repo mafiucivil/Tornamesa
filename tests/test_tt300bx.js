@@ -167,6 +167,16 @@ test("BX: acero A36 en todas las planchas (Fy 250, Fu 400) con los espesores de 
   assert.ok(!A20.checks.some((c) => c.sustituida || /crédito del espesor/.test(c.name)));
 });
 
+test("BX: cinemática y reenganche con la nueva δ (lámina de 3 mm) y las alturas de la rev. 5", () => {
+  assert.ok(A0.R.K.ok); assert.equal(A0.verdict.gira, true);
+  near(A0.R.hax, P0.h_disc / 2 + A0.R.ifc.delta, 1e-12, "eje del cilindro = h_disc/2 + δ");
+  const giro = A0.checks.filter((c) => (c.sys === "giro" || /Uña|Placas-leva/.test(c.grp)) && (c.kind === "fu" || c.kind === "geo"));
+  giro.forEach((c) => assert.ok(c.fu <= 1 + 1e-9 && c.st !== "fail", c.grp + " | " + c.name + " FU " + c.fu));
+  ["Carrera requerida con margen", "Sincronía del retorno", "Flanco de reenganche", "Garra: en la toma", "Garra: salida del pasador", "Garra: retorno sin traba", "Bloque-uña libre del pasador siguiente",
+   "Bloque-uña libre de los pasadores en el empuje guiado", "Placa-guía libre del seguidor", "Pasador Q fuera de la mesa", "Bloque-uña dentro de la luz libre", "Cuerpo del cilindro sobre la placa-guía (alzado)"].forEach((k) =>
+    assert.ok(giro.some((c) => c.name.includes(k)), "fila de cinemática: " + k));
+});
+
 /* ---------- 3. Fórmulas ---------- */
 test("BX: celda anular (borde interior empotrado, exterior guiado) frente a diferencias finitas", () => {
   const q = 1.7, a = 50, b = 80, D = 200000 * 8 ** 3 / (12 * (1 - 0.09)), nu = 0.3;
