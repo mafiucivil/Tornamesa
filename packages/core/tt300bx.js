@@ -88,9 +88,18 @@ const BX = (() => {
     ["bx_bow", "Portador: falta de planitud admitida después de soldar (solo bordes soldados; criterio de taller): se descuenta de la holgura disco–portador", "mm", 1, 0, 5, 0.5],
   ] };
   const PARAM_GROUPS = TT_.PARAM_GROUPS.concat([BX_GROUP]);
-  function defaults() {
+  // Rev. 5 (decisión del mandante 18-11-2026): acero ASTM A36 (Fy 250, Fu 400) en TODAS las planchas estructurales (mesa, base y su refuerzo y atiesadores,
+  // soporte del ojal E, collar del pivote, portador, orejas…; parámetros «Fy»/«Fu» del núcleo, que solo usan planchas: comprobado fila por fila) y los
+  // espesores comerciales que hacen falta con A36. Los aceros especiales (pasadores, bloque-uña, placa-guía, leva, pivote, vástago, tornillos) tienen su propio
+  // parámetro y no cambian. «antes» = valores del núcleo (A572 Gr. 50): BX.defaults({ a36: false }) los conserva como opción.
+  const A36_DESPUES = { Fy: 250, Fu: 400, t_top: 25, t_bot: 20, t_web: 8, t_rib: 8, w_web: 8, t_pr: 30, t_base: 25, h_boss: 70, pv_tl: 36 };
+  const A36 = { despues: A36_DESPUES, antes: (() => { const D = TT_.defaults(), o = {}; for (const k in A36_DESPUES) o[k] = D[k]; return o; })(),
+    nota: { Fy: "A36 (antes A572 Gr. 50)", Fu: "A36", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
+      t_pr: "anillos de pasadores: aplastamiento del agujero del pasador de empuje", t_base: "plancha base (bajo el soporte del ojal E; asiento del pivote)", h_boss: "collar de asiento del pivote (profundidad del asiento con H·e)", pv_tl: "tapas del cajón del ojal E: desgarro y aplastamiento" } };
+  function defaults(o) {
     const P = TT_.defaults();
     BX_GROUP.p.forEach((q) => { P[q[0]] = q[3]; });
+    if (!(o && o.a36 === false)) Object.assign(P, A36_DESPUES);
     return Object.assign(P, { opt_uhmw: 1, opt_ss: 0, opt_bz: 0 });
   }
   const bxDefaults = () => Object.fromEntries(BX_GROUP.p.map((q) => [q[0], q[3]]));
@@ -955,14 +964,41 @@ const BX = (() => {
     return v;
   }
 
+  /* ---------------- Plancha base bajo el soporte del ojal E con t_base > 20: crédito del espesor (FEA de Mindlin) ---------------- */
+  // El núcleo calibra S = σ/M del refuerzo con t_base = 20 y no acredita una base más gruesa (k_Tb = máx(1; (20/t_b)²)). Rev. 5: con A36 la base pasa a 25 mm;
+  // la FEA de Mindlin de la base completa de tests/indep_plancha_base_E.py §4 (mesa cargada con contacto unilateral, losa unilateral, soportes rígidos,
+  // malla 40 mm, σ_vM a > 100 mm de la huella) sobre el diseño BX (modo pivotado, h = 138 mm, refuerzo y atiesador del núcleo) da, respecto de t_base = 20:
+  //   empuje (nom/dis/cal): FU_FEA 0,193/0,611/0,860 → 22 mm: 0,174/0,548/0,771 → 25 mm: 0,172/0,520/0,728 (el núcleo daba 0,823 a calado con 20: la FEA es
+  //   4,5 % mayor, se aplica ese factor); atasco del retorno: 1,002 → 0,848 → 0,677 (núcleo 1,055). Factor sobre la fila del núcleo, interpolado en t_base
+  //   (≥ 25: el de 25); mesa vacía sin crédito. Solo modo pivotado (la calibración no cubre el guiado).
+  const BASE_FEA = { tb: [20, 22, 25], emp: [1.045, 1.045 * 0.897, 1.045 * 0.847], ret: [1.0, 0.846, 0.676] };
+  function baseCredit(P, checks) {
+    const out = [], tb = P.t_base;
+    if (!(tb > 20 + 1e-9) || TT_.driveMode(P) !== 2) return out;
+    const T = BASE_FEA.tb, k = (arr) => { const x = Math.min(tb, T[T.length - 1]); let i = 1; while (i < T.length - 1 && T[i] < x) i++; return arr[i - 1] + (arr[i] - arr[i - 1]) * (x - T[i - 1]) / (T[i] - T[i - 1]); };
+    const re = /^Plancha base bajo el soporte del ojal E: base de .* flexión de la base y del refuerzo con la (.*)$/;
+    checks.forEach((c) => {
+      const m = re.exec(c.name); if (!m || c.kind !== "fu" || c.bx) return;
+      const id = /atasco del retorno/.test(m[1]) ? "ret" : /vac[ií]a/.test(m[1]) ? null : "emp"; if (!id) return;
+      const f = k(BASE_FEA[id]); if (!(f < 1)) return;
+      out.push({ after: c, row: { kind: "fu", grp: c.grp, sys: c.sys, bx: true, k_tb: f, name: "BX · " + c.name + " — crédito del espesor de la base t_base = " + tb + " mm (FEA de Mindlin)",
+        formula: c.formula + "; × k = " + nf(f, 3) + " (FEA de Mindlin de la base completa con t_base = " + tb + " frente a 20 mm, " + (id === "ret" ? "atasco del retorno" : "empuje, con el 4,5 % en que la FEA supera al núcleo con 20 mm") + ")",
+        dem: c.dem * f, cap: c.cap, unit: c.unit, ref: (c.ref || "") + "; tests/indep_plancha_base_E.py §4 (FEA de Mindlin, misma formulación de la calibración del núcleo) sobre el diseño TT300-BX rev. 5; docs/bx/README_BX.md §9" } });
+      c.kind = "info"; c.st = "info"; c.sustituida = true; c.name = c.name + " [sustituida en TT300-BX por la fila con el crédito del espesor de la base]";
+    });
+    return out;
+  }
+
   /* ---------------- API (análoga a TT) ---------------- */
   function analyze(P, opts) {
     if (!active(P)) return Object.assign({}, TT_.analyze(P, opts), { bx: null });
     const Dg = design(P.__th ? Object.assign({}, P.__th.P0, { __th: undefined }) : P), Pc = Object.assign({}, full(P), { __bx: Dg.bx });
     const A = TT_.analyze(Pc, opts);
     const rows = bxRows(Pc, A.R, Dg).map((c) => stOf(Pc, c));
-    const idx = A.checks.reduce((k, c, i) => (c.grp === "Interfaz" ? i : k), -1);
-    const checks = A.checks.slice(0, idx + 1).concat(rows, A.checks.slice(idx + 1));
+    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core);   // copias: el análisis del núcleo puede estar en memoria
+    cred.forEach((o) => { const r = stOf(Pc, Object.assign({}, o.row, { fu: o.row.dem / o.row.cap })); core.splice(core.indexOf(o.after) + 1, 0, r); });
+    const idx = core.reduce((k, c, i) => (c.grp === "Interfaz" ? i : k), -1);
+    const checks = core.slice(0, idx + 1).concat(rows, core.slice(idx + 1));
     return { P: full(P), Pc, R: A.R, fea: A.fea, checks, verdict: verdictOf(checks, A.R, A.verdict), bx: exportable(Dg) };
   }
   const exportable = (Dg) => { const o = Object.assign({}, Dg); delete o._geo; delete o._e; delete o._ce; return o; };
@@ -1001,6 +1037,6 @@ const BX = (() => {
     return o;
   }
 
-  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign }, PARAM_GROUPS, BX_GROUP, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
+  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, BASE_FEA }, PARAM_GROUPS, BX_GROUP, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
 })();
 if (typeof module !== "undefined") module.exports = BX;

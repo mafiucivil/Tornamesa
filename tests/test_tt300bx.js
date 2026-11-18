@@ -56,7 +56,7 @@ test("BX: valores por defecto activan la opción B con el gancho; A y C pasan al
   near(A0.R.m.bxPortador, G0.portador.masa, 1e-12, "portador en m.total");
   assert.ok(!A0.checks.some((c) => /sectores\)|Lámina UHMW|Disco de la base/.test(c.name)), "sin filas de los sectores de la opción B");
   // A y C: el módulo devuelve el análisis del núcleo
-  const Aa = BX.analyze(Object.assign({}, P0, { opt_uhmw: 0, opt_ss: 1 }), { noFEA: true }), Ta = TT.analyze(Object.assign(TT.defaults(), { opt_ss: 1 }), { noFEA: true });
+  const Aa = BX.analyze(Object.assign({}, P0, { opt_uhmw: 0, opt_ss: 1 }), { noFEA: true }), Ta = TT.analyze(Object.assign(TT.defaults(), BX.A36.despues, { opt_ss: 1 }), { noFEA: true });
   assert.equal(Aa.bx, null);
   assert.equal(Aa.R.m.total, Ta.R.m.total);
 });
@@ -74,7 +74,10 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   assert.equal(U.forma, "redonda"); assert.equal(U.lado, null); assert.ok(U.d >= 60 && U.d <= 300);
   assert.equal(C.agujeros.forma, "redonda"); assert.equal(C.agujeros.d, U.d);
   // a 20 °C cumple todo (FU ≤ 0,90; geométricas ≤ 1)
-  A0.checks.filter((c) => c.bx && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok", "20 °C: " + c.name + " FU " + c.fu));
+  // rev. 5 (UHMW de 30 mm y portador A36 de 25 mm fijos, Ø ≤ 185): todo FU ≤ 1; sobre 0,90 (advertencia) solo la planitud de las pastillas y la torsión y el
+  // ligamento del portador, y ninguno sobre 0,95 con dos decimales (docs/bx/README_BX.md §9)
+  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla)/;
+  A0.checks.filter((c) => c.bx && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.955), "20 °C: " + c.name + " FU " + c.fu));
   // camino del arrastre por la cara inferior (μ_b): la pared y el tornillo usan el residual; la fila informa el FU sin μ_b
   const w = A0.checks.find((c) => /pared del agujero del portador \(arrastre residual/.test(c.name)), sinMu = +/sin μ_b: FU ([\d,]+)/.exec(w.formula)[1].replace(",", ".");
   near(w.fu * (0.25 / (0.25 - P0.bx_mu_base)), sinMu, 0.01, "FU sin μ_b = FU·μ_máx/(μ_máx − μ_b)");
@@ -86,7 +89,7 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   assert.ok(bxRows.length >= 40, "filas BX " + bxRows.length);
   bxRows.forEach((c) => { assert.ok(c.ref && c.formula && c.grp && c.sys, "fila completa: " + c.name); });
   // disco, tornillos y portador cumplen con margen (FU ≤ 0,90 o geométricas ≤ 1)
-  bxRows.filter((c) => /Disco|Tornillos del disco|Portador|Lámina|Tapones|Costura|Plancha inferior/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok", c.name + " FU " + c.fu));
+  bxRows.filter((c) => /Disco|Tornillos del disco|Portador|Lámina|Tapones|Costura|Plancha inferior/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok" || (WARN_OK.test(c.name) && c.fu < 0.955), c.name + " FU " + c.fu));
   // lo que no cumple es solo el UHMW (pastillas): documentado en docs/bx/README_BX.md
   A0.checks.filter((c) => c.st === "fail").forEach((c) => assert.match(c.name, /^BX · Pastillas/, "falla no prevista: " + c.name));
   // 80 °C: limitación de uso informativa (no pendiente crítico)
@@ -143,6 +146,25 @@ test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 
   Aa.checks.filter((c) => c.bx && /Portador|Pastillas/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.fu <= 1 + 1e-9, "A36: " + c.name + " FU " + c.fu));
   const tor = Aa.checks.find((c) => /Portador: corte por torsión/.test(c.name)); assert.ok(tor.fu < 1, "torsión " + tor.fu);
   assert.equal(Aa.bx.portador.t, 25); assert.equal(Aa.bx.pastillas.H, 30);
+});
+
+test("BX: acero A36 en todas las planchas (Fy 250, Fu 400) con los espesores de la rev. 5; aceros especiales sin cambio", () => {
+  const TD = TT.defaults(), A = BX.A36;
+  assert.equal(P0.Fy, 250); assert.equal(P0.Fu, 400);
+  for (const k of ["Fy_pin", "Fy_dog", "Fy_pp", "Fy_piv", "Fy_shoe", "Fy_cara", "Fy_cam", "Fy_camP", "Fy_surf", "Fu_bolt"]) assert.equal(P0[k], TD[k], "acero especial sin cambio: " + k);
+  for (const [k, v] of Object.entries(A.despues)) { assert.equal(P0[k], v, k); assert.equal(A.antes[k], TD[k], "antes = núcleo: " + k); }
+  assert.ok(A.despues.t_top > TD.t_top && A.despues.t_bot > TD.t_bot && A.despues.t_base > TD.t_base && A.despues.pv_tl > TD.pv_tl && A.despues.t_pr > TD.t_pr && A.despues.h_boss > TD.h_boss);
+  const Pold = BX.defaults({ a36: false }); for (const k of Object.keys(A.despues)) assert.equal(Pold[k], TD[k], "opción anterior: " + k);
+  // ninguna fila de estructura falla (sin FEA aquí; la FEA de la mesa se prueba aparte); la base bajo el soporte E con t_base > 20 usa el crédito de la FEA de Mindlin
+  A0.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("falla con A36: " + c.grp + " | " + c.name + " FU " + c.fu));
+  const cr = A0.checks.filter((c) => c.bx && /crédito del espesor de la base/.test(c.name));
+  assert.ok(cr.length >= 4, "filas con crédito " + cr.length);
+  cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); assert.ok(c.k_tb > 0 && c.k_tb <= 1); });
+  const sub = A0.checks.filter((c) => c.sustituida); assert.equal(sub.length, cr.length); sub.forEach((c) => assert.equal(c.st, "info"));
+  near(cr.find((c) => /atasco del retorno/.test(c.name)).k_tb, 0.676, 0.01, "factor de la FEA para el atasco del retorno con t_base = 25");
+  // sin crédito con t_base = 20 (calibración del núcleo)
+  const A20 = BX.analyze(Object.assign({}, P0, { t_base: 20 }), { noFEA: true });
+  assert.ok(!A20.checks.some((c) => c.sustituida || /crédito del espesor/.test(c.name)));
 });
 
 /* ---------- 3. Fórmulas ---------- */
@@ -250,7 +272,9 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   const A = BX.analyze(P0);
   assert.ok(A.fea && A.fea.lift.vmMax > 0);
   assert.equal(A.verdict.gira, true);
-  A.checks.filter((c) => c.st === "fail").forEach((c) => assert.match(c.name, /^BX · Pastillas/, "con FEA, falla no prevista: " + c.name));   // mesa, base e izaje cumplen
+  A.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("con FEA, falla: " + c.grp + " | " + c.name + " FU " + c.fu));   // rev. 5 (A36): mesa (FEA), base e izaje cumplen
+  assert.equal(A.verdict.estructura, true);
+  A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= 0.9 + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
   assert.ok(b80.bx && b80.bx.filas.length > 10);
