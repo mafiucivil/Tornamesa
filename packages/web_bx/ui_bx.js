@@ -540,7 +540,7 @@
     o.push(dim(r0 + 8, tm, tm + hd, `h ${fmt(hd, 3)}`, 6));
     o.push(dim(r0 + 110, 0, tb, `base ${fmt(tb)}`, 6));
     o.push(dim(P.R_pin, tm + tpr, tm + hd - tpr, `libre ${fmt(TT.pinClear(P))}`, -P.d_pin / 2 - 8));
-    o.push(`<text x="${X(Rt) + 8}" y="${Z(tm + hd) + 14}" font-size="13">anillo ${fmt(tpr)}</text>`);
+    o.push(`<text x="${X(Rt) + 8}" y="${Z(tm + hd) + 14}" font-size="13">${Math.round(P.bx_mesa_entera == null ? 1 : P.bx_mesa_entera) === 1 ? "plancha entera" : "anillo"} ${fmt(tpr)}</text>`);
     o.push(`<text x="${X(r0) + 4}" y="${Z(tm + hd) - 8}" font-size="13">sup. ${fmt(P.t_top)} · inf. ${fmt(P.t_bot)} · almas ${fmt(P.t_web)}</text>`);
     o.push(`<text x="${X(r1) - 4}" y="${Z(zc) - 6}" font-size="13" text-anchor="end" fill="var(--load)">eje cilindro +${fmt(R.hax)}</text>`);
     o.push(`<text x="${X(P.R_pin)}" y="${Z(-10) + 22}" font-size="13" text-anchor="middle">R${fmt(P.R_pin, 4)}</text>`);
@@ -888,7 +888,8 @@
     const el = document.querySelector('section[data-t="masa"]');
     if (!A) { el.innerHTML = msgs(); return; }
     const m = A.R.m;
-    const parts = [["Plancha superior (con anillo)", m.top], ["Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
+    const PP = A.P || P, me = Math.round(PP.bx_mesa_entera == null ? 1 : PP.bx_mesa_entera) === 1;   // rev. 7c: plancha entera por nivel
+    const parts = [[me ? "Plancha superior entera Ø" + PP.D_top + " (con los agujeros de los pasadores)" : "Plancha superior (con anillo)", m.top], [me ? "Plancha inferior entera Ø" + PP.D_top + " (con los agujeros de los pasadores)" : "Plancha inferior (con anillo)", m.bot], ["Almas anulares", m.webs], ["Nervios radiales", m.ribs], ["Cubo", m.hub], ["Pasadores de empuje", m.pins],
       ["Disco inoxidable BX (2 semidiscos)", m.ss], ["Pastillas de UHMW (BX)", m.uhmw], ["Portador soldado a la base (BX)", m.bxPortador || 0], ["Cubierta de madera dura", m.wood], ["Anillo de acero de la madera", m.ring], ["Plancha base", m.base], ["Marco perimetral", m.rim], ["Ménsulas de cilindro", m.brackets], ["Uñas", m.dogs], ["Pivote", m.pivot], ["Cilindros (comerciales)", m.cyl]].filter((q) => q[1] > 0 || /BX/.test(q[0]));
     const otros = m.total - parts.reduce((s, q) => s + (q[1] || 0), 0);
     if (Math.abs(otros) > 0.05) parts.push(["Otros del núcleo (placas-guía, soportes, refuerzos, patines…)", otros]);
