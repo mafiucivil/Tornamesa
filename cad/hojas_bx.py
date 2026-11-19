@@ -43,6 +43,37 @@ def activar():
         hojas_gen.PLAN_GEN.append("sheet_bx_fabricacion")
 
 
+# TT300-BX rev. 7c (mesa de plancha entera): los textos del núcleo sobre los pasadores de empuje (bloque pasadores_empuje del JSON, que el núcleo
+# escribe para el disco + anillo) se adaptan a las planchas enteras. Solo con bx.mesa.plancha_entera (el núcleo y su JSON no cambian).
+_ME_TXT = [("soldado a ambos anillos", "soldado a ambas planchas de la mesa"), ("agujero H7 de los anillos", "agujero H7 de las planchas enteras"),
+           ("borde del agujero del anillo", "borde del agujero de la plancha"), ("caras interiores de los anillos", "caras interiores de las planchas"),
+           ("entre anillos", "entre planchas"), ("en los anillos", "en las planchas"), ("de los anillos", "de las planchas"), ("del anillo", "de la plancha"), ("a anillo ", "a plancha ")]
+
+
+def textos_mesa_entera(D):
+    """Reemplaza «anillo» por «plancha» en los textos de pasadores_empuje del JSON (mesa de plancha entera); devuelve D."""
+    if not ((D.get("bx") or {}).get("mesa") or {}).get("plancha_entera"):
+        return D
+
+    def tx(v):
+        if isinstance(v, str):
+            for a, b in _ME_TXT:
+                v = v.replace(a, b)
+            return v
+        if isinstance(v, list):
+            return [tx(x) for x in v]
+        if isinstance(v, dict):
+            return {k: tx(x) for k, x in v.items()}
+        return v
+    if D.get("pasadores_empuje"):
+        D["pasadores_empuje"] = tx(D["pasadores_empuje"])
+    import propuestas
+    fam_ = propuestas.FAM_TXT.get("PJP-PASADOR")
+    if fam_:
+        propuestas.FAM_TXT["PJP-PASADOR"] = (tx(fam_[0]), fam_[1])
+    return D
+
+
 # ------------------------------------------------------------------------------------------------ utilidades
 def _ang_txt(grp):
     """Ángulos de un anillo: «a0 + paso·k (k = 0…n−1)» si es uniforme; si no, la lista."""

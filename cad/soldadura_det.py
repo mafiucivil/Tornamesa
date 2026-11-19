@@ -321,6 +321,7 @@ def prep_pasador(s, ox, oy, k, R, jid=None, plano=None):
     """J-P1 (núcleo pasadores_empuje.union): pasador Ø d a ras de la cara exterior del anillo, PJP con bisel 45° × S en el borde del agujero del anillo
     (toda la circunferencia), esmerilada a ras. Se dibuja el anillo superior (cara superior del disco); el anillo inferior es el espejo (cara inferior)."""
     r, S_, E_, tpr = R["d"] / 2, R["S"], R["E"], R["tpr"]
+    pz = R.get("pieza", "anillo")           # TT300-BX rev. 7c: «plancha» (plancha entera de la mesa, sin anillos)
     Wn, Hn = pin_size(R)
     P = lambda x, y: (ox + x * k, oy + y * k)
     y0, y1 = 6.0, 6.0 + tpr
@@ -332,11 +333,11 @@ def prep_pasador(s, ox, oy, k, R, jid=None, plano=None):
     s.line(P(0, y0 - 8), P(0, y1 + 6), "EJE")
     xa_ = P(0, 0)[0]
     s.pline([(xa_ - 1, P(0, y0 - 4)[1]), (P(xp + 1, 0)[0], P(0, y0 - 4)[1])], "FINA")
-    s.dim(P(Wn, y0), P(Wn, y1), 8, f"{fm(tpr, 0)} (anillo)", "v")
+    s.dim(P(Wn, y0), P(Wn, y1), 8, f"{fm(tpr, 0)} ({pz})", "v")
     s.dim(P(xp, y1 - S_), P(xp, y1), -6, f"S = {fm(S_, 0)}", "v", outside=True)
     s.dim(P(0, y1), P(xp, y1), 6, f"R{fm(r, 1)} (Ø{fm(2 * r, 0)} m6)", "h")
     s.leader(P(xp + S_ * 0.3, y1 - S_ * 0.2), (ox + Wn * k + 6, oy + (y1 - S_ - 6) * k), f"E = {fm(E_, 0)}; esmerilada a ras", dot=True)
-    s.text("pasador a ras de la cara superior del disco; ídem en el anillo inferior", (P(0, 0)[0], oy - 1), T_N, "TOP_LEFT")
+    s.text("pasador a ras de la cara superior del disco; ídem en " + ("la plancha inferior" if pz == "plancha" else "el anillo inferior"), (P(0, 0)[0], oy - 1), T_N, "TOP_LEFT")
     s.text("(cara inferior de la mesa, espejo), sin filete", (P(0, 0)[0], oy - 1 - T_N * 1.6), T_N, "TOP_LEFT")
     if jid and plano is not None:
         a = P(xp + S_ * 0.25, y1 - S_ * 0.25)
@@ -361,7 +362,7 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         R = dict(w["pasador_j"], d=w["pasador_j"].get("d", 85.0), tpr=w["pasador_j"].get("tpr", 40.0))
         Wn, Hn = pin_size(R)
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=mins or 1.0, maxs=maxs or 3.0,
-                    title=title or f"DETALLE {jid}: PASADOR A RAS SOLDADO AL ANILLO (PJP BISEL 45° S{fm(R['S'], 0)}/E{fm(R['E'], 0)}, ESMERILADA A RAS)",
+                    title=title or f"DETALLE {jid}: PASADOR A RAS SOLDADO {'A LA PLANCHA' if R.get('pieza') == 'plancha' else 'AL ANILLO'} (PJP BISEL 45° S{fm(R['S'], 0)}/E{fm(R['E'], 0)}, ESMERILADA A RAS)",
                     custom=lambda s, ox, oy, k, pl: prep_pasador(s, ox, oy, k, R, jid, pl))
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]

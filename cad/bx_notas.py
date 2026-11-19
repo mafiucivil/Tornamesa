@@ -219,7 +219,7 @@ def notas_anillo_inf(ctx):
         return []
     b0 = cie[0]
     rs = sorted({round(float(b["r"])) for b in cie})
-    return [f"Roscas M{fm(T['d'], 0)}-6H CIEGAS de los tornillos del disco BX en el anillo inferior ({len(cie)}, R{', R'.join(fm(r, 0) for r in rs)}): taladro prof. {fm(b0['prof'], 0)} desde la cara inferior, "
+    return [f"Roscas M{fm(T['d'], 0)}-6H CIEGAS de los tornillos del disco BX en {'la zona de los pasadores de la plancha inferior entera' if g.mesa_entera else 'el anillo inferior'} ({len(cie)}, R{', R'.join(fm(r, 0) for r in rs)}): taladro prof. {fm(b0['prof'], 0)} desde la cara inferior, "
             f"rosca útil {fm(b0['rosca_util'], 0)} (espesor {fm(b0['t_pieza'], 0)}); por plantilla con el disco cortado, después de planear la cara inferior."]
 
 

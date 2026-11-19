@@ -51,6 +51,7 @@ def main():
         # sectores, lámina UHMW y topes; las láminas BX y el conjunto de la interfaz salen del bloque «bx» del JSON (cad/hojas_bx.py)
         import hojas_bx
         hojas_bx.activar()
+        hojas_bx.textos_mesa_entera(D)  # rev. 7c: textos de los pasadores de empuje para la mesa de plancha entera (sin anillos)
         print("  JSON con bloque «bx»: juego TT300-BX (cad/hojas_bx.py)", flush=True)
     if jpath.resolve() != (out / "TT300-C_design.json").resolve():
         shutil.copy(jpath, out / "TT300-C_design.json")

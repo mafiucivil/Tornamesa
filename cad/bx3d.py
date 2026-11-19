@@ -358,7 +358,7 @@ def holes(m):
             an.append(cyl(d_m / 2, prof + 1, g.z0 - 1, x, y))
         else:
             pl.append(cyl(d_m / 2, g.tbo + 2, g.z0 - 1, x, y))
-    for k_, lst in (("mesa_plancha_inf", pl), ("mesa_anillo_inf", an)):
+    for k_, lst in (("mesa_plancha_inf", pl), ("mesa_anillo_inf" if m.get("mesa_anillo_inf") else "mesa_plancha_inf", an)):   # rev. 7c: plancha entera (sin anillo)
         if lst:
             p_ = m.get(k_)
             p_.solid = p_.solid.cut(compound(lst))

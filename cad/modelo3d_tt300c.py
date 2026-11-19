@@ -230,10 +230,22 @@ VAR_REFUERZO = {
 }
 
 
+# TT300-BX rev. 7c (mesa de plancha entera): clase de geometría propia de las planchas de la mesa. La plancha superior no tiene registro en VAR_CODIGOS
+# (una sola geometría en los demás juegos, código sin sufijo): con la plancha entera lleva el sufijo -2; la inferior sigue a sus clases de VAR_CODIGOS
+# con la clase «BX-LE» al final (sufijo -5). Solo se consulta con la variante BX-LE (los demás juegos no cambian).
+VAR_MESA_ENTERA = {
+    "mesa_plancha_sup": [(("BASE", "A", "AF2", "B", "C1", "C2", "C3", "W", "BX", "BX-L"), "disco Ø 2·R_anillo,int (todos los demás juegos)", 1),
+                         (("BX-LE",), "plancha entera Ø2000 × 22 con 28 agujeros Ø85 H7, agujero central y rebaje (BX rev. 7c)", 1)],
+    "mesa_plancha_inf": VAR_CODIGOS["mesa_plancha_inf"] + [(("BX-LE",), "plancha entera Ø2000 × 22 con 28 agujeros Ø85 H7 y agujero central pasante (BX rev. 7c)", 1)],
+}
+
+
 MODO_DEP = ("base_plancha", "refuerzo", "refuerzo_ati", "int_disco_base", "int_disco_mesa", "int_tope_base", "int_tope_mesa", "int_bronce", "int_cara", "leva_pata")   # geometría que depende del modo del accionamiento
 
 
 def variante_de(g, key=None):
+    if key in ("mesa_plancha_sup", "mesa_plancha_inf") and getattr(g, "mesa_entera", False):
+        return "BX-LE"                   # TT300-BX rev. 7c: plancha entera por nivel (clase propia, VAR_MESA_ENTERA)
     if g.opt == 4 and g.bx and int((g.bx.get("disco") or {}).get("modo") or 0) == 1:
         return "BX-L"                    # TT300-BX con lámina soldada (bx_disc_modo = 1): clases propias en VAR_CODIGOS / VAR_REFUERZO
     v = g.variante.replace("-G", "")
@@ -262,7 +274,7 @@ def asignar_codigos(m):
             continue
         var = variante_de(g, p.key)
         ts = firmas.tipos(p)
-        clases = VAR_REFUERZO.get(p.num) if p.key in ("refuerzo", "refuerzo_ati") else VAR_CODIGOS.get(p.key)
+        clases = VAR_REFUERZO.get(p.num) if p.key in ("refuerzo", "refuerzo_ati") else (VAR_MESA_ENTERA.get(p.key) if var == "BX-LE" else VAR_CODIGOS.get(p.key))
         if p.key in ("refuerzo", "refuerzo_ati") and clases is None:
             m.info["codigos_fallas"].append(f"{p.code}: espesor o alto del refuerzo sin número registrado (acc3d.BAS_NUM / VAR_REFUERZO)")
             continue
@@ -705,13 +717,29 @@ def build(D, verbose=True):
     insp_xy = [(g.insp_pcd / 2 * math.cos(math.radians(30 + 60 * i)), g.insp_pcd / 2 * math.sin(math.radians(30 + 60 * i))) for i in range(6)]
     top_plate = top_plate.cut(cq.Workplane("XY").workplane(offset=z0 + hd - tt - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_rem + 1.0))   # 6 × M8 (broca Ø6,8) PASANTE en el remanente bajo el rebaje (N-20)
     ring_top = pins_cut(ring(prIn, Rt, tpr, z0 + hd - tpr), z0 + hd - tpr, tpr)
-    m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tt)} con agujero Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección",
+    if g.mesa_entera:
+        # TT300-BX rev. 7c (decisión del mandante 19-11-2026): UNA plancha completa Ø D_top por nivel con los N_pin agujeros H7 de los pasadores en la misma
+        # pieza; sin anillos de pasadores (MES-002 / MES-004 no existen: sus números quedan libres) ni empalmes / uniones plancha–anillo
+        top_plate = pins_cut(ring(g.hole_top / 2, Rt, tt, z0 + hd - tt).cut(ring(0, g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t))
+                             .cut(cq.Workplane("XY").workplane(offset=z0 + hd - tt - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_rem + 1.0)), z0 + hd - tt, tt)
+        disc_bot = pins_cut(ring(ri_bot, Rt, tbo, z0), z0, tbo)
+        compra = f"plancha de {f(tt)} mm de al menos {f(P['D_top'])} × {f(P['D_top'])}"
+        m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa (plancha entera)", f"Plancha entera Ø{f(P['D_top'])}×{f(tt)} con agujero Ø{f(g.hole_top)}, rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección y {g.N_pin} agujeros Ø{f(d_pin)} H7 de los pasadores",
+                   top_plate, 1, A572Z, f"Plasma/oxicorte de una pieza desde {compra}; rebaje fresado en mandrinadora; agujeros de pasadores Ø80 taladrados y mandrinados/escariados a Ø{f(d_pin)} H7 EN LÍNEA con la plancha inferior (mesa armada)",
+                   core="top", color=(0.22, 0.4, 0.7), obs=f"Sin anillo de pasadores ni empalmes (rev. 7c); compra: {compra}"))
+        m.sub_count["MES"] += 1                       # MES-002 (anillo superior) eliminado: el número no se reutiliza
+        m.add(Part("mesa_plancha_inf", "MES", "Plancha inferior de la mesa (plancha entera)", f"Plancha entera Ø{f(P['D_top'])}×{f(tbo)}, agujero central Ø{f(2 * ri_bot)}" + (" PASANTE" if g.rebaje else "") + f" y {g.N_pin} agujeros Ø{f(d_pin)} H7 de los pasadores",
+                   disc_bot, 1, A572Z, f"Plasma/oxicorte de una pieza desde {compra} (espesor con tolerancia solo positiva); cara inferior planeada después de soldar y aliviar (planitud 0,20, espesor terminado ≥ {f(tbo)}); agujeros de pasadores mandrinados/escariados en línea con la plancha superior",
+                   core="bot", color=(0.22, 0.4, 0.7), obs=f"Sin anillo de pasadores ni empalmes (rev. 7c); compra: {compra}"))
+        m.sub_count["MES"] += 1                       # MES-004 (anillo inferior) eliminado
+    if not g.mesa_entera:
+     m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tt)} con agujero Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección",
                top_plate, 1, A572Z, "Oxicorte/plasma desde plancha (o 2 mitades con empalme CJP); rebaje fresado en mandrinadora; soldadura", core="top", color=(0.22, 0.4, 0.7)))
-    m.add(Part("mesa_anillo_sup", "MES", "Anillo superior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°, empalmes CJP)", ring_top, 1, A572Z,
+     m.add(Part("mesa_anillo_sup", "MES", "Anillo superior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°, empalmes CJP)", ring_top, 1, A572Z,
                "Plasma por segmentos de 90°; soldadura CJP de empalmes (UT 100 %); agujeros Ø80 en taladro radial y mandrinado a Ø85 H7 en línea con el anillo inferior", core="top", color=(0.22, 0.4, 0.7)))
-    m.add(Part("mesa_plancha_inf", "MES", "Plancha inferior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tbo)}, agujero central Ø{f(2 * ri_bot)}" + (f" PASANTE (rebaje del collar: Ø{f(g.D_boss)} + 2×{fm(g.c_boss_r, 0)} de holgura radial)" if g.rebaje else ""), disc_bot, 1, A572Z,
+     m.add(Part("mesa_plancha_inf", "MES", "Plancha inferior de la mesa", f"Disco Ø{f(2 * prIn)}×{f(tbo)}, agujero central Ø{f(2 * ri_bot)}" + (f" PASANTE (rebaje del collar: Ø{f(g.D_boss)} + 2×{fm(g.c_boss_r, 0)} de holgura radial)" if g.rebaje else ""), disc_bot, 1, A572Z,
                "Oxicorte/plasma; cara inferior de apoyo de la interfaz planeada en mandrinadora (fresa de planear) o esmerilada; planitud 0,20", core="bot", color=(0.22, 0.4, 0.7)))
-    m.add(Part("mesa_anillo_inf", "MES", "Anillo inferior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°)", ring_bot, 1, A572Z,
+     m.add(Part("mesa_anillo_inf", "MES", "Anillo inferior de pasadores", f"Anillo Ø{f(P['D_top'])}/Ø{f(2 * prIn)}×{f(tpr)}, {g.N_pin} agujeros Ø{f(d_pin)} H7 (4 segmentos de 90°)", ring_bot, 1, A572Z,
                "Plasma por segmentos; soldadura CJP de empalmes (UT); agujeros como el anillo superior (en línea)", core="bot", color=(0.22, 0.4, 0.7)))
     for k, r in enumerate(D["almas"]):
         w = ring(r - P["t_web"] / 2, r + P["t_web"] / 2, hw, z0 + tbo)
@@ -758,10 +786,10 @@ def build(D, verbose=True):
     m.info["pasadores_empuje"] = PEJ
     pins = cq.Workplane("XY").workplane(offset=zp0).pushPoints(pin_xy).circle(d_pin / 2).extrude(L_pin)
     U_ = PEJ.get("union") or {}
-    m.add(Part("pasadores", "MES", "Pasador de empuje (soldado a ras)", f"Barra Ø{f(d_pin)} m6 × {f(L_pin)}, extremos planos a ras del disco; soldado a ambos anillos (PJP en bisel 45° S{f(U_.get('S', 0))}/E{f(U_.get('E', 0))})",
+    m.add(Part("pasadores", "MES", "Pasador de empuje (soldado a ras)", f"Barra Ø{f(d_pin)} m6 × {f(L_pin)}, extremos planos a ras del disco; soldado a {'ambas planchas de la mesa' if g.mesa_entera else 'ambos anillos'} (PJP en bisel 45° S{f(U_.get('S', 0))}/E{f(U_.get('E', 0))})",
                pins, g.N_pin, PEJ.get("material") and (PEJ["material"].split(";")[0] + " — PROPUESTO") or f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa — PROPUESTO",
                "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción solo de la banda de contacto; "
-               "montaje en los anillos (calor o prensa) y soldadura PJP en cada anillo con WPS calificada y precalentamiento; esmerilado a ras", core="pins", color=(0.75, 0.75, 0.78),
+               + ("montaje en las planchas enteras (calor o prensa) y soldadura PJP en cada plancha" if g.mesa_entera else "montaje en los anillos (calor o prensa) y soldadura PJP en cada anillo") + " con WPS calificada y precalentamiento; esmerilado a ras", core="pins", color=(0.75, 0.75, 0.78),
                tratamiento=f"Bonificado; temple por inducción ≥ 55 HRC solo en la banda de contacto, prof. {g.z_hard_txt}; extremos sin templar",
                obs=f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa. NO REEMPLAZABLE (soldado; núcleo pasadores_empuje.limitaciones)"))
 

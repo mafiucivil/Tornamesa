@@ -114,9 +114,15 @@ def cut_rows(ctx):
     add("orejas", "Plancha", f"{f(2 * P['R_ear'] + 10)}×{f(P['h_ear'] + P['R_ear'] + 10)}×{f(P['t_ear'])}", "Plasma/oxicorte del perfil; agujero mecanizado H12")
     if g.modo == 1:
         add("bancada", "Plancha", f"{f(P['w_bed'] + 10)}×{f(P['t_bed'] + 5)}×{f(KG['L_bed'] + 10)}", "Ranura T tras soldar")
-    add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
+    if g.mesa_entera:                    # TT300-BX rev. 7c: una plancha entera por nivel (sin anillos de pasadores)
+        cmp_ = f"compra: plancha de {f(g.tt)} mm de al menos {f(P['D_top'])} × {f(P['D_top'])}"
+        add("mesa_plancha_sup", "Disco", f"Ø{f(P['D_top'])}×{f(g.tt)}", f"Plancha entera de una pieza ({cmp_}); contorno Ø{f(P['D_top'])} ±1,5 a plasma; {g.N_pin} agujeros Ø80 taladrados y mandrinados a Ø{f(g.d_pin)} H7 en línea tras soldar; rebaje tras soldar")
+        add("mesa_plancha_inf", "Disco", f"Ø{f(P['D_top'])}×{f(g.tbo)}", f"Plancha entera de una pieza ({cmp_}, tolerancia de espesor solo positiva); cara de giro planeada (espesor terminado ≥ {f(g.tbo)}); agujeros de pasadores como la superior (en línea)" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
+    else:
+        add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")
     add("mesa_anillo_sup", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; caras planeadas a {f(g.tpr)} ANTES de soldar a la plancha superior", qty=4)
-    add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
+    if not g.mesa_entera:
+        add("mesa_plancha_inf", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tbo + 3)}", "Cara de giro planeada" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
     add("mesa_anillo_inf", "4 × segm. de anillo 90°", f"Ø{f(P['D_top'] + 10)}/Ø{f(2 * g.prIn - 10)}×{f(g.tpr + 3)}", f"4 segmentos por anillo, empalmes CJP en la partida; se suelda en {f(g.tpr + 3)} y la cara inferior se planea a {f(g.tpr)} DESPUÉS de soldar (con la plancha inferior)", qty=4)
     for i, r in enumerate(D["almas"]):
         add(f"mesa_alma{i}", "Pletina rolada", f"{f(g.hw)}×{f(P['t_web'])}×{f(2 * math.pi * r + 20)}", f"R{f(r)}; 1 empalme CJP")

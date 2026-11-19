@@ -401,6 +401,17 @@ def expl_dz(ctx, p):
 
 
 
+def _cc_(ctx, k):
+    return ctx.code(k).replace(CODE + "-", "").replace("-" + REV, "")
+
+
+def _ka(ctx, k):
+    """TT300-BX rev. 7c (mesa de plancha entera): sin anillos de pasadores, las cotas que se apoyaban en el anillo usan la plancha del mismo nivel."""
+    if ctx.m.get(k) or not ctx.g.mesa_entera:
+        return k
+    return k.replace("mesa_anillo_sup", "mesa_plancha_sup").replace("mesa_anillo_inf", "mesa_plancha_inf")
+
+
 STEPS = [
     ("Base soldada", "Armar sobre caballetes nivelados: plancha base, collar, marco, ménsulas, bancadas y orejas de izaje según BAS-001; soldar en secuencia simétrica (ver tabla de soldaduras), alivio de tensiones y mandrinar Ø%s H7 en línea." ),
     ("Mesa soldada", "Armar sobre la plancha inferior: almas y nervios; cerrar con anillos y plancha superior; soldar con control de distorsión (ver tabla de soldaduras); mandrinar los %d agujeros Ø%s H7 de los pasadores en línea y el cubo H7; planear la cara inferior."),
@@ -468,7 +479,7 @@ def sheet_conjunto(ctx):
             V.dimh((0, 0, zp), (X, 0, g.zc), "bottom", 0, on=["pivote", "cilindro"], virt_a=P["D_piv"] / 2, virt_b=P["D_body"] / 2, text=f"{f(X)} (ejes de guía y cilindro)")
             V.dimh((-X, 0, g.zc), (0, 0, zp), "bottom", 0, on=["pivote", "cilindro"], virt_a=P["D_body"] / 2, virt_b=P["D_piv"] / 2, text=f"{f(X)}")
             V.dimv((0, 0, zp), (X, ye, g.zc), "right", 0, on=["pivote", "mensula_oreja_sup"], virt_a=P["D_piv"] / 2, virt_b=P["d_pp"] / 2, text=f"{fm(ye, 0)} (ojal de ménsula)")
-        V.dim_dia((0, 0, top), g.Rt, 250, on=["mesa_anillo_sup"], text=f"Ø{f(P['D_top'])} (mesa)", ext=24)
+        V.dim_dia((0, 0, top), g.Rt, 250, on=[_ka(ctx, "mesa_anillo_sup")], text=f"Ø{f(P['D_top'])} (mesa)", ext=24)
         k135 = min(range(g.N_pin), key=lambda k_: abs(ctx.D["pasadores"][k_] - 135.0))
         pin = polar(g.R_pin, ctx.D["pasadores"][k135])        # pasador a ~135°: la cota no queda sobre el eje A-A ni junto a las cotas de la derecha (A-40)
         t_r = f"R{fm(g.R_pin, 0)} (círculo de pasadores)" if V.scale >= 0.075 else f"R{fm(g.R_pin, 0)}"      # a 1:20 solo el radio (tabla de datos)
@@ -493,8 +504,8 @@ def sheet_conjunto(ctx):
     def cAdims(V, c):
         V.dimv((B / 2, 0, 0), (B / 2, 0, g.tb), "right", 0, on=["base_plancha"], text=f"{f(tb)}")
         V.dimv((B / 2, 0, g.tb), (B / 2, 0, g.tb + P["rim_h"]), "right", 1, on=["marco_corto"], text=f"{f(P['rim_h'])}")
-        V.dimv((B / 2, 0, 0), (g.Rt, 0, top), "right", 2, on=["base_plancha", "mesa_anillo_sup"], text=(f"({f(top)})" if abs(g.delta) < 0.01 else f"{f(top)}"))   # sin interfaz: t_base + h_mesa = total (auxiliar)
-        V.dimv((-g.Rt, 0, g.z0), (-g.Rt, 0, top), "left", 0, on=["mesa_anillo_inf", "mesa_anillo_sup"], text=f"{f(g.hd)}")
+        V.dimv((B / 2, 0, 0), (g.Rt, 0, top), "right", 2, on=["base_plancha", _ka(ctx, "mesa_anillo_sup")], text=(f"({f(top)})" if abs(g.delta) < 0.01 else f"{f(top)}"))   # sin interfaz: t_base + h_mesa = total (auxiliar)
+        V.dimv((-g.Rt, 0, g.z0), (-g.Rt, 0, top), "left", 0, on=[_ka(ctx, "mesa_anillo_inf"), _ka(ctx, "mesa_anillo_sup")], text=f"{f(g.hd)}")
         if not piv_:
             V.dimv((-B / 2, 0, tb), (-cyl0["x"], ycb, g.zc), "left", 1, on=["base_plancha", "cilindro"], virt_b=P["D_body"] / 2, text=f"{f(g.hax)}")
         pc = V.P((cgx[0], 0, cgx[2]))
@@ -551,15 +562,15 @@ def sheet_vistas_conj(ctx):
         with alias(ctx, "_P"):
             balloons_auto(c, V, [k for k in pkp if not k.startswith("mesa_plancha")], gap=11.0, off=16.0)
         r_ = g.d_pin / 2
-        V.dimh((g.R_pin - r_, 0, g.z0 + g.tpr / 2), (g.R_pin + r_, 0, g.z0 + g.tpr / 2), "bottom", 0, on=["mesa_anillo_inf_P"], text=f"Ø{f(g.d_pin)} H7/m6")
-        V.dimv((g.R_pin + r_, 0, g.z0), (g.R_pin + r_, 0, g.z0 + g.tpr), "right", 0, on=["mesa_anillo_inf_P"], text=f"{f(g.tpr)}")
-        V.dimv((g.R_pin + r_, 0, g.z0 + g.tpr), (g.R_pin + r_, 0, top - g.tpr), "right", 0, on=["mesa_anillo_inf_P", "mesa_anillo_sup_P"], text=f"{f(g.hd - 2 * g.tpr)}")
-        V.dimv((g.R_pin + r_, 0, top - g.tpr), (g.R_pin + r_, 0, top), "right", 0, on=["mesa_anillo_sup_P"], text=f"{f(g.tpr)}")
+        V.dimh((g.R_pin - r_, 0, g.z0 + g.tpr / 2), (g.R_pin + r_, 0, g.z0 + g.tpr / 2), "bottom", 0, on=[_ka(ctx, "mesa_anillo_inf") + "_P"], text=f"Ø{f(g.d_pin)} H7/m6")
+        V.dimv((g.R_pin + r_, 0, g.z0), (g.R_pin + r_, 0, g.z0 + g.tpr), "right", 0, on=[_ka(ctx, "mesa_anillo_inf") + "_P"], text=f"{f(g.tpr)}")
+        V.dimv((g.R_pin + r_, 0, g.z0 + g.tpr), (g.R_pin + r_, 0, top - g.tpr), "right", 0, on=[_ka(ctx, "mesa_anillo_inf") + "_P", _ka(ctx, "mesa_anillo_sup") + "_P"], text=f"{f(g.hd - 2 * g.tpr)}")
+        V.dimv((g.R_pin + r_, 0, top - g.tpr), (g.R_pin + r_, 0, top), "right", 0, on=[_ka(ctx, "mesa_anillo_sup") + "_P"], text=f"{f(g.tpr)}")
         jP_ = ctx.weld_find("Pasadores de empuje")
         if jP_:
             # núcleo d537dda: pasador a ras arriba y abajo, PJP en bisel 45° en el borde del agujero de cada anillo (detalle en la lámina del pasador)
             w_out(c, jP_["id"], V, (g.R_pin - r_ - 2, 0, top - 2), "left", dy=10, prep="45°", all_round=True)
-            w_out(c, jP_["id"], V, (g.R_pin - r_ - 2, 0, g.z0 + 2), "left", dy=-12, prep="45°", all_round=True)
+            w_out(c, jP_["id"], V, (g.R_pin - r_ - 2, 0, g.z0 + 2), "left", dy=(14 if g.mesa_entera else -12), prep="45°", all_round=True)   # rev. 7c: sobre el título del corte
     c.vs("det_pin", {k: ctx.shapes[k] for k in pkp}, "front", cut=((0, 0, 0), (0, 1, 0)), center=(g.R_pin, 0, top - 100), win=(-90, -130, 90, 138), lv=(1, 2, 2, 1), hs=0.4, maxs=2.0,
          title=("CORTE X-X POR EL EJE DEL PASADOR N.° 1 (traza en la planta de CON-001; plano a %s° de +x)" % fm(a0_, 3)) + ("; PASADOR A RAS SOLDADO (PJP 45° ARRIBA Y ABAJO)" if ctx.weld_find("Pasadores de empuje") else ""), auto=False, mat={k + "_P": ctx.mat.get(k, "acero") for k in pk}, w=1.0,
          draw=dpin, nocut=("pasadores_P", "pernos_pasador_P"))         # A-09: pasador y perno sin rayar (ISO 128-50)
@@ -802,12 +813,14 @@ def pasos(ctx):
                          f"Base entera al ras sobre la losa; cantos exteriores al ras ±1; contacto ≤ 1 mm; {', '.join(w['id'] for w in jI)}: VT 100 % + MT de tapones y PJP", "Prensa o sargentos, galgas, MT", insp("Refuerzos de esquina")])
     S.append(("1. BASE SOLDADA", ["base_plancha"], [k for k in G["base"] if k != "base_plancha"], (0, 0, 250), None, rows1, dict(mark=["base_plancha"])))
     S.append(("2. MESA SOLDADA", ["mesa_plancha_inf"], [k for k in G["mesa"] if k != "mesa_plancha_inf"], (0, 0, 350), None, [
-        [pq(*G["mesa"]), f"Armar sobre la plancha inferior ({fm(g.tbo + 3, 0)}): cubo, almas, nervios, anillo inferior en {fm(g.tpr + 3, 0)} y anillo superior ya planeado a {fm(g.tpr, 0)}; cerrar con la plancha superior; soldar (GEN-007)",
+        [pq(*G["mesa"]), (f"Armar sobre la plancha inferior ENTERA Ø{f(2 * g.Rt)} × {fm(g.tbo, 0)} (con los {g.N_pin} agujeros pretaladrados Ø80): cubo, almas y nervios; cerrar con la plancha superior ENTERA Ø{f(2 * g.Rt)} × {fm(g.tt, 0)}, agujeros alineados con pasadores-guía; soldar (GEN-007); sin anillos ni empalmes"
+                          if g.mesa_entera else f"Armar sobre la plancha inferior ({fm(g.tbo + 3, 0)}): cubo, almas, nervios, anillo inferior en {fm(g.tpr + 3, 0)} y anillo superior ya planeado a {fm(g.tpr, 0)}; cerrar con la plancha superior; soldar (GEN-007)"),
          f"Altura {f(g.hd)} ±0,5; posición angular de nervios ±0,1°", "Plantilla angular", insp("cara inferior de la mesa")],
-        ["—", f"Alivio; planear la cara inferior 3 mm (plancha a {fm(g.tbo, 0)}, anillo inferior a {fm(g.tpr, 0)}); mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7",
-         f"Agujeros en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos, MES-002); planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]]
+        ["—", (f"Alivio; planear la cara inferior (remoción mínima, plancha ≥ {fm(g.tbo, 0)}); mandrinar/escariar EN LÍNEA las dos planchas: {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}; y el cubo Ø{f(g.d_bush)} H7" if g.mesa_entera else
+               f"Alivio; planear la cara inferior 3 mm (plancha a {fm(g.tbo, 0)}, anillo inferior a {fm(g.tpr, 0)}); mandrinar {g.N_pin} × Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)} y el cubo Ø{f(g.d_bush)} H7"),
+         f"Agujeros en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos, {_cc_(ctx, 'mesa_plancha_sup') + ' / ' + _cc_(ctx, 'mesa_plancha_inf') if g.mesa_entera else 'MES-002'}); planitud 0,20", "Mandrinadora, CMM", insp("Pasadores de empuje")]]
         + ([[pq("pasadores"), (lambda PE_, U_: f"Bisel 45° × {f(U_['S'])} en el borde de los {2 * g.N_pin} agujeros (cara superior del disco y cara inferior de la mesa); montar los {g.N_pin} pasadores Ø{f(g.d_pin)} m6 "
-                                                  f"de {f(PE_['largo'])} (calor o prensa) a ras arriba y abajo; soldar {ctx.weld_find('Pasadores de empuje')['id']} (PJP S{f(U_['S'])}/E{f(U_['E'])}) en cada anillo con la WPS calificada "
+                                                  f"de {f(PE_['largo'])} (calor o prensa) a ras arriba y abajo; soldar {ctx.weld_find('Pasadores de empuje')['id']} (PJP S{f(U_['S'])}/E{f(U_['E'])}) en cada {'plancha' if g.mesa_entera else 'anillo'} con la WPS calificada "
                                                   "y precalentamiento; enfriamiento lento; esmerilar a ras")(m.info["pasadores_empuje"], m.info["pasadores_empuje"]["union"]),
              f"A ras ±0,2 (planitud de la cara inferior 0,20 después de esmerilar); MT 100 % a las 48 h; dureza de la banda templada ≥ 55 HRC después de soldar", "Horno o calefactor, termocrayones, esmeril, MT, durómetro",
              insp("Pasadores de empuje soldados")]] if (m.info.get("pasadores_empuje") and ctx.weld_find("Pasadores de empuje") and not G["pins"]) else []), dict(mark=["mesa_plancha_inf"])))
@@ -863,7 +876,7 @@ def pasos(ctx):
     S.append(("5. BUJE Y MESA SOBRE EL PIVOTE", prev4 + G["intb"], new5, (0, 0, 600), None, rows5))
     if G["pins"] or G["pernos"]:
         S.append(("6. PASADORES DE EMPUJE Y PERNOS", G["base"] + G["mesa"], G["pins"] + G["pernos"], (0, 0, 350), None, [
-            [pq("pasadores"), f"Insertar los {g.N_pin} pasadores Ø{f(g.d_pin)} m6 en los anillos (H7) con grasa", f"H7/m6: {a_pin['juego']}", "Martillo de nylon, extractor", insp("Pasadores de empuje")],
+            [pq("pasadores"), f"Insertar los {g.N_pin} pasadores Ø{f(g.d_pin)} m6 en {'las planchas' if g.mesa_entera else 'los anillos'} (H7) con grasa", f"H7/m6: {a_pin['juego']}", "Martillo de nylon, extractor", insp("Pasadores de empuje")],
             [pq("pernos_pasador", "arandela_pasador"), "Perno ISO 4762 M20×45 cl. 10.9 con su arandela en cada pasador; marca de pintura de control", f"Par {T(20)} N·m (propuesta GEN-008)", "Torquímetro", insp("torques propuestos")]]))
     else:
         S.append(("6. PASADORES DE EMPUJE: CONTROL (soldados a ras en el paso 2; sin tornillería)", G["base"] + G["mesa"], [], (0, 0, 0), None, [
@@ -1161,22 +1174,23 @@ def sheet_mesa_conj1(ctx):
 
     def media(V, c):
         balloons_auto(c, V, [k for k in ks if k not in ("pernos_pasador", "arandela_pasador")], pred=lambda q: q[2] <= zmid + 0.5, gap=11, off=16)
-        V.dim_dia((0, 0, g.z0 + g.tbo), g.Rt, 35, on=["mesa_anillo_inf"], text=f"Ø{f(P['D_top'])}", ext=26)
+        V.dim_dia((0, 0, g.z0 + g.tbo), g.Rt, 35, on=[_ka(ctx, "mesa_anillo_inf")], text=f"Ø{f(P['D_top'])}", ext=26)
     c.vs("media", sh, "top", cut=((0, 0, zmid), (0, 0, -1)), lv=(1, 1, 1, 1), extra=(20, 20, 20, 20), draw=media, mat=mm, hs=0.8, title="PLANTA A MEDIA ALTURA (corte a h/2)", auto=False, w=1.5)
 
     def inf(V, c):
-        V.dim_dia((0, 0, g.z0), g.prIn, 40, on=["mesa_plancha_inf"], text=f"Ø{f(2 * g.prIn)}", ext=26)
+        rI_ = g.Rt if g.mesa_entera else g.prIn       # TT300-BX rev. 7c: plancha inferior entera Ø D_top
+        V.dim_dia((0, 0, g.z0), rI_, 40, on=["mesa_plancha_inf"], text=f"Ø{f(2 * rI_)}", ext=26)
         V.dim_dia((0, 0, g.z0), (g.Drb / 2 if g.rebaje else g.d_bush / 2), 150, on=["mesa_plancha_inf"], text=f"Ø{f((g.Drb if g.rebaje else g.d_bush))} (pasante)", ext=26)
     c.vs("inf", sh, "bottom", lv=(1, 1, 1, 1), draw=inf, mat=mm, hatch=False, title="PLANTA INFERIOR (cara de apoyo)", auto=False, w=1.2)
     c.vs("elev", sh, "front", lv=(1, 2, 2, 1), mat=mm, hatch=False, title="ELEVACIÓN", auto=dict(on=["mesa_anillo_inf", "mesa_anillo_sup", "mesa_plancha_sup", "mesa_plancha_inf"], tol={}, maxn=6, axes="v"), w=1.0,
-         draw=lambda V, c: V.dimh((-g.Rt, 0, g.z0 + g.tpr), (g.Rt, 0, g.z0 + g.tpr), "bottom", 0, on=["mesa_anillo_inf"], text=f"Ø{f(2 * g.Rt)}"))
+         draw=lambda V, c: V.dimh((-g.Rt, 0, g.z0 + g.tpr), (g.Rt, 0, g.z0 + g.tpr), "bottom", 0, on=[_ka(ctx, "mesa_anillo_inf")], text=f"Ø{f(2 * g.Rt)}"))
     for k in ks:
         rot_key(ctx, k, k + "_R", -a0)
     rs = ctx.sh(*[k + "_R" for k in ks])
     c.vs("corte", rs, "front", cut=CUT_Y, lv=(1, 2, 2, 1), mat={k + "_R": ctx.mat[k] for k in ks}, hs=0.7, title="CORTE POR UN PASADOR (plano a %s° del eje x)" % fm(a0, 3), w=1.2,
          auto=dict(on=[k + "_R" for k in ks if k in ("mesa_anillo_inf", "mesa_anillo_sup", "mesa_plancha_sup", "mesa_plancha_inf", "mesa_cubo")], tol={}, maxn=9))
-    c.tail(ks, [], compact=False, notes=["Despiece y tabla de soldaduras del subconjunto: CON-009 (no se repiten aquí); programa completo en GEN-007.", "Masa del rótulo: mesa soldada / con pasadores y pernos (para izar la mesa, la segunda).",f"Armado sobre la plancha inferior: cubo, almas (R {', '.join(f(x) for x in D['almas'])}), {int(P['N_rib'])} nervios por tramo, anillos y plancha superior; cerrar con la superior en último lugar.",
-                     f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: mandrinar en línea con la mesa armada y aliviada (ver MES-002/004 y tabla de pasadores en CON-009).",
+    c.tail(ks, [], compact=False, notes=["Despiece y tabla de soldaduras del subconjunto: CON-009 (no se repiten aquí); programa completo en GEN-007.", "Masa del rótulo: mesa soldada / con pasadores y pernos (para izar la mesa, la segunda).",f"Armado sobre la plancha inferior: cubo, almas (R {', '.join(f(x) for x in D['almas'])}), {int(P['N_rib'])} nervios por tramo, {'' if g.mesa_entera else 'anillos y '}plancha superior; cerrar con la superior en último lugar.",
+                     f"{g.N_pin} agujeros Ø{f(g.d_pin)} H7 en PCD Ø{f(2 * g.R_pin)}: mandrinar en línea con la mesa armada y aliviada (ver {(_cc_(ctx, 'mesa_plancha_sup') + ' / ' + _cc_(ctx, 'mesa_plancha_inf')) if g.mesa_entera else 'MES-002/004'} y tabla de pasadores en CON-009).",
                      f"Cubo H7 Ø{f(g.d_bush)} y rebaje del collar Ø{f(g.Drb)}: mandrinar después de aliviar; cara inferior planeada (planitud 0,20)."])
     c.build()
     return c.h
@@ -1221,10 +1235,12 @@ def sheet_mesa_conj2(ctx):
     c.table_block("POSICIÓN DE LOS PASADORES (PCD Ø%s, paso %s°, arranque %s°)" % (f(2 * g.R_pin), fm(360 / g.N_pin, 3), fm(D["pasadores"][0], 3)),
                   [("N°", 9, "C"), ("Ángulo", 22, "R"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R"), ("N°", 9, "C"), ("Ángulo", 22, "R"), ("x [mm]", 22, "R"), ("y [mm]", 22, "R")], rows2)
     c.tail(ks, jn, ["Los nervios se cortan entre almas; las almas son continuas; 1 empalme por alma entre nervios.", "Masa del rótulo: mesa soldada / con pasadores y pernos.", f"Holguras del collar: radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo); el cubo gira sin tocar el collar.",
-                    f"Tabla de pasadores: ángulos desde +x, sentido antihorario; PCD Ø{f(2 * g.R_pin)} y ángulos teóricamente exactos; agujeros en posición Ø0,3 respecto del eje de la mesa (MES-002).",
-                    f"Mesa armada (datum A = cara inferior planeada): cara superior paralela a A dentro de 0,5; agujeros Ø{f(g.d_pin)} H7 de los anillos superior e inferior coaxiales Ø0,05 (eje común, mandrinado en línea).",
-                    f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); "
-                    f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."])
+                    f"Tabla de pasadores: ángulos desde +x, sentido antihorario; PCD Ø{f(2 * g.R_pin)} y ángulos teóricamente exactos; agujeros en posición Ø0,3 respecto del eje de la mesa ({(_cc_(ctx, 'mesa_plancha_sup') + ' / ' + _cc_(ctx, 'mesa_plancha_inf')) if g.mesa_entera else 'MES-002'}).",
+                    f"Mesa armada (datum A = cara inferior planeada): cara superior paralela a A dentro de 0,5; agujeros Ø{f(g.d_pin)} H7 de {'las planchas enteras' if g.mesa_entera else 'los anillos'} superior e inferior coaxiales Ø0,05 (eje común, mandrinado en línea).",
+                    *([f"Mesa de plancha entera (TT300-BX rev. 7c, decisión del mandante 19-11-2026): planchas superior ({_cc_(ctx, 'mesa_plancha_sup')}) e inferior ({_cc_(ctx, 'mesa_plancha_inf')}) de una pieza Ø{f(2 * g.Rt)} × {fm(g.tt, 0)} con los {g.N_pin} agujeros de los pasadores; "
+                       f"sin anillos de pasadores, sin empalmes CJP de segmentos y sin uniones plancha–anillo. Después del alivio se planea la cara inferior con remoción mínima (plancha ≥ {fm(g.tbo, 0)}) y se mandrinan/escarían los agujeros en línea."] if g.mesa_entera else
+                      [f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); "
+                       f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."])])
     c.build()
     return c.h
 

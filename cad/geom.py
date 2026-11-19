@@ -81,6 +81,9 @@ class G:
         if self.bx:
             self.opt = 4
             self.removable = False
+        # TT300-BX rev. 7c (decisión del mandante 19-11-2026): mesa con UNA plancha completa Ø D_top por nivel con los agujeros de los pasadores
+        # (bloque bx.mesa del JSON); sin el bloque o con plancha_entera = false: disco + anillo de pasadores en segmentos (juego sin cambios)
+        self.mesa_entera = bool(((self.bx or {}).get("mesa") or {}).get("plancha_entera"))
         self.delta = float(I["delta"])
         self.wood = P["opt_wood"] > 0.5
         self.t_ring = float(self.IG.get("t_ring", P.get("t_ring", 10.0)))   # pletina del anillo de la madera (núcleo: P.t_ring, 4.ª pasada)

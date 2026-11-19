@@ -115,6 +115,9 @@ class Pieza(Plano):
                    "placa_leva": [("Ra 1,6", "canto guía fresado y templado (ver nota 3)")], "cilindro_pv": [("Ra 1,6", "ojales H9 (proveedor)")],
                    "leva_riel": [("Ra 1,6", "canto de leva fresado y templado")], "leva_rodillo": [("Ra 0,8", "diámetro exterior del rodillo y del perno")], "leva_pata": [("Ra 6,3", "caras de apoyo fresadas")],
                    "pernos_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "arandela_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "marco_largo": [("Ra 12,5", "cantos de corte (a escuadra)")]})
+        if getattr(g, "mesa_entera", False):     # TT300-BX rev. 7c: planchas enteras con los agujeros de los pasadores
+            RA["mesa_plancha_sup"] = RA["mesa_plancha_sup"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
+            RA["mesa_plancha_inf"] = RA["mesa_plancha_inf"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
         RA["int_bx_lamina"] = [("Ra 0,4", "cara espejo de deslizamiento (del proveedor); tapones, junta y costuras esmerilados a ras y pulidos al grano del espejo")]
         rows = RA.get(k, [("Ra 6,3", "bordes de las caras que se sueldan (preparación)")])
         rows = rows + [("Ra 12,5", "resto de las superficies (corte térmico o laminado)")]

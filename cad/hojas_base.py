@@ -390,15 +390,19 @@ def build_welds(ctx):
     tp = g.tpr
     # N-03: secuencia de espesores de los anillos: partida tp + 3; empalmes (J11) en la partida; MES-002 se planea a tp antes de J12;
     # MES-004 se suelda a tp + 3 (J13) y su cara inferior se planea a tp después de soldar, junto con la plancha inferior (tbo + 3 → tbo)
-    add_n(11, "Empalmes de los anillos de pasadores (4 × 90°, superior e inferior)", "MES-002 / MES-004", f"A tope en V 60°, raíz 3, con respaldo (en la partida de {fm(tp + 3, 0)}, antes de planear)", "V", t=tp + 3, prep="V 60°, abertura de raíz 3 mm, cara de raíz 2 mm, respaldo de acero",
+    if g.mesa_entera:
+        # TT300-BX rev. 7c: planchas enteras con los agujeros de los pasadores: sin empalmes de anillos (J11) ni uniones plancha–anillo (J12, J13)
+        j12 = j13 = None
+    else:
+     add_n(11, "Empalmes de los anillos de pasadores (4 × 90°, superior e inferior)", "MES-002 / MES-004", f"A tope en V 60°, raíz 3, con respaldo (en la partida de {fm(tp + 3, 0)}, antes de planear)", "V", t=tp + 3, prep="V 60°, abertura de raíz 3 mm, cara de raíz 2 mm, respaldo de acero",
         prep_txt="60°", groove=True, len_total=2 * 4 * (g.Rt - g.prIn), wps=6, end="VT 100 % · UT 100 %")
-    land_ = (g.R_pin - g.d_pin / 2 - BORDE_MIN) - g.prIn          # chaflán 1:4 del anillo: hasta 3 mm del agujero de pasador (B-04)
-    j12 = add_n(12, "Plancha superior – anillo superior", "MES-001 / MES-002", f"A tope circunferencial, transición de espesores 1:4 (anillo ya planeado a {fm(tp, 0)})", "V", t=g.tt, t_pre=max(g.tt, tp), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
+     land_ = (g.R_pin - g.d_pin / 2 - BORDE_MIN) - g.prIn          # chaflán 1:4 del anillo: hasta 3 mm del agujero de pasador (B-04)
+     j12 = add_n(12, "Plancha superior – anillo superior", "MES-001 / MES-002", f"A tope circunferencial, transición de espesores 1:4 (anillo ya planeado a {fm(tp, 0)})", "V", t=g.tt, t_pre=max(g.tt, tp), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
         prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
-    j13 = add_n(13, "Plancha inferior – anillo inferior", "MES-003 / MES-004", f"A tope circunferencial, transición de espesores 1:4 (al soldar: plancha {fm(g.tbo + 3, 0)} = {fm(g.tbo, 0)} + 3 y anillo {fm(tp + 3, 0)} = {fm(tp, 0)} + 3, sobremetal en la cara inferior de ambos, planeada después)", "V", t=g.tbo + 3, t_pre=max(g.tbo + 3, tp + 3), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
+     j13 = add_n(13, "Plancha inferior – anillo inferior", "MES-003 / MES-004", f"A tope circunferencial, transición de espesores 1:4 (al soldar: plancha {fm(g.tbo + 3, 0)} = {fm(g.tbo, 0)} + 3 y anillo {fm(tp + 3, 0)} = {fm(tp, 0)} + 3, sobremetal en la cara inferior de ambos, planeada después)", "V", t=g.tbo + 3, t_pre=max(g.tbo + 3, tp + 3), prep="V 60°, raíz 3 mm, respaldo; chaflán 1:4 en el lado de la plancha más gruesa",
         prep_txt="60°", groove=True, len_total=2 * math.pi * g.prIn, wps=6, end="VT 100 % · UT 100 %")
-    j12.update(t_thick=tp, land=land_)
-    j13.update(t_thick=tp + 3, land=land_)
+     j12.update(t_thick=tp, land=land_)
+     j13.update(t_thick=tp + 3, land=land_)
     _weld_pasadores(ctx, add)
     rin = [r for r in D["almas"]]
     add_n(14, "Almas anulares – planchas inferior y superior", "MES-005…007 / MES-001, 003", "Filete en T, ambos lados, continuo (4 líneas por alma)", "fillet", core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios) ({'supera el máx. AISC 360-22 J2.2b = t − 2 = ' + fm(P['t_web'] - 2, 0) + ' mm: pendiente del calculista (GEN-009)' if P['w_web'] > P['t_web'] - 2 else 'cumple mín. AWS D1.1:2020 Tabla 7.7'})"),
@@ -409,7 +413,7 @@ def build_welds(ctx):
         len_total=int(P["N_rib"]) * (2 * 2 * L_rib + 2 * 2 * n_tr * g.hw), wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"))
     add_n(16, "Empalme de cada alma anular", "MES-005…007", "A tope en V 60° (1 por alma)", "V", t=P["t_web"], prep="V 60°, raíz 2 mm, con respaldo", prep_txt="60°", groove=True, len_total=len(rin) * g.hw, wps=6, end="VT 100 % · UT 100 %")
     # B-07: una junta por plancha (espesores y longitudes propios); unión en T: el cubo apoya sobre la plancha, bisel 45° en el canto exterior del cubo
-    for jid_, desc_, pz_, tt_ in (("J17a", "Cubo – plancha inferior (unión en T)", "MES-011 / MES-003", g.tbo + 3), ("J17b", "Cubo – plancha superior (unión en T)", "MES-011 / MES-001", g.tt)):
+    for jid_, desc_, pz_, tt_ in (("J17a", "Cubo – plancha inferior (unión en T)", "MES-011 / MES-003", g.tbo + (0 if g.mesa_entera else 3)), ("J17b", "Cubo – plancha superior (unión en T)", "MES-011 / MES-001", g.tt)):
         jw_ = add(desc_, pz_, f"En T, bisel 45° en el canto exterior del cubo, raíz 2 mm, respaldo interior; penetración del espesor de la plancha (t = {fm(tt_, 0)})", "bevel", t=tt_, t_pre=(P["D_hub"] - g.d_bush) / 2,
                   prep="Bisel 45° en el cubo, raíz 2 mm, respaldo interior (unión en T)", prep_txt="45°", groove=True, len_total=math.pi * P["D_hub"], wps=6, end="VT 100 % · UT 100 %", jid=jid_)
         jw_["en_T"] = True
@@ -532,18 +536,19 @@ def _weld_pasadores(ctx, add):
     S_, E_ = float(U["S"]), float(U["E"])
     n = int(PE.get("n", g.N_pin))
     org = f"núcleo (pasadores_empuje.union: FU {fm(U['fu'], 3)}; {U.get('norma', '')})" if U.get("fu") is not None else "núcleo (pasadores_empuje.union)"
-    cp, ca, cb = (ctx.code(k).replace(CODE + "-", "").replace("-" + REV, "") for k in ("pasadores", "mesa_anillo_sup", "mesa_anillo_inf"))
-    w = add(f"Pasadores de empuje – anillos superior e inferior (PJP en bisel 45° S{f(S_)}/E{f(E_)}, toda la circunferencia, arriba y abajo; esmerilada a ras)", f"{cp} / {ca}, {cb}",
-            f"PJP en bisel 45° en el borde del agujero del anillo, alrededor del pasador, en la cara superior del disco y en la cara inferior de la mesa; esmerilada a ras; sin filete abajo",
+    ME = g.mesa_entera                   # TT300-BX rev. 7c: los pasadores se sueldan a las planchas enteras (no hay anillos)
+    cp, ca, cb = (ctx.code(k).replace(CODE + "-", "").replace("-" + REV, "") for k in ("pasadores",) + (("mesa_plancha_sup", "mesa_plancha_inf") if ME else ("mesa_anillo_sup", "mesa_anillo_inf")))
+    w = add(f"Pasadores de empuje – {'planchas enteras' if ME else 'anillos'} superior e inferior (PJP en bisel 45° S{f(S_)}/E{f(E_)}, toda la circunferencia, arriba y abajo; esmerilada a ras)", f"{cp} / {ca}, {cb}",
+            f"PJP en bisel 45° en el borde del agujero {'de la plancha' if ME else 'del anillo'}, alrededor del pasador, en la cara superior del disco y en la cara inferior de la mesa; esmerilada a ras; sin filete abajo",
             "bevel", t=S_, t_pre=max(g.tpr, g.d_pin),
-            prep=f"Bisel 45° × {f(S_)} en el borde del agujero Ø{f(g.d_pin)} H7 de cada anillo (cara exterior), E = {f(E_)} = S − 3; pasador montado (m6/H7) antes de soldar",
+            prep=f"Bisel 45° × {f(S_)} en el borde del agujero Ø{f(g.d_pin)} H7 de cada {'plancha' if ME else 'anillo'} (cara exterior), E = {f(E_)} = S − 3; pasador montado (m6/H7) antes de soldar",
             prep_txt="45°", groove=True, len_total=2 * n * float(U.get("largo_por_extremo", math.pi * g.d_pin)), wps=16, end="VT 100 % · MT 100 % (48 h)", jid="J-P1",
             nota=f"{org}. {PE.get('soldabilidad', '')}")
     w.update(pjp=(S_, E_), pjp_ras=True, pasador_soldado=True, size_txt=f"s{f(E_)}", garganta=f"PJP: S = {f(S_)}, E = {f(E_)} (a ras)", origen=org, contorno=True,
              pre_txt="WPS calificada: precalentamiento según AWS D1.1:2020 Anexo B (control de hidrógeno; del orden de 250–300 °C, núcleo); enfriamiento lento",
              interpase_txt="≤ 300 °C (núcleo); banda templada ≤ 200 °C",
              corr_gmaw="Aporte bajo hidrógeno H4 (o austenítico E309L con precalentamiento ≥ 150 °C, núcleo): según PQR",
-             corr_smaw="E8018/E9018 H4R (o E309L-16) según PQR", aporte="Bajo hidrógeno H4 (o E309L), según PQR (núcleo pasadores_empuje.soldabilidad)", pasador_j=dict(S=S_, E=E_, d=float(g.d_pin), tpr=float(g.tpr)))
+             corr_smaw="E8018/E9018 H4R (o E309L-16) según PQR", aporte="Bajo hidrógeno H4 (o E309L), según PQR (núcleo pasadores_empuje.soldabilidad)", pasador_j=dict(S=S_, E=E_, d=float(g.d_pin), tpr=float(g.tpr), **({"pieza": "plancha"} if ME else {})))
     return w
 
 
@@ -676,7 +681,7 @@ def ajustes(ctx):
         ("Pivote en plancha base y collar", P["D_piv"], "H7", "p6", f"Aprieto, zona p6 del pivote (z = 0 a {fm(g.z_p6, 0)}, PIV-001): prensado o contracción (hielo seco); agujero mandrinado en línea"),
         ("Pivote en buje", P["D_piv"], "F7", "f7", f"Con juego, zona f7 del pivote (z = {fm(g.z_f7, 0)} a {fm(g.L_piv, 0)}, PIV-001); F7 del buje DESPUÉS del calado en el cubo (escariado o mandrinado final, PIV-002)"),
         ("Buje en cubo de la mesa", g.d_bush, "H7", "s6", "Aprieto: prensado"),
-        ("Pasador de empuje en anillos", g.d_pin, "H7", "m6", "Transición: desmontable, sin soldadura"),
+        ("Pasador de empuje en " + ("planchas" if g.mesa_entera else "anillos"), g.d_pin, "H7", "m6", "Transición: desmontable, sin soldadura"),
     ] + ([
         ("Pasador de articulación en ojales", P["d_pp"], "H9", "f8", "Con juego, grasa grafitada"),
         ("Cuello del patín en ranura de la bancada", P["w_slot"], "H8", "f7", "Con juego, guiado"),
@@ -711,7 +716,7 @@ def inspecciones(ctx):
         ("Soldadura", "WPS/PQR calificados según AWS D1.1 y soldadores calificados; registro de precalentamiento e interpase (≤ 250 °C).", "Todas", "Doc."),
         ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1:2020 cláusula 8) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
         ("Soldadura", "Partículas magnéticas MT en filetes críticos (" + ("mejillas, collar, orejas de izaje, bancadas" if g.modo == 1 else "PJP y filetes de refuerzo del soporte del ojal E, collar, orejas de izaje") + (", pórticos y prolongaciones de la leva" if g.FLG else "") + (", topes de la interfaz" if g.opt and g.removable else "") + ", almas y nervios) y en ranuras; 10 % en marco" + (" y anillo de la madera" if g.wood else "") + ".", "Según programa (100 % / 10 %)", "MT"),
-        ("Soldadura", "Ultrasonido UT de uniones CJP (anillos, planchas de la mesa, cubo, empalmes de almas" + (", paredes y muñones del soporte del ojal E" if g.modo == 2 else "") + ("; pasadores de empuje–anillos (PJP, tras el esmerilado a ras)" if ctx.m.info.get("pasadores_empuje") else "") + "), según AWS D1.1:2020 cláusula 8 (cargas estáticas). Los filetes (collar, orejas de izaje) se controlan con MT 100 % y medición del tamaño; UT de laminación de la plancha base bajo esos filetes (ASTM A578 nivel B).", "100 %", "UT"),
+        ("Soldadura", "Ultrasonido UT de uniones CJP (" + ("" if g.mesa_entera else "anillos, ") + "planchas de la mesa, cubo, empalmes de almas" + (", paredes y muñones del soporte del ojal E" if g.modo == 2 else "") + ("; pasadores de empuje–" + ("planchas" if g.mesa_entera else "anillos") + " (PJP, tras el esmerilado a ras)" if ctx.m.info.get("pasadores_empuje") else "") + "), según AWS D1.1:2020 cláusula 8 (cargas estáticas). Los filetes (collar, orejas de izaje) se controlan con MT 100 % y medición del tamaño; UT de laminación de la plancha base bajo esos filetes (ASTM A578 nivel B).", "100 %", "UT"),
         *([("Soldadura", "Líquidos penetrantes PT en soldaduras de acero inoxidable (barras del rebaje UHMW).", "100 %", "PT")] if any("ER309L" in w["aporte"] for w in getattr(ctx, "welds", [])) else []),
         *([("Dimensional", (lambda I_: f"Refuerzos de esquina ({ctx.code('refuerzo').replace(CODE + '-', '')}, {len(I_['esquinas'])} u.): cantos exteriores al ras de los bordes de la base (±1; PJP J-R3 esmerilada al ras); "
                                          f"contacto con la base ≤ 1 mm antes de los tapones (galga); cara superior plana 1 mm en {fm(I_['lado'], 0)} (apoyo de las piezas soldadas encima); "
@@ -722,7 +727,7 @@ def inspecciones(ctx):
                                           "(termocrayones: la banda no supera 200 °C).")(ctx.m.info["pasadores_empuje"]), "100 %", "MT / durómetro")]
           if ctx.m.info.get("pasadores_empuje") else []),
         ("Dimensional", f"Planitud de la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) ≤ 0,20 mm y de la cara inferior de la mesa ≤ 0,20 mm antes de montar la interfaz.", "100 %", "Regla/nivel láser"),
-        ("Dimensional", f"Pasadores de empuje: agujeros Ø{f(g.d_pin)} H7 en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos); coaxialidad de los agujeros de ambos anillos Ø0,05 (mandrinado en línea, CON-009).", "100 %", "CMM / plantilla"),
+        ("Dimensional", f"Pasadores de empuje: agujeros Ø{f(g.d_pin)} H7 en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos); coaxialidad de los agujeros de {'ambas planchas' if g.mesa_entera else 'ambos anillos'} Ø0,05 (mandrinado en línea, CON-009).", "100 %", "CMM / plantilla"),
         ("Dimensional", f"Pivote: perpendicularidad ≤ 0,05 respecto de la cara de apoyo; coaxialidad collar–plancha base 0,05. " + (f"Ménsulas: centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 sobre la cara de apoyo (A); agujeros de las orejas perpendiculares a A (CON-007, BAS-005)." if g.modo == 1 else
                         f"Soporte del ojal E: tapas a z {fm(g.FPV['soporte_E']['tapas']['z_inf'][0], 0)}–{fm(g.FPV['soporte_E']['tapas']['z_inf'][1], 0)} y {fm(g.FPV['soporte_E']['tapas']['z_sup'][0], 0)}–{fm(g.FPV['soporte_E']['tapas']['z_sup'][1], 0)} (±0,5 desde la cara inferior de la base); agujeros Ø{f(g.FPV['pasador_E']['d'])} H9 coaxiales Ø0,10 y perpendiculares a A (CON-007, {ctx.code('cajon_tapa').replace(CODE + '-', '')})."), "100 %", "CMM / comparador"),
         *([("Dimensional", f"CONTROL DIMENSIONAL DEL SOPORTE DEL OJAL E: después de soldar y del alivio, medir la posición de las caras exteriores de las paredes traseras X e Y y del eje del agujero Ø{f(g.FPV['pasador_E']['d'])} H9 "

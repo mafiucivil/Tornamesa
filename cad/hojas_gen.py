@@ -334,7 +334,7 @@ def sheet_tolerancias(ctx):
             [["Coaxialidad", "Agujeros Ø%s H9 de las tapas del cajón del ojal E (mandrinado en línea)" % f(g.FPV["pasador_E"]["d"]), "Ø0,10", "A"],
              ["Posición", "Caras exteriores del cajón del ojal E respecto de los bordes de la base (CON-007; holgura al marco aceptada por el mandante)", "1", "A, B, C"],
              ["Posición", "Eje del agujero E respecto de los bordes de la base (CON-007)", "Ø1", "A, B, C"]]),
-          ["Posición", "PCD de %d pasadores Ø%s" % (g.N_pin, f(g.d_pin)), "Ø0,3", "A"], ["Coaxialidad", "Agujeros de pasadores del anillo superior respecto del eje común de cada par superior–inferior (mandrinado en línea; CON-009 n.° 5)", "Ø0,05", "eje común"], ["Planitud", "Cara de empuje de la uña" if g.modo == 1 else "Cara de empuje del bloque-uña", "0,05", "—"],
+          ["Posición", "PCD de %d pasadores Ø%s" % (g.N_pin, f(g.d_pin)), "Ø0,3", "A"], ["Coaxialidad", f"Agujeros de pasadores {'de la plancha' if g.mesa_entera else 'del anillo'} superior respecto del eje común de cada par superior–inferior (mandrinado en línea; CON-009 n.° 5)", "Ø0,05", "eje común"], ["Planitud", "Cara de empuje de la uña" if g.modo == 1 else "Cara de empuje del bloque-uña", "0,05", "—"],
           ["Cilindricidad", "Pasadores y pivote", "0,02", "—"]]
     y2, _ = s.table(R[0], y - 8, [("Característica (ISO 1101)", 0.16 * w, "L"), ("Elemento", 0.40 * w, "L"), ("Tolerancia [mm]", 0.10 * w, "C"), ("Datum", 0.07 * w, "C")], gd, h=T_S, title="TOLERANCIAS GEOMÉTRICAS PRINCIPALES")
     gen_t = [[r] + [("±" + v) if v != "—" else v for v in vals] for r, vals in ISO2768_LINEAL]
@@ -518,8 +518,12 @@ def nest_items(ctx):
         if k_ in ("cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "placa_leva", "placa_leva_h", "leva_riel", "leva_pata", "leva_tapa", "leva_prolong"):
             d_ = [float(x.replace(".", "").replace(",", ".")) for x in r_[3].split("×")]
             add(k_, m.get(k_).name, d_[0], d_[1], d_[2])
-    add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)
-    add("mesa_plancha_inf", "Mesa: plancha inferior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tbo + 3)
+    if g.mesa_entera:                    # TT300-BX rev. 7c: plancha entera Ø D_top por nivel (cortada a su contorno final: plancha ≥ D_top × D_top)
+        add("mesa_plancha_sup", "Mesa: plancha superior (entera)", P["D_top"], P["D_top"], g.tt)
+        add("mesa_plancha_inf", "Mesa: plancha inferior (entera)", P["D_top"], P["D_top"], g.tbo)
+    else:
+        add("mesa_plancha_sup", "Mesa: plancha superior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tt)
+        add("mesa_plancha_inf", "Mesa: plancha inferior", 2 * g.prIn + 5, 2 * g.prIn + 5, g.tbo + 3)
     add("mesa_anillo_sup", "Anillo sup. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
     add("mesa_anillo_inf", "Anillo inf. (segm. 90°)", g.Rt + 10, g.Rt + 10, g.tpr + 3, 4)
     for p in m.parts:
@@ -621,6 +625,7 @@ def plan_espesor(rects):
 def sheet_cortes(ctx):
     """GEN-010: plan de corte de planchas por espesor (ancho comercial, largo de compra, franjas acotadas, aprovechamiento) y GEN-013: posiciones."""
     from vistas import snap_scale, scale_txt
+    P, g = ctx.P, ctx.g
     c = Gen(ctx, 10, "PLAN DE CORTE DE PLANCHAS: ANCHO COMERCIAL, LARGO DE COMPRA, FRANJAS Y APROVECHAMIENTO")
     s = c.s
     R = c.R["main"]
@@ -659,7 +664,8 @@ def sheet_cortes(ctx):
                    title="PLANCHAS POR ESPESOR: ANCHO COMERCIAL Y LARGO DE COMPRA A MEDIDA (múltiplo de 500 mm); aprovechamiento = masa neta / masa comprada", bold_rows=(len(rows) - 1,))
     # esquemas de corte: una celda por plancha, escala normalizada; largo de la plancha en horizontal
     y -= 8
-    ytop, ybot = y, R[1] + 26
+    xn_ = 12 if g.mesa_entera else 0     # TT300-BX rev. 7c: renglones de la nota de la plancha entera
+    ytop, ybot = y, R[1] + 26 + xn_
     n = len(nests)
     ncol = 4 if n > 6 else 3
     nrow = math.ceil(n / ncol)
@@ -685,8 +691,8 @@ def sheet_cortes(ctx):
         if q["L"] - Lu > 20:
             s.line((x0 + Lu * sc, y0), (x0 + Lu * sc, y0 + Wd), "FANT")
             s.dim((x0, y0), (x0 + Lu * sc, y0), -13, f"{fm(Lu, 0)} usado", "h")
-    s.notes_block(R[0], R[1] + 22, "NOTAS", [f"Empaque por franjas transversales sobre el ancho comercial; separación entre piezas {fm(KERF, 0)} mm (sangría de corte) y borde de plancha {fm(BORDE, 0)} mm. Posición de cada franja y piezas por franja: GEN-013.",
-                                              "Largo de compra: corte a medida por el proveedor en múltiplos de 500 mm sobre ancho comercial; en espesores gruesos con pocas piezas, «a medida» = trozo oxicortado por el proveedor (múltiplos de 100 mm). Discos y segmentos de anillo se anidan por su rectángulo envolvente (los segmentos pueden anidarse por pares girados 180°: aprovechamiento real mayor). Pletinas y barras: largos comerciales de 6 m (despiece)."], h=T_N, width=w)
+    s.notes_block(R[0], R[1] + 22 + xn_, "NOTAS", [f"Empaque por franjas transversales sobre el ancho comercial; separación entre piezas {fm(KERF, 0)} mm (sangría de corte) y borde de plancha {fm(BORDE, 0)} mm. Posición de cada franja y piezas por franja: GEN-013.",
+                                              "Largo de compra: corte a medida por el proveedor en múltiplos de 500 mm sobre ancho comercial; en espesores gruesos con pocas piezas, «a medida» = trozo oxicortado por el proveedor (múltiplos de 100 mm). Discos y segmentos de anillo se anidan por su rectángulo envolvente (los segmentos pueden anidarse por pares girados 180°: aprovechamiento real mayor). Pletinas y barras: largos comerciales de 6 m (despiece).".replace("Discos y segmentos de anillo se anidan por su rectángulo envolvente (los segmentos pueden anidarse por pares girados 180°: aprovechamiento real mayor)", "Discos y planchas enteras se anidan por su rectángulo envolvente" if g.mesa_entera else "Discos y segmentos de anillo se anidan por su rectángulo envolvente (los segmentos pueden anidarse por pares girados 180°: aprovechamiento real mayor)")] + ([f"Mesa de plancha entera (TT300-BX rev. 7c): las planchas superior ({ctx.code('mesa_plancha_sup').replace(CODE + '-', '')}) e inferior ({ctx.code('mesa_plancha_inf').replace(CODE + '-', '')}) son de una pieza Ø{f(P['D_top'])} × {f(g.tt)}: se requiere plancha de {f(g.tt)} mm de AL MENOS {f(P['D_top'])} × {f(P['D_top'])} (con el borde de plancha y la sangría el plan usa el ancho comercial siguiente); sin anillos de pasadores ni segmentos."] if g.mesa_entera else []), h=T_N, width=w)
     hs = [c.h]
     # GEN-013: tabla de franjas
     c2 = Gen(ctx, 13, "PLAN DE CORTE DE PLANCHAS: POSICIÓN DE FRANJAS Y PIEZAS (ORIGEN EN LA ESQUINA DE LA PLANCHA)")

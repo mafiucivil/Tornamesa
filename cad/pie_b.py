@@ -10,6 +10,8 @@ from soldadura_det import add_prep
 @pieza("mesa_plancha_sup")
 def sheet_mesa_sup(ctx):
     g, P = ctx.g, ctx.P
+    if g.mesa_entera:                    # TT300-BX rev. 7c: plancha entera con los agujeros de los pasadores (cad/pie_mesa_entera.py)
+        return __import__("pie_mesa_entera").sheet_sup(ctx)
     zt, tt = g.z0 + g.hd, g.tt
     p = Pieza(ctx, ["mesa_plancha_sup"], "MESA: PLANCHA SUPERIOR", fmt="auto")
     s = p.s
@@ -183,6 +185,8 @@ def notas_anillo_inf(ctx):
 @pieza("mesa_plancha_inf")
 def sheet_mesa_inf(ctx):
     g, P = ctx.g, ctx.P
+    if g.mesa_entera:                    # TT300-BX rev. 7c: plancha entera con los agujeros de los pasadores (cad/pie_mesa_entera.py)
+        return __import__("pie_mesa_entera").sheet_inf(ctx)
     z0, tbo = g.z0, g.tbo
     p = Pieza(ctx, ["mesa_plancha_inf"], "MESA: PLANCHA INFERIOR (CARA DE APOYO DE LA INTERFAZ)", fmt="auto")
     s = p.s
