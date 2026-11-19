@@ -362,3 +362,36 @@ con los 28 agujeros Ø85 H7 de los pasadores de empuje en la misma pieza, en lug
   (tapas del cajón E, desgarro a calado), estado CUMPLE, igual con `bx_mesa_entera = 0`.
 - JSON de diseño: bloque `bx.mesa = { plancha_entera, D, t, agujeros: { n, d, ajuste, R }, formato_min, masas, nota }` que el generador de planos usa para
   dibujar MES-001 / MES-003 como planchas completas y quitar MES-002 / MES-004 con sus soldaduras. Compra: plancha de 22 mm de al menos 2000 × 2000.
+
+## 13. Revisión 7d (19-11-2026): cilindro hidráulico FABRICADO (`bx_cyl_on = 1`, por defecto)
+
+Decisión del mandante: el cilindro deja de ser comercial (ACC-013 especificación de compra) y se fabrica según su croquis. Parámetros nuevos `bx_cyl_*`
+(grupo «TT300-BX · cilindro hidráulico fabricado»); el núcleo recibe `d_rod = 65`, `pv_Fyrod = 520`, `c_rod = 84` y `m_cyl = 45` como valores por defecto
+del módulo (tt300c.js sin cambios; `BX.defaults({ cyl: false })` vuelve al comercial). Verificaciones en el grupo **«Cilindro»** (58 filas, `sys = est`);
+bloque **`bx.cilindro`** del JSON = fuente única de las láminas (cotas, tolerancias, Ra, alojamientos de sellos, puertos, pares, secuencia).
+
+### 13.1 Hipótesis y criterios
+
+| Tema | Hipótesis / criterio | Referencia |
+|---|---|---|
+| Presiones | Servicio a p_alivio 680 bar; prueba hidráulica a 1,25·p_alivio = **850 bar** (cada cámara, pistón a tope) | Decisión del mandante |
+| Admisibles | Servicio: Fy/1,5 (corte Fy/(1,5·√3)); prueba: 0,9·Fy (corte 0,9·Fy/√3); aplastamiento de contacto 0,9·Fy en ambos (AISC J7, conservador) | Criterio del proyecto |
+| Fuerzas | Calado p·A = 432,6 kN; cámara anular p·(90² − 65²)·π/4 = 207,0 kN (retorno con p_alivio, conservador frente a 200 bar); tapa delantera: el mayor entre p·A (fin de carrera con el vástago libre) y p·A_an | Equilibrio |
+| Camisa | Barra hueca ST-52 (St 52-3 ≈ S355J2) 132 × 80 maquinada a Ø130 × Ø90 H8 bruñida; Fy 345, Fu 470 | Mandante |
+| Fondo | Copa (placa + falda de 44) torneada de plancha de 80; con S355J2 (Fy 325 a 63 < t ≤ 80) UG-34 pide **28 mm** y el cuerpo deja c_vástago 77 < 83 (no cabe el cuello del ojal del vástago entre las mejillas del bloque-uña): se adopta **S460NL (EN 10025-3, Fy 410) de 21 mm** (UG-34 pide 20,92). La CJP con la camisa queda a 45 mm de la placa (zona de membrana) y lleva el puerto A | ASME VIII-1 UG-34 (C = 0,33·m ≥ 0,20) con S = Fy/1,5; Roark Tabla 11.2 caso 10b |
+| Tapa | M110 × 2 en 30 (L_e = 23 descontando garganta, salida y chaflán); sellos y o'ring estático (espiga Ø89,5 f7) por DENTRO de la rosca: la zona roscada (pared 10) no ve presión. Por eso la tapa mide 57 (espiga 12 + rosca 30 + reborde 15) y no 45: el croquis pedía la espiga y la rosca en los mismos 30 mm, lo que no es construible (se eligió lo conservador: la rosca completa de 30) | FED-STD-H28 (áreas de arranque) |
+| Pistón | 28 mm (sello de doble efecto ISO 7425-1 entre dos guías ISO 10766, resaltes de 3 mm) + tuerca ranurada M48 × 2 de 20 = 50; la tuerca es el tope del retraído contra el fondo y deja el hueco del puerto A | VDI 2230 (F_S = F_V + Φ_n·F_A, Φ_n 0,25, F_V = 207 kN, M_A 1430 N·m) |
+| Vástago | Ø65 f7 cromado común (Fy 520, Fu 700: DATO DEL PROVEEDOR), cromo ≥ 20 µm, Ra ≤ 0,2; ojal soldado por fricción (ISO 15620) a 95 mm del eje del ojal, rectificado y cromado después | AISC 360-22 H1/E3 |
+| Ojales | Trasero: orejeta R80 × 50 (S355J2) soldada al fondo (CJP en K) con rótula **GE70ES** (d 70 = pasador E, D 105, B 49 ≤ 54 entre tapas, C 40; C₀ 1200 kN de memoria, confianza C). Vástago: R68 × 50 con agujero Ø90 H9 **sin rótula**: la GE90ES (D 130, B 60) no cabe en Ø ≤ 136 ni en la horquilla de 54 | ASME BTH-1 §3-3.3 (N_d = 3) |
+| Puertos | G 3/8 (ISO 1179-1): el retorno saca 20,9 L/min por cilindro por el puerto A (G 1/4 con paso Ø8 daría 6,9 m/s > 5) | Criterio del proyecto (≤ 5 m/s) |
+| Amortiguación | No lleva: retorno al tope a 54,8 mm/s < 0,1 m/s (criterio usual de catálogos Parker/Bosch Rexroth, confianza C); masa en movimiento ≈ 78 kg, E_c ≈ 0,12 J; el avance (10,5 mm/s) no llega a la tapa (s_usada 220,4 de 235) | ISO 4413 §5.4 |
+
+### 13.2 Resultados (FU servicio / prueba)
+
+Camisa Lamé 0,983 / 0,911 (Pm ASME VIII-2 0,827; p_y 1037 bar); fondo Roark 0,857 / 0,793, UG-34 0,992 / 0,846; CJP fondo–camisa 0,499 / 0,462;
+rosca de la tapa (camisa / tapa) 0,468 / 0,434 y 0,574 / 0,532; tracción de la camisa en la rosca 0,499 / 0,462; vástago flexocompresión 0,846 (núcleo igual),
+Euler 0,428, garganta de la rosca M48 0,468 / 0,364, filetes 0,798 / 0,621, tuerca 0,522; resalte 0,655 / 0,819; pistón (resalte de la ranura) 0,775 / 0,718;
+soldadura por fricción 0,793; ojal del vástago 0,698 / 0,537 / 0,710; ojal trasero 0,721 / 0,567 / 0,738, CJP en K 0,526, cuello 0,592; rótula 0,721.
+Largo: e_cuerpo 75 + cuerpo 361 (fondo 21 + interior 283 + espiga 12 + rosca 30 + reborde 15) + c_vástago 84 = 520; camisa 279 (corte 285).
+Estado global con FEA: CUMPLE (FU máx. 0,999, tapas del cajón E, sin cambio). Pendiente: presión nominal de los sellos del proveedor (fila «pend»);
+la fila térmica del núcleo «aceite atrapado tras el calado» sigue con 1,5·p_max.
