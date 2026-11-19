@@ -118,6 +118,12 @@ class Pieza(Plano):
         if getattr(g, "mesa_entera", False):     # TT300-BX rev. 7c: planchas enteras con los agujeros de los pasadores
             RA["mesa_plancha_sup"] = RA["mesa_plancha_sup"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
             RA["mesa_plancha_inf"] = RA["mesa_plancha_inf"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
+        RA.update({"cil_camisa": [("Ra 0,4", "Ø interior H8 bruñido (Rz ≤ 2,5)"), ("Ra 1,6", "rosca interior y cara del extremo delantero"), ("Ra 3,2", "refrentado del puerto B")],
+                   "cil_fondo": [("Ra 0,4", "Ø interior H8 de la falda (bruñido con la camisa)"), ("Ra 1,6", "alojamiento de la rótula N7"), ("Ra 3,2", "refrentado del puerto A")],
+                   "cil_tapa": [("Ra 0,8", "espiga f7 y contacto del o'ring"), ("Ra 1,6", "agujero H9, fondos de alojamientos y rosca"), ("Ra 3,2", "flancos de los alojamientos")],
+                   "cil_piston": [("Ra 1,6", "Ø exterior f8, agujero H8 y fondos de alojamientos"), ("Ra 3,2", "flancos de los alojamientos")],
+                   "cil_vastago": [("Ra 0,2", "Ø f7 cromado y pulido"), ("Ra 0,8", "asiento g6 del pistón"), ("Ra 1,6", "rosca y resalte")],
+                   "cil_ojal_Q": [("Ra 1,6", "agujero H9 y caras del ojal"), ("Ra 3,2", "espiga antes de soldar")]})
         RA["int_bx_lamina"] = [("Ra 0,4", "cara espejo de deslizamiento (del proveedor); tapones, junta y costuras esmerilados a ras y pulidos al grano del espejo")]
         rows = RA.get(k, [("Ra 6,3", "bordes de las caras que se sueldan (preparación)")])
         rows = rows + [("Ra 12,5", "resto de las superficies (corte térmico o laminado)")]

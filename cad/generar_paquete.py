@@ -52,6 +52,9 @@ def main():
         import hojas_bx
         hojas_bx.activar()
         hojas_bx.textos_mesa_entera(D)  # rev. 7c: textos de los pasadores de empuje para la mesa de plancha entera (sin anillos)
+        if (D.get("bx") or {}).get("cilindro"):   # rev. 7d: cilindro fabricado (ACC-013 subconjunto + ACC-028…035)
+            import hojas_cil
+            hojas_cil.activar()
         print("  JSON con bloque «bx»: juego TT300-BX (cad/hojas_bx.py)", flush=True)
     if jpath.resolve() != (out / "TT300-C_design.json").resolve():
         shutil.copy(jpath, out / "TT300-C_design.json")
@@ -233,7 +236,7 @@ def main():
         wr.writerow(["Pos", "Pieza", "Forma", "Dimensión de partida mm", "Cant", "Material", "Observación"])
         wr.writerows(lista.cut_rows(ctx))
     # cobertura
-    sin_globo = [p.code for p in ctx.m.parts if not any(p.pos in b for pl, b in ctx.balloons.items() if "CON" in pl)]
+    sin_globo = [p.code for p in ctx.m.parts if not any(p.pos in b for pl, b in ctx.balloons.items() if "CON" in pl or pl in getattr(ctx, "subconjuntos", ()))]   # TT300-BX rev. 7d: ACC-013 es subconjunto
     sin_simbolo = [w["id"] for w in ctx.welds if not w["sheets"] or all("GEN" in x for x in w["sheets"])]
     sin_plano = [p.code for p in ctx.m.parts if not p.comercial and p.key not in ctx.group_of]
     print(f"  globos faltantes: {sin_globo}; juntas sin símbolo: {sin_simbolo}; piezas sin plano: {sin_plano}", flush=True)

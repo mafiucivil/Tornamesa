@@ -889,6 +889,9 @@ def build(D, verbose=True):
                    rho=P["rho_wood"] * 1e-9, core="wood", color=(0.6, 0.4, 0.2), cert="Certificado de clasificación estructural del proveedor", obs="Ancho de tablón 200 adoptado por el mandante (S06); fijación PROPUESTA en MAD-001 (confirmar)"))
         m.add(Part("madera_anillo", "MAD", "Anillo de acero de contención", f"Pletina {fm(w_ring, 0)}×{f(tW)} rolada a Ø{f(P['D_top'])}, soldada a la plancha superior (filete {f(P['w_web'])} a ambos lados)", ring_st, 1, A572,
                    "Corte de pletina a plasma; rolado; empalme CJP; soldadura a la mesa", core="ring", color=(0.4, 0.4, 0.45), obs=f"Pletina {fm(w_ring, 0)} × {fm(tW, 0)} adoptada por el mandante (S06); incluida en la masa del cálculo"))
+    if g.opt == 4 and (getattr(g, "bx", None) or {}).get("cilindro"):     # TT300-BX rev. 7d: cilindro fabricado (cad/cil_bx.py) en lugar del comercial
+        import cil_bx
+        cil_bx.build(m, g, D, log)
     log(f"  modelo construido en {time.time() - t0:.0f} s, {len(m.parts)} ítems")
     return m
 
@@ -1268,6 +1271,8 @@ def masas(m, tol_pct=0.5):
         core_keys["bxPortador"], groups["bxPortador"], nombres["bxPortador"] = ["bxPortador"], "bxPortador", "Portador de pastillas BX (con filetes)"
     if g.opt == 4:
         nombres["ss"], nombres["uhmw"] = ("Lámina inoxidable de la mesa BX (paneles soldados)" if int((g.bx["disco"].get("modo") or 0)) == 1 else "Disco inoxidable de la mesa BX (semidiscos)"), "Pastillas de UHMW-PE BX"
+        if m.get("cil_camisa"):           # rev. 7d: cilindro fabricado (piezas modeladas; el núcleo usa m_cyl ≥ Σ piezas + sellos y racores)
+            nombres["cyl"] = "Cilindros fabricados (piezas; núcleo: m_cyl)"
     mod = {}
     for p in m.parts:
         if p.core:

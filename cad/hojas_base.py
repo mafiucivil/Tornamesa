@@ -53,12 +53,19 @@ class Ctx:
         self.DV = m.g.DV
         self.M = m.g.M
         self.shapes = {p.key: cq.Compound.makeCompound(list(p.solid.vals())) for p in m.parts}
+        if m.get("cil_camisa") and not m.get("cilindro_pv"):
+            # TT300-BX rev. 7d: el cilindro fabricado (cad/cil_bx.py) reemplaza a la pieza comercial; las láminas de conjunto del núcleo dibujan el
+            # cilindro con la clave «cilindro_pv» (forma compuesta de sus piezas, sin ítem de despiece: los globos de las piezas van en ACC-013)
+            import cil_bx
+            self.shapes["cilindro_pv"] = cq.Compound.makeCompound([s_ for k_ in cil_bx.KEYS for s_ in self.shapes[k_].Solids()])
         COTAS.set_shapes(self.shapes)
         self.hojas = []
         self.group_of = {}          # clave de pieza -> código de la pieza líder del plano
         self.balloons = {}          # plano -> set(pos)
         self.welds = []
         self.mat = {p.key: mat_class(p) for p in m.parts}
+        if "cilindro_pv" in self.shapes and not m.get("cilindro_pv"):
+            self.mat["cilindro_pv"] = "acero"
         g = self.g
         self.revs = [
             ("C", g.FECHA, "EMITIDO PARA REVISIÓN. Juego de planos de fabricación rehecho: conjunto, subconjuntos, piezas, soldaduras ISO 2553, ajustes ISO 286, inspección y listas. "
@@ -449,6 +456,8 @@ def build_welds(ctx):
     if g.opt == 4:                       # TT300-BX: CJP de los semidiscos y filetes del portador (tipo, tamaño, END y largo del bloque «bx» del JSON)
         import bx_welds
         bx_welds.welds(ctx, add_n)
+        import cil_bx
+        cil_bx.welds(ctx, add_n)          # rev. 7d: cilindro fabricado (solo con bx.cilindro)
     for w in W_:
         w["len_txt"] = w.get("len_txt", "")
     # respaldo de las CJP (B-32): removible (MR) donde la cara queda funcional; permanente (M) en el interior de la mesa
