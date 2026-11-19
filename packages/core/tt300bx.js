@@ -159,8 +159,8 @@ const BX = (() => {
     ["bx_cyl_Fu_t", "Camisa: Fu (St 52-3: ≥ 470)", "MPa", 470, 340, 900, 5],
     ["bx_cyl_kt", "Prueba hidráulica: p_prueba = k·p_alivio (decisión del mandante: 1,25)", "–", 1.25, 1, 1.5, 0.05],
     ["bx_cyl_t_f", "Fondo: espesor de la placa (0 = automático: el menor entero que cumple Roark y ASME VIII-1 UG-34 en servicio y en prueba)", "mm", 0, 0, 60, 1],
-    ["bx_cyl_Fy_f", "Fondo de copa: Fy (S355J2 de plancha de 80 mm, 63 < t ≤ 80: 325)", "MPa", 325, 235, 700, 5],
-    ["bx_cyl_Fu_f", "Fondo de copa: Fu", "MPa", 470, 340, 900, 5],
+    ["bx_cyl_Fy_f", "Fondo de copa: Fy (S460NL, EN 10025-3, de plancha de 80 mm, 63 < t ≤ 80: 410; con S355J2 (325) el fondo pide 28 mm y el cuerpo no deja lugar al cuello del ojal del vástago)", "MPa", 410, 235, 700, 5],
+    ["bx_cyl_Fu_f", "Fondo de copa: Fu (S460NL: ≥ 540)", "MPa", 540, 340, 900, 5],
     ["bx_cyl_L_sk", "Fondo de copa: largo de la falda (lleva el puerto A lejos de la CJP fondo–camisa, que queda en zona de membrana)", "mm", 45, 20, 80, 1],
     ["bx_cyl_L_t", "Tapa delantera: largo de la rosca M110 × 2 en la camisa (decisión del mandante: 30)", "mm", 30, 15, 50, 1],
     ["bx_cyl_d_t", "Tapa delantera: rosca métrica fina, Ø nominal", "mm", 110, 95, 120, 1],
@@ -168,7 +168,7 @@ const BX = (() => {
     ["bx_cyl_L_s", "Tapa delantera: espiga Ø89,5 f7 con el o'ring estático, por dentro de la rosca (la rosca no ve presión)", "mm", 12, 8, 30, 1],
     ["bx_cyl_t_r", "Tapa delantera: reborde Ø130 fuera de la camisa", "mm", 15, 10, 30, 1],
     ["bx_cyl_Fy_tp", "Tapa delantera: Fy (S355J2 de plancha de 63 mm, 40 < t ≤ 63: 335)", "MPa", 335, 235, 700, 5],
-    ["bx_cyl_L_pc", "Pistón: largo del cuerpo (sellos y guías)", "mm", 30, 20, 60, 1],
+    ["bx_cyl_L_pc", "Pistón: largo del cuerpo (sellos y guías; resaltes de 3 mm a cada lado del sello)", "mm", 28, 20, 60, 1],
     ["bx_cyl_h_n", "Pistón: alto de la tuerca ranurada (la tuerca es el tope del retraído contra el fondo; pistón + tuerca = 50)", "mm", 20, 10, 40, 1],
     ["bx_cyl_d_g", "Vástago: Ø del asiento del pistón (resalte Ø_vástago → Ø_asiento)", "mm", 50, 30, 60, 1],
     ["bx_cyl_d_th", "Vástago: rosca de la tuerca del pistón, Ø nominal (M48 × 2)", "mm", 48, 30, 60, 1],
@@ -178,9 +178,9 @@ const BX = (() => {
     ["bx_cyl_mu_t", "Apriete de la tuerca del pistón: μ en rosca y en asiento (aceitado; VDI 2230)", "–", 0.12, 0.05, 0.25, 0.01],
     ["bx_cyl_phi", "Unión pistón–vástago: factor de carga Φ_n (fracción de la carga externa que llega a la rosca con la tuerca apretada; VDI 2230, unión rígida)", "–", 0.25, 0.05, 1, 0.05],
     ["bx_cyl_RQ", "Ojal del vástago: radio exterior (≤ R_cubo − holgura de la horquilla del bloque-uña)", "mm", 68, 50, 100, 0.5],
-    ["bx_cyl_Fy_oQ", "Ojal del vástago: Fy (S355J2 de plancha de 50, 40 < t ≤ 63: 335)", "MPa", 335, 235, 1000, 5],
+    ["bx_cyl_Fy_oQ", "Ojal del vástago: Fy (S355J2 de plancha de 80, 63 < t ≤ 80: 325; ojal y cuello de 50 fresados, espiga Ø65 torneada)", "MPa", 325, 235, 1000, 5],
     ["bx_cyl_Fu_oQ", "Ojal del vástago: Fu", "MPa", 470, 340, 1200, 5],
-    ["bx_cyl_xw", "Unión vástago–ojal: distancia de la soldadura (fricción, ISO 15620) al eje del ojal", "mm", 72, 60, 120, 0.5],
+    ["bx_cyl_xw", "Unión vástago–ojal: distancia de la soldadura por fricción (ISO 15620) al eje del ojal (en la espiga Ø del vástago, más allá del cuello de 50; se rectifica y croma después de soldar)", "mm", 95, 60, 150, 0.5],
     ["bx_cyl_RE", "Ojal trasero (orejeta soldada al fondo): radio exterior alrededor de E", "mm", 80, 60, 110, 0.5],
     ["bx_cyl_wE", "Ojal trasero: semiancho del cuello sobre el fondo (CJP en K)", "mm", 50, 30, 60, 0.5],
     ["bx_cyl_Fy_oE", "Ojal trasero: Fy (S355J2 de plancha de 50: 335)", "MPa", 335, 235, 700, 5],
@@ -253,13 +253,13 @@ const BX = (() => {
     const mPis = rho * cylV(P.D_bore, P.bx_cyl_d_g, Lpc), mTu = rho * cylV(Dn, P.bx_cyl_d_th, hn);
     const Lrod = P.L0 - P.bx_cyl_xw - s.fondo_int + 0;   // del extremo de la rosca (cara de la tuerca, retraído en la cara del fondo) a la soldadura del ojal
     const mRod = rho * (Ar * (Lrod - Lp) + Math.PI / 4 * P.bx_cyl_d_g ** 2 * Lpc + Math.PI / 4 * P.bx_cyl_d_th ** 2 * hn);
-    const mOQ = rho * P.b_eye * (Math.PI * (RQ * RQ - Dh * Dh / 4)) + rho * Ar * (P.bx_cyl_xw - Math.sqrt(RQ * RQ - (dr / 2) ** 2));
+    const xn = P.pv_dq / 2 + 25 + 10, mOQ = rho * P.b_eye * (Math.PI * (RQ * RQ - Dh * Dh / 4) + dr * (xn - Math.sqrt(RQ * RQ - (dr / 2) ** 2))) + rho * Ar * (P.bx_cyl_xw - xn);   // cuello de 50 × Ø_vástago hasta R_cubo + 10 (bloque-uña) y espiga redonda
     const mOil = 0.87e-6 * (Ab * Lint), mRot = 1.6;
     const masas = { camisa: mCam, fondo: mFon, ojal_trasero: mOE, tapa: mTap, piston: mPis, tuerca: mTu, vastago: mRod, ojal_vastago: mOQ, rotula: mRot, aceite: mOil };
     const mTot = Object.values(masas).reduce((x, y) => x + y, 0);
     return { P, a, b, tw, p, pt, kt, Ab, Ar, Aan, Fcal, Fann, FretN, lame, U1, U2, tRk: [tRk(p, Ff / 1.5), tRk(pt, 0.9 * Ff)], tReq, tf, roark, ugS, Lp, Lpc, hn, Lint, Lt, Ls, tr: tr_, Lsk, Lbody, cRod, s, Ltube,
       TT_t, Le, An, Asx, Atr, Ftap, TV, dgr, Agr, LeN, AnN, AsR, FV, FS, Dn, MA, Fsh, Ash, Abn, dGl, land, Fland, Aland, eyeQ, Ard, Srd, MQc, MQr, eyeE, DE, CE, RE, wE, Aw, Sw, ME_c, ME_r, beta, kM, cjp, Aw0,
-      QA, QB, vA, vB, xA, xB, relF, masas, mTot, Nd };
+      QA, QB, vA, vB, xA, xB, relF, xn, masas, mTot, Nd };
   }
   // Valores por defecto del núcleo que fija el cilindro fabricado (rev. 7d): vástago Ø65 cromado común (Fy 520, dato del proveedor), c_rod y m_cyl del cuerpo resultante
   PARAM_GROUPS.push(CYL_GROUP);
@@ -279,7 +279,7 @@ const BX = (() => {
     add({ kind: "info", name: "camisa: presión de inicio de fluencia en la cara interior (informativa)", formula: "p_y = Fy·(b² − a²)/(√3·b²) frente a la prueba " + nf(ptb, 0) + " bar", dem: g.lame.p_y, cap: ptb, unit: "bar", ref: "Lamé con von Mises" });
     /* fondo */
     const tf = g.tf, ugs = (U, q) => U.C * q * (2 * g.a) ** 2 / (tf * tf);
-    add({ name: "fondo plano de copa t = " + tf + " mm (S355J2, Fy " + FyF + "): flexión de placa circular empotrada a p_alivio", formula: "σ = 0,75·p·a²/t² (a = " + g.a + ") ≤ Fy/1,5; t_req = " + nf(g.tRk[0], 1) + " mm" + (Q.bx_cyl_t_f > 0 ? "" : "; t adoptado = el menor entero que cumple Roark y UG-34 en servicio y prueba (t_req = " + nf(g.tReq, 2) + ")"), dem: g.roark(g.p), cap: FyF / 1.5, unit: "MPa", ref: "Roark's Formulas for Stress and Strain 9.ª ed., Tabla 11.2 caso 10b (borde empotrado, carga uniforme); " + RP });
+    add({ name: "fondo plano de copa t = " + tf + " mm (S460NL, Fy " + FyF + "): flexión de placa circular empotrada a p_alivio", formula: "σ = 0,75·p·a²/t² (a = " + g.a + ") ≤ Fy/1,5; t_req = " + nf(g.tRk[0], 1) + " mm" + (Q.bx_cyl_t_f > 0 ? "" : "; t adoptado = el menor entero que cumple Roark y UG-34 en servicio y prueba (t_req = " + nf(g.tReq, 2) + ")"), dem: g.roark(g.p), cap: FyF / 1.5, unit: "MPa", ref: "Roark's Formulas for Stress and Strain 9.ª ed., Tabla 11.2 caso 10b (borde empotrado, carga uniforme); " + RP });
     add({ name: "fondo: flexión de placa empotrada en la prueba hidráulica", formula: "σ = 0,75·p_prueba·a²/t² ≤ 0,9·Fy; t_req = " + nf(g.tRk[1], 1) + " mm", dem: g.roark(g.pt), cap: 0.9 * FyF, unit: "MPa", ref: "Roark Tabla 11.2 caso 10b; " + RP });
     add({ name: "fondo: fondo plano según ASME VIII-1 UG-34 a p_alivio (equivalente en tensión)", formula: "σ = C·P·d²/t² ≤ S·E (⇔ t ≥ d·√(C·P/(S·E)) = " + nf(g.U1.t, 2) + " mm); d = " + 2 * g.a + ", C = 0,33·m ≥ 0,20 = " + nf(g.U1.C, 3) + " (m = t_r/t_s = " + nf(g.U1.tr, 2) + "/" + g.tw + ", t_r de UG-27(c)(1)), S = Fy/1,5 = " + nf(g.U1.S, 1) + " MPa (criterio del proyecto, en vez de Fu/3,5), E = 1 (copa maquinada, CJP con RT/UT)", dem: ugs(g.U1, g.p), cap: g.U1.S, unit: "MPa", ref: "ASME BPVC VIII-1:2023 UG-34, croquis (b-2)/(g) (C = 0,33·m, mín. 0,20); UG-27(c)(1); " + RP });
     add({ name: "fondo: UG-34 en la prueba hidráulica", formula: "σ = C·P·d²/t² ≤ 0,9·Fy (t ≥ " + nf(g.U2.t, 2) + " mm; C = " + nf(g.U2.C, 3) + ")", dem: ugs(g.U2, g.pt), cap: g.U2.S, unit: "MPa", ref: "ASME VIII-1 UG-34; " + RP });
@@ -335,7 +335,7 @@ const BX = (() => {
     const RQmax = P.pv_dq / 2 + 25 - P.g_ch;
     add({ kind: "geo", name: "largo: e_cuerpo + cuerpo + c_vástago ≤ L0 (cuerpo = fondo " + tf + " + interior " + g.Lint + " (pistón " + g.Lpc + " + tuerca " + g.hn + " + carrera " + P.stroke + ") + espiga " + g.Ls + " + rosca " + g.Lt + " + reborde " + g.tr + " = " + g.Lbody + ")", formula: P.e_body + " + " + g.Lbody + " + " + P.c_rod + " ≤ " + P.L0 + " (c_vástago resultante = " + nf(g.cRod, 1) + ")", dem: P.e_body + g.Lbody + P.c_rod, cap: P.L0, unit: "mm", ref: "Geometría (L0 y carrera del núcleo)" });
     add({ kind: "geo", name: "ojal del vástago libre de la tapa delantera en el retraído", formula: "R_ojal + 5 ≤ c_vástago", dem: Q.bx_cyl_RQ + 5, cap: P.c_rod, unit: "mm", ref: "Geometría" });
-    add({ kind: "geo", name: "soldadura vástago–ojal fuera de la tapa en el retraído (no pasa por el rascador)", formula: "x_soldadura + 2 ≤ c_vástago", dem: Q.bx_cyl_xw + 2, cap: P.c_rod, unit: "mm", ref: "Geometría" });
+    add({ kind: "geo", name: "cuello del ojal del vástago (50 de espesor, entre las mejillas de la horquilla del bloque-uña hasta R_cubo + 10) fuera de la tapa en el retraído", formula: "R_cubo + 10 + 3 ≤ c_vástago (el vástago Ø" + P.d_rod + " empieza a " + g.xn + " mm del eje del ojal; la soldadura por fricción a " + Q.bx_cyl_xw + " mm queda en la zona rectificada y cromada)", dem: g.xn + 3, cap: P.c_rod, unit: "mm", ref: "Geometría del núcleo (bloque-uña: R_cubo = d_Q/2 + 25; cuello del ojal, supuesto S21)" });
     add({ kind: "geo", name: "ojal del vástago dentro de la horquilla del bloque-uña", formula: "R_ojal ≤ R_cubo − holgura = " + RQmax, dem: Q.bx_cyl_RQ, cap: RQmax, unit: "mm", ref: "Geometría del núcleo (bloque-uña, supuesto S21)" });
     add({ kind: "geo", name: "ojal trasero (R" + g.RE + ", cuello " + 2 * g.wE + ") libre de las paredes del soporte E en todo el giro", formula: "máx(R_E; √(e_cuerpo² + w²)) + 5 ≤ lado/2 − t_pared = " + (P.pv_box / 2 - P.pv_tbox), dem: Math.max(g.RE, Math.hypot(P.e_body, g.wE)) + 5, cap: P.pv_box / 2 - P.pv_tbox, unit: "mm", ref: "Geometría del soporte del ojal E (núcleo)" });
     add({ kind: "geo", name: "puerto A (fondo, G 3/8): paso Ø" + Q.bx_cyl_dA + " dentro del hueco que deja la tuerca en el retraído", formula: "x_A + d/2 ≤ alto de la tuerca (x desde la cara interior del fondo; x_A = " + nf(g.xA, 1) + ")", dem: g.xA + Q.bx_cyl_dA / 2, cap: g.hn, unit: "mm", ref: "Geometría" });
@@ -384,24 +384,24 @@ const BX = (() => {
       chaflan_sellos: { ang: 15, largo: 2.5, x_desde_extremo: Lt, nota: "entrada de los sellos del pistón y del o'ring de la espiga al Ø" + B + " H8, aristas redondeadas R0,5 y pulidas, sin rebabas" },
       puerto_B: { rosca: "G 3/8 (ISO 228-1)", norma: "ISO 1179-1 (asiento de sello ED)", refrentado: 28, prof_rosca: 12, paso: Q.bx_cyl_dB, x_desde_extremo_trasero: r1(g.xB - g.Lsk), x_desde_extremo_delantero: r1(g.Ltube - (g.xB - g.Lsk)), orientacion: "arriba (+z)", Ra_refrentado: 3.2 },
       prisionero_tapa: { d: "M8", x_desde_extremo: 15 }, masa: g.masas.camisa };
-    const fondo = { t: tf, t_req: g.tReq, falda: g.Lsk, D, d: B, largo: tf + g.Lsk, radio_interior: 3, material: "S355J2+N (EN 10025-2) de plancha de 80 mm (63 < t ≤ 80: Fy " + Q.bx_cyl_Fy_f + ", Fu " + Q.bx_cyl_Fu_f + ")",
+    const fondo = { t: tf, t_req: g.tReq, falda: g.Lsk, D, d: B, largo: tf + g.Lsk, radio_interior: 3, material: "S460NL (EN 10025-3) de plancha de 80 mm (63 < t ≤ 80: Fy " + Q.bx_cyl_Fy_f + ", Fu " + Q.bx_cyl_Fu_f + "); con S355J2 (Fy 325) haría falta t = 28 y no cabe el cuello del ojal del vástago",
       bisel: { tipo: "V a 30° en el extremo de la falda", talon: 2, separacion: 2 },
       puerto_A: { rosca: "G 3/8 (ISO 228-1)", norma: "ISO 1179-1 (asiento de sello ED)", refrentado: 28, prof_rosca: 12, paso: Q.bx_cyl_dA, x_desde_cara_interior: r1(g.xA), orientacion: "arriba (+z)", Ra_refrentado: 3.2 },
-      cjp: { ancho_cara: wCjp, simbolo: "V con respaldo, CJP, perfil a ras exterior (AWS A2.4)", end: "UT 100 % (AWS D1.1 cláusula 8, o ISO 17640 nivel 2) + MT 100 % después del alivio", wps: "WPS-CIL-01", proceso: "GTAW raíz + SMAW/FCAW relleno, E7018 / ER70S-6, precalentamiento 100 °C, alivio de tensiones 580–620 °C antes del bruñido" },
+      cjp: { ancho_cara: wCjp, simbolo: "V con respaldo, CJP, perfil a ras exterior (AWS A2.4)", end: "UT 100 % (AWS D1.1 cláusula 8, o ISO 17640 nivel 2) + MT 100 % después del alivio", wps: "WPS-CIL-01", proceso: "GTAW raíz + SMAW/FCAW relleno, E7018 / ER70S-6 (resistencia de la camisa S355), unión S460NL–S355J2, precalentamiento 100 °C, alivio de tensiones 580–620 °C antes del bruñido" },
       ojal: { R: g.RE, ancho: P.b_eye, cuello: 2 * g.wE, alojamiento: { d: g.DE, tol: "N7", ancho: g.CE, resalte: { d: 98, ancho: 3 }, ranura: { norma: "DIN 472 (anillo 105 × 4)", d: 109, ancho: 4.15, tol_ancho: "H13", w: [3 + g.CE, 3 + g.CE + 4.15] } },
         material: "S355J2+N de plancha de 50 (Fy " + Q.bx_cyl_Fy_oE + ")", soldadura: { tipo: "CJP en K (doble bisel 45°, talón 2) más filete de refuerzo z6 en todo el contorno", simbolo: "K con filete, todo alrededor (AWS A2.4)", end: "MT 100 % + UT 100 %", wps: "WPS-CIL-02" },
         rotula: { designacion: "GE70ES (ISO 12240-1 serie E; SKF GE 70 ES o equivalente)", d: 70, D: 105, B: 49, C: 40, C0_kN: Q.bx_cyl_C0, montaje: "a presión en el alojamiento N7, contra el resalte; anillo elástico DIN 472-105 × 4 del otro lado (anillo de posición: la rótula queda entre las tapas del soporte E)" } },
       masa: g.masas.fondo, masa_ojal: g.masas.ojal_trasero };
     const xs = Math.sqrt(Q.bx_cyl_RQ ** 2 - (dr / 2) ** 2);
     const piston = { D: 89.8, tol_D: "f8", largo: g.Lpc, d: Q.bx_cyl_d_g, tol_d: "H8", material: "42CrMo4+QT (EN 10083-3), Fy " + Q.bx_cyl_Fy_p,
-      u: { chaflan: [0, 1], guia1: [1, 6.6], sello: [9.6, 15.9], guia2: [18.9, 24.5], alivio: [25.5, g.Lpc], d_alivio: 80, ranura_oring: [11.2, 18.8] }, Ra_D: 1.6, perpendicularidad: 0.02, coaxialidad: "Ø0,03 del Ø" + 89.8 + " con el agujero",
+      u: { chaflan: [0, 1], guia1: [1, 6.6], sello: [9.6, 15.9], guia2: [18.9, 24.5], alivio: [25.5, g.Lpc], d_alivio: 80, ranura_oring: [8.95, 16.55] }, Ra_D: 1.6, perpendicularidad: 0.02, coaxialidad: "Ø0,03 del Ø" + 89.8 + " con el agujero",
       tuerca: { designacion: "tuerca ranurada M" + TV.d + " × " + TV.P + "-6H (de fabricación)", D: g.Dn, alto: g.hn, ranuras: { n: 4, ancho: 8, prof: 4 }, avellanado: { d: 51, prof: 4 }, material: "42CrMo4+QT", seguro: "2 prisioneros ISO 4026 M6 × 8 con pastilla de latón a 180° + fijador anaeróbico de alta resistencia", par_Nm: Math.round(g.MA / 1e3 / 10) * 10, F_V_kN: g.FV / 1e3 },
       masa: g.masas.piston, masa_tuerca: g.masas.tuerca };
     const Lrod = P.L0 - Q.bx_cyl_xw - g.s.fondo_int;
     const vastago = { d: dr, tol: "f7", largo: r1(Lrod), material: "barra de acero cromada (cromado común; Fy " + P.pv_Fyrod + ", Fu " + Q.bx_cyl_Fu_rod + " MPa: DATO DEL PROVEEDOR)", cromo: { espesor_min_um: 20, dureza: "850–1050 HV", Ra: 0.2, norma: "ISO 6158 (cromo duro)" }, rectitud: "0,05 / 1000",
       asiento: { d: Q.bx_cyl_d_g, tol: "g6", largo: g.Lpc, resalte_chaflan: "20° × 3 (entrada de los sellos del vástago)" }, garganta: { d: r1(g.dgr), ancho: 4, radio: 1, norma: "DIN 76-1" },
       rosca: { designacion: "M" + TV.d + " × " + TV.P + "-6g", largo: g.hn - 4, chaflan: "1,5 × 45°" }, extremo_ojal: { tipo: "soldadura por fricción (ISO 15620)", x_desde_eje_ojal: Q.bx_cyl_xw, nota: "rebaba eliminada; rectificado y cromado DESPUÉS de soldar" }, masa: g.masas.vastago };
-    const ojal_vastago = { R: Q.bx_cyl_RQ, ancho: P.b_eye, d: P.pv_dq, tol_d: "H9", Ra_d: 1.6, cuello: { d: dr, x0: r1(xs), x1: Q.bx_cyl_xw }, grasera: "DIN 71412 M8 × 1 radial con ranura de engrase 3 × 1,5", material: "S355J2+N de plancha de 50 (Fy " + Q.bx_cyl_Fy_oQ + ")", rotula: "no lleva (la GE90ES, D 130, no cabe en Ø" + 2 * Q.bx_cyl_RQ + ")", soldadura: { tipo: "soldadura por fricción con el vástago (ISO 15620), WPS-CIL-03 con ensayos de tracción y doblado; alternativa CJP en U con precalentamiento 250 °C y revenido", end: "UT 100 % + MT" }, masa: g.masas.ojal_vastago };
+    const ojal_vastago = { R: Q.bx_cyl_RQ, ancho: P.b_eye, d: P.pv_dq, tol_d: "H9", Ra_d: 1.6, cuello: { ancho: dr, espesor: P.b_eye, x0: r1(xs), x1: g.xn }, espiga: { d: dr, x0: g.xn, x1: Q.bx_cyl_xw }, grasera: "DIN 71412 M8 × 1 radial con ranura de engrase 3 × 1,5", material: "S355J2+N de plancha de 80 (Fy " + Q.bx_cyl_Fy_oQ + "): ojal y cuello fresados a 50, espiga Ø" + dr + " torneada", rotula: "no lleva (la GE90ES, D 130, no cabe en Ø" + 2 * Q.bx_cyl_RQ + ")", soldadura: { tipo: "soldadura por fricción con el vástago (ISO 15620), WPS-CIL-03 con ensayos de tracción y doblado; alternativa CJP en U con precalentamiento 250 °C y revenido", end: "UT 100 % + MT" }, masa: g.masas.ojal_vastago };
     const rows = (checks || []).filter((c) => c.grp === CYL_GRP).map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref }));
     return { modo: "fabricado", revision: "rev. 7d (19-11-2026): cilindro fabricado según el croquis del mandante", n: P.n_cyl, D_camisa: B, d_vastago: dr, carrera: P.stroke, L0: P.L0, L_ext: P.L0 + P.stroke, e_cuerpo: P.e_body, c_vastago: P.c_rod, c_vastago_resultante: g.cRod, cuerpo: g.Lbody, interior: g.Lint,
       p_alivio: P.p_relief, p_alarma: P.p_alarm, p_retorno: P.p_ret, p_prueba: g.kt * P.p_relief, k_prueba: g.kt, F_calado_kN: g.Fcal / 1e3, F_anular_kN: g.Fann / 1e3, F_tapa_kN: g.Ftap / 1e3,

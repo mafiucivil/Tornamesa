@@ -341,14 +341,15 @@ test("BX: tabla de fabricación (antes → después, motivo y verificación) y J
 test("BX · Cilindro: valores por defecto (vástago Ø65 cromado Fy 520, c_rod del cuerpo resultante, m_cyl) y opción comercial", () => {
   assert.equal(P0.bx_cyl_on, 1); assert.equal(P0.d_rod, 65); assert.equal(P0.pv_Fyrod, 520); assert.equal(P0.p_relief, 680);
   const g = BX._int.cylGeo(P0);
-  assert.equal(g.tf, 28, "fondo de 28 mm (S355J2 Fy 325: UG-34 pide 27,02)"); assert.ok(g.tReq > 27 && g.tReq <= 28);
-  assert.equal(g.Lint, 285, "interior = pistón 30 + tuerca 20 + carrera 235"); assert.equal(g.Lbody, 28 + 285 + 12 + 30 + 15);
-  assert.equal(P0.c_rod, 75); assert.equal(P0.e_body + g.Lbody + P0.c_rod, P0.L0, "largo ojal–ojal retraído = L0");
+  assert.equal(g.tf, 21, "fondo de 21 mm (S460NL Fy 410: UG-34 pide 20,92; con S355J2 Fy 325 serían 28)"); assert.ok(g.tReq > 20 && g.tReq <= 21);
+  assert.equal(BX._int.cylGeo(Object.assign({}, P0, { bx_cyl_Fy_f: 325, bx_cyl_Fu_f: 470 })).tf, 28, "con S355J2");
+  assert.equal(g.Lint, 283, "interior = pistón 28 + tuerca 20 + carrera 235"); assert.equal(g.Lbody, 21 + 283 + 12 + 30 + 15);
+  assert.equal(P0.c_rod, 84); assert.ok(P0.c_rod >= P0.pv_dq / 2 + 25 + 10 + 3, "cuello del ojal (R_cubo + 10) fuera de la tapa"); assert.equal(P0.e_body + g.Lbody + P0.c_rod, P0.L0, "largo ojal–ojal retraído = L0");
   assert.ok(P0.m_cyl >= g.mTot && P0.m_cyl <= g.mTot + 2, "m_cyl " + P0.m_cyl + " frente a " + g.mTot);
   const Pc = BX.defaults({ cyl: false }), Ac = BX.analyze(Pc, { noFEA: true }), TD = TT.defaults();
   for (const k of ["d_rod", "pv_Fyrod", "c_rod", "m_cyl"]) assert.equal(Pc[k], TD[k], "comercial: " + k);
   assert.equal(Ac.checks.filter((c) => c.grp === "Cilindro").length, 0); assert.equal(BX.exportBX(Pc, Ac).cilindro, null);
-  assert.ok(AGBX.validate(Object.assign({}, P0, { c_rod: 80 })).some((v) => v.lvl === "error" && /más largo que L0/.test(v.msg)));
+  assert.ok(AGBX.validate(Object.assign({}, P0, { c_rod: 90 })).some((v) => v.lvl === "error" && /más largo que L0/.test(v.msg)));
 });
 
 test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba a 1,25·p_alivio) frente a cálculo manual", () => {
@@ -360,9 +361,9 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   near(by(/von Mises de Lamé en el radio interior/).dem, vm, 1e-12, "Lamé"); near(by(/von Mises de Lamé en el radio interior/).fu, vm / (Fy / 1.5), 1e-12, "FU servicio");
   near(by(/von Mises de Lamé en la prueba/).fu, 1.25 * vm / (0.9 * Fy), 1e-12, "FU prueba"); near(vm, 226.19, 1e-4, "≈ 226 MPa");
   near(by(/presión de inicio de fluencia/).dem, Fy * (b * b - a * a) / (Math.sqrt(3) * b * b) * 10, 1e-12, "p_y");
-  near(by(/fondo plano de copa t = 28/).dem, 0.75 * p * a * a / 28 ** 2, 1e-12, "Roark");
+  near(by(/fondo plano de copa t = 21/).dem, 0.75 * p * a * a / 21 ** 2, 1e-12, "Roark");
   // UG-34 a mano: S = 325/1,5, t_r = P·R/(S − 0,6P), m = t_r/20, C = máx(0,2; 0,33·m)
-  { const S = 325 / 1.5, tr = p * a / (S - 0.6 * p), Cc = Math.max(0.2, 0.33 * tr / 20); near(by(/UG-34 a p_alivio/).dem, Cc * p * 90 ** 2 / 28 ** 2, 1e-12, "UG-34"); }
+  { const S = 410 / 1.5, tr = p * a / (S - 0.6 * p), Cc = Math.max(0.2, 0.33 * tr / 20); near(by(/UG-34 a p_alivio/).dem, Cc * p * 90 ** 2 / 21 ** 2, 1e-12, "UG-34"); }
   const Fcal = p * Math.PI * a * a, Fan = p * Math.PI / 4 * (90 ** 2 - 65 ** 2);
   near(Fcal / 1e3, 432.6, 1e-3, "F calado"); near(Fan / 1e3, 206.96, 1e-3, "F anular con Ø65");
   { const Le = 23, An = Math.PI * Le * 110 * (0.5 + 0.57735 * 0.649519), r = by(/rosca M110 × 2 de la tapa delantera/); near(r.dem, Fcal / An, 1e-9, "arranque de la camisa con F = p·A (fin de carrera)"); near(r.cap, 345 / (1.5 * Math.sqrt(3)), 1e-12); }
