@@ -56,7 +56,7 @@ test("BX: valores por defecto activan la opción B con el gancho; A y C pasan al
   near(A0.R.m.bxPortador, G0.portador.masa, 1e-12, "portador en m.total");
   assert.ok(!A0.checks.some((c) => /sectores\)|Lámina UHMW|Disco de la base/.test(c.name)), "sin filas de los sectores de la opción B");
   // A y C: el módulo devuelve el análisis del núcleo
-  const Aa = BX.analyze(Object.assign({}, P0, { opt_uhmw: 0, opt_ss: 1 }), { noFEA: true }), Ta = TT.analyze(Object.assign(TT.defaults(), BX.A36.despues, { opt_ss: 1 }), { noFEA: true });
+  const Aa = BX.analyze(Object.assign({}, P0, { opt_uhmw: 0, opt_ss: 1 }), { noFEA: true }), Ta = TT.analyze(Object.assign(TT.defaults(), BX.A36.despues, BX.CYL.core, { opt_ss: 1 }), { noFEA: true });   // rev. 7d: vástago, c_rod y m_cyl del cilindro fabricado
   assert.equal(Aa.bx, null);
   assert.equal(Aa.R.m.total, Ta.R.m.total);
 });
@@ -77,7 +77,7 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   // rev. 5 a 7 (UHMW de 30 mm, portador fijo de 22 mm A572, Ø ≤ 185): todo FU ≤ 1; sobre 0,90 (advertencia) solo la planitud de las pastillas, la torsión y el
   // ligamento del portador, las filas BX de anillos distintos y la base bajo E con el factor de la FEA (≤ 0,965) (docs/bx/README_BX.md §9 a §11)
   const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla|Aplastamiento en el agujero del anillo inferior|Pasador de empuje: flexión con la luz entre los planos medios|Plancha base bajo el soporte del ojal E: .* ajuste por la FEA)/;
-  A0.checks.filter((c) => c.bx && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.966), "20 °C: " + c.name + " FU " + c.fu));
+  A0.checks.filter((c) => c.bx && c.grp !== "Cilindro" && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.966), "20 °C: " + c.name + " FU " + c.fu));   // el grupo «Cilindro» se prueba aparte
   // camino del arrastre por la cara inferior (μ_b): la pared y el tornillo usan el residual; la fila informa el FU sin μ_b
   const w = A0.checks.find((c) => /pared del agujero del portador \(arrastre residual/.test(c.name)), sinMu = +/sin μ_b: FU ([\d,]+)/.exec(w.formula)[1].replace(",", ".");
   near(w.fu * (0.25 / (0.25 - P0.bx_mu_base)), sinMu, 0.01, "FU sin μ_b = FU·μ_máx/(μ_máx − μ_b)");
@@ -186,22 +186,22 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   assert.equal(cr.length, 4, "nom, dis, cal y retorno");
   const crC = cr.find((c) => /empuje a calado/.test(c.name)), crR = cr.find((c) => /atasco del retorno/.test(c.name));
   near(crC.k_tb, 0.962 / 0.831, 1e-9, "empuje"); near(crR.k_tb, 0.824 / 0.785, 1e-9, "retorno");
-  near(crC.fu, 0.962, 0.006, "calado = envolvente de la FEA"); assert.ok(crR.fu >= 0.824 - 0.003, "retorno ≥ FEA " + crR.fu);
+  near(crC.fu, 0.962, 0.006, "calado = envolvente de la FEA"); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2); assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
   cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); near(c.cap, 1.25 * 345 / Nd, 1e-12, "Fy 345"); });
-  const sub = A0.checks.filter((c) => c.sustituida); assert.equal(sub.length, cr.length); sub.forEach((c) => assert.equal(c.st, "info"));
+  const sub = A0.checks.filter((c) => c.sustituida && c.grp !== "Giro"); assert.equal(sub.length, cr.length);   // rev. 7d: más la fila informativa del ojal comercial (grupo Giro) sub.forEach((c) => assert.equal(c.st, "info"));
   // con t_base = 21 se interpola entre 20 (1,045 / 1,0) y 22; sin factor con t_base = 20
   const A21 = BX.analyze(Object.assign({}, P0, { t_base: 21 }), { noFEA: true }), r21 = A21.checks.find((c) => c.bx && /atasco del retorno/.test(c.name) && /FEA de Mindlin de la base/.test(c.name));
   near(r21.k_tb, (1 + 0.824 / 0.785) / 2, 1e-9, "interpolado");
   const A20 = BX.analyze(Object.assign({}, P0, { t_base: 20 }), { noFEA: true });
-  assert.ok(!A20.checks.some((c) => c.sustituida || /FEA de Mindlin de la base/.test(c.name)));
+  assert.ok(!A20.checks.some((c) => (c.sustituida && c.grp !== "Giro") || /FEA de Mindlin de la base/.test(c.name)));
   // la calidad por pieza sigue disponible (rev. 6): con el refuerzo A36 la CJP de las paredes E usa la menor
   const A6 = BX.analyze(Object.assign({}, P0, { Fy_dbl: 250, Fu_dbl: 400 }), { noFEA: true });
   near(A6.checks.find((c) => /^Soporte del ojal E: CJP paredes–base/.test(c.name)).fu, by(/^Soporte del ojal E: CJP paredes–base/).fu * 345 / 250, 1e-9, "CJP con refuerzo A36");
   // capacidad en el bloque bx exportado y en la tabla de fabricación
   const X = BX.exportBX(P0); assert.equal(X.capacidad_nominal_tf, 290); assert.match(X.revision, /290 t/);
   assert.ok(G0.fabricacion.some((f) => /Calidad del acero/.test(f.pieza) && /A572 Gr\. 50/.test(f.despues) && !/A36 \(Fy/.test(f.despues)));
-  // masa (rev. 5: 4100 kg; rev. 6: 3843 kg; rev. 7: ≈ 3721 kg; rev. 7b, ligamento 50 y 44 pastillas: ≈ 3798 kg)
-  near(A0.R.m.total, 3798, 0.003, "masa");
+  // masa (rev. 5: 4100 kg; rev. 6: 3843 kg; rev. 7: ≈ 3721 kg; rev. 7b, ligamento 50 y 44 pastillas: ≈ 3798 kg; rev. 7d, cilindros fabricados de 45 kg en vez de 55: ≈ 3778 kg)
+  near(A0.R.m.total, 3778, 0.003, "masa"); near(A0.R.m.total, BX.analyze(BX.defaults({ cyl: false }), { noFEA: true }).R.m.total - 2 * (55 - P0.m_cyl), 1e-9, "solo cambia la masa de los cilindros");
 });
 
 test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85 H7 (rev. 7c, bx_mesa_entera = 1 por defecto)", () => {
@@ -335,6 +335,61 @@ test("BX: tabla de fabricación (antes → después, motivo y verificación) y J
   F.forEach((f) => { assert.ok(f.pieza && f.antes && f.despues && f.motivo && f.verificacion && f.estado, JSON.stringify(f)); });
   assert.ok(F.some((f) => f.estado === "se mantiene") && F.some((f) => f.estado === "simplificada") && F.some((f) => f.estado === "eliminada"));
   JSON.stringify(G0);
+});
+
+/* ---------- Cilindro hidráulico fabricado (rev. 7d, decisión del mandante 19-11-2026) ---------- */
+test("BX · Cilindro: valores por defecto (vástago Ø65 cromado Fy 520, c_rod del cuerpo resultante, m_cyl) y opción comercial", () => {
+  assert.equal(P0.bx_cyl_on, 1); assert.equal(P0.d_rod, 65); assert.equal(P0.pv_Fyrod, 520); assert.equal(P0.p_relief, 680);
+  const g = BX._int.cylGeo(P0);
+  assert.equal(g.tf, 28, "fondo de 28 mm (S355J2 Fy 325: UG-34 pide 27,02)"); assert.ok(g.tReq > 27 && g.tReq <= 28);
+  assert.equal(g.Lint, 285, "interior = pistón 30 + tuerca 20 + carrera 235"); assert.equal(g.Lbody, 28 + 285 + 12 + 30 + 15);
+  assert.equal(P0.c_rod, 75); assert.equal(P0.e_body + g.Lbody + P0.c_rod, P0.L0, "largo ojal–ojal retraído = L0");
+  assert.ok(P0.m_cyl >= g.mTot && P0.m_cyl <= g.mTot + 2, "m_cyl " + P0.m_cyl + " frente a " + g.mTot);
+  const Pc = BX.defaults({ cyl: false }), Ac = BX.analyze(Pc, { noFEA: true }), TD = TT.defaults();
+  for (const k of ["d_rod", "pv_Fyrod", "c_rod", "m_cyl"]) assert.equal(Pc[k], TD[k], "comercial: " + k);
+  assert.equal(Ac.checks.filter((c) => c.grp === "Cilindro").length, 0); assert.equal(BX.exportBX(Pc, Ac).cilindro, null);
+  assert.ok(AGBX.validate(Object.assign({}, P0, { c_rod: 80 })).some((v) => v.lvl === "error" && /más largo que L0/.test(v.msg)));
+});
+
+test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba a 1,25·p_alivio) frente a cálculo manual", () => {
+  const C = A0.checks.filter((c) => c.grp === "Cilindro"), by = (re) => { const c = C.find((x) => re.test(x.name)); assert.ok(c, String(re)); return c; };
+  assert.ok(C.length >= 45, "filas " + C.length);
+  C.forEach((c) => { assert.ok(c.bx && c.sys === "est" && c.ref && c.formula, "fila completa: " + c.name); if (c.kind === "fu" || c.kind === "geo") assert.ok(c.fu <= 1 + 1e-9 && c.st !== "fail", c.name + " FU " + c.fu); });
+  C.filter((c) => c.st === "warn").forEach((c) => assert.match(c.name, /von Mises de Lamé|UG-34 a p_alivio/, "advertencia no prevista: " + c.name));
+  const a = 45, b = 65, p = 68, Fy = 345, vm = Math.sqrt(3) * p * b * b / (b * b - a * a);
+  near(by(/von Mises de Lamé en el radio interior/).dem, vm, 1e-12, "Lamé"); near(by(/von Mises de Lamé en el radio interior/).fu, vm / (Fy / 1.5), 1e-12, "FU servicio");
+  near(by(/von Mises de Lamé en la prueba/).fu, 1.25 * vm / (0.9 * Fy), 1e-12, "FU prueba"); near(vm, 226.19, 1e-4, "≈ 226 MPa");
+  near(by(/presión de inicio de fluencia/).dem, Fy * (b * b - a * a) / (Math.sqrt(3) * b * b) * 10, 1e-12, "p_y");
+  near(by(/fondo plano de copa t = 28/).dem, 0.75 * p * a * a / 28 ** 2, 1e-12, "Roark");
+  // UG-34 a mano: S = 325/1,5, t_r = P·R/(S − 0,6P), m = t_r/20, C = máx(0,2; 0,33·m)
+  { const S = 325 / 1.5, tr = p * a / (S - 0.6 * p), Cc = Math.max(0.2, 0.33 * tr / 20); near(by(/UG-34 a p_alivio/).dem, Cc * p * 90 ** 2 / 28 ** 2, 1e-12, "UG-34"); }
+  const Fcal = p * Math.PI * a * a, Fan = p * Math.PI / 4 * (90 ** 2 - 65 ** 2);
+  near(Fcal / 1e3, 432.6, 1e-3, "F calado"); near(Fan / 1e3, 206.96, 1e-3, "F anular con Ø65");
+  { const Le = 23, An = Math.PI * Le * 110 * (0.5 + 0.57735 * 0.649519), r = by(/rosca M110 × 2 de la tapa delantera/); near(r.dem, Fcal / An, 1e-9, "arranque de la camisa con F = p·A (fin de carrera)"); near(r.cap, 345 / (1.5 * Math.sqrt(3)), 1e-12); }
+  near(by(/camisa en la zona roscada \(pared 10/).dem, Fcal / (Math.PI / 4 * (130 ** 2 - 110 ** 2)), 1e-12, "tracción en la raíz");
+  { const d3 = 48 - 1.226869 * 2 - 0.5, r = by(/garganta de la rosca M48 × 2 de la tuerca/); near(r.dem, (Fan + 0.25 * Fan) / (Math.PI / 4 * d3 * d3), 1e-9, "garganta"); }
+  { const r = by(/ojal del vástago \(R68 × 50/), be = 68 - 45, Cr = 1 - 0.275 * Math.sqrt(1 - (89.9 / 90) ** 2), beff = Math.min(200, be, 0.6 * 470 / 335 * Math.sqrt(90 / be) * be); near(r.cap, Cr * 470 * 2 * 50 * beff / (1.2 * 3) / 1e3, 1e-12, "BTH-1 tracción"); }
+  { const r = by(/flexocompresión a calado \(como el núcleo\)/), core = A0.checks.find((c) => c.grp === "Giro" && /^Vástago: flexocompresión/.test(c.name)); near(r.fu, core.fu, 1e-12, "igual al núcleo"); assert.ok(r.fu < 0.9, "Ø65 Fy 520: " + r.fu); }
+  assert.ok(by(/rótula GE70ES del ojal trasero: carga estática/).fu < 0.8);
+  assert.equal(by(/sellos de la tapa DENTRO de la rosca/).st, "ok");
+  const am = by(/amortiguación de fin de carrera: NO se requiere/); near(am.dem, 20 / 60000 / (2 * (Math.PI / 4 * (90 ** 2 - 65 ** 2)) * 1e-6), 1e-12, "v retorno"); assert.ok(am.dem < 0.1);
+  assert.ok(A0.checks.some((c) => c.grp === "Giro" && c.sustituida && /^Ojal comercial del vástago/.test(c.name) && c.st === "info"));
+  assert.equal(A0.verdict.estado_global, "CUMPLE");
+});
+
+test("BX · Cilindro: bloque «cilindro» del JSON (fuente única de las láminas) coherente con la geometría y las filas", () => {
+  const X = BX.exportBX(P0, A0).cilindro, g = BX._int.cylGeo(P0);
+  assert.equal(X.modo, "fabricado"); assert.equal(X.p_prueba, 850); assert.equal(X.d_vastago, 65); assert.equal(X.L_ext, 755);
+  near(X.s.cuerpo_fin, P0.L0 - P0.c_rod, 1e-12, "fin del cuerpo"); near(X.camisa.largo + X.fondo.falda, X.s.camisa_fin - X.s.fondo_int, 1e-12, "camisa + falda");
+  assert.equal(X.tapa.largo, 57); assert.equal(X.tapa.espiga.d, 89.5); assert.match(X.tapa.rosca.designacion, /^M110 × 2-6g$/); assert.match(X.camisa.rosca.designacion, /^M110 × 2-6H$/);
+  assert.equal(X.sellos.length, 8); X.sellos.forEach((q) => assert.ok(q.norma && q.designacion && q.alojamiento && q.alojamiento.d_fondo > 0 && q.material, q.pos));
+  ["ISO 7425-1", "ISO 7425-2", "ISO 5597", "ISO 6195", "ISO 10766", "ISO 3601-1"].forEach((n) => assert.ok(X.sellos.some((q) => q.norma.includes(n)), n));
+  assert.equal(X.tapa.agujero.d, 65); assert.equal(X.tapa.alojamientos_vastago.find((q) => q.ref === "S5").d, 76); assert.equal(X.tapa.alojamientos_vastago.find((q) => q.ref === "S8").d, 75);
+  X.tapa.alojamientos_vastago.forEach((q, i, L) => { assert.ok(q.w[1] <= X.tapa.largo + 1e-9); if (i) assert.ok(q.w[0] >= L[i - 1].w[1] + 2 - 1e-9, "resalte ≥ 2 mm"); });
+  assert.ok(X.tapa.espiga.ranura_oring.w[1] + 1.5 <= X.tapa.espiga.w[1], "o'ring dentro de la espiga");
+  assert.equal(X.verificaciones.length, A0.checks.filter((c) => c.grp === "Cilindro").length);
+  near(X.masa_total, g.mTot, 1e-12); JSON.stringify(X);
+  assert.ok(!BX.exportBX(P0, A0).verificaciones.some((v) => /^BX · Cilindro/.test(v.nombre)), "filas del cilindro solo en bx.cilindro");
 });
 
 test("BX: agentes (validador, auditor, revisor cruzado y escenarios) sobre el módulo", () => {

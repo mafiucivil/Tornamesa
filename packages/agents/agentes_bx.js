@@ -11,13 +11,14 @@ const AGBX = (() => {
 
   function validate(P) {
     const out = AG_.validate(P), E = (msg) => out.push({ lvl: "error", msg }), W = (msg) => out.push({ lvl: "warn", msg });
-    BX_.BX_GROUP.p.forEach(([id, lab, u, def, mn, mx]) => {
+    BX_.BX_GROUP.p.concat(BX_.CYL_GROUP ? BX_.CYL_GROUP.p : []).forEach(([id, lab, u, def, mn, mx]) => {
       if (mn === undefined) return;
       const v = P[id] === undefined ? def : P[id];
       if (!isFinite(v)) E(lab + ": valor no numérico");
       else if (v < mn || v > mx) E(`${lab} = ${v} ${u} fuera de rango [${mn}; ${mx}]`);
     });
-    const g = (k) => (P[k] === undefined ? BX_.BX_GROUP.p.find((q) => q[0] === k)[3] : P[k]);
+    const g = (k) => (P[k] === undefined ? BX_.BX_GROUP.p.concat(BX_.CYL_GROUP.p).find((q) => q[0] === k)[3] : P[k]);
+    if (Math.round(g("bx_cyl_on")) === 1) { const cg = BX_._int.cylGeo(Object.assign({}, P)); if (P.e_body + cg.Lbody + P.c_rod > P.L0 + 1e-9) E("TT300-BX: cilindro fabricado más largo que L0: e_cuerpo + cuerpo (" + cg.Lbody + ") + c_vástago > L0; use c_rod ≤ " + Math.floor(cg.cRod)); }
     if (![0, 1, 2].includes(Math.round(g("bx_pat")))) E("TT300-BX: el patrón de pastillas debe ser 0 (automático), 1 (triangular) o 2 (radial)");
     if (![0, 1].includes(Math.round(g("bx_disc_modo")))) E("TT300-BX: el modo del disco debe ser 0 (disco atornillado) o 1 (lámina de 3 mm soldada)");
     if (Math.round(g("bx_disc_modo")) === 1 && g("bx_w_lam") > g("bx_t_lam") + 1e-9) W("TT300-BX: filete de la costura mayor que el espesor de la lámina (AISC J2.2b)");
@@ -67,6 +68,13 @@ const AGBX = (() => {
       if (dmax < 1e-13) break; }
     add("BX · Tornillos del disco: componente térmica del anillo exterior (franja con resortes, Gauss–Seidel)", tw.Fth_ext, Math.abs(kb[rr.length - 1] * u[rr.length - 1]), 0.5, "N");
     }
+    // (f) Cilindro fabricado: von Mises de Lamé recalculado con las tres tensiones (independiente de la forma cerrada √3·p·b²/(b² − a²)) y
+    //     equilibrio de la camisa: ∫σ_θ dr = p·a (fuerza de la presión sobre medio cilindro por unidad de largo)
+    const cyl = (A.checks || []).find((c) => c.grp === "Cilindro" && /von Mises de Lamé en el radio interior/.test(c.name));
+    if (cyl) { const a = P.D_bore / 2, b = P.D_body / 2, p = P.p_relief / 10, st = p * (b * b + a * a) / (b * b - a * a), sr = -p, sz = p * a * a / (b * b - a * a);
+      add("BX · Cilindro: von Mises de Lamé (tres tensiones)", cyl.dem, Math.sqrt(((st - sr) ** 2 + (sr - sz) ** 2 + (sz - st) ** 2) / 2), 0.01, "MPa");
+      let I = 0; const nI = 4000; for (let i = 0; i < nI; i++) { const r = a + (b - a) * (i + 0.5) / nI; I += p * a * a / (b * b - a * a) * (1 + b * b / (r * r)) * (b - a) / nI; }
+      add("BX · Cilindro: equilibrio de la camisa ∫σ_θ dr = p·a (integración numérica)", I, p * a, 0.01, "N/mm"); }
     // (e) Masa de la plancha del portador por muestreo en malla de 2 mm
     const C = D.portador, holes = C.agujeros.posiciones.concat(C.tapones.posiciones), H = new Map(), cs = C.paso;
     holes.forEach((p) => { const k = Math.floor(p[0] / cs) + "," + Math.floor(p[1] / cs); if (!H.has(k)) H.set(k, []); H.get(k).push(p); });
