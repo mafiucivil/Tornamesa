@@ -68,6 +68,7 @@ const BX = (() => {
     ["Fu_bxc", "Portador: Fu del acero (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
     ["Fy_pr", "Calidad por pieza: Fy de los anillos de pasadores superior e inferior (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345)", "MPa", 0, 0, 690, 5],
     ["Fu_pr", "Calidad por pieza: Fu de los anillos de pasadores (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
+    ["bx_mesa_entera", "Mesa: planchas superior e inferior de UNA pieza por nivel (rev. 7c, decisión del mandante 19-11-2026). 1 = plancha completa Ø D_top × t con los N_pin agujeros Ø d_pin H7 de los pasadores en la misma pieza (exige t_pr = t_top = t_bot; sin anillo de pasadores, sin empalmes CJP de segmentos y sin unión plancha–anillo); 0 = disco Ø 2·R_anillo,int + anillo de pasadores en 4 segmentos de 90° con empalmes CJP y unión soldada plancha–anillo (revisiones anteriores)", "–", 1, 0, 1, 1],
     ["Fy_base", "Calidad por pieza: Fy de la plancha base (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345). Con el refuerzo de esquina o el collar (globales) se usa la menor", "MPa", 0, 0, 690, 5],
     ["Fu_base", "Calidad por pieza: Fu de la plancha base (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
     ["Fy_boxE", "Calidad por pieza: Fy del soporte del ojal E: paredes traseras, muñones y tapas superior e inferior (rev. 7: 0 = el global, A572 Gr. 50; rev. 6: 345). CJP de las paredes sobre el refuerzo: la menor", "MPa", 0, 0, 690, 5],
@@ -125,6 +126,20 @@ const BX = (() => {
   const ifOpt = (P) => P.opt_bz > 0.5 ? 3 : (P.opt_uhmw > 0.5 ? 2 : (P.opt_ss > 0.5 ? 1 : 0));
   const active = (P) => ifOpt(P) === 2;
   const lamOn = (P) => Math.round(P.bx_disc_modo == null ? 1 : P.bx_disc_modo) === 1;   // modo 1: lámina de 3 mm soldada (por defecto)
+  const meOn = (P) => Math.round(P.bx_mesa_entera == null ? 1 : P.bx_mesa_entera) === 1;   // rev. 7c: mesa de plancha entera por nivel (por defecto)
+  const meOk = (P) => P.t_pr === P.t_top && P.t_top === P.t_bot;                              // la plancha entera tiene un solo espesor
+  const meMsg = (P) => "TT300-BX: mesa de plancha entera (bx_mesa_entera = 1) exige t_pr = t_top = t_bot (una sola plancha por nivel con los agujeros de los pasadores); hay t_pr = " + P.t_pr + ", t_top = " + P.t_top + ", t_bot = " + P.t_bot + " mm. Iguale los espesores o use bx_mesa_entera = 0 (disco + anillo de pasadores en segmentos)";
+  // Bloque «mesa» del JSON (generador de planos): plancha entera por nivel o disco + anillo. Las masas del núcleo (massesMesa) ya suman el disco Ø 2·R_anillo,int
+  // (t_top / t_bot) y la corona R_anillo,int…R (máx(t_pr, t)) sin traslape: con t_pr = t_top = t_bot son exactamente las de la plancha entera (sin doble conteo).
+  function mesaOf(P, R) {
+    if (!meOn(P)) return { plancha_entera: false, nota: "disco Ø 2·R_anillo,int + anillo de pasadores en 4 segmentos de 90° (empalmes CJP y unión plancha–anillo)" };
+    const rpr = TT_.prIn(P), Rt = P.D_top / 2, N = Math.round(P.N_pin), aH = N * Math.PI / 4 * P.d_pin ** 2;
+    return { plancha_entera: true, D: P.D_top, t: P.t_top, t_sup: P.t_top, t_inf: P.t_bot, material: astm(P.Fy, P.Fu),
+      agujeros: { n: N, d: P.d_pin, ajuste: "H7", R: P.R_pin, paso_deg: 360 / N, mecanizado: "taladro y mandrinado/escariado EN LÍNEA de las dos planchas (superior e inferior) con la mesa armada y aliviada, a Ø" + P.d_pin + " H7" },
+      R_anillo_int_anterior: rpr, formato_min: [P.D_top, P.D_top],
+      masa_sup: R && R.m ? R.m.top : null, masa_inf: R && R.m ? R.m.bot : null, area_neta_agujeros: aH, R_ext: Rt,
+      nota: "una plancha completa Ø" + P.D_top + " × " + P.t_top + " por nivel (" + astm(P.Fy, P.Fu) + ") con los " + N + " agujeros Ø" + P.d_pin + " H7 de los pasadores en la misma pieza: sin anillo de pasadores (MES-002 / MES-004), sin empalmes CJP de segmentos ni unión plancha–anillo; compra: plancha de " + P.t_top + " mm de al menos " + P.D_top + " × " + P.D_top + " (decisión del mandante 19-11-2026)" };
+  }
   const fyC = (P) => (P.Fy_bxc > 0 ? P.Fy_bxc : P.Fy), fuC = (P) => (P.Fu_bxc > 0 ? P.Fu_bxc : P.Fu);   // acero del portador (0 = el global)
   const astm = (Fy, Fu) => (Fy === 345 && Fu === 450 ? "ASTM A572 Gr. 50" : Fy === 250 && Fu === 400 ? "ASTM A36" : "acero estructural") + " (Fy " + Fy + ", Fu " + Fu + " MPa)";
   const full = (P) => { const d = bxDefaults(), Q = Object.assign({}, P); for (const k in d) if (!(k in Q)) Q[k] = d[k]; return Q; };   // P del núcleo sin claves bx_: valores por defecto
@@ -811,6 +826,9 @@ const BX = (() => {
         hr.hHub > 0 ? "Agujero de la plancha inferior a plasma (holgura radial); el rebaje de " + nf(hr.hHub, 0) + " mm en el cubo sigue en mandrinadora (o bajar h_collar a " + nf(P.h_boss - hr.hHub, 0) + " mm para eliminarlo: pendiente de verificar el pivote)" : "Agujero de la plancha inferior a plasma; sin rebaje en el cubo", hr.hHub > 0 ? "simplificada" : "simplificada",
         "La holgura radial c_boss_r admite el corte térmico; el rebaje del cubo depende de δ", "Núcleo: Pivote (rebaje: h_collar − δ + c_boss_a)"],
       ["Orejas de izaje", "Perfil a plasma; agujero H12 taladrado y mandrinado", "Sin cambio", "se mantiene", "Pasador de grillete: ASME BTH-1 pide agujero liso; no hay verificación del agujero a plasma en el núcleo", "Núcleo: Orejas de izaje (AISC D5)"],
+      ...(meOn(P) ? [["Planchas de la mesa (superior e inferior) y anillos de pasadores (rev. 7c, decisión del mandante 19-11-2026)", "Por nivel: disco Ø" + nf(2 * TT_.prIn(P), 0) + " (MES-001 / MES-003) + anillo de pasadores Ø" + P.D_top + "/Ø" + nf(2 * TT_.prIn(P), 0) + " (MES-002 / MES-004) en 4 segmentos de 90° con empalmes CJP (UT 100 %) y unión soldada circunferencial plancha–anillo",
+        "Una plancha completa Ø" + P.D_top + " × " + P.t_top + " por nivel (" + astm(P.Fy, P.Fu) + ") con los " + Math.round(P.N_pin) + " agujeros Ø" + P.d_pin + " H7 en la misma pieza (taladrados y mandrinados en línea con la mesa armada); compra: plancha de " + P.t_top + " mm de al menos " + P.D_top + " × " + P.D_top, "simplificada",
+        "Elimina 2 piezas (8 segmentos), 8 empalmes CJP y 2 uniones circunferenciales con su UT; requiere plancha de formato ≥ " + P.D_top + " × " + P.D_top + "; masas y rigidez iguales (t_pr = t_top = t_bot)", "BX · Mesa de plancha entera (espesor único, uniones que no aplican, masa); núcleo: Mesa (FEA), Pasadores de empuje"]] : []),
       ["Refuerzos de esquina, soporte del ojal E (paredes y muñones), marco perimetral, mesa (planchas, almas, nervios, anillos)", "Plancha cortada y soldada (con alivio de tensiones de los conjuntos)", "Sin cambio: ya son plasma + soldadura", "se mantiene", "—", "Núcleo: Base, Mesa (FEA), Soldaduras"],
       ["Calidad del acero de las planchas (rev. 7, decisión del mandante 18-11-2026)", "Rev. 5: ASTM A36 en todas las planchas; rev. 6: A572 Gr. 50 en anillos, base, soporte E y portador y A36 en el resto",
         "Por pieza: anillos de pasadores t_pr = " + P.t_pr + " (" + astm(P.Fy_pr > 0 ? P.Fy_pr : P.Fy, P.Fu_pr > 0 ? P.Fu_pr : P.Fu) + "; el superior queda de máx(t_pr, t_top) = " + Math.max(P.t_pr, P.t_top) + "), plancha base " + P.t_base + " (" + astm(P.Fy_base > 0 ? P.Fy_base : P.Fy, P.Fu_base > 0 ? P.Fu_base : P.Fu) + "), soporte del ojal E: paredes y muñones " + P.pv_tbox + ", tapas " + P.pv_tl + " (" + astm(P.Fy_boxE > 0 ? P.Fy_boxE : P.Fy, P.Fu_boxE > 0 ? P.Fu_boxE : P.Fu) + "), portador " + g.tc + " (" + astm(fyC(P), fuC(P)) + "); el resto, " + astm(P.Fy, P.Fu) + ": mesa (planchas " + P.t_top + "/" + P.t_bot + ", almas y nervios " + P.t_web + "/" + P.t_rib + "), collar " + P.h_boss + ", marco, orejas; refuerzo de esquina y atiesador " + astm(P.Fy_dbl > 0 ? P.Fy_dbl : P.Fy, P.Fu_dbl > 0 ? P.Fu_dbl : P.Fu) + " con calidad Z (ASTM A770)",
@@ -960,6 +978,17 @@ const BX = (() => {
     add({ sys: "est", kind: "info", name: pfx + "Tornillos del disco: posiciones libres de la CJP, de almas, nervios y cubo (pie del filete) y de los agujeros de los pasadores", formula: "|y| ≥ c_CJP = " + P.bx_c_cjp + " mm; distancia al alma/nervio ≥ t/2 + w + d/2 + " + P.bx_c_alma + "; distancia al pasador ≥ d_pas/2 + d/2 + 3 + d", dem: BL.lista.length, cap: BL.radii.length, unit: "tornillos / anillos", ref: "Geometría; AISC 360-22 §J3.4" });
     add({ sys: "est", name: pfx + "Tornillos del disco: tracción al izar la mesa con el disco colgado (despegue)", formula: "T = φ_izaje·m_disco·g/n ≤ Fnt·A_b/Ω; Fnt = 0,75·Fu, Ω = 2,00", dem: BF.Tup / 1e3, cap: BF.capT / 1e3, unit: "kN", ref: "AISC 360-22 §J3.6, Tabla J3.2" });
     }
+    /* --- Mesa de plancha entera por nivel (rev. 7c, decisión del mandante 19-11-2026) --- */
+    if (meOn(P)) {
+      const ts = [P.t_pr, P.t_top, P.t_bot], REFM = "Decisión del mandante 19-11-2026 (rev. 7c); docs/bx/README_BX.md §12";
+      add({ sys: "est", kind: "geo", name: pfx + "Mesa de plancha entera: un solo espesor por nivel (t_pr = t_top = t_bot)", formula: "máx(t_pr, t_top, t_bot)/mín(t_pr, t_top, t_bot) ≤ 1; t_pr = " + P.t_pr + ", t_top = " + P.t_top + ", t_bot = " + P.t_bot + " mm (con espesores distintos use bx_mesa_entera = 0: disco + anillo)", dem: Math.max(...ts) / Math.min(...ts), cap: 1, unit: "–", ref: REFM });
+      add({ sys: "est", kind: "info", name: pfx + "Mesa de plancha entera: uniones soldadas plancha–anillo (superior e inferior) y empalmes CJP de los 4 segmentos de 90° de cada anillo de pasadores — no aplica", formula: "planchas Ø" + P.D_top + " × " + P.t_top + " de una pieza con los " + Math.round(P.N_pin) + " agujeros Ø" + P.d_pin + " H7: sin anillo de pasadores (las filas «anillo» del núcleo se refieren a la zona de los pasadores de la plancha, del mismo espesor)", dem: null, unit: "–", ref: REFM });
+      if (!(P.opt_wood > 0.5) && R.m && R.hubG) {
+        const Rt = P.D_top / 2, aH = Math.round(P.N_pin) * Math.PI / 4 * P.d_pin ** 2, hg = R.hubG, hole = P.D_piv + 80;
+        const mE = RHO * (P.t_top * (Math.PI * Rt * Rt - Math.PI / 4 * hole ** 2 - aH) + P.t_bot * (Math.PI * Rt * Rt - Math.PI / 4 * hg.d_bush ** 2 - aH) - Math.PI / 4 * (hg.Drb ** 2 - hg.d_bush ** 2) * hg.hPl);
+        add({ sys: "est", kind: "info", name: pfx + "Mesa de plancha entera: masa de las planchas superior e inferior = disco completo Ø" + P.D_top + " (sin doble conteo en el traslape R" + nf(TT_.prIn(P), 0) + "…R" + nf(Rt, 0) + ")", formula: "núcleo (disco Ø 2·R_anillo,int + corona R_anillo,int…R) = ρ·[t_top·(πR² − π·Ø_agujero²/4 − N·π·d²/4) + t_bot·(πR² − π·Ø_buje²/4 − N·π·d²/4) − rebaje del collar]; " + nf(R.m.top + R.m.bot, 1) + " kg frente a " + nf(mE, 1) + " kg", dem: R.m.top + R.m.bot, cap: mE, unit: "kg / kg", ref: "Geometría; " + REFM });
+      }
+    }
     /* --- Generales --- */
     add({ sys: "est", kind: "info", name: pfx + "Altura que agrega la interfaz sobre la plancha base", formula: "Δ = t_portador + h_p + t_disco = " + g.tc + " + " + nf(g.hp, 1) + " + " + g.tss, dem: g.tc + g.hp + g.tss, unit: "mm", ref: "Geometría (el eje de los cilindros sube Δ)" });
     add({ sys: "est", kind: "info", name: pfx + "Masa agregada por la interfaz (disco + pastillas + portador)", formula: "m = m_disco + m_pastillas + m_portador", dem: g.mSS + S.bx.mUH + S.bx.mCar, cap: g.mSS, unit: "kg / kg disco", ref: "Geometría" });
@@ -1091,13 +1120,15 @@ const BX = (() => {
     const Dg = design(P); if (!Dg) return null;
     const o = exportable(Dg);
     o.verificaciones = (A ? A.checks.filter((c) => c.bx) : []).map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref }));
+    if (meOn(full(P)) && !meOk(P)) throw new Error(meMsg(P));
+    o.mesa = mesaOf(full(P), A && A.R);
     o.capacidad_nominal_tf = P.W_tf; o.alivio_bar = P.p_relief; o.alarma_bar = P.p_alarm;   // rev. 7: 290 t, 680 / 600 bar (el nombre TT300-BX queda como designación del modelo)
-    o.revision = "TT300-BX rev. 7 (18-11-2026): capacidad nominal " + P.W_tf + " t; todas las planchas en " + astm(P.Fy, P.Fu) + "; planchas de 22 mm (mesa, anillos, base, portador, cajón E, atiesador)";
+    o.revision = "TT300-BX rev. 7 (18-11-2026): capacidad nominal " + P.W_tf + " t; todas las planchas en " + astm(P.Fy, P.Fu) + "; planchas de 22 mm (mesa, anillos, base, portador, cajón E, atiesador)" + (o.mesa.plancha_entera ? "; rev. 7c (19-11-2026): mesa con una plancha completa Ø" + P.D_top + " × " + P.t_top + " por nivel con los agujeros de los pasadores (sin anillos de pasadores)" : "");
     o.sistema = "planta x, y (mm) con O en el centro de la mesa; z desde la cara superior de la plancha base; CJP del disco sobre el eje x";
     o.z = { base_sup: 0, portador_sup: Dg.portador.t, pastilla_sup: Dg.portador.t + Dg.pastillas.h_p, disco_sup: Dg.portador.t + Dg.pastillas.h_p + Dg.disco.t, nota: "disco_sup = cara inferior de la mesa (δ sobre la base)" };
     return o;
   }
 
-  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, BASE_FEA }, PARAM_GROUPS, BX_GROUP, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
+  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, BASE_FEA, mesaOf, meOn, meOk }, PARAM_GROUPS, BX_GROUP, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
 })();
 if (typeof module !== "undefined") module.exports = BX;

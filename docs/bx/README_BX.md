@@ -345,3 +345,20 @@ de la base (máscara rígida de soportes delgados) y recalibración de `DBL_CAL`
   capacidad `W_tf` (290 t) y la presión de alivio `p_relief` (680 bar) del JSON.
 - Sin bloque «bx» el juego TT300-C no cambia (DXF de GEN-001, GEN-003, GEN-005, GEN-008, GEN-012, CON-007, CON-009, BAS-001, BAS-012, MES-003
   y MES-011 comparados entidad por entidad con HEAD).
+
+## 12. Revisión 7c (19-11-2026): mesa con una plancha completa por nivel (`bx_mesa_entera = 1`, por defecto)
+
+Decisión del mandante (ingeniero revisor): cada nivel de la mesa (superior e inferior) es **una plancha completa Ø2000 × 22 de ASTM A572 Gr. 50**
+con los 28 agujeros Ø85 H7 de los pasadores de empuje en la misma pieza, en lugar del disco Ø1720 (MES-001 / MES-003) más el anillo de pasadores
+Ø2000/Ø1720 (MES-002 / MES-004) en 4 segmentos de 90° con empalmes CJP y unión soldada circunferencial plancha–anillo.
+
+- Parámetro `bx_mesa_entera` (grupo BX): 1 = plancha entera (por defecto); 0 = disco + anillo (revisiones anteriores, sin cambios).
+- Exige `t_pr = t_top = t_bot` (una sola plancha por nivel): si no, la fila geométrica «BX · Mesa de plancha entera: un solo espesor por nivel»
+  falla (NO CUMPLE), el validador da un error y `BX.exportBX` lanza un error claro (no se emiten planos).
+- Las uniones plancha–anillo y los empalmes CJP de los segmentos (que solo existían en el generador de planos: juntas J11–J13) no aplican: fila informativa.
+- Masas: el núcleo (`massesMesa`) ya suma el disco Ø 2·R_anillo,int con t_top / t_bot y la corona R_anillo,int…R con máx(t_pr, t); con espesores
+  iguales es exactamente la plancha completa (sin doble conteo en el traslape R860…R1000): fila informativa con el cálculo independiente.
+- FEA de la mesa: sin cambio (mismos espesores y misma rigidez; la FEA del núcleo no modela la unión plancha–anillo). FU gobernante 0,999
+  (tapas del cajón E, desgarro a calado), estado CUMPLE, igual con `bx_mesa_entera = 0`.
+- JSON de diseño: bloque `bx.mesa = { plancha_entera, D, t, agujeros: { n, d, ajuste, R }, formato_min, masas, nota }` que el generador de planos usa para
+  dibujar MES-001 / MES-003 como planchas completas y quitar MES-002 / MES-004 con sus soldaduras. Compra: plancha de 22 mm de al menos 2000 × 2000.

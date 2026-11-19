@@ -204,6 +204,36 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   near(A0.R.m.total, 3798, 0.003, "masa");
 });
 
+test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85 H7 (rev. 7c, bx_mesa_entera = 1 por defecto)", () => {
+  assert.equal(P0.bx_mesa_entera, 1);
+  const X = BX.exportBX(P0, A0), M = X.mesa;
+  assert.equal(M.plancha_entera, true); assert.deepEqual([M.D, M.t, M.t_sup, M.t_inf], [2000, 22, 22, 22]);
+  assert.deepEqual([M.agujeros.n, M.agujeros.d, M.agujeros.ajuste, M.agujeros.R], [28, 85, "H7", P0.R_pin]);
+  assert.deepEqual(M.formato_min, [2000, 2000]); assert.match(X.revision, /rev\. 7c/);
+  near(M.masa_sup, A0.R.m.top, 1e-12, "masa sup = núcleo"); near(M.masa_inf, A0.R.m.bot, 1e-12, "masa inf = núcleo");
+  const row = (re, A) => (A || A0).checks.filter((c) => c.bx && re.test(c.name));
+  const ce = row(/^BX · Mesa de plancha entera: un solo espesor/); assert.equal(ce.length, 1); assert.equal(ce[0].st, "ok"); assert.equal(ce[0].fu, 1);
+  const na = row(/^BX · Mesa de plancha entera: uniones soldadas plancha–anillo .* no aplica$/); assert.equal(na.length, 1); assert.equal(na[0].st, "info");
+  // masa: el núcleo (disco Ø1720 + corona R860…R1000) = plancha completa calculada aparte (sin doble conteo en el traslape)
+  const cm = row(/^BX · Mesa de plancha entera: masa de las planchas/); assert.equal(cm.length, 1); near(cm[0].dem, cm[0].cap, 1e-9, "masa del disco completo");
+  const Rt = 1000, hole = P0.D_piv + 80, aH = 28 * Math.PI / 4 * 85 ** 2;
+  near(A0.R.m.top, 7.85e-6 * 22 * (Math.PI * Rt * Rt - Math.PI / 4 * hole ** 2 - aH), 1e-9, "plancha superior Ø2000 con 28 agujeros");
+  assert.ok(G0.fabricacion.some((f) => /Planchas de la mesa/.test(f.pieza) && /Ø2000 × 22/.test(f.despues) && /2000 × 2000/.test(f.despues) && f.estado === "simplificada"));
+  // con bx_mesa_entera = 0 (disco + anillo) no hay filas de la mesa entera y nada más cambia (mismas masas y FU)
+  const P1 = Object.assign({}, P0, { bx_mesa_entera: 0 }), A1 = BX.analyze(P1, { noFEA: true });
+  assert.equal(row(/Mesa de plancha entera/, A1).length, 0); assert.equal(BX.exportBX(P1, A1).mesa.plancha_entera, false);
+  assert.equal(A1.R.m.total, A0.R.m.total);
+  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera/.test(c.name)).map((c) => c.grp + "|" + c.name + "|" + c.fu + "|" + c.st).join("\n");
+  assert.equal(k(A1), k(A0), "mismas filas y FU fuera de las de la mesa entera");
+  assert.ok(!BX.design(P1).fabricacion.some((f) => /Planchas de la mesa/.test(f.pieza)));
+  // espesores distintos con la plancha entera: fila geométrica que falla, error del validador y error claro al exportar
+  const P2 = Object.assign({}, P0, { t_top: 25 }), A2 = BX.analyze(P2, { noFEA: true }), c2 = row(/^BX · Mesa de plancha entera: un solo espesor/, A2)[0];
+  assert.equal(c2.st, "fail"); near(c2.fu, 25 / 22, 1e-12, "25/22"); assert.equal(A2.verdict.estado_global, "NO CUMPLE");
+  assert.ok(AGBX.validate(P2).some((v) => v.lvl === "error" && /t_pr = t_top = t_bot/.test(v.msg)));
+  assert.throws(() => BX.exportBX(P2, A2), /exige t_pr = t_top = t_bot/);
+  assert.equal(BX.analyze(Object.assign({}, P2, { bx_mesa_entera: 0 }), { noFEA: true }).verdict.estado_global, "CUMPLE", "con disco + anillo los espesores distintos siguen permitidos");
+});
+
 test("BX: cinemática y reenganche con la nueva δ (lámina de 3 mm) y las alturas de la rev. 5", () => {
   assert.ok(A0.R.K.ok); assert.equal(A0.verdict.gira, true);
   near(A0.R.hax, P0.h_disc / 2 + A0.R.ifc.delta, 1e-12, "eje del cilindro = h_disc/2 + δ");
@@ -323,6 +353,9 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   assert.equal(A.verdict.estructura, true);
   [[/^Plancha superior: global \+ local/, 0.692], [/^Plancha inferior: global \+ local/, 0.465]].forEach(([re, v]) => near(A.checks.find((c) => re.test(c.name)).fu, v, 0.006, String(re)));
   A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= 0.9 + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));
+  // rev. 7c: la plancha entera (t_pr = t_top = t_bot) no cambia la FEA de la mesa: mismas FU con disco + anillo (bx_mesa_entera = 0)
+  const A1 = BX.analyze(Object.assign({}, P0, { bx_mesa_entera: 0 })), fm = (X) => X.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu").map((c) => c.name + "|" + c.fu).join("\n");
+  assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "CUMPLE");
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
   assert.ok(b80.bx && b80.bx.filas.length > 10);

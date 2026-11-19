@@ -21,6 +21,8 @@ const AGBX = (() => {
     if (![0, 1, 2].includes(Math.round(g("bx_pat")))) E("TT300-BX: el patrón de pastillas debe ser 0 (automático), 1 (triangular) o 2 (radial)");
     if (![0, 1].includes(Math.round(g("bx_disc_modo")))) E("TT300-BX: el modo del disco debe ser 0 (disco atornillado) o 1 (lámina de 3 mm soldada)");
     if (Math.round(g("bx_disc_modo")) === 1 && g("bx_w_lam") > g("bx_t_lam") + 1e-9) W("TT300-BX: filete de la costura mayor que el espesor de la lámina (AISC J2.2b)");
+    if (![0, 1].includes(Math.round(g("bx_mesa_entera")))) E("TT300-BX: la mesa debe ser 1 (plancha entera por nivel) o 0 (disco + anillo de pasadores)");
+    if (Math.round(g("bx_mesa_entera")) === 1 && !(P.t_pr === P.t_top && P.t_top === P.t_bot)) E("TT300-BX: mesa de plancha entera (bx_mesa_entera = 1) exige t_pr = t_top = t_bot (hay " + P.t_pr + " / " + P.t_top + " / " + P.t_bot + " mm): iguale los espesores o use bx_mesa_entera = 0");
     if (![1, 2].includes(Math.round(g("bx_ss_mat")))) E("TT300-BX: el material del disco debe ser 1 (austenítico) o 2 (dúplex 2205)");
     if (!(g("bx_Tmin") < P.T_ref && P.T_ref < g("bx_Tmax"))) E("TT300-BX: debe cumplirse T_mín < T_ref < T_máx");
     if (g("bx_dp") > 0 && g("bx_lig") > 0 && g("bx_lig") < 5) W("TT300-BX: ligamento menor que 5 mm entre agujeros cortados con plasma");
