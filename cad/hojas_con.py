@@ -1692,6 +1692,10 @@ def _niveles_pv(ctx, V, c):
     a = V.P((0, 0, g.zc))
     c.s.line((V.ext[0], a[1]), (V.ext[2], a[1]), "EJE")
     c.s.text(f"eje de los cilindros z = {f(g.zc)}", (V.ext[0] - 2, a[1] + 1.5), T_N, "BOTTOM_RIGHT")
+    if ctx.m.get("cil_camisa") and "base_W" in ctx.shapes:
+        # TT300-BX rev. 7f: tolerancia de desnivel entre los ejes E y Q (±1 mm, aprobada por el mandante 19-11-2026): altura del eje sobre la base ±0,5
+        dz = float(((g.bx or {}).get("cilindro") or {}).get("dz_tol") or 1.0)
+        V.dimv((200.0, 0, g.tb), (200.0, 0, g.zc), "left", 1, on=["base_W", "cilindro_pv_W"], virt_b=65.0, text=f"{fm(g.zc - g.tb, 0)} ±{fm(dz / 2, 1)} (ejes E y Q; Δz E–Q ≤ {fm(dz, 0)})")
 
 
 def sheet_explosion_acc_pv(ctx):

@@ -377,6 +377,9 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   assert.ok(A0.checks.some((c) => c.grp === "Giro" && c.sustituida && /^Ojal comercial del vástago/.test(c.name) && c.st === "info"));
   near(by(/sellos: presión de prueba hidráulica/).fu, 1, 1e-12, "850 / 850 bar (dato confirmado por el mandante)"); near(by(/sellos: presión de trabajo/).fu, 1, 1e-12);
   assert.ok(!C.some((c) => c.st === "pend"), "sin pendientes del cilindro (rev. 7e)");
+  // rev. 7f: desnivel E–Q ±1 mm (aprobado) frente al admisible del vástago con holgura nula, y reparto del momento de la placa-guía al bloque-uña
+  const dz = by(/desnivel especificado entre los ejes E y Q/); assert.equal(dz.dem, 1); assert.ok(dz.fu < 1 && dz.cap > 0.99 && dz.cap < 1.4, "Δz adm " + dz.cap);
+  const rp = by(/reparto del momento en alzado/); near(rp.dem, 4.66, 0.01, "M_H"); near(rp.cap, 10.89, 0.01, "F·h/6"); assert.equal(P0.p_max_cil, 680);
   assert.ok(!C.some((c) => /onfirmar|de memoria|confianza C/.test(c.name + c.formula) && !/amortiguación/.test(c.name)), "sin textos «confirmar / de memoria» (rev. 7e)");
   assert.equal(A0.verdict.estado_global, "CUMPLE");
 });

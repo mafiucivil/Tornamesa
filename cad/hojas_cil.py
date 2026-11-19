@@ -496,15 +496,19 @@ def sheet_cil_esquema(ctx):
         V.note_pt((0, -RE, 10), (-38, 30), f"Ojal trasero: pasador E Ø{f(RT_['d'])} en rótula {RT_['designacion'].split(' (')[0]} (D {f(RT_['D'])})", on=r0)
         V.note_pt((L0, -RQ, 10), (24, 30), f"Ojal del vástago: Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']} (pasador Q, sin rótula)", on=r0)
         V.note_pt((0, -RE, -Z + 10), (-38, -30), "Mismo ojal E (fijo)", on=r1)
+        dz = float(C.get("dz_tol") or 1.0)
+        V.note_pt((0, -RE, -10), (-38, -26), f"Eje E: z ±{fm(dz / 2, 1)} (Δz E–Q ≤ {fm(dz, 0)})", on=r0)
+        V.note_pt((L0, -RQ, -10), (24, -26), f"Eje Q: z ±{fm(dz / 2, 1)} (Δz E–Q ≤ {fm(dz, 0)})", on=r0)
         V.note_pt((Lx, -RQ, -Z + 10), (24, -30), f"Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']}", on=r1)
     c.vs("esq", allk, "front", lv=(2, 3, 2, 3), extra=(60, 20, 60, 20), draw=esq, hatch=False, w=3.0, auto=False, mins=0.4, maxs=0.5,
          title="ESQUEMA: ARRIBA RETRAÍDO, ABAJO EXTENDIDO (EJE DEL OJAL TRASERO E COMÚN)")
     rows = [["Ojo a ojo retraído / extendido", f"{f(L0)} / {f(Lx)} mm"], ["Carrera", f"{f(st)} mm"],
             ["e cuerpo / cuerpo", f"{f(C['e_cuerpo'])} / {f(C['cuerpo'])} mm"], ["c vástago retraído / extendido", f"{f(C['c_vastago'])} / {f(C['c_vastago'] + C['carrera'])} mm"],
             ["Ojal trasero", f"pasador E Ø{f(C['fondo']['ojal']['rotula']['d'])} f8 en rótula {C['fondo']['ojal']['rotula']['designacion']}; orejeta R{fm(RE, 0)} × {f(C['fondo']['ojal']['ancho'])}"],
-            ["Ojal del vástago", f"Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']} sobre el pasador Q f8; R{fm(RQ, 0)} × {f(C['ojal_vastago']['ancho'])}; {C['ojal_vastago']['rotula']}"]]
+            ["Ojal del vástago", f"Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']} sobre el pasador Q f8; R{fm(RQ, 0)} × {f(C['ojal_vastago']['ancho'])}; {C['ojal_vastago']['rotula']}"],
+            ["Desnivel E–Q", f"≤ {fm(float(C.get('dz_tol') or 1), 1)} mm (admisible del vástago {fm(float(C.get('dz_adm') or 0), 2)} mm en el retraído; 1,3 mm en el estudio rev. 7e)"]]
     c.table_block("MEDIDAS OJO A OJO (bx.cilindro)", [("Dato", 50, "L"), ("Valor", 120, "L")], rows)
-    c.note_block("NOTAS", ["Esquema de medidas generales: las piezas, tolerancias y sellos se definen en ACC-013 y ACC-028 a ACC-035.",
+    c.note_block("NOTAS", [C.get("dz_nota") or "", "Esquema de medidas generales: las piezas, tolerancias y sellos se definen en ACC-013 y ACC-028 a ACC-035.",
                            "Las dos vistas están a la misma escala y alineadas por el eje del ojal trasero E (pasador fijo del soporte E).",
                            "Medidas entre paréntesis: de referencia (resultan de las acotadas)."], numbered=True)
     c.note_block(REF_GEN_TIT, [REF_GEN])
@@ -529,10 +533,27 @@ def _extras_cil(ctx):
             ("Fijador anaeróbico de alta resistencia (tuerca del pistón) y de resistencia media (prisioneros)", 1, "—", "A DEFINIR POR CATÁLOGO")]
 
 
+DZ_TAGS = ("BAS-012-C", "ACC-020-C", "CON-007-C", "CON-010-C")
+
+
+def _nota_dz(self, title, lines):
+    """Rev. 7f: nota de la tolerancia de desnivel E–Q en las láminas del soporte E, de la placa-guía y del montaje del accionamiento."""
+    C = _C(self.ctx) if hasattr(self, "ctx") else None
+    if C and self.h.tag in DZ_TAGS and title in ("NOTAS DE FABRICACIÓN", "NOTAS DEL SUBCONJUNTO") and not getattr(self.h, "_dz", False):
+        self.h._dz = True
+        return list(lines) + [C.get("dz_nota") or ""]
+    return lines
+
+
 def activar():
     for nm, keys, fn in PLAN_CIL:
         if not any(x[0] == nm for x in PLAN):
             PLAN.append((nm, keys, fn))
+    import layout
+    if not getattr(layout.Plano, "_dz", False):
+        _nb0 = layout.Plano.note_block
+        layout.Plano.note_block = lambda self, title, lines, numbered=False, _f=_nb0: _f(self, title, _nota_dz(self, title, lines), numbered)
+        layout.Plano._dz = True
     import lista
     if not getattr(lista, "_cil_extras", False):
         _ex0 = lista.extras

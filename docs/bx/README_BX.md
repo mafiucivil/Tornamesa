@@ -405,3 +405,30 @@ Estado global con FEA: CUMPLE (FU máx. 0,999, tapas del cajón E, sin cambio).
   bajar p_max_cil a 680 o mantener 700); a 80 °C la válvula de alivio térmico del tramo aislado sigue siendo necesaria.
 - Lámina nueva ACC-036: esquema retraído / extendido a la misma escala (1:2,5), alineados por el eje E, con las medidas ojo a ojo 520 / 755, carrera 235,
   cuerpo 361, e_cuerpo 75 y c_vástago 84 / 319. La rótula comercial pasa al código ACC-045 (ACC-036 es la lámina del esquema).
+
+### 13.4 Estudio del ojal del vástago (rev. 7e) y revisión 7f (19-11-2026)
+
+En planta el mecanismo es plano (pasadores verticales E y Q): una rótula en Q no cambia la cinemática. El ojal liso H9/f8 de 50 puede tomar momento en alzado
+por (i) la componente axial de la reacción H de la placa-guía por el brazo l_Q = 74,5 (máximo del empuje a calado: H = 94,0 kN con φ = 41,7°, H·sen φ = 62,5 kN,
+**M_H = 4,66 kN·m**; cota con los 94 kN axiales: 7,0 kN·m) y (ii) un desnivel Δz entre los ejes E y Q (M = k_c·Δz/L).
+Script del estudio: `scratchpad/bx7e/estudio_ojal.js` (no forma parte del repositorio; solo evaluación).
+
+| Opción | FU vástago (100 % de M: 4,66 / 7,0) | FU soldadura por fricción | Cambios |
+|---|---|---|---|
+| **Adoptada: Ø65, ojal liso H9/f8** | 0,846 con el reparto real (el bloque-uña toma M_H) · 1,024 / 1,181 si todo fuera al vástago | 0,793 · 1,025 / 1,233 | Tolerancia Δz E–Q ≤ ±1 mm |
+| GE90ES en el ojal del vástago | ≈ 0,846 | 0,793 | Ojal R 85,5, horquilla 64, R_cubo 87,5, c_vástago ≥ 91 (no cabe con 520), cajón E con b_ojal 60 (base bajo E 1,019): no cumple sin rediseño |
+| GE70ES + pasador Q escalonado | ≈ 0,846 (pasador Ø70: 0,86) | 0,793 | Ojal R 75 y R_cubo ≥ 77 (parámetro nuevo en el núcleo) |
+| Vástago Ø70, ojal liso | 0,677 · 0,810 / 0,927 | 0,844 / 1,011 | Alojamientos nuevos; pared de 4,7 mm bajo la espiga |
+
+Reparto: el bloque-uña toma M_H por el contacto contra el pasador P sin despegue (F·h/6 = 466,8·140/6 = 10,9 kN·m ≥ 4,66; presión de borde × 1,43, Hertz × 1,20);
+su rigidez rotacional (≈ 8×10⁹ N·mm/rad, orden de magnitud) es ≈ 4,5 veces la del cilindro articulado en E (k_c ≈ 1,8–2,2×10⁹), y con el giro libre del ajuste
+H9/f8 (0,72…3,54 mrad) al vástago le llega ≈ 0 (≤ 18 % sin holgura). **Recomendación: mantener la opción adoptada con la tolerancia de desnivel.**
+
+Revisión 7f (aprobada por el mandante 19-11-2026):
+- **Tolerancia de desnivel E–Q ±1 mm** (`bx_cyl_dz`): cada eje a su cota ± 0,5 sobre la base (cota en CON-010; nota en BAS-012, ACC-020, CON-007, CON-010 y ACC-036).
+  Filas geo del grupo «Cilindro»: Δz 1,0 ≤ Δz_adm = M_adm·L/k_c con holgura nula en el retraído (el más rígido) = 1,00 mm (FU 0,996; el estudio daba 1,27 mm a
+  L = 544, posición del M_H máximo; con el giro libre mínimo del ajuste 1,38 mm), M_adm = 4,26 kN·m; reparto del momento M_H 4,66 ≤ F·h/6 10,89 kN·m (FU 0,427).
+- **p_max_cil = 680 bar** en los valores por defecto del módulo (CYL_CORE; el núcleo sin __bx no cambia). Filas que dependen de p_max_cil (todas del escenario
+  térmico, fuera del alcance térmico, informativas): p_hold + Δp 0,696 → 0,716 (20 °C) y 1,786 → 1,839 (80 °C); p_ret + Δp 0,286 → 0,294 y 1,376 → 1,417; válvula de
+  alivio térmico «no hay» 0,696 → 0,716 y 1,786 → 1,839 (a 80 °C: instalar alivio térmico); «tras el calado» compara con 850 bar (sin cambio: 0,800 / 1,698).
+  «Alivio dentro de la presión nominal» usa p_rated (10 000 psi = 700 bar): 0,971 sin cambio. Veredicto: CUMPLE (sin cambio).

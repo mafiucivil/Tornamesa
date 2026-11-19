@@ -191,6 +191,7 @@ const BX = (() => {
     ["bx_cyl_vmax", "Puertos: velocidad máxima del aceite en el paso del puerto (criterio del proyecto)", "m/s", 5, 2, 10, 0.5],
     ["bx_cyl_dA", "Puerto A (fondo): Ø del paso a la cámara (rosca G 3/8)", "mm", 10, 5, 14, 0.5],
     ["bx_cyl_dB", "Puerto B (camisa, lado vástago): Ø del paso a la cámara (rosca G 3/8)", "mm", 8, 5, 14, 0.5],
+    ["bx_cyl_dz", "Tolerancia de desnivel entre los ejes E (soporte E) y Q (bloque-uña sobre la placa-guía), aprobada por el mandante 19-11-2026", "mm", 1, 0, 5, 0.1],
     ["bx_cyl_vam", "Amortiguación: velocidad del pistón sobre la cual se recomienda (criterio usual de la industria, confianza C)", "m/s", 0.1, 0.02, 0.5, 0.01],
   ] };
   const cylOn = (P) => Math.round(P.bx_cyl_on == null ? 1 : P.bx_cyl_on) === 1;
@@ -264,7 +265,7 @@ const BX = (() => {
   // Valores por defecto del núcleo que fija el cilindro fabricado (rev. 7d): vástago Ø65 cromado común (Fy 520, dato confirmado por el mandante 19-11-2026), c_rod y m_cyl del cuerpo resultante
   PARAM_GROUPS.push(CYL_GROUP);
   const CYL_CORE = (() => { const P = Object.assign(TT_.defaults(), A36_DESPUES, cylDef(), { d_rod: 65, pv_Fyrod: 520, pv_tbox: A36_DESPUES.pv_tbox }), g = cylGeo(P);
-    return { d_rod: 65, pv_Fyrod: 520, c_rod: Math.floor(g.cRod + 1e-9), m_cyl: Math.ceil(g.mTot + 1) }; })();   // m_cyl: piezas + 1 kg (sellos, racores)
+    return { d_rod: 65, pv_Fyrod: 520, c_rod: Math.floor(g.cRod + 1e-9), m_cyl: Math.ceil(g.mTot + 1), p_max_cil: 680 }; })();   // rev. 7f: p_max_cil = 680 (presión de trabajo de los sellos, aprobado por el mandante 19-11-2026)   // m_cyl: piezas + 1 kg (sellos, racores)
   function cylRows(P, R) {
     const out = []; if (!cylOn(P) || TT_.driveMode(P) !== 2) return out;
     const g = cylGeo(P), Q = g.P, add = (o) => out.push(Object.assign({ kind: "fu", grp: CYL_GRP, sys: "est", bx: true }, o, { name: "BX · Cilindro: " + o.name, fu: o.kind === "info" || o.kind === "pend" ? null : (o.cap > 0 && o.dem >= 0 ? o.dem / o.cap : Infinity) }));
@@ -347,6 +348,19 @@ const BX = (() => {
     const vR = (P.Q_ret > 0 ? P.Q_ret : P.Q_pump) / 60000 / (P.n_cyl * g.Aan * 1e-6), vE = P.Q_pump / 60000 / (P.n_cyl * g.Ab * 1e-6), mMov = (R && R.blk && R.blk.m || 0) + g.masas.vastago + g.masas.piston + g.masas.tuerca + g.masas.ojal_vastago, KE = 0.5 * mMov * vR * vR;
     const sU = R && R.camP ? R.camP.sReqG : R && R.K ? R.K.s_req : NaN;
     add({ kind: "geo", name: "amortiguación de fin de carrera: NO se requiere (el retorno llega al tope a " + nf(vR * 1000, 1) + " mm/s; el avance no llega a la tapa: s_usada " + nf(sU, 1) + " de " + P.stroke + " mm)", formula: "v_retorno = Q_ret/(n·A_an) ≤ " + nf(Q.bx_cyl_vam, 2) + " m/s (sobre ~0,1 m/s la industria recomienda amortiguación: catálogos de cilindros Parker/Bosch Rexroth, confianza C); masa en movimiento ≈ " + nf(mMov, 1) + " kg (bloque-uña y pasador Q + vástago, pistón, tuerca y ojal), E_c = ½·m·v² = " + nf(KE, 3) + " J; avance v = " + nf(vE * 1000, 1) + " mm/s. Fin de carrera: retraído contra el tope mecánico (tuerca contra el fondo) y presostato/posición del control; extendido por control (la tapa es tope de seguridad)", dem: vR, cap: Q.bx_cyl_vam, unit: "m/s", ref: "Criterio usual de la industria (confianza C); ISO 4413:2010 §5.4 (velocidad y fin de carrera controlados)" });
+    { // rev. 7f (estudio del ojal del vástago, rev. 7e): momento en alzado en el ojal liso H9/f8
+      const Lc = P.L0 + P.stroke, d = P.d_rod, Ar = g.Ar, Ir = Math.PI * d ** 4 / 64, Pr = g.Fcal, Fe_ = Math.PI ** 2 * P.E / (Lc / (d / 4)) ** 2, Fcr = FyR / Fe_ <= 2.25 ? Math.pow(0.658, FyR / Fe_) * FyR : 0.877 * Fe_;
+      const Pc = Fcr * Ar / 1.67, Mc = FyR * d ** 3 / 6 / 1.67, MQ = P.pv_muE * Pr * P.pv_dq / 2, Mw = P.m_cyl * G * Lc / 8, B1 = 1 / Math.max(1e-6, 1 - 1.6 * Pr / (Math.PI ** 2 * P.E * Ir / Lc ** 2));
+      const fx = (M) => { const Mr = B1 * Math.hypot(MQ, Mw + M); return Pr / Pc >= 0.2 ? Pr / Pc + 8 / 9 * Mr / Mc : Pr / (2 * Pc) + Mr / Mc; };
+      let lo = 0, hi = 5e7; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (fx(m) <= 1) lo = m; else hi = m; }
+      const L = P.L0, EIx = (x) => (x < P.e_body ? 1e12 * P.E : x < P.e_body + g.Lbody ? P.E * Math.PI * (P.D_body ** 4 - P.D_bore ** 4) / 64 : P.E * Ir);
+      let th = 0; for (let i = 0; i < 2000; i++) { const x = (i + 0.5) * L / 2000; th += (x / L) ** 2 / EIx(x) * L / 2000; }
+      const kc = 1 / th, dzA = lo / kc * L, REFE = "Estudio del ojal del vástago (rev. 7e, docs/bx/README_BX.md §13.4): ojal liso H9/f8, giro libre nulo (conservador)";
+      add({ kind: "geo", name: "desnivel especificado entre los ejes E y Q frente al admisible del vástago (ojal liso, holgura nula)", formula: "Δz_esp = " + nf(Q.bx_cyl_dz, 1) + " mm ≤ Δz_adm = M_adm·L/k_c = " + nf(dzA, 2) + " mm; M = k_c·Δz/L (k_c = rigidez rotacional en Q del cilindro articulado en E, cuerpo Ø" + P.D_body + "/" + P.D_bore + " + vástago Ø" + d + ": " + nf(kc / 1e9, 2) + "×10⁹ N·mm/rad ≥ 3EI/L del vástago solo; L = largo retraído " + L + "), M_adm = " + nf(lo / 1e6, 2) + " kN·m (flexocompresión del vástago = 1 con μ y peso); en el retraído (el más rígido) el admisible es el menor: el estudio daba 1,27 mm a L = 544 (posición del M_H máximo); con el giro libre mínimo del ajuste H9/f8 (0,036/50 = 0,72 mrad) Δz_adm = " + nf(dzA + 0.036 / 50 * L, 2) + " mm; tolerancia aprobada por el mandante 19-11-2026", dem: Q.bx_cyl_dz, cap: dzA, unit: "mm", ref: REFE + "; AISC 360-22 §H1.1" });
+      let MH = 0; (R && R.stroke || []).forEach((q) => { const Hc = q.H_guia * (R.Fstall / q.F), m = Hc * Math.sin(q.phi_guia * D2R) * (R.blk ? R.blk.lq : 0) * 1e3; if (m > MH) MH = m; });
+      const Fp = R && R.stallMax ? R.stallMax.Fp * 1e3 : 0, Mb = Fp * P.pv_hu / 6;
+      if (MH > 0 && Mb > 0) add({ kind: "geo", name: "reparto del momento en alzado de la placa-guía: lo toma el bloque-uña por el contacto contra el pasador P (sin despegue)", formula: "M_H = H_calado·sen φ·l_Q = " + nf(MH / 1e6, 2) + " kN·m (máximo del empuje) ≤ F_calado·h/6 = " + nf(Fp / 1e3, 1) + "·" + P.pv_hu + "/6 = " + nf(Mb / 1e6, 2) + " kN·m (resultante en el núcleo central de la altura de contacto); con k_bloque ≈ 4,5·k_c y el giro libre H9/f8 al vástago le llega ≈ 0 (≤ 18 % sin holgura)", dem: MH / 1e6, cap: Mb / 1e6, unit: "kN·m", ref: REFE });
+    }
     add({ kind: "geo", name: "masa del cilindro fabricado frente a la masa por cilindro del núcleo (m_cyl)", formula: "Σ piezas (camisa " + nf(g.masas.camisa, 1) + ", fondo " + nf(g.masas.fondo, 1) + ", ojales " + nf(g.masas.ojal_trasero + g.masas.ojal_vastago, 1) + ", tapa " + nf(g.masas.tapa, 1) + ", pistón y tuerca " + nf(g.masas.piston + g.masas.tuerca, 1) + ", vástago " + nf(g.masas.vastago, 1) + ", rótula y aceite) ≤ m_cyl", dem: g.mTot, cap: P.m_cyl, unit: "kg", ref: "Geometría (ρ = 7850 kg/m³)" });
     add({ kind: "info", name: "prueba hidráulica de fábrica de cada cilindro", formula: "p_prueba = " + nf(k, 2) + "·p_alivio = " + nf(ptb, 0) + " bar en cada cámara por separado (pistón a tope), 10 min sin caída ni fugas; la fila térmica del núcleo «aceite atrapado tras el calado» sigue comparando con 1,5·p_max (pendiente de pasar a " + nf(ptb, 0) + " bar en el escenario térmico)", dem: ptb, cap: pb, unit: "bar", ref: "Decisión del mandante; ISO 10100:2020 (ensayo de aceptación de cilindros, referencia)" });
     add({ kind: "geo", name: "sellos: presión de trabajo del alivio frente a la nominal de trabajo de los sellos (S1 a S8)", formula: "p_alivio ≤ p_trabajo,sellos = 680 bar (dato confirmado por el mandante 19-11-2026; con las holguras de extrusión de las láminas)", dem: pb, cap: 680, unit: "bar", ref: "ISO 7425-1/-2, ISO 5597, ISO 3601-3; dato confirmado por el mandante 19-11-2026" });
@@ -420,7 +434,9 @@ const BX = (() => {
       notas: ["Cilindro FABRICADO (decisión del mandante 19-11-2026); reemplaza la especificación de compra ACC-013 comercial.", "Largo retraído " + P.L0 + " mm entre ejes de ojales (tuerca contra el fondo: tope mecánico del retraído); extendido " + (P.L0 + P.stroke) + " mm = retraído + carrera (pistón contra la espiga de la tapa: tope de seguridad, no se alcanza en servicio).",
         "Sin amortiguación de fin de carrera: retorno a " + nf((P.Q_ret > 0 ? P.Q_ret : P.Q_pump) / 60000 / (P.n_cyl * g.Aan * 1e-6) * 1000, 1) + " mm/s < 0,1 m/s; fin de carrera por presostato/posición del control.", "Los sellos van por dentro de la rosca de la tapa: la rosca y la pared de 10 mm de la camisa no ven presión.",
         "Prueba hidráulica de fábrica a " + g.kt * P.p_relief + " bar (" + nf(g.kt, 2) + " × p_alivio " + P.p_relief + " bar) con certificado; alivio del sistema " + P.p_relief + " bar, alarma " + P.p_alarm + " bar."],
-      masas: g.masas, masa_total: g.mTot, verificaciones: rows };
+      masas: g.masas, masa_total: g.mTot, verificaciones: rows,
+      dz_tol: Q.bx_cyl_dz, dz_adm: (() => { const r = (checks || []).find((c) => /desnivel especificado/.test(c.name)); return r ? r.cap : null; })(),
+      dz_nota: "Desnivel entre los ejes E (soporte E) y Q (bloque-uña sobre la placa-guía): |z_E − z_Q| ≤ " + nf(Q.bx_cyl_dz, 1) + " mm (cada eje a su cota ± " + nf(Q.bx_cyl_dz / 2, 1) + " sobre la base), medido con nivel óptico en el montaje; aprobado por el mandante 19-11-2026. Criterio: estudio del ojal del vástago (rev. 7e), Δz admisible 1,3 mm sin holgura (1,0 mm en el retraído, fila «Cilindro» del núcleo BX)" };
   }
 
 
