@@ -169,44 +169,12 @@ def build(m, g, D, log):
     t_d = float(DSK["t"])
     Ri, Ro = float(DSK["R_int"]), float(DSK["R_ext"])
     zd0 = z0 - t_d                                   # cara de deslizamiento del disco (cara inferior)
-    # ---- disco de la mesa: semidiscos con la línea de CJP sobre el eje x (y = 0) ----
-    LD = lay_disco(X)
-    T = DSK["tornillos"]
-    rec_d = float(T["cabeza_bajo_cara"])
-    disc = ring(Ri, Ro, t_d, zd0)
-    cuts = []
-    for b in T["lista"]:
-        cuts.extend(csink_cut(LD, float(b["x"]), float(b["y"]), zd0, rec_d, +1, t_d))
-    disc = disc.cut(compound(cuts))
-    big = 2.0 * Ro + 20.0
-    halves = []
-    for sgn in (1, -1):
-        bx_ = cq.Workplane("XY").box(big, big / 2, t_d + 4, centered=(True, False, False)).translate((0, 0, zd0 - 2))
-        if sgn < 0:
-            bx_ = bx_.mirror("XZ")
-        halves.append(disc.intersect(bx_))
-    vol = sum(h.val().Volume() for h in halves)
-    rho_d = float(DSK["masa"]) / (math.pi * (Ro ** 2 - Ri ** 2) * t_d)          # densidad implícita del núcleo (disco lleno)
-    n_semi = int(DSK.get("semidiscos", 2))
-    cjp = DSK["cjp"]
-    fd = fab_row(g, "disco") or {}
-    m.add(Part("int_bx_disco_mesa", "INT", "", f"Semidisco de {DSK['material']} e = {fm(t_d, 0)}, R{fm(Ri, 0)}…R{fm(Ro, 0)}; {n_semi} semidiscos unidos con {cjp['tipo']} ({cjp['norma']}); "
-               f"{T['n']} avellanados {T['avellanado']}", compound(halves), n_semi, f"{DSK['material']} (Fy ≥ {f(DSK['Fy'])} MPa, Fu ≥ {f(DSK['Fu'])} MPa) — {DSK['fuente_material']}",
-               (fd.get("despues") or "") + f"; {DSK['acabado']}", rho=rho_d, core="ss", color=(0.8, 0.82, 0.85), tratamiento="Decapado y pasivado de la CJP (ASTM A380/A967)",
-               obs=f"Atornillado a la mesa ({T['n']} × {T['designacion_base']}); CJP {cjp['acabado']}"))
-    m.info["bx_vol_disco"] = vol
-    # tornillos del disco (roscan en la mesa): uno por posición del bloque bx
-    scr = []
-    for b in T["lista"]:
-        w, _zt = screw_solid(LD, float(b["x"]), float(b["y"]), zd0, rec_d, +1, float(b["L"]))
-        scr.append(w)
-    Ls = sorted({int(b["L"]) for b in T["lista"]})
-    des_ = T["designacion_base"]
-    m.add(Part("int_bx_tor_mesa", "INT", "", f"Tornillo {des_} × {'/'.join(str(x) for x in Ls)}, {T['n']} en {len(T['anillos'])} anillos (malla {fm(T['paso_malla'], 0)}); cabeza {fm(rec_d, 1)} bajo la cara de deslizamiento",
-               compound(scr), int(T["n"]), _clase(des_), "Comercial", in_core=False, comercial=True,
-               catalogo=f"{des_} × {'/'.join(str(x) for x in Ls)} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32),
-               obs="Toman el par de la interfaz y la dilatación diferencial disco–mesa (núcleo, filas «BX · Tornillos del disco»); " + T["nota"]))
-    m.info["bx_holes_mesa"] = [(float(b["x"]), float(b["y"]), bool(b["anillo"]), bool(b["ciego"]), float(b["prof"])) for b in T["lista"]]
+    if modo_lamina(X):
+        _lamina(m, g, X, Part, cyl, ring, compound)
+        desc_mesa = f"lámina {fm(float(DSK['t']), 0)} soldada ({DSK['lamina']['n_paneles']} paneles, {DSK['tapones']['n']} tapones)"
+    else:
+        _disco_atornillado(m, g, X, Part, ring, compound, csink_cut, screw_solid)
+        desc_mesa = f"disco {DSK.get('semidiscos')} semidiscos e{fm(float(DSK['t']), 0)}, {DSK['tornillos']['n']} tornillos"
     # ---- portador soldado a la base ----
     t_c = float(POR["t"])
     por = ring(float(POR["R_int"]), float(POR["R_ext"]), t_c, tb)
@@ -226,7 +194,7 @@ def build(m, g, D, log):
     por = por.cut(compound(holes))
     fp = fab_row(g, "portador") or {}
     m.add(Part("int_bx_portador", "INT", "", f"Plancha e = {fm(t_c, 0)}, R{fm(POR['R_int'], 0)}…R{fm(POR['R_ext'], 0)}, {POR['agujeros']['n']} agujeros {ptxt(F, F['nom'])} (patrón {POR['patron']['tipo']}, paso {fm(POR['paso'], 0)}, ligamento {fm(POR['ligamento'], 0)})"
-               + (f" y {TP['n']} agujeros de soldadura Ø{fm(TP['d'], 0)}" if TP.get("n") else ""), por, 1, POR["material"] + " — certificado EN 10204 3.1",
+               + (f" y {TP['n']} agujeros de soldadura Ø{fm(TP['d'], 0)}" if TP.get("n") else ""), por, 1, mat_portador(X) + " — certificado EN 10204 3.1",
                fp.get("despues") or POR["corte"], core="bxPortador", color=(0.55, 0.57, 0.6),
                obs=f"{POR['corte']}; soldado a la base con filetes perimetrales z{fm(POR['filetes']['w'], 0)} exterior e interior"))
     m.info["relleno_soldadura"] = dict(m.info.get("relleno_soldadura") or {}, bxPortador=float(POR.get("masa_filetes") or 0.0))
@@ -275,15 +243,115 @@ def build(m, g, D, log):
             p_.obs = f"{r_['motivo']} (tabla de fabricación BX: {r_['estado']})"
         else:
             p_.process = p_.process + f"; BX ({r_['estado']}): {r_['despues']}"
-    log(f"  interfaz BX: disco {n_semi} semidiscos e{fm(t_d, 0)}, {T['n']} tornillos; portador e{fm(t_c, 0)} con {len(hp_)} agujeros; {PAS['n']} pastillas")
+    log(f"  interfaz BX: {desc_mesa}; portador e{fm(t_c, 0)} con {len(hp_)} agujeros; {PAS['n']} pastillas")
 
+
+def _disco_atornillado(m, g, X, Part, ring, compound, csink_cut, screw_solid):
+    """Modo 0 (bx_disc_modo = 0): disco macizo en semidiscos con CJP, atornillado a la mesa con tornillos avellanados (INT-016, INT-017)."""
+    DSK = X["disco"]
+    t_d = float(DSK["t"])
+    Ri, Ro = float(DSK["R_int"]), float(DSK["R_ext"])
+    zd0 = g.z0 - t_d                                 # cara de deslizamiento del disco (cara inferior)
+    LD = lay_disco(X)
+    T = DSK["tornillos"]
+    rec_d = float(T["cabeza_bajo_cara"])
+    disc = ring(Ri, Ro, t_d, zd0)
+    cuts = []
+    for b in T["lista"]:
+        cuts.extend(csink_cut(LD, float(b["x"]), float(b["y"]), zd0, rec_d, +1, t_d))
+    disc = disc.cut(compound(cuts))
+    big = 2.0 * Ro + 20.0
+    halves = []
+    for sgn in (1, -1):
+        bx_ = cq.Workplane("XY").box(big, big / 2, t_d + 4, centered=(True, False, False)).translate((0, 0, zd0 - 2))
+        if sgn < 0:
+            bx_ = bx_.mirror("XZ")
+        halves.append(disc.intersect(bx_))
+    vol = sum(h.val().Volume() for h in halves)
+    rho_d = float(DSK["masa"]) / (math.pi * (Ro ** 2 - Ri ** 2) * t_d)          # densidad implícita del núcleo (disco lleno)
+    n_semi = int(DSK.get("semidiscos", 2))
+    cjp = DSK["cjp"]
+    fd = fab_row(g, "disco") or {}
+    m.add(Part("int_bx_disco_mesa", "INT", "", f"Semidisco de {DSK['material']} e = {fm(t_d, 0)}, R{fm(Ri, 0)}…R{fm(Ro, 0)}; {n_semi} semidiscos unidos con {cjp['tipo']} ({cjp['norma']}); "
+               f"{T['n']} avellanados {T['avellanado']}", compound(halves), n_semi, f"{DSK['material']} (Fy ≥ {f(DSK['Fy'])} MPa, Fu ≥ {f(DSK['Fu'])} MPa) — {DSK['fuente_material']}",
+               (fd.get("despues") or "") + f"; {DSK['acabado']}", rho=rho_d, core="ss", color=(0.8, 0.82, 0.85), tratamiento="Decapado y pasivado de la CJP (ASTM A380/A967)",
+               obs=f"Atornillado a la mesa ({T['n']} × {T['designacion_base']}); CJP {cjp['acabado']}"))
+    m.info["bx_vol_disco"] = vol
+    # tornillos del disco (roscan en la mesa): uno por posición del bloque bx
+    scr = []
+    for b in T["lista"]:
+        w, _zt = screw_solid(LD, float(b["x"]), float(b["y"]), zd0, rec_d, +1, float(b["L"]))
+        scr.append(w)
+    Ls = sorted({int(b["L"]) for b in T["lista"]})
+    des_ = T["designacion_base"]
+    m.add(Part("int_bx_tor_mesa", "INT", "", f"Tornillo {des_} × {'/'.join(str(x) for x in Ls)}, {T['n']} en {len(T['anillos'])} anillos (malla {fm(T['paso_malla'], 0)}); cabeza {fm(rec_d, 1)} bajo la cara de deslizamiento",
+               compound(scr), int(T["n"]), _clase(des_), "Comercial", in_core=False, comercial=True,
+               catalogo=f"{des_} × {'/'.join(str(x) for x in Ls)} (código de catálogo: A DEFINIR POR CATÁLOGO)", color=(0.3, 0.3, 0.32),
+               obs="Toman el par de la interfaz y la dilatación diferencial disco–mesa (núcleo, filas «BX · Tornillos del disco»); " + T["nota"]))
+    m.info["bx_holes_mesa"] = [(float(b["x"]), float(b["y"]), bool(b["anillo"]), bool(b["ciego"]), float(b["prof"])) for b in T["lista"]]
+
+
+def mat_portador(X):
+    """Calidad del portador sin la nota de revisión del núcleo («ASTM A572 Gr. 50 (Fy 345, Fu 450 MPa) (rev. 6, …)» → «ASTM A572 Gr. 50 (Fy 345, Fu 450 MPa)»)."""
+    return str(X["portador"]["material"]).split(" (rev.")[0].strip()
+
+
+def modo_lamina(X):
+    """bx_disc_modo = 1 (rev. 5 en adelante): lámina inoxidable delgada SOLDADA a la plancha inferior de la mesa (paneles, junta a tope CJP, tapones y
+    costuras perimetrales; bloques disco.lamina, disco.tapones y disco.costura del JSON) en lugar del disco macizo atornillado (modo 0)."""
+    return int((X.get("disco") or {}).get("modo") or 0) == 1 and bool((X["disco"].get("lamina") or {}).get("paneles"))
+
+
+def tapones_por_anillo(X):
+    """Tapones de la lámina agrupados por anillo: [dict(i, r, n, pista, a0, paso, lista)] en el orden del JSON (disco.tapones.anillos)."""
+    TP = X["disco"]["tapones"]
+    out = []
+    for i, an in enumerate(TP.get("anillos") or []):
+        ls = [q for q in TP["lista"] if int(q.get("anillo", -1)) == i]
+        angs = sorted((math.degrees(math.atan2(float(q["y"]), float(q["x"]))) % 360.0) for q in ls)
+        out.append(dict(i=i, r=float(an["r"]), n=len(ls), pista=bool(an.get("pista")), a0=(angs[0] if angs else 0.0), paso=(360.0 / len(ls) if ls else 0.0), lista=ls,
+                        V=max((float(q.get("V", 0)) for q in ls), default=0.0), angs=angs))
+    return out
+
+
+def _lamina(m, g, X, Part, cyl, ring, compound):
+    """Modo 1: lámina 304 espejo en paneles (franjas paralelas a x), agujeros Ø d de los tapones; la junta CJP entre paneles va sobre y = linea_y.
+    Se modela cada panel con sus agujeros (el aporte de los tapones, la junta y las costuras es soldadura: registro de soldaduras)."""
+    DSK = X["disco"]
+    L, TP = DSK["lamina"], DSK["tapones"]
+    t = float(L.get("espesor") or DSK["t"])
+    Ri, Ro = float(L["R_int"]), float(L["R_ext"])
+    zd0 = g.z0 - t
+    lam = ring(Ri, Ro, t, zd0)
+    hs = [cyl(float(TP["d"]) / 2, t + 2, zd0 - 1, float(q["x"]), float(q["y"])) for q in TP["lista"]]
+    if hs:
+        lam = lam.cut(compound(hs))
+    big = 2.0 * Ro + 40.0
+    pans = []
+    for pn in L["paneles"]:
+        y0, y1 = float(pn["y0"]), float(pn["y1"])
+        bx_ = cq.Workplane("XY").box(big, y1 - y0, t + 4, centered=(True, False, False)).translate((0, y0, zd0 - 2))
+        pans.append(lam.intersect(bx_))
+    rho = float(DSK["masa"]) / (math.pi * (Ro ** 2 - Ri ** 2) * t)          # densidad implícita del núcleo (lámina llena)
+    fl = L["formato"]
+    mat = DSK["material"].split(",")[0]
+    m.add(Part("int_bx_lamina", "INT", "", f"Panel de lámina {mat} e = {fm(t, 0)}, {DSK['acabado'] if DSK.get('acabado') else 'espejo'}; corona R{fm(Ri, 0)}…R{fm(Ro, 0)} en {L['n_paneles']} paneles "
+               f"(formato {fm(fl[0], 0)} × {fm(fl[1], 0)}); {TP['n']} agujeros Ø{fm(TP['d'], 0)} para tapones", compound(pans), int(L["n_paneles"]),
+               f"{mat} (Fy ≥ {f(DSK['Fy'])} MPa, Fu ≥ {f(DSK['Fu'])} MPa), acabado espejo — certificado EN 10204 3.1",
+               f"Corte a láser o cizalla desde plancha {fm(fl[0], 0)} × {fm(fl[1], 0)} × {fm(t, 0)} con film protector; agujeros Ø{fm(TP['d'], 0)} taladrados o punzonados con plantilla; soldada a la mesa (tapones, junta y costuras)",
+               rho=rho, core="ss", color=(0.82, 0.84, 0.88), tratamiento="Decapado y pasivado local de tapones, junta y costuras (ASTM A380/A967); sin pintura",
+               obs=f"Soldada a la plancha inferior de la mesa: {TP['n']} tapones Ø{fm(TP['d'], 0)}, junta a tope CJP y costuras perimetrales z{fm(DSK['costura']['w'], 0)}"))
+    p_ = m.get("int_bx_lamina")
+    p_.volteable = False
+    m.info["bx_vol_disco"] = sum(x.val().Volume() for x in pans)
+    m.info["bx_holes_mesa"] = []
 
 def holes(m):
     """Roscas de la interfaz BX en la mesa (plancha inferior pasante / anillo inferior ciego) y en la plancha base (taladros ciegos de las pastillas)."""
     from modelo3d_tt300c import cyl, compound
     g = m.g
     X = g.bx
-    d_m = float(X["disco"]["tornillos"]["d"])
+    d_m = float(X["disco"]["tornillos"].get("d") or 0.0)
     pl, an = [], []
     for (x, y, anillo, ciego, prof) in m.info.get("bx_holes_mesa") or []:
         if anillo or ciego:
@@ -307,9 +375,11 @@ def disco_recorte(g, cx, cy, hw, z0, z1, rot=0.0):
     """Recorte del disco BX a la caja |x − cx| ≤ hw, |y − cy| ≤ hw, z0…z1 en el sistema girado rot° (cortes de detalle). Se reconstruye desde el
     JSON en ese sistema (la corona no cambia al girar; se giran los centros de los avellanados y la línea de la CJP) porque el booleano de OCC
     sobre el disco completo con todos los avellanados falla con cajas giradas."""
-    from modelo3d_tt300c import ring, compound, csink_cut
+    from modelo3d_tt300c import ring, compound, csink_cut, cyl
     X = g.bx
     DSK = X["disco"]
+    if modo_lamina(X):
+        return _lamina_recorte(g, X, cx, cy, hw, z0, z1, rot, ring, compound, cyl)
     T = DSK["tornillos"]
     t_d, Ri, Ro = float(DSK["t"]), float(DSK["R_int"]), float(DSK["R_ext"])
     zd0 = g.z0 - t_d
@@ -337,6 +407,39 @@ def disco_recorte(g, cx, cy, hw, z0, z1, rot=0.0):
             out.extend(loc.intersect(hb).Solids())
         if abs(sum(x_.Volume() for x_ in out) - loc.Volume()) <= 1e-3 * loc.Volume():
             return out
+    return loc.Solids()
+
+
+def _lamina_recorte(g, X, cx, cy, hw, z0, z1, rot, ring, compound, cyl):
+    """Modo 1: recorte de la lámina (corona con los agujeros de los tapones, partida en las líneas de la junta) en el sistema girado rot°."""
+    DSK = X["disco"]
+    L, TP = DSK["lamina"], DSK["tapones"]
+    t = float(L.get("espesor") or DSK["t"])
+    Ri, Ro = float(L["R_int"]), float(L["R_ext"])
+    zd0 = g.z0 - t
+    box = cq.Solid.makeBox(2 * hw, 2 * hw, z1 - z0, cq.Vector(cx - hw, cy - hw, z0))
+    loc = ring(Ri, Ro, t, zd0).val().intersect(box)
+    if not loc.Solids():
+        return []
+    ca, sa = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+    cuts = []
+    for q in TP["lista"]:
+        x, y = float(q["x"]) * ca - float(q["y"]) * sa, float(q["x"]) * sa + float(q["y"]) * ca
+        if abs(x - cx) <= hw + 15 and abs(y - cy) <= hw + 15:
+            cuts.append(cyl(float(TP["d"]) / 2, t + 2, zd0 - 1, x, y))
+    if cuts:
+        loc = loc.cut(compound(cuts).val())
+    nx, ny = -sa, ca
+    big = 2.0 * Ro + 40.0
+    for yl in (L.get("junta") or {}).get("lineas_y") or []:
+        ds = [x_ * nx + y_ * ny - float(yl) for x_ in (cx - hw, cx + hw) for y_ in (cy - hw, cy + hw)]
+        if min(ds) < 0 < max(ds):
+            out = []
+            for sgn in (1, -1):
+                hb = cq.Solid.makeBox(big, big / 2, t + 4, cq.Vector(-big / 2, float(yl) + (0 if sgn > 0 else -big / 2), zd0 - 2)).rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), rot)
+                out.extend(loc.intersect(hb).Solids())
+            if abs(sum(x_.Volume() for x_ in out) - loc.Volume()) <= 1e-3 * loc.Volume():
+                return out
     return loc.Solids()
 
 

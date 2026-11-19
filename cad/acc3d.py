@@ -39,7 +39,23 @@ BAS_NUM = {"cajon_pared_x": 12, "cajon_pared_y": 13, "cajon_munon": 14, "cajon_t
            "marco_largo_int_r550": 37, "marco_corto_int_r550": 38, "marco_largo_int_r545": 39, "marco_corto_int_r545": 40,
            "marco_largo_ins_g": 41, "marco_corto_ins_g": 42,
            # TT300-BX: atiesador del refuerzo con el alto de la interfaz BX
-           "refuerzo_ati_h65": 43, "refuerzo_ati_h75": 44}
+           "refuerzo_ati_h65": 43, "refuerzo_ati_h75": 44,
+           # TT300-BX rev. 7: refuerzo de 45 con lado 550 (el 29 es de lado 545) y atiesador de 22 (clave rib_t del núcleo; los anteriores son de 30)
+           "refuerzo_E45_l550": 45, "refuerzo_ati_t22_h60": 46}
+
+
+def num_refuerzo(g, td, lado):
+    """Número de pieza del refuerzo de esquina: por modo y espesor («refuerzo_E<t_d>»); si el registro distingue el lado, «…_l<lado>»."""
+    k = "refuerzo_" + ("E" if g.modo == 2 else "G") + str(int(round(td)))
+    return BAS_NUM.get(k + "_l" + str(int(round(lado))), BAS_NUM.get(k, 99))
+
+
+def num_atiesador(AT):
+    """Número de pieza del atiesador tangencial: por alto («refuerzo_ati_h<h>», espesor 30 del núcleo); con otro espesor, «refuerzo_ati_t<t>_h<h>»."""
+    h, t = str(int(round(float(AT["h"])))), float(AT.get("t") or 30.0)
+    if abs(t - 30.0) > 1e-6:
+        return BAS_NUM.get("refuerzo_ati_t" + str(int(round(t))) + "_h" + h, 99)
+    return BAS_NUM.get("refuerzo_ati_h" + h, 99)
 # registro de la interrupción del marco del modo pivotado por lado del refuerzo (mm, redondeado a 0,1) → sufijo de BAS_NUM
 MARCO_PIV_CATETO = {550.0: "_r550", 545.0: "_r545"}
 
@@ -119,6 +135,8 @@ def _cajon(m, g, Part, info):
         info["cajones"][lk] = dict(E=E, box=(min(xs), max(xs), min(ys), max(ys)), piezas={pz["id"]: pz for pz in S[lk]["piezas"]})
     loc = {pz["id"]: pz for pz in S["piezas"]}
     mS = "S355J2 (EN 10025-2), Fy ≥ 345 MPa (núcleo: «" + S["material"] + "»)"
+    if g.opt == 4:                       # TT300-BX: calidad del núcleo tal cual (rev. 7: ASTM A572 Gr. 50), sin equivalencia S355J2
+        mS = S["material"].split(" (paredes")[0] + " — certificado EN 10204 3.1"
 
     def dims(pid):
         pz = loc[pid]

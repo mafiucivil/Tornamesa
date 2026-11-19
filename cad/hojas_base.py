@@ -67,6 +67,10 @@ class Ctx:
         ]
         if g.opt == 4:                   # TT300-BX: primera emisión del juego con la interfaz BX (bloque «bx» del JSON)
             self.revs[0] = ("C", g.FECHA, "EMITIDO PARA REVISIÓN. Juego TT300-BX: disco atornillado y pastillas de UHMW en portador; fabricación según GEN-026. Valores del JSON de diseño (bloque «bx»).", "A DEFINIR", "A DEFINIR", "A DEFINIR")
+            if int((g.bx["disco"].get("modo") or 0)) == 1:
+                rv_ = str(g.bx.get("revision") or "").split(":")[0] or "TT300-BX"
+                self.revs[0] = ("C", g.FECHA, f"EMITIDO PARA REVISIÓN. {rv_}: {f(g.P['W_tf'])} t, alivio {f(g.P['p_relief'])} bar; lámina inox. soldada a la mesa y pastillas UHMW; valores del JSON de diseño.",
+                                "A DEFINIR", "A DEFINIR", "A DEFINIR")
 
     # --------------- copias locales de piezas ---------------
     def local(self, key, newkey, near=None, r=1e9, shift=(0, 0, 0), rot=0.0):
@@ -191,7 +195,7 @@ class Hoja:
 
     def info(self, n, total):
         g = self.ctx.g
-        return dict(proj=("TT300-BX" if g.opt == 4 else "TT300-C") + " · TORNAMESA HIDRÁULICA 300 tf", subproj=f"Variante {g.variante} · {g.variante_nombre}", titulo=self.titulo, plano=self.plano, lamina=f"{n} de {total}",
+        return dict(proj=("TT300-BX" if g.opt == 4 else "TT300-C") + " · TORNAMESA HIDRÁULICA " + (f"{f(g.P['W_tf'])} tf" if g.opt == 4 else "300 tf"), subproj=f"Variante {g.variante} · {g.variante_nombre}", titulo=self.titulo, plano=self.plano, lamina=f"{n} de {total}",
                     escala=self._escala_txt(), formato=f"{self.fmt} ({int(self.s.W)}×{int(self.s.H)})", material=self.material, masa=self.masa, trat=self.trat, rev=REV, fecha=g.FECHA, revs=self.ctx.revs,
                     aviso=ADVERTENCIA, estado=("RETENIDA (REQUIERE NÚCLEO, GEN-009) — EMITIDA PARA REVISIÓN — NO FABRICAR" if self.retenida else
                                                "EMITIDO PARA REVISIÓN — NO APTO PARA FABRICACIÓN HASTA SU APROBACIÓN"),
@@ -410,6 +414,8 @@ def build_welds(ctx):
                   prep="Bisel 45° en el cubo, raíz 2 mm, respaldo interior (unión en T)", prep_txt="45°", groove=True, len_total=math.pi * P["D_hub"], wps=6, end="VT 100 % · UT 100 %", jid=jid_)
         jw_["en_T"] = True
         jw_["t_alma"] = (P["D_hub"] - g.d_bush) / 2
+        if g.opt == 4:
+            jw_["txt_corto"] = True      # TT300-BX (planchas de 22): cota corta en el detalle de la unión en T (el detalle queda a 1:1 junto al otro)
     rc_ = ranuras_cierre(ctx)
     n_sl = sum(r[3] for r in rc_)
     j18 = add_n(18, "Cierre de la plancha superior (soldadura de ranura sobre almas y nervios)", "MES-001 / MES-005…010", f"Ranura 22×80 c/250, relleno completo ({n_sl} ranuras, tabla de MES-001)", "slot", t=g.tt, groove=True, prep="Ranura rectangular 22×80 pasante, relleno completo",
@@ -728,7 +734,9 @@ def inspecciones(ctx):
           [("Dimensional", f"Placas-guía: contorno del canto de contacto dentro de la tolerancia de perfil de {ctx.code('placa_leva').replace(CODE + '-', '')} / {ctx.code('placa_leva_h').replace(CODE + '-', '')} respecto de los agujeros de los pernos; posición de las placas en la base según la tabla de BAS-001 (roscas M{f(g.FPV['placas_leva']['pernos']['d'])} en posición Ø0,5).", "100 %", "Plantilla / CMM portátil")]),
         *([("Dimensional", "Riel-leva: perfil del canto de leva según ACC-007 (tolerancia de perfil respecto de los agujeros); pórticos: tapas a la cota del núcleo bajo el riel, holgura riel–patín ≥ 2 mm en toda la carrera.", "100 %", "Plantilla / galgas")] if g.FLG else []),
         *(__import__("bx_notas").inspecciones(ctx) if g.opt == 4 else []),
-        ("Montaje", ("Interfaz BX: portador centrado y soldado, pastillas a presión con su saliente sobre el portador y tornillos con cabeza bajo la cara; disco atornillado con la CJP sobre el eje x; caras sin partículas (CON-012)." if g.opt == 4 else
+        ("Montaje", ("Interfaz BX: portador centrado y soldado, pastillas a presión con su saliente sobre el portador y tornillos con cabeza bajo la cara; "
+                     + ("lámina inoxidable soldada a la mesa (tapones, junta y costuras esmerilados a ras; separación lámina–plancha ≤ " + fm(float((g.bx['disco'].get('despegue_panel') or {}).get('g0') or 0.2), 2) + " mm con galga)"
+                        if int((g.bx['disco'].get('modo') or 0)) == 1 else "disco atornillado con la CJP sobre el eje x") + "; caras sin partículas (CON-012)." if g.opt == 4 else
                      "Interfaz y engrase: película de grasa 0,3–0,5 mm por cara, sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt and g.opt != 2 else
                      "Interfaz: sectores de UHMW en el rebaje sin partículas; juntas en frío entre sectores con galga (CON-012)." if g.opt == 2 else
                      f"Interfaz acero–acero: película de grasa 0,3–0,5 mm sobre la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) y la cara inferior de la mesa, sin partículas (instructivo de montaje, paso 4)."), "100 %", "VT / galgas" if g.opt else "VT"),

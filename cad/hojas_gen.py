@@ -92,7 +92,7 @@ def normas(ctx):
          ("VDI 2230", "Uniones atornilladas (torques propuestos)"), ("AWS D1.1:2020", "Soldadura de acero estructural (cláusula 5 WPS precalificados, Figura 5.1 juntas CJP precalificadas, Tabla 7.7 filete mínimo, Tabla 5.8 precalentamiento, cláusula 8 END)"),
          ("AWS A5.1 / A5.18" + (" / A5.9" if g.opt == 2 else ""), "Metales de aporte"), ("ISO 9606-1 / ISO 17637", "Calificación de soldadores / inspección visual"),
          ("AISC 360-22", "Especificación (J2.2b filete máximo, D5.2 orejas)"), ("ASME BTH-1 Cat. B / ASME B30.26", "Dispositivos de izaje / grilletes"),
-         ("EN 10204 3.1", "Certificados de inspección"), ("EN 10025-2 (S355J2)" if (g.modo == 2 or ctx.m.info.get("refuerzo")) else "", "Acero del soporte del ojal E y de los refuerzos de esquina"), ("ASTM A572 Gr.50, A36 (ref.), A578, EN 10164", "Aceros estructurales, UT de planchas, propiedades en espesor"),
+         ("EN 10204 3.1", "Certificados de inspección"), (("ASTM A572 Gr. 50 / ASTM A770 (calidad Z)" if g.opt == 4 else "EN 10025-2 (S355J2)") if (g.modo == 2 or ctx.m.info.get("refuerzo")) else "", "Acero del soporte del ojal E y de los refuerzos de esquina"), ("ASTM A572 Gr.50, A36 (ref.), A578, EN 10164", "Aceros estructurales, UT de planchas, propiedades en espesor"),
          ("EN 10083-3 (34CrNiMo6+QT) / EN 10228-3", "Aceros bonificados (pasadores, uña) / UT de forjas"), ("ISO 15787", "Indicación de tratamientos térmicos en los planos (pasadores)"), ("DIN 71412" if g.n_greaser and g.opt in (1, 3) else "", "Graseras"),
          ("ISO 12944-5 / ISO 8501-1 / ISO 8503 / ISO 19840 / ISO 4624", "Protección anticorrosiva (C4 alta propuesto, GEN-006), preparación, EPS y adherencia")]
     if g.opt in (1, 2):
@@ -135,7 +135,7 @@ def sheet_notas(ctx):
     if g.opt != 4:
         # el registro incluye la variante TT300-BX (bloque «bx» del JSON): fuera de ese juego el mapa no la muestra (mismo mapa que antes de BX)
         INT_C = {k: v for k, v in INT_C.items() if v[2] != "BX"}
-        VAR_C = {k: [(tuple(x for x in vs if x != "BX"), d_, n_) for vs, d_, n_ in cl if [x for x in vs if x != "BX"]] for k, cl in VAR_C.items()}
+        VAR_C = {k: [(tuple(x for x in vs if not x.startswith("BX")), d_, n_) for vs, d_, n_ in cl if [x for x in vs if not x.startswith("BX")]] for k, cl in VAR_C.items()}
     for k, (n, nm, vv) in INT_C.items():
         key = k.split("/")[0]
         e = por_num.setdefault(n, dict(nm=nm, vv=vv, cl=[]))
@@ -174,7 +174,7 @@ def sheet_notas(ctx):
         _gr = {}
         for p_ in dk_:
             _gr.setdefault(p_.sub, []).append(f"{p_.num:03d}")
-        rows.append([" ".join(f"{sb}-{'/'.join(ns)}" for sb, ns in _gr.items()), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)", "todas",
+        rows.append([" ".join(f"{sb}-{'/'.join(ns)}" for sb, ns in _gr.items()), "alto según δ de la interfaz: -1 base/W · -2 A/C1…C3 · -3 AF2 · -4 B (en «-G» con sufijo «-G» en la variante)" + (" · -5 BX · -6 BX-L (lámina soldada, rev. 7)" if g.opt == 4 else ""), "todas",
                      ", ".join(p_.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:] for p_ in dk_)])
     for key, cl in VAR_C.items():
         if key.startswith("int_") or key in DELTA_KEYS or key == "placa_leva_h":
@@ -201,7 +201,8 @@ def sheet_notas(ctx):
         rows.append([base, f"{p0.name}: " + cods(base, cl2), "todas", p0.code.replace(CODE + "-", "").rsplit("-", 1)[0][4:]])
     # accionamiento: números fijos por modo (un código = una geometría en todos los juegos)
     rows.append(["ACC / BAS", "Accionamiento guiado («-G»): BAS-005…007, ACC-001…012, 019; pivotado: BAS-012…017 (soporte abierto del ojal E y marco interrumpido; BAS-008…011 anulados), ACC-013…024 y 027 (bloque-uña con garra; ACC-015 y ACC-023 anulados). Refuerzo por espesor: "
-                 "BAS-028 t35, 029 t45, 030 t50, 031 t30 «-G», 032 t45 «-G»; atiesador BAS-033…036 (h45, 60, 85, 100); marcos BAS-037…040 (pivotado), 041/042 «-G»; BAS-018…027 anulados",
+                 "BAS-028 t35, 029 t45, 030 t50, 031 t30 «-G», 032 t45 «-G»; atiesador BAS-033…036 (h45, 60, 85, 100); marcos BAS-037…040 (pivotado), 041/042 «-G»; BAS-018…027 anulados"
+                 + ("; TT300-BX: atiesador BAS-043/044 (30 × h65/h75), refuerzo BAS-045 (550 × 550 × 45, BX-L), atiesador BAS-046 (22 × 60, BX-L)" if g.opt == 4 else ""),
                  "todas", "pivotado" if g.modo == 2 else "guiado"])
     # el mapa lista los códigos que se usan en este juego con todas sus geometrías por variante; los números que solo existen en otras variantes van resumidos
     otros = [r_ for r_ in rows if r_[3] == "—"]

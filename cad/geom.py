@@ -224,6 +224,13 @@ class G:
     # ------------------------------------------------------------------
     @property
     def interfaz_nombre(self):
+        if self.opt == 4 and int((self.bx["disco"].get("modo") or 0)) == 1:
+            X = self.bx
+            L_ = X["disco"]["lamina"]
+            return (f"Interfaz BX: lámina {X['disco']['material'].split(',')[0]} e = {fm(X['disco']['t'], 0)} espejo SOLDADA a la mesa ({L_['n_paneles']} paneles, junta CJP, "
+                    f"{X['disco']['tapones']['n']} tapones y costuras) sobre {X['pastillas']['n']} pastillas de UHMW-PE "
+                    + (f"Ø{fm(X['pastillas']['d'], 0)}" if X['pastillas'].get('d') and not str(X['pastillas'].get('forma', '')).lower().startswith('cuad') else f"cuadradas de {fm(X['pastillas'].get('lado') or 0, 0)}")
+                    + f" en un portador de acero e = {fm(X['portador']['t'], 0)} soldado a la base")
         if self.opt == 4:
             X = self.bx
             return (f"Interfaz BX: disco de {X['disco']['material']} e = {fm(X['disco']['t'], 0)} atornillado a la mesa ({X['disco']['semidiscos']} semidiscos con CJP) "

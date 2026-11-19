@@ -393,7 +393,7 @@ def expl_dz(ctx, p):
     if k == "tapa_insp": return EXPL["tapa_insp"]
     if k in ("pernos_pasador", "arandela_pasador"): return EXPL["pernos"]
     if k in ("madera", "madera_anillo"): return EXPL["madera"]
-    if sub == "INT": return EXPL["interfaz_m"] if ("mesa" in k or k in ("int_cara", "graseras") or "uhmw" in k) else EXPL["interfaz_b"]
+    if sub == "INT": return EXPL["interfaz_m"] if ("mesa" in k or k in ("int_cara", "graseras", "int_bx_lamina") or "uhmw" in k) else EXPL["interfaz_b"]
     if sub == "MES": return EXPL["mesa"]
     if k in ("cilindro", "patin", "una", "pasador_vastago", "pasador_ojal"): return EXPL["acc"]
     return 0
@@ -632,7 +632,7 @@ PIV_KEYS = ("pivote", "buje", "tapa_ret")
 
 def int_side(k):
     """Lado de la interfaz: 'mesa' (fijado bajo la mesa) o 'base' (sobre la plancha base)."""
-    return "mesa" if ("mesa" in k or k in ("int_cara", "graseras")) else "base"
+    return "mesa" if ("mesa" in k or k in ("int_cara", "graseras", "int_bx_lamina")) else "base"
 
 
 def grupos(ctx):
@@ -1208,7 +1208,8 @@ def sheet_mesa_conj2(ctx):
             V.dimh((g.D_boss / 2, 0, g.tb + g.h_boss / 2), (g.Drb / 2, 0, g.z0 + g.tbo / 2), "top", 0, on=["collar", "mesa_plancha_inf"], text=f"{fm(g.c_boss_r, 0)} (holgura radial)")
             V.dimv((g.D_boss / 2 - 6, 0, g.tb + g.h_boss), (g.D_boss / 2 - 6, 0, g.z_techo), "left", 0, on=["collar", "mesa_cubo"], text=f"{fm(g.c_boss_a, 0)} (holgura axial)")
     c.vs("cc", kc, "front", cut=CUT_Y, center=(g.D_boss / 2, 0, g.tb + 20), win=(-70, -45, 60, g.h_boss + 70), lv=(1, 1, 1, 1), draw=cc, mat=mats(ctx, kc), hs=0.3, maxs=2.0, title="REBAJE DEL COLLAR: HOLGURAS (detalle)", auto=False, w=1.0)
-    jn = [w["id"] for w in ctx.welds if "MES" in w["piezas"] or "INT tope mesa" in w["piezas"]]
+    # TT300-BX: la lámina soldada a la plancha inferior (J30, J34…J36) va en el conjunto de la interfaz (CON-012) y en su lámina, no en la mesa
+    jn = [w["id"] for w in ctx.welds if ("MES" in w["piezas"] or "INT tope mesa" in w["piezas"]) and not (g.opt == 4 and w["id"] in ("J30", "J34", "J35", "J36"))]
     for i, wid in enumerate([w["id"] for w in ctx.welds if "MES" in w["piezas"]][:3]):
         add_prep(c, f"dj{i}", ctx.weld_by_id(wid), t1=g.tpr)
     rows = []
@@ -1510,8 +1511,29 @@ def sheet_cajon_conj(ctx):
         # referencia (sh = −1: la flecha no atraviesa el propio símbolo) y la pila por encima de los globos del lado izquierdo
         js_ = sorted((j_ for j_ in juntas_ if j_[0]), key=lambda j_: -j_[1][1])
         q0_ = V.P((x0 - 15, y1 + 150, zt))
-        for i_, (jid_, pt_) in enumerate(js_):
-            c.h.weld(jid_, V.P((pt_[0], pt_[1], zt)), (q0_[0], q0_[1] - i_ * 21.0), sh=-1)
+
+        def pila_(dy_):
+            n_ent0_, n_res0_, n_wh0_ = len(c.s.m), len(getattr(c.s, "reserved", [])), len(c.h.welds_here)
+            n_ent1_ = n_ent0_
+            for i_, (jid_, pt_) in enumerate(js_):
+                n_ent1_ = len(c.s.m)
+                c.h.weld(jid_, V.P((pt_[0], pt_[1], zt)), (q0_[0], q0_[1] + dy_ - i_ * 21.0), sh=-1)
+            return n_ent0_, n_ent1_, n_res0_, n_wh0_
+        n_ent0, n_ent1, n_res0, n_wh0 = pila_(0.0)
+        # si un texto de la pila choca (criterio del control gráfico, colisiones.choques) con un texto ya dibujado (globos del lado izquierdo), la pila
+        # se redibuja más arriba lo justo; sin choque no cambia nada
+        import colisiones as C_
+        ents_ = list(c.s.m)
+        tp_ = C_.text_boxes(ents_[n_ent0:])
+        to_ = C_.text_boxes(ents_[:n_ent0])
+        sube_ = [b_[3] - a_[1] for a_ in tp_ for b_ in to_ if C_.overlap(a_, b_) > C_.UMBRAL]
+        if sube_:
+            for e_ in ents_[n_ent0:]:
+                c.s.m.delete_entity(e_)
+            if hasattr(c.s, "reserved"):
+                del c.s.reserved[n_res0:]
+            del c.h.welds_here[n_wh0:]
+            pila_(max(sube_) + 1.0)
         c.cut_mark("planta", "A", (E[0], y0 - 50, zt), (E[0], y1 + 50, zt), 0)
     c.datum_in("planta", "surf", "B", at=[(B / 2, y1 + 100, tb), (B / 2, y0 - 60, tb)], d=(1, 0, 0))
     c.datum_in("planta", "surf", "C", at=[(x0 - 100, -B / 2, tb), (x1 - 160, -B / 2, tb)], d=(0, -1, 0))

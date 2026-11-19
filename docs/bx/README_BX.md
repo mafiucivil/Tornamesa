@@ -329,3 +329,19 @@ FEA de la base bajo el soporte E: con la malla de 40 mm de la calibración el si
 malla (calado 0,865/0,900/0,962/0,816; retorno 0,824/0,654/0,666/0,471; núcleo 0,831/0,785). Se reemplaza el crédito por la envolvente (factor 1,158 en el
 empuje y 1,050 en el retorno sobre la fila del núcleo, con t_base ≥ 22; sin crédito por espesor). Pendiente: estudio de convergencia de malla de la FEA
 de la base (máscara rígida de soportes delgados) y recalibración de `DBL_CAL` con la geometría rev. 7.
+
+### 11.1 Planos de fabricación (cad/, 18-11-2026)
+
+`python3 cad/generar_paquete.py <JSON BX> --out <dir>` genera el juego BX rev. 7 desde el JSON (fuente única; sin valores a mano):
+
+- **INT-021** (pieza nueva, solo con `bx_disc_modo = 1`): lámina inoxidable espejo soldada a la mesa: planta con los paneles y la junta, tabla
+  de tapones por anillo, tabla de paneles, detalles de la junta a tope CJP (J30), del tapón Ø14 relleno = t esmerilado a ras (J34) y de las
+  costuras perimetrales (J35 exterior, J36 interior), secuencia de soldadura por zonas (`disco.fabricacion`), g₀ ≤ 0,2 mm, WPS disímil 309L
+  calificada (AWS D1.6; D1.3 como referencia del tapón en lámina ≤ 4,8 mm) y probeta de tapón antes de producción. INT-016 (disco) e INT-017
+  (tornillos) quedan para el modo 0; en el modo 1 no hay roscas del disco en MES-003 / MES-004.
+- Registros de códigos: variante «BX-L» (lámina soldada) en `VAR_CODIGOS` (base, placas-guía, mesa inferior y anillo, cubo, pivote, soporte E
+  22, pasadores E y Q) y `VAR_REFUERZO` (BAS-045: refuerzo 550 × 550 × 45; BAS-046: atiesador 22 × 60 × 500).
+- Materiales del soporte E, refuerzo (A770, calidad Z) y portador tal como los exporta el núcleo (A572 Gr. 50), sin «S355J2»; cajetín con la
+  capacidad `W_tf` (290 t) y la presión de alivio `p_relief` (680 bar) del JSON.
+- Sin bloque «bx» el juego TT300-C no cambia (DXF de GEN-001, GEN-003, GEN-005, GEN-008, GEN-012, CON-007, CON-009, BAS-001, BAS-012, MES-003
+  y MES-011 comparados entidad por entidad con HEAD).
