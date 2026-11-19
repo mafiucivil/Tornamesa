@@ -248,7 +248,7 @@ const BX = (() => {
     const rho = 7.85e-6, cylV = (D, d, L) => Math.PI / 4 * (D * D - d * d) * L;
     const mCam = rho * (cylV(P.D_body, P.D_bore, Ltube) - Math.PI / 4 * (TT_t.d ** 2 - P.D_bore ** 2) * Lt);
     const mFon = rho * (Math.PI / 4 * P.D_body ** 2 * tf + cylV(P.D_body, P.D_bore, Lsk));
-    const mOE = rho * P.b_eye * (Math.PI * RE * RE / 2 + P.e_body * (RE + wE) - Math.PI / 4 * DE * DE);
+    const mOE = rho * P.b_eye * (Math.PI * RE * RE / 2 + Array.from({ length: 200 }, (_, i) => { const x = (i + 0.5) * P.e_body / 200; return Math.max(x < RE ? 2 * Math.sqrt(RE * RE - x * x) : 0, 2 * wE) * P.e_body / 200; }).reduce((u, v) => u + v, 0) - Math.PI / 4 * DE * DE);   // círculo R_E ∪ cuello recto de ancho 2w hasta el fondo
     const mTap = rho * (Math.PI / 4 * P.D_body ** 2 * tr_ + Math.PI / 4 * TT_t.d ** 2 * Lt + Math.PI / 4 * 89.5 ** 2 * Ls - Math.PI / 4 * dr * dr * (tr_ + Lt + Ls));
     const mPis = rho * cylV(P.D_bore, P.bx_cyl_d_g, Lpc), mTu = rho * cylV(Dn, P.bx_cyl_d_th, hn);
     const Lrod = P.L0 - P.bx_cyl_xw - s.fondo_int + 0;   // del extremo de la rosca (cara de la tuerca, retraído en la cara del fondo) a la soldadura del ojal
@@ -377,15 +377,15 @@ const BX = (() => {
       alojamientos_vastago: [{ ref: "S7", w: [3, 12.7], d: dr + 5, ancho: 9.7 }, { ref: "S5", w: [15.7, 19.9], d: dr + 11, ancho: 4.2 }, { ref: "S6", w: [22.9, 35.4], d: dr + 15, ancho: 12.5 }, { ref: "S7", w: [38.4, 44], d: dr + 5, ancho: 5.6 }, { ref: "S8", w: [47, 54], d: dr + 10, ancho: 7, labio: { w: [54, Ltap], d: dr + 3 } }],
       material: "S355J2+N (EN 10025-2) de plancha de 63 mm (Fy " + Q.bx_cyl_Fy_tp + ")", par_apriete_Nm: 600, antigiro: "1 prisionero ISO 4026 M8 × 10 con pastilla de latón, radial por la camisa en la zona roscada (a 15 mm del extremo), con fijador anaeróbico de resistencia media",
       masa: g.masas.tapa };
-    const camisa = { D, tol_D: "h11", d: B, tol_d: "H8", Ra_d: 0.4, acabado: "bruñido (honing) después de soldar el fondo y de aliviar tensiones; Rz ≤ 2,5", cilindricidad: 0.02, rectitud: "0,03 / 300", largo: g.Ltube, largo_corte: g.Ltube + 6,
+    const camisa = { D, tol_D: "h11", d: B, tol_d: "H8", Ra_d: 0.4, acabado: "bruñido (honing) después de soldar el fondo y de aliviar tensiones; Rz ≤ 2,5", cilindricidad: 0.02, rectitud: "0,03 / 300", largo: g.Ltube - 1, largo_corte: g.Ltube - 1 + 6, separacion_raiz: 2,
       material: "barra hueca ST-52 (DIN 17100 St 52-3 ≈ S355J2, EN 10294-1 E355) 132 × 80 maquinada a Ø" + D + " × Ø" + B + " (pared " + g.tw + "); Fy " + Q.bx_cyl_Fy_t + ", Fu " + Q.bx_cyl_Fu_t,
-      bisel_trasero: { tipo: "V a 30° (60° total con el de la falda del fondo)", talon: 2, separacion: 2, respaldo: "anillo cerámico interior desechable (raíz eliminada en el bruñido)" },
+      bisel_trasero: { tipo: "V a 30° (60° total con el de la falda del fondo)", ang: 30, talon: 2, separacion: 2, largo_bisel: r1((g.tw - 2) * t30), respaldo: "anillo cerámico interior desechable (raíz eliminada en el bruñido)" },
       rosca: { designacion: "M" + TT.d + " × " + TT.P + "-6H", prof: Lt - 2, salida: 2, chaflan_entrada: "1,5 × 30° en el extremo", D1: TT.D1 },
       chaflan_sellos: { ang: 15, largo: 2.5, x_desde_extremo: Lt, nota: "entrada de los sellos del pistón y del o'ring de la espiga al Ø" + B + " H8, aristas redondeadas R0,5 y pulidas, sin rebabas" },
-      puerto_B: { rosca: "G 3/8 (ISO 228-1)", norma: "ISO 1179-1 (asiento de sello ED)", refrentado: 28, prof_rosca: 12, paso: Q.bx_cyl_dB, x_desde_extremo_trasero: r1(g.xB - g.Lsk), x_desde_extremo_delantero: r1(g.Ltube - (g.xB - g.Lsk)), orientacion: "arriba (+z)", Ra_refrentado: 3.2 },
+      puerto_B: { rosca: "G 3/8 (ISO 228-1)", norma: "ISO 1179-1 (asiento de sello ED)", refrentado: 28, prof_rosca: 12, paso: Q.bx_cyl_dB, x_desde_extremo_trasero: r1(g.xB - g.Lsk - 1), x_desde_extremo_delantero: r1(g.Lint + g.Ls + g.Lt - g.xB), orientacion: "arriba (+z)", Ra_refrentado: 3.2 },
       prisionero_tapa: { d: "M8", x_desde_extremo: 15 }, masa: g.masas.camisa };
-    const fondo = { t: tf, t_req: g.tReq, falda: g.Lsk, D, d: B, largo: tf + g.Lsk, radio_interior: 3, material: "S460NL (EN 10025-3) de plancha de 80 mm (63 < t ≤ 80: Fy " + Q.bx_cyl_Fy_f + ", Fu " + Q.bx_cyl_Fu_f + "); con S355J2 (Fy 325) haría falta t = 28 y no cabe el cuello del ojal del vástago",
-      bisel: { tipo: "V a 30° en el extremo de la falda", talon: 2, separacion: 2 },
+    const fondo = { t: tf, t_req: g.tReq, falda: g.Lsk - 1, D, d: B, largo: tf + g.Lsk - 1, radio_interior: 3, material: "S460NL (EN 10025-3) de plancha de 80 mm (63 < t ≤ 80: Fy " + Q.bx_cyl_Fy_f + ", Fu " + Q.bx_cyl_Fu_f + "); con S355J2 (Fy 325) haría falta t = 28 y no cabe el cuello del ojal del vástago",
+      bisel: { tipo: "V a 30° en el extremo de la falda", ang: 30, talon: 2, separacion: 2, largo_bisel: r1((g.tw - 2) * t30) },
       puerto_A: { rosca: "G 3/8 (ISO 228-1)", norma: "ISO 1179-1 (asiento de sello ED)", refrentado: 28, prof_rosca: 12, paso: Q.bx_cyl_dA, x_desde_cara_interior: r1(g.xA), orientacion: "arriba (+z)", Ra_refrentado: 3.2 },
       cjp: { ancho_cara: wCjp, simbolo: "V con respaldo, CJP, perfil a ras exterior (AWS A2.4)", end: "UT 100 % (AWS D1.1 cláusula 8, o ISO 17640 nivel 2) + MT 100 % después del alivio", wps: "WPS-CIL-01", proceso: "GTAW raíz + SMAW/FCAW relleno, E7018 / ER70S-6 (resistencia de la camisa S355), unión S460NL–S355J2, precalentamiento 100 °C, alivio de tensiones 580–620 °C antes del bruñido" },
       ojal: { R: g.RE, ancho: P.b_eye, cuello: 2 * g.wE, alojamiento: { d: g.DE, tol: "N7", ancho: g.CE, resalte: { d: 98, ancho: 3 }, ranura: { norma: "DIN 472 (anillo 105 × 4)", d: 109, ancho: 4.15, tol_ancho: "H13", w: [3 + g.CE, 3 + g.CE + 4.15] } },
@@ -416,7 +416,7 @@ const BX = (() => {
         "Montar el pistón con S1, S2 y S3 en el asiento Ø" + Q.bx_cyl_d_g + ", la tuerca con fijador y apretar a " + piston.tuerca.par_Nm + " N·m; apretar los prisioneros M6.",
         "Introducir el conjunto pistón–vástago en la camisa por el extremo roscado (casquillo de montaje cónico), roscar la tapa hasta asentar el reborde con " + tapa.par_apriete_Nm + " N·m y fijar el prisionero M8.",
         "Montar la rótula GE70ES a presión en el ojal trasero y su anillo elástico; prueba hidráulica a " + g.kt * P.p_relief + " bar (cada cámara, pistón a tope, 10 min) y prueba de fugas a 10 bar."],
-      notas: ["Cilindro FABRICADO (decisión del mandante 19-11-2026); reemplaza la especificación de compra ACC-013 comercial.", "Retraído L0 = " + P.L0 + " mm (tuerca contra el fondo: tope mecánico que fija L0); extendido L0 + carrera = " + (P.L0 + P.stroke) + " mm (pistón contra la espiga de la tapa: tope de seguridad, no se alcanza en servicio).",
+      notas: ["Cilindro FABRICADO (decisión del mandante 19-11-2026); reemplaza la especificación de compra ACC-013 comercial.", "Largo retraído " + P.L0 + " mm entre ejes de ojales (tuerca contra el fondo: tope mecánico del retraído); extendido " + (P.L0 + P.stroke) + " mm = retraído + carrera (pistón contra la espiga de la tapa: tope de seguridad, no se alcanza en servicio).",
         "Sin amortiguación de fin de carrera: retorno a " + nf((P.Q_ret > 0 ? P.Q_ret : P.Q_pump) / 60000 / (P.n_cyl * g.Aan * 1e-6) * 1000, 1) + " mm/s < 0,1 m/s; fin de carrera por presostato/posición del control.", "Los sellos van por dentro de la rosca de la tapa: la rosca y la pared de 10 mm de la camisa no ven presión.",
         "Prueba hidráulica de fábrica a " + g.kt * P.p_relief + " bar (" + nf(g.kt, 2) + " × p_alivio " + P.p_relief + " bar) con certificado; alivio del sistema " + P.p_relief + " bar, alarma " + P.p_alarm + " bar."],
       masas: g.masas, masa_total: g.mTot, verificaciones: rows };
@@ -1114,6 +1114,10 @@ const BX = (() => {
         "se mantiene", "Cada pieza con su calidad; las filas con dos piezas usan la menor (base + refuerzo, base + collar, CJP de las paredes E sobre el refuerzo); identificar y trazar las planchas A572 (marcado de colada) para que no se mezclen con las A36", "Núcleo con Fy_pr, Fy_base, Fy_boxE, Fy_dbl; BX · Portador (Fy_bxc); docs/bx/README_BX.md §10"],
       ["Ranuras de engrase y graseras de la interfaz", "Fresadas en el disco de la mesa (opción A); graseras en el borde", "—: UHMW sobre inoxidable sin ranuras (μ de la opción B); engrase opcional de montaje", "eliminada", "La opción B ya no las usa", "Interfaz: μ de la opción B (muB_*)"],
     ];
+    if (pv && cylOn(full(P))) { const cg = cylGeo(full(P));
+      rows.push(["Cilindros hidráulicos (2), rev. 7d (decisión del mandante 19-11-2026)", "Comerciales: especificación de compra ACC-013 (Ø" + P.D_bore + "/Ø63, 10 000 psi, ojales con rótula, marca A DEFINIR POR CATÁLOGO)",
+        "FABRICADOS: camisa de barra hueca ST-52 132 × 80 maquinada a Ø" + P.D_body + " × Ø" + P.D_bore + " H8 bruñida, fondo de copa S460NL t = " + cg.tf + " soldado (CJP) con el ojal trasero (rótula GE70ES), tapa roscada M" + full(P).bx_cyl_d_t + " × " + full(P).bx_cyl_P_t + " con los sellos por dentro de la rosca, pistón y tuerca 42CrMo4+QT, vástago Ø" + P.d_rod + " cromado con el ojal soldado por fricción; prueba a " + nf(cg.kt * P.p_relief, 0) + " bar (láminas ACC-013 y ACC-028 a ACC-035)",
+        "nueva", "Decisión del mandante: el cilindro se fabrica según su croquis; largo retraído " + P.L0 + " y carrera " + P.stroke + " sin cambio (cuerpo " + cg.Lbody + ", c_vástago " + P.c_rod + ")", "Grupo «Cilindro» (Lamé, fondo Roark/UG-34, roscas, vástago, ojales BTH-1, rótula, puertos, amortiguación)"]); }
     if (!pv) rows.push(["Accionamiento guiado (patín, bancada con ranura T, uña, riel-leva)", "Patín y uña mecanizados, ranura T fresada", "Sin cambio (BX no modifica el accionamiento)", "se mantiene", "Ajustes H9/f8 y contactos templados", "Núcleo: Patín y guía, Uña, Leva de reenganche"]);
     return rows.map(([pieza, antes, despues, estado, motivo, verificacion]) => ({ pieza, antes, despues, estado, motivo, verificacion }));
   }
@@ -1369,7 +1373,8 @@ const BX = (() => {
     if (cyl.length) core.splice(ig + 1, 0, ...cyl);
     const idx = core.reduce((k, c, i) => (c.grp === "Interfaz" ? i : k), -1);
     const checks = core.slice(0, idx + 1).concat(rows, core.slice(idx + 1));
-    return { P: full(P), Pc, R: A.R, fea: A.fea, checks, verdict: verdictOf(checks, A.R, A.verdict), bx: exportable(Dg) };
+    const cyx = cylExport(Pc, A.R, checks);   // rev. 7d: cilindro fabricado (también en el bloque «bx» del JSON de diseño)
+    return { P: full(P), Pc, R: A.R, fea: A.fea, checks, verdict: verdictOf(checks, A.R, A.verdict), bx: Object.assign(exportable(Dg), cyx ? { cilindro: cyx } : {}) };
   }
   const exportable = (Dg) => { const o = Object.assign({}, Dg); delete o._geo; delete o._e; delete o._ce; return o; };
   function compute(P) { return TT_.compute(coreP(P)); }

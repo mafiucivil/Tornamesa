@@ -381,7 +381,7 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
 test("BX · Cilindro: bloque «cilindro» del JSON (fuente única de las láminas) coherente con la geometría y las filas", () => {
   const X = BX.exportBX(P0, A0).cilindro, g = BX._int.cylGeo(P0);
   assert.equal(X.modo, "fabricado"); assert.equal(X.p_prueba, 850); assert.equal(X.d_vastago, 65); assert.equal(X.L_ext, 755);
-  near(X.s.cuerpo_fin, P0.L0 - P0.c_rod, 1e-12, "fin del cuerpo"); near(X.camisa.largo + X.fondo.falda, X.s.camisa_fin - X.s.fondo_int, 1e-12, "camisa + falda");
+  near(X.s.cuerpo_fin, P0.L0 - P0.c_rod, 1e-12, "fin del cuerpo"); near(X.camisa.largo + X.fondo.falda + X.camisa.separacion_raiz, X.s.camisa_fin - X.s.fondo_int, 1e-12, "camisa + falda + raíz");
   assert.equal(X.tapa.largo, 57); assert.equal(X.tapa.espiga.d, 89.5); assert.match(X.tapa.rosca.designacion, /^M110 × 2-6g$/); assert.match(X.camisa.rosca.designacion, /^M110 × 2-6H$/);
   assert.equal(X.sellos.length, 8); X.sellos.forEach((q) => assert.ok(q.norma && q.designacion && q.alojamiento && q.alojamiento.d_fondo > 0 && q.material, q.pos));
   ["ISO 7425-1", "ISO 7425-2", "ISO 5597", "ISO 6195", "ISO 10766", "ISO 3601-1"].forEach((n) => assert.ok(X.sellos.some((q) => q.norma.includes(n)), n));
