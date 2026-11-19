@@ -326,8 +326,10 @@ def sheet_bx_lamina(ctx):
     # planitud de la cara espejo: marco sobre la cara (vista inferior), fuera de los anillos de tapones
     a_g = math.radians(-60.0)
     rg = 0.5 * (AN[0]["r"] + AN[1]["r"]) if len(AN) > 1 else 0.5 * (Ri + Ro)
-    p.gd_in("planta", "surf", "flat", "0,20", None, at=[(rg * math.cos(a_g), rg * math.sin(a_g), zs), (rg * math.cos(a_g + 0.3), rg * math.sin(a_g + 0.3), zs),
-                                                         (rg * math.cos(a_g - 0.3), rg * math.sin(a_g - 0.3), zs)], d=(0, -1))
+    # candidatos: entre los dos primeros anillos de tapones y entre el 2.º y el 3.º, cada 15° (con menos pastillas la planta cambia y el primer lugar puede quedar ocupado)
+    rgs = [rg] + ([0.5 * (AN[1]["r"] + AN[2]["r"])] if len(AN) > 2 else []) + [0.5 * (Ri + Ro)]
+    cand = [(r_ * math.cos(a_g + math.radians(k)), r_ * math.sin(a_g + math.radians(k)), zs) for r_ in rgs for k in (0, 15, -15, 30, -30, 45, -45, 90, -90, 135, -135, 180)]
+    p.gd_in("planta", "surf", "flat", "0,20", None, at=cand, d=(0, -1))
     Rd = dict(d=d, t=t, rel=float(TP.get("relleno") or t), hp=10.0, W=4.0 * d, tbo=float(g.tbo), cM=cM)
     Rc = dict(t=t, z=float(CO["w"]), e=float(L.get("retiro_borde") or 0.0), hp=10.0, W=4.0 * d, Ri=Ri, Ro=Ro)
     Rj = dict(t=t, hp=10.0, W=4.0 * d)
