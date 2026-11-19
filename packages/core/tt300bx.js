@@ -74,7 +74,7 @@ const BX = (() => {
     ["Fu_boxE", "Calidad por pieza: Fu del soporte del ojal E (rev. 7: 0 = el global; rev. 6: 450)", "MPa", 0, 0, 800, 5],
     ["Fy_dbl", "Calidad por pieza: Fy del refuerzo de esquina BAS-030 y del atiesador tangencial (0 = el global: rev. 7 A572 Gr. 50 con calidad Z ASTM A770)", "MPa", 0, 0, 690, 5],
     ["Fu_dbl", "Calidad por pieza: Fu del refuerzo de esquina y del atiesador (0 = el global)", "MPa", 0, 0, 800, 5],
-    ["bx_lig", "Portador: ligamento mínimo entre agujeros (0 = automático: máx(10; t_portador), criterio de taller para corte por plasma)", "mm", 0, 0, 60, 1],
+    ["bx_lig", "Portador: ligamento mínimo entre agujeros (rev. 7b, decisión del mandante 18-11-2026: 50 mm, más acero en el portador — 44 pastillas en vez de 67; 0 = automático: máx(10; t_portador), criterio de taller para corte por plasma)", "mm", 50, 0, 60, 1],
     ["bx_nw", "Portador: unión a la base. 0 = solo filetes perimetrales exterior e interior (por defecto: el portador lleva el par a torsión hasta sus bordes); ≥ 1 = además agujeros de soldadura con filete interior en lugar de algunas pastillas (1: los elige la regla de un salto; 7: subred √7 o cada 7.ª posición del anillo, completada con la regla de un salto)", "–", 0, 0, 13, 1],
     ["bx_w_h", "Portador: filete interior de los agujeros de soldadura (agujero del mismo Ø que el de las pastillas, filete en todo el contorno a la base, sin pastilla)", "mm", 6, 3, 16, 1],
     ["bx_hp", "Pastillas: saliente sobre el portador (0 = automático)", "mm", 0, 0, 40, 0.5],
@@ -90,7 +90,7 @@ const BX = (() => {
     ["bx_al_uh", "UHMW: coeficiente de dilatación (×10⁻⁶/K; valor del mandante 190)", "–", 190, 100, 250, 1],
     ["bx_Tmin", "Pastillas: temperatura mínima de almacenaje para el ajuste en frío", "°C", -10, -40, 20, 1],
     ["bx_Tmax", "Temperatura de la limitación de uso informativa (sello hidráulico; no es de la interfaz)", "°C", 80, 20, 120, 1],
-    ["bx_d_sp", "Pastillas: Ø del tornillo avellanado ISO 10642 clase 8.8 (zinc laminar) que las retiene a la base (M10: con la base de 20 mm el taladro ciego admite el engrane ≥ 1,0·d; M12 no)", "mm", 10, 5, 12, 1],
+    ["bx_d_sp", "Pastillas: Ø del tornillo avellanado ISO 10642 clase 8.8 (zinc laminar) que las retiene a la base (rev. 7b: M12, el M10 no alcanza al corte con 44 pastillas; base de 22 mm: taladro ciego con engrane ≥ 1,0·d; M10: con la base de 20 mm el taladro ciego admite el engrane ≥ 1,0·d; M12 no)", "mm", 12, 5, 12, 1],
     ["bx_c_sp", "Pastillas: holgura radial del agujero del tornillo en la pastilla", "mm", 1, 0.25, 3, 0.25],
     ["bx_u_min", "Pastillas: UHMW mínimo bajo la cabeza del tornillo (criterio del proyecto)", "mm", 3, 1, 10, 0.5],
     ["bx_Fu_sp", "Tornillos de las pastillas: Fu (ISO 898-1 clase 8.8: 800)", "MPa", 800, 400, 1200, 10],
@@ -111,7 +111,7 @@ const BX = (() => {
   // planchas estructurales en ASTM A572 Gr. 50 (global Fy/Fu = 345/450; claves por pieza en 0 = global, siguen disponibles); planchas de la mesa, anillos,
   // base, portador, paredes y tapas del cajón E y atiesador tangencial (clave rib_t del núcleo) de 22 mm; almas y nervios 8, collar 70, refuerzo de
   // esquina automático. El nombre A36_DESPUES / BX.A36 se conserva por compatibilidad (bloque «después» de los valores del núcleo).
-  const A36_DESPUES = { W_tf: 290, p_relief: 680, p_alarm: 600, Fy: 345, Fu: 450, t_top: 22, t_bot: 22, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 22, pv_tbox: 22, rib_t: 22 };
+  const A36_DESPUES = { W_tf: 290, p_relief: 680, p_alarm: 600, Q_pump: 8, Fy: 345, Fu: 450, t_top: 22, t_bot: 22, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 22, pv_tbox: 22, rib_t: 22 };
   const A36 = { despues: A36_DESPUES, antes: (() => { const D = TT_.defaults(), o = {}; for (const k in A36_DESPUES) o[k] = D[k]; return o; })(),
     nota: { W_tf: "capacidad nominal 290 t (rev. 7)", p_relief: "alivio 680 bar (rev. 7)", p_alarm: "alarma 600 bar", rib_t: "atiesador tangencial del refuerzo de esquina de 22 mm (rev. 7; núcleo: 30)", Fy: "A572 Gr. 50 en todas las planchas (rev. 7; rev. 5/6: A36 global)", Fu: "A572 Gr. 50", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
       t_pr: "anillos de pasadores (rev. 6: A572 Gr. 50, 22 mm; el anillo superior queda de máx(t_pr, t_top) = 25): aplastamiento del agujero del pasador de empuje", t_base: "plancha base (rev. 6: A572 Gr. 50, 22 mm; bajo el soporte del ojal E; asiento del pivote)", h_boss: "collar de asiento del pivote (profundidad del asiento con H·e)", pv_tl: "tapas del cajón del ojal E (rev. 6: A572 Gr. 50, 25 mm; rev. 5: A36, 36 mm): desgarro y aplastamiento", pv_tbox: "paredes traseras y muñones del soporte del ojal E (rev. 6: A572 Gr. 50, 25 mm)" } };

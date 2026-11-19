@@ -69,7 +69,7 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   const D8 = A8().bx.disco, T = D8.tornillos;
   assert.ok([6, 8].includes(D8.t), "disco modo 0 " + D8.t + " mm"); assert.ok(D8.t >= D8.t_req - 1e-9);
   assert.ok([10, 12].includes(T.d) && T.n >= 60 && T.n <= 200 && T.paso_malla >= 150, "tornillos " + T.n + " M" + T.d + " a " + T.paso_malla);
-  A8().checks.filter((c) => c.bx && /Disco|Tornillos del disco/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st === "ok", "modo 0: " + c.name + " FU " + c.fu));
+  A8().checks.filter((c) => c.bx && /Disco|Tornillos del disco/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st !== "fail" && c.fu < 1, "modo 0: " + c.name + " FU " + c.fu));   // modo 0 (alternativa): con 44 pastillas la celda queda en advertencia (0,93)
   assert.ok(U.n > 30 && U.n < 2000, "n pastillas " + U.n);
   assert.equal(U.forma, "redonda"); assert.equal(U.lado, null); assert.ok(U.d >= 60 && U.d <= 300);
   assert.equal(C.agujeros.forma, "redonda"); assert.equal(C.agujeros.d, U.d);
@@ -142,12 +142,12 @@ test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 
   const Hc = U.H, dC = U.d_torneado, hs = P0.bx_d_sp + 2 * P0.bx_c_sp;
   assert.ok(U.masa_unit < 0.97e-6 * Math.PI / 4 * dC * dC * Hc && U.masa_unit > 0.97e-6 * Math.PI / 4 * (dC * dC - 4 * hs * hs) * Hc, "masa unitaria con ρ = 0,97");
   assert.match(C.material, /A572 Gr\. 50/);
-  // portador de 22 mm: torsión y ligamento con Fy 345 cumplen (FU < 1; rev. 7: 0,900 y 0,810); con A36 (Fy_bxc = 250) el ligamento no cumple
+  // portador de 22 mm: torsión y ligamento con Fy 345 cumplen (FU < 1; rev. 7: 0,900 y 0,810; rev. 7b con ligamento 50: 0,612 y 0,523); con A36 (Fy_bxc = 250) el ligamento no cumple
   const tor = A0.checks.find((c) => /Portador: corte por torsión/.test(c.name)), lig = A0.checks.find((c) => /Portador: ligamento junto a la pastilla/.test(c.name));
   assert.ok(tor.fu < 0.95 && lig.fu < 0.90, "torsión " + tor.fu + ", ligamento " + lig.fu);
   near(tor.cap, 345 / (P0.Nd * Math.sqrt(3)), 1e-12, "torsión con Fy 345");
   A0.checks.filter((c) => c.bx && /Portador|Pastillas/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.fu <= 1 + 1e-9, "A572: " + c.name + " FU " + c.fu));
-  const Aa = BX.analyze(Object.assign({}, P0, { Fy_bxc: 250, Fu_bxc: 400 }), { noFEA: true });
+  const Aa = BX.analyze(Object.assign({}, P0, { Fy_bxc: 250, Fu_bxc: 400, bx_lig: 0 }), { noFEA: true });   // con el ligamento automático (22 mm) de la rev. 7
   assert.ok(Aa.checks.some((c) => c.bx && /Portador: ligamento junto a la pastilla/.test(c.name) && c.fu > 1), "con A36 de 22 mm el ligamento no cumple");
   assert.match(Aa.bx.portador.material, /A36/);
   assert.equal(Aa.bx.portador.t, 22); assert.equal(Aa.bx.pastillas.H, 30);
@@ -172,8 +172,8 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   // valores de la rev. 7 (sin FEA; docs/bx/README_BX.md §11). Las tapas E son lineales en p_relief: 1,006 con 700 bar → 0,977 con 680
   [[/^Tapas del cajón E: desgarro por corte hacia las paredes/, 0.999], [/^Tapas del cajón E \(orejas del pasador\): aplastamiento/, 0.977], [/^Alarma bajo el alivio/, 0.980],
    [/^Aplastamiento en el agujero del anillo$/, 0.900], [/bisel dentro del anillo/, 0.941], [/^Flexión \(biapoyado entre anillos/, 0.905], [/^Pasador vertical E: flexión/, 0.756],
-   [/^Soporte del ojal E: flexión de las paredes/, 0.794], [/^Soporte del ojal E: CJP paredes–base/, 0.794], [/^BX · Portador: corte por torsión/, 0.900], [/^BX · Portador: ligamento junto/, 0.810],
-   [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.747], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.815],
+   [/^Soporte del ojal E: flexión de las paredes/, 0.794], [/^Soporte del ojal E: CJP paredes–base/, 0.794], [/^BX · Portador: corte por torsión/, 0.612], [/^BX · Portador: ligamento junto/, 0.523],
+   [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.949], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.884],
    [/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22/, 0.482], [/^Asiento del pivote con momento/, 0.653]].forEach(([re, v]) => {
     const c = by(re); assert.ok(c, String(re)); near(c.fu, v, 0.006, c.name.slice(0, 60)); });
   assert.equal(A0.checks.filter((c) => c.st === "fail").length, 0, "sin fallas");
@@ -200,8 +200,8 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   // capacidad en el bloque bx exportado y en la tabla de fabricación
   const X = BX.exportBX(P0); assert.equal(X.capacidad_nominal_tf, 290); assert.match(X.revision, /290 t/);
   assert.ok(G0.fabricacion.some((f) => /Calidad del acero/.test(f.pieza) && /A572 Gr\. 50/.test(f.despues) && !/A36 \(Fy/.test(f.despues)));
-  // masa (rev. 5: 4100 kg; rev. 6: 3843 kg; rev. 7: ≈ 3721 kg)
-  near(A0.R.m.total, 3721, 0.003, "masa");
+  // masa (rev. 5: 4100 kg; rev. 6: 3843 kg; rev. 7: ≈ 3721 kg; rev. 7b, ligamento 50 y 44 pastillas: ≈ 3798 kg)
+  near(A0.R.m.total, 3798, 0.003, "masa");
 });
 
 test("BX: cinemática y reenganche con la nueva δ (lámina de 3 mm) y las alturas de la rev. 5", () => {
@@ -254,7 +254,7 @@ test("BX: equilibrio de presiones de las pastillas, presión ≥ q y PV con la v
   const U = G0.pastillas, Rr = A0.R;
   near(U.suma_N_kN, Rr.ND, 0.01, "Σ q·dA sobre las pastillas = N_D");
   assert.ok(U.p_max > Rr.q_max, "p_pastilla > q_máx (cobertura < 1)");
-  assert.ok(U.cobertura > 0.4 && U.cobertura < 0.9);
+  assert.ok(U.cobertura > 0.3 && U.cobertura < 0.9)   // rev. 7b: 0,38 (ligamento 50 mm, más acero en el portador);
   const vcyl = P0.Q_pump * 1e6 / 60 / (P0.n_cyl * Rr.A), w = vcyl / Rr.K.armMin;
   near(U.PV_max, Math.max(...U.lista.map((q) => q.p * q.r * w / 1000)), 1e-9, "PV");
 });
