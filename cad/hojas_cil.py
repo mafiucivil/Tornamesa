@@ -452,6 +452,66 @@ def sheet_cil_ojal_q(ctx):
     return p.h
 
 
+# =========================================================================================================== ACC-036: esquema retraído / extendido
+def sheet_cil_esquema(ctx):
+    C = _C(ctx)
+    o = cil_bx.geo(C)
+    if not hasattr(ctx, "subconjuntos"):
+        ctx.subconjuntos = set()
+    L0, Lx, st = float(C["L0"]), float(C["L_ext"]), float(C["carrera"])
+    Z = 230.0
+    ks = ("cil_ojal_E", "cil_rotula", "cil_fondo", "cil_camisa", "cil_tapa", "cil_vastago", "cil_ojal_Q")
+    r0 = [_loc(ctx, k, k + "_E0", 0.0) for k in ks]
+    r1 = []
+    for k in ks:
+        nk = _loc(ctx, k, k + "_E1", st)
+        ctx.shapes[nk] = ctx.shapes[nk].translate(cq.Vector(0, 0, -Z))
+        r1.append(nk)
+    allk = r0 + r1
+    h = Hoja(ctx, "ACC-036", "CILINDRO: ESQUEMA RETRAÍDO / EXTENDIDO, MEDIDAS OJO A OJO (MISMA ESCALA, ALINEADOS POR EL EJE DEL OJAL TRASERO E)", "", fmt="A1",
+             material="Ver ACC-013 y ACC-028 a ACC-035", masa=f"{fm(C['masa_total'], 1)} kg c/u", trat="Ver ACC-013", serie="CON", items=[])
+    from hojas_con import Conj
+    c = Conj.__new__(Conj)
+    c.keys, c.p0 = [], None
+    c.init_plano(ctx, h)
+    c.iso_keys, c.fmt_try = [], None
+    ctx.subconjuntos.add(h.plano)
+    s = c.s
+    rE, rQ = float(C["fondo"]["ojal"]["rotula"]["d"]) / 2, float(C["ojal_vastago"]["d"]) / 2
+    s0, sb = o["s0"], o["sb"]
+    RQ, RE = float(C["ojal_vastago"]["R"]), float(C["fondo"]["ojal"]["R"])
+
+    def esq(V, c_):
+        for zz in (0.0, -Z):
+            s.line(V.P(-RE - 12, 0, zz), V.P(Lx + RQ + 12, 0, zz), "EJE")
+        s.line(V.P(0, 0, 40), V.P(0, 0, -Z - 40), "EJE")
+        V.dimh((0, 0, 0), (L0, 0, 0), "top", 1, on=r0, virt_a=rE, virt_b=rQ, text=f"{f(L0)} (ojo a ojo, RETRAÍDO)")
+        V.dimh((0, 0, 0), (s0, 0, 40), "top", 0, on=r0, virt_a=rE, text=f"{f(C['e_cuerpo'])} (e cuerpo)")
+        V.dimh((s0, 0, 60), (sb, 0, 60), "top", 0, on=r0, text=f"{f(C['cuerpo'])} (cuerpo)")
+        V.dimh((sb, 0, 40), (L0, 0, 0), "top", 0, on=r0, virt_b=rQ, text=f"({f(C['c_vastago'])} c vástago)")
+        V.dimh((0, 0, -Z), (Lx, 0, -Z), "bottom", 1, on=r1, virt_a=rE, virt_b=rQ, text=f"{f(Lx)} (ojo a ojo, EXTENDIDO)")
+        V.dimh((sb, 0, -Z - 40), (Lx, 0, -Z), "bottom", 0, on=r1, virt_b=rQ, text=f"({f(C['c_vastago'] + C['carrera'])} c vástago extendido)")
+        V.dimh((L0, 0, 0), (Lx, 0, -Z), "bottom", 2, on=r0 + r1, virt_a=rQ, virt_b=rQ, text=f"({f(st)} carrera)")
+        RT_ = C["fondo"]["ojal"]["rotula"]
+        V.note_pt((0, -RE, 10), (-38, 30), f"Ojal trasero: pasador E Ø{f(RT_['d'])} en rótula {RT_['designacion'].split(' (')[0]} (D {f(RT_['D'])})", on=r0)
+        V.note_pt((L0, -RQ, 10), (24, 30), f"Ojal del vástago: Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']} (pasador Q, sin rótula)", on=r0)
+        V.note_pt((0, -RE, -Z + 10), (-38, -30), "Mismo ojal E (fijo)", on=r1)
+        V.note_pt((Lx, -RQ, -Z + 10), (24, -30), f"Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']}", on=r1)
+    c.vs("esq", allk, "front", lv=(2, 3, 2, 3), extra=(60, 20, 60, 20), draw=esq, hatch=False, w=3.0, auto=False, mins=0.4, maxs=0.5,
+         title="ESQUEMA: ARRIBA RETRAÍDO, ABAJO EXTENDIDO (EJE DEL OJAL TRASERO E COMÚN)")
+    rows = [["Ojo a ojo retraído / extendido", f"{f(L0)} / {f(Lx)} mm"], ["Carrera", f"{f(st)} mm"],
+            ["e cuerpo / cuerpo", f"{f(C['e_cuerpo'])} / {f(C['cuerpo'])} mm"], ["c vástago retraído / extendido", f"{f(C['c_vastago'])} / {f(C['c_vastago'] + C['carrera'])} mm"],
+            ["Ojal trasero", f"pasador E Ø{f(C['fondo']['ojal']['rotula']['d'])} f8 en rótula {C['fondo']['ojal']['rotula']['designacion']}; orejeta R{fm(RE, 0)} × {f(C['fondo']['ojal']['ancho'])}"],
+            ["Ojal del vástago", f"Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']} sobre el pasador Q f8; R{fm(RQ, 0)} × {f(C['ojal_vastago']['ancho'])}; {C['ojal_vastago']['rotula']}"]]
+    c.table_block("MEDIDAS OJO A OJO (bx.cilindro)", [("Dato", 50, "L"), ("Valor", 120, "L")], rows)
+    c.note_block("NOTAS", ["Esquema de medidas generales: las piezas, tolerancias y sellos se definen en ACC-013 y ACC-028 a ACC-035.",
+                           "Las dos vistas están a la misma escala y alineadas por el eje del ojal trasero E (pasador fijo del soporte E).",
+                           "Medidas entre paréntesis: de referencia (resultan de las acotadas)."], numbered=True)
+    c.note_block(REF_GEN_TIT, [REF_GEN])
+    c.build()
+    return c.h
+
+
 PLAN_CIL = [("sheet_cil_camisa", ["cil_camisa"], sheet_cil_camisa), ("sheet_cil_fondo", ["cil_fondo", "cil_ojal_E"], sheet_cil_fondo), ("sheet_cil_tapa", ["cil_tapa"], sheet_cil_tapa),
             ("sheet_cil_piston", ["cil_piston", "cil_tuerca"], sheet_cil_piston), ("sheet_cil_vastago", ["cil_vastago"], sheet_cil_vastago), ("sheet_cil_ojal_q", ["cil_ojal_Q"], sheet_cil_ojal_q)]
 
@@ -481,3 +541,6 @@ def activar():
     if not any(x[0] == "sheet_cil_conjunto" for x in PLAN):
         PLAN.append(("sheet_cil_conjunto", list(cil_bx.KEYS), sheet_cil_conjunto))
         NOGROUP.add("sheet_cil_conjunto")
+    if not any(x[0] == "sheet_cil_esquema" for x in PLAN):
+        PLAN.append(("sheet_cil_esquema", ["cil_camisa"], sheet_cil_esquema))
+        NOGROUP.add("sheet_cil_esquema")

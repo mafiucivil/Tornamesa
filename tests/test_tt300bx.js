@@ -375,6 +375,9 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   assert.equal(by(/sellos de la tapa DENTRO de la rosca/).st, "ok");
   const am = by(/amortiguación de fin de carrera: NO se requiere/); near(am.dem, 20 / 60000 / (2 * (Math.PI / 4 * (90 ** 2 - 65 ** 2)) * 1e-6), 1e-12, "v retorno"); assert.ok(am.dem < 0.1);
   assert.ok(A0.checks.some((c) => c.grp === "Giro" && c.sustituida && /^Ojal comercial del vástago/.test(c.name) && c.st === "info"));
+  near(by(/sellos: presión de prueba hidráulica/).fu, 1, 1e-12, "850 / 850 bar (dato confirmado por el mandante)"); near(by(/sellos: presión de trabajo/).fu, 1, 1e-12);
+  assert.ok(!C.some((c) => c.st === "pend"), "sin pendientes del cilindro (rev. 7e)");
+  assert.ok(!C.some((c) => /onfirmar|de memoria|confianza C/.test(c.name + c.formula) && !/amortiguación/.test(c.name)), "sin textos «confirmar / de memoria» (rev. 7e)");
   assert.equal(A0.verdict.estado_global, "CUMPLE");
 });
 
@@ -416,6 +419,9 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
   assert.ok(b80.bx && b80.bx.filas.length > 10);
   assert.ok(b80.bx.fuEst >= b20.bx.fuEst, "a 80 °C empeora");
+  // rev. 7e: aceite atrapado tras el calado frente a la prueba del cilindro fabricado (850 bar, gancho P.__bx) en lugar de 1,5·p_max
+  const oil = (bt) => (bt.fuera_alcance || []).concat(bt.filas || []).find((r) => /^Aceite atrapado tras el calado/.test(r.nombre));
+  assert.equal(oil(b20).cap, 850); assert.match(oil(b20).nombre, /850 bar = 1,25 × p_alivio/); near(oil(b20).fu, 680 / 850, 1e-12, "20 °C");
   const p80 = b80.bx.filas.find((r) => /presión máxima/.test(r.nombre));
   near(p80.cap, P0.p_uhmw * P0.kT_p_uh, 1e-9, "p_adm a 80 °C = k_p·p_adm");
 });

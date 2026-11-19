@@ -381,8 +381,8 @@ bloque **`bx.cilindro`** del JSON = fuente única de las láminas (cotas, tolera
 | Fondo | Copa (placa + falda de 44) torneada de plancha de 80; con S355J2 (Fy 325 a 63 < t ≤ 80) UG-34 pide **28 mm** y el cuerpo deja c_vástago 77 < 83 (no cabe el cuello del ojal del vástago entre las mejillas del bloque-uña): se adopta **S460NL (EN 10025-3, Fy 410) de 21 mm** (UG-34 pide 20,92). La CJP con la camisa queda a 45 mm de la placa (zona de membrana) y lleva el puerto A | ASME VIII-1 UG-34 (C = 0,33·m ≥ 0,20) con S = Fy/1,5; Roark Tabla 11.2 caso 10b |
 | Tapa | M110 × 2 en 30 (L_e = 23 descontando garganta, salida y chaflán); sellos y o'ring estático (espiga Ø89,5 f7) por DENTRO de la rosca: la zona roscada (pared 10) no ve presión. Por eso la tapa mide 57 (espiga 12 + rosca 30 + reborde 15) y no 45: el croquis pedía la espiga y la rosca en los mismos 30 mm, lo que no es construible (se eligió lo conservador: la rosca completa de 30) | FED-STD-H28 (áreas de arranque) |
 | Pistón | 28 mm (sello de doble efecto ISO 7425-1 entre dos guías ISO 10766, resaltes de 3 mm) + tuerca ranurada M48 × 2 de 20 = 50; la tuerca es el tope del retraído contra el fondo y deja el hueco del puerto A | VDI 2230 (F_S = F_V + Φ_n·F_A, Φ_n 0,25, F_V = 207 kN, M_A 1430 N·m) |
-| Vástago | Ø65 f7 cromado común (Fy 520, Fu 700: DATO DEL PROVEEDOR), cromo ≥ 20 µm, Ra ≤ 0,2; ojal soldado por fricción (ISO 15620) a 95 mm del eje del ojal, rectificado y cromado después | AISC 360-22 H1/E3 |
-| Ojales | Trasero: orejeta R80 × 50 (S355J2) soldada al fondo (CJP en K) con rótula **GE70ES** (d 70 = pasador E, D 105, B 49 ≤ 54 entre tapas, C 40; C₀ 1200 kN de memoria, confianza C). Vástago: R68 × 50 con agujero Ø90 H9 **sin rótula**: la GE90ES (D 130, B 60) no cabe en Ø ≤ 136 ni en la horquilla de 54 | ASME BTH-1 §3-3.3 (N_d = 3) |
+| Vástago | Ø65 f7 cromado común (Fy 520: dato confirmado por el mandante 19-11-2026; Fu 700 supuesto, no gobierna), cromo ≥ 20 µm, Ra ≤ 0,2; ojal soldado por fricción (ISO 15620, procedimiento calificado WPS-CIL-03 aceptado por el mandante 19-11-2026) a 95 mm del eje del ojal, rectificado y cromado después | AISC 360-22 H1/E3 |
+| Ojales | Trasero: orejeta R80 × 50 (S355J2) soldada al fondo (CJP en K) con rótula **GE70ES** (d 70 = pasador E, D 105, B 49 ≤ 54 entre tapas, C 40; C₀ = 1200 kN, dato confirmado por el mandante 19-11-2026). Vástago: R68 × 50 con agujero Ø90 H9 **sin rótula**: la GE90ES (D 130, B 60) no cabe en Ø ≤ 136 ni en la horquilla de 54 | ASME BTH-1 §3-3.3 (N_d = 3) |
 | Puertos | G 3/8 (ISO 1179-1): el retorno saca 20,9 L/min por cilindro por el puerto A (G 1/4 con paso Ø8 daría 6,9 m/s > 5) | Criterio del proyecto (≤ 5 m/s) |
 | Amortiguación | No lleva: retorno al tope a 54,8 mm/s < 0,1 m/s (criterio usual de catálogos Parker/Bosch Rexroth, confianza C); masa en movimiento ≈ 78 kg, E_c ≈ 0,12 J; el avance (10,5 mm/s) no llega a la tapa (s_usada 220,4 de 235) | ISO 4413 §5.4 |
 
@@ -393,5 +393,15 @@ rosca de la tapa (camisa / tapa) 0,468 / 0,434 y 0,574 / 0,532; tracción de la 
 Euler 0,428, garganta de la rosca M48 0,468 / 0,364, filetes 0,798 / 0,621, tuerca 0,522; resalte 0,655 / 0,819; pistón (resalte de la ranura) 0,775 / 0,718;
 soldadura por fricción 0,793; ojal del vástago 0,698 / 0,537 / 0,710; ojal trasero 0,721 / 0,567 / 0,738, CJP en K 0,526, cuello 0,592; rótula 0,721.
 Largo: e_cuerpo 75 + cuerpo 361 (fondo 21 + interior 283 + espiga 12 + rosca 30 + reborde 15) + c_vástago 84 = 520; camisa 279 (corte 285).
-Estado global con FEA: CUMPLE (FU máx. 0,999, tapas del cajón E, sin cambio). Pendiente: presión nominal de los sellos del proveedor (fila «pend»);
-la fila térmica del núcleo «aceite atrapado tras el calado» sigue con 1,5·p_max.
+Estado global con FEA: CUMPLE (FU máx. 0,999, tapas del cajón E, sin cambio).
+
+### 13.3 Revisión 7e (19-11-2026): confirmaciones del mandante, fila térmica y esquema
+
+- Datos confirmados por el mandante 19-11-2026: C₀ de la GE70ES = 1200 kN; sellos 680 bar de trabajo y 850 bar de prueba (la fila pendiente pasa a dos
+  verificaciones: p_alivio ≤ 680 y p_prueba ≤ 850, FU 1,000); vástago cromado común Fy 520; soldadura por fricción con procedimiento calificado WPS-CIL-03.
+- Escenario térmico: con el cilindro fabricado la fila «aceite atrapado tras el calado» compara con p_prueba = 1,25·p_alivio = 850 bar (gancho P.__bx.p_prueba_cil;
+  sin __bx el núcleo no cambia): FU 0,648 → 0,800 a 20 °C y 1,375 → 1,698 a 80 °C (fila fuera del alcance térmico, informativa). Las filas p_hold + Δp y
+  p_ret + Δp siguen con p_max_cil = 700 bar (10 000 psi); para el cilindro fabricado la presión de trabajo confirmada de los sellos es 680 bar (pendiente de decisión:
+  bajar p_max_cil a 680 o mantener 700); a 80 °C la válvula de alivio térmico del tramo aislado sigue siendo necesaria.
+- Lámina nueva ACC-036: esquema retraído / extendido a la misma escala (1:2,5), alineados por el eje E, con las medidas ojo a ojo 520 / 755, carrera 235,
+  cuerpo 361, e_cuerpo 75 y c_vástago 84 / 319. La rótula comercial pasa al código ACC-045 (ACC-036 es la lámina del esquema).

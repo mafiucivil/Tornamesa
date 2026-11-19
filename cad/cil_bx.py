@@ -17,9 +17,9 @@ T30 = math.tan(math.radians(30.0))
 T15 = math.tan(math.radians(15.0))
 T20 = math.tan(math.radians(20.0))
 
-# números de pieza FIJOS (acc3d.ACC_NUM sigue hasta 27): el subconjunto conserva ACC-013
+# números de pieza FIJOS (acc3d.ACC_NUM sigue hasta 27): el subconjunto conserva ACC-013; ACC-036 es la lámina del esquema retraído/extendido (rev. 7e)
 NUM = {"cil_camisa": 28, "cil_fondo": 29, "cil_ojal_E": 30, "cil_tapa": 31, "cil_piston": 32, "cil_tuerca": 33, "cil_vastago": 34, "cil_ojal_Q": 35,
-       "cil_rotula": 36, "cil_S1": 37, "cil_S2": 38, "cil_S3": 39, "cil_S4": 40, "cil_S5": 41, "cil_S6": 42, "cil_S7": 43, "cil_S8": 44}
+       "cil_rotula": 45, "cil_S1": 37, "cil_S2": 38, "cil_S3": 39, "cil_S4": 40, "cil_S5": 41, "cil_S6": 42, "cil_S7": 43, "cil_S8": 44}
 FAB = ["cil_camisa", "cil_fondo", "cil_ojal_E", "cil_tapa", "cil_piston", "cil_tuerca", "cil_vastago", "cil_ojal_Q"]
 SELLOS = ["cil_S1", "cil_S2", "cil_S3", "cil_S4", "cil_S5", "cil_S6", "cil_S7", "cil_S8"]
 KEYS = FAB + ["cil_rotula"] + SELLOS
@@ -270,7 +270,7 @@ def build(m, g, D, log=print):
                  tratamiento=TR.get(k, "—"), num_fijo=NUM[k])
         nuevos.append(p)
     RT_ = C["fondo"]["ojal"]["rotula"]
-    nuevos.append(Part("cil_rotula", "ACC", DESC["cil_rotula"], f"{RT_['designacion']}: d {f(RT_['d'])}, D {f(RT_['D'])}, B {f(RT_['B'])}, C {f(RT_['C'])}; C₀ = {f(RT_['C0_kN'])} kN (confirmar)",
+    nuevos.append(Part("cil_rotula", "ACC", DESC["cil_rotula"], f"{RT_['designacion']}: d {f(RT_['d'])}, D {f(RT_['D'])}, B {f(RT_['B'])}, C {f(RT_['C'])}; C₀ = {f(RT_['C0_kN'])} kN (dato confirmado por el mandante 19-11-2026)",
                        cq.Workplane("XY").newObject([cq.Compound.makeCompound(sols["cil_rotula"])]), n, "Acero de rodamientos / acero templado (comercial)", "Comercial", core="cyl", comercial=True,
                        catalogo=RT_["designacion"], color=(0.3, 0.3, 0.32), num_fijo=NUM["cil_rotula"]))
     for q in C["sellos"]:
