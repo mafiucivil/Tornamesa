@@ -589,8 +589,9 @@ def sheet_bom(ctx):
     dpart = partida_dict(ctx)
     blocks, cur = [], None
     for p in ctx.m.parts:
-        if cur is None or cur[0] != p.sub:
-            cur = (p.sub, [])
+        sb_ = p.sub + ("-CIL" if p.key.startswith("cil_") else "")      # TT300-BX rev. 7d: el cilindro fabricado es un bloque propio del despiece
+        if cur is None or cur[0] != sb_:
+            cur = (sb_, [])
             blocks.append(cur)
         cur[1].extend(hojas_base.bom_rows_part(ctx, p, dpart))
     ext = [["—", "—", d, str(q), e, "Comercial", "—", "—", cat, "GEN-008"] for (d, q, e, cat) in lista.extras(ctx)]
@@ -1605,7 +1606,7 @@ def sheet_accionamiento_pv(ctx):
     fr = ctx.m.info["pivotado"]["frames"]["1_antihorario"]
     E, Q, P_ = fr["E"], fr["Q"], fr["P"]
     ks = ["cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "pasador_E", "cilindro_pv", "bloque_una", "pasador_Q", "placa_leva", "placa_leva_h", "pernos_placa_leva", "pernos_placa_guia", "pasadores_placa_guia"]
-    ks = [k for k in ks if ctx.m.get(k)]
+    ks = [k for k in ks if ctx.m.get(k) or (k == "cilindro_pv" and k in ctx.shapes)]     # TT300-BX rev. 7d: cilindro fabricado (forma compuesta, globos en ACC-013)
     cx, cy = (E[0] + P_[0]) / 2, (E[1] + P_[1]) / 2
     lk = []
     for k in ks:
