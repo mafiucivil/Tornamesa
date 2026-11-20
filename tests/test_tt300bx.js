@@ -201,7 +201,7 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   const X = BX.exportBX(P0); assert.equal(X.capacidad_nominal_tf, 290); assert.match(X.revision, /290 t/);
   assert.ok(G0.fabricacion.some((f) => /Calidad del acero/.test(f.pieza) && /A572 Gr\. 50/.test(f.despues) && !/A36 \(Fy/.test(f.despues)));
   // masa (rev. 5: 4100 kg; rev. 6: 3843 kg; rev. 7: ≈ 3721 kg; rev. 7b, ligamento 50 y 44 pastillas: ≈ 3798 kg; rev. 7d, cilindros fabricados de 45 kg en vez de 55: ≈ 3778 kg)
-  near(A0.R.m.total, 3778, 0.003, "masa"); near(A0.R.m.total, BX.analyze(BX.defaults({ cyl: false }), { noFEA: true }).R.m.total - 2 * (55 - P0.m_cyl), 1e-9, "solo cambia la masa de los cilindros");
+  near(A0.R.m.total, 3776, 0.003, "masa"); near(A0.R.m.total, BX.analyze(Object.assign(BX.defaults({ cyl: false }), { e_body: P0.e_body }), { noFEA: true }).R.m.total - 2 * (55 - P0.m_cyl), 1e-9, "solo cambia la masa de los cilindros (con el mismo e_cuerpo: las tapas del soporte E se recortan con él)");
 });
 
 test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85 H7 (rev. 7c, bx_mesa_entera = 1 por defecto)", () => {
@@ -341,10 +341,10 @@ test("BX: tabla de fabricación (antes → después, motivo y verificación) y J
 test("BX · Cilindro: valores por defecto (vástago Ø65 cromado Fy 520, c_rod del cuerpo resultante, m_cyl) y opción comercial", () => {
   assert.equal(P0.bx_cyl_on, 1); assert.equal(P0.d_rod, 65); assert.equal(P0.pv_Fyrod, 520); assert.equal(P0.p_relief, 680);
   const g = BX._int.cylGeo(P0);
-  assert.equal(g.tf, 21, "fondo de 21 mm (S460NL Fy 410: UG-34 pide 20,92; con S355J2 Fy 325 serían 28)"); assert.ok(g.tReq > 20 && g.tReq <= 21);
-  assert.equal(BX._int.cylGeo(Object.assign({}, P0, { bx_cyl_Fy_f: 325, bx_cyl_Fu_f: 470 })).tf, 28, "con S355J2");
-  assert.equal(g.Lint, 283, "interior = pistón 28 + tuerca 20 + carrera 235"); assert.equal(g.Lbody, 21 + 283 + 12 + 30 + 15);
-  assert.equal(P0.c_rod, 84); assert.ok(P0.c_rod >= P0.pv_dq / 2 + 25 + 10 + 3, "cuello del ojal (R_cubo + 10) fuera de la tapa"); assert.equal(P0.e_body + g.Lbody + P0.c_rod, P0.L0, "largo ojal–ojal retraído = L0");
+  assert.equal(g.tf, 37, "rev. 8: fondo macizo de 37 = pestaña 10 + espiga 27 (S355J2 Fy 345)"); assert.ok(g.tReq < 30, "UG-34 / Roark " + g.tReq);
+  assert.equal(g.Lb + g.Lesp, g.tf); assert.ok(g.U1.t < g.tf && g.U2.t < g.tf, "UG-34 con S355J2");
+  assert.equal(g.Lint, 283, "interior = pistón 28 + tuerca 20 + carrera 235"); assert.equal(g.Lbody, 37 + 283 + 12 + 30 + 15);
+  assert.equal(P0.c_rod, 78); assert.equal(P0.e_body, 65, "rev. 8: e_cuerpo 65"); assert.ok(P0.c_rod >= P0.pv_dq / 2 + 25 + 4 + 3, "cuello del ojal (R_cubo + 4) fuera de la tapa"); assert.equal(P0.e_body + g.Lbody + P0.c_rod, P0.L0, "largo ojal–ojal retraído = L0");
   assert.ok(P0.m_cyl >= g.mTot && P0.m_cyl <= g.mTot + 2, "m_cyl " + P0.m_cyl + " frente a " + g.mTot);
   const Pc = BX.defaults({ cyl: false }), Ac = BX.analyze(Pc, { noFEA: true }), TD = TT.defaults();
   for (const k of ["d_rod", "pv_Fyrod", "c_rod", "m_cyl"]) assert.equal(Pc[k], TD[k], "comercial: " + k);
@@ -361,9 +361,11 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   near(by(/von Mises de Lamé en el radio interior/).dem, vm, 1e-12, "Lamé"); near(by(/von Mises de Lamé en el radio interior/).fu, vm / (Fy / 1.5), 1e-12, "FU servicio");
   near(by(/von Mises de Lamé en la prueba/).fu, 1.25 * vm / (0.9 * Fy), 1e-12, "FU prueba"); near(vm, 226.19, 1e-4, "≈ 226 MPa");
   near(by(/presión de inicio de fluencia/).dem, Fy * (b * b - a * a) / (Math.sqrt(3) * b * b) * 10, 1e-12, "p_y");
-  near(by(/fondo plano de copa t = 21/).dem, 0.75 * p * a * a / 21 ** 2, 1e-12, "Roark");
+  near(by(/fondo macizo t = 37/).dem, 0.75 * p * a * a / 37 ** 2, 1e-12, "Roark");
   // UG-34 a mano: S = 325/1,5, t_r = P·R/(S − 0,6P), m = t_r/20, C = máx(0,2; 0,33·m)
-  { const S = 410 / 1.5, tr = p * a / (S - 0.6 * p), Cc = Math.max(0.2, 0.33 * tr / 20); near(by(/UG-34 a p_alivio/).dem, Cc * p * 90 ** 2 / 21 ** 2, 1e-12, "UG-34"); }
+  { const S = 345 / 1.5, tr = p * a / (S - 0.6 * p), Cc = Math.max(0.2, 0.33 * tr / 20); near(by(/UG-34 a p_alivio/).dem, Cc * p * 90 ** 2 / 37 ** 2, 1e-12, "UG-34"); }
+  // rev. 8: la soldadura del fondo queda detrás del tope; distancia al pistón ≥ 20 y ningún sello sobre la espiga ni la ZAC
+  { const d = by(/soldadura del fondo lejos de los sellos/); assert.equal(d.cap, 47); assert.equal(d.st, "ok"); assert.equal(by(/ningún sello recorre la espiga/).st, "ok"); near(by(/^BX · Cilindro: CJP en J fondo–camisa en el hombro/).dem, p * Math.PI * a * a / (Math.PI * (65 ** 2 - 45 ** 2)), 1e-9, "CJP primaria"); }
   const Fcal = p * Math.PI * a * a, Fan = p * Math.PI / 4 * (90 ** 2 - 65 ** 2);
   near(Fcal / 1e3, 432.6, 1e-3, "F calado"); near(Fan / 1e3, 206.96, 1e-3, "F anular con Ø65");
   { const Le = 23, An = Math.PI * Le * 110 * (0.5 + 0.57735 * 0.649519), r = by(/rosca M110 × 2 de la tapa delantera/); near(r.dem, Fcal / An, 1e-9, "arranque de la camisa con F = p·A (fin de carrera)"); near(r.cap, 345 / (1.5 * Math.sqrt(3)), 1e-12); }
@@ -387,7 +389,8 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
 test("BX · Cilindro: bloque «cilindro» del JSON (fuente única de las láminas) coherente con la geometría y las filas", () => {
   const X = BX.exportBX(P0, A0).cilindro, g = BX._int.cylGeo(P0);
   assert.equal(X.modo, "fabricado"); assert.equal(X.p_prueba, 850); assert.equal(X.d_vastago, 65); assert.equal(X.L_ext, 755);
-  near(X.s.cuerpo_fin, P0.L0 - P0.c_rod, 1e-12, "fin del cuerpo"); near(X.camisa.largo + X.fondo.falda + X.camisa.separacion_raiz, X.s.camisa_fin - X.s.fondo_int, 1e-12, "camisa + falda + raíz");
+  near(X.s.cuerpo_fin, P0.L0 - P0.c_rod, 1e-12, "fin del cuerpo"); near(X.camisa.largo + X.camisa.separacion_raiz, X.s.camisa_fin - X.s.cjp, 1e-12, "camisa + raíz"); assert.equal(X.fondo.espiga.largo, 27); assert.match(X.camisa.puerto_A.rosca, /G 1\/2/); assert.match(X.camisa.puerto_B.rosca, /G 1\/2/);
+  assert.match(X.sellos.find((q) => q.pos === "S3").designacion, /50 × 4/); assert.equal(X.capacidad.filas.length, 16); near(X.capacidad.v_linea_A_3_8, 4.9, 0.01, "línea A");
   assert.equal(X.tapa.largo, 57); assert.equal(X.tapa.espiga.d, 89.5); assert.match(X.tapa.rosca.designacion, /^M110 × 2-6g$/); assert.match(X.camisa.rosca.designacion, /^M110 × 2-6H$/);
   assert.equal(X.sellos.length, 8); X.sellos.forEach((q) => assert.ok(q.norma && q.designacion && q.alojamiento && q.alojamiento.d_fondo > 0 && q.material, q.pos));
   ["ISO 7425-1", "ISO 7425-2", "ISO 5597", "ISO 6195", "ISO 10766", "ISO 3601-1"].forEach((n) => assert.ok(X.sellos.some((q) => q.norma.includes(n)), n));
