@@ -1,7 +1,7 @@
 """Cilindro hidráulico FABRICADO del juego TT300-BX (rev. 7d, decisión del mandante 19-11-2026).
 
 Reemplaza, solo cuando el JSON trae el bloque bx.cilindro, la pieza comercial «cilindro_pv» (ACC-013, especificación de compra) por las piezas
-fabricadas y los elementos comerciales del cilindro: camisa, fondo de copa, ojal trasero (orejeta), tapa delantera, pistón, tuerca ranurada,
+fabricadas y los elementos comerciales del cilindro: camisa, fondo macizo, ojal trasero (orejeta), tapa delantera, pistón, tuerca ranurada,
 vástago, ojal del vástago, rótula GE70ES y sellos (S1…S8). Todas las cotas, tolerancias, rugosidades y alojamientos salen de bx.cilindro
 (fuente única: packages/core/tt300bx.js, cylExport). ACC-013 pasa a ser el SUBCONJUNTO del cilindro (corte longitudinal con globos, tabla de
 sellos, pares, prueba y secuencia) y cada pieza fabricada tiene su lámina (ACC-028…035).
@@ -66,7 +66,7 @@ def puerto(sol, x, d_paso, C_p):
     return sol
 
 
-G38_MENOR = 14.95          # G 3/8 (ISO 228-1): Ø menor de la rosca interior (taladro de núcleo)
+G38_MENOR = 18.631         # G 1/2 (ISO 228-1): Ø menor de la rosca interior (taladro de núcleo); rev. 8
 
 
 def geo(C):
@@ -85,24 +85,22 @@ def piezas_locales(C, e=0.0):
     o = geo(C)
     s0, si, sk, sp, st, se, sb, a, b = o["s0"], o["si"], o["sk"], o["sp"], o["st"], o["se"], o["sb"], o["a"], o["b"]
     F, CA, T, PI, V, OQ = C["fondo"], C["camisa"], C["tapa"], C["piston"], C["vastago"], C["ojal_vastago"]
-    tal = float(CA["bisel_trasero"]["talon"]); tb_ = o["tb"]; gap = float(CA["bisel_trasero"]["separacion"])
+    tal = float(CA["bisel_trasero"]["talon"]); tb_ = o["tb"]; gap = float(CA["bisel_trasero"]["separacion"])   # rev. 8: separación de raíz camisa–hombro
     out = {}
-    # ---- fondo de copa: placa + falda; esquina interior R; bisel V 30° en el extremo de la falda; puerto A
-    xf1 = sk - gap / 2
-    rI = float(F["radio_interior"])
-    w = (cq.Workplane("XY").moveTo(s0, 0).lineTo(s0, b).lineTo(xf1 - tb_, b).lineTo(xf1, a + tal).lineTo(xf1, a).lineTo(si + rI, a)
-         .threePointArc((si + rI - rI * math.cos(math.radians(45)), a - rI + rI * math.sin(math.radians(45))), (si, a - rI)).lineTo(si, 0).close())
-    fo = w.revolve(360.0, (0, 0, 0), (1, 0, 0)).val()
-    fo = puerto(fo, si + float(F["puerto_A"]["x_desde_cara_interior"]), float(F["puerto_A"]["paso"]), F["puerto_A"])
+    # ---- fondo (rev. 8): bloque macizo Ø cuerpo (pestaña) + espiga Ø camisa dentro de la camisa; la cara de la espiga es el tope del retraído
+    Lesp = float(F["espiga"]["largo"])
+    fo = rev([(s0, 0), (s0, b - 1.0), (s0 + 1.0, b), (sk, b), (sk, a), (si - 1.0, a), (si, a - 1.0), (si, 0)])
     out["cil_fondo"] = fo
-    # ---- camisa: bisel V 30° atrás; rosca interior M110 (modelada al Ø nominal) adelante; chaflán de entrada de sellos 15°; puerto B; prisionero M8 abajo
-    xc0 = sk + gap / 2
+    # ---- camisa: J (bisel 10° + radio) atrás sobre la espiga; rosca interior M110 (al Ø nominal) adelante; entrada de sellos 15°; puertos A y B G 1/2; prisionero M8 abajo
+    xc0 = sk + gap
+    Jw = float(CA["bisel_trasero"]["largo_bisel"])
     Lt = float(T["rosca"]["w"][1] - T["rosca"]["w"][0]) + 4.0                       # largo de la rosca en la camisa (= L_t)
     dR = float(CA["chaflan_sellos"]["largo"]) * math.tan(math.radians(float(CA["chaflan_sellos"]["ang"])))
     rT = float(C["tapa"]["rosca"]["designacion"].split("×")[0].strip()[1:]) / 2.0
     xs = se - Lt
-    ca = rev([(xc0, a), (xc0, a + tal), (xc0 + tb_, b), (se, b), (se, rT), (xs, rT), (xs, a + dR), (xs - float(CA["chaflan_sellos"]["largo"]), a)])
-    ca = puerto(ca, xc0 + float(CA["puerto_B"]["x_desde_extremo_trasero"]), float(CA["puerto_B"]["paso"]), CA["puerto_B"])
+    ca = rev([(xc0, a), (xc0, a + tal), (xc0 + Jw, b), (se, b), (se, rT), (xs, rT), (xs, a + dR), (xs - float(CA["chaflan_sellos"]["largo"]), a)])
+    for kp, dpk in (("puerto_A", CA["puerto_A"]["paso"]), ("puerto_B", CA["puerto_B"]["paso"])):
+        ca = puerto(ca, xc0 + float(CA[kp]["x_desde_extremo_trasero"]), float(dpk), CA[kp])
     ca = ca.cut(cyl_z(3.4, -66.0, -(rT) + 0.5, se - float(CA["prisionero_tapa"]["x_desde_extremo"])))
     out["cil_camisa"] = ca
     # ---- tapa delantera (w desde la cara de la espiga)
@@ -228,7 +226,7 @@ def colocar(sol, E, a_deg, zc):
 
 # ---------------------------------------------------------------------------------------------- modelo 3D
 DESC = {
-    "cil_camisa": "Camisa del cilindro", "cil_fondo": "Fondo de copa del cilindro (con puerto A)", "cil_ojal_E": "Ojal trasero del cilindro (orejeta soldada al fondo)",
+    "cil_camisa": "Camisa del cilindro", "cil_fondo": "Fondo macizo del cilindro (bloque con espiga)", "cil_ojal_E": "Ojal trasero del cilindro (orejeta soldada al fondo)",
     "cil_tapa": "Tapa delantera roscada del cilindro (prensaestopas)", "cil_piston": "Pistón del cilindro", "cil_tuerca": "Tuerca ranurada del pistón",
     "cil_vastago": "Vástago cromado del cilindro", "cil_ojal_Q": "Ojal del vástago (soldado por fricción)", "cil_rotula": "Rótula radial GE70ES del ojal trasero",
 }
@@ -257,7 +255,7 @@ def build(m, g, D, log=print):
     M = {"cil_camisa": C["camisa"]["material"], "cil_fondo": C["fondo"]["material"], "cil_ojal_E": C["fondo"]["ojal"]["material"], "cil_tapa": C["tapa"]["material"],
          "cil_piston": C["piston"]["material"], "cil_tuerca": C["piston"]["tuerca"]["material"] + "+QT (EN 10083-3)", "cil_vastago": C["vastago"]["material"], "cil_ojal_Q": C["ojal_vastago"]["material"]}
     PR = {"cil_camisa": "Barra hueca 132 × 80: corte, torneado exterior e interior; soldadura al fondo; alivio; bruñido Ø" + f(C["camisa"]["d"]) + " " + C["camisa"]["tol_d"] + "; rosca interior; puerto B",
-          "cil_fondo": "Torneado de la copa desde plancha de 80; bisel; puerto A; soldadura a la camisa y de la orejeta",
+          "cil_fondo": "Torneado del bloque macizo desde plancha de 40 (pestaña y espiga g6); soldadura de la orejeta y a la camisa (CJP en J)",
           "cil_ojal_E": "Oxicorte de plancha de 50 con sobremetal; contorno fresado; biseles en K; alojamiento mecanizado en línea después de soldar",
           "cil_tapa": "Torneado CNC de plancha de 63: espiga, rosca exterior, alojamientos de sellos y agujeros de llave", "cil_piston": "Torneado CNC de barra bonificada; alojamientos de sellos y guías",
           "cil_tuerca": "Torneado CNC; rosca interior; ranuras de llave fresadas; agujeros de los prisioneros", "cil_vastago": "Barra cromada: corte, torneado del extremo, rosca; soldadura por fricción del ojal; rectificado y cromado",
@@ -290,9 +288,9 @@ def build(m, g, D, log=print):
 def _desc(C, k):
     T, CA, F, PI, V, OQ = C["tapa"], C["camisa"], C["fondo"], C["piston"], C["vastago"], C["ojal_vastago"]
     if k == "cil_camisa":
-        return f"Ø{f(CA['D'])} {CA['tol_D']} × Ø{f(CA['d'])} {CA['tol_d']} (Ra {fm(CA['Ra_d'], 1)}) × {fm(CA['largo'], 1)}; rosca {CA['rosca']['designacion']}; puerto B {CA['puerto_B']['rosca']}"
+        return f"Ø{f(CA['D'])} {CA['tol_D']} × Ø{f(CA['d'])} {CA['tol_d']} (Ra {fm(CA['Ra_d'], 1)}) × {fm(CA['largo'], 1)}; rosca {CA['rosca']['designacion']}; puertos A y B {CA['puerto_B']['rosca']}"
     if k == "cil_fondo":
-        return f"Placa {f(F['t'])} + falda {fm(F['falda'], 0)} (Ø{f(F['D'])} × Ø{f(F['d'])}); puerto A {F['puerto_A']['rosca']}; bisel V 30°"
+        return f"Bloque macizo {f(F['t'])}: pestaña Ø{f(F['D'])} × {f(F['pestana'])} + espiga Ø{f(F['espiga']['d'])} {F['espiga']['tol']} × {f(F['espiga']['largo'])} (tope del retraído)"
     if k == "cil_ojal_E":
         return f"Orejeta R{fm(F['ojal']['R'], 1)} × {f(F['ojal']['ancho'])}, cuello {f(F['ojal']['cuello'])}; alojamiento Ø{f(F['ojal']['alojamiento']['d'])} {F['ojal']['alojamiento']['tol']} para la rótula"
     if k == "cil_tapa":
@@ -310,7 +308,7 @@ def _desc(C, k):
 
 # ---------------------------------------------------------------------------------------------- soldaduras del cilindro (registro único)
 def welds(ctx, add_n):
-    """J37 CJP fondo de copa–camisa, J38 CJP en K del ojal trasero al fondo, J39 soldadura por fricción vástago–ojal (bx.cilindro)."""
+    """J37 CJP en J fondo macizo–camisa, J38 CJP en K del ojal trasero al fondo, J39 soldadura por fricción vástago–ojal (bx.cilindro)."""
     g = ctx.g
     C = C_(g)
     if C is None or not ctx.m.get("cil_camisa"):
@@ -320,12 +318,12 @@ def welds(ctx, add_n):
     F, OE, CA = C["fondo"], C["fondo"]["ojal"], C["camisa"]
     tw_ = (float(CA["D"]) - float(CA["d"])) / 2
     A5 = "E7018 (AWS A5.1) / ER70S-6 (AWS A5.18)"
-    j = add_n(37, "Fondo de copa – camisa del cilindro (CJP circunferencial en V 60°, raíz con respaldo cerámico interior)", f"{sc('cil_fondo')} / {sc('cil_camisa')}",
-              f"CJP en V 60° circunferencial ({F['cjp']['simbolo']})", "V", t=tw_, groove=True,
-              prep=f"V 60° (30° por lado), talón {fm(F['bisel']['talon'], 0)} mm, separación de raíz {fm(F['bisel']['separacion'], 0)} mm, respaldo cerámico interior desechable (la raíz se elimina en el bruñido)",
-              prep_txt="60°", nivel="ISO 5817-B", end="UT 100 % · MT 100 %", wps=19, len_total=n * math.pi * float(CA["D"]), aporte=A5, proc="141 + 111 (PROPUESTA)",
-              nota=F["cjp"]["proceso"], t_pre=max(tw_, float(F["t"])))
-    j.update(backing="MR", backing_txt="MR: respaldo cerámico interior removible", fam_txt=f"CJP en V 60° circunferencial de la camisa S355J2 (pared {fm(tw_, 0)}) con el fondo S460NL; {F['cjp']['proceso']}; WPS {F['cjp']['wps']}")
+    j = add_n(37, "Fondo macizo – camisa del cilindro (CJP en J en el hombro sobre la espiga integral, detrás del tope)", f"{sc('cil_fondo')} / {sc('cil_camisa')}",
+              F["cjp"]["tipo"], "J", t=tw_, groove=True,
+              prep=f"J (bisel 10°, radio {fm(CA['bisel_trasero']['radio_J'], 0)}) en el extremo de la camisa, talón {fm(CA['bisel_trasero']['talon'], 0)} mm, separación de raíz {fm(CA['bisel_trasero']['separacion'], 0)} mm contra el hombro a escuadra; respaldo permanente = espiga integral del fondo; filete de refuerzo z6 en el pie",
+              prep_txt="10°", nivel="ISO 5817-B", end="UT 100 % · MT 100 %", wps=19, len_total=n * math.pi * float(CA["D"]), aporte=A5, proc="141 + 111 (PROPUESTA)",
+              nota=F["cjp"]["proceso"], t_pre=tw_)
+    j.update(backing="M", backing_txt="M: respaldo permanente = espiga integral del fondo", fam_txt=f"CJP en J circunferencial de la camisa S355J2 (pared {fm(tw_, 0)}) sobre la espiga integral del fondo S355J2; {F['cjp']['proceso']}; WPS {F['cjp']['wps']}")
     j = add_n(38, "Ojal trasero (orejeta) – fondo del cilindro (CJP en K todo alrededor + filete de refuerzo z6)", f"{sc('cil_ojal_E')} / {sc('cil_fondo')}",
               OE["soldadura"]["tipo"], "bevel", t=float(OE["ancho"]), groove=True,
               prep="Doble bisel 45° (K) en la orejeta, talón 2 mm, separación 2 mm, resanado de raíz por el otro lado; filete de refuerzo z6", prep_txt="45°", nivel="ISO 5817-B",

@@ -1,6 +1,6 @@
 """Láminas del cilindro hidráulico FABRICADO del juego TT300-BX (rev. 7d): subconjunto ACC-013 (corte longitudinal con globos a cada pieza y a
 cada sello, retraído y extendido, puertos, tabla de sellos, pares, prueba, aceite y secuencia) y una lámina por pieza fabricada:
-ACC-028 camisa, ACC-029 fondo de copa con el ojal trasero soldado (ACC-030), ACC-031 tapa delantera, ACC-032 pistón y tuerca (ACC-033),
+ACC-028 camisa, ACC-029 fondo macizo con espiga y el ojal trasero soldado (ACC-030), ACC-031 tapa delantera, ACC-032 pistón y tuerca (ACC-033),
 ACC-034 vástago y ACC-035 ojal del vástago. Fuente única: bloque bx.cilindro del JSON (cotas, tolerancias, rugosidades, alojamientos).
 Se registran desde hojas_bx.activar() solo si el JSON trae bx.cilindro."""
 import math, sys, pathlib
@@ -106,29 +106,29 @@ def sheet_cil_conjunto(ctx):
         with alias(ctx, "_R"):
             balloons_auto(c_, V, lk, gap=11.0, off=24.0, sides="lr")
         x0_, y0_, x1_, y1_ = V.ext
-        for jid, p3, qx, dy in (("J38", (s0, 0, -float(C["fondo"]["ojal"]["ancho"]) / 2 - 1), -50.0, 46), ("J37", (o["sk"], 0, -65.0), 20.0, 74),
-                                ("J39", (L0 - float(C["vastago"]["extremo_ojal"]["x_desde_eje_ojal"]), 0, -o["dr"] / 2), 30.0, 46)):
+        # símbolos bajo la vista: J38 y J39 en la primera fila (a ambos lados de la escala del título), J37 en la segunda fila al centro
+        for jid, p3, qx, dy in (("J38", (s0, 0, -float(C["fondo"]["ojal"]["ancho"]) / 2 - 1), 12.0, 24), ("J37", (o["sk"], 0, -65.0), 110.0, 38),
+                                ("J39", (L0 - float(C["vastago"]["extremo_ojal"]["x_desde_eje_ojal"]), 0, -o["dr"] / 2), 215.0, 24)):
             a_ = V.P(p3)
-            c_.h.weld(jid, a_, (a_[0] + qx, y0_ - dy), sh=-1 if qx < 0 else 1)
-    c.vs("corte", lk, "front", cut=CUT_Y, lv=(1, 9, 1, 4), extra=(10, 10, 10, 30), draw=corte, hs=0.6, w=3.0, mat={k: ctx.mat.get(k, "acero") for k in lk}, auto=False, mins=0.5,
+            c_.h.weld(jid, a_, (x0_ + qx, y0_ - dy), sh=1)
+    c.vs("corte", lk, "front", cut=CUT_Y, lv=(1, 5, 1, 3), extra=(10, 8, 10, 8), draw=corte, hs=0.6, w=3.0, mat={k: ctx.mat.get(k, "acero") for k in lk}, auto=False, mins=0.4,
          title=f"CORTE LONGITUDINAL A-A, RETRAÍDO ({f(L0)} ENTRE EJES): CAMISA, FONDO, TAPA, PISTÓN, VÁSTAGO, OJALES Y SELLOS")
     lx = [_loc(ctx, k, k + "_X", float(C["carrera"])) for k in keys if k in ("cil_camisa", "cil_fondo", "cil_ojal_E", "cil_tapa", "cil_vastago", "cil_ojal_Q", "cil_rotula")]
 
     def ext(V, c_):
         s.line(V.P(-95, 0, 0), V.P(Lx + 80, 0, 0), "EJE")
         V.dimh((0, 0, 0), (Lx, 0, 0), "bottom", 0, on=lx, virt_a=35.0, virt_b=float(C["ojal_vastago"]["d"]) / 2, text=f"{f(Lx)} (extendido)")
-        xa = o["si"] + float(C["fondo"]["puerto_A"]["x_desde_cara_interior"])
-        xb = o["si"] + float(C["camisa"]["puerto_B"]["x_desde_extremo_trasero"]) + float(C["camisa"]["separacion_raiz"]) / 2 + float(C["fondo"]["falda"]) + 0.0
-        V.note_pt((xa + 10, 0, 63.47), (-20, 18), "PUERTO A (avance)", on=lx)
+        zsf = math.sqrt(65.0 ** 2 - (float(C["camisa"]["puerto_A"]["refrentado"]) / 2) ** 2)
+        xa = o["sk"] + float(C["camisa"]["separacion_raiz"]) + float(C["camisa"]["puerto_A"]["x_desde_extremo_trasero"])
+        V.note_pt((xa + 12, 0, zsf), (-20, 18), "PUERTO A (avance)", on=lx)
         V.note_pt((sb - 25, 0, 65), (-40, 18), "PUERTO B (retorno)", on=lx)
-    c.vs("ext", lx, "front", lv=(1, 2, 1, 2), extra=(10, 0, 10, 26), draw=ext, hatch=False, w=1.0, auto=False, title=f"ELEVACIÓN, EXTENDIDO ({f(Lx)} = RETRAÍDO + CARRERA {f(C['carrera'])}); PUERTOS G 3/8 ARRIBA")
+    c.vs("ext", lx, "front", lv=(1, 2, 1, 2), extra=(10, 0, 10, 26), draw=ext, hatch=False, w=1.0, auto=False, title=f"ELEVACIÓN, EXTENDIDO ({f(Lx)} = RETRAÍDO + CARRERA {f(C['carrera'])}); PUERTOS G 1/2 ARRIBA")
     c.table_block("SELLOS COMERCIALES (bx.cilindro.sellos; presiones: trabajo " + f(C["p_alivio"]) + " bar, prueba " + f(C["p_prueba"]) + " bar)", SEAL_COLS, _rows_sellos(C), wide=True)
-    datos = [["Camisa Ø interior / vástago Ø / carrera", f"{f(C['D_camisa'])} H8 / {f(C['d_vastago'])} f7 / {f(C['carrera'])} mm"], ["Largo retraído / extendido (ejes de ojales)", f"{f(C['L0'])} / {f(C['L_ext'])} mm"],
-             ["Cuerpo / e cuerpo / c vástago", f"{f(C['cuerpo'])} / {f(C['e_cuerpo'])} / {f(C['c_vastago'])} mm (interior {f(C['interior'])} = pistón {f(C['piston']['largo'])} + tuerca {f(C['piston']['tuerca']['alto'])} + carrera)"],
-             ["Alivio / alarma / retorno", f"{f(C['p_alivio'])} / {f(C['p_alarma'])} / {f(C['p_retorno'])} bar"], ["Prueba hidráulica", f"{f(C['p_prueba'])} bar = {fm(C['k_prueba'], 2)} × p alivio, cada cámara, 10 min"],
-             ["F calado / F anular / F tapa", f"{fm(C['F_calado_kN'], 1)} / {fm(C['F_anular_kN'], 1)} / {fm(C['F_tapa_kN'], 1)} kN"], ["Aceite", C["aceite"]], ["Amortiguación", "no lleva (ver nota 3)"],
-             ["Masa por cilindro", f"{fm(C['masa_total'], 1)} kg (piezas + rótula + aceite)"]]
-    c.table_block("DATOS DEL CILINDRO", [("Dato", 50, "L"), ("Valor", 110, "L")], datos)
+    cap_ = [list(r) for r in C["capacidad"]["filas"]] + [["Cuerpo / e cuerpo / c vástago", f"{f(C['cuerpo'])} / {f(C['e_cuerpo'])} / {f(C['c_vastago'])} mm (interior {f(C['interior'])} = pistón {f(C['piston']['largo'])} + tuerca {f(C['piston']['tuerca']['alto'])} + carrera)"],
+                                                          ["Aceite / masa por cilindro", f"{C['aceite']}; {fm(C['masa_total'], 1)} kg"]]
+    n3_ = (len(cap_) + 2) // 3
+    c.table_block("DATOS TÉCNICOS Y CAPACIDAD DEL CILINDRO (bx.cilindro.capacidad)", [("Dato", 52, "L"), ("Valor", 152, "L")] * 3,
+                  [sum((cap_[i + k * n3_] if i + k * n3_ < len(cap_) else ["", ""] for k in range(3)), []) for i in range(n3_)], wide=True)
     c.table_block("PARES DE APRIETE", [("Unión", 70, "L"), ("Par", 60, "L")], [list(r) for r in C["pares"]])
     c.compact_table(keys, title="DESPIECE DEL SUBCONJUNTO (por cilindro × 2)")
     c.note_block("NOTAS DEL SUBCONJUNTO", list(C["notas"]), numbered=True)
@@ -145,33 +145,38 @@ def sheet_cil_camisa(ctx):
     o = cil_bx.geo(C)
     CA = C["camisa"]
     gap = float(CA["separacion_raiz"])
-    x0 = o["sk"] + gap / 2
+    x0 = o["sk"] + gap
     nk = _loc(ctx, "cil_camisa", "cil_camisa_L", 0.0, dx=x0)
+    xA = float(CA["puerto_A"]["x_desde_extremo_trasero"])
     Lc = o["se"] - x0
     a, b = o["a"], o["b"]
     Lt = float(CA["rosca"]["prof"]) + float(CA["rosca"]["salida"])
     xB = float(CA["puerto_B"]["x_desde_extremo_trasero"])
     xP = Lc - float(CA["prisionero_tapa"]["x_desde_extremo"])
-    p = Pieza(ctx, ["cil_camisa"], "CILINDRO: CAMISA Ø" + f(CA["D"]) + " × Ø" + f(CA["d"]) + " (BARRA HUECA ST-52 132 × 80 MAQUINADA), ROSCA M110 × 2 Y PUERTO B", fmt="A1")
+    p = Pieza(ctx, ["cil_camisa"], "CILINDRO: CAMISA Ø" + f(CA["D"]) + " × Ø" + f(CA["d"]) + " (BARRA HUECA ST-52 132 × 80 MAQUINADA), ROSCA M110 × 2, PUERTOS A Y B G 1/2", fmt="A1")
     s = p.s
     on = [nk]
     p.iso_keys = [nk]
-    tb_ = o["tb"]
+    tb_ = float(CA["bisel_trasero"]["largo_bisel"])
+    zs = math.sqrt(b ** 2 - (float(CA["puerto_B"]["refrentado"]) / 2) ** 2)
+    rsf = float(CA["puerto_B"]["refrentado"]) / 2
 
     def corte(V, p_):
         s.line(V.P(-8, 0, 0), V.P(Lc + 8, 0, 0), "EJE")
+        V.dimh((0, 0, a + 1), (xA, 0, zs), "top", 0, on=on, virt_b=rsf, text=f"{fm(xA, 1)} (puerto A)")
         V.dimh((0, 0, a + 1), (Lc, 0, 60), "bottom", 2, on=on, text=f"{fm(CA['largo'], 0)} ±0,2 (corte {fm(CA['largo_corte'], 0)})")
-        V.dimh((0, 0, a + 1), (xB, 0, 63.47), "top", 0, on=on, virt_b=14.0, text=f"{fm(xB, 1)}")
-        V.dimh((xB, 0, 63.47), (Lc, 0, 60), "top", 1, on=on, virt_a=14.0, text=f"({fm(Lc - xB, 1)})")
+        V.dimh((0, 0, a + 1), (xB, 0, zs), "top", 1, on=on, virt_b=rsf, text=f"{fm(xB, 1)} (puerto B)")
+        V.dimh((xB, 0, zs), (Lc, 0, 60), "top", 0, on=on, virt_a=rsf, text=f"({fm(Lc - xB, 1)})")
         V.dimh((Lc - Lt, 0, 50), (Lc, 0, 60), "bottom", 0, on=on, text=f"{fm(Lt, 0)} (rosca {fm(CA['rosca']['prof'], 0)} + salida {fm(CA['rosca']['salida'], 0)})")
         V.dimh((xP, 0, -63), (Lc, 0, -60), "bottom", 1, on=on, virt_a=3.4, text=f"{fm(CA['prisionero_tapa']['x_desde_extremo'], 0)} (M8)")
         V.dim((Lc * 0.45, 0, -b), (Lc * 0.45, 0, b), 14, orient="v", on=on, text=_fit(CA["D"], CA["tol_D"]))
         V.dim((Lc * 0.62, 0, -a), (Lc * 0.62, 0, a), 0, orient="v", on=on, text=_fit(CA["d"], CA["tol_d"]) + f" Ra {fm(CA['Ra_d'], 1)}")
         V.dim((Lc - 4, 0, -55), (Lc - 4, 0, 55), 22, orient="v", on=on, text=f"{CA['rosca']['designacion']}")
-        V.note_pt((tb_ / 2, 0, a + 2 + (b - a - 2) / 2), (30, 40), f"Bisel V {fm(CA['bisel_trasero']['ang'], 0)}°, talón {fm(CA['bisel_trasero']['talon'], 0)} (J37)", on=on)
+        V.note_pt((tb_ / 2, 0, a + 2 + (b - a - 2) / 2), (30, 40), f"Bisel J {fm(CA['bisel_trasero']['ang'], 0)}° R{fm(CA['bisel_trasero']['radio_J'], 0)}, talón {fm(CA['bisel_trasero']['talon'], 0)} (J37)", on=on)
         xs = Lc - Lt
         V.note_pt((xs - 1.25, 0, a + 0.33), (-50, -30), f"Entrada de sellos {fm(CA['chaflan_sellos']['ang'], 0)}° × {fm(CA['chaflan_sellos']['largo'], 1)}", on=on)
-        V.note_pt((xB + 10, 0, 63.47), (-60, 30), f"Puerto B G 3/8 (ver tabla)", on=on)
+        V.note_pt((xB + rsf - 3, 0, zs), (-60, 30), "Puerto B G 1/2 (ver tabla)", on=on)
+        V.note_pt((xA + rsf - 3, 0, zs), (30, 30), "Puerto A G 1/2 (ver tabla)", on=on)
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 3, 2, 3), extra=(30, 10, 30, 30), draw=corte, hs=0.6, w=1.8, auto=False, mins=1.0, title="CORTE A-A (PLANO DE LOS PUERTOS)")
     p.detail("detR", "corte", (Lc - Lt / 2, 0, (a + b) / 2), 24, "B", lv=(1, 1, 1, 1), title="DETALLE B: ROSCA M110 × 2-6H Y ENTRADA DE SELLOS", maxs=4.0)
     rows = [["Ø exterior", _fit(CA["D"], CA["tol_D"])], ["Ø interior (bruñido)", _fit(CA["d"], CA["tol_d"]) + f", Ra ≤ {fm(CA['Ra_d'], 1)}, Rz ≤ 2,5; cilindricidad {fm(CA['cilindricidad'], 2)}; rectitud {CA['rectitud']}"],
@@ -179,6 +184,7 @@ def sheet_cil_camisa(ctx):
             ["Entrada de sellos", f"{fm(CA['chaflan_sellos']['ang'], 0)}° × {fm(CA['chaflan_sellos']['largo'], 1)} a {fm(CA['chaflan_sellos']['x_desde_extremo'], 0)} del extremo delantero"],
             ["Bisel trasero (J37)", f"{CA['bisel_trasero']['tipo']}; talón {fm(CA['bisel_trasero']['talon'], 0)}; separación {fm(CA['bisel_trasero']['separacion'], 0)}; {CA['bisel_trasero']['respaldo']}"],
             ["Puerto B", f"{CA['puerto_B']['rosca']} {CA['puerto_B']['norma']}, a {fm(xB, 1)} del extremo trasero y {fm(CA['puerto_B']['x_desde_extremo_delantero'], 1)} del delantero; prof. {fm(CA['puerto_B']['prof_rosca'], 0)}; refrentado Ø{fm(CA['puerto_B']['refrentado'], 0)}; paso Ø{fm(CA['puerto_B']['paso'], 0)}; {CA['puerto_B']['orientacion']}"],
+            ["Puerto A", f"{CA['puerto_A']['rosca']} {CA['puerto_A']['norma']}, a {fm(xA, 1)} del extremo trasero; prof. {fm(CA['puerto_A']['prof_rosca'], 0)} (núcleo Ø18,6); refrentado Ø{fm(CA['puerto_A']['refrentado'], 0)}; paso Ø{fm(CA['puerto_A']['paso'], 0)}; {CA['puerto_A']['orientacion']}; {CA['puerto_A']['nota']}"],
             ["Prisionero antigiro de la tapa", f"M8 radial abajo (−z) a {fm(CA['prisionero_tapa']['x_desde_extremo'], 0)} del extremo delantero (taladro Ø6,8)"]]
     p.table_block("COTAS Y REQUISITOS (bx.cilindro.camisa)", [("Elemento", 40, "L"), ("Valor", 130, "L")], rows)
     p.tables(["J37"])
@@ -188,7 +194,7 @@ def sheet_cil_camisa(ctx):
     return p.h
 
 
-# =========================================================================================================== ACC-029: fondo de copa + ojal trasero (ACC-030) soldados
+# =========================================================================================================== ACC-029: fondo macizo con espiga + ojal trasero (ACC-030) soldados
 def sheet_cil_fondo(ctx):
     C = _C(ctx)
     o = cil_bx.geo(C)
@@ -198,31 +204,29 @@ def sheet_cil_fondo(ctx):
     nf_ = _loc(ctx, "cil_fondo", "cil_fondo_L", 0.0)
     no_ = _loc(ctx, "cil_ojal_E", "cil_ojal_E_L", 0.0)
     on = [nf_, no_]
-    s0, si = o["s0"], o["si"]
-    xe = s0 + float(F["largo"])
-    xA = si + float(F["puerto_A"]["x_desde_cara_interior"])
+    s0, si, sk = o["s0"], o["si"], o["sk"]
     a, b = o["a"], o["b"]
     bE = float(OE["ancho"])
-    p = Pieza(ctx, ["cil_fondo", "cil_ojal_E"], f"CILINDRO: FONDO DE COPA t = {f(F['t'])} (S460NL) CON EL OJAL TRASERO SOLDADO (ROTULA GE70ES), PUERTO A", fmt="A1")
+    ES = F["espiga"]
+    p = Pieza(ctx, ["cil_fondo", "cil_ojal_E"], f"CILINDRO: FONDO MACIZO {f(F['t'])} (PESTAÑA {f(F['pestana'])} + ESPIGA Ø{f(ES['d'])} {ES['tol']} × {f(ES['largo'])}, S355J2) CON EL OJAL TRASERO SOLDADO (RÓTULA GE70ES)", fmt="A1")
     s = p.s
     p.iso_keys = on
 
     def corte(V, p_):
-        s.line(V.P(-90, 0, 0), V.P(xe + 8, 0, 0), "EJE")
+        s.line(V.P(-90, 0, 0), V.P(si + 8, 0, 0), "EJE")
         s.line(V.P(0, 0, -bE / 2 - 8), V.P(0, 0, bE / 2 + 8), "EJE")
-        V.dimh((0, 0, 0), (s0, 0, 30), "top", 0, on=on, virt_a=float(AL["d"]) / 2, text=f"{f(C['e_cuerpo'])}")
-        V.dimh((s0, 0, 64), (si, 0, 30), "top", 1, on=on, text=f"{f(F['t'])} (t requerido {fm(F['t_req'], 2)})")
-        V.dimh((si, 0, 40), (xA, 0, 63.47), "top", 2, on=on, virt_b=14.0, text=f"{fm(F['puerto_A']['x_desde_cara_interior'], 0)}")
-        V.dimh((s0, 0, -64), (xe, 0, -a - 1), "bottom", 0, on=on, text=f"{fm(F['largo'], 0)} (placa {f(F['t'])} + falda {fm(F['falda'], 0)})")
-        V.dim((xe - 15, 0, -b), (xe - 15, 0, b), 14, orient="v", on=on, text=f"Ø{f(F['D'])} h11")
-        V.dim((xe - 22, 0, -a), (xe - 22, 0, a), 0, orient="v", on=on, text=f"Ø{f(F['d'])} H8 (bruñido con la camisa)")
+        V.dimh((0, 0, 0), (s0, 0, 40), "top", 0, on=on, virt_a=float(AL["d"]) / 2, text=f"{f(C['e_cuerpo'])}")
+        V.dimh((s0, 0, 60), (sk, 0, 60), "top", 1, on=on, text=f"{f(F['pestana'])} (pestaña)")
+        V.dimh((sk, 0, 55), (si, 0, 30), "top", 1, on=on, text=f"{f(ES['largo'])} (espiga)")
+        V.dimh((s0, 0, -60), (si, 0, -30), "bottom", 0, on=on, text=f"({f(F['t'])})")
+        V.dim((s0 + 4, 0, -b), (s0 + 4, 0, b), -14, orient="v", on=on, text=f"Ø{f(F['D'])} h11")
+        V.dim((si - 6, 0, -a), (si - 6, 0, a), 14, orient="v", on=on, text=_fit(ES["d"], ES["tol"]))
         V.dim((-float(OE["R"]) + 6, 0, -bE / 2), (-float(OE["R"]) + 6, 0, bE / 2), -12, orient="v", on=on, text=f"{f(bE)}")
-        V.note_pt((xA + 10, 0, 63.47), (26, 30), "Puerto A G 3/8 (ver tabla)", on=on)
-        rI_ = float(F["radio_interior"]); V.note_pt((si + rI_ - rI_ * math.cos(math.radians(45)), 0, a - rI_ + rI_ * math.sin(math.radians(45))), (24, -30), f"R{fm(rI_, 0)} interior", on=on)
+        V.note_pt((si, 0, 20), (24, 30), "Cara de la espiga = tope del retraído", on=on)
         V.note_pt((float(AL["d"]) / 2, 0, 0), (10, -40), f"Alojamiento Ø{f(AL['d'])} {AL['tol']} (ver tabla)", on=on)
         a_ = V.P((s0, 0, bE / 2 + 1))
         p_.h.weld("J38", a_, (a_[0] - 50, a_[1] + 40), sh=-1)
-    p.vs("corte", on, "front", cut=CUT_Y, lv=(2, 2, 2, 4), extra=(90, 10, 20, 20), draw=corte, hs=0.6, w=1.6, auto=False, mins=1.0, title="CORTE A-A (PLANO DEL PUERTO A Y DEL EJE DE LA RÓTULA)")
+    p.vs("corte", on, "front", cut=CUT_Y, lv=(2, 2, 2, 4), extra=(90, 10, 40, 20), draw=corte, hs=0.6, w=1.6, auto=False, mins=1.0, title="CORTE A-A (EJE DE LA RÓTULA)")
 
     def planta(V, p_):
         s.centerlines(V.P(0, 0, bE / 2), float(OE["R"]) * V.scale, 6)
@@ -231,9 +235,9 @@ def sheet_cil_fondo(ctx):
         V.dimh((-float(OE["R"]), 0, bE / 2), (s0, float(OE["cuello"]) / 2, bE / 2), "bottom", 0, on=on, text=f"{f(float(OE['R']) + s0)}")
         V.dim((0, -float(OE["R"]), bE / 2), (0, float(OE["R"]), bE / 2), -(float(OE["R"]) * V.scale + 12), orient="v", on=on, text=f"{f(2 * float(OE['R']))}")
     p.vs("planta", [no_], "top", lv=(2, 2, 3, 1), extra=(10, 0, 20, 0), draw=planta, hatch=False, w=0.8, auto=False, title="PLANTA DEL OJAL TRASERO (ACC-030)")
-    rows = [["Placa / falda / largo", f"{f(F['t'])} / {fm(F['falda'], 0)} / {fm(F['largo'], 0)} mm; R{fm(F['radio_interior'], 0)} interior"], ["Ø exterior / interior", f"Ø{f(F['D'])} h11 / Ø{f(F['d'])} H8"],
-            ["Bisel de la falda (J37)", f"{F['bisel']['tipo']}, talón {fm(F['bisel']['talon'], 0)}, separación {fm(F['bisel']['separacion'], 0)}, largo {fm(F['bisel']['largo_bisel'], 1)}"],
-            ["Puerto A", f"{F['puerto_A']['rosca']} {F['puerto_A']['norma']}, eje a {fm(F['puerto_A']['x_desde_cara_interior'], 0)} de la cara interior; prof. {fm(F['puerto_A']['prof_rosca'], 0)}; refrentado Ø{fm(F['puerto_A']['refrentado'], 0)}; paso Ø{fm(F['puerto_A']['paso'], 0)}"],
+    rows = [["Bloque macizo", f"{f(F['t'])} = pestaña Ø{f(F['D'])} h11 × {f(F['pestana'])} + espiga {_fit(ES['d'], ES['tol'])} × {f(ES['largo'])} (t requerido {fm(F['t_req'], 2)}); chaflanes 1 × 45°"],
+            ["Espiga", f"{ES['ajuste']}; su cara es el {ES['cara']}"],
+            ["Soldadura con la camisa (J37)", f"{F['cjp']['tipo']}; el hombro (cara de la pestaña) queda a escuadra, el bisel en J va en la camisa; END {F['cjp']['end']}"],
             ["Ojal trasero (ACC-030)", f"R{fm(OE['R'], 0)} × {f(OE['ancho'])}, cuello {f(OE['cuello'])} sobre el fondo; {OE['material']}"],
             ["Alojamiento de la rótula", f"Ø{f(AL['d'])} {AL['tol']} × {f(AL['ancho'])}; resalte Ø{f(AL['resalte']['d'])} × {f(AL['resalte']['ancho'])}; ranura Ø{f(AL['ranura']['d'])} × {fm(AL['ranura']['ancho'], 2)} a {fm(AL['ranura']['w'][0], 0)}…{fm(AL['ranura']['w'][1], 2)} ({AL['ranura']['norma']})"],
             ["Ranura y resalte (desde la cara superior)", f"ranura del anillo elástico de {fm(float(OE['ancho']) - float(AL['ranura']['w'][1]), 2)} a {fm(float(OE['ancho']) - float(AL['ranura']['w'][0]), 0)}; resalte a {fm(float(OE['ancho']) - float(AL['resalte']['ancho']), 0)} (desde la inferior: {fm(AL['resalte']['ancho'], 0)})"],
@@ -242,8 +246,9 @@ def sheet_cil_fondo(ctx):
     p.table_block("COTAS Y REQUISITOS (bx.cilindro.fondo)", [("Elemento", 40, "L"), ("Valor", 130, "L")], rows)
     p.tables(["J38"])
     p.notes([f"Fondo: {F['material']}.", f"Ojal trasero: {OE['material']}; biseles en K; soldar al fondo (J38) antes de soldar el fondo a la camisa (J37); {F['cjp']['proceso']}.",
+             "La soldadura del fondo queda en el hombro, DETRÁS del tope: los sellos del pistón nunca pasan sobre ella ni sobre su ZAC (requisito del fabricante hidráulico, rev. 8).",
              f"Alojamiento Ø{f(AL['d'])} {AL['tol']} mecanizado en línea con el eje de la camisa DESPUÉS de soldar y aliviar (perpendicular al eje del cilindro 0,05).",
-             f"END: J38 {OE['soldadura']['end']}; J37 {F['cjp']['end']}.", "Tolerancias geométricas (ISO 1101): " + "; ".join(t[3] + " " + t[1] + ((" respecto de " + t[2]) if t[2] else "") for t in [("perp", "0,05", "A", "Eje del alojamiento de la rótula perpendicular al eje del cilindro (A)")]) + "."])
+             f"END: J38 {OE['soldadura']['end']}; J37 {F['cjp']['end']}.", "Tolerancias geométricas (ISO 1101): eje del alojamiento de la rótula perpendicular al eje de la espiga (A) 0,05; espiga coaxial con la pestaña Ø0,05."])
     p.build()
     return p.h
 
@@ -508,6 +513,7 @@ def sheet_cil_esquema(ctx):
             ["Ojal del vástago", f"Ø{f(C['ojal_vastago']['d'])} {C['ojal_vastago']['tol_d']} sobre el pasador Q f8; R{fm(RQ, 0)} × {f(C['ojal_vastago']['ancho'])}; {C['ojal_vastago']['rotula']}"],
             ["Desnivel E–Q", f"≤ {fm(float(C.get('dz_tol') or 1), 1)} mm (admisible del vástago {fm(float(C.get('dz_adm') or 0), 2)} mm en el retraído; 1,3 mm en el estudio rev. 7e)"]]
     c.table_block("MEDIDAS OJO A OJO (bx.cilindro)", [("Dato", 50, "L"), ("Valor", 120, "L")], rows)
+    c.table_block("CAPACIDAD (resumen; completa en ACC-013)", [("Dato", 60, "L"), ("Valor", 110, "L")], [list(r) for r in C["capacidad"]["filas"][1:7]])
     c.note_block("NOTAS", [C.get("dz_nota") or "", "Esquema de medidas generales: las piezas, tolerancias y sellos se definen en ACC-013 y ACC-028 a ACC-035.",
                            "Las dos vistas están a la misma escala y alineadas por el eje del ojal trasero E (pasador fijo del soporte E).",
                            "Medidas entre paréntesis: de referencia (resultan de las acotadas)."], numbered=True)
@@ -529,7 +535,7 @@ def _extras_cil(ctx):
             ("Prisionero ISO 4026 M8 × 10 con pastilla de latón (antigiro de la tapa delantera)", n, "45H", "A DEFINIR POR CATÁLOGO"),
             ("Anillo elástico DIN 472 105 × 4 (rótula del ojal trasero)", n, "acero para resortes", "A DEFINIR POR CATÁLOGO"),
             ("Grasera DIN 71412 M8 × 1 (ojal del vástago)", n, "acero cincado", "A DEFINIR POR CATÁLOGO"),
-            ("Racor recto G 3/8 con sello ED (ISO 1179-2) para los puertos A y B", 2 * n, "acero cincado; ≥ " + f(C["p_prueba"]) + " bar", "A DEFINIR POR CATÁLOGO"),
+            ("Racor recto G 1/2 con sello ED (ISO 1179-2) y reducción a 3/8\" para los puertos A y B", 2 * n, "acero cincado; ≥ " + f(C["p_prueba"]) + " bar", "A DEFINIR POR CATÁLOGO"),
             ("Fijador anaeróbico de alta resistencia (tuerca del pistón) y de resistencia media (prisioneros)", 1, "—", "A DEFINIR POR CATÁLOGO")]
 
 
@@ -545,6 +551,17 @@ def _nota_dz(self, title, lines):
     return lines
 
 
+def _gen008_cil(ctx):
+    C = _C(ctx)
+    if C is None or not ctx.m.get("cil_camisa"):
+        return []
+    cap = dict((r[0], r[1]) for r in C["capacidad"]["filas"])
+    return [["Cilindros hidráulicos (×" + str(int(C["n"])) + ", FABRICADOS: ACC-013)", f"{cap['Tipo']}; empuje {cap.get('Empuje a p_alivio ' + f(C['p_alivio']) + ' bar', '')} a {f(C['p_alivio'])} bar; prueba {f(C['p_prueba'])} bar; sellos {cap['Sellos']}", "Prueba hidráulica de fábrica a " + f(C["p_prueba"]) + " bar con certificado", "Fabricado (no de catálogo); " + cap["Si se reemplaza por uno comercial"]],
+            ["Mangueras de las líneas A y B", cap["Mangueras"] + "; " + cap["Línea A (velocidad)"], "Certificado de prueba del fabricante", "marca/modelo A DEFINIR POR CATÁLOGO"],
+            ["Racores de los puertos", cap["Racores"], "Certificado del lote", "marca/modelo A DEFINIR POR CATÁLOGO"],
+            ["Circuito hidráulico", cap["Circuito"] + "; caudales: " + cap["Caudales"], "Prueba en vacío y a calado (CON-022)", "—"]]
+
+
 def activar():
     for nm, keys, fn in PLAN_CIL:
         if not any(x[0] == nm for x in PLAN):
@@ -554,6 +571,11 @@ def activar():
         _nb0 = layout.Plano.note_block
         layout.Plano.note_block = lambda self, title, lines, numbered=False, _f=_nb0: _f(self, title, _nota_dz(self, title, lines), numbered)
         layout.Plano._dz = True
+    import propuestas
+    if not getattr(propuestas, "_cil_gen008", False):
+        _cr0 = propuestas.catalogo_rows
+        propuestas.catalogo_rows = lambda ctx, _f=_cr0: (_gen008_cil(ctx) + [r for r in _f(ctx) if not str(r[0]).startswith("Cilindro hidráulico de doble efecto")]) if _gen008_cil(ctx) else _f(ctx)
+        propuestas._cil_gen008 = True
     import lista
     if not getattr(lista, "_cil_extras", False):
         _ex0 = lista.extras

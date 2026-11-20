@@ -432,3 +432,49 @@ Revisión 7f (aprobada por el mandante 19-11-2026):
   térmico, fuera del alcance térmico, informativas): p_hold + Δp 0,696 → 0,716 (20 °C) y 1,786 → 1,839 (80 °C); p_ret + Δp 0,286 → 0,294 y 1,376 → 1,417; válvula de
   alivio térmico «no hay» 0,696 → 0,716 y 1,786 → 1,839 (a 80 °C: instalar alivio térmico); «tras el calado» compara con 850 bar (sin cambio: 0,800 / 1,698).
   «Alivio dentro de la presión nominal» usa p_rated (10 000 psi = 700 bar): 0,971 sin cambio. Veredicto: CUMPLE (sin cambio).
+
+### 13.5 Revisión 8 (20-11-2026): observaciones del fabricante hidráulico (aprobadas por el mandante)
+
+- **Fondo rediseñado** (criterio: ningún sello del pistón pasa sobre la soldadura ni su ZAC; el pistón trabaja solo en la camisa bruñida): bloque macizo de
+  **S355J2 (EN 10025-2), t = 37 mm** = pestaña Ø130 h11 × 10 + espiga Ø90 g6 × 27 que entra en la camisa (ajuste con juego; su cara es el tope del retraído,
+  la tuerca del pistón apoya contra ella); torneado de plancha de 40 (Fy 345 a t ≤ 40). Sin falda. Ojal trasero (ACC-030) soldado al bloque (J38, sin cambio).
+- **Soldadura fondo–camisa J37: CJP en J de un lado** (bisel J en el extremo de la camisa, hombro de la pestaña a escuadra, la espiga integral hace de
+  respaldo permanente; separación de raíz 3). Se eligió CJP y no PJP + filete porque la unión retiene presión y empotra la camisa (flexión de borde P + Q):
+  la CJP da sección plena, se inspecciona por UT y no deja raíz sin fundir expuesta a la fatiga; lleva un filete de refuerzo z6 en el pie del lado del bloque
+  (suaviza la transición; no se cuenta en la resistencia).
+  FU primaria 0,272 / 0,252 (prueba); P + Q (ASME VIII-2 §5.5.6.1, ≤ S_PS = 2·Sy; prueba ≤ 0,9·2·Sy) 0,583 / 0,809. UG-34 con C = 0,33·m ≥ 0,20 para la junta nueva (croquis (g) con espiga integral).
+- **Distancia del plano de la soldadura a la cara trasera del pistón en el retraído = 47 mm** (espiga 27 + tuerca 20) ≥ 20 mm (fila geo, FU 0,426); el primer
+  sello recorre solo la camisa bruñida (fila geo, FU 0,659). Bruñido del Ø90 H8 en toda la carrera DESPUÉS de soldar y del alivio de tensiones (nota en ACC-028).
+- **Puerto A**: en el bloque no es factible con L0 = 520: el refrentado Ø34 de G 1/2 necesita ≥ 40 mm de bloque fuera de la camisa (cuerpo + 18 mm; e_cuerpo
+  bajaría a 56 y el ligamento de la orejeta a 3,5 mm). Se dejó **en la camisa, junto al fondo**, sobre el hueco de la tuerca en el retraído (paso Ø12; refrentado
+  lejos de la CJP, FU 0,876; paso libre, FU 0,800). Desviación de lo pedido: queda para decisión del mandante / fabricante.
+- **Largos** (L0 = 520 y carrera 235 se mantienen): e_cuerpo 65 + cuerpo 377 (fondo 37 + interior 283 + espiga de la tapa 12 + rosca 30 + reborde 15) +
+  c_vástago 78 = 520; camisa 349 (corte 355). El cajón E sigue cumpliendo (holgura sin cambio).
+- **Puertos G 1/2** (ISO 228-1, ISO 1179-1, sello ED) A y B. B cabe en la pared de 20: fondo de la rosca a r 48,7 ≥ 47 (FU 0,964), el agujero roscado termina
+  en x = 287,8 < 295 (inicio del refrentado de la M110, FU 0,976), paso Ø8 libre del pistón en la carrera (FU 0,996).
+- **S3 (o'ring estático pistón–vástago)**: o'ring métrico **50 × 4 NBR 90 con anillo de apoyo** (ISO 3601-2), ranura en el agujero del pistón Ø56,4 H9 × 8,2
+  sobre la espiga Ø50 (el vástago no se ranura). Nota: el fabricante mencionó «Ø42», a confirmar.
+- **Tabla «Datos técnicos y capacidad del cilindro»** (bloque `bx.cilindro.capacidad`, 16 filas) en ACC-013, resumen en ACC-036 y especificación hidráulica en
+  GEN-008: empujes 432,6 kN (680), 381,7 (600), 309,8 a 487 bar (diseño), 387,3 a 609 bar (grasa contaminada), retracción 60,9 / 207,0 kN (200 / 680), prueba
+  540,7 kN (850); caudales, velocidades (10,5 / 54,8 mm/s) y volúmenes (1,495 / 0,715 L); sellos 680 / 850; mangueras 3/8" de 10 000 psi (690 ≥ 680);
+  racores G 1/2 con reducción a 3/8"; línea A 4,9 m/s ≤ 5 con 3/8" (preferible 1/2"); cilindros en paralelo, alivio común, bomba con compensador de presión, SIN
+  divisor de caudal (iguala desplazamientos y puede intensificar la presión en un cilindro trabado); compra comercial: ≥ 45 t a 700 bar, con 50 t regular el
+  alivio para F ≤ 432,6 kN.
+- Desnivel E–Q (rev. 7f) con el cuerpo nuevo: con holgura nula en el ojal la fila da 1,048 y pasa a **informativa**; la fila de verificación usa el giro libre
+  mínimo garantizado del ajuste H9/f8 (0,72 mrad): Δz 1,0 ≤ 1,329 mm (FU 0,753).
+- Láminas: ACC-013 con la tabla de capacidad (3 columnas de pares dato–valor) y el corte a 1:2,5 (antes 1:2) para que quepa en A1; ACC-028 con los puertos A y B
+  G 1/2 (núcleo Ø18,6), ACC-029 rehecha (bloque con espiga), ACC-032 con la ranura del o'ring S3 50 × 4, ACC-036 con el resumen de capacidad, GEN-008 con la
+  especificación hidráulica; par de los racores G 1/2 con sello ED 130 N·m (valor usual de catálogo, a confirmar con el racor). Paquete: exit 0, controles en 0.
+
+| Fila (FU servicio / prueba) | Rev. 7f | Rev. 8 |
+|---|---|---|
+| Fondo, flexión de placa (Roark) | 0,857 / 0,793 | 0,328 / 0,304 |
+| Fondo, UG-34 | 0,992 / 0,846 | 0,467 / 0,394 |
+| CJP fondo–camisa (primaria) | 0,499 / 0,462 | 0,272 / 0,252 |
+| CJP fondo–camisa P + Q (nueva) | — | 0,583 / 0,809 |
+| Distancia soldadura → pistón (nueva, ≥ 20 mm) | — | 47 mm (0,426) |
+| Puerto A, refrentado lejos de la CJP | 0,957 | 0,876 |
+| Puerto A, velocidad en el paso | 0,887 | 0,616 |
+| Desnivel E–Q | 0,996 | 0,753 (holgura nula 1,048, informativa) |
+| Ojal trasero libre del soporte E | 0,881 | 0,806 |
+| Cuello del ojal del vástago | 0,988 | 0,987 |
