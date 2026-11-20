@@ -864,8 +864,8 @@
   function cylCard(Cy) {
     if (!Cy) return "";
     const rows = A.checks.filter((c) => c.grp === "Cilindro"), gv = rows.filter((c) => c.kind === "fu" && isFinite(c.fu)).reduce((m, c) => (!m || c.fu > m.fu ? c : m), null);
-    const pz = [["Camisa (ACC-028)", `Ø${fmt(Cy.camisa.D, 3)} ${esc(Cy.camisa.tol_D)} × Ø${fmt(Cy.camisa.d, 2)} ${esc(Cy.camisa.tol_d)} × ${fmt(Cy.camisa.largo, 3)}; rosca ${esc(Cy.camisa.rosca.designacion)}; puerto B ${esc(Cy.camisa.puerto_B.rosca)}`, esc(Cy.camisa.material)],
-      ["Fondo de copa (ACC-029)", `placa ${fmt(Cy.fondo.t, 2)} + falda ${fmt(Cy.fondo.falda, 2)} mm; puerto A ${esc(Cy.fondo.puerto_A.rosca)}; CJP con la camisa`, esc(Cy.fondo.material)],
+    const pz = [["Camisa (ACC-028)", `Ø${fmt(Cy.camisa.D, 3)} ${esc(Cy.camisa.tol_D)} × Ø${fmt(Cy.camisa.d, 2)} ${esc(Cy.camisa.tol_d)} × ${fmt(Cy.camisa.largo, 3)}; rosca ${esc(Cy.camisa.rosca.designacion)}; puertos A y B ${esc(Cy.camisa.puerto_B.rosca)}`, esc(Cy.camisa.material)],
+      ["Fondo macizo (ACC-029)", `bloque ${fmt(Cy.fondo.t, 2)} = pestaña ${fmt(Cy.fondo.pestana, 2)} + espiga Ø${fmt(Cy.fondo.espiga.d, 2)} ${esc(Cy.fondo.espiga.tol)} × ${fmt(Cy.fondo.espiga.largo, 2)} mm (tope del retraído); ${esc(Cy.fondo.cjp.tipo)}`, esc(Cy.fondo.material)],
       ["Ojal trasero (ACC-030)", `R${fmt(Cy.fondo.ojal.R, 2)} × ${fmt(Cy.fondo.ojal.ancho, 2)}; rótula ${esc(Cy.fondo.ojal.rotula.designacion)}`, esc(Cy.fondo.ojal.material)],
       ["Tapa delantera (ACC-031)", `espiga Ø${fmt(Cy.tapa.espiga.d, 3)} ${esc(Cy.tapa.espiga.tol)}; ${esc(Cy.tapa.rosca.designacion)}; reborde Ø${fmt(Cy.tapa.reborde.d, 3)}; largo ${fmt(Cy.tapa.largo, 2)}`, esc(Cy.tapa.material)],
       ["Pistón y tuerca (ACC-032/033)", `Ø${fmt(Cy.piston.D, 3)} ${esc(Cy.piston.tol_D)} × ${fmt(Cy.piston.largo, 2)}; ${esc(Cy.piston.tuerca.designacion)}, ${fmt(Cy.piston.tuerca.par_Nm, 4)} N·m`, esc(Cy.piston.material)],

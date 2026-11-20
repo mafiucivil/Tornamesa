@@ -147,13 +147,13 @@ const BX = (() => {
   const full = (P) => { const d = bxDefaults(), Q = Object.assign({}, P); for (const k in d) if (!(k in Q)) Q[k] = d[k]; return Q; };   // P del núcleo sin claves bx_: valores por defecto
 
   /* ---------------- Cilindro hidráulico FABRICADO (rev. 7d, decisión del mandante 19-11-2026) ---------------- */
-  // Reemplaza el cilindro comercial (ACC-013) por uno fabricado: camisa de barra hueca ST-52 132 × 80 maquinada a Ø130 × Ø90, fondo trasero de copa
-  // (placa + falda) soldado con CJP a la camisa con el ojal trasero (orejeta con rótula GE70ES) soldado, tapa delantera roscada M110 × 2 con los sellos
+  // Reemplaza el cilindro comercial (ACC-013) por uno fabricado: camisa de barra hueca ST-52 132 × 80 maquinada a Ø130 × Ø90, fondo trasero macizo
+  // con espiga (rev. 8; la CJP en J queda detrás del tope, fuera del recorrido de los sellos) con el ojal trasero (orejeta con rótula GE70ES) soldado, tapa delantera roscada M110 × 2 con los sellos
   // del vástago y el o'ring estático en una espiga Ø89,5 por DENTRO de la rosca, pistón con tuerca ranurada en el vástago (la tuerca es el tope del
   // retraído), vástago Ø65 cromado (cromado común, Fy 520: dato confirmado por el mandante 19-11-2026) con el ojal del vástago soldado. Las verificaciones van al grupo
   // «Cilindro» (filas bx); el núcleo recibe d_rod, pv_Fyrod, c_rod y m_cyl como parámetros (sin cambios en tt300c.js).
   const CYL_GRP = "Cilindro";
-  const CYL_GROUP = { id: "bx_cyl", t: "TT300-BX · cilindro hidráulico fabricado (rev. 7d: camisa ST-52, fondo de copa soldado, tapa roscada M110 × 2, vástago Ø65 cromado)", p: [
+  const CYL_GROUP = { id: "bx_cyl", t: "TT300-BX · cilindro hidráulico fabricado (rev. 7d/8: camisa ST-52, fondo macizo con espiga soldado, tapa roscada M110 × 2, vástago Ø65 cromado)", p: [
     ["bx_cyl_on", "Cilindro: 1 = FABRICADO según el croquis del mandante (19-11-2026, por defecto); 0 = comercial (filas del cilindro fuera, núcleo como antes)", "–", 1, 0, 1, 1],
     ["bx_cyl_Fy_t", "Camisa: Fy de la barra hueca ST-52 (DIN 17100 St 52-3 ≈ S355J2; pared 16 < t ≤ 40)", "MPa", 345, 235, 700, 5],
     ["bx_cyl_Fu_t", "Camisa: Fu (St 52-3: ≥ 470)", "MPa", 470, 340, 900, 5],
@@ -244,7 +244,7 @@ const BX = (() => {
     const beffE = Math.min(4 * CE, beE, 0.6 * FuE / FyE * Math.sqrt(DE / beE) * beE), AvE = 2 * (beE + DE / 2 * (1 - Math.cos(phE))) * CE;
     const eyeE = { Pt: FuE * 2 * CE * beffE / (1.2 * Nd), Pv: 0.7 * FuE * AvE / (1.2 * Nd), Pp: 1.25 * FyE * DE * CE / Nd, be: beE, beff: beffE, Av: AvE };
     const wE = P.bx_cyl_wE, Aw = 2 * wE * P.b_eye, Sw = P.b_eye * (2 * wE) ** 2 / 6, ME_c = P.pv_muE * Fcal * P.pv_dE / 2, ME_r = P.pv_muE * Fann * P.pv_dE / 2;
-    // CJP fondo–camisa: tracción axial F = p·π·a² más el momento de borde de la placa amortiguado a x = L_falda (Timoshenko, cilindro: e^(−βx)|cos βx − sin βx|)
+    // CJP fondo–camisa (rev. 8, en el hombro del bloque): tracción axial F = p·π·a² sobre la sección de la camisa y, como secundaria, el borde de la camisa empotrado en el bloque
     const Rm = (a + b) / 2, beta = Math.pow(3 * (1 - 0.09) / (Rm * Rm * tw * tw), 0.25), kM = 1, Aw0 = Math.PI * (b * b - a * a);
     const cjp = (q) => q * Ab / Aw0, cjpQ = (q) => q * Ab / Aw0 + 6 * (q / (2 * beta * beta)) / (tw * tw);   // rev. 8: CJP en el hombro (primaria) y borde de la camisa empotrado en el bloque (secundaria, M0 = p/(2β²))
     // puertos: caudal por cilindro (A: salida del retorno Q_ret/n·A/A_an; B: entrada del retorno Q_ret/n)
@@ -438,8 +438,8 @@ const BX = (() => {
       p_alivio: P.p_relief, p_alarma: P.p_alarm, p_retorno: P.p_ret, p_prueba: g.kt * P.p_relief, k_prueba: g.kt, F_calado_kN: g.Fcal / 1e3, F_anular_kN: g.Fann / 1e3, F_tapa_kN: g.Ftap / 1e3,
       s: g.s, camisa, fondo, tapa, piston, vastago, ojal_vastago, sellos,
       aceite: "aceite hidráulico mineral HLP 46 (ISO 6743-4 HM, ISO VG 46), limpieza ISO 4406 18/16/13",
-      pares: [["Tapa delantera M" + TT.d + " × " + TT.P + " (llave de gancho)", tapa.par_apriete_Nm + " N·m"], ["Tuerca del pistón M" + TV.d + " × " + TV.P, piston.tuerca.par_Nm + " N·m (F_V ≈ " + Math.round(g.FV / 1e3) + " kN, μ " + Q.bx_cyl_mu_t + ")"], ["Prisioneros M6 de la tuerca", "4 N·m"], ["Prisionero M8 antigiro de la tapa", "10 N·m"], ["Puertos G 3/8 (racor con sello ED)", "60 N·m (dato del racor)"]],
-      secuencia: ["Soldar el fondo de copa a la camisa (WPS-CIL-01, CJP con respaldo cerámico) y la orejeta trasera al fondo (WPS-CIL-02); UT y MT; alivio de tensiones 580–620 °C.",
+      pares: [["Tapa delantera M" + TT.d + " × " + TT.P + " (llave de gancho)", tapa.par_apriete_Nm + " N·m"], ["Tuerca del pistón M" + TV.d + " × " + TV.P, piston.tuerca.par_Nm + " N·m (F_V ≈ " + Math.round(g.FV / 1e3) + " kN, μ " + Q.bx_cyl_mu_t + ")"], ["Prisioneros M6 de la tuerca", "4 N·m"], ["Prisionero M8 antigiro de la tapa", "10 N·m"], ["Puertos G 1/2 (racor con sello ED)", "130 N·m (valor usual de catálogo ISO 1179-2; confirmar con el racor)"]],
+      secuencia: ["Soldar la orejeta trasera al fondo macizo (WPS-CIL-02, J38) y luego el fondo a la camisa (WPS-CIL-01, J37: CJP en J sobre la espiga integral de respaldo, detrás del tope); UT y MT; alivio de tensiones 580–620 °C.",
         "Mecanizar después de soldar: Ø" + B + " H8 bruñido Ra ≤ 0,4 de la camisa en TODO el recorrido (después de soldar el fondo y del alivio), rosca M" + TT.d + " × " + TT.P + "-6H, chaflán de entrada de sellos 15°, alojamiento Ø105 N7 de la rótula en línea con el eje, puertos A y B.",
         "Vástago: soldar el ojal por fricción (WPS-CIL-03), eliminar la rebaba, rectificar Ø" + dr + " f7, cromar ≥ 20 µm y pulir Ra ≤ 0,2; mecanizar el agujero Ø" + P.pv_dq + " H9 del ojal referido al eje del vástago.",
         "Montar en la tapa el rascador, las guías, la copa en U y el sello escalonado (herramienta de montaje, sin aristas); el o'ring S4 y su respaldo en la espiga.",
@@ -466,7 +466,7 @@ const BX = (() => {
           ["Si se reemplaza por uno comercial", "clase ≥ 45 t a 700 bar; si es de 50 t, regular el alivio para F ≤ " + nf(kN_(P.p_relief, A_), 1) + " kN"]];
         return { filas: rows, v_linea_A_3_8: vA_ }; })(),
       dz_tol: Q.bx_cyl_dz, dz_adm: (() => { const r = (checks || []).find((c) => /desnivel especificado/.test(c.name)); return r ? r.cap : null; })(),
-      dz_nota: "Desnivel entre los ejes E (soporte E) y Q (bloque-uña sobre la placa-guía): |z_E − z_Q| ≤ " + nf(Q.bx_cyl_dz, 1) + " mm (cada eje a su cota ± " + nf(Q.bx_cyl_dz / 2, 1) + " sobre la base), medido con nivel óptico en el montaje; aprobado por el mandante 19-11-2026. Criterio: estudio del ojal del vástago (rev. 7e), Δz admisible 1,3 mm sin holgura (1,0 mm en el retraído, fila «Cilindro» del núcleo BX)" };
+      dz_nota: "Desnivel entre los ejes E (soporte E) y Q (bloque-uña sobre la placa-guía): |z_E − z_Q| ≤ " + nf(Q.bx_cyl_dz, 1) + " mm (cada eje a su cota ± " + nf(Q.bx_cyl_dz / 2, 1) + " sobre la base), medido con nivel óptico en el montaje; aprobado por el mandante 19-11-2026. Criterio: estudio del ojal del vástago (rev. 7e); Δz admisible " + (() => { const r = (checks || []).find((c) => /desnivel especificado/.test(c.name)); return r ? nf(r.cap, 2) : "—"; })() + " mm en el retraído con el giro libre mínimo del ajuste H9/f8 (con holgura nula el admisible es menor: fila informativa; fila «Cilindro» del núcleo BX, rev. 8)" };
   }
 
 
