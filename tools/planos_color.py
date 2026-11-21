@@ -36,11 +36,12 @@ def colorear(src: pathlib.Path, dst: pathlib.Path):
             ttf, bold = FUENTE[f]
             st.dxf.font = ttf
             st.set_extended_font_data("Arial", italic=False, bold=bold)
-    # Arial no trae el signo menos superíndice (U+207B): «×10⁻⁶» se escribe «×10^-6»
+    # Arial no trae el signo menos superíndice (U+207B): «190×10⁻⁶» se escribe «190E-6».
+    # No se usa «^»: en TEXT de AutoCAD «^-» es un código de control y el DWG lo convierte en otro carácter.
     for e in d.modelspace().query("TEXT MTEXT"):
         t = e.dxf.text if e.dxftype() == "TEXT" else e.text
         if "⁻" in t:
-            t = t.replace("10⁻⁶", "10^-6").replace("⁻", "-")
+            t = t.replace("×10⁻⁶", "E-6").replace("10⁻⁶", "1E-6").replace("⁻", "-")
             if e.dxftype() == "TEXT":
                 e.dxf.text = t
             else:
