@@ -1,5 +1,8 @@
 # TT300-BX · Tornamesa con interfaz inoxidable–UHMW simplificada (módulo aparte)
 
+> **Revisión 9 vigente (20-11-2026): carga de diseño 250 t, alivio 540 bar, alarma 480 bar; ejes sin tratamientos térmicos de proceso; buje templado
+> reemplazable en el seguidor del pasador Q (§13.6).** Las cifras de 290 t y 680/600 bar de las secciones §11 a §13.5 son el registro de las revisiones 7 y 8.
+
 > **Revisión 5 (18-11-2026, por defecto): lámina 304 espejo de 3 mm SOLDADA a la mesa (tapones + costura), acero A36 en todas las
 > planchas, pastillas de ULTRA VST de 30 mm en portador A36 de 25 mm.** Ver §9. Las revisiones 1–4 (disco macizo atornillado) quedan
 > como opción: `bx_disc_modo = 0` y `BX.defaults({ a36: false })`.
@@ -312,7 +315,7 @@ con paredes E de 28 mm también (CJP 0,935), con 30 no (desgarro de las tapas 1,
 3. Recalibrar `DBL_CAL` del núcleo con t_base = 22 (hoy crédito BX por cociente de la FEA independiente).
 4. Herramientas HTML sin reconstruir (`Tornamesa_v*.html`, `Tornamesa_BX_v1.0.html`).
 
-## 11. Revisión 7 (18-11-2026): 290 t, 680/600 bar, todas las planchas en A572 Gr. 50 y de 22 mm (reemplaza a la rev. 6)
+## 11. Revisión 7 (18-11-2026; reemplazada en carga y presiones por la rev. 9, §13.6): 290 t, 680/600 bar, todas las planchas en A572 Gr. 50 y de 22 mm (reemplaza a la rev. 6)
 
 Configuración por defecto: W_tf = 290, p_relief = 680, p_alarm = 600; global Fy/Fu = 345/450 (ASTM A572 Gr. 50) y claves por pieza en 0 (= global,
 siguen disponibles); t_top = t_bot = t_pr = t_base = bx_tc = pv_tbox = pv_tl = 22; atiesador tangencial 22 (clave nueva opcional del núcleo `rib_t`:
@@ -478,3 +481,90 @@ Revisión 7f (aprobada por el mandante 19-11-2026):
 | Desnivel E–Q | 0,996 | 0,753 (holgura nula 1,048, informativa) |
 | Ojal trasero libre del soporte E | 0,881 | 0,806 |
 | Cuello del ojal del vástago | 0,988 | 0,987 |
+
+### 13.6 Revisión 9 (20-11-2026): carga de diseño 250 t, alivio 540 bar, ejes sin tratamiento térmico y buje templado del seguidor (decisiones del mandante)
+
+**Valores por defecto** (`A36_DESPUES` de tt300bx.js y grupo BX): `W_tf` 250 t (rev. 7–8: 290), `p_relief` 540 bar y `p_alarm` 480 bar (rev. 7–8: 680 / 600). FS del giro en el caso
+de diseño 1,267 ≥ 1,25 (FU 0,987); con 530 bar no cumple (prueba en tests/test_tt300bx.js). La geometría del cilindro (Ø130 × Ø90, vástago Ø65, L0 520, carrera 235) no cambia;
+`p_max_cil` de los sellos sigue en 680 bar.
+
+**Ganchos aditivos del núcleo** (tt300c.js lee `P.__bx`; sin `__bx` es bit-idéntico: `tests/indep_tt300c.py` «sin diferencias», prueba de la base a67d98e y golden):
+
+| Clave de `P.__bx` | Efecto | Norma |
+|---|---|---|
+| `Fb_redondo` = 1,25 (`bx_Fb_red`) | Flexión de pasadores macizos Fb = 1,25·Fy/Nd: pasador E, pasador Q, pasador de empuje (biapoyado) y pivote | ASME BTH-1-2020 §3-2.3.3 (confirmado por el mandante) |
+| `kFy_pQ` = Fy_Q / Fy_pp | Pasador Q con su propio Fy (315) y el E con `Fy_pp` (325); cociente: en el escenario térmico se aplica al Fy reducido a T | EN 10025-2 (S355J2+N, 63 < t ≤ 80: 325; 80 < t ≤ 100: 315) |
+| `brg_min` | Aplastamiento con mín(Fy pasador, Fy plancha): tapas del cajón E, horquilla del bloque-uña en Q, asiento del pivote (y ojal del vástago en el módulo) | AISC 360-22 §J7 |
+| `mq_split` | Pasador Q por combinaciones simultáneas: (a) empuje a calado F_calado + H del empuje guiado; (b) retorno F_ret + N_atasco (el atasco ocurre al retraer). Gobierna la mayor | ASME BTH-1 §3-3.3 / §3-2.3.3 |
+| `k_base`, `td_min` | El refuerzo de esquina se elige con el mismo factor de la FEA de la base que aplica la fila BX y no baja del espesor de la calibración (45 mm) | ASME BTH-1 §3-2.3; docs/bx §11 |
+
+**Materiales (sin tratamientos térmicos de proceso)** — bloque `bx.materiales` del JSON (fuente única de las láminas):
+
+| Pieza | Material | Fy de cálculo |
+|---|---|---|
+| Pasador E Ø70 (ACC-014) | S355J2+N barra redonda (EN 10025-2), sin bonificado ni temple | 325 (63 < t ≤ 80) |
+| Pasador Q Ø90 (ACC-016) | S355J2+N barra redonda, sin tratamiento; extremo rebajado Ø70 k6 | 315 (80 < t ≤ 100) |
+| Pasadores de empuje Ø85 (MES-012) | 42CrMo4+QT / AISI 4140 bonificado de stock (EN 10083-3), SIN temple por inducción | 650 (40 < d ≤ 100); Fy_surf = 650 |
+| Pivote Ø120 (PIV-001) | C45+N (EN 10083-2), sin tratamiento (confirmar con el fabricante del buje autolubricado Ø150/Ø120 × 80 la dureza mínima del eje) | 275 (100 < d ≤ 250) |
+| Bloque-uña (ACC-027) | 34CrNiMo6+QT; asiento SIN temple: Hertz conforme con Fy_sup = mín(650, 800) = 650 → FU 0,319 (cumple) | 800 |
+| Placas-guía (ACC-020/024) | 42CrMo4+QT (pista del seguidor), canto desnudo fresado y engrasado, SIN revestimiento inoxidable | 750 |
+| Buje del seguidor (ACC-046, nuevo) | 42CrMo4+QT templado por inducción 55–60 HRC, capa ≥ 4 mm, revenido 180 °C | núcleo 750 |
+
+Pasadores de empuje soldados: CE_IIW ≈ 0,80 (composición típica; ≈ 0,90 con los máximos): no precalificado (AWS D1.1:2020 Tabla 5.3), WPS por ensayo, precalentamiento por el
+método de control de hidrógeno del Anexo B (Zona III, H4, restricción alta: del orden de 250–300 °C, con el CE del certificado 3.1), interpase ≤ 300 °C y bajo la temperatura de revenido.
+
+**Buje del seguidor** (`bx_buje = 1`): copa Ø90 f7 × 46 (fondo 8) sobre el extremo del pasador Q rebajado a Ø70 k6 (H7/k6), hombro a z = 70 con acuerdo r 3, retenida por un
+tornillo ISO 10642 M12 × 25 10.9 con fijador medio; Ø exterior = d_Q, así el seguidor no cambia. Se eligió 42CrMo4 templado por inducción y no 16MnCr5 cementado: la profundidad del
+corte máximo de Hertz pide capa ≥ 2·0,786·b y la cementación usual (CHD 0,8–1,2) no la da. Filas nuevas (sustituyen a las de la zapata: presión p = H/(l·t), revestimiento, largo y la
+pendiente de la zapata plana sobre el canto curvo): Hertz de línea buje–canto en TODO el contorno real (61 posiciones del empuje con N = h(μ)·F_calado·η y el retorno guiado completo
+con N = F_ret/sen φ(L)), radio local del canto (1/R_ef = 1/r + 1/R_c), largo de contacto t − 2 = 28 mm, p₀ ≤ 1,67·Fy del canto (750).
+μ: la cinemática, la sincronía y el autobloqueo siguen con μ_A,d = 0,20 (inox–inox), mayor que el acero–acero engrasado, conservador en esas filas; las cargas del seguidor se evalúan
+con 0,20 y con `bx_mu_ss` = 0,10 y cada fila toma la mayor (con 0,10 la H máxima sube 12,6 %: 80,7 → 90,9 kN; gobierna el pasador Q y el Hertz del empuje).
+
+**Fila anómala** (plancha base bajo el soporte E, empuje a calado, FU 1,003 con 540 bar): el núcleo elige el espesor del refuerzo de esquina con su FU (objetivo ≤ 0,90) SIN el factor
+1,158 de la envolvente de la FEA que aplica `baseCredit`; con menos presión el núcleo bajaba el refuerzo de 45 a 35 mm (FU núcleo 0,866) y la fila BX quedaba en 0,866 × 1,158 = 1,003.
+Corrección: ganchos `k_base` (el núcleo elige con el mismo factor) y `td_min` = 45 (el factor se calibró con 45 mm; fuera de esa geometría no está validado). Resultado: 45 mm,
+FU 0,764 (rev. 8: 0,962 a 680 bar; sin `td_min`, con solo `k_base`, quedaba 40 mm y 0,873).
+
+Otros: con 540 bar el paso automático de los tapones de la lámina subía de 95 a 175 mm (232 → 133 tapones) y la separación mínima quedaba ∞ (FU 0: ningún par en la
+malla de búsqueda; ahora se calcula la distancia exacta). Se fija `bx_s_tap` = 95 mm: se conserva el patrón de 232 tapones de las rev. 7–8 (INT-021 sin cambio de geometría),
+más conservador (corte del aporte 0,432 → 0,343; arrastre local 0,572 → 0,454).
+La curva de la placa-guía la elige el núcleo con las cargas (mín. de máx(H·F_calado, N_atasco)): con 540 bar cambia (tope del flanco 539 → 541 mm, hombro R79,1 → R75,4, cresta R221 → R286;
+N_atasco 97,2 → 86,7 kN, H 74,6 → 80,7 kN): ACC-020/024 y el pasador Q pasan a la clase de geometría «BX-L9».
+
+| Fila (FU) | Rev. 8 | Rev. 9 |
+|---|---|---|
+| FS del accionamiento en el caso de diseño | 0,895 | 0,987 (FS 1,267) |
+| Alarma bajo el alivio / presión de diseño frente a la alarma | 0,980 / 0,812 | 0,988 / 0,888 |
+| Pasador vertical E: flexión / corte | 0,756 / 0,449 | 0,961 / 0,714 |
+| Pasador Q: flexión (horquilla) | 0,686 | 0,918 (μ 0,20) → **0,976** (μ 0,10, gobierna (a)) |
+| Pasador Q: corte doble | 0,272 | 0,445 |
+| Pasador Q: flexión / corte en el hombro del rebaje Ø70 (nuevas) | — | 0,679 / 0,520 |
+| Buje–pasador Q: aplastamiento (lineal con excentricidad, nueva) | — | 0,836 |
+| Tapas del cajón E: aplastamiento (pasador más blando) | 0,977 | 0,824 |
+| Horquilla del bloque-uña en Q: aplastamiento | 0,168 | 0,338 |
+| Ojal del vástago sobre el pasador Q: aplastamiento | 0,710 | 0,582 |
+| Pasador de empuje: flexión / corte / aplastamiento en el anillo | 0,905 / 0,369 / 0,900 | 0,707 / 0,361 / 0,715 |
+| Bloque-uña: Hertz conforme del asiento (sin temple) | 0,155 (templado) | 0,319 |
+| Pivote: flexión / aplastamiento en el asiento / asiento con momento | 0,176 / 0,097 / 0,653 | 0,281 / 0,103 / 0,692 |
+| Hertz buje–canto, empuje a calado (cresta cóncava R286, μ 0,10) | — | 0,970 |
+| Hertz buje–canto, atasco del retorno (primer contacto, hombro R75,4) | — | 0,786 |
+| **Hertz buje–canto, atasco del retorno en el flanco recto (envolvente)** | — | **1,145 — PENDIENTE** |
+| Capa templada del buje (2·0,786·b ≤ 4 mm) | — | 0,464 |
+| Plancha base bajo E, empuje a calado (BX) | 0,962 (45 mm) | 0,764 (45 mm; anómala sin corregir: 1,003 con 35) |
+| Sellos: alivio / prueba frente a 680 / 850 | 1,000 / 1,000 | 0,794 / 0,794 (prueba 675 bar) |
+| Camisa Lamé (servicio / prueba) | 0,983 / 0,911 | 0,781 / 0,723 |
+| Vástago flexocompresión | 0,846 | 0,657 |
+| Aceite atrapado tras el calado (20 / 80 °C, frente a 1,25·p_alivio) | 0,800 / 1,698 | 0,800 / 1,931 (informativa) |
+| p_hold + Δp (20 / 80 °C) | 0,716 / 1,839 | 0,627 / 1,750 (a 80 °C: válvula de alivio térmico) |
+| Pastillas: presión / con planitud / PV / pared | 0,834 / 0,949 / 0,884 / 0,861 | 0,720 / 0,835 / 0,763 / 0,743 |
+| Portador: torsión / ligamento; costura exterior de la lámina | 0,612 / 0,523; 0,708 | 0,486 / 0,415; 0,612 |
+
+**Decisión pendiente del mandante**: el contacto buje–canto en el atasco del retorno, en el flanco recto de reenganche (R = ∞, φ = 55,3°, N = 74,1 kN), da p₀ = 1434 MPa > 1,67·750
+(FU 1,145) con el canto sin templar. La estimación a mano (R79 cóncavo, FU ≈ 0,85) corresponde al primer contacto (0,786 con la curva nueva); la envolvente encuentra el flanco.
+Opciones: (a) temple por inducción del canto en el flanco y el hombro (Fy superficial ≥ 859 MPa); (b) placa-guía de 40 mm (FU ≈ 0,98); (c) p_ret ≤ 150 bar (FU ≈ 0,99).
+Estado global: «NO CUMPLE / PENDIENTE DE DECISIÓN» (único pendiente crítico; giro y estructura cumplen). El Hertz del empuje (0,970) y el pasador Q (0,976) quedan en advertencia.
+
+Planos (`python3 cad/generar_paquete_bx.py --out scratchpad/bx9/out`): ACC-046 nueva (buje: corte, vista inferior, tabla y notas); ACC-014 con el rebaje de Q y los materiales
+S355J2+N; ACC-020/024 sin capa templada (detalle B del canto desnudo y nota del buje); MES-012 sin banda templada y con la soldabilidad del 42CrMo4; PIV-001 C45+N con la nota del
+buje; ACC-027 asiento sin temple; GEN-005/006 (materiales y tratamientos) con los grados del mandante; GEN-008 y ACC-013 con la capacidad a 540 bar.
