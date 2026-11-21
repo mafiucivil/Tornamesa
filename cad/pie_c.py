@@ -60,7 +60,7 @@ def sheet_pivote_pieza(ctx):
     p.tables()
     p.notes([f"Barra redonda Ø{f(D + 5)} laminada; torneado y rectificado externo en torno horizontal en dos zonas: Ø{f(D)} p6 ({iso286.fmt_dev(D, 'p6')}) de z = 0 a {fm(zp6, 0)} (calado en plancha base + collar) "
              f"y Ø{f(D)} f7 ({iso286.fmt_dev(D, 'f7')}) de z = {fm(zf7, 0)} a {fm(Lp, 0)} (buje); z desde la cara inferior del pivote. Transición de {fm(zf7 - zp6, 0)} mm (z = {fm(zp6, 0)} a {fm(zf7, 0)}): salida de muela cónica, sin garganta ni arista viva. Ra 0,8 en ambas zonas; largo {fm(Lp, 1)}.",
-             f"Material: {propuestas.grado(P['Fy_piv'], D, 'barra')}. Bonificado; UT de la barra.",
+             (f"Material: {g.bx['materiales']['pivote']['texto']}; UT de la barra. {g.bx['materiales']['pivote']['nota']}." if ((getattr(g, 'bx', None) or {}).get('materiales') or {}).get('pivote') else f"Material: {propuestas.grado(P['Fy_piv'], D, 'barra')}. Bonificado; UT de la barra."),
              f"Ajustes (ISO 286-2): zona p6 en plancha base y collar H7/p6, aprieto {-fp6['cmax']}…{-fp6['cmin']} µm (prensa o contracción con hielo seco, la zona p6 entra primero); "
              f"zona f7 en el buje F7/f7, juego {ff7['cmin']:+d}/{ff7['cmax']:+d} µm. El buje no debe pasar sobre la zona p6.",
              f"Chaflanes {fm(g.ch_piv, 0)}×45° en ambos extremos (ISO 13715). Perpendicularidad de las caras extremas 0,05; cilindricidad 0,02 en cada zona.",

@@ -363,6 +363,11 @@ def sheet_materiales(ctx):
         gr += [["Pasador E (Ø%s)" % f(F_["pasador_E"]["d"]), propuestas.grado(P["Fy_pp"], F_["pasador_E"]["d"], "barra")], ["Pasador Q (Ø%s)" % f(F_["pasador_Q"]["d"]), propuestas.grado(P["Fy_pp"], F_["pasador_Q"]["d"], "barra")]]
     gr += [["Pasadores de empuje (Ø%s)" % f(g.d_pin), propuestas.grado(P["Fy_pin"], g.d_pin, "barra")]]
     gr += [["Uña (forja, %s mm)" % fm(P["dog_b"], 0), propuestas.grado(P["Fy_dog"], P["dog_b"], "barra")]] if g.modo == 1 else [["Bloque-uña (forja, %s mm)" % fm(g.FPV["bloque_una"]["cuerpo"]["b"], 0), propuestas.grado(P["Fy_dog"], g.FPV["bloque_una"]["cuerpo"]["b"], "barra")]]
+    MB9 = ((getattr(g, "bx", None) or {}).get("materiales") or {})   # TT300-BX rev. 9: grados por pieza decididos por el mandante (no por Fy)
+    if MB9:
+        gr = [[r[0], next((MB9[k]["texto"] + " — DECISIÓN DEL MANDANTE 20-11-2026" for nm, k in (("Pivote", "pivote"), ("Pasador E", "pasador_E"), ("Pasador Q", "pasador_Q"), ("Pasadores de empuje", "pasadores_empuje"), ("Bloque-uña", "bloque_una")) if r[0].startswith(nm) and k in MB9), r[1])] for r in gr]
+        if MB9.get("buje_Q") and ctx.m.get("buje_Q"):
+            gr.append([f"Buje del seguidor ({_cc(ctx, 'buje_Q')})", MB9["buje_Q"]["texto"] + " — DECISIÓN DEL MANDANTE 20-11-2026"])
     cols_g = [("Elemento (parámetro del cálculo)", 0.34 * w, "L"), ("Grado comercial más económico que cumple", 0.66 * w, "L")]
     tit_g = "GRADOS PROPUESTOS POR Fy DEL CÁLCULO (" + propuestas.ROTULO_GRADO + "); el cálculo solo fija Fy"
     if y - 8 - 32 < R[1] + 3:                 # no entra ni el título con la cabecera y una fila: todo a la hoja de continuación
@@ -388,6 +393,7 @@ def sheet_tratamientos(ctx):
     c = Gen(ctx, 6, "TRATAMIENTOS TÉRMICOS Y SUPERFICIALES, PINTURA")
     R = c.R["main"]
     w = R[2] - R[0]
+    MB9 = ((getattr(g, "bx", None) or {}).get("materiales") or {})   # TT300-BX rev. 9: sin tratamientos térmicos de proceso en los ejes; buje del seguidor templado
     rows = [["Base soldada, mesa soldada", "Alivio de tensiones 590–620 °C (2 h/25 mm), enfriamiento lento; antes del mecanizado final", "Fabricante (registro de horno)"],
             ["Pasadores de empuje (MES-012)", f"Bonificado + temple por inducción de la franja de contacto ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad {g.z_hard_txt}", "Dureza 10 % por lote; macrografía"],
             *([["Uña de empuje (ACC-004)", f"34CrNiMo6+QT Re ≥ {f(P['Fy_dog'])} MPa (probeta de la forja); temple por inducción de la cara ≥ 55 HRC, prof. {g.z_hard_txt}; revenido; alivio de borde {fm(RELIEF, 0)} mm", "Dureza 100 %; MT cara"]] if g.modo == 1 else
@@ -405,6 +411,25 @@ def sheet_tratamientos(ctx):
             ["Estructura de acero (base, mesa, soldaduras)", pintura(ctx), "EPS (ISO 19840) y adherencia (ISO 4624): 1 medición por 10 m²"],
             ["Zonas sin pintura (lista única del juego)", propuestas.zonas_sin_pintura(ctx), "VT"],
             ["Tornillería", "Pernos 10.9 con recubrimiento zincado/dacromet (tipo exigido; marca/modelo en GEN-008)", "Certificado del lote"]]
+    if MB9 and g.modo == 2:
+        def _r9(r):
+            k = r[0]
+            if k.startswith("Pasadores de empuje"):
+                return [k, MB9["pasadores_empuje"]["tratamiento"] + f" (Fy = {f(P['Fy_pin'])} MPa también en la superficie: Hertz del asiento sin temple)", "Certificado 3.1; dureza HB por lote"]
+            if k.startswith("Bloque-uña"):
+                return [k, MB9["bloque_una"]["texto"], "Certificado 3.1 de la forja; MT del asiento"]
+            if k.startswith("Pasador Q"):
+                return [k, MB9["pasador_Q"]["texto"], "Certificado 3.1"]
+            if k.startswith("Placa-guía"):
+                return [k, MB9["placas_guia"]["texto"], "Certificado 3.1; rugosidad del canto"]
+            if k.startswith("Pivote"):
+                return [k, MB9["pivote"]["texto"] + ". " + MB9["pivote"]["nota"], "Certificado 3.1"]
+            if k.startswith("Pasadores E y Q"):
+                return [k, MB9["pasador_E"]["texto"] + " / " + MB9["pasador_Q"]["texto"], "Certificado 3.1"]
+            return r
+        rows = [_r9(r) for r in rows]
+        if MB9.get("buje_Q") and ctx.m.get("buje_Q"):
+            rows.insert(1, [f"Buje del seguidor ({_cc(ctx, 'buje_Q')})", MB9["buje_Q"]["tratamiento"] + "; rectificado después del temple", "Dureza 3 puntos por pieza; metalografía de la capa en la 1.ª pieza"])
     out, last, y = c.table_pages([("Elemento", 0.22 * w, "L"), ("Tratamiento / especificación", 0.58 * w, "L"), ("Control", 0.20 * w, "L")], rows, "TRATAMIENTOS TÉRMICOS Y SUPERFICIALES", "TRATAMIENTOS", 6)
     prow = [[a, b_, cc] for a, b_, cc in propuestas.SISTEMA_PINTURA]
     last.s.table(R[0], y - 8, [("Capa", 0.18 * w, "L"), ("Producto / especificación", 0.64 * w, "L"), ("EPS", 0.18 * w, "R")], prow, h=T_S, bold_rows=(len(prow) - 1,),

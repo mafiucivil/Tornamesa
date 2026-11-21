@@ -18,7 +18,33 @@ ACC_NUM = {"bancada": 1, "cilindro": 2, "patin": 3, "una": 4, "pasador_vastago":
            # modo guiado (núcleo c4e12af): retención axial del rodillo del seguidor
            "leva_arandela": 25, "leva_tornillo_ret": 26,
            # bloque-uña con garra (núcleo 61fff06: asiento cóncavo, labio de retención, nariz y rampa): geometría nueva → número nuevo (23 queda anulado)
-           "bloque_una_g": 27}
+           "bloque_una_g": 27,
+           # TT300-BX rev. 9: buje templado reemplazable del seguidor en el extremo rebajado del pasador Q (46: después de los del cilindro fabricado, 28…45)
+           "buje_Q": 46}
+
+
+def bx_de(g):
+    """Bloques de la rev. 9 del juego TT300-BX en el JSON (bx.materiales y bx.buje_Q); vacíos fuera de BX."""
+    B = getattr(g, "bx", None) or {}
+    return (B.get("materiales") or {}), (B.get("buje_Q") or None)
+
+
+def pin_q_bx(BQ, PQ, x, y, ch):
+    """Pasador Q de la rev. 9: Ø d_Q desde el hombro hasta arriba y extremo rebajado Ø d_int (k6) dentro del buje, con el agujero roscado M12 del tornillo."""
+    z1, zs, zb = PQ["z"][1], BQ["z_hombro"], BQ["rebaje_pasador"]["z"][0]
+    top = _cyl(PQ["d"] / 2, z1 - zs, zs, x, y).faces(">Z").edges().chamfer(ch)
+    reb = _cyl(BQ["d_int"] / 2, zs - zb, zb, x, y).faces("<Z").edges().chamfer(1.0)
+    return top.union(reb).cut(_cyl(10.2 / 2, 26.0, zb - 1.0, x, y))
+
+
+def buje_bx(BQ, x, y):
+    """Buje de copa del seguidor: Ø ext × largo, agujero Ø d_int desde el fondo de copa hasta el hombro, avellanado ISO 10642 M12 en el fondo."""
+    z0, zs, tf, R = BQ["z"][0], BQ["z_hombro"], BQ["fondo"], BQ["d_ext"] / 2
+    b = _cyl(R, zs - z0, z0, x, y).faces(">Z or <Z").edges().chamfer(float(BQ.get("chaflan") or 1.0))
+    b = b.cut(_cyl(BQ["d_int"] / 2, zs - z0 - tf + 1.0, z0 + tf, x, y)).cut(_cyl(13.0 / 2, tf + 2.0, z0 - 1.0, x, y))
+    da = float(BQ["tornillo"]["avellanado"]) / 2
+    cone = cq.Solid.makeCone(da, 6.5, da - 6.5, cq.Vector(x, y, z0 - 0.01), cq.Vector(0, 0, 1))
+    return b.cut(cq.Workplane("XY").newObject([cone]))
 
 
 def garra_capa(BU):
@@ -174,12 +200,14 @@ def _acc(m, g, D, Part, info):
         E = S[lk]["centro"]
         pe.append(_cyl(PE["d"] / 2, PE["z"][1] - PE["z"][0], PE["z"][0], E[0], E[1]).faces(">Z or <Z").edges().chamfer(g.ch_pp))
     import propuestas
+    MBE = bx_de(g)[0].get("pasador_E")
     m.add(Part("pasador_E", "ACC", "Pasador E del ojal trasero", f"Pasador Ø{f(PE['d'])} f8 × {f(PE['largo'])} (z {f(PE['z'][0])}–{f(PE['z'][1])}), chaflanes {fm(g.ch_pp, 0)}×45°", _compound(pe), len(pe),
-               propuestas.grado(P["Fy_pp"], PE["d"], "barra"), "Barra rectificada; corte y chaflanes en torno horizontal", core="brackets", color=(0.3, 0.3, 0.32),
-               tratamiento="Bonificado (QT)", num_fijo=ACC_NUM["pasador_E"]))
+               MBE["texto"] if MBE else propuestas.grado(P["Fy_pp"], PE["d"], "barra"), "Barra rectificada; corte y chaflanes en torno horizontal", core="brackets", color=(0.3, 0.3, 0.32),
+               tratamiento=MBE["tratamiento"] if MBE else "Bonificado (QT)", num_fijo=ACC_NUM["pasador_E"]))
     # bloque-uña y pasador Q (posición de toma: primera posición del empuje, sentido antihorario)
     pos = PV["posiciones"]
-    blocks, pins_q, cyls = [], [], []
+    blocks, pins_q, cyls, bujes_q = [], [], [], []
+    MB_, BQ_ = bx_de(g)
     loc = BU["contorno_local"]
     z0b, z1b = BU["z"]
     hq = BU["horquilla"]
@@ -227,7 +255,11 @@ def _acc(m, g, D, Part, info):
         b_ = blk_local if sgn > 0 else blk_local.mirror("XZ")
         blocks.append(b_.rotate((0, 0, 0), (0, 0, 1), ang).translate((Q[0], Q[1], 0)))
         info["frames"][k] = dict(Q=Q, P=P_, E=E, u=u, v=v, ang=ang)
-        pins_q.append(_cyl(PQ["d"] / 2, PQ["z"][1] - PQ["z"][0], PQ["z"][0], Q[0], Q[1]).faces(">Z or <Z").edges().chamfer(g.ch_pp))
+        if BQ_:                                        # TT300-BX rev. 9: pasador Q rebajado y buje del seguidor
+            pins_q.append(pin_q_bx(BQ_, PQ, Q[0], Q[1], g.ch_pp))
+            bujes_q.append(buje_bx(BQ_, Q[0], Q[1]))
+        else:
+            pins_q.append(_cyl(PQ["d"] / 2, PQ["z"][1] - PQ["z"][0], PQ["z"][0], Q[0], Q[1]).faces(">Z or <Z").edges().chamfer(g.ch_pp))
         # cilindro E–Q (comercial; geometría de extremos: e_body y c_rod del núcleo, ojales con pared EYE_WALL)
         ax, ay = Q[0] - E[0], Q[1] - E[1]
         L = math.hypot(ax, ay)
@@ -255,16 +287,26 @@ def _acc(m, g, D, Part, info):
                    f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}; garra con asiento cóncavo R{fm(AS_['radio'], 1)} (abrazo {fm(AS_['abrazo_total_deg'], 0)}°), labio {fm(LB_['espesor'], 0)} sobrepasa {fm(LB_['saliente_sobre_centro'], 0)}, nariz R{fm(BU['nariz']['radio'], 0)}, rampa {fm(BU['rampa']['angulo_deg'], 0)}°; cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
                    _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
                    "Forja o bloque; contorno por oxicorte CNC con sobreespesor de 2 mm en el asiento y la cara del labio; asiento fresado a R%s; horquilla fresada; agujero Q mandrinado" % fm(AS_["radio"], 1), core="dogs", color=(0.85, 0.35, 0.1),
-                   tratamiento=f"Temple por inducción del asiento {AS_['templado'].replace('Fy_sup', 'límite elástico superficial')}, capa ≥ {fm(garra_capa(BU) or 0, 0)} mm (núcleo); revenido", num_fijo=ACC_NUM["bloque_una_g"]))
+                   tratamiento=(MB_["bloque_una"]["tratamiento"] if MB_.get("bloque_una") else f"Temple por inducción del asiento {AS_['templado'].replace('Fy_sup', 'límite elástico superficial')}, capa ≥ {fm(garra_capa(BU) or 0, 0)} mm (núcleo); revenido"), num_fijo=ACC_NUM["bloque_una_g"]))
     else:
         m.add(Part("bloque_una", "ACC", "Bloque-uña acodado",
                    f"Bloque {f(BU['h'])} de alto: cuerpo {f(BU['cuerpo']['b'])} acodado {f(BU['cuerpo']['e_acodado'])}, cara {f(BU['cara']['b'])}×{f(BU['cara']['l'])} templada" + (f" cilíndrica R{fm(R_f, 0)}" if R_f > 0 else "") + f", cubo R{f(Rc)} con horquilla {f(hq['ranura_ojal'])} y agujero Ø{f(BU['agujero_Q'])}",
                    _compound(blocks), len(blocks), "34CrNiMo6+QT (EN 10083-3), Re ≥ %s MPa medido en la propia forja (3.1) — núcleo: «%s»" % (f(P["Fy_dog"]), BU["material"]),
                    "Forja o bloque; fresado del contorno y de la horquilla en mandrinadora/fresadora; agujero Q mandrinado; rectificado de la cara templada", core="dogs", color=(0.85, 0.35, 0.1),
                    tratamiento=f"Temple por inducción de la cara {BU['cara']['templada'].replace('Fy_sup', 'límite elástico superficial')}; profundidad {g.z_hard_txt}", num_fijo=ACC_NUM["bloque_una_r"] if R_f > 0 else ACC_NUM["bloque_una"]))
-    m.add(Part("pasador_Q", "ACC", "Pasador Q del vástago (seguidor de la placa-leva)", f"Pasador Ø{f(PQ['d'])} f8 × {f(PQ['largo'])} (z {f(PQ['z'][0])}–{f(PQ['z'][1])}); extremo inferior templado (seguidor)", _compound(pins_q), len(pins_q),
-               gq, "Barra rectificada; corte y chaflanes en torno horizontal; temple por inducción del extremo inferior", core="dogs", color=(0.3, 0.3, 0.32),
-               tratamiento="Bonificado (QT); extremo inferior templado por inducción ≥ 55 HRC (seguidor de la placa-leva)", num_fijo=ACC_NUM["pasador_Q"]))
+    if BQ_:
+        zb_, zs_ = BQ_["rebaje_pasador"]["z"][0], BQ_["z_hombro"]
+        m.add(Part("pasador_Q", "ACC", "Pasador Q del vástago (con el buje del seguidor)", f"Pasador Ø{f(PQ['d'])} f8 × {fm(PQ['z'][1] - zb_, 0)} (z {fm(zb_, 0)}–{f(PQ['z'][1])}); extremo inferior rebajado Ø{f(BQ_['d_int'])} k6 × {fm(zs_ - zb_, 0)} con acuerdo r {fm(BQ_['radio_acuerdo_pasador'], 0)} y rosca M12 para el buje ACC-046", _compound(pins_q), len(pins_q),
+                   MB_["pasador_Q"]["texto"], "Barra rectificada; corte, chaflanes, rebaje del extremo con acuerdo r 3 y rosca M12 en torno horizontal; sin tratamiento térmico", core="dogs", color=(0.3, 0.3, 0.32),
+                   tratamiento=MB_["pasador_Q"]["tratamiento"], num_fijo=ACC_NUM["pasador_Q"]))
+        mt_ = BQ_["material"]
+        m.add(Part("buje_Q", "ACC", "Buje del seguidor del pasador Q (reemplazable)", f"Buje de copa Ø{f(BQ_['d_ext'])} {BQ_['tol_ext']} × {f(BQ_['largo'])}, agujero Ø{f(BQ_['d_int'])} {BQ_['tol_int']}, fondo {f(BQ_['fondo'])} con avellanado para {BQ_['tornillo']['designacion']}", _compound(bujes_q), len(bujes_q),
+                   mt_["texto"], "Torneado de barra Ø100 bonificada; temple por inducción del Ø exterior; rectificado del Ø exterior y del agujero después del temple", core="dogs", color=(0.55, 0.55, 0.6),
+                   tratamiento=mt_["tratamiento"], obs="Pieza de desgaste: reemplazable sin desmontar el bloque-uña (tornillo central)", num_fijo=ACC_NUM["buje_Q"]))
+    else:
+        m.add(Part("pasador_Q", "ACC", "Pasador Q del vástago (seguidor de la placa-leva)", f"Pasador Ø{f(PQ['d'])} f8 × {f(PQ['largo'])} (z {f(PQ['z'][0])}–{f(PQ['z'][1])}); extremo inferior templado (seguidor)", _compound(pins_q), len(pins_q),
+                   gq, "Barra rectificada; corte y chaflanes en torno horizontal; temple por inducción del extremo inferior", core="dogs", color=(0.3, 0.3, 0.32),
+                   tratamiento="Bonificado (QT); extremo inferior templado por inducción ≥ 55 HRC (seguidor de la placa-leva)", num_fijo=ACC_NUM["pasador_Q"]))
     # placas-leva: 4 (una por cilindro y sentido); se fabrican iguales: la del sentido horario es la del antihorario volteada (imagen especular, sin rasgos asimétricos en z)
     zp0, zp1 = PL["z"]
     import contorno, re as _re

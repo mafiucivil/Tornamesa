@@ -823,7 +823,7 @@ def pasos(ctx):
         + ([[pq("pasadores"), (lambda PE_, U_: f"Bisel 45° × {f(U_['S'])} en el borde de los {2 * g.N_pin} agujeros (cara superior del disco y cara inferior de la mesa); montar los {g.N_pin} pasadores Ø{f(g.d_pin)} m6 "
                                                   f"de {f(PE_['largo'])} (calor o prensa) a ras arriba y abajo; soldar {ctx.weld_find('Pasadores de empuje')['id']} (PJP S{f(U_['S'])}/E{f(U_['E'])}) en cada {'plancha' if g.mesa_entera else 'anillo'} con la WPS calificada "
                                                   "y precalentamiento; enfriamiento lento; esmerilar a ras")(m.info["pasadores_empuje"], m.info["pasadores_empuje"]["union"]),
-             f"A ras ±0,2 (planitud de la cara inferior 0,20 después de esmerilar); MT 100 % a las 48 h; dureza de la banda templada ≥ 55 HRC después de soldar", "Horno o calefactor, termocrayones, esmeril, MT, durómetro",
+             f"A ras ±0,2 (planitud de la cara inferior 0,20 después de esmerilar); MT 100 % a las 48 h; " + ("dureza HB de la ZAC (42CrMo4+QT de stock, sin banda templada; TT300-BX rev. 9)" if (((getattr(ctx.g, "bx", None) or {}).get("buje_Q")) is not None) else "dureza de la banda templada ≥ 55 HRC después de soldar"), "Horno o calefactor, termocrayones, esmeril, MT, durómetro",
              insp("Pasadores de empuje soldados")]] if (m.info.get("pasadores_empuje") and ctx.weld_find("Pasadores de empuje") and not G["pins"]) else []), dict(mark=["mesa_plancha_inf"])))
     # vista local del paso 3: plancha base recortada alrededor del collar (el pivote es chico frente a la base)
     import cadquery as _cq
@@ -892,7 +892,7 @@ def pasos(ctx):
             a_["juego"] = f"juego {fz['cmin']} a {fz['cmax']} µm"
         rows7 = [[pq("placa_leva", "placa_leva_h", "pernos_placa_guia", "pasadores_placa_guia"), f"Alinear las 4 placas-guía con la plantilla al círculo de pasadores (ACC-020 en el sentido antihorario, ACC-024 en el horario), colocar los pasadores ISO 8734 Ø{fm(F_['placas_leva']['pasadores_posicion']['d'], 0)} m6 y apretar los tornillos ISO 10642 M{f(F_['placas_leva']['pernos']['d'])}×{ctx.m.info.get('perno_placa_L', '—')} {F_['placas_leva']['pernos'].get('clase', '8.8')} en las roscas de BAS-001",
                   f"Par {T(int(F_['placas_leva']['pernos']['d']))} N·m (propuesta GEN-008); canto de contacto libre de rebabas", "Torquímetro", insp("Placas-leva")],
-                 [pq("bloque_una", "pasador_Q"), f"Montar el bloque-uña sobre el ojal del vástago con el pasador Q Ø{f(F_['pasador_Q']['d'])} f8 engrasado (extremo templado hacia abajo) y su retención; para el sentido horario el bloque va volteado",
+                 [pq("bloque_una", "pasador_Q"), f"Montar el bloque-uña sobre el ojal del vástago con el pasador Q Ø{f(F_['pasador_Q']['d'])} f8 engrasado (" + ("extremo rebajado hacia abajo, con el buje del seguidor " + ctx.code("buje_Q").replace(CODE + "-", "") + " calzado y su tornillo ISO 10642 M12 con fijador" if (((getattr(ctx.g, "bx", None) or {}).get("buje_Q")) is not None) else "extremo templado hacia abajo") + ") y su retención; para el sentido horario el bloque va volteado",
                   f"H9/f8: {aQ['juego']}; el extremo de Q queda {fm(F_['pasador_Q']['z'][0] - g.tb, 0)} mm sobre la base, junto al canto de la placa-leva", "Manual, galgas", insp("Placas-leva")],
                  [pq("cilindro_pv", "pasador_E"), f"Montar el cilindro con el ojal trasero entre las tapas del cajón y el pasador E Ø{f(F_['pasador_E']['d'])} f8 engrasado con su retención; conectar mangueras",
                   f"H9/f8: {aE['juego']}; eje del cilindro a z = {f(g.zc)}; giro libre del cilindro en E hacia ambos lados", "Aparejo de taller", insp("Prueba hidráulica")],
@@ -1605,7 +1605,7 @@ def sheet_accionamiento_pv(ctx):
     F, PV = g.FPV, g.PV
     fr = ctx.m.info["pivotado"]["frames"]["1_antihorario"]
     E, Q, P_ = fr["E"], fr["Q"], fr["P"]
-    ks = ["cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "pasador_E", "cilindro_pv", "bloque_una", "pasador_Q", "placa_leva", "placa_leva_h", "pernos_placa_leva", "pernos_placa_guia", "pasadores_placa_guia"]
+    ks = ["cajon_pared_x", "cajon_pared_y", "cajon_munon", "cajon_tapa", "pasador_E", "cilindro_pv", "bloque_una", "pasador_Q", "buje_Q", "placa_leva", "placa_leva_h", "pernos_placa_leva", "pernos_placa_guia", "pasadores_placa_guia"]
     ks = [k for k in ks if ctx.m.get(k) or (k == "cilindro_pv" and k in ctx.shapes)]     # TT300-BX rev. 7d: cilindro fabricado (forma compuesta, globos en ACC-013)
     cx, cy = (E[0] + P_[0]) / 2, (E[1] + P_[1]) / 2
     lk = []
@@ -1678,7 +1678,7 @@ def sheet_accionamiento_pv(ctx):
         "Inversión del giro: el cilindro pivota en el mismo ojal E hacia el otro lado de la diagonal; el bloque-uña se monta volteado y el pasador Q trabaja en la placa-leva del otro sentido (las 4 placas quedan fijas en la base).",
         *([f"Bloque-uña con garra ({ctx.code('bloque_una').replace(CODE + '-', '')}): el pasador tomado Ø{fm(g.d_pin, 0)} asienta en el asiento cóncavo R{fm(F['bloque_una']['asiento']['radio'], 1)} (holgura radial {fm(F['bloque_una']['asiento']['holgura_radial'], 0)} mm, abrazo {fm(F['bloque_una']['asiento']['abrazo_total_deg'], 0)}°); el labio de retención del lado de avance sobrepasa {fm(F['bloque_una']['labio']['saliente_sobre_centro'], 0)} mm su centro; en el retorno libre el pasador siguiente monta por la nariz R{fm(F['bloque_una']['nariz']['radio'], 0)} y la rampa del dorso a {fm(F['bloque_una']['rampa']['angulo_deg'], 0)}°."]
           if F["bloque_una"].get("contorno") else []),
-        f"El extremo inferior del pasador Q corre contra el canto templado de la placa-leva (holgura {fm(PV['placa_leva']['holgura'], 0)} mm en el empuje); el bloque-uña pasa sobre la placa ({fm(F['bloque_una']['z'][0] - F['placas_leva']['z'][1], 0)} mm) y sobre las cabezas de los pernos.",
+        ("El buje templado del seguidor, en el extremo inferior del pasador Q, corre contra el canto desnudo y engrasado de la placa-leva" if (((getattr(ctx.g, "bx", None) or {}).get("buje_Q")) is not None) else "El extremo inferior del pasador Q corre contra el canto templado de la placa-leva") + f" (holgura {fm(PV['placa_leva']['holgura'], 0)} mm en el empuje); el bloque-uña pasa sobre la placa ({fm(F['bloque_una']['z'][0] - F['placas_leva']['z'][1], 0)} mm) y sobre las cabezas de los pernos.",
         *([f"RETENIDA (requiere núcleo): las placas-guía ({ctx.code('placa_leva').replace(CODE + '-', '')} / {ctx.code('placa_leva_h').replace(CODE + '-', '')}) chocan con las orejas de izaje (conflicto declarado, GEN-009)."]
           if c.h.retener("placa_orejas") else []),
         *(["RETENIDA (requiere núcleo): el cuerpo del cilindro entra en el cajón del ojal E (conflicto declarado, GEN-009)."] if c.h.retener("cil_cajon") else []),

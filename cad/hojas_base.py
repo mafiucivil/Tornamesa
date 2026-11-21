@@ -555,7 +555,7 @@ def _weld_pasadores(ctx, add):
             nota=f"{org}. {PE.get('soldabilidad', '')}")
     w.update(pjp=(S_, E_), pjp_ras=True, pasador_soldado=True, size_txt=f"s{f(E_)}", garganta=f"PJP: S = {f(S_)}, E = {f(E_)} (a ras)", origen=org, contorno=True,
              pre_txt="WPS calificada: precalentamiento según AWS D1.1:2020 Anexo B (control de hidrógeno; del orden de 250–300 °C, núcleo); enfriamiento lento",
-             interpase_txt="≤ 300 °C (núcleo); banda templada ≤ 200 °C",
+             interpase_txt=("≤ 300 °C y bajo la temperatura de revenido del QT (42CrMo4+QT de stock, sin banda templada; TT300-BX rev. 9)" if ((getattr(g, "bx", None) or {}).get("materiales") or {}).get("pasadores_empuje") else "≤ 300 °C (núcleo); banda templada ≤ 200 °C"),
              corr_gmaw="Aporte bajo hidrógeno H4 (o austenítico E309L con precalentamiento ≥ 150 °C, núcleo): según PQR",
              corr_smaw="E8018/E9018 H4R (o E309L-16) según PQR", aporte="Bajo hidrógeno H4 (o E309L), según PQR (núcleo pasadores_empuje.soldabilidad)", pasador_j=dict(S=S_, E=E_, d=float(g.d_pin), tpr=float(g.tpr), **({"pieza": "plancha"} if ME else {})))
     return w
@@ -719,9 +719,11 @@ def inspecciones(ctx):
     L = [
         ("Recepción", "Certificado EN 10204 3.1 de todas las planchas, barras y forjas; trazabilidad por colada; punzonado de la marca de colada en cada pieza.", "100 %", "Doc."),
         ("Recepción", "UT de planchas de la mesa y de la base según ASTM A578 nivel B (si se especifica Z35).", "100 % planchas", "UT"),
-        ("Recepción", (f"Pasadores y uña: dureza superficial ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa) y profundidad de temple {g.z_hard_txt}; Re ≥ {f(P['Fy_dog'])} MPa en la forja de la uña." if g.modo == 1 else
+        *([("Recepción", "TT300-BX rev. 9 (sin tratamientos térmicos de proceso): certificados 3.1 con Re de la barra o la forja — pasador E S355J2+N ≥ " + f(P['Fy_pp']) + ", pasador Q S355J2+N ≥ " + f(P['bx_Fy_pQ']) + ", pasadores de empuje 42CrMo4+QT ≥ " + f(P['Fy_pin']) + " (con el CE_IIW de la colada), pivote C45+N ≥ " + f(P['Fy_piv']) + ", bloque-uña 34CrNiMo6+QT ≥ " + f(P['Fy_dog']) + ", placas-guía 42CrMo4+QT ≥ " + f(P['Fy_camP']) + " MPa; buje del seguidor: dureza ≥ 55 HRC en 3 puntos y capa ≥ " + fm(P['bx_buje_capa'], 1) + " mm (metalografía de la 1.ª pieza)", "100 %", "Doc. / HRC")]
+          if (((getattr(g, "bx", None) or {}).get("materiales")) and g.modo == 2) else
+          [("Recepción", (f"Pasadores y uña: dureza superficial ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa) y profundidad de temple {g.z_hard_txt}; Re ≥ {f(P['Fy_dog'])} MPa en la forja de la uña." if g.modo == 1 else
                        f"Pasadores de empuje, bloque-uña, extremo del pasador Q y canto de las placas-leva: dureza superficial ≥ 55 HRC (límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa), profundidad de temple {g.z_hard_txt}; Re ≥ {f(P['Fy_dog'])} MPa en la forja del bloque-uña."),
-         "100 % uñas; 10 % pasadores" if g.modo == 1 else "100 % bloques, pasadores Q y placas; 10 % pasadores de empuje", "HRC / macro"),
+         "100 % uñas; 10 % pasadores" if g.modo == 1 else "100 % bloques, pasadores Q y placas; 10 % pasadores de empuje", "HRC / macro")]),
         ("Soldadura", "WPS/PQR calificados según AWS D1.1 y soldadores calificados; registro de precalentamiento e interpase (≤ 250 °C).", "Todas", "Doc."),
         ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1:2020 cláusula 8) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
         ("Soldadura", "Partículas magnéticas MT en filetes críticos (" + ("mejillas, collar, orejas de izaje, bancadas" if g.modo == 1 else "PJP y filetes de refuerzo del soporte del ojal E, collar, orejas de izaje") + (", pórticos y prolongaciones de la leva" if g.FLG else "") + (", topes de la interfaz" if g.opt and g.removable else "") + ", almas y nervios) y en ranuras; 10 % en marco" + (" y anillo de la madera" if g.wood else "") + ".", "Según programa (100 % / 10 %)", "MT"),
@@ -732,8 +734,8 @@ def inspecciones(ctx):
                                          f"base al ras sobre la losa (sin ventanas). VT 100 % de J-R1…J-R{len(I_.get('juntas') or [])}; MT de tapones y PJP.")(ctx.m.info["refuerzo"]), "100 %", "Regla, galgas, MT")]
           if ctx.m.info.get("refuerzo") else []),
         *([("Soldadura", (lambda PE_: f"Pasadores de empuje soldados ({ctx.code('pasadores').replace(CODE + '-', '')}): WPS calificada por ensayo (PQR con dureza ZAC ≤ 350 HV10); precalentamiento y "
-                                          f"enfriamiento lento registrados; esmerilado a ras arriba y abajo (planitud de la cara de deslizamiento 0,20); MT 100 % después de 48 h; dureza de la banda templada ≥ 55 HRC después de soldar "
-                                          "(termocrayones: la banda no supera 200 °C).")(ctx.m.info["pasadores_empuje"]), "100 %", "MT / durómetro")]
+                                          f"enfriamiento lento registrados; esmerilado a ras arriba y abajo (planitud de la cara de deslizamiento 0,20); MT 100 % después de 48 h; "
+                                          + ("dureza HB de la ZAC en el pasador de la 1.ª mesa (42CrMo4+QT de stock, sin banda templada)." if (((getattr(g, "bx", None) or {}).get("materiales")) or {}).get("pasadores_empuje") else "dureza de la banda templada ≥ 55 HRC después de soldar (termocrayones: la banda no supera 200 °C)."))(ctx.m.info["pasadores_empuje"]), "100 %", "MT / durómetro")]
           if ctx.m.info.get("pasadores_empuje") else []),
         ("Dimensional", f"Planitud de la cara de apoyo de la base (zona Ø{f(P['D_top'] + 20)}) ≤ 0,20 mm y de la cara inferior de la mesa ≤ 0,20 mm antes de montar la interfaz.", "100 %", "Regla/nivel láser"),
         ("Dimensional", f"Pasadores de empuje: agujeros Ø{f(g.d_pin)} H7 en posición Ø0,3 respecto del eje de la mesa (PCD Ø{f(2 * g.R_pin)} y paso {fm(360 / g.N_pin, 3)}° teóricamente exactos); coaxialidad de los agujeros de {'ambas planchas' if g.mesa_entera else 'ambos anillos'} Ø0,05 (mandrinado en línea, CON-009).", "100 %", "CMM / plantilla"),

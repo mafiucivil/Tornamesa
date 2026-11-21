@@ -8,6 +8,7 @@ from pie_common import *
 from pie_a import ra, wd
 from soldadura_det import add_prep
 import contorno
+import acc3d
 
 
 def loc1(ctx, key, nk, idx=0, rot=None, z0=None):
@@ -140,7 +141,10 @@ def sheet_pasadores_pv(ctx):
     F = g.FPV
     loc1(ctx, "pasador_E", "pE_L", rot=0.0)
     loc1(ctx, "pasador_Q", "pQ_L", rot=0.0)
+    MB9, BQ9 = acc3d.bx_de(ctx.g)                       # TT300-BX rev. 9: S355J2+N sin tratamiento; pasador Q rebajado para el buje ACC-046
     p = Pieza(ctx, ["pasador_E", "pasador_Q"], f"PASADORES E (Ø{f(F['pasador_E']['d'])}) Y Q (Ø{f(F['pasador_Q']['d'])}) DEL ACCIONAMIENTO PIVOTADO", fmt="auto")
+    if MB9.get("pasador_E"):
+        p.h.trat = "Ninguno (S355J2+N)"
     s = p.s
     p.iso_keys = ["pE_L", "pQ_L"]
     rows = []
@@ -148,16 +152,20 @@ def sheet_pasadores_pv(ctx):
         d = F[kk]["d"]
         bb = ctx.shapes[kl].BoundingBox()
         z0_, z1_ = bb.zmin, bb.zmax
-        rows.append([ctx.code(kk).replace(CODE + "-", ""), "Ojal trasero (cajón)" if nm == "E" else "Vástago (bloque-uña); extremo inferior = seguidor", f"Ø{f(d)} f8", fm(z1_ - z0_, 1), f"z {fm(F[kk]['z'][0], 0)}–{fm(F[kk]['z'][1], 0)}", str(ctx.m.get(kk).qty)])
+        zq0_ = BQ9["rebaje_pasador"]["z"][0] if (BQ9 and nm == "Q") else F[kk]["z"][0]
+        rows.append([ctx.code(kk).replace(CODE + "-", ""), "Ojal trasero (cajón)" if nm == "E" else ("Vástago (bloque-uña); extremo rebajado Ø" + f(BQ9["d_int"]) + " k6 con el buje del seguidor" if BQ9 else "Vástago (bloque-uña); extremo inferior = seguidor"), f"Ø{f(d)} f8" + (f" / Ø{f(BQ9['d_int'])} k6" if (BQ9 and nm == "Q") else ""), fm(z1_ - z0_, 1), f"z {fm(zq0_, 0)}–{fm(F[kk]['z'][1], 0)}", str(ctx.m.get(kk).qty)])
 
         def el(V, p, z0_=z0_, z1_=z1_, d=d, nm=nm):
             s.line(V.P(0, 0, z0_ - 6), V.P(0, 0, z1_ + 6), "EJE")
-            if nm == "Q":
+            if nm == "Q" and BQ9:
+                zs_, rd_ = BQ9["z_hombro"], BQ9["d_int"] / 2
+                s.line(V.P(-rd_ - 6, 0, zs_), V.P(-rd_ + 6, 0, zs_), "FINA")   # hombro del rebaje (la cota la da el acotado automático del sólido)
+            elif nm == "Q":
                 zc_ = F["placas_leva"]["z"][1]
                 s.line(V.P(-d / 2 - 6, 0, zc_), V.P(-d / 2 + 6, 0, zc_), "TRAT"); s.line(V.P(d / 2 - 6, 0, zc_), V.P(d / 2 + 6, 0, zc_), "TRAT")
                 V.dimv((-d / 2 + g.ch_pp, 0, z0_), (-d / 2, 0, zc_), "left", 0, on=[kl], text=f"{fm(zc_ - z0_, 0)} (extremo templado: seguidor)")
         p.vs(f"el{i}", [kl], "front", lv=(2, 2, 2, 2), extra=(0, 0, 30, 0), draw=el, hatch=False, w=1.2, title=f"{ctx.code(kk).replace(CODE + '-', '')} — PASADOR {nm}",
-             auto=dict(rev=(0, 0), fits={d: "f8"}, rev_side="top", tol={round(z1_ - z0_, 1): " ±0,2"}, hole_notes=False))
+             auto=dict(rev=(0, 0), fits={d: "f8", **({BQ9["d_int"]: "k6"} if (BQ9 and nm == "Q") else {})}, rev_side="top", tol={round(z1_ - z0_, 1): " ±0,2"}, hole_notes=False))
     rE_, bbE = F["pasador_E"]["d"] / 2, ctx.shapes["pE_L"].BoundingBox()
     p.datum_in("el0", "dim", "A", prefix=f"Ø{f(F['pasador_E']['d'])} f8")
     p.gd_in("el0", "surf", "cyl", "0,02", None, at=[(rE_, 0, bbE.zmin + (bbE.zmax - bbE.zmin) * f_) for f_ in (0.3, 0.7, 0.5)], d=(1, 0, 0))
@@ -165,12 +173,55 @@ def sheet_pasadores_pv(ctx):
     p.detail("det_ch", "el0", (F["pasador_E"]["d"] / 2 - 1, 0, ctx.shapes["pE_L"].BoundingBox().zmax - 1), 8, "B", lv=(1, 1, 1, 1), title=f"DETALLE B: CHAFLÁN {fm(g.ch_pp, 0)}×45° (5:1)", maxs=5.0, hatch=False)
     p.table_block("PASADORES DEL ACCIONAMIENTO PIVOTADO", [("Pieza", 16, "C"), ("Aplicación", 52, "L"), ("Diámetro", 20, "L"), ("Largo [mm]", 18, "R"), ("Posición", 22, "L"), ("Cant", 10, "C")], rows)
     p.tables()
-    p.notes([f"Barra rectificada; corte y chaflanes {fm(g.ch_pp, 0)}×45° en torno horizontal; Ø f8 ({iso286.fmt_dev(F['pasador_E']['d'], 'f8')} / {iso286.fmt_dev(F['pasador_Q']['d'], 'f8')} mm), Ra 0,8.",
-             f"Material: {propuestas.grado(P['Fy_pp'], F['pasador_Q']['d'], 'barra')} (núcleo: Fy {f(P['Fy_pp'])} MPa); certificado 3.1.",
-             f"Pasador Q: extremo inferior templado por inducción ≥ 55 HRC en {fm(F['placas_leva']['z'][1] - F['pasador_Q']['z'][0], 0)} mm (seguidor de la placa-leva), profundidad {g.z_hard_txt}.",
+    p.notes([f"Barra rectificada; corte y chaflanes {fm(g.ch_pp, 0)}×45° en torno horizontal; Ø f8 ({iso286.fmt_dev(F['pasador_E']['d'], 'f8')} / {iso286.fmt_dev(F['pasador_Q']['d'], 'f8')} mm), Ra 0,8."]
+            + ([f"Material pasador E: {MB9['pasador_E']['texto']}.", f"Material pasador Q: {MB9['pasador_Q']['texto']}.",
+                f"Pasador Q: extremo inferior rebajado Ø{f(BQ9['d_int'])} k6 ({iso286.fmt_dev(BQ9['d_int'], 'k6')} mm, Ra 0,8) entre z {fm(BQ9['rebaje_pasador']['z'][0], 0)} y {fm(BQ9['z_hombro'], 0)}, acuerdo r {fm(BQ9['radio_acuerdo_pasador'], 0)} pulido en el hombro; rosca {BQ9['tornillo']['rosca_pasador']} en la cara inferior para el tornillo {BQ9['tornillo']['designacion']} del buje ACC-046. Sin temple: el contacto con la placa-guía lo toma el buje templado reemplazable."]
+               if BQ9 else [f"Material: {propuestas.grado(P['Fy_pp'], F['pasador_Q']['d'], 'barra')} (núcleo: Fy {f(P['Fy_pp'])} MPa); certificado 3.1.",
+                            f"Pasador Q: extremo inferior templado por inducción ≥ 55 HRC en {fm(F['placas_leva']['z'][1] - F['pasador_Q']['z'][0], 0)} mm (seguidor de la placa-leva), profundidad {g.z_hard_txt}."]) + [
              f"Ajustes: E en las tapas del cajón H9/f8 (núcleo); Q en el bloque-uña H9/f8 (PROPUESTA, requiere núcleo). Montaje con grasa grafitada.",
              "Retención axial: placa y tornillo de catálogo en el extremo superior (PROPUESTA, como en el modo guiado; requiere núcleo)."],
             gd=[("cyl", "0,02", None, "Cilindricidad de los Ø f8"), ("perp", "0,05", "A", "Caras extremas perpendiculares al eje")])
+    p.build()
+    return p.h
+
+
+@pieza("buje_Q")
+def sheet_buje_q(ctx):
+    """TT300-BX rev. 9: buje de copa templado y reemplazable del seguidor, en el extremo rebajado del pasador Q (bloque bx.buje_Q del JSON)."""
+    g, P = ctx.g, ctx.P
+    MB9, B = acc3d.bx_de(ctx.g)
+    loc1(ctx, "buje_Q", "bq_L", rot=0.0)
+    p = Pieza(ctx, ["buje_Q"], f"BUJE DEL SEGUIDOR DEL PASADOR Q Ø{f(B['d_ext'])} (TEMPLADO, REEMPLAZABLE)", fmt="auto")
+    p.h.trat = "Temple por inducción (nota 2)"
+    s = p.s
+    on = ["bq_L"]
+    p.iso_keys = on
+    bb = ctx.shapes["bq_L"].BoundingBox()
+    z0_, z1_ = bb.zmin, bb.zmax
+    R, ri, tf = B["d_ext"] / 2, B["d_int"] / 2, B["fondo"]
+
+    def corte(V, p_):
+        s.line(V.P(0, 0, z0_ - 6), V.P(0, 0, z1_ + 6), "EJE")
+    p.vs("corte", on, "front", cut=CUT_Y, lv=(2, 2, 2, 2), extra=(0, 0, 30, 0), draw=corte, title="CORTE A-A (por el eje)", hs=0.5, w=1.4,
+         auto=dict(rev=(0, 0), fits={B["d_ext"]: B["tol_ext"], B["d_int"]: B["tol_int"]}, rev_side="top", tol={round(z1_ - z0_, 1): " ±0,1"}, hole_notes=False))
+    p.datum_in("corte", "dim", "A", prefix=f"Ø{f(B['d_int'])} {B['tol_int']}")
+    p.gd_in("corte", "dim", "coax", "Ø0,02", "A", prefix=f"Ø{f(B['d_ext'])} {B['tol_ext']}")
+    p.vs("planta", on, "bottom", lv=(1, 1, 1, 1), extra=(0, 0, 30, 0), title="VISTA INFERIOR (avellanado del tornillo de retención)", hatch=False, w=0.9,
+         auto=dict(hole_rmin=3.0, hole_pos=False, verts=False, hole_txt={13.0: f"Ø13 avellanado 90° Ø{fm(B['tornillo']['avellanado'], 1)} ({B['tornillo']['designacion']})"}, fits={}))
+    mt = B["material"]
+    p.table_block("BUJE DEL SEGUIDOR (TT300-BX rev. 9)", [("Característica", 60, "L"), ("Valor", 110, "L")],
+                  [["Ø exterior / agujero", f"Ø{f(B['d_ext'])} {B['tol_ext']} ({iso286.fmt_dev(B['d_ext'], B['tol_ext'])}) / Ø{f(B['d_int'])} {B['tol_int']} ({iso286.fmt_dev(B['d_int'], B['tol_int'])})"],
+                   ["Ajuste con el pasador Q", f"{B['ajuste_pasador']} (ISO 286-2): montaje a mano o con prensa ligera"],
+                   ["Largo / fondo de copa", f"{f(B['largo'])} / {f(B['fondo'])} mm; posición z {fm(B['z'][0], 0)}–{fm(B['z'][1], 0)} (2 mm sobre la base hasta el hombro del pasador Q)"],
+                   ["Retención", f"{B['tornillo']['designacion']} al extremo del pasador Q ({B['tornillo']['rosca_pasador']}); par {f(B['tornillo']['par_Nm'])} N·m; {B['tornillo']['fijador']}"],
+                   ["Contacto (Hertz de línea)", f"empuje p₀ = {fm(B['hertz']['empuje']['p0'], 0)} MPa; atasco p₀ = {fm(B['hertz']['atasco']['p0'], 0)} MPa (largo {fm(B['hertz']['l'], 0)}); el canto de la placa-guía gobierna"],
+                   ["Masa", f"{fm(B['masa'], 2)} kg c/u"]])
+    p.tables()
+    p.notes([f"Material: {mt['texto']}.", f"Tratamiento: {mt['tratamiento']}; dureza superficial controlada en 3 puntos a 120° (HRC); profundidad de capa por corte metalográfico en la pieza de primera producción (EN 10328). {mt['eleccion']}.",
+             f"Rectificar el Ø{f(B['d_ext'])} {B['tol_ext']} (Ra 0,4) y el agujero Ø{f(B['d_int'])} {B['tol_int']} (Ra 0,8) después del temple; coaxialidad Ø0,02 respecto del agujero (A). Chaflanes {fm(B['chaflan'], 0)}×45° exteriores; chaflán interior 4×45° en la boca del agujero para el acuerdo r {fm(B['radio_acuerdo_pasador'], 0)} del pasador.",
+             f"Montaje: engrasar el agujero, calzar el buje sobre el extremo rebajado del pasador Q hasta el hombro y apretar el {B['tornillo']['designacion']} con {B['tornillo']['fijador']}.",
+             f"Pieza de desgaste reemplazable: {B['reemplazo']}. Lubricación del contacto: {B['lubricacion']}."],
+            gd=[("coax", "Ø0,02", "A", f"Ø exterior coaxial con el agujero (A)")])
     p.build()
     return p.h
 
@@ -246,9 +297,10 @@ def _sheet_bloque_garra(ctx):
     ctx.mat["blk_L"] = "acero"
     segs = contorno.leer({"segmentos_contorno": BU["contorno"]})
     T0 = (0.0, 0.0, 0.0)
-    capa = acc3d.garra_capa(BU)
+    MB9 = acc3d.bx_de(ctx.g)[0].get("bloque_una")   # TT300-BX rev. 9: asiento sin temple
+    capa = None if MB9 else acc3d.garra_capa(BU)
     p = Pieza(ctx, ["bloque_una"], "BLOQUE-UÑA ACODADO CON GARRA Y HORQUILLA (2 UNIDADES; SE MONTA VOLTEADO PARA EL SENTIDO HORARIO)", fmt="auto")
-    p.h.trat = "Asiento templado (ver nota 4)"
+    p.h.trat = "Bonificado; asiento sin temple (ver nota 4)" if MB9 else "Asiento templado (ver nota 4)"
     s = p.s
     p.iso_keys = ["blk_L"]
     on = ["blk_L"]
@@ -393,7 +445,8 @@ def _sheet_bloque_garra(ctx):
     p.notes([f"Forja o bloque; {ctx.m.get('bloque_una').material}; UT EN 10228-3.",
              f"Contorno del núcleo (marco local: origen en Q, x hacia el pasador tomado, y hacia O): cuerpo b = {f(BU['cuerpo']['b'])} desplazado {f(BU['cuerpo']['e_acodado'])} hacia −y; garra en el extremo; cubo R{f(Rc)}. El DXF lleva el contorno con ARC y LINE exactos (G1; control «bloque_una»).",
              f"Mecanizado: ASIENTO MECANIZADO (fresado a R{fm(Rs, 1)}, perfil 0,1 respecto de A|B, Ra 1,6) y cara del labio con sobreespesor de 2 mm en el oxicorte; RESTO DEL CONTORNO POR OXICORTE CNC (perfil 1 respecto de A|B, ISO 9013 clase 2).",
-             f"Asiento: temple por inducción {AS['templado'].replace('Fy_sup', 'límite elástico superficial')}, capa ≥ {fm(capa or 0, 0)} mm (zona templada en la planta); el fresado final del asiento va antes del temple; MT 100 % del asiento después del temple.",
+             (f"Asiento: SIN temple (TT300-BX rev. 9, decisión del mandante 20-11-2026): el contacto de Hertz conforme con el pasador de empuje cumple con el límite elástico del más blando (pasador 42CrMo4+QT, {f(P['Fy_surf'])} MPa); MT 100 % del asiento después del fresado." if MB9 else
+              f"Asiento: temple por inducción {AS['templado'].replace('Fy_sup', 'límite elástico superficial')}, capa ≥ {fm(capa or 0, 0)} mm (zona templada en la planta); el fresado final del asiento va antes del temple; MT 100 % del asiento después del temple."),
              f"Horquilla: ranura {f(hq['ranura_ojal'])} +0,5/0 (ojal del vástago {f(P['b_eye'])} + 2 × {fm(P['g_ch'], 0)}), mejillas {f(hq['t_mejilla'])}; agujero Ø{f(BU['agujero_Q'])} H9 en ambas mejillas en un solo montaje.",
              "Aristas del asiento y de la nariz con chaflán 1 × 45° (sin filo vivo en el contacto con el pasador).",
              "Para el sentido horario el mismo bloque se monta volteado (la pieza es simétrica en altura respecto de la ranura)."],
@@ -428,9 +481,11 @@ def sheet_placa_leva(ctx):
     ctx.shapes["pl_L"] = cq.Compound.makeCompound([contorno.a_local(so, T)])
     ctx.mat["pl_L"] = "acero"
     geo = contorno.geometrico(segs)
+    MB9, BQ9 = acc3d.bx_de(ctx.g)
+    D9 = bool(MB9.get("placas_guia") and BQ9)          # TT300-BX rev. 9: canto desnudo y engrasado (pista del buje del seguidor), sin revestimiento ni temple
     p = Pieza(ctx, ["placa_leva", "placa_leva_h"], "PLACA-GUÍA CURVA: ACC-020 (SENTIDO ANTIHORARIO) Y ACC-024 SIMÉTRICA (SENTIDO HORARIO)", fmt="auto",
-              mat_override="42CrMo4+QT, canto templado (ver nota 3)")
-    p.h.trat = "Canto templado (ver nota 3)"
+              mat_override="42CrMo4+QT, canto desnudo sin temple (ver nota 3)" if D9 else "42CrMo4+QT, canto templado (ver nota 3)")
+    p.h.trat = "Bonificado (QT); canto sin temple (ver nota 3)" if D9 else "Canto templado (ver nota 3)"
     s = p.s
     p.iso_keys = ["pl_L"]
     on = ["pl_L"]
@@ -452,7 +507,7 @@ def sheet_placa_leva(ctx):
     m_c = _re.search(r"capa[^\d≥]*≥\s*([\d,\.]+)\s*mm", str(PL["material"]) + " " + str((PL.get("tratamiento") or {}).get("canto", "")))
     if m_c:
         capa = float(m_c.group(1).replace(",", "."))
-    temple = [contorno.offset(sg, capa if izq else -capa) for sg in canto if "sin contacto" not in sg.get("rol", "")]
+    temple = [] if D9 else [contorno.offset(sg, capa if izq else -capa) for sg in canto if "sin contacto" not in sg.get("rol", "")]
     drawn = []
 
     def planta_c(s_, ox, oy, k, pl):
@@ -488,7 +543,7 @@ def sheet_placa_leva(ctx):
         am_ = math.radians((a0_ + a1_) / 2)
         s_.text(f"{fm(ang_n, 1)}°", (pc[0] + 30 * math.cos(am_), pc[1] + 30 * math.sin(am_)), T_N, "MIDDLE_CENTER")
         s_.leader(P_(contorno.pt_local(((temple[1]["p0"][0] + temple[1]["p1"][0]) / 2, (temple[1]["p0"][1] + temple[1]["p1"][1]) / 2), T)) if len(temple) > 1 else pc,
-                  (pc[0] - 30, pc[1] + 40), f"capa templada ≥ {fm(capa, 0)} mm (detalle B)")
+                  (pc[0] - 30, pc[1] + 40), "canto desnudo engrasado, sin temple (detalle B)" if D9 else f"capa templada ≥ {fm(capa, 0)} mm (detalle B)")
         # datums y marcos (ISO 5459 / 1101): B = agujero de pasador 1, C = agujero de pasador 2 (o tornillos extremos); perfil del canto respecto de A|B|C
         refB = pasd[0] if pasd else pern[0]
         refC = pasd[-1] if len(pasd) > 1 else pern[-1]
@@ -626,12 +681,13 @@ def sheet_placa_leva(ctx):
         Pq = lambda x, y: (ox + x * k, oy + y * k)
         s_.pline([Pq(0, 0), Pq(40, 0), Pq(40, t_), Pq(0, t_)], "VIS", closed=True)
         s_.hatch_poly([Pq(0, 0), Pq(40, 0), Pq(40, t_), Pq(0, t_)], scale=0.4, pattern="ANSI31")
-        s_.pline([Pq(40 - capa, 1), Pq(40 - capa, t_ - 1)], "TRAT")
-        s_.dim(Pq(40 - capa, t_), Pq(40, t_), 8, f"≥ {fm(capa, 0)}", "h")
+        if not D9:
+            s_.pline([Pq(40 - capa, 1), Pq(40 - capa, t_ - 1)], "TRAT")
+            s_.dim(Pq(40 - capa, t_), Pq(40, t_), 8, f"≥ {fm(capa, 0)}", "h")
         s_.dim(Pq(40, 0), Pq(40, t_), 10, f"{fm(t_, 0)}", "v")
         s_.roughness((Pq(40, t_ / 2)[0] + 2, Pq(40, t_ / 2)[1] + 2), "Ra 1,6")
-        s_.text("canto guía: temple por inducción 52–56 HRC" if "52" in str(PL["material"]) else "canto guía templado", (Pq(0, -6)[0], Pq(0, -6)[1]), T_N, "TOP_LEFT")
-    p.vs("det_capa", [], "front", nat=(40.0, PL["t"]), lv=(1, 1, 2, 2), extra=(10, 20, 20, 10), title="DETALLE B: CAPA TEMPLADA DEL CANTO (corte normal al canto)", w=0.6, maxs=2.0, mins=1.0, custom=det_capa)
+        s_.text("canto desnudo, sin temple" if D9 else ("canto guía: temple por inducción 52–56 HRC" if "52" in str(PL["material"]) else "canto guía templado"), (Pq(0, -6)[0], Pq(0, -6)[1]), T_N, "TOP_LEFT")
+    p.vs("det_capa", [], "front", nat=(40.0, PL["t"]), lv=(1, 1, 2, 2), extra=(10, 20, 20, 10), title="DETALLE B: CANTO GUÍA DESNUDO (corte normal al canto)" if D9 else "DETALLE B: CAPA TEMPLADA DEL CANTO (corte normal al canto)", w=0.6, maxs=2.0, mins=1.0, custom=det_capa)
     h_av = (d_av - dh) / 2
 
     def corte_d(V, p_):
@@ -665,7 +721,8 @@ def sheet_placa_leva(ctx):
              f"Canto: {tr.get('canto', 'templado')}; rugosidad: {tr.get('rugosidad_canto', 'Ra ≤ 1,6')}; aristas: {tr.get('bordes', '1 × 45°')}.",
              f"{int(PL['pernos']['n'])} tornillos {PL['pernos'].get('norma', '')}; {int((PL.get('pasadores_posicion') or {}).get('n', 0))} pasadores {(PL.get('pasadores_posicion') or {}).get('norma', '')}: {(PL.get('pasadores_posicion') or {}).get('ajuste', '')}.",
              f"Ángulo del flanco acotado respecto del borde recto mayor (el α = {fm(PV['placa_leva']['alpha_deg'], 1)}° del núcleo se mide respecto de la trayectoria de Q); su tolerancia la gobierna el perfil 0,2 del canto.",
-             "ACC-024 (horario): simétrica de ACC-020 respecto del eje x (y → ancho − y), avellanados en la cara superior; no se voltean."],
+             "ACC-024 (horario): simétrica de ACC-020 respecto del eje x (y → ancho − y), avellanados en la cara superior; no se voltean."]
+            + ([f"Seguidor (rev. 9): el buje templado ACC-046 (Ø{f(BQ9['d_ext'])}) del pasador Q corre directamente sobre el canto; lubricación: {BQ9['lubricacion']}. Contacto de Hertz de línea buje–canto verificado en todo el contorno con el Fy del 42CrMo4+QT ({f(MB9['placas_guia']['Fy'])} MPa): empuje a calado p₀ = {fm(BQ9['hertz']['empuje']['p0'], 0)} MPa; atasco del retorno p₀ = {fm(BQ9['hertz']['atasco']['p0'], 0)} MPa en el {BQ9['hertz']['atasco']['rol']} (sobre 1,67·Fy: DECISIÓN PENDIENTE DEL MANDANTE — temple por inducción del flanco y del hombro, placa de 40 o presión de retorno ≤ 150 bar; docs/bx/README_BX.md §13.6)."] if D9 else []),
             gd=[("prof", "0,2", ["A", "B", "C"], "Perfil del canto guía respecto de la cara superior (A) y de los pasadores D1 (B) y D2 (C)"), ("pos", "Ø0,2", ["A", "B", "C"], "Agujeros de tornillos y pasadores en posición")])
     p.build()
     p.h.placa_dxf_pts = drawn

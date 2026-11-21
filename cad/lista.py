@@ -162,6 +162,9 @@ def cut_rows(ctx):
         if m.get(k_):
             bb_ = m.get(k_).solid.vals()[0].Solids()[0].BoundingBox()
             add(k_, "Barra", f"Ø{fm(bb_.xlen + 5, 0)}×{fm(bb_.zlen + 6, 0)}", "Barra rectificada; corte y chaflanes en torno horizontal")
+    if m.get("buje_Q"):                    # TT300-BX rev. 9: buje del seguidor torneado de barra bonificada
+        bb_ = m.get("buje_Q").solid.vals()[0].Solids()[0].BoundingBox()
+        add("buje_Q", "Barra", f"Ø{fm(bb_.xlen + 10, 0)}×{fm(bb_.zlen + 6, 0)}", "Barra 42CrMo4+QT; torneado, temple por inducción del Ø exterior y rectificado")
     if m.get("leva_rodillo"):
         bb_ = m.get("leva_rodillo").solid.vals()[0].Solids()[0].BoundingBox()
         add("leva_rodillo", "Barra", f"Ø{fm(bb_.xlen + 5, 0)}×{fm(bb_.zlen + 6, 0)}", "Torneado; temple y rectificado")
@@ -172,7 +175,7 @@ def cut_rows(ctx):
         BU = g.FPV["bloque_una"]
         xs_ = [q[0] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]
         ys_ = [q[1] for k__ in ("cuerpo", "cara") for q in BU["contorno_local"][k__]] + [-BU["horquilla"]["R_cubo"], BU["horquilla"]["R_cubo"]]
-        add("bloque_una", "Forja/bloque", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{fm(BU['h'] + 10, 0)}", "Forja con certificado 3.1 (Re en la propia forja); " + ("oxicorte CNC del contorno, asiento fresado y templado" if BU.get("contorno") else "cara templada y rectificada"))
+        add("bloque_una", "Forja/bloque", f"{fm(max(xs_) - min(xs_) + 10, 0)}×{fm(max(ys_) - min(ys_) + 10, 0)}×{fm(BU['h'] + 10, 0)}", "Forja con certificado 3.1 (Re en la propia forja); " + (("oxicorte CNC del contorno, asiento fresado (sin temple, TT300-BX rev. 9)" if (((getattr(g, "bx", None) or {}).get("materiales") or {}).get("bloque_una")) else "oxicorte CNC del contorno, asiento fresado y templado") if BU.get("contorno") else "cara templada y rectificada"))
     if g.opt == 4:                       # TT300-BX: disco en semidiscos, portador y pastillas (bloque «bx» del JSON)
         __import__("bx_notas").cut_rows(ctx, add)
     if g.opt and g.opt != 4:

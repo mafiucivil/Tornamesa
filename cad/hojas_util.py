@@ -115,6 +115,11 @@ class Pieza(Plano):
                    "placa_leva": [("Ra 1,6", "canto guía fresado y templado (ver nota 3)")], "cilindro_pv": [("Ra 1,6", "ojales H9 (proveedor)")],
                    "leva_riel": [("Ra 1,6", "canto de leva fresado y templado")], "leva_rodillo": [("Ra 0,8", "diámetro exterior del rodillo y del perno")], "leva_pata": [("Ra 6,3", "caras de apoyo fresadas")],
                    "pernos_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "arandela_pasador": [("Ra 1,6", "caras de la arandela (rectificadas)")], "marco_largo": [("Ra 12,5", "cantos de corte (a escuadra)")]})
+        if ((getattr(g, "bx", None) or {}).get("buje_Q")):   # TT300-BX rev. 9: sin temple en pasadores, asiento y canto; buje del seguidor rectificado
+            RA.update({"pasadores": [("Ra 0,8", f"Ø{f(g.d_pin)} m6 (sin temple)")], "placa_leva": [("Ra 1,6", "canto guía fresado, desnudo y engrasado (ver nota 3)")],
+                       "buje_Q": [("Ra 0,4", "Ø exterior rectificado después del temple"), ("Ra 0,8", "agujero H7")]})
+            if (g.FPV or {}).get("bloque_una", {}).get("contorno"):
+                RA["bloque_una"] = [("Ra 1,6", f"asiento R{fm(g.FPV['bloque_una']['asiento']['radio'], 1)} de la garra, fresado (sin temple); cara del labio")]
         if getattr(g, "mesa_entera", False):     # TT300-BX rev. 7c: planchas enteras con los agujeros de los pasadores
             RA["mesa_plancha_sup"] = RA["mesa_plancha_sup"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
             RA["mesa_plancha_inf"] = RA["mesa_plancha_inf"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]

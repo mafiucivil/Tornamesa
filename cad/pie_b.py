@@ -385,9 +385,14 @@ def sheet_pasador(ctx):
     p.iso_keys = ["pin1"]
     on = ["pin1"]
     zc0, zc1 = g.zc - P["dog_h"] / 2, g.zc + P["dog_h"] / 2
+    S9 = bool(((getattr(g, "bx", None) or {}).get("materiales") or {}).get("pasadores_empuje"))   # TT300-BX rev. 9: 42CrMo4+QT de stock sin temple
+    if S9:
+        p.h.trat = "Bonificado de stock (QT); sin temple"
 
     def elev(V, p):
         s.line(V.P(0, 0, z0 - 8), V.P(0, 0, zt + 8), "EJE")
+        if S9:
+            return
         for z_ in (zc0, zc1):           # límites de la banda templada (línea gruesa de trazo y punto, ISO 128 tipo 04.2, junto a la superficie)
             s.line(V.P(-r - 6, 0, z_), V.P(-r + 6, 0, z_), "TRAT"); s.line(V.P(r - 6, 0, z_), V.P(r + 6, 0, z_), "TRAT")
         V.dimv((-r, 0, z0), (-r, 0, zc0), "left", 0, on=on, text=f"{fm(zc0 - z0, 0)} (inicio de la banda templada, desde la cara inferior)")
@@ -404,13 +409,15 @@ def sheet_pasador(ctx):
     p.tables([jP["id"]] if jP else [])
     lim = [x for x in (PE.get("limitaciones") or [])]
     p.notes([f"Barra Ø{f(g.d_pin + 5)} laminada/rectificada; torno horizontal o rectificado externo: Ø{f(g.d_pin)} m6 ({iso286.fmt_dev(g.d_pin, 'm6')} mm), Ra 0,8; largo {f(L)} +0,5/0 = alto del disco de la mesa (a ras arriba y abajo; el exceso se esmerila con la soldadura).",
-             f"Material y tratamiento (núcleo pasadores_empuje.material): {PE.get('material', '34CrNiMo6+QT')}. Fy ≥ {f(P['Fy_pin'])} MPa; límite elástico superficial supuesto en el cálculo {f(P['Fy_surf'])} MPa; profundidad efectiva {g.z_hard_txt}.",
+             (f"Material y tratamiento (TT300-BX rev. 9): {PE.get('material')}. Fy ≥ {f(P['Fy_pin'])} MPa también en la superficie: el contacto de Hertz con el asiento del bloque-uña se verifica sin temple." if S9 else
+              f"Material y tratamiento (núcleo pasadores_empuje.material): {PE.get('material', '34CrNiMo6+QT')}. Fy ≥ {f(P['Fy_pin'])} MPa; límite elástico superficial supuesto en el cálculo {f(P['Fy_surf'])} MPa; profundidad efectiva {g.z_hard_txt}."),
              (f"Montaje: {PE.get('ajuste', 'Ø m6 en agujero H7')}. Unión {jP['id'] if jP else 'J-P1'}: {U.get('tipo', 'PJP en bisel 45°')} (S{f(U.get('S', 0))}/E{f(U.get('E', 0))}; núcleo FU {fm(U.get('fu', 0), 3)}); "
               "sin filete abajo (cara de deslizamiento) y nada sobre el disco.") if U else "Montaje en los anillos H7/m6.",
-             f"Soldabilidad (núcleo): {PE.get('soldabilidad', '')}",
+             (f"Soldabilidad y precalentamiento (AWS D1.1:2020 Anexo B): {PE.get('soldabilidad', '')}" if S9 else f"Soldabilidad (núcleo): {PE.get('soldabilidad', '')}"),
              f"Sin rosca, perno ni arandela: MES-013 (perno ISO 4762 M20×45) y MES-014 (arandela) ELIMINADOS por el núcleo ({'; '.join(PE.get('eliminado') or [])}).",
              *[f"LIMITACIÓN (núcleo): {x}" for x in lim],
-             f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en la cara superior antes de soldar (zona fuera de la banda templada); 10 % de dureza superficial por lote y control después de soldar."],
+             (f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en la cara superior antes de soldar; certificado 3.1 con el CE_IIW de la colada para la WPS; dureza HB por lote (bonificado de stock)." if S9 else
+              f"Marcar con punzón el número del pasador (1…{g.N_pin}) y la colada en la cara superior antes de soldar (zona fuera de la banda templada); 10 % de dureza superficial por lote y control después de soldar.")],
             gd=[("cyl", "0,02", None, "Cilindricidad del Ø%s m6" % f(g.d_pin)), ("perp", "0,05", "A", "Caras extremas perpendiculares al eje del Ø%s m6 (A)" % f(g.d_pin))])
     p.build()
     return p.h

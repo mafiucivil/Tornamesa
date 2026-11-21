@@ -539,6 +539,14 @@ def _extras_cil(ctx):
             ("Fijador anaeróbico de alta resistencia (tuerca del pistón) y de resistencia media (prisioneros)", 1, "—", "A DEFINIR POR CATÁLOGO")]
 
 
+def _extras_buje(ctx):
+    """TT300-BX rev. 9: tornillo de retención del buje del seguidor (uno por pasador Q)."""
+    B = ((getattr(ctx.g, "bx", None) or {}).get("buje_Q")) if ctx.m.get("buje_Q") else None
+    if not B:
+        return []
+    return [(f"Tornillo {B['tornillo']['designacion']} con {B['tornillo']['fijador']} (retención del buje del seguidor {ctx.code('buje_Q').replace(CODE + '-', '')})", ctx.m.get("buje_Q").qty, "acero 10.9 zincado laminar", "A DEFINIR POR CATÁLOGO")]
+
+
 DZ_TAGS = ("BAS-012-C", "ACC-020-C", "CON-007-C", "CON-010-C")
 
 
@@ -579,7 +587,7 @@ def activar():
     import lista
     if not getattr(lista, "_cil_extras", False):
         _ex0 = lista.extras
-        lista.extras = lambda ctx, _f=_ex0: _f(ctx) + _extras_cil(ctx)
+        lista.extras = lambda ctx, _f=_ex0: _f(ctx) + _extras_cil(ctx) + _extras_buje(ctx)
         lista._cil_extras = True
     if not any(x[0] == "sheet_cil_conjunto" for x in PLAN):
         PLAN.append(("sheet_cil_conjunto", list(cil_bx.KEYS), sheet_cil_conjunto))

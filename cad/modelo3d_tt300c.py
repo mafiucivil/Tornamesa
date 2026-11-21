@@ -179,8 +179,10 @@ VAR_CODIGOS = {
                      # TT300-BX con lámina soldada (rev. 7: base 22, δ 33, sin roscas de la interfaz en la mesa)
                      (("BX-L",), "placas-leva e interfaz BX con lámina soldada (base 22)", 1)],
     # placa-guía: el canto sale de la cinemática del núcleo, que cambia con la altura de la interfaz (δ): C1…C3 tienen su propia geometría
-    "placa_leva": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1), (("BX-L",), "canto BX con lámina soldada (δ 33)", 1)],
-    "placa_leva_h": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1), (("BX-L",), "canto BX con lámina soldada (δ 33, simétrica)", 1)],
+    "placa_leva": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1), (("BX-L",), "canto BX con lámina soldada (δ 33)", 1),
+                   (("BX-L9",), "canto BX rev. 9 (curva del núcleo con 540 bar: tope del flanco 541, hombro R75,4; canto desnudo)", 1)],
+    "placa_leva_h": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1), (("BX-L",), "canto BX con lámina soldada (δ 33, simétrica)", 1),
+                     (("BX-L9",), "canto BX rev. 9 (simétrica)", 1)],
     "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1), (("BX",), "roscas pasantes del disco BX", 1), (("BX-L",), "sin roscas (lámina BX soldada, e 22)", 1)],
     "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1), (("BX",), "roscas ciegas del disco BX", 1), (("BX-L",), "sin agujeros propios (lámina BX soldada, e 22)", 1)],
     "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("BX",), "alto BX", 1), (("BX-L",), "alto BX con lámina soldada", 1)],
@@ -205,7 +207,7 @@ VAR_CODIGOS = {
     # las clases L 122 y L 127 (inserto de esquina, núcleo f2dc2b5) quedan ANULADAS; L 132 es la geometría de la clase -3 anterior
     "pasador_E": [(("BASE-anulado",), "ANULADO: L 122 (inserto)", 1), (("AF2-anulado",), "ANULADO: L 127 (inserto)", 1), (("A", "AF2", "B", "C1", "C2", "C3", "BX"), "L 132", 1),
                   (("BASE", "W"), "L 126", 1), (("BX-L",), "largo BX con lámina soldada (refuerzo 45)", 1)],
-    "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1), (("BX",), "largo BX", 1), (("BX-L",), "largo BX con lámina soldada", 1)],
+    "pasador_Q": [(("BASE", "W"), "largo base", 1), (("A", "C1", "C2", "C3"), "largo A/C", 1), (("AF2",), "largo AF2", 1), (("B",), "largo B", 1), (("BX",), "largo BX", 1), (("BX-L",), "largo BX con lámina soldada", 1), (("BX-L9",), "BX rev. 9: extremo rebajado Ø70 k6 para el buje del seguidor (ACC-046)", 1)],
     "leva_pata": [(("BASE-G", "W-G"), "alto base", 1), (("A-G", "C1-G", "C2-G", "C3-G"), "alto A/C", 1), (("AF2-G",), "alto AF2", 1), (("B-G",), "alto B", 1)],
 }
 # refuerzo cuadrado soldado sobre la base (núcleo d537dda; reemplaza al inserto de esquina BAS-018…023, ANULADOS): número de pieza por espesor t_d
@@ -247,6 +249,8 @@ def variante_de(g, key=None):
     if key in ("mesa_plancha_sup", "mesa_plancha_inf") and getattr(g, "mesa_entera", False):
         return "BX-LE"                   # TT300-BX rev. 7c: plancha entera por nivel (clase propia, VAR_MESA_ENTERA)
     if g.opt == 4 and g.bx and int((g.bx.get("disco") or {}).get("modo") or 0) == 1:
+        if key in ("pasador_Q", "placa_leva", "placa_leva_h") and g.bx.get("buje_Q"):
+            return "BX-L9"               # TT300-BX rev. 9: pasador Q rebajado (buje del seguidor) y curva de la placa-guía con 540 bar
         return "BX-L"                    # TT300-BX con lámina soldada (bx_disc_modo = 1): clases propias en VAR_CODIGOS / VAR_REFUERZO
     v = g.variante.replace("-G", "")
     v = "BASE" if v == "BASE" else v.replace("-W", "")
@@ -786,18 +790,19 @@ def build(D, verbose=True):
     m.info["pasadores_empuje"] = PEJ
     pins = cq.Workplane("XY").workplane(offset=zp0).pushPoints(pin_xy).circle(d_pin / 2).extrude(L_pin)
     U_ = PEJ.get("union") or {}
+    MBX_ = ((getattr(g, "bx", None) or {}).get("materiales") or {})   # TT300-BX rev. 9: materiales por pieza sin tratamientos térmicos de proceso
     m.add(Part("pasadores", "MES", "Pasador de empuje (soldado a ras)", f"Barra Ø{f(d_pin)} m6 × {f(L_pin)}, extremos planos a ras del disco; soldado a {'ambas planchas de la mesa' if g.mesa_entera else 'ambos anillos'} (PJP en bisel 45° S{f(U_.get('S', 0))}/E{f(U_.get('E', 0))})",
                pins, g.N_pin, PEJ.get("material") and (PEJ["material"].split(";")[0] + " — PROPUESTO") or f"34CrNiMo6+QT (EN 10083-3), Fy ≥ {f(P['Fy_pin'])} MPa — PROPUESTO",
-               "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); temple por inducción solo de la banda de contacto; "
+               "Corte de barra; mecanizado en torno horizontal o rectificado externo (Ø85 m6 es de barra, sin torno vertical); " + ("" if MBX_.get("pasadores_empuje") else "temple por inducción solo de la banda de contacto; ")
                + ("montaje en las planchas enteras (calor o prensa) y soldadura PJP en cada plancha" if g.mesa_entera else "montaje en los anillos (calor o prensa) y soldadura PJP en cada anillo") + " con WPS calificada y precalentamiento; esmerilado a ras", core="pins", color=(0.75, 0.75, 0.78),
-               tratamiento=f"Bonificado; temple por inducción ≥ 55 HRC solo en la banda de contacto, prof. {g.z_hard_txt}; extremos sin templar",
-               obs=f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa. NO REEMPLAZABLE (soldado; núcleo pasadores_empuje.limitaciones)"))
+               tratamiento=(MBX_["pasadores_empuje"]["tratamiento"] if MBX_.get("pasadores_empuje") else f"Bonificado; temple por inducción ≥ 55 HRC solo en la banda de contacto, prof. {g.z_hard_txt}; extremos sin templar"),
+               obs=(f"Fy = {f(P['Fy_pin'])} MPa también en la superficie (Hertz del asiento sin temple). NO REEMPLAZABLE (soldado; núcleo pasadores_empuje.limitaciones)" if MBX_.get("pasadores_empuje") else f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa. NO REEMPLAZABLE (soldado; núcleo pasadores_empuje.limitaciones)")))
 
     # ===================== PIV: pivote, buje, tapas =====================
     cap_xy = [(g.cap_pcd / 2 * math.cos(math.radians(45 + 90 * i)), g.cap_pcd / 2 * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
-    m.add(Part("pivote", "PIV", "Pivote", f"Barra Ø{f(P['D_piv'])} × {f(g.L_piv)} con dos zonas rectificadas: p6 (z 0–{fm(g.z_p6, 0)}, calado) y f7 (z {fm(g.z_f7, 0)}–{fm(g.L_piv, 0)}, buje); chaflanes {fm(g.ch_piv, 0)}×45°", cyl(P["D_piv"] / 2, g.L_piv).faces(">Z or <Z").edges().chamfer(g.ch_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - g.cap_tap).pushPoints(cap_xy).circle(g.tap_m10 / 2).extrude(g.cap_tap + 0.5)), 1, propuestas.grado(P['Fy_piv'], P['D_piv'], 'barra'),
+    m.add(Part("pivote", "PIV", "Pivote", f"Barra Ø{f(P['D_piv'])} × {f(g.L_piv)} con dos zonas rectificadas: p6 (z 0–{fm(g.z_p6, 0)}, calado) y f7 (z {fm(g.z_f7, 0)}–{fm(g.L_piv, 0)}, buje); chaflanes {fm(g.ch_piv, 0)}×45°", cyl(P["D_piv"] / 2, g.L_piv).faces(">Z or <Z").edges().chamfer(g.ch_piv).cut(cq.Workplane("XY").workplane(offset=g.L_piv - g.cap_tap).pushPoints(cap_xy).circle(g.tap_m10 / 2).extrude(g.cap_tap + 0.5)), 1, (MBX_["pivote"]["texto"] if MBX_.get("pivote") else propuestas.grado(P['Fy_piv'], P['D_piv'], 'barra')),
                "Corte de barra redonda laminada/rectificada Ø120 con sobrematerial; extremos, zona p6 y zona f7 en torno horizontal y rectificado externo; sin torno vertical", core="pivot", color=(0.35, 0.35, 0.38),
-               tratamiento="Bonificado (QT)", obs=f"Zona p6 calada en el agujero H7 de la plancha base y el collar (prensa o contracción con hielo seco); zona f7 en el buje F7"))
+               tratamiento=(MBX_["pivote"]["tratamiento"] if MBX_.get("pivote") else "Bonificado (QT)"), obs=f"Zona p6 calada en el agujero H7 de la plancha base y el collar (prensa o contracción con hielo seco); zona f7 en el buje F7" + ("; " + MBX_["pivote"]["nota"] if MBX_.get("pivote") else "")))
     bush = ring(P["D_piv"] / 2, d_bush / 2, P["L_bush"], g.z_bush0)
     m.add(Part("buje", "PIV", "Buje autolubricado", f"Buje Ø{f(d_bush)}/Ø{f(P['D_piv'])}×{f(P['L_bush'])}", bush, 1, f"Buje autolubricado: bronce con lubricante sólido (presión ≤ {fm(P['p_bush'], 0)} MPa, μ ≤ {fm(P['mu_bush'], 2)} según el cálculo); marca/modelo por catálogo (GEN-008)", "Buje comercial o cortado de tubo fundido; Ø exterior s6 y Ø interior en mandrinadora", rho=7.6e-6, in_core=False,
                comercial=True, catalogo="A DEFINIR POR CATÁLOGO (buje autolubricado a medida)", color=(0.8, 0.55, 0.2), cert="EN 10204 3.1"))
@@ -1387,6 +1392,12 @@ def plancha_E(D):
     S_ = (D["pivotado"].get("fabricacion") or {}).get("soporte_E") or {}
     ins = S_.get("refuerzo") or S_.get("inserto")
     if ins and str(ins.get("estado", "")).lower().startswith("cumple") and str((D.get("verdict") or {}).get("estado_global", "")).upper().startswith("CUMPLE"):
+        return None
+    # TT300-BX rev. 9: el estado global puede quedar «PENDIENTE DE DECISIÓN» por una fila ajena a la plancha base (Hertz buje–canto de la placa-guía):
+    # con el refuerzo verificado, solo retienen los pendientes críticos del grupo «Soporte del ojal E»
+    V_ = D.get("verdict") or {}
+    if D.get("bx") and ins and str(ins.get("estado", "")).lower().startswith("cumple") and "PENDIENTE" in str(V_.get("estado_global", "")).upper() \
+            and V_.get("estructura") is not False and not any(q.get("grp") == "Soporte del ojal E" for q in (V_.get("pendientes_criticos") or [])):
         return None
     pb = ((D["pivotado"].get("fabricacion") or {}).get("soporte_E") or {}).get("plancha_base")
     if not pb:
