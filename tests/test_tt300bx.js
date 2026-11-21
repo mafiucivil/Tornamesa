@@ -76,8 +76,12 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   // a 20 °C cumple todo (FU ≤ 0,90; geométricas ≤ 1)
   // rev. 5 a 7 (UHMW de 30 mm, portador fijo de 22 mm A572, Ø ≤ 185): todo FU ≤ 1; sobre 0,90 (advertencia) solo la planitud de las pastillas, la torsión y el
   // ligamento del portador, las filas BX de anillos distintos y la base bajo E con el factor de la FEA (≤ 0,965) (docs/bx/README_BX.md §9 a §11)
-  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla|Aplastamiento en el agujero del anillo inferior|Pasador de empuje: flexión con la luz entre los planos medios|Plancha base bajo el soporte del ojal E: .* ajuste por la FEA)/;
-  A0.checks.filter((c) => c.bx && c.grp !== "Cilindro" && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.966), "20 °C: " + c.name + " FU " + c.fu));   // el grupo «Cilindro» se prueba aparte
+  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla|Aplastamiento en el agujero del anillo inferior|Pasador de empuje: flexión con la luz entre los planos medios|Plancha base bajo el soporte del ojal E: .* ajuste por la FEA|Pasador Q: flexión \(horquilla del bloque\).* μ bajo|Placa-guía: contacto de Hertz de línea buje–canto en el empuje a calado)/;
+  // rev. 9 (250 t, 540 bar, buje del seguidor): pasador Q con la H del μ bajo (0,976) y el Hertz buje–canto del empuje (0,970) en advertencia; el Hertz del
+  // atasco del retorno en el flanco recto (1,145, canto sin templar) queda PENDIENTE DE DECISIÓN del mandante (docs/bx/README_BX.md §13.6)
+  const PEND_OK = /^BX · Placa-guía: contacto de Hertz de línea buje–canto en el atasco del retorno/;
+  A0.checks.filter((c) => c.bx && c.grp !== "Cilindro" && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.98), "20 °C: " + c.name + " FU " + c.fu));
+  const pend = A0.checks.filter((c) => c.bx && c.st === "pend" && c.fu > 1); assert.equal(pend.length, 1); assert.match(pend[0].name, PEND_OK); near(pend[0].fu, 1.145, 0.005, "Hertz del atasco en el flanco");   // el grupo «Cilindro» se prueba aparte
   // camino del arrastre por la cara inferior (μ_b): la pared y el tornillo usan el residual; la fila informa el FU sin μ_b
   const w = A0.checks.find((c) => /pared del agujero del portador \(arrastre residual/.test(c.name)), sinMu = +/sin μ_b: FU ([\d,]+)/.exec(w.formula)[1].replace(",", ".");
   near(w.fu * (0.25 / (0.25 - P0.bx_mu_base)), sinMu, 0.01, "FU sin μ_b = FU·μ_máx/(μ_máx − μ_b)");
@@ -148,15 +152,18 @@ test("BX: pastillas de ULTRA VST de 30 mm (Ø ≤ 185, cortadas de cuadrados de 
   near(tor.cap, 345 / (P0.Nd * Math.sqrt(3)), 1e-12, "torsión con Fy 345");
   A0.checks.filter((c) => c.bx && /Portador|Pastillas/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.fu <= 1 + 1e-9, "A572: " + c.name + " FU " + c.fu));
   const Aa = BX.analyze(Object.assign({}, P0, { Fy_bxc: 250, Fu_bxc: 400, bx_lig: 0 }), { noFEA: true });   // con el ligamento automático (22 mm) de la rev. 7
-  assert.ok(Aa.checks.some((c) => c.bx && /Portador: ligamento junto a la pastilla/.test(c.name) && c.fu > 1), "con A36 de 22 mm el ligamento no cumple");
+  // rev. 9 (250 t, 540 bar): con A36 y el ligamento automático la fila queda en ≈ 0,77 (rev. 7–8 con 290 t y 680 bar: > 1, no cumplía)
+  const ligA = Aa.checks.find((c) => c.bx && /Portador: ligamento junto a la pastilla/.test(c.name)); near(ligA.fu, 0.773, 0.01, "ligamento con A36");
   assert.match(Aa.bx.portador.material, /A36/);
   assert.equal(Aa.bx.portador.t, 22); assert.equal(Aa.bx.pastillas.H, 30);
 });
 
-test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm, atiesador 22): valores por defecto, filas y FU", () => {
+test("BX: rev. 9 (250 t, 540/480 bar, todas las planchas A572 Gr. 50 y de 22 mm, atiesador 22, ejes sin tratamiento térmico): valores por defecto, filas y FU", () => {
   const TD = TT.defaults(), A = BX.A36, Nd = P0.Nd;
-  assert.deepEqual([P0.W_tf, P0.p_relief, P0.p_alarm, P0.Fy, P0.Fu], [290, 680, 600, 345, 450]);
-  for (const k of ["Fy_pin", "Fy_dog", "Fy_pp", "Fy_piv", "Fy_shoe", "Fy_cara", "Fy_cam", "Fy_camP", "Fy_surf", "Fu_bolt"]) assert.equal(P0[k], TD[k], "acero especial sin cambio: " + k);
+  assert.deepEqual([P0.W_tf, P0.p_relief, P0.p_alarm, P0.Fy, P0.Fu], [250, 540, 480, 345, 450]);
+  // rev. 9: E S355J2+N (325), Q S355J2+N (315, bx_Fy_pQ), empuje 42CrMo4+QT de stock (650, sin temple: Fy_surf 650), pivote C45+N (275)
+  assert.deepEqual([P0.Fy_pp, P0.bx_Fy_pQ, P0.Fy_pin, P0.Fy_surf, P0.Fy_piv, P0.bx_Fb_red], [325, 315, 650, 650, 275, 1.25]);
+  for (const k of ["Fy_dog", "Fy_shoe", "Fy_cara", "Fy_cam", "Fy_camP", "Fu_bolt"]) assert.equal(P0[k], TD[k], "acero especial sin cambio: " + k);
   for (const k of ["pr", "base", "boxE", "bxc", "dbl"]) { assert.equal(P0["Fy_" + k], 0, "Fy_" + k + " = global"); assert.equal(P0["Fu_" + k], 0, "Fu_" + k); }
   for (const [k, v] of Object.entries(A.despues)) { assert.equal(P0[k], v, k); assert.equal(A.antes[k], TD[k], "antes = núcleo: " + k); }
   assert.deepEqual([P0.t_top, P0.t_bot, P0.t_pr, P0.t_base, P0.bx_tc, P0.pv_tbox, P0.pv_tl, P0.rib_t], [22, 22, 22, 22, 22, 22, 22, 22], "planchas de 22 mm");
@@ -166,15 +173,18 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   // atiesador de 22 (clave rib_t del núcleo) y refuerzo automático (≈ 45 mm en A572)
   assert.ok(by(/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22 × \d+ mm: flexión/), "atiesador de 22");
   const tdM = /refuerzo de (\d+) mm/.exec(A0.checks.find((c) => /base de 22 mm con refuerzo de/.test(c.name)).name); assert.ok(tdM && +tdM[1] >= 40 && +tdM[1] <= 50, "refuerzo " + (tdM && tdM[1]));
-  near(A0.R.Fstall, 432.6, 0.001, "fuerza de calado con 680 bar");
+  near(A0.R.Fstall, 343.5, 0.001, "fuerza de calado con 540 bar");
   const FS = Object.fromEntries(A0.R.cases.map((c) => [c.id, c.FS]));
-  [["nom", 4.124], ["dis", 1.396], ["borde", 1.118], ["cont", 1.117], ["seco", 1.320]].forEach(([k, v]) => near(FS[k], v, 0.001, "FS " + k));
-  // valores de la rev. 7 (sin FEA; docs/bx/README_BX.md §11). Las tapas E son lineales en p_relief: 1,006 con 700 bar → 0,977 con 680
-  [[/^Tapas del cajón E: desgarro por corte hacia las paredes/, 0.999], [/^Tapas del cajón E \(orejas del pasador\): aplastamiento/, 0.977], [/^Alarma bajo el alivio/, 0.980],
-   [/^Aplastamiento en el agujero del anillo$/, 0.900], [/bisel dentro del anillo/, 0.941], [/^Flexión \(biapoyado entre anillos/, 0.905], [/^Pasador vertical E: flexión/, 0.756],
-   [/^Soporte del ojal E: flexión de las paredes/, 0.794], [/^Soporte del ojal E: CJP paredes–base/, 0.794], [/^BX · Portador: corte por torsión/, 0.612], [/^BX · Portador: ligamento junto/, 0.523],
-   [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.949], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.884],
-   [/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22/, 0.482], [/^Asiento del pivote con momento/, 0.653]].forEach(([re, v]) => {
+  // rev. 9: FS de diseño 1,267 ≥ 1,25 con 250 t a 540 bar (a 530 bar no cumple)
+  [["nom", 3.742], ["dis", 1.267], ["borde", 1.014], ["cont", 1.014], ["seco", 1.197]].forEach(([k, v]) => near(FS[k], v, 0.001, "FS " + k));
+  assert.ok(BX.analyze(Object.assign({}, P0, { p_relief: 530 }), { noFEA: true }).R.cases.find((c) => c.id === "dis").FS < 1.25, "a 530 bar el FS de diseño no llega a 1,25");
+  // valores de la rev. 9 (sin FEA; docs/bx/README_BX.md §13.6): lineales en p_relief salvo los ejes (Fb = 1,25·Fy/Nd de barra redonda, aplastamiento con el
+  // Fy del pasador más blando: tapas 0,977·540/680·345/325 = 0,824)
+  [[/^Tapas del cajón E: desgarro por corte hacia las paredes/, 0.794], [/^Tapas del cajón E \(orejas del pasador\): aplastamiento/, 0.824], [/^Alarma bajo el alivio/, 0.988],
+   [/^Aplastamiento en el agujero del anillo$/, 0.715], [/bisel dentro del anillo/, 0.765], [/^Flexión \(biapoyado entre anillos/, 0.707], [/^Pasador vertical E: flexión/, 0.961],
+   [/^Soporte del ojal E: flexión de las paredes/, 0.631], [/^Soporte del ojal E: CJP paredes–base/, 0.631], [/^BX · Portador: corte por torsión/, 0.486], [/^BX · Portador: ligamento junto/, 0.415],
+   [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.835], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.763],
+   [/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22/, 0.416], [/^Asiento del pivote con momento/, 0.692]].forEach(([re, v]) => {
     const c = by(re); assert.ok(c, String(re)); near(c.fu, v, 0.006, c.name.slice(0, 60)); });
   assert.equal(A0.checks.filter((c) => c.st === "fail").length, 0, "sin fallas");
   assert.equal(A0.verdict.estructura, true); assert.equal(A0.verdict.gira, true);
@@ -186,19 +196,21 @@ test("BX: rev. 7 (290 t, 680/600 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   assert.equal(cr.length, 4, "nom, dis, cal y retorno");
   const crC = cr.find((c) => /empuje a calado/.test(c.name)), crR = cr.find((c) => /atasco del retorno/.test(c.name));
   near(crC.k_tb, 0.962 / 0.831, 1e-9, "empuje"); near(crR.k_tb, 0.824 / 0.785, 1e-9, "retorno");
-  near(crC.fu, 0.962, 0.006, "calado = envolvente de la FEA"); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2); assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
+  near(crC.fu, 0.764, 0.006, "calado = envolvente de la FEA (rev. 9: 540 bar, refuerzo 45 = el de la calibración)");
+  // rev. 9: fila anómala corregida. Sin td_min ni k_base el núcleo bajaba el refuerzo a 35 mm (FU núcleo 0,866 ≤ 0,90) y la fila BX × 1,158 daba 1,003
+  assert.match(crC.name, /refuerzo de 45 mm/); assert.deepEqual(Object.keys(BX._int.pinHooks(P0)).sort(), ["Fb_redondo", "brg_min", "kFy_pQ", "k_base", "mq_split", "td_min"]); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2); assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
   cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); near(c.cap, 1.25 * 345 / Nd, 1e-12, "Fy 345"); });
-  const sub = A0.checks.filter((c) => c.sustituida && c.grp !== "Giro"); assert.equal(sub.length, cr.length);   // rev. 7d: más la fila informativa del ojal comercial (grupo Giro) sub.forEach((c) => assert.equal(c.st, "info"));
+  const sub = A0.checks.filter((c) => c.sustituida && c.grp !== "Giro" && c.grp !== "Placas-leva" && c.grp !== "Articulaciones"); assert.equal(sub.length, cr.length);   // rev. 9: además la zapata (Placas-leva) y el pasador Q con la H del μ bajo (Articulaciones)   // rev. 7d: más la fila informativa del ojal comercial (grupo Giro) sub.forEach((c) => assert.equal(c.st, "info"));
   // con t_base = 21 se interpola entre 20 (1,045 / 1,0) y 22; sin factor con t_base = 20
   const A21 = BX.analyze(Object.assign({}, P0, { t_base: 21 }), { noFEA: true }), r21 = A21.checks.find((c) => c.bx && /atasco del retorno/.test(c.name) && /FEA de Mindlin de la base/.test(c.name));
   near(r21.k_tb, (1 + 0.824 / 0.785) / 2, 1e-9, "interpolado");
   const A20 = BX.analyze(Object.assign({}, P0, { t_base: 20 }), { noFEA: true });
-  assert.ok(!A20.checks.some((c) => (c.sustituida && c.grp !== "Giro") || /FEA de Mindlin de la base/.test(c.name)));
+  assert.ok(!A20.checks.some((c) => (c.sustituida && c.grp === "Soporte del ojal E") || /FEA de Mindlin de la base/.test(c.name)));
   // la calidad por pieza sigue disponible (rev. 6): con el refuerzo A36 la CJP de las paredes E usa la menor
   const A6 = BX.analyze(Object.assign({}, P0, { Fy_dbl: 250, Fu_dbl: 400 }), { noFEA: true });
   near(A6.checks.find((c) => /^Soporte del ojal E: CJP paredes–base/.test(c.name)).fu, by(/^Soporte del ojal E: CJP paredes–base/).fu * 345 / 250, 1e-9, "CJP con refuerzo A36");
   // capacidad en el bloque bx exportado y en la tabla de fabricación
-  const X = BX.exportBX(P0); assert.equal(X.capacidad_nominal_tf, 290); assert.match(X.revision, /290 t/);
+  const X = BX.exportBX(P0); assert.equal(X.capacidad_nominal_tf, 250); assert.match(X.revision, /250 t/);
   assert.ok(G0.fabricacion.some((f) => /Calidad del acero/.test(f.pieza) && /A572 Gr\. 50/.test(f.despues) && !/A36 \(Fy/.test(f.despues)));
   // masa (rev. 5: 4100 kg; rev. 6: 3843 kg; rev. 7: ≈ 3721 kg; rev. 7b, ligamento 50 y 44 pastillas: ≈ 3798 kg; rev. 7d, cilindros fabricados de 45 kg en vez de 55: ≈ 3778 kg)
   near(A0.R.m.total, 3776, 0.003, "masa"); near(A0.R.m.total, BX.analyze(Object.assign(BX.defaults({ cyl: false }), { e_body: P0.e_body }), { noFEA: true }).R.m.total - 2 * (55 - P0.m_cyl), 1e-9, "solo cambia la masa de los cilindros (con el mismo e_cuerpo: las tapas del soporte E se recortan con él)");
@@ -231,7 +243,7 @@ test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85
   assert.equal(c2.st, "fail"); near(c2.fu, 25 / 22, 1e-12, "25/22"); assert.equal(A2.verdict.estado_global, "NO CUMPLE");
   assert.ok(AGBX.validate(P2).some((v) => v.lvl === "error" && /t_pr = t_top = t_bot/.test(v.msg)));
   assert.throws(() => BX.exportBX(P2, A2), /exige t_pr = t_top = t_bot/);
-  assert.equal(BX.analyze(Object.assign({}, P2, { bx_mesa_entera: 0 }), { noFEA: true }).verdict.estado_global, "CUMPLE", "con disco + anillo los espesores distintos siguen permitidos");
+  assert.equal(BX.analyze(Object.assign({}, P2, { bx_mesa_entera: 0 }), { noFEA: true }).verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN", "con disco + anillo los espesores distintos siguen permitidos (rev. 9: solo queda el pendiente del Hertz del flanco)");
 });
 
 test("BX: cinemática y reenganche con la nueva δ (lámina de 3 mm) y las alturas de la rev. 5", () => {
@@ -339,7 +351,7 @@ test("BX: tabla de fabricación (antes → después, motivo y verificación) y J
 
 /* ---------- Cilindro hidráulico fabricado (rev. 7d, decisión del mandante 19-11-2026) ---------- */
 test("BX · Cilindro: valores por defecto (vástago Ø65 cromado Fy 520, c_rod del cuerpo resultante, m_cyl) y opción comercial", () => {
-  assert.equal(P0.bx_cyl_on, 1); assert.equal(P0.d_rod, 65); assert.equal(P0.pv_Fyrod, 520); assert.equal(P0.p_relief, 680);
+  assert.equal(P0.bx_cyl_on, 1); assert.equal(P0.d_rod, 65); assert.equal(P0.pv_Fyrod, 520); assert.equal(P0.p_relief, 540);
   const g = BX._int.cylGeo(P0);
   assert.equal(g.tf, 37, "rev. 8: fondo macizo de 37 = pestaña 10 + espiga 27 (S355J2 Fy 345)"); assert.ok(g.tReq < 30, "UG-34 / Roark " + g.tReq);
   assert.equal(g.Lb + g.Lesp, g.tf); assert.ok(g.U1.t < g.tf && g.U2.t < g.tf, "UG-34 con S355J2");
@@ -357,9 +369,9 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   assert.ok(C.length >= 45, "filas " + C.length);
   C.forEach((c) => { assert.ok(c.bx && c.sys === "est" && c.ref && c.formula, "fila completa: " + c.name); if (c.kind === "fu" || c.kind === "geo") assert.ok(c.fu <= 1 + 1e-9 && c.st !== "fail", c.name + " FU " + c.fu); });
   C.filter((c) => c.st === "warn").forEach((c) => assert.match(c.name, /von Mises de Lamé|UG-34 a p_alivio/, "advertencia no prevista: " + c.name));
-  const a = 45, b = 65, p = 68, Fy = 345, vm = Math.sqrt(3) * p * b * b / (b * b - a * a);
+  const a = 45, b = 65, p = 54, Fy = 345, vm = Math.sqrt(3) * p * b * b / (b * b - a * a);
   near(by(/von Mises de Lamé en el radio interior/).dem, vm, 1e-12, "Lamé"); near(by(/von Mises de Lamé en el radio interior/).fu, vm / (Fy / 1.5), 1e-12, "FU servicio");
-  near(by(/von Mises de Lamé en la prueba/).fu, 1.25 * vm / (0.9 * Fy), 1e-12, "FU prueba"); near(vm, 226.19, 1e-4, "≈ 226 MPa");
+  near(by(/von Mises de Lamé en la prueba/).fu, 1.25 * vm / (0.9 * Fy), 1e-12, "FU prueba"); near(vm, 179.62, 1e-4, "≈ 180 MPa (rev. 9: 540 bar)");
   near(by(/presión de inicio de fluencia/).dem, Fy * (b * b - a * a) / (Math.sqrt(3) * b * b) * 10, 1e-12, "p_y");
   near(by(/fondo macizo t = 37/).dem, 0.75 * p * a * a / 37 ** 2, 1e-12, "Roark");
   // UG-34 a mano: S = 325/1,5, t_r = P·R/(S − 0,6P), m = t_r/20, C = máx(0,2; 0,33·m)
@@ -367,7 +379,7 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   // rev. 8: la soldadura del fondo queda detrás del tope; distancia al pistón ≥ 20 y ningún sello sobre la espiga ni la ZAC
   { const d = by(/soldadura del fondo lejos de los sellos/); assert.equal(d.cap, 47); assert.equal(d.st, "ok"); assert.equal(by(/ningún sello recorre la espiga/).st, "ok"); near(by(/^BX · Cilindro: CJP en J fondo–camisa en el hombro/).dem, p * Math.PI * a * a / (Math.PI * (65 ** 2 - 45 ** 2)), 1e-9, "CJP primaria"); }
   const Fcal = p * Math.PI * a * a, Fan = p * Math.PI / 4 * (90 ** 2 - 65 ** 2);
-  near(Fcal / 1e3, 432.6, 1e-3, "F calado"); near(Fan / 1e3, 206.96, 1e-3, "F anular con Ø65");
+  near(Fcal / 1e3, 343.5, 1e-3, "F calado (540 bar)"); near(Fan / 1e3, 164.34, 1e-3, "F anular con Ø65 (540 bar)");
   { const Le = 23, An = Math.PI * Le * 110 * (0.5 + 0.57735 * 0.649519), r = by(/rosca M110 × 2 de la tapa delantera/); near(r.dem, Fcal / An, 1e-9, "arranque de la camisa con F = p·A (fin de carrera)"); near(r.cap, 345 / (1.5 * Math.sqrt(3)), 1e-12); }
   near(by(/camisa en la zona roscada \(pared 10/).dem, Fcal / (Math.PI / 4 * (130 ** 2 - 110 ** 2)), 1e-12, "tracción en la raíz");
   { const d3 = 48 - 1.226869 * 2 - 0.5, r = by(/garganta de la rosca M48 × 2 de la tuerca/); near(r.dem, (Fan + 0.25 * Fan) / (Math.PI / 4 * d3 * d3), 1e-9, "garganta"); }
@@ -377,18 +389,20 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   assert.equal(by(/sellos de la tapa DENTRO de la rosca/).st, "ok");
   const am = by(/amortiguación de fin de carrera: NO se requiere/); near(am.dem, 20 / 60000 / (2 * (Math.PI / 4 * (90 ** 2 - 65 ** 2)) * 1e-6), 1e-12, "v retorno"); assert.ok(am.dem < 0.1);
   assert.ok(A0.checks.some((c) => c.grp === "Giro" && c.sustituida && /^Ojal comercial del vástago/.test(c.name) && c.st === "info"));
-  near(by(/sellos: presión de prueba hidráulica/).fu, 1, 1e-12, "850 / 850 bar (dato confirmado por el mandante)"); near(by(/sellos: presión de trabajo/).fu, 1, 1e-12);
+  near(by(/sellos: presión de prueba hidráulica/).fu, 675 / 850, 1e-12, "675 / 850 bar (rev. 9; sellos 680/850 confirmados por el mandante)"); near(by(/sellos: presión de trabajo/).fu, 540 / 680, 1e-12);
   assert.ok(!C.some((c) => c.st === "pend"), "sin pendientes del cilindro (rev. 7e)");
   // rev. 7f: desnivel E–Q ±1 mm (aprobado) frente al admisible del vástago con holgura nula, y reparto del momento de la placa-guía al bloque-uña
-  const dz = by(/desnivel especificado entre los ejes E y Q/); assert.equal(dz.dem, 1); assert.ok(dz.fu < 1 && dz.cap > 0.99 && dz.cap < 1.4, "Δz adm " + dz.cap);
-  const rp = by(/reparto del momento en alzado/); near(rp.dem, 4.66, 0.01, "M_H"); near(rp.cap, 10.89, 0.01, "F·h/6"); assert.equal(P0.p_max_cil, 680);
+  const dz = by(/desnivel especificado entre los ejes E y Q/); assert.equal(dz.dem, 1); assert.ok(dz.fu < 1 && dz.cap > 0.99 && dz.cap < 2.0, "Δz adm " + dz.cap);   // rev. 9: con 540 bar M_adm crece (1,92 mm)
+  const rp = by(/reparto del momento en alzado/); near(rp.dem, 4.24, 0.01, "M_H (rev. 9)"); near(rp.cap, 8.82, 0.01, "F·h/6 (rev. 9)"); assert.equal(P0.p_max_cil, 680);
   assert.ok(!C.some((c) => /onfirmar|de memoria|confianza C/.test(c.name + c.formula) && !/amortiguación/.test(c.name)), "sin textos «confirmar / de memoria» (rev. 7e)");
-  assert.equal(A0.verdict.estado_global, "CUMPLE");
+  // rev. 9: el único pendiente crítico es el Hertz del atasco en el flanco recto de la placa-guía (canto sin templar; decisión del mandante, README §13.6)
+  assert.equal(A0.verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN"); assert.equal(A0.verdict.pendientes_criticos.length, 1); assert.match(A0.verdict.pendientes_criticos[0].nombre, /Hertz de línea buje–canto en el atasco/);
+  assert.equal(A0.verdict.estructura, true); assert.equal(A0.verdict.gira, true);
 });
 
 test("BX · Cilindro: bloque «cilindro» del JSON (fuente única de las láminas) coherente con la geometría y las filas", () => {
   const X = BX.exportBX(P0, A0).cilindro, g = BX._int.cylGeo(P0);
-  assert.equal(X.modo, "fabricado"); assert.equal(X.p_prueba, 850); assert.equal(X.d_vastago, 65); assert.equal(X.L_ext, 755);
+  assert.equal(X.modo, "fabricado"); assert.equal(X.p_prueba, 675); assert.equal(X.d_vastago, 65); assert.equal(X.L_ext, 755);
   near(X.s.cuerpo_fin, P0.L0 - P0.c_rod, 1e-12, "fin del cuerpo"); near(X.camisa.largo + X.camisa.separacion_raiz, X.s.camisa_fin - X.s.cjp, 1e-12, "camisa + raíz"); assert.equal(X.fondo.espiga.largo, 27); assert.match(X.camisa.puerto_A.rosca, /G 1\/2/); assert.match(X.camisa.puerto_B.rosca, /G 1\/2/);
   assert.match(X.sellos.find((q) => q.pos === "S3").designacion, /50 × 4/); assert.equal(X.capacidad.filas.length, 16); near(X.capacidad.v_linea_A_3_8, 4.9, 0.01, "línea A");
   assert.equal(X.tapa.largo, 57); assert.equal(X.tapa.espiga.d, 89.5); assert.match(X.tapa.rosca.designacion, /^M110 × 2-6g$/); assert.match(X.camisa.rosca.designacion, /^M110 × 2-6H$/);
@@ -416,18 +430,18 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   assert.equal(A.verdict.gira, true);
   A.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("con FEA, falla: " + c.grp + " | " + c.name + " FU " + c.fu));   // rev. 7: todo cumple
   assert.equal(A.verdict.estructura, true);
-  [[/^Plancha superior: global \+ local/, 0.692], [/^Plancha inferior: global \+ local/, 0.465]].forEach(([re, v]) => near(A.checks.find((c) => re.test(c.name)).fu, v, 0.006, String(re)));
+  [[/^Plancha superior: global \+ local/, 0.597], [/^Plancha inferior: global \+ local/, 0.401]]   /* rev. 9: 250 t (rev. 7–8: 0,692 / 0,465) */.forEach(([re, v]) => near(A.checks.find((c) => re.test(c.name)).fu, v, 0.006, String(re)));
   A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= 0.9 + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));
   // rev. 7c: la plancha entera (t_pr = t_top = t_bot) no cambia la FEA de la mesa: mismas FU con disco + anillo (bx_mesa_entera = 0)
   const A1 = BX.analyze(Object.assign({}, P0, { bx_mesa_entera: 0 })), fm = (X) => X.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu").map((c) => c.name + "|" + c.fu).join("\n");
-  assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "CUMPLE");
+  assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");   // rev. 9: pendiente del Hertz del flanco (README §13.6)
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
   assert.ok(b80.bx && b80.bx.filas.length > 10);
   assert.ok(b80.bx.fuEst >= b20.bx.fuEst, "a 80 °C empeora");
   // rev. 7e: aceite atrapado tras el calado frente a la prueba del cilindro fabricado (850 bar, gancho P.__bx) en lugar de 1,5·p_max
   const oil = (bt) => (bt.fuera_alcance || []).concat(bt.filas || []).find((r) => /^Aceite atrapado tras el calado/.test(r.nombre));
-  assert.equal(oil(b20).cap, 850); assert.match(oil(b20).nombre, /850 bar = 1,25 × p_alivio/); near(oil(b20).fu, 680 / 850, 1e-12, "20 °C");
+  assert.equal(oil(b20).cap, 675); assert.match(oil(b20).nombre, /675 bar = 1,25 × p_alivio/); near(oil(b20).fu, 540 / 675, 1e-12, "20 °C (rev. 9: 540 bar)");
   const p80 = b80.bx.filas.find((r) => /presión máxima/.test(r.nombre));
   near(p80.cap, P0.p_uhmw * P0.kT_p_uh, 1e-9, "p_adm a 80 °C = k_p·p_adm");
 });

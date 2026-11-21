@@ -2914,6 +2914,7 @@ const TT = (() => {
     const mode = driveMode(P), K = R.K;
     if (!(P.ins_on > 0) || !K || !K.ok || (mode === 2 && !(R.camP && R.camP.guia && R.sup)) || (mode === 1 && !R.camG)) return null;
     const Bh = P.B / 2, tb = P.t_base, Rm = P.D_top / 2, cal = DBL_CAL[mode], fz = P.__th && P.__th.frozen && P.__th.frozen.dbl;   // escenario térmico: t_d y atiesador de 20 °C
+    const kBx = P.__bx && P.__bx.k_base ? P.__bx.k_base : null;   // TT300-BX rev. 9: factor de la FEA de la base en la elección de t_d (gancho aditivo)
     const kTb = Math.max(1, (20 / tb) ** 2);   // calibración con t_base = 20: con una base más delgada, del lado seguro (σ ∝ 1/t²); más gruesa, sin reducción
     const E1 = mode === 2 ? K.E : [P.x_g, K.y_eye], s0 = Math.sign(E1[0]) || 1, s1 = Math.sign(E1[1]) || -1;
     const toC = (p) => [s0 * p[0], -s1 * p[1]], toR = (q) => [s0 * q[0], -s1 * q[1]];
@@ -2969,17 +2970,20 @@ const TT = (() => {
         const k = Math.max(0, rc.hr.filter((x) => x <= hr).length - 1), row = rc.rows[k]; return (id === "ret" ? calS(row.tr, row.Sr, t) : calS(row.t, row.S, t)) * Math.max(1, (rc.a / a) ** 2) * kTb; };
       const Srib = (t) => { const k = Math.max(0, rc.hr.filter((x) => x <= hr).length - 1), row = rc.rows[k]; return { cal: calS(row.t, row.Srib, t), ret: calS(row.tr, row.Sribr, t) }; };
       const rows = [];
-      for (const td of (fz ? [fz.td] : DBL_T)) {
+      for (const td of (fz ? [fz.td] : (kBx && P.__bx.td_min > 0 ? DBL_T.filter((x) => x >= P.__bx.td_min) : DBL_T))) {   // TT300-BX: t_d ≥ el de la calibración de la FEA de la base
         const t = tb + td, v = vOf(sq, t, over), geoOk = okRib && v.d >= INS_CLR && seatOk(t) && pl.d >= DBL_CLR && mesa >= INS_CLR;
         const ev = casos0.map((q) => { const M = q.F * h / 1e3, sig = INS_KAPPA * q.k * M * Sof(t, q.id); return Object.assign({}, q, { M, sig, fu: sig / Fb }); });
         let fu = Math.max(...ev.map((q) => q.fu)), ribEv = null;
+        // TT300-BX rev. 9 (gancho aditivo P.__bx.k_base = { emp, ret }): la elección del espesor usa el mismo factor de la FEA de la base que la fila BX
+        // (sin el gancho fuSel = fu y la elección no cambia)
+        let fuSel = kBx ? Math.max(...ev.map((q) => q.fu * (q.id === "ret" ? kBx.ret : q.id === "vac" ? 1 : kBx.emp))) : fu;
         if (rib && rc) { const sr = Srib(t), Mc = R.Fstall * h / 1e3, Mr = Fret * h / 1e3, sR = INS_KAPPA * Math.max(Mc * sr.cal, Mr * sr.ret);
-          ribEv = { sig: sR, fu: sR / Fbr }; fu = Math.max(fu, ribEv.fu); }
-        rows.push({ td, t, ev, fu, ribEv, vc: v, geoOk });
-        if (geoOk && fu <= INS_FUOBJ) break;
+          ribEv = { sig: sR, fu: sR / Fbr }; fu = Math.max(fu, ribEv.fu); fuSel = Math.max(fuSel, ribEv.fu); }
+        rows.push(kBx ? { td, t, ev, fu, fuSel, ribEv, vc: v, geoOk } : { td, t, ev, fu, ribEv, vc: v, geoOk });
+        if (geoOk && fuSel <= INS_FUOBJ) break;
         if (!geoOk && v.d < INS_CLR) break;   // más grueso tampoco pasa por debajo de las piezas móviles
       }
-      const pick = rows.find((r) => r.geoOk && r.fu <= INS_FUOBJ) || rows.filter((r) => r.geoOk && r.fu <= 1).reduce((m, r) => (!m || r.fu < m.fu ? r : m), null);
+      const fS = (r) => (kBx ? r.fuSel : r.fu), pick = rows.find((r) => r.geoOk && fS(r) <= INS_FUOBJ) || rows.filter((r) => r.geoOk && fS(r) <= 1).reduce((m, r) => (!m || fS(r) < fS(m) ? r : m), null);
       const best = rows.filter((r) => r.geoOk).reduce((m, r) => (!m || r.fu < m.fu ? r : m), null);
       return { rib, a, sq, rb, hr, vR, pl, plR, mesa, rows, pick, best, okRib };
     };
@@ -3252,6 +3256,9 @@ const TT = (() => {
   function pivRows(P, R, add) {
     const K = R.K, CP = R.camP, bk = R.blk, sg = R.sup, fam = R.fam, Nd = P.Nd, Fy = P.Fy, Fs = R.Fstall * 1e3, Fw = P.FEXX * 0.60 / (1.20 * Nd);
     const FyE = fyOf(P, "boxE"), FyBs = fyOf(P, "base");   // calidad por pieza: soporte del ojal E (paredes, muñones, tapas) y plancha base
+    // TT300-BX rev. 9 (claves aditivas de P.__bx; sin ellas, lo del núcleo): Fb_redondo = 1,25 (ASME BTH-1-2020 §3-2.3.3), kFy_pQ = Fy_pasador Q / Fy_pp,
+    // brg_min: aplastamiento con mín(Fy pasador, Fy plancha), mq_split: combinaciones (a)/(b) del pasador Q por separado
+    const XB = P.__bx || {}, kFb = XB.Fb_redondo > 0 ? XB.Fb_redondo : 1, FyPQ = XB.kFy_pQ > 0 ? P.Fy_pp * XB.kFy_pQ : P.Fy_pp;
     if (!K.ok || !CP || !bk || !sg) return;
     const UN = "Uña", AR = "Articulaciones", SO = "Soporte del ojal E", PL = "Placas-leva", Ncam = CP.Ncam;
     // bloque-uña
@@ -3285,15 +3292,19 @@ const TT = (() => {
       add({ grp: UN, sys: "est", name: "Bloque-uña: contacto de Hertz cara–pasador (a calado; ambas caras templadas" + (bk.Rf > 0 ? "; cara convexa R " + nfx(bk.Rf, 0) + " mm" : "") + ")", formula: "p₀ = √(q·E*/(π·R_ef)), 1/R_ef = 1/r + 1/R_cara, q = k_borde·F/h_bloque ≤ 1,67·Fy_sup", dem: p0, cap: 1.67 * P.Fy_surf, unit: "MPa", ref: "Hertz, contacto lineal; inicio de fluencia por Tresca (p₀ = 1,67σy)" });
       add({ grp: UN, sys: "est", kind: "geo", name: "Bloque-uña: contacto dentro de la cara (con el roce de la cara μ_s y el del pasador Q, ambos sentidos)", formula: (bk.Rf > 0 ? "cara convexa: e_c = R·sen γ, sen γ = (s₂·sen ρ + μ_Q·d_Q/2)/(s₂ − R)" : "cara plana: e_c = s₂·tan ρ + μ_Q·d_Q/2") + ", ρ = atan μ_s; e_c + b_Hertz ≤ b_f/2 − 3 (chaflán de la arista); γ = " + nfx(bk.gam / D2R, 1) + "°, giro del bloque " + nfx(bk.dBlk / D2R, 1) + "°", dem: bk.ec + bH, cap: P.pv_bf / 2 - 3, unit: "mm", ref: "Equilibrio del bloque libre en Q (miembro de dos fuerzas con roce); Hertz (semiancho b)" });
     }
-    add({ grp: UN, sys: "est", name: "Bloque-uña: aplastamiento de la horquilla en el pasador Q", formula: "σ = (F/2)/(d_Q·t_h) ≤ 1,25·Fy/Nd; t_h = (h_bloque − b_ojal − 2g)/2 = " + nfx(bk.tq) + " mm", dem: Fs / 2 / (P.pv_dq * bk.tq), cap: 1.25 * P.Fy_dog / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
+    add({ grp: UN, sys: "est", name: "Bloque-uña: aplastamiento de la horquilla en el pasador Q", formula: "σ = (F/2)/(d_Q·t_h) ≤ 1,25·Fy/Nd; t_h = (h_bloque − b_ojal − 2g)/2 = " + nfx(bk.tq) + " mm", dem: Fs / 2 / (P.pv_dq * bk.tq), cap: 1.25 * (XB.brg_min ? Math.min(P.Fy_dog, FyPQ) : P.Fy_dog) / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" + (XB.brg_min ? "; AISC 360-22 §J7 (Fy = mín(bloque " + P.Fy_dog + ", pasador Q " + nfx(FyPQ, 0) + ") MPa: el pasador es más blando)" : "") });
     add({ grp: UN, sys: "est", name: "Bloque-uña: desgarro de la horquilla detrás del pasador Q", formula: "τ = (F/2)/(2·t_h·a), a = R_cubo − d_Q/2 ≤ Fy/(Nd·√3)", dem: Fs / 2 / (2 * bk.tq * (bk.eb - P.pv_dq / 2)), cap: P.Fy_dog / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-3.3 (2 planos de corte)" });
     // pasadores Q y E, orejas del soporte
     const m = pivPinM(P, R, Fs, Ncam), AQ = Math.PI / 4 * P.pv_dq ** 2, AE = Math.PI / 4 * P.pv_dE ** 2;
-    add({ grp: AR, sys: "est", name: "Pasador Q: flexión (horquilla del bloque) con la reacción de la leva en su extremo inferior", formula: "M = √[(F/2·(t_h/2 + g + b/4))² + (N_leva·l_Q)²], l_Q = " + nfx(bk.lq) + " mm; σ = M/(πd³/32) ≤ Fy/Nd", dem: m.MQ / (Math.PI * P.pv_dq ** 3 / 32), cap: P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / §3-2.3" });
-    add({ grp: AR, sys: "est", name: "Pasador Q: corte doble", formula: "τ = (F/2)/A ≤ Fy/(Nd·√3)", dem: Fs / 2 / AQ, cap: P.Fy_pp / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.3.6" });
-    add({ grp: AR, sys: "est", name: "Pasador vertical E: flexión (orejas del soporte)", formula: "M = F/2·(t_oreja/2 + g + b/4); σ ≤ Fy/Nd", dem: m.ME / (Math.PI * P.pv_dE ** 3 / 32), cap: P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / §3-2.3" });
+    if (!XB.mq_split) add({ grp: AR, sys: "est", name: "Pasador Q: flexión (horquilla del bloque) con la reacción de la leva en su extremo inferior", formula: "M = √[(F/2·(t_h/2 + g + b/4))² + (N_leva·l_Q)²], l_Q = " + nfx(bk.lq) + " mm; σ = M/(πd³/32) ≤ Fy/Nd", dem: m.MQ / (Math.PI * P.pv_dq ** 3 / 32), cap: P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / §3-2.3" });
+    else {   // TT300-BX (P.__bx.mq_split): combinaciones simultáneas por separado — (a) empuje a calado con la H del empuje guiado; (b) retorno: F_ret con N_atasco
+      const FretQ = R.Fret * 1e3, mA = pivPinM(P, R, Fs, CP.Tst), mB = pivPinM(P, R, FretQ, CP.NR), gB = mB.MQ > mA.MQ;
+      add({ grp: AR, sys: "est", name: "Pasador Q: flexión (horquilla del bloque) con la reacción de la leva en su extremo inferior — gobierna " + (gB ? "(b) retorno con atasco" : "(a) empuje a calado"), formula: "M = √[(F/2·(t_h/2 + g + b/4))² + (N·l_Q)²], l_Q = " + nfx(bk.lq) + " mm; (a) empuje a calado: F = F_calado = " + nfx(Fs / 1e3, 1) + " kN con la H simultánea del empuje guiado = " + nfx(CP.Tst / 1e3, 1) + " kN → M = " + nfx(mA.MQ / 1e6, 2) + " kN·m; (b) retorno: F = F_ret = " + nfx(FretQ / 1e3, 1) + " kN con N_atasco = " + nfx(CP.NR / 1e3, 1) + " kN → M = " + nfx(mB.MQ / 1e6, 2) + " kN·m (el atasco ocurre al retraer, no con el calado del empuje); σ = M/(πd³/32) ≤ " + nfx(kFb, 2) + "·Fy/Nd, Fy = " + nfx(FyPQ, 0) + " MPa", dem: Math.max(mA.MQ, mB.MQ) / (Math.PI * P.pv_dq ** 3 / 32), cap: kFb * FyPQ / Nd, unit: "MPa", ref: "ASME BTH-1-2020 §3-3.3 / §3-2.3.3 (barra redonda maciza en flexión: Fb = 1,25·Fy/Nd)" });
+    }
+    add({ grp: AR, sys: "est", name: "Pasador Q: corte doble", formula: "τ = (F/2)/A ≤ Fy/(Nd·√3)", dem: Fs / 2 / AQ, cap: FyPQ / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.3.6" });
+    add({ grp: AR, sys: "est", name: "Pasador vertical E: flexión (orejas del soporte)", formula: "M = F/2·(t_oreja/2 + g + b/4); σ ≤ " + (kFb !== 1 ? nfx(kFb, 2) + "·" : "") + "Fy/Nd", dem: m.ME / (Math.PI * P.pv_dE ** 3 / 32), cap: kFb * P.Fy_pp / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 / §3-2.3" + (kFb !== 1 ? ".3 (barra redonda maciza: Fb = 1,25·Fy/Nd)" : "") });
     add({ grp: AR, sys: "est", name: "Pasador vertical E: corte doble", formula: "τ = (F/2)/A ≤ Fy/(Nd·√3)", dem: Fs / 2 / AE, cap: P.Fy_pp / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.3.6" });
-    add({ grp: AR, sys: "est", name: "Tapas del cajón E (orejas del pasador): aplastamiento", formula: "σ = (F/2)/(d_E·t_tapa) ≤ 1,25Fy/Nd", dem: Fs / 2 / (P.pv_dE * P.pv_tl), cap: 1.25 * FyE / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" });
+    add({ grp: AR, sys: "est", name: "Tapas del cajón E (orejas del pasador): aplastamiento", formula: "σ = (F/2)/(d_E·t_tapa) ≤ 1,25Fy/Nd" + (XB.brg_min ? "; Fy = mín(tapa " + nfx(FyE, 0) + ", pasador E " + nfx(P.Fy_pp, 0) + ") MPa" : ""), dem: Fs / 2 / (P.pv_dE * P.pv_tl), cap: 1.25 * (XB.brg_min ? Math.min(FyE, P.Fy_pp) : FyE) / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3" + (XB.brg_min ? "; AISC 360-22 §J7 (el pasador más blando que la plancha gobierna)" : "") });
     { const pe = pinEOf(P, R); if (pe.ins) add({ grp: AR, sys: "giro", kind: "geo", name: "Pasador vertical E: extremo inferior sobre la cara del refuerzo de esquina", formula: "z_inf,pasador − (t_base + t_d) ≥ " + INS_CLR + " mm; z_inf = mín(z_tapa,inf; máx(z_tapa,inf − 10; t_base + t_d + " + INS_SEAT + ")) = " + nfx(pe.z0, 1) + " (saliente bajo la tapa inferior " + nfx(pe.salInf, 1) + " mm), cara del inserto a z = " + nfx(pe.face, 0), dem: INS_CLR, cap: pe.holgura, unit: "mm", ref: "Geometría (alzado); " + REG_INS }); }
     add({ grp: AR, sys: "est", name: "Tapas del cajón E: desgarro por corte hacia las paredes traseras (empuje a calado)", formula: "τ = (F/2)/(2·t·a) ≤ Fy/(Nd·√3), a = mín sobre el barrido de la distancia del agujero a la pared en la dirección −u menos d_E/2 = " + nfx(sg.aTear) + " mm", dem: Fs / 2 / (2 * P.pv_tl * sg.aTear), cap: FyE / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-3.3 (2 planos de corte)" });
     const Fret = Math.PI / 4 * (P.D_bore ** 2 - P.d_rod ** 2) * P.p_ret / 10;
@@ -3742,8 +3753,8 @@ const TT = (() => {
     const sbA = 1.25 * fyOf(P, "pr") / Nd, sV = Vp * 1e3 / (P.d_pin * tpr);   // admisible del anillo (calidad por pieza: Fy_pr)
     const Me = Math.max(0, Math.min(Mfix, (sbA - sV) * P.d_pin * tpr * tpr / 6 / 1e6));
     const Mp = Mss;
-    const Sp = Math.PI * P.d_pin ** 3 / 32, Ap = Math.PI * P.d_pin ** 2 / 4;
-    add({ grp: "Pasadores de empuje", sys: "est", name: "Flexión (biapoyado entre anillos, carga repartida en la altura de la uña)", formula: "M = F_r·(L − c/2)/4, c = h_uña, F_r = F·√(1 + μ_s²); σ = M/S ≤ Fy/Nd", dem: Mp * 1e6 / Sp, cap: P.Fy_pin / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    const Sp = Math.PI * P.d_pin ** 3 / 32, Ap = Math.PI * P.d_pin ** 2 / 4, kFbE = (P.__bx && P.__bx.Fb_redondo > 0) ? P.__bx.Fb_redondo : 1;   // TT300-BX rev. 9: Fb de barra redonda maciza (gancho aditivo)
+    add({ grp: "Pasadores de empuje", sys: "est", name: "Flexión (biapoyado entre anillos, carga repartida en la altura de la uña)", formula: "M = F_r·(L − c/2)/4, c = h_uña, F_r = F·√(1 + μ_s²); σ = M/S ≤ " + (kFbE !== 1 ? nfx(kFbE, 2) + "·" : "") + "Fy/Nd", dem: Mp * 1e6 / Sp, cap: kFbE * P.Fy_pin / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" + (kFbE !== 1 ? ".3 (barra redonda maciza: Fb = 1,25·Fy/Nd)" : "") });
     add({ grp: "Pasadores de empuje", sys: "est", kind: "info", name: "Empotramiento disponible en el anillo / empotramiento perfecto (no se considera)", formula: "M_e = (σ_adm − V/(d·t))·d·t²/6; M_emp = F_r(3L² − c²)/(24L)", dem: Me / Mfix, unit: "–", ref: "Modelo del pasador" });
     add({ grp: "Pasadores de empuje", sys: "est", name: "Corte en el apoyo", formula: "τ = 4V/(3A), V = F_r·(1/2 + e/L) ≤ Fy/(Nd·√3)", dem: 4 * Vp * 1e3 / (3 * Ap), cap: P.Fy_pin / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.3.6" });
     add({ grp: "Pasadores de empuje", sys: "est", name: "Aplastamiento en el agujero del anillo", formula: "σ = V/(d·t) ≤ 1,25Fy/Nd", dem: sV, cap: sbA, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento en pasadores)" });
@@ -3842,14 +3853,15 @@ const TT = (() => {
     if (mode === 2) add({ grp: "Pivote", sys: "est", kind: "info", name: "Empuje neto al pivote por roce desigual en el contacto uña–pasador del par (μ_s ± 0,05), a calado", formula: "H_asim = máx_θ |F₁(μ_s + 0,05) + F₂(μ_s − 0,05)|, F_i = F_n,i·(u_i + s·μ_i·t_i) con F_n,i = F_calado·η/(1 + μ_leva·μ_i); los cilindros están a 180°", dem: Hasym, unit: "kN", ref: "Equilibrio de la mesa (análogo a la revisión independiente H10)" });
     else add({ grp: "Pivote", sys: "est", kind: "info", name: "Empuje neto al pivote por fricción desigual de los patines (μg ± 0,05)", formula: "H_asim = F_calado·η·|1/f(μg−0,05) − 1/f(μg+0,05)|", dem: Hasym, unit: "kN", ref: "Equilibrio (revisión independiente H10)" });
     add({ grp: "Pivote", sys: "est", name: "Presión en el buje", formula: "p = H/(D·L), H = máx(fricción excéntrica; Ch·N) + H_asim + H_cil", dem: H * 1e3 / (P.D_piv * P.L_bush), cap: P.p_bush, unit: "MPa", ref: "Fabricante del buje" });
-    const eP = R.ePiv;                                                         // brazo efectivo: holgura del buje sobre el collar + L_buje/2 (e_piv de ingreso es un mínimo)
+    const eP = R.ePiv, XBp = P.__bx || {}, kFbP = XBp.Fb_redondo > 0 ? XBp.Fb_redondo : 1, FyPv = XBp.brg_min ? Math.min(P.Fy_piv, Fy) : Fy;   // TT300-BX rev. 9 (gancho aditivo): Fb de barra redonda y aplastamiento con el pivote más blando
+    // brazo efectivo: holgura del buje sobre el collar + L_buje/2 (e_piv de ingreso es un mínimo)
     add({ grp: "Pivote", sys: "est", kind: "info", name: "Brazo efectivo del pivote e (desde la cara superior del asiento hasta la reacción del buje)", formula: "e = máx(e_piv; g_buje + L_buje/2); el buje apoya a media altura con holgura axial g_buje sobre el collar", dem: eP, cap: P.g_bush + P.L_bush / 2, unit: "mm (efectivo / geométrico)", ref: "Estática del pivote; ASME BTH-1 §3-2.3" });
-    add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ Fy/Nd, e = brazo efectivo (H con la F_pas de calado si el n° de cilindros es impar)", dem: Hf * 1e3 * eP / (Math.PI * P.D_piv ** 3 / 32), cap: P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
+    add({ grp: "Pivote", sys: "est", name: "Flexión del pivote", formula: "σ = H·e/(πD³/32) ≤ " + (kFbP !== 1 ? nfx(kFbP, 2) + "·" : "") + "Fy/Nd, e = brazo efectivo (H con la F_pas de calado si el n° de cilindros es impar)", dem: Hf * 1e3 * eP / (Math.PI * P.D_piv ** 3 / 32), cap: kFbP * P.Fy_piv / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3" });
     // camino de fuerza del pivote: la misma reacción atraviesa el cubo (buje), el vástago y el agujero de la plancha base (calado, BTH-1)
     const Lseat = P.t_base + P.h_boss;                                        // profundidad del asiento: plancha base + collar soldado
-    add({ grp: "Pivote", sys: "est", name: "Aplastamiento del pivote en el asiento (plancha base + collar, ajuste H7/p6)", formula: "σ = H/(D_piv·L_asiento) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar", dem: Hf * 1e3 / (P.D_piv * Lseat), cap: 1.25 * Math.min(fyOf(P, "base"), Fy) / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" });
+    add({ grp: "Pivote", sys: "est", name: "Aplastamiento del pivote en el asiento (plancha base + collar, ajuste H7/p6)", formula: "σ = H/(D_piv·L_asiento) ≤ 1,25·Fy/Nd; H con la F_pas de calado si el n° de cilindros es impar", dem: Hf * 1e3 / (P.D_piv * Lseat), cap: 1.25 * Math.min(fyOf(P, "base"), FyPv) / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento)" + (XBp.brg_min ? "; AISC 360-22 §J7: Fy = mín(base, collar, pivote " + nfx(P.Fy_piv, 0) + " MPa)" : "") });
     {   // momento H·(e + L/2) sobre el asiento (modelo lineal rígido): σ = H/(D·L)·(1 + 6(e + L/2)/L); L mínimo por bisección
-      const sM = (L) => Hf * 1e3 / (P.D_piv * L) * (1 + 6 * (eP + L / 2) / L), cap = 1.25 * Math.min(fyOf(P, "base"), Fy) / Nd;   // base + collar (global): la menor
+      const sM = (L) => Hf * 1e3 / (P.D_piv * L) * (1 + 6 * (eP + L / 2) / L), cap = 1.25 * Math.min(fyOf(P, "base"), FyPv) / Nd;   // base + collar (global): la menor
       let lo = P.t_base, hi = 2000; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (sM(m) > cap) lo = m; else hi = m; }
       add({ grp: "Pivote", sys: "est", name: "Asiento del pivote con momento H·e (plancha base + collar; profundidad mínima " + (sM(Lseat) <= cap ? Math.min(Lseat, Math.ceil(hi)) : Math.ceil(hi)) + " mm)", formula: "σ = H/(D·L)·(1 + 6(e + L/2)/L) ≤ 1,25·Fy/Nd, e = brazo efectivo, H = H de calado (aprox. de asiento rígido-lineal, sin pretensión del calado ni filetes)", dem: sM(Lseat), cap, unit: "MPa", ref: "ASME BTH-1 §3-3.3; hallazgo P6 de la revisión independiente" });
     }

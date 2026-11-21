@@ -97,6 +97,14 @@ const BX = (() => {
     ["bx_Fu_sp", "Tornillos de las pastillas: Fu (ISO 898-1 clase 8.8: 800)", "MPa", 800, 400, 1200, 10],
     ["bx_w_c", "Portador: filete perimetral (borde exterior e interior) a la base (AWS D1.1 Tabla 7.7: con el portador o la base de 20–25 mm, mínimo 8)", "mm", 8, 3, 16, 1],
     ["bx_bow", "Portador: falta de planitud admitida después de soldar (solo bordes soldados; criterio de taller): se descuenta de la holgura disco–portador", "mm", 1, 0, 5, 0.5],
+    ["bx_Fy_pQ", "Pasador Q Ø90: Fy (rev. 9, decisión del mandante 20-11-2026: S355J2+N barra redonda, EN 10025-2, Fy 315 para 80 < t ≤ 100, sin tratamiento térmico; el pasador E usa Fy_pp)", "MPa", 315, 235, 1000, 5],
+    ["bx_Fb_red", "Pasadores macizos en flexión: Fb/(Fy/Nd) de barra redonda maciza (ASME BTH-1-2020 §3-2.3.3: 1,25; confirmado por el mandante 20-11-2026; 1 = criterio del núcleo)", "–", 1.25, 1, 1.25, 0.05],
+    ["bx_buje", "Seguidor del pasador Q: 1 = buje templado reemplazable Ø d_Q en el extremo rebajado del pasador Q, corriendo sobre el canto desnudo y engrasado de la placa-guía 42CrMo4+QT (rev. 9, por defecto); 0 = zapata con revestimiento del núcleo", "–", 1, 0, 1, 1],
+    ["bx_buje_di", "Buje del seguidor: Ø interior = Ø del extremo rebajado del pasador Q (H7/k6)", "mm", 70, 50, 80, 1],
+    ["bx_buje_L", "Buje del seguidor: largo total (fondo de copa incluido; desde 2 mm sobre la base hasta el hombro del rebaje)", "mm", 46, 30, 60, 1],
+    ["bx_buje_tf", "Buje del seguidor: espesor del fondo de copa (alojamiento de la cabeza del tornillo avellanado ISO 10642 M12 de retención, k = 7,44)", "mm", 8, 8, 16, 1],
+    ["bx_buje_capa", "Buje del seguidor: capa templada efectiva (42CrMo4+QT templado por inducción 55–60 HRC, EN 10328)", "mm", 4, 2, 6, 0.5],
+    ["bx_mu_ss", "Seguidor sobre el canto: μ de límite inferior acero templado–acero bonificado engrasado (se evalúa junto con el μ_A,d inox–inox del núcleo; cada fila usa el conservador)", "–", 0.1, 0.05, 0.2, 0.01],
   ] };
   const PARAM_GROUPS = TT_.PARAM_GROUPS.concat([BX_GROUP]);   // + CYL_GROUP (más abajo)
   // Rev. 5 (decisión del mandante 18-11-2026): acero ASTM A36 (Fy 250, Fu 400) en TODAS las planchas estructurales (mesa, base y su refuerzo y atiesadores,
@@ -112,9 +120,15 @@ const BX = (() => {
   // planchas estructurales en ASTM A572 Gr. 50 (global Fy/Fu = 345/450; claves por pieza en 0 = global, siguen disponibles); planchas de la mesa, anillos,
   // base, portador, paredes y tapas del cajón E y atiesador tangencial (clave rib_t del núcleo) de 22 mm; almas y nervios 8, collar 70, refuerzo de
   // esquina automático. El nombre A36_DESPUES / BX.A36 se conserva por compatibilidad (bloque «después» de los valores del núcleo).
-  const A36_DESPUES = { W_tf: 290, p_relief: 680, p_alarm: 600, Q_pump: 8, Fy: 345, Fu: 450, t_top: 22, t_bot: 22, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 22, pv_tbox: 22, rib_t: 22 };
+  // Rev. 9 (decisiones del mandante 20-11-2026): carga de diseño 250 t; alivio 540 bar y alarma 480 bar (FS del giro con 250 t a 540 bar ≈ 1,27 ≥ 1,25;
+  // a 530 no cumple); materiales de los ejes sin tratamientos térmicos de proceso: pasador E Ø70 S355J2+N (EN 10025-2, Fy 325 para 63 < t ≤ 80; Fy_pp),
+  // pasador Q Ø90 S355J2+N (Fy 315 para 80 < t ≤ 100; bx_Fy_pQ), pasadores de empuje 42CrMo4+QT de stock (EN 10083-3, Re ≥ 650 para 40 < d ≤ 100) sin temple
+  // por inducción (Fy_pin = Fy_surf = 650), pivote C45+N (EN 10083-2, Re ≥ 275 para 100 < d ≤ 250; Fy_piv).
+  const A36_DESPUES = { W_tf: 250, p_relief: 540, p_alarm: 480, Fy_pp: 325, Fy_pin: 650, Fy_surf: 650, Fy_piv: 275, Q_pump: 8, Fy: 345, Fu: 450, t_top: 22, t_bot: 22, t_web: 8, t_rib: 8, w_web: 8, t_pr: 22, t_base: 22, h_boss: 70, pv_tl: 22, pv_tbox: 22, rib_t: 22 };
   const A36 = { despues: A36_DESPUES, antes: (() => { const D = TT_.defaults(), o = {}; for (const k in A36_DESPUES) o[k] = D[k]; return o; })(),
-    nota: { W_tf: "capacidad nominal 290 t (rev. 7)", p_relief: "alivio 680 bar (rev. 7)", p_alarm: "alarma 600 bar", rib_t: "atiesador tangencial del refuerzo de esquina de 22 mm (rev. 7; núcleo: 30)", Fy: "A572 Gr. 50 en todas las planchas (rev. 7; rev. 5/6: A36 global)", Fu: "A572 Gr. 50", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
+    nota: { W_tf: "carga de diseño 250 t (rev. 9, decisión del mandante 20-11-2026; rev. 7–8: 290 t)", p_relief: "alivio 540 bar (rev. 9: FS del giro con 250 t ≈ 1,27 ≥ 1,25; rev. 7–8: 680)", p_alarm: "alarma 480 bar (rev. 9; rev. 7–8: 600)",
+      Fy_pp: "pasador E Ø70: S355J2+N barra redonda (EN 10025-2), Fy 325 para 63 < t ≤ 80, sin bonificado ni temple (rev. 9; el pasador Q usa bx_Fy_pQ)", Fy_pin: "pasadores de empuje Ø85: 42CrMo4+QT de stock (EN 10083-3, Re ≥ 650 para 40 < d ≤ 100), sin temple por inducción (rev. 9)",
+      Fy_surf: "superficie de contacto pasador de empuje–asiento del bloque-uña sin temple: gobierna el pasador (650 < 800 del bloque) (rev. 9)", Fy_piv: "pivote Ø120: C45+N (EN 10083-2), Re ≥ 275 para 100 < d ≤ 250, sin tratamiento térmico (rev. 9)", rib_t: "atiesador tangencial del refuerzo de esquina de 22 mm (rev. 7; núcleo: 30)", Fy: "A572 Gr. 50 en todas las planchas (rev. 7; rev. 5/6: A36 global)", Fu: "A572 Gr. 50", t_top: "plancha superior de la mesa (FEA global + local)", t_bot: "plancha inferior de la mesa (FEA global + local)", t_web: "almas: el filete mínimo con la plancha de 25 (AWS D1.1 T7.7: 8) no cabe en un alma de 6", t_rib: "nervios: ídem", w_web: "filete almas/nervios–planchas (T > 20: 8)",
       t_pr: "anillos de pasadores (rev. 6: A572 Gr. 50, 22 mm; el anillo superior queda de máx(t_pr, t_top) = 25): aplastamiento del agujero del pasador de empuje", t_base: "plancha base (rev. 6: A572 Gr. 50, 22 mm; bajo el soporte del ojal E; asiento del pivote)", h_boss: "collar de asiento del pivote (profundidad del asiento con H·e)", pv_tl: "tapas del cajón del ojal E (rev. 6: A572 Gr. 50, 25 mm; rev. 5: A36, 36 mm): desgarro y aplastamiento", pv_tbox: "paredes traseras y muñones del soporte del ojal E (rev. 6: A572 Gr. 50, 25 mm)" } };
   function defaults(o) {
     const P = TT_.defaults();
@@ -236,7 +250,7 @@ const BX = (() => {
     // ojal del vástago (sin rótula: GE90ES D 130 no cabe en Ø ≤ 2·R_cubo − 2·g): ASME BTH-1 §3-3.3 con Nd del proyecto
     const Nd = P.Nd, RQ = P.bx_cyl_RQ, Dh = P.pv_dq, tQ = P.b_eye, beQ = RQ - Dh / 2, FyQ = P.bx_cyl_Fy_oQ, FuQ = P.bx_cyl_Fu_oQ, CrQ = 1 - 0.275 * Math.sqrt(1 - ((Dh - 0.1) / Dh) ** 2);
     const beffQ = Math.min(4 * tQ, beQ, 0.6 * FuQ / FyQ * Math.sqrt(Dh / beQ) * beQ), phQ = 55 * D2R, AvQ = 2 * (beQ + Dh / 2 * (1 - Math.cos(phQ))) * tQ;
-    const eyeQ = { Pt: CrQ * FuQ * 2 * tQ * beffQ / (1.2 * Nd), Pv: 0.7 * FuQ * AvQ / (1.2 * Nd), Pp: 1.25 * FyQ * Dh * tQ / Nd, be: beQ, beff: beffQ, Cr: CrQ, Av: AvQ };
+    const eyeQ = { Pt: CrQ * FuQ * 2 * tQ * beffQ / (1.2 * Nd), Pv: 0.7 * FuQ * AvQ / (1.2 * Nd), Pp: 1.25 * Math.min(FyQ, P.bx_Fy_pQ > 0 ? P.bx_Fy_pQ : FyQ) * Dh * tQ / Nd, FyPp: Math.min(FyQ, P.bx_Fy_pQ > 0 ? P.bx_Fy_pQ : FyQ), be: beQ, beff: beffQ, Cr: CrQ, Av: AvQ };
     // unión vástago–ojal (soldadura por fricción, sección Ø65): axial + momento de roce del pasador Q (μ·F·d_Q/2)
     const Ard = Ar, Srd = Math.PI * dr ** 3 / 32, MQc = P.pv_muE * Fcal * P.pv_dq / 2, MQr = P.pv_muE * Fann * P.pv_dq / 2;
     // ojal trasero (orejeta con rótula GE70ES: alojamiento Ø105 de 40 de ancho en la orejeta de b_ojal): BTH-1 con t = C de la rótula (conservador)
@@ -343,7 +357,7 @@ const BX = (() => {
     const Q_ = g.eyeQ;
     add({ name: "ojal del vástago (R" + Q.bx_cyl_RQ + " × " + P.b_eye + ", S355J2, agujero Ø" + P.pv_dq + " H9): tracción en el área neta al retorno", formula: "P_t = C_r·Fu·2·t·b_ef/(1,20·N_d); b_e = " + nf(Q_.be, 1) + ", b_ef = " + nf(Q_.beff, 1) + ", C_r = " + nf(Q_.Cr, 3), dem: kN(g.Fann), cap: kN(Q_.Pt), unit: "kN", ref: BTH });
     add({ name: "ojal del vástago: corte de doble plano al retorno", formula: "P_v = 0,70·Fu·A_v/(1,20·N_d); A_v = " + nf(Q_.Av, 0) + " mm²", dem: kN(g.Fann), cap: kN(Q_.Pv), unit: "kN", ref: BTH });
-    add({ name: "ojal del vástago: aplastamiento sobre el pasador Q a calado", formula: "P_p = 1,25·Fy·D·t/N_d", dem: kN(g.Fcal), cap: kN(Q_.Pp), unit: "kN", ref: BTH });
+    add({ name: "ojal del vástago: aplastamiento sobre el pasador Q a calado", formula: "P_p = 1,25·Fy·D·t/N_d; Fy = mín(ojal " + nf(P.bx_cyl_Fy_oQ, 0) + ", pasador Q S355J2+N " + nf(P.bx_Fy_pQ, 0) + ") = " + nf(Q_.FyPp, 0) + " MPa (rev. 9: el pasador más blando gobierna)", dem: kN(g.Fcal), cap: kN(Q_.Pp), unit: "kN", ref: BTH + "; AISC 360-22 §J7" });
     /* geometría */
     const RQmax = P.pv_dq / 2 + 25 - P.g_ch;
     add({ kind: "geo", name: "largo: e_cuerpo + cuerpo + c_vástago ≤ L0 (cuerpo = fondo " + tf + " + interior " + g.Lint + " (pistón " + g.Lpc + " + tuerca " + g.hn + " + carrera " + P.stroke + ") + espiga " + g.Ls + " + rosca " + g.Lt + " + reborde " + g.tr + " = " + g.Lbody + ")", formula: P.e_body + " + " + g.Lbody + " + " + P.c_rod + " ≤ " + P.L0 + " (c_vástago resultante = " + nf(g.cRod, 1) + ")", dem: P.e_body + g.Lbody + P.c_rod, cap: P.L0, unit: "mm", ref: "Geometría (L0 y carrera del núcleo)" });
@@ -463,7 +477,7 @@ const BX = (() => {
           ["Sellos", "680 bar de trabajo, 850 bar de prueba (dato confirmado por el mandante 19-11-2026)"], ["Mangueras", "3/8\" de 10 000 psi (690 bar ≥ 680), con certificado de prueba"],
           ["Racores", "puertos G 1/2 (ISO 1179-1, sello ED) con reducción a 3/8\"; clase ≥ 690 bar"], ["Línea A (velocidad)", nf(vA_, 1) + " m/s ≤ 5 con manguera de 3/8\" (Ø int. 9,5); preferible 1/2\" para el retorno"],
           ["Circuito", "cilindros en PARALELO, alivio común (" + P.p_relief + " bar), bomba con compensador de presión; SIN divisor ni sincronizador de caudal: un divisor iguala desplazamientos y puede intensificar la presión en un cilindro trabado"],
-          ["Si se reemplaza por uno comercial", "clase ≥ 45 t a 700 bar; si es de 50 t, regular el alivio para F ≤ " + nf(kN_(P.p_relief, A_), 1) + " kN"]];
+          ["Si se reemplaza por uno comercial", "fuerza de calado requerida " + nf(kN_(P.p_relief, A_), 1) + " kN ≈ " + nf(kN_(P.p_relief, A_) / 9.80665, 0) + " t (Ø" + P.D_bore + " a " + P.p_relief + " bar): clase de " + nf(Math.floor(kN_(P.p_relief, A_) / 9.80665 / 5) * 5, 0) + " t o mayor a 700 bar que entregue al menos esa fuerza, con el mismo L0, carrera, ojales y pasadores; con uno de mayor clase (p. ej. 50 t) regular el alivio para F ≤ " + nf(kN_(P.p_relief, A_), 1) + " kN (el FS del giro y todas las verificaciones están hechas con esa fuerza)"]];
         return { filas: rows, v_linea_A_3_8: vA_ }; })(),
       dz_tol: Q.bx_cyl_dz, dz_adm: (() => { const r = (checks || []).find((c) => /desnivel especificado/.test(c.name)); return r ? r.cap : null; })(),
       dz_nota: "Desnivel entre los ejes E (soporte E) y Q (bloque-uña sobre la placa-guía): |z_E − z_Q| ≤ " + nf(Q.bx_cyl_dz, 1) + " mm (cada eje a su cota ± " + nf(Q.bx_cyl_dz / 2, 1) + " sobre la base), medido con nivel óptico en el montaje; aprobado por el mandante 19-11-2026. Criterio: estudio del ojal del vástago (rev. 7e); Δz admisible " + (() => { const r = (checks || []).find((c) => /desnivel especificado/.test(c.name)); return r ? nf(r.cap, 2) : "—"; })() + " mm en el retraído con el giro libre mínimo del ajuste H9/f8 (con holgura nula el admisible es menor: fila informativa; fila «Cilindro» del núcleo BX, rev. 8)" };
@@ -988,9 +1002,20 @@ const BX = (() => {
     const mPuck1 = P.bx_rho_uh * 1e-6 * (Acut * H - Math.PI / 4 * holeSp ** 2 * H - Math.PI / 4 * (dkSp ** 2 - holeSp ** 2) * (hp + 0.5));   // descontado el agujero y el alojamiento de la cabeza (cilindro, conservador)
     const fSum = L.Asum / L.Ap, mCarPl = RHO * tc * (Math.PI * (C.Rco ** 2 - C.Rci ** 2) - fSum * SHf.ApH), mFil = RHO * P.bx_w_c ** 2 / 2 * 2 * Math.PI * (C.Rco + C.Rci);
     const A_ss = LAM ? PL.area : Math.PI * (C.Ro ** 2 - C.Ri ** 2), mSS = M.rho * A_ss * tss;
-    const bx = { t_ss: tss, t_ss_req: tReq, t_flex: tVoid, delta: tc + hp + tss, mTop: mSS, mSS, mUH: fSum * mPuck1, mCar: mCarPl + mFil, t_c: tc, h_p: hp };
+    const bx = Object.assign({ t_ss: tss, t_ss_req: tReq, t_flex: tVoid, delta: tc + hp + tss, mTop: mSS, mSS, mUH: fSum * mPuck1, mCar: mCarPl + mFil, t_c: tc, h_p: hp }, pinHooks(P));
     const geo = { DT, kI, dFl, tq, drops: drops || null, candList: cand.map((c) => ({ d: c.d, tc: c.tc, s: c.s, hp: c.hp, nw: c.nw, fuMax: c.fuMax, fus: c.fus, cost: c.cost })), capWh: capWh(d), C, M, pat, nw, tc, d, s, lig, dPlug, hp, H, delta, iLo, iHi, dCold, dHot, tolS, dal, L, fl, tss, tReq, tHead, tVoid, aV, sad, dT, kT, sb, BL, BF, PL, LAM, dTd, nP, nW, Ap, holeSp, dkSp, mPuck1, mCarPl, mFil, mSS, A_ss, tcMin, cand: cand.length, candOk: okC.length };
     return { bx, geo, frozen: { t_c: tc, d, s, lig, h_p: hp, t_ss: tss, sb, sp: PL ? PL.sc : null, i: delta, nw, pat, drops: drops || null } };
+  }
+  // Rev. 9: claves aditivas del gancho para las filas de pasadores y pivote del núcleo (tt300c.js lee P.__bx; sin ellas no cambia)
+  function pinHooks(P) {
+    const o = { Fb_redondo: P.bx_Fb_red > 0 ? P.bx_Fb_red : 1, brg_min: 1, mq_split: 1 };
+    if (P.bx_Fy_pQ > 0 && P.Fy_pp > 0) o.kFy_pQ = P.bx_Fy_pQ / P.Fy_pp;   // cociente: en el escenario térmico se aplica al Fy_pp ya reducido a T
+    // fila anómala de la rev. 9 (FU 1,003 con 540 bar): el núcleo elige el espesor del refuerzo de esquina con su FU (≤ 0,90) sin el factor de la FEA de la
+    // base que aplica baseCredit; con menos presión bajaba de 45 a 35 mm y la fila BX (× 1,158) quedaba en 1,003. El gancho k_base le pasa el mismo factor.
+    // Además el factor (envolvente de mallas) se calibró con el refuerzo de 45 mm de la rev. 7 (README §11): fuera de esa geometría no está validado, así que el
+    // espesor no baja de 45 (td_min); con 45 y 540 bar la fila BX queda en ≈ 0,76 (rev. 8: 0,962 a 680 bar).
+    const kb = baseK(P); if (kb) { o.k_base = kb; o.td_min = BASE_FEA.td_cal; }
+    return o;
   }
   const sameBx = (a, b) => ["t_ss", "t_c", "h_p"].every((k) => a[k] === b[k]) && Math.abs(a.mTop - b.mTop) < 1e-9 && Math.abs(a.mCar - b.mCar) < 1e-9 && Math.abs(a.mUH - b.mUH) < 1e-9;
   const designCache = new Map();
@@ -1137,12 +1162,12 @@ const BX = (() => {
       ["Cara de apoyo de la base (Ø" + (P.D_top + 20) + ") planeada", "Planeado en mandrinadora (planitud 0,20; Ra 3,2)", "Se mantiene el planeado bajo el portador: las pastillas apoyan en la base y la sobrepresión por planitud depende de d_flat", "se mantiene",
         "La sobrepresión p + Δp con d_flat = " + nf(P.d_flat, 2) + " mm gobierna la saliente de la pastilla; sin planear no hay dato de planitud local", "BX · Pastillas: presión más sobrepresión por planitud (y la sensibilidad d_flat crítico en el README)"],
       ["Cara inferior de la mesa planeada", "Planeado 3 mm (planitud 0,20)", g.LAM ? "Se mantiene: la lámina de " + g.tss + " mm se suelda apretada contra la cara (separación ≤ " + nf(P.bx_g0, 2) + " mm) y la presión de las pastillas la mantiene en contacto" : "Se mantiene: el disco de " + g.tss + " mm copia la cara al apretar los tornillos", "se mantiene", "Misma razón: d_flat del contacto disco–pastillas", "BX · Pastillas: sobrepresión por planitud"],
-      ["Placas-guía curvas (placa-leva, 42CrMo4+QT)", "Corte láser/agua con sobremetal, fresado CNC del canto, temple por inducción y rectificado; pasadores de posición H7", "Sin cambio", "se mantiene",
-        "El canto es un contacto de Hertz templado y su tolerancia de perfil (± 0,2) entra en el margen de sincronía; con plasma ± 0,5 y sin temple no cumple", "Núcleo: Placas-leva (Hertz, capa templada, sincronía con pv_tolg)"],
+      ["Placas-guía curvas (placa-leva, 42CrMo4+QT)", "Corte láser/agua con sobremetal, fresado CNC del canto, temple por inducción y rectificado; pasadores de posición H7", P.bx_buje > 0.5 ? "Rev. 9: canto fresado CNC desnudo y engrasado (pista del buje templado del seguidor), SIN revestimiento inoxidable ni temple; Ra ≤ 1,6" : "Sin cambio", P.bx_buje > 0.5 ? "simplificada" : "se mantiene",
+        "La tolerancia de perfil del canto (± 0,2) entra en el margen de sincronía (con plasma ± 0,5 no cumple); el contacto es de Hertz de línea buje–canto con el Fy del 42CrMo4+QT (750)", "Núcleo: Placas-leva (sincronía con pv_tolg); BX · Placa-guía: Hertz buje–canto (envolvente del contorno)"],
       ["Pasadores de posición ISO 8734 de las placas-guía", "Agujeros H7 escariados ciegos en placa y base", "Sin cambio", "se mantiene", "Fijan la posición del canto (± 0,2): ajuste H7/m6 indispensable", "Núcleo: Placas-leva (pasadores de posición)"],
-      ["Bloque-uña con garra (34CrNiMo6+QT)", "Forja o bloque; oxicorte con sobremetal, asiento fresado a R, horquilla fresada, agujero Q mandrinado", "Sin cambio", "se mantiene",
-        "Asiento conforme templado (Hertz) y horquilla H9/f8 del ojal; 34CrNiMo6 no admite construcción soldada sin WPS calificada y tratamiento", "Núcleo: Bloque-uña (Hertz conforme, cuerpo acodado)"],
-      ["Pasadores E y Q, pasadores de empuje (Ø" + P.d_pin + "), pivote (p6/f7)", "Barra rectificada y torno horizontal; pivote rectificado en dos zonas", "Sin cambio", "se mantiene", "Ajustes f8, m6, p6/f7 indispensables (articulaciones, calado y buje)", "Núcleo: Articulaciones, Pasadores de empuje, Pivote"],
+      ["Bloque-uña con garra (34CrNiMo6+QT)", "Forja o bloque; oxicorte con sobremetal, asiento fresado a R, horquilla fresada, agujero Q mandrinado", "Rev. 9: asiento SIN temple (el Hertz conforme cumple con el Fy del más blando, el pasador de empuje 42CrMo4+QT de 650)", "simplificada",
+        "Asiento conforme (Hertz con Fy_sup = 650 sin temple) y horquilla H9/f8 del ojal; 34CrNiMo6 no admite construcción soldada sin WPS calificada y tratamiento", "Núcleo: Bloque-uña (Hertz conforme, cuerpo acodado)"],
+      ["Pasadores E y Q, pasadores de empuje (Ø" + P.d_pin + "), pivote (p6/f7)", "Barra rectificada y torno horizontal; pivote rectificado en dos zonas", "Rev. 9: sin tratamientos térmicos de proceso (E y Q S355J2+N, empuje 42CrMo4+QT de stock sin temple, pivote C45+N); pasador Q con el extremo rebajado Ø" + P.bx_buje_di + " y el buje templado reemplazable (ACC-046)", "simplificada", "Ajustes f8, m6, p6/f7 indispensables (articulaciones, calado y buje)", "Núcleo: Articulaciones, Pasadores de empuje, Pivote"],
       ["Agujeros de los pasadores de empuje en " + (meOn(P) ? "las planchas enteras de la mesa" : "los anillos") + " (Ø" + P.d_pin + " H7, mandrinados en línea)", "Taladro y mandrinado en línea con la mesa armada", meOn(P) ? "Sin cambio (en las dos planchas enteras, rev. 7c: pretaladro Ø80 y mandrinado/escariado en línea)" : "Sin cambio", "se mantiene", "La posición del círculo de pasadores entra en la sincronía de la placa-guía; ajuste m6/H7 antes de soldar", "Núcleo: Placas-leva (sincronía); Pasadores de empuje"],
       ["Tapas del soporte del ojal E (agujero Ø" + P.pv_dE + " H9 en línea)", "Corte plasma del contorno; agujero mandrinado en línea después de soldar", "Sin cambio (el resto del soporte ya es plancha cortada y soldada)", "se mantiene", "Ajuste H9/f8 y coaxialidad 0,10 de las dos tapas", "Núcleo: Soporte del ojal E"],
       ["Collar de asiento del pivote", "Oxicorte de disco Ø" + (P.D_boss + 10) + " desde plancha de " + (P.h_boss + 5) + " mm; caras planeadas; Ø exterior torneado; H7 mandrinado en línea con la base",
@@ -1365,11 +1390,13 @@ const BX = (() => {
   // el calado daba 1,326/1,094/0,811 (con 40: 0,771). Criterio conservador: con t_base ≥ 22 se toma la ENVOLVENTE de las mallas de la rev. 7 como factor
   // sobre la fila del núcleo (empuje 0,962/0,831 = 1,158; retorno 0,824/0,785 = 1,050: penalización, no crédito); entre 20 y 22 se interpola; sin
   // crédito por encima de 22 (la calibración de 25 mm de la rev. 5 era solo con malla de 40). El factor vale para la geometría por defecto de la rev. 7.
-  const BASE_FEA = { tb: [20, 22], emp: [1.045, 0.962 / 0.831], ret: [1.0, 0.824 / 0.785] };
+  const BASE_FEA = { tb: [20, 22], emp: [1.045, 0.962 / 0.831], ret: [1.0, 0.824 / 0.785], td_cal: 45 };
+  const baseKof = (tb) => { const T = BASE_FEA.tb, k = (arr) => { const x = Math.min(tb, T[T.length - 1]); let i = 1; while (i < T.length - 1 && T[i] < x) i++; return arr[i - 1] + (arr[i] - arr[i - 1]) * (x - T[i - 1]) / (T[i] - T[i - 1]); }; return k; };
+  function baseK(P) { if (!(P.t_base > 20 + 1e-9) || TT_.driveMode(P) !== 2) return null; const k = baseKof(P.t_base); return { emp: k(BASE_FEA.emp), ret: k(BASE_FEA.ret) }; }
   function baseCredit(P, checks) {
     const out = [], tb = P.t_base;
     if (!(tb > 20 + 1e-9) || TT_.driveMode(P) !== 2) return out;
-    const T = BASE_FEA.tb, k = (arr) => { const x = Math.min(tb, T[T.length - 1]); let i = 1; while (i < T.length - 1 && T[i] < x) i++; return arr[i - 1] + (arr[i] - arr[i - 1]) * (x - T[i - 1]) / (T[i] - T[i - 1]); };
+    const k = baseKof(tb);
     const re = /^Plancha base bajo el soporte del ojal E: base de .* flexión de la base y del refuerzo con la (.*)$/;
     checks.forEach((c) => {
       const m = re.exec(c.name); if (!m || c.kind !== "fu" || c.bx) return;
@@ -1400,12 +1427,80 @@ const BX = (() => {
     const REGR = "Modelo del pasador biapoyado del núcleo con los dos espesores de anillo; docs/bx/README_BX.md §10";
     if (cB) out.push({ after: cB, row: { kind: "fu", grp: cB.grp, sys: "est", bx: true, name: "BX · Aplastamiento en el agujero del " + lb, formula: "σ = V/(d·t) ≤ 1,25·Fy_pr/Nd; V = F_r·(1/2 + e/L) = " + nf(Vp, 1) + " kN con L = h − (t_sup + t_inf)/2 = " + nf(L1, 1) + " mm, t = " + tMin + " mm, Fy_pr = " + FyR + " MPa",
       dem: Vp * 1e3 / (P.d_pin * tMin), cap: 1.25 * FyR / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3 (aplastamiento en pasadores); " + REGR } });
-    if (cF) out.push({ after: cF, row: { kind: "fu", grp: cF.grp, sys: "est", bx: true, name: "BX · Pasador de empuje: flexión con la luz entre los planos medios de los anillos (" + tS + " / " + tI + " mm)", formula: "M = F_r·(L − c/2)/4, L = h − (t_sup + t_inf)/2 = " + nf(L1, 1) + " mm, c = h_uña; σ = M/S ≤ Fy_pin/Nd",
-      dem: M * 1e6 / Sp, cap: P.Fy_pin / Nd, unit: "MPa", ref: "ASME BTH-1 §3-2.3; " + REGR } });
+    if (cF) out.push({ after: cF, row: { kind: "fu", grp: cF.grp, sys: "est", bx: true, name: "BX · Pasador de empuje: flexión con la luz entre los planos medios de los anillos (" + tS + " / " + tI + " mm)", formula: "M = F_r·(L − c/2)/4, L = h − (t_sup + t_inf)/2 = " + nf(L1, 1) + " mm, c = h_uña; σ = M/S ≤ " + nf(P.bx_Fb_red || 1, 2) + "·Fy_pin/Nd",
+      dem: M * 1e6 / Sp, cap: (P.bx_Fb_red || 1) * P.Fy_pin / Nd, unit: "MPa", ref: "ASME BTH-1-2020 §3-2.3.3 (barra redonda maciza); " + REGR } });
     if (cW && cS) { const S = +(/S (\d+)/.exec(cS.name) || [0, 0])[1];
       out.push({ after: cW, row: { kind: "geo", grp: cW.grp, sys: "est", bx: true, name: "BX · Soldadura pasador–anillo: bisel dentro del " + lb + " (S ≤ t − 5)", formula: "S = " + S + " mm ≤ " + (tMin - 5) + " mm", dem: S, cap: tMin - 5, unit: "mm", ref: "Geometría; " + REGR } }); }
     return out;
   }
+
+  /* ---------------- Seguidor del pasador Q: buje templado reemplazable sobre el canto desnudo de la placa-guía (rev. 9) ---------------- */
+  // Decisión del mandante 20-11-2026: el extremo inferior del pasador Q (S355J2+N, sin tratamiento) se rebaja a Ø bx_buje_di y lleva un buje de copa
+  // Ø d_Q (= 90: la curva de la placa-guía, la sincronía y la garra no cambian) de 42CrMo4+QT templado por inducción, retenido por un tornillo avellanado
+  // ISO 10642 al extremo del pasador y reemplazable. Se quita el revestimiento inoxidable del canto: la pista es el 42CrMo4+QT desnudo y engrasado (Fy_camP).
+  // Las filas de la zapata del núcleo (presión p = H/(l·t), revestimiento, largo y la pendiente de la zapata plana sobre el canto curvo) quedan sustituidas
+  // por el contacto de Hertz de línea buje–canto en TODO el contorno real: en cada punto del empuje guiado (61 posiciones, N = h(μ)·F_calado·η) y del
+  // retorno guiado desde el primer contacto hasta L0 (N = F_ret/sen φ(L), sin el roce que ayuda, como el núcleo), con el radio local del canto
+  // (1/R_ef = 1/r_buje + 1/R_c; R_c > 0 convexo, < 0 cóncavo, ∞ en los tramos rectos) y el largo de contacto t_placa − 2 (el buje termina 2 mm sobre la base).
+  // μ del contacto: el núcleo usa μ_A,d = 0,20 (inox–inox) en la cinemática, la sincronía y el autobloqueo (filas en las que un μ mayor es conservador);
+  // para acero templado–acero bonificado engrasado el límite inferior es bx_mu_ss = 0,10: h(μ) se evalúa con ambos y cada fila de carga del seguidor usa la mayor.
+  const REG_BU = "Decisión del mandante 20-11-2026 (rev. 9): buje templado reemplazable en el extremo del pasador Q; docs/bx/README_BX.md §13.6";
+  function bujeOf(P, R) {
+    if (!(P.bx_buje > 0.5) || TT_.driveMode(P) !== 2 || !R.camP || !R.blk) return null;
+    const CP = R.camP, g = CP.guia, bk = R.blk, rf = P.pv_dq / 2, Es = P.E / (2 * (1 - P.nu ** 2)), lc = P.pv_tcam - 2;
+    const hz = (N, Rc) => { const Reff = 1 / (1 / rf + (isFinite(Rc) ? 1 / Rc : 0)), q = N / lc; return { N, Rc, Reff, q, p0: Math.sqrt(q * Es / (Math.PI * Reff)), b: Math.sqrt(4 * q * Reff / (Math.PI * Es)) }; };
+    const crs = (a, b) => a[0] * b[1] - a[1] * b[0], rolOf = (i) => (g.canto[i] && g.canto[i].rol) || "tramo " + i;
+    const mus = [CP.fam.mu, P.bx_mu_ss > 0 ? P.bx_mu_ss : CP.fam.mu];
+    // empuje guiado: h(μ) = (b' × u)/(b' × a₂(μ)), a₂ = −(n_in − μ·t) (equilibrio de Q del núcleo, eqQ) en cada posición, con el μ del núcleo y el bajo
+    let push = null, Hmax = { N: 0 }; const Fe = R.Fstall * 1e3 * P.eta_c;
+    CP.push.filter((q) => q.ok).forEach((q) => mus.forEach((mu) => {
+      const a2 = [-(q.nin[0] - q.tp[0] * mu), -(q.nin[1] - q.tp[1] * mu)], h = crs(q.bp, q.uc) / crs(q.bp, a2), z = Object.assign(hz(h * Fe, q.Rc), { mu, h, th: q.th, rol: rolOf(q.tramo) });
+      if (!push || z.p0 > push.p0) push = z; if (z.N > Hmax.N) Hmax = { N: z.N, mu, rol: z.rol };
+    }));
+    // retorno guiado (conducción final desde el primer contacto hasta L0): N = F_ret/sen φ(L) con el radio local
+    const iF = g.ret.findIndex((q) => q.L === g.primer_contacto.L), Fr = R.Fret * 1e3; let jam = null, Nj = { N: 0 };
+    g.ret.slice(Math.max(0, iF)).forEach((q) => { const o = CP.onPath(q.L), Rc = o.s.tipo === "arco" ? (o.s.sentido === "horario" ? o.s.radio - rf : -(o.s.radio + rf)) : Infinity;
+      const z = Object.assign(hz(Fr / Math.sin(Math.max(1, q.phi) * D2R), Rc), { L: q.L, phi: q.phi, rol: rolOf(o.i) }); if (!jam || z.p0 > jam.p0) jam = z; if (z.N > Nj.N) Nj = z; });
+    // geometría del buje y del extremo rebajado (z desde la cara inferior de la base, como el núcleo)
+    const z0 = P.t_base + 2, Lb = P.bx_buje_L, tf = P.bx_buje_tf, di = P.bx_buje_di, zSh = z0 + Lb, zN = P.t_base + P.pv_tcam / 2, zBot = bk.zBot;
+    const lAp = Lb - tf, eAp = (z0 + tf + zSh) / 2 - zN;   // largo de apoyo del rebaje en el agujero del buje y excentricidad de la resultante respecto de su centro
+    return { push, jam, Hmax, Nj, lc, rf, z0, Lb, tf, di, zSh, zN, zBot, lAp, eAp, kH: Hmax.N / (CP.Tst || 1), plateTop: P.t_base + P.pv_tcam,
+      masa: RHO * (Math.PI / 4 * (P.pv_dq ** 2 - di ** 2) * (Lb - tf) + Math.PI / 4 * P.pv_dq ** 2 * tf) };
+  }
+  function bujeRows(P, R, checks) {
+    const out = [], B = bujeOf(P, R); if (!B) return out;
+    const Nd = P.Nd, CP = R.camP, FyC = P.Fy_camP, FyQ = P.bx_Fy_pQ > 0 ? P.bx_Fy_pQ : P.Fy_pp, kFb = P.bx_Fb_red > 0 ? P.bx_Fb_red : 1, FyB = 750;   // núcleo del buje 42CrMo4+QT (EN 10083-3, 16 < d ≤ 40: Re ≥ 750)
+    const at = (re) => checks.find((q) => q.grp === "Placas-leva" && re.test(q.name)), at2 = (g, re) => checks.find((q) => q.grp === g && re.test(q.name));
+    const cInfo = at(/cargas del seguidor/), cQ = at2("Articulaciones", /^Pasador Q: corte doble/) || at2("Articulaciones", /^Pasador Q: flexión/);
+    // filas de la zapata del núcleo: sustituidas
+    checks.forEach((c) => { if (c.grp === "Placas-leva" && !c.bx && /zapata|revestimiento/i.test(c.name)) { c.kind = "info"; c.st = "info"; c.sustituida = true; c.name += " [sustituida en TT300-BX rev. 9: buje templado sobre el canto desnudo; ver el contacto de Hertz buje–canto]"; } });
+    const nm = (x) => nf(x, 1), rTxt = (z) => (isFinite(z.Rc) ? (z.Rc > 0 ? "convexo R " : "cóncavo R ") + nm(Math.abs(z.Rc)) : "recto (R = ∞)");
+    const anchor = cInfo || checks[checks.length - 1], A = [];
+    A.push({ kind: "info", name: "BX · Seguidor del pasador Q: buje de copa reemplazable Ø" + P.pv_dq + " (42CrMo4+QT templado por inducción, capa ≥ " + nf(P.bx_buje_capa, 1) + " mm) sobre el extremo rebajado Ø" + B.di + " del pasador Q; pista = canto desnudo de la placa-guía 42CrMo4+QT (Fy " + FyC + ") engrasado, SIN revestimiento inoxidable", formula: "Buje z = " + nm(B.z0) + "…" + nm(B.zSh) + " (largo " + B.Lb + ", fondo de copa " + B.tf + " con tornillo avellanado ISO 10642 M12 10.9 al extremo del pasador, fijador de rosca media); hombro del rebaje a z = " + nm(B.zSh) + " (cara superior de la placa a z = " + nm(B.plateTop) + ", fondo del bloque-uña a z = " + nm(B.zBot) + "); Ø exterior = d_Q: la curva de la placa-guía, la sincronía y la garra no cambian. μ: cinemática, sincronía y autobloqueo con μ_A,d = " + nf(CP.fam.mu, 2) + " (inox–inox: mayor que el acero–acero engrasado, conservador en esas filas); cargas del seguidor con el mayor h(μ) entre μ = " + nf(CP.fam.mu, 2) + " y " + nf(P.bx_mu_ss, 2) + " (H máx. = " + nm(B.Hmax.N / 1e3) + " kN con μ = " + nf(B.Hmax.mu, 2) + "; × " + nf(B.kH, 4) + " sobre la H del núcleo)", dem: B.masa, unit: "kg (buje)", ref: REG_BU });
+    A.push({ kind: "pend", name: "BX · Placa-guía: contacto de Hertz de línea buje–canto en el atasco del retorno, envolvente del retorno guiado (peor punto: " + B.jam.rol + ", canto " + rTxt(B.jam) + ") — NO CUMPLE con el canto sin templar (PENDIENTE: decisión del mandante)", formula: "p₀ = √(q·E*/(π·R_ef)), 1/R_ef = 1/r_buje + 1/R_c, q = N/(t − 2), l = " + B.lc + " mm; N = F_ret/sen φ(L) = " + nm(R.Fret) + "/sen " + nf(B.jam.phi, 1) + "° = " + nm(B.jam.N / 1e3) + " kN en L = " + nm(B.jam.L) + " mm (en el primer contacto, hombro: N = " + nm(CP.NR / 1e3) + " kN, FU " + nf(hzFU(P, CP.NR, CP, B, true), 3) + "); ≤ 1,67·Fy del canto (42CrMo4+QT sin templar, " + FyC + " MPa; el buje templado no gobierna). Opciones: temple por inducción del canto en el flanco de reenganche y el hombro (≥ " + nf(B.jam.p0 / 1.67, 0) + " MPa de Fy superficial), placa de 40 mm (FU ≈ " + nf(B.jam.p0 / (1.67 * FyC) * Math.sqrt(B.lc / 38), 2) + ") o p_ret ≤ " + nf(Math.floor(P.p_ret / (B.jam.p0 / (1.67 * FyC)) ** 2 / 5) * 5, 0) + " bar", dem: B.jam.p0, cap: 1.67 * FyC, unit: "MPa", ref: "Hertz, contacto lineal (Johnson, Contact Mechanics §4.2); inicio de fluencia por Tresca p₀ = 1,67σy (criterio del núcleo); " + REG_BU });
+    A.push({ name: "BX · Placa-guía: contacto de Hertz de línea buje–canto en el empuje a calado, envolvente de las posiciones del empuje guiado (peor punto: " + B.push.rol + ", canto " + rTxt(B.push) + ", μ = " + nf(B.push.mu, 2) + ")", formula: "p₀ = √(q·E*/(π·R_ef)), q = N/(t − 2); N = h(μ)·F_calado·η = " + nf(B.push.h, 3) + "·" + nm(R.Fstall) + "·" + nf(P.eta_c, 2) + " = " + nm(B.push.N / 1e3) + " kN; ≤ 1,67·Fy del canto (" + FyC + " MPa)", dem: B.push.p0, cap: 1.67 * FyC, unit: "MPa", ref: "Hertz, contacto lineal; Tresca p₀ = 1,67σy; " + REG_BU });
+    A.push({ kind: "geo", name: "BX · Buje del seguidor: capa templada frente a la profundidad del corte máximo de Hertz", formula: "2·0,786·b ≤ capa efectiva " + nf(P.bx_buje_capa, 1) + " mm; b máx = " + nf(Math.max(B.jam.b, B.push.b), 2) + " mm", dem: 2 * 0.786 * Math.max(B.jam.b, B.push.b), cap: P.bx_buje_capa, unit: "mm", ref: "Hertz (τ_máx a z = 0,786·b); EN 10328 (profundidad de temple); " + REG_BU });
+    A.push({ kind: "geo", name: "BX · Buje del seguidor: cubre el espesor de contacto de la placa-guía y el hombro queda libre del bloque-uña", formula: "z_hombro = " + nm(B.zSh) + " ≥ cara superior de la placa + 3 = " + nm(B.plateTop + 3) + " y ≤ fondo del bloque-uña − 10 = " + nm(B.zBot - 10), dem: B.plateTop + 3, cap: Math.min(B.zSh, B.zBot - 10), unit: "mm", ref: "Geometría; " + REG_BU });
+    out.push(...A.map((r) => ({ after: anchor, row: Object.assign({ grp: "Placas-leva", sys: "est", bx: true, unit: "", ref: REG_BU }, r) })));
+    // pasador Q en el hombro del rebaje: flexión y corte con N de la leva (ambas combinaciones), aplastamiento buje–pasador
+    const S70 = Math.PI * B.di ** 3 / 32, A70 = Math.PI / 4 * B.di ** 2, aSh = B.zSh - B.zN, Na = B.Hmax.N, Nb = CP.NR, Ng = Math.max(Na, Nb);
+    const Q = [];
+    Q.push({ name: "BX · Pasador Q: flexión en el hombro del rebaje Ø" + P.pv_dq + "/Ø" + B.di + " con la reacción de la leva (gobierna " + (Nb >= Na ? "(b) retorno con atasco" : "(a) empuje a calado") + ")", formula: "M = N·a, a = z_hombro − z_contacto = " + nm(B.zSh) + " − " + nm(B.zN) + " = " + nm(aSh) + " mm; (a) N = H = " + nm(Na / 1e3) + " kN, (b) N = N_atasco = " + nm(Nb / 1e3) + " kN (la fuerza del cilindro no pasa por el extremo rebajado); σ = M/(π·d³/32) ≤ " + nf(kFb, 2) + "·Fy/Nd, Fy = " + FyQ + " MPa (S355J2+N); acuerdo r = 3 mm en el hombro", dem: Ng * aSh / S70, cap: kFb * FyQ / Nd, unit: "MPa", ref: "ASME BTH-1-2020 §3-2.3.3 (barra redonda maciza); " + REG_BU });
+    Q.push({ name: "BX · Pasador Q: corte en el extremo rebajado Ø" + B.di, formula: "τ = 4N/(3A) ≤ Fy/(Nd·√3), N = " + nm(Ng / 1e3) + " kN", dem: 4 * Ng / (3 * A70), cap: FyQ / (Nd * Math.sqrt(3)), unit: "MPa", ref: "ASME BTH-1 §3-2.3.6; " + REG_BU });
+    Q.push({ name: "BX · Buje–pasador Q: aplastamiento del extremo rebajado en el agujero del buje (distribución lineal con la excentricidad de la resultante)", formula: "σ = N/(d·l)·(1 + 6e/l), d = " + B.di + ", l = largo del agujero = " + nm(B.lAp) + " mm, e = " + nm(B.eAp) + " mm (resultante del contacto en el plano medio de la placa); ≤ 1,25·mín(Fy pasador " + FyQ + ", Fy buje " + FyB + ")/Nd", dem: Ng / (B.di * B.lAp) * (1 + 6 * Math.abs(B.eAp) / B.lAp), cap: 1.25 * Math.min(FyQ, FyB) / Nd, unit: "MPa", ref: "ASME BTH-1 §3-3.3; AISC 360-22 §J7 (el más blando gobierna); " + REG_BU });
+    Q.push({ kind: "info", name: "BX · Pasador Q: fatiga en el hombro del rebaje (Kt de acuerdo de hombro en flexión)", formula: "K_t ≈ 2,0 (Peterson, D/d = " + nf(P.pv_dq / B.di, 3) + ", r/d = " + nf(3 / B.di, 3) + "): K_t·σ = " + nf(2 * Ng * aSh / S70, 1) + " MPa (rango 0 → máx.) frente al Δσ nominal de la sección Ø" + P.pv_dq + " que verifica la fila de fatiga del núcleo (cat. A)", dem: 2 * Ng * aSh / S70, unit: "MPa", ref: "Peterson's Stress Concentration Factors, Chart 3.10; ASME BTH-1 §3-4; " + REG_BU });
+    const cQf = at2("Articulaciones", /^Pasador Q: corte doble/);
+    out.push(...Q.map((r) => ({ after: cQf || anchor, row: Object.assign({ kind: "fu", grp: "Articulaciones", sys: "est", bx: true, unit: "", ref: REG_BU }, r) })));
+    // pasador Q (horquilla), combinación (a) con la H del μ bajo si es mayor que la del núcleo
+    const cF = at2("Articulaciones", /^Pasador Q: flexión \(horquilla/);
+    if (cF && B.kH > 1 + 1e-9) {
+      const bk = R.blk, arm = bk.tq / 2 + P.g_ch + P.b_eye / 4, Fs = R.Fstall * 1e3, MA = Math.hypot(Fs / 2 * arm, Na * bk.lq), MB = Math.hypot(R.Fret * 1e3 / 2 * arm, Nb * bk.lq), Sq = Math.PI * P.pv_dq ** 3 / 32;
+      out.push({ after: cF, row: { kind: "fu", grp: cF.grp, sys: "est", bx: true, name: "BX · " + cF.name.replace(/ — gobierna.*$/, "") + " con la H del μ bajo del contacto acero–acero engrasado (μ = " + nf(B.Hmax.mu, 2) + ")", formula: cF.formula + "; (a) con H = " + nm(Na / 1e3) + " kN (× " + nf(B.kH, 4) + ") → M = " + nf(MA / 1e6, 2) + " kN·m", dem: Math.max(MA, MB) / Sq, cap: cF.cap, unit: cF.unit, ref: cF.ref + "; " + REG_BU } });
+      cF.kind = "info"; cF.st = "info"; cF.sustituida = true; cF.name += " [sustituida en TT300-BX por la fila con la H del μ bajo]";
+    }
+    return out;
+  }
+  function hzFU(P, N, CP, B, concave) { const o = CP.onPath(CP.guia.primer_contacto.L), Rc = o.s.tipo === "arco" ? (o.s.sentido === "horario" ? o.s.radio - B.rf : -(o.s.radio + B.rf)) : Infinity, Es = P.E / (2 * (1 - P.nu ** 2)), Reff = 1 / (1 / B.rf + (isFinite(Rc) ? 1 / Rc : 0)); return Math.sqrt(N / B.lc * Es / (Math.PI * Reff)) / (1.67 * P.Fy_camP); }
 
   /* ---------------- API (análoga a TT) ---------------- */
   function analyze(P, opts) {
@@ -1413,10 +1508,11 @@ const BX = (() => {
     const Dg = design(P.__th ? Object.assign({}, P.__th.P0, { __th: undefined }) : P), Pc = Object.assign({}, full(P), { __bx: Dg.bx });
     const A = TT_.analyze(Pc, opts);
     const rows = bxRows(Pc, A.R, Dg).map((c) => stOf(Pc, c));
-    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core).concat(ringRows(Pc, A.R, core));   // copias: el análisis del núcleo puede estar en memoria
+    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core).concat(ringRows(Pc, A.R, core), bujeRows(Pc, A.R, core));   // copias: el análisis del núcleo puede estar en memoria
     cred.forEach((o) => { const r = stOf(Pc, Object.assign({}, o.row, { fu: o.row.dem / o.row.cap })); core.splice(core.indexOf(o.after) + 1, 0, r); });
     if (cylOn(Pc)) core.forEach((c) => { if (c.grp === "Giro" && /^Vástago: flexocompresión/.test(c.name)) c.name = c.name.replace("DATO DEL PROVEEDOR", "dato confirmado por el mandante 19-11-2026"); });
     if (cylOn(Pc)) core.forEach((c) => { if (c.grp === "Giro" && /^Ojal comercial del vástago/.test(c.name)) { c.sustituida = true; c.name += " [sustituida en TT300-BX por las filas del grupo «Cilindro» (cilindro fabricado)]"; } });
+    core.forEach((c) => { if (c.grp === "Uña" && /asiento templado\)$/.test(c.name)) { c.name = c.name.replace("asiento templado)", "asiento SIN temple, rev. 9: gobierna el pasador de empuje 42CrMo4+QT, Fy_sup = " + Pc.Fy_surf + " MPa)"); c.formula = c.formula.replace("≤ 1,67·Fy_sup", "≤ 1,67·Fy_sup (Fy_sup = mín(pasador " + Pc.Fy_pin + ", bloque " + Pc.Fy_dog + ") = " + Pc.Fy_surf + " MPa, ninguna de las dos caras templada)"); } });
     const cyl = cylRows(Pc, A.R).map((c) => stOf(Pc, c)), ig = core.reduce((k, c, i) => (c.grp === "Giro" ? i : k), -1);
     if (cyl.length) core.splice(ig + 1, 0, ...cyl);
     const idx = core.reduce((k, c, i) => (c.grp === "Interfaz" ? i : k), -1);
@@ -1451,6 +1547,39 @@ const BX = (() => {
     r.modulo = "TT300-BX"; r.avisos = r.avisos.concat(["TT300-BX: filas propias en byT[].bx (presión, PV, ajuste y tornillos con capacidades reducidas a T); la geometría BX es la de 20 °C (congelada)"]);
     return r;
   }
+  // Rev. 9: materiales por pieza (decisiones del mandante 20-11-2026) para el generador de planos (bx.materiales) y bloque del buje del seguidor (bx.buje_Q)
+  function materialesOf(P) {
+    return {
+      pasador_E: { grado: "S355J2+N barra redonda (EN 10025-2)", Fy: P.Fy_pp, rango: "63 < t ≤ 80 mm", texto: "S355J2+N barra redonda laminada (EN 10025-2), Fy ≥ " + P.Fy_pp + " MPa (63 < t ≤ 80), certificado 3.1; SIN bonificado ni temple", tratamiento: "Ninguno (normalizado de laminación)" },
+      pasador_Q: { grado: "S355J2+N barra redonda (EN 10025-2)", Fy: P.bx_Fy_pQ, rango: "80 < t ≤ 100 mm", texto: "S355J2+N barra redonda laminada (EN 10025-2), Fy ≥ " + P.bx_Fy_pQ + " MPa (80 < t ≤ 100), certificado 3.1; SIN bonificado ni temple; extremo inferior rebajado Ø" + P.bx_buje_di + " k6 para el buje del seguidor (ACC-046)", tratamiento: "Ninguno (normalizado de laminación)" },
+      pasadores_empuje: { grado: "42CrMo4+QT (EN 10083-3) / AISI 4140 bonificado de stock", Fy: P.Fy_pin, rango: "40 < d ≤ 100 mm", texto: "42CrMo4+QT (EN 10083-3) / AISI 4140 bonificado de stock, Re ≥ " + P.Fy_pin + " MPa (40 < d ≤ 100), certificado 3.1; SIN temple por inducción", tratamiento: "Bonificado de stock (QT del proveedor de la barra); sin temple superficial",
+        soldabilidad: "42CrMo4+QT: CE_IIW = C + Mn/6 + (Cr + Mo + V)/5 + (Ni + Cu)/15 ≈ 0,42 + 0,75/6 + (1,05 + 0,22)/5 ≈ 0,80 con la composición típica (≈ 0,90 con los máximos de EN 10083-3): fuera de la Tabla 5.3 de AWS D1.1:2020 (no precalificado), WPS calificada por ensayo (cláusula 6); precalentamiento por el método de control de hidrógeno del Anexo B (Zona III de la Figura B.1: C > 0,11 y CE alto), con consumibles H4 de bajo hidrógeno y restricción alta: del orden de 250–300 °C, a calcular con el CE del certificado 3.1 de la colada; interpase ≤ 300 °C y bajo la temperatura de revenido del QT (≥ 540 °C) para no ablandar el pasador; enfriamiento lento bajo manta; dureza de la ZAC del PQR ≤ 350 HV10; alternativa: aporte austenítico E309L con precalentamiento ≥ 150 °C" },
+      pivote: { grado: "C45+N (EN 10083-2)", Fy: P.Fy_piv, rango: "100 < d ≤ 250 mm", texto: "C45+N (EN 10083-2), Re ≥ " + P.Fy_piv + " MPa (100 < d ≤ 250), certificado 3.1; SIN tratamiento térmico (decisión del mandante 20-11-2026)", tratamiento: "Ninguno (normalizado)", nota: "Confirmar con el fabricante del buje autolubricado Ø" + (P.D_piv + 30) + "/Ø" + P.D_piv + " × " + P.L_bush + " la dureza mínima del eje (C45+N ≈ 170–210 HB)" },
+      placas_guia: { grado: "42CrMo4+QT (EN 10083-3)", Fy: P.Fy_camP, rango: "16 < t ≤ 40 mm", texto: "42CrMo4+QT (EN 10083-3), Re ≥ " + P.Fy_camP + " MPa (16 < t ≤ 40), certificado 3.1; canto desnudo fresado y engrasado (pista del buje del seguidor), SIN revestimiento inoxidable ni temple", tratamiento: "Bonificado (QT) de la plancha; canto sin temple" },
+      bloque_una: { grado: "34CrNiMo6+QT (EN 10083-3)", Fy: P.Fy_dog, texto: "34CrNiMo6+QT (EN 10083-3), Re ≥ " + P.Fy_dog + " MPa medido en la propia forja (3.1); asiento SIN temple (Hertz conforme con el Fy del pasador de empuje, " + P.Fy_surf + " MPa)", tratamiento: "Bonificado (QT); asiento sin temple" },
+      buje_Q: { grado: "42CrMo4+QT (EN 10083-3) templado por inducción", Fy: 750, texto: "42CrMo4+QT (EN 10083-3) de barra Ø100, núcleo Re ≥ 750 MPa; Ø exterior templado por inducción 55–60 HRC con capa efectiva ≥ " + nf(P.bx_buje_capa, 1) + " mm (EN 10328, 550 HV) y revenido a 180 °C; rectificado después del temple", tratamiento: "Temple por inducción del Ø exterior 55–60 HRC, capa ≥ " + nf(P.bx_buje_capa, 1) + " mm; revenido 180 °C",
+        eleccion: "Se elige 42CrMo4 templado por inducción y no 16MnCr5 cementado: la profundidad del corte máximo de Hertz pide capa ≥ 2·0,786·b (≈ 1,9 mm) y la cementación usual (CHD 0,8–1,2 mm) no la da; la inducción da 2–5 mm sobre un núcleo bonificado de 750 MPa que soporta la capa" } };
+  }
+  function bujeExport(P, B) {
+    return { d_ext: P.pv_dq, tol_ext: "f7", d_int: B.di, tol_int: "H7", ajuste_pasador: "Ø" + B.di + " H7/k6", largo: B.Lb, fondo: B.tf, z: [B.z0, B.zSh], z_hombro: B.zSh, chaflan: 1, radio_acuerdo_pasador: 3,
+      rebaje_pasador: { d: B.di, tol: "k6", z: [B.z0 + B.tf, B.zSh], r: 3 },
+      tornillo: { designacion: "ISO 10642 M12 × 25 10.9", d: 12, largo: 25, avellanado: 24.4, k: 7.44, rosca_pasador: "M12-6H, prof. útil 20 (taladro Ø10,2 × 26)", par_Nm: 85, fijador: "fijador anaeróbico de resistencia media (desmontable)" },
+      masa: B.masa, material: materialesOf(P).buje_Q, reemplazo: "Desmontable: se quita el tornillo y se extrae el buje con extractor (rosca M12 del agujero del fondo como apoyo); se reemplaza al aparecer marcas de desgaste > 0,2 mm o picaduras",
+      lubricacion: "Grasa EP NLGI 2 en el canto de la placa-guía (película 0,3–0,5 mm) en cada mantención", hertz: { atasco: { p0: B.jam.p0, N: B.jam.N, Rc: isFinite(B.jam.Rc) ? B.jam.Rc : null, rol: B.jam.rol }, empuje: { p0: B.push.p0, N: B.push.N, Rc: isFinite(B.push.Rc) ? B.push.Rc : null, rol: B.push.rol, mu: B.push.mu }, l: B.lc } };
+  }
+  // Rev. 9: el JSON del generador (export_design.js) trae textos del núcleo (materiales con temple, zapata y revestimiento de la placa-guía): se corrigen aquí
+  function patchDesign(out, P) {
+    P = full(P); const M = materialesOf(P), F = out.pivotado && out.pivotado.fabricacion;
+    if (out.pasadores_empuje) Object.assign(out.pasadores_empuje, { material: M.pasadores_empuje.texto, soldabilidad: M.pasadores_empuje.soldabilidad });
+    if (F) {
+      if (F.pasador_E) F.pasador_E.material = M.pasador_E.texto;
+      if (F.pasador_Q) Object.assign(F.pasador_Q, { material: M.pasador_Q.texto, extremo_inferior: P.bx_buje > 0.5 ? "seguidor: buje templado reemplazable Ø" + P.pv_dq + " (ACC-046) sobre el extremo rebajado Ø" + P.bx_buje_di + " k6" : F.pasador_Q.extremo_inferior });
+      if (F.bloque_una) { F.bloque_una.material = M.bloque_una.texto; if (F.bloque_una.asiento) F.bloque_una.asiento.templado = "sin temple (Fy_sup " + P.Fy_surf + " = Fy del pasador de empuje, el más blando)"; }
+      if (F.placas_leva && P.bx_buje > 0.5) Object.assign(F.placas_leva, { material: M.placas_guia.texto, revestimiento: null, zapata: null, tratamiento: Object.assign({}, F.placas_leva.tratamiento || {}, { canto: "canto desnudo fresado CNC (Ra ≤ 1,6) y engrasado: pista del buje templado del seguidor; sin revestimiento ni temple" }) });
+    }
+    if (out.derivados && out.derivados.masas_desc && P.bx_buje > 0.5) out.derivados.masas_desc.cam = "4 placas-guía curvas (concepto KIET), canto desnudo 42CrMo4+QT; buje templado del seguidor en el pasador Q";
+    return out;
+  }
   // Bloque «bx» del JSON de diseño (tools/export_design_bx.js)
   function exportBX(P, A) {
     const Dg = design(P); if (!Dg) return null;
@@ -1459,13 +1588,15 @@ const BX = (() => {
     if (meOn(full(P)) && !meOk(P)) throw new Error(meMsg(P));
     o.mesa = mesaOf(full(P), A && A.R);
     o.cilindro = cylExport(full(P), A && A.R, A && A.checks);   // rev. 7d: cilindro fabricado (null = comercial)
-    o.capacidad_nominal_tf = P.W_tf; o.alivio_bar = P.p_relief; o.alarma_bar = P.p_alarm;   // rev. 7: 290 t, 680 / 600 bar (el nombre TT300-BX queda como designación del modelo)
-    o.revision = "TT300-BX rev. 7 (18-11-2026): capacidad nominal " + P.W_tf + " t; todas las planchas en " + astm(P.Fy, P.Fu) + "; planchas de 22 mm (mesa, anillos, base, portador, cajón E, atiesador)" + (o.mesa.plancha_entera ? "; rev. 7c (19-11-2026): mesa con una plancha completa Ø" + P.D_top + " × " + P.t_top + " por nivel con los agujeros de los pasadores (sin anillos de pasadores)" : "");
+    o.capacidad_nominal_tf = P.W_tf; o.alivio_bar = P.p_relief; o.alarma_bar = P.p_alarm;   // rev. 9: 250 t, 540 / 480 bar (el nombre TT300-BX queda como designación del modelo)
+    o.materiales = materialesOf(full(P));
+    if (A && A.R) { const B = bujeOf(full(P), A.R); if (B) o.buje_Q = bujeExport(full(P), B); }
+    o.revision = "TT300-BX rev. 9 (20-11-2026): carga de diseño " + P.W_tf + " t, alivio " + P.p_relief + " bar, alarma " + P.p_alarm + " bar; ejes sin tratamientos térmicos de proceso; buje templado reemplazable en el pasador Q. Rev. 7 (18-11-2026): todas las planchas en " + astm(P.Fy, P.Fu) + "; planchas de 22 mm (mesa, anillos, base, portador, cajón E, atiesador)" + (o.mesa.plancha_entera ? "; rev. 7c (19-11-2026): mesa con una plancha completa Ø" + P.D_top + " × " + P.t_top + " por nivel con los agujeros de los pasadores (sin anillos de pasadores)" : "");
     o.sistema = "planta x, y (mm) con O en el centro de la mesa; z desde la cara superior de la plancha base; CJP del disco sobre el eje x";
     o.z = { base_sup: 0, portador_sup: Dg.portador.t, pastilla_sup: Dg.portador.t + Dg.pastillas.h_p, disco_sup: Dg.portador.t + Dg.pastillas.h_p + Dg.disco.t, nota: "disco_sup = cara inferior de la mesa (δ sobre la base)" };
     return o;
   }
 
-  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, BASE_FEA, mesaOf, meOn, meOk, cylGeo, cylRows, cylExport, cylOn }, PARAM_GROUPS, BX_GROUP, CYL_GROUP, CYL: { core: CYL_CORE, grupo: CYL_GRP }, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
+  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, bujeOf, bujeRows, pinHooks, BASE_FEA, mesaOf, meOn, meOk, cylGeo, cylRows, cylExport, cylOn }, PARAM_GROUPS, BX_GROUP, CYL_GROUP, CYL: { core: CYL_CORE, grupo: CYL_GRP }, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, patchDesign, materialesOf, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
 })();
 if (typeof module !== "undefined") module.exports = BX;

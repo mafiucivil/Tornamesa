@@ -43,6 +43,7 @@ const PLANOS_BX = (() => {
     out.modulo = { nombre: "TT300-BX", nucleo: "packages/core/tt300c.js (gancho P.__bx)", archivo: "packages/core/tt300bx.js", esquema: "tools/export_design.js + bloque «bx»" };
     const A = Anf || BX.analyze(P, { noFEA: true });
     out.bx = BX.exportBX(P, A);
+    if (BX.patchDesign) BX.patchDesign(out, P);   // rev. 9: textos de materiales del núcleo corregidos para el juego BX
     return out;
   }
   return { isP, facade, finish, exportCalls, memoKey, memoTrim, MEMO_FN };
