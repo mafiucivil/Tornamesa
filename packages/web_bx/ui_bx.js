@@ -741,7 +741,7 @@
     const D = TT.designDrive(Pp, Ap.R).pivotado || {}, pl = D.placa_leva || {}, g = TT.pivotGeo(Pp) || {}, dis = Ap.R.cases.find((c) => c.id === "dis") || {};
     const seg = g.placas ? g.placas["1_antihorario"].segmentos_canto : [], nA = seg.filter((q) => q.tipo === "arco").length, nL = seg.filter((q) => q.tipo !== "arco").length;
     const chk = (re) => Ap.checks.find((c) => re.test(c.name)), fab = (D.fabricacion || {}).placas_leva || {}, marco = fab.marco || {};
-    const qF = chk(/^Pasador Q: flexión/);
+    const qF = chk(/^BX · Pasador Q: flexión \(horquilla/) || chk(/^Pasador Q: flexión/);   // rev. 9: la fila BX con la H del μ bajo sustituye a la del núcleo
     const rows = [
       ["Perfil del canto", "poligonal: 4 vértices, quiebre de tangente máx. 70,2°", `${nL} rectas + ${nA} arcos tangentes (${seg.filter((q) => q.tipo === "arco" && !/sin contacto/.test(q.rol)).length} de contacto y el cierre del bolsillo), G1: quiebre máx. ${fmt((pl.g1_max_rad || 0) / D2R, 3)}°`, "media luna con arco continuo y gancho en un extremo"],
       ["Radio mínimo del canto convexo / cóncavo", "0 (vértices)", `${fmt((pl.radio_min_canto || {}).convexo, 3)} / ${fmt((pl.radio_min_canto || {}).concavo, 3)} mm`, "no acotado"],
@@ -756,7 +756,7 @@
       ["FS del accionamiento (diseño)", "1,446", fmt(dis.FS, 4), "—"],
       ["Carrera requerida", "220,41 mm", `${fmt(D.carrera_req, 5)} mm`, "—"],
       ["Placa", "labio de 80 mm, 6 pernos M20", `rectángulo ${fmt(marco.largo, 3)} × ${fmt(marco.ancho, 3)} × ${fmt(pl.t)} mm, ${pl.n_pernos} ISO 10642 M${Math.round(pl.d_perno)} 8.8 + 2 pasadores de posición`, "rectangular, ~6 pernos en el perímetro"],
-      ["Material", "S355J2 «con canto templado ≥ 55 HRC»", esc(String(fab.material || "—").split(",")[0]) + ", canto templado por inducción", "no indicado"],
+      ["Material", "S355J2 «con canto templado ≥ 55 HRC»", esc(String(fab.material || "—").split(",")[0].replace(/ de respaldo.*$/, "")) + ", canto desnudo y engrasado (buje templado del seguidor; rev. 9)", "no indicado"],
       ["Masa de las 4 placas", "34,4 kg", `${fmt(Ap.R.m.cam, 3)} kg`, "—"],
       ["Pasador Q: FU de flexión", "0,551", qF ? fu3(qF.fu) : "—", "—"],
       ["Disposición", "2 cilindros en esquinas opuestas, 2 placas por cilindro", `ojales a ${fmt(D.phi_E, 3)}° y ${fmt(((D.phi_E || 0) + 180) % 360, 3)}°; 2 placas por cilindro (una por sentido; la del horario es la imagen especular, ACC-024)`, "ojales a 134,9° y 315,1°; 2 placas por cilindro"],
