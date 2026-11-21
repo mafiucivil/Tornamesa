@@ -169,6 +169,9 @@ const BX = (() => {
   // del vástago y el o'ring estático en una espiga Ø89,5 por DENTRO de la rosca, pistón con tuerca ranurada en el vástago (la tuerca es el tope del
   // retraído), vástago Ø65 cromado (cromado común, Fy 520: dato confirmado por el mandante 19-11-2026) con el ojal del vástago soldado. Las verificaciones van al grupo
   // «Cilindro» (filas bx); el núcleo recibe d_rod, pv_Fyrod, c_rod y m_cyl como parámetros (sin cambios en tt300c.js).
+  // Rev. 9c: precalentamiento único de las soldaduras del cilindro (WPS-CIL-01 J37 y WPS-CIL-02 J38): 100 °C, más exigente que el mínimo precalificado de
+  // AWS D1.1:2020 Tabla 5.8 (Grupo II, cat. B) por la parte más gruesa (J37: fondo 37 → 10 °C; J38: orejeta 50 → 65 °C). Fuente única para el generador.
+  const PRE_CIL = 100, PRE_CIL_NOTA = "100 °C mín. en J37 y J38 (procedimiento del cilindro WPS-CIL-01/02; más exigente que AWS D1.1:2020 Tabla 5.8, Grupo II, cat. B: J37 parte más gruesa 37 → 10 °C, J38 parte más gruesa 50 → 65 °C)";
   const CYL_GRP = "Cilindro";
   const CYL_GROUP = { id: "bx_cyl", t: "TT300-BX · cilindro hidráulico fabricado (rev. 7d/8: camisa ST-52, fondo macizo con espiga soldado, tapa roscada M110 × 2, vástago Ø65 cromado)", p: [
     ["bx_cyl_on", "Cilindro: 1 = FABRICADO según el croquis del mandante (19-11-2026, por defecto); 0 = comercial (filas del cilindro fuera, núcleo como antes)", "–", 1, 0, 1, 1],
@@ -435,9 +438,9 @@ const BX = (() => {
       prisionero_tapa: { d: "M8", x_desde_extremo: 15 }, masa: g.masas.camisa };
     const fondo = { t: tf, t_req: g.tReq, pestana: g.Lb, espiga: { d: B, tol: "g6", largo: g.Lesp, ajuste: "g6 en el Ø" + B + " H8 de la camisa (respaldo de la CJP y guía)", cara: "tope del retraído (la tuerca del pistón apoya en ella)" }, D, largo: tf, radio_interior: 0,
       material: "S355J2+N (EN 10025-2) de plancha de 40 (16 < t ≤ 40: Fy " + Q.bx_cyl_Fy_f + ", Fu " + Q.bx_cyl_Fu_f + "): bloque macizo torneado; el mismo acero que la camisa",
-      cjp: { tipo: "CJP en J sobre la espiga integral (respaldo permanente) en el hombro, filete de refuerzo z6 en el pie del lado del bloque", simbolo: "J con respaldo, CJP, todo alrededor (AWS A2.4)", ancho_cara: r1(g.sep + g.Jw), end: "UT 100 % (AWS D1.1 cláusula 8, o ISO 17640 nivel 2) + MT 100 % después del alivio", wps: "WPS-CIL-01", proceso: "GTAW raíz + SMAW/FCAW relleno, E7018 / ER70S-6 (S355J2 con S355J2), precalentamiento 100 °C, alivio de tensiones 580–620 °C antes del bruñido de la camisa en todo el recorrido" },
+      cjp: { tipo: "CJP en J sobre la espiga integral (respaldo permanente) en el hombro, filete de refuerzo z6 en el pie del lado del bloque", simbolo: "J con respaldo, CJP, todo alrededor (AWS A2.4)", ancho_cara: r1(g.sep + g.Jw), end: "UT 100 % (AWS D1.1 cláusula 8, o ISO 17640 nivel 2) + MT 100 % después del alivio", wps: "WPS-CIL-01", proceso: "GTAW raíz + SMAW/FCAW relleno, E7018 / ER70S-6 (S355J2 con S355J2), precalentamiento " + PRE_CIL + " °C, alivio de tensiones 580–620 °C antes del bruñido de la camisa en todo el recorrido", precalentamiento_C: PRE_CIL, precalentamiento_nota: PRE_CIL_NOTA },
       ojal: { R: g.RE, ancho: P.b_eye, cuello: 2 * g.wE, alojamiento: { d: g.DE, tol: "N7", ancho: g.CE, resalte: { d: 98, ancho: 3 }, ranura: { norma: "DIN 472 (anillo 105 × 4)", d: 109, ancho: 4.15, tol_ancho: "H13", w: [3 + g.CE, 3 + g.CE + 4.15] } },
-        material: "S355J2+N de plancha de 50 (Fy " + Q.bx_cyl_Fy_oE + ")", soldadura: { tipo: "CJP en K (doble bisel 45°, talón 2) más filete de refuerzo z6 en todo el contorno", simbolo: "K con filete, todo alrededor (AWS A2.4)", end: "MT 100 % + UT 100 %", wps: "WPS-CIL-02" },
+        material: "S355J2+N de plancha de 50 (Fy " + Q.bx_cyl_Fy_oE + ")", soldadura: { tipo: "CJP en K (doble bisel 45°, talón 2) más filete de refuerzo z6 en todo el contorno", simbolo: "K con filete, todo alrededor (AWS A2.4)", end: "MT 100 % + UT 100 %", wps: "WPS-CIL-02", precalentamiento_C: PRE_CIL, precalentamiento_nota: PRE_CIL_NOTA },
         rotula: { designacion: "GE70ES (ISO 12240-1 serie E; SKF GE 70 ES o equivalente)", d: 70, D: 105, B: 49, C: 40, C0_kN: Q.bx_cyl_C0, montaje: "a presión en el alojamiento N7, contra el resalte; anillo elástico DIN 472-105 × 4 del otro lado (anillo de posición: la rótula queda entre las tapas del soporte E)" } },
       masa: g.masas.fondo, masa_ojal: g.masas.ojal_trasero };
     const xs = Math.sqrt(Q.bx_cyl_RQ ** 2 - (dr / 2) ** 2);
@@ -1019,6 +1022,13 @@ const BX = (() => {
     // espesor no baja de 45 (td_min); con 45 y 540 bar la fila BX queda en ≈ 0,76 (rev. 8: 0,962 a 680 bar).
     // Rev. 9b: además con atiesador (rib_req), la otra mitad de la geometría de la calibración (con p_ret 150 el núcleo elegía 50 mm sin atiesador)
     const kb = baseK(P); if (kb) { o.k_base = kb; o.td_min = BASE_FEA.td_cal; o.rib_req = 1; }
+    // Rev. 9c (gancho aditivo juntasE_asiento): largo de las CJP verticales J-E3, J-E4 y J-E5 del soporte E = alto real de las paredes sobre el refuerzo
+    // (z_paredes[1] − z_asiento), no z_paredes[1] − t_base (el núcleo conservaba el largo de cuando las paredes apoyaban en la base)
+    o.juntasE_asiento = 1;
+    // Rev. 9c (ganchos aditivos, estudio FEA del pasador de empuje): en el pivotado la carga del bloque-uña se reparte en su alto pv_hu (140), no en dog_h
+    // (110, parámetro del modo guiado); y el texto de material de la fila informativa de los pasadores soldados es el de la rev. 9 (42CrMo4+QT de stock, sin temple)
+    o.c_pv_hu = 1;
+    o.pin_mat_txt = "42CrMo4+QT (EN 10083-3) de stock, Re ≥ " + P.Fy_pin + " MPa, SIN temple por inducción (TT300-BX rev. 9)";
     return o;
   }
   const sameBx = (a, b) => ["t_ss", "t_c", "h_p"].every((k) => a[k] === b[k]) && Math.abs(a.mTop - b.mTop) < 1e-9 && Math.abs(a.mCar - b.mCar) < 1e-9 && Math.abs(a.mUH - b.mUH) < 1e-9;
@@ -1424,7 +1434,7 @@ const BX = (() => {
     const out = [], tS = Math.max(P.t_pr, P.t_top), tI = Math.max(P.t_pr, P.t_bot), tN = Math.max(P.t_pr, P.t_top, P.t_bot), tMin = Math.min(tS, tI);
     if (!(tMin < tN - 1e-9) || !R.Fstall) return out;
     const Nd = P.Nd, Fpr = R.Fstall * Math.hypot(1, P.mu_s), FyR = P.Fy_pr > 0 ? P.Fy_pr : P.Fy;
-    const L1 = P.h_disc - (tS + tI) / 2, Vp = Fpr * (0.5 + P.e_dog / L1), c = Math.min(P.dog_h, L1), M = Fpr / 4 * (L1 - c / 2) / 1e3, Sp = Math.PI * P.d_pin ** 3 / 32;
+    const L1 = P.h_disc - (tS + tI) / 2, Vp = Fpr * (0.5 + P.e_dog / L1), c = Math.min(TT_.driveMode(P) === 2 ? P.pv_hu : P.dog_h, L1), M = Fpr / 4 * (L1 - c / 2) / 1e3, Sp = Math.PI * P.d_pin ** 3 / 32;
     const at = (re) => checks.find((q) => q.grp === "Pasadores de empuje" && re.test(q.name));
     const cB = at(/^Aplastamiento en el agujero del anillo$/), cF = at(/^Flexión \(biapoyado/), cW = at(/bisel dentro del anillo/), cS = at(/^Soldadura pasador–anillo \(PJP/);
     const lb = "anillo " + (tI < tS ? "inferior" : "superior") + " de " + tMin + " mm (sup. máx(t_pr, t_top) = " + tS + ", inf. máx(t_pr, t_bot) = " + tI + ")";
@@ -1436,6 +1446,105 @@ const BX = (() => {
     if (cW && cS) { const S = +(/S (\d+)/.exec(cS.name) || [0, 0])[1];
       out.push({ after: cW, row: { kind: "geo", grp: cW.grp, sys: "est", bx: true, name: "BX · Soldadura pasador–anillo: bisel dentro del " + lb + " (S ≤ t − 5)", formula: "S = " + S + " mm ≤ " + (tMin - 5) + " mm", dem: S, cap: tMin - 5, unit: "mm", ref: "Geometría; " + REGR } }); }
     return out;
+  }
+
+  /* ---------------- Soldaduras de la mesa de plancha entera (rev. 9c): ranuras de cierre J18 y uniones del cubo J17a/J17b ---------------- */
+  // Las celdas de la mesa quedan cerradas al montar la plancha superior: almas y nervios llevan filetes solo a la plancha inferior y al cubo (J14, J15);
+  // la unión con la plancha superior es la soldadura de ranura rellena J18 (AISC 360-22 §J2.3). Geometría de la ranura según §J2.3b:
+  //   ancho ≥ t + 8 mm redondeado al mm par superior y ≤ 2,25·espesor de la soldadura; largo ≤ 10·espesor de la soldadura; extremos semicirculares;
+  //   separación transversal entre líneas ≥ 4·ancho; separación longitudinal entre centros ≥ 2·largo; espesor de la soldadura = t (t ≤ 16) o
+  //   ≥ máx(t/2; 16) (t > 16): se adopta el relleno completo (= t). Paso objetivo 250 (como antes) y largo 125 (rev. 9c; antes 80).
+  // En el tramo 1 (cubo–alma A1) los nervios convergen: si la separación transversal no llega a 4·ancho, la ranura va en nervios alternados (k = 2, …).
+  const RAN = { s0: 250, L: 125, cHub: 2, cWeb: 3 };   // cHub: extremo de la ranura a 2 mm de la cara del cubo; cWeb: 3 mm entre el extremo y el borde de la ranura del alma
+  const ceilEven = (x) => 2 * Math.ceil(x / 2 - 1e-9);
+  function ranurasOf(P) {
+    const t = P.t_top, w = ceilEven(t + 8), fill = t, L = RAN.L, s0 = Math.max(RAN.s0, 2 * L), N = Math.round(P.N_rib), rings = TT_.parseRings(P.rings), rh = P.D_hub / 2;
+    const almas = rings.map((r, i) => { const n = Math.max(1, Math.floor(2 * Math.PI * r / s0)); return { elemento: "Alma A" + (i + 1), r, n, L, paso: 2 * Math.PI * r / n, a0_deg: 180 / n, paso_deg: 360 / n, trib: 2 * Math.PI * r / n }; });
+    const rs = [rh].concat(rings), tramos = [];
+    for (let i = 0; i + 1 < rs.length; i++) {
+      const a = rs[i], b = rs[i + 1], Lt = b - a, c0 = i === 0 ? RAN.cHub : w / 2 + RAN.cWeb, c1 = w / 2 + RAN.cWeb, m = Math.max(1, Math.floor(Lt / s0)), sp = (Lt - c0 - c1) / m;
+      const Li = Math.min(L, m > 1 ? sp - 1 : sp), cen = Array.from({ length: m }, (_, j) => a + c0 + sp * (j + 0.5)), rIn = cen[0] - Li / 2;
+      let k = 1; while (k < N && (2 * Math.PI * rIn / N * k < 4 * w - 1e-9 || N % k)) k++;
+      tramos.push({ elemento: "Nervios, tramo " + (i + 1), r0: a, r1: b, largo_tramo: Lt, m, L: Li, centros: cen, r_int: rIn, cada_k_nervios: k, n: m * N / k, trib: Lt / m * k, sep_transversal: 2 * Math.PI * rIn / N * k, paso: m > 1 ? sp : null });
+    }
+    const all = almas.concat(tramos), Lmin = Math.min(...all.map((q) => q.L)), area = (Lq) => w * (Lq - w) + Math.PI * w * w / 4;
+    const pasoMin = Math.min(...almas.map((q) => q.paso).concat(tramos.filter((q) => q.m > 1).map((q) => q.paso)));
+    return { tipo: "soldadura de ranura rellena (AISC 360-22 §J2.3; no es CJP)", ancho: w, ancho_min: t + 8, ancho_max: 2.25 * fill, relleno: fill, relleno_min: t > 16 ? Math.max(t / 2, 16) : t, L, L_max: 10 * fill, L_min_usado: Lmin,
+      extremos: "semicirculares (R = ancho/2 = " + nf(w / 2, 1) + ")", paso_objetivo: s0, paso_min: pasoMin, sep_long_min: 2 * L, sep_transversal_min: 4 * w, sep_transversal: Math.min(...tramos.map((q) => q.sep_transversal)),
+      area: area(L), area_de: area, almas, tramos, n_total: all.reduce((x, q) => x + q.n, 0), largo_total: all.reduce((x, q) => x + q.n * q.L, 0),
+      respaldo: "fondo de la ranura sobre el canto del alma o nervio (t = " + P.t_web + "): PROPUESTA tiras de respaldo 6 × 20 × (L + 20) punteadas a ambas caras del alma, a ras del canto, antes de cerrar (el fabricante lo confirma en la probeta de la WPS)",
+      norma: "AISC 360-22 §J2.3a (área efectiva = área nominal de la ranura en el plano de contacto), §J2.3b (límites), §J2.4 (Tabla J2.5, F_nw = 0,60·F_EXX); AWS D1.1/D1.1M:2020 (soldaduras de tapón y ranura precalificadas: verificar el artículo en la edición vigente)" };
+  }
+  const emin = (t) => (t <= 6 ? 3 : t <= 13 ? 5 : t <= 19 ? 6 : t <= 38 ? 8 : t <= 57 ? 10 : t <= 150 ? 13 : 16);   // AISC 360-22 Tabla J2.3 (garganta mínima de PJP, parte más delgada)
+  const zminJ = (t) => (t <= 6 ? 3 : t <= 13 ? 5 : t <= 19 ? 6 : 8);                                                // AISC 360-22 Tabla J2.4 (parte más delgada) = AWS D1.1:2020 Tabla 7.7 (bajo hidrógeno)
+  // Uniones del cubo: J17a (plancha inferior) PJP en T con el bisel 45° en el canto exterior de la pared del cubo, soldada desde arriba antes de cerrar,
+  // con filete de refuerzo; J17b (plancha superior): el canto exterior del cubo queda dentro de la mesa cerrada, así que la unión es un filete todo
+  // alrededor en el agujero central Ø(D_piv + 80) de la plancha superior sobre la cara superior del cubo (accesible desde arriba después de cerrar).
+  // Demanda: la reacción del pivote H_calado completa en cada unión (reparto entre planchas no garantizado), q = H/(π·r) (anillo con carga en su plano).
+  function cuboOf(P, Hkn, R) {
+    const Fw = 0.60 * P.FEXX / (1.20 * P.Nd), rh = P.D_hub / 2, dB = P.D_piv + 30, hole = P.D_piv + 80, rH = hole / 2, hg = R && R.hubG;
+    const wallBot = hg ? (P.D_hub - hg.Drb) / 2 : (P.D_hub - dB) / 2, wallTop = (P.D_hub - dB) / 2;
+    const ta = Math.min(P.t_bot, wallBot), qa = (Hkn || 0) * 1e3 / (Math.PI * rh), Ea = Math.max(emin(ta), Math.ceil(qa / (0.85 * Fw))), Sa = Ea + 3, za = zminJ(ta);
+    const tb = Math.min(P.t_top, wallTop), qb = (Hkn || 0) * 1e3 / (Math.PI * rH);
+    let zb = Math.max(zminJ(tb), 8); while (zb < P.t_top - 2 && qb / (0.7071 * zb) > 0.85 * Fw) zb += 2;
+    const capR = (P.D_piv + 60) / 2, prot = 3, clr = rH - zb + prot - capR;
+    const dReq = Math.max(19, Math.max(Sa + 3, za + 3) + 5), dest = 5 * Math.ceil(dReq / 5 - 1e-9);
+    return { H_kN: Hkn, Fw, J17a: { tipo: "PJP en T con bisel simple 45° en el canto exterior de la pared del cubo (sin respaldo) + filete de refuerzo", S: Sa, E: Ea, z_refuerzo: za, r: rh, largo: 2 * Math.PI * rh, q: qa, t_pared: wallBot, t_plancha: P.t_bot, E_min: emin(ta), fu: qa / (Ea * Fw),
+        acceso: "desde arriba, con la mesa abierta (antes de montar la plancha superior)", norma: "AISC 360-22 §J2.1a (PJP: E = S − 3 en bisel 45°, Tabla J2.1), Tabla J2.3 (E mín. por la parte más delgada), §J2.4 (Tabla J2.5); ASME BTH-1-2020 §3-3.4 (0,60FEXX/(1,20Nd)); AWS D1.1/D1.1M:2020 Figura 5.2 (PJP en bisel simple, unión en T)" },
+      J17b: { tipo: "filete todo alrededor en el agujero central Ø" + hole + " de la plancha superior, sobre la cara superior del cubo", z: zb, r: rH, largo: 2 * Math.PI * rH, q: qb, t_pared: wallTop, t_plancha: P.t_top, z_min: zminJ(tb), z_max: P.t_top - 2, fu: qb / (0.7071 * zb * Fw),
+        acceso: "desde arriba por el agujero central, después de cerrar la mesa con la plancha superior; el buje se monta después de soldar y aliviar", tapa_R: capR, holgura_tapa: clr,
+        norma: "AISC 360-22 §J2.2 (filete en agujeros), Tabla J2.4 (mínimo por la parte más delgada), §J2.2b (máximo t − 2 a lo largo del borde del agujero), §J2.4; ASME BTH-1-2020 §3-3.4" },
+      destijer_cubo: dest, destijer_req: dReq, destijer_norma: "AISC 360-22 §J1.6 (agujeros de acceso: alto ≥ máx(t; 19 mm)); el destijer del extremo del nervio contra el cubo libra el cordón de J17a (S + 3) y su filete (z + 3) con 5 mm de holgura" };
+  }
+  function weldRows(P, R, checks) {
+    const out = []; if (!meOn(P)) return out;
+    const at = (g, re) => checks.find((q) => q.grp === g && re.test(q.name)), RG = ranurasOf(P), Nd = P.Nd, FwA = 0.6 * P.FEXX / 2.0, FvW = 0.6 * Math.min(P.Fy, P.FEXX) / 1.5;
+    const cW = at("Mesa", /^Soldadura alma\/nervio–plancha \(2 filetes\)/), cT = at("Mesa", /^Corte en nervios radiales/), cV = at("Mesa", /^Fluencia local de almas/), cMin = at("Soldaduras", /^Filete mínimo almas\/nervios–planchas/);
+    const all = RG.almas.concat(RG.tramos), REFJ = RG.norma;
+    if (cW) cW.name += " [TT300-BX rev. 9c: filetes J14/J15 solo a la plancha inferior y al cubo; la plancha superior va por las ranuras J18, filas BX siguientes]";
+    if (cW && cT && cV) {
+      const qh = cT.dem * P.t_rib, qv = cV.dem * Math.min(P.t_web, P.t_rib), q = Math.hypot(qh, qv);
+      const g1 = all.reduce((m, e) => { const f = q * e.trib / RG.area_de(e.L); return !m || f > m.f ? { e, f } : m; }, null), g2 = all.reduce((m, e) => { const f = qh * e.trib / (P.t_web * e.L); return !m || f > m.f ? { e, f } : m; }, null);
+      out.push({ after: cW, row: { kind: "fu", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras de cierre J18 (plancha superior–almas y nervios, ranura rellena " + RG.ancho + " × L, extremos semicirculares): corte en el área de la ranura en el plano de contacto (" + g1.e.elemento + ", L = " + nf(g1.e.L, 0) + ")",
+        formula: "f = √(q_h² + q_v²)·l_trib/A_ranura ≤ 0,60·F_EXX/2,00; q_h = τ_nervio·t = " + nf(qh, 0) + " N/mm, q_v = σ·t = " + nf(qv, 0) + " N/mm (filas del núcleo), l_trib = " + nf(g1.e.trib, 0) + " mm, A = w(L − w) + πw²/4 = " + nf(RG.area_de(g1.e.L), 0) + " mm²",
+        dem: g1.f, cap: FwA, unit: "MPa", ref: REFJ + "; mismo criterio que la fila del núcleo de los filetes (Ω = 2,00)" } });
+      out.push({ after: cW, row: { kind: "fu", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras de cierre J18: traspaso del flujo de corte al canto del alma o nervio (franja fundida t × L, " + g2.e.elemento + (g2.e.cada_k_nervios > 1 ? ", ranura cada " + g2.e.cada_k_nervios + " nervios" : "") + ")",
+        formula: "τ = q_h·l_trib/(t_alma·L) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50); l_trib = " + nf(g2.e.trib, 0) + " mm, L = " + nf(g2.e.L, 0) + " mm, t = " + P.t_web + " mm (el fondo de la ranura apoya en el canto del alma: el área efectiva hacia el alma es t × L)",
+        dem: g2.f, cap: Math.min(FwA, FvW), unit: "MPa", ref: "AISC 360-22 §J2.4 (metal base y de aporte en el plano de fusión), §J4.2 (fluencia por corte); criterio de la revisión rev. 9c" } });
+    }
+    if (cMin) {
+      const geo = (name, formula, dem, cap) => out.push({ after: cMin, row: { kind: "geo", grp: "Soldaduras", sys: "est", bx: true, name: "BX · Ranuras J18: " + name, formula, dem, cap, unit: "mm", ref: "AISC 360-22 §J2.3b" } });
+      geo("ancho mínimo (t + 8 mm, al mm par)", "t + 8 = " + (P.t_top + 8) + " ≤ ancho = " + RG.ancho, P.t_top + 8, RG.ancho);
+      geo("ancho máximo (2,25·espesor de la soldadura)", "ancho = " + RG.ancho + " ≤ 2,25·" + RG.relleno + " = " + nf(RG.ancho_max, 1), RG.ancho, RG.ancho_max);
+      geo("largo máximo (10·espesor de la soldadura)", "L = " + RG.L + " ≤ 10·" + RG.relleno, RG.L, RG.L_max);
+      geo("espesor de la soldadura (relleno) en plancha de " + P.t_top + " mm", "máx(t/2; 16) = " + nf(RG.relleno_min, 1) + " ≤ relleno = " + RG.relleno + " (completo)", RG.relleno_min, RG.relleno);
+      geo("separación longitudinal entre centros en una línea (≥ 2·L)", "2·L = " + 2 * RG.L + " ≤ paso mínimo = " + nf(RG.paso_min, 0), 2 * RG.L, RG.paso_min);
+      geo("separación transversal entre líneas de ranuras de nervios vecinos (≥ 4·ancho)", "4·ancho = " + 4 * RG.ancho + " ≤ " + nf(RG.sep_transversal, 0) + " (en el extremo interior de la ranura" + (RG.tramos.some((q) => q.cada_k_nervios > 1) ? "; tramo 1 con ranura en nervios alternados" : "") + ")", 4 * RG.ancho, RG.sep_transversal);
+    }
+    const cB = at("Pivote", /^Aplastamiento del buje en el cubo de la mesa/);
+    if (cB) {
+      const H = cB.dem * (P.D_piv + 30) * P.L_bush / 1e3, CB = cuboOf(P, H, R), A = CB.J17a, B = CB.J17b;
+      out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha inferior J17a (PJP en T, bisel 45° en la pared del cubo S" + A.S + "/E" + A.E + " + filete z" + A.z_refuerzo + "): reacción del pivote a calado",
+        formula: "f = H/(π·r·E) ≤ 0,60·F_EXX/(1,20·N_d); H = " + nf(H, 1) + " kN (completa en cada plancha), r = " + nf(A.r, 0) + " mm; el filete de refuerzo no se cuenta", dem: A.q / A.E, cap: CB.Fw, unit: "MPa", ref: A.norma } });
+      out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha inferior J17a: garganta efectiva mínima de la PJP (parte más delgada " + nf(Math.min(A.t_pared, A.t_plancha), 0) + " mm) y bisel dentro de la pared del cubo (" + nf(A.t_pared, 0) + " mm junto al rebaje)",
+        formula: "E_mín (Tabla J2.3) = " + A.E_min + " ≤ E = " + A.E + "; S = " + A.S + " ≤ t_pared − 5", dem: Math.max(A.E_min / A.E, A.S / (A.t_pared - 5)), cap: 1, unit: "–", ref: "AISC 360-22 §J2.1a, Tabla J2.3" } });
+      out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha superior J17b (filete z" + B.z + " en el agujero Ø" + nf(2 * B.r, 0) + " de la plancha, sobre la cara del cubo; accesible con la mesa cerrada): reacción del pivote a calado",
+        formula: "f = H/(π·d·0,707·z) ≤ 0,60·F_EXX/(1,20·N_d); H = " + nf(H, 1) + " kN (completa en cada plancha), d = " + nf(2 * B.r, 0) + " mm", dem: B.q / (0.7071 * B.z), cap: CB.Fw, unit: "MPa", ref: B.norma } });
+      out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha superior J17b: tamaño del filete (mínimo por la parte más delgada, máximo t − 2 en el borde del agujero) y holgura a la tapa retenedora Ø" + nf(2 * B.tapa_R, 0),
+        formula: "z_mín = " + B.z_min + " ≤ z = " + B.z + " ≤ " + B.z_max + "; holgura = r_agujero − z + 3 − R_tapa = " + nf(B.holgura_tapa, 1) + " ≥ 2 mm", dem: Math.max(B.z_min / B.z, B.z / B.z_max, 2 / Math.max(B.holgura_tapa, 1e-6)), cap: 1, unit: "–", ref: "AISC 360-22 Tabla J2.4, §J2.2b; geometría (cad/geom.py: tapa Ø D_piv + 60, pivote 3 mm sobre la cara)" } });
+      out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Destijer de los nervios del tramo 1 contra el cubo: libra el cordón de J17a", formula: "máx(19; máx(S + 3; z + 3) + 5) = " + nf(CB.destijer_req, 0) + " ≤ destijer = " + CB.destijer_cubo + " mm", dem: CB.destijer_req, cap: CB.destijer_cubo, unit: "mm", ref: CB.destijer_norma } });
+    }
+    return out.reverse();   // las filas se insertan una a una justo después de su ancla: al revés quedan en el orden de arriba
+  }
+  function soldMesaOf(P, A) {
+    if (!meOn(P)) return null;
+    const cB = A && A.checks ? A.checks.find((q) => q.grp === "Pivote" && /^Aplastamiento del buje en el cubo de la mesa/.test(q.name)) : null;
+    const H = cB ? cB.dem * (P.D_piv + 30) * P.L_bush / 1e3 : null, RG = ranurasOf(P); delete RG.area_de;
+    return { ranuras: RG, cubo: H != null ? cuboOf(P, H, A.R) : null,
+      almas_nervios: "filetes J14 (almas) y J15 (nervios) a ambos lados SOLO contra la plancha inferior y el cubo/almas (extremos); la plancha superior se une por las ranuras J18 (las celdas quedan cerradas)",
+      secuencia: ["1) Plancha inferior planeada sobre la mesa de armado; presentar cubo, almas y nervios con plantilla.", "2) Soldar J17a (PJP + filete, desde arriba), J16 (empalmes de las almas), J14 y J15 (filetes a la plancha inferior y extremos de los nervios contra el cubo y las almas).",
+        "3) Pasadores de empuje montados en la plancha inferior; tiras de respaldo de las ranuras punteadas a las almas y nervios (PROPUESTA).", "4) Cerrar con la plancha superior (ranuras J18 ya cortadas); soldar J18 desde arriba y J17b por el agujero central.",
+        "5) J-P1 de los pasadores arriba y abajo; alivio de tensiones; planeado; mandrinado en línea del cubo y de los agujeros de los pasadores; montaje del buje."] };
   }
 
   /* ---------------- Seguidor del pasador Q: buje templado reemplazable sobre el canto desnudo de la placa-guía (rev. 9) ---------------- */
@@ -1519,7 +1628,7 @@ const BX = (() => {
     const Dg = design(P.__th ? Object.assign({}, P.__th.P0, { __th: undefined }) : P), Pc = Object.assign({}, full(P), { __bx: Dg.bx });
     const A = TT_.analyze(Pc, opts);
     const rows = bxRows(Pc, A.R, Dg).map((c) => stOf(Pc, c));
-    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core).concat(ringRows(Pc, A.R, core), bujeRows(Pc, A.R, core));   // copias: el análisis del núcleo puede estar en memoria
+    const core = A.checks.map((c) => Object.assign({}, c)), cred = baseCredit(Pc, core).concat(ringRows(Pc, A.R, core), bujeRows(Pc, A.R, core), weldRows(Pc, A.R, core));   // copias: el análisis del núcleo puede estar en memoria
     cred.forEach((o) => { const r = stOf(Pc, Object.assign({}, o.row, { fu: o.row.cap != null ? o.row.dem / o.row.cap : null })); core.splice(core.indexOf(o.after) + 1, 0, r); });
     if (cylOn(Pc)) core.forEach((c) => { if (c.grp === "Giro" && /^Vástago: flexocompresión/.test(c.name)) c.name = c.name.replace("DATO DEL PROVEEDOR", "dato confirmado por el mandante 19-11-2026"); });
     if (cylOn(Pc)) core.forEach((c) => { if (c.grp === "Giro" && /^Ojal comercial del vástago/.test(c.name)) { c.sustituida = true; c.name += " [sustituida en TT300-BX por las filas del grupo «Cilindro» (cilindro fabricado)]"; } });
@@ -1588,6 +1697,13 @@ const BX = (() => {
       if (F.bloque_una) { F.bloque_una.material = M.bloque_una.texto; if (F.bloque_una.asiento) F.bloque_una.asiento.templado = "sin temple (Fy_sup " + P.Fy_surf + " = Fy del pasador de empuje, el más blando)"; }
       if (F.placas_leva && P.bx_buje > 0.5) Object.assign(F.placas_leva, { material: M.placas_guia.texto, revestimiento: null, zapata: null, tratamiento: Object.assign({}, F.placas_leva.tratamiento || {}, { canto: "canto desnudo fresado CNC (Ra ≤ 1,6) y engrasado: pista del buje templado del seguidor; sin revestimiento ni temple" }) });
     }
+    // rev. 9c: residuos del núcleo en el JSON entregado al revisor (fuente única): la placa-guía no lleva revestimiento (canto desnudo con el buje del
+    // seguidor) y con la mesa de plancha entera los pasadores se sueldan a las dos planchas, no a anillos
+    if (out.pivotado && out.pivotado.placa_leva && P.bx_buje > 0.5 && "t_revestimiento" in out.pivotado.placa_leva) out.pivotado.placa_leva.t_revestimiento = 0;
+    if (out.pasadores_empuje && meOn(P)) {
+      const fx = (v) => (typeof v === "string" ? v.replace(/soldado a ambos anillos/g, "soldado a ambas planchas de la mesa").replace(/ambos anillos/g, "ambas planchas") : v);
+      if (Array.isArray(out.pasadores_empuje.limitaciones)) out.pasadores_empuje.limitaciones = out.pasadores_empuje.limitaciones.map(fx);
+    }
     if (out.derivados && out.derivados.masas_desc && P.bx_buje > 0.5) out.derivados.masas_desc.cam = "4 placas-guía curvas (concepto KIET), canto desnudo 42CrMo4+QT; buje templado del seguidor en el pasador Q";
     return out;
   }
@@ -1598,6 +1714,7 @@ const BX = (() => {
     o.verificaciones = (A ? A.checks.filter((c) => c.bx && c.grp !== CYL_GRP) : []).map((c) => ({ nombre: c.name, formula: c.formula, dem: c.dem, cap: c.cap, unidad: c.unit, fu: c.fu, estado: c.st, ref: c.ref }));
     if (meOn(full(P)) && !meOk(P)) throw new Error(meMsg(P));
     o.mesa = mesaOf(full(P), A && A.R);
+    if (o.mesa && o.mesa.plancha_entera) o.mesa.soldaduras = soldMesaOf(full(P), A);   // rev. 9c: J14/J15 solo a la plancha inferior, J17a/J17b y ranuras J18 (AISC 360-22 §J2.3b)
     o.cilindro = cylExport(full(P), A && A.R, A && A.checks);   // rev. 7d: cilindro fabricado (null = comercial)
     o.capacidad_nominal_tf = P.W_tf; o.alivio_bar = P.p_relief; o.alarma_bar = P.p_alarm;   // rev. 9: 250 t, 540 / 480 bar (el nombre TT300-BX queda como designación del modelo)
     o.materiales = materialesOf(full(P));
@@ -1608,6 +1725,6 @@ const BX = (() => {
     return o;
   }
 
-  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, bujeOf, bujeRows, pinHooks, BASE_FEA, mesaOf, meOn, meOk, cylGeo, cylRows, cylExport, cylOn }, PARAM_GROUPS, BX_GROUP, CYL_GROUP, CYL: { core: CYL_CORE, grupo: CYL_GRP }, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, patchDesign, materialesOf, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
+  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, bujeOf, bujeRows, weldRows, ranurasOf, cuboOf, soldMesaOf, pinHooks, BASE_FEA, mesaOf, meOn, meOk, cylGeo, cylRows, cylExport, cylOn }, PARAM_GROUPS, BX_GROUP, CYL_GROUP, CYL: { core: CYL_CORE, grupo: CYL_GRP }, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, patchDesign, materialesOf, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
 })();
 if (typeof module !== "undefined") module.exports = BX;

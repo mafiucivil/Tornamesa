@@ -188,7 +188,7 @@ test("BX: rev. 9 (250 t, 540/480 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   // valores de la rev. 9 (sin FEA; docs/bx/README_BX.md §13.6): lineales en p_relief salvo los ejes (Fb = 1,25·Fy/Nd de barra redonda, aplastamiento con el
   // Fy del pasador más blando: tapas 0,977·540/680·345/325 = 0,824)
   [[/^Tapas del cajón E: desgarro por corte hacia las paredes/, 0.794], [/^Tapas del cajón E \(orejas del pasador\): aplastamiento/, 0.824], [/^Alarma bajo el alivio/, 0.988],
-   [/^Aplastamiento en el agujero del anillo$/, 0.715], [/bisel dentro del anillo/, 0.765], [/^Flexión \(biapoyado entre anillos/, 0.707], [/^Pasador vertical E: flexión/, 0.961],
+   [/^Aplastamiento en el agujero del anillo$/, 0.715], [/bisel dentro del anillo/, 0.765], [/^Flexión \(biapoyado entre anillos/, 0.628]   /* rev. 9c: c = alto del bloque-uña pv_hu = 140 (gancho c_pv_hu; antes dog_h = 110 del modo guiado: 0,707) */, [/^Pasador vertical E: flexión/, 0.961],
    [/^Soporte del ojal E: flexión de las paredes/, 0.631], [/^Soporte del ojal E: CJP paredes–base/, 0.631], [/^BX · Portador: corte por torsión/, 0.486], [/^BX · Portador: ligamento junto/, 0.415],
    [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.835], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.763],
    [/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22/, 0.383], [/^Asiento del pivote con momento/, 0.692]].forEach(([re, v]) => {
@@ -205,7 +205,7 @@ test("BX: rev. 9 (250 t, 540/480 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   near(crC.k_tb, 0.962 / 0.831, 1e-9, "empuje"); near(crR.k_tb, 0.824 / 0.785, 1e-9, "retorno");
   near(crC.fu, 0.764, 0.006, "calado = envolvente de la FEA (rev. 9: 540 bar, refuerzo 45 = el de la calibración)");
   // rev. 9: fila anómala corregida. Sin td_min ni k_base el núcleo bajaba el refuerzo a 35 mm (FU núcleo 0,866 ≤ 0,90) y la fila BX × 1,158 daba 1,003
-  assert.match(crC.name, /refuerzo de 45 mm/); assert.deepEqual(Object.keys(BX._int.pinHooks(P0)).sort(), ["Fb_redondo", "brg_min", "kFy_pQ", "k_base", "mq_split", "rib_req", "td_min"]); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2) * P0.p_ret / 200;   // rev. 9b: F_ret con p_ret 150 bar (la FEA se calibró con 200) assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
+  assert.match(crC.name, /refuerzo de 45 mm/); assert.deepEqual(Object.keys(BX._int.pinHooks(P0)).sort(), ["Fb_redondo", "brg_min", "c_pv_hu", "juntasE_asiento", "kFy_pQ", "k_base", "mq_split", "pin_mat_txt", "rib_req", "td_min"]); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2) * P0.p_ret / 200;   // rev. 9b: F_ret con p_ret 150 bar (la FEA se calibró con 200) assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
   cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); near(c.cap, 1.25 * 345 / Nd, 1e-12, "Fy 345"); });
   const sub = A0.checks.filter((c) => c.sustituida && c.grp !== "Giro" && c.grp !== "Placas-leva" && c.grp !== "Articulaciones"); assert.equal(sub.length, cr.length);   // rev. 9: además la zapata (Placas-leva) y el pasador Q con la H del μ bajo (Articulaciones)   // rev. 7d: más la fila informativa del ojal comercial (grupo Giro) sub.forEach((c) => assert.equal(c.st, "info"));
   // con t_base = 21 se interpola entre 20 (1,045 / 1,0) y 22; sin factor con t_base = 20
@@ -242,7 +242,7 @@ test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85
   const P1 = Object.assign({}, P0, { bx_mesa_entera: 0 }), A1 = BX.analyze(P1, { noFEA: true });
   assert.equal(row(/Mesa de plancha entera/, A1).length, 0); assert.equal(BX.exportBX(P1, A1).mesa.plancha_entera, false);
   assert.equal(A1.R.m.total, A0.R.m.total);
-  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera/.test(c.name)).map((c) => c.grp + "|" + c.name + "|" + c.fu + "|" + c.st).join("\n");
+  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera|J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios del tramo 1/.test(c.name)).map((c) => c.grp + "|" + c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu + "|" + c.st).join("\n");   // rev. 9c: filas de las soldaduras de la mesa entera
   assert.equal(k(A1), k(A0), "mismas filas y FU fuera de las de la mesa entera");
   assert.ok(!BX.design(P1).fabricacion.some((f) => /Planchas de la mesa/.test(f.pieza)));
   // espesores distintos con la plancha entera: fila geométrica que falla, error del validador y error claro al exportar
@@ -440,7 +440,7 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   [[/^Plancha superior: global \+ local/, 0.597], [/^Plancha inferior: global \+ local/, 0.401]]   /* rev. 9: 250 t (rev. 7–8: 0,692 / 0,465) */.forEach(([re, v]) => near(A.checks.find((c) => re.test(c.name)).fu, v, 0.006, String(re)));
   A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= 0.9 + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));
   // rev. 7c: la plancha entera (t_pr = t_top = t_bot) no cambia la FEA de la mesa: mismas FU con disco + anillo (bx_mesa_entera = 0)
-  const A1 = BX.analyze(Object.assign({}, P0, { bx_mesa_entera: 0 })), fm = (X) => X.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu").map((c) => c.name + "|" + c.fu).join("\n");
+  const A1 = BX.analyze(Object.assign({}, P0, { bx_mesa_entera: 0 })), fm = (X) => X.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && !c.bx).map((c) => c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu).join("\n");   // rev. 9c: sin las filas BX de las ranuras J18
   assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "CUMPLE");   // rev. 9b: p_ret 150 bar (README §13.6)
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
@@ -451,4 +451,26 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   assert.equal(oil(b20).cap, 675); assert.match(oil(b20).nombre, /675 bar = 1,25 × p_alivio/); near(oil(b20).fu, 540 / 675, 1e-12, "20 °C (rev. 9: 540 bar)");
   const p80 = b80.bx.filas.find((r) => /presión máxima/.test(r.nombre));
   near(p80.cap, P0.p_uhmw * P0.kT_p_uh, 1e-9, "p_adm a 80 °C = k_p·p_adm");
+});
+
+test("BX rev. 9c: soldaduras de la mesa cerrada (J14/J15 solo abajo, ranuras J18 según AISC 360-22 §J2.3b, J17a PJP, J17b por el agujero) y largo de J-E3…J-E5", () => {
+  const X = BX.exportBX(P0, A0), SM = X.mesa.soldaduras, RG = SM.ranuras, CB = SM.cubo;
+  assert.equal(RG.ancho, 30); assert.ok(RG.ancho >= P0.t_top + 8 && RG.ancho <= 2.25 * RG.relleno); assert.equal(RG.relleno, P0.t_top); assert.ok(RG.L <= 10 * RG.relleno);
+  assert.ok(RG.paso_min >= 2 * RG.L - 1e-9, "separación longitudinal ≥ 2L"); assert.ok(RG.sep_transversal >= 4 * RG.ancho - 1e-9, "separación transversal ≥ 4·ancho");
+  assert.equal(RG.tramos[0].cada_k_nervios, 2, "tramo 1 en nervios alternados");
+  assert.deepEqual([CB.J17a.S, CB.J17a.E, CB.J17a.z_refuerzo, CB.J17b.z], [11, 8, 8, 10]); assert.ok(CB.J17b.holgura_tapa >= 2); assert.ok(CB.destijer_cubo >= CB.destijer_req);
+  const A = BX.analyze(P0), rows = A.checks.filter((c) => c.bx && /J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios/.test(c.name));
+  assert.equal(rows.length, 13); rows.forEach((c) => assert.equal(c.st, "ok", c.name + " FU " + c.fu));
+  assert.ok(rows.every((c) => c.fu <= 0.9 + 1e-9 || c.kind === "geo"));
+  // gancho aditivo juntasE_asiento: J-E3…J-E5 con el alto real de las paredes sobre el refuerzo (152), sin cambiar el núcleo sin P.__bx
+  const Pc = BX.coreP(P0), Rc = TT.compute(Pc), F = TT.designDrive(Pc, Rc).pivotado.fabricacion.soporte_E, J = Object.fromEntries(F.juntas.map((j) => [j.id, j]));
+  ["J-E3", "J-E4", "J-E5"].forEach((id) => near(J[id].largo, F.alto_paredes, 1e-12, id + " = alto de las paredes sobre el refuerzo"));
+  near(F.alto_paredes, 152, 1e-9, "alto 152 (z 67…219)");
+  const Pn = Object.assign({}, Pc); delete Pn.__bx; const Fn = TT.designDrive(Pn, TT.compute(Pn)).pivotado.fabricacion.soporte_E;
+  // gancho c_pv_hu (estudio FEA del pasador de empuje): M = F_r·(L − c/2)/4 con c = pv_hu; sin P.__bx el núcleo usa dog_h
+  const fl = (A) => A.checks.find((c) => /^Flexión \(biapoyado entre anillos/.test(c.name)).dem, Ab = BX.analyze(P0, { noFEA: true }), An = TT.analyze(Pn, { noFEA: true }), L = P0.h_disc - P0.t_top;   // L = h − (t_sup + t_inf)/2
+  near(fl(Ab) / fl(An), (L - Math.min(P0.pv_hu, L) / 2) / (L - Math.min(P0.dog_h, L) / 2), 1e-9, "c = pv_hu frente a dog_h");
+  assert.match(Ab.checks.find((c) => /^Pasadores a ras del disco y soldados/.test(c.name)).formula, /42CrMo4\+QT .*SIN temple/);
+  assert.match(An.checks.find((c) => /^Pasadores a ras del disco y soldados/.test(c.name)).formula, /34CrNiMo6\+QT con temple/);
+  near(Fn.juntas.find((j) => j.id === "J-E3").largo, Fn.z_paredes[1] - Pn.t_base, 1e-9, "sin P.__bx el núcleo conserva su largo (z_paredes − t_base)");
 });
