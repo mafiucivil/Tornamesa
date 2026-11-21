@@ -1,6 +1,6 @@
 # TT300-BX · Tornamesa con interfaz inoxidable–UHMW simplificada (módulo aparte)
 
-> **Revisión 9 vigente (20-11-2026): carga de diseño 250 t, alivio 540 bar, alarma 480 bar; ejes sin tratamientos térmicos de proceso; buje templado
+> **Revisión 9b vigente (21-11-2026): carga de diseño 250 t, alivio 540 bar, alarma 480 bar, retorno limitado a 150 bar; ejes sin tratamientos térmicos de proceso; buje templado
 > reemplazable en el seguidor del pasador Q (§13.6).** Las cifras de 290 t y 680/600 bar de las secciones §11 a §13.5 son el registro de las revisiones 7 y 8.
 
 > **Revisión 5 (18-11-2026, por defecto): lámina 304 espejo de 3 mm SOLDADA a la mesa (tapones + costura), acero A36 en todas las
@@ -568,3 +568,36 @@ Estado global: «NO CUMPLE / PENDIENTE DE DECISIÓN» (único pendiente crítico
 Planos (`python3 cad/generar_paquete_bx.py --out scratchpad/bx9/out`): ACC-046 nueva (buje: corte, vista inferior, tabla y notas); ACC-014 con el rebaje de Q y los materiales
 S355J2+N; ACC-020/024 sin capa templada (detalle B del canto desnudo y nota del buje); MES-012 sin banda templada y con la soldabilidad del 42CrMo4; PIV-001 C45+N con la nota del
 buje; ACC-027 asiento sin temple; GEN-005/006 (materiales y tratamientos) con los grados del mandante; GEN-008 y ACC-013 con la capacidad a 540 bar.
+
+#### Revisión 9b (21-11-2026): presión de retorno limitada a 150 bar (opción C del mandante)
+
+`p_ret` = 150 bar en `A36_DESPUES` (núcleo: 200), con una válvula reductora de presión y un alivio propio en la línea B del retorno, regulados y precintados
+(fila «Circuito» de la tabla de capacidad en ACC-013/036 y GEN-008). Es el mayor valor redondo con el Hertz buje–canto del atasco ≤ 1: 150 bar → 0,990;
+155 bar → 1,006; 200 bar → 1,145. Fuerza de retracción: 45,7 kN a 150 bar (antes 60,9 kN a 200 bar).
+
+- La curva de la placa-guía la elige el núcleo con máx(H·F_calado, N_atasco): con 150 bar vuelve EXACTAMENTE a la curva de la rev. 8 (tope del flanco 539 mm,
+  hombro R79,1, cresta R221,3; contorno idéntico al de ad59755). ACC-020/024 vuelven a su clase «BX-L»; solo el pasador Q queda en «BX-L9».
+- Refuerzo de esquina: con 150 bar el núcleo pasaba a 50 mm sin atiesador (fuera de la geometría de la calibración de la FEA de la base). Gancho aditivo
+  `rib_req`: con `k_base` se exige la configuración calibrada (45 mm + atiesador 22 × 60). Sin `P.__bx` el núcleo no cambia.
+- **Destrabe y conducción del retorno a 150 bar** (fila nueva «BX · Retorno con p_ret 150 bar»): F_req = F_arranque de los sellos (A_anular·20 bar, conservador frente
+  a los 5–10 bar de catálogo; ISO 10100) + μ·(m_bloque + m_cil)·g/η, con η = (cos φ − μ sen φ) − k_E(sen φ + μ cos φ) = 0,334 en el peor punto de la conducción
+  (μ = 0,20, el mayor) → 6,73 kN ≤ 45,7 kN, FU 0,147. El bloque-uña se destraba girando libre en Q por la rampa del dorso (sin resorte): la fila geométrica
+  «Garra: retorno sin traba» (0,428) y «Placa-guía sin autobloqueo» (0,037) no dependen de la presión. La mesa está detenida durante el retorno.
+- FS del giro: 1,285 (curva de la rev. 8). Con ella el FS a 530 bar sería 1,261; el alivio se mantiene en 540 bar (decisión del mandante).
+- Estado global: **CUMPLE** (sin pendientes críticos; FU máx. 0,990, el Hertz del atasco sobre el flanco).
+
+| Fila (FU) | Rev. 9 | Rev. 9b |
+|---|---|---|
+| Hertz buje–canto, atasco del retorno (envolvente; flanco recto) | 1,145 (PENDIENTE) | 0,990 |
+| Hertz buje–canto, atasco en el primer contacto (hombro) | 0,786 (R75,4) | 0,746 (R79,1) |
+| Hertz buje–canto, empuje a calado (envolvente) | 0,970 | 0,956 |
+| Pasador Q: flexión en la horquilla (μ 0,10) / (μ 0,20) | 0,976 / 0,918 | 0,931 / 0,885 |
+| Pasador Q en el hombro: flexión / corte; aplastamiento buje–pasador | 0,679 / 0,520; 0,836 | 0,620 / 0,475; 0,764 |
+| Capa templada del buje | 0,464 | 0,399 |
+| FS del giro (FU) / gira contaminado / borde | 0,987 / 0,987 / 0,986 | 0,973 / 0,973 / 0,972 |
+| Plancha base bajo E, atasco del retorno (BX) | 0,773 | 0,580 |
+| Tapas del cajón E, desgarro hacia la nariz con el retorno | 0,474 | 0,355 |
+| Atiesador tangencial: flexión | 0,416 | 0,383 |
+| Tornillos de la placa-guía: corte | 0,625 | 0,569 |
+| Retorno dentro de la presión nominal | 0,286 | 0,214 |
+| Retorno con p_ret 150 bar: fuerza de retracción (nueva) | — | 0,147 |

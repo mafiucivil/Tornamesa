@@ -179,10 +179,8 @@ VAR_CODIGOS = {
                      # TT300-BX con lámina soldada (rev. 7: base 22, δ 33, sin roscas de la interfaz en la mesa)
                      (("BX-L",), "placas-leva e interfaz BX con lámina soldada (base 22)", 1)],
     # placa-guía: el canto sale de la cinemática del núcleo, que cambia con la altura de la interfaz (δ): C1…C3 tienen su propia geometría
-    "placa_leva": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1), (("BX-L",), "canto BX con lámina soldada (δ 33)", 1),
-                   (("BX-L9",), "canto BX rev. 9 (curva del núcleo con 540 bar: tope del flanco 541, hombro R75,4; canto desnudo)", 1)],
-    "placa_leva_h": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1), (("BX-L",), "canto BX con lámina soldada (δ 33, simétrica)", 1),
-                     (("BX-L9",), "canto BX rev. 9 (simétrica)", 1)],
+    "placa_leva": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B", 1), (("C1", "C2", "C3"), "canto C", 1), (("BX-L",), "canto BX con lámina soldada (δ 33)", 1),],
+    "placa_leva_h": [(("BASE", "A", "AF2", "B", "BX"), "canto base/A/AF2/B (simétrica)", 1), (("C1", "C2", "C3"), "canto C (simétrica)", 1), (("BX-L",), "canto BX con lámina soldada (δ 33, simétrica)", 1),],
     "mesa_plancha_inf": [(("BASE", "AF2", "W"), "sin agujeros de interfaz", 1), (("A", "B", "C1", "C2", "C3"), "con roscas de interfaz", 1), (("BX",), "roscas pasantes del disco BX", 1), (("BX-L",), "sin roscas (lámina BX soldada, e 22)", 1)],
     "mesa_anillo_inf": [(("BASE", "W"), "sin agujeros propios", 1), (("A", "C1", "C2", "C3"), "roscas y graseras", 1), (("AF2",), "graseras y roscas M12 de los tornillos del disco", 1), (("B",), "roscas", 1), (("BX",), "roscas ciegas del disco BX", 1), (("BX-L",), "sin agujeros propios (lámina BX soldada, e 22)", 1)],
     "mesa_cubo": [(("BASE", "W"), "alto base", 1), (("A", "C1", "C2", "C3"), "alto A/C", 1), (("AF2",), "alto AF2", 1), (("B",), "alto B", 1), (("BX",), "alto BX", 1), (("BX-L",), "alto BX con lámina soldada", 1)],
@@ -249,8 +247,8 @@ def variante_de(g, key=None):
     if key in ("mesa_plancha_sup", "mesa_plancha_inf") and getattr(g, "mesa_entera", False):
         return "BX-LE"                   # TT300-BX rev. 7c: plancha entera por nivel (clase propia, VAR_MESA_ENTERA)
     if g.opt == 4 and g.bx and int((g.bx.get("disco") or {}).get("modo") or 0) == 1:
-        if key in ("pasador_Q", "placa_leva", "placa_leva_h") and g.bx.get("buje_Q"):
-            return "BX-L9"               # TT300-BX rev. 9: pasador Q rebajado (buje del seguidor) y curva de la placa-guía con 540 bar
+        if key == "pasador_Q" and g.bx.get("buje_Q"):
+            return "BX-L9"               # TT300-BX rev. 9: pasador Q rebajado para el buje del seguidor (rev. 9b: la placa-guía vuelve a la curva de la rev. 8, clase BX-L)
         return "BX-L"                    # TT300-BX con lámina soldada (bx_disc_modo = 1): clases propias en VAR_CODIGOS / VAR_REFUERZO
     v = g.variante.replace("-G", "")
     v = "BASE" if v == "BASE" else v.replace("-W", "")
