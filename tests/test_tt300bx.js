@@ -76,12 +76,16 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   // a 20 °C cumple todo (FU ≤ 0,90; geométricas ≤ 1)
   // rev. 5 a 7 (UHMW de 30 mm, portador fijo de 22 mm A572, Ø ≤ 185): todo FU ≤ 1; sobre 0,90 (advertencia) solo la planitud de las pastillas, la torsión y el
   // ligamento del portador, las filas BX de anillos distintos y la base bajo E con el factor de la FEA (≤ 0,965) (docs/bx/README_BX.md §9 a §11)
-  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla|Aplastamiento en el agujero del anillo inferior|Pasador de empuje: flexión con la luz entre los planos medios|Plancha base bajo el soporte del ojal E: .* ajuste por la FEA|Pasador Q: flexión \(horquilla del bloque\).* μ bajo|Placa-guía: contacto de Hertz de línea buje–canto en el empuje a calado)/;
+  const WARN_OK = /^BX · (Pastillas( a \d+ °C)?: presión más sobrepresión por (falta de )?planitud|Portador: corte por torsión|Portador: ligamento junto a la pastilla|Aplastamiento en el agujero del anillo inferior|Pasador de empuje: flexión con la luz entre los planos medios|Plancha base bajo el soporte del ojal E: .* ajuste por la FEA|Pasador Q: flexión \(horquilla del bloque\).* μ bajo|Placa-guía: contacto de Hertz de línea buje–canto en el (empuje a calado|atasco del retorno))/;
   // rev. 9 (250 t, 540 bar, buje del seguidor): pasador Q con la H del μ bajo (0,976) y el Hertz buje–canto del empuje (0,970) en advertencia; el Hertz del
-  // atasco del retorno en el flanco recto (1,145, canto sin templar) queda PENDIENTE DE DECISIÓN del mandante (docs/bx/README_BX.md §13.6)
+  // atasco del retorno en el flanco recto daba 1,145 con 200 bar; rev. 9b (opción C del mandante): p_ret = 150 bar → 0,990 (advertencia, sin pendientes)
   const PEND_OK = /^BX · Placa-guía: contacto de Hertz de línea buje–canto en el atasco del retorno/;
-  A0.checks.filter((c) => c.bx && c.grp !== "Cilindro" && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.98), "20 °C: " + c.name + " FU " + c.fu));
-  const pend = A0.checks.filter((c) => c.bx && c.st === "pend" && c.fu > 1); assert.equal(pend.length, 1); assert.match(pend[0].name, PEND_OK); near(pend[0].fu, 1.145, 0.005, "Hertz del atasco en el flanco");   // el grupo «Cilindro» se prueba aparte
+  A0.checks.filter((c) => c.bx && c.grp !== "Cilindro" && (c.kind === "fu" || c.kind === "geo") && !/a 50 °C/.test(c.name)).forEach((c) => assert.ok(c.st === "ok" || (c.st === "warn" && WARN_OK.test(c.name) && c.fu < 0.995), "20 °C: " + c.name + " FU " + c.fu));
+  assert.equal(A0.checks.filter((c) => c.bx && c.st === "pend" && c.fu > 1).length, 0, "rev. 9b: sin pendientes críticos");
+  const jam = A0.checks.find((c) => PEND_OK.test(c.name)); assert.equal(P0.p_ret, 150); near(jam.fu, 0.990, 0.005, "Hertz del atasco en el flanco con 150 bar");
+  assert.ok(BX.analyze(Object.assign({}, P0, { p_ret: 155 }), { noFEA: true }).checks.find((c) => PEND_OK.test(c.name)).fu > 1, "con 155 bar no cumple: 150 es el mayor valor redondo");
+  // rev. 9b: la retracción a 150 bar alcanza para el destrabe y la conducción por el canto (arranque de sellos + roce por peso propio / η)
+  const rt = A0.checks.find((c) => /^BX · Retorno con p_ret 150 bar/.test(c.name)); near(rt.cap, Math.PI / 4 * (90 ** 2 - 65 ** 2) * 15 / 1e3, 1e-9, "F_ret 150 bar"); assert.ok(rt.fu < 0.2 && rt.st === "ok", "destrabe " + rt.fu);   // el grupo «Cilindro» se prueba aparte
   // camino del arrastre por la cara inferior (μ_b): la pared y el tornillo usan el residual; la fila informa el FU sin μ_b
   const w = A0.checks.find((c) => /pared del agujero del portador \(arrastre residual/.test(c.name)), sinMu = +/sin μ_b: FU ([\d,]+)/.exec(w.formula)[1].replace(",", ".");
   near(w.fu * (0.25 / (0.25 - P0.bx_mu_base)), sinMu, 0.01, "FU sin μ_b = FU·μ_máx/(μ_máx − μ_b)");
@@ -175,16 +179,19 @@ test("BX: rev. 9 (250 t, 540/480 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   const tdM = /refuerzo de (\d+) mm/.exec(A0.checks.find((c) => /base de 22 mm con refuerzo de/.test(c.name)).name); assert.ok(tdM && +tdM[1] >= 40 && +tdM[1] <= 50, "refuerzo " + (tdM && tdM[1]));
   near(A0.R.Fstall, 343.5, 0.001, "fuerza de calado con 540 bar");
   const FS = Object.fromEntries(A0.R.cases.map((c) => [c.id, c.FS]));
-  // rev. 9: FS de diseño 1,267 ≥ 1,25 con 250 t a 540 bar (a 530 bar no cumple)
-  [["nom", 3.742], ["dis", 1.267], ["borde", 1.014], ["cont", 1.014], ["seco", 1.197]].forEach(([k, v]) => near(FS[k], v, 0.001, "FS " + k));
-  assert.ok(BX.analyze(Object.assign({}, P0, { p_relief: 530 }), { noFEA: true }).R.cases.find((c) => c.id === "dis").FS < 1.25, "a 530 bar el FS de diseño no llega a 1,25");
+  // rev. 9: FS de diseño 1,267 ≥ 1,25 con 250 t a 540 bar (a 530 bar no cumple); rev. 9b: con p_ret 150 bar el núcleo vuelve a la curva de la placa-guía de la
+  // rev. 8 (la elige con máx(H·F_calado, N_atasco)) y el brazo efectivo mejora: FS de diseño 1,285
+  [["nom", 3.795], ["dis", 1.285], ["borde", 1.029], ["cont", 1.028], ["seco", 1.2145]].forEach(([k, v]) => near(FS[k], v, 0.001, "FS " + k));
+  // rev. 9: con 200 bar de retorno, a 530 bar el FS de diseño no llegaba a 1,25; rev. 9b (curva de la rev. 8) da 1,261 a 530 bar: el alivio queda en 540 por decisión del mandante
+  assert.ok(BX.analyze(Object.assign({}, P0, { p_relief: 530, p_ret: 200 }), { noFEA: true }).R.cases.find((c) => c.id === "dis").FS < 1.25, "rev. 9 (p_ret 200): a 530 bar no cumple");
+  near(BX.analyze(Object.assign({}, P0, { p_relief: 530 }), { noFEA: true }).R.cases.find((c) => c.id === "dis").FS, 1.261, 0.001, "rev. 9b: 530 bar");
   // valores de la rev. 9 (sin FEA; docs/bx/README_BX.md §13.6): lineales en p_relief salvo los ejes (Fb = 1,25·Fy/Nd de barra redonda, aplastamiento con el
   // Fy del pasador más blando: tapas 0,977·540/680·345/325 = 0,824)
   [[/^Tapas del cajón E: desgarro por corte hacia las paredes/, 0.794], [/^Tapas del cajón E \(orejas del pasador\): aplastamiento/, 0.824], [/^Alarma bajo el alivio/, 0.988],
    [/^Aplastamiento en el agujero del anillo$/, 0.715], [/bisel dentro del anillo/, 0.765], [/^Flexión \(biapoyado entre anillos/, 0.707], [/^Pasador vertical E: flexión/, 0.961],
    [/^Soporte del ojal E: flexión de las paredes/, 0.631], [/^Soporte del ojal E: CJP paredes–base/, 0.631], [/^BX · Portador: corte por torsión/, 0.486], [/^BX · Portador: ligamento junto/, 0.415],
    [/^BX · Pastillas: presión más sobrepresión por falta de planitud/, 0.835], [/^BX · Pastillas: valor PV en la pastilla más exigida/, 0.763],
-   [/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22/, 0.416], [/^Asiento del pivote con momento/, 0.692]].forEach(([re, v]) => {
+   [/^Plancha base bajo el soporte del ojal E: atiesador tangencial 22/, 0.383], [/^Asiento del pivote con momento/, 0.692]].forEach(([re, v]) => {
     const c = by(re); assert.ok(c, String(re)); near(c.fu, v, 0.006, c.name.slice(0, 60)); });
   assert.equal(A0.checks.filter((c) => c.st === "fail").length, 0, "sin fallas");
   assert.equal(A0.verdict.estructura, true); assert.equal(A0.verdict.gira, true);
@@ -198,7 +205,7 @@ test("BX: rev. 9 (250 t, 540/480 bar, todas las planchas A572 Gr. 50 y de 22 mm,
   near(crC.k_tb, 0.962 / 0.831, 1e-9, "empuje"); near(crR.k_tb, 0.824 / 0.785, 1e-9, "retorno");
   near(crC.fu, 0.764, 0.006, "calado = envolvente de la FEA (rev. 9: 540 bar, refuerzo 45 = el de la calibración)");
   // rev. 9: fila anómala corregida. Sin td_min ni k_base el núcleo bajaba el refuerzo a 35 mm (FU núcleo 0,866 ≤ 0,90) y la fila BX × 1,158 daba 1,003
-  assert.match(crC.name, /refuerzo de 45 mm/); assert.deepEqual(Object.keys(BX._int.pinHooks(P0)).sort(), ["Fb_redondo", "brg_min", "kFy_pQ", "k_base", "mq_split", "td_min"]); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2); assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
+  assert.match(crC.name, /refuerzo de 45 mm/); assert.deepEqual(Object.keys(BX._int.pinHooks(P0)).sort(), ["Fb_redondo", "brg_min", "kFy_pQ", "k_base", "mq_split", "rib_req", "td_min"]); const kAn = (90 ** 2 - P0.d_rod ** 2) / (90 ** 2 - 63 ** 2) * P0.p_ret / 200;   // rev. 9b: F_ret con p_ret 150 bar (la FEA se calibró con 200) assert.ok(crR.fu >= 0.824 * kAn - 0.003, "retorno ≥ FEA (escalada a la fuerza de retorno con el vástago Ø" + P0.d_rod + ": × " + kAn.toFixed(3) + ") " + crR.fu);
   cr.forEach((c) => { assert.ok(c.fu < 1, c.name + " " + c.fu); near(c.cap, 1.25 * 345 / Nd, 1e-12, "Fy 345"); });
   const sub = A0.checks.filter((c) => c.sustituida && c.grp !== "Giro" && c.grp !== "Placas-leva" && c.grp !== "Articulaciones"); assert.equal(sub.length, cr.length);   // rev. 9: además la zapata (Placas-leva) y el pasador Q con la H del μ bajo (Articulaciones)   // rev. 7d: más la fila informativa del ojal comercial (grupo Giro) sub.forEach((c) => assert.equal(c.st, "info"));
   // con t_base = 21 se interpola entre 20 (1,045 / 1,0) y 22; sin factor con t_base = 20
@@ -243,7 +250,7 @@ test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85
   assert.equal(c2.st, "fail"); near(c2.fu, 25 / 22, 1e-12, "25/22"); assert.equal(A2.verdict.estado_global, "NO CUMPLE");
   assert.ok(AGBX.validate(P2).some((v) => v.lvl === "error" && /t_pr = t_top = t_bot/.test(v.msg)));
   assert.throws(() => BX.exportBX(P2, A2), /exige t_pr = t_top = t_bot/);
-  assert.equal(BX.analyze(Object.assign({}, P2, { bx_mesa_entera: 0 }), { noFEA: true }).verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN", "con disco + anillo los espesores distintos siguen permitidos (rev. 9: solo queda el pendiente del Hertz del flanco)");
+  assert.equal(BX.analyze(Object.assign({}, P2, { bx_mesa_entera: 0 }), { noFEA: true }).verdict.estado_global, "CUMPLE", "con disco + anillo los espesores distintos siguen permitidos");
 });
 
 test("BX: cinemática y reenganche con la nueva δ (lámina de 3 mm) y las alturas de la rev. 5", () => {
@@ -393,10 +400,10 @@ test("BX · Cilindro: filas del grupo «Cilindro» (servicio a p_alivio y prueba
   assert.ok(!C.some((c) => c.st === "pend"), "sin pendientes del cilindro (rev. 7e)");
   // rev. 7f: desnivel E–Q ±1 mm (aprobado) frente al admisible del vástago con holgura nula, y reparto del momento de la placa-guía al bloque-uña
   const dz = by(/desnivel especificado entre los ejes E y Q/); assert.equal(dz.dem, 1); assert.ok(dz.fu < 1 && dz.cap > 0.99 && dz.cap < 2.0, "Δz adm " + dz.cap);   // rev. 9: con 540 bar M_adm crece (1,92 mm)
-  const rp = by(/reparto del momento en alzado/); near(rp.dem, 4.24, 0.01, "M_H (rev. 9)"); near(rp.cap, 8.82, 0.01, "F·h/6 (rev. 9)"); assert.equal(P0.p_max_cil, 680);
+  const rp = by(/reparto del momento en alzado/); near(rp.dem, 3.70, 0.01, "M_H (rev. 9b: curva de la rev. 8)"); near(rp.cap, 8.65, 0.01, "F·h/6 (rev. 9b)"); assert.equal(P0.p_max_cil, 680);
   assert.ok(!C.some((c) => /onfirmar|de memoria|confianza C/.test(c.name + c.formula) && !/amortiguación/.test(c.name)), "sin textos «confirmar / de memoria» (rev. 7e)");
-  // rev. 9: el único pendiente crítico es el Hertz del atasco en el flanco recto de la placa-guía (canto sin templar; decisión del mandante, README §13.6)
-  assert.equal(A0.verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN"); assert.equal(A0.verdict.pendientes_criticos.length, 1); assert.match(A0.verdict.pendientes_criticos[0].nombre, /Hertz de línea buje–canto en el atasco/);
+  // rev. 9b: con p_ret = 150 bar el Hertz del flanco cumple (0,990): sin pendientes críticos (README §13.6, 9b)
+  assert.equal(A0.verdict.estado_global, "CUMPLE"); assert.equal(A0.verdict.pendientes_criticos.length, 0);
   assert.equal(A0.verdict.estructura, true); assert.equal(A0.verdict.gira, true);
 });
 
@@ -434,7 +441,7 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= 0.9 + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));
   // rev. 7c: la plancha entera (t_pr = t_top = t_bot) no cambia la FEA de la mesa: mismas FU con disco + anillo (bx_mesa_entera = 0)
   const A1 = BX.analyze(Object.assign({}, P0, { bx_mesa_entera: 0 })), fm = (X) => X.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu").map((c) => c.name + "|" + c.fu).join("\n");
-  assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "NO CUMPLE / PENDIENTE DE DECISIÓN");   // rev. 9: pendiente del Hertz del flanco (README §13.6)
+  assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "CUMPLE");   // rev. 9b: p_ret 150 bar (README §13.6)
   const th = BX.thermal(P0, { T: [20, 80] });
   const b = th.alternativas[0], b80 = b.byT.find((x) => x.T === 80), b20 = b.byT.find((x) => x.T === 20);
   assert.ok(b80.bx && b80.bx.filas.length > 10);

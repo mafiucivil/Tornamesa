@@ -2987,8 +2987,9 @@ const TT = (() => {
       const best = rows.filter((r) => r.geoOk).reduce((m, r) => (!m || r.fu < m.fu ? r : m), null);
       return { rib, a, sq, rb, hr, vR, pl, plR, mesa, rows, pick, best, okRib };
     };
-    const o0 = fz && fz.rib ? null : option(false), o1 = cal.rib && (fz ? fz.rib : !(o0.pick && o0.pick.fu <= 1)) ? option(true) : null;   // el atiesador solo si el cuadrado solo no llega a FU ≤ 1
-    const O = fz ? (o1 || o0) : o0.pick ? o0 : o1 && o1.pick ? o1 : [o0, o1].filter((o) => o && o.best).reduce((m, o) => (!m || o.best.fu < m.best.fu ? o : m), null) || o0;
+    const ribReq = !!(kBx && P.__bx.rib_req);   // TT300-BX rev. 9b (gancho aditivo): configuración de la calibración de la FEA de la base (refuerzo + atiesador)
+    const o0 = fz && fz.rib ? null : option(false), o1 = cal.rib && (fz ? fz.rib : (ribReq || !(o0.pick && o0.pick.fu <= 1))) ? option(true) : null;   // el atiesador solo si el cuadrado solo no llega a FU ≤ 1
+    const O = fz ? (o1 || o0) : (ribReq && o1 && o1.pick) ? o1 : o0.pick ? o0 : o1 && o1.pick ? o1 : [o0, o1].filter((o) => o && o.best).reduce((m, o) => (!m || o.best.fu < m.best.fu ? o : m), null) || o0;
     const sel = fz ? O.rows[0] : O.pick || O.best || O.rows[0], { a, sq, rb } = O, td = sel.td, t = sel.t;
     // FU entre el objetivo interno (0,90) y 1,0 con el refuerzo en su máximo (el espesor siguiente no pasa bajo las piezas móviles y no hay atiesador eficaz): aviso,
     // sin restringir al optimizador (criterio del proyecto, 12-11-2026: el mandante prefiere el cuadrado solo; BTH-1 admite hasta 1,0)
