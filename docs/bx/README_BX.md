@@ -622,7 +622,7 @@ gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de emp
 3. **J14 / J15.** Filetes solo a la plancha inferior y en los extremos de los nervios (longitudes a la mitad en las líneas de plancha); la plancha superior
    va solo por J18. Los extremos de los nervios del tramo 1 contra el cubo pasan a la junta J15b (precalentamiento por la pared de 80 del cubo).
    La fila del núcleo «Soldadura alma/nervio–plancha (2 filetes)» queda para la plancha inferior (anotada) y se agregan filas BX para la superior.
-4. **J18 (AISC 360-22 §J2.3b).** Soldadura de ranura rellena (no CJP): ancho 30 (≥ t + 8, ≤ 2,25·22), extremos semicirculares, largo 125 (≤ 10·22),
+4. **J18 (AISC 360-22 §J2.3b) — CONFIRMADO por el mandante el 21-11-2026 (detalle A, ranura rellena; se descarta la variante de lengüetas pasantes del alma).** Soldadura de ranura rellena (no CJP): ancho 30 (≥ t + 8, ≤ 2,25·22), extremos semicirculares, largo 125 (≤ 10·22),
    relleno completo 22, separación entre centros ≥ 2L = 250 en cada línea; en el tramo 1 los nervios convergen y la ranura va en nervios alternados
    (separación transversal 141 ≥ 4·30). 77 ranuras, 9618 mm. Geometría derivada de `t_top` en `bx.mesa.soldaduras.ranuras`. Filas: corte en el área de
    la ranura en el plano de contacto (FU 0,294) y traspaso del flujo de corte al canto del alma de 8 mm (franja t × L; FU 0,893, el tramo 1 con la ranura
