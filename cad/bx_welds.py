@@ -40,7 +40,8 @@ def _welds_lamina(ctx, add_n):
     ap = JN.get("aporte") or DSK.get("aporte") or "ER309L (AWS A5.9) / E309L-16 (AWS A5.4)"
     wps_txt = "WPS CALIFICADA para la unión disímil 304 / ASTM A572 Gr. 50 con aporte 309L (AWS D1.6/D1.6M:2017; PQR con macro y doblado)"
     comun = dict(t_pre=0.0, pre_txt="sin precalentamiento del inoxidable; acero al carbono seco y ≥ 10 °C (WPS calificada)", interpase_txt="≤ 150 °C (JSON, secuencia de la lámina)",
-                 corr_gmaw="GMAW pulsado ER309L Ø0,8–1,0 (Ar + 2 % CO₂), baja energía: según PQR", corr_smaw="GTAW 141 ER309L Ø1,6–2,0 (alternativa E309L-16 Ø2,5): según PQR")
+                 corr_gmaw="GMAW pulsado ER309L Ø0,8–1,0 (Ar + 2 % CO₂), baja energía: según PQR", corr_smaw="GTAW 141 ER309L Ø1,6–2,0 (alternativa E309L-16 Ø2,5): según PQR",
+                 corr_fcaw="No aplica con E71T-1: aporte 309L (E309LT1-1/-4, AWS A5.22) solo si el PQR lo califica")
     w1 = _sold(X, "panel")
     j = add_n(30, "Panel – panel de la lámina inoxidable (junta a tope CJP sobre la plancha inferior de la mesa, esmerilada a ras)", f"{cL} / {cL} (sobre {cM})",
               f"{w1.get('tipo') or JN['tipo']} ({w1.get('norma') or JN['norma']})", "square", t=t, groove=True,
@@ -87,7 +88,7 @@ def welds(ctx, add_n):
               nota=cjp["acabado"])
     j.update(inox_cjp=True, t_pre=0.0, backing="MR", backing_txt="MR: respaldo cerámico retirado", end_txt=cjp["END"],
              fam_txt=f"{cjp['tipo']}; {cjp['norma']}; aporte {cjp['aporte']}", pre_txt="sin precalentamiento (acero inoxidable; interpase y calor aportado según la WPS calificada)",
-             interpase_txt="≤ 150 °C (inoxidable; confirmar en la WPS)", corr_gmaw="Según WPS calificada (" + cjp["norma"] + ")", corr_smaw="Según WPS calificada", acabado=cjp["acabado"])
+             interpase_txt="≤ 150 °C (inoxidable; confirmar en la WPS)", corr_gmaw="Según WPS calificada (" + cjp["norma"] + ")", corr_smaw="Según WPS calificada", corr_fcaw="No aplica con E71T-1 (aporte inoxidable según WPS calificada)", acabado=cjp["acabado"])
     _welds_portador(ctx, add_n)
 
 

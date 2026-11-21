@@ -172,7 +172,7 @@ class Hoja:
         w["sheets"].add(self.plano)
         self.welds_here.append(jid)
         end_c = w["end"].replace(" · ", " ").replace(" 100 %", "100").replace(" 10 %", "10").replace("de la unión", "").strip()
-        pre_ = propuestas.precalentamiento(w["t_pre"])
+        pre_ = propuestas.pre_of(w)
         ex3 = ["precal. s/WPS calificada"] if w.get("pasador_soldado") else ([f"precal. ≥ {pre_} °C"] if pre_ >= 65 else [])
         tail = [f"{jid} · {w['proceso']} · {w['wps_corto']}", f"{w['nivel']} · {end_c}"] + ([" · ".join(ex3)] if ex3 else []) + list(extra_tail)
         kd = kind or w["sym"]
@@ -318,11 +318,13 @@ def build_welds(ctx):
     BR, KG = g.BR, g.KG
     tb = g.tb
     W_ = []
+    BX = g.opt == 4                     # TT300-BX: correcciones de la auditoría de soldaduras rev. 9c (el juego TT300-C no cambia)
+    SM = (((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}) if BX else {}
     PROC = "135"
     A5 = "ER70S-6 (AWS A5.18) / E7018 (AWS A5.1)"
 
     def add(desc, piezas, tipo, sym, z=None, t=None, prep="Sin preparación", prep_txt="", nivel="ISO 5817-B", end="VT 100 % · MT 100 %", wps=1, len_total=0.0, nota="", core=None,
-            contorno=False, groove=False, aporte=A5, proc=PROC, other=None, len_txt="", modelada=True, jn=None, t_pre=None, jid=None):
+            contorno=False, groove=False, aporte=A5, proc=PROC, other=None, len_txt="", modelada=True, jn=None, t_pre=None, jid=None, t_min=None):
         j = dict(id=jid or (f"J{jn:02d}" if jn else f"J{len(W_) + 1:02d}"), desc=desc, piezas=piezas, tipo=tipo, sym=sym, prep=prep, prep_txt=prep_txt, nivel=nivel, end=end, len_total=len_total, nota=nota, contorno=contorno,
                  aporte=aporte, proceso=proc, other=other, len_txt=len_txt, sheets=set(), wps=f"WPS-P{wps:02d} — {propuestas.ROTULO_WPS}", wps_corto=f"WPS-P{wps:02d}", wps_n=wps, modelada=modelada, groove=groove)
         if groove:
@@ -339,6 +341,8 @@ def build_welds(ctx):
                 zz, org = float(core[0]), core[1]
             else:
                 zz, org = float(fillet_min(t)), f"mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa (t = {fm(t, 0)} mm), a confirmar"
+                if BX and t_min is not None:     # rev. 9c: con bajo hidrógeno el mínimo va por la parte MÁS DELGADA (AWS D1.1:2020 Tabla 7.7 nota; AISC 360-22 Tabla J2.4)
+                    org = f"z{fm(zz, 0)} adoptado (a confirmar) ≥ mín. AWS D1.1:2020 T. 7.7 / AISC T. J2.4, parte más delgada t = {fm(t_min, 0)}, bajo H: {fm(fillet_min(t_min), 0)}"
             j["z"] = zz
             j["a"] = round(zz * 0.7071, 1)
             j["size_txt"] = f"z{fm(zz, 0)}"
@@ -347,7 +351,9 @@ def build_welds(ctx):
             j["pasadas"] = passes(z=zz)
             j["origen"] = org
             j["t"] = t
-        j["t_pre"] = float(t_pre if t_pre is not None else (t or 0.0))     # espesor de la parte más gruesa de la junta (precalentamiento AWS D1.1:2020 Tabla 5.8)
+        j["t_pre"] = float(t_pre if t_pre is not None else (t or 0.0))
+        if t_min is not None:
+            j["t_min"] = float(t_min)     # espesor de la parte más gruesa de la junta (precalentamiento AWS D1.1:2020 Tabla 5.8)
         if "ER309L" in aporte:
             j["t_pre"] = 0.0                  # inoxidable sobre inoxidable: sin precalentamiento (GEN-012), fuera de la Tabla 5.8
         W_.append(j)
@@ -367,10 +373,10 @@ def build_welds(ctx):
     L_ml, L_mc = m.info.get("marco_long") or (B, B - 2 * P["rim_t"])
     n_esq = m.info.get("marco_esquinas", 2 if m.info.get("marco_long") else 4)     # esquinas largas–cortas que quedan (el marco se interrumpe en los soportes y en los refuerzos)
     add_n(1, "Marco perimetral largo – plancha base", f"{sc_('marco_largo')} / {sc_('base_plancha')}", "Filete en T, solo lado interior (pletina a ras del canto), continuo", "fillet", t=max(P["rim_t"], tb), len_total=2 * L_ml, wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C",
-        contorno=False, len_txt="")
-    add_n(2, "Marco corto – plancha base", f"{sc_('marco_corto')} / {sc_('base_plancha')}", "Filete en T, solo lado interior (pletina a ras del canto), continuo", "fillet", t=max(P["rim_t"], tb), len_total=2 * L_mc, wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C")
+        contorno=False, len_txt="", t_min=min(P["rim_t"], tb))
+    add_n(2, "Marco corto – plancha base", f"{sc_('marco_corto')} / {sc_('base_plancha')}", "Filete en T, solo lado interior (pletina a ras del canto), continuo", "fillet", t=max(P["rim_t"], tb), len_total=2 * L_mc, wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C", t_min=min(P["rim_t"], tb))
     if n_esq:
-     add_n(3, "Marco largo – marco corto (esquinas)", f"{sc_('marco_largo')} / {sc_('marco_corto')}", f"Filete vertical en el rincón interior (extremo de la corta contra la cara interior de la larga), {n_esq} esquinas", "fillet", t=P["rim_t"], len_total=n_esq * P["rim_h"], wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C")
+     add_n(3, "Marco largo – marco corto (esquinas)", f"{sc_('marco_largo')} / {sc_('marco_corto')}", f"Filete vertical en el rincón interior (extremo de la corta contra la cara interior de la larga), {n_esq} esquinas", "fillet", t=P["rim_t"], len_total=n_esq * P["rim_h"], wps=1, end="VT 100 % · MT 10 %", nivel="ISO 5817-C", t_min=P["rim_t"])
     if g.modo == 2:
         _welds_pivotado(ctx, add_n, c)
     INS = m.info.get("refuerzo")
@@ -389,8 +395,15 @@ def build_welds(ctx):
         add_n(9, "Collar del pivote – plancha base", "BAS-002 / BAS-001", "Filete perimetral continuo", "fillet", core=(g.w_collar, f"calculado (memoria, collar del pivote); mín. AWS D1.1:2020 Tabla 7.7 = {c('Collar: filete mínimo')}"), t=g.h_boss,
             len_total=math.pi * g.D_boss, wps=4, end="VT 100 % · MT 100 %", contorno=True)
     ois = [o for o in m.info.get("orejas_refuerzo", [])]
-    add_n(10, "Orejas de izaje – plancha base" + (f" ({len(ois)} sobre el refuerzo de esquina)" if ois else ""), "IZA-001 / BAS-001" + (f", {sc_('refuerzo')}" if ois else ""), "Filete en T, ambos lados, L = 2R", "fillet", core=(P["w_ear"], f"calculado (memoria, orejas de izaje); mín. AWS D1.1:2020 Tabla 7.7 = {c('Oreja: filete mínimo')}"), t=P["t_ear"],
-        len_total=4 * 2 * 2 * P["R_ear"], wps=5, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_ear'], 0)}"))
+    INS0 = m.info.get("refuerzo")
+    j10_pre = (max(P["t_ear"], tb, float(INS0["t_d"]) if (ois and INS0) else 0.0) if BX else None)   # rev. 9c: parte más gruesa de la junta (base 22 o refuerzo 45), no la oreja
+    j10 = add_n(10, "Orejas de izaje – plancha base" + (f" ({len(ois)} sobre el refuerzo de esquina)" if ois else ""), "IZA-001 / BAS-001" + (f", {sc_('refuerzo')}" if ois else ""), "Filete en T, ambos lados, L = 2R", "fillet", core=(P["w_ear"], f"calculado (memoria, orejas de izaje); mín. AWS D1.1:2020 Tabla 7.7 = {c('Oreja: filete mínimo')}"), t=P["t_ear"],
+        len_total=4 * 2 * 2 * P["R_ear"], wps=5, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_ear'], 0)}"), t_pre=j10_pre)
+    if BX:
+        j10["origen"] += f" (el núcleo toma la parte más gruesa; por la más delgada, oreja de {fm(P['t_ear'], 0)} con bajo hidrógeno: {fm(fillet_min(P['t_ear']), 0)} mm)"
+        if ois and INS0:
+            j10["pre_txt"] = (f"{propuestas.precalentamiento(j10_pre)} °C mín. (parte más gruesa: refuerzo de esquina de {fm(INS0['t_d'], 0)} mm en las {len(ois)} orejas sobre el refuerzo; "
+                              f"en las otras, sobre la base de {fm(tb, 0)}: {propuestas.precalentamiento(max(P['t_ear'], tb))} °C)")
     if INS:
         _welds_refuerzo(ctx, add, INS, sc_)
     # MES
@@ -432,6 +445,8 @@ def build_welds(ctx):
     j18 = add_n(18, "Cierre de la plancha superior (soldadura de ranura sobre almas y nervios)", "MES-001 / MES-005…010", f"Ranura 22×80 c/250, relleno completo ({n_sl} ranuras, tabla de MES-001)", "slot", t=g.tt, groove=True, prep="Ranura rectangular 22×80 pasante, relleno completo",
         prep_txt="", len_txt="80", nivel="ISO 5817-C", end="VT 100 % · MT 100 %", len_total=n_sl * 80.0, wps=12, modelada=False, nota="Ranuras no modeladas en 3D; posiciones en la tabla de MES-001 (PROPUESTA, confirmar)")
     j18.update(size_txt="c22", len_txt=f"{n_sl} × 80 (250)")
+    if BX and g.mesa_entera and SM:
+        _welds_mesa_bx(ctx, add, add_n, SM, W_)
     if g.opt and g.removable:
         tpb = g.tope("base")
         if tpb:
@@ -462,7 +477,7 @@ def build_welds(ctx):
         w["len_txt"] = w.get("len_txt", "")
     # respaldo de las CJP (B-32): removible (MR) donde la cara queda funcional; permanente (M) en el interior de la mesa
     for w in W_:
-        if w["groove"] and "respaldo" in w["prep"] and not w.get("refuerzo_j") and not w.get("backing"):
+        if w["groove"] and "respaldo" in w["prep"] and not w.get("refuerzo_j") and not w.get("backing") and not w.get("no_backing"):
             mr = any(x in w["desc"] for x in ("Empalmes de los anillos", "Plancha superior – anillo", "Plancha inferior – anillo"))
             w["backing"] = "MR" if mr else "M"
             w["backing_txt"] = "MR: respaldo removible cerámico (PROPUESTA)" if mr else "M: respaldo permanente de acero 6×40 (PROPUESTA)"
@@ -475,7 +490,7 @@ def build_welds(ctx):
     for n in sorted(grp):
         sub = {}
         for w in grp[n]:
-            sub.setdefault((propuestas.wps_family(w), propuestas.precalentamiento(w["t_pre"])), []).append(w)
+            sub.setdefault((propuestas.wps_family(w), propuestas.pre_of(w)), []).append(w)
         for i, (_k, ws) in enumerate(sorted(sub.items(), key=lambda kv: (any(w.get("refuerzo_j") for w in kv[1]), kv[1][0]["id"]))):
             if i == 0:
                 continue
@@ -484,6 +499,85 @@ def build_welds(ctx):
             nxt += 1
     ctx.welds = W_
     return W_
+
+
+def _welds_mesa_bx(ctx, add, add_n, SM, W_):
+    """TT300-BX rev. 9c (mesa de plancha entera, auditoría de soldaduras): las celdas quedan cerradas al montar la plancha superior, así que J14/J15 son
+    filetes SOLO a la plancha inferior (y en los extremos de los nervios), la plancha superior se une por las ranuras rellenas J18 (AISC 360-22 §J2.3b,
+    geometría del bloque bx.mesa.soldaduras.ranuras), el cubo va con J17a (PJP en T con el bisel en la pared del cubo, desde arriba antes de cerrar) y J17b
+    (filete en el agujero central de la plancha superior, accesible con la mesa cerrada), y los extremos de los nervios contra el cubo son J15b (precalentamiento
+    por la pared de 80 del cubo). El empalme de las almas J16 pasa a la junta precalificada B-U2a. Todos los tamaños salen del JSON (núcleo BX)."""
+    P, g, D = ctx.P, ctx.g, ctx.D
+    byid = {w["id"]: w for w in W_}
+    sc = lambda k: ctx.code(k).replace(CODE + "-", "").replace("-" + REV, "") if ctx.m.get(k) else k
+    cI, cS, cH = sc("mesa_plancha_inf"), sc("mesa_plancha_sup"), sc("mesa_cubo")
+    RG, CB = SM.get("ranuras") or {}, SM.get("cubo") or {}
+    t_hub = (P["D_hub"] - g.d_bush) / 2
+    rin = D["almas"]
+    N, n_tr = int(P["N_rib"]), len(D["almas"])
+    zmin_ = fillet_min(min(P["t_web"], g.tbo))
+    w = byid.get("J14")
+    if w:
+        w.update(desc="Almas anulares – plancha inferior", piezas=f"MES-005…007 / {cI}",
+                 tipo="Filete en T, ambos lados, continuo, SOLO a la plancha inferior (la superior: J18)",
+                 len_total=sum(2 * 2 * math.pi * r for r in rin), t_pre=float(max(P["t_web"], g.tbo)),
+                 origen=f"calculado (memoria, almas y nervios); mín. T. 7.7 / J2.4 (parte más delgada) = {fm(zmin_, 0)}; §J2.2b no aplica (filete en T)")
+    w = byid.get("J15")
+    if w:
+        L_rib = sum(rib_lengths(ctx))
+        w.update(desc="Nervios radiales – plancha inferior y almas (extremos)", piezas=f"MES-008…010 / {cI}, MES-005…007",
+                 tipo="Filete en T, ambos lados, continuo: a la plancha inferior y en los extremos contra las almas (la superior: J18; contra el cubo: J15b)",
+                 len_total=N * (2 * L_rib + 2 * (2 * n_tr - 1) * g.hw), t_pre=float(max(P["t_rib"], g.tbo)),
+                 origen=f"calculado (memoria, almas y nervios); mín. T. 7.7 / J2.4 (parte más delgada) = {fm(zmin_, 0)}; §J2.2b no aplica (filete en T)")
+        j15b = add("Nervios del tramo 1 – cubo (extremos)", f"MES-008 / {cH}", f"Filete en T, ambos lados, vertical (3F) en el extremo de cada nervio del tramo 1 contra la cara del cubo ({N} nervios)", "fillet",
+                   core=(P["w_web"], f"calculado (memoria, soldadura de almas y nervios); mín. AWS D1.1:2020 Tabla 7.7 / AISC 360-22 Tabla J2.4 por la parte más delgada = {fm(fillet_min(P['t_rib']), 0)}"),
+                   t=P["t_rib"], t_pre=t_hub, len_total=N * 2 * g.hw, wps=7, end="VT 100 % · MT 100 %", other=dict(kind="fillet", size=f"z{fm(P['w_web'], 0)}"), jid="J15b",
+                   nota=f"precalentamiento por la parte más gruesa: pared del cubo de {fm(t_hub, 0)} mm (AWS D1.1:2020 Tabla 5.8)")
+        W_.remove(j15b)
+        W_.insert(W_.index(w) + 1, j15b)
+    w = byid.get("J16")
+    if w:
+        w.update(tipo="A tope en V simple 45° (1 por alma), CJP precalificada B-U2a con respaldo permanente", prep="V 45°, abertura de raíz R = 6, talón f = 0, respaldo permanente M de acero 6×40",
+                 prep_txt="45°", backing="M", backing_txt="M: respaldo permanente de acero 6×40 (PROPUESTA)", det=dict(ang=45.0, root=6.0, face=0.0),
+                 fam_txt="Ranura en V simple 45° a tope con respaldo permanente de acero (R = 6, f = 0), penetración completa (CJP): AWS D1.1:2020 Figura 5.1, B-U2a (SMAW); con GMAW/FCAW, B-U2a-GF (verificar R y α en la edición vigente)",
+                 pasadas_txt=f"{w['pasadas']} (raíz sobre respaldo + relleno + tapa)")
+    A_ = CB.get("J17a")
+    w = byid.get("J17a")
+    if w and A_:
+        S_, E_, z_ = float(A_["S"]), float(A_["E"]), float(A_["z_refuerzo"])
+        org = f"núcleo BX (bx.mesa.soldaduras.cubo.J17a: FU {fm(A_['fu'], 3)} con H = {fm(CB['H_kN'], 1)} kN; {A_['norma']})"
+        w.update(desc="Cubo – plancha inferior (PJP en T, bisel 45° en la pared del cubo)", piezas=f"{cH} / {cI}", sym="bevel",
+                 tipo=f"PJP en T: bisel simple 45° × {fm(S_, 0)} en el canto exterior inferior de la pared del cubo ({fm(A_['t_pared'], 0)} mm junto al rebaje), E = {fm(E_, 0)} = S − 3, sin placa de apoyo; filete de refuerzo z{fm(z_, 0)}; soldada desde arriba antes de cerrar la mesa",
+                 prep=f"Bisel 45° × {fm(S_, 0)} en el cubo (la parte biselada es la pared del cubo), abertura de raíz 0–2 mm; filete de refuerzo z{fm(z_, 0)} sobre la plancha",
+                 prep_txt="45°", t=S_, pjp=(S_, E_), refuerzo=z_, size_txt=f"s{fm(E_, 0)} + z{fm(z_, 0)}", garganta=f"PJP: S = {fm(S_, 0)}, E = {fm(E_, 0)}; filete de refuerzo z{fm(z_, 0)}",
+                 cateto=f"z = {fm(z_, 0)} (refuerzo)", pasadas=passes(t=S_, groove=True) + passes(z=z_), origen=org, t_pre=t_hub, en_T=False, no_backing=True,
+                 en_T_pjp=dict(t=float(g.tbo), tw=float(A_["t_pared"]), S=S_, E=E_, z=z_), end="VT 100 % · MT 100 %", len_total=float(A_["largo"]), nota=f"Acceso: {A_['acceso']}. {org}",
+                 other=dict(kind="fillet", size=f"z{fm(z_, 0)}"))
+        w.pop("txt_corto", None)
+    B_ = CB.get("J17b")
+    w = byid.get("J17b")
+    if w and B_:
+        zb = float(B_["z"])
+        org = f"núcleo BX (bx.mesa.soldaduras.cubo.J17b: FU {fm(B_['fu'], 3)} con H = {fm(CB['H_kN'], 1)} kN; {B_['norma']})"
+        w.update(desc=f"Cubo – plancha superior (filete en el agujero central Ø{fm(2 * B_['r'], 0)} de la plancha, sobre la cara del cubo)", piezas=f"{cH} / {cS}", sym="fillet", groove=False,
+                 tipo=f"Filete z{fm(zb, 0)} todo alrededor en el borde del agujero central Ø{fm(2 * B_['r'], 0)} de la plancha superior, sobre la cara superior del cubo: el canto exterior del cubo queda dentro de la mesa cerrada; esta unión se suelda desde arriba con la mesa cerrada",
+                 prep="Sin preparación", prep_txt="", t=float(g.tt), z=zb, a=round(zb * 0.7071, 1), size_txt=f"z{fm(zb, 0)}", garganta=f"a = {fm(zb * 0.7071, 1)}", cateto=f"z = {fm(zb, 0)}", pasadas=passes(z=zb),
+                 origen=org, t_pre=t_hub, en_T=False, contorno=True, end="VT 100 % · MT 100 %", len_total=float(B_["largo"]), nota=f"Acceso: {B_['acceso']}; holgura del cordón a la tapa retenedora {fm(B_['holgura_tapa'], 1)} mm. {org}",
+                 filete_agujero=dict(z=zb, t=float(g.tt), tw=float(B_["t_pared"]), r=float(B_["r"])), other=None)
+        w.pop("txt_corto", None)
+        w.pop("t_alma", None)
+    w = byid.get("J18")
+    if w and RG:
+        Wd, L, fl, n = float(RG["ancho"]), float(RG["L"]), float(RG["relleno"]), int(RG["n_total"])
+        Ar = Wd * (L - Wd) + math.pi * Wd * Wd / 4
+        w.update(desc="Cierre de la plancha superior: soldadura de ranura rellena sobre almas y nervios (no es CJP)", piezas=f"{cS} / MES-005…010",
+                 tipo=f"Ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, extremos semicirculares, relleno {fm(fl, 0)} ({n} ranuras, tabla de MES-001)",
+                 prep=f"Ranura pasante (ancho ≥ t + 8 = {fm(g.tt + 8, 0)}) cortada antes de montar; tiras de apoyo bajo la ranura: nota de MES-001", no_backing=True,
+                 len_total=float(RG["largo_total"]), size_txt=f"c{fm(Wd, 0)}", len_txt=f"{n} × {fm(L, 0)}", garganta=f"ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, relleno {fm(fl, 0)} (área {fm(Ar, 0)} mm²)", cateto="—",
+                 origen="núcleo BX (bx.mesa.soldaduras.ranuras; AISC 360-22 §J2.3)", t_pre=float(g.tt), t=fl,
+                 nota=f"Ranuras no modeladas en 3D; posiciones en la tabla de MES-001 (tramo 1 en nervios alternados si la separación transversal < 4·ancho)", slot=dict(w=Wd, L=L, t=float(g.tt), pitch=float(RG["paso_objetivo"])),
+                 fam_txt=f"Soldadura de ranura rellena {fm(Wd, 0)} × {fm(L, 0)} con extremos semicirculares, relleno completo {fm(fl, 0)} (AISC 360-22 §J2.3; AWS D1.1:2020, soldaduras de tapón y ranura precalificadas: verificar el artículo en la edición vigente), en posición plana; NO es CJP",
+                 pasadas_txt=f"{max(2, math.ceil(fl / 4.0))} capas (relleno completo, limpiando la escoria entre capas)")
 
 
 def _welds_refuerzo(ctx, add, INS, sc_):
@@ -536,7 +630,7 @@ def _welds_refuerzo(ctx, add, INS, sc_):
 
 def _weld_pasadores(ctx, add):
     """Pasadores de empuje soldados a ras (núcleo d537dda, pasadores_empuje.union): PJP en bisel 45° en el borde del agujero de cada anillo, toda la
-    circunferencia, arriba y abajo; esmerilada a ras. WPS calificada por ensayo (34CrNiMo6+QT no precalificado)."""
+    circunferencia, arriba y abajo; esmerilada a ras. WPS calificada por ensayo (acero bonificado no precalificado: material del JSON, 42CrMo4+QT en la rev. 9 de BX)."""
     PE = ctx.D.get("pasadores_empuje") or {}
     U = PE.get("union") or {}
     if not U or not ctx.m.get("pasadores"):
@@ -548,11 +642,16 @@ def _weld_pasadores(ctx, add):
     ME = g.mesa_entera                   # TT300-BX rev. 7c: los pasadores se sueldan a las planchas enteras (no hay anillos)
     cp, ca, cb = (ctx.code(k).replace(CODE + "-", "").replace("-" + REV, "") for k in ("pasadores",) + (("mesa_plancha_sup", "mesa_plancha_inf") if ME else ("mesa_anillo_sup", "mesa_anillo_inf")))
     w = add(f"Pasadores de empuje – {'planchas enteras' if ME else 'anillos'} superior e inferior (PJP en bisel 45° S{f(S_)}/E{f(E_)}, toda la circunferencia, arriba y abajo; esmerilada a ras)", f"{cp} / {ca}, {cb}",
-            f"PJP en bisel 45° en el borde del agujero {'de la plancha' if ME else 'del anillo'}, alrededor del pasador, en la cara superior del disco y en la cara inferior de la mesa; esmerilada a ras; sin filete abajo",
+            f"PJP en bisel 45° en el borde del agujero {'de la plancha' if ME else 'del anillo'}, alrededor del pasador, en la cara superior del disco y en la cara inferior de la mesa; esmerilada a ras; " + ("enrasada abajo (apoyo de la lámina inoxidable INT-021)" if (g.opt == 4 and ctx.m.get("int_bx_lamina")) else "sin filete abajo"),
             "bevel", t=S_, t_pre=max(g.tpr, g.d_pin),
             prep=f"Bisel 45° × {f(S_)} en el borde del agujero Ø{f(g.d_pin)} H7 de cada {'plancha' if ME else 'anillo'} (cara exterior), E = {f(E_)} = S − 3; pasador montado (m6/H7) antes de soldar",
             prep_txt="45°", groove=True, len_total=2 * n * float(U.get("largo_por_extremo", math.pi * g.d_pin)), wps=16, end="VT 100 % · MT 100 % (48 h)", jid="J-P1",
             nota=f"{org}. {PE.get('soldabilidad', '')}")
+    if g.opt == 4:                       # rev. 9c: material del pasador desde el JSON (42CrMo4+QT de stock, rev. 9); sin columna FCAW
+        mat_ = str(PE.get("material") or "").split(";")[0].split(" (")[0] or "pasador"
+        w.update(fam_txt=f"Pasador {mat_} a plancha {'ASTM A572 Gr. 50' if ME else 'S355/A572'}: ranura PJP con bisel 45° en el borde del agujero {'de la plancha' if ME else 'del anillo'}, toda la circunferencia, esmerilada a ras. "
+                         "Acero NO precalificado (AWS D1.1:2020 Tabla 5.3): WPS CALIFICADA POR ENSAYO (cláusula 6, PQR con dureza ZAC ≤ 350 HV10); precalentamiento por el Anexo B",
+                 corr_fcaw="No aplica: solo los procesos y consumibles H4 del PQR")
     w.update(pjp=(S_, E_), pjp_ras=True, pasador_soldado=True, size_txt=f"s{f(E_)}", garganta=f"PJP: S = {f(S_)}, E = {f(E_)} (a ras)", origen=org, contorno=True,
              pre_txt="WPS calificada: precalentamiento según AWS D1.1:2020 Anexo B (control de hidrógeno; del orden de 250–300 °C, núcleo); enfriamiento lento",
              interpase_txt=("≤ 300 °C y bajo la temperatura de revenido del QT (42CrMo4+QT de stock, sin banda templada; TT300-BX rev. 9)" if ((getattr(g, "bx", None) or {}).get("materiales") or {}).get("pasadores_empuje") else "≤ 300 °C (núcleo); banda templada ≤ 200 °C"),
@@ -584,7 +683,10 @@ def _welds_pivotado(ctx, add_n, c):
         pz = [x for x in jn["piezas"]]
         pzs = " / ".join(dict.fromkeys(code_of(x) for x in pz))
         tbase_ = float(INS["t"]) if INS else float(g.tb)
-        ts = [float(loc[x]["t"]) for x in pz if x in loc] + ([tbase_] if "base" in pz else [])
+        # rev. 9c (BX): INS["t"] es la cota de la cara superior del refuerzo (base + refuerzo = 67), no un espesor: el precalentamiento va por la parte más
+        # gruesa de la junta, el refuerzo de t_d = 45 (AWS D1.1:2020 Tabla 5.8), como en las juntas del propio refuerzo
+        tpre_b = (float(INS["t_d"]) if INS else float(g.tb)) if g.opt == 4 else tbase_
+        ts = [float(loc[x]["t"]) for x in pz if x in loc] + ([tpre_b] if "base" in pz else [])
         t_pre = max(ts + [float(S["t_pared"])])
         ver = jn.get("verificacion") or {}
         org = f"núcleo (soporte_E.juntas {jn['id']}: FU {fm(ver['fu'], 3)}; {ver.get('norma', '')})" if ver.get("fu") is not None else "núcleo (soporte_E.juntas)"
@@ -606,6 +708,10 @@ def _welds_pivotado(ctx, add_n, c):
             w["size_txt"] = f"s{fm(tam['CJP'], 0)} + z{fm(zr, 0)}"
             w["garganta"] = f"CJP t = {fm(tam['CJP'], 0)}; filete de refuerzo z{fm(zr, 0)}"
         w["cateto"] = f"z = {fm(zr, 0)} (refuerzo)"
+        if g.opt == 4 and not pjp:           # rev. 9c: TC-U4b sin respaldo (resanado de raíz y pasada de cierre), no «con respaldo»
+            w["fam_txt"] = ("Ranura con bisel simple 45° en T o en esquina, penetración completa (CJP) SIN respaldo: resanado de raíz y pasada de cierre por el otro lado; "
+                            "AWS D1.1:2020 Figura 5.1, TC-U4b; filete de refuerzo según la tabla de soldaduras")
+            w["pasadas_txt"] = f"{w['pasadas']} (raíz + relleno + tapa; resanado y pasada de cierre por el otro lado)"
         w["soporte_E"] = jn
         # espesores del esquema de junta: pieza que se suelda (alma) y la que la recibe (plancha)
         w["t_alma"] = float(loc[pz[0]]["t"]) if pz[0] in loc else float(S["t_pared"])
@@ -650,6 +756,15 @@ def ranuras_cierre(ctx):
     P, g, D = ctx.P, ctx.g, ctx.D
     out = []
     nr = int(P["N_rib"])
+    RG = ((((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}).get("ranuras") if g.opt == 4 else None)
+    if RG:                               # TT300-BX rev. 9c: geometría y posiciones de la ranura según AISC 360-22 §J2.3b (núcleo BX)
+        for a in RG["almas"]:
+            out.append((a["elemento"], f"sobre el eje R{fm(a['r'], 0)}; L = {fm(a['L'], 0)}", f"{fm(a['a0_deg'], 3)}° + {fm(a['paso_deg'], 3)}°·k", a["n"]))
+        for t_ in RG["tramos"]:
+            k_ = int(t_["cada_k_nervios"])
+            ang_ = f"ángulos de los nervios ({nr})" if k_ == 1 else f"nervios alternados: 1 de cada {k_} (N° 1, {1 + k_}, {1 + 2 * k_}, …)"
+            out.append((t_["elemento"], f"sobre el eje del nervio, centro{'s' if len(t_['centros']) > 1 else ''} a {', '.join('R' + fm(c, 0) for c in t_['centros'])}; L = {fm(t_['L'], 0)}", ang_, int(t_["n"])))
+        return out
     for i, r in enumerate(D["almas"]):
         n = max(1, round(2 * math.pi * r / 250.0))
         out.append((f"Alma A{i + 1}", f"sobre el eje R{fm(r, 0)}", f"{fm(180.0 / n, 3)}° + {fm(360.0 / n, 3)}°·k", n))
@@ -714,6 +829,13 @@ def tol_txt(d, code):
     return f"Ø{fm(d, 0)} {code} ({iso286.fmt_dev(d, code)})"
 
 
+def inox_juntas_txt(ctx):
+    """TT300-BX: texto de las soldaduras con aporte 309L del juego (lámina o disco inoxidable de la mesa), sin las barras del rebaje UHMW que ya no existen."""
+    ids = [w["id"] for w in getattr(ctx, "welds", []) if "309L" in w["aporte"] and not w.get("pasador_soldado")]
+    pz = "lámina inoxidable " + ctx.code("int_bx_lamina").replace(CODE + "-", "").replace("-" + REV, "") + " soldada a la plancha inferior de la mesa" if ctx.m.get("int_bx_lamina") else "disco inoxidable de la mesa"
+    return f"{pz}: {', '.join(ids)}"
+
+
 def inspecciones(ctx):
     g, P = ctx.g, ctx.P
     L = [
@@ -728,7 +850,7 @@ def inspecciones(ctx):
         ("Soldadura", "Inspección visual VT 100 % (ISO 17637 / AWS D1.1:2020 cláusula 8) de todas las juntas del programa antes de cualquier END.", "100 %", "VT"),
         ("Soldadura", "Partículas magnéticas MT en filetes críticos (" + ("mejillas, collar, orejas de izaje, bancadas" if g.modo == 1 else "PJP y filetes de refuerzo del soporte del ojal E, collar, orejas de izaje") + (", pórticos y prolongaciones de la leva" if g.FLG else "") + (", topes de la interfaz" if g.opt and g.removable else "") + ", almas y nervios) y en ranuras; 10 % en marco" + (" y anillo de la madera" if g.wood else "") + ".", "Según programa (100 % / 10 %)", "MT"),
         ("Soldadura", "Ultrasonido UT de uniones CJP (" + ("" if g.mesa_entera else "anillos, ") + "planchas de la mesa, cubo, empalmes de almas" + (", paredes y muñones del soporte del ojal E" if g.modo == 2 else "") + ("; pasadores de empuje–" + ("planchas" if g.mesa_entera else "anillos") + " (PJP, tras el esmerilado a ras)" if ctx.m.info.get("pasadores_empuje") else "") + "), según AWS D1.1:2020 cláusula 8 (cargas estáticas). Los filetes (collar, orejas de izaje) se controlan con MT 100 % y medición del tamaño; UT de laminación de la plancha base bajo esos filetes (ASTM A578 nivel B).", "100 %", "UT"),
-        *([("Soldadura", "Líquidos penetrantes PT en soldaduras de acero inoxidable (barras del rebaje UHMW).", "100 %", "PT")] if any("ER309L" in w["aporte"] for w in getattr(ctx, "welds", [])) else []),
+        *([("Soldadura", "Líquidos penetrantes PT en soldaduras de acero inoxidable (" + (inox_juntas_txt(ctx) if g.opt == 4 else "barras del rebaje UHMW") + ").", "100 %", "PT")] if any("ER309L" in w["aporte"] for w in getattr(ctx, "welds", [])) else []),
         *([("Dimensional", (lambda I_: f"Refuerzos de esquina ({ctx.code('refuerzo').replace(CODE + '-', '')}, {len(I_['esquinas'])} u.): cantos exteriores al ras de los bordes de la base (±1; PJP J-R3 esmerilada al ras); "
                                          f"contacto con la base ≤ 1 mm antes de los tapones (galga); cara superior plana 1 mm en {fm(I_['lado'], 0)} (apoyo de las piezas soldadas encima); "
                                          f"base al ras sobre la losa (sin ventanas). VT 100 % de J-R1…J-R{len(I_.get('juntas') or [])}; MT de tapones y PJP.")(ctx.m.info["refuerzo"]), "100 %", "Regla, galgas, MT")]
@@ -810,6 +932,11 @@ def pintura(ctx):
 
 
 REF_GEN_TIT = "NOTAS GENERALES: VER GEN-001"
+def gen_sec(ctx):
+    """Lámina con las notas y secuencias del programa de soldaduras: en TT300-BX van siempre en GEN-014 (continuación de GEN-007, rev. 9c)."""
+    return "GEN-014 (notas del programa de soldaduras)" if ctx.g.opt == 4 else "GEN-007"
+
+
 REF_GEN = "Tolerancias y ajustes: GEN-004 · materiales y certificados: GEN-005 · tratamientos y pintura: GEN-006 · soldaduras: GEN-007 y GEN-012 · inspección: GEN-003 · tornillería y compras: GEN-008."
 
 

@@ -132,7 +132,7 @@ def cut_rows(ctx):
             i_ = int(p.key[-1])
             hol = (m.info.get("nervio_holgura") or [2.0] * 9)[i_]
             R.append([p.code.replace(CODE + "-", ""), p.name, "Plancha e = %s (anidado GEN-010/013)" % f(P["t_rib"]), f"{fm(L_ + 4, 0)}×{f(g.hw + 4)}×{f(P['t_rib'])}", str(p.qty), p.material[:44],
-                      f"largo de corte {fm(L_ + 4, 0)} = terminado {fm(L_, 0)} (entre caras del nervio; = entre caras de cubo/almas {fm(L_ + hol, 0)} − {fm(hol, 0)} de holgura) + 2 × 2 de sobremetal; destijeres 15 × 15"])
+                      f"largo de corte {fm(L_ + 4, 0)} = terminado {fm(L_, 0)} (entre caras del nervio; = entre caras de cubo/almas {fm(L_ + hol, 0)} − {fm(hol, 0)} de holgura) + 2 × 2 de sobremetal; " + (_dest_txt(g) if i_ == 0 else "destijeres 15 × 15")])
     add("mesa_cubo", "Anillo", f"Ø{f(P['D_hub'] + 10)}/Ø{f(g.d_bush - 10)}×{f(g.hw + 5)}")
     add("pasadores", "Barra", f"Ø{f(g.d_pin + 5)}×{f(g.hd + 6)}", ("Largo terminado = alto del disco (a ras, se esmerila después de soldar); sin rosca (núcleo pasadores_empuje)" if m.info.get("pasadores_empuje") else ""))
     add("arandela_pasador", "Disco", f"Ø{f(g.washer_D + 5)}×{f(g.washer_t + 2)}", f"Plancha de {f(g.washer_t + 2)}: caras rectificadas a {f(g.washer_t)}; agujero Ø{f(g.washer_d)}")
@@ -196,3 +196,10 @@ def cut_rows(ctx):
     if g.wood:
         add("madera_anillo", "Pletina rolada", f"{fm(g.t_ring, 0)}×{f(P['t_wood'])}×{f(math.pi * (P['D_top'] - g.t_ring) + 20)}", "Adoptado por el mandante (S06); 1 empalme CJP")
     return R
+
+
+def _dest_txt(g):
+    """Destijeres del tramo 1 (TT300-BX rev. 9c: la esquina inferior contra el cubo libra el cordón de J17a)."""
+    import modelo3d_tt300c as M3
+    d = M3.dest_cubo(g)
+    return f"destijer {fm(d, 0)} × {fm(d, 0)} (esquina inferior contra el cubo) y 15 × 15 (otras 3)" if d else "destijeres 15 × 15"

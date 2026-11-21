@@ -21,6 +21,12 @@ def precalentamiento(t, categoria="B"):
     return 0 if t <= 19 else 10 if t <= 38 else 65 if t <= 65 else 110
 
 
+def pre_of(w):
+    """Precalentamiento mínimo de la junta w (°C): el fijado por la fuente (w["pre_c"], p. ej. el procedimiento del cilindro del núcleo, más exigente) o el de
+    AWS D1.1:2020 Tabla 5.8 por la parte más gruesa (w["t_pre"]). Una sola fuente para la tabla de WPS, el agrupamiento y los símbolos."""
+    return w["pre_c"] if w.get("pre_c") is not None else precalentamiento(w["t_pre"])
+
+
 def pre_txt(t):
     v = precalentamiento(t)
     return "sin precalentar (T ≥ 10 °C, seco)" if v == 0 else f"{v} °C mín."
@@ -85,15 +91,17 @@ def wps_rows(ctx):
         ws = grp[n]
         fam = wps_family(ws[0])
         tmax = max(x["t_pre"] for x in ws)
-        if fam in ("CJP-V", "CJP-BISEL"):
+        if ws[0].get("pasadas_txt"):
+            passes = ws[0]["pasadas_txt"]
+        elif fam in ("CJP-V", "CJP-BISEL"):
             passes = f"{max(x['pasadas'] for x in ws)} (raíz sobre respaldo + relleno + tapa)"
         else:
             passes = str(max(x["pasadas"] for x in ws))
-        assert len({wps_family(x) for x in ws}) == 1 and len({precalentamiento(x["t_pre"]) for x in ws}) == 1, f"WPS-P{n:02d} agrupa juntas de familia o rango de precalentamiento distintos"
+        assert len({wps_family(x) for x in ws}) == 1 and len({pre_of(x) for x in ws}) == 1, f"WPS-P{n:02d} agrupa juntas de familia o rango de precalentamiento distintos"
         fam_txt = ws[0].get("fam_txt") or FAM_TXT[fam][0]
         pre_ = ws[0].get("pre_txt") or (pre_txt(tmax) + f" (t mayor = {fm(tmax, 0)} mm)")
         int_ = ws[0].get("interpase_txt") or INTERPASE
-        rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), fam_txt, FAM_TXT[fam][1], ws[0].get("corr_gmaw") or CORR["GMAW"], ws[0].get("corr_smaw") or CORR["SMAW"], CORR["FCAW"], pre_, int_, passes])
+        rows.append([f"WPS-P{n:02d}", ", ".join(x["id"] for x in ws), fam_txt, FAM_TXT[fam][1], ws[0].get("corr_gmaw") or CORR["GMAW"], ws[0].get("corr_smaw") or CORR["SMAW"], ws[0].get("corr_fcaw") or CORR["FCAW"], pre_, int_, passes])
     return rows
 
 

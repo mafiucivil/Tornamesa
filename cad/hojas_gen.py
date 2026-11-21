@@ -6,6 +6,7 @@ from hojas_util import *
 import lista
 import propuestas
 import acc3d
+import hojas_base
 
 PLAN_GEN = []
 
@@ -15,9 +16,18 @@ def gen(fn):
     return fn
 
 
+# números de las hojas de continuación de las tablas largas (rev. 9c): antes la hoja n + 1 tomaba el número num0 + n y pisaba la lámina siguiente
+# (GEN-007 hoja 2 = GEN-008 de torques, GEN-005 hoja 2 = GEN-006 de tratamientos). Cada tabla tiene sus números libres propios; el índice de GEN-001
+# los lista. GEN-014: notas y secuencia del programa de soldaduras; GEN-020 y siguientes: brechas (GEN-009); GEN-025: grados (GEN-005).
+CONT_GEN = {3: [19], 5: [17, 24], 6: [18], 7: [15, 16], 9: [20]}
+
+
 class Gen(Pieza):
-    def __init__(self, ctx, num, titulo, fmt="A1"):
+    def __init__(self, ctx, num, titulo, fmt="A1", cont_of=None):
         self.ctx = ctx
+        # (el generador puede rehacer una lámina en A2: los códigos repetidos los detecta controles.codigos sobre las láminas emitidas)
+        if cont_of:
+            ctx.__dict__.setdefault("gen_cont", {})[num] = cont_of
         fmt = getattr(ctx, "gen_fmt", None) or fmt
         h = Hoja(ctx, f"GEN-{num:03d}", titulo, "S/E", fmt=fmt, material="No aplica (lámina de información)", masa="—", trat="—", serie="GEN")
         self.h = h
@@ -37,7 +47,10 @@ class Gen(Pieza):
         n = 0
         pend = rows
         while True:
-            g = self if n == 0 else Gen(self.ctx, num0 + n, f"{titulo_hoja} (HOJA {n + 1})")
+            if n:
+                lib = CONT_GEN.get(num0) or []
+                assert n - 1 < len(lib), f"GEN-{num0:03d}: la tabla necesita la hoja {n + 1} y no hay número de continuación libre (CONT_GEN)"
+            g = self if n == 0 else Gen(self.ctx, CONT_GEN[num0][n - 1], f"{titulo_hoja} (HOJA {n + 1}, CONTINUACIÓN DE GEN-{num0:03d})", cont_of=num0)
             R = g.R["main"]
             y, left = g.s.table(R[0], R[3], cols, pend, h=hh, ymin=R[1] + 4, title=title + (f" — hoja {n + 1}" if n else ""))
             out.append(g.h)
@@ -260,7 +273,15 @@ def tabla_indice(ctx, h, hojas):
         falt = [n for n in range(1, lim + 1) if n not in u]
         if falt:
             res.append(f"{sr}-" + ", ".join(f"{n:03d}" for n in falt))
-    txt = "Números no emitidos en este juego (reservados o anulados): " + ("; ".join(res) if res else "ninguno") + ". CON-030 y siguientes: hojas de continuación del despiece CON-002; GEN-021 y siguientes: continuación de GEN-009; GEN-025: continuación de GEN-005."
+    cont_ = getattr(ctx, "gen_cont", {}) or {}
+    if cont_:
+        par_ = {}
+        for k_, v_ in sorted(cont_.items()):
+            par_.setdefault(v_, []).append(k_)
+        cont_txt = "; ".join(f"{', '.join(f'GEN-{k_:03d}' for k_ in ks_)}: continuación de GEN-{v_:03d}" for v_, ks_ in sorted(par_.items()))
+    else:
+        cont_txt = "GEN-021 y siguientes: continuación de GEN-009; GEN-025: continuación de GEN-005"
+    txt = "Números no emitidos en este juego (reservados o anulados): " + ("; ".join(res) if res else "ninguno") + ". CON-030 y siguientes: hojas de continuación del despiece CON-002; " + cont_txt + "."
     s.notes_block(x, min(y1, y2) - 4, "NUMERACIÓN", [txt], h=T_N, width=w)
     return bool(l1 or l2)
 
@@ -272,7 +293,9 @@ def sheet_soldaduras_global(ctx):
     sc = (R[2] - R[0]) / sum(w for _, w, _ in WELD_COLS)
     cols = [(t, w * sc, a) for t, w, a in WELD_COLS]
     out, last, y = c.table_pages(cols, weld_rows(ctx), "PROGRAMA DE SOLDADURAS (Junta N°, piezas, tipo, preparación, garganta a, cateto z, longitud, pasadas, proceso, aporte, WPS, END)", "PROGRAMA DE SOLDADURAS", 7)
-    notas = ["Tamaños: los calculados en la memoria; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa y se rotula «mínimo AWS, a confirmar».",
+    notas = [("Tamaños: los calculados en la memoria y en el núcleo BX; donde no hay tamaño calculado se adopta un filete ≥ el mínimo de AWS D1.1:2020 Tabla 7.7 / AISC 360-22 Tabla J2.4 por la parte MÁS DELGADA "
+              "(procesos de bajo hidrógeno, los únicos admitidos en GEN-012) y se rotula «adoptado …, a confirmar». AISC 360-22 §J2.2b (máximo t − 2) se aplica solo a filetes a lo largo de un borde."
+              if ctx.g.opt == 4 else "Tamaños: los calculados en la memoria; donde el núcleo no fija el tamaño se adopta el mínimo AWS D1.1:2020 Tabla 7.7 por la parte más gruesa y se rotula «mínimo AWS, a confirmar»."),
              "a = 0,707·z (filete de lados iguales). Nº de pasadas: orientativo (WPS define). Aporte con resistencia a tracción ≥ %s MPa (E70xx)." % f(ctx.P["FEXX"]),
              "Todas las juntas llevan símbolo ISO 2553 con su número J## en las láminas de pieza o de subconjunto; la tabla de cada lámina repite las juntas que contiene.",
              "END: VT 100 % de todas las juntas; MT/UT/PT según columna (AWS D1.1 y BTH-1 Cat. B). Soldadores y WPS calificados por el fabricante."]
@@ -285,13 +308,18 @@ def sheet_soldaduras_global(ctx):
     if PE_ and jP_:
         notas.append(f"PASADORES DE EMPUJE SOLDADOS A RAS ({jP_['id']}; núcleo pasadores_empuje): {PE_['union']['tipo']}, S{f(PE_['union']['S'])}/E{f(PE_['union']['E'])}. "
                      f"Material {PE_['material'].split(';')[0]}: WPS CALIFICADA POR ENSAYO (no precalificada). {PE_.get('soldabilidad', '')} Limitación: {' '.join(PE_.get('limitaciones') or [])}")
+    SMs = (((getattr(ctx.g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}) if ctx.g.opt == 4 else {}
+    if SMs.get("secuencia"):              # rev. 9c: secuencia de la mesa cerrada (acceso de J17a, J17b, J14, J15 y J18)
+        ids_ = {w["id"] for w in ctx.welds}
+        notas.append("SECUENCIA DE SOLDADURA DE LA MESA (celdas cerradas; núcleo BX bx.mesa.soldaduras): " + " ".join(SMs["secuencia"]) + (" J15b (extremos de los nervios contra el cubo) con el precalentamiento de la pared del cubo." if "J15b" in ids_ else ""))
     W_ = min(700.0, R[2] - R[0] - 12.0)
     need = (T_N + 0.5) * 1.6 + sum(len(wrapw(f"{i + 1}. {n}", W_, T_N)) * T_N * 1.4 + T_N * 0.25 for i, n in enumerate(notas))
-    if y - 6 - need >= R[1] + 2:
+    if y - 6 - need >= R[1] + 2 and ctx.g.opt != 4:
         last.s.notes_block(R[0], y - 6, "NOTAS", notas, h=T_N, width=W_, numbered=True)
     else:
         # no caben en la última hoja de la tabla: hoja de continuación (notas y secuencia)
-        c2 = Gen(ctx, 14, "PROGRAMA DE SOLDADURAS (CONTINUACIÓN DE GEN-007): NOTAS Y SECUENCIA DE SOLDADURA")
+        # TT300-BX: las notas y secuencias van siempre en GEN-014 (las láminas de conjunto remiten a ella con un número fijo)
+        c2 = Gen(ctx, 14, "PROGRAMA DE SOLDADURAS (CONTINUACIÓN DE GEN-007): NOTAS Y SECUENCIA DE SOLDADURA", cont_of=7)
         R2 = c2.R["main"]
         c2.s.notes_block(R2[0], R2[3], "NOTAS DEL PROGRAMA DE SOLDADURAS (GEN-007)", notas, h=T_N, width=W_, numbered=True)
         out = out + [c2.h]
@@ -375,7 +403,7 @@ def sheet_materiales(ctx):
     else:
         _, left = last.s.table(R[0], y - 8, cols_g, gr, h=T_S, ymin=R[1] + 3, title=tit_g)
     if left:                                  # no cabe bajo la tabla de materiales: hoja de continuación
-        g2 = Gen(ctx, 25, "MATERIALES Y CERTIFICADOS (CONTINUACIÓN): GRADOS PROPUESTOS")
+        g2 = Gen(ctx, 25, "MATERIALES Y CERTIFICADOS (CONTINUACIÓN): GRADOS PROPUESTOS", cont_of=5)
         R2 = g2.R["main"]
         g2.s.table(R2[0], R2[3], cols_g, left, h=T_S, ymin=R2[1] + 3, title=tit_g + " (continuación)")
         out = list(out) + [g2.h]
@@ -747,7 +775,7 @@ def sheet_supuestos(ctx):
     n = 0
     while pend:
         n += 1
-        g2 = Gen(ctx, 20 + n, f"BRECHAS CON EL CÁLCULO (CONTINUACIÓN {n})")
+        g2 = Gen(ctx, 20 + n, f"BRECHAS CON EL CÁLCULO (CONTINUACIÓN {n})", cont_of=9)
         R2 = g2.R["main"]
         _, pend = g2.s.table(R2[0], R2[3], [("Id", 0.05 * w, "L"), ("Tema", 0.2 * w, "L"), ("Descripción", 0.40 * w, "L"), ("Decisión requerida", 0.35 * w, "L")], pend, h=T_S, ymin=R2[1] + 3, title="BRECHAS (continuación)")
         out.append(g2.h)
@@ -770,6 +798,19 @@ def sheet_verificacion(ctx):
     return c.h
 
 
+def _nota_bonificados_bx(ctx):
+    """TT300-BX rev. 9c (GEN-012): en la rev. 9 los pasadores E y Q y el pivote no tienen tratamiento térmico; el único acero bonificado que se suelda es el
+    pasador de empuje (J-P1, WPS calificada por el Anexo B); el bloque-uña 34CrNiMo6+QT no se suelda. Textos de material del JSON (bx.materiales)."""
+    MB = ((getattr(ctx.g, "bx", None) or {}).get("materiales") or {})
+    if not MB or ctx.g.modo != 2:
+        return None
+    jP = ctx.weld_find("Pasadores de empuje")
+    gr = lambda k, d: str((MB.get(k) or {}).get("grado") or d).split(" (")[0]
+    t = (f"Acero bonificado soldado: solo los pasadores de empuje {gr('pasadores_empuje', '42CrMo4+QT')} ({jP['id'] if jP else 'J-P1'}), con WPS calificada por ensayo y precalentamiento por AWS D1.1:2020 Anexo B. "
+         f"El bloque-uña {gr('bloque_una', '34CrNiMo6+QT')} NO se suelda. Pasadores E y Q ({gr('pasador_E', 'S355J2+N')}) y pivote ({gr('pivote', 'C45+N')}) sin tratamiento térmico: no llevan soldadura en este juego.")
+    return t
+
+
 @gen
 def sheet_wps(ctx):
     c = Gen(ctx, 12, "WPS PRECALIFICADOS PROPUESTOS POR TIPO DE JUNTA (AWS D1.1:2020 CLÁUSULA 5) Y PRECALENTAMIENTO")
@@ -787,6 +828,6 @@ def sheet_wps(ctx):
     s.notes_block(R[0] + 0.50 * w, y - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
                                        "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte con resistencia a tracción ≥ %s MPa." % f(ctx.P["FEXX"]),
                                        "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
-                                       *(["Soldadura de acero inoxidable 309L (barras del rebaje UHMW): sin precalentamiento; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), ("Aceros bonificados (pasadores, pivote, uña) NO se sueldan" + ("; excepción del núcleo: patas y tapas del pórtico de la leva en 42CrMo4+QT (J26/J27), solo con WPS calificado con PQR (requiere núcleo, GEN-009)." if g.FLG else ".")) if g.modo == 1 else "Aceros bonificados (pasadores E y Q, pivote, bloque-uña) NO se sueldan.",
+                                       *([f"Soldadura con aporte inoxidable 309L ({hojas_base.inox_juntas_txt(ctx) if g.opt == 4 else 'barras del rebaje UHMW'}): sin precalentamiento del inoxidable; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), (_nota_bonificados_bx(ctx) if g.opt == 4 else None) or (("Aceros bonificados (pasadores, pivote, uña) NO se sueldan" + ("; excepción del núcleo: patas y tapas del pórtico de la leva en 42CrMo4+QT (J26/J27), solo con WPS calificado con PQR (requiere núcleo, GEN-009)." if g.FLG else ".")) if g.modo == 1 else "Aceros bonificados (pasadores E y Q, pivote, bloque-uña) NO se sueldan."),
                                        "Soldadores calificados según AWS D1.1:2020 cláusula 6 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.49 * w, numbered=True)
     return c.h

@@ -2,6 +2,7 @@
 import math, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from pie_common import *
+import modelo3d_tt300c as M3_
 from hojas_base import ranuras_cierre
 from pie_a import ra, wd
 from soldadura_det import add_prep
@@ -260,16 +261,27 @@ def sheet_almas(ctx):
             for i, (k, r_) in enumerate(zip(ks, D["almas"]))]
     p.table_block("DESARROLLO DE LAS ALMAS (pletina rolada)", [("Alma", 14, "C"), ("Código", 24, "L"), ("Ø eje [mm]", 20, "R"), ("Ø ext. / Ø int.", 34, "R"), ("Desarrollo [mm]", 24, "R"), ("Suministro", 26, "L"), ("h × t", 16, "C")], rows)
     add_prep(p, "det_e", wd(ctx, ids[1]), t1=P["t_web"])
-    add_prep(p, "det_f", wd(ctx, ids[0]), t1=P["t_web"], t2=g.tt)
+    add_prep(p, "det_f", wd(ctx, ids[0]), t1=P["t_web"], t2=(g.tbo if (g.opt == 4 and g.mesa_entera) else g.tt))
     p.tables(ids)
     p.notes([f"Pletina {fm(P['t_web'], 0)} × {f(g.hw)} rolada a los radios de eje R = {', '.join(f(x) for x in D['almas'])} mm; desarrollo = 2πR.",
-             f"Cada alma tiene 1 empalme a tope V 60° ({ids[1]}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios.",
+             (f"Cada alma tiene 1 empalme a tope en V 45° con respaldo permanente 6×40, R = 6, f = 0 (B-U2a; {ids[1]}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios." if g.opt == 4 else
+              f"Cada alma tiene 1 empalme a tope V 60° ({ids[1]}), UT 100 %, esmerilado al ras; ubicar el empalme entre nervios."),
              f"Altura h = {f(g.hd)} − {f(g.tt)} − {f(g.tbo)} = {f(g.hw)} ±0,5 (altura de la mesa menos espesores de las planchas): cortar a medida y verificar con plantilla antes de armar la mesa.",
-             f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else "Cumple mínimo AWS y máximo AISC J2.2b."),
+             (f"Filete z{fm(P['w_web'], 0)} ambos lados SOLO contra la plancha inferior ({ids[0]}); la superior va por las ranuras {', '.join(jids(ctx, 'Cierre de la plancha')) or 'J18'} (celdas cerradas). AISC §J2.2b no aplica (filete en T)."
+              if (g.opt == 4 and g.mesa_entera) else
+              f"Filete a las planchas superior e inferior z{fm(P['w_web'], 0)} ambos lados continuo ({ids[0]}). " + ("El tamaño supera el máximo AISC J2.2b (t − 2): pendiente del calculista (GEN-009)." if P["w_web"] > P["t_web"] - 2 else "Cumple mínimo AWS y máximo AISC J2.2b.")),
              "Las almas son continuas; los nervios se cortan entre almas (ver MES-008…010)."],
             gd=[("perp", "0,5", "A", "Caras del alma perpendiculares a su canto inferior (A, apoyo en la plancha inferior); altura h ±0,5"), ("circ", "2,0", None, "Redondez del anillo rolado (desviación radial máx.)")])
     p.build()
     return p.h
+
+
+def _nota_dest_bx(ctx):
+    """TT300-BX rev. 9c: destijeres de los nervios (el del tramo 1 contra el cubo libra el cordón de J17a; núcleo BX bx.mesa.soldaduras.cubo)."""
+    dc_ = M3_.dest_cubo(ctx.g)
+    j17 = ", ".join(jids(ctx, "Cubo – plancha inferior")) or "J17a"
+    return ("Destijeres a 45° de 15 × 15 en las esquinas de cada tramo (dibujados), para el paso de los filetes de las almas (J14)"
+            + (f"; en la esquina inferior del tramo 1 contra el cubo, {fm(dc_, 0)} × {fm(dc_, 0)} para el paso del cordón de {j17} (PJP + filete; AISC 360-22 §J1.6)." if dc_ else "."))
 
 
 @pieza("mesa_nervio0", "mesa_nervio1", "mesa_nervio2")
@@ -297,9 +309,13 @@ def sheet_nervios(ctx):
 
         def d_(V, p, i=i, bb=bb, L=L):
             # N-04: destijeres dibujados (en el sólido) y acotados en una esquina
-            V.note_pt((bb.xmin + 7.5, 0.0, z0 + g.hw - 7.5), (12, 14), "destijer 15 × 15 a 45° (4 esquinas)", on=[ks[i] + "_1"], dot=True)
+            dc_ = M3_.dest_cubo(g) if i == 0 else None
+            V.note_pt((bb.xmin + 7.5, 0.0, z0 + g.hw - 7.5), (12, 14), "destijer 15 × 15 a 45° (4 esquinas)" if not dc_ else f"destijer 15 × 15 a 45° (3 esquinas); {fm(dc_, 0)} × {fm(dc_, 0)} abajo contra el cubo (J17a)", on=[ks[i] + "_1"], dot=True)
             if jn and i == len(ks) - 1:
                 w_out(p, jn[0], V, (bb.xmax, bb.ymin, z0 + g.hw / 2), "right", dy=12)
+            jb_ = jids(ctx, "Nervios del tramo 1 – cubo") if i == 0 else []
+            if jb_:                      # rev. 9c (BX): extremo del tramo 1 contra el cubo (J15b)
+                w_out(p, jb_[0], V, (bb.xmin, bb.ymin, z0 + g.hw / 2), "left", dy=12)
         # B-45: el alto (h) y el espesor se acotan una sola vez (tabla y tramo 1); cada tramo lleva su largo terminado entre caras
         p.vs(f"n{i}", [kl], "front", lv=(1, 2, 2, 2), extra=(0, 0, 100 if i == len(ks) - 1 else 0, 0), draw=d_, hatch=False,
              title=f"NERVIO TRAMO {i + 1} ({ctx.code(k).replace(CODE + '-', '')}) — {int(P['N_rib'])} unidades", w=1.2,
@@ -316,15 +332,27 @@ def sheet_nervios(ctx):
     arows = [[str(i + 1), fm(ang[i], 3) + "°", str(i + 1 + half) if i + half < len(ang) else "", (fm(ang[i + half], 3) + "°") if i + half < len(ang) else ""] for i in range(half)]
     p.table_block("POSICIÓN ANGULAR DE LOS NERVIOS (desde +x, antihorario)", [("N°", 12, "C"), ("Ángulo", 36, "R"), ("N°", 12, "C"), ("Ángulo", 36, "R")], arows)
     add_prep(p, "det_j", wd(ctx, jn[0]), t1=P["t_rib"], t2=g.tbo) if jn else None
-    p.tables(jn)
+    p.tables(jn + jids(ctx, "Nervios del tramo 1 – cubo"))
     p.notes([f"Pletina {fm(P['t_rib'], 0)} × {f(g.hw)}; {int(P['N_rib'])} nervios por tramo, 3 tramos (entre cubo, almas A1…A3 y borde exterior de los nervios a R{f(P['R_rib'])}).",
              "Corte por plasma anidado en plancha (GEN-010/013) con el largo de corte de la tabla (terminado + 2 × 2 de sobremetal); recortar al largo terminado acotado entre las caras del nervio, que deja 1 mm de holgura de armado contra cada cara de cubo o alma. "
-             "Destijeres a 45° de 15 × 15 en las 4 esquinas de cada tramo (dibujados), para el paso de los filetes de las almas (J14) y de las uniones del cubo (J17a/J17b).",
-             f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha inferior con plantilla angular ±0,1°.",
+             + (_nota_dest_bx(ctx) if g.opt == 4 else "Destijeres a 45° de 15 × 15 en las 4 esquinas de cada tramo (dibujados), para el paso de los filetes de las almas (J14) y de las uniones del cubo (J17a/J17b)."),
+             (f"Filete z{fm(P['w_web'], 0)} ambos lados SOLO contra la plancha inferior y en los extremos contra almas ({jn[0] if jn else 'J??'}) y cubo ({', '.join(jids(ctx, 'Nervios del tramo 1 – cubo')) or 'J15b'}); "
+              f"la plancha superior se une por las ranuras rellenas {', '.join(jids(ctx, 'Cierre de la plancha')) or 'J18'} (las celdas quedan cerradas); armar sobre la plancha inferior con plantilla angular ±0,1°."
+              if (g.opt == 4 and g.mesa_entera) else f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha inferior con plantilla angular ±0,1°."),
              "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior. Posición angular de cada nervio ±0,1° respecto de +x (tabla de ángulos)."],
             gd=[("straight", "1,0", None, "Rectitud del canto de apoyo de cada nervio")])
     p.build()
     return p.h
+
+
+def _nota_cubo_bx(ctx, jc):
+    """TT300-BX rev. 9c: uniones del cubo con las planchas (núcleo BX bx.mesa.soldaduras.cubo)."""
+    g = ctx.g
+    a_, b_ = ctx.weld_by_id(jc[0]), ctx.weld_by_id(jc[1])
+    S_, E_ = a_["pjp"]
+    return (f"Soldar a la plancha inferior con {jc[0]}: PJP en T con bisel 45° × {fm(S_, 0)} en el canto exterior inferior de la pared del cubo (E = {fm(E_, 0)}) y filete de refuerzo z{fm(a_['refuerzo'], 0)}, desde arriba con la mesa abierta; "
+            f"a la plancha superior con {jc[1]}: filete z{fm(b_['z'], 0)} todo alrededor en el agujero central Ø{fm(g.hole_top, 0)} de la plancha, sobre la cara superior del cubo, desde arriba con la mesa cerrada "
+            "(el canto exterior del cubo queda dentro de la mesa). Buje montado después de soldar y aliviar; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.")
 
 
 @pieza("mesa_cubo")
@@ -351,7 +379,11 @@ def sheet_cubo(ctx):
         if jc:
             w_out(p, jc[0], V, (P["D_hub"] / 2, 0, z0), "right", prep="45°", dy=-12)
             if len(jc) > 1:
-                w_out(p, jc[1], V, (P["D_hub"] / 2, 0, zt), "right", prep="45°", dy=12)
+                wb_ = ctx.weld_by_id(jc[1])
+                if g.opt == 4 and wb_ and not wb_["groove"]:     # rev. 9c: J17b es el filete en el agujero central de la plancha superior, sobre la cara del cubo
+                    w_out(p, jc[1], V, (g.hole_top / 2 - wb_["z"] / 2, 0, zt), "right", dy=12)
+                else:
+                    w_out(p, jc[1], V, (P["D_hub"] / 2, 0, zt), "right", prep="45°", dy=12)
     p.vs("corte", on, "front", cut=CUT_Y, lv=(1, 2, 2, 3), extra=(0, 0, 115, 0), draw=corte, title="CORTE A-A", hs=0.6, w=1.4,
          auto=dict(rev=(0, 0), fits={g.d_bush: "H7"}, rev_side="top", tol={round(g.hw, 1): " ±0,5"}, text={round(g.Drb, 1): f"Ø{f(g.Drb)} (rebaje del collar)"}))
     if g.rebaje and g.hHub > 0:
@@ -361,7 +393,8 @@ def sheet_cubo(ctx):
     p.tables(jc)
     p.notes([f"Anillo Ø{f(P['D_hub'])} / Ø{f(g.d_bush)} × {f(g.hw)} de plancha gruesa o tubo, corte a llama; agujero Ø{f(g.d_bush)} H7 y rebaje Ø{f(g.Drb)} en mandrinadora (sin torno vertical).",
              f"Ajuste del buje (PIV-002): {f(g.d_bush)} H7 / s6, prensado. Holgura radial del collar {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo).",
-             f"Soldar a las planchas inferior ({jc[0] if jc else 'J??'}) y superior ({jc[1] if len(jc) > 1 else 'J??'}), uniones en T con bisel 45° en el canto exterior del cubo; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.",
+             (_nota_cubo_bx(ctx, jc) if (g.opt == 4 and g.mesa_entera and ctx.weld_by_id("J17b") and not ctx.weld_by_id("J17b")["groove"]) else
+              f"Soldar a las planchas inferior ({jc[0] if jc else 'J??'}) y superior ({jc[1] if len(jc) > 1 else 'J??'}), uniones en T con bisel 45° en el canto exterior del cubo; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6."),
              "Perpendicularidad de las caras 0,10 y coaxialidad del agujero 0,05 respecto del eje del Ø exterior (A); el agujero se mandrina con la mesa armada, en línea con el eje de la mesa (CON-009)."],
             gd=[("coax", "Ø0,05", "A", "Ø%s H7 coaxial con el eje del Ø exterior (A); se mandrina con la mesa armada, en línea con el eje de la mesa" % f(g.d_bush)), ("perp", "0,10", "A", "Caras inferior y superior perpendiculares al eje A")])
     p.build()
@@ -412,7 +445,8 @@ def sheet_pasador(ctx):
              (f"Material y tratamiento (TT300-BX rev. 9): {PE.get('material')}. Fy ≥ {f(P['Fy_pin'])} MPa también en la superficie: el contacto de Hertz con el asiento del bloque-uña se verifica sin temple." if S9 else
               f"Material y tratamiento (núcleo pasadores_empuje.material): {PE.get('material', '34CrNiMo6+QT')}. Fy ≥ {f(P['Fy_pin'])} MPa; límite elástico superficial supuesto en el cálculo {f(P['Fy_surf'])} MPa; profundidad efectiva {g.z_hard_txt}."),
              (f"Montaje: {PE.get('ajuste', 'Ø m6 en agujero H7')}. Unión {jP['id'] if jP else 'J-P1'}: {U.get('tipo', 'PJP en bisel 45°')} (S{f(U.get('S', 0))}/E{f(U.get('E', 0))}; núcleo FU {fm(U.get('fu', 0), 3)}); "
-              "sin filete abajo (cara de deslizamiento) y nada sobre el disco.") if U else "Montaje en los anillos H7/m6.",
+              + ("enrasada abajo, sin filete: la cara inferior de la mesa y de los pasadores es el apoyo de la lámina inoxidable INT-021, que los cubre (separación lámina–plancha ≤ g₀); nada sobre el disco."
+               if (g.opt == 4 and ctx.m.get("int_bx_lamina")) else "sin filete abajo (cara de deslizamiento) y nada sobre el disco.")) if U else "Montaje en los anillos H7/m6.",
              (f"Soldabilidad y precalentamiento (AWS D1.1:2020 Anexo B): {PE.get('soldabilidad', '')}" if S9 else f"Soldabilidad (núcleo): {PE.get('soldabilidad', '')}"),
              f"Sin rosca, perno ni arandela: MES-013 (perno ISO 4762 M20×45) y MES-014 (arandela) ELIMINADOS por el núcleo ({'; '.join(PE.get('eliminado') or [])}).",
              *[f"LIMITACIÓN (núcleo): {x}" for x in lim],

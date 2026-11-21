@@ -74,6 +74,16 @@ ISO273 = {4: 4.5, 5: 5.5, 6: 6.6, 8: 9.0, 10: 11.0, 12: 13.5}       # agujero pa
 ISO10642_DK = {4: 8.0, 5: 10.0, 6: 12.0, 8: 16.0, 10: 20.0, 12: 24.0}  # Ø de la cabeza avellanada
 ISO10642_L = [8, 10, 12, 16, 20, 25, 30, 35, 40, 45, 50]
 DEST = 15.0                     # destijeres de los nervios (N-04): 15 × 15 a 45°
+
+
+def dest_cubo(g):
+    """TT300-BX rev. 9c: destijer de la esquina inferior del nervio del tramo 1 contra el cubo, que libra el cordón de J17a (PJP + filete; núcleo BX
+    bx.mesa.soldaduras.cubo.destijer_cubo, AISC 360-22 §J1.6). None fuera de BX (destijer DEST en las 4 esquinas, como antes)."""
+    if getattr(g, "opt", 0) != 4:
+        return None
+    c = ((((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}).get("cubo") or {})
+    v = c.get("destijer_cubo")
+    return float(v) if v and float(v) > DEST else None
 GAP_NERVIO = 1.0                # holgura de armado de cada extremo del nervio contra el cubo o el alma
 
 
@@ -763,8 +773,10 @@ def build(D, verbose=True):
         # destijeres a 45° de DEST × DEST en las 4 esquinas del tramo (paso de los filetes J14 y de la CJP del cubo; N-04)
         zb_, zt_ = z0 + tbo, z0 + tbo + hw
         dest = []
+        dc_ = dest_cubo(g) if i == 0 else None
         for (xq_, zq_, sx, sz) in ((a0, zb_, 1, 1), (a0, zt_, 1, -1), (a1, zb_, -1, 1), (a1, zt_, -1, -1)):
-            pts_ = [(xq_ - sx * 1.0, zq_ - sz * 1.0), (xq_ + sx * DEST, zq_ - sz * 1.0), (xq_ + sx * DEST, zq_), (xq_, zq_ + sz * DEST), (xq_ - sx * 1.0, zq_ + sz * DEST)]
+            D_ = dc_ if (dc_ and xq_ == a0 and zq_ == zb_) else DEST
+            pts_ = [(xq_ - sx * 1.0, zq_ - sz * 1.0), (xq_ + sx * D_, zq_ - sz * 1.0), (xq_ + sx * D_, zq_), (xq_, zq_ + sz * D_), (xq_ - sx * 1.0, zq_ + sz * D_)]
             dest.append(cq.Workplane("XZ").polyline(pts_).close().extrude(P["t_rib"], both=True))
         for a in D["nervios"]:
             b_ = box(a0, a1, -P["t_rib"] / 2, P["t_rib"] / 2, zb_, zt_)
@@ -774,7 +786,7 @@ def build(D, verbose=True):
             rb = b_ if rb is None else rb.union(b_)
         for r_ in D["almas"]:
             rb = rb.cut(ring(r_ - tw / 2, r_ + tw / 2, hw + 2, z0 + tbo - 1))
-        m.add(Part(f"mesa_nervio{i}", "MES", f"Nervio radial, tramo {i + 1}", f"Pletina e={f(P['t_rib'])}, h={f(hw)}, largo terminado L={f(a1 - a0, 1)} (R{f(a0, 1)}–R{f(a1, 1)}), destijeres {fm(DEST, 0)}×{fm(DEST, 0)} en las 4 esquinas", rb, int(P["N_rib"]), A572, "Plasma (anidado en plancha)", core="ribs", color=(0.3, 0.45, 0.7)))
+        m.add(Part(f"mesa_nervio{i}", "MES", f"Nervio radial, tramo {i + 1}", f"Pletina e={f(P['t_rib'])}, h={f(hw)}, largo terminado L={f(a1 - a0, 1)} (R{f(a0, 1)}–R{f(a1, 1)}), " + (f"destijer {fm(dest_cubo(g), 0)}×{fm(dest_cubo(g), 0)} en la esquina inferior contra el cubo (paso de J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} en las otras 3" if (i == 0 and dest_cubo(g)) else f"destijeres {fm(DEST, 0)}×{fm(DEST, 0)} en las 4 esquinas"), rb, int(P["N_rib"]), A572, "Plasma (anidado en plancha)", core="ribs", color=(0.3, 0.45, 0.7)))
     hub = ring(d_bush / 2, P["D_hub"] / 2, hw, z0 + tbo)
     if g.rebaje and g.hHub > 0:
         hub = hub.cut(ring(0, g.Drb / 2, g.hHub + 1, z0 + tbo - 1))                 # rebaje del cubo Ø D_rebaje: de la cara inferior del cubo hasta z0 + h_rebaje (h_collar − δ + c_boss_a)

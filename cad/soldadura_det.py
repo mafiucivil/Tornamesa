@@ -123,6 +123,70 @@ def prep_tee(s, ox, oy, k, t, tw_, jid=None, plano=None, root=2.0, angle=45.0, c
         plano.h.weld(jid, a, (ox + Wn * k + 12, a[1] + 26), sh=1, prep=f"{fm(angle, 0)}°")
 
 
+def tee_pjp_size(R):
+    L = max(30.0, 1.6 * R["t"])
+    return (2 * L + min(R["tw"], 40.0), R["t"] + max(36.0, 1.8 * R["t"]) + 12.0), L
+
+
+def prep_tee_pjp(s, ox, oy, k, R, jid=None, plano=None, angle=45.0):
+    """TT300-BX rev. 9c (J17a): unión en T PJP: plancha horizontal pasante de espesor t; la pared del cubo (tw, vertical) lleva el bisel simple 45° × S en
+    su canto exterior (la parte biselada es la que se suelda en T: AISC 360-22 §J2.1a), garganta E = S − 3, sin placa de apoyo, y filete de refuerzo z sobre
+    la plancha. Se dibuja una porción de la pared (rotura) y de la plancha."""
+    t, tw_, S_, E_, z = R["t"], R["tw"], R["S"], R["E"], R["z"]
+    (Wn, Hn), L = tee_pjp_size(R)
+    w_ = min(tw_, 40.0)
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    H = max(36.0, 1.8 * t)
+    _poly(s, [P(0, 0), P(Wn, 0), P(Wn, t), P(0, t)], 0.0)
+    xr = L + w_                                    # cara exterior del cubo (derecha)
+    web = [P(L, t), P(xr - S_, t), P(xr, t + S_), P(xr, t + H), P(L, t + H)]
+    _poly(s, web, 90.0)
+    gr = [P(xr - S_, t), P(xr, t), P(xr, t + S_)]                       # PJP
+    _poly(s, gr, solid=True); s.pline(gr, "VIS", closed=True)
+    fl = [P(xr, t), P(xr + z, t), P(xr, t + min(S_, z))]               # filete de refuerzo z sobre la plancha
+    _poly(s, fl, solid=True); s.pline(fl, "VIS", closed=True)
+    s.dim(P(0, 0), P(0, t), -9, f"t = {fm(t, 0)} (plancha)", "v")
+    s.dim(P(xr - S_, t + H), P(xr, t + H), 7, f"S = {fm(S_, 0)}", "h", outside=True)
+    s.dim(P(xr, t), P(xr + z, t), -7, f"z = {fm(z, 0)}", "h", outside=True)
+    xr_ = ox + Wn * k + 4
+    s.leader(P(xr - S_ * 0.45, t + S_ * 0.3), (xr_, oy + Hn * k * 0.62), f"bisel {fm(angle, 0)}° × {fm(S_, 0)} en la pared del cubo; PJP E = {fm(E_, 0)} (= S − 3)", dot=True)
+    s.leader(P(xr + z * 0.3, t + z * 0.25), (xr_, oy + Hn * k * 0.42), f"filete de refuerzo z{fm(z, 0)}", dot=True)
+    s.leader(P(L + 2, t + 1), (xr_, oy + Hn * k * 0.22), "sin placa de apoyo; raíz 0–2 mm", dot=True)
+    xa_, xb_, ym_ = P(L - 2, 0)[0], P(xr + 2, 0)[0], P(0, t + H)[1]
+    xm_ = (xa_ + xb_) / 2
+    s.pline([(xa_, ym_), (xm_ - 2.5, ym_), (xm_ - 0.8, ym_ + 2.2), (xm_ + 0.8, ym_ - 2.2), (xm_ + 2.5, ym_), (xb_, ym_)], "FINA")
+    s.text("cubo (pared " + fm(tw_, 0) + ")", (P(L + w_ / 2 - S_ / 2, 0)[0], P(0, t + H * 0.6)[1]), T_N, "MIDDLE_CENTER")
+    if jid and plano is not None:
+        a = P(xr - S_ * 0.3, t + S_ * 0.3)
+        plano.h.weld(jid, a, (ox + Wn * k + 12, a[1] + 34), sh=1, prep=f"{fm(angle, 0)}°")
+
+
+def hole_fillet_size(R):
+    return (R["z"] + 70.0, R["t"] + 30.0)
+
+
+def prep_hole_fillet(s, ox, oy, k, R, jid=None, plano=None):
+    """TT300-BX rev. 9c (J17b): filete z en el borde del agujero central de la plancha superior (espesor t), sobre la cara superior del cubo (pared tw): la
+    plancha apoya en el cubo y el cordón se hace desde arriba, por el agujero, con la mesa cerrada. Sección radial por el borde del agujero."""
+    t, z = R["t"], R["z"]
+    Wn, Hn = hole_fillet_size(R)
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    yc = 14.0                                       # cara superior del cubo
+    xh = 30.0                                       # borde del agujero (a la izquierda, el agujero)
+    _poly(s, [P(0, 0), P(Wn, 0), P(Wn, yc), P(0, yc)], 90.0)                       # cubo (porción)
+    _poly(s, [P(xh, yc), P(Wn, yc), P(Wn, yc + t), P(xh, yc + t)], 0.0)            # plancha superior
+    fl = [P(xh, yc), P(xh - z, yc), P(xh, yc + z)]
+    _poly(s, fl, solid=True); s.pline(fl, "VIS", closed=True)
+    s.dim(P(Wn, yc), P(Wn, yc + t), 8, f"t = {fm(t, 0)} (plancha)", "v")
+    s.dim(P(xh - z, yc), P(xh, yc), -7, f"z = {fm(z, 0)}", "h", outside=True)
+    s.leader(P(xh - z * 0.3, yc + z * 0.3), (ox + Wn * k + 6, oy + 2), f"filete z{fm(z, 0)} todo alrededor (a = {fm(z * 0.7071, 1)})", dot=True)
+    s.text(f"agujero Ø{fm(2 * R['r'], 0)} de la plancha superior", (P(2, 0)[0], P(0, yc + t + 3)[1]), T_N, "BOTTOM_LEFT")
+    s.text(f"cubo (pared {fm(R['tw'], 0)})", (P(Wn * 0.72, 0)[0], P(0, yc * 0.45)[1]), T_N, "MIDDLE_CENTER")
+    if jid and plano is not None:
+        a = P(xh - z * 0.35, yc + z * 0.35)
+        plano.h.weld(jid, a, (ox + Wn * k + 12, a[1] + 30), sh=1, all_round=True)
+
+
 def fillet_size(z, t1, t2):
     L = max(24.0, 3.0 * z)
     return (2 * L + t1, t2 + max(26.0, 4.5 * z) + 4.0), L
@@ -174,7 +238,7 @@ def slot_size(w=22.0, L=80.0, t=20.0):
     return (L + 40.0, w + t + 46.0)
 
 
-def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
+def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0, bx=False):
     """Ranura de cierre (soldadura de ranura): planta de la ranura obonga y sección con relleno completo."""
     P = lambda x, y: (ox + x * k, oy + y * k)
     yb = t + 36.0
@@ -192,7 +256,10 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
     s.pline(pts, "VIS", closed=True)
     s.dim(P(20, yb + w), P(20 + L, yb + w), 6, f"L = {fm(L, 0)}", "h")
     s.dim(P(20 + L, yb), P(20 + L, yb + w), 6, f"ancho {fm(w, 0)}", "v")
-    s.text(f"paso c/{fm(pitch, 0)}", (P(20 + L / 2, yb - 2)[0], P(0, yb - 2)[1]), T_N, "TOP_CENTER")
+    if bx:
+        s.text(f"extremos semicirculares R{fm(w / 2, 0)}", (P(0, yb - 2)[0], P(0, yb - 2)[1]), T_N, "TOP_LEFT")
+    else:
+        s.text(f"paso c/{fm(pitch, 0)}", (P(20 + L / 2, yb - 2)[0], P(0, yb - 2)[1]), T_N, "TOP_CENTER")
     # sección longitudinal
     y0 = 0.0
     pl = [P(0, y0), P(L + 40, y0), P(L + 40, y0 + t), P(0, y0 + t)]
@@ -201,10 +268,10 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0):
     s.hatch_poly([P(20, y0), P(20 + L, y0), P(20 + L, y0 + t), P(20, y0 + t)], solid=True)
     s.pline(pl, "VIS", closed=True)
     s.dim(P(0, y0), P(0, y0 + t), -8, f"t = {fm(t, 0)}", "v")
-    s.text("relleno completo de la ranura (sobre el alma/nervio)", (P(20 + L / 2, y0 - 2)[0], P(0, y0 - 2)[1]), T_N, "TOP_CENTER")
+    s.text("relleno completo de la ranura (sobre el alma/nervio)" if not bx else "ranura rellena (no CJP): relleno completo, sobre el canto del alma/nervio", (P(20 + L / 2, y0 - 2)[0], P(0, y0 - 2)[1]), T_N, "TOP_CENTER")
     if jid and plano is not None:
-        a = P(20 + L * 0.3, y0 + t)
-        plano.h.weld(jid, a, (ox + (L + 40) * k + 12, a[1] + 20), sh=1)
+        a = P(20 + L * (0.85 if bx else 0.3), y0 + t)
+        plano.h.weld(jid, a, (ox + (L + 40) * k + 12, a[1] + (8 if bx else 20)), sh=1)
 
 
 def tc_size(w):
@@ -352,6 +419,18 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         (Wn, Hn), _ = tee_size(w["t"], w["t_alma"])
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: UNIÓN EN T CUBO–PLANCHA (bisel 45°, t = {fm(w['t'], 0)})",
                     custom=lambda s, ox, oy, k, pl: prep_tee(s, ox, oy, k, w["t"], w["t_alma"], jid, pl, corto=bool(w.get("txt_corto"))))
+    if w.get("en_T_pjp"):
+        R = w["en_T_pjp"]
+        (Wn, Hn), _ = tee_pjp_size(R)
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0,
+                    title=title or f"DETALLE {jid}: UNIÓN EN T CUBO–PLANCHA, PJP (bisel 45° en el cubo S{fm(R['S'], 0)}/E{fm(R['E'], 0)} + z{fm(R['z'], 0)})",
+                    custom=lambda s, ox, oy, k, pl: prep_tee_pjp(s, ox, oy, k, R, jid, pl))
+    if w.get("filete_agujero"):
+        R = w["filete_agujero"]
+        Wn, Hn = hole_fillet_size(R)
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0,
+                    title=title or f"DETALLE {jid}: FILETE z{fm(R['z'], 0)} EN EL AGUJERO CENTRAL Ø{fm(2 * R['r'], 0)} DE LA PLANCHA SUPERIOR, SOBRE EL CUBO",
+                    custom=lambda s, ox, oy, k, pl: prep_hole_fillet(s, ox, oy, k, R, jid, pl))
     if w.get("soporte_E") is not None:
         Wn, Hn = tc_size(w)
         tit = (f"DETALLE {jid}: PREPARACIÓN DE JUNTA (PJP TC-P4, S{fm(w['pjp'][0], 0)}/E{fm(w['pjp'][1], 0)} + z{fm(w['refuerzo'], 0)})" if w.get("pjp") else
@@ -367,21 +446,23 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
     if w["groove"] and w["sym"] in ("V", "bevel"):
         t = w["t"]
         kind = "V" if w["sym"] == "V" else "bevel"
-        ang = 60.0 if kind == "V" else 45.0
-        root = 3.0 if "raíz 3" in w["prep"] else 2.0
+        dt_ = w.get("det") or {}             # rev. 9c (BX): geometría precalificada de la junta (p. ej. J16 B-U2a: V 45°, R = 6, f = 0)
+        ang = dt_.get("ang", 60.0 if kind == "V" else 45.0)
+        root = dt_.get("root", 3.0 if "raíz 3" in w["prep"] else 2.0)
+        face_ = dt_.get("face", 2.0)
         tT = w.get("t_thick")
         land = w.get("land")
         (Wn, Hn), _ = butt_size(t, kind, tT, land)
         tr = (f"transición 1:4 de {fm(t, 0)} a {fm(tT, 0)}; cara a ras del lado del respaldo" if tT else None)
         bk = w.get("backing_txt")
-        nm = f"{jid}: junta {'a tope en V 60°' if kind == 'V' else 'con bisel 45°'}"
-        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({'V 60°' if kind == 'V' else 'bisel 45°'}, t = {fm(t, 0)}" + (f" / {fm(tT, 0)}" if tT else "") + ")",
-                    custom=lambda s, ox, oy, k, pl: prep_butt(s, ox, oy, k, t, jid, pl, kind, ang, root, 2.0, True, transition=tr, t_thick=tT, land=land, backing_txt=bk))
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({('V ' + fm(ang, 0) + '°') if kind == 'V' else ('bisel ' + fm(ang, 0) + '°')}, t = {fm(t, 0)}" + (f" / {fm(tT, 0)}" if tT else "") + (f", R = {fm(root, 0)}, f = {fm(face_, 0)}, B-U2a" if dt_ else "") + ")",
+                    custom=lambda s, ox, oy, k, pl: prep_butt(s, ox, oy, k, t, jid, pl, kind, ang, root, face_, True, transition=tr, t_thick=tT, land=land, backing_txt=bk))
     if w["groove"] and w["sym"] == "slot":
-        wd, L = 22.0, 80.0
+        sl_ = w.get("slot") or {}                # rev. 9c (BX): ranura según AISC 360-22 §J2.3b (ancho ≥ t + 8, extremos semicirculares) del núcleo BX
+        wd, L = float(sl_.get("w", 22.0)), float(sl_.get("L", 80.0))
         Wn, Hn = slot_size(wd, L, w["t"])
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=2.0, title=title or f"DETALLE {jid}: SOLDADURA DE RANURA",
-                    custom=lambda s, ox, oy, k, pl: prep_slot(s, ox, oy, k, wd, L, w["t"], jid, pl))
+                    custom=lambda s, ox, oy, k, pl: prep_slot(s, ox, oy, k, wd, L, float(sl_.get("t", w["t"])), jid, pl, pitch=float(sl_.get("pitch", 250.0)), bx=bool(sl_)))
     # filete
     z = w["z"]
     t2 = t2 or max(w["t"] or 10.0, 6.0)

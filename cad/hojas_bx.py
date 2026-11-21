@@ -697,7 +697,7 @@ def sheet_bx_fabricacion(ctx):
     n = 0
     while left:
         n += 1
-        g2 = Gen(ctx, 26 + n, f"TT300-BX: VERIFICACIONES DE LA INTERFAZ (CONTINUACIÓN {n})")
+        g2 = Gen(ctx, 26 + n, f"TT300-BX: VERIFICACIONES DE LA INTERFAZ (CONTINUACIÓN {n})", cont_of=26)
         R2 = g2.R["main"]
         _, left = g2.s.table(R2[0], R2[3], cols, left, h=T_S, ymin=R2[1] + 3, title="VERIFICACIONES BX (continuación)")
         out = list(out) + [g2.h]

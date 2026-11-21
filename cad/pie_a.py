@@ -154,7 +154,7 @@ def sheet_base_plancha(ctx):
     if INS:
         nz.insert(1, f"Plancha ENTERA, sin ventanas, al ras sobre la losa (núcleo d537dda). Sobre cada esquina R1…R{len(INS['esquinas'])} se suelda el refuerzo cuadrado {ci_} "
                      f"({fm(INS['lado'], 0)} × {fm(INS['lado'], 0)} × {f(INS['t_d'])}, cara a z = {f(INS['t'])}) con {', '.join(jR_)} (corte B-B; detalles en {ci_}): "
-                     "los refuerzos se sueldan ANTES que cualquier otra pieza de la esquina (secuencia en GEN-007 y en el instructivo, paso 1). El inserto de esquina anterior "
+                     "los refuerzos se sueldan ANTES que cualquier otra pieza de la esquina (secuencia en " + gen_sec(ctx) + " y en el instructivo, paso 1). El inserto de esquina anterior "
                      "(BAS-018…023, CJP J-I1 y ventanas) queda ELIMINADO.")
     if g.opt == 4:                       # TT300-BX: taladros ciegos de las pastillas y portador soldado (bloque «bx» del JSON)
         nz += __import__("bx_notas").notas_base(ctx)

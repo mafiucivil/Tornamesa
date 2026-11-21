@@ -124,7 +124,7 @@ class Pieza(Plano):
             RA["mesa_plancha_sup"] = RA["mesa_plancha_sup"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
             RA["mesa_plancha_inf"] = RA["mesa_plancha_inf"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
         RA.update({"cil_camisa": [("Ra 0,4", "Ø interior H8 bruñido (Rz ≤ 2,5)"), ("Ra 1,6", "rosca interior y cara del extremo delantero"), ("Ra 3,2", "refrentados de los puertos A y B (asiento del sello ED)")],
-                   "cil_fondo": [("Ra 1,6", "espiga Ø90 g6, cara de la espiga (tope) y alojamiento de la rótula N7"), ("Ra 3,2", "hombro de la pestaña (bisel de la J37)")],
+                   "cil_fondo": [("Ra 1,6", "espiga Ø90 g6, cara de la espiga (tope) y alojamiento de la rótula N7"), ("Ra 3,2", "hombro de la pestaña, a escuadra (cara de la J37; el bisel en J va en la camisa)")],
                    "cil_tapa": [("Ra 0,8", "espiga f7 y contacto del o'ring"), ("Ra 1,6", "agujero H9, fondos de alojamientos y rosca"), ("Ra 3,2", "flancos de los alojamientos")],
                    "cil_piston": [("Ra 1,6", "Ø exterior f8, agujero H8 y fondos de alojamientos"), ("Ra 3,2", "flancos de los alojamientos")],
                    "cil_vastago": [("Ra 0,2", "Ø f7 cromado y pulido"), ("Ra 0,8", "asiento g6 del pistón"), ("Ra 1,6", "rosca y resalte")],

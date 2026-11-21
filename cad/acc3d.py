@@ -173,11 +173,13 @@ def _cajon(m, g, Part, info):
     Ly, ty, hy = dims("pared_Y")
     Lm, tm, hm = dims("munon_X")
     obs_pos = "Posición del soporte respecto de los bordes de la base con tolerancia ajustada (CON-007)"
+    # rev. 9c (TT300-BX): con el refuerzo de esquina las paredes se sueldan sobre el refuerzo (J-E1, J-E2), no sobre la base
+    asiento_ = "CJP al refuerzo de esquina" if (getattr(g, "bx", None) and str((g.FPV.get("soporte_E") or {}).get("asiento", "")).startswith("sobre el refuerzo")) else "CJP a la base"
     m.add(Part("cajon_pared_x", "BAS", "Soporte del ojal E: pared trasera X", f"Plancha {f(Lx)}×{f(hx)}×{f(tx)} (pared trasera paralela al borde x de la base, prolongada hacia la mesa)",
-               _compound(sol["cajon_pared_x"]), len(sol["cajon_pared_x"]), mS, "Oxicorte/plasma; bisel 45° del canto inferior (CJP a la base) y del canto vertical (CJP pared–pared) según CON-007",
+               _compound(sol["cajon_pared_x"]), len(sol["cajon_pared_x"]), mS, f"Oxicorte/plasma; bisel 45° del canto inferior ({asiento_}) y del canto vertical (CJP pared–pared) según CON-007",
                core="brackets", color=(0.5, 0.52, 0.55), obs=obs_pos, num_fijo=BAS_NUM["cajon_pared_x"]))
     m.add(Part("cajon_pared_y", "BAS", "Soporte del ojal E: pared trasera Y", f"Plancha {f(Ly)}×{f(hy)}×{f(ty)} (pared trasera paralela al borde y de la base, prolongada hacia la mesa)",
-               _compound(sol["cajon_pared_y"]), len(sol["cajon_pared_y"]), mS, "Oxicorte/plasma; bisel 45° del canto inferior (CJP a la base) y del extremo que apoya en la pared X (CJP de esquina) según CON-007",
+               _compound(sol["cajon_pared_y"]), len(sol["cajon_pared_y"]), mS, f"Oxicorte/plasma; bisel 45° del canto inferior ({asiento_}) y del extremo que apoya en la pared X (CJP de esquina) según CON-007",
                core="brackets", color=(0.5, 0.52, 0.55), num_fijo=BAS_NUM["cajon_pared_y"]))
     m.add(Part("cajon_munon", "BAS", "Soporte del ojal E: muñón delantero", f"Plancha {f(Lm)}×{f(hm)}×{f(tm)} (resto de la pared delantera fuera del barrido del cilindro)",
                _compound(sol["cajon_munon"]), len(sol["cajon_munon"]), mS, "Oxicorte/plasma; bisel 45° del canto inferior y del canto que apoya en la pared trasera (CJP) según CON-007",

@@ -1057,7 +1057,7 @@ def sheet_base_soldada(ctx):
     pos_txt = (f"Posiciones: soportes del ojal E con tolerancia de posición ajustada respecto de los bordes de la base (CON-007); orejas de izaje en (±{f(P['x_lug'])}, ±{f(g.cl_lug)}); placas-leva: roscas en BAS-001." if piv_ else
                f"Posiciones: bancadas en x = ±{f(xg)}; orejas de izaje en (±{f(P['x_lug'])}, ±{f(g.cl_lug)}); ménsulas según BAS-001 (tabla de posiciones)." + (" Prolongaciones y pórticos de la leva: CON-010." if g.FLG else ""))
     ins_txt = ([f"Refuerzos de esquina {ctx.code('refuerzo').replace(CODE + '-', '').rsplit('-', 1)[0]} ({fm(INS['lado'], 0)} × {fm(INS['lado'], 0)} × {f(INS['t_d'])}, {len(INS['esquinas'])} u.) soldados SOBRE la plancha entera (sin ventanas): "
-                f"{', '.join(w['id'] for w in ctx.welds if w.get('refuerzo_j'))} antes que cualquier otra pieza (secuencia en GEN-007 y en el instructivo, paso 1); "
+                f"{', '.join(w['id'] for w in ctx.welds if w.get('refuerzo_j'))} antes que cualquier otra pieza (secuencia en {gen_sec(ctx)} y en el instructivo, paso 1); "
                 + ("el soporte del ojal E y la oreja de la diagonal se sueldan sobre el refuerzo (z = " + f(INS['t']) + ")." if piv_ else "mejillas, suplemento de la ménsula y orejas de izaje sobre el refuerzo (z = " + f(INS['t']) + ").")] if INS else [])
     c.note_block("NOTAS DEL SUBCONJUNTO", ["Detalles de junta D1–D4 y tabla de soldaduras del subconjunto: CON-023.", pos_txt, *ins_txt,
                                            "Soldar en secuencia simétrica; alivio de tensiones 590–620 °C antes del mecanizado."], numbered=True)
@@ -1089,7 +1089,7 @@ def sheet_base_soldada(ctx):
         L2 = S_["lado"] / 2
         c.vs("D4", ke, "front", cut=((c1[0], c1[1], 0), (0, 1, 0)), center=(c1[0], c1[1], tb), win=(-L2 - 40, -tb - 8, L2 + 40, S_["alto_paredes"] + 12), lv=(1, 1, 1, 1), extra=(0, 0, 115, 0), hs=0.35, maxs=1.0,
              title="D4: SOPORTE DEL OJAL E (SECCIÓN POR E; detalle completo en CON-007)", auto=dict(on=ke, maxn=6), w=0.8,
-             draw=lambda V, c: w_out(c, ids[3], V, (c1[0] - L2, c1[1], tb + 1), "right", dy=14) if len(ids) > 3 and ids[3] != "J??" else None)
+             draw=lambda V, c: w_out(c, ids[3], V, (c1[0] - L2, c1[1], tb + 1), "top" if g.opt == 4 else "right", dy=14) if len(ids) > 3 and ids[3] != "J??" else None)
     c.tail(ks, ws, ["Soldar en secuencia simétrica; alivio de tensiones antes del mecanizado. Mandrinar Ø%s H7 (plancha + collar) y " % f(P["D_piv"]) + ("los agujeros Ø%s H9 de las tapas de los soportes del ojal E en línea." % f(g.FPV["pasador_E"]["d"]) if piv_ else "los ojales Ø%s H9 de las ménsulas en línea." % f(P["d_pp"])),
                     "Tamaños de filete: ver tabla (núcleo o mínimo AWS a confirmar). Todas las juntas tienen símbolo ISO 2553 en las láminas de pieza y en los detalles D1–D4.",
                     pos_txt, "Cara de apoyo de la interfaz (Ø%s): planitud 0,20, sin pintura." % f(P["D_top"] + 20),
@@ -1156,7 +1156,7 @@ def sheet_mensula_conj(ctx):
     c.tail(ks, ids, [f"Armar en plantilla sobre " + (f"el refuerzo de esquina {ctx.code('refuerzo').replace(CODE + '-', '').rsplit('-', 1)[0]} ({fm(INS['lado'], 0)} × {fm(INS['lado'], 0)} × {f(INS['t_d'])}, cara superior a z = {f(zi)}; núcleo levaGuiada.fabricacion.refuerzo)" if INS else "la base")
                      + f": mejillas {f(tc)} × {f(zt - zi)} a {f(Win)} de luz" + (f", corridas {f(g.mej_dl)} mm hacia la esquina (extremo trasero a {f(-g.mej_y[0])} del eje del ojal; núcleo levaGuiada.fabricacion.mensula), enteras sobre el refuerzo" if g.mej_dl > 0 else "") + f"; orejas entre mejillas; centro de la luz entre orejas (eje del cilindro) a {f(g.hax)} ±0,5 de la cara de apoyo.",
                      *([f"El refuerzo se suelda SOBRE la base antes que la ménsula ({', '.join(jI)}: tapones, filete interior, PJP exterior esmerilada al ras"
-                        + (" y atiesador tangencial" if ctx.m.get("refuerzo_ati") else "") + f"; detalle en {ctx.code('refuerzo').replace(CODE + '-', '').rsplit('-', 1)[0]}; secuencia en GEN-007 y en el instructivo, paso 1). La base queda entera, sin ventanas."] if INS else []),
+                        + (" y atiesador tangencial" if ctx.m.get("refuerzo_ati") else "") + f"; detalle en {ctx.code('refuerzo').replace(CODE + '-', '').rsplit('-', 1)[0]}; secuencia en {gen_sec(ctx)} y en el instructivo, paso 1). La base queda entera, sin ventanas."] if INS else []),
                      f"Mandrinar Ø{f(P['d_pp'])} H9 de ambas orejas en línea después de soldar (coaxialidad 0,10). Se fabrican {int(P['n_br'])} ménsulas.", "Filetes: ver tabla; secuencia alternada por lados; MT 100 %.",
                      *([f"RETENIDA (requiere núcleo): {ctx.conflicto('mensula_refuerzo')['corto']}; el extremo de las mejillas sale del refuerzo (corte A-A). No fabricar hasta su corrección (GEN-009)."]
                        if c.h.retener("mensula_refuerzo") else [])])
@@ -1241,7 +1241,9 @@ def sheet_mesa_conj2(ctx):
                     *([f"Mesa de plancha entera (TT300-BX rev. 7c, decisión del mandante 19-11-2026): planchas superior ({_cc_(ctx, 'mesa_plancha_sup')}) e inferior ({_cc_(ctx, 'mesa_plancha_inf')}) de una pieza Ø{f(2 * g.Rt)} × {fm(g.tt, 0)} con los {g.N_pin} agujeros de los pasadores; "
                        f"sin anillos de pasadores, sin empalmes CJP de segmentos y sin uniones plancha–anillo. Después del alivio se planea la cara inferior con remoción mínima (plancha ≥ {fm(g.tbo, 0)}) y se mandrinan/escarían los agujeros en línea."] if g.mesa_entera else
                       [f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); "
-                       f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."])])
+                       f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."]),
+                    *([f"Celdas cerradas (TT300-BX rev. 9c): almas y nervios se sueldan SOLO a la plancha inferior y al cubo; la plancha superior va por las ranuras rellenas J18 y el cubo por J17a (desde arriba, antes de cerrar) y J17b (por el agujero central, con la mesa cerrada). "
+                       + " ".join((((g.bx or {}).get("mesa") or {}).get("soldaduras") or {}).get("secuencia") or [])] if (g.opt == 4 and g.mesa_entera and (((g.bx or {}).get("mesa") or {}).get("soldaduras"))) else [])])
     c.build()
     return c.h
 
@@ -1581,7 +1583,7 @@ def sheet_cajon_conj(ctx):
         *([f"Refuerzo de esquina {ctx.code('refuerzo').replace(CODE + '-', '').rsplit('-', 1)[0]} ({fm(INS['lado'], 0)} × {fm(INS['lado'], 0)} × {f(INS['t_d'])}; núcleo soporte_E.refuerzo) soldado SOBRE la base entera (sin ventanas) "
            f"bajo el soporte (vista parcial; pieza completa en su lámina y en BAS-001, corte B-B): las paredes, los muñones y la oreja de izaje de la diagonal arrancan sobre su cara superior (z = {f(INS['t'])}); "
            f"J-E1, J-E2 y J-E6 son contra el refuerzo. El refuerzo y sus juntas {', '.join(jI)} (tapones, filete interior, PJP exterior al ras"
-           + (", atiesador tangencial" if ctx.m.get("refuerzo_ati") else "") + ") se completan ANTES de presentar el soporte (secuencia del núcleo en GEN-007 y en el instructivo, paso 1). "
+           + (", atiesador tangencial" if ctx.m.get("refuerzo_ati") else "") + ") se completan ANTES de presentar el soporte (secuencia del núcleo en " + gen_sec(ctx) + " y en el instructivo, paso 1). "
            f"Pasador E a z = {f(g.FPV['pasador_E']['z'][0])}–{f(g.FPV['pasador_E']['z'][1])} (núcleo pasador_E.z)."] if INS else []),
         f"Soporte abierto hacia la mesa (núcleo): {S['tipo']}. Holgura del cuerpo del cilindro al soporte {fm(S['barrido']['holgura_minima'], 1)} mm ≥ {fm(S['barrido']['holgura_exigida'], 0)} mm "
         f"en {int(S['barrido']['n_estados'])} estados del barrido (ambos sentidos).",

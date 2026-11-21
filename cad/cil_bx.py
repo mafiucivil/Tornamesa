@@ -10,6 +10,7 @@ Ejes locales de construcción: x sobre el eje del cilindro desde el eje del ojal
 las piezas móviles (pistón, tuerca, sellos del pistón, vástago y ojal del vástago) se desplazan e = L − L0 (posición dibujada del núcleo).
 Sin bloque bx.cilindro el juego no cambia (el núcleo y el juego TT300-C no pasan por este módulo)."""
 import math
+import propuestas
 import cadquery as cq
 from geom import *
 
@@ -323,15 +324,30 @@ def welds(ctx, add_n):
               prep=f"J (bisel 10°, radio {fm(CA['bisel_trasero']['radio_J'], 0)}) en el extremo de la camisa, talón {fm(CA['bisel_trasero']['talon'], 0)} mm, separación de raíz {fm(CA['bisel_trasero']['separacion'], 0)} mm contra el hombro a escuadra; respaldo permanente = espiga integral del fondo; filete de refuerzo z6 en el pie",
               prep_txt="10°", nivel="ISO 5817-B", end="UT 100 % · MT 100 %", wps=19, len_total=n * math.pi * float(CA["D"]), aporte=A5, proc="141 + 111 (PROPUESTA)",
               nota=F["cjp"]["proceso"], t_pre=tw_)
+    # rev. 9c: precalentamiento único del cilindro (núcleo bx.cilindro.fondo.cjp.precalentamiento_C, más exigente que la Tabla 5.8 por la parte más gruesa)
+    pre_c = F["cjp"].get("precalentamiento_C")
+    t37 = max(tw_, float(F["t"]))                 # parte más gruesa de la junta: el bloque del fondo (no la pared de la camisa)
+    j.update(t_pre=t37)
+    if pre_c is not None:
+        j.update(pre_c=float(pre_c), pre_txt=f"{fm(pre_c, 0)} °C mín. ({F['cjp']['wps']} del núcleo; AWS D1.1:2020 Tabla 5.8 pediría {propuestas.precalentamiento(t37)} °C por la parte más gruesa, el fondo de {fm(t37, 0)} mm)")
     j.update(backing="M", backing_txt="M: respaldo permanente = espiga integral del fondo", fam_txt=f"CJP en J circunferencial de la camisa S355J2 (pared {fm(tw_, 0)}) sobre la espiga integral del fondo S355J2; {F['cjp']['proceso']}; WPS {F['cjp']['wps']}")
     j = add_n(38, "Ojal trasero (orejeta) – fondo del cilindro (CJP en K todo alrededor + filete de refuerzo z6)", f"{sc('cil_ojal_E')} / {sc('cil_fondo')}",
               OE["soldadura"]["tipo"], "bevel", t=float(OE["ancho"]), groove=True,
               prep="Doble bisel 45° (K) en la orejeta, talón 2 mm, separación 2 mm, resanado de raíz por el otro lado; filete de refuerzo z6", prep_txt="45°", nivel="ISO 5817-B",
               end="UT 100 % · MT 100 %", wps=20, len_total=n * 2 * (float(OE["cuello"]) + float(OE["ancho"])), aporte=A5, proc="135 / 111 (PROPUESTA)", contorno=True, t_pre=float(OE["ancho"]))
-    j.update(en_T=True, fam_txt=f"CJP en K (T) de la orejeta S355J2 de {f(OE['ancho'])} sobre el fondo S460NL con filete de refuerzo z6; WPS {OE['soldadura']['wps']}")
+    mf_ = str(F.get("material") or "S355J2+N").split(" (")[0]
+    pre_e = OE["soldadura"].get("precalentamiento_C", pre_c)
+    t38 = max(float(OE["ancho"]), float(F["t"]))
+    if pre_e is not None:
+        j.update(pre_c=float(pre_e), pre_txt=f"{fm(pre_e, 0)} °C mín. ({OE['soldadura']['wps']} del núcleo; AWS D1.1:2020 Tabla 5.8 pediría {propuestas.precalentamiento(t38)} °C por la parte más gruesa, la orejeta de {fm(t38, 0)} mm)")
+    j.update(pasadas_txt=f"{j['pasadas']} (raíz + relleno + tapa por un lado; resanado de raíz y pasadas por el otro lado; sin respaldo)")
+    j.update(en_T=True, fam_txt=f"CJP en K (T) de la orejeta S355J2+N de {f(OE['ancho'])} sobre el fondo {mf_} con filete de refuerzo z6; WPS {OE['soldadura']['wps']}")
     V = C["vastago"]
     j = add_n(39, "Vástago – ojal del vástago: soldadura por fricción rotativa a tope Ø" + f(C["d_vastago"]), f"{sc('cil_vastago')} / {sc('cil_ojal_Q')}",
               C["ojal_vastago"]["soldadura"]["tipo"], "square", t=float(C["d_vastago"]), groove=True,
               prep=f"Caras planas a tope Ø{f(C['d_vastago'])}, perpendicularidad 0,05; rebaba (flash) eliminada; {V['extremo_ojal']['nota']}", prep_txt="", nivel="ISO 15620",
               end=C["ojal_vastago"]["soldadura"]["end"].replace(" + ", " · "), wps=21, len_total=n * math.pi * float(C["d_vastago"]), aporte="sin aporte (fricción)", proc="42 (fricción, ISO 4063)", t_pre=0.0)
-    j.update(fam_txt="Soldadura por fricción rotativa a tope (ISO 4063 proceso 42), procedimiento calificado según ISO 15620 con ensayos de tracción y doblado; sin aporte")
+    na_ = "No aplica (proceso 42 sin arco ni aporte)"
+    j.update(fam_txt="Soldadura por fricción rotativa a tope (ISO 4063 proceso 42), procedimiento calificado según ISO 15620 con ensayos de tracción y doblado; sin aporte",
+             corr_gmaw=na_, corr_smaw=na_, corr_fcaw=na_, pre_txt="No aplica (parámetros de fricción del procedimiento calificado ISO 15620)", interpase_txt="No aplica",
+             pasadas_txt="No aplica (una operación de fricción)", pasadas="—", garganta=f"a tope en toda la sección Ø{f(C['d_vastago'])} (fricción)", origen="núcleo BX (bx.cilindro.ojal_vastago.soldadura; ISO 15620)")

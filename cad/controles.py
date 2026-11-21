@@ -217,6 +217,13 @@ def codigos(ctx, hojas):
             r = reg["firmas"].get(cod)
             if r is not None and firmas.clave(r) != firmas.clave(fs):
                 out.append(f"{cod}: geometría distinta de la registrada para ese código (variantes {', '.join(reg['variantes'].get(cod, []))})")
+    # rev. 9c: cada lámina con un código propio (la hoja 2 de GEN-007 salía como GEN-008 y pisaba la DXF de torques)
+    vistos = {}
+    for h in hojas:
+        vistos.setdefault(h.plano, []).append(h.titulo)
+    for cod, tits in vistos.items():
+        if len(tits) > 1:
+            out.append(f"{cod}: código de lámina repetido ({len(tits)} láminas: {' / '.join(t_[:60] for t_ in tits)})")
     lam = {p.code: p.code_lamina for p in ctx.m.parts}
     for h in hojas:
         t = h.plano.replace(CODE + "-", "")
@@ -246,7 +253,7 @@ def wps(ctx):
         grp.setdefault(w["wps_n"], []).append(w)
     for n, ws in sorted(grp.items()):
         fam = {propuestas.wps_family(w) for w in ws}
-        pre = {propuestas.precalentamiento(w["t_pre"]) for w in ws}
+        pre = {propuestas.pre_of(w) for w in ws}
         if len(fam) > 1 or len(pre) > 1:
             out.append(f"WPS-P{n:02d}: juntas {', '.join(w['id'] for w in ws)} con familias {sorted(fam)} o precalentamientos {sorted(pre)} distintos")
     return out

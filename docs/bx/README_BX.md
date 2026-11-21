@@ -601,3 +601,50 @@ buje; ACC-027 asiento sin temple; GEN-005/006 (materiales y tratamientos) con lo
 | Tornillos de la placa-guía: corte | 0,625 | 0,569 |
 | Retorno dentro de la presión nominal | 0,286 | 0,214 |
 | Retorno con p_ret 150 bar: fuerza de retracción (nueva) | — | 0,147 |
+
+### 13.7 Revisión 9c (21-11-2026): uniones soldadas (auditoría de 26 hallazgos)
+
+Corrige las 26 observaciones de la auditoría de soldaduras de la rev. 9b. El núcleo TT300-C no cambia sin `P.__bx` (único cambio en `tt300c.js`:
+gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de empuje no cambian (J-P1 sigue paramétrica en `d_pin`).
+
+**Decisiones de la rev. 9c, por defecto, a confirmar por el mandante:**
+
+1. **Códigos de lámina únicos.** Las hojas de continuación de las tablas ya no toman `num0 + n` (pisaban la lámina siguiente: GEN-007 h. 2 = GEN-008,
+   GEN-005 h. 2 = GEN-006). Números propios: GEN-015/016 (GEN-007), GEN-017/024 (GEN-005), GEN-018 (GEN-006), GEN-019 (GEN-003), GEN-020 (GEN-009);
+   GEN-014 lleva siempre (en BX) las notas y secuencias del programa de soldaduras, y las láminas de conjunto (CON-006, CON-007, BAS-001) remiten a GEN-014.
+   El índice (GEN-001) lista las continuaciones; un control nuevo rechaza códigos repetidos.
+2. **J17a / J17b (cubo–planchas).** No se necesita CJP: el núcleo no tenía fila de la unión y la nueva fila BX con la reacción del pivote a calado
+   (H = 129,9 kN completa en cada plancha, q = H/(π·r)) pide garganta 3,3 mm. J17a: PJP en T con bisel simple 45° × 11 en la pared del cubo (27 mm junto al
+   rebaje), E = 8 (= S − 3, AISC 360-22 Tabla J2.1; mínimo de la Tabla J2.3 por la parte más delgada de 22: 8) más filete de refuerzo z8, sin placa de apoyo,
+   soldada desde arriba antes de cerrar: FU 0,408. J17b: el canto exterior del cubo queda dentro de la mesa cerrada; la unión pasa a un filete z10 todo
+   alrededor en el agujero central Ø200 de la plancha superior, sobre la cara del cubo, hecho desde arriba con la mesa cerrada: FU 0,716 (z8 daba 0,896);
+   holgura a la tapa retenedora Ø180: 3 mm. El buje se monta después de soldar y aliviar.
+3. **J14 / J15.** Filetes solo a la plancha inferior y en los extremos de los nervios (longitudes a la mitad en las líneas de plancha); la plancha superior
+   va solo por J18. Los extremos de los nervios del tramo 1 contra el cubo pasan a la junta J15b (precalentamiento por la pared de 80 del cubo).
+   La fila del núcleo «Soldadura alma/nervio–plancha (2 filetes)» queda para la plancha inferior (anotada) y se agregan filas BX para la superior.
+4. **J18 (AISC 360-22 §J2.3b).** Soldadura de ranura rellena (no CJP): ancho 30 (≥ t + 8, ≤ 2,25·22), extremos semicirculares, largo 125 (≤ 10·22),
+   relleno completo 22, separación entre centros ≥ 2L = 250 en cada línea; en el tramo 1 los nervios convergen y la ranura va en nervios alternados
+   (separación transversal 141 ≥ 4·30). 77 ranuras, 9618 mm. Geometría derivada de `t_top` en `bx.mesa.soldaduras.ranuras`. Filas: corte en el área de
+   la ranura en el plano de contacto (FU 0,294) y traspaso del flujo de corte al canto del alma de 8 mm (franja t × L; FU 0,893, el tramo 1 con la ranura
+   cada 2 nervios); seis filas geométricas de §J2.3b. Fondo de la ranura sobre el canto del alma: PROPUESTA tiras de respaldo 6 × 20 punteadas al alma
+   antes de cerrar (el fabricante lo confirma en la probeta).
+5. **Precalentamiento (AWS D1.1:2020 Tabla 5.8, Grupo II, cat. B, por la parte más gruesa)** en una sola función (`propuestas.pre_of`): J10 65 °C
+   (refuerzo 45 bajo 2 orejas; 10 °C en las otras), J14/J15 10 °C (plancha 22), J15b, J17a y J17b 110 °C (cubo 80), J-E1/J-E2/J-E6 65 °C (refuerzo 45, no la
+   cota 67). J37 y J38: 100 °C del procedimiento del cilindro (fuente única `bx.cilindro.fondo.cjp.precalentamiento_C`; la Tabla 5.8 pediría 10 y 65 °C).
+   42CrMo4 de J-P1: Anexo B.
+6. **WPS.** WPS-P16 con el material del JSON (42CrMo4+QT); WPS-P20 sobre fondo S355J2+N; nota 5 de GEN-012: solo se suelda el pasador de empuje
+   bonificado (J-P1, Anexo B), el bloque-uña no se suelda, E, Q y el pivote no tienen tratamiento. J16 pasa a B-U2a (V 45°, R = 6, f = 0, respaldo
+   permanente 6×40). Se elimina la combinación no precalificada «raíz 2 con respaldo» (J16, J17). Las J-E van como TC-U4b sin respaldo.
+7. **J-E3/J-E4/J-E5: 152 por soporte** (304 en total; antes 197): gancho aditivo `P.__bx.juntasE_asiento` (alto real de las paredes sobre el refuerzo).
+8. **Destijer de los nervios contra el cubo:** 20 × 20 en la esquina inferior del tramo 1 (≥ máx(19; cordón de J17a S + 3 y z + 3 más 5 mm); AISC 360-22
+   §J1.6); 15 × 15 en las demás esquinas.
+9. **Textos:** inox 309L de la lámina INT-021 (J30, J34–J36) en GEN-003 y GEN-012; «CJP al refuerzo» en las paredes del soporte E; TC-U4b; WPS-P21 de
+   fricción sin parámetros de arco; columna FCAW «no aplica» en las WPS inoxidables y de J-P1; filete mínimo rotulado por la parte más delgada;
+   §J2.2b solo donde hay borde (se quita la observación de J14 y la brecha de GEN-009); MES-012 (enrasado bajo la lámina) y ACC-029 (hombro a escuadra);
+   JSON: `t_revestimiento` = 0 y «soldado a ambas planchas».
+10. **Artículos:** donde no hay certeza del número exacto de AWS D1.1:2020 (tapones y ranuras, agujeros de acceso, B-U2a-GF) se escribe «verificar … en la
+    edición vigente»; no se inventan números.
+11. **Pasador de empuje (estudio FEA; Ø85 y 42CrMo4+QT sin cambio).** La fila del núcleo «Flexión (biapoyado entre anillos…)» usaba c = mín(dog_h, L) = 110,
+    el alto de la uña del modo guiado; en el pivotado la carga del bloque-uña se reparte en su alto pv_hu = 140 (gancho aditivo `c_pv_hu`): FU 0,707 → 0,628.
+    La fila informativa «Pasadores a ras del disco… soldados» decía «34CrNiMo6+QT con temple por inducción»: en BX lee el texto de la rev. 9 (gancho
+    `pin_mat_txt`: 42CrMo4+QT de stock, sin temple por inducción). Sin `P.__bx` ambas filas del núcleo no cambian.
