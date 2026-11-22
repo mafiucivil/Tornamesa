@@ -136,6 +136,12 @@ def cut_rows(ctx):
     add("mesa_cubo", "Anillo", f"Ø{f(P['D_hub'] + 10)}/Ø{f(g.d_bush - 10)}×{f(g.hw + 5)}")
     add("pasadores", "Barra", f"Ø{f(g.d_pin + 5)}×{f(g.hd + 6)}", ("Largo terminado = alto del disco (a ras, se esmerila después de soldar); sin rosca (núcleo pasadores_empuje)" if m.info.get("pasadores_empuje") else ""))
     add("arandela_pasador", "Disco", f"Ø{f(g.washer_D + 5)}×{f(g.washer_t + 2)}", f"Plancha de {f(g.washer_t + 2)}: caras rectificadas a {f(g.washer_t)}; agujero Ø{f(g.washer_d)}")
+    if m.get("mesa_respaldo"):           # TT300-BX rev. 9d: tiras de respaldo permanentes de J18 (plancha de 6, plasma)
+        import modelo3d_tt300c as M3
+        TJ_ = M3.tiras_j18(g)
+        ls_ = [q["largo"] if q["forma"] == "recta" else q["largo_medio"] for q in TJ_["piezas"]]
+        add("mesa_respaldo", "Tiras (plancha e = %s)" % f(TJ_["t"]), f"{fm(TJ_['b'], 0)}×{fm(min(ls_), 0)}…{fm(max(ls_), 0)}×{fm(TJ_['t'], 0)}",
+            f"{len(getattr(m.get('mesa_respaldo'), 'tipos', []) or TJ_['piezas'])} geometrías (rectas en los nervios, arcos en las almas; despiece CON-002, detalle en MES-001); anidado en GEN-010/013; plasma a medida final")
     add("pivote", "Barra", f"Ø{f(P['D_piv'] + 5)}×{f(g.L_piv + 6)}")
     add("buje", "Tubo/buje", f"Ø{f(g.d_bush + 4)}/Ø{f(P['D_piv'] - 4)}×{f(P['L_bush'] + 4)}")
     add("tapa_ret", "Disco", f"Ø{f(g.cap_D + 5)}×{f(g.cap_t + 2)}")

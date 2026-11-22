@@ -626,8 +626,8 @@ gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de emp
    relleno completo 22, separación entre centros ≥ 2L = 250 en cada línea; en el tramo 1 los nervios convergen y la ranura va en nervios alternados
    (separación transversal 141 ≥ 4·30). 77 ranuras, 9618 mm. Geometría derivada de `t_top` en `bx.mesa.soldaduras.ranuras`. Filas: corte en el área de
    la ranura en el plano de contacto (FU 0,294) y traspaso del flujo de corte al canto del alma de 8 mm (franja t × L; FU 0,893, el tramo 1 con la ranura
-   cada 2 nervios); seis filas geométricas de §J2.3b. Fondo de la ranura sobre el canto del alma: PROPUESTA tiras de respaldo 6 × 20 punteadas al alma
-   antes de cerrar (el fabricante lo confirma en la probeta).
+   cada 2 nervios); seis filas geométricas de §J2.3b. Respaldo permanente INCORPORADO en la rev. 9d (ver abajo): tiras 15 × 6 a ambos
+   lados del canto del alma o nervio, punteadas antes de cerrar; la WPS exige probeta de calificación con macroataque de la raíz.
 5. **Precalentamiento (AWS D1.1:2020 Tabla 5.8, Grupo II, cat. B, por la parte más gruesa)** en una sola función (`propuestas.pre_of`): J10 65 °C
    (refuerzo 45 bajo 2 orejas; 10 °C en las otras), J14/J15 10 °C (plancha 22), J15b, J17a y J17b 110 °C (cubo 80), J-E1/J-E2/J-E6 65 °C (refuerzo 45, no la
    cota 67). J37 y J38: 100 °C del procedimiento del cilindro (fuente única `bx.cilindro.fondo.cjp.precalentamiento_C`; la Tabla 5.8 pediría 10 y 65 °C).
@@ -648,3 +648,19 @@ gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de emp
     el alto de la uña del modo guiado; en el pivotado la carga del bloque-uña se reparte en su alto pv_hu = 140 (gancho aditivo `c_pv_hu`): FU 0,707 → 0,628.
     La fila informativa «Pasadores a ras del disco… soldados» decía «34CrNiMo6+QT con temple por inducción»: en BX lee el texto de la rev. 9 (gancho
     `pin_mat_txt`: 42CrMo4+QT de stock, sin temple por inducción). Sin `P.__bx` ambas filas del núcleo no cambian.
+
+#### Revisión 9d (21-11-2026): respaldo permanente de las ranuras J18 (detalle A confirmado por el mandante)
+
+- **Tiras de respaldo MES-015** (pieza nueva, permanente, S275JR / ASTM A36 de plancha de 6, plasma): dos por ranura, una a cada lado del canto superior del
+  alma o nervio y a ras de él; sección 15 × 6 (cubre el vuelo de la ranura (30 − 8)/2 = 11 con 2 mm de apoyo); largo = L + 2 × 10 = 145 (rectas en los
+  nervios de los tramos 2 y 3; en el tramo 1, 124, recortadas a 1 mm del cubo: el extremo interior de la ranura apoya 7 mm sobre la cara del cubo) y
+  arcos de 145 mm (medidos en el eje del alma) en las almas (R281–296 / R304–319, R571–586 / R594–609, R821–836 / R844–859). 154 tiras, 15,6 kg (fuera del núcleo: < 0,01 % de la
+  carga). Geometría paramétrica en `bx.mesa.soldaduras.ranuras.tiras` (del ancho y largo de la ranura y de t_alma); 8 geometrías → códigos MES-015-1…8.
+- **Punteo J18r:** filete discontinuo z4 por debajo de cada tira contra el alma o nervio (3 tramos de 25 mm), con la mesa abierta, antes de montar la plancha
+  superior (mín. 3 por la tira de 6, máx. t − 2 = 4). Sin precalentamiento (parte más gruesa 8). J18 pasa a «ranura rellena con respaldo permanente» (M) y su
+  WPS exige probeta de calificación con la geometría real y macroataque de la raíz (AWS D1.1:2020 cláusula 6: verificar el artículo en la edición vigente).
+- **Interferencias** (filas geométricas nuevas «BX · Tiras de respaldo J18 …» y control de interferencias del modelo 3D): las tiras de las almas cruzan los
+  nervios por el destijer superior de 22 × 22 de sus extremos contra las almas (15 + 6 + 1 = 22; antes 15 × 15, ya sin filetes arriba desde la rev. 9c);
+  el extremo superior del nervio contra el cubo queda sin destijer; los extremos de las ranuras de los nervios quedan fuera del destijer (a t_alma/2 + 1 + 22
+  del eje del alma; tramos de 125 mm sin cambio de FU); las tiras de los nervios se recortan fuera de la zona de las tiras del alma; los filetes J14/J15 y
+  los destijeres inferiores no cambian. Separación entre ranuras sin cambio (77 ranuras).

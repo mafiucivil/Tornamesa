@@ -330,7 +330,7 @@ def welds(ctx, add_n):
     j.update(t_pre=t37)
     if pre_c is not None:
         j.update(pre_c=float(pre_c), pre_txt=f"{fm(pre_c, 0)} °C mín. ({F['cjp']['wps']} del núcleo; AWS D1.1:2020 Tabla 5.8 pediría {propuestas.precalentamiento(t37)} °C por la parte más gruesa, el fondo de {fm(t37, 0)} mm)")
-    j.update(backing="M", backing_txt="M: respaldo permanente = espiga integral del fondo", fam_txt=f"CJP en J circunferencial de la camisa S355J2 (pared {fm(tw_, 0)}) sobre la espiga integral del fondo S355J2; {F['cjp']['proceso']}; WPS {F['cjp']['wps']}")
+    j.update(backing="M", backing_txt="M: respaldo permanente = espiga integral del fondo", fam_txt=f"CJP en J circunferencial de la camisa S355J2 (pared {fm(tw_, 0)}) sobre la espiga integral del fondo S355J2; {F['cjp']['proceso']}; {F['cjp']['wps']}")
     j = add_n(38, "Ojal trasero (orejeta) – fondo del cilindro (CJP en K todo alrededor + filete de refuerzo z6)", f"{sc('cil_ojal_E')} / {sc('cil_fondo')}",
               OE["soldadura"]["tipo"], "bevel", t=float(OE["ancho"]), groove=True,
               prep="Doble bisel 45° (K) en la orejeta, talón 2 mm, separación 2 mm, resanado de raíz por el otro lado; filete de refuerzo z6", prep_txt="45°", nivel="ISO 5817-B",
@@ -341,7 +341,7 @@ def welds(ctx, add_n):
     if pre_e is not None:
         j.update(pre_c=float(pre_e), pre_txt=f"{fm(pre_e, 0)} °C mín. ({OE['soldadura']['wps']} del núcleo; AWS D1.1:2020 Tabla 5.8 pediría {propuestas.precalentamiento(t38)} °C por la parte más gruesa, la orejeta de {fm(t38, 0)} mm)")
     j.update(pasadas_txt=f"{j['pasadas']} (raíz + relleno + tapa por un lado; resanado de raíz y pasadas por el otro lado; sin respaldo)")
-    j.update(en_T=True, fam_txt=f"CJP en K (T) de la orejeta S355J2+N de {f(OE['ancho'])} sobre el fondo {mf_} con filete de refuerzo z6; WPS {OE['soldadura']['wps']}")
+    j.update(en_T=True, fam_txt=f"CJP en K (T) de la orejeta S355J2+N de {f(OE['ancho'])} sobre el fondo {mf_} con filete de refuerzo z6; {OE['soldadura']['wps']}")
     V = C["vastago"]
     j = add_n(39, "Vástago – ojal del vástago: soldadura por fricción rotativa a tope Ø" + f(C["d_vastago"]), f"{sc('cil_vastago')} / {sc('cil_ojal_Q')}",
               C["ojal_vastago"]["soldadura"]["tipo"], "square", t=float(C["d_vastago"]), groove=True,

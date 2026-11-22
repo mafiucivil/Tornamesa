@@ -1455,25 +1455,52 @@ const BX = (() => {
   //   separación transversal entre líneas ≥ 4·ancho; separación longitudinal entre centros ≥ 2·largo; espesor de la soldadura = t (t ≤ 16) o
   //   ≥ máx(t/2; 16) (t > 16): se adopta el relleno completo (= t). Paso objetivo 250 (como antes) y largo 125 (rev. 9c; antes 80).
   // En el tramo 1 (cubo–alma A1) los nervios convergen: si la separación transversal no llega a 4·ancho, la ranura va en nervios alternados (k = 2, …).
-  const RAN = { s0: 250, L: 125, cHub: 2, cWeb: 3 };   // cHub: extremo de la ranura a 2 mm de la cara del cubo; cWeb: 3 mm entre el extremo y el borde de la ranura del alma
+  // Rev. 9d (tiras de respaldo permanentes, decisión del mandante 21-11-2026): el nervio lleva en sus extremos superiores contra las almas un destijer de
+  // destTop = 22 (≥ ancho de la tira 15 + espesor 6 + 1), por donde pasan las tiras de las ranuras de las almas; el extremo de la ranura del nervio queda
+  // fuera de ese destijer (a t_alma/2 + 1 + destTop del eje del alma). En el tramo 1 la ranura arranca 7 mm sobre la cara superior del cubo (cHub = −7:
+  // el cubo hace de respaldo en ese extremo; el destijer superior del nervio contra el cubo se elimina).
+  const RAN = { s0: 250, L: 125, cHub: -7, destTop: 22, gap: 1 };
+  const TIRA = { t: 6, b: 15, run: 10, punteo: { z: 4, n: 3, l: 25 }, material: "S275JR (EN 10025-2) / ASTM A36, plancha de 6 mm" };
   const ceilEven = (x) => 2 * Math.ceil(x / 2 - 1e-9);
   function ranurasOf(P) {
     const t = P.t_top, w = ceilEven(t + 8), fill = t, L = RAN.L, s0 = Math.max(RAN.s0, 2 * L), N = Math.round(P.N_rib), rings = TT_.parseRings(P.rings), rh = P.D_hub / 2;
     const almas = rings.map((r, i) => { const n = Math.max(1, Math.floor(2 * Math.PI * r / s0)); return { elemento: "Alma A" + (i + 1), r, n, L, paso: 2 * Math.PI * r / n, a0_deg: 180 / n, paso_deg: 360 / n, trib: 2 * Math.PI * r / n }; });
     const rs = [rh].concat(rings), tramos = [];
     for (let i = 0; i + 1 < rs.length; i++) {
-      const a = rs[i], b = rs[i + 1], Lt = b - a, c0 = i === 0 ? RAN.cHub : w / 2 + RAN.cWeb, c1 = w / 2 + RAN.cWeb, m = Math.max(1, Math.floor(Lt / s0)), sp = (Lt - c0 - c1) / m;
+      const cW = P.t_web / 2 + RAN.gap + RAN.destTop, a = rs[i], b = rs[i + 1], Lt = b - a, c0 = i === 0 ? RAN.cHub : cW, c1 = cW, m = Math.max(1, Math.floor(Lt / s0)), sp = (Lt - c0 - c1) / m;
       const Li = Math.min(L, m > 1 ? sp - 1 : sp), cen = Array.from({ length: m }, (_, j) => a + c0 + sp * (j + 0.5)), rIn = cen[0] - Li / 2;
       let k = 1; while (k < N && (2 * Math.PI * rIn / N * k < 4 * w - 1e-9 || N % k)) k++;
       tramos.push({ elemento: "Nervios, tramo " + (i + 1), r0: a, r1: b, largo_tramo: Lt, m, L: Li, centros: cen, r_int: rIn, cada_k_nervios: k, n: m * N / k, trib: Lt / m * k, sep_transversal: 2 * Math.PI * rIn / N * k, paso: m > 1 ? sp : null });
     }
+    const TR = tirasOf(P, w, almas, tramos, rs, N);
     const all = almas.concat(tramos), Lmin = Math.min(...all.map((q) => q.L)), area = (Lq) => w * (Lq - w) + Math.PI * w * w / 4;
     const pasoMin = Math.min(...almas.map((q) => q.paso).concat(tramos.filter((q) => q.m > 1).map((q) => q.paso)));
     return { tipo: "soldadura de ranura rellena (AISC 360-22 §J2.3; no es CJP)", ancho: w, ancho_min: t + 8, ancho_max: 2.25 * fill, relleno: fill, relleno_min: t > 16 ? Math.max(t / 2, 16) : t, L, L_max: 10 * fill, L_min_usado: Lmin,
       extremos: "semicirculares (R = ancho/2 = " + nf(w / 2, 1) + ")", paso_objetivo: s0, paso_min: pasoMin, sep_long_min: 2 * L, sep_transversal_min: 4 * w, sep_transversal: Math.min(...tramos.map((q) => q.sep_transversal)),
       area: area(L), area_de: area, almas, tramos, n_total: all.reduce((x, q) => x + q.n, 0), largo_total: all.reduce((x, q) => x + q.n * q.L, 0),
-      respaldo: "fondo de la ranura sobre el canto del alma o nervio (t = " + P.t_web + "): PROPUESTA tiras de respaldo 6 × 20 × (L + 20) punteadas a ambas caras del alma, a ras del canto, antes de cerrar (el fabricante lo confirma en la probeta de la WPS)",
+      respaldo: "respaldo permanente: tiras " + TIRA.b + " × " + TIRA.t + " (" + TIRA.material + ") a ambos lados del canto del alma o nervio, a ras del canto, punteadas al alma antes de cerrar la mesa (MES-001)", tiras: TR,
       norma: "AISC 360-22 §J2.3a (área efectiva = área nominal de la ranura en el plano de contacto), §J2.3b (límites), §J2.4 (Tabla J2.5, F_nw = 0,60·F_EXX); AWS D1.1/D1.1M:2020 (soldaduras de tapón y ranura precalificadas: verificar el artículo en la edición vigente)" };
+  }
+  // Tiras de respaldo de J18 (rev. 9d): dos por ranura, de TIRA.t × TIRA.b, a ras del canto superior del alma o nervio, una a cada lado; cubren el vuelo
+  // (ancho − t_alma)/2 de la ranura con margen; largo = L + 2·run, recortado contra la cara del cubo (+1) y contra la zona de las tiras del alma siguiente.
+  // Las de las almas son arcos (plancha cortada a plasma, radios r ∓ t/2 ∓ b); las de los nervios, rectas.
+  function tirasOf(P, w, almas, tramos, rs, N) {
+    const t = TIRA.t, b = TIRA.b, tw = P.t_web / 2, rho = 7.85e-6, piezas = [];
+    almas.forEach((a) => {
+      const span = (a.L + 2 * TIRA.run) / a.r;
+      [[a.r - tw - b, a.r - tw, "interior"], [a.r + tw, a.r + tw + b, "exterior"]].forEach(([ri, ro, lado]) => piezas.push({ elemento: a.elemento, lado, forma: "arco", R_int: ri, R_ext: ro, span_deg: span * 180 / Math.PI,
+        largo_medio: span * (ri + ro) / 2, n: a.n, masa: rho * t * span / 2 * (ro * ro - ri * ri) }));
+    });
+    tramos.forEach((q, i) => {
+      const rin = i === 0 ? rs[0] + RAN.gap : rs[i] + tw + b + RAN.gap, rout = rs[i + 1] - tw - b - RAN.gap;
+      const x0 = Math.max(q.centros[0] - q.L / 2 - TIRA.run, rin), x1 = Math.min(q.centros[q.centros.length - 1] + q.L / 2 + TIRA.run, rout);
+      piezas.push({ elemento: q.elemento, lado: "ambos", forma: "recta", r0: x0, r1: x1, largo: x1 - x0, n: 2 * q.n, cada_k_nervios: q.cada_k_nervios, masa: rho * t * b * (x1 - x0),
+        run_int: q.centros[0] - q.L / 2 - x0, run_ext: x1 - (q.centros[q.centros.length - 1] + q.L / 2) });
+    });
+    const n = piezas.reduce((x, q) => x + q.n, 0), masa = piezas.reduce((x, q) => x + q.n * q.masa, 0), Lp = piezas.reduce((x, q) => x + q.n * (q.forma === "arco" ? q.largo_medio : q.largo), 0);
+    return { t, b, run: TIRA.run, material: TIRA.material, vuelo: (w - P.t_web) / 2, piezas, n, masa_total: masa, punteo: Object.assign({ largo_total: n * TIRA.punteo.n * TIRA.punteo.l }, TIRA.punteo),
+      destijer_superior_almas: RAN.destTop, destijer_superior_cubo: 0, largo_total: Lp,
+      nota: "tiras permanentes (quedan dentro de la mesa); punteadas al alma o nervio por debajo (filete discontinuo z" + TIRA.punteo.z + ": " + TIRA.punteo.n + " tramos de " + TIRA.punteo.l + " mm por tira) con la mesa abierta, ANTES de montar la plancha superior; cara superior de la tira a ras del canto (± 0,5) para que la plancha apoye; la tira de las almas pasa por el destijer superior de " + RAN.destTop + " de los nervios" };
   }
   const emin = (t) => (t <= 6 ? 3 : t <= 13 ? 5 : t <= 19 ? 6 : t <= 38 ? 8 : t <= 57 ? 10 : t <= 150 ? 13 : 16);   // AISC 360-22 Tabla J2.3 (garganta mínima de PJP, parte más delgada)
   const zminJ = (t) => (t <= 6 ? 3 : t <= 13 ? 5 : t <= 19 ? 6 : 8);                                                // AISC 360-22 Tabla J2.4 (parte más delgada) = AWS D1.1:2020 Tabla 7.7 (bajo hidrógeno)
@@ -1519,6 +1546,12 @@ const BX = (() => {
       geo("largo máximo (10·espesor de la soldadura)", "L = " + RG.L + " ≤ 10·" + RG.relleno, RG.L, RG.L_max);
       geo("espesor de la soldadura (relleno) en plancha de " + P.t_top + " mm", "máx(t/2; 16) = " + nf(RG.relleno_min, 1) + " ≤ relleno = " + RG.relleno + " (completo)", RG.relleno_min, RG.relleno);
       geo("separación longitudinal entre centros en una línea (≥ 2·L)", "2·L = " + 2 * RG.L + " ≤ paso mínimo = " + nf(RG.paso_min, 0), 2 * RG.L, RG.paso_min);
+      const T = RG.tiras, rT = "Rev. 9d: tiras de respaldo permanentes (decisión del mandante 21-11-2026); geometría de la mesa (cad/modelo3d_tt300c.py)", geoT = (name, formula, dem, cap) => out.push({ after: cMin, row: { kind: "geo", grp: "Soldaduras", sys: "est", bx: true, name: "BX · Tiras de respaldo J18: " + name, formula, dem, cap, unit: "mm", ref: rT } });
+      geoT("ancho de la tira frente al vuelo de la ranura sobre el canto del alma (+ 2 mm de apoyo)", "(ancho − t_alma)/2 + 2 = " + nf(T.vuelo + 2, 1) + " ≤ b = " + T.b, T.vuelo + 2, T.b);
+      geoT("la tira de las almas pasa por el destijer superior de los nervios (b + t + 1 ≤ destijer)", T.b + " + " + T.t + " + 1 ≤ " + T.destijer_superior_almas, T.b + T.t + 1, T.destijer_superior_almas);
+      const rN = T.piezas.filter((q) => q.forma === "recta"), runMin = Math.min(...rN.map((q, i) => Math.min(q.run_ext, i === 0 ? Infinity : q.run_int)));
+      geoT("prolongación de las tiras de los nervios más allá del extremo de la ranura (≥ 5; en el tramo 1, el extremo interior apoya en el cubo)", "mín. prolongación = " + nf(runMin, 1) + " ≥ 5 (recortadas a 1 mm del cubo y fuera de las tiras del alma)", 5, runMin);
+      geoT("punteo z" + T.punteo.z + " bajo la tira (mínimo por la parte más delgada t = " + T.t + "; máximo t − 2 en el borde)", "z_mín = " + zminJ(T.t) + " ≤ z = " + T.punteo.z + " ≤ " + (T.t - 2) + " (FU = máx(z_mín/z; z/z_máx))", Math.max(zminJ(T.t) / T.punteo.z, T.punteo.z / (T.t - 2)), 1);
       geo("separación transversal entre líneas de ranuras de nervios vecinos (≥ 4·ancho)", "4·ancho = " + 4 * RG.ancho + " ≤ " + nf(RG.sep_transversal, 0) + " (en el extremo interior de la ranura" + (RG.tramos.some((q) => q.cada_k_nervios > 1) ? "; tramo 1 con ranura en nervios alternados" : "") + ")", 4 * RG.ancho, RG.sep_transversal);
     }
     const cB = at("Pivote", /^Aplastamiento del buje en el cubo de la mesa/);
@@ -1543,7 +1576,7 @@ const BX = (() => {
     return { ranuras: RG, cubo: H != null ? cuboOf(P, H, A.R) : null,
       almas_nervios: "filetes J14 (almas) y J15 (nervios) a ambos lados SOLO contra la plancha inferior y el cubo/almas (extremos); la plancha superior se une por las ranuras J18 (las celdas quedan cerradas)",
       secuencia: ["1) Plancha inferior planeada sobre la mesa de armado; presentar cubo, almas y nervios con plantilla.", "2) Soldar J17a (PJP + filete, desde arriba), J16 (empalmes de las almas), J14 y J15 (filetes a la plancha inferior y extremos de los nervios contra el cubo y las almas).",
-        "3) Pasadores de empuje montados en la plancha inferior; tiras de respaldo de las ranuras punteadas a las almas y nervios (PROPUESTA).", "4) Cerrar con la plancha superior (ranuras J18 ya cortadas); soldar J18 desde arriba y J17b por el agujero central.",
+        "3) Pasadores de empuje montados en la plancha inferior; tiras de respaldo permanentes de las ranuras J18 (" + TIRA.b + " × " + TIRA.t + ") punteadas por debajo a las almas y nervios, a ras del canto (J18r).", "4) Cerrar con la plancha superior (ranuras J18 ya cortadas); soldar J18 desde arriba y J17b por el agujero central.",
         "5) J-P1 de los pasadores arriba y abajo; alivio de tensiones; planeado; mandrinado en línea del cubo y de los agujeros de los pasadores; montaje del buje."] };
   }
 

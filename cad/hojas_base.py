@@ -570,14 +570,30 @@ def _welds_mesa_bx(ctx, add, add_n, SM, W_):
     if w and RG:
         Wd, L, fl, n = float(RG["ancho"]), float(RG["L"]), float(RG["relleno"]), int(RG["n_total"])
         Ar = Wd * (L - Wd) + math.pi * Wd * Wd / 4
-        w.update(desc="Cierre de la plancha superior: soldadura de ranura rellena sobre almas y nervios (no es CJP)", piezas=f"{cS} / MES-005…010",
-                 tipo=f"Ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, extremos semicirculares, relleno {fm(fl, 0)} ({n} ranuras, tabla de MES-001)",
-                 prep=f"Ranura pasante (ancho ≥ t + 8 = {fm(g.tt + 8, 0)}) cortada antes de montar; tiras de apoyo bajo la ranura: nota de MES-001", no_backing=True,
+        TJ = RG.get("tiras") or {}
+        cR = sc("mesa_respaldo")
+        w.update(desc="Cierre de la plancha superior: soldadura de ranura rellena sobre almas y nervios, con respaldo permanente (no es CJP)", piezas=f"{cS} / MES-005…010" + (f", {cR}" if ctx.m.get("mesa_respaldo") else ""),
+                 tipo=f"Ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, extremos semicirculares, relleno {fm(fl, 0)}, con respaldo permanente ({n} ranuras, tabla de MES-001)",
+                 prep=(f"Ranura pasante (ancho ≥ t + 8 = {fm(g.tt + 8, 0)}) cortada antes de montar; respaldo permanente: tiras {fm(TJ.get('b', 15), 0)} × {fm(TJ.get('t', 6), 0)} ({cR}) a ambos lados del canto" if TJ else
+                       f"Ranura pasante (ancho ≥ t + 8 = {fm(g.tt + 8, 0)}) cortada antes de montar"), no_backing=True,
+                 backing=("M" if TJ else None), backing_txt=(f"M: respaldo permanente = tiras {fm(TJ.get('b', 15), 0)} × {fm(TJ.get('t', 6), 0)} ({cR}) a ambos lados del canto del alma o nervio" if TJ else None),
                  len_total=float(RG["largo_total"]), size_txt=f"c{fm(Wd, 0)}", len_txt=f"{n} × {fm(L, 0)}", garganta=f"ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, relleno {fm(fl, 0)} (área {fm(Ar, 0)} mm²)", cateto="—",
                  origen="núcleo BX (bx.mesa.soldaduras.ranuras; AISC 360-22 §J2.3)", t_pre=float(g.tt), t=fl,
-                 nota=f"Ranuras no modeladas en 3D; posiciones en la tabla de MES-001 (tramo 1 en nervios alternados si la separación transversal < 4·ancho)", slot=dict(w=Wd, L=L, t=float(g.tt), pitch=float(RG["paso_objetivo"])),
-                 fam_txt=f"Soldadura de ranura rellena {fm(Wd, 0)} × {fm(L, 0)} con extremos semicirculares, relleno completo {fm(fl, 0)} (AISC 360-22 §J2.3; AWS D1.1:2020, soldaduras de tapón y ranura precalificadas: verificar el artículo en la edición vigente), en posición plana; NO es CJP",
+                 nota=f"Ranuras no modeladas en 3D; posiciones en la tabla de MES-001 (tramo 1 en nervios alternados si la separación transversal < 4·ancho)", slot=dict(w=Wd, L=L, t=float(g.tt), pitch=float(RG["paso_objetivo"]), tiras=(RG.get("tiras") if ctx.m.get("mesa_respaldo") else None), tw=float(P["t_web"]), jid_r=("J18r" if ctx.m.get("mesa_respaldo") else None)),
+                 fam_txt=(f"Ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, relleno {fm(fl, 0)}, sobre respaldo permanente (tiras {fm(TJ.get('b', 15), 0)} × {fm(TJ.get('t', 6), 0)}); plana; no es CJP (AISC §J2.3). "
+                          "PROBETA de calificación con la geometría real y MACROATAQUE de la raíz (AWS D1.1:2020 cl. 6: verificar el artículo en la edición vigente)" if TJ else
+                          f"Soldadura de ranura rellena {fm(Wd, 0)} × {fm(L, 0)} con extremos semicirculares, relleno completo {fm(fl, 0)} (AISC 360-22 §J2.3; AWS D1.1:2020, soldaduras de tapón y ranura precalificadas: verificar el artículo en la edición vigente), en posición plana; NO es CJP"),
                  pasadas_txt=f"{max(2, math.ceil(fl / 4.0))} capas (relleno completo, limpiando la escoria entre capas)")
+        if TJ and ctx.m.get("mesa_respaldo"):        # rev. 9d: punteo de las tiras de respaldo al alma o nervio (antes de cerrar la mesa)
+            PT_ = TJ["punteo"]
+            jr = add("Tiras de respaldo de J18 – almas y nervios (punteo)", f"{cR} / MES-005…010",
+                     f"Filete discontinuo z{fm(PT_['z'], 0)} por debajo de cada tira, contra la cara del alma o nervio: {PT_['n']} tramos de {fm(PT_['l'], 0)} mm por tira (extremos y centro), con la mesa abierta, antes de montar la plancha superior; cara superior de la tira a ras del canto (± 0,5)",
+                     "fillet", core=(float(PT_["z"]), f"núcleo BX (bx.mesa.soldaduras.ranuras.tiras.punteo); mín. AWS D1.1:2020 T. 7.7 / AISC T. J2.4 por la parte más delgada (tira {fm(TJ['t'], 0)}) = {fm(fillet_min(TJ['t']), 0)}; máx. t − 2 = {fm(TJ['t'] - 2, 0)} (§J2.2b, borde de la tira)"),
+                     t=float(TJ["t"]), t_pre=float(max(TJ["t"], P["t_web"])), len_total=float(PT_["largo_total"]), wps=1, end="VT 100 %", nivel="ISO 5817-C", jid="J18r",
+                     nota="permanentes: el relleno de J18 funde las tiras; punteo con el mismo aporte y la misma WPS de filete")
+            jr.update(len_txt=f"{PT_['n']} × {fm(PT_['l'], 0)} c/tira", origen=jr["origen"])
+            W_.remove(jr)
+            W_.insert(W_.index(w) + 1, jr)
 
 
 def _welds_refuerzo(ctx, add, INS, sc_):
@@ -966,6 +982,8 @@ def partida_dict(ctx):
 def tipos_txt(p, t):
     """Descripción de un tipo de pieza (H-04): qué elementos del conjunto son de ese tipo."""
     n_tot = sum(len(t_["idx"]) for t_ in p.tipos)
+    if getattr(p, "lbl_solidos", None):  # TT300-BX rev. 9d: tiras de respaldo de J18 (geometría de cada tipo)
+        return f"TIPO {t['suf']}: {p.lbl_solidos[t['idx'][0]]}; {len(t['idx'])} de {n_tot}"
     nums = ", ".join(str(i + 1) for i in t["idx"][:14]) + (" …" if len(t["idx"]) > 14 else "")
     return f"TIPO {t['suf']}: {len(t['idx'])} de {n_tot} (n.° {nums}, numerados desde +x en sentido antihorario)"
 
@@ -979,6 +997,11 @@ def bom_rows_part(ctx, p, dpart):
     if not p.tipos:
         return [[str(p.pos), code, p.desc, str(p.qty), f"{p.material}. Cert.: {p.cert}", f"{forma} {dim}", f(p.mass_unit, 1), f(p.mass_total, 1), obs, plano]]
     out = []
+    if p.key == "mesa_respaldo":         # TT300-BX rev. 9d: 8 geometrías de la misma tira; texto completo solo en la primera fila
+        for i, t in enumerate(p.tipos, 1):
+            out.append([f"{p.pos}.{i}", p.code_suf(t["suf"]).replace(CODE + "-", ""), (f"{p.desc}. " if i == 1 else "") + f"TIPO {t['suf']}: " + p.lbl_solidos[t["idx"][0]], str(t["n"]), (f"{p.material}. Cert.: {p.cert}" if i == 1 else "ídem"),
+                        (f"{forma} {dim}" if i == 1 else "ídem"), f(t["masa_unit"], 2), f(t["masa_unit"] * t["n"], 1), (obs if i == 1 else ""), plano])
+        return out
     for i, t in enumerate(p.tipos, 1):
         import modelo3d_tt300c as M3
         pl_ = plano if (i == 1 or not getattr(p, "hoja_tipos", False)) else f"INT-{M3.LAMINA_TIPOS[p.key]:03d}-{REV}"

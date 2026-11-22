@@ -8,7 +8,7 @@ from pie_a import ra, wd
 from soldadura_det import add_prep
 
 
-@pieza("mesa_plancha_sup")
+@pieza("mesa_plancha_sup", "mesa_respaldo")
 def sheet_mesa_sup(ctx):
     g, P = ctx.g, ctx.P
     if g.mesa_entera:                    # TT300-BX rev. 7c: plancha entera con los agujeros de los pasadores (cad/pie_mesa_entera.py)
@@ -310,7 +310,13 @@ def sheet_nervios(ctx):
         def d_(V, p, i=i, bb=bb, L=L):
             # N-04: destijeres dibujados (en el sólido) y acotados en una esquina
             dc_ = M3_.dest_cubo(g) if i == 0 else None
-            V.note_pt((bb.xmin + 7.5, 0.0, z0 + g.hw - 7.5), (12, 14), "destijer 15 × 15 a 45° (4 esquinas)" if not dc_ else f"destijer 15 × 15 a 45° (3 esquinas); {fm(dc_, 0)} × {fm(dc_, 0)} abajo contra el cubo (J17a)", on=[ks[i] + "_1"], dot=True)
+            TJ_ = M3_.tiras_j18(g)
+            if TJ_:                      # rev. 9d: arriba 22 × 22 contra las almas (paso de las tiras J18), ninguno contra el cubo; abajo 15 × 15 (20 × 20 contra el cubo)
+                dt_ = float(TJ_["destijer_superior_almas"])
+                x_ = (bb.xmax - dt_ / 2) if i == 0 else (bb.xmin + dt_ / 2)
+                V.note_pt((x_, 0.0, z0 + g.hw - dt_ / 2), (12, 14), f"destijer {fm(dt_, 0)} × {fm(dt_, 0)} a 45° arriba contra las almas (tiras J18); abajo 15 × 15" + (f" y {fm(dc_, 0)} × {fm(dc_, 0)} contra el cubo (J17a)" if dc_ else ""), on=[ks[i] + "_1"], dot=True)
+            else:
+                V.note_pt((bb.xmin + 7.5, 0.0, z0 + g.hw - 7.5), (12, 14), "destijer 15 × 15 a 45° (4 esquinas)" if not dc_ else f"destijer 15 × 15 a 45° (3 esquinas); {fm(dc_, 0)} × {fm(dc_, 0)} abajo contra el cubo (J17a)", on=[ks[i] + "_1"], dot=True)
             if jn and i == len(ks) - 1:
                 w_out(p, jn[0], V, (bb.xmax, bb.ymin, z0 + g.hw / 2), "right", dy=12)
             jb_ = jids(ctx, "Nervios del tramo 1 – cubo") if i == 0 else []

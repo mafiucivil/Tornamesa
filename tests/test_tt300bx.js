@@ -242,7 +242,7 @@ test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85
   const P1 = Object.assign({}, P0, { bx_mesa_entera: 0 }), A1 = BX.analyze(P1, { noFEA: true });
   assert.equal(row(/Mesa de plancha entera/, A1).length, 0); assert.equal(BX.exportBX(P1, A1).mesa.plancha_entera, false);
   assert.equal(A1.R.m.total, A0.R.m.total);
-  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera|J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios del tramo 1/.test(c.name)).map((c) => c.grp + "|" + c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu + "|" + c.st).join("\n");   // rev. 9c: filas de las soldaduras de la mesa entera
+  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera|J17[ab]|Ranuras( de cierre)? J18|Tiras de respaldo J18|Destijer de los nervios del tramo 1/.test(c.name)).map((c) => c.grp + "|" + c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu + "|" + c.st).join("\n");   // rev. 9c: filas de las soldaduras de la mesa entera
   assert.equal(k(A1), k(A0), "mismas filas y FU fuera de las de la mesa entera");
   assert.ok(!BX.design(P1).fabricacion.some((f) => /Planchas de la mesa/.test(f.pieza)));
   // espesores distintos con la plancha entera: fila geométrica que falla, error del validador y error claro al exportar
@@ -462,6 +462,10 @@ test("BX rev. 9c: soldaduras de la mesa cerrada (J14/J15 solo abajo, ranuras J18
   const A = BX.analyze(P0), rows = A.checks.filter((c) => c.bx && /J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios/.test(c.name));
   assert.equal(rows.length, 13); rows.forEach((c) => assert.equal(c.st, "ok", c.name + " FU " + c.fu));
   assert.ok(rows.every((c) => c.fu <= 0.9 + 1e-9 || c.kind === "geo"));
+  // rev. 9d: tiras de respaldo permanentes (2 por ranura; cubren el vuelo (w − t_alma)/2 y pasan por el destijer superior de los nervios)
+  const T = RG.tiras; assert.equal(T.n, 2 * RG.n_total); assert.ok(T.b >= (RG.ancho - P0.t_web) / 2 + 2 && T.b + T.t + 1 <= T.destijer_superior_almas);
+  near(T.masa_total, T.piezas.reduce((x, q) => x + q.n * q.masa, 0), 1e-12, "masa de las tiras"); assert.ok(T.masa_total > 10 && T.masa_total < 25);
+  const rt = A.checks.filter((c) => c.bx && /^BX · Tiras de respaldo J18/.test(c.name)); assert.equal(rt.length, 4); rt.forEach((c) => assert.equal(c.st, "ok", c.name + " FU " + c.fu));
   // gancho aditivo juntasE_asiento: J-E3…J-E5 con el alto real de las paredes sobre el refuerzo (152), sin cambiar el núcleo sin P.__bx
   const Pc = BX.coreP(P0), Rc = TT.compute(Pc), F = TT.designDrive(Pc, Rc).pivotado.fabricacion.soporte_E, J = Object.fromEntries(F.juntas.map((j) => [j.id, j]));
   ["J-E3", "J-E4", "J-E5"].forEach((id) => near(J[id].largo, F.alto_paredes, 1e-12, id + " = alto de las paredes sobre el refuerzo"));

@@ -274,6 +274,70 @@ def prep_slot(s, ox, oy, k, w, L, t, jid=None, plano=None, pitch=250.0, bx=False
         plano.h.weld(jid, a, (ox + (L + 40) * k + 12, a[1] + (8 if bx else 20)), sh=1)
 
 
+def slot_bx_size(w, L, t, T):
+    return (max(L + 40.0, w + 2 * T["b"] + 70.0), w + 30.0 + t + T["t"] + 34.0)
+
+
+def prep_slot_bx(s, ox, oy, k, w, L, t, T, tw_, jid=None, plano=None, jid_r=None):
+    """TT300-BX rev. 9d: ranura rellena J18 con respaldo permanente. Arriba, planta de la ranura obonga (ancho w, largo L, extremos semicirculares) con
+    las tiras en trazo oculto; abajo, corte transversal: plancha superior t con la ranura, alma o nervio tw_ y las dos tiras b × t_tira a ras del canto,
+    punteadas por debajo (J18r), y el relleno completo sobre el canto y las tiras."""
+    Wn, Hn = slot_bx_size(w, L, t, T)
+    P = lambda x, y: (ox + x * k, oy + y * k)
+    b, tt_ = T["b"], T["t"]
+    # ---- corte transversal (abajo) ----
+    xc = Wn / 2
+    H = 30.0                               # porción del alma dibujada (rotura abajo)
+    y_w0, y_c = 4.0, 4.0 + H               # canto superior del alma en y_c
+    y_p1 = y_c + t
+    _poly(s, [P(xc - tw_ / 2, y_w0), P(xc + tw_ / 2, y_w0), P(xc + tw_ / 2, y_c), P(xc - tw_ / 2, y_c)], 90.0)
+    for sd in (-1, 1):
+        x_in, x_out = xc + sd * tw_ / 2, xc + sd * (tw_ / 2 + b)
+        _poly(s, [P(min(x_in, x_out), y_c - tt_), P(max(x_in, x_out), y_c - tt_), P(max(x_in, x_out), y_c), P(min(x_in, x_out), y_c)], 0.0, scale=0.25)
+        tri = [P(x_in, y_c - tt_), P(x_in, y_c - tt_ - 4.0), P(x_in + sd * 4.0, y_c - tt_)]
+        _poly(s, tri, solid=True); s.pline(tri, "VIS", closed=True)
+        xp0, xp1 = (xc - Wn / 2 + 6, xc - w / 2) if sd < 0 else (xc + w / 2, xc + Wn / 2 - 6)
+        _poly(s, [P(xp0, y_c), P(xp1, y_c), P(xp1, y_p1), P(xp0, y_p1)], 45.0)
+    fill = [P(xc - w / 2, y_c), P(xc + w / 2, y_c), P(xc + w / 2, y_p1), P(xc - w / 2, y_p1)]
+    _poly(s, fill, solid=True); s.pline(fill, "VIS", closed=True)
+    xa_, xb_, ym_ = P(xc - tw_ / 2 - 2, 0)[0], P(xc + tw_ / 2 + 2, 0)[0], P(0, y_w0)[1]
+    xm_ = (xa_ + xb_) / 2
+    s.pline([(xa_, ym_), (xm_ - 2.5, ym_), (xm_ - 0.8, ym_ + 2.2), (xm_ + 0.8, ym_ - 2.2), (xm_ + 2.5, ym_), (xb_, ym_)], "FINA")
+    s.dim(P(xc - w / 2, y_p1), P(xc + w / 2, y_p1), 7, f"{fm(w, 0)} (ranura)", "h")
+    s.dim(P(xc + Wn / 2 - 6, y_c), P(xc + Wn / 2 - 6, y_p1), 7, f"t = {fm(t, 0)}", "v")
+    s.dim(P(xc + tw_ / 2, y_c - tt_), P(xc + tw_ / 2 + b, y_c - tt_), -9, f"{fm(b, 0)}", "h", outside=True)
+    s.dim(P(xc - tw_ / 2 - b, y_c - tt_), P(xc - tw_ / 2 - b, y_c), -7, f"{fm(tt_, 0)}", "v", outside=True)
+    s.dim(P(xc - tw_ / 2, y_w0 + 6), P(xc + tw_ / 2, y_w0 + 6), -14, f"{fm(tw_, 0)} (alma)", "h", outside=True)
+    s.leader(P(xc - tw_ / 2 - b * 0.5, y_c - tt_ * 0.5), (P(xc - Wn / 2, 0)[0] + 2, P(0, y_c - tt_ - 16)[1]), f"tira de respaldo {fm(b, 0)} × {fm(tt_, 0)}, permanente, a ras del canto", dot=True)
+    # ---- planta (arriba) ----
+    yb = y_p1 + 18.0
+    r = w / 2
+    cx0, cx1 = xc - L / 2 + r, xc + L / 2 - r
+    pts = []
+    n = 16
+    for i in range(n + 1):
+        a = -math.pi / 2 + math.pi * i / n
+        pts.append(P(cx1 + r * math.cos(a), yb + r + r * math.sin(a)))
+    for i in range(n + 1):
+        a = math.pi / 2 + math.pi * i / n
+        pts.append(P(cx0 + r * math.cos(a), yb + r + r * math.sin(a)))
+    s.pline(pts, "VIS", closed=True)
+    Lt = L + 2 * T["run"]
+    for y_ in (yb + r - tw_ / 2 - b, yb + r - tw_ / 2, yb + r + tw_ / 2, yb + r + tw_ / 2 + b):
+        s.line(P(xc - Lt / 2, y_), P(xc + Lt / 2, y_), "OCU")
+    for x_ in (xc - Lt / 2, xc + Lt / 2):
+        s.line(P(x_, yb + r - tw_ / 2 - b), P(x_, yb + r + tw_ / 2 + b), "OCU")
+    s.dim(P(xc - L / 2, yb + w), P(xc + L / 2, yb + w), 6, f"L = {fm(L, 0)}", "h")
+    s.dim(P(xc - Lt / 2, yb + r - tw_ / 2 - b), P(xc + Lt / 2, yb + r - tw_ / 2 - b), -5, f"{fm(Lt, 0)} (tiras)", "h", outside=True)
+    s.text(f"extremos R{fm(r, 0)}", (P(xc + L / 2 + 3, 0)[0], P(0, yb + w + 2)[1]), T_N, "BOTTOM_LEFT")
+    if jid and plano is not None:
+        a = P(xc + w * 0.25, y_p1)
+        plano.h.weld(jid, a, (ox + Wn * k + 12, P(0, y_p1 + 6)[1]), sh=1)
+    if jid_r and plano is not None:
+        a = P(xc + tw_ / 2 + 1.2, y_c - tt_ - 1.2)
+        plano.h.weld(jid_r, a, (ox + Wn * k + 12, P(0, y_w0)[1]), sh=1)
+
+
 def tc_size(w):
     t, tp = w["t_alma"], w["t_plancha"]
     if w.get("pjp"):
@@ -457,6 +521,13 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         bk = w.get("backing_txt")
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({('V ' + fm(ang, 0) + '°') if kind == 'V' else ('bisel ' + fm(ang, 0) + '°')}, t = {fm(t, 0)}" + (f" / {fm(tT, 0)}" if tT else "") + (f", R = {fm(root, 0)}, f = {fm(face_, 0)}, B-U2a" if dt_ else "") + ")",
                     custom=lambda s, ox, oy, k, pl: prep_butt(s, ox, oy, k, t, jid, pl, kind, ang, root, face_, True, transition=tr, t_thick=tT, land=land, backing_txt=bk))
+    if w["groove"] and w["sym"] == "slot" and (w.get("slot") or {}).get("tiras"):
+        sl_ = w["slot"]
+        T_ = sl_["tiras"]
+        wd, L, tp_ = float(sl_["w"]), float(sl_["L"]), float(sl_["t"])
+        Wn, Hn = slot_bx_size(wd, L, tp_, T_)
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=0.5, maxs=0.5, title=title or f"DETALLE {jid}: RANURA RELLENA {fm(wd, 0)} × {fm(L, 0)} CON RESPALDO PERMANENTE (TIRAS {fm(T_['b'], 0)} × {fm(T_['t'], 0)})",
+                    custom=lambda s, ox, oy, k, pl: prep_slot_bx(s, ox, oy, k, wd, L, tp_, T_, float(sl_.get("tw", 8.0)), jid, pl, jid_r=sl_.get("jid_r")))
     if w["groove"] and w["sym"] == "slot":
         sl_ = w.get("slot") or {}                # rev. 9c (BX): ranura según AISC 360-22 §J2.3b (ancho ≥ t + 8, extremos semicirculares) del núcleo BX
         wd, L = float(sl_.get("w", 22.0)), float(sl_.get("L", 80.0))

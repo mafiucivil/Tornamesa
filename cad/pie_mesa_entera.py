@@ -104,6 +104,7 @@ def sheet_sup(ctx):
     p.vs("corte", on, "front", cut=CUT_Y, win=(x_a, zt - tt - 6, x_b, zt + 14), center=(0, 0, 0), breaks=[(g.hole_top / 2 + 170, g.R_pin - g.d_pin / 2 - 150)], lv=(1, 2, 1, 2), extra=(0, 0, 60, 0),
          draw=corte, title="CORTE A-A (radial por el agujero 1, con rotura)", hs=0.5, w=1.2, mins=0.5, maxs=0.5, auto=False)
     p.detail("det_c", "corte", (g.hole_top / 2 + 10, 0, zt - tt / 2), 38, "B", lv=(1, 2, 1, 1), title="DETALLE B: AGUJERO CENTRAL Y REBAJE DE LA TAPA", maxs=2.0,
+             **({"mins": 0.1} if ctx.m.get("mesa_respaldo") else {}),
              auto=dict(text={round(tt - g.cb_t, 1): f"({f(tt - g.cb_t)})"}))
     p.ra_in("det_c", "Ra 6,3", [(g.hole_top / 2 + 22, 0, zt - g.cb_t), (g.hole_top / 2 + 12, 0, zt - g.cb_t), (g.cb_D / 2 + 12, 0, zt), (g.cb_D / 2 + 20, 0, zt)], (0, 0, 1))
     _tabla_agujeros(ctx, p, "vista desde la cara superior")
@@ -114,7 +115,7 @@ def sheet_sup(ctx):
         add_prep(p, "det_j18", wd(ctx, jj[0]))
     p.table_block(f"RANURAS DE CIERRE {jj[0] if jj else ''} ({rtx_}; eje de la ranura sobre el eje del alma o nervio)", [("Elemento", 34, "L"), ("Ubicación", 70, "L"), ("Ángulos", 46, "L"), ("Cant", 14, "R")],
                   [[a, b_, c_, str(n_)] for a, b_, c_, n_ in rc_] + [["TOTAL", "", "", str(sum(r_[3] for r_ in rc_))]], bold_rows=(len(rc_),))
-    p.tables(jj + ([jP["id"]] if jP else []))
+    p.tables(jj + jids(ctx, "Tiras de respaldo de J18") + ([jP["id"]] if jP else []))
     U_ = (D.get("pasadores_empuje") or {}).get("union")
     p.notes([f"Plancha ENTERA de una pieza Ø{f(2 * g.Rt)} × {f(tt)} (TT300-BX rev. 7c, decisión del mandante 19-11-2026): sin anillo de pasadores, sin empalmes CJP de segmentos y sin unión soldada plancha–anillo. "
              f"Compra: plancha de {f(tt)} mm de AL MENOS {f(2 * g.Rt)} × {f(2 * g.Rt)} (ASTM A572 Gr. 50, Z35, UT ASTM A578 nivel B).",
@@ -123,9 +124,10 @@ def sheet_sup(ctx):
              f"y MANDRINAR/ESCARIAR a Ø{f(g.d_pin)} H7 EN LÍNEA con la plancha inferior ({_cc(ctx, 'mesa_plancha_inf')}) con la mesa armada, soldada y aliviada (eje común; coaxialidad Ø0,05, CON-009). Ra 3,2; aristas rotas 1 × 45°.",
              (f"Borde EXTERIOR de cada agujero (cara superior): bisel 45° × {f(U_['S'])} para la PJP {jP['id'] if jP else 'J-P1'} del pasador soldado a ras (detalle en la lámina del pasador), mecanizado después del mandrinado."
               if U_ else "Pasadores montados m6/H7 según la lámina del pasador."),
-             (f"Unión con almas y nervios SOLO por las soldaduras de ranura rellena {jj[0] if jj else 'J18'} (no CJP; las celdas quedan cerradas y no admiten filetes por debajo): ranuras {rtx_}, cortadas antes de montar la plancha; "
-              f"{RG_.get('n_total', '')} ranuras en la tabla «RANURAS DE CIERRE» (en el tramo 1 de los nervios, en nervios alternados por la separación transversal ≥ 4·ancho); fondo sobre el canto del alma: {RG_.get('respaldo', '')}; no modeladas en 3D."
+             (f"Unión con almas y nervios SOLO por las soldaduras de ranura rellena {jj[0] if jj else 'J18'} con respaldo permanente (no CJP; las celdas quedan cerradas y no admiten filetes por debajo): ranuras {rtx_}, cortadas antes de montar la plancha; "
+              f"{RG_.get('n_total', '')} ranuras en la tabla «RANURAS DE CIERRE» (en el tramo 1 de los nervios, en nervios alternados por la separación transversal ≥ 4·ancho; su extremo interior apoya sobre el cubo); no modeladas en 3D."
               if RG_ else f"Soldadura de cierre sobre almas y nervios por ranuras ({jj[0] if jj else 'J18'}): 22 × 80 a paso 250, posiciones en la tabla «RANURAS DE CIERRE» (PROPUESTA, confirmar); no modeladas en 3D."),
+             *([_nota_tiras(ctx, RG_["tiras"])] if (RG_ and RG_.get("tiras") and ctx.m.get("mesa_respaldo")) else []),
              "UT de recepción de la plancha ASTM A578 nivel B y Z35 (EN 10164) por el esfuerzo en espesor de los pasadores (antes: solo en el anillo).",
              "Distorsión: soldar la plancha superior en último lugar, con la mesa apoyada plana; verificar planitud 0,5. Paralelismo entre caras de la mesa: CON-009."],
             gd=[("pos", "Ø0,3", "A", "Agujeros de los pasadores: posición respecto del eje del agujero central (A); PCD y ángulos: cotas teóricamente exactas (en recuadro)"),
@@ -177,3 +179,13 @@ def sheet_inf(ctx):
                 ("flat", "0,20", None, "Planitud de la cara inferior (antes de montar la interfaz); paralelismo entre caras de la mesa: CON-009")])
     p.build()
     return p.h
+
+
+def _nota_tiras(ctx, T):
+    """TT300-BX rev. 9d: tiras de respaldo permanentes de J18 (pieza de esta lámina; núcleo BX bx.mesa.soldaduras.ranuras.tiras)."""
+    cR = _cc(ctx, "mesa_respaldo")
+    PT = T["punteo"]
+    return (f"Respaldo permanente de {', '.join(jids(ctx, 'Cierre de la plancha')) or 'J18'}: {T['n']} tiras {cR} de {fm(T['b'], 0)} × {fm(T['t'], 0)} ({T['material']}; {fm(T['masa_total'], 1)} kg en total), dos por ranura, "
+            f"una a cada lado del canto del alma o nervio y a ras de él (± 0,5), largo = L + 2 × {fm(T['run'], 0)} (recortadas a 1 mm del cubo y fuera de las tiras del alma; 8 geometrías: rectas en los nervios y arcos en las almas, despiece CON-002). "
+            f"Secuencia: con la mesa abierta, puntear cada tira por debajo contra el alma o nervio ({', '.join(jids(ctx, 'Tiras de respaldo de J18')) or 'J18r'}: z{fm(PT['z'], 0)}, {PT['n']} tramos de {fm(PT['l'], 0)} mm) ANTES de montar la plancha superior; "
+            f"las tiras de las almas pasan por el destijer superior de {fm(T['destijer_superior_almas'], 0)} × {fm(T['destijer_superior_almas'], 0)} de los nervios; quedan dentro de la mesa.")

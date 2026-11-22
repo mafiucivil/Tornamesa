@@ -585,6 +585,17 @@ def nest_items(ctx):
             L.append((p.key, p.name, Lr + 4, g.hw + 4, P["t_rib"], p.qty, p.mass_unit))
     if g.modo == 1:
         add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
+    if m.get("mesa_respaldo"):           # TT300-BX rev. 9d: tiras de respaldo de J18, por geometría (envolvente del arco o de la recta)
+        import modelo3d_tt300c as M3
+        TJ_ = M3.tiras_j18(g)
+        pr_ = m.get("mesa_respaldo")
+        for q in TJ_["piezas"]:
+            if q["forma"] == "recta":
+                w_, h_ = q["largo"], TJ_["b"]
+            else:
+                hs_ = math.radians(q["span_deg"]) / 2
+                w_, h_ = 2 * q["R_ext"] * math.sin(hs_), q["R_ext"] - q["R_int"] * math.cos(hs_)
+            L.append(("mesa_respaldo", f"Tira J18 ({q['elemento']}{', ' + q['lado'] if q['forma'] == 'arco' else ''})", w_ + 2, h_ + 2, TJ_["t"], int(q["n"]), q["masa"]))
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
     if g.opt == 4:                       # TT300-BX: portador y semidiscos (bloque «bx» del JSON)
