@@ -242,7 +242,7 @@ test("BX: mesa de plancha entera por nivel Ø2000 × 22 con los 28 agujeros Ø85
   const P1 = Object.assign({}, P0, { bx_mesa_entera: 0 }), A1 = BX.analyze(P1, { noFEA: true });
   assert.equal(row(/Mesa de plancha entera/, A1).length, 0); assert.equal(BX.exportBX(P1, A1).mesa.plancha_entera, false);
   assert.equal(A1.R.m.total, A0.R.m.total);
-  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera|J17[ab]|Ranuras( de cierre)? J18|Tiras de respaldo J18|Destijer de los nervios del tramo 1/.test(c.name)).map((c) => c.grp + "|" + c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu + "|" + c.st).join("\n");   // rev. 9c: filas de las soldaduras de la mesa entera
+  const k = (A) => A.checks.filter((c) => !/Mesa de plancha entera|J17[ab]|J19|BX · Disco central|Ranuras( de cierre)? J18|Tiras de respaldo J18|Destijer de los nervios del tramo 1/.test(c.name)).map((c) => c.grp + "|" + c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu + "|" + c.st).join("\n");   // rev. 9c: filas de las soldaduras de la mesa entera
   assert.equal(k(A1), k(A0), "mismas filas y FU fuera de las de la mesa entera");
   assert.ok(!BX.design(P1).fabricacion.some((f) => /Planchas de la mesa/.test(f.pieza)));
   // espesores distintos con la plancha entera: fila geométrica que falla, error del validador y error claro al exportar
@@ -459,7 +459,7 @@ test("BX rev. 9c: soldaduras de la mesa cerrada (J14/J15 solo abajo, ranuras J18
   assert.ok(RG.paso_min >= 2 * RG.L - 1e-9, "separación longitudinal ≥ 2L"); assert.ok(RG.sep_transversal >= 4 * RG.ancho - 1e-9, "separación transversal ≥ 4·ancho");
   assert.equal(RG.tramos[0].cada_k_nervios, 2, "tramo 1 en nervios alternados");
   assert.deepEqual([CB.J17a.S, CB.J17a.E, CB.J17a.z_refuerzo, CB.J17b.z], [11, 8, 8, 10]); assert.ok(CB.J17b.holgura_tapa >= 2); assert.ok(CB.destijer_cubo >= CB.destijer_req);
-  const A = BX.analyze(P0), rows = A.checks.filter((c) => c.bx && /J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios/.test(c.name));
+  const A = BX.analyze(P0), rows = A.checks.filter((c) => c.bx && /J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios/.test(c.name) && !/J19|BX · Disco central/.test(c.name));   // rev. 9e: filas del disco central aparte
   assert.equal(rows.length, 13); rows.forEach((c) => assert.equal(c.st, "ok", c.name + " FU " + c.fu));
   assert.ok(rows.every((c) => c.fu <= 0.9 + 1e-9 || c.kind === "geo"));
   // rev. 9d: tiras de respaldo permanentes (2 por ranura; cubren el vuelo (w − t_alma)/2 y pasan por el destijer superior de los nervios)
@@ -479,6 +479,38 @@ test("BX rev. 9c: soldaduras de la mesa cerrada (J14/J15 solo abajo, ranuras J18
   near(Fn.juntas.find((j) => j.id === "J-E3").largo, Fn.z_paredes[1] - Pn.t_base, 1e-9, "sin P.__bx el núcleo conserva su largo (z_paredes − t_base)");
 });
 
+test("BX rev. 9e: disco central torneado de la plancha superior (MES-016) con la CJP J19 B-U4a sobre aro de respaldo; geometría, holguras y filas", () => {
+  const X = BX.exportBX(P0, A0), SM = X.mesa.soldaduras, DC = SM.disco_central, RG = SM.ranuras, T = RG.tiras, t = P0.t_top;
+  assert.ok(DC && DC.ok);
+  // Ø300 del mandante no cumple (la junta corta la ranura J18 del tramo 1, que apoya en el cubo) → primer diámetro redondo sin conflictos
+  assert.equal(DC.D_objetivo, 300); assert.ok(DC.conflictos_objetivo.some((c) => /tramo 1/.test(c)));
+  assert.equal(DC.D, 700); assert.equal(DC.D % 10, 0); near(DC.D_sup, DC.D - 2 * t * Math.tan(DC.junta.alfa * Math.PI / 180), 1e-12, "Ø superior del bisel");
+  assert.deepEqual([DC.junta.alfa, DC.junta.R, DC.junta.f, DC.junta.id], [45, 6, 0, "J19"]); assert.match(DC.junta.tipo, /B-U4a/);
+  assert.equal(DC.plancha.agujero, DC.D + 2 * DC.junta.R); assert.equal(DC.agujero.d, P0.D_piv + 80); assert.deepEqual([DC.rebaje.d, DC.rebaje.prof], [P0.D_piv + 120, 8]);
+  assert.equal(DC.t, t); assert.equal(DC.material, X.mesa.material, "mismo material que la plancha");
+  // holguras recalculadas aparte: chaflán [R_sup, R_agujero] a ≥ t/2 de toda ranura; aro libre del cubo, almas y tiras
+  const sep = (a0, a1, b0, b1) => Math.max(b0 - a1, a0 - b1), Rh = DC.plancha.agujero / 2;
+  const slots = RG.almas.map((a) => [a.r - RG.ancho / 2, a.r + RG.ancho / 2]).concat(RG.tramos.map((q) => [q.centros[0] - q.L / 2, q.centros[q.centros.length - 1] + q.L / 2]));
+  slots.forEach(([a, b]) => assert.ok(sep(DC.R_sup, Rh, a, b) >= t / 2 - 1e-9, `chaflán a ${sep(DC.R_sup, Rh, a, b)} mm de la ranura R${a}–R${b}`));
+  const rings = String(P0.rings).split(/[ ,;]+/).map(Number), under = [[0, P0.D_hub / 2]].concat(rings.map((r) => [r - P0.t_web / 2, r + P0.t_web / 2]),
+    T.piezas.map((q) => (q.forma === "arco" ? [q.R_int, q.R_ext] : [q.r0, q.r1])));
+  under.forEach(([a, b]) => assert.ok(sep(DC.aro.R_int, DC.aro.R_ext, a, b) >= 1 - 1e-9, `aro a ${sep(DC.aro.R_int, DC.aro.R_ext, a, b)} mm de R${a}–R${b}`));
+  assert.ok(DC.aro.R_int < DC.R_inf && DC.aro.R_ext > Rh, "el aro cubre toda la abertura de raíz"); assert.ok(Math.min(DC.aro.m_int, DC.aro.m_ext) >= 6);
+  // ranuras J18 sin cambio (las de A1 y del tramo 1 quedan enteras dentro del disco)
+  assert.equal(RG.tramos[0].L, 125); assert.equal(RG.n_total, 77); assert.equal(DC.n_ranuras_disco, 14);
+  assert.equal(DC.muesca.tramo, 2); assert.ok(DC.muesca.sep_destijer >= 1 && DC.muesca.sep_tiras >= 1); assert.equal(DC.muesca.prof, DC.aro.t + 1);
+  // ninguna Ø redonda menor cumple: a Ø690 el chaflán queda a < t/2 de la ranura del alma A1
+  assert.ok(690 / 2 - t - (300 + RG.ancho / 2) < t / 2);
+  assert.ok(DC.masa > 40 && DC.masa < 70 && DC.masa_neta < DC.masa); assert.ok(DC.aro.masa > 2 && DC.aro.masa < 3.5);
+  // filas: J19 (CJP = metal base, q = H/(π·r)), corte del disco junto al agujero, geométricas; J17b sin cambio de FU
+  const A = BX.analyze(P0), rw = A.checks.filter((c) => c.bx && /J19|Disco central/.test(c.name));
+  assert.equal(rw.length, 8); rw.forEach((c) => assert.equal(c.st, "ok", c.name + " FU " + c.fu));
+  const r19 = rw.find((c) => /^BX · Unión disco central–plancha superior J19/.test(c.name)), H = DC.H_kN;
+  near(r19.dem, H * 1e3 / (Math.PI * (DC.R_inf + DC.junta.R / 2) * t), 1e-12, "τ de J19"); near(r19.cap, P0.Fy / (P0.Nd * Math.sqrt(3)), 1e-12, "F_v BTH-1");
+  const j17 = A.checks.find((c) => c.bx && /^BX · Unión cubo–plancha superior J17b \(filete/.test(c.name)); near(j17.fu, 0.716, 2e-3, "J17b FU"); assert.match(j17.name, /disco central/);
+  assert.equal(A.checks.find((c) => c.bx && /muesca .* del aro de respaldo de J19/.test(c.name)).st, "ok");
+});
+
 test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisión, vigente = última; el JSON y el generador la usan en todas las láminas", () => {
   const RV = BX.REVISIONES_PLANOS, L = RV[RV.length - 1];
   assert.ok(Array.isArray(RV) && RV.length >= 2 && Object.isFrozen(RV));
@@ -486,8 +518,11 @@ test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisió
   RV.slice(1).forEach((r, i) => assert.equal(r.letra.charCodeAt(0), RV[i].letra.charCodeAt(0) + 1, `letras consecutivas (${RV[i].letra} → ${r.letra})`));
   assert.equal(BX.REV_PLANOS, L.letra);
   assert.deepEqual([RV[0].letra, RV[0].fecha, RV[0].descripcion], ["C", "—", "Emisión anterior (rev. 8 del cálculo BX)"]);
-  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["D", "22-11-2026", "9d"], "decisión del mandante 22-11-2026: la emisión del cálculo 9d es la Rev. D");
-  assert.match(L.descripcion, /250 t; alivio 540 \/ alarma 480 \/ retorno 150 bar/); assert.match(L.descripcion, /ACC-046/); assert.match(L.descripcion, /MES-015/);
+  const RD = RV.find((r) => r.letra === "D");
+  assert.deepEqual([RD.letra, RD.fecha, RD.rev_calculo], ["D", "22-11-2026", "9d"], "decisión del mandante 22-11-2026: la emisión del cálculo 9d es la Rev. D");
+  assert.match(RD.descripcion, /250 t; alivio 540 \/ alarma 480 \/ retorno 150 bar/); assert.match(RD.descripcion, /ACC-046/); assert.match(RD.descripcion, /MES-015/);
+  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["E", "23-11-2026", "9e"], "emisión E: disco central torneado (pedido del mandante 23-11-2026)");
+  assert.match(L.descripcion, /MES-016/); assert.match(L.descripcion, /J19/); assert.match(L.descripcion, /MES-017/);
   const X = BX.exportBX(P0, A0);
   assert.equal(X.rev_planos, L.letra); assert.deepEqual(X.revisiones, RV.map((r) => Object.assign({}, r)));
   // el generador (cad/) no lleva letras fijas: la letra sale de geom.REV (TT300-C: «C») o de bx.revisiones (geom.set_rev) en el juego BX

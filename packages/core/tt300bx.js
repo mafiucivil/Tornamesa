@@ -33,6 +33,7 @@ const BX = (() => {
   const REVISIONES_PLANOS = Object.freeze([
     Object.freeze({ letra: "C", fecha: "—", rev_calculo: "8", descripcion: "Emisión anterior (rev. 8 del cálculo BX)" }),
     Object.freeze({ letra: "D", fecha: "22-11-2026", rev_calculo: "9d", descripcion: "250 t; alivio 540 / alarma 480 / retorno 150 bar; Fb de barra redonda BTH-1 §3-2.3.3; pasadores E, Q, empuje y pivote sin tratamiento térmico de taller; buje templado del seguidor (ACC-046); corrección de 26 uniones soldadas (J14–J18, J-E, WPS, precalentamiento); ranuras J18 con respaldo permanente (MES-015)" }),
+    Object.freeze({ letra: "E", fecha: "23-11-2026", rev_calculo: "9e", descripcion: "Disco central torneado MES-016 (J17b y tapa de inspección) soldado a la plancha superior con la CJP J19 sobre el aro MES-017" }),
   ]);
   const REV_PLANOS = REVISIONES_PLANOS[REVISIONES_PLANOS.length - 1].letra;
 
@@ -1527,10 +1528,80 @@ const BX = (() => {
     const dReq = Math.max(19, Math.max(Sa + 3, za + 3) + 5), dest = 5 * Math.ceil(dReq / 5 - 1e-9);
     return { H_kN: Hkn, Fw, J17a: { tipo: "PJP en T con bisel simple 45° en el canto exterior de la pared del cubo (sin respaldo) + filete de refuerzo", S: Sa, E: Ea, z_refuerzo: za, r: rh, largo: 2 * Math.PI * rh, q: qa, t_pared: wallBot, t_plancha: P.t_bot, E_min: emin(ta), fu: qa / (Ea * Fw),
         acceso: "desde arriba, con la mesa abierta (antes de montar la plancha superior)", norma: "AISC 360-22 §J2.1a (PJP: E = S − 3 en bisel 45°, Tabla J2.1), Tabla J2.3 (E mín. por la parte más delgada), §J2.4 (Tabla J2.5); ASME BTH-1-2020 §3-3.4 (0,60FEXX/(1,20Nd)); AWS D1.1/D1.1M:2020 Figura 5.2 (PJP en bisel simple, unión en T)" },
-      J17b: { tipo: "filete todo alrededor en el agujero central Ø" + hole + " de la plancha superior, sobre la cara superior del cubo", z: zb, r: rH, largo: 2 * Math.PI * rH, q: qb, t_pared: wallTop, t_plancha: P.t_top, z_min: zminJ(tb), z_max: P.t_top - 2, fu: qb / (0.7071 * zb * Fw),
+      J17b: { tipo: "filete todo alrededor en el agujero central Ø" + hole + " del disco central torneado de la plancha superior (rev. 9e), sobre la cara superior del cubo", en_disco: true, z: zb, r: rH, largo: 2 * Math.PI * rH, q: qb, t_pared: wallTop, t_plancha: P.t_top, z_min: zminJ(tb), z_max: P.t_top - 2, fu: qb / (0.7071 * zb * Fw),
         acceso: "desde arriba por el agujero central, después de cerrar la mesa con la plancha superior; el buje se monta después de soldar y aliviar", tapa_R: capR, holgura_tapa: clr,
         norma: "AISC 360-22 §J2.2 (filete en agujeros), Tabla J2.4 (mínimo por la parte más delgada), §J2.2b (máximo t − 2 a lo largo del borde del agujero), §J2.4; ASME BTH-1-2020 §3-3.4" },
       destijer_cubo: dest, destijer_req: dReq, destijer_norma: "AISC 360-22 §J1.6 (agujeros de acceso: alto ≥ máx(t; 19 mm)); el destijer del extremo del nervio contra el cubo libra el cordón de J17a (S + 3) y su filete (z + 3) con 5 mm de holgura" };
+  }
+  /* ---------------- Disco central torneado de la plancha superior (rev. 9e, pedido del mandante 23-11-2026) ---------------- */
+  // El mandante pide sacar todo el mecanizado del centro de la plancha superior (agujero Ø D_piv + 80 de J17b, rebaje Ø D_piv + 120 × 8 de la tapa
+  // de inspección y sus 6 agujeros M8) a un DISCO aparte que se tornea completo y se suelda a la plancha Ø D_top con una CJP circunferencial; la
+  // plancha queda solo con un agujero de corte térmico. Valores POR DEFECTO, a confirmar por el mandante (README_BX §13.9):
+  //  - Junta: AWS D1.1:2020 B-U4a (bisel simple con respaldo; posición plana): bisel α = 45° torneado en el canto del DISCO (la plancha va a escuadra),
+  //    abertura de raíz R = 6, talón f = 0; respaldo permanente: aro de acero de plancha de 6 × 25 punteado por debajo de la plancha alrededor del
+  //    agujero antes de cerrar la mesa (la cara inferior de la mesa queda cerrada: no hay acceso por debajo); el aro pasa por una muesca en el canto
+  //    superior de los nervios que cruza (profundidad t_aro + 1). Esmerilada a ras por arriba (cara superior de la mesa: planitud 0,5).
+  //  - Diámetro: el objetivo del mandante (DCEN.D_obj = 300) se prueba primero y se sube de a DCEN.paso hasta que (a) el ancho superior del chaflán
+  //    [R_b − t·tan α, R_b + R] queda a ≥ lig·t de toda ranura J18 (la circunferencia de la junta no corta ninguna ranura), (b) el aro libra en ≥ 1 mm
+  //    el cubo, las almas y las tiras MES-015 y (c) el borde superior del disco queda a ≥ borde mm del rebaje de la tapa. Las ranuras J18 que quedan
+  //    dentro del disco se cortan en el disco (misma geometría y FU: no se acortan ni se mueven).
+  const DCEN = { D_obj: 300, paso: 10, D_max: 1400, alfa: 45, R: 6, f: 0, lig: 0.5, borde: 20, aro: { t: 6, b: 25, m_in: 9, gap: 1 }, muesca_holg: 1, sobremedida: 3, cb_t: 8 };
+  function discoCentralOf(P, Hkn, zb) {
+    if (!meOn(P)) return null;
+    const RG = ranurasOf(P), T = RG.tiras, t = P.t_top, tw = P.t_web / 2, rh = P.D_hub / 2, A = DCEN, AR = A.aro, tanA = Math.tan(A.alfa * Math.PI / 180), rho = 7.85e-6;
+    const rings = TT_.parseRings(P.rings), rHole = (P.D_piv + 80) / 2, rCb = (P.D_piv + 120) / 2, lig = A.lig * t;
+    const sep = (a0, a1, b0, b1) => Math.max(b0 - a1, a0 - b1);   // separación entre intervalos radiales (< 0: se solapan)
+    const ran = RG.almas.map((a) => ({ que: "ranura J18 del " + a.elemento.replace(/^Alma/, "alma"), r0: a.r - RG.ancho / 2, r1: a.r + RG.ancho / 2, n: a.n, L: a.L }))
+      .concat(RG.tramos.map((q) => ({ que: "ranura J18 de los " + q.elemento.replace(/^Nervios/, "nervios"), r0: q.centros[0] - q.L / 2, r1: q.centros[q.centros.length - 1] + q.L / 2, n: q.n, L: q.L })));
+    const bajo = [{ que: "cubo (Ø" + P.D_hub + ")", r0: 0, r1: rh }].concat(rings.map((r, i) => ({ que: "alma A" + (i + 1), r0: r - tw, r1: r + tw })),
+      T.piezas.map((q) => (q.forma === "arco" ? { que: "tiras MES-015 del " + q.elemento.replace(/^Alma/, "alma") + " (" + q.lado + ")", r0: q.R_int, r1: q.R_ext } : { que: "tiras MES-015 de los " + q.elemento.replace(/^Nervios/, "nervios"), r0: q.r0, r1: q.r1 })));
+    const geo = (Db) => {
+      const Rb = Db / 2, Rtop = Rb - t * tanA, Rh = Rb + A.R, ri = Rb - AR.m_in, ro = ri + AR.b, c = [];
+      const sR = ran.map((z) => ({ z, s: sep(Rtop, Rh, z.r0, z.r1) })), sB = bajo.map((z) => ({ z, s: sep(ri, ro, z.r0, z.r1) }));
+      sR.forEach((q) => { if (q.s < lig - 1e-9) c.push("el chaflán de la junta (R" + nf(Rtop, 0) + "–R" + nf(Rh, 0) + ") " + (q.s < 0 ? "corta la " : "queda a " + nf(q.s, 1) + " mm (< " + nf(lig, 0) + ") de la ") + q.z.que + " (R" + nf(q.z.r0, 0) + "–R" + nf(q.z.r1, 0) + ")"); });
+      sB.forEach((q) => { if (q.s < AR.gap - 1e-9) c.push("el aro de respaldo (R" + nf(ri, 0) + "–R" + nf(ro, 0) + ") " + (q.s < 0 ? "choca con " : "queda a " + nf(q.s, 1) + " mm de ") + q.z.que + " (R" + nf(q.z.r0, 0) + "–R" + nf(q.z.r1, 0) + ")"); });
+      if (Rtop - rCb < A.borde - 1e-9) c.push("el borde superior del disco (R" + nf(Rtop, 0) + ") queda a " + nf(Rtop - rCb, 1) + " mm (< " + A.borde + ") del rebaje Ø" + nf(2 * rCb, 0) + " de la tapa de inspección");
+      return { Db, Rb, Rtop, Rh, ri, ro, conflictos: c, sepR: Math.min(...sR.map((q) => q.s)), sepB: Math.min(...sB.map((q) => q.s)), gR: sR.reduce((m, q) => (!m || q.s < m.s ? q : m), null), gB: sB.reduce((m, q) => (!m || q.s < m.s ? q : m), null) };
+    };
+    const g0 = geo(A.D_obj);
+    let g = g0; for (let D = A.D_obj; D <= A.D_max && g.conflictos.length; D += A.paso) g = geo(D);
+    if (g.conflictos.length) return { ok: false, D_objetivo: A.D_obj, conflictos_objetivo: g0.conflictos, nota: "no hay diámetro ≤ " + A.D_max + " sin conflictos" };
+    const dentro = ran.filter((z) => z.r1 < g.Rtop), fuera = ran.filter((z) => z.r0 > g.Rh);
+    const aSlot = (L) => RG.area_de(L), nIn = dentro.reduce((x, z) => x + z.n, 0);
+    // nervios cruzados por el aro: tramo (cubo–A1, A1–A2, …) que contiene el aro; muesca rectangular en el canto superior (t_aro + holgura) de R_i − 1 a R_o + 1
+    const rs = [rh].concat(rings), iT = rs.findIndex((r, i) => i + 1 < rs.length && g.ri > r && g.ro < rs[i + 1]);
+    const mu = { tramo: iT + 1, r0: g.ri - A.muesca_holg, r1: g.ro + A.muesca_holg, prof: AR.t + A.muesca_holg, n: Math.round(P.N_rib) };
+    // separación de la muesca al destijer superior del nervio en el extremo del tramo (22 × 22 contra las almas; ninguno contra el cubo)
+    const a0 = rs[iT] + (iT > 0 ? tw + RAN.gap + RAN.destTop : 0), a1 = rs[iT + 1] - tw - RAN.gap - RAN.destTop;
+    mu.sep_destijer = Math.min(mu.r0 - a0, a1 - mu.r1);
+    const tr = T.piezas.filter((q) => q.forma === "recta")[iT];
+    mu.sep_tiras = tr ? sep(mu.r0, mu.r1, tr.r0, tr.r1) : Infinity;
+    const vol = Math.PI * t * (g.Rb ** 2 - rHole ** 2) - 2 * Math.PI * (t * t * tanA / 2) * (g.Rb - t * tanA / 3) - Math.PI * A.cb_t * (rCb ** 2 - rHole ** 2), volR = dentro.reduce((x, z) => x + z.n * aSlot(z.L) * t, 0);
+    const masa = rho * vol, masaNeta = rho * (vol - volR), masaAro = rho * AR.t * Math.PI * (g.ro ** 2 - g.ri ** 2);
+    const rj = g.Rb + A.R / 2, q = (Hkn || 0) * 1e3 / (Math.PI * rj), qB = (Hkn || 0) * 1e3 / (Math.PI * rHole), Fv = P.Fy / (P.Nd * Math.sqrt(3));
+    const motivo = g0.conflictos.length ? "Ø" + A.D_obj + " (objetivo del mandante) no cumple: " + g0.conflictos.join("; ") + ". Primer diámetro redondo (paso " + A.paso + " mm) sin conflictos: Ø" + g.Db + "." : "Ø" + A.D_obj + " cumple.";
+    return { ok: true, D_objetivo: A.D_obj, conflictos_objetivo: g0.conflictos, motivo,
+      D: g.Db, D_inf: g.Db, D_sup: 2 * g.Rtop, t, material: astm(P.Fy, P.Fu), R_inf: g.Rb, R_sup: g.Rtop,
+      agujero: { d: 2 * rHole, ajuste: "H12" }, rebaje: { d: 2 * rCb, prof: A.cb_t, ajuste: "H12", tapa: "tapa de inspección Ø" + (2 * rCb - 2) + " × " + A.cb_t },
+      junta: { id: "J19", tipo: "CJP en bisel simple con respaldo permanente (AWS D1.1/D1.1M:2020 Figura 5.1, B-U4a; con GMAW/FCAW B-U4a-GF: verificar R y α en la edición vigente)", alfa: A.alfa, R: A.R, f: A.f,
+        bisel: "en el canto del disco, torneado (la plancha va a escuadra)", posicion: "plana (1G), desde arriba", r: rj, largo: 2 * Math.PI * rj, ancho_sup: g.Rh - g.Rtop,
+        tolerancias: "según la Figura 5.1 de AWS D1.1:2020 para B-U4a (tal como se detalla: R +2/−0, α +10°/−0°; tal como se arma: R +6/−2, α +10°/−5°; verificar en la edición vigente)",
+        terminacion: "esmerilada a ras por arriba (cara superior de la mesa, planitud 0,5); por debajo queda el aro permanente", END: "VT 100 % · UT 100 % (AWS D1.1:2020 cláusula 8, junta a tope con respaldo; criterio de aceptación de tracción)", nivel: "ISO 5817-B",
+        precalentamiento_t: Math.max(t, AR.t), norma: "AISC 360-22 §J2.1 y Tabla J2.5 (CJP: resistencia del metal base); AWS D1.1/D1.1M:2020 Figura 5.1 (B-U4a) y cláusula 7 (respaldo de acero: continuo, fundido, de acero precalificado)" },
+      plancha: { agujero: 2 * g.Rh, corte: "plasma u oxicorte (ISO 9013 clase 3), ±1,5; canto a escuadra, sin bisel; esmerilar la escoria y el canto (metal brillante 25 mm)" },
+      aro: { t: AR.t, b: AR.b, R_int: g.ri, R_ext: g.ro, D_int: 2 * g.ri, D_ext: 2 * g.ro, m_int: g.Rb - g.ri, m_ext: g.ro - g.Rh, material: TIRA.material, masa: masaAro,
+        fabricacion: "una pieza por plasma de plancha de 6 (sin empalmes: si se empalma, CJP del aro antes de montarlo, AWS D1.1:2020 cláusula 7)", punteo: { id: "J19r", z: 4, n: 8, l: 40 } },
+      muesca: mu, ranuras_en_disco: dentro.map((z) => ({ que: z.que, n: z.n, r0: z.r0, r1: z.r1 })), n_ranuras_disco: nIn, ranuras_fuera: fuera.map((z) => z.que),
+      sep_ranuras: g.sepR, sep_ranuras_min: lig, sep_aro: g.sepB, sep_aro_min: AR.gap, sep_ranura_gob: g.gR.z.que, sep_aro_gob: g.gB.z.que, borde_rebaje: g.Rtop - rCb, borde_rebaje_min: A.borde,
+      masa, masa_neta: masaNeta, masa_nota: "masa = disco torneado sin descontar las ranuras J18 (como el despiece y el modelo 3D, que no modelan las ranuras); masa_neta = con las " + nIn + " ranuras cortadas", tocho: { d: g.Db + 2 * A.sobremedida, t, nota: "recorte central Ø" + nf(2 * g.Rh, 0) + " de la propia plancha superior (misma colada y espesor) o plancha de " + t + " mm" },
+      H_kN: Hkn, q_junta: q, tau_junta: q / t, q_agujero: qB, tau_agujero: qB / t, Fv,
+      torneado: { decision: "torneado COMPLETO antes de soldar (sin sobremedida); los 6 agujeros M8 de la tapa de inspección se taladran y roscan DESPUÉS de soldar J17b y del alivio de tensiones",
+        razon: "la CJP queda a " + nf(g.Rtop - rCb, 0) + " mm del rebaje; su contracción radial tira del disco hacia afuera (tracción casi uniforme en el plano) y el cambio de Ø del rebaje es del orden de 2σ/E·d ≤ 0,3 mm, dentro del juego de la tapa de inspección (Ø" + (2 * rCb - 2) + " en Ø" + (2 * rCb) + " H12: 1 mm por lado); el disco apoya sobre el cubo, almas y nervios y queda atado por las ranuras J18, lo que limita el giro del chaflán; el filete J17b (z10 en Ø" + (2 * rHole) + ") queda a 3 mm de pared de las roscas M8 (por eso se roscan después)" },
+      secuencia: ["1) Cortar el agujero Ø" + nf(2 * g.Rh, 0) + " de la plancha superior (plasma/oxicorte) y esmerilar el canto; con la plancha volteada, puntear el aro de respaldo por debajo, concéntrico al agujero (J19r).",
+        "2) Cerrar la mesa con la plancha superior (el aro entra en la muesca de los nervios del tramo " + (iT + 1) + "); soldar J18 de las ranuras de la plancha.",
+        "3) Presentar el disco torneado sobre el aro, el cubo, almas y nervios: centrarlo con un mandril en el agujero del cubo (posición del Ø" + (2 * rHole) + " respecto del eje del cubo Ø1), orientar sus ranuras J18 sobre los nervios y el alma con la marca de 0°, R = " + A.R + " (+2/−0) en todo el contorno; puntear en 8 puntos opuestos y soldar J19 por sectores opuestos (paso peregrino), esmerilar a ras; soldar J18 de las ranuras del disco.",
+        "4) Soldar J17b (filete z" + (zb || "") + " en el agujero Ø" + (2 * rHole) + " del disco, sobre el cubo, desde arriba).",
+        "5) Alivio de tensiones de la mesa; taladrar y roscar los 6 × M8 con plantilla en el rebaje; montar el buje, el pivote, la tapa retenedora y la tapa de inspección."] };
   }
   function weldRows(P, R, checks) {
     const out = []; if (!meOn(P)) return out;
@@ -1547,6 +1618,13 @@ const BX = (() => {
       out.push({ after: cW, row: { kind: "fu", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras de cierre J18: traspaso del flujo de corte al canto del alma o nervio (franja fundida t × L, " + g2.e.elemento + (g2.e.cada_k_nervios > 1 ? ", ranura cada " + g2.e.cada_k_nervios + " nervios" : "") + ")",
         formula: "τ = q_h·l_trib/(t_alma·L) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50); l_trib = " + nf(g2.e.trib, 0) + " mm, L = " + nf(g2.e.L, 0) + " mm, t = " + P.t_web + " mm (el fondo de la ranura apoya en el canto del alma: el área efectiva hacia el alma es t × L)",
         dem: g2.f, cap: Math.min(FwA, FvW), unit: "MPa", ref: "AISC 360-22 §J2.4 (metal base y de aporte en el plano de fusión), §J4.2 (fluencia por corte); criterio de la revisión rev. 9c" } });
+    }
+    const DCn = cT ? discoCentralOf(P, 0, 0) : null;
+    if (DCn && DCn.ok) {   // rev. 9e: los nervios que cruza el aro de respaldo de J19 llevan una muesca en el canto superior (alto reducido localmente)
+      const hw = P.h_disc - P.t_top - P.t_bot, k = hw / (hw - DCn.muesca.prof);
+      out.push({ after: cT, row: { kind: "fu", grp: cT.grp, sys: "est", bx: true, name: "BX · Corte en los nervios del tramo " + DCn.muesca.tramo + " en la muesca " + DCn.muesca.prof + " × " + nf(DCn.muesca.r1 - DCn.muesca.r0, 0) + " del aro de respaldo de J19 (disco central)",
+        formula: "τ = τ_nervio·h_w/(h_w − " + DCn.muesca.prof + ") ≤ 0,6Fy/1,50; τ_nervio = " + nf(cT.dem, 1) + " MPa (fila del núcleo, máximo de la mesa), h_w = " + nf(hw, 0) + " mm", dem: cT.dem * k, cap: cT.cap, unit: cT.unit,
+        ref: (cT.ref || "") + "; rev. 9e (disco central, README_BX §13.9)" } });
     }
     if (cMin) {
       const geo = (name, formula, dem, cap) => out.push({ after: cMin, row: { kind: "geo", grp: "Soldaduras", sys: "est", bx: true, name: "BX · Ranuras J18: " + name, formula, dem, cap, unit: "mm", ref: "AISC 360-22 §J2.3b" } });
@@ -1570,10 +1648,25 @@ const BX = (() => {
         formula: "f = H/(π·r·E) ≤ 0,60·F_EXX/(1,20·N_d); H = " + nf(H, 1) + " kN (completa en cada plancha), r = " + nf(A.r, 0) + " mm; el filete de refuerzo no se cuenta", dem: A.q / A.E, cap: CB.Fw, unit: "MPa", ref: A.norma } });
       out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha inferior J17a: garganta efectiva mínima de la PJP (parte más delgada " + nf(Math.min(A.t_pared, A.t_plancha), 0) + " mm) y bisel dentro de la pared del cubo (" + nf(A.t_pared, 0) + " mm junto al rebaje)",
         formula: "E_mín (Tabla J2.3) = " + A.E_min + " ≤ E = " + A.E + "; S = " + A.S + " ≤ t_pared − 5", dem: Math.max(A.E_min / A.E, A.S / (A.t_pared - 5)), cap: 1, unit: "–", ref: "AISC 360-22 §J2.1a, Tabla J2.3" } });
-      out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha superior J17b (filete z" + B.z + " en el agujero Ø" + nf(2 * B.r, 0) + " de la plancha, sobre la cara del cubo; accesible con la mesa cerrada): reacción del pivote a calado",
+      out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha superior J17b (filete z" + B.z + " en el agujero Ø" + nf(2 * B.r, 0) + (B.en_disco ? " del disco central torneado" : " de la plancha") + ", sobre la cara del cubo; accesible con la mesa cerrada): reacción del pivote a calado",
         formula: "f = H/(π·d·0,707·z) ≤ 0,60·F_EXX/(1,20·N_d); H = " + nf(H, 1) + " kN (completa en cada plancha), d = " + nf(2 * B.r, 0) + " mm", dem: B.q / (0.7071 * B.z), cap: CB.Fw, unit: "MPa", ref: B.norma } });
       out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha superior J17b: tamaño del filete (mínimo por la parte más delgada, máximo t − 2 en el borde del agujero) y holgura a la tapa retenedora Ø" + nf(2 * B.tapa_R, 0),
         formula: "z_mín = " + B.z_min + " ≤ z = " + B.z + " ≤ " + B.z_max + "; holgura = r_agujero − z + 3 − R_tapa = " + nf(B.holgura_tapa, 1) + " ≥ 2 mm", dem: Math.max(B.z_min / B.z, B.z / B.z_max, 2 / Math.max(B.holgura_tapa, 1e-6)), cap: 1, unit: "–", ref: "AISC 360-22 Tabla J2.4, §J2.2b; geometría (cad/geom.py: tapa Ø D_piv + 60, pivote 3 mm sobre la cara)" } });
+      const DC = discoCentralOf(P, H, B.z);
+      if (DC && DC.ok) {   // rev. 9e: disco central torneado soldado a la plancha superior con la CJP J19 (pedido del mandante 23-11-2026)
+        const J = DC.junta, REFD = "Rev. 9e: disco central torneado (pedido del mandante 23-11-2026; valores por defecto a confirmar, README_BX §13.9)";
+        out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión disco central–plancha superior J19 (CJP B-U4a: bisel " + J.alfa + "° torneado en el disco Ø" + DC.D + ", R = " + J.R + ", aro de respaldo " + DC.aro.t + " × " + DC.aro.b + "): reacción del pivote a calado (cubo → J17b → disco → J19 → plancha)",
+          formula: "CJP: resistencia = la del metal base (AISC 360-22 Tabla J2.5); τ = H/(π·r·t) ≤ F_y/(N_d·√3); H = " + nf(H, 1) + " kN (completa en la plancha superior), r = " + nf(J.r, 0) + " mm, t = " + DC.t + " mm; el par de la excentricidad de H lo toman las dos planchas con el cubo: en la junta solo actúa la fuerza en su plano. La CJP mantiene la continuidad de la plancha superior que suponen la FEA de la mesa y las filas de la mesa",
+          dem: DC.tau_junta, cap: DC.Fv, unit: "MPa", ref: "AISC 360-22 §J2.1, Tabla J2.5; ASME BTH-1-2020 §3-2.2 (F_v = F_y/(N_d·√3)); AWS D1.1/D1.1M:2020 Figura 5.1 (B-U4a)" } });
+        out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Disco central: corte del metal base en el borde del agujero Ø" + nf(DC.agujero.d, 0) + " (entrada de la reacción desde J17b)",
+          formula: "τ = H/(π·d·t) ≤ F_y/(N_d·√3); d = " + nf(DC.agujero.d, 0) + " mm, t = " + DC.t + " mm (el rebaje de la tapa deja " + (DC.t - DC.rebaje.prof) + " mm más afuera, en R ≥ " + nf(DC.rebaje.d / 2, 0) + ")", dem: DC.tau_agujero, cap: DC.Fv, unit: "MPa", ref: "ASME BTH-1-2020 §3-2.2; " + REFD } });
+        const geoD = (name, formula, dem, cap) => out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Disco central Ø" + DC.D + ": " + name, formula, dem, cap, unit: "mm", ref: REFD } });
+        geoD("la circunferencia de la junta J19 no corta ninguna ranura J18 (chaflán R" + nf(DC.R_sup, 0) + "–R" + nf(DC.plancha.agujero / 2, 0) + " a ≥ t/2 de toda ranura)", "separación mínima = " + nf(DC.sep_ranuras, 1) + " mm (" + DC.sep_ranura_gob + ") ≥ " + nf(DC.sep_ranuras_min, 0) + "; Ø" + DC.D_objetivo + " del mandante: " + (DC.conflictos_objetivo.length ? "no cumple (" + DC.conflictos_objetivo[0] + ")" : "cumple"), DC.sep_ranuras_min, DC.sep_ranuras);
+        geoD("aro de respaldo " + DC.aro.t + " × " + DC.aro.b + " (R" + nf(DC.aro.R_int, 0) + "–R" + nf(DC.aro.R_ext, 0) + ") libre del cubo, de las almas y de las tiras MES-015", "separación mínima = " + nf(DC.sep_aro, 1) + " mm (" + DC.sep_aro_gob + ") ≥ " + DC.sep_aro_min, DC.sep_aro_min, DC.sep_aro);
+        geoD("muesca " + DC.muesca.prof + " × " + nf(DC.muesca.r1 - DC.muesca.r0, 0) + " en el canto superior de los nervios del tramo " + DC.muesca.tramo + " (paso del aro) fuera del destijer superior y de las tiras de la ranura", "mín(separación al destijer = " + nf(DC.muesca.sep_destijer, 1) + "; a las tiras = " + nf(DC.muesca.sep_tiras, 1) + ") ≥ 1", 1, Math.min(DC.muesca.sep_destijer, DC.muesca.sep_tiras));
+        geoD("borde superior del disco al rebaje Ø" + nf(DC.rebaje.d, 0) + " de la tapa de inspección (zona de la CJP lejos del asiento de la tapa)", "R_sup − R_rebaje = " + nf(DC.borde_rebaje, 0) + " ≥ " + DC.borde_rebaje_min, DC.borde_rebaje_min, DC.borde_rebaje);
+        geoD("respaldo: margen del aro a cada lado de la abertura de raíz R = " + J.R + " (≥ 6 mm)", "mín(" + nf(DC.aro.m_int, 0) + "; " + nf(DC.aro.m_ext, 0) + ") ≥ 6", 6, Math.min(DC.aro.m_int, DC.aro.m_ext));
+      }
       out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Destijer de los nervios del tramo 1 contra el cubo: libra el cordón de J17a", formula: "máx(19; máx(S + 3; z + 3) + 5) = " + nf(CB.destijer_req, 0) + " ≤ destijer = " + CB.destijer_cubo + " mm", dem: CB.destijer_req, cap: CB.destijer_cubo, unit: "mm", ref: CB.destijer_norma } });
     }
     return out.reverse();   // las filas se insertan una a una justo después de su ancla: al revés quedan en el orden de arriba
@@ -1582,11 +1675,12 @@ const BX = (() => {
     if (!meOn(P)) return null;
     const cB = A && A.checks ? A.checks.find((q) => q.grp === "Pivote" && /^Aplastamiento del buje en el cubo de la mesa/.test(q.name)) : null;
     const H = cB ? cB.dem * (P.D_piv + 30) * P.L_bush / 1e3 : null, RG = ranurasOf(P); delete RG.area_de;
-    return { ranuras: RG, cubo: H != null ? cuboOf(P, H, A.R) : null,
+    const CB = H != null ? cuboOf(P, H, A.R) : null, DC = discoCentralOf(P, H, CB ? CB.J17b.z : null);
+    return { ranuras: RG, cubo: CB, disco_central: DC,
       almas_nervios: "filetes J14 (almas) y J15 (nervios) a ambos lados SOLO contra la plancha inferior y el cubo/almas (extremos); la plancha superior se une por las ranuras J18 (las celdas quedan cerradas)",
       secuencia: ["1) Plancha inferior planeada sobre la mesa de armado; presentar cubo, almas y nervios con plantilla.", "2) Soldar J17a (PJP + filete, desde arriba), J16 (empalmes de las almas), J14 y J15 (filetes a la plancha inferior y extremos de los nervios contra el cubo y las almas).",
-        "3) Pasadores de empuje montados en la plancha inferior; tiras de respaldo permanentes de las ranuras J18 (" + TIRA.b + " × " + TIRA.t + ") punteadas por debajo a las almas y nervios, a ras del canto (J18r).", "4) Cerrar con la plancha superior (ranuras J18 ya cortadas); soldar J18 desde arriba y J17b por el agujero central.",
-        "5) J-P1 de los pasadores arriba y abajo; alivio de tensiones; planeado; mandrinado en línea del cubo y de los agujeros de los pasadores; montaje del buje."] };
+        "3) Pasadores de empuje montados en la plancha inferior; tiras de respaldo permanentes de las ranuras J18 (" + TIRA.b + " × " + TIRA.t + ") punteadas por debajo a las almas y nervios, a ras del canto (J18r).", "4) Cerrar con la plancha superior (ranuras J18 cortadas, aro de J19 punteado: J19r); soldar J18 desde arriba.",
+        "5) Disco central torneado: J19, J18 del disco y J17b, desde arriba.", "6) J-P1 arriba y abajo; alivio; planeado; mandrinado en línea del cubo y de los pasadores; roscas M8 del disco; buje."] };
   }
 
   /* ---------------- Seguidor del pasador Q: buje templado reemplazable sobre el canto desnudo de la placa-guía (rev. 9) ---------------- */
