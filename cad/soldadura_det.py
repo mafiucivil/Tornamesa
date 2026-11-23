@@ -24,7 +24,7 @@ def butt_size(t, kind="V", t_thick=None, land=None):
     return (2 * Lh + 3.0, t + BACKING[0] + 8.0), Lh
 
 
-def prep_butt(s, ox, oy, k, t, jid=None, plano=None, kind="V", angle=60.0, root=3.0, face=2.0, backing=True, tag="", transition=None, t_thick=None, land=None, backing_txt=None):
+def prep_butt(s, ox, oy, k, t, jid=None, plano=None, kind="V", angle=60.0, root=3.0, face=2.0, backing=True, tag="", transition=None, t_thick=None, land=None, backing_txt=None, bw=None, labels=None):
     """Junta a tope con preparación. (ox, oy): esquina inferior izquierda del recuadro natural; k: escala de papel/mm.
     t_thick: espesor de la pieza gruesa (derecha) si hay transición de espesores 1:4 (A-10, B-04): chaflán 1:4 en la pieza gruesa limitado a 'land' mm
     (p. ej. hasta 3 mm del agujero de pasador) y el resto de la diferencia con la pendiente 1:4 del cordón sobre la pieza delgada. Cara a ras: la del respaldo."""
@@ -52,7 +52,7 @@ def prep_butt(s, ox, oy, k, t, jid=None, plano=None, kind="V", angle=60.0, root=
     _poly(s, left, 0.0)
     _poly(s, right, 90.0)
     if backing:
-        bw = BACKING[1]
+        bw = bw or BACKING[1]
         _poly(s, [P(xr0 + root / 2 - bw / 2, 0), P(xr0 + root / 2 + bw / 2, 0), P(xr0 + root / 2 + bw / 2, bt), P(xr0 + root / 2 - bw / 2, bt)], 45.0, scale=0.3)
     # cotas
     s.dim(P(0, y0), P(0, y1), -10, f"t = {fm(t, 0)}", "v")
@@ -75,7 +75,10 @@ def prep_butt(s, ox, oy, k, t, jid=None, plano=None, kind="V", angle=60.0, root=
     s.dim_ang(apex, rr, 90 - (a_half if kind != "bevel" else angle), 90 + (a_half if kind != "bevel" else 0), f"{fm(angle, 0)}°")
     s.leader(P(xr0, y0 + face * 0.5), (P(xr0, y0)[0] - 26, P(xr0, y0)[1] - 8 - (10 if backing else 0)), f"talón c = {fm(face, 0)}", dot=True)
     if backing:
-        s.leader(P(xr0 + root / 2 + BACKING[1] / 2 - 4, bt / 2), (P(xr0 + root / 2 + BACKING[1] / 2, 0)[0] + 14, P(0, 0)[1] - 10), backing_txt or f"respaldo {fm(BACKING[0], 0)}×{fm(BACKING[1], 0)} (PROPUESTA)", dot=True)
+        s.leader(P(xr0 + root / 2 + bw / 2 - 4, bt / 2), (P(xr0 + root / 2 + bw / 2, 0)[0] + 14, P(0, 0)[1] - 10), backing_txt or f"respaldo {fm(BACKING[0], 0)}×{fm(BACKING[1], 0)} (PROPUESTA)", dot=True)
+    if labels:                       # rev. 9e (J19): nombre de cada pieza sobre su cara superior (izquierda: la biselada)
+        s.text(labels[0], (P(2, y1)[0], P(2, y1)[1] + 2), T_S, "BOTTOM_LEFT")
+        s.text(labels[1], (P(xr1 + Lh - 2, y1)[0], P(xr1 + Lh - 2, y1)[1] + 2), T_S, "BOTTOM_RIGHT")
     if transition:
         if not t_thick:
             s.text(transition, (P(0, y1)[0], P(0, y1)[1] + 3), T_N, "BOTTOM_LEFT")
@@ -519,8 +522,9 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         (Wn, Hn), _ = butt_size(t, kind, tT, land)
         tr = (f"transición 1:4 de {fm(t, 0)} a {fm(tT, 0)}; cara a ras del lado del respaldo" if tT else None)
         bk = w.get("backing_txt")
-        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({('V ' + fm(ang, 0) + '°') if kind == 'V' else ('bisel ' + fm(ang, 0) + '°')}, t = {fm(t, 0)}" + (f" / {fm(tT, 0)}" if tT else "") + (f", R = {fm(root, 0)}, f = {fm(face_, 0)}, B-U2a" if dt_ else "") + ")",
-                    custom=lambda s, ox, oy, k, pl: prep_butt(s, ox, oy, k, t, jid, pl, kind, ang, root, face_, True, transition=tr, t_thick=tT, land=land, backing_txt=bk))
+        des_ = "B-U2a" if kind == "V" else "B-U4a"
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0, title=title or f"DETALLE {jid}: PREPARACIÓN DE JUNTA ({('V ' + fm(ang, 0) + '°') if kind == 'V' else ('bisel ' + fm(ang, 0) + '°')}, t = {fm(t, 0)}" + (f" / {fm(tT, 0)}" if tT else "") + (f", R = {fm(root, 0)}, f = {fm(face_, 0)}, {des_}" if dt_ else "") + ")",
+                    custom=lambda s, ox, oy, k, pl: prep_butt(s, ox, oy, k, t, jid, pl, kind, ang, root, face_, True, transition=tr, t_thick=tT, land=land, backing_txt=bk, bw=w.get("backing_w"), labels=w.get("prep_labels")))
     if w["groove"] and w["sym"] == "slot" and (w.get("slot") or {}).get("tiras"):
         sl_ = w["slot"]
         T_ = sl_["tiras"]

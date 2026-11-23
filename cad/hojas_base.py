@@ -89,7 +89,8 @@ class Ctx:
             # TT300-BX (README_BX §13.8): una sola letra por emisión para todo el paquete; historial en bx.revisiones (BX.REVISIONES_PLANOS).
             # El cuadro de revisiones del cajetín muestra las 3 últimas emisiones (la vigente arriba, descripción abreviada); el historial completo va en GEN-001.
             self.revisiones = revisiones_bx(self.D)
-            self.revs = [rev_fila(r_, i_ == 0) for i_, r_ in enumerate(reversed(self.revisiones[-3:]))]
+            # rev. 9e (Rev. E): la vigente en 3 renglones y las anteriores en 2, para que el cuadro con 3 emisiones ocupe lo mismo que con 2 (5 + 2)
+            self.revs = [rev_fila(r_, i_ == 0, lineas=3 if i_ == 0 else 2) for i_, r_ in enumerate(reversed(self.revisiones[-3:]))]
 
     # --------------- copias locales de piezas ---------------
     def local(self, key, newkey, near=None, r=1e9, shift=(0, 0, 0), rot=0.0):
@@ -495,9 +496,11 @@ def build_welds(ctx):
             w["backing_txt"] = "MR: respaldo removible cerámico (PROPUESTA)" if mr else "M: respaldo permanente de acero 6×40 (PROPUESTA)"
             w["prep"] = w["prep"].replace("con respaldo", "respaldo").replace("respaldo de acero", "respaldo").replace("respaldo", "respaldo " + ("removible MR (cerámico)" if mr else "permanente M (acero 6×40)"), 1)
     # un WPS = una familia de junta y un rango de precalentamiento (A-03): los grupos mezclados se separan en WPS nuevos
+    # rev. 9e (BX): las juntas nuevas con wps = 0 (J19) toman un número propio DESPUÉS de los ya asignados, sin renumerar los WPS existentes
     grp = {}
     for w in W_:
-        grp.setdefault(w["wps_n"], []).append(w)
+        if w["wps_n"]:
+            grp.setdefault(w["wps_n"], []).append(w)
     nxt = max(grp) + 1
     for n in sorted(grp):
         sub = {}
@@ -509,6 +512,17 @@ def build_welds(ctx):
             for w in ws:
                 w["wps_n"], w["wps_corto"], w["wps"] = nxt, f"WPS-P{nxt:02d}", f"WPS-P{nxt:02d} — {propuestas.ROTULO_WPS}"
             nxt += 1
+    nuevos = {}
+    for w_ in W_:                        # un WPS existente de la misma familia y el mismo precalentamiento (sin texto de familia propio) se reutiliza
+        if w_["wps_n"] and not w_.get("fam_txt"):
+            nuevos.setdefault((propuestas.wps_family(w_), propuestas.pre_of(w_)), w_["wps_n"])
+    nuevos = {k_: v_ for k_, v_ in nuevos.items() if all(not x.get("fam_txt") for x in W_ if x["wps_n"] == v_)}
+    for w in W_:
+        if not w["wps_n"]:
+            k_ = (propuestas.wps_family(w), propuestas.pre_of(w))
+            if k_ not in nuevos:
+                nuevos[k_], nxt = nxt, nxt + 1
+            w["wps_n"], w["wps_corto"], w["wps"] = nuevos[k_], f"WPS-P{nuevos[k_]:02d}", f"WPS-P{nuevos[k_]:02d} — {propuestas.ROTULO_WPS}"
     ctx.welds = W_
     return W_
 
@@ -571,8 +585,10 @@ def _welds_mesa_bx(ctx, add, add_n, SM, W_):
     if w and B_:
         zb = float(B_["z"])
         org = f"núcleo BX (bx.mesa.soldaduras.cubo.J17b: FU {fm(B_['fu'], 3)} con H = {fm(CB['H_kN'], 1)} kN; {B_['norma']})"
-        w.update(desc=f"Cubo – plancha superior (filete en el agujero central Ø{fm(2 * B_['r'], 0)} de la plancha, sobre la cara del cubo)", piezas=f"{cH} / {cS}", sym="fillet", groove=False,
-                 tipo=f"Filete z{fm(zb, 0)} todo alrededor en el borde del agujero central Ø{fm(2 * B_['r'], 0)} de la plancha superior, sobre la cara superior del cubo: el canto exterior del cubo queda dentro de la mesa cerrada; esta unión se suelda desde arriba con la mesa cerrada",
+        cD_ = sc("mesa_disco") if ctx.m.get("mesa_disco") else None       # rev. 9e: el agujero central está en el disco central torneado (MES-016)
+        w.update(desc=(f"Cubo – plancha superior, en el disco central (filete en el agujero Ø{fm(2 * B_['r'], 0)} del disco, sobre la cara del cubo)" if cD_ else f"Cubo – plancha superior (filete en el agujero central Ø{fm(2 * B_['r'], 0)} de la plancha, sobre la cara del cubo)"),
+                 piezas=f"{cH} / {cD_ or cS}", sym="fillet", groove=False,
+                 tipo=f"Filete z{fm(zb, 0)} todo alrededor en el borde del agujero central Ø{fm(2 * B_['r'], 0)} {'del disco central (después de soldar J19)' if cD_ else 'de la plancha superior'}, sobre la cara superior del cubo: el canto exterior del cubo queda dentro de la mesa cerrada; esta unión se suelda desde arriba con la mesa cerrada",
                  prep="Sin preparación", prep_txt="", t=float(g.tt), z=zb, a=round(zb * 0.7071, 1), size_txt=f"z{fm(zb, 0)}", garganta=f"a = {fm(zb * 0.7071, 1)}", cateto=f"z = {fm(zb, 0)}", pasadas=passes(z=zb),
                  origen=org, t_pre=t_hub, en_T=False, contorno=True, end="VT 100 % · MT 100 %", len_total=float(B_["largo"]), nota=f"Acceso: {B_['acceso']}; holgura del cordón a la tapa retenedora {fm(B_['holgura_tapa'], 1)} mm. {org}",
                  filete_agujero=dict(z=zb, t=float(g.tt), tw=float(B_["t_pared"]), r=float(B_["r"])), other=None)
@@ -584,8 +600,10 @@ def _welds_mesa_bx(ctx, add, add_n, SM, W_):
         Ar = Wd * (L - Wd) + math.pi * Wd * Wd / 4
         TJ = RG.get("tiras") or {}
         cR = sc("mesa_respaldo")
-        w.update(desc="Cierre de la plancha superior: soldadura de ranura rellena sobre almas y nervios, con respaldo permanente (no es CJP)", piezas=f"{cS} / MES-005…010" + (f", {cR}" if ctx.m.get("mesa_respaldo") else ""),
-                 tipo=f"Ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, extremos semicirculares, relleno {fm(fl, 0)}, con respaldo permanente ({n} ranuras, tabla de MES-001)",
+        cD_ = sc("mesa_disco") if ctx.m.get("mesa_disco") else None
+        DCr_ = SM.get("disco_central") or {}
+        w.update(desc="Cierre de la plancha superior: soldadura de ranura rellena sobre almas y nervios, con respaldo permanente (no es CJP)", piezas=f"{cS}" + (f", {cD_}" if cD_ else "") + " / MES-005…010" + (f", {cR}" if ctx.m.get("mesa_respaldo") else ""),
+                 tipo=f"Ranura rellena {fm(Wd, 0)} × {fm(L, 0)}, extremos semicirculares, relleno {fm(fl, 0)}, con respaldo permanente ({n} ranuras, " + (f"{n - int(DCr_.get('n_ranuras_disco', 0))} en la plancha (tabla de MES-001) y {int(DCr_.get('n_ranuras_disco', 0))} en el disco central (tabla de {cD_}))" if cD_ else "tabla de MES-001)"),
                  prep=(f"Ranura pasante (ancho ≥ t + 8 = {fm(g.tt + 8, 0)}) cortada antes de montar; respaldo permanente: tiras {fm(TJ.get('b', 15), 0)} × {fm(TJ.get('t', 6), 0)} ({cR}) a ambos lados del canto" if TJ else
                        f"Ranura pasante (ancho ≥ t + 8 = {fm(g.tt + 8, 0)}) cortada antes de montar"), no_backing=True,
                  backing=("M" if TJ else None), backing_txt=(f"M: respaldo permanente = tiras {fm(TJ.get('b', 15), 0)} × {fm(TJ.get('t', 6), 0)} ({cR}) a ambos lados del canto del alma o nervio" if TJ else None),
@@ -606,6 +624,42 @@ def _welds_mesa_bx(ctx, add, add_n, SM, W_):
             jr.update(len_txt=f"{PT_['n']} × {fm(PT_['l'], 0)} c/tira", origen=jr["origen"])
             W_.remove(jr)
             W_.insert(W_.index(w) + 1, jr)
+    DC = SM.get("disco_central") or {}
+    if DC.get("ok") and ctx.m.get("mesa_disco"):     # rev. 9e: disco central torneado soldado a la plancha superior (CJP J19 sobre el aro de respaldo J19r)
+        _welds_disco_central(ctx, add, W_, DC, sc, byid)
+
+
+def _welds_disco_central(ctx, add, W_, DC, sc, byid):
+    """TT300-BX rev. 9e (pedido del mandante 23-11-2026): CJP circunferencial disco central–plancha superior (J19, AWS D1.1:2020 B-U4a: bisel 45° torneado
+    en el disco, R = 6, f = 0, respaldo permanente = aro MES-017) y punteo del aro bajo la plancha (J19r). Todo sale de bx.mesa.soldaduras.disco_central."""
+    g = ctx.g
+    J, A = DC["junta"], DC["aro"]
+    cD, cS, cA = sc("mesa_disco"), sc("mesa_plancha_sup"), sc("mesa_aro_j19")
+    t = float(DC["t"])
+    org = f"núcleo BX (bx.mesa.soldaduras.disco_central): τ = {fm(DC['tau_junta'], 1)} ≤ F_v = {fm(DC['Fv'], 1)} MPa, FU {fm(DC['tau_junta'] / DC['Fv'], 3)} (H = {fm(DC['H_kN'], 1)} kN); CJP = metal base (AISC 360-22 T. J2.5)"
+    bk = f"M: aro {fm(A['t'], 0)} × {fm(A['b'], 0)} ({cA}), punteado (J19r)"
+    w = add(f"Disco central torneado – plancha superior (CJP circunferencial Ø{fm(DC['D'], 0)}, desde arriba)", f"{cD} / {cS}" + (f", {cA}" if ctx.m.get("mesa_aro_j19") else ""),
+            f"CJP B-U4a desde arriba: bisel {fm(J['alfa'], 0)}° torneado en el disco, plancha a escuadra (Ø{fm(DC['plancha']['agujero'], 0)} a plasma), R = {fm(J['R'], 0)}, f = {fm(J['f'], 0)}, sobre aro {fm(A['t'], 0)} × {fm(A['b'], 0)}; esmerilada a ras", "bevel", t=t, groove=True,
+            prep=f"Bisel {fm(J['alfa'], 0)}° en el disco (torno), f = {fm(J['f'], 0)}, R = {fm(J['R'], 0)} (+6/−2 al armar); respaldo permanente: aro {cA}",
+            prep_txt=f"{fm(J['alfa'], 0)}°", nivel=J.get("nivel", "ISO 5817-B"), end="VT 100 % · UT 100 %", wps=0, len_total=float(J["largo"]), t_pre=float(J["precalentamiento_t"]), jid="J19",
+            nota=f"Desde arriba con la mesa cerrada; paso peregrino por sectores opuestos; esmerilada a ras (planitud 0,5). {org}")
+    w.update(backing="M", backing_txt=bk, backing_w=float(A["b"]), det=dict(ang=float(J["alfa"]), root=float(J["R"]), face=float(J["f"])), origen=org, en_T=False, disco_j19=True, prep_labels=(f"disco {cD}", f"plancha {cS}"),
+             fam_txt=f"CJP B-U4a (AWS D1.1:2020 Fig. 5.1): bisel {fm(J['alfa'], 0)}° con respaldo permanente, R = {fm(J['R'], 0)}, f = {fm(J['f'], 0)}, plana, un lado (GMAW/FCAW: B-U4a-GF, verificar en la edición vigente)",
+             pasadas_txt=f"{w['pasadas']} (raíz sobre el aro + relleno + tapa)")
+    W_.remove(w)
+    j18 = next((x for x in W_ if x["id"] == "J18r"), None) or byid.get("J18")
+    idx = (W_.index(j18) + 1) if j18 in W_ else len(W_)
+    W_.insert(idx, w)
+    if ctx.m.get("mesa_aro_j19"):
+        P_ = A["punteo"]
+        jr = add(f"Aro de respaldo de J19 – plancha superior (punteo por debajo, antes de cerrar la mesa)", f"{cA} / {cS}",
+                 f"Filete discontinuo z{fm(P_['z'], 0)} en el canto exterior del aro contra la plancha volteada: {P_['n']} × {fm(P_['l'], 0)} mm; aro concéntrico al agujero (± 1), separación ≤ 1 mm",
+                 "fillet", core=(float(P_["z"]), f"núcleo BX (disco_central.aro.punteo); mín. T. 7.7 / J2.4 (aro {fm(A['t'], 0)}) = {fm(fillet_min(A['t']), 0)}; máx. t − 2 = {fm(A['t'] - 2, 0)}"),
+                 t=float(A["t"]), t_pre=t, len_total=float(P_["n"] * P_["l"]), wps=0, end="VT 100 %", nivel="ISO 5817-C", jid="J19r",
+                 nota="permanente: la raíz de J19 funde el aro; el punteo va en el canto exterior, fuera de la raíz")
+        jr.update(len_txt=f"{P_['n']} × {fm(P_['l'], 0)}")
+        W_.remove(jr)
+        W_.insert(W_.index(w), jr)
 
 
 def _welds_refuerzo(ctx, add, INS, sc_):

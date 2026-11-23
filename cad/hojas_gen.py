@@ -241,6 +241,10 @@ def tabla_indice(ctx, h, hojas):
     x, y, w, ymin, yR = h.indice_pos
     suf = f" — VARIANTE {ctx.g.variante}"
     rows = [[hh.plano.replace(CODE + "-", "").replace("-" + REV, ""), hh.titulo[:-len(suf)] if hh.titulo.endswith(suf) else hh.titulo, hh.fmt, hh.escala, REV] for hh in hojas]
+    if ctx.g.opt == 4:                   # TT300-BX rev. 9e: en el índice, las hojas de continuación se nombran sin «, CONTINUACIÓN DE …» (el índice entra en GEN-001)
+        import re as _re
+        for r_ in rows:
+            r_[1] = _re.sub(r" \(CONTINUACIÓN DE [A-Z]{3}-\d{3}\)", "", _re.sub(r", CONTINUACIÓN DE [A-Z]{3}-\d{3}\)", ")", r_[1]))
     wc = (w - 6) / 2
     sc = wc / 190.0
     cols = [("Plano", 30 * sc, "L"), ("Título", 105 * sc, "L"), ("Fmt", 12 * sc, "C"), ("Escala", 30 * sc, "L"), ("Rev", 13 * sc, "C")]
@@ -603,6 +607,12 @@ def nest_items(ctx):
                 hs_ = math.radians(q["span_deg"]) / 2
                 w_, h_ = 2 * q["R_ext"] * math.sin(hs_), q["R_ext"] - q["R_int"] * math.cos(hs_)
             L.append(("mesa_respaldo", f"Tira J18 ({q['elemento']}{', ' + q['lado'] if q['forma'] == 'arco' else ''})", w_ + 2, h_ + 2, TJ_["t"], int(q["n"]), q["masa"]))
+    if m.get("mesa_disco"):              # TT300-BX rev. 9e: aro de respaldo de J19 (el disco central sale del recorte de la plancha superior)
+        import modelo3d_tt300c as M3
+        DCn_ = M3.disco_central(g)
+        # el tocho del disco es el recorte central de la plancha superior (dentro de su formato D_top × D_top): no se anida aparte
+        if m.get("mesa_aro_j19"):
+            add("mesa_aro_j19", "Aro de respaldo de J19", DCn_["aro"]["D_ext"] + 4, DCn_["aro"]["D_ext"] + 4, DCn_["aro"]["t"])
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
     if g.opt == 4:                       # TT300-BX: portador y semidiscos (bloque «bx» del JSON)
@@ -843,9 +853,12 @@ def sheet_wps(ctx):
     # tabla de precalentamiento (izquierda) y notas (derecha) lado a lado: la tabla de WPS crece con los juegos que tienen más familias de junta
     y2, _ = s.table(R[0], y - 8, [("Espesor de la parte más gruesa [mm]", 0.16 * w, "L"), ("Categoría B: E7018, ER70S-6, E71T-1 (procesos de bajo hidrógeno, los únicos admitidos)", 0.30 * w, "C")], pre, h=T_S,
                     title="PRECALENTAMIENTO MÍNIMO — AWS D1.1:2020 TABLA 5.8, acero Grupo II (ASTM A572 Gr.50), por el espesor de la parte más gruesa de la junta (no se admiten electrodos que no sean de bajo hidrógeno)")
-    s.notes_block(R[0] + 0.50 * w, y - 8, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
+    # TT300-BX rev. 9e: con las juntas del disco central la tabla de WPS crece; las notas van a la banda derecha libre (sobre el cuadro de revisiones)
+    Rr_ = c.R.get("right") if (g.opt == 4 and isinstance(getattr(c, "R", None), dict)) else None
+    nx_, ny_, nw_ = (Rr_[0] + 1, Rr_[3] - 1, Rr_[2] - Rr_[0] - 2) if Rr_ else (R[0] + 0.50 * w, y - 8, 0.49 * w)
+    s.notes_block(nx_, ny_, "NOTAS", [propuestas.ROTULO_WPS + ": los WPS de esta lámina son una propuesta del dibujante; el fabricante debe calificarlos o confirmarlos y emitir los PQR/WPS definitivos.",
                                        "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte con resistencia a tracción ≥ %s MPa." % f(ctx.P["FEXX"]),
                                        "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
                                        *([f"Soldadura con aporte inoxidable 309L ({hojas_base.inox_juntas_txt(ctx) if g.opt == 4 else 'barras del rebaje UHMW'}): sin precalentamiento del inoxidable; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), (_nota_bonificados_bx(ctx) if g.opt == 4 else None) or (("Aceros bonificados (pasadores, pivote, uña) NO se sueldan" + ("; excepción del núcleo: patas y tapas del pórtico de la leva en 42CrMo4+QT (J26/J27), solo con WPS calificado con PQR (requiere núcleo, GEN-009)." if g.FLG else ".")) if g.modo == 1 else "Aceros bonificados (pasadores E y Q, pivote, bloque-uña) NO se sueldan."),
-                                       "Soldadores calificados según AWS D1.1:2020 cláusula 6 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=0.49 * w, numbered=True)
+                                       "Soldadores calificados según AWS D1.1:2020 cláusula 6 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=nw_, numbered=True)
     return c.h

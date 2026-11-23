@@ -1211,7 +1211,7 @@ def sheet_mesa_conj2(ctx):
 
     def cw(V, c):
         with alias(ctx, "_W"):
-            balloons_auto(c, V, [k + "_W" for k in ks if k not in ("pernos_pasador", "arandela_pasador", "pasadores")], pred=lambda q: q[1] >= -0.5, gap=11, off=14)
+            balloons_auto(c, V, [k + "_W" for k in ks if k not in ("pernos_pasador", "arandela_pasador", "pasadores", "mesa_aro_j19")], pred=lambda q: q[1] >= -0.5, gap=11, off=14)
         if len(D["almas"]) > 2:
             V.dimv((D["almas"][-1], 0, g.z0 + g.tbo), (D["almas"][-1], 0, zt0), "right", 0, on=["mesa_alma2_W"], text=f"{f(g.hw)}")
         V.dimh((g.d_bush / 2, 0, zt0), (P["D_hub"] / 2, 0, zt0), "top", 0, on=["mesa_cubo_W"], text=f"{fm((P['D_hub'] - g.d_bush) / 2, 0)} (cubo)")
@@ -1224,7 +1224,8 @@ def sheet_mesa_conj2(ctx):
             V.dimv((g.D_boss / 2 - 6, 0, g.tb + g.h_boss), (g.D_boss / 2 - 6, 0, g.z_techo), "left", 0, on=["collar", "mesa_cubo"], text=f"{fm(g.c_boss_a, 0)} (holgura axial)")
     c.vs("cc", kc, "front", cut=CUT_Y, center=(g.D_boss / 2, 0, g.tb + 20), win=(-70, -45, 60, g.h_boss + 70), lv=(1, 1, 1, 1), draw=cc, mat=mats(ctx, kc), hs=0.3, maxs=2.0, title="REBAJE DEL COLLAR: HOLGURAS (detalle)", auto=False, w=1.0)
     # TT300-BX: la lámina soldada a la plancha inferior (J30, J34…J36) va en el conjunto de la interfaz (CON-012) y en su lámina, no en la mesa
-    jn = [w["id"] for w in ctx.welds if ("MES" in w["piezas"] or "INT tope mesa" in w["piezas"]) and not (g.opt == 4 and w["id"] in ("J30", "J34", "J35", "J36"))]
+    # rev. 9e: la CJP J19 del disco central y el punteo de su aro (J19r) van en MES-016/MES-001 y GEN-007 (la lámina no admite más filas)
+    jn = [w["id"] for w in ctx.welds if ("MES" in w["piezas"] or "INT tope mesa" in w["piezas"]) and not (g.opt == 4 and w["id"] in ("J30", "J34", "J35", "J36", "J19", "J19r"))]
     for i, wid in enumerate([w["id"] for w in ctx.welds if "MES" in w["piezas"]][:3]):
         add_prep(c, f"dj{i}", ctx.weld_by_id(wid), t1=g.tpr)
     rows = []
@@ -1287,8 +1288,11 @@ def sheet_accionamiento(ctx):
 @con
 def sheet_pivote_conj(ctx):
     g, P = ctx.g, ctx.P
-    ks = [k for k in ("pivote", "buje", "tapa_ret", "tapa_insp", "collar", "base_plancha", "mesa_cubo", "mesa_plancha_inf", "mesa_plancha_sup") if ctx.m.get(k)]
-    ks2 = ["pivote", "buje", "tapa_ret", "tapa_insp", "collar", "mesa_cubo"]
+    ks = [k for k in ("pivote", "buje", "tapa_ret", "tapa_insp", "collar", "base_plancha", "mesa_cubo", "mesa_plancha_inf", "mesa_plancha_sup", "mesa_disco", "mesa_aro_j19") if ctx.m.get(k)]
+    ks2 = ["pivote", "buje", "tapa_ret", "tapa_insp", "collar", "mesa_cubo"] + [k for k in ("mesa_disco", "mesa_aro_j19") if ctx.m.get(k)]
+    import modelo3d_tt300c as M3c
+    DCc = M3c.disco_central(g) if ctx.m.get("mesa_disco") else None      # rev. 9e: disco central torneado de la plancha superior (MES-016) y CJP J19
+    xw = (DCc["aro"]["R_ext"] + 25) if DCc else 190
     c = Conj(ctx, 11, ks2, "PIVOTE: CUBO, COLLAR, BUJE Y TAPAS — HOLGURAS Y AJUSTES (ISO 286)", material="Ver despiece", trat="Ver despiece")
     top = g.z0 + g.hd
     sh, mm = ctx.sh(*ks), mats(ctx, ks)
@@ -1309,7 +1313,12 @@ def sheet_pivote_conj(ctx):
         V.dimh((-P["D_hub"] / 2, 0, g.z0 + g.tbo + 40), (P["D_hub"] / 2, 0, g.z0 + g.tbo + 40), "top", 0, on=["mesa_cubo"], text=f"Ø{f(P['D_hub'])} (cubo)")
         V.dimh((-g.D_boss / 2, 0, g.tb + g.h_boss - 2), (g.D_boss / 2, 0, g.tb + g.h_boss - 2), "bottom", 0, on=["collar"], text=f"Ø{f(g.D_boss)} (collar)")
         V.dimh((-P["D_piv"] / 2, 0, g.tb + 20), (P["D_piv"] / 2, 0, g.tb + 20), "bottom", 1, on=["pivote", "collar"], text=tol_txt(P["D_piv"], "p6") + " / H7") if False else None
-    c.vs("cA", sh, "front", cut=CUT_Y, center=(0, 0, 0), win=(-190, -8, 190, top + 20), lv=(2, 2, 3, 2), extra=(20, 20, 40, 20), draw=cA, mat=mm, hs=0.5, title="CORTE POR EL EJE DEL PIVOTE (plano y = 0)", auto=False, w=3.0, mins=1.0)
+        if DCc:                          # rev. 9e: diámetro del disco y junta J19 con la plancha (lado +x)
+            V.dimh((-DCc["R_inf"], 0, top - g.tt), (DCc["R_inf"], 0, top - g.tt), "top", 1, on=["mesa_disco"], text=f"Ø{fm(2 * DCc['R_inf'], 0)} (disco central {_cc_(ctx, 'mesa_disco')})")
+            jd_ = [w["id"] for w in ctx.welds if w["desc"].startswith("Disco central torneado")]
+            if jd_:
+                c.h.weld(jd_[0], V.P(DCc["R_sup"] + 14, 0, top), (V.P(DCc["R_sup"] + 14, 0, top)[0] + 10, V.ext[3] + 10), sh=1, prep=f"{fm(DCc['junta']['alfa'], 0)}°")
+    c.vs("cA", sh, "front", cut=CUT_Y, center=(0, 0, 0), win=(-xw, -8, xw, top + 20), lv=(2, 2, 3, 2), extra=(20, 20, 40, 20), draw=cA, mat=mm, hs=0.5, title="CORTE POR EL EJE DEL PIVOTE (plano y = 0)", auto=False, w=3.0, mins=1.0)
     # A-08: detalle Y con su llamada en el corte (círculo y letra) y escala mayor que la del corte
     zc_ = g.z_bush0 + P["L_bush"] / 2
     rD = (g.d_bush - P["D_piv"]) / 2
@@ -1334,7 +1343,9 @@ def sheet_pivote_conj(ctx):
     c.tail(ks2, [], [f"Pivote Ø{f(P['D_piv'])} con dos zonas (PIV-001): zona p6 (z = 0 a {fm(g.z_p6, 0)}) calada en plancha base y collar H7/p6 (aprieto); zona f7 (z = {fm(g.z_f7, 0)} a {fm(g.L_piv, 0)}) en el buje F7/f7 (juego); buje s6/H7 prensado en el cubo.",
                      f"Altura de asiento del cubo: collar de {f(g.h_boss)} sobre la base; holgura radial {fm(g.c_boss_r, 0)} mm y axial {fm(g.c_boss_a, 0)} mm (del cálculo): el cubo gira sin tocar el collar.",
                      f"Tapa retenedora con 4 × M10×{g.cap_L:.0f} ISO 10642 10.9 (PCD Ø{fm(g.cap_pcd, 0)}); tapa de inspección con 6 × M{fm(g.insp_d, 0)}×{g.insp_L} ISO 10642 10.9 (PCD Ø{fm(g.insp_pcd, 0)}); torques propuestos en GEN-008, a confirmar.",
-                     "Retención axial del pivote: A DEFINIR POR EL CALCULISTA (decisión del mandante)."])
+                     "Retención axial del pivote: A DEFINIR POR EL CALCULISTA (decisión del mandante)."]
+                + ([f"Disco central torneado {_cc_(ctx, 'mesa_disco')} (rev. 9e, pedido del mandante 23-11-2026): lleva el agujero Ø{f(g.hole_top)} de J17b, el rebaje Ø{f(g.cb_D)} × {f(g.cb_t)} y las roscas de la tapa de inspección; "
+                    f"soldado a la plancha superior {_cc_(ctx, 'mesa_plancha_sup')} (agujero Ø{fm(DCc['plancha']['agujero'], 0)} de corte térmico) con la CJP J19 B-U4a sobre el aro {_cc_(ctx, 'mesa_aro_j19')}; detalle y secuencia en {_cc_(ctx, 'mesa_disco')}."] if DCc else []))
     c.build()
     return c.h
 
