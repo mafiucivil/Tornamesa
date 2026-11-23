@@ -103,6 +103,11 @@ class G:
         self.IG = D.get("interfazGeom", {})
         self.fecha = datetime.date.fromisoformat(D["fecha"])
         self.FECHA = self.fecha.strftime("%d-%m-%Y")
+        # TT300-BX: la FECHA del cajetín es la de la emisión vigente (última de bx.revisiones), no la de exportación del JSON
+        # (que el navegador fecha en UTC y puede caer al día siguiente en Chile); así cajetín y cuadro de revisiones coinciden.
+        _rv = (D.get("bx") or {}).get("revisiones") or []
+        if _rv and _rv[-1].get("fecha") not in (None, "", "—"):
+            self.FECHA = _rv[-1]["fecha"]
         # --- opción de interfaz ---
         I = self.I
         self.opt = int(I["o"])                      # 0 acero-acero, 1 A, 2 B, 3 C
