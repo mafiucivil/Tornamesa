@@ -123,10 +123,9 @@ class Pieza(Plano):
         if getattr(g, "mesa_entera", False):     # TT300-BX rev. 7c: planchas enteras con los agujeros de los pasadores
             RA["mesa_plancha_sup"] = RA["mesa_plancha_sup"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
             RA["mesa_plancha_inf"] = RA["mesa_plancha_inf"] + [("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
-            if self.ctx.m.get("mesa_disco"):    # rev. 9e: el rebaje de la tapa pasa al disco central torneado; la plancha queda con un agujero de corte térmico
+            if self.ctx.m.get("mesa_disco"):    # rev. 9f: el rebaje de la tapa pasa al disco central torneado; la plancha queda con un agujero biselado de corte térmico
                 RA["mesa_plancha_sup"] = [("Ra 6,3", "cara superior"), ("Ra 3,2", f"agujeros Ø{f(g.d_pin)} H7 de los pasadores (mandrinados/escariados en línea)")]
-                RA["mesa_disco"] = [("Ra 3,2", f"torneado: cara superior, agujero Ø{f(g.hole_top)} H12, rebaje Ø{f(g.cb_D)} H12 y su fondo"), ("Ra 6,3", "Ø exterior y bisel de J19")]
-                RA["mesa_aro_j19"] = [("Ra 6,3", "cara superior contra la plancha y el disco (limpia, sin escoria ni óxido: respaldo de J19)")]
+                RA["mesa_disco"] = [("Ra 3,2", f"torneado: cara superior, agujero Ø{f(g.hole_top)} H12, rebaje Ø{f(g.cb_D)} H12 y su fondo (terminados en sitio)"), ("Ra 6,3", "Ø exterior a escuadra (canto de J19)")]
         RA.update({"cil_camisa": [("Ra 0,4", "Ø interior H8 bruñido (Rz ≤ 2,5)"), ("Ra 1,6", "rosca interior y cara del extremo delantero"), ("Ra 3,2", "refrentados de los puertos A y B (asiento del sello ED)")],
                    "cil_fondo": [("Ra 1,6", "espiga Ø90 g6, cara de la espiga (tope) y alojamiento de la rótula N7"), ("Ra 3,2", "hombro de la pestaña, a escuadra (cara de la J37; el bisel en J va en la camisa)")],
                    "cil_tapa": [("Ra 0,8", "espiga f7 y contacto del o'ring"), ("Ra 1,6", "agujero H9, fondos de alojamientos y rosca"), ("Ra 3,2", "flancos de los alojamientos")],

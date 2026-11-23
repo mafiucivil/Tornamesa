@@ -679,6 +679,7 @@ que hay cambios (aunque una lámina no cambie). La emisión del cálculo rev. 9d
   | C | — | rev. 8 | Emisión anterior (rev. 8 del cálculo BX) |
   | D | 22-11-2026 | rev. 9d | 250 t; alivio 540 / alarma 480 / retorno 150 bar; Fb de barra redonda BTH-1 §3-2.3.3; pasadores E, Q, empuje y pivote sin tratamiento térmico de taller; buje templado del seguidor (ACC-046); corrección de 26 uniones soldadas (J14–J18, J-E, WPS, precalentamiento); ranuras J18 con respaldo permanente (MES-015) |
   | E | 23-11-2026 | rev. 9e | Disco central torneado MES-016 (J17b y tapa de inspección) soldado a la plancha superior con la CJP J19 sobre el aro MES-017 |
+  | F | 23-11-2026 | rev. 9f | Disco central Ø280 sobre el cubo (respaldo = cubo); se anulan el aro de respaldo y la muesca de los nervios |
 
 - **Dónde se usa** (`cad/generar_paquete.py` llama a `geom.set_rev(bx.revisiones[-1].letra)` en cuanto detecta el bloque «bx»): códigos de lámina y nombres de
   archivo (`planos/TT300C-XXX-NNN-D.pdf/.dxf`), códigos de pieza del despiece (`TT300C-ACC-016-7-D`, misma letra que la lámina), campo REV. del cajetín,
@@ -702,6 +703,10 @@ que hay cambios (aunque una lámina no cambie). La emisión del cálculo rev. 9d
    con código 0, con todos los controles en 0 (incluido `revision`) y sin láminas RETENIDAS.
 
 ### 13.9 Revisión 9e (23-11-2026, emisión Rev. E): disco central torneado de la plancha superior (pedido del mandante)
+
+> **Reemplazada por la rev. 9f (§13.10, emisión Rev. F) en el diámetro del disco (Ø700 → Ø280), la junta (bisel en la plancha, respaldo = cara
+> del cubo), el aro MES-017 y su punteo J19r (anulados), la muesca de los nervios del tramo 2 (anulada), las ranuras del disco y el torneado
+> completo antes de soldar.** Se conserva como historial de la Rev. E (emitida).
 
 Pedido del mandante (23-11-2026, sobre el «CORTE POR EL EJE DEL PIVOTE», CON-011): sacar el mecanizado del centro de la plancha superior a un disco
 que se pueda tornear como pieza chica («un disco de 300 mm por ejemplo») y soldarlo a la plancha Ø2000 × 22, solo en la plancha superior, para
@@ -727,7 +732,7 @@ queda con un agujero de corte térmico a escuadra. Fuente única: `discoCentralO
 2. **Disco MES-016:** Ø700 (cara inferior) × 22, bisel 45° hasta Ø656 en la cara superior, ASTM A572 Gr. 50 (Z35, como la plancha), del recorte
    central Ø712 de la propia plancha (misma colada y espesor; tocho Ø706) o de plancha de 22. Masa 56,1 kg (despiece, sin descontar las ranuras;
    47,5 kg con las 14 ranuras). Torneado COMPLETO antes de soldar (sin sobremedida): cara superior (A, limpieza ≤ 0,5, planitud 0,3), Ø200 H12,
-   rebaje Ø240 H12 × 8 +0,2/0 (fondo ∥ A 0,1), Ø700 ±0,5, bisel 45° +5°/0 con talón 0. Razón: la CJP queda a 208 mm del rebaje; su contracción
+   rebaje Ø240 H12 × 8 +0,2/0 (fondo paralelo a A 0,1), Ø700 ±0,5, bisel 45° +5°/0 con talón 0. Razón: la CJP queda a 208 mm del rebaje; su contracción
    tira del disco en el plano (cambio de Ø del rebaje ≤ 0,3 mm, dentro del juego de 1 mm por lado de la tapa Ø238); el disco apoya en cubo, almas y
    nervios y queda atado por las ranuras. Las 6 roscas M8 se taladran y roscan DESPUÉS de J17b y del alivio (pared de 3 mm junto al filete J17b).
    Después de soldar se verifica el asiento; si quedara fuera, se refrenta el fondo en sitio.
@@ -775,3 +780,78 @@ M8; tabla de ranuras sin las del disco); MES-008 (muesca de los nervios del tram
 y el símbolo de J19); CON-009 (secuencia; J19/J19r se tabulan en MES-016, MES-001 y GEN-007 por espacio), GEN-007/015/014 (J19, J19r y secuencia), GEN-012 (WPS-P30; notas en la banda derecha), despiece (ítems 56 y 57 al final: los números de
 la Rev. D no cambian), lista de cortes, anidado (aro; el disco sale del recorte de la plancha), masas y STEP/GLB.
 
+### 13.10 Revisión 9f (23-11-2026, emisión Rev. F): disco central Ø280 sobre el cubo — el cubo es el respaldo de J19
+
+**Por qué se reemplaza el Ø700.** El mandante rechaza el Ø700 de la rev. 9e: el disco debe ser **menor que Ø300**. La rev. 9e partía de un bisel en el
+disco y un aro de respaldo aparte, y con eso Ø300 no cabía. El dato que se pasó por alto: el cubo es Ø310 con agujero Ø150 (D_piv + 30) y llega a la
+cara inferior de la plancha superior (alto h_disc − t_top − t_bot), así que su cara superior es un **anillo macizo R75–R155 (pared 80) justo debajo
+de la plancha**. Un disco a escuadra menor que Ø300 apoya entero sobre esa cara, y **la cara del cubo es el respaldo permanente continuo de la CJP J19**:
+no hace falta aro, ni muescas en los nervios, ni cortar ranuras J18 en el disco. Se revisó la geometría real: entre R140 y R168 bajo la plancha solo
+están la cara del cubo (hasta R155), los extremos de los nervios del tramo 1 (desde R156, con sus filetes J15b contra el cubo) y las tiras MES-015 del
+tramo 1 (desde R156); todo queda fuera de la raíz (R140–R146) y debajo de la plancha, que en la cara inferior empieza en R146.
+
+Fuente única: `discoCentralOf` en `packages/core/tt300bx.js` (constantes `DCEN`, parámetro `bx_D_disco`), exportada en `bx.mesa.soldaduras.disco_central`
+(campo `rev: "9f"`); las láminas, el despiece, la lista de cortes y el modelo 3D la leen de ahí. El núcleo TT300-C no cambia (`tests/indep_tt300c.py` «sin
+diferencias», golden intactos).
+
+**Decisión confirmada:** plancha superior 22 mm ASTM A572 Gr. 50 (Fy 345 / Fu 450 MPa), CONFIRMADO por el mandante el 23-11-2026; el disco
+central Ø280 sale de la misma plancha. No cambia ningún acero; en MES-001 y MES-016 el material A572 Gr. 50 deja de figurar como «PROPUESTO»
+(Z35 y UT ASTM A578 nivel B siguen como propuesta).
+
+**Decisiones de la rev. 9f — POR DEFECTO, A CONFIRMAR POR EL MANDANTE (salvo la confirmada arriba):**
+
+1. **Diámetro: Ø280** (parámetro `bx_D_disco`, por defecto 280). El núcleo calcula el rango: Ø máximo = 2·(R_cubo − 6 − R) = 2·(155 − 6 − 6) = **Ø286**
+   (la cara del cubo cubre la raíz con ≥ 6 mm de margen del lado de la plancha); Ø mínimo = Ø240 + 2·20 = **Ø280** (pared de 20 mm del canto al
+   asiento de la tapa). Se adopta el menor. Con un valor fuera de [Ø280; Ø286] la fila geométrica «diámetro dentro del rango admisible» falla
+   (p. ej. Ø300: la raíz queda fuera del cubo; Ø260: la pared al rebaje queda en 10 mm).
+2. **Disco MES-016:** Ø280 ±0,3 × 22, **canto a escuadra** (sin bisel), ASTM A572 Gr. 50 (Z35, como la plancha), del recorte central de la propia plancha
+   (Ø292 abajo / Ø336 arriba; tocho Ø286); Ø200 H12, rebaje Ø240 H12 × 8 +0,2/0 (pared 20 al canto), cara superior A con planitud 0,3; 4,3 kg. Sin
+   ranuras J18 (todas empiezan en R ≥ 148 > 140 y quedan en la plancha). Las 6 roscas M8 de la tapa se taladran y roscan al final (como en la rev. 9e).
+3. **Torneado y distorsión del asiento (POR DEFECTO, A CONFIRMAR):** la CJP queda a 20 mm del asiento Ø240, así que **no** se promete un valor de
+   distorsión (el «≤ 0,3 mm» de la rev. 9e no aplica). El disco se tornea completo antes de soldar **salvo el rebaje Ø240 y su fondo**, que se tornean
+   con sobremedida (Ø238: 1 mm por lado; profundidad 7,5: 0,5 mm en el fondo) y se **terminan después de J19, J17b y el alivio de tensiones** con un
+   cabezal portátil de refrentar y mandrinar centrado en el agujero Ø200 (fondo paralelo a A 0,1). Variante, si el mandante la prefiere («para poder mecanizar
+   con un torno … poner bien la tapita»): tornear completo y verificar después del alivio, refrentando en sitio si hiciera falta.
+4. **Plancha MES-001:** agujero central con **bisel 45° de corte térmico** (plasma u oxicorte con cabezal de bisel): Ø292 ±1,5 en la cara inferior
+   (abertura de raíz 6 con el disco), Ø336 en la superior, 45° +10°/−0°; esmerilado a metal brillante. Las ranuras J18 y las almas A1 vuelven a la
+   plancha exactamente como en la Rev. D (77 ranuras, tabla de MES-001).
+5. **Junta J19 (AWS D1.1/D1.1M:2020 Figura 5.1, B-U4a; con GMAW/FCAW B-U4a-GF, verificar en la edición vigente):** CJP en bisel simple con respaldo
+   permanente, R = 6, α = 45°, f = 0, bisel en la PLANCHA, disco a escuadra; respaldo = **cara superior del cubo** (raíz R140–R146 sobre el anillo
+   R75–R155; margen 9 mm más allá de la raíz). El cubo es ASTM A572 Gr. 50 (Grupo II de la Tabla 5.3, el mismo de la plancha y del disco): respaldo de
+   acero admisible; cara limpia y en contacto (separación ≤ 2 mm). Posición plana desde arriba, **4 sectores opuestos** (paso peregrino) para
+   limitar la distorsión; esmerilada a ras; VT 100 % + UT 100 % (ISO 5817-B); WPS-P30 (mismo número). **Precalentamiento:** la raíz funde la pared
+   del cubo (80 mm), así que se toma la parte más gruesa = 80 mm (Tabla 5.8, como J17b y J15b sobre el mismo cubo), no los 22 de la plancha.
+6. **Ranuras J18 del tramo 1** (R148–R273 en la cara superior): no se mueven ni se acortan. Su extremo interior cae dentro del ancho superior del bisel
+   de J19 (R140–R168): la ranura se abre en el bisel y ambas se rellenan en **una secuencia continua** (J19 hasta la entrada de la ranura, luego la
+   ranura). El largo eficaz sobre el nervio (de la cara del cubo R155 a R273) no cambia, así que la fila J18 de traspaso (FU 0,893) no cambia.
+   Las tiras MES-015 quedan como en la Rev. D (tramo 1: R156–R280), 10 mm fuera de la raíz y bajo la plancha intacta.
+7. **Se anulan:** el aro MES-017 y su punteo J19r (ítem 57 del despiece, anidado y filas de WPS), la muesca 7 × 27 de los nervios del tramo 2 (MES-008
+   vuelve a la geometría de la Rev. D), las ranuras del disco y el agujero Ø712. El disco conserva el ítem 56; el 57 desaparece sin renumerar los demás.
+8. **Secuencia:** (1) cortar y biselar el agujero de la plancha; (2) cerrar la mesa (ranuras y tiras como en la Rev. D) y soldar J18, salvo las 7
+   ranuras del tramo 1; (3) presentar el disco sobre la cara del cubo, centrado (eje del Ø200 a Ø1 del eje del cubo, mandril en el Ø150), R = 6 en todo
+   el contorno, puntear en 8 puntos; (4) J19 en 4 sectores opuestos y enseguida las ranuras del tramo 1 desde su entrada en el bisel; esmerilar a ras;
+   (5) J17b; (6) alivio de tensiones, terminar el asiento Ø240 en sitio, roscas M8 y montaje.
+
+**Camino de la carga y filas** (H = 129,9 kN, reacción del pivote a calado, completa en la plancha superior; cubo → J17b → disco → J19 → plancha):
+
+| Fila | FU |
+|---|---|
+| BX · Unión disco central–plancha superior J19: τ = H/(π·r·t), r = 140 (canto del disco), t = 22 → 13,4 MPa ≤ F_y/(N_d·√3) = 66,4 MPa | 0,202 |
+| BX · Disco central: corte del metal base en el borde del agujero Ø200 (r = 100) | 0,283 |
+| BX · Disco central Ø280: diámetro en el rango [Ø280; Ø286] | 1,000 (geo, en el límite inferior) |
+| BX · Disco central Ø280: pared del canto al rebaje Ø240 (20 ≥ 20) | 1,000 (geo) |
+| BX · Disco central Ø280: respaldo = cara del cubo, margen más allá de la raíz (9 ≥ 6) | 0,667 (geo) |
+| BX · Disco central Ø280: raíz entera sobre la cara del cubo (R146 ≤ R155; R75 < R140) | 0,942 (geo) |
+| BX · Disco central Ø280: raíz libre de las tiras MES-015 del tramo 1 (10 ≥ 6) | 0,600 (geo) |
+| BX · Disco central Ø280: ranuras J18 del tramo 1 abiertas en el bisel de J19 (R148 ≤ R168) | informativa |
+| BX · Unión cubo–plancha superior J17b (filete z10 en el agujero Ø200 del disco, sobre la cara del cubo R90–R100) | 0,716 (sin cambio) |
+
+Se quitan las filas del aro, de la muesca (corte en los nervios del tramo 2) y de la separación de la junta a las ranuras. El esfuerzo de J19 se
+calcula con q = H/(π·r), el flujo de corte máximo de un anillo con la carga en su plano (el mismo criterio de J17b y de la rev. 9e), en el canto
+del disco (r = 140, el menor perímetro de fusión): la expresión H/(π·d·t) con d = 292 daría la mitad (FU ≈ 0,10) y no es conservadora.
+
+**Planos (Rev. F, todo el paquete):** MES-016 (plano de torno del disco Ø280: planta, semicorte, detalle B del agujero y del rebaje terminado,
+tabla de tolerancias con la sobremedida del asiento, detalle J19 con la plancha biselada, el disco a escuadra, R = 6 y la cara del cubo como
+respaldo; sin la vista del aro), MES-001 (agujero Ø292/Ø336 biselado 45°, detalle B; tabla con las 77 ranuras), MES-008 (sin muesca), CON-011
+(corte por el eje del pivote con el disco Ø280 sobre el cubo y el símbolo de J19), CON-009, GEN-007/012/014/015 (J19 sin J19r), despiece (sin el
+ítem 57), lista de cortes, anidado (sin el aro), masas, STEP/GLB y GEN-001.

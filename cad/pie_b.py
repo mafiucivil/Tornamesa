@@ -8,9 +8,9 @@ from pie_a import ra, wd
 from soldadura_det import add_prep
 
 
-@pieza("mesa_disco", "mesa_aro_j19")
+@pieza("mesa_disco")
 def sheet_mesa_disco(ctx):
-    """TT300-BX rev. 9e: disco central torneado de la plancha superior (MES-016) y aro de respaldo de J19 (MES-017)."""
+    """TT300-BX rev. 9f: disco central torneado de la plancha superior (MES-016), a escuadra sobre la cara del cubo (respaldo de J19)."""
     return __import__("pie_mesa_entera").sheet_disco(ctx)
 
 
@@ -323,11 +323,6 @@ def sheet_nervios(ctx):
                 V.note_pt((x_, 0.0, z0 + g.hw - dt_ / 2), (12, 14), f"destijer {fm(dt_, 0)} × {fm(dt_, 0)} a 45° arriba contra las almas (tiras J18); abajo 15 × 15" + (f" y {fm(dc_, 0)} × {fm(dc_, 0)} contra el cubo (J17a)" if dc_ else ""), on=[ks[i] + "_1"], dot=True)
             else:
                 V.note_pt((bb.xmin + 7.5, 0.0, z0 + g.hw - 7.5), (12, 14), "destijer 15 × 15 a 45° (4 esquinas)" if not dc_ else f"destijer 15 × 15 a 45° (3 esquinas); {fm(dc_, 0)} × {fm(dc_, 0)} abajo contra el cubo (J17a)", on=[ks[i] + "_1"], dot=True)
-            DCm_ = M3_.disco_central(g)
-            if DCm_ and int(DCm_["muesca"]["tramo"]) == i + 1:   # rev. 9e: muesca del aro de respaldo de J19 (disco central)
-                MU_ = DCm_["muesca"]
-                V.note_pt(((MU_["r0"] + MU_["r1"]) / 2, 0.0, z0 + g.hw - MU_["prof"]), (12, 26),
-                          f"muesca {fm(MU_['prof'], 0)} × {fm(MU_['r1'] - MU_['r0'], 0)} a {fm(MU_['r0'] - bb.xmin, 0)}…{fm(MU_['r1'] - bb.xmin, 0)} del extremo (aro J19)", on=[ks[i] + "_1"], dot=True)
             if jn and i == len(ks) - 1:
                 w_out(p, jn[0], V, (bb.xmax, bb.ymin, z0 + g.hw / 2), "right", dy=12)
             jb_ = jids(ctx, "Nervios del tramo 1 – cubo") if i == 0 else []

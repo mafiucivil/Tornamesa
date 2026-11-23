@@ -139,7 +139,9 @@ def sheet_notas(ctx):
         RV_ = ctx.revisiones
         rows_rv = [[r_["letra"], r_.get("fecha") or "—", ("rev. " + str(r_["rev_calculo"])) if r_.get("rev_calculo") else "—", "VIGENTE" if i_ == len(RV_) - 1 else f"reemplazada (Rev. {RV_[i_ + 1]['letra']})",
                     str(r_["descripcion"]).rstrip(".") + "."] for i_, r_ in reversed(list(enumerate(RV_)))]
-        yn, _ = s.table(x2, yn - 6, [("Rev", 11, "C"), ("Fecha", 25, "C"), ("Cálculo", 21, "C"), ("Estado", 31, "L"), ("Descripción de la emisión", 112, "L")], rows_rv, h=T_S,
+        # rev. 9f (Rev. F): con 4 o más emisiones el cuadro va con letra mínima (ISO 3098, 2,5 mm) y la descripción más ancha, para que el índice siga entrando en GEN-001
+        yn, _ = s.table(x2, yn - 6, ([("Rev", 9, "C"), ("Fecha", 22, "C"), ("Cálculo", 18, "C"), ("Estado", 26, "L"), ("Descripción de la emisión", 125, "L")] if len(RV_) >= 4 else
+                                     [("Rev", 11, "C"), ("Fecha", 25, "C"), ("Cálculo", 21, "C"), ("Estado", 31, "L"), ("Descripción de la emisión", 112, "L")]), rows_rv, h=(T_MIN if len(RV_) >= 4 else T_S),
                         title=f"CUADRO DE REVISIONES DEL JUEGO TT300-BX (una letra por emisión para todas las láminas; vigente: Rev. {REV})")
     # mapa de códigos por geometría (H-04: un código = una geometría; N-07: láminas de características emitidas)
     import modelo3d_tt300c as M3
@@ -607,12 +609,7 @@ def nest_items(ctx):
                 hs_ = math.radians(q["span_deg"]) / 2
                 w_, h_ = 2 * q["R_ext"] * math.sin(hs_), q["R_ext"] - q["R_int"] * math.cos(hs_)
             L.append(("mesa_respaldo", f"Tira J18 ({q['elemento']}{', ' + q['lado'] if q['forma'] == 'arco' else ''})", w_ + 2, h_ + 2, TJ_["t"], int(q["n"]), q["masa"]))
-    if m.get("mesa_disco"):              # TT300-BX rev. 9e: aro de respaldo de J19 (el disco central sale del recorte de la plancha superior)
-        import modelo3d_tt300c as M3
-        DCn_ = M3.disco_central(g)
-        # el tocho del disco es el recorte central de la plancha superior (dentro de su formato D_top × D_top): no se anida aparte
-        if m.get("mesa_aro_j19"):
-            add("mesa_aro_j19", "Aro de respaldo de J19", DCn_["aro"]["D_ext"] + 4, DCn_["aro"]["D_ext"] + 4, DCn_["aro"]["t"])
+    # TT300-BX rev. 9f: el disco central MES-016 sale del recorte central de la plancha superior (dentro de su formato D_top × D_top): no se anida aparte
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
     if g.opt == 4:                       # TT300-BX: portador y semidiscos (bloque «bx» del JSON)

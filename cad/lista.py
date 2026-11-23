@@ -117,14 +117,13 @@ def cut_rows(ctx):
     if g.mesa_entera:                    # TT300-BX rev. 7c: una plancha entera por nivel (sin anillos de pasadores)
         cmp_ = f"compra: plancha de {f(g.tt)} mm de al menos {f(P['D_top'])} × {f(P['D_top'])}"
         import modelo3d_tt300c as M3d
-        DCl_ = M3d.disco_central(g) if m.get("mesa_disco") else None      # rev. 9e: disco central torneado (el recorte central de la plancha es su tocho)
+        DCl_ = M3d.disco_central(g) if m.get("mesa_disco") else None      # rev. 9f: disco central torneado (el recorte central de la plancha es su tocho)
         add("mesa_plancha_sup", "Disco", f"Ø{f(P['D_top'])}×{f(g.tt)}", f"Plancha entera de una pieza ({cmp_}); contorno Ø{f(P['D_top'])} ±1,5 a plasma; {g.N_pin} agujeros Ø80 taladrados y mandrinados a Ø{f(g.d_pin)} H7 en línea tras soldar; "
-            + (f"agujero central Ø{fm(DCl_['plancha']['agujero'], 0)} ±1,5 a plasma (el recorte es el tocho del disco {m.get('mesa_disco').code.replace(CODE + '-', '')})" if DCl_ else "rebaje tras soldar"))
+            + (f"agujero central Ø{fm(DCl_['plancha']['agujero'], 0)} ±1,5 (cara inferior) con bisel 45° +10°/−0° a plasma/oxicorte (Ø{fm(DCl_['plancha']['agujero_sup'], 0)} arriba; el recorte es el tocho del disco {m.get('mesa_disco').code.replace(CODE + '-', '')})" if DCl_ else "rebaje tras soldar"))
         if DCl_:
-            add("mesa_disco", "Disco", f"Ø{fm(DCl_['tocho']['d'], 0)}×{f(g.tt)}", f"Tocho: {DCl_['tocho']['nota']}; ranuras J18 a plasma; torneado completo (bisel 45°, Ø{f(g.hole_top)} H12, rebaje Ø{f(g.cb_D)} H12 × {f(g.cb_t)}); 6 × M8 después de soldar")
-            if m.get("mesa_aro_j19"):
-                A_ = DCl_["aro"]
-                add("mesa_aro_j19", "Anillo", f"Ø{fm(A_['D_ext'] + 4, 0)}/Ø{fm(A_['D_int'] - 4, 0)}×{fm(A_['t'], 0)}", f"Plancha de {fm(A_['t'], 0)} ({A_['material'].split(',')[0]}); plasma en una pieza a Ø{fm(A_['D_ext'], 0)}/Ø{fm(A_['D_int'], 0)}; respaldo permanente de J19 (detalle en MES-016)")
+            T_ = DCl_["torneado"]
+            add("mesa_disco", "Disco", f"Ø{fm(DCl_['tocho']['d'], 0)}×{f(g.tt)}", f"Tocho: {DCl_['tocho']['nota']}; torneado a escuadra Ø{fm(DCl_['D'], 0)} ±0,3, Ø{f(g.hole_top)} H12 y cara superior; rebaje Ø{f(g.cb_D)} con sobremedida "
+                f"({fm(T_['sm_lado'], 0)} por lado, {fm(T_['sm_fondo'], 1)} en el fondo), terminado en sitio tras soldar y aliviar; 6 × M8 al final")
         add("mesa_plancha_inf", "Disco", f"Ø{f(P['D_top'])}×{f(g.tbo)}", f"Plancha entera de una pieza ({cmp_}, tolerancia de espesor solo positiva); cara de giro planeada (espesor terminado ≥ {f(g.tbo)}); agujeros de pasadores como la superior (en línea)" + (f"; agujero pasante Ø{f(g.Drb)} (rebaje del collar)" if g.rebaje else ""))
     else:
         add("mesa_plancha_sup", "Disco", f"Ø{f(2 * g.prIn + 5)}×{f(g.tt)}", "Plasma; rebaje tras soldar")

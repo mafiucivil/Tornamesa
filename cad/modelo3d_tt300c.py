@@ -84,8 +84,8 @@ def tiras_j18(g):
 
 
 def disco_central(g):
-    """TT300-BX rev. 9e (pedido del mandante 23-11-2026): disco central torneado de la plancha superior soldado con la CJP J19 sobre un aro de respaldo
-    (bx.mesa.soldaduras.disco_central del núcleo BX) o None (TT300-C, mesa de disco + anillo, o sin el bloque)."""
+    """TT300-BX rev. 9f (pedido del mandante 23-11-2026): disco central torneado de la plancha superior, a escuadra sobre la cara del cubo, soldado con la
+    CJP J19 cuyo respaldo es el cubo (bx.mesa.soldaduras.disco_central del núcleo BX) o None (TT300-C, mesa de disco + anillo, o sin el bloque)."""
     if getattr(g, "opt", 0) != 4 or not getattr(g, "mesa_entera", False):
         return None
     DC = ((((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}).get("disco_central")) or None
@@ -98,16 +98,9 @@ def _dest_desc(g, i):
     if not TJ_:
         return (f"destijer {fm(dc_, 0)}×{fm(dc_, 0)} en la esquina inferior contra el cubo (paso de J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} en las otras 3" if (i == 0 and dc_) else f"destijeres {fm(DEST, 0)}×{fm(DEST, 0)} en las 4 esquinas")
     dt_ = fm(TJ_["destijer_superior_almas"], 0)
-    DC_ = disco_central(g)
-    if DC_ and int(DC_["muesca"]["tramo"]) == i + 1:     # rev. 9e: muesca del aro de respaldo de J19 en el canto superior
-        MU_ = DC_["muesca"]
-        a0_ = (float(g.P["D_hub"]) / 2 if i == 0 else float(g.D["almas"][i - 1]) + float(g.P["t_web"]) / 2) + GAP_NERVIO
-        mu_txt = f"; muesca {fm(MU_['prof'], 0)} × {fm(MU_['r1'] - MU_['r0'], 0)} en el canto superior a {fm(MU_['r0'] - a0_, 0)}…{fm(MU_['r1'] - a0_, 0)} del extremo interior (paso del aro de respaldo de J19, MES-017)"
-    else:
-        mu_txt = ""
     if i == 0:
-        return f"destijeres abajo {fm(dc_ or DEST, 0)}×{fm(dc_ or DEST, 0)} contra el cubo (J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} contra el alma; arriba {dt_}×{dt_} contra el alma (tiras J18) y ninguno contra el cubo" + mu_txt
-    return f"destijeres abajo {fm(DEST, 0)}×{fm(DEST, 0)} y arriba {dt_}×{dt_} (paso de las tiras de respaldo J18 de las almas) en ambos extremos" + mu_txt
+        return f"destijeres abajo {fm(dc_ or DEST, 0)}×{fm(dc_ or DEST, 0)} contra el cubo (J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} contra el alma; arriba {dt_}×{dt_} contra el alma (tiras J18) y ninguno contra el cubo"
+    return f"destijeres abajo {fm(DEST, 0)}×{fm(DEST, 0)} y arriba {dt_}×{dt_} (paso de las tiras de respaldo J18 de las almas) en ambos extremos"
 
 
 def dest_cubo(g):
@@ -769,14 +762,20 @@ def build(D, verbose=True):
         top_plate = pins_cut(ring(g.hole_top / 2, Rt, tt, z0 + hd - tt).cut(ring(0, g.cb_D / 2, g.cb_t + 1, z0 + hd - g.cb_t))
                              .cut(cq.Workplane("XY").workplane(offset=z0 + hd - tt - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(g.insp_rem + 1.0)), z0 + hd - tt, tt)
         DC_ = disco_central(g)
-        if DC_:                          # rev. 9e: la plancha queda con un agujero de corte térmico; el centro (agujero, rebaje y M8) pasa al disco MES-016
-            top_plate = pins_cut(ring(DC_["plancha"]["agujero"] / 2, Rt, tt, z0 + hd - tt), z0 + hd - tt, tt)
+        if DC_:                          # rev. 9f: la plancha queda con un agujero biselado 45° de corte térmico (Ø inferior = raíz de J19); el centro pasa al disco MES-016
+            rI_, rS_ = DC_["plancha"]["agujero"] / 2, DC_["plancha"]["agujero_sup"] / 2
+            cono_ = (cq.Workplane("XZ").polyline([(0, z0 + hd - tt - 0.01), (rI_, z0 + hd - tt - 0.01), (rS_ + 0.02, z0 + hd + 0.01), (0, z0 + hd + 0.01)]).close()
+                     .revolve(360, (0, 0, 0), (0, 1, 0)))
+            top_plate = pins_cut(ring(0, Rt, tt, z0 + hd - tt).cut(cono_), z0 + hd - tt, tt)
+            # rev. 9f: el mandante CONFIRMÓ (23-11-2026) la plancha superior de 22 mm en ASTM A572 Gr. 50; Z35 y UT A578 siguen propuestos (plancha y disco central)
+            A572Zc = f"ASTM A572 Gr.50 (Fy ≥ {f(P['Fy'])} MPa), CONFIRMADO por el mandante 23-11-2026; Z35 (EN 10164) y UT ASTM A578 nivel B — PROPUESTO"
+            g.mat_plancha_sup = A572Zc
         disc_bot = pins_cut(ring(ri_bot, Rt, tbo, z0), z0, tbo)
         compra = f"plancha de {f(tt)} mm de al menos {f(P['D_top'])} × {f(P['D_top'])}"
         if DC_:
-            m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa (plancha entera)", f"Plancha entera Ø{f(P['D_top'])}×{f(tt)} con agujero central Ø{fm(DC_['plancha']['agujero'], 0)} de corte térmico (disco central MES-016 soldado, J19) y {g.N_pin} agujeros Ø{f(d_pin)} H7 de los pasadores",
-                       top_plate, 1, A572Z, f"Plasma/oxicorte de una pieza desde {compra}; agujero central Ø{fm(DC_['plancha']['agujero'], 0)} a plasma/oxicorte (canto a escuadra, sin mecanizar); agujeros de pasadores Ø80 taladrados y mandrinados/escariados a Ø{f(d_pin)} H7 EN LÍNEA con la plancha inferior (mesa armada)",
-                       core="top", color=(0.22, 0.4, 0.7), obs=f"Sin anillo de pasadores ni empalmes (rev. 7c); compra: {compra}; el recorte central sirve de tocho del disco MES-016 (rev. 9e)"))
+            m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa (plancha entera)", f"Plancha entera Ø{f(P['D_top'])}×{f(tt)} con agujero central Ø{fm(DC_['plancha']['agujero'], 0)}/Ø{fm(DC_['plancha']['agujero_sup'], 0)} biselado 45° de corte térmico (disco central MES-016 soldado, J19) y {g.N_pin} agujeros Ø{f(d_pin)} H7 de los pasadores",
+                       top_plate, 1, A572Zc, f"Plasma/oxicorte de una pieza desde {compra}; agujero central Ø{fm(DC_['plancha']['agujero'], 0)} ±1,5 (cara inferior) a plasma/oxicorte con bisel 45° +10°/−0° (sin mecanizar); agujeros de pasadores Ø80 taladrados y mandrinados/escariados a Ø{f(d_pin)} H7 EN LÍNEA con la plancha inferior (mesa armada)",
+                       core="top", color=(0.22, 0.4, 0.7), obs=f"Sin anillo de pasadores ni empalmes (rev. 7c); compra: {compra}; el recorte central sirve de tocho del disco MES-016 (rev. 9f)"))
         else:
             m.add(Part("mesa_plancha_sup", "MES", "Plancha superior de la mesa (plancha entera)", f"Plancha entera Ø{f(P['D_top'])}×{f(tt)} con agujero Ø{f(g.hole_top)}, rebaje Ø{f(g.cb_D)}×{f(g.cb_t)} para la tapa de inspección y {g.N_pin} agujeros Ø{f(d_pin)} H7 de los pasadores",
                    top_plate, 1, A572Z, f"Plasma/oxicorte de una pieza desde {compra}; rebaje fresado en mandrinadora; agujeros de pasadores Ø80 taladrados y mandrinados/escariados a Ø{f(d_pin)} H7 EN LÍNEA con la plancha inferior (mesa armada)",
@@ -825,10 +824,6 @@ def build(D, verbose=True):
                 continue
             pts_ = [(xq_ - sx * 1.0, zq_ - sz * 1.0), (xq_ + sx * D_, zq_ - sz * 1.0), (xq_ + sx * D_, zq_), (xq_, zq_ + sz * D_), (xq_ - sx * 1.0, zq_ + sz * D_)]
             dest.append(cq.Workplane("XZ").polyline(pts_).close().extrude(P["t_rib"], both=True))
-        DCm_ = disco_central(g)
-        if DCm_ and int(DCm_["muesca"]["tramo"]) == i + 1:   # rev. 9e: muesca rectangular en el canto superior para el aro de respaldo de J19
-            MU_ = DCm_["muesca"]
-            dest.append(box(float(MU_["r0"]), float(MU_["r1"]), -P["t_rib"], P["t_rib"], zt_ - float(MU_["prof"]), zt_ + 1.0))
         for a in D["nervios"]:
             b_ = box(a0, a1, -P["t_rib"] / 2, P["t_rib"] / 2, zb_, zt_)
             for d_ in dest:
@@ -960,8 +955,8 @@ def build(D, verbose=True):
     if g.opt == 4 and (getattr(g, "bx", None) or {}).get("cilindro"):     # TT300-BX rev. 7d: cilindro fabricado (cad/cil_bx.py) en lugar del comercial
         import cil_bx
         cil_bx.build(m, g, D, log)
-    # TT300-BX rev. 9e: disco central torneado y aro de respaldo de J19 al FINAL del despiece (las posiciones de los ítems de la Rev. D no cambian)
-    _disco_central(m, g, P, z0 + hd, insp_xy, A572Z)
+    # TT300-BX rev. 9f: disco central torneado al FINAL del despiece (las posiciones de los ítems de la Rev. D no cambian; el aro MES-017 de la rev. 9e se anula)
+    _disco_central(m, g, P, z0 + hd, insp_xy, getattr(g, "mat_plancha_sup", None) or A572Z)
     log(f"  modelo construido en {time.time() - t0:.0f} s, {len(m.parts)} ítems")
     return m
 
@@ -1617,26 +1612,17 @@ def _respaldo_j18(m, g, D, P, z_top):
 
 
 def _disco_central(m, g, P, z_top, insp_xy, mat):
-    """TT300-BX rev. 9e: disco central torneado (MES-016) con el agujero de J17b, el rebaje y los 6 × M8 de la tapa de inspección, bisel B-U4a en el canto
-    (Ø inferior D, Ø superior D − 2·t·tan α) y aro de respaldo permanente de J19 (MES-017) bajo la junta. Geometría del núcleo BX
-    (bx.mesa.soldaduras.disco_central); las ranuras J18 del disco no se modelan en 3D (como las de la plancha)."""
+    """TT300-BX rev. 9f: disco central torneado (MES-016) con el agujero de J17b, el rebaje y los 6 × M8 de la tapa de inspección; canto a escuadra
+    (Ø D), apoyado entero en la cara superior del cubo, que es el respaldo de la CJP J19 (bisel en la plancha). Geometría del núcleo BX
+    (bx.mesa.soldaduras.disco_central). Se modela terminado (el rebaje con su medida final)."""
     DC = disco_central(g)
     if not DC:
         return
-    t, Rb, Rs, rH = float(DC["t"]), float(DC["R_inf"]), float(DC["R_sup"]), float(DC["agujero"]["d"]) / 2
+    t, Rb, rH = float(DC["t"]), float(DC["R_inf"]), float(DC["agujero"]["d"]) / 2
     rC, hC = float(DC["rebaje"]["d"]) / 2, float(DC["rebaje"]["prof"])
     z0_ = z_top - t
-    # anillo extruido (como la plancha) menos el rebaje y menos un anillo de revolución triangular que deja el bisel (cono de α desde Ø inferior a Ø superior)
-    bis = (cq.Workplane("XZ").polyline([(Rs, z_top + 0.01), (Rb + 0.01, z0_ - 0.01), (Rb + 5, z0_ - 0.01), (Rb + 5, z_top + 0.01)]).close()
-           .revolve(360, (0, 0, 0), (0, 1, 0)).rotate((0, 0, 0), (0, 0, 1), 7.0))
-    prof = ring(rH, Rb, t, z0_).cut(ring(0, rC, hC + 1, z_top - hC)).cut(bis)
+    prof = ring(rH, Rb, t, z0_).cut(ring(0, rC, hC + 1, z_top - hC))
     disco = prof.cut(cq.Workplane("XY").workplane(offset=z0_ - 0.5).pushPoints(insp_xy).circle(g.insp_drill / 2).extrude(t - hC + 1.0))
-    J = DC["junta"]
-    m.add(Part("mesa_disco", "MES", "Disco central torneado de la plancha superior", f"Disco Ø{fm(Rb * 2, 0)} × {fm(t, 0)} torneado: bisel {fm(J['alfa'], 0)}°, Ø{fm(rH * 2, 0)} H12, rebaje Ø{fm(rC * 2, 0)} H12 × {fm(hC, 0)}, 6 × M{fm(g.insp_d, 0)}",
-               disco, 1, mat, f"Tocho Ø{fm(DC['tocho']['d'], 0)} (recorte de la plancha); ranuras J18 a plasma; torneado completo; M8 tras soldar",
-               core="top", color=(0.25, 0.5, 0.78), obs="Rev. 9e; CJP J19 sobre MES-017", num_fijo=16))
-    A = DC["aro"]
-    aro = ring(float(A["R_int"]), float(A["R_ext"]), float(A["t"]), z0_ - float(A["t"]))
-    m.add(Part("mesa_aro_j19", "MES", "Aro de respaldo de J19 (permanente)", f"Aro Ø{fm(A['D_ext'], 0)}/Ø{fm(A['D_int'], 0)} × {fm(A['t'], 0)}",
-               aro, 1, A["material"].split(",")[0], f"Plasma, una pieza; punteado bajo la plancha (J19r)",
-               color=(0.75, 0.45, 0.2), obs="Permanente; MES-016", num_fijo=17, in_core=False))
+    m.add(Part("mesa_disco", "MES", "Disco central torneado de la plancha superior", f"Disco Ø{fm(Rb * 2, 0)} × {fm(t, 0)} torneado a escuadra: Ø{fm(rH * 2, 0)} H12, rebaje Ø{fm(rC * 2, 0)} H12 × {fm(hC, 0)}, 6 × M{fm(g.insp_d, 0)}",
+               disco, 1, mat, f"Tocho Ø{fm(DC['tocho']['d'], 0)} (recorte central de la plancha); torneado salvo el rebaje (sobremedida, terminado en sitio tras soldar y aliviar); M8 al final",
+               core="top", color=(0.25, 0.5, 0.78), obs="Rev. 9f; CJP J19 con respaldo = cara del cubo", num_fijo=16))
