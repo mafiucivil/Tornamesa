@@ -4,10 +4,11 @@ Tipo, tamaño, norma, aporte, END y largos salen del bloque «bx» del JSON (bx.
 Lo que el JSON no fija (proceso ISO 4063 y nivel ISO 5817) se rotula como PROPUESTA, igual que en el resto del juego."""
 import math
 from geom import fm, f, CODE
+import geom
 
 
 def _sc(ctx, k):
-    return ctx.code(k).replace(CODE + "-", "").replace("-C", "") if ctx.m.get(k) else k
+    return ctx.code(k).replace(CODE + "-", "").replace("-" + geom.REV, "") if ctx.m.get(k) else k
 
 
 def _sold(X, frag):

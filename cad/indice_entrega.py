@@ -12,6 +12,7 @@ import json
 import pathlib
 import re
 import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO."
 CASOS = ["base", "A", "AF2", "B", "C1", "C2", "C3", "base_G", "A_G"]
@@ -134,7 +135,9 @@ def leer_caso(d, logs=None, caso=None):
 
 
 def corto(cod):
-    return cod.replace("TT300C-", "").replace("-C", "") if cod.endswith("-C") else cod.replace("TT300C-", "")
+    import geom                     # letra del juego TT300-C (este índice es de la entrega TT300-C)
+    sf = "-" + geom.REV
+    return cod.replace("TT300C-", "").replace(sf, "") if cod.endswith(sf) else cod.replace("TT300C-", "")
 
 
 def escribir(dest, casos, logs=None, nota_w=NOTA_W, nucleo=None):

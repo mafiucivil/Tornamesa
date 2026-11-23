@@ -8,7 +8,8 @@ import json, math, re, pathlib, datetime
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT_DEFAULT = ROOT / "cad" / "out"
 CODE = "TT300C"
-REV = "C"
+REV = "C"              # letra del juego TT300-C (sin bloque «bx»); el juego TT300-BX la reemplaza con set_rev() desde bx.revisiones (README_BX §13.8)
+REV_TT300C = REV
 RHO = 7.85e-6          # kg/mm³ (mismo valor del núcleo)
 RHO_SS = 7.93e-6       # inoxidable austenítico (núcleo)
 RHO_UH = 0.94e-6       # UHMW-PE (núcleo)
@@ -20,6 +21,38 @@ BORDE_MIN = 3.0     # borde mínimo [mm] entre un avellanado/agujero y el canto 
 ADVERTENCIA = "ESTOS PLANOS NO SON VÁLIDOS PARA FABRICACIÓN HASTA SU REVISIÓN Y APROBACIÓN POR UN INGENIERO CALCULISTA HABILITADO."
 NOTA_VIENTO = "En caso de vientos fuertes no se recomienda realizar la operación."
 NOTA_ANCLAJE = "Equipo sin anclaje: apoyo sobre losa/mats con la presión admisible de la losa indicada en GEN-001 (verificación del cálculo); verificar la superficie de apoyo por terceros."
+
+
+def set_rev(letra):
+    """Letra de revisión única del juego (TT300-BX: la última entrada de bx.revisiones del JSON de diseño). Los módulos de cad/ leen REV como global
+    de módulo al dibujar (código de pieza, nombre de lámina, cajetín, índice, archivos): se actualiza aquí y en cada módulo ya importado que la copió."""
+    import sys
+    global REV
+    old, REV = REV, str(letra)
+    d = pathlib.Path(__file__).resolve().parent
+    for mod in list(sys.modules.values()):
+        f_ = getattr(mod, "__file__", None)
+        if mod is not sys.modules.get(__name__) and f_ and pathlib.Path(f_).resolve().parent == d and getattr(mod, "REV", None) == old:
+            mod.REV = REV
+    return REV
+
+
+def revisiones_bx(D):
+    """Historial de emisiones del juego TT300-BX [{letra, fecha, rev_calculo, descripcion}] (la vigente al final). Fuente única:
+    BX.REVISIONES_PLANOS de packages/core/tt300bx.js, que el exportador copia en bx.revisiones; un JSON anterior sin ese campo se completa
+    leyendo el núcleo con Node."""
+    R = (D.get("bx") or {}).get("revisiones")
+    if not R:
+        import subprocess
+        r = subprocess.run(["node", "-e", 'process.stdout.write(JSON.stringify(require(process.argv[1]).REVISIONES_PLANOS))', str(ROOT / "packages" / "core" / "tt300bx.js")],
+                           capture_output=True, text=True)
+        if r.returncode:
+            raise SystemExit("El JSON de diseño BX no trae bx.revisiones y no se pudo leer BX.REVISIONES_PLANOS con Node: " + r.stderr)
+        R = json.loads(r.stdout)
+    for r_ in R:
+        if not (isinstance(r_.get("letra"), str) and re.fullmatch(r"[A-Z]", r_["letra"])):
+            raise SystemExit(f"Revisión BX con letra inválida: {r_!r}")
+    return [dict(r_) for r_ in R]
 
 
 def load(path=None):

@@ -27,6 +27,15 @@ const BX = (() => {
   const REFU = "Proveedor de UHMW-PE: Plastigen ULTRA VST (ficha: UHMW 9×10⁶ g/mol, densidad 0,97, Shore D 63, uso hasta 90 °C; sin p_adm, E, μ, PV ni α: se mantienen los supuestos del proyecto, PENDIENTE DATO DEL PROVEEDOR); ASTM D4020; confirmar con ensayo";
   const REG = "docs/normas/registro.md, «TT300-BX: disco inoxidable atornillado y pastillas de UHMW (16-11-2026)»";
 
+  /* ---------------- Revisión del juego de planos TT300-BX (fuente única; README_BX §13.8) ----------------
+     Decisión del mandante (22-11-2026): una sola letra por emisión para TODO el paquete; cada emisión con cambios agrega una entrada al final y
+     todas las láminas suben a esa letra. La letra vigente es la última. El juego TT300-C (sin bloque «bx») conserva su propia letra (cad/geom.py). */
+  const REVISIONES_PLANOS = Object.freeze([
+    Object.freeze({ letra: "C", fecha: "—", rev_calculo: "8", descripcion: "Emisión anterior (rev. 8 del cálculo BX)" }),
+    Object.freeze({ letra: "D", fecha: "22-11-2026", rev_calculo: "9d", descripcion: "250 t; alivio 540 / alarma 480 / retorno 150 bar; Fb de barra redonda BTH-1 §3-2.3.3; pasadores E, Q, empuje y pivote sin tratamiento térmico de taller; buje templado del seguidor (ACC-046); corrección de 26 uniones soldadas (J14–J18, J-E, WPS, precalentamiento); ranuras J18 con respaldo permanente (MES-015)" }),
+  ]);
+  const REV_PLANOS = REVISIONES_PLANOS[REVISIONES_PLANOS.length - 1].letra;
+
   /* ---------------- Parámetros propios (se suman a los del núcleo) ---------------- */
   const BX_GROUP = { id: "bx", t: "TT300-BX · disco inoxidable (modo 1: lámina 3 mm soldada; modo 0: disco atornillado) y pastillas de UHMW en portador soldado a la base", p: [
     ["bx_disc_modo", "Disco: modo. 1 = lámina inoxidable 304 acabado espejo de 3 mm (única plancha espejo del proveedor) en paneles del formato comercial con juntas a tope, SOLDADA a la plancha inferior de la mesa con tapones (plug) distribuidos y costura perimetral, sin tornillos (por defecto: decisión del mandante 18-11-2026); 0 = disco macizo atornillado con ISO 10642 (2 semidiscos con CJP; revisiones 1–4)", "–", 1, 0, 1, 1],
@@ -1753,11 +1762,12 @@ const BX = (() => {
     o.materiales = materialesOf(full(P));
     if (A && A.R) { const B = bujeOf(full(P), A.R); if (B) o.buje_Q = bujeExport(full(P), B); }
     o.revision = "TT300-BX rev. 9 (20-11-2026): carga de diseño " + P.W_tf + " t, alivio " + P.p_relief + " bar, alarma " + P.p_alarm + " bar; ejes sin tratamientos térmicos de proceso; buje templado reemplazable en el pasador Q. Rev. 7 (18-11-2026): todas las planchas en " + astm(P.Fy, P.Fu) + "; planchas de 22 mm (mesa, anillos, base, portador, cajón E, atiesador)" + (o.mesa.plancha_entera ? "; rev. 7c (19-11-2026): mesa con una plancha completa Ø" + P.D_top + " × " + P.t_top + " por nivel con los agujeros de los pasadores (sin anillos de pasadores)" : "");
+    o.rev_planos = REV_PLANOS; o.revisiones = REVISIONES_PLANOS.map((r) => Object.assign({}, r));   // letra única del juego de planos BX (todas las láminas; README_BX §13.8)
     o.sistema = "planta x, y (mm) con O en el centro de la mesa; z desde la cara superior de la plancha base; CJP del disco sobre el eje x";
     o.z = { base_sup: 0, portador_sup: Dg.portador.t, pastilla_sup: Dg.portador.t + Dg.pastillas.h_p, disco_sup: Dg.portador.t + Dg.pastillas.h_p + Dg.disco.t, nota: "disco_sup = cara inferior de la mesa (δ sobre la base)" };
     return o;
   }
 
-  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, bujeOf, bujeRows, weldRows, ranurasOf, cuboOf, soldMesaOf, pinHooks, BASE_FEA, mesaOf, meOn, meOk, cylGeo, cylRows, cylExport, cylOn }, PARAM_GROUPS, BX_GROUP, CYL_GROUP, CYL: { core: CYL_CORE, grupo: CYL_GRP }, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, patchDesign, materialesOf, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
+  return { _int: { layout, flow, sites, ctxOf, size, puckEval, cellOf, torsion, lamDesign, baseCredit, ringRows, bujeOf, bujeRows, weldRows, ranurasOf, cuboOf, soldMesaOf, pinHooks, BASE_FEA, mesaOf, meOn, meOk, cylGeo, cylRows, cylExport, cylOn }, PARAM_GROUPS, BX_GROUP, CYL_GROUP, REVISIONES_PLANOS, REV_PLANOS, CYL: { core: CYL_CORE, grupo: CYL_GRP }, A36, defaults, active, coreP, design, analyze, compute, masses, market, capacityByCyl, thermal, exportBX, patchDesign, materialesOf, cellPlate, huth, edgeForce, EcOf, matOf, fabricacion: (P) => (design(P) || {}).fabricacion, TT: TT_ };
 })();
 if (typeof module !== "undefined") module.exports = BX;

@@ -1,4 +1,4 @@
-"""Genera el paquete completo de planos de fabricación TT300-C rev. C: modelo 3D (STEP/GLB), láminas (DXF + PDF), PDF combinado con marcadores, despiece CSV/XLSX
+"""Genera el paquete completo de planos de fabricación TT300-C rev. C (TT300-BX: letra de bx.revisiones, README_BX §13.8): modelo 3D (STEP/GLB), láminas (DXF + PDF), PDF combinado con marcadores, despiece CSV/XLSX
 (con soldaduras y cortes), chequeo de cotas, métricas por lámina, lista de verificación del revisor e informe del paquete.
 Uso: python3 cad/generar_paquete.py [design.json] [--out DIR] [--entrega DIR] [--sin-dxf] [--solo fragmento,...]
 Sin design.json se exporta el diseño por defecto con `node tools/export_design.js` (fuente única del cálculo)."""
@@ -49,6 +49,10 @@ def main():
     if D.get("bx"):
         # TT300-BX (tools/export_design_bx.js): mismas láminas del juego, con la interfaz BX (disco atornillado + pastillas en portador) en lugar de
         # sectores, lámina UHMW y topes; las láminas BX y el conjunto de la interfaz salen del bloque «bx» del JSON (cad/hojas_bx.py)
+        # README_BX §13.8: letra única de todo el paquete BX = última emisión de bx.revisiones (nombres de lámina y de archivo, códigos de pieza,
+        # cajetín, índice GEN-001, PDF combinado y zip); el juego TT300-C conserva geom.REV_TT300C
+        set_rev(revisiones_bx(D)[-1]["letra"])
+        print(f"  revisión del juego TT300-BX: Rev. {REV}", flush=True)
         import hojas_bx
         hojas_bx.activar()
         hojas_bx.textos_mesa_entera(D)  # rev. 7c: textos de los pasadores de empuje para la mesa de plancha entera (sin anillos)
@@ -374,6 +378,8 @@ def main():
     import controles, firmas
     json.dump(dict(base=firmas.base_hash(D), variante=M3.variante_de(ctx.g), firmas=firmas.firmas_juego(ctx)), open(out / "TT300-C_firmas.json", "w", encoding="utf-8"), indent=1, ensure_ascii=False, sort_keys=True)
     CTL = controles.todos(ctx, hojas)
+    if getattr(ctx, "revisiones", None):      # TT300-BX: letra única y vigente en todas las láminas y archivos (README_BX §13.8); el juego TT300-C no cambia
+        CTL["revision"] = controles.revision(ctx, hojas, out)
     with open(out / "control_cadenas_cerradas.csv", "w", newline="", encoding="utf-8-sig") as fh:
         wr = csv.writer(fh, delimiter=";")
         wr.writerow(["control", "detalle"])

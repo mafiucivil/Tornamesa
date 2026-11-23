@@ -10,9 +10,8 @@ import iso286
 import propuestas
 from vistas import View, COTAS
 
-REV = "C"
 import geom
-geom.REV = REV
+REV = geom.REV       # letra del juego (geom.set_rev la cambia en el juego TT300-BX)
 
 
 def circ(c, r, n=96, a0=0.0, a1=360.0):
@@ -46,6 +45,19 @@ def mat_class(p):
     return "acero"
 
 
+def rev_fila(r, vigente, lineas=5, ancho=74.0):
+    """Fila del cuadro de revisiones del cajetín (TT300-BX) para una emisión {letra, fecha, rev_calculo, descripcion}: la descripción se abrevia en
+    palabra a «lineas» renglones del ancho de la columna (3,0 mm) y termina en «… Ver GEN-001» cuando no entra completa."""
+    txt = (f"EMITIDO PARA REVISIÓN (cálculo BX rev. {r['rev_calculo']}): " if vigente else "") + str(r["descripcion"]).rstrip(".") + "."
+    if len(wrapw(txt, ancho, 3.0)) > lineas:
+        w_ = txt.split(" ")
+        while w_ and len(wrapw(" ".join(w_).rstrip(" ,;:(") + "… Ver GEN-001.", ancho, 3.0)) > lineas:
+            w_.pop()
+        txt = " ".join(w_).rstrip(" ,;:(") + "… Ver GEN-001."
+    firma = "A DEFINIR" if vigente else "—"
+    return (r["letra"], r.get("fecha") or "—", txt, firma, firma, firma)
+
+
 class Ctx:
     def __init__(self, m):
         self.m, self.g, self.D, self.P = m, m.g, m.D, m.g.P
@@ -72,12 +84,12 @@ class Ctx:
              "Valores leídos del JSON de diseño del núcleo.", "A DEFINIR", "A DEFINIR", "A DEFINIR"),
             ("B", "—", "Emisión anterior (planos básicos), reemplazada por la rev. C.", "—", "—", "—"),
         ]
-        if g.opt == 4:                   # TT300-BX: primera emisión del juego con la interfaz BX (bloque «bx» del JSON)
-            self.revs[0] = ("C", g.FECHA, "EMITIDO PARA REVISIÓN. Juego TT300-BX: disco atornillado y pastillas de UHMW en portador; fabricación según GEN-026. Valores del JSON de diseño (bloque «bx»).", "A DEFINIR", "A DEFINIR", "A DEFINIR")
-            if int((g.bx["disco"].get("modo") or 0)) == 1:
-                rv_ = str(g.bx.get("revision") or "").split(":")[0] or "TT300-BX"
-                self.revs[0] = ("C", g.FECHA, f"EMITIDO PARA REVISIÓN. {rv_}: {f(g.P['W_tf'])} t, alivio {f(g.P['p_relief'])} bar; lámina inox. soldada a la mesa y pastillas UHMW; valores del JSON de diseño.",
-                                "A DEFINIR", "A DEFINIR", "A DEFINIR")
+        self.revisiones = None
+        if g.opt == 4:
+            # TT300-BX (README_BX §13.8): una sola letra por emisión para todo el paquete; historial en bx.revisiones (BX.REVISIONES_PLANOS).
+            # El cuadro de revisiones del cajetín muestra las 3 últimas emisiones (la vigente arriba, descripción abreviada); el historial completo va en GEN-001.
+            self.revisiones = revisiones_bx(self.D)
+            self.revs = [rev_fila(r_, i_ == 0) for i_, r_ in enumerate(reversed(self.revisiones[-3:]))]
 
     # --------------- copias locales de piezas ---------------
     def local(self, key, newkey, near=None, r=1e9, shift=(0, 0, 0), rot=0.0):

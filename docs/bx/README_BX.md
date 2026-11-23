@@ -664,3 +664,38 @@ gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de emp
   el extremo superior del nervio contra el cubo queda sin destijer; los extremos de las ranuras de los nervios quedan fuera del destijer (a t_alma/2 + 1 + 22
   del eje del alma; tramos de 125 mm sin cambio de FU); las tiras de los nervios se recortan fuera de la zona de las tiras del alma; los filetes J14/J15 y
   los destijeres inferiores no cambian. Separación entre ranuras sin cambio (77 ranuras).
+
+### 13.8 Revisión del juego de planos (22-11-2026): una sola letra por emisión para todo el paquete
+
+Decisión del mandante (22-11-2026): el paquete TT300-BX lleva **una sola letra de revisión por emisión**, y la letra sube en **todas** las láminas cada vez
+que hay cambios (aunque una lámina no cambie). La emisión del cálculo rev. 9d es la **Rev. D**; la Rev. C fue la emisión anterior.
+
+- **Fuente única:** `REVISIONES_PLANOS` en `packages/core/tt300bx.js` (versionada con el cálculo; exportada como `BX.REVISIONES_PLANOS` y `BX.REV_PLANOS`):
+  lista de emisiones `{letra, fecha, rev_calculo, descripcion}` en orden; **la vigente es la última**. El exportador (`tools/export_design_bx.js` y la
+  herramienta HTML, misma función `BX.exportBX`) la copia en el JSON de diseño como `bx.revisiones` y `bx.rev_planos`.
+
+  | Rev. | Fecha | Cálculo BX | Descripción |
+  |---|---|---|---|
+  | C | — | rev. 8 | Emisión anterior (rev. 8 del cálculo BX) |
+  | D | 22-11-2026 | rev. 9d | 250 t; alivio 540 / alarma 480 / retorno 150 bar; Fb de barra redonda BTH-1 §3-2.3.3; pasadores E, Q, empuje y pivote sin tratamiento térmico de taller; buje templado del seguidor (ACC-046); corrección de 26 uniones soldadas (J14–J18, J-E, WPS, precalentamiento); ranuras J18 con respaldo permanente (MES-015) |
+
+- **Dónde se usa** (`cad/generar_paquete.py` llama a `geom.set_rev(bx.revisiones[-1].letra)` en cuanto detecta el bloque «bx»): códigos de lámina y nombres de
+  archivo (`planos/TT300C-XXX-NNN-D.pdf/.dxf`), códigos de pieza del despiece (`TT300C-ACC-016-7-D`, misma letra que la lámina), campo REV. del cajetín,
+  cuadro de revisiones del cajetín de cada lámina (las 3 últimas emisiones, la vigente arriba, descripción abreviada que termina en «… Ver GEN-001» si no
+  entra), cuadro de revisiones completo en GEN-001 (todas las emisiones, con su fecha, revisión del cálculo y estado), columna Rev del índice de GEN-001,
+  `TT300-C_Planos_RevD.pdf`, `TT300-C_DXF_RevD.zip`, informe del paquete, JSON de diseño y la pestaña «Planos» de `Tornamesa_BX_v1.0.html`.
+- **Juego TT300-C:** sin bloque «bx» no cambia nada: conserva su letra (`geom.REV = "C"`, `geom.REV_TT300C`) y sus salidas.
+- **Control** `revision` del generador (solo en el juego BX; sale con código 2 si falla): todas las láminas con la misma letra, la vigente, en el código, en
+  el campo REV. y en la fila vigente del cuadro de revisiones; todos los códigos de pieza con esa letra; todos los PDF/DXF de `planos/`, el PDF combinado y el
+  zip con esa letra; ningún código con una letra anterior («XXX-NNN-C») en el texto de los PDF. Prueba `node tests/test_tt300bx.js` («Revisión del juego de
+  planos BX»): estructura de la lista, letras consecutivas, la vigente en el JSON y sin letras fijas en `cad/`.
+
+**Procedimiento para cada emisión nueva:**
+
+1. Agregar **al final** de `REVISIONES_PLANOS` (`packages/core/tt300bx.js`) una entrada con la letra siguiente (D → E → …), la fecha de emisión, la
+   revisión del cálculo BX y una descripción breve de los cambios. No editar ni borrar las entradas anteriores (solo completar una fecha «—» si se conoce).
+2. Agregar la emisión a la tabla de arriba (§13.8).
+3. Reconstruir la herramienta (`python3 tools/build_tt300bx.py`) y regenerar el paquete completo (`python3 cad/generar_paquete_bx.py --out DIR`): **todas**
+   las láminas suben de letra; no se emiten láminas sueltas con otra letra.
+4. Correr las pruebas (`node tests/test_tt300bx.js`, `node tests/test_html_bx.js`, `python3 -I tests/indep_tt300c.py`) y verificar que el generador sale
+   con código 0, con todos los controles en 0 (incluido `revision`) y sin láminas RETENIDAS.

@@ -547,13 +547,13 @@ def _extras_buje(ctx):
     return [(f"Tornillo {B['tornillo']['designacion']} con {B['tornillo']['fijador']} (retención del buje del seguidor {ctx.code('buje_Q').replace(CODE + '-', '')})", ctx.m.get("buje_Q").qty, "acero 10.9 zincado laminar", "A DEFINIR POR CATÁLOGO")]
 
 
-DZ_TAGS = ("BAS-012-C", "ACC-020-C", "CON-007-C", "CON-010-C")
+DZ_TAGS = ("BAS-012", "ACC-020", "CON-007", "CON-010")     # sin la letra de revisión (se compara contra la etiqueta de la lámina sin «-REV»)
 
 
 def _nota_dz(self, title, lines):
     """Rev. 7f: nota de la tolerancia de desnivel E–Q en las láminas del soporte E, de la placa-guía y del montaje del accionamiento."""
     C = _C(self.ctx) if hasattr(self, "ctx") else None
-    if C and self.h.tag in DZ_TAGS and title in ("NOTAS DE FABRICACIÓN", "NOTAS DEL SUBCONJUNTO") and not getattr(self.h, "_dz", False):
+    if C and self.h.tag.rsplit("-", 1)[0] in DZ_TAGS and title in ("NOTAS DE FABRICACIÓN", "NOTAS DEL SUBCONJUNTO") and not getattr(self.h, "_dz", False):
         self.h._dz = True
         return list(lines) + [C.get("dz_nota") or ""]
     return lines

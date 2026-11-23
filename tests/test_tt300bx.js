@@ -478,3 +478,29 @@ test("BX rev. 9c: soldaduras de la mesa cerrada (J14/J15 solo abajo, ranuras J18
   assert.match(An.checks.find((c) => /^Pasadores a ras del disco y soldados/.test(c.name)).formula, /34CrNiMo6\+QT con temple/);
   near(Fn.juntas.find((j) => j.id === "J-E3").largo, Fn.z_paredes[1] - Pn.t_base, 1e-9, "sin P.__bx el núcleo conserva su largo (z_paredes − t_base)");
 });
+
+test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisión, vigente = última; el JSON y el generador la usan en todas las láminas", () => {
+  const RV = BX.REVISIONES_PLANOS, L = RV[RV.length - 1];
+  assert.ok(Array.isArray(RV) && RV.length >= 2 && Object.isFrozen(RV));
+  RV.forEach((r) => { assert.match(r.letra, /^[A-Z]$/); assert.ok(r.fecha && r.rev_calculo && r.descripcion, JSON.stringify(r)); });
+  RV.slice(1).forEach((r, i) => assert.equal(r.letra.charCodeAt(0), RV[i].letra.charCodeAt(0) + 1, `letras consecutivas (${RV[i].letra} → ${r.letra})`));
+  assert.equal(BX.REV_PLANOS, L.letra);
+  assert.deepEqual([RV[0].letra, RV[0].fecha, RV[0].descripcion], ["C", "—", "Emisión anterior (rev. 8 del cálculo BX)"]);
+  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["D", "22-11-2026", "9d"], "decisión del mandante 22-11-2026: la emisión del cálculo 9d es la Rev. D");
+  assert.match(L.descripcion, /250 t; alivio 540 \/ alarma 480 \/ retorno 150 bar/); assert.match(L.descripcion, /ACC-046/); assert.match(L.descripcion, /MES-015/);
+  const X = BX.exportBX(P0, A0);
+  assert.equal(X.rev_planos, L.letra); assert.deepEqual(X.revisiones, RV.map((r) => Object.assign({}, r)));
+  // el generador (cad/) no lleva letras fijas: la letra sale de geom.REV (TT300-C: «C») o de bx.revisiones (geom.set_rev) en el juego BX
+  const cad = path.join(ROOT, "cad");
+  const fijas = [];
+  for (const f of fs.readdirSync(cad).filter((n) => n.endsWith(".py"))) {
+    fs.readFileSync(path.join(cad, f), "utf8").split("\n").forEach((ln, i) => {
+      if (/replace\("-C"|[A-Z]{3}-\d{3}-C"|^REV = "[A-Z]"/.test(ln) && !(f === "geom.py" && /^REV = "C"/.test(ln))) fijas.push(`${f}:${i + 1}: ${ln.trim().slice(0, 80)}`);
+    });
+  }
+  assert.deepEqual(fijas, [], "letras de revisión fijas en cad/");
+  const gen = fs.readFileSync(path.join(cad, "generar_paquete.py"), "utf8"), ctl = fs.readFileSync(path.join(cad, "controles.py"), "utf8");
+  assert.match(gen, /set_rev\(revisiones_bx\(D\)\[-1\]\["letra"\]\)/, "generar_paquete.py fija la letra BX desde bx.revisiones");
+  assert.match(gen, /CTL\["revision"\] = controles\.revision\(ctx, hojas, out\)/, "control «revision» del juego BX");
+  assert.match(ctl, /def revision\(ctx, hojas, out\)/);
+});

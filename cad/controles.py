@@ -503,6 +503,71 @@ def retencion(ctx, hojas):
     return out
 
 
+def revision(ctx, hojas, out):
+    """TT300-BX (README_BX §13.8): todas las láminas llevan la MISMA letra, la vigente (última entrada de bx.revisiones), en el código de la lámina,
+    en el campo REV. y en la primera fila del cuadro de revisiones del cajetín, en los nombres de archivo (PDF y DXF por lámina, PDF combinado, zip)
+    y en los códigos de pieza; no queda ninguna letra anterior en los nombres de archivo ni en el texto de las láminas (DXF)."""
+    import geom
+    out = pathlib.Path(out)
+    RV = getattr(ctx, "revisiones", None) or []
+    if not RV:
+        return []
+    L, R_ = RV[-1]["letra"], geom.REV
+    viejas = [r["letra"] for r in RV[:-1]]
+    res = []
+    if R_ != L:
+        res.append(f"letra del generador Rev. {R_} ≠ última emisión de bx.revisiones (Rev. {L})")
+    if len({r["letra"] for r in RV}) != len(RV) or [r["letra"] for r in RV] != sorted(r["letra"] for r in RV):
+        res.append("bx.revisiones: letras repetidas o fuera de orden " + ", ".join(r["letra"] for r in RV))
+    if ctx.revs[0][0] != L:
+        res.append(f"cuadro de revisiones del cajetín: la fila vigente es {ctx.revs[0][0]} (debe ser {L})")
+    pat = re.compile(rf"^{CODE}-[A-Z]{{3}}-\d{{3}}(?:-[0-9A-Z]+)?-([A-Z])$")
+    for n, h in enumerate(hojas, 1):
+        m = pat.match(h.plano)
+        if not m or m.group(1) != L:
+            res.append(f"{h.plano}: el código de la lámina no termina en «-{L}»")
+        if h.info(n, len(hojas))["rev"] != L:
+            res.append(f"{h.plano}: campo REV. del cajetín ≠ {L}")
+    for p_ in ctx.m.parts:
+        if not p_.code.endswith("-" + L):
+            res.append(f"código de pieza {p_.code} sin la letra «-{L}»")
+    pd = out / "planos"
+    nombres = sorted(x.name for x in pd.iterdir()) if pd.exists() else []
+    esperados = {h.plano + e for h in hojas for e in (".pdf", ".dxf")}
+    for nm in nombres:
+        st = nm.rsplit(".", 1)[0]
+        if not st.endswith("-" + L) or any(st.endswith("-" + v) for v in viejas):
+            res.append(f"planos/{nm}: nombre de archivo sin la letra vigente «-{L}»")
+    falt = [x for x in esperados if x not in nombres]
+    res += [f"planos/{x}: falta" for x in sorted(falt)]
+    if not (out / f"TT300-C_Planos_Rev{L}.pdf").exists():
+        res.append(f"falta TT300-C_Planos_Rev{L}.pdf")
+    for nm in sorted(x.name for x in out.glob("TT300-C_*_Rev*.*")):
+        if not re.search(rf"_Rev{L}\.(pdf|zip)$", nm):
+            res.append(f"{nm}: archivo con una letra distinta de la vigente (Rev. {L})")
+    # texto de cada lámina (DXF; el PDF lleva el texto vectorizado): código de la lámina y campo REV. del cajetín (a 117,5 mm a la derecha, misma fila)
+    # con la letra vigente; ningún código «XXX-NNN(-n)-<letra anterior>» (cajetín, referencias cruzadas, despiece)
+    import ezdxf
+    vj = re.compile(r"\b(?:" + re.escape(CODE) + r"-)?[A-Z]{3}-\d{3}(?:-[0-9]+|-G)?-(?:" + "|".join(viejas or ["#"]) + r")\b")
+    for h in hojas:
+        f_ = pd / (h.plano + ".dxf")
+        if not f_.exists():
+            continue
+        tx = [(e.dxf.text, e.dxf.insert, e.dxf.height) for e in ezdxf.readfile(str(f_)).modelspace().query("TEXT")]
+        pl = [q for q in tx if q[0] == h.plano]
+        if not pl:
+            res.append(f"{h.plano}: el código de la lámina no aparece en el cajetín")
+        else:
+            x_, y_ = pl[0][1][0], pl[0][1][1]
+            rv = [q[0] for q in tx if abs(q[1][0] - x_ - 117.5) < 1.0 and abs(q[1][1] - y_) < 1.0]
+            if rv != [L]:
+                res.append(f"{h.plano}: campo REV. del cajetín dibujado «{'/'.join(rv) or '—'}» (debe ser {L})")
+        m = next((vj.search(q[0]) for q in tx if vj.search(q[0])), None)
+        if m:
+            res.append(f"{h.plano}: texto con una letra anterior «{m.group(0)}»")
+    return res
+
+
 def todos(ctx, hojas):
     import hojas_gen
     res = dict(iso2768=iso2768(hojas_gen), partidas=partidas(ctx), avellanados=avellanados(ctx), notas=notas(ctx, hojas), codigos=codigos(ctx, hojas), variante=variante(ctx, hojas), wps=wps(ctx), tornillos=tornillos(ctx), gdt_vistas=gdt_vistas(ctx, hojas),

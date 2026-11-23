@@ -90,7 +90,7 @@ def notas_generales(ctx):
             "Aristas vivas rotas 1×45° (ISO 13715) salvo indicación. Rosca métrica ISO 261 / ISO 262 / ISO 724; tornillería ISO 4762 / ISO 10642, clase 10.9 (ISO 898-1); agujeros pasantes ISO 273.",
             "Taller sin torno vertical: gran diámetro por oxicorte/plasma (ISO 9013), soldadura y mandrinadora; ajustes largos H7 en mandrinadora.",
             propuestas.pintura_txt() + " Zonas sin pintura: lista única en GEN-006.",
-            "Códigos de pieza: tienen el formato TT300C-SSS-NNN-C, o TT300C-SSS-NNN-n-C con sufijo de geometría; las piezas sin lámina propia se dibujan en la lámina indicada en la columna «Plano» del despiece (CON-002). "
+            f"Códigos de pieza: tienen el formato TT300C-SSS-NNN-{REV}, o TT300C-SSS-NNN-n-{REV} con sufijo de geometría; las piezas sin lámina propia se dibujan en la lámina indicada en la columna «Plano» del despiece (CON-002). "
             "Un código designa una sola geometría: la pieza que cambia entre variantes, o los sectores de geometría distinta de un mismo juego, llevan sufijo -n (mapa de códigos por geometría en esta lámina; control automático sobre la geometría real del modelo 3D)."]
 
 
@@ -134,6 +134,13 @@ def sheet_notas(ctx):
     y = s.notes_block(R[0], R[3], "NOTAS GENERALES DE FABRICACIÓN", notas, h=T_N, width=0.46 * (R[2] - R[0]), numbered=True)
     x2 = R[0] + 0.48 * (R[2] - R[0])
     yn, _ = s.table(x2, R[3], [("Norma", 70, "L"), ("Aplicación", 130, "L")], normas(ctx), h=T_S, title="NORMAS APLICABLES")
+    if getattr(ctx, "revisiones", None):
+        # TT300-BX (README_BX §13.8): historial completo de emisiones del paquete (una letra por emisión para TODAS las láminas; vigente arriba)
+        RV_ = ctx.revisiones
+        rows_rv = [[r_["letra"], r_.get("fecha") or "—", ("rev. " + str(r_["rev_calculo"])) if r_.get("rev_calculo") else "—", "VIGENTE" if i_ == len(RV_) - 1 else f"reemplazada (Rev. {RV_[i_ + 1]['letra']})",
+                    str(r_["descripcion"]).rstrip(".") + "."] for i_, r_ in reversed(list(enumerate(RV_)))]
+        yn, _ = s.table(x2, yn - 6, [("Rev", 11, "C"), ("Fecha", 25, "C"), ("Cálculo", 21, "C"), ("Estado", 31, "L"), ("Descripción de la emisión", 112, "L")], rows_rv, h=T_S,
+                        title=f"CUADRO DE REVISIONES DEL JUEGO TT300-BX (una letra por emisión para todas las láminas; vigente: Rev. {REV})")
     # mapa de códigos por geometría (H-04: un código = una geometría; N-07: láminas de características emitidas)
     import modelo3d_tt300c as M3
     var = M3.variante_de(g)

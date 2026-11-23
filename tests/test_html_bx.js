@@ -114,6 +114,12 @@ function diffKeys(a, b, p, out) {
   const dkP = diffKeys(J.P, Object.assign(BX.defaults(), P0), "P", []);
   ok(dkP.length === 0, `P del JSON = P de Node${dkP.length ? " · " + dkP.join(", ") : ""}`);
 
+  // README_BX §13.8: la pestaña Planos y el JSON muestran la letra vigente del juego (última entrada de BX.REVISIONES_PLANOS)
+  const RVL = BX.REVISIONES_PLANOS[BX.REVISIONES_PLANOS.length - 1].letra;
+  const pkgRev = await page.$eval("#pkgRev", (e) => [e.dataset.rev, e.textContent]).catch(() => [null, ""]);
+  ok(pkgRev[0] === RVL && pkgRev[1].startsWith("Rev. " + RVL), `revisión del juego de planos en la pestaña Planos: «${pkgRev[1]}» (BX: Rev. ${RVL})`);
+  ok(J.bx.rev_planos === RVL && J.bx.revisiones.length === BX.REVISIONES_PLANOS.length, `JSON de diseño con bx.rev_planos = ${J.bx.rev_planos} y ${J.bx.revisiones.length} emisiones`);
+
   console.log("5 · Cambiar un parámetro recalcula");
   await page.click('#tabs button[data-t="resumen"]');
   const Pc = Object.assign({}, P0, { bx_tc: 20 });

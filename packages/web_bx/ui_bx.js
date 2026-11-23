@@ -144,7 +144,7 @@
   function buildForm() {
     $("#form").innerHTML = FORM_GROUPS().map((g, gi) => `<details ${gi < 4 ? "open" : ""} data-g="${esc(g.id)}"><summary>${esc(g.t)}</summary>${g.p.map(([id, lab, u, def, mn, mx, st]) => {
       const txt = typeof def === "string";
-      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${id === "opt_wood" ? `<span class="standby" id="woodStandby">Cubierta de madera W: en stand by (no incluida en la entrega RevC)</span>` : ""}${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
+      if (st === "chk") return `<div class="prm chk ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${id === "opt_wood" ? `<span class="standby" id="woodStandby">Cubierta de madera W: en stand by (no incluida en la entrega Rev${BX.REV_PLANOS})</span>` : ""}${esc(lab)}</label><input id="p_${id}" type="checkbox" ${P[id] > 0.5 ? "checked" : ""}></div>`;
       return `<div class="prm ${P[id] !== DEF[id] ? "chg" : ""}" data-id="${id}"><label for="p_${id}">${esc(lab)}<span class="u">${esc(u)}</span></label>
       <input id="p_${id}" ${txt ? 'class="txt" type="text"' : `type="number" step="${st || "any"}" min="${mn}" max="${mx}"`} value="${esc(P[id])}"></div>`;
     }).join("")}</details>`).join("");
@@ -1128,8 +1128,10 @@
     if (!on) return;
     if (!A) { el.innerHTML = `<div class="msg error">${calc ? "Calculando…" : "Corrija los datos marcados para exportar."}</div>`; return; }
     const R = A.R, v = A.verdict, ok = v.gira && v.estructura;
+    const RVp = BX.REVISIONES_PLANOS, RVa = RVp[RVp.length - 1];   // revisión única del juego de planos BX (README_BX §13.8)
     el.innerHTML = `<div class="kv"><span>Interfaz de giro</span><span>${esc(BX_IFACE)}</span>
-        <span>Masa total</span><span>${fmt(R.m.total, 4)} kg</span></div>
+        <span>Masa total</span><span>${fmt(R.m.total, 4)} kg</span>
+        <span>Revisión del juego de planos</span><span id="pkgRev" data-rev="${esc(RVa.letra)}">Rev. ${esc(RVa.letra)} (${esc(RVa.fecha)}, cálculo BX rev. ${esc(RVa.rev_calculo)}; todas las láminas) · anteriores: ${RVp.slice(0, -1).reverse().map((r) => "Rev. " + esc(r.letra)).join(", ") || "—"}</span></div>
       ${ok ? "" : `<div class="msg warn">El diseño actual no cumple (gira o estructura): el generador completo se negará a emitir planos hasta corregirlo.</div>`}
       <div class="btns"><button class="pri" id="bPkgJson">JSON de diseño (con bloque «bx»)</button></div><div class="busy" id="pkgMsg"></div>
       <div class="adv">${esc(PLANOS_W.ADVERTENCIA)}</div>
