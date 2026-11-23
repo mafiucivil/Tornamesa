@@ -69,7 +69,7 @@ test("BX: dimensiones adoptadas por defecto (lámina 304 de 3 mm soldada; en mod
   const D8 = A8().bx.disco, T = D8.tornillos;
   assert.ok([6, 8].includes(D8.t), "disco modo 0 " + D8.t + " mm"); assert.ok(D8.t >= D8.t_req - 1e-9);
   assert.ok([10, 12].includes(T.d) && T.n >= 60 && T.n <= 200 && T.paso_malla >= 150, "tornillos " + T.n + " M" + T.d + " a " + T.paso_malla);
-  A8().checks.filter((c) => c.bx && /Disco|Tornillos del disco/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st !== "fail" && c.fu < 1, "modo 0: " + c.name + " FU " + c.fu));   // modo 0 (alternativa): con 44 pastillas la celda queda en advertencia (0,93)
+  A8().checks.filter((c) => c.bx && /Disco|Tornillos del disco/.test(c.name) && !/Disco central/.test(c.name) && (c.kind === "fu" || c.kind === "geo")).forEach((c) => assert.ok(c.st !== "fail" && c.fu < 1, "modo 0: " + c.name + " FU " + c.fu));   // modo 0 (alternativa): con 44 pastillas la celda queda en advertencia (0,93); el disco central de la mesa (rev. 9f, geometría en el límite: FU 1) tiene su propia prueba
   assert.ok(U.n > 30 && U.n < 2000, "n pastillas " + U.n);
   assert.equal(U.forma, "redonda"); assert.equal(U.lado, null); assert.ok(U.d >= 60 && U.d <= 300);
   assert.equal(C.agujeros.forma, "redonda"); assert.equal(C.agujeros.d, U.d);
@@ -479,36 +479,42 @@ test("BX rev. 9c: soldaduras de la mesa cerrada (J14/J15 solo abajo, ranuras J18
   near(Fn.juntas.find((j) => j.id === "J-E3").largo, Fn.z_paredes[1] - Pn.t_base, 1e-9, "sin P.__bx el núcleo conserva su largo (z_paredes − t_base)");
 });
 
-test("BX rev. 9e: disco central torneado de la plancha superior (MES-016) con la CJP J19 B-U4a sobre aro de respaldo; geometría, holguras y filas", () => {
-  const X = BX.exportBX(P0, A0), SM = X.mesa.soldaduras, DC = SM.disco_central, RG = SM.ranuras, T = RG.tiras, t = P0.t_top;
-  assert.ok(DC && DC.ok);
-  // Ø300 del mandante no cumple (la junta corta la ranura J18 del tramo 1, que apoya en el cubo) → primer diámetro redondo sin conflictos
-  assert.equal(DC.D_objetivo, 300); assert.ok(DC.conflictos_objetivo.some((c) => /tramo 1/.test(c)));
-  assert.equal(DC.D, 700); assert.equal(DC.D % 10, 0); near(DC.D_sup, DC.D - 2 * t * Math.tan(DC.junta.alfa * Math.PI / 180), 1e-12, "Ø superior del bisel");
-  assert.deepEqual([DC.junta.alfa, DC.junta.R, DC.junta.f, DC.junta.id], [45, 6, 0, "J19"]); assert.match(DC.junta.tipo, /B-U4a/);
-  assert.equal(DC.plancha.agujero, DC.D + 2 * DC.junta.R); assert.equal(DC.agujero.d, P0.D_piv + 80); assert.deepEqual([DC.rebaje.d, DC.rebaje.prof], [P0.D_piv + 120, 8]);
+test("BX rev. 9f: disco central torneado Ø280 (MES-016) a escuadra sobre la cara del cubo, CJP J19 B-U4a con bisel en la plancha y respaldo = cubo; geometría, rango y filas", () => {
+  const X = BX.exportBX(P0, A0), SM = X.mesa.soldaduras, DC = SM.disco_central, RG = SM.ranuras, T = RG.tiras, t = P0.t_top, rh = P0.D_hub / 2;
+  assert.ok(DC && DC.ok); assert.equal(DC.rev, "9f");
+  // rango calculado aparte: Ø rebaje + 2·20 ≤ D ≤ 2·(R_cubo − 6 − R); por defecto el menor (Ø280 < Ø300 del mandante)
+  assert.equal(DC.D_min, P0.D_piv + 120 + 40); assert.equal(DC.D_max, 2 * (rh - 6 - 6)); assert.deepEqual([DC.D, DC.D_def, DC.D_min, DC.D_max], [280, 280, 280, 286]);
+  assert.ok(DC.D < 300 && DC.en_rango); assert.equal(DC.R_sup, DC.R_inf, "canto a escuadra (sin bisel en el disco)");
+  assert.deepEqual([DC.junta.alfa, DC.junta.R, DC.junta.f, DC.junta.id], [45, 6, 0, "J19"]); assert.match(DC.junta.tipo, /B-U4a/); assert.match(DC.junta.respaldo, /cubo/);
+  assert.equal(DC.plancha.agujero, DC.D + 2 * DC.junta.R); assert.equal(DC.plancha.agujero_sup, DC.plancha.agujero + 2 * t, "bisel 45° en la plancha: Ø336 arriba");
+  assert.deepEqual([DC.plancha.agujero, DC.plancha.agujero_sup], [292, 336]);
+  assert.equal(DC.agujero.d, P0.D_piv + 80); assert.deepEqual([DC.rebaje.d, DC.rebaje.prof], [P0.D_piv + 120, 8]); assert.equal(DC.borde_rebaje, 20);
   assert.equal(DC.t, t); assert.equal(DC.material, X.mesa.material, "mismo material que la plancha");
-  // holguras recalculadas aparte: chaflán [R_sup, R_agujero] a ≥ t/2 de toda ranura; aro libre del cubo, almas y tiras
-  const sep = (a0, a1, b0, b1) => Math.max(b0 - a1, a0 - b1), Rh = DC.plancha.agujero / 2;
-  const slots = RG.almas.map((a) => [a.r - RG.ancho / 2, a.r + RG.ancho / 2]).concat(RG.tramos.map((q) => [q.centros[0] - q.L / 2, q.centros[q.centros.length - 1] + q.L / 2]));
-  slots.forEach(([a, b]) => assert.ok(sep(DC.R_sup, Rh, a, b) >= t / 2 - 1e-9, `chaflán a ${sep(DC.R_sup, Rh, a, b)} mm de la ranura R${a}–R${b}`));
-  const rings = String(P0.rings).split(/[ ,;]+/).map(Number), under = [[0, P0.D_hub / 2]].concat(rings.map((r) => [r - P0.t_web / 2, r + P0.t_web / 2]),
-    T.piezas.map((q) => (q.forma === "arco" ? [q.R_int, q.R_ext] : [q.r0, q.r1])));
-  under.forEach(([a, b]) => assert.ok(sep(DC.aro.R_int, DC.aro.R_ext, a, b) >= 1 - 1e-9, `aro a ${sep(DC.aro.R_int, DC.aro.R_ext, a, b)} mm de R${a}–R${b}`));
-  assert.ok(DC.aro.R_int < DC.R_inf && DC.aro.R_ext > Rh, "el aro cubre toda la abertura de raíz"); assert.ok(Math.min(DC.aro.m_int, DC.aro.m_ext) >= 6);
-  // ranuras J18 sin cambio (las de A1 y del tramo 1 quedan enteras dentro del disco)
-  assert.equal(RG.tramos[0].L, 125); assert.equal(RG.n_total, 77); assert.equal(DC.n_ranuras_disco, 14);
-  assert.equal(DC.muesca.tramo, 2); assert.ok(DC.muesca.sep_destijer >= 1 && DC.muesca.sep_tiras >= 1); assert.equal(DC.muesca.prof, DC.aro.t + 1);
-  // ninguna Ø redonda menor cumple: a Ø690 el chaflán queda a < t/2 de la ranura del alma A1
-  assert.ok(690 / 2 - t - (300 + RG.ancho / 2) < t / 2);
-  assert.ok(DC.masa > 40 && DC.masa < 70 && DC.masa_neta < DC.masa); assert.ok(DC.aro.masa > 2 && DC.aro.masa < 3.5);
-  // filas: J19 (CJP = metal base, q = H/(π·r)), corte del disco junto al agujero, geométricas; J17b sin cambio de FU
+  // respaldo = cara del cubo (anillo R75–R155): raíz entera encima, margen 9 ≥ 6; tiras MES-015 del tramo 1 a 10 mm de la raíz
+  assert.equal(DC.cubo.R_int, (P0.D_piv + 30) / 2); assert.equal(DC.cubo.margen, rh - (DC.R_inf + 6)); assert.equal(DC.cubo.margen, 9);
+  assert.ok(DC.cubo.R_int < DC.R_inf && DC.junta.r_raiz <= rh);
+  const tr = T.piezas.find((q) => q.forma === "recta" && /tramo 1$/.test(q.elemento)); assert.equal(DC.tiras.sep, tr.r0 - DC.junta.r_raiz); assert.ok(DC.tiras.sep >= 6);
+  // ranuras J18 sin cambio: la del tramo 1 empieza dentro del bisel de J19 y su largo sobre el nervio no cambia; no hay aro, muesca ni ranuras en el disco
+  assert.equal(RG.tramos[0].L, 125); assert.equal(RG.n_total, 77); assert.equal(DC.ranura_tramo1.r0, 148); assert.ok(DC.ranura_tramo1.r0 < DC.junta.r_sup && DC.ranura_tramo1.r0 > DC.R_inf);
+  assert.equal(DC.ranura_tramo1.L_sobre_nervio, DC.ranura_tramo1.r1 - rh);
+  ["aro", "muesca", "ranuras_en_disco", "n_ranuras_disco"].forEach((k) => assert.ok(!(k in DC), "sin " + k));
+  assert.ok(DC.masa > 4 && DC.masa < 5); assert.match(DC.torneado.decision, /A CONFIRMAR POR EL MANDANTE/); assert.equal(DC.torneado.sm_lado, 1); assert.equal(DC.torneado.sm_fondo, 0.5);
+  assert.ok(!/0,3 mm/.test(DC.torneado.razon), "sin valor de distorsión prometido"); assert.match(DC.motivo, /Ø280/);
+  assert.equal(DC.junta.precalentamiento_t, (P0.D_hub - P0.D_piv - 30) / 2, "precalentamiento por la pared del cubo (fundida por la raíz)");
+  // filas: J19 (CJP = metal base, q = H/(π·r) en el canto del disco), corte junto al agujero, 5 geométricas y 1 informativa; J17b sin cambio de FU
   const A = BX.analyze(P0), rw = A.checks.filter((c) => c.bx && /J19|Disco central/.test(c.name));
-  assert.equal(rw.length, 8); rw.forEach((c) => assert.equal(c.st, "ok", c.name + " FU " + c.fu));
+  assert.equal(rw.length, 8); rw.forEach((c) => assert.ok(c.st === "ok" || (c.kind === "info" && c.st === "info"), c.name + " FU " + c.fu));
   const r19 = rw.find((c) => /^BX · Unión disco central–plancha superior J19/.test(c.name)), H = DC.H_kN;
-  near(r19.dem, H * 1e3 / (Math.PI * (DC.R_inf + DC.junta.R / 2) * t), 1e-12, "τ de J19"); near(r19.cap, P0.Fy / (P0.Nd * Math.sqrt(3)), 1e-12, "F_v BTH-1");
+  near(r19.dem, H * 1e3 / (Math.PI * DC.R_inf * t), 1e-12, "τ de J19"); near(r19.cap, P0.Fy / (P0.Nd * Math.sqrt(3)), 1e-12, "F_v BTH-1"); near(r19.fu, 0.202, 2e-3, "FU J19");
   const j17 = A.checks.find((c) => c.bx && /^BX · Unión cubo–plancha superior J17b \(filete/.test(c.name)); near(j17.fu, 0.716, 2e-3, "J17b FU"); assert.match(j17.name, /disco central/);
-  assert.equal(A.checks.find((c) => c.bx && /muesca .* del aro de respaldo de J19/.test(c.name)).st, "ok");
+  assert.equal(A.checks.filter((c) => /muesca .* aro de respaldo|aro de respaldo/.test(c.name)).length, 0, "sin filas del aro ni de la muesca");
+  // diámetro del mandante fuera de rango: la fila geométrica falla (Ø300 no apoya entero en el cubo; Ø260 deja < 20 mm al rebaje)
+  [300, 260].forEach((d) => {
+    const Pd = Object.assign({}, P0, { bx_D_disco: d }), Ad = BX.analyze(Pd, { noFEA: true });
+    assert.equal(Ad.checks.find((c) => /Disco central Ø\d+: diámetro dentro del rango/.test(c.name)).st, "fail", "Ø" + d);
+  });
+  const P2 = Object.assign({}, P0, { bx_D_disco: 286 }), D2 = BX.exportBX(P2, BX.analyze(P2, { noFEA: true })).mesa.soldaduras.disco_central;
+  assert.equal(D2.D, 286); assert.equal(D2.cubo.margen, 6);
 });
 
 test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisión, vigente = última; el JSON y el generador la usan en todas las láminas", () => {
@@ -521,8 +527,10 @@ test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisió
   const RD = RV.find((r) => r.letra === "D");
   assert.deepEqual([RD.letra, RD.fecha, RD.rev_calculo], ["D", "22-11-2026", "9d"], "decisión del mandante 22-11-2026: la emisión del cálculo 9d es la Rev. D");
   assert.match(RD.descripcion, /250 t; alivio 540 \/ alarma 480 \/ retorno 150 bar/); assert.match(RD.descripcion, /ACC-046/); assert.match(RD.descripcion, /MES-015/);
-  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["E", "23-11-2026", "9e"], "emisión E: disco central torneado (pedido del mandante 23-11-2026)");
-  assert.match(L.descripcion, /MES-016/); assert.match(L.descripcion, /J19/); assert.match(L.descripcion, /MES-017/);
+  const RE = RV.find((r) => r.letra === "E");
+  assert.deepEqual([RE.fecha, RE.rev_calculo], ["23-11-2026", "9e"], "emisión E (disco Ø700, emitida) en el historial"); assert.match(RE.descripcion, /MES-017/);
+  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["F", "23-11-2026", "9f"], "emisión F: disco central Ø280 sobre el cubo (el mandante rechaza el Ø700)");
+  assert.match(L.descripcion, /Ø280/); assert.match(L.descripcion, /cubo/); assert.match(L.descripcion, /aro de respaldo/);
   const X = BX.exportBX(P0, A0);
   assert.equal(X.rev_planos, L.letra); assert.deepEqual(X.revisiones, RV.map((r) => Object.assign({}, r)));
   // el generador (cad/) no lleva letras fijas: la letra sale de geom.REV (TT300-C: «C») o de bx.revisiones (geom.set_rev) en el juego BX
