@@ -529,8 +529,11 @@ test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisió
   assert.match(RD.descripcion, /250 t; alivio 540 \/ alarma 480 \/ retorno 150 bar/); assert.match(RD.descripcion, /ACC-046/); assert.match(RD.descripcion, /MES-015/);
   const RE = RV.find((r) => r.letra === "E");
   assert.deepEqual([RE.fecha, RE.rev_calculo], ["23-11-2026", "9e"], "emisión E (disco Ø700, emitida) en el historial"); assert.match(RE.descripcion, /MES-017/);
-  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["F", "23-11-2026", "9f"], "emisión F: disco central Ø280 sobre el cubo (el mandante rechaza el Ø700)");
-  assert.match(L.descripcion, /Ø280/); assert.match(L.descripcion, /cubo/); assert.match(L.descripcion, /aro de respaldo/);
+  const RF = RV.find((r) => r.letra === "F");
+  assert.deepEqual([RF.fecha, RF.rev_calculo], ["23-11-2026", "9f"], "emisión F: disco central Ø280 sobre el cubo (el mandante rechaza el Ø700)");
+  assert.match(RF.descripcion, /Ø280/); assert.match(RF.descripcion, /cubo/); assert.match(RF.descripcion, /aro de respaldo/);
+  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["G", "24-11-2026", "9f"], "emisión G: textos de la lámina del cubo (J17b en el disco, respaldo de J19), sin cambios de cálculo");
+  assert.match(L.descripcion, /MES-011/); assert.match(L.descripcion, /J19/);
   const X = BX.exportBX(P0, A0);
   assert.equal(X.rev_planos, L.letra); assert.deepEqual(X.revisiones, RV.map((r) => Object.assign({}, r)));
   // el generador (cad/) no lleva letras fijas: la letra sale de geom.REV (TT300-C: «C») o de bx.revisiones (geom.set_rev) en el juego BX

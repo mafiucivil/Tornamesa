@@ -680,6 +680,7 @@ que hay cambios (aunque una lámina no cambie). La emisión del cálculo rev. 9d
   | D | 22-11-2026 | rev. 9d | 250 t; alivio 540 / alarma 480 / retorno 150 bar; Fb de barra redonda BTH-1 §3-2.3.3; pasadores E, Q, empuje y pivote sin tratamiento térmico de taller; buje templado del seguidor (ACC-046); corrección de 26 uniones soldadas (J14–J18, J-E, WPS, precalentamiento); ranuras J18 con respaldo permanente (MES-015) |
   | E | 23-11-2026 | rev. 9e | Disco central torneado MES-016 (J17b y tapa de inspección) soldado a la plancha superior con la CJP J19 sobre el aro MES-017 |
   | F | 23-11-2026 | rev. 9f | Disco central Ø280 sobre el cubo (respaldo = cubo); se anulan el aro de respaldo y la muesca de los nervios |
+  | G | 24-11-2026 | rev. 9f | Cubo MES-011: J17b en el agujero del disco central MES-016 y cara superior del cubo como respaldo de J19 (solo textos de lámina; sin cambios de cálculo) |
 
 - **Dónde se usa** (`cad/generar_paquete.py` llama a `geom.set_rev(bx.revisiones[-1].letra)` en cuanto detecta el bloque «bx»): códigos de lámina y nombres de
   archivo (`planos/TT300C-XXX-NNN-D.pdf/.dxf`), códigos de pieza del despiece (`TT300C-ACC-016-7-D`, misma letra que la lámina), campo REV. del cajetín,
@@ -855,3 +856,19 @@ tabla de tolerancias con la sobremedida del asiento, detalle J19 con la plancha 
 respaldo; sin la vista del aro), MES-001 (agujero Ø292/Ø336 biselado 45°, detalle B; tabla con las 77 ranuras), MES-008 (sin muesca), CON-011
 (corte por el eje del pivote con el disco Ø280 sobre el cubo y el símbolo de J19), CON-009, GEN-007/012/014/015 (J19 sin J19r), despiece (sin el
 ítem 57), lista de cortes, anidado (sin el aro), masas, STEP/GLB y GEN-001.
+
+### 13.11 Emisión Rev. G (24-11-2026): lámina del cubo coherente con el disco central (sin cambios de cálculo)
+
+Observación de la revisión de la Rev. F (lámina MES-011, cubo): el detalle J17b seguía rotulado «agujero Ø200 de la plancha superior» y la lámina
+no decía que la cara superior del cubo es el respaldo permanente de la CJP J19. Correcciones (solo textos; el núcleo de cálculo no cambia y la
+revisión del cálculo sigue en 9f):
+
+1. Detalle J17b (`cad/soldadura_det.py`, `prep_hole_fillet`): con el disco central activo, el título y el rótulo dicen «agujero central Ø200
+   DEL DISCO CENTRAL (MES-016)» y la cota de espesor «t = 22 (disco)». El detalle se usa en MES-011 y en las láminas que repiten J17b.
+2. Nota 3 de MES-011 (`cad/pie_b.py`, `_nota_cubo_respaldo_j19`): la cara superior del cubo es el respaldo permanente de J19 (B-U4a, AWS D1.1:2020
+   Figura 5.1); la raíz R140–R146 funde en ella, con 9 mm de cara del cubo más allá de la raíz (hasta R155); la franja R130–R155 se deja plana,
+   limpia y a metal brillante, sin pintura ni imprimante, en contacto con la plancha y el disco (separación ≤ 2 mm); precalentamiento de J19 por la
+   pared del cubo (80 mm, AWS D1.1:2020 Tabla 5.8).
+
+Todo el paquete sube a Rev. G (§13.8).
+

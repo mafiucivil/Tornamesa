@@ -364,7 +364,26 @@ def _nota_cubo_bx(ctx, jc):
     S_, E_ = a_["pjp"]
     return (f"Soldar a la plancha inferior con {jc[0]}: PJP en T con bisel 45° × {fm(S_, 0)} en el canto exterior inferior de la pared del cubo (E = {fm(E_, 0)}) y filete de refuerzo z{fm(a_['refuerzo'], 0)}, desde arriba con la mesa abierta; "
             f"a la plancha superior con {jc[1]}: filete z{fm(b_['z'], 0)} todo alrededor en el agujero central Ø{fm(g.hole_top, 0)} {'del disco central ' + ctx.code('mesa_disco').replace(CODE + '-', '').replace('-' + REV, '') + ' (después de J19)' if ctx.m.get('mesa_disco') else 'de la plancha'}, sobre la cara superior del cubo, desde arriba con la mesa cerrada "
-            "(el canto exterior del cubo queda dentro de la mesa). Buje montado después de soldar y aliviar; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6.")
+            "(el canto exterior del cubo queda dentro de la mesa). Buje montado después de soldar y aliviar; luego mandrinar H7 con la mesa armada y aliviada; Ra 1,6."
+            + _nota_cubo_respaldo_j19(ctx))
+
+
+def _nota_cubo_respaldo_j19(ctx):
+    """TT300-BX rev. 9g: la cara superior del cubo es el respaldo permanente de la CJP J19 (disco central MES-016 – plancha superior)."""
+    g = ctx.g
+    SM = (((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {})
+    DC = SM.get("disco_central") or {}
+    if not (ctx.m.get("mesa_disco") and DC.get("junta") and DC.get("cubo")):
+        return ""
+    J, C = DC["junta"], DC["cubo"]
+    from propuestas import pre_of
+    w19 = ctx.weld_by_id(J.get("id", "J19"))
+    pv = pre_of(w19) if w19 and w19.get("t_pre") is not None else None
+    pre_t = (f" Precalentamiento de J19 ≥ {fm(pv, 0)} °C, por la pared del cubo ({fm(C['pared'], 0)} mm; AWS D1.1:2020 Tabla 5.8)." if pv else
+             f" Precalentamiento de J19 por la pared del cubo ({fm(C['pared'], 0)} mm; AWS D1.1:2020 Tabla 5.8; ver GEN-012).")
+    return (f" La cara superior del cubo es además el RESPALDO PERMANENTE de la CJP {J.get('id', 'J19')} (disco central MES-016 – plancha superior, B-U4a, AWS D1.1:2020 Figura 5.1): "
+            f"la raíz (R{fm(DC.get('R_inf', 140), 0)}–R{fm(J.get('r_raiz', 146), 0)}) funde en ella, {fm(C['margen'], 0)} mm de cara del cubo más allá de la raíz (hasta R{fm(C['R_ext'], 0)}); "
+            f"la franja R{fm(DC.get('R_inf', 140) - 10, 0)}–R{fm(C['R_ext'], 0)} se deja plana, limpia y a metal brillante, sin pintura ni imprimante, y en contacto con la plancha y el disco (separación ≤ 2 mm)." + pre_t)
 
 
 @pieza("mesa_cubo")

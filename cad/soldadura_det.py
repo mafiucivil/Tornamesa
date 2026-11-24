@@ -184,13 +184,13 @@ def prep_hole_fillet(s, ox, oy, k, R, jid=None, plano=None):
     yc = 14.0                                       # cara superior del cubo
     xh = 30.0                                       # borde del agujero (a la izquierda, el agujero)
     _poly(s, [P(0, 0), P(Wn, 0), P(Wn, yc), P(0, yc)], 90.0)                       # cubo (porción)
-    _poly(s, [P(xh, yc), P(Wn, yc), P(Wn, yc + t), P(xh, yc + t)], 0.0)            # plancha superior
+    _poly(s, [P(xh, yc), P(Wn, yc), P(Wn, yc + t), P(xh, yc + t)], 0.0)            # plancha superior (rev. 9f: disco central MES-016)
     fl = [P(xh, yc), P(xh - z, yc), P(xh, yc + z)]
     _poly(s, fl, solid=True); s.pline(fl, "VIS", closed=True)
-    s.dim(P(Wn, yc), P(Wn, yc + t), 8, f"t = {fm(t, 0)} (plancha)", "v")
+    s.dim(P(Wn, yc), P(Wn, yc + t), 8, f"t = {fm(t, 0)} " + ("(disco)" if R.get("en_disco") else "(plancha)"), "v")
     s.dim(P(xh - z, yc), P(xh, yc), -7, f"z = {fm(z, 0)}", "h", outside=True)
     s.leader(P(xh - z * 0.3, yc + z * 0.3), (ox + Wn * k + 6, oy + 2), f"filete z{fm(z, 0)} todo alrededor (a = {fm(z * 0.7071, 1)})", dot=True)
-    s.text(f"agujero Ø{fm(2 * R['r'], 0)} de la plancha superior", (P(2, 0)[0], P(0, yc + t + 3)[1]), T_N, "BOTTOM_LEFT")
+    s.text(f"agujero Ø{fm(2 * R['r'], 0)} " + ("del disco central MES-016" if R.get("en_disco") else "de la plancha superior"), (P(2, 0)[0], P(0, yc + t + 3)[1]), T_N, "BOTTOM_LEFT")
     s.text(f"cubo (pared {fm(R['tw'], 0)})", (P(Wn * 0.72, 0)[0], P(0, yc * 0.45)[1]), T_N, "MIDDLE_CENTER")
     if jid and plano is not None:
         a = P(xh - z * 0.35, yc + z * 0.35)
@@ -503,7 +503,7 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         R = w["filete_agujero"]
         Wn, Hn = hole_fillet_size(R)
         return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 3, 2, 2), extra=(0, 0, 112, 0), mins=1.0, maxs=5.0,
-                    title=title or f"DETALLE {jid}: FILETE z{fm(R['z'], 0)} EN EL AGUJERO CENTRAL Ø{fm(2 * R['r'], 0)} DE LA PLANCHA SUPERIOR, SOBRE EL CUBO",
+                    title=title or f"DETALLE {jid}: FILETE z{fm(R['z'], 0)} EN EL AGUJERO CENTRAL Ø{fm(2 * R['r'], 0)} " + ("DEL DISCO CENTRAL" if R.get("en_disco") else "DE LA PLANCHA SUPERIOR") + ", SOBRE EL CUBO",
                     custom=lambda s, ox, oy, k, pl: prep_hole_fillet(s, ox, oy, k, R, jid, pl))
     if w.get("soporte_E") is not None:
         Wn, Hn = tc_size(w)

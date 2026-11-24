@@ -35,6 +35,7 @@ const BX = (() => {
     Object.freeze({ letra: "D", fecha: "22-11-2026", rev_calculo: "9d", descripcion: "250 t; alivio 540 / alarma 480 / retorno 150 bar; Fb de barra redonda BTH-1 §3-2.3.3; pasadores E, Q, empuje y pivote sin tratamiento térmico de taller; buje templado del seguidor (ACC-046); corrección de 26 uniones soldadas (J14–J18, J-E, WPS, precalentamiento); ranuras J18 con respaldo permanente (MES-015)" }),
     Object.freeze({ letra: "E", fecha: "23-11-2026", rev_calculo: "9e", descripcion: "Disco central torneado MES-016 (J17b y tapa de inspección) soldado a la plancha superior con la CJP J19 sobre el aro MES-017" }),
     Object.freeze({ letra: "F", fecha: "23-11-2026", rev_calculo: "9f", descripcion: "Disco central Ø280 sobre el cubo (respaldo = cubo); se anulan el aro de respaldo y la muesca de los nervios" }),
+    Object.freeze({ letra: "G", fecha: "24-11-2026", rev_calculo: "9f", descripcion: "Cubo MES-011: J17b en el agujero del disco central MES-016 y cara superior del cubo como respaldo de J19 (solo textos de lámina; sin cambios de cálculo)" }),
   ]);
   const REV_PLANOS = REVISIONES_PLANOS[REVISIONES_PLANOS.length - 1].letra;
 

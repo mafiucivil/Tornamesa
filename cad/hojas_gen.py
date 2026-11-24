@@ -123,6 +123,16 @@ def normas(ctx):
     return [list(n) for n in N if n[0]]
 
 
+def _desc_rv(d, vigente, n=110):
+    """Cuadro de revisiones de GEN-001 (Rev. G): la emisión vigente va completa; las reemplazadas se resumen a su primera(s) cláusula(s) (≤ n caracteres)
+    para que el índice de planos siga entrando en la lámina. El texto completo de cada emisión está en README_BX §13."""
+    d = str(d).rstrip(".")
+    if vigente or len(d) <= n:
+        return d + "."
+    cut = d[:n].rfind("; ")
+    return (d[:cut] if cut > 40 else d[:n].rsplit(" ", 1)[0]) + " (…; ver README_BX §13)."
+
+
 @gen
 def sheet_notas(ctx):
     g = ctx.g
@@ -138,7 +148,7 @@ def sheet_notas(ctx):
         # TT300-BX (README_BX §13.8): historial completo de emisiones del paquete (una letra por emisión para TODAS las láminas; vigente arriba)
         RV_ = ctx.revisiones
         rows_rv = [[r_["letra"], r_.get("fecha") or "—", ("rev. " + str(r_["rev_calculo"])) if r_.get("rev_calculo") else "—", "VIGENTE" if i_ == len(RV_) - 1 else f"reemplazada (Rev. {RV_[i_ + 1]['letra']})",
-                    str(r_["descripcion"]).rstrip(".") + "."] for i_, r_ in reversed(list(enumerate(RV_)))]
+                    _desc_rv(r_["descripcion"], i_ == len(RV_) - 1)] for i_, r_ in reversed(list(enumerate(RV_)))]
         # rev. 9f (Rev. F): con 4 o más emisiones el cuadro va con letra mínima (ISO 3098, 2,5 mm) y la descripción más ancha, para que el índice siga entrando en GEN-001
         yn, _ = s.table(x2, yn - 6, ([("Rev", 9, "C"), ("Fecha", 22, "C"), ("Cálculo", 18, "C"), ("Estado", 26, "L"), ("Descripción de la emisión", 125, "L")] if len(RV_) >= 4 else
                                      [("Rev", 11, "C"), ("Fecha", 25, "C"), ("Cálculo", 21, "C"), ("Estado", 31, "L"), ("Descripción de la emisión", 112, "L")]), rows_rv, h=(T_MIN if len(RV_) >= 4 else T_S),
