@@ -622,7 +622,7 @@ gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de emp
 3. **J14 / J15.** Filetes solo a la plancha inferior y en los extremos de los nervios (longitudes a la mitad en las líneas de plancha); la plancha superior
    va solo por J18. Los extremos de los nervios del tramo 1 contra el cubo pasan a la junta J15b (precalentamiento por la pared de 80 del cubo).
    La fila del núcleo «Soldadura alma/nervio–plancha (2 filetes)» queda para la plancha inferior (anotada) y se agregan filas BX para la superior.
-4. **J18 (AISC 360-22 §J2.3b) — CONFIRMADO por el mandante el 21-11-2026 (detalle A, ranura rellena; se descarta la variante de lengüetas pasantes del alma).** Soldadura de ranura rellena (no CJP): ancho 30 (≥ t + 8, ≤ 2,25·22), extremos semicirculares, largo 125 (≤ 10·22),
+4. *(Reemplazado en la rev. 9g / Rev. H, §13.12: ranura 15 × L sin respaldo, no precalificada.)* **J18 (AISC 360-22 §J2.3b) — CONFIRMADO por el mandante el 21-11-2026 (detalle A, ranura rellena; se descarta la variante de lengüetas pasantes del alma).** Soldadura de ranura rellena (no CJP): ancho 30 (≥ t + 8, ≤ 2,25·22), extremos semicirculares, largo 125 (≤ 10·22),
    relleno completo 22, separación entre centros ≥ 2L = 250 en cada línea; en el tramo 1 los nervios convergen y la ranura va en nervios alternados
    (separación transversal 141 ≥ 4·30). 77 ranuras, 9618 mm. Geometría derivada de `t_top` en `bx.mesa.soldaduras.ranuras`. Filas: corte en el área de
    la ranura en el plano de contacto (FU 0,294) y traspaso del flujo de corte al canto del alma de 8 mm (franja t × L; FU 0,893, el tramo 1 con la ranura
@@ -650,6 +650,9 @@ gancho aditivo `juntasE_asiento`); el diámetro y el material del pasador de emp
     `pin_mat_txt`: 42CrMo4+QT de stock, sin temple por inducción). Sin `P.__bx` ambas filas del núcleo no cambian.
 
 #### Revisión 9d (21-11-2026): respaldo permanente de las ranuras J18 (detalle A confirmado por el mandante)
+
+> **Reemplazada en la rev. 9g (Rev. H, §13.12):** las tiras MES-015, el punteo J18r, sus filas geométricas y los destijeres superiores 22 × 22 de los
+> nervios quedan anulados; J18 pasa a unión en T a través de ranura 15 × L sin respaldo. Lo que sigue queda como historial.
 
 - **Tiras de respaldo MES-015** (pieza nueva, permanente, S275JR / ASTM A36 de plancha de 6, plasma): dos por ranura, una a cada lado del canto superior del
   alma o nervio y a ras de él; sección 15 × 6 (cubre el vuelo de la ranura (30 − 8)/2 = 11 con 2 mm de apoyo); largo = L + 2 × 10 = 145 (rectas en los
@@ -681,6 +684,7 @@ que hay cambios (aunque una lámina no cambie). La emisión del cálculo rev. 9d
   | E | 23-11-2026 | rev. 9e | Disco central torneado MES-016 (J17b y tapa de inspección) soldado a la plancha superior con la CJP J19 sobre el aro MES-017 |
   | F | 23-11-2026 | rev. 9f | Disco central Ø280 sobre el cubo (respaldo = cubo); se anulan el aro de respaldo y la muesca de los nervios |
   | G | 24-11-2026 | rev. 9f | Cubo MES-011: J17b en el agujero del disco central MES-016 y cara superior del cubo como respaldo de J19 (solo textos de lámina; sin cambios de cálculo) |
+  | H | 24-11-2026 | rev. 9g | Ranuras J18 de 15 × L sin respaldo (no precalificadas, WPS por ensayo; L 110 / 120 / 155 por elemento); se anulan las tiras MES-015, J18r y los destijeres superiores de los nervios; ranuras dibujadas en MES-001 |
 
 - **Dónde se usa** (`cad/generar_paquete.py` llama a `geom.set_rev(bx.revisiones[-1].letra)` en cuanto detecta el bloque «bx»): códigos de lámina y nombres de
   archivo (`planos/TT300C-XXX-NNN-D.pdf/.dxf`), códigos de pieza del despiece (`TT300C-ACC-016-7-D`, misma letra que la lámina), campo REV. del cajetín,
@@ -750,7 +754,7 @@ queda con un agujero de corte térmico a escuadra. Fuente única: `discoCentralO
    llevan una muesca 7 × 27 en el canto superior (R340–R367; a 13 mm del destijer superior y a 5,5 mm de las tiras del tramo 2). Se descartó
    el aro con entallas alrededor de los nervios (el respaldo de una CJP debe ser continuo) y el cubo o los cantos de los nervios como respaldo
    (no hay respaldo continuo bajo la raíz).
-6. **Ranuras J18, tiras y destijeres:** sin cambios de geometría (ningún slot se mueve ni se acorta); las del alma A1 y del tramo 1 quedan en el
+6. *(Tiras y destijeres superiores anulados en la Rev. H, §13.12.)* **Ranuras J18, tiras y destijeres:** sin cambios de geometría (ningún slot se mueve ni se acorta); las del alma A1 y del tramo 1 quedan en el
    disco. Los destijeres 22 × 22 de los nervios y las tiras MES-015 no se tocan.
 7. **Secuencia:** (1) cortar el agujero de la plancha y puntear el aro por debajo (J19r); (2) cerrar la mesa (el aro entra en las muescas) y
    soldar J18 de la plancha; (3) presentar el disco torneado, centrarlo en el cubo con un mandril (posición del Ø200 respecto del eje del cubo Ø1),
@@ -822,7 +826,7 @@ central Ø280 sale de la misma plancha. No cambia ningún acero; en MES-001 y ME
    acero admisible; cara limpia y en contacto (separación ≤ 2 mm). Posición plana desde arriba, **4 sectores opuestos** (paso peregrino) para
    limitar la distorsión; esmerilada a ras; VT 100 % + UT 100 % (ISO 5817-B); WPS-P30 (mismo número). **Precalentamiento:** la raíz funde la pared
    del cubo (80 mm), así que se toma la parte más gruesa = 80 mm (Tabla 5.8, como J17b y J15b sobre el mismo cubo), no los 22 de la plancha.
-6. **Ranuras J18 del tramo 1** (R148–R273 en la cara superior): no se mueven ni se acortan. Su extremo interior cae dentro del ancho superior del bisel
+6. *(Rev. H, §13.12: ranura 15 × 120, R148–R268; sin tiras MES-015.)* **Ranuras J18 del tramo 1** (R148–R273 en la cara superior): no se mueven ni se acortan. Su extremo interior cae dentro del ancho superior del bisel
    de J19 (R140–R168): la ranura se abre en el bisel y ambas se rellenan en **una secuencia continua** (J19 hasta la entrada de la ranura, luego la
    ranura). El largo eficaz sobre el nervio (de la cara del cubo R155 a R273) no cambia, así que la fila J18 de traspaso (FU 0,893) no cambia.
    Las tiras MES-015 quedan como en la Rev. D (tramo 1: R156–R280), 10 mm fuera de la raíz y bajo la plancha intacta.
@@ -872,3 +876,69 @@ revisión del cálculo sigue en 9f):
 
 Todo el paquete sube a Rev. G (§13.8).
 
+### 13.12 Revisión 9g (24-11-2026, emisión Rev. H): ranuras J18 de 15 × L sin respaldo (decisión del mandante)
+
+**Decisión del mandante (24-11-2026).** Las ranuras de cierre J18 de la plancha superior (MES-001, PL22) pasan a **15 mm de ancho**, extremos
+semicirculares R7,5, pasantes, centradas en el canto superior del alma o nervio de 8 (holgura 3,5 por lado) y **SIN respaldo**: se sueldan en taller
+desde arriba, con la ranura llena por completo y fundida al canto del PL8 y a las dos paredes, y se esmerilan a ras. Las almas y los nervios siguen en
+PL8 (confirmado por el mandante) y la plancha superior en ASTM A572 Gr. 50 de 22.
+
+**Definición de la junta.** Como 15 < t + 8 = 30 (AISC 360-22 §J2.3b), J18 **no es** una soldadura de ranura precalificada: se define como
+«soldadura de penetración en ranura (unión en T a través de ranura) NO PRECALIFICADA». WPS nueva al final de la numeración (**WPS-P31**, «calificar por
+ensayo»; la WPS-P12 de la ranura rellena queda sin uso y no se renumera ninguna otra): calificación por ensayo según AWS D1.1:2020 cláusula 6 (PQR)
+con una probeta de taller de la misma geometría (PL22 con ranura 15 × 120 sobre un PL8, sin respaldo), seccionada transversalmente y macroatacada:
+fusión completa en el canto del alma y en las dos paredes, sin falta de fusión en las esquinas de la raíz. END: VT 100 % + MT 100 % (UT no practicable);
+ISO 5817-C. WPS-P01 sigue en uso (J03 y otros filetes).
+
+**Largo y paso por elemento** (decisiones del mandante del 24-11-2026; `RAN` y `ranurasOf` de tt300bx.js, largo propio por elemento):
+
+| Elemento | Ranuras | L [mm] | Posición | l_trib [mm] | FU traspaso |
+|---|---|---|---|---|---|
+| Alma A1 (R300) | 7 | **110** (decisión del mandante) | al centro del vano, vanos alternados (12,857° + 51,429°·k); extremo a 8,3 de la cara del nervio | 269 | 0,942 |
+| Alma A2 (R590) | 14 | 120 | al centro de cada vano (12,857° + 25,714°·k) | 265 | 0,849 |
+| Alma A3 (R840) | 14 | **155** (decisión del mandante: una por vano) | al centro de cada vano; extremo a 107 de la cara del nervio | 377 | 0,936 |
+| Nervios, tramo 1 | 7 | 120 | nervios alternados, R148–R268 (7 mm sobre el cubo; se abre en el bisel de J19) | 290 | 0,930 |
+| Nervios, tramo 2 | 14 | 120 | cada nervio, R385–R505 | 290 | 0,930 |
+| Nervios, tramo 3 | 14 | 120 | cada nervio, R655–R775 | 250 | 0,802 |
+
+Total **70 ranuras, 8820 mm** (Rev. G: 77 de 30 × 125). En las almas las ranuras son **curvas** (eje sobre el eje del alma: con L = 155 en R840 una
+ranura recta se saldría 3,6 mm del eje, más que la holgura de 3,5). Ninguna ranura cae en un cruce alma–nervio. Con L = 120 en A3 una ranura por vano
+daba FU 1,21 y 21 ranuras caían sobre los nervios; por eso el mandante fijó L = 155 en A3 y L = 110 en A1 (con 120, el extremo quedaba a 3,3 mm del
+nervio, sobre el filete J15).
+
+**Filas BX (con FEA; `BX.analyze(P, {})`):**
+
+| Fila | Resultado |
+|---|---|
+| Traspaso del flujo de corte al canto del alma o nervio, una por elemento: τ = q_h·l_trib/(t_alma·L) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50) = 138 MPa (q_h = 425 N/mm) | 0,942 (A1, gobierna) / 0,849 / 0,936 / 0,930 / 0,930 / 0,802 |
+| Corte en las caras de fusión con la plancha: τ = √(q_h² + q_v²)·l_trib/(2·t·(L − w)), 2 paredes × 22 × (L − 15) (solo los tramos rectos) | 0,248 (A1) |
+| Ancho 15 < t + 8 = 30: no precalificada, WPS calificada por ensayo (informativa, FU = 15/30) | 0,500 (info) |
+| Acceso: profundidad/ancho = 22/15 = 1,47 (informativa) | info |
+| Separación longitudinal entre centros ≥ 2·L del elemento (buena práctica) | 0,906 (A2: 240 ≤ 265) |
+| Separación transversal entre líneas de nervios ≥ 4·w = 60 (buena práctica) | 0,452 (133 en el tramo 1) |
+| Ranuras de las almas libres de la cara del nervio y del filete J15 (≥ z8) | 0,962 (A1: 8,3) |
+| Ranuras de los nervios libres de la cara del alma y del filete J15 (≥ z8) | 0,286 (tramo 1: 28) |
+| Disco central: raíz de J19 (R140–R146) sobre el cubo y ranura del tramo 1 (desde R148) fuera de la raíz (informativa) | info (2 mm) |
+| Disco central: ranuras J18 del tramo 1 abiertas en el bisel de J19 (informativa; largo sobre el nervio R155–R268 = 113) | info |
+
+Las filas de traspaso entre 0,90 y 0,95 quedan en «advertencia» (objetivo del mandante FU ≤ 0,95). Se quitan las filas de §J2.3b de la ranura
+precalificada (ancho mínimo y máximo, largo máximo 10·t, espesor del relleno), la del área de la ranura en el plano de contacto, las cuatro de las
+tiras y la de la raíz de J19 frente a las tiras.
+
+**Se anulan:** las tiras de respaldo MES-015 (despiece, lista de cortes, anidado, masas y 3D; el ítem 22 del despiece queda «ANULADO» y no se
+renumera ningún otro ítem ni código), el punteo J18r y los destijeres superiores 22 × 22 de los nervios contra las almas (el canto superior de los
+nervios queda entero; abajo siguen 15 × 15, y 20 × 20 contra el cubo en el tramo 1).
+
+**Planos (Rev. H, todo el paquete):** MES-001 con TODAS las ranuras dibujadas a escala en la planta (llamada y tabla «RANURAS DE CIERRE» con la columna
+L y el largo total) y el detalle «DETALLE J18: RANURA 15 × 120 SIN RESPALDO (unión en T a través de ranura, no precalificada)» (PL22, ranura 15, PL8
+centrado, holguras 3,5, relleno, esmerilado a ras, planta de la ranura con el canto en trazo oculto); MES-008…010 sin destijeres superiores; GEN-007/015
+(detalle de J18), GEN-012 (WPS-P31 «calificar por ensayo» y nota de la probeta), GEN-014 (secuencia sin tiras), CON-002 (ítem 22 anulado), GEN-001 (cuadro de revisiones con la H; las emisiones reemplazadas se
+resumen a ≤ 60 caracteres, sin la columna de la emisión que las reemplaza, para que el índice siga entrando). Las ranuras
+no se modelan en el 3D/STEP (cortarlas en el sólido obligaría a acotar 140 extremos en la lámina y a sumar el relleno a las masas); quedan dibujadas en
+MES-001.
+
+**Valores por defecto a confirmar por el mandante:** (1) ranuras curvas en las almas (cortadas a plasma CNC sobre el eje del alma); (2) vanos de A1
+con ranura: los que empiezan en 0° (12,857° + 51,429°·k); (3) holgura de armado de la plancha contra los cantos ≤ 1 mm antes de soldar; (4) en el
+tramo 1, la fila de traspaso usa L = 120 aunque 7 mm de la ranura quedan sobre la cara del cubo (113 mm sobre el nervio).
+
+Todo el paquete sube a Rev. H (revisión del cálculo 9g, §13.8).

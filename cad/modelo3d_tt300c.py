@@ -76,11 +76,12 @@ ISO10642_L = [8, 10, 12, 16, 20, 25, 30, 35, 40, 45, 50]
 DEST = 15.0                     # destijeres de los nervios (N-04): 15 × 15 a 45°
 
 
-def tiras_j18(g):
-    """TT300-BX rev. 9d: bloque de las tiras de respaldo de las ranuras J18 (bx.mesa.soldaduras.ranuras.tiras) o None."""
+def ranuras_j18(g):
+    """TT300-BX: bloque de las ranuras de cierre J18 (bx.mesa.soldaduras.ranuras) o None. Rev. 9g (Rev. H): unión en T a través de ranura 15 × L sin
+    respaldo; las tiras MES-015 (rev. 9d) quedan anuladas."""
     if getattr(g, "opt", 0) != 4:
         return None
-    return (((((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}).get("ranuras") or {}).get("tiras")) or None
+    return ((((getattr(g, "bx", None) or {}).get("mesa") or {}).get("soldaduras") or {}).get("ranuras")) or None
 
 
 def disco_central(g):
@@ -93,14 +94,13 @@ def disco_central(g):
 
 
 def _dest_desc(g, i):
-    """Texto de los destijeres del tramo i del nervio (rev. 9c/9d en BX)."""
-    TJ_, dc_ = tiras_j18(g), dest_cubo(g)
-    if not TJ_:
+    """Texto de los destijeres del tramo i del nervio (rev. 9c en BX; rev. 9g: sin destijeres superiores, canto superior entero bajo las ranuras J18)."""
+    RG_, dc_ = ranuras_j18(g), dest_cubo(g)
+    if not RG_:
         return (f"destijer {fm(dc_, 0)}×{fm(dc_, 0)} en la esquina inferior contra el cubo (paso de J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} en las otras 3" if (i == 0 and dc_) else f"destijeres {fm(DEST, 0)}×{fm(DEST, 0)} en las 4 esquinas")
-    dt_ = fm(TJ_["destijer_superior_almas"], 0)
     if i == 0:
-        return f"destijeres abajo {fm(dc_ or DEST, 0)}×{fm(dc_ or DEST, 0)} contra el cubo (J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} contra el alma; arriba {dt_}×{dt_} contra el alma (tiras J18) y ninguno contra el cubo"
-    return f"destijeres abajo {fm(DEST, 0)}×{fm(DEST, 0)} y arriba {dt_}×{dt_} (paso de las tiras de respaldo J18 de las almas) en ambos extremos"
+        return f"destijeres abajo {fm(dc_ or DEST, 0)}×{fm(dc_ or DEST, 0)} contra el cubo (J17a) y {fm(DEST, 0)}×{fm(DEST, 0)} contra el alma; arriba ninguno (canto superior entero)"
+    return f"destijeres abajo {fm(DEST, 0)}×{fm(DEST, 0)} en ambos extremos; arriba ninguno (canto superior entero)"
 
 
 def dest_cubo(g):
@@ -356,6 +356,15 @@ class Model:
         self.D, self.g, self.parts = D, g, []
         self.info = {}
         self.sub_count = {}
+        self.pos_anulado_tras = {}   # TT300-BX rev. 9g: ítems anulados del despiece (clave de la pieza anterior → n.º de ítems que se saltan, sin renumerar los demás)
+
+    def renumerar(self):
+        """Ítems del despiece en el orden de las piezas, saltando los números anulados (pos_anulado_tras)."""
+        n = 0
+        for p in self.parts:
+            n += 1
+            p.pos = n
+            n += self.pos_anulado_tras.get(p.key, 0)
 
     def add(self, p):
         self.sub_count[p.sub] = self.sub_count.get(p.sub, 0) + 1
@@ -370,7 +379,7 @@ class Model:
             p.num = INT_CODIGOS[ck][0]
             p.name = INT_CODIGOS[ck][1]           # denominación fija del código (igual en todas las variantes)
         self.parts.append(p)
-        p.pos = len(self.parts)
+        self.renumerar()
         return p
 
     def get(self, key):
@@ -815,11 +824,11 @@ def build(D, verbose=True):
         zb_, zt_ = z0 + tbo, z0 + tbo + hw
         dest = []
         dc_ = dest_cubo(g) if i == 0 else None
-        TJ_ = tiras_j18(g)
+        RG_ = ranuras_j18(g)
         for (xq_, zq_, sx, sz) in ((a0, zb_, 1, 1), (a0, zt_, 1, -1), (a1, zb_, -1, 1), (a1, zt_, -1, -1)):
             D_ = dc_ if (dc_ and xq_ == a0 and zq_ == zb_) else DEST
-            if TJ_ and zq_ == zt_:      # rev. 9d: arriba, destijer de las tiras de las almas en los extremos contra almas; sin destijer contra el cubo
-                D_ = 0.0 if (i == 0 and xq_ == a0) else float(TJ_["destijer_superior_almas"])
+            if RG_ and zq_ == zt_:      # rev. 9g (Rev. H): sin destijeres superiores (los de 22 × 22 de la rev. 9d eran el paso de las tiras MES-015, anuladas)
+                D_ = 0.0
             if D_ <= 0:
                 continue
             pts_ = [(xq_ - sx * 1.0, zq_ - sz * 1.0), (xq_ + sx * D_, zq_ - sz * 1.0), (xq_ + sx * D_, zq_), (xq_, zq_ + sz * D_), (xq_ - sx * 1.0, zq_ + sz * D_)]
@@ -853,8 +862,12 @@ def build(D, verbose=True):
                + ("montaje en las planchas enteras (calor o prensa) y soldadura PJP en cada plancha" if g.mesa_entera else "montaje en los anillos (calor o prensa) y soldadura PJP en cada anillo") + " con WPS calificada y precalentamiento; esmerilado a ras", core="pins", color=(0.75, 0.75, 0.78),
                tratamiento=(MBX_["pasadores_empuje"]["tratamiento"] if MBX_.get("pasadores_empuje") else f"Bonificado; temple por inducción ≥ 55 HRC solo en la banda de contacto, prof. {g.z_hard_txt}; extremos sin templar"),
                obs=(f"Fy = {f(P['Fy_pin'])} MPa también en la superficie (Hertz del asiento sin temple). NO REEMPLAZABLE (soldado; núcleo pasadores_empuje.limitaciones)" if MBX_.get("pasadores_empuje") else f"Límite elástico superficial supuesto en el cálculo: {f(P['Fy_surf'])} MPa. NO REEMPLAZABLE (soldado; núcleo pasadores_empuje.limitaciones)")))
+    if ranuras_j18(g) and g.mesa_entera:
+        # rev. 9g (Rev. H): las tiras de respaldo MES-015 de J18 (ítem siguiente al pasador de empuje desde la rev. 9d) quedan ANULADAS; su ítem no se reutiliza
+        m.pos_anulado_tras["pasadores"] = 1
+        m.info["items_anulados"] = [("—", "tiras de respaldo de las ranuras J18 de las Rev. D a G (anuladas en la Rev. H; su código no se reutiliza)")]
+        m.sub_count["MES"] = m.sub_count.get("MES", 0) + 1     # MES-015 no se reutiliza
 
-    _respaldo_j18(m, g, D, P, z0 + tbo + hw)
 
     # ===================== PIV: pivote, buje, tapas =====================
     cap_xy = [(g.cap_pcd / 2 * math.cos(math.radians(45 + 90 * i)), g.cap_pcd / 2 * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
@@ -1569,46 +1582,6 @@ if __name__ == "__main__":
             print("  XX" if not r.get("declarado") else "  NÚCLEO", r["a"], r["b"], r["vol_mm3"])
     if bad:
         sys.exit("Hay interferencias entre piezas: revisar geometría")
-
-
-def _respaldo_j18(m, g, D, P, z_top):
-    """TT300-BX rev. 9d: tiras de respaldo permanentes de las ranuras J18 (decisión del mandante 21-11-2026), dos por ranura, a ras del canto superior de
-    almas y nervios: arcos en las almas y rectas en los nervios; geometría y cantidad del núcleo BX (bx.mesa.soldaduras.ranuras.tiras). Masa fuera del
-    núcleo (no entra en N: < 0,01 % de la carga)."""
-    TJ = tiras_j18(g)
-    RG = (((g.bx or {}).get("mesa") or {}).get("soldaduras") or {}).get("ranuras") if TJ else None
-    if not TJ or not RG:
-        return
-    t, b = float(TJ["t"]), float(TJ["b"])
-    z1, z0_ = z_top, z_top - t
-    sol, lbl = [], []
-    for q, a in zip([x for x in TJ["piezas"] if x["forma"] == "arco"], [al for al in RG["almas"] for _ in (0, 1)]):
-        h = math.radians(q["span_deg"]) / 2
-        Ri, Ro = q["R_int"], q["R_ext"]
-        pc = lambda R_, a_: (R_ * math.cos(a_), R_ * math.sin(a_))
-        arc = (cq.Workplane("XY").workplane(offset=z0_).moveTo(*pc(Ri, -h)).threePointArc(pc(Ri, 0.0), pc(Ri, h)).lineTo(*pc(Ro, h))
-               .threePointArc(pc(Ro, 0.0), pc(Ro, -h)).close().extrude(t))     # arcos verdaderos (sin facetas que entren en el alma)
-        for k in range(int(a["n"])):
-            sol.extend(rotz(arc, a["a0_deg"] + a["paso_deg"] * k).vals())
-            lbl.append(f"arco R{fm(Ri, 0)}–R{fm(Ro, 0)} × {fm(q['span_deg'], 2)}° ({fm(q['largo_medio'], 0)} en el eje de la tira; {q['elemento']}, lado {q['lado']})")
-    tw = P["t_rib"] / 2
-    ang = D["nervios"]
-    for q in [x for x in TJ["piezas"] if x["forma"] == "recta"]:
-        k_ = int(q["cada_k_nervios"])
-        for y0, y1 in ((tw, tw + b), (-tw - b, -tw)):
-            bar = box(q["r0"], q["r1"], y0, y1, z0_, z1)
-            for j in range(0, len(ang), k_):
-                sol.extend(rotz(bar, ang[j]).vals())
-                lbl.append(f"recta {fm(q['largo'], 0)} (nervios)")
-    comp = cq.Workplane("XY").newObject([cq.Compound.makeCompound(sol)])
-    tipos_ = ", ".join(sorted({(f"arco R{fm(x['R_int'], 0)}–R{fm(x['R_ext'], 0)}" if x["forma"] == "arco" else f"recta {fm(x['largo'], 0)}") for x in TJ["piezas"]}))
-    m.add(Part("mesa_respaldo", "MES", "Tira de respaldo de la ranura J18 (permanente)", f"Tira {fm(b, 0)} × {fm(t, 0)} a ras del canto del alma o nervio, 2 por ranura",
-               comp, len(sol), TJ["material"].split(",")[0], "Plasma de plancha de " + fm(t, 0) + " (rectas y arcos); punteada al alma o nervio (J18r) antes de cerrar la mesa",
-               color=(0.75, 0.45, 0.2), obs="Permanente; nota en MES-001", num_fijo=15))
-    pr_ = m.get("mesa_respaldo")
-    pr_.lbl_solidos = lbl
-    pr_.libre = True                     # tiras rectas montadas a ambos lados del nervio: misma pieza en cualquier orientación
-    pr_.volteable = True
 
 
 def _disco_central(m, g, P, z_top, insp_xy, mat):

@@ -281,8 +281,7 @@ def build(m, g, D, log=print):
         m.parts.insert(idx + i, p)
         m.sub_count["ACC"] = m.sub_count.get("ACC", 0) + 1
         p.num = p.num_fijo
-    for i, p in enumerate(m.parts, 1):
-        p.pos = i
+    m.renumerar()
     log(f"  cilindro fabricado (bx.cilindro): {len(nuevos)} ítems en lugar de la pieza comercial ACC-013")
 
 

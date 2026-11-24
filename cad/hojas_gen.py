@@ -123,14 +123,14 @@ def normas(ctx):
     return [list(n) for n in N if n[0]]
 
 
-def _desc_rv(d, vigente, n=110):
+def _desc_rv(d, vigente, n=60):
     """Cuadro de revisiones de GEN-001 (Rev. G): la emisión vigente va completa; las reemplazadas se resumen a su primera(s) cláusula(s) (≤ n caracteres)
-    para que el índice de planos siga entrando en la lámina. El texto completo de cada emisión está en README_BX §13."""
+    para que el índice de planos siga entrando en la lámina (Rev. H: ≤ 60 caracteres). El texto completo de cada emisión está en README_BX §13."""
     d = str(d).rstrip(".")
     if vigente or len(d) <= n:
         return d + "."
     cut = d[:n].rfind("; ")
-    return (d[:cut] if cut > 40 else d[:n].rsplit(" ", 1)[0]) + " (…; ver README_BX §13)."
+    return (d[:cut] if cut > 40 else d[:n].rsplit(" ", 1)[0]) + " (…)."
 
 
 @gen
@@ -147,12 +147,12 @@ def sheet_notas(ctx):
     if getattr(ctx, "revisiones", None):
         # TT300-BX (README_BX §13.8): historial completo de emisiones del paquete (una letra por emisión para TODAS las láminas; vigente arriba)
         RV_ = ctx.revisiones
-        rows_rv = [[r_["letra"], r_.get("fecha") or "—", ("rev. " + str(r_["rev_calculo"])) if r_.get("rev_calculo") else "—", "VIGENTE" if i_ == len(RV_) - 1 else f"reemplazada (Rev. {RV_[i_ + 1]['letra']})",
+        rows_rv = [[r_["letra"], r_.get("fecha") or "—", ("rev. " + str(r_["rev_calculo"])) if r_.get("rev_calculo") else "—", "VIGENTE" if i_ == len(RV_) - 1 else ("reemplazada" if len(RV_) >= 6 else f"reemplazada (Rev. {RV_[i_ + 1]['letra']})"),
                     _desc_rv(r_["descripcion"], i_ == len(RV_) - 1)] for i_, r_ in reversed(list(enumerate(RV_)))]
         # rev. 9f (Rev. F): con 4 o más emisiones el cuadro va con letra mínima (ISO 3098, 2,5 mm) y la descripción más ancha, para que el índice siga entrando en GEN-001
         yn, _ = s.table(x2, yn - 6, ([("Rev", 9, "C"), ("Fecha", 22, "C"), ("Cálculo", 18, "C"), ("Estado", 26, "L"), ("Descripción de la emisión", 125, "L")] if len(RV_) >= 4 else
                                      [("Rev", 11, "C"), ("Fecha", 25, "C"), ("Cálculo", 21, "C"), ("Estado", 31, "L"), ("Descripción de la emisión", 112, "L")]), rows_rv, h=(T_MIN if len(RV_) >= 4 else T_S),
-                        title=f"CUADRO DE REVISIONES DEL JUEGO TT300-BX (una letra por emisión para todas las láminas; vigente: Rev. {REV})")
+                        title=f"CUADRO DE REVISIONES DEL JUEGO TT300-BX (una letra por emisión para todas las láminas; vigente: Rev. {REV}" + ("; anteriores resumidas, texto completo en README_BX §13)" if len(RV_) >= 6 else ")"))
     # mapa de códigos por geometría (H-04: un código = una geometría; N-07: láminas de características emitidas)
     import modelo3d_tt300c as M3
     var = M3.variante_de(g)
@@ -608,17 +608,6 @@ def nest_items(ctx):
             L.append((p.key, p.name, Lr + 4, g.hw + 4, P["t_rib"], p.qty, p.mass_unit))
     if g.modo == 1:
         add("patin", "Patín (bloque)", KG["L_s"] + 10, P["w_s"] + KG["inset"] + 10, max(g.z_shoe, g.zc + P["dog_h"] / 2 + 10) - (g.zT0 + 1) + 10)
-    if m.get("mesa_respaldo"):           # TT300-BX rev. 9d: tiras de respaldo de J18, por geometría (envolvente del arco o de la recta)
-        import modelo3d_tt300c as M3
-        TJ_ = M3.tiras_j18(g)
-        pr_ = m.get("mesa_respaldo")
-        for q in TJ_["piezas"]:
-            if q["forma"] == "recta":
-                w_, h_ = q["largo"], TJ_["b"]
-            else:
-                hs_ = math.radians(q["span_deg"]) / 2
-                w_, h_ = 2 * q["R_ext"] * math.sin(hs_), q["R_ext"] - q["R_int"] * math.cos(hs_)
-            L.append(("mesa_respaldo", f"Tira J18 ({q['elemento']}{', ' + q['lado'] if q['forma'] == 'arco' else ''})", w_ + 2, h_ + 2, TJ_["t"], int(q["n"]), q["masa"]))
     # TT300-BX rev. 9f: el disco central MES-016 sale del recorte central de la plancha superior (dentro de su formato D_top × D_top): no se anida aparte
     add("tapa_ret", "Tapa retenedora", g.cap_D + 5, g.cap_D + 5, g.cap_t + 2)
     add("tapa_insp", "Tapa de inspección", g.cb_D + 3, g.cb_D + 3, g.cb_t + 2)
@@ -867,5 +856,7 @@ def sheet_wps(ctx):
                                        "Procesos ISO 4063: 135 (GMAW, ER70S-6, Ar 75 %% / CO₂ 25 %%), 111 (SMAW, E7018 de bajo hidrógeno, secado según el fabricante del electrodo), 136 (FCAW, E71T-1). Aporte con resistencia a tracción ≥ %s MPa." % f(ctx.P["FEXX"]),
                                        "Rangos de corriente: típicos de fabricante, a ajustar en la calificación según espesor, posición y longitud de arco; interpase máximo 250 °C (propuesta). Tamaños de filete y símbolos: GEN-007 y láminas de pieza.",
                                        *([f"Soldadura con aporte inoxidable 309L ({hojas_base.inox_juntas_txt(ctx) if g.opt == 4 else 'barras del rebaje UHMW'}): sin precalentamiento del inoxidable; interpase ≤ 150 °C; PT 100 %."] if any("ER309L" in w["aporte"] for w in ctx.welds) else []), (_nota_bonificados_bx(ctx) if g.opt == 4 else None) or (("Aceros bonificados (pasadores, pivote, uña) NO se sueldan" + ("; excepción del núcleo: patas y tapas del pórtico de la leva en 42CrMo4+QT (J26/J27), solo con WPS calificado con PQR (requiere núcleo, GEN-009)." if g.FLG else ".")) if g.modo == 1 else "Aceros bonificados (pasadores E y Q, pivote, bloque-uña) NO se sueldan."),
+                                       *([f"{', '.join(sorted({w['wps_corto'] for w in ctx.welds if w.get('wps_ensayo')}))} ({', '.join(w['id'] for w in ctx.welds if w.get('wps_ensayo'))}): {propuestas.ROTULO_WPS_ENSAYO}; la probeta de taller reproduce la junta real (plancha, ancho y largo de la ranura, alma, sin respaldo) y se secciona transversalmente con macroataque; la calificación precede a la producción."]
+                                         if any(w.get("wps_ensayo") for w in ctx.welds) else []),
                                        "Soldadores calificados según AWS D1.1:2020 cláusula 6 o ISO 9606-1 para las posiciones indicadas; END según la tabla de soldaduras (VT, MT, UT, PT)."], h=T_N, width=nw_, numbered=True)
     return c.h

@@ -14,7 +14,7 @@ def sheet_mesa_disco(ctx):
     return __import__("pie_mesa_entera").sheet_disco(ctx)
 
 
-@pieza("mesa_plancha_sup", "mesa_respaldo")
+@pieza("mesa_plancha_sup")
 def sheet_mesa_sup(ctx):
     g, P = ctx.g, ctx.P
     if g.mesa_entera:                    # TT300-BX rev. 7c: plancha entera con los agujeros de los pasadores (cad/pie_mesa_entera.py)
@@ -56,7 +56,7 @@ def sheet_mesa_sup(ctx):
         add_prep(p, f"det_j{i}", wd(ctx, j_), t1=tt)
     rc_ = ranuras_cierre(ctx)
     p.table_block(f"RANURAS DE CIERRE {jj[1] if len(jj) > 1 else ''} (22 × 80 a paso 250, eje de la ranura sobre el eje del alma o nervio)", [("Elemento", 34, "L"), ("Ubicación", 70, "L"), ("Ángulos", 46, "L"), ("Cant", 14, "R")],
-                  [[a, b_, c_, str(n_)] for a, b_, c_, n_ in rc_] + [["TOTAL", "", "", str(sum(r_[3] for r_ in rc_))]], bold_rows=(len(rc_),))
+                  [[a, b_, c_, str(n_)] for a, b_, c_, n_, *_ in rc_] + [["TOTAL", "", "", str(sum(r_[3] for r_ in rc_))]], bold_rows=(len(rc_),))
     p.tables(jj)
     p.notes([f"Disco Ø{f(2 * g.prIn)} × {f(tt)}; oxicorte/plasma (ISO 9013 clase 3), partida Ø{f(2 * g.prIn + 5)} (sobremetal 2,5 por lado) para la preparación de la junta con el anillo superior (MES-002).",
              f"Agujero central Ø{f(g.hole_top)} y rebaje Ø{f(g.cb_D)} × {f(g.cb_t)} (apoyo de la tapa de inspección PIV-004): mecanizar en mandrinadora/fresadora; Ra 6,3.",
@@ -286,8 +286,10 @@ def _nota_dest_bx(ctx):
     """TT300-BX rev. 9c: destijeres de los nervios (el del tramo 1 contra el cubo libra el cordón de J17a; núcleo BX bx.mesa.soldaduras.cubo)."""
     dc_ = M3_.dest_cubo(ctx.g)
     j17 = ", ".join(jids(ctx, "Cubo – plancha inferior")) or "J17a"
-    return ("Destijeres a 45° de 15 × 15 en las esquinas de cada tramo (dibujados), para el paso de los filetes de las almas (J14)"
-            + (f"; en la esquina inferior del tramo 1 contra el cubo, {fm(dc_, 0)} × {fm(dc_, 0)} para el paso del cordón de {j17} (PJP + filete; AISC 360-22 §J1.6)." if dc_ else "."))
+    sup_ = (" Sin destijeres superiores (Rev. H): el canto superior queda entero, en contacto con la plancha superior bajo las ranuras "
+            + (", ".join(jids(ctx, "Cierre de la plancha")) or "J18") + "." if M3_.ranuras_j18(ctx.g) else "")
+    return ("Destijeres a 45° de 15 × 15 en las esquinas " + ("inferiores " if M3_.ranuras_j18(ctx.g) else "") + "de cada tramo (dibujados), para el paso de los filetes de las almas (J14)"
+            + (f"; en la esquina inferior del tramo 1 contra el cubo, {fm(dc_, 0)} × {fm(dc_, 0)} para el paso del cordón de {j17} (PJP + filete; AISC 360-22 §J1.6)." if dc_ else ".") + sup_)
 
 
 @pieza("mesa_nervio0", "mesa_nervio1", "mesa_nervio2")
@@ -316,11 +318,9 @@ def sheet_nervios(ctx):
         def d_(V, p, i=i, bb=bb, L=L):
             # N-04: destijeres dibujados (en el sólido) y acotados en una esquina
             dc_ = M3_.dest_cubo(g) if i == 0 else None
-            TJ_ = M3_.tiras_j18(g)
-            if TJ_:                      # rev. 9d: arriba 22 × 22 contra las almas (paso de las tiras J18), ninguno contra el cubo; abajo 15 × 15 (20 × 20 contra el cubo)
-                dt_ = float(TJ_["destijer_superior_almas"])
-                x_ = (bb.xmax - dt_ / 2) if i == 0 else (bb.xmin + dt_ / 2)
-                V.note_pt((x_, 0.0, z0 + g.hw - dt_ / 2), (12, 14), f"destijer {fm(dt_, 0)} × {fm(dt_, 0)} a 45° arriba contra las almas (tiras J18); abajo 15 × 15" + (f" y {fm(dc_, 0)} × {fm(dc_, 0)} contra el cubo (J17a)" if dc_ else ""), on=[ks[i] + "_1"], dot=True)
+            if M3_.ranuras_j18(g):       # rev. 9g (Rev. H): solo abajo 15 × 15 (20 × 20 contra el cubo); sin destijeres superiores
+                V.note_pt((bb.xmax - 7.5, 0.0, z0 + 7.5), (6, 28), "destijer 15 × 15 abajo", on=[ks[i] + "_1"], dot=True,
+                          lines=["destijer 15 × 15 abajo"] + ([f"(cubo: {fm(dc_, 0)} × {fm(dc_, 0)})"] if dc_ else []) + ["arriba: ninguno"])
             else:
                 V.note_pt((bb.xmin + 7.5, 0.0, z0 + g.hw - 7.5), (12, 14), "destijer 15 × 15 a 45° (4 esquinas)" if not dc_ else f"destijer 15 × 15 a 45° (3 esquinas); {fm(dc_, 0)} × {fm(dc_, 0)} abajo contra el cubo (J17a)", on=[ks[i] + "_1"], dot=True)
             if jn and i == len(ks) - 1:
@@ -349,7 +349,7 @@ def sheet_nervios(ctx):
              "Corte por plasma anidado en plancha (GEN-010/013) con el largo de corte de la tabla (terminado + 2 × 2 de sobremetal); recortar al largo terminado acotado entre las caras del nervio, que deja 1 mm de holgura de armado contra cada cara de cubo o alma. "
              + (_nota_dest_bx(ctx) if g.opt == 4 else "Destijeres a 45° de 15 × 15 en las 4 esquinas de cada tramo (dibujados), para el paso de los filetes de las almas (J14) y de las uniones del cubo (J17a/J17b)."),
              (f"Filete z{fm(P['w_web'], 0)} ambos lados SOLO contra la plancha inferior y en los extremos contra almas ({jn[0] if jn else 'J??'}) y cubo ({', '.join(jids(ctx, 'Nervios del tramo 1 – cubo')) or 'J15b'}); "
-              f"la plancha superior se une por las ranuras rellenas {', '.join(jids(ctx, 'Cierre de la plancha')) or 'J18'} (las celdas quedan cerradas); armar sobre la plancha inferior con plantilla angular ±0,1°."
+              f"la plancha superior se une por las ranuras {', '.join(jids(ctx, 'Cierre de la plancha')) or 'J18'} (unión en T a través de ranura, sin respaldo; las celdas quedan cerradas; canto superior entero, sin destijeres); armar sobre la plancha inferior con plantilla angular ±0,1°."
               if (g.opt == 4 and g.mesa_entera) else f"Filete z{fm(P['w_web'], 0)} ambos lados contra planchas y almas, continuo ({jn[0] if jn else 'J??'}); armar sobre la plancha inferior con plantilla angular ±0,1°."),
              "Nervios y almas se sueldan a la plancha inferior ANTES de cerrar con la superior. Posición angular de cada nervio ±0,1° respecto de +x (tabla de ángulos)."],
             gd=[("straight", "1,0", None, "Rectitud del canto de apoyo de cada nervio")])

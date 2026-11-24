@@ -594,6 +594,9 @@ def sheet_bom(ctx):
             cur = (sb_, [])
             blocks.append(cur)
         cur[1].extend(hojas_base.bom_rows_part(ctx, p, dpart))
+        for k_ in range(int((getattr(ctx.m, "pos_anulado_tras", None) or {}).get(p.key, 0))):    # TT300-BX rev. 9g: ítem anulado (no se reutiliza ni se renumera)
+            cod_, txt_ = (ctx.m.info.get("items_anulados") or [("—", "ítem anulado")])[k_]
+            cur[1].append([str(p.pos + 1 + k_), cod_, f"ANULADO: {txt_}; el número de ítem no se reutiliza y los demás no se renumeran", "—", "—", "—", "—", "—", "", "—"])
     ext = [["—", "—", d, str(q), e, "Comercial", "—", "—", cat, "GEN-008"] for (d, q, e, cat) in lista.extras(ctx)]
     blocks.append(("COMERCIAL", ext))
     sc0 = None
@@ -1243,7 +1246,7 @@ def sheet_mesa_conj2(ctx):
                        f"sin anillos de pasadores, sin empalmes CJP de segmentos y sin uniones plancha–anillo. Después del alivio se planea la cara inferior con remoción mínima (plancha ≥ {fm(g.tbo, 0)}) y se mandrinan/escarían los agujeros en línea."] if g.mesa_entera else
                       [f"Secuencia de espesores (N-03): anillos de partida {fm(g.tpr + 3, 0)} con los empalmes soldados en la partida; MES-002 planeado a {fm(g.tpr, 0)} antes de soldarlo a la plancha superior (t = {fm(g.tt, 0)} / {fm(g.tpr, 0)}); "
                        f"MES-004 soldado en {fm(g.tpr + 3, 0)} a la plancha inferior de {fm(g.tbo + 3, 0)} (caras inferiores a ras); después del alivio se planea la cara inferior de la mesa 3 mm: plancha {fm(g.tbo, 0)} y anillo {fm(g.tpr, 0)}."]),
-                    *([f"Celdas cerradas (TT300-BX rev. 9c): almas y nervios se sueldan SOLO a la plancha inferior y al cubo; la plancha superior va por las ranuras rellenas J18 y el cubo por J17a (desde arriba, antes de cerrar) y J17b (por el agujero central, con la mesa cerrada). "
+                    *([f"Celdas cerradas (TT300-BX rev. 9c): almas y nervios se sueldan SOLO a la plancha inferior y al cubo; la plancha superior va por las ranuras J18 (unión en T a través de ranura 15 × L, sin respaldo) y el cubo por J17a (desde arriba, antes de cerrar) y J17b (por el agujero central, con la mesa cerrada). "
                        + " ".join((((g.bx or {}).get("mesa") or {}).get("soldaduras") or {}).get("secuencia") or [])] if (g.opt == 4 and g.mesa_entera and (((g.bx or {}).get("mesa") or {}).get("soldaduras"))) else [])])
     c.build()
     return c.h

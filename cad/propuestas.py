@@ -6,6 +6,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from geom import f, fm, WASHER_MAT
 
 ROTULO_WPS = "PROPUESTA — A CALIFICAR/CONFIRMAR POR EL FABRICANTE (AWS D1.1:2020 cláusulas 5 y 6)"
+ROTULO_WPS_ENSAYO = "NO PRECALIFICADA — CALIFICAR POR ENSAYO (AWS D1.1:2020 cláusula 6, PQR con probeta de la misma geometría y macroataque)"   # TT300-BX rev. 9g: J18
 ROTULO_PINT = "PROPUESTA, CONFIRMAR"
 ROTULO_GRADO = "PROPUESTO por Fy del cálculo; confirmar"
 
