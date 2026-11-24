@@ -591,7 +591,7 @@ def _welds_mesa_bx(ctx, add, add_n, SM, W_):
                  tipo=f"Filete z{fm(zb, 0)} todo alrededor en el borde del agujero central Ø{fm(2 * B_['r'], 0)} {'del disco central (después de soldar J19)' if cD_ else 'de la plancha superior'}, sobre la cara superior del cubo: el canto exterior del cubo queda dentro de la mesa cerrada; esta unión se suelda desde arriba con la mesa cerrada",
                  prep="Sin preparación", prep_txt="", t=float(g.tt), z=zb, a=round(zb * 0.7071, 1), size_txt=f"z{fm(zb, 0)}", garganta=f"a = {fm(zb * 0.7071, 1)}", cateto=f"z = {fm(zb, 0)}", pasadas=passes(z=zb),
                  origen=org, t_pre=t_hub, en_T=False, contorno=True, end="VT 100 % · MT 100 %", len_total=float(B_["largo"]), nota=f"Acceso: {B_['acceso']}; holgura del cordón a la tapa retenedora {fm(B_['holgura_tapa'], 1)} mm. {org}",
-                 filete_agujero=dict(z=zb, t=float(g.tt), tw=float(B_["t_pared"]), r=float(B_["r"])), other=None)
+                 filete_agujero=dict(z=zb, t=float(g.tt), tw=float(B_["t_pared"]), r=float(B_["r"]), en_disco=bool(B_.get("en_disco") and ctx.m.get("mesa_disco"))), other=None)
         w.pop("txt_corto", None)
         w.pop("t_alma", None)
     w = byid.get("J18")
