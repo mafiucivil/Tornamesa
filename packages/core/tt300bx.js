@@ -37,6 +37,7 @@ const BX = (() => {
     Object.freeze({ letra: "F", fecha: "23-11-2026", rev_calculo: "9f", descripcion: "Disco central Ø280 sobre el cubo (respaldo = cubo); se anulan el aro de respaldo y la muesca de los nervios" }),
     Object.freeze({ letra: "G", fecha: "24-11-2026", rev_calculo: "9f", descripcion: "Cubo MES-011: J17b en el agujero del disco central MES-016 y cara superior del cubo como respaldo de J19 (solo textos de lámina; sin cambios de cálculo)" }),
     Object.freeze({ letra: "H", fecha: "24-11-2026", rev_calculo: "9g", descripcion: "Ranuras J18 de 15 × L sin respaldo (no precalificadas, WPS por ensayo; L 110 / 120 / 155 por elemento); se anulan las tiras MES-015, J18r y los destijeres superiores de los nervios; ranuras dibujadas en MES-001" }),
+    Object.freeze({ letra: "I", fecha: "25-11-2026", rev_calculo: "9h", descripcion: "Ranuras J18: largo mínimo por elemento con FU ≤ 1 para el corte horizontal propio, con la excentricidad e (A1 y A2 30, A3 45; nervios 30 / 55 / 115; 70 ranuras, 3850 mm); el vertical pasa por contacto" }),
   ]);
   const REV_PLANOS = REVISIONES_PLANOS[REVISIONES_PLANOS.length - 1].letra;
 
@@ -1474,22 +1475,54 @@ const BX = (() => {
   //    A1 L = 110 en vanos alternados (N/2), A2 L = 120 y A3 L = 155 en cada vano (N); nervios L = 120, una por tramo; el tramo 1 en nervios alternados,
   //    desde R148 (7 mm sobre la cara del cubo, se abre en el bisel de J19). En las almas las ranuras son curvas (eje sobre el eje del alma).
   //  - Separación longitudinal entre centros ≥ 2·L de cada elemento y transversal entre líneas ≥ 4·w: buena práctica (filas geométricas).
-  const RAN = { w: 15, s0: 250, cHub: -7, gap: 1, Lalma: [110, 120, 155], kAlma: [2, 1, 1], Ltramo: 120, kTramo: [2, 1, 1] };
-  function ranurasOf(P) {
+  // Rev. 9h (decisión del mandante 25-11-2026, emisión Rev. I): mismas posiciones y cantidades; el LARGO de cada elemento pasa a ser el mínimo con FU ≤ 1,00
+  //    para su propia demanda horizontal (j18Dem: nervios = ∫q(r)dr del tramo con e; almas = corte tangencial del 1.er armónico de e), con L ≥ 2·w = 30.
+  //    El vertical q_v pasa por contacto (plancha apretada contra los atiesadores bajo carga; separación de armado ≤ 1 mm). Los largos de la rev. 9g
+  //    (110 / 120 / 155) quedan reemplazados (README_BX §13.13).
+  // Rev. 9h (Rev. I; decisión del mandante 25-11-2026): largo de cada ranura = el mínimo (múltiplo de 5, ≥ L_min = 2·ancho) con FU ≤ 1,00 para la
+  // demanda HORIZONTAL propia del elemento (el vertical q_v pasa por contacto directo plancha → canto de la PL8: la plancha queda apretada contra los
+  // atiesadores bajo carga). Demanda: modelo sándwich axisimétrico del núcleo (globalBending) + componente excéntrica de 1.er armónico M = φ·W·e.
+  const RAN = { w: 15, s0: 250, cHub: -7, gap: 1, Lmin: 30, paso: 5, FUobj: 1.0, Lalma: [30, 30, 45], kAlma: [2, 1, 1], Ltramo: [30, 55, 115], kTramo: [2, 1, 1] };
+  function j18Dem(P, R) {   // flujo de corte por nervio q(r) [N/mm] con e, y Q₁(r) [N/mm por unidad de circunferencia]
+    const n = 8000, Rd = P.D_top / 2, RL = Math.min(P.D_load / 2, Rd), Ri = R.Ri, hw = P.h_disc - P.t_top - P.t_bot, N = P.N_rib;
+    const qt = P.phi_d * R.W * 1e3 / (Math.PI * RL * RL), qd = R.Wd * 1e3 / (Math.PI * Rd * Rd), qb = R.ND * 1e3 / (Math.PI * (Rd * Rd - Ri * Ri));
+    const M = P.phi_d * R.W * 1e3 * P.e, I = Math.PI * (Rd ** 4 - Ri ** 4) / 4;
+    const p0 = (x) => (x >= Ri ? qb : 0) - (x <= RL ? qt : 0) - qd, p1 = (x) => (x >= Ri ? M * x / I : 0);
+    const r = new Float64Array(n), Q0 = new Float64Array(n), Q1 = new Float64Array(n), q = new Float64Array(n), q0 = new Float64Array(n);
+    let c0 = 0, c1 = 0;
+    for (let i = 0; i < n; i++) r[i] = 1e-6 + Rd * i / (n - 1);
+    for (let i = 0; i < n; i++) {
+      if (i > 0) { const a = r[i - 1], b = r[i]; c0 += 0.5 * (p0(a) * a + p0(b) * b) * (b - a); c1 += 0.5 * (p1(a) * a + p1(b) * b) * (b - a); if (a < RL && b >= RL) c1 -= qt * P.e * RL; }
+      Q0[i] = c0 / r[i]; Q1[i] = c1 / r[i]; q[i] = (Math.abs(Q0[i]) + Math.abs(Q1[i])) * 2 * Math.PI * r[i] / (N * hw); q0[i] = Math.abs(Q0[i]) * 2 * Math.PI * r[i] / (N * hw);
+    }
+    const idx = (x) => Math.max(0, Math.min(n - 1, Math.round(x / Rd * (n - 1))));
+    const integ = (a, b, f) => { let s = 0; for (let i = 1; i < n; i++) { if (r[i - 1] < a || r[i] > b) continue; s += 0.5 * (f[i] + f[i - 1]) * (r[i] - r[i - 1]); } return s; };
+    let qpk = 0, rpk = 0, q0pk = 0;
+    for (let i = 0; i < n; i++) if (r[i] >= P.D_hub / 2 && r[i] <= P.R_rib) { if (q[i] > qpk) { qpk = q[i]; rpk = r[i]; } q0pk = Math.max(q0pk, q0[i]); }
+    return { hw, N, M, I, Rd, qpk, rpk, q0pk, ribF: (a, b) => integ(a, b, q), Q1at: (x) => Math.abs(Q1[idx(x)]) };
+  }
+  function ranurasOf(P, R) {
     const t = P.t_top, w = RAN.w, N = Math.round(P.N_rib), rings = TT_.parseRings(P.rings), rh = P.D_hub / 2, tw = P.t_web, tr = P.t_rib;
     const kOk = (k) => (k >= 1 && N % k === 0 ? k : 1);
+    const capJ = Math.min(0.6 * P.FEXX / 2.0, 0.6 * Math.min(P.Fy, P.FEXX) / 1.5), D = R && R.W > 0 && R.Ri != null ? j18Dem(P, R) : null;
+    const pickL = (F, fuera, Lfb) => { if (!D) return Lfb; let L = RAN.Lmin; while (F / (tw * Math.max(1, L - fuera)) > RAN.FUobj * capJ + 1e-9 && L < 400) L += RAN.paso; return L; };
+    const rsA = [rh].concat(rings, [P.D_top / 2]);
     const almas = rings.map((r, i) => {
-      const L = RAN.Lalma[i] || RAN.Ltramo, k = kOk(RAN.kAlma[i] || 1), n = N / k, vano = 2 * Math.PI * r / N;
-      return { elemento: "Alma A" + (i + 1), r, n, L, cada_k_vanos: k, paso: 2 * Math.PI * r / n, a0_deg: 180 / N, paso_deg: 360 / n, trib: 2 * Math.PI * r / n, vano, curva: true,
-        libre_nervio: (vano - tr) / 2 - L / 2 };
+      const k = kOk(RAN.kAlma[i] || 1), n = N / k, vano = 2 * Math.PI * r / N, trib = 2 * Math.PI * r / n;
+      const faja = (r - rsA[i]) / 2 + (i + 1 === rings.length ? rsA[i + 2] - r : (rsA[i + 2] - r) / 2);
+      const qh = D ? D.Q1at(r) * faja / D.hw : null, F = D ? qh * trib : null, L = pickL(F, 0, RAN.Lalma[i] || RAN.Lmin);
+      return { elemento: "Alma A" + (i + 1), r, n, L, L_ef: L, cada_k_vanos: k, paso: 2 * Math.PI * r / n, a0_deg: 180 / N, paso_deg: 360 / n, trib, vano, curva: true,
+        faja, q_h: qh, F, fu: D ? F / (tw * L) / capJ : null, libre_nervio: (vano - tr) / 2 - L / 2 };
     });
     const rs = [rh].concat(rings), tramos = [];
     for (let i = 0; i + 1 < rs.length; i++) {
-      const L = RAN.Ltramo, s0 = Math.max(RAN.s0, 2 * L), a = rs[i], b = rs[i + 1], Lt = b - a, cW = tw / 2 + RAN.gap, c0 = i === 0 ? RAN.cHub : cW, c1 = cW;
+      const a = rs[i], b = rs[i + 1], Lt = b - a, cW = tw / 2 + RAN.gap, c0 = i === 0 ? RAN.cHub : cW, c1 = cW, k = kOk(RAN.kTramo[i] || 1);
+      const F = D ? D.ribF(a, b) * k : null, fuera = i === 0 ? Math.max(0, -c0) : 0;   // tramo 1: ranura desde R(cubo − 7); los 7 mm sobre el cubo no traspasan al nervio
+      const L = pickL(F, fuera, RAN.Ltramo[i] || RAN.Lmin), s0 = Math.max(RAN.s0, 2 * L);
       const m = Math.max(1, Math.floor(Lt / s0)), sp = (Lt - c0 - c1) / m, Li = Math.min(L, m > 1 ? sp - 1 : sp);
       const cen = Array.from({ length: m }, (_, j) => (i === 0 ? a + c0 + Li / 2 + j * sp : a + c0 + sp * (j + 0.5)));
-      const rIn = cen[0] - Li / 2, rOut = cen[m - 1] + Li / 2, k = kOk(RAN.kTramo[i] || 1);
-      tramos.push({ elemento: "Nervios, tramo " + (i + 1), r0: a, r1: b, largo_tramo: Lt, m, L: Li, centros: cen, r_int: rIn, r_ext: rOut, cada_k_nervios: k, n: m * N / k, trib: Lt / m * k,
+      const rIn = cen[0] - Li / 2, rOut = cen[m - 1] + Li / 2, Lef = Li - fuera;
+      tramos.push({ elemento: "Nervios, tramo " + (i + 1), r0: a, r1: b, largo_tramo: Lt, m, L: Li, L_ef: Lef, F: F != null ? F / m : null, fu: D ? F / m / (tw * Lef) / capJ : null, centros: cen, r_int: rIn, r_ext: rOut, cada_k_nervios: k, n: m * N / k, trib: Lt / m * k,
         sep_transversal: 2 * Math.PI * rIn / N * k, paso: m > 1 ? sp : null, libre_alma: Math.min(i === 0 ? Infinity : rIn - (a + tw / 2), b - tw / 2 - rOut) });
     }
     const all = almas.concat(tramos), Ls = all.map((q) => q.L);
@@ -1497,13 +1530,13 @@ const BX = (() => {
     const sepLong = lin.reduce((m, q) => (!m || q.L / q.paso > m.L / m.paso ? q : m), null);
     const lstL = all.map((q) => q.elemento.replace("Nervios, ", "") + " " + nf(q.L, 0)).join(", ");
     return { tipo: "soldadura de penetración en ranura: unión en T a través de ranura, sin respaldo, NO PRECALIFICADA (ancho " + w + " < t + 8 = " + (t + 8) + ", AISC 360-22 §J2.3b); WPS calificada por ensayo",
-      precalificada: false, ancho: w, ancho_precal_min: t + 8, holgura_lado: (w - tw) / 2, t_alma: tw, relleno: t, prof_ancho: t / w, L: RAN.Ltramo, L_min_usado: Math.min(...Ls), L_max_usado: Math.max(...Ls), L_por_elemento: lstL,
+      precalificada: false, ancho: w, ancho_precal_min: t + 8, holgura_lado: (w - tw) / 2, t_alma: tw, relleno: t, prof_ancho: t / w, L: Math.min(...Ls), L_min: RAN.Lmin, cap: capJ, demanda: D ? { q_pico: D.qpk, r_pico: D.rpk, q_pico_sin_e: D.q0pk, M_e: D.M / 1e6, h_w: D.hw } : null, L_min_usado: Math.min(...Ls), L_max_usado: Math.max(...Ls), L_por_elemento: lstL,
       extremos: "semicirculares (R = ancho/2 = " + nf(w / 2, 1) + ")", paso_objetivo: RAN.s0, sep_long: sepLong, paso_min: Math.min(...lin.map((q) => q.paso)), sep_transversal_min: 4 * w, sep_transversal: Math.min(...tramos.map((q) => q.sep_transversal)),
       libre_nervio_min: Math.min(...almas.map((q) => q.libre_nervio)), libre_alma_min: Math.min(...tramos.map((q) => q.libre_alma)), filete_J15: P.w_web,
       almas, tramos, n_total: all.reduce((x, q) => x + q.n, 0), largo_total: all.reduce((x, q) => x + q.n * q.L, 0),
       respaldo: "sin respaldo (rev. 9g): ranura de " + w + " centrada en el canto del alma o nervio de " + tw + " (holgura " + nf((w - tw) / 2, 1) + " por lado); relleno fundido al canto y a las dos paredes, esmerilado a ras",
-      ejecucion: "en taller, desde arriba (posición plana), con la plancha superior presentada y apretada contra los cantos (separación ≤ 1 mm); ranura llena por completo y fundida al canto superior del alma o nervio y a las dos paredes; esmerilada a ras",
-      calificacion: "WPS calificada por ensayo (AWS D1.1/D1.1M:2020 cláusula 6, PQR): probeta de taller con la misma geometría (plancha de " + t + " con ranura " + w + " × 120 sobre un alma de " + tw + ", sin respaldo), seccionada transversalmente y macroatacada: fusión completa en el canto del alma y en las dos paredes, sin falta de fusión en las esquinas de la raíz",
+      ejecucion: "en taller, desde arriba (posición plana), con la plancha superior presentada y apretada contra los cantos (separación ≤ 1 mm OBLIGATORIA: la carga vertical pasa por contacto directo y las ranuras solo traspasan el corte horizontal; rev. 9h); ranura llena por completo y fundida al canto superior del alma o nervio y a las dos paredes; esmerilada a ras",
+      calificacion: "WPS calificada por ensayo (AWS D1.1/D1.1M:2020 cláusula 6, PQR): probeta de taller con la misma geometría (plancha de " + t + " con ranura " + w + " × " + RAN.Lmin + " (el largo mínimo usado) sobre un alma de " + tw + ", sin respaldo), seccionada transversalmente y macroatacada: fusión completa en el canto del alma y en las dos paredes, sin falta de fusión en las esquinas de la raíz",
       END: "VT 100 % · MT 100 % (UT no practicable en esta geometría)", nivel: "ISO 5817-C",
       norma: "AISC 360-22 §J2.3b (límites de la ranura precalificada: no se cumplen, ancho < t + 8), §J2.4 (Tabla J2.5), §J4.2; AWS D1.1/D1.1M:2020 cláusula 6 (calificación de la WPS por ensayo)" };
   }
@@ -1537,12 +1570,12 @@ const BX = (() => {
   //    de la CJP J19 (AWS D1.1:2020 Figura 5.1, B-U4a: bisel simple 45° en el canto de la PLANCHA, cortado a plasma/oxicorte con bisel; R = 6, f = 0).
   //  - Diámetro: D ≤ 2·(R_cubo − margen − R) (respaldo del cubo ≥ margen mm más allá de la raíz) y D ≥ Ø_rebaje + 2·borde (pared del canto al asiento
   //    de la tapa). Por defecto el menor (bx_D_disco = 280); fuera de ese rango la fila geométrica falla.
-  //  - Ninguna ranura J18 en el disco: la del tramo 1 (desde R148 en la cara superior; rev. 9g: 15 × 120) se abre en el bisel de J19 y se rellena en la
+  //  - Ninguna ranura J18 en el disco: la del tramo 1 (desde R148 en la cara superior; rev. 9h: 15 × 30) se abre en el bisel de J19 y se rellena en la
   //    misma secuencia; la raíz de J19 (R_disco … R_disco + R) queda sobre el cubo y fuera de la ranura.
   const DCEN = { D_def: 280, alfa: 45, R: 6, f: 0, margen: 6, borde: 20, sobremedida: 3, cb_t: 8, sectores: 4, tol_agujero: 1.5, sm_lado: 1, sm_fondo: 0.5 };
-  function discoCentralOf(P, Hkn, zb) {
+  function discoCentralOf(P, Hkn, zb, R) {
     if (!meOn(P)) return null;
-    const RG = ranurasOf(P), t = P.t_top, rh = P.D_hub / 2, rb = (P.D_piv + 30) / 2, A = DCEN, tanA = Math.tan(A.alfa * Math.PI / 180), rho = 7.85e-6;
+    const RG = ranurasOf(P, R), t = P.t_top, rh = P.D_hub / 2, rb = (P.D_piv + 30) / 2, A = DCEN, tanA = Math.tan(A.alfa * Math.PI / 180), rho = 7.85e-6;
     const rHole = (P.D_piv + 80) / 2, rCb = (P.D_piv + 120) / 2;
     const D_min = 2 * (rCb + A.borde), D_max = 2 * (rh - A.margen - A.R), D = P.bx_D_disco > 0 ? P.bx_D_disco : A.D_def, Rd = D / 2;
     const rRaiz = Rd + A.R, rSup = rRaiz + t * tanA, margen = rh - rRaiz, borde = Rd - rCb;
@@ -1576,7 +1609,7 @@ const BX = (() => {
         razon: "la CJP J19 queda a " + nf(borde, 0) + " mm del asiento Ø" + (2 * rCb) + " (R" + nf(Rd, 0) + " − R" + nf(rCb, 0) + "): su contracción radial y el giro del canto pueden mover el asiento y su fondo más que el juego de la tapa (1 mm por lado) y la tolerancia de la profundidad (+0,2/0); no se fija a priori un valor de distorsión, por eso el asiento se termina después de soldar y aliviar, referido al agujero Ø" + (2 * rHole) + " (centrado en el cubo)",
         alternativa: "variante, si el mandante la prefiere: tornear el disco completo antes de soldar y verificar el asiento después del alivio (Ø" + (2 * rCb) + " H12, profundidad " + A.cb_t + " +0,2/0, fondo paralelo a A 0,1); si queda fuera, refrentar o mandrinar en sitio con el mismo cabezal portátil" },
       secuencia: ["1) Cortar el agujero central de la plancha superior con bisel 45° (plasma u oxicorte con cabezal de bisel): Ø" + nf(2 * rRaiz, 0) + " ±" + nf(A.tol_agujero, 1) + " en la cara inferior, Ø" + nf(2 * rSup, 0) + " en la superior, 45° +10°/−0°; esmerilar (metal brillante 25 mm). El recorte es el tocho del disco.",
-        "2) Cerrar la mesa con la plancha superior sobre el cubo, las almas y los nervios (ranuras J18 de " + RG.ancho + " sin respaldo, Rev. H); soldar J18 de las ranuras, salvo las " + tr1.n + " del tramo 1.",
+        "2) Cerrar la mesa con la plancha superior sobre el cubo, las almas y los nervios (ranuras J18 de " + RG.ancho + " × L sin respaldo, L por elemento: tabla de MES-001); soldar J18 de las ranuras, salvo las " + tr1.n + " del tramo 1.",
         "3) Presentar el disco sobre la cara del cubo, centrado (eje del Ø" + (2 * rHole) + " a Ø1 del eje del cubo: mandril en el agujero Ø" + (P.D_piv + 30) + "), abertura de raíz R = " + A.R + " en todo el contorno; puntear en 8 puntos opuestos.",
         "4) Soldar J19 en " + A.sectores + " sectores opuestos (paso peregrino), plana desde arriba, con la raíz fundida en la cara del cubo; a continuación, las " + tr1.n + " ranuras J18 del tramo 1 desde su entrada en el bisel de J19; esmerilar J19 a ras.",
         "5) Soldar J17b (filete z" + (zb || "") + " en el agujero Ø" + (2 * rHole) + " del disco, sobre el cubo, desde arriba).",
@@ -1584,26 +1617,38 @@ const BX = (() => {
   }
   function weldRows(P, R, checks) {
     const out = []; if (!meOn(P)) return out;
-    const at = (g, re) => checks.find((q) => q.grp === g && re.test(q.name)), RG = ranurasOf(P), Nd = P.Nd, FwA = 0.6 * P.FEXX / 2.0, FvW = 0.6 * Math.min(P.Fy, P.FEXX) / 1.5;
+    const at = (g, re) => checks.find((q) => q.grp === g && re.test(q.name)), RG = ranurasOf(P, R), Nd = P.Nd, FwA = 0.6 * P.FEXX / 2.0, FvW = 0.6 * Math.min(P.Fy, P.FEXX) / 1.5;
     const cW = at("Mesa", /^Soldadura alma\/nervio–plancha \(2 filetes\)/), cT = at("Mesa", /^Corte en nervios radiales/), cV = at("Mesa", /^Fluencia local de almas/), cMin = at("Soldaduras", /^Filete mínimo almas\/nervios–planchas/);
     const all = RG.almas.concat(RG.tramos), REFJ = RG.norma;
     if (cW) cW.name += " [TT300-BX rev. 9c: filetes J14/J15 solo a la plancha inferior y al cubo; la plancha superior va por las ranuras J18, filas BX siguientes]";
-    if (cW && cT && cV) {   // rev. 9g: J18 = unión en T a través de ranura 15 × L sin respaldo (no precalificada); una fila de traspaso por elemento (L propio)
-      const qh = cT.dem * P.t_rib, qv = cV.dem * Math.min(P.t_web, P.t_rib), q = Math.hypot(qh, qv), capJ = Math.min(FwA, FvW), w = RG.ancho, t = P.t_top;
-      const REFT = "AISC 360-22 §J2.4 (metal base y de aporte en el plano de fusión), §J4.2 (fluencia por corte); J18 no precalificada (rev. 9g): resistencia sujeta a la WPS calificada por ensayo";
-      all.forEach((e) => out.push({ after: cW, row: { kind: "fu", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras de cierre J18 (unión en T a través de ranura " + w + " × L, sin respaldo, no precalificada): traspaso del flujo de corte al canto del alma o nervio, " + e.elemento + " (L = " + nf(e.L, 0) + ", " + e.n + " ranuras" + (e.cada_k_nervios > 1 ? ", cada " + e.cada_k_nervios + " nervios" : e.cada_k_vanos > 1 ? ", en vanos alternados" : "") + ")",
-        formula: "τ = q_h·l_trib/(t_alma·L) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50); q_h = τ_nervio·t = " + nf(qh, 0) + " N/mm (fila del núcleo), l_trib = " + nf(e.trib, 0) + " mm, L = " + nf(e.L, 0) + " mm, t_alma = " + P.t_web + " mm (el relleno funde en el canto superior del alma o nervio: área eficaz hacia el alma t × L)",
-        dem: qh * e.trib / (P.t_web * e.L), cap: capJ, unit: "MPa", ref: REFT } }));
-      const g1 = all.reduce((m, e) => { const f = q * e.trib / (2 * t * (e.L - w)); return !m || f > m.f ? { e, f } : m; }, null);
+    if (cW && cT && cV && RG.demanda) {   // rev. 9h (Rev. I): J18 = unión en T a través de ranura 15 × L sin respaldo (no precalificada); demanda horizontal propia de cada elemento, L mínimo con FU ≤ 1
+      const DM = RG.demanda, capJ = RG.cap, w = RG.ancho, t = P.t_top, qv = cV.dem * Math.min(P.t_web, P.t_rib);
+      const REFT = "AISC 360-22 §J2.4 (metal base y de aporte en el plano de fusión, Tabla J2.5), §J4.2 (fluencia por corte); ASME BTH-1-2020 §3-3.4; J18 no precalificada: resistencia sujeta a la WPS calificada por ensayo";
+      const BAS = "flujo de corte del modelo sándwich axisimétrico del núcleo (corte en los " + P.N_rib + " nervios, h_w = " + nf(DM.h_w, 0) + " mm) más la componente excéntrica de 1.er armónico M = φ·W·e = " + nf(DM.M_e, 0) + " kN·m (reacción lineal M·r/I sobre el anillo de apoyo), tomada también solo por los nervios";
+      all.forEach((e) => {
+        const alma = /^Alma/.test(e.elemento);
+        out.push({ after: cW, row: { kind: "fu", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras de cierre J18 (unión en T a través de ranura " + w + " × L, sin respaldo, no precalificada): traspaso del corte horizontal al canto del alma o nervio, " + e.elemento + " (L = " + nf(e.L, 0) + ", " + e.n + " ranuras" + (e.cada_k_nervios > 1 ? ", cada " + e.cada_k_nervios + " nervios" : e.cada_k_vanos > 1 ? ", en vanos alternados" : "") + ")",
+          formula: "τ = F/(t_alma·L_ef) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50); " + (alma ? "F = q_h·l_trib, q_h = |Q₁(R" + nf(e.r, 0) + ")|·faja/h_w = " + nf(e.q_h, 1) + " N/mm (corte tangencial de la componente excéntrica; faja radial " + nf(e.faja, 0) + " mm), l_trib = " + nf(e.trib, 0) + " mm"
+            : "F = ∫q(r)·dr en R" + nf(e.r0, 0) + "–R" + nf(e.r1, 0) + (e.cada_k_nervios > 1 ? " × " + e.cada_k_nervios + " nervios" : "") + " (" + BAS + ")") + " = " + nf(e.F / 1e3, 1) + " kN; L = " + nf(e.L, 0) + " mm (el menor múltiplo de " + RAN.paso + " ≥ " + RAN.Lmin + " con FU ≤ 1,00)" + (e.L_ef !== e.L ? ", L_ef = " + nf(e.L_ef, 0) + " mm sobre el nervio (el resto funde en la cara del cubo)" : "") + ", t_alma = " + P.t_web + " mm; el vertical q_v pasa por contacto (fila informativa)",
+          dem: e.F / (P.t_web * e.L_ef), cap: capJ, unit: "MPa", ref: REFT } });
+      });
+      const g1 = all.reduce((m, e) => { const f = e.F / (2 * t * (e.L - w)); return !m || f > m.f ? { e, f } : m; }, null);
       out.push({ after: cW, row: { kind: "fu", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras de cierre J18: corte en las caras de fusión con la plancha superior (2 paredes × " + t + " × (L − ancho)), " + g1.e.elemento + " (L = " + nf(g1.e.L, 0) + ")",
-        formula: "τ = √(q_h² + q_v²)·l_trib/(2·t·(L − w)) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50); q_h = " + nf(qh, 0) + ", q_v = " + nf(qv, 0) + " N/mm (filas del núcleo), l_trib = " + nf(g1.e.trib, 0) + " mm; área eficaz = 2 paredes × t × (L − w) = 2 × " + t + " × " + nf(g1.e.L - w, 0) + " = " + nf(2 * t * (g1.e.L - w), 0) + " mm² (solo los tramos rectos de las paredes; los extremos semicirculares no se cuentan)",
+        formula: "τ = F/(2·t·(L − w)) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50); F = " + nf(g1.e.F / 1e3, 1) + " kN (horizontal del elemento); área eficaz = 2 × " + t + " × " + nf(g1.e.L - w, 0) + " = " + nf(2 * t * (g1.e.L - w), 0) + " mm² (solo los tramos rectos de las paredes; los extremos semicirculares no se cuentan)",
         dem: g1.f, cap: capJ, unit: "MPa", ref: REFT } });
+      out.push({ after: cW, row: { kind: "info", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras J18: la carga vertical q_v pasa por contacto directo de la plancha superior sobre el canto de las almas y nervios (decisión del mandante 25-11-2026; informativa)",
+        formula: "q_v = " + nf(qv, 0) + " N/mm (fila del núcleo «Fluencia local de almas») en compresión: la plancha cargada queda siempre apretada contra los atiesadores; separación de armado ≤ 1 mm OBLIGATORIA en todo el canto (control antes de soldar J18), para que el contacto exista; las ranuras solo traspasan el corte horizontal",
+        dem: qv, unit: "N/mm", ref: "Decisión del mandante 25-11-2026 (README_BX §13.13)" } });
+      out.push({ after: cW, row: { kind: "info", grp: "Mesa", sys: "est", bx: true, name: "BX · Ranuras J18: flujo de corte máximo en los nervios con la excentricidad e de la carga (la fila del núcleo «Corte en nervios radiales» usa el modelo axisimétrico, sin e; informativa)",
+        formula: "q_máx = " + nf(DM.q_pico, 0) + " N/mm en R" + nf(DM.r_pico, 0) + " (con e = " + P.e + " mm) frente a " + nf(DM.q_pico_sin_e, 0) + " N/mm sin e; las filas J18 de traspaso usan el flujo con e",
+        dem: DM.q_pico, cap: DM.q_pico_sin_e, unit: "N/mm", ref: "Modelo sándwich axisimétrico del núcleo (globalBending) + 1.er armónico de M = φ·W·e" } });
     }
     if (cMin) {
       const REFG = "Rev. 9g (decisión del mandante 24-11-2026): J18 unión en T a través de ranura, no precalificada; buena práctica de AISC 360-22 §J2.3b";
       const geo = (name, formula, dem, cap, kind, ref) => out.push({ after: cMin, row: { kind: kind || "geo", grp: "Soldaduras", sys: "est", bx: true, name: "BX · Ranuras J18: " + name, formula, dem, cap, unit: "mm", ref: ref || REFG } });
       geo("ancho " + RG.ancho + " < t + 8 = " + RG.ancho_precal_min + " (AISC 360-22 §J2.3b): NO es soldadura de ranura precalificada; unión en T a través de ranura con WPS calificada por ensayo (informativa)",
         "t + 8 = " + RG.ancho_precal_min + " frente al ancho = " + RG.ancho + " (holgura " + nf(RG.holgura_lado, 1) + " por lado sobre el alma de " + RG.t_alma + "); " + RG.calificacion + "; END " + RG.END + " (FU informativa = ancho/(t + 8))", RG.ancho, RG.ancho_precal_min, "info", "AISC 360-22 §J2.3b; AWS D1.1/D1.1M:2020 cláusula 6");
+      geo("largo mínimo L ≥ 2·ancho = " + RG.L_min + " (criterio del proyecto: más corta, la ranura " + RG.ancho + " × " + P.t_top + " es un agujero sin acceso de la antorcha para fundir las paredes extremas y el canto)", "L_mín usado = " + nf(RG.L_min_usado, 0) + " ≥ " + RG.L_min + "; la probeta de calificación de la WPS se hace con L = " + RG.L_min, RG.L_min, RG.L_min_usado, "geo", "Criterio del proyecto (rev. 9h); AWS D1.1/D1.1M:2020 cláusula 6");
       geo("acceso: relación profundidad/ancho de la ranura (informativa)", "t/ancho = " + P.t_top + "/" + RG.ancho + " = " + nf(RG.prof_ancho, 2) + " (la probeta de calificación reproduce esta relación)", RG.prof_ancho, null, "info");
       const SL = RG.sep_long;
       geo("separación longitudinal entre centros en una línea (≥ 2·L del elemento; buena práctica)", "2·L = 2 × " + nf(SL.L, 0) + " = " + nf(2 * SL.L, 0) + " ≤ paso = " + nf(SL.paso, 0) + " (" + SL.elemento + "; las demás líneas con menor relación)", 2 * SL.L, SL.paso);
@@ -1622,7 +1667,7 @@ const BX = (() => {
         formula: "f = H/(π·d·0,707·z) ≤ 0,60·F_EXX/(1,20·N_d); H = " + nf(H, 1) + " kN (completa en cada plancha), d = " + nf(2 * B.r, 0) + " mm", dem: B.q / (0.7071 * B.z), cap: CB.Fw, unit: "MPa", ref: B.norma } });
       out.push({ after: cB, row: { kind: "geo", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión cubo–plancha superior J17b: tamaño del filete (mínimo por la parte más delgada, máximo t − 2 en el borde del agujero) y holgura a la tapa retenedora Ø" + nf(2 * B.tapa_R, 0),
         formula: "z_mín = " + B.z_min + " ≤ z = " + B.z + " ≤ " + B.z_max + "; holgura = r_agujero − z + 3 − R_tapa = " + nf(B.holgura_tapa, 1) + " ≥ 2 mm", dem: Math.max(B.z_min / B.z, B.z / B.z_max, 2 / Math.max(B.holgura_tapa, 1e-6)), cap: 1, unit: "–", ref: "AISC 360-22 Tabla J2.4, §J2.2b; geometría (cad/geom.py: tapa Ø D_piv + 60, pivote 3 mm sobre la cara)" } });
-      const DC = discoCentralOf(P, H, B.z);
+      const DC = discoCentralOf(P, H, B.z, R);
       if (DC && DC.ok) {   // rev. 9f: disco central torneado Ø < 300 sobre la cara del cubo, soldado a la plancha superior con la CJP J19 (respaldo = cubo)
         const J = DC.junta, C = DC.cubo, REFD = "Rev. 9f: disco central torneado sobre el cubo (pedido del mandante 23-11-2026; valores por defecto a confirmar, README_BX §13.10)";
         out.push({ after: cB, row: { kind: "fu", grp: "Pivote", sys: "est", bx: true, name: "BX · Unión disco central–plancha superior J19 (CJP B-U4a: disco Ø" + nf(DC.D, 0) + " a escuadra, bisel " + J.alfa + "° en la plancha, R = " + J.R + ", respaldo = cara superior del cubo): reacción del pivote a calado (cubo → J17b → disco → J19 → plancha)",
@@ -1650,8 +1695,8 @@ const BX = (() => {
   function soldMesaOf(P, A) {
     if (!meOn(P)) return null;
     const cB = A && A.checks ? A.checks.find((q) => q.grp === "Pivote" && /^Aplastamiento del buje en el cubo de la mesa/.test(q.name)) : null;
-    const H = cB ? cB.dem * (P.D_piv + 30) * P.L_bush / 1e3 : null, RG = ranurasOf(P); 
-    const CB = H != null ? cuboOf(P, H, A.R) : null, DC = discoCentralOf(P, H, CB ? CB.J17b.z : null);
+    const H = cB ? cB.dem * (P.D_piv + 30) * P.L_bush / 1e3 : null, RG = ranurasOf(P, A && A.R); 
+    const CB = H != null ? cuboOf(P, H, A.R) : null, DC = discoCentralOf(P, H, CB ? CB.J17b.z : null, A && A.R);
     return { ranuras: RG, cubo: CB, disco_central: DC,
       almas_nervios: "filetes J14 (almas) y J15 (nervios) a ambos lados SOLO contra la plancha inferior y el cubo/almas (extremos); la plancha superior se une por las ranuras J18 (las celdas quedan cerradas)",
       secuencia: ["1) Plancha inferior planeada sobre la mesa de armado; presentar cubo, almas y nervios con plantilla.", "2) Soldar J17a (PJP + filete, desde arriba), J16 (empalmes de las almas), J14 y J15 (filetes a la plancha inferior y extremos de los nervios contra el cubo y las almas).",

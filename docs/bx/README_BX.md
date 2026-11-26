@@ -685,6 +685,7 @@ que hay cambios (aunque una lámina no cambie). La emisión del cálculo rev. 9d
   | F | 23-11-2026 | rev. 9f | Disco central Ø280 sobre el cubo (respaldo = cubo); se anulan el aro de respaldo y la muesca de los nervios |
   | G | 24-11-2026 | rev. 9f | Cubo MES-011: J17b en el agujero del disco central MES-016 y cara superior del cubo como respaldo de J19 (solo textos de lámina; sin cambios de cálculo) |
   | H | 24-11-2026 | rev. 9g | Ranuras J18 de 15 × L sin respaldo (no precalificadas, WPS por ensayo; L 110 / 120 / 155 por elemento); se anulan las tiras MES-015, J18r y los destijeres superiores de los nervios; ranuras dibujadas en MES-001 |
+  | I | 25-11-2026 | rev. 9h | Ranuras J18: largo mínimo por elemento con FU ≤ 1 para el corte horizontal propio, con la excentricidad e (A1 y A2 30, A3 45; nervios 30 / 55 / 115; 70 ranuras, 3850 mm); el vertical pasa por contacto |
 
 - **Dónde se usa** (`cad/generar_paquete.py` llama a `geom.set_rev(bx.revisiones[-1].letra)` en cuanto detecta el bloque «bx»): códigos de lámina y nombres de
   archivo (`planos/TT300C-XXX-NNN-D.pdf/.dxf`), códigos de pieza del despiece (`TT300C-ACC-016-7-D`, misma letra que la lámina), campo REV. del cajetín,
@@ -878,6 +879,9 @@ Todo el paquete sube a Rev. G (§13.8).
 
 ### 13.12 Revisión 9g (24-11-2026, emisión Rev. H): ranuras J18 de 15 × L sin respaldo (decisión del mandante)
 
+> **Largos y demanda reemplazados por la rev. 9h (Rev. I, §13.13):** los largos L = 110 / 120 / 155 y la demanda única q_h = 425 N/mm de esta sección
+> ya no rigen. El ancho 15, la junta sin respaldo no precalificada, la WPS-P31, las posiciones y las cantidades siguen vigentes.
+
 **Decisión del mandante (24-11-2026).** Las ranuras de cierre J18 de la plancha superior (MES-001, PL22) pasan a **15 mm de ancho**, extremos
 semicirculares R7,5, pasantes, centradas en el canto superior del alma o nervio de 8 (holgura 3,5 por lado) y **SIN respaldo**: se sueldan en taller
 desde arriba, con la ranura llena por completo y fundida al canto del PL8 y a las dos paredes, y se esmerilan a ras. Las almas y los nervios siguen en
@@ -942,3 +946,42 @@ con ranura: los que empiezan en 0° (12,857° + 51,429°·k); (3) holgura de arm
 tramo 1, la fila de traspaso usa L = 120 aunque 7 mm de la ranura quedan sobre la cara del cubo (113 mm sobre el nervio).
 
 Todo el paquete sube a Rev. H (revisión del cálculo 9g, §13.8).
+
+### 13.13 Revisión 9h (25-11-2026, emisión Rev. I): largo mínimo de las ranuras J18 por elemento (decisión del mandante)
+
+**Decisión del mandante (25-11-2026), textual:** «considera el mínimo de largo de ranura posible, incluso si se puede menos de 60mm. Lo importante es
+que el FU tiene que estar cercano a 1. No seas conservador, recuerda que la placa estará siempre presionada contra los atiesadores cuando esté cargada.»
+
+**Hipótesis.**
+1. La carga vertical q_v pasa por **contacto directo** de la plancha superior sobre el canto de las almas y nervios (la plancha cargada queda apretada
+   contra los atiesadores). Condición obligatoria: separación de armado ≤ 1 mm en todo el canto, controlada antes de soldar J18. Las ranuras solo
+   traspasan el **corte horizontal**.
+2. **Nervios:** flujo de corte del modelo sándwich axisimétrico del núcleo (`globalBending`: q_t, q_d, q_b, Q₀(r)) **más** la componente excéntrica de
+   1.er armónico de la carga, M = φ·W·e = 1,1 · 2452 · 0,150 = 405 kN·m, con reacción lineal p₁ = M·r/I sobre el anillo de apoyo
+   (I = π(R_d⁴ − R_i⁴)/4) y la línea −q_t·e·R_L en el borde de la carga; ambas tomadas solo por los 14 nervios (h_w = 166 mm):
+   q(r) = (|Q₀| + |Q₁|)·2πr/(N·h_w). Fuerza por ranura = ∫q·dr en el tramo (tramo 1: una ranura cada 2 nervios lleva la de los 2).
+   El flujo pico con e es 662 N/mm en R800, frente a 425 N/mm sin e (la fila del núcleo «Corte en nervios radiales» no incluye e; fila informativa BX).
+3. **Almas:** sin flujo horizontal en el modelo axisimétrico; se asigna el corte tangencial de la componente excéntrica,
+   q_h = |Q₁(R)|·faja/h_w (faja radial tributaria del alma), F = q_h·l_trib.
+4. **Verificación:** τ = F/(t_alma·L_ef) ≤ mín(0,60·F_EXX/2,00; 0,60·F_y/1,50) = 138 MPa (ASME BTH-1-2020 §3-3.4; AISC 360-22 Tabla J2.5).
+   L = el menor múltiplo de 5 con FU ≤ 1,00, con **L ≥ L_mín = 2·ancho = 30** (criterio del proyecto: más corta, la ranura 15 × 22 es un agujero sin
+   acceso de la antorcha para fundir las paredes extremas y el canto). La probeta de calificación de la WPS-P31 se hace con L = 30.
+
+**Resultado** (posiciones y cantidades de la Rev. H sin cambios):
+
+| Elemento | Ranuras | L Rev. H | L Rev. I | F [kN] | FU |
+|---|---|---|---|---|---|
+| Alma A1 (R300) | 7 | 110 | 30 | 5,0 | 0,151 |
+| Alma A2 (R590) | 14 | 120 | 30 | 25,5 | 0,769 |
+| Alma A3 (R840) | 14 | 155 | 45 | 45,9 | 0,924 |
+| Nervios, tramo 1 (cada 2 nervios) | 7 | 120 | 30 (L_ef 23 sobre el nervio) | 17,2 | 0,675 |
+| Nervios, tramo 2 | 14 | 120 | 55 | 56,3 | 0,927 |
+| Nervios, tramo 3 | 14 | 120 | 115 | 124,8 | 0,983 |
+| **Total** | **70** | 8820 mm | **3850 mm** | | |
+
+- Tramo 1: la ranura sigue empezando en R148 (dentro del bisel de J19, fuera de su raíz R146); 7 mm quedan sobre el cubo, así que la verificación usa
+  L_ef = L − 7 = 23 mm sobre el nervio.
+- Corte en las caras de fusión, τ = F/(2·t·(L − w)): FU 0,280 (A2, L = 30). Separación longitudinal ≥ 2L y transversal ≥ 4·ancho: cumplen con holgura.
+- Las ranuras de las almas quedan a ≥ 48 mm de la cara del nervio (A1; antes 8,3 mm).
+- A1, A2 y el tramo 1 quedan en el mínimo L = 30 (su demanda pediría menos).
+

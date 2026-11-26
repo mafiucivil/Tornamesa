@@ -606,11 +606,11 @@ def _welds_mesa_bx(ctx, add, add_n, SM, W_):
                  tipo=f"Ranura {fm(Wd, 0)} × L (L = {Ltx} según el elemento, tabla de MES-001), extremos semicirculares R{fm(Wd / 2, 1)}, centrada en el canto del alma o nervio de {fm(RG['t_alma'], 0)} ({fm(hg_, 1)} por lado), sin respaldo; relleno completo {fm(fl, 0)} fundido al canto y a las dos paredes, esmerilado a ras ({n} ranuras)",
                  prep=f"Ranura pasante de {fm(Wd, 0)} (< t + 8 = {fm(g.tt + 8, 0)}: no precalificada) cortada antes de montar (plasma, ISO 9013 clase 3), eje sobre el eje del alma o nervio ±1; sin respaldo; paredes y canto a metal brillante",
                  no_backing=True, backing=None, backing_txt=None,
-                 len_total=float(RG["largo_total"]), size_txt=f"c{fm(Wd, 0)}", len_txt=f"{n} × L ({Ltx})", garganta=f"penetración en ranura {fm(Wd, 0)} × L, relleno {fm(fl, 0)} (fusión al canto t = {fm(RG['t_alma'], 0)} y a 2 paredes de {fm(fl, 0)})", cateto="—",
-                 origen="núcleo BX (bx.mesa.soldaduras.ranuras; rev. 9g: unión en T a través de ranura, no precalificada)", t_pre=float(g.tt), t=fl, nivel=RG.get("nivel", "ISO 5817-C"), end="VT 100 % · MT 100 %",
+                 len_total=float(RG["largo_total"]), size_txt=f"c{fm(Wd, 0)}", len_txt=f"{n} × L (tabla)", garganta=f"penetración en ranura {fm(Wd, 0)} × L, relleno {fm(fl, 0)} (fusión al canto t = {fm(RG['t_alma'], 0)} y a 2 paredes de {fm(fl, 0)})", cateto="—",
+                 origen="núcleo BX (bx.mesa.soldaduras.ranuras; rev. 9g: unión en T a través de ranura, no precalificada; rev. 9h: L mínimo por elemento con FU ≤ 1)", t_pre=float(g.tt), t=fl, nivel=RG.get("nivel", "ISO 5817-C"), end="VT 100 % · MT 100 %",
                  nota=f"Ranuras no modeladas en 3D; dibujadas en la planta de {cS} con su tabla (L por elemento). {RG.get('ejecucion', '')}. {RG.get('calificacion', '')}; UT no practicable"
                  + (f". Rev. 9f: {DCr_['ranura_tramo1']['nota']}" if DCr_.get("ranura_tramo1") else ""),
-                 slot=dict(w=Wd, L=float(RG["L"]), t=float(g.tt), pitch=float(RG["paso_objetivo"]), tw=float(P["t_web"]), sin_respaldo=True, holgura=hg_, L_txt=Ltx),
+                 slot=dict(w=Wd, L=float(RG.get("L_max_usado") or RG["L"]), t=float(g.tt), pitch=float(RG["paso_objetivo"]), tw=float(P["t_web"]), sin_respaldo=True, holgura=hg_, L_txt=Ltx),
                  fam_txt=(f"Unión en T a través de ranura {fm(Wd, 0)} × L sin respaldo (penetración en ranura, relleno completo {fm(fl, 0)}, a ras), plana; NO PRECALIFICADA (ancho < t + 8): "
                           "CALIFICAR POR ENSAYO (cl. 6, PQR; probeta de la misma geometría con macroataque)"),
                  pasadas_txt=f"{max(2, math.ceil(fl / 4.0))} capas (relleno completo)", wps_ensayo=True, wps_al_final=True)

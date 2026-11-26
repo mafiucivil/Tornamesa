@@ -438,7 +438,7 @@ test("BX: análisis con FEA (mesa, flexión global, izaje con el portador) y esc
   A.checks.filter((c) => c.st === "fail").forEach((c) => assert.fail("con FEA, falla: " + c.grp + " | " + c.name + " FU " + c.fu));   // rev. 7: todo cumple
   assert.equal(A.verdict.estructura, true);
   [[/^Plancha superior: global \+ local/, 0.597], [/^Plancha inferior: global \+ local/, 0.401]]   /* rev. 9: 250 t (rev. 7–8: 0,692 / 0,465) */.forEach(([re, v]) => near(A.checks.find((c) => re.test(c.name)).fu, v, 0.006, String(re)));
-  A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= (/^BX · Ranuras de cierre J18/.test(c.name) ? 0.95 : 0.9) + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));   // rev. 9g: J18 con FU ≤ 0,95 (decisión del mandante)
+  A.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && isFinite(c.fu)).forEach((c) => assert.ok(c.fu <= (/^BX · Ranuras de cierre J18/.test(c.name) ? 1.0 : 0.9) + 1e-9, "mesa A36: " + c.name + " FU " + c.fu));   // rev. 9h: J18 con FU ≤ 1,00 y L mínimo (decisión del mandante 25-11-2026)
   // rev. 7c: la plancha entera (t_pr = t_top = t_bot) no cambia la FEA de la mesa: mismas FU con disco + anillo (bx_mesa_entera = 0)
   const A1 = BX.analyze(Object.assign({}, P0, { bx_mesa_entera: 0 })), fm = (X) => X.checks.filter((c) => /^Mesa/.test(c.grp) && c.kind === "fu" && !c.bx).map((c) => c.name.replace(/ \[TT300-BX rev\. 9c:[^\]]*\]$/, "") + "|" + c.fu).join("\n");   // rev. 9c: sin las filas BX de las ranuras J18
   assert.equal(fm(A1), fm(A)); assert.equal(A1.verdict.fuMax, A.verdict.fuMax); assert.equal(A.verdict.estado_global, "CUMPLE");   // rev. 9b: p_ret 150 bar (README §13.6)
@@ -459,23 +459,26 @@ test("BX rev. 9g: soldaduras de la mesa cerrada (J14/J15 solo abajo, J18 unión 
   assert.equal(RG.ancho, 15); assert.equal(RG.precalificada, false); assert.equal(RG.ancho_precal_min, P0.t_top + 8); assert.ok(RG.ancho < RG.ancho_precal_min);
   assert.equal(RG.holgura_lado, (15 - P0.t_web) / 2); assert.equal(RG.relleno, P0.t_top); assert.ok(!("tiras" in RG), "sin tiras de respaldo MES-015");
   assert.match(RG.tipo, /NO PRECALIFICADA/); assert.match(RG.calificacion, /cláusula 6/); assert.match(RG.calificacion, /macroatacada/); assert.match(RG.END, /MT 100 %/);
-  // largo y cantidad por elemento: A1 7 × 110 (vanos alternados), A2 14 × 120, A3 14 × 155, tramo 1 7 × 120 desde R148, tramos 2/3 14 × 120
-  assert.deepEqual(RG.almas.map((a) => [a.n, a.L, a.cada_k_vanos]), [[7, 110, 2], [14, 120, 1], [14, 155, 1]]);
-  assert.deepEqual(RG.tramos.map((q) => [q.n, q.L, q.cada_k_nervios]), [[7, 120, 2], [14, 120, 1], [14, 120, 1]]);
-  assert.equal(RG.tramos[0].r_int, 148); assert.equal(RG.n_total, 70); assert.equal(RG.largo_total, 7 * 110 + 14 * 120 + 14 * 155 + 7 * 120 + 28 * 120);
+  // rev. 9h (decisión del mandante 25-11-2026): L mínimo por elemento (múltiplo de 5, ≥ 30) con FU ≤ 1 para su corte horizontal (con e):
+  // A1 7 × 30 (vanos alternados), A2 14 × 30, A3 14 × 45, tramo 1 7 × 30 desde R148, tramo 2 14 × 55, tramo 3 14 × 115
+  assert.deepEqual(RG.almas.map((a) => [a.n, a.L, a.cada_k_vanos]), [[7, 30, 2], [14, 30, 1], [14, 45, 1]]);
+  assert.deepEqual(RG.tramos.map((q) => [q.n, q.L, q.cada_k_nervios]), [[7, 30, 2], [14, 55, 1], [14, 115, 1]]);
+  assert.equal(RG.tramos[0].r_int, 148); assert.equal(RG.tramos[0].L_ef, 23); assert.equal(RG.n_total, 70); assert.equal(RG.largo_total, 3850); assert.equal(RG.L_min, 30);
+  RG.almas.concat(RG.tramos).forEach((e) => { assert.ok(e.fu <= 1 + 1e-9, e.elemento + " FU ≤ 1"); assert.ok(e.L === 30 || (e.L_ef - 5 < e.F / (P0.t_web * RG.cap)), e.elemento + ": L − 5 ya no cumple (L mínimo)"); });
+  near(RG.demanda.q_pico, 662, 1, "flujo pico en los nervios con e (R800)"); near(RG.demanda.q_pico_sin_e, 425, 1, "sin e = fila del núcleo");
   // ninguna ranura de alma en un cruce con un nervio: al centro del vano, con el extremo libre de la cara del nervio ≥ z del filete J15
   RG.almas.forEach((a) => { near(a.a0_deg, 180 / P0.N_rib, 1e-12, a.elemento + " al centro del vano"); assert.ok(a.libre_nervio >= P0.w_web, a.elemento + " libre del nervio"); });
-  near(RG.almas[0].libre_nervio, (2 * Math.PI * 300 / 14 - 8) / 2 - 55, 1e-9, "A1: 8,3 mm");
+  near(RG.almas[0].libre_nervio, (2 * Math.PI * 300 / 14 - 8) / 2 - 15, 1e-9, "A1: 48,3 mm");
   RG.almas.concat(RG.tramos.filter((q) => q.m > 1)).forEach((q) => assert.ok(q.paso >= 2 * q.L - 1e-9, q.elemento + ": separación ≥ 2L"));
   assert.ok(RG.sep_transversal >= 4 * RG.ancho - 1e-9, "separación transversal ≥ 4·ancho");
   assert.deepEqual([CB.J17a.S, CB.J17a.E, CB.J17a.z_refuerzo, CB.J17b.z], [11, 8, 8, 10]); assert.ok(CB.J17b.holgura_tapa >= 2); assert.ok(CB.destijer_cubo >= CB.destijer_req);
   const A = BX.analyze(P0), rows = A.checks.filter((c) => c.bx && /J17[ab]|Ranuras( de cierre)? J18|Destijer de los nervios/.test(c.name) && !/J19|BX · Disco central/.test(c.name));   // rev. 9e: filas del disco central aparte
-  assert.equal(rows.length, 18); rows.forEach((c) => assert.ok(c.st === "ok" || c.st === "info" || (c.st === "warn" && /^BX · Ranuras de cierre J18/.test(c.name)), c.name + " FU " + c.fu));
-  const tr = rows.filter((c) => /^BX · Ranuras de cierre J18 .*traspaso del flujo de corte/.test(c.name)); assert.equal(tr.length, 6);
-  tr.forEach((c) => assert.ok(c.fu <= 0.95 + 1e-9, c.name + " FU " + c.fu));
-  near(Math.max(...tr.map((c) => c.fu)), 0.942, 2e-3, "A1 L = 110 gobierna"); assert.ok(tr.some((c) => /Alma A3 \(L = 155/.test(c.name) && Math.abs(c.fu - 0.936) < 2e-3), "A3 L = 155");
+  assert.equal(rows.length, 21); rows.forEach((c) => assert.ok(c.st === "ok" || c.st === "info" || (c.st === "warn" && /^BX · Ranuras de cierre J18/.test(c.name)), c.name + " FU " + c.fu));
+  const tr = rows.filter((c) => /^BX · Ranuras de cierre J18 .*traspaso del corte horizontal/.test(c.name)); assert.equal(tr.length, 6);
+  tr.forEach((c) => assert.ok(c.fu <= 1 + 1e-9, c.name + " FU " + c.fu));
+  near(Math.max(...tr.map((c) => c.fu)), 0.983, 2e-3, "tramo 3 L = 115 gobierna"); assert.ok(tr.some((c) => /Alma A3 \(L = 45/.test(c.name) && Math.abs(c.fu - 0.924) < 2e-3), "A3 L = 45");
   const pw = rows.find((c) => /caras de fusión con la plancha superior/.test(c.name)); assert.ok(pw && pw.fu < 0.5);
-  const inf = rows.filter((c) => c.kind === "info"); assert.equal(inf.length, 2); assert.ok(inf.some((c) => /NO es soldadura de ranura precalificada/.test(c.name) && Math.abs(c.fu - 0.5) < 1e-12), "ancho 15 < 30: informativa, FU = 15/30");
+  const inf = rows.filter((c) => c.kind === "info"); assert.equal(inf.length, 4); assert.ok(inf.some((c) => /contacto directo/.test(c.name)), "q_v por contacto"); assert.ok(inf.some((c) => /excentricidad e/.test(c.name)), "fila de e"); assert.ok(inf.some((c) => /NO es soldadura de ranura precalificada/.test(c.name) && Math.abs(c.fu - 0.5) < 1e-12), "ancho 15 < 30: informativa, FU = 15/30");
   assert.equal(A.checks.filter((c) => /Tiras de respaldo J18|ancho mínimo \(t \+ 8|ancho máximo \(2,25|largo máximo \(10/.test(c.name)).length, 0, "sin filas de las tiras ni de los límites de §J2.3b");
   // gancho aditivo juntasE_asiento: J-E3…J-E5 con el alto real de las paredes sobre el refuerzo (152), sin cambiar el núcleo sin P.__bx
   const Pc = BX.coreP(P0), Rc = TT.compute(Pc), F = TT.designDrive(Pc, Rc).pivotado.fabricacion.soporte_E, J = Object.fromEntries(F.juntas.map((j) => [j.id, j]));
@@ -505,8 +508,8 @@ test("BX rev. 9f: disco central torneado Ø280 (MES-016) a escuadra sobre la car
   assert.equal(DC.cubo.R_int, (P0.D_piv + 30) / 2); assert.equal(DC.cubo.margen, rh - (DC.R_inf + 6)); assert.equal(DC.cubo.margen, 9);
   assert.ok(DC.cubo.R_int < DC.R_inf && DC.junta.r_raiz <= rh);
   assert.ok(!("tiras" in DC)); assert.equal(DC.ranura_tramo1.libre_raiz, 148 - DC.junta.r_raiz); assert.ok(DC.ranura_tramo1.libre_raiz > 0);
-  // ranuras J18 del tramo 1 (rev. 9g: 15 × 120): empiezan dentro del bisel de J19; no hay aro, muesca ni ranuras en el disco
-  assert.equal(RG.tramos[0].L, 120); assert.equal(DC.ranura_tramo1.ancho, 15); assert.equal(DC.ranura_tramo1.r0, 148); assert.ok(DC.ranura_tramo1.r0 < DC.junta.r_sup && DC.ranura_tramo1.r0 > DC.R_inf);
+  // ranuras J18 del tramo 1 (rev. 9h: 15 × 30): empiezan dentro del bisel de J19; no hay aro, muesca ni ranuras en el disco
+  assert.equal(RG.tramos[0].L, 30); assert.equal(DC.ranura_tramo1.ancho, 15); assert.equal(DC.ranura_tramo1.r0, 148); assert.ok(DC.ranura_tramo1.r0 < DC.junta.r_sup && DC.ranura_tramo1.r0 > DC.R_inf);
   assert.equal(DC.ranura_tramo1.L_sobre_nervio, DC.ranura_tramo1.r1 - rh);
   ["aro", "muesca", "ranuras_en_disco", "n_ranuras_disco"].forEach((k) => assert.ok(!(k in DC), "sin " + k));
   assert.ok(DC.masa > 4 && DC.masa < 5); assert.match(DC.torneado.decision, /A CONFIRMAR POR EL MANDANTE/); assert.equal(DC.torneado.sm_lado, 1); assert.equal(DC.torneado.sm_fondo, 0.5);
@@ -546,8 +549,11 @@ test("Revisión del juego de planos BX (README_BX §13.8): una letra por emisió
   const RG_ = RV.find((r) => r.letra === "G");
   assert.deepEqual([RG_.fecha, RG_.rev_calculo], ["24-11-2026", "9f"], "emisión G: textos de la lámina del cubo (J17b en el disco, respaldo de J19), sin cambios de cálculo");
   assert.match(RG_.descripcion, /MES-011/); assert.match(RG_.descripcion, /J19/);
-  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["H", "24-11-2026", "9g"], "emisión H: J18 de 15 × L sin respaldo (no precalificada), sin tiras MES-015 ni J18r; ranuras dibujadas en MES-001");
-  assert.match(L.descripcion, /15 × L sin respaldo/); assert.match(L.descripcion, /MES-015/); assert.match(L.descripcion, /J18r/); assert.match(L.descripcion, /MES-001/);
+  const RH = RV.find((r) => r.letra === "H");
+  assert.deepEqual([RH.fecha, RH.rev_calculo], ["24-11-2026", "9g"], "emisión H: J18 de 15 × L sin respaldo (no precalificada), sin tiras MES-015 ni J18r");
+  assert.match(RH.descripcion, /15 × L sin respaldo/); assert.match(RH.descripcion, /MES-015/); assert.match(RH.descripcion, /J18r/); assert.match(RH.descripcion, /MES-001/);
+  assert.deepEqual([L.letra, L.fecha, L.rev_calculo], ["I", "25-11-2026", "9h"], "emisión I: J18 con el largo mínimo por elemento (FU ≤ 1, con e); vertical por contacto");
+  assert.match(L.descripcion, /J18/); assert.match(L.descripcion, /3850/); assert.match(L.descripcion, /contacto/);
   const X = BX.exportBX(P0, A0);
   assert.equal(X.rev_planos, L.letra); assert.deepEqual(X.revisiones, RV.map((r) => Object.assign({}, r)));
   // el generador (cad/) no lleva letras fijas: la letra sale de geom.REV (TT300-C: «C») o de bx.revisiones (geom.set_rev) en el juego BX

@@ -333,7 +333,7 @@ def prep_slot_tr(s, ox, oy, k, w, L, t, tw_, jid=None, plano=None, L_txt=None):
     for y_ in (yb + r - tw_ / 2, yb + r + tw_ / 2):
         s.line(P(xc - L / 2 - 4, y_), P(xc + L / 2 + 4, y_), "OCU")
     s.line(P(xc - L / 2 - 8, yb + r), P(xc + L / 2 + 8, yb + r), "EJE")
-    s.dim(P(xc - L / 2, yb + w), P(xc + L / 2, yb + w), 6, f"L = {fm(L, 0)}" + (f" ({L_txt}: tabla de MES-001)" if L_txt and L_txt != fm(L, 0) else ""), "h")
+    s.dim(P(xc - L / 2, yb + w), P(xc + L / 2, yb + w), 6, (f"L = {L_txt} (según el elemento: tabla de MES-001)" if L_txt and L_txt != fm(L, 0) else f"L = {fm(L, 0)}"), "h")
     s.text(f"extremos R{fm(r, 1)}", (P(xc + L / 2 + 10, 0)[0], P(0, yb + r)[1]), T_N, "MIDDLE_LEFT")
     if jid and plano is not None:
         a = P(xc + w * 0.25, y_p1)
@@ -528,7 +528,7 @@ def add_prep(p, name, w, title=None, lv=(1, 1, 1, 1), t1=None, t2=None, both=Tru
         sl_ = w["slot"]                         # rev. 9g (Rev. H): unión en T a través de ranura, sin respaldo, no precalificada
         wd, L, tp_ = float(sl_["w"]), float(sl_["L"]), float(sl_["t"])
         Wn, Hn = slot_tr_size(wd, L, tp_)
-        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 2, 2, 2), extra=(0, 0, 112, 0), mins=0.4, maxs=0.5, title=title or f"DETALLE {jid}: RANURA {fm(wd, 0)} × {fm(L, 0)} SIN RESPALDO (unión en T a través de ranura, no precalificada)",
+        return p.vs(name, [], "top", nat=(Wn, Hn), lv=(2, 2, 2, 2), extra=(0, 0, 112, 0), mins=0.4, maxs=0.5, title=title or f"DETALLE {jid}: RANURA {fm(wd, 0)} × {'L' if sl_.get('L_txt') and sl_.get('L_txt') != fm(L, 0) else fm(L, 0)} SIN RESPALDO (unión en T a través de ranura, no precalificada)",
                     custom=lambda s, ox, oy, k, pl: prep_slot_tr(s, ox, oy, k, wd, L, tp_, float(sl_.get("tw", 8.0)), jid, pl, L_txt=sl_.get("L_txt")))
     if w["groove"] and w["sym"] == "slot":
         sl_ = w.get("slot") or {}                # rev. 9c (BX): ranura según AISC 360-22 §J2.3b (ancho ≥ t + 8, extremos semicirculares) del núcleo BX
